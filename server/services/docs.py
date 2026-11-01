@@ -19,12 +19,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from models import (
     DocsAnchorAlias,
     DocsDraft,
-    DocsFollow,
+    NotifyFollow,
     DocsPageSeen,
     DocsLink,
     DocsPage,
     DocsTitleAlias,
     DocsVersion,
+    Member,
     Project,
     Ticket,
 )
@@ -765,17 +766,29 @@ async def followers(session: AsyncSession, project_id: str) -> dict[str, Any]:
         caller, who is not notified of their own publishes (names: at most 3, for the avatars).
     """
     await _project(session, project_id)
-    actor = activity.current_actor()
+    from services.notifications import person_key
+
+    me = person_key(activity.current_actor())
     rows = (
         await session.exec(
-            select(DocsFollow)
-            .where(DocsFollow.project_id == project_id)
-            .order_by(DocsFollow.created_at)  # type: ignore[arg-type]
+            select(NotifyFollow)
+            .where(
+                NotifyFollow.scope == "space",
+                NotifyFollow.scope_id == project_id,
+                NotifyFollow.level != "mute",
+            )
+            .order_by(NotifyFollow.created_at)  # type: ignore[arg-type]
         )
     ).all()
-    others = [r.follower for r in rows if r.follower != actor]
+    names = {
+        person_key(m.name): m.name
+        for m in (
+            await session.exec(select(Member).where(Member.project_id == project_id))
+        ).all()
+    }
+    others = [names.get(r.recipient, r.recipient) for r in rows if r.recipient != me]
     return {
-        "following": any(r.follower == actor for r in rows),
+        "following": any(r.recipient == me for r in rows),
         "count": len(others),
         "names": others[:3],
     }
@@ -794,20 +807,16 @@ async def set_following(
         The same payload as :func:`followers`.
     """
     await _project(session, project_id)
-    actor = activity.current_actor()
-    rows = (
-        await session.exec(
-            select(DocsFollow).where(
-                DocsFollow.project_id == project_id, DocsFollow.follower == actor
-            )
-        )
-    ).all()
-    if on and not rows:
-        session.add(DocsFollow(project_id=project_id, follower=actor))
-    elif not on:
-        for row in rows:
-            await session.delete(row)
-    await session.commit()
+    from services import notifications as centre
+
+    await centre.set_follow(
+        session,
+        centre.person_key(activity.current_actor()),
+        scope="space",
+        scope_id=project_id,
+        level="follow" if on else None,
+        project_id=project_id,
+    )
     return await followers(session, project_id)
 
 
@@ -966,7 +975,11 @@ async def _commit_version(
     if not commit:
         return {}
     await session.commit()
-    return await page_detail(session, page.id)
+    detail = await page_detail(session, page.id)
+    from services import notifications as centre
+
+    await centre.on_page_published(detail, note)
+    return detail
 
 
 async def _update_aliases(

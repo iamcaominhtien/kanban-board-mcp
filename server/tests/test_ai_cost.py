@@ -279,37 +279,34 @@ async def test_alerts_fire_once_per_threshold_a_day(env):
     await safety.check_budget_alerts(m["id"])
     alerts = (await c.get(f"/projects/{pid}/ai/alerts")).json()
     assert sorted(a["data"]["percent"] for a in alerts) == [50, 80, 100]
-    # budget alerts are non-urgent: held for the daily digest, not toasted
-    assert (await c.get(f"/projects/{pid}/ai/notifications")).json()["items"] == []
-    await c.patch(f"/projects/{pid}/ai/settings", json={"digest": "off"})
+    # nothing is held for a digest any more: 50% and 80% are updates, 100% needs you (the cap is reached)
+    rows = (await c.get("/notifications", params={"view": "page"})).json()["items"]
+    kinds = sorted((r["kind"], r["count"]) for r in rows if r["member_id"] == m["id"])
+    assert kinds == [("budget", 1), ("budget_warning", 2)]
     assert (await c.get(f"/ai/members/{m['id']}")).json()["status"][
         "code"
     ] == "over_budget"
 
 
-async def test_digest_releases_held_notifications_once(env, monkeypatch):
+async def test_quiet_safety_events_are_rows_when_they_happen_not_a_digest(env):
+    """The 09:00 AI safety digest is gone (#253): a quiet event is an Updates row at once, a blocked one Needs you."""
     c = env["c"]
     pid, _ = await _project(c)
-    await safety.notify(pid, "budget", "80%", "Reviewer used $4 of $5")
+    await safety.notify(
+        pid, "budget", "80%", "Reviewer used $4 of $5", data={"percent": 80}
+    )
     await safety.notify(pid, "blocked", "Blocked", "x")
-    assert (await c.get(f"/projects/{pid}/ai/notifications")).json()["items"] == []
-
-    class Noon(datetime):
-        @classmethod
-        def now(cls, tz=None):
-            return (
-                datetime(2026, 10, 28, 10, 0).astimezone()
-                if tz is None
-                else datetime(2026, 10, 28, 10, 0, tzinfo=tz)
-            )
-
-    monkeypatch.setattr(safety, "datetime", Noon)
-    monkeypatch.setattr(safety, "DIGEST_HOUR", 9)
-    assert await safety.release_digest(pid) == 2
-    assert await safety.release_digest(pid) == 0
     items = (await c.get(f"/projects/{pid}/ai/notifications")).json()["items"]
-    assert [i["event"] for i in items] == ["digest"] and "2" not in items[0]["title"]
-    assert "budget at 80% or cap reached" in items[0]["body"].lower()
+    assert sorted(i["event"] for i in items) == ["blocked", "budget"]
+    assert all("held" not in i for i in items)
+    panel = (
+        await c.get("/notifications", params={"view": "panel", "tab": "updates"})
+    ).json()
+    assert [r["kind"] for r in panel["items"]] == ["budget_warning"]
+    needs = (
+        await c.get("/notifications", params={"view": "panel", "tab": "needs"})
+    ).json()
+    assert [r["kind"] for r in needs["items"]] == ["blocked"]
 
 
 # --------------------------------------------------------------------------- usage dashboard

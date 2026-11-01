@@ -801,7 +801,6 @@ async def _housekeeping() -> None:
         await approvals.expire(session)
         projects = (await session.exec(select(AiProjectSettings))).all()
     for s in projects:
-        await safety.release_digest(s.project_id)
         await safety.check_key_reminders(s.project_id)
     await audit.prune()
 
@@ -2302,6 +2301,21 @@ async def _tell_restart(run: AiRun, entry: dict) -> None:
             recent.title = f"{run.ticket_id}: restarted {data['count']} times (memory)"
             session.add(recent)
             await session.commit()
+            from services import notifications as centre
+
+            # The notification centre merges restarts of one run into one row ("restarted N times")
+            await centre.emit(
+                "run_restarted",
+                project_id=run.project_id,
+                recipients=await centre.owners_and_admins(session, run.project_id),
+                title=recent.title,
+                body=recent.body,
+                target_kind="run",
+                target_id=run.id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                data={"count": data["count"]},
+            )
             return
     rss, limit = entry.get("rss_mb"), entry.get("limit_mb")
     await safety.notify(
@@ -2610,6 +2624,9 @@ async def _needs_input(run_id: str) -> None:
         ],
     )
     await _publish(force=True)
+    from services import notifications as centre
+
+    await centre.on_run_question(run_id)
 
 
 _ANSI = re.compile(r"\x1b?\[[0-9;]*m")
@@ -2708,6 +2725,10 @@ async def _end(
         target=run.ticket_id,
         detail={"reason": reason, "by": by},
     )
+    if not quiet:
+        from services import notifications as centre
+
+        await centre.on_run_ended(run.id)
     if quiet:
         if profile and profile.remove_after_run:
             from . import members as svc_members
@@ -3515,6 +3536,9 @@ async def set_feedback(
 async def mark_blocked_move(run_id: str, target: str) -> None:
     """The AI tried to move the ticket past its ceiling: remember it, so the board can tell the person."""
     await _append(run_id, blocked_move=target)
+    from services import notifications as centre
+
+    await centre.on_blocked_move(run_id, target)
     await _publish(force=True)
 
 

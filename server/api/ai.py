@@ -112,8 +112,6 @@ def _settings_dict(s) -> dict:
         "no_repeat_chain": s.no_repeat_chain,
         "docs_edits_ask": s.docs_edits_ask,
         "allowed_domains": loads(s.allowed_domains, []),
-        "notify": [{"event": k, **v} for k, v in safety.notify_prefs(s).items()],
-        "digest": s.digest,
         "key_reminder_days": s.key_reminder_days,
         "paused_cancelled": s.paused_cancelled,
         "paused_held": s.paused_held,
@@ -881,8 +879,6 @@ class SettingsBody(BaseModel):
     no_repeat_chain: Optional[bool] = None
     docs_edits_ask: Optional[bool] = None
     allowed_domains: Optional[list[str]] = None
-    notify: Optional[list[dict[str, Any]]] = None
-    digest: Optional[str] = None
     key_reminder_days: Optional[int] = None
     auto_trip: Optional[list[dict[str, Any]]] = (
         None  # [{key, on, count, minutes, factor}]
@@ -954,8 +950,6 @@ async def patch_settings(project_id: str, body: SettingsBody, session: Session) 
         raise HTTPException(
             status_code=422, detail="On expiry: skip the action or stop the run."
         )
-    if "digest" in data and data["digest"] not in safety.DIGESTS:
-        raise HTTPException(status_code=422, detail="Digest: off, daily or weekdays.")
     daily = data.get("board_daily_cap", settings.board_daily_cap)
     monthly = data.get("board_monthly_budget", settings.board_monthly_budget)
     if daily is not None and monthly is not None and monthly < daily:
@@ -1033,15 +1027,6 @@ async def patch_settings(project_id: str, body: SettingsBody, session: Session) 
                 detail="Retention: 30 days, 90 days, 1 year or forever.",
             )
         data["audit_retention_days"] = data["audit_retention_days"] or None
-    if "notify" in data:
-        prefs = {}
-        for item in data["notify"] or []:
-            if item.get("event") in safety.EVENTS:
-                prefs[item["event"]] = {
-                    "inapp": bool(item.get("inapp")),
-                    "desktop": bool(item.get("desktop")),
-                }
-        data["notify"] = json.dumps({**loads(settings.notify, {}), **prefs})
     old = _settings_dict(settings)
     for key, value in data.items():
         setattr(settings, key, value)

@@ -542,17 +542,6 @@ class DocsPageSeen(SQLModel, table=True):
     seen_at: str = Field(default_factory=_now_iso)
 
 
-class DocsFollow(SQLModel, table=True):
-    """Someone who follows a project's Docs space (gets a notification when a page is published)."""
-
-    __tablename__ = "docs_follow"
-
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    project_id: str = Field(foreign_key="project.id", index=True)
-    follower: str
-    created_at: str = Field(default_factory=_now_iso)
-
-
 class DocsLink(SQLModel, table=True):
     """Reference index: one row per [[page]] or ticket key in a published page."""
 
@@ -1405,8 +1394,6 @@ class AiProjectSettings(SQLModel, table=True):
         default="{}"
     )  # JSON delegation of approvals and answers to one AI (services/ai/autopilot.py)
     allowed_domains: str = Field(default='["github.com","developer.mozilla.org"]')
-    notify: str = Field(default="{}")  # JSON event -> {inapp, desktop}
-    digest: str = Field(default="daily")  # off | daily | weekdays
     alert_state: str = Field(
         default="{}"
     )  # JSON "member:percent" -> day of the last alert
@@ -1454,7 +1441,8 @@ class AiGrant(SQLModel, table=True):
 
 
 class AiNotification(SQLModel, table=True):
-    """An AI safety notification for the in-app toast and the desktop notification (table)."""
+    """The record of an AI safety event (budget alerts, the Safety screens). What a person is told is the notification
+    centre's: `safety.notify` also writes the event to the NotifyEvent log (table)."""
 
     __tablename__ = "ai_notification"
 
@@ -1472,9 +1460,117 @@ class AiNotification(SQLModel, table=True):
     urgent: bool = Field(default=True)
     inapp: bool = Field(default=True)
     desktop: bool = Field(default=False)
-    digest: bool = Field(default=False)  # held for the daily digest
     data: str = Field(default="{}")  # JSON extras, e.g. the percent of a budget alert
     created_at: str = Field(default_factory=_now_iso, index=True)
+
+
+# ---------------------------------------------------------------------------
+# Notifications (design/screens/notifications.md, docs/specs/notifications.md)
+# ---------------------------------------------------------------------------
+
+
+class NotifyEvent(SQLModel, table=True):
+    """The event log: one append-only row per thing that happened, with an increasing id (never reused, even after
+    retention deletes old rows). Notification rows are built from it, one per recipient (table)."""
+
+    __tablename__ = "notify_event"
+    __table_args__ = {"sqlite_autoincrement": True}
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    project_id: Optional[str] = Field(
+        default=None, index=True
+    )  # None: app-wide (an AI account)
+    kind: str = Field(index=True)  # services/notifications.py KINDS, or "resolve"
+    op: str = Field(default="new")  # new | resolve
+    needs: bool = Field(default=False)  # Needs you (may interrupt) or for information
+    target_kind: Optional[str] = Field(
+        default=None
+    )  # run | approval | account | ticket | page | thread | ...
+    target_id: Optional[str] = Field(default=None, index=True)
+    ticket_id: Optional[str] = Field(default=None)
+    page_id: Optional[str] = Field(default=None)
+    member_id: Optional[str] = Field(default=None)  # the AI member it is about
+    actor: Optional[str] = Field(default=None)  # who caused it
+    title: str = Field(default="")
+    body: str = Field(default="")
+    data: str = Field(default="{}")  # JSON facts
+    recipients: str = Field(
+        default="[]"
+    )  # JSON recipient keys the rows were written for
+    created_at: str = Field(default_factory=_now_iso, index=True)
+
+
+class Notification(SQLModel, table=True):
+    """One notification for one recipient (a person's key, or "ai:<member id>"), built from the log. Events of one
+    group (same kind and project inside 10 minutes, or the same request) are merged into one row (table)."""
+
+    __tablename__ = "notification"
+    __table_args__ = (Index("ix_notification_recipient_open", "recipient", "done_at"),)
+
+    id: str = Field(
+        default_factory=lambda: f"nt_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    recipient: str = Field(index=True)
+    event_id: int = Field(index=True)  # the first event of the row
+    last_event_id: int = Field(index=True)  # the newest event merged in
+    project_id: Optional[str] = Field(default=None, index=True)
+    kind: str = Field(index=True)
+    needs: bool = Field(default=False)
+    group_key: str = Field(index=True)
+    count: int = Field(default=1)
+    items: str = Field(
+        default="[]"
+    )  # JSON [{event_id, title, ticket_id, member_id, at}] of a grouped row
+    target_kind: Optional[str] = Field(default=None)
+    target_id: Optional[str] = Field(default=None, index=True)
+    ticket_id: Optional[str] = Field(default=None)
+    page_id: Optional[str] = Field(default=None)
+    member_id: Optional[str] = Field(default=None)
+    actor: Optional[str] = Field(default=None)
+    title: str = Field(default="")
+    body: str = Field(default="")
+    data: str = Field(default="{}")
+    inapp: bool = Field(
+        default=True
+    )  # False: quiet (not in the panel or the count, still on the page)
+    desktop: bool = Field(default=False)
+    read_at: Optional[str] = Field(default=None)
+    done_at: Optional[str] = Field(default=None)
+    done_reason: Optional[str] = Field(default=None)
+    done_by: Optional[str] = Field(default=None)
+    snoozed_until: Optional[str] = Field(default=None)
+    cleared_at: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso, index=True)
+    updated_at: str = Field(default_factory=_now_iso, index=True)
+
+
+class NotifyFollow(SQLModel, table=True):
+    """Following and muting, per recipient: a ticket, a Docs page, a Docs space, a project or an event kind (table).
+    A Docs space follow (scope "space", scope_id = project id) is what DocsFollow was."""
+
+    __tablename__ = "notify_follow"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    recipient: str = Field(index=True)
+    scope: str  # ticket | page | space | project | kind
+    scope_id: str = Field(index=True)  # ticket id, page id, project id, or the kind
+    project_id: Optional[str] = Field(
+        default=None, index=True
+    )  # a kind muted in one project only
+    level: str = Field(default="follow")  # follow | everything | mentions | mute
+    until: Optional[str] = Field(default=None)  # a mute for a while (UTC ISO)
+    label: str = Field(default="")  # what the Muted list shows
+    created_at: str = Field(default_factory=_now_iso)
+
+
+class NotifyPrefs(SQLModel, table=True):
+    """Settings › Notifications of one recipient (JSON); the row "*" holds the app-wide retention (table)."""
+
+    __tablename__ = "notify_prefs"
+
+    recipient: str = Field(primary_key=True)
+    prefs: str = Field(default="{}")
+    updated_at: str = Field(default_factory=_now_iso)
 
 
 class AiWorkspaceDefaults(SQLModel, table=True):

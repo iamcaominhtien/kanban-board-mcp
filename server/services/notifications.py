@@ -1,0 +1,2321 @@
+"""The notification centre (design/screens/notifications.md, docs/specs/notifications.md).
+
+One append-only event log (`NotifyEvent`, increasing integer ids) is the source. Each event is written as one
+`Notification` row per recipient: a person's key (a name, lower case; "user" for the board's own user) or
+"ai:<member id>" for an AI member. Read, done (and why), snoozed and cleared are kept per row.
+
+Two kinds of notification:
+- Needs you: the work cannot go on without a person. It may interrupt (toast, desktop) and it closes itself when the
+  thing it points at no longer needs a person (`reconcile`), wherever that happened.
+- For information: it only adds to the list. Same-kind events of one project inside 10 minutes are one row.
+
+"Off" means quiet, not unrecorded: every event is written; a switch or a mute only makes a row quiet (`inapp`
+False: not in the panel or the count, still on the All notifications page and in the day card). A Needs you row is
+never quiet.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import re
+from collections import deque
+from datetime import UTC, datetime, timedelta
+from typing import Any, Iterable
+
+from sqlalchemy import delete, func, or_
+from sqlmodel import col, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+import database
+import events as board_events
+from models import (
+    AiAccount,
+    AiApproval,
+    AiGrant,
+    AiMember,
+    AiProjectSettings,
+    AiRun,
+    AiSchedule,
+    DocsComment,
+    DocsCommentThread,
+    DocsPage,
+    Member,
+    Notification,
+    NotifyEvent,
+    NotifyFollow,
+    NotifyPrefs,
+    Project,
+    Ticket,
+)
+
+logger = logging.getLogger("kanban.notifications")
+
+TOPIC = "notifications"
+
+# kind: (label in Settings, Needs you, desktop by default, can be dismissed)
+KINDS: dict[str, tuple[str, bool, bool, bool]] = {
+    # Needs you: may interrupt. In app is locked on.
+    "question": ("A question from an AI", True, True, False),
+    "approval": ("An approval request", True, True, False),
+    "run_failed": ("A run failed or timed out", True, True, True),
+    "blocked": ("An AI was blocked by a permission", True, True, True),
+    "account_signed_out": ("An AI account signed out", True, True, False),
+    "mention": ("Someone mentioned you", True, True, True),
+    "run_stopped_memory": ("A run was stopped for memory", True, True, True),
+    "budget": ("Budget or cap reached", True, True, True),
+    "page_proposal": ("A page proposal from an AI", True, True, False),
+    "auto_trip": ("AI was paused (auto-trip or Pause all AI)", True, True, True),
+    "offline": ("An AI member went offline", True, False, True),
+    # For information: never interrupts.
+    "ai_finished": ("An AI finished work", False, False, False),
+    "schedule": ("A scheduled run finished or was skipped", False, False, False),
+    "page_published": ("A page was published", False, False, False),
+    "comment": ("A new comment in a thread you follow", False, False, False),
+    "run_restarted": ("A run was restarted for memory", False, False, False),
+    "run_cancelled": ("A run was cancelled", False, False, False),
+    "budget_warning": ("Budget passed a warning level", False, False, False),
+    "access_request": ("Someone asked for access to Docs", False, False, False),
+    "day_card": ("The day in one card", False, False, False),
+}
+
+# The order of the Settings table (L)
+NEEDS_KINDS = [k for k, v in KINDS.items() if v[1]]
+INFO_KINDS = [k for k, v in KINDS.items() if not v[1]]
+
+GROUP_WINDOW = timedelta(minutes=10)
+GROUP_NAMES_MAX = 20  # above this a grouped row says "20+"
+GROUP_ITEMS_KEPT = 50
+PANEL_DAYS = 30
+DEFAULT_RETENTION_DAYS = 90
+DEFAULT_PREFS: dict[str, Any] = {
+    "events": {},
+    "quiet": {"on": True, "start": "22:00", "end": "08:00"},
+    "dnd": True,
+    "sound": False,
+    "day_card": {"on": True, "time": "18:00", "days": [0, 1, 2, 3, 4]},
+}
+
+# What a recipient key looks like when it is the board's own user
+_SELF = {"", "user", "you", "me"}
+
+
+# ---------------------------------------------------------------------------
+# Small helpers
+# ---------------------------------------------------------------------------
+
+
+def now_iso() -> str:
+    """Current UTC time, ISO formatted."""
+    return datetime.now(UTC).isoformat()
+
+
+def _parse(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+def _loads(value: str | None, default):
+    if not value:
+        return default
+    try:
+        return json.loads(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def person_key(name: str | None) -> str:
+    """The recipient key of a person: the name in lower case, "user" for the board's own user."""
+    n = (name or "").strip().lower()
+    return "user" if n in _SELF else n
+
+
+def ai_key(member_id: str) -> str:
+    """The recipient key of an AI member."""
+    return f"ai:{member_id}"
+
+
+def is_needs(kind: str) -> bool:
+    """Whether a kind is Needs you."""
+    return KINDS.get(kind, ("", False, False, False))[1]
+
+
+def _local(dt: datetime) -> datetime:
+    return dt.astimezone()
+
+
+# ---------------------------------------------------------------------------
+# Delivery: "the log moved to id N"
+# ---------------------------------------------------------------------------
+
+_dirty: asyncio.Event | None = None  # made by start(), on the loop that runs it
+_pending: deque[dict] = (
+    deque()
+)  # events queued by synchronous callers (schedules), written by the loop
+_later: deque[tuple] = deque()  # (async function, argument) to run once the caller has committed
+
+
+def mark_dirty() -> None:
+    """Something changed on the board: check the open Needs you rows soon."""
+    if _dirty is not None:
+        _dirty.set()
+
+
+async def _announce(head: int | None) -> None:
+    """Tell every open window (and the desktop notifier) that the log or a row moved. The window asks for what it has
+    not seen, so a dropped message costs nothing."""
+    msg = json.dumps({"type": "invalidate", "topics": [TOPIC], "head": head or 0})
+    await board_events.publish(msg)
+
+
+async def head_id(session: AsyncSession) -> int:
+    """The newest id of the log (0 when empty)."""
+    return int((await session.exec(select(func.max(NotifyEvent.id)))).one() or 0)
+
+
+# ---------------------------------------------------------------------------
+# Who gets it
+# ---------------------------------------------------------------------------
+
+
+async def ai_names(session: AsyncSession, project_id: str | None) -> dict[str, str]:
+    """name (lower case) -> member id of the AI members of a project."""
+    if not project_id:
+        return {}
+    rows = (
+        await session.exec(
+            select(Member).where(Member.project_id == project_id, Member.kind == "ai")
+        )
+    ).all()
+    return {m.name.strip().lower(): m.id for m in rows}
+
+
+async def recipient_keys(
+    session: AsyncSession, project_id: str | None, names: Iterable[str | None]
+) -> list[str]:
+    """Recipient keys for names: an AI member's name becomes "ai:<id>", anyone else is a person."""
+    ais = await ai_names(session, project_id)
+    out: list[str] = []
+    for n in names:
+        if n is None:
+            continue
+        raw = n.strip()
+        if raw.startswith("ai:"):
+            key = raw
+        elif raw.lower() in ais:
+            key = ai_key(ais[raw.lower()])
+        else:
+            key = person_key(raw)
+        if key not in out:
+            out.append(key)
+    return out
+
+
+async def owners_and_admins(session: AsyncSession, project_id: str | None) -> list[str]:
+    """The board's own user, and the people who are owners or admins of the project (decision 2 on #253: they are
+    recipients of every AI safety event, as they saw every one before)."""
+    out = ["user"]
+    if not project_id:
+        return out
+    rows = (
+        await session.exec(
+            select(Member).where(
+                Member.project_id == project_id, Member.kind == "human"
+            )
+        )
+    ).all()
+    for m in rows:
+        if m.role in ("admin", "owner"):
+            k = person_key(m.name)
+            if k not in out:
+                out.append(k)
+    return out
+
+
+async def followers(
+    session: AsyncSession, scope: str, scope_id: str | None
+) -> list[str]:
+    """Recipients who follow a ticket, page or Docs space (not muted)."""
+    if not scope_id:
+        return []
+    rows = (
+        await session.exec(
+            select(NotifyFollow).where(
+                NotifyFollow.scope == scope,
+                NotifyFollow.scope_id == scope_id,
+                col(NotifyFollow.level).in_(["follow", "everything"]),
+            )
+        )
+    ).all()
+    return [r.recipient for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Settings › Notifications
+# ---------------------------------------------------------------------------
+
+
+async def get_prefs(session: AsyncSession, recipient: str) -> dict[str, Any]:
+    """A recipient's settings, with the defaults filled in."""
+    row = await session.get(NotifyPrefs, recipient)
+    mine = _loads(row.prefs, {}) if row else {}
+    out = json.loads(json.dumps(DEFAULT_PREFS))
+    for k, v in mine.items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k].update(v)
+        else:
+            out[k] = v
+    return out
+
+
+def event_switch(prefs: dict, kind: str) -> tuple[bool, bool]:
+    """(in app, desktop) for a kind. In app is locked on for Needs you."""
+    label, needs, desktop_default, _ = KINDS.get(kind, ("", False, False, False))
+    mine = prefs.get("events", {}).get(kind) or {}
+    inapp = True if needs else bool(mine.get("inapp", True))
+    desktop = bool(mine.get("desktop", desktop_default))
+    return inapp, desktop
+
+
+async def retention_days(session: AsyncSession) -> int:
+    """How long notifications and the log are kept (one app-wide setting)."""
+    row = await session.get(NotifyPrefs, "*")
+    days = _loads(row.prefs, {}).get("retention_days") if row else None
+    try:
+        return max(1, int(days)) if days else DEFAULT_RETENTION_DAYS
+    except (TypeError, ValueError):
+        return DEFAULT_RETENTION_DAYS
+
+
+async def _global(session: AsyncSession) -> dict:
+    row = await session.get(NotifyPrefs, "*")
+    return _loads(row.prefs, {}) if row else {}
+
+
+async def _set_global(session: AsyncSession, **values) -> None:
+    row = await session.get(NotifyPrefs, "*") or NotifyPrefs(recipient="*")
+    g = _loads(row.prefs, {})
+    g.update(values)
+    row.prefs = json.dumps(g)
+    row.updated_at = now_iso()
+    session.add(row)
+
+
+def _hhmm(value: str, fallback: str) -> str:
+    return (
+        value
+        if isinstance(value, str) and re.fullmatch(r"\d{2}:\d{2}", value)
+        else fallback
+    )
+
+
+async def settings_for(session: AsyncSession, recipient: str) -> dict[str, Any]:
+    """The Settings › Notifications page: the event table, quiet hours, sound, the day card, retention, Muted."""
+    prefs = await get_prefs(session, recipient)
+    events = []
+    for kind in NEEDS_KINDS + INFO_KINDS:
+        label, needs, _, _ = KINDS[kind]
+        inapp, desktop = event_switch(prefs, kind)
+        events.append(
+            {
+                "kind": kind,
+                "label": label,
+                "needs": needs,
+                "inapp": inapp,
+                "inapp_locked": needs,
+                "desktop": desktop,
+            }
+        )
+    return {
+        "events": events,
+        "quiet": prefs["quiet"],
+        "dnd": bool(prefs["dnd"]),
+        "sound": bool(prefs["sound"]),
+        "day_card": prefs["day_card"],
+        "retention_days": await retention_days(session),
+        "muted": await muted_list(session, recipient),
+    }
+
+
+async def update_settings(
+    session: AsyncSession, recipient: str, body: dict[str, Any]
+) -> dict[str, Any]:
+    """Save part of a recipient's settings. A Needs you kind's In app cannot be switched off (400)."""
+    row = await session.get(NotifyPrefs, recipient) or NotifyPrefs(recipient=recipient)
+    mine = _loads(row.prefs, {})
+    for item in body.get("events") or []:
+        kind = item.get("kind")
+        if kind not in KINDS:
+            raise ValueError(f"Unknown kind: {kind}")
+        cur = dict(mine.setdefault("events", {}).get(kind) or {})
+        if "inapp" in item and item["inapp"] is not None:
+            if KINDS[kind][1] and not item["inapp"]:
+                raise ValueError(
+                    "In app stays on for everything that needs you: an AI waiting on an answer with no row and no "
+                    "count would wait for ever. Only its desktop notification can be switched off."
+                )
+            cur["inapp"] = bool(item["inapp"])
+        if "desktop" in item and item["desktop"] is not None:
+            cur["desktop"] = bool(item["desktop"])
+        mine["events"][kind] = cur
+    if isinstance(body.get("quiet"), dict):
+        q = {**DEFAULT_PREFS["quiet"], **mine.get("quiet", {})}
+        if "on" in body["quiet"]:
+            q["on"] = bool(body["quiet"]["on"])
+        for k in ("start", "end"):
+            if k in body["quiet"]:
+                q[k] = _hhmm(body["quiet"][k], q[k])
+        mine["quiet"] = q
+    for k in ("dnd", "sound"):
+        if k in body and body[k] is not None:
+            mine[k] = bool(body[k])
+    if isinstance(body.get("day_card"), dict):
+        d = {**DEFAULT_PREFS["day_card"], **mine.get("day_card", {})}
+        src = body["day_card"]
+        if "on" in src:
+            d["on"] = bool(src["on"])
+        if "time" in src:
+            d["time"] = _hhmm(src["time"], d["time"])
+        if isinstance(src.get("days"), list):
+            d["days"] = sorted({int(x) for x in src["days"] if 0 <= int(x) <= 6})
+        mine["day_card"] = d
+    row.prefs = json.dumps(mine)
+    row.updated_at = now_iso()
+    session.add(row)
+    if body.get("retention_days") is not None:
+        days = int(body["retention_days"])
+        if not 1 <= days <= 3650:
+            raise ValueError("Keep notifications for 1 to 3650 days.")
+        await _set_global(session, retention_days=days)
+    await session.commit()
+    await _announce(await head_id(session))
+    return await settings_for(session, recipient)
+
+
+def in_quiet_hours(prefs: dict, at: datetime | None = None) -> bool:
+    """Whether quiet hours are on now for these settings."""
+    q = prefs.get("quiet") or {}
+    if not q.get("on"):
+        return False
+    t = _local(at or datetime.now(UTC)).strftime("%H:%M")
+    start, end = q.get("start", "22:00"), q.get("end", "08:00")
+    if start == end:
+        return False
+    return start <= t < end if start < end else (t >= start or t < end)
+
+
+# ---------------------------------------------------------------------------
+# Follow and mute
+# ---------------------------------------------------------------------------
+
+
+def _active(f: NotifyFollow, now: datetime) -> bool:
+    until = _parse(f.until)
+    return until is None or until > now
+
+
+async def _follows_of(session: AsyncSession, recipient: str) -> list[NotifyFollow]:
+    rows = (
+        await session.exec(
+            select(NotifyFollow).where(NotifyFollow.recipient == recipient)
+        )
+    ).all()
+    now = datetime.now(UTC)
+    return [f for f in rows if _active(f, now)]
+
+
+def _quiet_by_follows(
+    follows: list[NotifyFollow],
+    *,
+    kind: str,
+    project_id: str | None,
+    ticket_id: str | None,
+    page_id: str | None,
+) -> bool:
+    """Whether a mute makes this row quiet. Never for a Needs you row (it is addressed to the recipient)."""
+    if is_needs(kind):
+        return False
+    for f in follows:
+        if f.level not in ("mute", "mentions"):
+            continue
+        if (
+            f.scope == "kind"
+            and f.scope_id == kind
+            and (f.project_id is None or f.project_id == project_id)
+        ):
+            return True
+        if f.scope == "project" and f.scope_id == project_id:
+            return True
+        if f.scope == "ticket" and ticket_id and f.scope_id == ticket_id:
+            return True
+        if f.scope == "page" and page_id and f.scope_id == page_id:
+            return True
+    return False
+
+
+async def muted_list(session: AsyncSession, recipient: str) -> list[dict]:
+    """What the recipient muted, for the Muted list in Settings."""
+    rows = await _follows_of(session, recipient)
+    return [follow_to_dict(f) for f in rows if f.level in ("mute", "mentions")]
+
+
+def follow_to_dict(f: NotifyFollow) -> dict:
+    """A follow or mute for the API."""
+    return {
+        "id": f.id,
+        "scope": f.scope,
+        "scope_id": f.scope_id,
+        "project_id": f.project_id,
+        "level": f.level,
+        "until": f.until,
+        "label": f.label,
+        "created_at": f.created_at,
+    }
+
+
+async def follow_state(
+    session: AsyncSession, recipient: str, scope: str, scope_id: str
+) -> dict:
+    """What the bell on a ticket, page or space shows: following, everything, mentions only, muted, or nothing."""
+    rows = [
+        f
+        for f in await _follows_of(session, recipient)
+        if f.scope == scope and f.scope_id == scope_id
+    ]
+    f = rows[0] if rows else None
+    return {
+        "scope": scope,
+        "scope_id": scope_id,
+        "level": f.level if f else None,
+        "until": f.until if f else None,
+        "id": f.id if f else None,
+    }
+
+
+async def set_follow(
+    session: AsyncSession,
+    recipient: str,
+    *,
+    scope: str,
+    scope_id: str,
+    level: str | None,
+    project_id: str | None = None,
+    minutes: int | None = None,
+    label: str = "",
+) -> dict:
+    """Follow, mute or forget a ticket, page, Docs space, project or kind (level None forgets it)."""
+    if scope not in ("ticket", "page", "space", "project", "kind"):
+        raise ValueError("scope must be ticket, page, space, project or kind")
+    if level not in (None, "follow", "everything", "mentions", "mute"):
+        raise ValueError("level must be follow, everything, mentions or mute")
+    if scope == "kind" and scope_id not in KINDS:
+        raise ValueError(f"Unknown kind: {scope_id}")
+    stmt = select(NotifyFollow).where(
+        NotifyFollow.recipient == recipient,
+        NotifyFollow.scope == scope,
+        NotifyFollow.scope_id == scope_id,
+    )
+    if scope == "kind":
+        stmt = (
+            stmt.where(NotifyFollow.project_id == project_id)
+            if project_id
+            else stmt.where(col(NotifyFollow.project_id).is_(None))
+        )
+    for row in (await session.exec(stmt)).all():
+        await session.delete(row)
+    if level:
+        session.add(
+            NotifyFollow(
+                recipient=recipient,
+                scope=scope,
+                scope_id=scope_id,
+                project_id=project_id,
+                level=level,
+                until=(datetime.now(UTC) + timedelta(minutes=minutes)).isoformat()
+                if minutes
+                else None,
+                label=label
+                or await _follow_label(session, scope, scope_id, project_id),
+            )
+        )
+    await session.commit()
+    await _announce(await head_id(session))
+    return await follow_state(session, recipient, scope, scope_id)
+
+
+async def _follow_label(
+    session: AsyncSession, scope: str, scope_id: str, project_id: str | None
+) -> str:
+    if scope == "ticket":
+        return scope_id
+    if scope == "page":
+        page = await session.get(DocsPage, scope_id)
+        return page.title if page else "A Docs page"
+    if scope in ("project", "space"):
+        p = await session.get(Project, scope_id)
+        name = p.name if p else "A project"
+        return f"{name} · Docs space" if scope == "space" else name
+    label = KINDS[scope_id][0]
+    if project_id:
+        p = await session.get(Project, project_id)
+        if p:
+            return f"{label}, in {p.name}"
+    return label
+
+
+async def unmute(session: AsyncSession, recipient: str, follow_id: str) -> None:
+    """Remove one follow or mute of the recipient."""
+    row = await session.get(NotifyFollow, follow_id)
+    if row is None or row.recipient != recipient:
+        raise LookupError("Not found")
+    await session.delete(row)
+    await session.commit()
+    await _announce(await head_id(session))
+
+
+# ---------------------------------------------------------------------------
+# Writing: the log, then one row per recipient
+# ---------------------------------------------------------------------------
+
+
+def _group_key(
+    kind: str,
+    project_id: str | None,
+    target_kind: str | None,
+    target_id: str | None,
+    ticket_id: str | None,
+) -> str:
+    if is_needs(kind):
+        # Needs you items group only when they are the same request (a question asked again); failures of one
+        # ticket are one row, as Retry answers them all
+        if kind in ("run_failed", "run_stopped_memory") and ticket_id:
+            return f"{kind}:ticket:{ticket_id}"
+        return f"{kind}:{target_kind or '-'}:{target_id or '-'}"
+    if kind == "run_restarted" and target_id:
+        return (
+            f"{kind}:{target_id}"  # several restarts of one run in minutes are one row
+        )
+    return f"{kind}:{project_id or '-'}"
+
+
+async def emit(
+    kind: str,
+    *,
+    project_id: str | None,
+    recipients: Iterable[str],
+    title: str,
+    body: str = "",
+    target_kind: str | None = None,
+    target_id: str | None = None,
+    ticket_id: str | None = None,
+    page_id: str | None = None,
+    member_id: str | None = None,
+    actor: str | None = None,
+    data: dict | None = None,
+    session: AsyncSession | None = None,
+) -> int | None:
+    """Append an event to the log and write (or merge into) one row per recipient. Returns the event id.
+
+    The person who caused an information event is not told about it. Every event is recorded, even when nobody
+    is left to tell (the day card and a later `wait` read the log)."""
+    if kind not in KINDS:
+        raise ValueError(f"Unknown notification kind: {kind}")
+    if session is None:
+        async with database.async_session() as s:
+            return await emit(
+                kind,
+                project_id=project_id,
+                recipients=recipients,
+                title=title,
+                body=body,
+                target_kind=target_kind,
+                target_id=target_id,
+                ticket_id=ticket_id,
+                page_id=page_id,
+                member_id=member_id,
+                actor=actor,
+                data=data,
+                session=s,
+            )
+    needs = is_needs(kind)
+    keys: list[str] = []
+    for r in recipients:
+        if r and r not in keys:
+            keys.append(r)
+    if actor and not needs:
+        me = person_key(actor)
+        keys = [k for k in keys if k != me]
+    ev = NotifyEvent(
+        project_id=project_id,
+        kind=kind,
+        op="new",
+        needs=needs,
+        target_kind=target_kind,
+        target_id=target_id,
+        ticket_id=ticket_id,
+        page_id=page_id,
+        member_id=member_id,
+        actor=actor,
+        title=title[:300],
+        body=(body or "")[:2000],
+        data=json.dumps(data or {}),
+        recipients=json.dumps(keys),
+    )
+    session.add(ev)
+    await session.flush()
+    group_key = _group_key(kind, project_id, target_kind, target_id, ticket_id)
+    now = datetime.now(UTC)
+    item = {
+        "event_id": ev.id,
+        "title": ev.title,
+        "body": ev.body[:200],
+        "ticket_id": ticket_id,
+        "member_id": member_id,
+        "actor": actor,
+        "at": ev.created_at,
+    }
+    for key in keys:
+        prefs = await get_prefs(session, key)
+        inapp, desktop = event_switch(prefs, kind)
+        follows = await _follows_of(session, key)
+        quiet = _quiet_by_follows(
+            follows,
+            kind=kind,
+            project_id=project_id,
+            ticket_id=ticket_id,
+            page_id=page_id,
+        )
+        open_rows = (
+            await session.exec(
+                select(Notification).where(
+                    Notification.recipient == key,
+                    Notification.group_key == group_key,
+                    col(Notification.done_at).is_(None),
+                    col(Notification.cleared_at).is_(None),
+                )
+            )
+        ).all()
+        row = None
+        for r in open_rows:
+            first = _parse(r.created_at)
+            if needs or (first and now - first <= GROUP_WINDOW):
+                row = r
+                break
+        if row is not None and kind != "day_card":
+            items = _loads(row.items, [])
+            items.append(item)
+            row.items = json.dumps(items[-GROUP_ITEMS_KEPT:])
+            row.count += 1
+            row.last_event_id = ev.id
+            row.read_at = None
+            row.updated_at = now.isoformat()
+            row.snoozed_until = None if needs else row.snoozed_until
+            if needs:
+                if kind == "run_failed":
+                    row.title, row.body = ev.title, ev.body
+                    row.target_kind, row.target_id = target_kind, target_id
+            else:
+                row.title, row.body = (
+                    _group_title(kind, items, row.count),
+                    _group_body(kind, items),
+                )
+                row.data = json.dumps({**_loads(row.data, {}), **(data or {})})
+            session.add(row)
+            continue
+        session.add(
+            Notification(
+                recipient=key,
+                event_id=ev.id,
+                last_event_id=ev.id,
+                project_id=project_id,
+                kind=kind,
+                needs=needs,
+                group_key=group_key,
+                items=json.dumps([item]),
+                target_kind=target_kind,
+                target_id=target_id,
+                ticket_id=ticket_id,
+                page_id=page_id,
+                member_id=member_id,
+                actor=actor,
+                title=ev.title,
+                body=ev.body,
+                data=ev.data,
+                inapp=inapp and not quiet,
+                desktop=desktop and not quiet,
+                created_at=ev.created_at,
+                updated_at=ev.created_at,
+            )
+        )
+    await session.commit()
+    await _announce(ev.id)
+    return ev.id
+
+
+def enqueue(kind: str, **fields) -> None:
+    """Record an event from synchronous code (the schedules' own feed); the loop writes it within a second."""
+    _pending.append({"kind": kind, **fields})
+    mark_dirty()
+
+
+async def flush_pending() -> int:
+    """Write the events queued by synchronous callers."""
+    n = 0
+    while _later:
+        fn, arg = _later.popleft()
+        await fn(arg)
+        n += 1
+    while _pending:
+        item = _pending.popleft()
+        kind = item.pop("kind")
+        names = item.pop("names", None)
+        try:
+            if names is not None:
+                async with database.async_session() as s:
+                    item["recipients"] = await recipient_keys(
+                        s, item.get("project_id"), names
+                    )
+            await emit(kind, **item)
+            n += 1
+        except Exception:  # noqa: BLE001 - a notification never breaks the feature that sent it
+            logger.exception("Could not record a %s notification", kind)
+    return n
+
+
+_GROUP_TITLES = {
+    "ai_finished": "{n} AI finished work",
+    "schedule": "{n} scheduled runs ended",
+    "page_published": "{n} pages were published",
+    "comment": "{n} new comments in threads you follow",
+    "run_cancelled": "{n} runs were cancelled",
+    "budget_warning": "{n} budget warnings",
+    "access_request": "{n} people asked for access to Docs",
+}
+
+
+def _group_title(kind: str, items: list[dict], count: int) -> str:
+    if kind == "run_restarted":
+        tid = items[-1].get("ticket_id") or "A run"
+        return f"{tid}: restarted {count} times (memory)"
+    n = "20+" if count > GROUP_NAMES_MAX else str(count)
+    return _GROUP_TITLES.get(kind, "{n} updates").format(n=n)
+
+
+def _group_body(kind: str, items: list[dict]) -> str:
+    if len(items) > GROUP_NAMES_MAX:
+        return f"{len(items)} in 10 minutes"
+    names: list[str] = []
+    for i in items:
+        who = i.get("actor") or ""
+        if who and who not in names:
+            names.append(who)
+    tickets = sorted(
+        {i["ticket_id"] for i in items if i.get("ticket_id")}, key=_ticket_order
+    )
+    parts = []
+    if names:
+        shown = names[:4]
+        more = len(names) - len(shown)
+        parts.append(", ".join(shown) + (f" and {more} more" if more > 0 else ""))
+    if tickets:
+        parts.append(
+            tickets[0] if len(tickets) == 1 else f"{tickets[0]} to {tickets[-1]}"
+        )
+    return " · ".join(parts)
+
+
+def _ticket_order(t: str):
+    m = re.match(r"([A-Za-z]+)-(\d+)$", t)
+    return (m.group(1), int(m.group(2))) if m else (t, 0)
+
+
+# ---------------------------------------------------------------------------
+# Resolving: a Needs you row closes itself
+# ---------------------------------------------------------------------------
+
+
+async def _resolve_rows(
+    session: AsyncSession,
+    rows: list[Notification],
+    reason: str,
+    by: str | None,
+    *,
+    gone: bool = False,
+) -> int | None:
+    """Mark rows done with why, and write one resolve event per target to the log."""
+    if not rows:
+        return None
+    at = now_iso()
+    targets: dict[tuple, list[str]] = {}
+    for r in rows:
+        r.done_at = at
+        r.done_reason = reason
+        r.done_by = by
+        r.snoozed_until = None
+        if gone:
+            r.data = json.dumps({**_loads(r.data, {}), "gone": True})
+        session.add(r)
+        targets.setdefault(
+            (r.kind, r.target_kind, r.target_id, r.project_id, r.ticket_id), []
+        ).append(r.recipient)
+    last = None
+    for (kind, tk, tid, pid, ticket), keys in targets.items():
+        ev = NotifyEvent(
+            project_id=pid,
+            kind=kind,
+            op="resolve",
+            needs=True,
+            target_kind=tk,
+            target_id=tid,
+            ticket_id=ticket,
+            actor=by,
+            title=reason,
+            recipients=json.dumps(sorted(set(keys))),
+            data=json.dumps({"gone": gone}),
+        )
+        session.add(ev)
+        await session.flush()
+        last = ev.id
+    await session.commit()
+    await _announce(last)
+    return last
+
+
+async def resolve_target(
+    target_kind: str,
+    target_id: str,
+    reason: str,
+    *,
+    by: str | None = None,
+    kinds: Iterable[str] | None = None,
+) -> int:
+    """Close every open Needs you row that points at this thing (for every recipient)."""
+    async with database.async_session() as session:
+        stmt = select(Notification).where(
+            Notification.target_kind == target_kind,
+            Notification.target_id == target_id,
+            Notification.needs == True,  # noqa: E712
+            col(Notification.done_at).is_(None),
+        )
+        if kinds:
+            stmt = stmt.where(col(Notification.kind).in_(list(kinds)))
+        rows = list((await session.exec(stmt)).all())
+        await _resolve_rows(session, rows, reason, by)
+        return len(rows)
+
+
+_VIA = {
+    "mcp": " over MCP",
+    "ticket": " in the ticket",
+    "ai_team": " in AI Team",
+    "notification": " from the notification",
+    "toast": " from the notification",
+}
+
+
+async def _why_closed(
+    session: AsyncSession, r: Notification
+) -> tuple[str, str | None, bool] | None:
+    """Why an open Needs you row no longer needs anyone: (reason with {who}, by, gone), or None while it still does."""
+    ticket = None
+    if r.ticket_id:
+        ticket = await session.get(Ticket, r.ticket_id)
+        if ticket is None:
+            return f"{r.ticket_id} was deleted, so this cannot be answered.", None, True
+    if r.target_kind == "run" and r.target_id:
+        run = await session.get(AiRun, r.target_id)
+        if run is None:
+            return "The run is gone.", None, True
+        if r.kind == "question":
+            if run.state == "needs_input":
+                return None
+            q = _loads(run.question, {}) or {}
+            if q.get("answered_at"):
+                where = _VIA.get(q.get("answered_via") or "", " in the ticket")
+                return "{who} answered" + where, q.get("answered_by"), False
+            return (
+                f"The run ended ({run.state.replace('_', ' ')}).",
+                run.ended_by,
+                False,
+            )
+    if r.kind in ("run_failed", "run_stopped_memory") and r.ticket_id:
+        # Retry answers every failure of the ticket: a run started after the latest one closes the row
+        newer = (
+            await session.exec(
+                select(AiRun)
+                .where(
+                    AiRun.ticket_id == r.ticket_id,
+                    col(AiRun.queued_at) > r.updated_at,
+                )
+                .order_by(col(AiRun.queued_at))
+            )
+        ).first()
+        if newer is not None:
+            return (
+                f"{{who}} retried: run #{newer.number} started",
+                newer.started_by,
+                False,
+            )
+        return None
+    if r.target_kind == "approval" and r.target_id:
+        a = await session.get(AiApproval, r.target_id)
+        if a is None:
+            return "The request is gone.", None, True
+        if a.status == "pending":
+            return None
+        verb = {
+            "approved": "{who} approved it",
+            "denied": "{who} denied it",
+            "expired": "It expired",
+            "failed": "It was approved but could not be applied",
+            "run_ended": "The run ended before a decision",
+        }.get(a.status, f"It was {a.status}")
+        return verb, a.decided_by, False
+    if r.target_kind == "account" and r.target_id:
+        acc = await session.get(AiAccount, r.target_id)
+        if acc is None:
+            return "The account was removed.", None, True
+        if acc.status == "needs_sign_in":
+            return None
+        return "The account signed in again", None, False
+    if r.target_kind == "thread" and r.target_id:
+        thread = await session.get(DocsCommentThread, r.target_id)
+        if thread is None:
+            return "The thread is gone.", None, True
+        if r.recipient.startswith("ai:"):
+            return None
+        replies = (
+            await session.exec(
+                select(DocsComment).where(
+                    DocsComment.thread_id == r.target_id,
+                    col(DocsComment.created_at) > r.created_at,
+                )
+            )
+        ).all()
+        if any(person_key(c.author) == r.recipient for c in replies):
+            return "{who} replied", r.recipient, False
+        return None
+    if r.kind == "budget":
+        day = _local(_parse(r.created_at) or datetime.now(UTC)).date()
+        if day != _local(datetime.now(UTC)).date():
+            return "The day rolled over", None, False
+        if r.member_id:
+            raised = (
+                await session.exec(
+                    select(AiGrant).where(
+                        AiGrant.kind == "cap_raise",
+                        AiGrant.member_id == r.member_id,
+                        col(AiGrant.created_at) > r.created_at,
+                    )
+                )
+            ).first()
+            if raised is not None:
+                return "{who} raised the cap", raised.created_by, False
+        return None
+    if r.kind == "auto_trip" and r.project_id and r.target_kind is None:
+        s = await session.get(AiProjectSettings, r.project_id)
+        if s is not None and not s.paused_all:
+            return "AI was resumed", None, False
+        return None
+    if r.kind == "auto_trip" and r.target_kind == "member" and r.target_id:
+        profile = await session.get(AiMember, r.target_id)
+        if profile is None:
+            return "The AI member was removed.", None, True
+        if not profile.paused:
+            return "The AI member was resumed", None, False
+    return None
+
+
+async def reconcile() -> int:
+    """Close every open Needs you row whose thing no longer needs a person, and note AI accounts that signed out.
+    Cheap: it reads only open Needs you rows. Returns how many rows closed."""
+    closed = 0
+    await flush_pending()
+    async with database.async_session() as session:
+        await _watch_accounts(session)
+        rows = (
+            await session.exec(
+                select(Notification).where(
+                    Notification.needs == True,  # noqa: E712
+                    col(Notification.done_at).is_(None),
+                )
+            )
+        ).all()
+        groups: dict[tuple, list[Notification]] = {}
+        for r in rows:
+            groups.setdefault(
+                (r.kind, r.target_kind, r.target_id, r.ticket_id), []
+            ).append(r)
+        for (_, _, _, _), same in groups.items():
+            try:
+                why = await _why_closed(session, same[0])
+            except Exception:  # noqa: BLE001
+                logger.exception("Could not check notification %s", same[0].id)
+                continue
+            if why is None:
+                continue
+            reason, by, gone = why
+            if gone:
+                # The row says so and offers only Dismiss; it is not closed quietly
+                changed = False
+                for r in same:
+                    d = _loads(r.data, {})
+                    if not d.get("gone"):
+                        d["gone"] = True
+                        d["gone_reason"] = reason
+                        r.data = json.dumps(d)
+                        r.updated_at = now_iso()
+                        session.add(r)
+                        changed = True
+                if changed:
+                    await session.commit()
+                    await _announce(await head_id(session))
+                continue
+            await _resolve_rows(session, list(same), reason, by)
+            closed += len(same)
+    return closed
+
+
+async def _watch_accounts(session: AsyncSession) -> None:
+    """One Needs you notification per AI account that was found signed out (not per member on it)."""
+    rows = (
+        await session.exec(
+            select(AiAccount).where(
+                AiAccount.status == "needs_sign_in",
+                col(AiAccount.signed_out_at).is_not(None),
+            )
+        )
+    ).all()
+    for acc in rows:
+        seen = (
+            await session.exec(
+                select(NotifyEvent).where(
+                    NotifyEvent.kind == "account_signed_out",
+                    NotifyEvent.target_id == acc.id,
+                    NotifyEvent.op == "new",
+                    col(NotifyEvent.created_at) >= (acc.signed_out_at or ""),
+                )
+            )
+        ).first()
+        if seen is not None:
+            continue
+        on = (
+            await session.exec(select(AiMember).where(AiMember.account_id == acc.id))
+        ).all()
+        projects = sorted({p.project_id for p in on})
+        recipients = ["user"]
+        for pid in projects:
+            for k in await owners_and_admins(session, pid):
+                if k not in recipients:
+                    recipients.append(k)
+        n = len(on)
+        await emit(
+            "account_signed_out",
+            project_id=projects[0] if len(projects) == 1 else None,
+            recipients=recipients,
+            title=f"{acc.name} is signed out",
+            body=(
+                f"{n} AI member{'' if n == 1 else 's'} on this account stopped. Their queued runs are held."
+                if n
+                else "No AI member uses it right now."
+            ),
+            target_kind="account",
+            target_id=acc.id,
+            data={"members": n, "how": acc.signed_out_how},
+            session=session,
+        )
+
+
+# ---------------------------------------------------------------------------
+# What the features write (the six notifiers of the app moved here, to the server)
+# ---------------------------------------------------------------------------
+
+
+async def _run_people(session: AsyncSession, run: AiRun) -> list[str]:
+    """Who hears about a run: the person it acts for, the ticket's followers and its assignee; when it was started
+    by an AI (a chain), the owners and admins too, so a person always hears of it."""
+    keys = await recipient_keys(session, run.project_id, [run.started_by])
+    ticket = await session.get(Ticket, run.ticket_id)
+    if ticket is not None and ticket.assignee:
+        m = await session.get(Member, ticket.assignee)
+        if m is not None and m.kind == "human":
+            keys += [person_key(m.name)]
+    keys += await followers(session, "ticket", run.ticket_id)
+    if not any(not k.startswith("ai:") for k in keys):
+        keys += await owners_and_admins(session, run.project_id)
+    out: list[str] = []
+    for k in keys:
+        if k not in out:
+            out.append(k)
+    return out
+
+
+async def on_run_question(run_id: str) -> None:
+    """An AI asked and its run paused: a question for the person it asked (Needs you)."""
+    try:
+        async with database.async_session() as session:
+            run = await session.get(AiRun, run_id)
+            if run is None:
+                return
+            q = _loads(run.question, {}) or {}
+            member = await session.get(Member, run.member_id)
+            name = member.name if member else "An AI member"
+            keys = await recipient_keys(
+                session, run.project_id, [q.get("to"), run.started_by]
+            )
+            if not any(not k.startswith("ai:") for k in keys):
+                keys += await owners_and_admins(session, run.project_id)
+            await emit(
+                "question",
+                project_id=run.project_id,
+                recipients=keys,
+                title=f"{name} asks a question",
+                body=f"“{(q.get('text') or '').strip()[:400]}”",
+                target_kind="run",
+                target_id=run.id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                actor=name,
+                data={
+                    "to": q.get("to"),
+                    "options": q.get("options") or [],
+                    "run_number": run.number,
+                },
+                session=session,
+            )
+    except Exception:  # noqa: BLE001 - a notification never breaks a run
+        logger.exception("Could not write the question notification of %s", run_id)
+
+
+async def on_run_ended(run_id: str) -> None:
+    """A run ended: finished work (for information, grouped), failed or timed out (Needs you), or cancelled
+    because its ticket was archived (for information). A scheduled run is told by its schedule instead."""
+    try:
+        async with database.async_session() as session:
+            run = await session.get(AiRun, run_id)
+            if run is None:
+                return
+            member = await session.get(Member, run.member_id)
+            name = member.name if member else "An AI member"
+            keys = await _run_people(session, run)
+            report = _loads(run.report, {}) or {}
+            back = _loads(run.report_back, {}) or {}
+            common = dict(
+                project_id=run.project_id,
+                target_kind="run",
+                target_id=run.id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                actor=name,
+                session=session,
+            )
+            facts = {
+                "run_number": run.number,
+                "state": run.state,
+                "cost_usd": run.cost_usd,
+            }
+            if run.state == "finished" and run.mode == "work":
+                if run.trigger == "schedule":
+                    return
+                if back.get("member_id"):
+                    keys = [
+                        *keys,
+                        ai_key(back["member_id"]),
+                    ]  # an AI waiting on this run hears of it
+                summary = (
+                    (report.get("summary") or run.summary or "").strip().splitlines()
+                )
+                await emit(
+                    "ai_finished",
+                    recipients=keys,
+                    title=f"{name} finished {run.ticket_id}",
+                    body=(
+                        summary[0][:200] if summary else "AI summary ready for review."
+                    ),
+                    data=facts,
+                    **common,
+                )
+            elif run.state in ("failed", "timed_out") and run.mode == "work":
+                if run.stop_code == "memory":
+                    return  # "stopped for memory" was written by the safety event
+                verb = "failed" if run.state == "failed" else "timed out"
+                await emit(
+                    "run_failed",
+                    recipients=keys,
+                    title=f"Run #{run.number} on {run.ticket_id} {verb}",
+                    body=(run.ended_reason or "")[:400],
+                    data=facts,
+                    **common,
+                )
+            elif run.state == "cancelled" and run.stop_code == "archive":
+                await emit(
+                    "run_cancelled",
+                    recipients=keys,
+                    title=f"{run.ticket_id} was archived"
+                    + (f" by {run.ended_by}" if run.ended_by else ""),
+                    body=f"Run #{run.number} was cancelled. Files stay on the branch.",
+                    data=facts,
+                    **common,
+                )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the end notification of %s", run_id)
+
+
+async def on_blocked_move(run_id: str, target: str) -> None:
+    """An AI tried to move a ticket past its permission (Needs you: change the permission, or dismiss)."""
+    try:
+        async with database.async_session() as session:
+            run = await session.get(AiRun, run_id)
+            if run is None:
+                return
+            member = await session.get(Member, run.member_id)
+            name = member.name if member else "An AI member"
+            label = (
+                "Done" if target == "done" else target.replace("-", " ").capitalize()
+            )
+            await emit(
+                "blocked",
+                project_id=run.project_id,
+                recipients=await _run_people(session, run),
+                title=f"{name} can’t move {run.ticket_id} to {label}",
+                body="Its permission stops before that. The ticket stays where it is.",
+                target_kind="ticket",
+                target_id=run.ticket_id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                actor=name,
+                data={"to": target, "run_id": run.id},
+                session=session,
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the blocked-move notification of %s", run_id)
+
+
+async def on_page_published(page: dict[str, Any], note: str | None = None) -> None:
+    """A page was published: for the people who follow its space or the page (not the author)."""
+    try:
+        async with database.async_session() as session:
+            keys = await followers(session, "space", page.get("project_id"))
+            keys += await followers(session, "page", page.get("id"))
+            author = page.get("updated_by") or "user"
+            await emit(
+                "page_published",
+                project_id=page.get("project_id"),
+                recipients=keys,
+                title=f"{author} published v{page.get('version')} of {page.get('title')}",
+                body=(note or "").strip()[:300],
+                target_kind="page",
+                target_id=page.get("id"),
+                page_id=page.get("id"),
+                actor=author,
+                data={"version": page.get("version"), "path": page.get("path")},
+                session=session,
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the publish notification")
+
+
+def comment_event(e: Any) -> None:
+    """Called where a Docs comment event is added (before its commit): told within a second, by the loop."""
+    fields = {
+        "project_id": e.project_id,
+        "page_id": e.page_id,
+        "thread_id": e.thread_id,
+        "comment_id": e.comment_id,
+        "kind": e.kind,
+        "actor": e.actor,
+        "mentioned": e.mentioned,
+        "recipients": e.recipients,
+        "page_title": e.page_title,
+        "snippet": e.snippet,
+    }
+    _later.append((on_comment_event, fields))
+    mark_dirty()
+
+
+async def on_comment_event(fields: dict) -> None:
+    """A Docs comment event: a mention is Needs you (replying or Dismiss closes it); a reply in a thread you follow
+    and an access request are for information."""
+    from types import SimpleNamespace
+
+    try:
+        e = SimpleNamespace(**fields)
+        async with database.async_session() as session:
+            names = _loads(e.recipients, [])
+            mentioned = {person_key(n) for n in _loads(e.mentioned, [])}
+            who = "Someone" if person_key(e.actor) == "user" else e.actor
+            keys = await recipient_keys(session, e.project_id, names)
+            for key in keys:
+                if e.kind == "access_request":
+                    kind, title = "access_request", f"{who} asked for access to Docs"
+                elif key in mentioned:
+                    kind, title = "mention", f"{who} mentioned you"
+                elif e.kind in ("resolved", "reopened"):
+                    kind = "comment"
+                    title = f"{who} {e.kind} a thread on {e.page_title}"
+                else:
+                    kind, title = "comment", "New reply in a thread you follow"
+                await emit(
+                    kind,
+                    project_id=e.project_id,
+                    recipients=[key],
+                    title=title,
+                    body=(
+                        f"{e.actor}: “{e.snippet}”"
+                        if e.snippet and kind == "comment"
+                        else f"“{e.snippet}”"
+                        if e.snippet
+                        else ""
+                    ),
+                    target_kind="thread" if e.thread_id else None,
+                    target_id=e.thread_id,
+                    page_id=e.page_id,
+                    actor=e.actor,
+                    data={
+                        "page_title": e.page_title,
+                        "comment_id": e.comment_id,
+                        "event": e.kind,
+                    },
+                    session=session,
+                )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write a comment notification")
+
+
+# ---------------------------------------------------------------------------
+# Reading
+# ---------------------------------------------------------------------------
+
+
+def _actions(r: Notification, gone: bool) -> list[dict]:
+    if r.done_at:
+        return []
+    if gone:
+        return [{"id": "dismiss", "label": "Dismiss"}]
+    k = r.kind
+    if k == "question":
+        return [
+            {"id": "answer", "label": "Answer"},
+            {"id": "open_ticket", "label": "Open ticket"},
+        ]
+    if k == "approval":
+        return [
+            {"id": "approve", "label": "Approve"},
+            {"id": "deny", "label": "Deny"},
+            {"id": "review", "label": "Review"},
+        ]
+    if k == "page_proposal":
+        return [{"id": "review", "label": "Review"}]
+    if k in ("run_failed", "run_stopped_memory"):
+        return [
+            {"id": "retry", "label": "Retry"},
+            {"id": "open_run_log", "label": "Open run log"},
+        ]
+    if k == "account_signed_out":
+        return [{"id": "sign_in", "label": "Sign in again"}]
+    if k == "mention":
+        return [{"id": "reply", "label": "Reply"}, {"id": "open", "label": "Open"}]
+    if k == "blocked":
+        return [
+            {"id": "open_ticket", "label": "Open ticket"},
+            {"id": "change_permission", "label": "Change permission"},
+        ]
+    if k in ("budget", "auto_trip", "offline"):
+        return [{"id": "open_ai", "label": "Open AI Team"}]
+    if k == "day_card":
+        return [{"id": "open", "label": "Open"}]
+    if r.count > 1:
+        return [{"id": "expand", "label": f"Show all {r.count}"}]
+    return [{"id": "open", "label": "Open"}]
+
+
+def _done_text(r: Notification, me: str) -> str | None:
+    if not r.done_at:
+        return None
+    reason = r.done_reason or "Done"
+    if "{who}" in reason:
+        who = (
+            "you"
+            if (r.done_by and person_key(r.done_by) == me)
+            else (r.done_by or "someone")
+        )
+        reason = reason.replace("{who}", who)
+    return reason[:1].upper() + reason[1:]
+
+
+def to_dict(r: Notification, me: str, names: dict[str, str] | None = None) -> dict:
+    """A row for the API, as `me` sees it."""
+    data = _loads(r.data, {})
+    gone = bool(data.get("gone"))
+    now = datetime.now(UTC)
+    snoozed = bool(r.snoozed_until and (_parse(r.snoozed_until) or now) > now)
+    return {
+        "id": r.id,
+        "kind": r.kind,
+        "kind_label": KINDS.get(r.kind, (r.kind,))[0],
+        "needs": r.needs,
+        "project_id": r.project_id,
+        "title": r.title,
+        "body": r.body,
+        "target_kind": r.target_kind,
+        "target_id": r.target_id,
+        "ticket_id": r.ticket_id,
+        "page_id": r.page_id,
+        "member_id": r.member_id,
+        "member_name": (names or {}).get(r.member_id or "") if r.member_id else None,
+        "actor": r.actor,
+        "count": r.count,
+        "items": _loads(r.items, []),
+        "data": data,
+        "inapp": r.inapp,
+        "desktop": r.desktop,
+        "read": r.read_at is not None,
+        "read_at": r.read_at,
+        "done": r.done_at is not None,
+        "done_at": r.done_at,
+        "done_text": _done_text(r, me),
+        "done_by": r.done_by,
+        "gone": gone,
+        "gone_reason": data.get("gone_reason"),
+        "snoozed": snoozed,
+        "snoozed_until": r.snoozed_until if snoozed else None,
+        "cleared": r.cleared_at is not None,
+        "cleared_at": r.cleared_at,
+        "group_key": r.group_key,
+        "event_id": r.event_id,
+        "last_event_id": r.last_event_id,
+        "created_at": r.created_at,
+        "updated_at": r.updated_at,
+        "actions": _actions(r, gone),
+        "dismissable": (not r.done_at)
+        and (gone or KINDS.get(r.kind, ("", False, False, False))[3]),
+    }
+
+
+async def member_names(
+    session: AsyncSession, rows: list[Notification]
+) -> dict[str, str]:
+    """member id -> name of the members named by these rows."""
+    ids = {r.member_id for r in rows if r.member_id}
+    if not ids:
+        return {}
+    ms = (await session.exec(select(Member).where(col(Member.id).in_(ids)))).all()
+    return {m.id: m.name for m in ms}
+
+
+FILTERS = ("all", "unread", "needs", "snoozed", "done", "cleared")
+
+
+async def list_rows(
+    session: AsyncSession,
+    me: str,
+    *,
+    view: str = "page",
+    tab: str | None = None,
+    filter: str = "all",
+    q: str | None = None,
+    project_id: str | None = None,
+    kinds: list[str] | None = None,
+    family: str | None = None,
+    days: int | None = None,
+    limit: int = 100,
+    before: str | None = None,
+) -> dict:
+    """Rows of one recipient, newest activity first.
+
+    view "panel": the last 30 days, quiet rows left out, cleared rows left out, snoozed rows left out; `tab` needs
+    (Needs you, open first by waiting time, then today's done rows) or updates.
+    view "page": everything still kept, with `filter` (All · Unread · Needs you · Snoozed · Done · Cleared).
+    """
+    now = datetime.now(UTC)
+    stmt = select(Notification).where(Notification.recipient == me)
+    if project_id:
+        stmt = stmt.where(Notification.project_id == project_id)
+    if kinds:
+        stmt = stmt.where(col(Notification.kind).in_(kinds))
+    if family == "ai":
+        stmt = stmt.where(col(Notification.member_id).is_not(None))
+    elif family == "people":
+        stmt = stmt.where(
+            col(Notification.member_id).is_(None), col(Notification.kind) != "day_card"
+        )
+    elif family == "schedules":
+        stmt = stmt.where(Notification.kind == "schedule")
+    elif family == "info":
+        stmt = stmt.where(Notification.needs == False)  # noqa: E712
+    if view == "panel":
+        days = PANEL_DAYS
+        stmt = stmt.where(
+            Notification.inapp == True,  # noqa: E712
+            col(Notification.cleared_at).is_(None),
+        )
+        if tab == "needs":
+            today0 = (
+                _local(now)
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .astimezone(UTC)
+            )
+            stmt = stmt.where(
+                Notification.needs == True,  # noqa: E712
+                or_(
+                    col(Notification.done_at).is_(None),
+                    col(Notification.done_at) >= today0.isoformat(),
+                ),
+            )
+        elif tab == "updates":
+            stmt = stmt.where(Notification.needs == False)  # noqa: E712
+    if days:
+        stmt = stmt.where(
+            col(Notification.updated_at) >= (now - timedelta(days=days)).isoformat()
+        )
+    if before:
+        stmt = stmt.where(col(Notification.updated_at) < before)
+    if q:
+        like = f"%{q.strip()}%"
+        stmt = stmt.where(
+            or_(
+                col(Notification.title).ilike(like),
+                col(Notification.body).ilike(like),
+                col(Notification.ticket_id).ilike(like),
+                col(Notification.items).ilike(like),
+            )
+        )
+    rows = list(
+        (
+            await session.exec(
+                stmt.order_by(col(Notification.updated_at).desc()).limit(2000)
+            )
+        ).all()
+    )
+
+    def snoozed(r: Notification) -> bool:
+        return bool(r.snoozed_until and (_parse(r.snoozed_until) or now) > now)
+
+    if view == "panel":
+        rows = [r for r in rows if not snoozed(r)]
+    else:
+        if filter == "unread":
+            rows = [r for r in rows if r.read_at is None and not r.cleared_at]
+        elif filter == "needs":
+            rows = [r for r in rows if r.needs and not r.done_at and not snoozed(r)]
+        elif filter == "snoozed":
+            rows = [r for r in rows if snoozed(r)]
+        elif filter == "done":
+            rows = [r for r in rows if r.done_at]
+        elif filter == "cleared":
+            rows = [r for r in rows if r.cleared_at]
+        else:
+            rows = [r for r in rows if not r.cleared_at]
+    if view == "panel" and tab == "needs":
+        # Open first, oldest waiting first; then today's done rows
+        rows.sort(
+            key=lambda r: (r.done_at is not None, r.created_at if not r.done_at else "")
+        )
+    total = len(rows)
+    page = rows[: max(1, min(limit, 500))]
+    names = await member_names(session, page)
+    out = [to_dict(r, me, names) for r in page]
+    day_card = None
+    if view == "panel" and tab != "needs":
+        card = (
+            await session.exec(
+                select(Notification)
+                .where(Notification.recipient == me, Notification.kind == "day_card")
+                .order_by(col(Notification.created_at).desc())
+            )
+        ).first()
+        if card is not None:
+            day_card = to_dict(card, me)
+    if view == "panel":
+        out = [o for o in out if o["kind"] != "day_card"]
+    return {
+        "items": out,
+        "total": total,
+        "head": await head_id(session),
+        "day_card": day_card,
+        "now": now.isoformat(),
+    }
+
+
+async def counts(session: AsyncSession, me: str) -> dict:
+    """The bell: the red number is open Needs you rows (not snoozed); a blue dot for unread updates."""
+    now = datetime.now(UTC)
+    since = (now - timedelta(days=PANEL_DAYS)).isoformat()
+    rows = (
+        await session.exec(
+            select(Notification).where(
+                Notification.recipient == me,
+                Notification.inapp == True,  # noqa: E712
+                col(Notification.cleared_at).is_(None),
+                or_(
+                    col(Notification.done_at).is_(None),
+                    col(Notification.updated_at) >= since,
+                ),
+            )
+        )
+    ).all()
+
+    def snoozed(r: Notification) -> bool:
+        return bool(r.snoozed_until and (_parse(r.snoozed_until) or now) > now)
+
+    needs = [r for r in rows if r.needs and not r.done_at and not snoozed(r)]
+    unread_updates = [
+        r
+        for r in rows
+        if not r.needs
+        and r.read_at is None
+        and r.updated_at >= since
+        and not snoozed(r)
+    ]
+    snoozed_rows = (
+        await session.exec(
+            select(func.count())
+            .select_from(Notification)
+            .where(
+                Notification.recipient == me,
+                col(Notification.snoozed_until) > now.isoformat(),
+            )
+        )
+    ).one()
+    unread_all = (
+        await session.exec(
+            select(func.count())
+            .select_from(Notification)
+            .where(
+                Notification.recipient == me,
+                col(Notification.read_at).is_(None),
+                col(Notification.cleared_at).is_(None),
+            )
+        )
+    ).one()
+    return {
+        "needs": len(needs),
+        "needs_unread": len([r for r in needs if r.read_at is None]),
+        "updates_unread": len(unread_updates),
+        "updates": len([r for r in rows if not r.needs and r.updated_at >= since]),
+        "snoozed": int(snoozed_rows or 0),
+        "unread": int(unread_all or 0),
+        "head": await head_id(session),
+        "oldest_needs_at": min((r.created_at for r in needs), default=None),
+    }
+
+
+async def feed(session: AsyncSession, me: str, since: int | None) -> dict:
+    """What moved since log id `since`, for this recipient: new or merged rows (toasts, the desktop notifier) and
+    rows closed since (a toast or a desktop notice for them is withdrawn). A cursor older than what the log still
+    keeps gets `cursor_too_old` and should start from `head`."""
+    head = await head_id(session)
+    g = await _global(session)
+    pruned = int(g.get("pruned_through") or 0)
+    too_old = since is not None and since > 0 and since < pruned
+    if since is None or too_old:
+        return {"head": head, "cursor_too_old": too_old, "items": [], "resolved": []}
+    rows = (
+        await session.exec(
+            select(Notification).where(
+                Notification.recipient == me,
+                col(Notification.last_event_id) > since,
+            )
+        )
+    ).all()
+    resolved_events = (
+        await session.exec(
+            select(NotifyEvent).where(
+                NotifyEvent.op == "resolve", col(NotifyEvent.id) > since
+            )
+        )
+    ).all()
+    resolved_targets = {(e.target_kind, e.target_id) for e in resolved_events}
+    closed = []
+    if resolved_targets:
+        cand = (
+            await session.exec(
+                select(Notification).where(
+                    Notification.recipient == me,
+                    col(Notification.done_at).is_not(None),
+                    col(Notification.target_id).in_(
+                        [t[1] for t in resolved_targets if t[1]]
+                    ),
+                )
+            )
+        ).all()
+        closed = [r.id for r in cand]
+    prefs = await get_prefs(session, me)
+    names = await member_names(session, list(rows))
+    return {
+        "head": head,
+        "cursor_too_old": False,
+        "items": [
+            to_dict(r, me, names) for r in sorted(rows, key=lambda r: r.last_event_id)
+        ],
+        "resolved": closed,
+        "quiet": in_quiet_hours(prefs),
+        "dnd": bool(prefs.get("dnd")),
+        "sound": bool(prefs.get("sound")),
+    }
+
+
+async def log_since(
+    session: AsyncSession,
+    since: int,
+    *,
+    project_id: str | None = None,
+    limit: int = 200,
+) -> dict:
+    """The raw log after an id (the planned `wait` tool and `kanban wait` read this)."""
+    head = await head_id(session)
+    g = await _global(session)
+    pruned = int(g.get("pruned_through") or 0)
+    if since > 0 and since < pruned:
+        return {"head": head, "cursor_too_old": True, "events": []}
+    stmt = select(NotifyEvent).where(col(NotifyEvent.id) > since)
+    if project_id:
+        stmt = stmt.where(NotifyEvent.project_id == project_id)
+    rows = (
+        await session.exec(
+            stmt.order_by(col(NotifyEvent.id)).limit(max(1, min(limit, 1000)))
+        )
+    ).all()
+    return {
+        "head": head,
+        "cursor_too_old": False,
+        "events": [
+            {
+                "id": e.id,
+                "project_id": e.project_id,
+                "kind": e.kind,
+                "op": e.op,
+                "needs": e.needs,
+                "target_kind": e.target_kind,
+                "target_id": e.target_id,
+                "ticket_id": e.ticket_id,
+                "page_id": e.page_id,
+                "member_id": e.member_id,
+                "actor": e.actor,
+                "title": e.title,
+                "body": e.body,
+                "data": _loads(e.data, {}),
+                "recipients": _loads(e.recipients, []),
+                "created_at": e.created_at,
+            }
+            for e in rows
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# A person acting on rows: read, dismiss, snooze, clear
+# ---------------------------------------------------------------------------
+
+
+async def _mine(session: AsyncSession, me: str, row_id: str) -> Notification:
+    r = await session.get(Notification, row_id)
+    if r is None or r.recipient != me:
+        raise LookupError("Notification not found")
+    return r
+
+
+async def mark_read(
+    session: AsyncSession,
+    me: str,
+    *,
+    ids: list[str] | None = None,
+    all: bool = False,
+    tab: str | None = None,
+) -> int:
+    """Reading is not resolving: a Needs you row stays open, and Mark all read clears the count of unread, not the
+    list (the red number counts open work, not unread rows)."""
+    at = now_iso()
+    stmt = select(Notification).where(
+        Notification.recipient == me, col(Notification.read_at).is_(None)
+    )
+    if ids:
+        stmt = stmt.where(col(Notification.id).in_(ids))
+    elif not all:
+        return 0
+    if tab == "needs":
+        stmt = stmt.where(Notification.needs == True)  # noqa: E712
+    elif tab == "updates":
+        stmt = stmt.where(Notification.needs == False)  # noqa: E712
+    rows = (await session.exec(stmt)).all()
+    for r in rows:
+        r.read_at = at
+        session.add(r)
+    await session.commit()
+    if rows:
+        await _announce(await head_id(session))
+    return len(rows)
+
+
+async def mark_target_read(
+    session: AsyncSession, me: str, target_kind: str, target_id: str
+) -> int:
+    """Opening what a row points at marks it read (not done)."""
+    rows = (
+        await session.exec(
+            select(Notification).where(
+                Notification.recipient == me,
+                or_(
+                    (Notification.target_kind == target_kind)
+                    & (Notification.target_id == target_id),
+                    (Notification.ticket_id == target_id)
+                    if target_kind == "ticket"
+                    else False,
+                    (Notification.page_id == target_id)
+                    if target_kind == "page"
+                    else False,
+                ),
+                col(Notification.read_at).is_(None),
+            )
+        )
+    ).all()
+    at = now_iso()
+    for r in rows:
+        r.read_at = at
+        session.add(r)
+    await session.commit()
+    if rows:
+        await _announce(await head_id(session))
+    return len(rows)
+
+
+async def dismiss(session: AsyncSession, me: str, row_id: str, by: str) -> dict:
+    """Dismiss resolves: the row goes grey with "Dismissed by you", for every recipient of the same thing."""
+    r = await _mine(session, me, row_id)
+    gone = bool(_loads(r.data, {}).get("gone"))
+    if r.done_at:
+        return to_dict(r, me)
+    if not r.needs:
+        raise ValueError("Only a Needs you row is dismissed; clear an update instead.")
+    if not (gone or KINDS[r.kind][3]):
+        raise ValueError(
+            "This one closes when the work is done; it cannot be dismissed."
+        )
+    same = (
+        await session.exec(
+            select(Notification).where(
+                Notification.group_key == r.group_key,
+                col(Notification.done_at).is_(None),
+            )
+        )
+    ).all()
+    await _resolve_rows(session, list(same), "Dismissed by {who}", by)
+    await session.refresh(r)
+    return to_dict(r, me)
+
+
+async def snooze(
+    session: AsyncSession, me: str, row_id: str, until: str | None
+) -> dict:
+    """Hide a row until a time (1 hour, this evening, tomorrow morning). It never clears the work."""
+    r = await _mine(session, me, row_id)
+    if until is not None:
+        when = _parse(until)
+        if when is None or when <= datetime.now(UTC):
+            raise ValueError("Snooze until a time in the future.")
+        r.snoozed_until = when.astimezone(UTC).isoformat()
+    else:
+        r.snoozed_until = None
+    r.updated_at = r.updated_at
+    session.add(r)
+    await session.commit()
+    await _announce(await head_id(session))
+    return to_dict(r, me)
+
+
+async def clear(session: AsyncSession, me: str, row_id: str, on: bool = True) -> dict:
+    """The x on a row: it leaves the panel and stays on the page under Cleared. Clearing is a state, not a delete.
+    An open Needs you row is resolved or snoozed instead."""
+    r = await _mine(session, me, row_id)
+    if on and r.needs and not r.done_at:
+        raise ValueError(
+            "A Needs you row closes when the work is done, or is snoozed; it is not cleared."
+        )
+    r.cleared_at = now_iso() if on else None
+    if on and r.read_at is None:
+        r.read_at = r.cleared_at
+    session.add(r)
+    await session.commit()
+    await _announce(await head_id(session))
+    return to_dict(r, me)
+
+
+async def clear_read(session: AsyncSession, me: str) -> int:
+    """Clear every read update (the panel's Clear)."""
+    rows = (
+        await session.exec(
+            select(Notification).where(
+                Notification.recipient == me,
+                Notification.needs == False,  # noqa: E712
+                col(Notification.read_at).is_not(None),
+                col(Notification.cleared_at).is_(None),
+            )
+        )
+    ).all()
+    at = now_iso()
+    for r in rows:
+        r.cleared_at = at
+        session.add(r)
+    await session.commit()
+    if rows:
+        await _announce(await head_id(session))
+    return len(rows)
+
+
+# ---------------------------------------------------------------------------
+# The day in one card, and retention
+# ---------------------------------------------------------------------------
+
+
+async def _people(session: AsyncSession) -> list[str]:
+    """Every person who has settings or a row (never an AI member): the day card goes to each of them."""
+    keys = {"user"}
+    keys.update((await session.exec(select(NotifyPrefs.recipient))).all())
+    keys.update((await session.exec(select(Notification.recipient).distinct())).all())
+    return sorted(k for k in keys if k != "*" and not k.startswith("ai:"))
+
+
+async def build_day_card(
+    session: AsyncSession, me: str, *, since: datetime, until: datetime
+) -> dict:
+    """The day in numbers and lines, counted from the log and the runs. Nothing is asked of an AI."""
+    s_iso, u_iso = since.isoformat(), until.isoformat()
+    sees_all = me == "user"
+    run_stmt = select(AiRun).where(
+        col(AiRun.ended_at) >= s_iso, col(AiRun.ended_at) < u_iso, AiRun.mode == "work"
+    )
+    runs = list((await session.exec(run_stmt)).all())
+    if not sees_all:
+        mine_projects = {
+            r.project_id
+            for r in (
+                await session.exec(
+                    select(Notification).where(Notification.recipient == me)
+                )
+            ).all()
+        }
+        runs = [
+            r
+            for r in runs
+            if person_key(r.started_by) == me or r.project_id in mine_projects
+        ]
+    finished = [r for r in runs if r.state == "finished"]
+    failed = [r for r in runs if r.state in ("failed", "timed_out")]
+    spent = round(sum(r.cost_usd or 0 for r in runs), 2)
+    waiting = (
+        await session.exec(
+            select(Notification).where(
+                Notification.recipient == me,
+                Notification.needs == True,  # noqa: E712
+                col(Notification.done_at).is_(None),
+            )
+        )
+    ).all()
+    now = datetime.now(UTC)
+    snoozed = [
+        r for r in waiting if r.snoozed_until and (_parse(r.snoozed_until) or now) > now
+    ]
+    waiting_open = sorted(
+        [r for r in waiting if r not in snoozed], key=lambda r: r.created_at
+    )
+    projects = {p.id: p for p in (await session.exec(select(Project))).all()}
+    lines: list[dict] = []
+    by_project: dict[str, list[AiRun]] = {}
+    for r in finished:
+        by_project.setdefault(r.project_id, []).append(r)
+    for pid, rs in sorted(by_project.items(), key=lambda x: -len(x[1])):
+        p = projects.get(pid)
+        tickets = sorted({r.ticket_id for r in rs}, key=_ticket_order)
+        lines.append(
+            {
+                "kind": "project",
+                "project_id": pid,
+                "text": f"{p.name if p else 'A project'}: {len(rs)} AI run{'' if len(rs) == 1 else 's'} finished"
+                + (
+                    f" on {', '.join(tickets[:3])}"
+                    + (" and more" if len(tickets) > 3 else "")
+                    + "."
+                    if tickets
+                    else "."
+                ),
+            }
+        )
+    if failed:
+        parts = []
+        for r in failed[:3]:
+            why = (r.ended_reason or r.state.replace("_", " ")).split(". ")[0][:60]
+            parts.append(f"{r.ticket_id} ({why})")
+        retried = 0
+        for r in failed:
+            newer = (
+                await session.exec(
+                    select(AiRun).where(
+                        AiRun.ticket_id == r.ticket_id,
+                        col(AiRun.queued_at) > (r.ended_at or r.queued_at),
+                    )
+                )
+            ).first()
+            retried += 1 if newer else 0
+        lines.append(
+            {
+                "kind": "failed",
+                "text": f"{len(failed)} run{'' if len(failed) == 1 else 's'} failed: "
+                + ", ".join(parts)
+                + (
+                    "."
+                    if retried
+                    else ". Neither has been retried."
+                    if len(failed) == 2
+                    else ". Not retried yet."
+                ),
+            }
+        )
+    if waiting_open:
+        oldest = waiting_open[0]
+        t = _local(_parse(oldest.created_at) or now).strftime("%H:%M")
+        who = (
+            (oldest.data and _loads(oldest.data, {}).get("member_name"))
+            or oldest.actor
+            or ""
+        )
+        lines.append(
+            {
+                "kind": "waiting",
+                "text": f"{len(waiting_open)} still wait for you, the oldest since {t}"
+                + (
+                    f" — {oldest.title}"
+                    if not who
+                    else f" — {who} on {oldest.ticket_id or oldest.title}"
+                )
+                + ".",
+            }
+        )
+    published = (
+        await session.exec(
+            select(func.count())
+            .select_from(NotifyEvent)
+            .where(
+                NotifyEvent.kind == "page_published",
+                col(NotifyEvent.created_at) >= s_iso,
+                col(NotifyEvent.created_at) < u_iso,
+            )
+        )
+    ).one()
+    proposals = [r for r in waiting_open if r.kind == "page_proposal"]
+    if published or proposals:
+        lines.append(
+            {
+                "kind": "docs",
+                "text": f"Docs: {published} page{'' if published == 1 else 's'} published"
+                + (
+                    f", {len(proposals)} proposal{'' if len(proposals) == 1 else 's'} unanswered."
+                    if proposals
+                    else "."
+                ),
+            }
+        )
+    if snoozed:
+        lines.append(
+            {
+                "kind": "snoozed",
+                "text": f"{len(snoozed)} still snoozed: {', '.join(r.title for r in snoozed[:2])}.",
+            }
+        )
+    tomorrow0 = (_local(now) + timedelta(days=1)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    tomorrow1 = tomorrow0 + timedelta(days=1)
+    sched = (
+        await session.exec(
+            select(AiSchedule).where(
+                AiSchedule.state == "active",
+                col(AiSchedule.next_run_at) >= tomorrow0.astimezone(UTC).isoformat(),
+                col(AiSchedule.next_run_at) < tomorrow1.astimezone(UTC).isoformat(),
+            )
+        )
+    ).all()
+    if sched:
+        first = min(_parse(s.next_run_at) for s in sched if s.next_run_at)
+        lines.append(
+            {
+                "kind": "tomorrow",
+                "text": f"Tomorrow: {len(sched)} scheduled run{'' if len(sched) == 1 else 's'}, "
+                f"the first at {_local(first).strftime('%H:%M')}.",
+            }
+        )
+    quiet = not runs and not waiting_open and not published
+    if quiet:
+        lines = [
+            {
+                "kind": "quiet",
+                "text": "A quiet day: nothing ran and nothing waits for you.",
+            }
+        ]
+    project_ids = sorted(
+        {r.project_id for r in runs}
+        | {r.project_id for r in waiting_open if r.project_id}
+    )
+    return {
+        "since": s_iso,
+        "until": u_iso,
+        "finished": len(finished),
+        "failed": len(failed),
+        "failed_runs": [r.id for r in failed],
+        "waiting": len(waiting_open),
+        "waiting_ids": [r.id for r in waiting_open],
+        "snoozed": len(snoozed),
+        "spent": spent,
+        "projects": len(project_ids),
+        "lines": lines,
+        "quiet": quiet,
+    }
+
+
+async def write_day_cards(
+    now: datetime | None = None, *, force_for: str | None = None
+) -> int:
+    """At the card time (weekdays at 18:00 by default) write each person's card for the day, once. Only what
+    happened since the last card; a closed app writes it the next time it runs, with the date."""
+    now = now or datetime.now(UTC)
+    local = _local(now)
+    n = 0
+    async with database.async_session() as session:
+        people = [force_for] if force_for else await _people(session)
+        for me in people:
+            prefs = await get_prefs(session, me)
+            card = prefs.get("day_card") or {}
+            if not force_for:
+                if not card.get("on", True) or local.weekday() not in card.get(
+                    "days", [0, 1, 2, 3, 4]
+                ):
+                    continue
+                if local.strftime("%H:%M") < card.get("time", "18:00"):
+                    continue
+            last = (
+                await session.exec(
+                    select(Notification)
+                    .where(
+                        Notification.recipient == me, Notification.kind == "day_card"
+                    )
+                    .order_by(col(Notification.created_at).desc())
+                )
+            ).first()
+            day_id = f"{me}:{local.date().isoformat()}"
+            if not force_for and last is not None and last.target_id == day_id:
+                continue
+            since = (
+                _parse(last.created_at)
+                if last is not None
+                else local.replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                ).astimezone(UTC)
+            )
+            facts = await build_day_card(session, me, since=since, until=now)
+            title = "Today on your boards"
+            body = f"{local.strftime('%a %d %b')} · {local.strftime('%H:%M')} · {facts['projects']} project{'' if facts['projects'] == 1 else 's'}"
+            await emit(
+                "day_card",
+                project_id=None,
+                recipients=[me],
+                title=title,
+                body=body,
+                target_kind="day",
+                target_id=day_id,
+                data=facts,
+                session=session,
+            )
+            n += 1
+    return n
+
+
+async def prune(now: datetime | None = None) -> int:
+    """Retention is the only thing that deletes: rows and log events older than the setting (90 days by default).
+    The id of the newest deleted event is kept, so a cursor older than that gets "cursor too old"."""
+    now = now or datetime.now(UTC)
+    async with database.async_session() as session:
+        days = await retention_days(session)
+        cutoff = (now - timedelta(days=days)).isoformat()
+        last = (
+            await session.exec(
+                select(func.max(NotifyEvent.id)).where(
+                    col(NotifyEvent.created_at) < cutoff
+                )
+            )
+        ).one()
+        r1 = await session.exec(
+            delete(Notification).where(col(Notification.updated_at) < cutoff)
+        )
+        await session.exec(
+            delete(NotifyEvent).where(col(NotifyEvent.created_at) < cutoff)
+        )
+        if last:
+            g = await _global(session)
+            await _set_global(
+                session,
+                pruned_through=max(int(g.get("pruned_through") or 0), int(last)),
+            )
+        await session.commit()
+        return int(getattr(r1, "rowcount", 0) or 0)
+
+
+# ---------------------------------------------------------------------------
+# The loop
+# ---------------------------------------------------------------------------
+
+_task: asyncio.Task | None = None
+RECONCILE_EVERY_S = 15.0
+
+
+async def _loop() -> None:
+    last_full = 0.0
+    last_hour = -1.0
+    loop = asyncio.get_running_loop()
+    dirty = _dirty or asyncio.Event()
+    while True:
+        try:
+            try:
+                await asyncio.wait_for(dirty.wait(), timeout=1.0)
+            except asyncio.TimeoutError:
+                pass
+            t = loop.time()
+            if dirty.is_set() or t - last_full >= RECONCILE_EVERY_S:
+                dirty.clear()
+                last_full = t
+                await reconcile()
+            if t - last_hour >= 60:
+                last_hour = t
+                await write_day_cards()
+                await prune()
+            await asyncio.sleep(0.25)  # many changes at once are one check
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001
+            logger.exception("Notification loop failed")
+            await asyncio.sleep(2)
+
+
+def start() -> None:
+    """Start the loop that closes rows, writes day cards and prunes."""
+    global _task, _dirty
+    if _task is None or _task.done():
+        _dirty = asyncio.Event()
+        board_events.on_publish(mark_dirty)
+        _task = asyncio.create_task(_loop())
+
+
+async def stop() -> None:
+    """Stop the loop."""
+    global _task
+    if _task is not None:
+        _task.cancel()
+        try:
+            await _task
+        except asyncio.CancelledError:
+            pass
+    _task = None

@@ -40,6 +40,7 @@ from api.assist import router as assist_router
 from api.ai_editor import router as ai_editor_router
 from api.ai_sketch import router as ai_sketch_router
 from api import ai_roles
+from api.notifications import router as notifications_router
 from api.schedules import router as schedules_router
 from api.schedules import schedule_error_handler
 from services.ai.assist import chat as assist_chat
@@ -52,6 +53,7 @@ from services.docs_ai import proposals as docs_ai_proposals
 from services.ai import schedules as ai_schedules
 from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
+from services import notifications as svc_notifications
 from services.ai import signin as ai_signin
 from services.docs_text import DocsError
 import database
@@ -108,10 +110,12 @@ async def lifespan(app: FastAPI):
         docs_ai_freshness.start_scheduler()
         ai_schedules.start_scheduler()
         docs_ai_proposals.start_scheduler()
+        svc_notifications.start()
         try:
             yield
         finally:
             # No CLI process outlives the board: cancel the AI runs and kill their process trees
+            await svc_notifications.stop()
             await assist_health.stop_scheduler()
             await docs_ai_freshness.stop_scheduler()
             await docs_ai_proposals.stop_scheduler()
@@ -239,6 +243,7 @@ app.include_router(ai_sketch_router)
 app.add_exception_handler(AssistError, assist_error_handler)
 app.add_exception_handler(DocsAiError, docs_ai_error_handler)
 app.include_router(schedules_router)
+app.include_router(notifications_router)
 app.add_exception_handler(ScheduleError, schedule_error_handler)
 app.include_router(tickets_router)
 app.include_router(members_router)
