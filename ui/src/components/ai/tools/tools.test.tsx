@@ -29,12 +29,12 @@ const plugin = (o: Partial<Plugin> = {}): Plugin => ({
   pinned: false,
   defaultOn: false,
   roles: ['designer'],
-  members: {},
+  members: [],
   hasPrevious: false,
   installedBy: null,
   installedAt: null,
   updatedAt: null,
-  used: { uses: 3, byMember: {}, last: null },
+  used: { uses: 3, byMember: [], last: null },
   ...o,
 });
 
@@ -49,11 +49,14 @@ afterEach(cleanup);
 
 describe('effective switch', () => {
   it('own switch wins over everything', () => {
-    expect(effective(plugin({ defaultOn: true, members: { m1: false } }), 'm1', 'designer')).toEqual({
+    expect(effective(plugin({ defaultOn: true, members: [{ memberId: 'm1', on: false }] }), 'm1', 'designer')).toEqual({
       on: false,
       why: 'own',
     });
-    expect(effective(plugin({ members: { m1: true } }), 'm1', null)).toEqual({ on: true, why: 'own' });
+    expect(effective(plugin({ members: [{ memberId: 'm1', on: true }] }), 'm1', null)).toEqual({
+      on: true,
+      why: 'own',
+    });
   });
   it('then the project default, then the role, else off', () => {
     expect(effective(plugin({ defaultOn: true }), 'm1', null)).toEqual({ on: true, why: 'default' });
@@ -61,11 +64,13 @@ describe('effective switch', () => {
     expect(effective(plugin(), 'm1', 'dev')).toEqual({ on: false, why: 'off' });
     expect(effective(plugin(), 'm1', undefined).on).toBe(false);
   });
-  it('finds a member id the client has camel-cased', () => {
-    expect(effective(plugin({ members: { ai1B2: false } }), 'ai1_b2', 'designer').on).toBe(false);
+  it('reads a member id exactly as the server sent it (a list, never a camel-cased key)', () => {
+    expect(effective(plugin({ members: [{ memberId: 'ai1_b2-c3', on: false }] }), 'ai1_b2-c3', 'designer').on).toBe(
+      false,
+    );
   });
   it('followed ignores own switches', () => {
-    expect(followed(plugin({ members: { m1: false }, defaultOn: true }), null)).toBe(true);
+    expect(followed(plugin({ members: [{ memberId: 'm1', on: false }], defaultOn: true }), null)).toBe(true);
   });
 });
 
@@ -77,7 +82,7 @@ describe('filters', () => {
     { name: 'playwright', kind: 'mcp', plugin: null, uses: 0, runs: 3, members: [], last: null },
   ];
   const rows = buildRows(
-    [plugin(), plugin({ id: 'p2', name: 'idle', used: { uses: 0, byMember: {}, last: null } })],
+    [plugin(), plugin({ id: 'p2', name: 'idle', used: { uses: 0, byMember: [], last: null } })],
     usage,
   );
   it('splits by kind and never used', () => {
@@ -92,7 +97,7 @@ describe('filters', () => {
       wrap(
         <InstalledTab
           projectId="pr"
-          plugins={[plugin(), plugin({ id: 'p2', name: 'idle', used: { uses: 0, byMember: {}, last: null } })]}
+          plugins={[plugin(), plugin({ id: 'p2', name: 'idle', used: { uses: 0, byMember: [], last: null } })]}
           usage={usage}
         />,
       ),

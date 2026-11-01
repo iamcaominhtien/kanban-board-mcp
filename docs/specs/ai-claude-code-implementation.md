@@ -5,6 +5,10 @@
 [`ai-board-wave3`](../../design/screens/ai-board-wave3.md) (đợt 3). Viết ngày 2026-11-02, sau khi khảo sát code trên `main` (3.19.0, đã có
 trung tâm thông báo của #251).
 
+**Trạng thái (2026-11-02):** cả 9 giai đoạn đã làm trong một PR (người dùng yêu cầu một PR). Kết quả thử nghiệm S1–S6 ở mục 4 của
+`ai-claude-code-plan.md`. Lệch so với kế hoạch: per-run config (4b) là một công tắc project (`per_run_config`), tự bật khi dùng worktree;
+gửi tin nhắn trực tiếp (6c) là công tắc `live_messages`; Board AI "làm luôn theo mức" (D23) mặc định bật, tắt được trong cài đặt.
+
 ## 1. Hiện trạng code liên quan (khảo sát 2026-11-02)
 
 | Mảng | Chỗ trong code | Điều quan trọng cho kế hoạch |

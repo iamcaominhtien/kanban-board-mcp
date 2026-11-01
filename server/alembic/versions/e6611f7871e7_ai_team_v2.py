@@ -247,6 +247,8 @@ def upgrade() -> None:
         sa.Column("objections", sa.String(), nullable=False, server_default="[]"),
         sa.Column("rulings", sa.String(), nullable=False, server_default="[]"),
         sa.Column("arbitration_run_id", sa.String(), nullable=True),
+        sa.Column("reviewer_id", sa.String(), nullable=True),
+        sa.Column("seq_base", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("attached_by", sa.String(), nullable=True),
         sa.Column("created_at", sa.String(), nullable=False),
         sa.Column("updated_at", sa.String(), nullable=False),

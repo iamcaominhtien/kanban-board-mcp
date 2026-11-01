@@ -3568,6 +3568,13 @@ async def _end(
         async with database.async_session() as session:
             if not await active_runs(session, member_id=run.member_id):
                 await svc_members.finalize_removal(session, run.member_id)
+    if (
+        run.mode == "work"
+        and state == "finished"
+        and run.trigger not in ("workflow", "arbitration", "review")
+    ):
+        # an odd job with a reviewer: the reviewer looks at it now (D14)
+        _after_odd_job(run.id)
     if run.mode == "work" and run.trigger in (
         "workflow",
         "arbitration",
@@ -3582,6 +3589,20 @@ async def _end(
 
 
 _WORKFLOW_TASKS: set[asyncio.Task] = set()
+
+
+def _after_odd_job(run_id: str) -> None:
+    from . import workflow
+
+    async def go() -> None:
+        try:
+            await workflow.on_odd_job_finished(run_id)
+        except Exception:  # noqa: BLE001 - a review that cannot start must never break the run's end
+            logger.exception("The reviewer could not start after run %s", run_id)
+
+    task = asyncio.get_running_loop().create_task(go())
+    _WORKFLOW_TASKS.add(task)
+    task.add_done_callback(_WORKFLOW_TASKS.discard)
 
 
 def _after_workflow_run(run_id: str, *, arbitration: bool) -> None:

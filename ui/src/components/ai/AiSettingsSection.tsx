@@ -10,6 +10,9 @@ import { KnowledgeSection } from './knowledge/KnowledgeSection';
 import { RepositoriesSection } from './code/RepositoriesSection';
 import { SkillsPluginsSection } from './tools/SkillsPluginsSection';
 import { TeamSection } from './packs/TeamSection';
+import { WorkflowsSection } from './workflow/WorkflowsSection';
+import { BoardAiSection } from './board/BoardAiSection';
+import { StandingOrdersSection } from './board/StandingOrdersSection';
 
 const EXPIRY = [
   [1, '1 h'],
@@ -222,6 +225,15 @@ export function AiSettingsSection({
       <div className="ai-divider" />
       <div style={{ fontSize: 13, fontWeight: 700 }}>Role packs and a team for this project</div>
       <TeamSection projectId={projectId} />
+      <div className="ai-divider" />
+      <div style={{ fontSize: 13, fontWeight: 700 }}>Workflows</div>
+      <WorkflowsSection projectId={projectId} />
+      <div className="ai-divider" />
+      <div style={{ fontSize: 13, fontWeight: 700 }}>What the Board AI may do by itself</div>
+      <BoardAiSection projectId={projectId} />
+      <div className="ai-divider" />
+      <div style={{ fontSize: 13, fontWeight: 700 }}>Standing orders</div>
+      <StandingOrdersSection projectId={projectId} />
       {library && <LibraryModal projectId={projectId} onClose={() => setLibrary(false)} />}
       {picker && overview.data && (
         <BoardAiPicker

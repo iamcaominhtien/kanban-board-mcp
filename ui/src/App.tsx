@@ -61,6 +61,14 @@ import {
   NotificationsPageView,
 } from './components/notifications/NotificationsHost';
 import { notificationsApi, useNotificationCounts } from './api/notifications';
+import { useWorkflowBoard } from './api/aiWorkflowBoard';
+import { WorkflowBoardProvider } from './components/workflowBoard/WorkflowBoardContext';
+import {
+  NO_WORKFLOW_FILTER,
+  matchesWorkflowFilter,
+  workflowFilterOptions,
+} from './components/workflowBoard/workflowFilter';
+import type { WorkflowBoardRow, WorkflowFilterState } from './types/aiWorkflowBoard';
 import { SchedulesProvider } from './components/schedules/SchedulesContext';
 import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
 
@@ -106,12 +114,14 @@ function BoardProviders({
   ai,
   schedules,
   ideas,
+  workflowRows,
   children,
 }: {
   ai: AiBoardState;
   schedules: Omit<Parameters<typeof SchedulesProvider>[0], 'children'>;
   /** Idea Space: Quick add (Alt+N, "Make idea") and the links from tickets to their idea. */
   ideas: { projectId: string | null; openIdea: (id: string, tab?: string) => void };
+  workflowRows: WorkflowBoardRow[] | undefined;
   children: ReactNode;
 }) {
   return (
@@ -119,7 +129,7 @@ function BoardProviders({
       <SchedulesProvider {...schedules}>
         <IdeaLinksProvider value={{ openIdea: ideas.openIdea }}>
           <IdeaCaptureProvider projectId={ideas.projectId} onOpenIdea={ideas.openIdea}>
-            {children}
+            <WorkflowBoardProvider rows={workflowRows}>{children}</WorkflowBoardProvider>
           </IdeaCaptureProvider>
         </IdeaLinksProvider>
       </SchedulesProvider>
@@ -257,6 +267,11 @@ export default function App() {
   const [filterPending, setFilterPending] = useState(false);
   const [filterFromIdea, setFilterFromIdea] = useState(false);
   const [hidePending, setHidePending] = useState(false);
+  const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilterState>(NO_WORKFLOW_FILTER);
+  const workflowBoard = useWorkflowBoard(currentProjectId ?? '');
+  const workflowRows = workflowBoard.data;
+  const workflowRowById = useMemo(() => new Map((workflowRows ?? []).map((r) => [r.ticketId, r])), [workflowRows]);
+  const workflowOptions = useMemo(() => workflowFilterOptions(workflowRows ?? []), [workflowRows]);
 
   const [reopenTargetTicket, setReopenTargetTicket] = useState<Ticket | null>(null);
   const [pendingTargetTicket, setPendingTargetTicket] = useState<Ticket | null>(null);
@@ -327,6 +342,7 @@ export default function App() {
       const matchesPending = !filterPending || Boolean(t.pending);
       const matchesFromIdea = !filterFromIdea || Boolean(t.fromIdeaId);
       const matchesHidePending = !hidePending || !t.pending;
+      const matchesWorkflow = matchesWorkflowFilter(workflowRowById.get(t.id), workflowFilter);
       return (
         matchesType &&
         matchesPriority &&
@@ -334,7 +350,8 @@ export default function App() {
         matchesReopened &&
         matchesPending &&
         matchesFromIdea &&
-        matchesHidePending
+        matchesHidePending &&
+        matchesWorkflow
       );
     });
 
@@ -834,6 +851,7 @@ export default function App() {
   return (
     <BoardProviders
       ai={aiState}
+      workflowRows={workflowRows}
       schedules={{
         projectId: currentProjectId,
         tickets: allAvailableTickets,
@@ -1100,6 +1118,9 @@ export default function App() {
                           fromIdeaCount={fromIdeaCount}
                           filterFromIdea={filterFromIdea}
                           onFilterFromIdeaChange={setFilterFromIdea}
+                          workflowOptions={workflowOptions}
+                          workflowFilter={workflowFilter}
+                          onWorkflowFilterChange={setWorkflowFilter}
                           pendingCount={pendingCount}
                           totalReopens30d={totalReopens30d}
                           waitingOnTicketsCount={waitingOnTicketsCount}

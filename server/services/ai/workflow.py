@@ -372,16 +372,21 @@ async def of_ticket(session, ticket_id: str) -> AiTicketWorkflow | None:
 
 
 async def steps_of(session, ticket_id: str) -> list[AiTicketStep]:
-    """Every step row of the ticket, in order (attempts of a step after a send-back follow it)."""
-    return list(
+    """Every step row of the ticket's current workflow, in order (attempts of a step after a send-back follow it)."""
+    wf = await session.get(AiTicketWorkflow, ticket_id)
+    base = wf.seq_base if wf is not None else 0
+    rows = list(
         (
             await session.exec(
                 select(AiTicketStep)
-                .where(AiTicketStep.ticket_id == ticket_id)
+                .where(
+                    AiTicketStep.ticket_id == ticket_id, col(AiTicketStep.seq) >= base
+                )
                 .order_by(col(AiTicketStep.seq))
             )
         ).all()
     )
+    return rows
 
 
 async def attach(
@@ -395,8 +400,17 @@ async def attach(
     start: bool = True,
 ) -> AiTicketWorkflow:
     """Put a ticket on a workflow (its version is kept) and start the first step."""
-    if await session.get(AiTicketWorkflow, ticket.id) is not None:
+    existing = await session.get(AiTicketWorkflow, ticket.id)
+    if existing is not None and existing.template_key and existing.state != "detached":
         raise WorkflowError(f"{ticket.id} already follows a workflow.")
+    if existing is not None:
+        # an odd job's reviewer row, or a detached workflow: the new workflow replaces it (its steps stay as history)
+        for old_row in await steps_of(session, ticket.id):
+            if old_row.state not in ("done", "skipped", "superseded"):
+                old_row.state = "superseded"
+                session.add(old_row)
+        await session.delete(existing)
+        await session.commit()
     template = await get_template(session, ticket.project_id, template_key)
     if template is None:
         raise WorkflowError(f"No workflow called {template_key}.")
@@ -412,11 +426,14 @@ async def attach(
         attached_by=by,
     )
     session.add(wf)
+    # after an earlier workflow on the same ticket, the new steps come after its history
+    base = max((r.seq for r in await steps_of(session, ticket.id)), default=-100) + 100
+    wf.seq_base = base
     for i, step in enumerate(template["steps"]):
         session.add(
             AiTicketStep(
                 ticket_id=ticket.id,
-                seq=i * 100,
+                seq=base + i * 100,
                 idx=i,
                 key=step["key"],
                 label=step["label"],
@@ -1434,8 +1451,8 @@ async def tdd_evidence(ticket_id: str) -> dict:
 async def view(session, ticket_id: str) -> dict | None:
     """The ticket's workflow as the strip draws it: template, depth, every step row with who did it, the stop."""
     wf = await session.get(AiTicketWorkflow, ticket_id)
-    if wf is None:
-        return None
+    if wf is None or not wf.template_key:
+        return None  # an odd job (only a reviewer set) is not a workflow
     rows = await steps_of(session, ticket_id)
     names = {
         m.id: m.name
@@ -1561,3 +1578,101 @@ async def metrics(session, project_id: str, days: int = 30) -> list[dict]:
             }
         )
     return sorted(out, key=lambda m: -m["tickets"])
+
+
+async def skip_step(ticket_id: str, *, by: str, step_id: str | None = None) -> None:
+    """Skip the step the workflow is stuck on for this ticket only (no member for its role, a person's choice); the
+    workflow goes on with the next one."""
+    async with database.async_session() as session:
+        wf = await session.get(AiTicketWorkflow, ticket_id)
+        if wf is None:
+            raise WorkflowError("This ticket follows no workflow.")
+        row = (
+            await session.get(AiTicketStep, step_id)
+            if step_id
+            else await current_step(session, ticket_id)
+        )
+        if (
+            row is None
+            or row.ticket_id != ticket_id
+            or row.state in ("done", "skipped", "superseded")
+        ):
+            raise WorkflowError("There is no step to skip.")
+        if row.key == "done":
+            raise WorkflowError("The last step is yours: move the ticket to Done.")
+        row.state = "skipped"
+        row.note = f"Skipped by {by} for this ticket."
+        row.ended_at = _now()
+        session.add(row)
+        if wf.state == "stopped":
+            wf.state = "active"
+            wf.stop_reason = None
+            session.add(wf)
+        await session.commit()
+        await flags.resolve(
+            session, ticket_id, "no_member", by=by, how=f"{row.label} skipped"
+        )
+    await advance(ticket_id)
+
+
+async def set_reviewer(
+    session, ticket: Ticket, member_id: str | None, *, by: str
+) -> AiTicketWorkflow:
+    """An odd job (no workflow) gets an optional reviewer (D14): when its work run finishes, that AI reviews it."""
+    wf = await session.get(AiTicketWorkflow, ticket.id)
+    if wf is not None and wf.template_key:
+        raise WorkflowError(
+            "This ticket follows a workflow: its review is a step of it."
+        )
+    if wf is None:
+        wf = AiTicketWorkflow(
+            ticket_id=ticket.id,
+            project_id=ticket.project_id,
+            template_key="",
+            template_name="Odd job",
+            state="odd",
+            attached_by=by,
+        )
+    wf.reviewer_id = member_id
+    wf.updated_at = _now()
+    session.add(wf)
+    await session.commit()
+    await session.refresh(wf)
+    return wf
+
+
+async def on_odd_job_finished(run_id: str) -> str | None:
+    """An odd job's work run finished and it has a reviewer: start the review. Returns the review run's id."""
+    from . import runs
+
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if (
+            run is None
+            or run.state != "finished"
+            or run.mode != "work"
+            or run.trigger == "review"
+        ):
+            return None
+        wf = await session.get(AiTicketWorkflow, run.ticket_id)
+        if (
+            wf is None
+            or wf.template_key
+            or not wf.reviewer_id
+            or wf.reviewer_id == run.member_id
+        ):
+            return None
+        review = await runs.create_run(
+            session,
+            ticket_id=run.ticket_id,
+            member_id=wf.reviewer_id,
+            mode="work",
+            trigger="review",
+            started_by=run.started_by,
+            instruction=(
+                "Review the change on this ticket. You get the diff and the criteria, not the other AI's transcript. "
+                "End your final message with `VERDICT: PASS`, or `VERDICT: CHANGES` and what to change and why."
+            ),
+            wait_for_hold=True,
+        )
+        return review.id

@@ -1,4 +1,3 @@
-import camelcaseKeys from 'camelcase-keys';
 import type { Plugin, SkillUsage } from '../../../types/aiPlugins';
 
 export const ROLES: Record<string, string> = {
@@ -15,19 +14,16 @@ export const ROLES: Record<string, string> = {
 /** The display name of a role pack key. */
 export const roleName = (key: string) => ROLES[key] ?? key;
 
-/** A value from a map keyed by member id; the client camel-cases keys of responses, so the id may come back changed. */
-export function byMemberId<T>(map: Record<string, T> | null | undefined, id: string): T | undefined {
-  if (!map) return undefined;
-  if (id in map) return map[id];
-  const alt = Object.keys(camelcaseKeys({ [id]: 1 }))[0];
-  return alt in map ? map[alt] : undefined;
+/** A member's own switch, or undefined when it follows the project default. */
+export function ownSwitch(members: Plugin['members'] | null | undefined, id: string): boolean | undefined {
+  return (members ?? []).find((m) => m.memberId === id)?.on;
 }
 
 export type Why = 'own' | 'default' | 'role' | 'off';
 
 /** Whether a member gets the plugin: its own switch, else the project default, else whether its role is suggested. */
 export function effective(p: Pick<Plugin, 'members' | 'defaultOn' | 'roles'>, memberId: string, role?: string | null) {
-  const own = byMemberId(p.members, memberId);
+  const own = ownSwitch(p.members, memberId);
   if (own !== undefined) return { on: own, why: 'own' as Why };
   if (p.defaultOn) return { on: true, why: 'default' as Why };
   if (role && p.roles.includes(role)) return { on: true, why: 'role' as Why };

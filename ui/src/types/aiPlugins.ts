@@ -3,7 +3,8 @@ export type SourceKind = 'git' | 'marketplace' | 'folder';
 
 export interface PluginUsage {
   uses: number;
-  byMember: Record<string, number>;
+  /** Uses per member (a list, so the client's key casing never touches a member id). */
+  byMember: { memberId: string; uses: number }[];
   last: string | null;
 }
 
@@ -26,7 +27,7 @@ export interface Plugin {
   defaultOn: boolean;
   roles: string[];
   /** Per-member switches; a member without an entry follows the default. */
-  members: Record<string, boolean>;
+  members: { memberId: string; on: boolean }[];
   hasPrevious: boolean;
   installedBy: string | null;
   installedAt: string | null;

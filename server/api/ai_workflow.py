@@ -216,3 +216,44 @@ async def get_tdd(ticket_id: str, session: Session) -> dict:
     """Proof that the test went red first: a red run on an assertion, then a green one with the same command."""
     await _ticket(session, ticket_id)
     return await svc_workflow.tdd_evidence(ticket_id)
+
+
+class SkipBody(BaseModel):
+    """Skip the stuck step for this ticket only."""
+
+    step_id: Optional[str] = None
+
+
+@router.post("/tickets/{ticket_id}/ai/workflow/skip")
+async def post_skip(ticket_id: str, body: SkipBody, session: Session) -> dict:
+    """Skip the step (no member for its role, or a person's choice) and go on."""
+    try:
+        await svc_workflow.skip_step(ticket_id, by=_by(), step_id=body.step_id)
+    except svc_workflow.WorkflowError as exc:
+        _fail(exc, 409)
+    return await svc_workflow.view(session, ticket_id)
+
+
+class ReviewerBody(BaseModel):
+    """An odd job's optional reviewer (an AI member), or null."""
+
+    member_id: Optional[str] = None
+
+
+@router.put("/tickets/{ticket_id}/ai/reviewer")
+async def put_reviewer(ticket_id: str, body: ReviewerBody, session: Session) -> dict:
+    """A ticket handed straight to one AI gets an optional reviewer: it reviews the work when it finishes (D14)."""
+    ticket = await _ticket(session, ticket_id)
+    try:
+        wf = await svc_workflow.set_reviewer(session, ticket, body.member_id, by=_by())
+    except svc_workflow.WorkflowError as exc:
+        _fail(exc, 409)
+    return {"ticket_id": ticket_id, "reviewer_id": wf.reviewer_id}
+
+
+@router.get("/tickets/{ticket_id}/ai/reviewer")
+async def get_reviewer(ticket_id: str, session: Session) -> dict:
+    """The odd job's reviewer, if any."""
+    wf = await session.get(AiTicketWorkflow, ticket_id)
+    reviewer = wf.reviewer_id if wf is not None and not wf.template_key else None
+    return {"ticket_id": ticket_id, "reviewer_id": reviewer}

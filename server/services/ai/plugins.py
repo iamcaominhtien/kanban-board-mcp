@@ -695,10 +695,20 @@ def to_dict(row: AiPlugin, used: dict | None = None) -> dict:
         "pinned": row.pinned,
         "default_on": row.default_on,
         "roles": loads(row.roles, []),
-        "members": loads(row.members, {}),
+        # lists, not dicts keyed by member id: the UI client camel-cases object keys, which would change an id
+        "members": [
+            {"member_id": k, "on": v} for k, v in (loads(row.members, {}) or {}).items()
+        ],
         "has_previous": bool(loads(row.previous, None)),
         "installed_by": row.installed_by,
         "installed_at": row.installed_at,
         "updated_at": row.updated_at,
-        "used": used or {"uses": 0, "by_member": {}, "last": None},
+        "used": {
+            "uses": (used or {}).get("uses", 0),
+            "by_member": [
+                {"member_id": k, "uses": n}
+                for k, n in ((used or {}).get("by_member") or {}).items()
+            ],
+            "last": (used or {}).get("last"),
+        },
     }

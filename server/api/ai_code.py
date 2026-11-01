@@ -232,3 +232,70 @@ async def post_config_migration(member_id: str, session: Session) -> dict:
     if profile is None:
         raise HTTPException(status_code=404, detail="AI member not found")
     return {"removed": await svc_run_config.remove_written(session, profile)}
+
+
+@router.post("/tickets/{ticket_id}/ai/worktree/open")
+async def post_open_worktree(ticket_id: str, session: Session) -> dict:
+    """Open the worktree's folder in the computer's file manager (the board runs on this computer)."""
+    import subprocess
+    import sys
+
+    row = await session.get(AiWorktree, ticket_id)
+    if row is None or row.state == "removed":
+        raise HTTPException(status_code=404, detail="This ticket has no worktree.")
+    opener = {"darwin": ["open"], "win32": ["explorer"]}.get(sys.platform, ["xdg-open"])
+    try:
+        subprocess.Popen(
+            [*opener, row.path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+    except OSError as exc:
+        raise HTTPException(
+            status_code=409, detail=f"Could not open the folder: {exc}"
+        ) from exc
+    return {"opened": row.path}
+
+
+@router.get("/ai/members/{member_id}/base-prompt")
+async def get_base_prompt(member_id: str, session: Session) -> dict:
+    """What a member carries into every run before the ticket: the board's rules, the project's instructions and
+    lessons, its own instructions and persona, and the skills its plugins list (design wave 2, B: "base prompt N
+    tokens")."""
+    from services.ai import config_sync as cs
+    from services.ai import knowledge as svc_knowledge
+    from services.ai import plugins as svc_plugins
+    from services.ai.config_model import estimate_tokens
+    from services.ai.providers import merged_config
+    from services.ai.store import loads
+
+    profile = await session.get(AiMember, member_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="AI member not found")
+    cfg = merged_config(loads(profile.config, {}))
+    project = await svc_knowledge.prompt_block(session, profile.project_id)
+    own = cs.claude_md_text(cfg) or ""
+    skills = []
+    for row in (
+        await session.exec(
+            select(svc_plugins.AiPlugin).where(
+                svc_plugins.AiPlugin.project_id == profile.project_id
+            )
+        )
+    ).all():
+        if svc_plugins.on_for(row, profile):
+            skills += loads(row.skills, [])
+    parts = {
+        "board_rules": 1400,  # the board's rules block, about this size for every member (services/ai/context.py)
+        "project_knowledge": estimate_tokens(project),
+        "own_instructions": estimate_tokens(own),
+        "persona": estimate_tokens(profile.persona or ""),
+        "skills": 40
+        * len(
+            skills
+        ),  # each skill's name and description sit in the prompt; the body loads on use
+    }
+    return {
+        "member_id": member_id,
+        "tokens": sum(parts.values()),
+        "parts": parts,
+        "skills": skills,
+    }

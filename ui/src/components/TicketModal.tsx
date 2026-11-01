@@ -66,6 +66,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
+import { TicketWorkflow } from './ai/workflow/TicketWorkflow';
 import { TimelineTab } from './aiteam/TimelineTab';
 import { openTimeline } from './aiteam/timelineLink';
 import { TicketSafetyBlocks } from './ai/AiTicketSafety';
@@ -1771,6 +1772,7 @@ function TicketModalInner({
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
                     <TicketAiPanel ticket={ticket} members={members} onOpenRun={() => setActiveTab('ai')} />
+                    <TicketWorkflow ticket={ticket} />
                     <TicketHandover ticket={ticket} />
                     {mainView === 'ai' && ticket.projectId && (
                       <div data-testid="ticket-timeline">

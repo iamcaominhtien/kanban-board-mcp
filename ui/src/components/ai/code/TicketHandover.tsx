@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PullStatus } from './PullStatus';
 import { codeApi, useCodeMutation, useTicketFlags, useTicketWorktree } from '../../../api/aiCode';
 import { extractError } from '../../../api/extractError';
 import { useAiMember } from '../../../api/ai';
@@ -124,6 +125,7 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
         </a>
       )}
       {!openConflict && error && <div className="ai-error-text">{error}</div>}
+      <PullStatus ticketId={ticket.id} />
     </div>
   );
 }

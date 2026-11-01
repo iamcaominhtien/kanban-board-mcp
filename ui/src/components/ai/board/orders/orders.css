@@ -1,0 +1,342 @@
+/* Standing orders (design/screens/ai-board-wave3.md, G and H). Values copied from design/source/AiBoardWave3.dc.html. */
+.so-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.so-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.so-h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  color: #1e2a22;
+}
+.so-spacer {
+  flex: 1;
+}
+.so-steps {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.so-step {
+  flex: 1;
+  min-width: 170px;
+  border: 1px solid #cfe3d6;
+  border-radius: 10px;
+  background: #f3f9f5;
+  padding: 12px 14px;
+  box-sizing: border-box;
+}
+.so-step-words {
+  border-color: #cbddee;
+  background: #f2f7fc;
+}
+.so-step-trial {
+  border-color: #f0dba8;
+  background: #fffbef;
+}
+.so-step b {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+}
+.so-step p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+.so-editor-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.so-editor {
+  width: 620px;
+  max-width: 100%;
+  flex: none;
+  border: 1px solid #cbddee;
+  border-radius: 11px;
+  background: #f2f7fc;
+  padding: 13px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  box-sizing: border-box;
+}
+.so-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.so-editor-title b {
+  font-size: 13.5px;
+  flex: 1;
+}
+.so-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.so-field > .so-lab {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3a4a3e;
+}
+.so-hint {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+.so-check {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.so-check input,
+.so-opt input {
+  margin: 2px 0 0;
+  accent-color: #2e6f40;
+  flex-shrink: 0;
+}
+.so-opt {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid #e3e8e5;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 12.5px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.so-opt-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.so-inline {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.so-num {
+  width: 56px !important;
+}
+.so-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.so-side {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.so-card {
+  padding: 18px 20px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #f6faf7;
+  box-sizing: border-box;
+}
+.so-card-warm {
+  background: #fffbef;
+}
+.so-card h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.so-card ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #3a4a3e;
+}
+.so-card li {
+  margin: 0 0 6px;
+}
+.so-ready {
+  display: block;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.so-ready:hover {
+  color: #1f5a31;
+  text-decoration: underline;
+}
+.so-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 238px) minmax(0, 1fr) 128px 100px minmax(160px, 240px) 180px;
+  gap: 14px;
+  align-items: center;
+}
+.so-gridhead {
+  padding: 0 15px 2px;
+}
+.so-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.so-row {
+  padding: 11px 15px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+  font-size: 12.5px;
+}
+.so-row-trial {
+  border-color: #f0dba8;
+  background: #fffbef;
+}
+.so-row-paused {
+  opacity: 0.7;
+}
+.so-name {
+  min-width: 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+.so-when {
+  min-width: 0;
+  color: #5b6b60;
+}
+.so-state-on {
+  color: #1f5a31;
+  font-weight: 600;
+}
+.so-state-trial {
+  color: #7a5a06;
+  font-weight: 600;
+}
+.so-state-off {
+  color: #5b6b60;
+  font-weight: 600;
+}
+.so-state-paused {
+  color: #b4571f;
+  font-weight: 600;
+}
+.so-btns {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.so-panel {
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  box-sizing: border-box;
+}
+.so-panel-trial {
+  border-color: #f0dba8;
+  background: #fffbef;
+}
+.so-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.so-panel-title b {
+  font-size: 13px;
+  flex: 1;
+}
+.so-firing {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 3px 0 3px 8px;
+  border-left: 3px solid #cfe3d6;
+}
+.so-firing-would {
+  border-left-style: dashed;
+  border-left-color: #e8b93a;
+}
+.so-firing-time {
+  width: 96px;
+  flex: none;
+  color: #5b6b60;
+}
+.so-firing-body {
+  flex: 1;
+  min-width: 0;
+}
+.so-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+.so-tag-would {
+  background: #fdf1d0;
+  color: #7a5a06;
+  border: 1px dashed #e0b84a;
+}
+.so-tag-did {
+  background: #e6f2ea;
+  color: #1f5a31;
+}
+.so-tag-undone {
+  background: #eef3ef;
+  color: #5b6b60;
+}
+.so-ticket {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: #e8f1fa;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  vertical-align: middle;
+}
+.so-ticket i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2f6fb0;
+  display: inline-block;
+}
+.so-wrong {
+  color: #a5321e;
+  font-weight: 700;
+}

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useKnowledge } from '../../../api/aiKnowledge';
 import { LoadError } from '../aiUi';
 import { InstructionsPanel } from './InstructionsPanel';
+import { KnowledgeBasePanel } from './KnowledgeBasePanel';
 import { MemoryPanel } from './MemoryPanel';
 import { TokenMeter } from './TokenMeter';
 
-type Tab = 'instructions' | 'memory';
+type Tab = 'instructions' | 'memory' | 'kb';
 
 /** Project knowledge (design/screens/ai-operations.md, H): instructions for every AI and the lessons they learned. */
 export function KnowledgeSection({ projectId }: { projectId: string }) {
@@ -51,12 +52,19 @@ export function KnowledgeSection({ projectId }: { projectId: string }) {
           </span>
           {proposals > 0 && <span className="sr-only">{proposals} waiting for you</span>}
         </button>
-        <button role="tab" aria-selected={false} className="ai-tab" disabled title="Not in wave 1">
-          Knowledge base<span className="ai-tab-count">wave 3</span>
+        <button
+          role="tab"
+          aria-selected={tab === 'kb'}
+          className={`ai-tab${tab === 'kb' ? ' ai-tab-active' : ''}`}
+          onClick={() => setTab('kb')}
+        >
+          Knowledge base
         </button>
       </div>
       {tab === 'instructions' ? (
         <InstructionsPanel key={data.updatedAt ?? 'new'} projectId={projectId} data={data} />
+      ) : tab === 'kb' ? (
+        <KnowledgeBasePanel projectId={projectId} />
       ) : (
         <MemoryPanel projectId={projectId} data={data} />
       )}

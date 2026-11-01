@@ -1518,6 +1518,10 @@ class AiTicketWorkflow(SQLModel, table=True):
     objections: str = Field(default="[]")  # [{at, by, role, text, diff}]
     rulings: str = Field(default="[]")  # [{at, by, verdict, reason, run_id}]
     arbitration_run_id: Optional[str] = Field(default=None)
+    # An odd job (no template): the optional reviewer that reviews its work when it finishes (D14)
+    reviewer_id: Optional[str] = Field(default=None)
+    # The first step row of this workflow (rows before it belong to an earlier workflow of the ticket)
+    seq_base: int = Field(default=0)
     attached_by: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)
     updated_at: str = Field(default_factory=_now_iso)

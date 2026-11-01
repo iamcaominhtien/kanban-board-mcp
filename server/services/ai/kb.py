@@ -350,6 +350,11 @@ async def table_of_contents(
                 "kind": d.kind,
                 "tokens": d.tokens,
                 "answers": json.loads(d.answers or "[]"),
+                "private": d.private,
+                "created_by": d.created_by,
+                "created_at": d.created_at,
+                "last_read_at": d.last_read_at,
+                "source_name": d.source_name,
             }
         )
     return sorted(out, key=lambda r: (r["store"], r["title"].lower()))

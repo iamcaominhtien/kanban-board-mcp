@@ -193,8 +193,8 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
               </label>
             ))}
           </div>
-          {Object.keys(p.used?.byMember ?? {}).length > 0 && (
-            <div className="ai-hint">Used by {Object.keys(p.used.byMember).length} members.</div>
+          {(p.used?.byMember ?? []).length > 0 && (
+            <div className="ai-hint">Used by {p.used.byMember.length} members.</div>
           )}
         </div>
       )}

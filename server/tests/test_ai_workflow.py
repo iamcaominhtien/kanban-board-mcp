@@ -403,3 +403,76 @@ def test_normalize_adds_the_last_person_step():
         {"steps": [{"key": "x", "label": "X", "kind": "ai", "role": "dev"}]}
     )
     assert [s["kind"] for s in t["steps"]] == ["ai", "person"]
+
+
+async def test_a_step_with_no_member_can_be_skipped_for_this_ticket(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    await _team(c, pid, env["repo"], roles=("triage", "reviewer"))
+    tid = await _ticket(c, pid)
+    await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
+    await _until(c, tid, lambda v: _current(v) and _current(v)["state"] == "blocked")
+    r = await c.post(f"/tickets/{tid}/ai/workflow/skip", json={})
+    assert r.status_code == 200, r.text
+    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    assert next(s for s in view["steps"] if s["key"] == "fix")["state"] == "skipped"
+    flags = (await c.get(f"/tickets/{tid}/ai/ticket-flags")).json()
+    assert not any(f["open"] for f in flags if f["kind"] == "no_member")
+
+
+async def test_an_odd_job_gets_its_reviewer_when_the_work_finishes(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _team(c, pid, env["repo"], roles=("dev", "reviewer"))
+    tid = await _ticket(c, pid)
+    r = await c.put(f"/tickets/{tid}/ai/reviewer", json={"member_id": team["reviewer"]})
+    assert r.json()["reviewer_id"] == team["reviewer"]
+    assert (
+        await c.get(f"/tickets/{tid}/ai/workflow")
+    ).json() is None  # still an odd job, not a workflow
+    await c.post(
+        f"/tickets/{tid}/ai/assign", json={"member_id": team["dev"], "start": "now"}
+    )
+
+    for _ in range(150):
+        runs_ = (await c.get(f"/tickets/{tid}/ai/runs")).json()
+        if any(r["trigger"] == "review" and r["state"] == "finished" for r in runs_):
+            break
+        await asyncio.sleep(0.15)
+    review = next(r for r in runs_ if r["trigger"] == "review")
+    assert review["member_id"] == team["reviewer"]
+    assert (
+        sum(1 for r in runs_ if r["trigger"] == "review") == 1
+    )  # the review does not ask for another review
+
+
+async def test_a_new_workflow_after_a_detach_keeps_the_old_steps_out_of_its_strip(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    await _team(c, pid, env["repo"], roles=("triage", "dev", "reviewer", "ba"))
+    tid = await _ticket(c, pid)
+    await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
+    await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    await c.delete(f"/tickets/{tid}/ai/workflow")
+    r = await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "research"})
+    assert r.status_code == 200, r.text
+    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    assert [s["key"] for s in view["steps"]] == [
+        "triage",
+        "investigate",
+        "write_up",
+        "done",
+    ]
+
+
+async def test_the_base_prompt_of_a_member_is_counted(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _team(c, pid, env["repo"], roles=("dev",))
+    await c.put(
+        f"/projects/{pid}/ai/knowledge/instructions",
+        json={"instructions": "Tests run with npm test -- --run."},
+    )
+    got = (await c.get(f"/ai/members/{team['dev']}/base-prompt")).json()
+    assert got["tokens"] > 0
+    assert got["parts"]["project_knowledge"] > 0 and got["parts"]["persona"] > 0

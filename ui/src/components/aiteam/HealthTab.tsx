@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { WorkflowMetrics } from './WorkflowMetrics';
+import { MarksPanel } from './MarksPanel';
 import { useQueryClient } from '@tanstack/react-query';
 import { aiApi, aiKeys } from '../../api/ai';
 import { extractError } from '../../api/extractError';
@@ -320,6 +322,8 @@ export function HealthTab({
         )}
       </div>
 
+      <WorkflowMetrics projectId={projectId} />
+      <MarksPanel projectId={projectId} />
       <div className="at-measures">
         <Tile
           name="Reliability"
