@@ -1514,16 +1514,21 @@ export function TimelineBody(props: DrawProps) {
 /** The now pill sits in the gutter, level with the now line. */
 export function NowPill({ axis, now, paused }: { axis: Axis; now: number; paused: boolean }) {
   const y = TOP + axis.y(now);
+  const text = `now ${clock(now)}`;
+  // as wide as its words with 7 px of air on each side (the design's 56 px left almost none), inside the gutter
+  const w = Math.min(Math.ceil(textWidth(text, 10, 800)) + 14, GUTTER - 2);
+  const x = GUTTER - 1 - w;
   return (
     <svg
       width={GUTTER}
       height={bodyHeight(axis)}
       style={{ display: 'block', position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
       role="presentation"
+      data-testid="tl-now-pill"
     >
-      <rect x={GUTTER - 58} y={y - 9} width={56} height={18} rx={9} fill={paused ? '#5B6B60' : '#2E6F40'} />
-      <text x={GUTTER - 30} y={y + 4} fontSize={10} fontWeight={800} fill="#fff" textAnchor="middle">
-        now {clock(now)}
+      <rect x={x} y={y - 9} width={w} height={18} rx={9} fill={paused ? '#5B6B60' : '#2E6F40'} />
+      <text x={x + w / 2} y={y + 4} fontSize={10} fontWeight={800} fill="#fff" textAnchor="middle">
+        {text}
       </text>
     </svg>
   );
