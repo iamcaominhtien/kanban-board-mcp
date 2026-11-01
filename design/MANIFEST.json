@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793552030-09fb",
+  "canvas_version": "1793552517-25b5",
   "exported": "2026-11-01",
   "files": {
     "AccountMenu.dc.html": {
@@ -621,20 +621,20 @@
       "h": 16040
     },
     "AiTeamProcess.dc.html": {
-      "bytes": 228999,
-      "sha256": "8b709f8f19c4bed391d3148831013355a7646af2ef26486c8a622103b49163f1",
+      "bytes": 231817,
+      "sha256": "e354b3009272ad4f81e59f49f7eda1146854818ababc8f0683efa0dd95206ecd",
       "title": "AI team & process — skills and plugins, role packs, workflows, review, arbitration, TDD proof",
       "page": "screens_ai",
       "w": 1480,
-      "h": 13798
+      "h": 14153
     },
     "AiBoardWave3.dc.html": {
-      "bytes": 169295,
-      "sha256": "20ba68d44966c20758b69e30180ff5a6dd14ed209f52d193ac7398addfcbd7bd",
+      "bytes": 169735,
+      "sha256": "752524874dfcb5c2dbd0e47d4818972429533fa1df09d619261d79c3a194219d",
       "title": "Board AI & beyond — risk tiers, standing orders, knowledge base, GitHub, marks",
       "page": "screens_ai",
       "w": 1480,
-      "h": 11959
+      "h": 12020
     }
   }
 }
