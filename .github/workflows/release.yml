@@ -93,7 +93,9 @@ jobs:
           name: artifacts-${{ matrix.os }}
           path: dist-desktop/
 
-  # The guide (PDF, stand-alone PDFs) is attached to the release. A problem here never blocks the installers.
+  # The guide is attached to the release: the full PDF, and the stand-alone PDFs (quick start, shortcut sheet,
+  # administration…) packed into one zip so the release page lists two guide files, not eight. A problem here never
+  # blocks the installers.
   guide:
     name: Build the guide
     runs-on: ubuntu-latest
@@ -121,12 +123,23 @@ jobs:
           npx playwright install --with-deps chromium
           python3 build.py --release
 
+      - name: Pack the stand-alone PDFs into one zip
+        working-directory: docs/guideline/guide/dist
+        env:
+          RELEASE_VERSION: ${{ needs.check-conditions.outputs.version }}
+        run: |
+          shopt -s nullglob
+          sheets=(standalone/*.pdf)
+          if [ "${#sheets[@]}" -gt 0 ]; then
+            zip -j "kanban-board-guide-sheets-$RELEASE_VERSION.zip" "${sheets[@]}"
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-guide
           path: |
-            docs/guideline/guide/dist/*.pdf
-            docs/guideline/guide/dist/standalone/*.pdf
+            docs/guideline/guide/dist/kanban-board-guide-*.pdf
+            docs/guideline/guide/dist/kanban-board-guide-sheets-*.zip
 
   create-release:
     runs-on: ubuntu-latest
@@ -157,8 +170,8 @@ jobs:
             echo "Error: No release installers found (.dmg or *Setup*.exe) in release-artifacts/." >&2
             exit 1
           fi
-          # The guide, when it was built: the full PDF and the stand-alone sheets
-          mapfile -t GUIDE < <(find release-artifacts/ -name "*.pdf" -type f)
+          # The guide, when it was built: the full PDF and the zip of the stand-alone PDFs
+          mapfile -t GUIDE < <(find release-artifacts/ -type f \( -name "kanban-board-guide-*.pdf" -o -name "kanban-board-guide-sheets-*.zip" \))
           gh release create "v$VERSION" "${ARTIFACTS[@]}" "${GUIDE[@]}" \
             --title "v$VERSION" \
             --notes-file /tmp/release_notes.md
