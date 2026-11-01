@@ -2,6 +2,8 @@
 
 > SCREEN — V1 PROPOSAL · source: [`AiTeamReview.dc.html`](../source/AiTeamReview.dc.html) · canvas `1793406673-3d1f` · sha256 `933b4a109529a37cf9fc2a0e8288386ceb9bbbeb6f4c688fe4908254f5382374`
 
+> **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — *Run view: still the detail of one run* — that run view is designed in section G, and the touches it links to keep their place.
+
 The second half of AI Team: every manual touch with why it was needed, a health page with five measures and a list of what to fix, where the view shows up in the app, its states, and the definitions behind every number.
 
 Source: [AiTeamReview.dc.html](../source/AiTeamReview.dc.html) › header ("SCREEN — V1 PROPOSAL", "AI Team — where people stepped in, and whether the AI is healthy" and the intro)

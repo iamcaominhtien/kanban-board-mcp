@@ -2,6 +2,8 @@
 
 > SCREEN — V1 PROPOSAL · source: [`AiTimeline.dc.html`](../source/AiTimeline.dc.html) · canvas `1793430454-494a` · sha256 `733eee8eda7433e45dbe1a6967b77684653adc0ae0d10b7c0d2d3e9ca21c8b00`
 
+> **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — the run inspector’s *Open the run* leads to the run detail designed in section G.
+
 A second way to read Flow: a sequence diagram of the AI team. Each AI is a lifeline, time runs down, and every hand-off, report back, question and approval is an arrow. It shows who did what and when, where the waiting is, and what is happening now, with detail on hover and click.
 
 Source: [AiTimeline.dc.html](../source/AiTimeline.dc.html) › header ("SCREEN — V1 PROPOSAL", "AI Team — Flow, the Timeline view" and the intro)

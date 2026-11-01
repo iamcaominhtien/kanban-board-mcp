@@ -2,6 +2,8 @@
 
 > Screen — v1 · source: [`AiSafetyCost.dc.html`](../source/AiSafetyCost.dc.html) · canvas `1792727511-31c8` · sha256 `fdbaa589d309b09f3f9d52d2c944eacb66c597e314a5896a94c4d9701198cebd`
 
+> **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — failures stop being one kind: hitting a usage window is not a failure at all, and a board fault is told apart from an AI mistake (sections C and E). The approvals inbox and the auto-trip rules are unchanged.
+
 Eyebrow "Screen — v1". The single home for what AI members may do, who approves it, what it may spend, how to stop it, and how to see and undo what it did. By default an AI moves tickets **only up to Review**; a person decides Done. API agents are metered; local runners are **Not metered** (subscription). Every action is recorded as “AI name, on behalf of person” and can be reverted. Desktop only. Project: Kanban Board (KAN); members An Nguyen (owner), Hoa Mai, Tuan Vo, Linh Pham.
 
 Source: [AiSafetyCost.dc.html](../source/AiSafetyCost.dc.html) › header ("Screen — v1", "AI safety & cost" and the intro)

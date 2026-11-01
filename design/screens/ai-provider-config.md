@@ -2,6 +2,8 @@
 
 > Screen — v1 · source: [`AiProviderConfig.dc.html`](../source/AiProviderConfig.dc.html) · canvas `1792727511-31c8` · sha256 `01dd233efcacc5d16c7494f6504ba9673eceeedbcc0025b8a6f8926f6cf8259b`
 
+> **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — the block the board writes into `CLAUDE.md` moves into the run’s system prompt, and project-wide instructions plus the lessons the AIs wrote themselves get a screen of their own (section H).
+
 Eyebrow "Screen — v1". The **Configuration** tab of an AI member (AI members, section D) is built from the member’s adapter: Claude Code, Antigravity, API agent, or Other MCP client. Each item is **Documented** (steps only) or **Synced** (stored on the board, written to the provider’s native files before each run). A board-level **library** shares items across members. Desktop only.
 
 ---

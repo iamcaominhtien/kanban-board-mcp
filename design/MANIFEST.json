@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793469596-c902",
-  "exported": "2026-10-31",
+  "canvas_version": "1793548337-bcf0",
+  "exported": "2026-11-01",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -611,6 +611,14 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 8098
+    },
+    "AiOperations.dc.html": {
+      "bytes": 235648,
+      "sha256": "a2d3a5312d8a77e1d48ed9a0df81c4290487b0872f5c6680a650acba6be23a05",
+      "title": "AI operations — hangs, the needs-you queue, quota, run history, knowledge, worktrees",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 14828
     }
   }
 }
