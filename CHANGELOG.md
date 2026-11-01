@@ -8,6 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.20.0] - 2026-11-02
+
 The AI team on Claude Code, all nine phases of `docs/specs/ai-claude-code-implementation.md` (designs `design/screens/ai-operations.md`, `ai-team-process.md`, `ai-board-wave3.md`).
 
 ### Added
