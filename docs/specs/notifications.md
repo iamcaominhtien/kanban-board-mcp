@@ -69,7 +69,9 @@ button and `/projects/{id}/docs/follow` keep working on top of it.
 
 ### `notify_prefs`: Settings › Notifications
 
-One JSON row per recipient: `events` ({kind: {inapp, desktop}}), `quiet` ({on, start, end}), `dnd`, `sound`,
+One JSON row per recipient: `events` ({kind: {inapp, desktop}}), `desktop_on` (the master Desktop notifications
+switch: off writes every row with `desktop = false`, each kind keeps its own choice), `quiet` ({on, start, end}),
+`dnd`, `sound`,
 `day_card` ({on, time, days}). The row `*` holds the app-wide `retention_days` and `pruned_through` (the newest
 event id retention deleted). The per-project `AiProjectSettings.notify` switches were dropped; an explicit desktop
 choice of the board's own user is carried over by the migration. `AiProjectSettings.digest` and
@@ -166,7 +168,7 @@ All under `/notifications`, as the person of the request (`X-Actor`, or the boar
 | `POST /notifications/{id}/dismiss` | Resolves the thing for every recipient ("Dismissed by you"). 409 for a kind that closes only when the work is done. |
 | `POST /notifications/{id}/snooze` | `{until}` (ISO), or `{until: null}` to bring it back. |
 | `POST /notifications/{id}/clear` | `{on}`; 409 for an open Needs you row. `POST /notifications/clear-read` clears every read update. |
-| `GET/PATCH /notifications/settings` | The event table (`inapp_locked` for Needs you), `quiet`, `dnd`, `sound`, `day_card`, `retention_days`, `muted`. |
+| `GET/PATCH /notifications/settings` | The event table (`inapp_locked` for Needs you), `desktop_on`, `quiet`, `dnd`, `sound`, `day_card`, `retention_days`, `muted`. |
 | `GET/PUT /notifications/follow`, `DELETE /notifications/follow/{id}` | The bell on a ticket, page, space; mutes from a row; the Muted list. |
 | `GET /notifications/day-card` (`?preview=true`), `POST /notifications/day-card` | The latest card; today so far; write it now. |
 

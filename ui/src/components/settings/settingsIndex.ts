@@ -7,6 +7,7 @@ export type SettingsPageId =
   | 'assistant'
   | 'ideas'
   | 'appearance'
+  | 'notifications'
   | 'storage'
   | 'integrations'
   | 'updates'
@@ -60,6 +61,13 @@ export const SETTINGS_PAGES: SettingsPageDef[] = [
     summary: 'AI helpers and what they may use.',
   },
   { id: 'appearance', scope: 'app', label: 'Appearance', title: 'Appearance', summary: 'How the app looks.' },
+  {
+    id: 'notifications',
+    scope: 'app',
+    label: 'Notifications',
+    title: 'Notifications',
+    summary: 'What tells you, where, and when.',
+  },
   {
     id: 'storage',
     scope: 'app',
@@ -290,6 +298,70 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     name: 'Check for updates',
     description: 'Installed version and available updates.',
     keywords: 'version release upgrade',
+  },
+  {
+    id: 'notif-events',
+    page: 'notifications',
+    section: 'Events',
+    name: 'Notification switches',
+    description: 'Which events show in the app and on the desktop. Needs you events always show in the app.',
+    keywords: 'bell alerts toast panel mute needs you',
+  },
+  {
+    id: 'notif-desktop',
+    page: 'notifications',
+    section: 'Desktop',
+    name: 'Desktop notifications',
+    description: 'Allow notifications from your computer, and send a test.',
+    keywords: 'os system alert permission blocked',
+  },
+  {
+    id: 'notif-quiet',
+    page: 'notifications',
+    section: 'Quiet hours',
+    name: 'Quiet hours',
+    description: 'Nothing interrupts between two times; the panel still fills.',
+    keywords: 'night sleep dnd',
+  },
+  {
+    id: 'notif-dnd',
+    page: 'notifications',
+    section: 'Do not disturb',
+    name: 'Follow the system Do not disturb',
+    description: 'When your computer is quiet, so is this app.',
+    keywords: 'focus',
+  },
+  {
+    id: 'notif-sound',
+    page: 'notifications',
+    section: 'Sound',
+    name: 'Sound',
+    description: 'Make a sound for events that need you.',
+    keywords: 'audio beep',
+  },
+  {
+    id: 'notif-daycard',
+    page: 'notifications',
+    section: 'The day card',
+    name: 'The day card',
+    description: 'The day in one card: when it is written and on which days.',
+    keywords: 'summary digest evening',
+  },
+  {
+    id: 'notif-retention',
+    page: 'notifications',
+    section: 'Keeping',
+    name: 'Keep notifications for',
+    description: 'How long notifications are kept before they are deleted.',
+    keywords: 'retention delete history days',
+  },
+  {
+    id: 'notif-muted',
+    page: 'notifications',
+    section: 'Muted',
+    name: 'Muted list',
+    description: 'Tickets, pages, projects and kinds you muted, with Unmute.',
+    keywords: 'unmute follow',
   },
   {
     id: 'logs',

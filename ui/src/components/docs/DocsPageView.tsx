@@ -14,6 +14,7 @@ import { SelectionAi } from './ai/SelectionAi';
 import { SummaryBlock } from './ai/SummaryBlock';
 import { TranslateBanner, useTranslatedMarkdown } from './ai/TranslateView';
 import { usePageAiView } from './ai/usePageAiView';
+import { FollowBell } from '../notifications-follow/FollowBell';
 import { CommentsPanel } from './comments/CommentsPanel';
 import { PageComments } from './comments/PageComments';
 import { ComposePopover, SelectionToolbar, type Pick } from './comments/SelectionComment';
@@ -399,6 +400,7 @@ export function DocsPageView({
                       onOpenTicket={onOpenTicket}
                     />
                   )}
+                  {!offline && <FollowBell scope="page" scopeId={page.id} projectId={projectId} />}
                   {!offline && (
                     <button
                       type="button"

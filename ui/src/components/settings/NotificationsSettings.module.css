@@ -1,0 +1,331 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 690px;
+}
+
+.table {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.head,
+.row {
+  display: grid;
+  grid-template-columns: 1fr 84px 84px 150px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.head {
+  padding: 9px 16px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #5b6b60;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.row {
+  border-top: 1px solid #eef3ef;
+}
+
+.group {
+  padding: 11px 16px 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  background: #f6faf7;
+}
+
+.center {
+  text-align: center;
+}
+
+.note {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+
+.locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0.72;
+}
+
+.switch {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: #c7d2cb;
+  display: inline-block;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.switch:disabled {
+  cursor: default;
+}
+
+.switchOn {
+  background: #2e6f40;
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.switchOn .knob {
+  left: auto;
+  right: 2px;
+}
+
+.lockNote {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 16px;
+  border-top: 1px solid #eef3ef;
+  background: #fbfcfb;
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+
+.lockNote b {
+  color: #1e2a22;
+}
+
+.lockIcon {
+  display: flex;
+  margin-top: 1px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  max-width: 430px;
+}
+
+.setting {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid #eef3ef;
+}
+
+.settingText {
+  flex: 1;
+  min-width: 0;
+}
+
+.settingName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+
+.hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #5b6b60;
+}
+
+.linkBtn {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: #f6faf7;
+  color: #2e6f40;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.linkBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #c7d2cb;
+  background: #ffffff;
+  font-size: 13px;
+  color: #1e2a22;
+  box-sizing: border-box;
+  min-height: 34px;
+}
+
+.input:focus-within {
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.14);
+}
+
+.input input,
+.input select {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  padding: 0;
+}
+
+.days {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.day {
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+
+.dayOn {
+  background: #e6f2ea;
+  border-color: #2e6f40;
+  color: #1f5a31;
+}
+
+.card {
+  padding: 18px 20px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-sizing: border-box;
+  max-width: 430px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+  margin-bottom: 10px;
+}
+
+.list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #3a4a3e;
+}
+
+.list li {
+  margin: 0 0 6px;
+}
+
+.code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  background: #f6faf7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #2e6f40;
+}
+
+.refused {
+  padding: 10px 12px;
+  border: 1px solid #c9ddf0;
+  border-radius: 10px;
+  background: #e8f1fa;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  max-width: 430px;
+}
+
+.refusedIcon {
+  color: #244e78;
+  display: flex;
+  margin-top: 1px;
+}
+
+.refusedBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.refusedTitle {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #244e78;
+}
+
+.refusedText {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+
+.refusedActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: #f6faf7;
+}
+
+.error {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #f0c9c1;
+  background: #fdece8;
+  color: #a5321e;
+  font-size: 12.5px;
+}

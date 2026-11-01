@@ -13,6 +13,7 @@ import type { Theme } from '../../types';
 import { ProjectRepoRow } from './ProjectRepoRow';
 import { StoragePage } from './StoragePage';
 import { DiagnosticsPage } from './DiagnosticsPage';
+import { NotificationsSettings } from './NotificationsSettings';
 import {
   SETTINGS_PAGES,
   isSettingsPageId,
@@ -219,6 +220,9 @@ export function SettingsPage({
           </button>
         </div>
       );
+      break;
+    case 'notifications':
+      body = <NotificationsSettings />;
       break;
     case 'storage':
       body = <StoragePage />;

@@ -92,6 +92,7 @@ DEFAULT_RETENTION_DAYS = 90
 DEFAULT_PREFS: dict[str, Any] = {
     "events": {},
     "quiet": {"on": True, "start": "22:00", "end": "08:00"},
+    "desktop_on": True,  # the master switch: no OS notification at all when off
     "dnd": True,
     "sound": False,
     "day_card": {"on": True, "time": "18:00", "days": [0, 1, 2, 3, 4]},
@@ -158,7 +159,9 @@ _dirty: asyncio.Event | None = None  # made by start(), on the loop that runs it
 _pending: deque[dict] = (
     deque()
 )  # events queued by synchronous callers (schedules), written by the loop
-_later: deque[tuple] = deque()  # (async function, argument) to run once the caller has committed
+_later: deque[tuple] = (
+    deque()
+)  # (async function, argument) to run once the caller has committed
 
 
 def mark_dirty() -> None:
@@ -279,7 +282,9 @@ def event_switch(prefs: dict, kind: str) -> tuple[bool, bool]:
     label, needs, desktop_default, _ = KINDS.get(kind, ("", False, False, False))
     mine = prefs.get("events", {}).get(kind) or {}
     inapp = True if needs else bool(mine.get("inapp", True))
-    desktop = bool(mine.get("desktop", desktop_default))
+    desktop = bool(prefs.get("desktop_on", True)) and bool(
+        mine.get("desktop", desktop_default)
+    )
     return inapp, desktop
 
 
@@ -321,7 +326,8 @@ async def settings_for(session: AsyncSession, recipient: str) -> dict[str, Any]:
     events = []
     for kind in NEEDS_KINDS + INFO_KINDS:
         label, needs, _, _ = KINDS[kind]
-        inapp, desktop = event_switch(prefs, kind)
+        # the table shows each kind's own choice; the master switch is shown on its own
+        inapp, desktop = event_switch({**prefs, "desktop_on": True}, kind)
         events.append(
             {
                 "kind": kind,
@@ -335,6 +341,7 @@ async def settings_for(session: AsyncSession, recipient: str) -> dict[str, Any]:
     return {
         "events": events,
         "quiet": prefs["quiet"],
+        "desktop_on": bool(prefs.get("desktop_on", True)),
         "dnd": bool(prefs["dnd"]),
         "sound": bool(prefs["sound"]),
         "day_card": prefs["day_card"],
@@ -372,7 +379,7 @@ async def update_settings(
             if k in body["quiet"]:
                 q[k] = _hhmm(body["quiet"][k], q[k])
         mine["quiet"] = q
-    for k in ("dnd", "sound"):
+    for k in ("dnd", "sound", "desktop_on"):
         if k in body and body[k] is not None:
             mine[k] = bool(body[k])
     if isinstance(body.get("day_card"), dict):

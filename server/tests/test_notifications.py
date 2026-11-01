@@ -590,7 +590,9 @@ async def test_day_cards_are_written_once_at_the_card_time(env):
     assert await centre.write_day_cards(friday_18.astimezone(UTC)) == 0
     saturday = datetime(2026, 10, 31, 18, 30).astimezone()
     assert await centre.write_day_cards(saturday.astimezone(UTC)) == 0  # weekdays only
-    await c.patch("/notifications/settings", json={"day_card": {"days": [5], "time": "18:15"}})
+    await c.patch(
+        "/notifications/settings", json={"day_card": {"days": [5], "time": "18:15"}}
+    )
     assert await centre.write_day_cards(saturday.astimezone(UTC)) == 1
 
 
@@ -612,3 +614,20 @@ async def test_a_run_ending_writes_through_the_real_end(env):
     await runs._end(rid, "failed", "The CLI exited with code 1 at step 12.")
     [row] = (await _panel(c, "needs"))["items"]
     assert row["kind"] == "run_failed" and "code 1" in row["body"]
+
+
+async def test_the_desktop_master_switch_keeps_the_per_kind_choices(env):
+    c, pid, m, tid = await _setup(env)
+    r = (await c.patch("/notifications/settings", json={"desktop_on": False})).json()
+    assert r["desktop_on"] is False
+    assert next(e for e in r["events"] if e["kind"] == "question")["desktop"] is True
+    await centre.emit(
+        "question",
+        project_id=pid,
+        recipients=["user"],
+        title="?",
+        target_kind="run",
+        target_id="r",
+    )
+    [row] = (await _panel(c, "needs"))["items"]
+    assert row["desktop"] is False and row["inapp"] is True
