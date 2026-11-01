@@ -37,6 +37,8 @@ DEFAULTS: dict = {
     "workflow_default": "standard",  # a template key, or "" for none (hand work straight to one AI)
     "coordinator_id": None,  # the PM member that arbitrates (D12, D24)
     "triage_id": None,
+    # Phase 7 — the Board AI acts as the person by risk tier (D23); `tiers` lowers middle-tier actions to "free"
+    "board_ai": {"acts": True, "tiers": {}},
     # Phase 8
     "knowledge_shared": False,  # also search the shared store
     "github": {"on": False, "poll_min": 5},

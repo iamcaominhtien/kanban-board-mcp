@@ -24,6 +24,10 @@ _RUN_FTS = (
 )
 
 
+def bind_is_sqlite() -> bool:
+    return op.get_bind().dialect.name == "sqlite"
+
+
 def upgrade() -> None:
     op.create_table(
         "ai_run_transcript",
@@ -274,6 +278,115 @@ def upgrade() -> None:
     )
     for column in ("ticket_id", "state", "run_id"):
         op.create_index(f"ix_ai_ticket_step_{column}", "ai_ticket_step", [column])
+    op.create_table(
+        "ai_standing_order",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("sentence", sa.String(), nullable=False, server_default=""),
+        sa.Column("rule", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("state", sa.String(), nullable=False, server_default="off"),
+        sa.Column("trial_days", sa.Integer(), nullable=False, server_default="3"),
+        sa.Column("trial_started_at", sa.String(), nullable=True),
+        sa.Column("trial_fired_at", sa.String(), nullable=True),
+        sa.Column("fired", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("would_have", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("last_fired_at", sa.String(), nullable=True),
+        sa.Column("last_summary", sa.String(), nullable=True),
+        sa.Column("template", sa.String(), nullable=True),
+        sa.Column("created_by", sa.String(), nullable=True),
+        sa.Column("created_at", sa.String(), nullable=False),
+    )
+    op.create_index(
+        "ix_ai_standing_order_project_id", "ai_standing_order", ["project_id"]
+    )
+    op.create_index("ix_ai_standing_order_state", "ai_standing_order", ["state"])
+    op.create_table(
+        "ai_order_firing",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("order_id", sa.String(), nullable=False),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("at", sa.String(), nullable=False),
+        sa.Column("target", sa.String(), nullable=True),
+        sa.Column("ticket_id", sa.String(), nullable=True),
+        sa.Column("trigger", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("action", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("would", sa.Boolean(), nullable=False, server_default="0"),
+        sa.Column("result", sa.String(), nullable=True),
+        sa.Column("undo", sa.String(), nullable=True),
+        sa.Column("undone_at", sa.String(), nullable=True),
+        sa.Column("undone_by", sa.String(), nullable=True),
+    )
+    for column in ("order_id", "project_id", "at", "target"):
+        op.create_index(f"ix_ai_order_firing_{column}", "ai_order_firing", [column])
+    op.create_table(
+        "ai_watched_pr",
+        sa.Column("ticket_id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("number", sa.Integer(), nullable=False),
+        sa.Column("url", sa.String(), nullable=True),
+        sa.Column("branch", sa.String(), nullable=False),
+        sa.Column("repo", sa.String(), nullable=False),
+        sa.Column("state", sa.String(), nullable=False, server_default="open"),
+        sa.Column("ci", sa.String(), nullable=True),
+        sa.Column("red", sa.String(), nullable=True),
+        sa.Column("seen_comments", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("pending_comments", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("checked_at", sa.String(), nullable=True),
+        sa.Column("last_error", sa.String(), nullable=True),
+    )
+    op.create_index("ix_ai_watched_pr_project_id", "ai_watched_pr", ["project_id"])
+    op.create_table(
+        "ai_knowledge_doc",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=True),
+        sa.Column("store", sa.String(), nullable=False, server_default="project"),
+        sa.Column("title", sa.String(), nullable=False),
+        sa.Column("kind", sa.String(), nullable=False, server_default="text"),
+        sa.Column("text", sa.String(), nullable=False, server_default=""),
+        sa.Column("summary", sa.String(), nullable=True),
+        sa.Column("keywords", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("answers", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("described_by", sa.String(), nullable=True),
+        sa.Column("source_name", sa.String(), nullable=True),
+        sa.Column("upload_url", sa.String(), nullable=True),
+        sa.Column("private", sa.Boolean(), nullable=False, server_default="0"),
+        sa.Column("tokens", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("created_by", sa.String(), nullable=True),
+        sa.Column("created_at", sa.String(), nullable=False),
+        sa.Column("last_read_at", sa.String(), nullable=True),
+        sa.Column("deleted_at", sa.String(), nullable=True),
+    )
+    op.create_index(
+        "ix_ai_knowledge_doc_project_id", "ai_knowledge_doc", ["project_id"]
+    )
+    op.create_index("ix_ai_knowledge_doc_store", "ai_knowledge_doc", ["store"])
+    op.create_table(
+        "ai_eval_mark",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("suite", sa.String(), nullable=False),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("member_id", sa.String(), nullable=True),
+        sa.Column("model", sa.String(), nullable=True),
+        sa.Column("state", sa.String(), nullable=False, server_default="running"),
+        sa.Column("score", sa.Float(), nullable=True),
+        sa.Column("details", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("runs", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("created_at", sa.String(), nullable=False),
+        sa.Column("ended_at", sa.String(), nullable=True),
+    )
+    op.create_index("ix_ai_eval_mark_suite", "ai_eval_mark", ["suite"])
+    op.create_index("ix_ai_eval_mark_created_at", "ai_eval_mark", ["created_at"])
+    if bind_is_sqlite():
+        try:
+            op.get_bind().execute(
+                sa.text(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS kb_fts USING fts5(doc_id UNINDEXED, project_id UNINDEXED, "
+                    "store UNINDEXED, title, summary, keywords, body, tokenize = 'unicode61 remove_diacritics 2')"
+                )
+            )
+        except DBAPIError:
+            pass
     # NEXT-UPGRADE
 
     bind = op.get_bind()
@@ -286,6 +399,22 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # NEXT-DOWNGRADE
+    if bind_is_sqlite():
+        op.get_bind().execute(sa.text("DROP TABLE IF EXISTS kb_fts"))
+    op.drop_index("ix_ai_eval_mark_created_at", table_name="ai_eval_mark")
+    op.drop_index("ix_ai_eval_mark_suite", table_name="ai_eval_mark")
+    op.drop_table("ai_eval_mark")
+    op.drop_index("ix_ai_knowledge_doc_store", table_name="ai_knowledge_doc")
+    op.drop_index("ix_ai_knowledge_doc_project_id", table_name="ai_knowledge_doc")
+    op.drop_table("ai_knowledge_doc")
+    op.drop_index("ix_ai_watched_pr_project_id", table_name="ai_watched_pr")
+    op.drop_table("ai_watched_pr")
+    for column in ("order_id", "project_id", "at", "target"):
+        op.drop_index(f"ix_ai_order_firing_{column}", table_name="ai_order_firing")
+    op.drop_table("ai_order_firing")
+    op.drop_index("ix_ai_standing_order_state", table_name="ai_standing_order")
+    op.drop_index("ix_ai_standing_order_project_id", table_name="ai_standing_order")
+    op.drop_table("ai_standing_order")
     for column in ("ticket_id", "state", "run_id"):
         op.drop_index(f"ix_ai_ticket_step_{column}", table_name="ai_ticket_step")
     op.drop_table("ai_ticket_step")

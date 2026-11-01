@@ -17,6 +17,7 @@ from .ai_team import ai_team
 from .branches import ticket_branches
 from .docs import docs_read, docs_write
 from .items import ticket_items
+from .knowledge import board_wait, knowledge
 from .projects import get_projects, manage_project
 from .schedules import ai_schedules
 from .tickets import manage_ticket
@@ -97,4 +98,6 @@ CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (ai_run, _WRITE),  # only inside a run the board started for an AI member
     (ai_schedules, _DESTRUCTIVE),  # delete
     (ai_team, _WRITE),  # acts on AI members and runs; nothing is deleted
+    (knowledge, _READ),  # the knowledge base: table of contents, search, read
+    (board_wait, _READ),  # wait until the board moves (the notification log)
 ]

@@ -43,6 +43,13 @@ CORE_OPS = (
     "title",
     "comment",
     "add_criteria",
+    # the AI team, as the person through the Board AI (design wave 3, C)
+    "run",
+    "stop_run",
+    "workflow",
+    "depth",
+    "pause_member",
+    "resume_member",
 )
 
 

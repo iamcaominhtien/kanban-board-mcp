@@ -97,7 +97,7 @@ def fake(monkeypatch):
 H = {"X-Actor": "An Nguyen"}
 
 
-async def _setup(env, *, board_ai=True):
+async def _setup(env, *, board_ai=True, acts=False):
     c = env["c"]
     pid, an = await _project(c)
     m = await _runner(c, pid, env["repo"], name="Reviewer")
@@ -106,6 +106,8 @@ async def _setup(env, *, board_ai=True):
         json={"board_ai_id": m["id"] if board_ai else None},
     )
     assert r.status_code == 200, r.text
+    # These tests cover drafts; the Board AI acting by risk tier (D23) has its own tests in test_ai_board_tiers.py
+    await c.patch(f"/projects/{pid}/ai/ops", json={"board_ai": {"acts": acts}})
     return c, pid, an, m
 
 

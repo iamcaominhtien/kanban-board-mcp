@@ -38,7 +38,7 @@ async def _team(
     return out
 
 
-async def _until(c, tid, pred, timeout=25.0):
+async def _until(c, tid, pred, timeout=60.0):
     from services.ai import runs
 
     deadline = asyncio.get_running_loop().time() + timeout

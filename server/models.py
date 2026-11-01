@@ -1561,6 +1561,127 @@ class AiTicketStep(SQLModel, table=True):
     ended_at: Optional[str] = Field(default=None)
 
 
+class AiStandingOrder(SQLModel, table=True):
+    """A rule in a person's words, tried before it does anything (services/ai/orders.py) (table)."""
+
+    __tablename__ = "ai_standing_order"
+
+    id: str = Field(
+        default_factory=lambda: f"ord_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    name: str
+    sentence: str = Field(default="")
+    rule: str = Field(
+        default="{}"
+    )  # JSON {when, if, then, afterwards, max_per_day, max_per_target, only_project}
+    state: str = Field(default="off", index=True)  # off | trial | on
+    trial_days: int = Field(default=3)
+    trial_started_at: Optional[str] = Field(default=None)
+    trial_fired_at: Optional[str] = Field(default=None)
+    fired: int = Field(default=0)
+    would_have: int = Field(default=0)
+    last_fired_at: Optional[str] = Field(default=None)
+    last_summary: Optional[str] = Field(default=None)
+    template: Optional[str] = Field(default=None)
+    created_by: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+
+
+class AiOrderFiring(SQLModel, table=True):
+    """One time a standing order fired (or, in trial, would have), with its Undo (table)."""
+
+    __tablename__ = "ai_order_firing"
+
+    id: str = Field(
+        default_factory=lambda: f"fir_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    order_id: str = Field(index=True)
+    project_id: str = Field(index=True)
+    at: str = Field(default_factory=_now_iso, index=True)
+    target: Optional[str] = Field(default=None, index=True)
+    ticket_id: Optional[str] = Field(default=None)
+    trigger: str = Field(default="{}")  # what set it off, with its numbers
+    action: str = Field(default="{}")  # what it did, or would have done
+    would: bool = Field(default=False)  # a trial firing: nothing was applied
+    result: Optional[str] = Field(default=None)
+    undo: Optional[str] = Field(default=None)  # JSON: how to put it back
+    undone_at: Optional[str] = Field(default=None)
+    undone_by: Optional[str] = Field(default=None)
+
+
+class AiWatchedPr(SQLModel, table=True):
+    """A pull request the board opened, watched with gh while it is open (services/ai/github.py) (table)."""
+
+    __tablename__ = "ai_watched_pr"
+
+    ticket_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    number: int
+    url: Optional[str] = Field(default=None)
+    branch: str
+    repo: str
+    state: str = Field(default="open")  # open | closed
+    ci: Optional[str] = Field(default=None)  # green | red | pending | none
+    red: Optional[str] = Field(
+        default=None
+    )  # JSON {check, url, at, blamed, base, handled_at, run_id}
+    seen_comments: str = Field(default="[]")
+    pending_comments: str = Field(default="[]")
+    checked_at: Optional[str] = Field(default=None)
+    last_error: Optional[str] = Field(default=None)
+
+
+class AiKnowledgeDoc(SQLModel, table=True):
+    """A document of the knowledge base: its text, a summary and keywords, in a project's store or the shared one
+    (services/ai/kb.py) (table)."""
+
+    __tablename__ = "ai_knowledge_doc"
+
+    id: str = Field(
+        default_factory=lambda: f"kb_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: Optional[str] = Field(
+        default=None, index=True
+    )  # None: the shared store
+    store: str = Field(default="project", index=True)  # project | shared
+    title: str
+    kind: str = Field(default="text")  # text | pdf | image | code | docs_page
+    text: str = Field(default="")
+    summary: Optional[str] = Field(default=None)
+    keywords: str = Field(default="[]")
+    answers: str = Field(default="[]")
+    described_by: Optional[str] = Field(default=None)  # model | code
+    source_name: Optional[str] = Field(default=None)
+    upload_url: Optional[str] = Field(default=None)
+    private: bool = Field(default=False)
+    tokens: int = Field(default=0)
+    created_by: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    last_read_at: Optional[str] = Field(default=None)
+    deleted_at: Optional[str] = Field(default=None)
+
+
+class AiEvalMark(SQLModel, table=True):
+    """One run of an eval suite on the sandbox project and its score (services/ai/evals.py) (table)."""
+
+    __tablename__ = "ai_eval_mark"
+
+    id: str = Field(
+        default_factory=lambda: f"evm_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    suite: str = Field(index=True)
+    project_id: str
+    member_id: Optional[str] = Field(default=None)
+    model: Optional[str] = Field(default=None)
+    state: str = Field(default="running")  # running | done
+    score: Optional[float] = Field(default=None)
+    details: str = Field(default="[]")
+    runs: str = Field(default="[]")
+    created_at: str = Field(default_factory=_now_iso, index=True)
+    ended_at: Optional[str] = Field(default=None)
+
+
 class AiAccountState(SQLModel, table=True):
     """The usage window and run limit of one Claude account, or of "local" (members on the person's own login)
     (table). Read from the CLI's `rate_limit_event` (services/ai/quota.py)."""

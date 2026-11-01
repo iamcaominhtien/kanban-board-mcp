@@ -19,7 +19,16 @@ import database
 import events as board_events
 import services.activity as act
 import services.tickets as svc_tickets
-from models import AiDraft, AiMember, DocsPage, Member, Project, Ticket, TicketUpdate
+from models import (
+    AiDraft,
+    AiMember,
+    AiRun,
+    DocsPage,
+    Member,
+    Project,
+    Ticket,
+    TicketUpdate,
+)
 
 from .. import llm
 from ..context import STATUS_LABELS
@@ -1286,6 +1295,10 @@ async def apply_changes(
                         {"i": i, "op": "add_criteria", "ticket": tid, "ids": ids}
                     )
                     continue
+                team = await _apply_team_op(session, ch, person)
+                if team is not None:
+                    applied.append({"i": i, **team})
+                    continue
                 if ch["op"] == "comment":
                     text = (edits or {}).get(str(i)) or ch["text"]
                     t = await svc_tickets.add_comment(
@@ -1616,6 +1629,113 @@ async def edit(session: AsyncSession, draft_id: str, payload_patch: dict) -> AiD
     return d
 
 
+TEAM_OPS = ("run", "stop_run", "workflow", "depth", "pause_member", "resume_member")
+
+
+async def _apply_team_op(session: AsyncSession, ch: dict, person: str) -> dict | None:
+    """The AI team actions the Board AI takes as the person (design wave 3, C): start or stop one run, put a ticket on a
+    workflow or set its depth, pause or resume one AI. Returns what to record for Undo, or None for other ops."""
+    from services.ai import workflow as ai_workflow
+
+    from .. import runs as ai_runs
+
+    op = ch.get("op")
+    if op not in TEAM_OPS:
+        return None
+    tid = ch.get("ticket")
+    if op == "run":
+        run = await ai_runs.create_run(
+            session,
+            ticket_id=tid,
+            member_id=ch["member"],
+            mode="work",
+            trigger="board_ai",
+            started_by=person,
+            instruction=ch.get("text") or "",
+        )
+        return {"op": op, "ticket": tid, "run_id": run.id}
+    if op == "stop_run":
+        active = [
+            r
+            for r in await ai_runs.active_runs(session, ticket_id=tid)
+            if r.mode == "work"
+        ]
+        if not active:
+            raise ValueError(f"No AI is working on {tid}.")
+        await ai_runs.cancel(
+            active[0].id, by=person, reason=f"Stopped by {person} through the Board AI."
+        )
+        return {"op": op, "ticket": tid, "run_id": active[0].id}
+    if op == "workflow":
+        ticket = await session.get(Ticket, tid)
+        await ai_workflow.attach(session, ticket, ch["to"], by=person)
+        return {"op": op, "ticket": tid, "to": ch["to"]}
+    if op == "depth":
+        wf = await ai_workflow.of_ticket(session, tid)
+        before = wf.review_depth if wf else None
+        await ai_workflow.set_depth(session, tid, ch["to"], by=person)
+        return {"op": op, "ticket": tid, "before": before, "after": ch["to"]}
+    if op in ("pause_member", "resume_member"):
+        profile = await session.get(AiMember, ch["member"])
+        if profile is None:
+            raise ValueError("Unknown AI member.")
+        profile.paused = op == "pause_member"
+        profile.paused_reason = f"{'Paused' if profile.paused else 'Resumed'} by {person} through the Board AI"
+        session.add(profile)
+        await session.commit()
+        return {"op": op, "ticket": None, "member": ch["member"]}
+    return None
+
+
+async def _undo_team_op(session: AsyncSession, a: dict, person: str) -> str | None:
+    """Put a team action back; returns what could not be taken back (None when it was)."""
+    from services.ai import workflow as ai_workflow
+
+    from .. import runs as ai_runs
+
+    op = a["op"]
+    if op == "run":
+        run = await session.get(AiRun, a.get("run_id"))
+        if run is not None and run.state in (
+            "queued",
+            "starting",
+            "running",
+            "needs_input",
+        ):
+            await ai_runs.cancel(run.id, by=person, reason=f"Undone by {person}.")
+            return (
+                None
+                if run.state == "queued"
+                else f"{a['ticket']}: the run was stopped, but it had already started (what it spent is not taken back)"
+            )
+        return f"{a['ticket']}: the run had already ended, so it is not taken back"
+    if op == "stop_run":
+        try:
+            await ai_runs.retry(a["run_id"], by=person)
+        except ai_runs.RunError as exc:
+            return str(exc)
+        return None
+    if op == "workflow":
+        await ai_workflow.detach(session, a["ticket"], by=person)
+        return None
+    if op == "depth":
+        wf = await ai_workflow.of_ticket(session, a["ticket"])
+        if wf is None or wf.review_depth != a.get("after"):
+            return f"{a['ticket']}: the depth was changed since"
+        if a.get("before"):
+            await ai_workflow.set_depth(session, a["ticket"], a["before"], by=person)
+        return None
+    if op in ("pause_member", "resume_member"):
+        profile = await session.get(AiMember, a["member"])
+        if profile is None:
+            return "The AI member is gone"
+        profile.paused = op != "pause_member"
+        session.add(profile)
+        await session.commit()
+        return None
+    return None
+
+
 async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
     """Undo an applied draft (B10, C4, D3). A field a person changed since is left as they set it."""
     d = await _get(session, draft_id)
@@ -1641,6 +1761,13 @@ async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
                         undone += 1
                     else:
                         skipped.append(f"{a['ticket']} {a['op']} was changed since")
+                    continue
+                if a["op"] in TEAM_OPS:
+                    note = await _undo_team_op(session, a, person)
+                    if note:
+                        skipped.append(note)
+                    else:
+                        undone += 1
                     continue
                 if a["op"] == "comment":
                     if a.get("comment_id"):

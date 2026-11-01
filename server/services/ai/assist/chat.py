@@ -932,12 +932,20 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
     chat_tools = chat_token = None
     if lean and not (turn_in and turn_in.images):
         chat_tools, chat_token = await chat_tools_mod.build(c, profile, member)
+    from .. import ops as ai_ops
+    from ..store import get_settings as _ai_settings
+
+    async with database.async_session() as session:
+        board_ai_cfg = (
+            ai_ops.get(await _ai_settings(session, c.project_id)).get("board_ai") or {}
+        )
     system = prompts.system(
         member.name,
         project.name if project else "",
         row,
         extra,
         tools=chat_tools is not None,
+        acts=bool(board_ai_cfg.get("acts")) and provider is None and form is None,
     )
 
     # the proposal that is still open: a request to change it must come back as the whole updated list
@@ -1230,6 +1238,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             )
         draft_id = done.get("draft_id")
     proposed, member_notes, filled = [], [], False
+    acted = 0
     if block.get("ai_members") and (provider is None or provider.core_ops):
         async with database.async_session() as session:
             proposed, member_notes = member_drafts.check_ai_members(
@@ -1297,6 +1306,31 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             session.add(d)
             await session.commit()
             draft_id = d.id
+            # The Board AI acts as the person by tier (D23): small and reversible is done now with one Undo; the
+            # rest stays a card that asks first (design wave 3, C, D)
+            from . import tiers as ai_tiers
+
+            if board_ai_cfg.get("acts") and provider is None and form is None:
+                verdict = ai_tiers.decide(
+                    changes,
+                    project_ids={c.project_id},
+                    overrides=board_ai_cfg.get("tiers"),
+                )
+                if verdict["act"]:
+                    try:
+                        await svc_drafts.apply(session, d.id, c.owner, {})
+                        acted = len(changes)
+                    except svc_drafts.AssistError as exc:
+                        problems.append(str(exc))
+                else:
+                    payload = loads(d.payload, {})
+                    payload["asks_first"] = verdict["reasons"]
+                    payload["intro"] = (
+                        "This asks you first: " + "; ".join(verdict["reasons"]) + "."
+                    )
+                    d.payload = json.dumps(payload)
+                    session.add(d)
+                    await session.commit()
     # The cost is booked before the answer reads "done": whoever sees it done (a budget check, the next
     # question sent at once) must already count it
     label = (
@@ -1325,6 +1359,8 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             if filled and not changes
             else "Here is what I would create."
             if proposed
+            else f"Done — {acted} change{'' if acted == 1 else 's'}. Undo puts {'it' if acted == 1 else 'them'} back."
+            if acted
             else "Here is what I would change."
             if changes
             else out.text
