@@ -316,7 +316,8 @@ async def post_kb(
         if len(data) > 50 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="Files are limited to 50 MB.")
         with tempfile.TemporaryDirectory(prefix="kanban-kb-") as tmp:
-            path = Path(tmp) / Path(name).name
+            # the upload's own name never makes the path: a fixed name with a known suffix (the name is kept apart)
+            path = Path(tmp) / f"upload{svc_kb.known_suffix(name)}"
             path.write_bytes(data)
             kind, body = await svc_kb.to_text(str(path), name, project_id=project_id)
     else:

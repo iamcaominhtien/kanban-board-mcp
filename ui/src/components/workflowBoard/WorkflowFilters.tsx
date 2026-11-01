@@ -85,8 +85,7 @@ export function WorkflowFilters({
           cursor: 'pointer',
         }}
       >
-        Waiting for me
-        <b style={{ fontWeight: 700, opacity: 0.8 }}>{options.waitingCount}</b>
+        Waiting for me <b style={{ fontWeight: 700, opacity: 0.8 }}>{options.waitingCount}</b>
       </button>
       {options.roles.length > 0 &&
         dropdown(

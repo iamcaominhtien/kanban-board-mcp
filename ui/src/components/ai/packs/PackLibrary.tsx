@@ -56,12 +56,7 @@ export function PackLibrary({ projectId }: { projectId: string }) {
       ) : (
         <div className="pk-cards" data-testid="pack-table">
           {packs.map((p) => (
-            <div
-              key={p.id}
-              className={`pk-card${sel === p.key ? ' pk-card-on' : ''}`}
-              data-testid={`pack-row-${p.key}`}
-              onClick={() => setSel(p.key)}
-            >
+            <div key={p.id} className={`pk-card${sel === p.key ? ' pk-card-on' : ''}`}>
               <div className="pk-role">
                 <span className="pk-glyph" aria-hidden="true">
                   {p.glyph}
@@ -70,11 +65,9 @@ export function PackLibrary({ projectId }: { projectId: string }) {
                   <button
                     type="button"
                     className="pk-name"
+                    data-testid={`pack-row-${p.key}`}
                     aria-pressed={sel === p.key}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSel(p.key);
-                    }}
+                    onClick={() => setSel(p.key)}
                   >
                     {p.name}
                   </button>

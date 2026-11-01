@@ -21,6 +21,7 @@ import os
 import re
 import shutil
 import subprocess
+from urllib.parse import urlparse
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -103,6 +104,19 @@ async def git(
 ) -> subprocess.CompletedProcess:
     """Run git off the event loop."""
     return await asyncio.to_thread(_git, cwd, *args, timeout=timeout, check=check)
+
+
+def is_github(remote: str | None) -> bool:
+    """Whether a git remote is on github.com (its host, not "github.com" anywhere in the URL): https, ssh:// and
+    scp-like git@github.com:owner/repo."""
+    url = (remote or "").strip()
+    if "://" not in url and "@" in url and ":" in url:
+        url = "ssh://" + url.replace(":", "/", 1)  # git@github.com:owner/repo
+    try:
+        host = urlparse(url).hostname or ""
+    except ValueError:
+        return False
+    return host.lower() == "github.com"
 
 
 def repo_root(folder: str | None) -> str | None:
@@ -381,7 +395,7 @@ async def guess_route(repo: str) -> str:
     ).stdout.strip()
     if not remote:
         return "local"
-    if "github.com" in remote and shutil.which("gh"):
+    if is_github(remote) and shutil.which("gh"):
         try:
             auth = await asyncio.to_thread(
                 subprocess.run,

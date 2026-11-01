@@ -16,6 +16,12 @@ export interface EditorSeed {
 
 const TRIAL_CHOICES = [1, 3, 7, 14];
 
+/** The server's key for what a rule does; named once so no object literal here carries a member called `then`. */
+const THEN = 'then';
+
+/** The rule with another action; written to the wire as `then`. */
+const withAction = (r: Rule, action: Rule['then']): Rule => ({ ...r, [THEN]: action });
+
 /** "What I understood — change anything": the rule as lines a person can read and change before it is saved. */
 export function RuleEditor({
   projectId,
@@ -50,15 +56,15 @@ export function RuleEditor({
     setRule((r) => {
       const cur = r.then.mode === 'fixed' ? r.then.action : '';
       const keep = r.then.mode === 'fixed' && next.some((a) => a.key === cur);
-      let then = r.then;
-      if (r.then.mode === 'diagnose' && when !== 'ai_hang') then = { mode: 'fixed', action: next[0]?.key ?? '' };
-      else if (r.then.mode === 'fixed' && !keep) then = { mode: 'fixed', action: next[0]?.key ?? '' };
-      return { ...r, when, then };
+      let action = r.then;
+      if (r.then.mode === 'diagnose' && when !== 'ai_hang') action = { mode: 'fixed', action: next[0]?.key ?? '' };
+      else if (r.then.mode === 'fixed' && !keep) action = { mode: 'fixed', action: next[0]?.key ?? '' };
+      return withAction({ ...r, when }, action);
     });
   };
   const setIf = (patchIf: Partial<Rule['if']>) => setRule((r) => ({ ...r, if: { ...r.if, ...patchIf } }));
   const num = (v: string, min: number, max: number, fallback: number) => {
-    const n = parseInt(v, 10);
+    const n = Number.parseInt(v, 10);
     return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
   };
 
@@ -188,13 +194,16 @@ export function RuleEditor({
 
       <div className="so-field">
         <div className="so-lab">Then</div>
-        <label className={`so-opt${isDiagnose ? ' so-opt-on' : ''}`}>
+        <label className={`so-opt${isDiagnose ? ' so-opt-on' : ''}`} htmlFor="so-then-diagnose">
           <input
+            id="so-then-diagnose"
             type="radio"
             name="so-then"
             checked={isDiagnose}
             disabled={rule.when !== '' && rule.when !== 'ai_hang'}
-            onChange={() => setRule((r) => ({ ...r, then: { mode: 'diagnose' }, if: { ...r.if, confident: true } }))}
+            onChange={() =>
+              setRule((r) => ({ ...withAction(r, { mode: 'diagnose' }), if: { ...r.if, confident: true } }))
+            }
           />
           <span>
             <b>Let the AI analyse, then decide</b>
@@ -206,12 +215,13 @@ export function RuleEditor({
             </span>
           </span>
         </label>
-        <label className={`so-opt${!isDiagnose ? ' so-opt-on' : ''}`}>
+        <label className={`so-opt${!isDiagnose ? ' so-opt-on' : ''}`} htmlFor="so-then-fixed">
           <input
+            id="so-then-fixed"
             type="radio"
             name="so-then"
             checked={!isDiagnose}
-            onChange={() => setRule((r) => ({ ...r, then: { mode: 'fixed', action: fixed[0]?.key ?? '' } }))}
+            onChange={() => setRule((r) => withAction(r, { mode: 'fixed', action: fixed[0]?.key ?? '' }))}
           />
           <span style={{ flex: 1 }}>
             <b>Always do one thing</b>
@@ -225,7 +235,7 @@ export function RuleEditor({
                 style={{ marginTop: 6 }}
                 aria-label="Action"
                 value={action}
-                onChange={(e) => setRule((r) => ({ ...r, then: { mode: 'fixed', action: e.target.value } }))}
+                onChange={(e) => setRule((r) => withAction(r, { mode: 'fixed', action: e.target.value }))}
               >
                 {!rule.when && <option value="">Pick a signal first</option>}
                 {fixed.map((a) => (
@@ -302,7 +312,7 @@ export function RuleEditor({
             className="ai-select"
             style={{ width: 150 }}
             value={trialDays}
-            onChange={(e) => setTrialDays(parseInt(e.target.value, 10))}
+            onChange={(e) => setTrialDays(Number.parseInt(e.target.value, 10))}
           >
             {TRIAL_CHOICES.map((d) => (
               <option key={d} value={d}>

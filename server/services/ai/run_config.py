@@ -12,6 +12,7 @@ depend on where it is delivered.
 """
 
 import json
+import os
 import re
 import shutil
 import uuid
@@ -41,6 +42,16 @@ def plugin_name(name: str) -> str:
 
 def _safe(rel: str) -> bool:
     return not (rel.startswith("/") or ".." in Path(rel).parts)
+
+
+def _within(base: Path, *parts: str) -> Path:
+    """`base` joined with `parts`, refused when the result would leave `base` (an id or a skill's path from the
+    member's configuration never writes outside the board's own plugin folder)."""
+    top = os.path.realpath(base)
+    full = os.path.realpath(os.path.join(top, *parts))
+    if not full.startswith(top + os.sep):
+        raise ValueError(f"{'/'.join(parts)} is outside {top}")
+    return Path(full)
 
 
 def _unchanged(entry, now: str) -> bool:
@@ -75,7 +86,7 @@ async def build(
     cfg = merged_config(loads(profile.config, {}))
     state = await config_service.get_state(session, profile.id)
     specs, notes = cs.desired_specs(cfg, board_url, loads(state.hooks_ok, None), set())
-    folder = root() / profile.id / (run_id or uuid.uuid4().hex)
+    folder = _within(root(), profile.id, run_id or uuid.uuid4().hex)
     if folder.exists():  # a restart inside the same run builds it again
         shutil.rmtree(folder, ignore_errors=True)
     system = None
@@ -129,7 +140,7 @@ async def build(
         encoding="utf-8",
     )
     for rel, text in files.items():
-        target = folder / rel
+        target = _within(folder, rel)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")
     if hooks:

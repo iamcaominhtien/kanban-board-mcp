@@ -19,7 +19,7 @@ export function Dialog({
   foot: ReactNode;
 }) {
   return (
-    <div className="ai-overlay" onClick={onClose}>
+    <div className="ai-overlay" onClick={onClose} role="presentation">
       <div className="ai-modal" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="ai-modal-head">
           <h2 className="ai-modal-title">{title}</h2>
@@ -126,17 +126,15 @@ export function EditPackModal({
       <div className="pk-form">
         <div className="pk-two">
           <label>
-            Name
-            <input className="ai-input" value={f.name} onChange={(e) => set('name', e.target.value)} />
+            Name <input className="ai-input" value={f.name} onChange={(e) => set('name', e.target.value)} />
           </label>
           <label>
-            Tagline
-            <input className="ai-input" value={f.tagline} onChange={(e) => set('tagline', e.target.value)} />
+            Tagline <input className="ai-input" value={f.tagline} onChange={(e) => set('tagline', e.target.value)} />
           </label>
         </div>
         <div className="pk-two">
           <label>
-            Model
+            Model{' '}
             <select className="ai-select" value={f.model} onChange={(e) => set('model', e.target.value as PackModel)}>
               {MODELS.map((m) => (
                 <option key={m} value={m}>
@@ -146,7 +144,7 @@ export function EditPackModal({
             </select>
           </label>
           <label>
-            Effort
+            Effort{' '}
             <select className="ai-select" value={f.effort} onChange={(e) => set('effort', e.target.value)}>
               {[...new Set([...EFFORTS, f.effort])].map((m) => (
                 <option key={m} value={m}>
@@ -157,7 +155,7 @@ export function EditPackModal({
           </label>
         </div>
         <label>
-          Model on a second attempt at the same step
+          Model on a second attempt at the same step{' '}
           <select className="ai-select" value={f.retryModel} onChange={(e) => set('retryModel', e.target.value)}>
             <option value="">Same model</option>
             {MODELS.map((m) => (
@@ -168,12 +166,12 @@ export function EditPackModal({
           </select>
         </label>
         <label>
-          Who it is (persona)
+          Who it is (persona){' '}
           <textarea className="ai-textarea" value={f.persona} onChange={(e) => set('persona', e.target.value)} />
         </label>
         <div className="pk-two">
           <label>
-            Ceiling (furthest status it may move a ticket to)
+            Ceiling (furthest status it may move a ticket to){' '}
             <select className="ai-select" value={f.ceiling} onChange={(e) => set('ceiling', e.target.value)}>
               {[...new Set([...CEILINGS, f.ceiling])].map((m) => (
                 <option key={m} value={m}>
@@ -183,7 +181,7 @@ export function EditPackModal({
             </select>
           </label>
           <label>
-            Where it may write
+            Where it may write{' '}
             <select
               className="ai-select"
               value={f.writes}
@@ -198,26 +196,26 @@ export function EditPackModal({
           </label>
         </div>
         <label>
-          What it must hand in
+          What it must hand in{' '}
           <textarea className="ai-textarea" value={f.handsIn} onChange={(e) => set('handsIn', e.target.value)} />
         </label>
         <label>
-          Allowed commands (one rule per line)
+          Allowed commands (one rule per line){' '}
           <textarea className="ai-textarea pk-cmd" value={f.allow} onChange={(e) => set('allow', e.target.value)} />
         </label>
         <div className="pk-two">
           <label>
-            Plugins (comma separated)
+            Plugins (comma separated){' '}
             <input className="ai-input" value={f.plugins} onChange={(e) => set('plugins', e.target.value)} />
           </label>
           <label>
-            MCP servers (comma separated)
+            MCP servers (comma separated){' '}
             <input className="ai-input" value={f.mcp} onChange={(e) => set('mcp', e.target.value)} />
           </label>
         </div>
         <div className="pk-two">
           <label>
-            Runs at a time
+            Runs at a time{' '}
             <input
               className="ai-input"
               type="number"
@@ -227,7 +225,7 @@ export function EditPackModal({
             />
           </label>
           <label>
-            Runs a day
+            Runs a day{' '}
             <input
               className="ai-input"
               type="number"
@@ -398,11 +396,10 @@ export function MakeMemberModal({
     >
       <div className="pk-form">
         <label>
-          Name
-          <input className="ai-input" value={name} onChange={(e) => setName(e.target.value)} />
+          Name <input className="ai-input" value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <label>
-          Working folder (optional)
+          Working folder (optional){' '}
           <input
             className="ai-input pk-cmd"
             placeholder="/path/to/the/repository"
@@ -411,7 +408,7 @@ export function MakeMemberModal({
           />
         </label>
         <label>
-          Runs as
+          Runs as{' '}
           <select className="ai-select" value={account} onChange={(e) => setAccount(e.target.value)}>
             <option value="local">This computer’s own Claude login</option>
             {(windows.data?.accounts ?? [])
@@ -426,7 +423,7 @@ export function MakeMemberModal({
         </label>
         {isTester && (
           <label>
-            Plays
+            Plays{' '}
             <input className="ai-input" list="pk-personas" value={plays} onChange={(e) => setPlays(e.target.value)} />
             <datalist id="pk-personas">
               {personas.map((p) => (

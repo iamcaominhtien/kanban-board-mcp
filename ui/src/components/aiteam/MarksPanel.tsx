@@ -68,7 +68,7 @@ export function MarksPanel({ projectId }: { projectId: string }) {
         </span>
         <span style={{ flex: 1 }} />
         <label className="ai-hint" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          Run with
+          Run with{' '}
           <select
             className="ai-select"
             aria-label="Member to mark"

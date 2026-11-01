@@ -51,7 +51,7 @@ export function DialogShell({
     }
   };
   return createPortal(
-    <div className="ai-overlay" onMouseDown={(e) => e.stopPropagation()} onClick={onClose}>
+    <div className="ai-overlay" onMouseDown={(e) => e.stopPropagation()} onClick={onClose} role="presentation">
       <div className="ai-modal" role="dialog" aria-label={title} style={{ width }} onClick={(e) => e.stopPropagation()}>
         <div className="ai-modal-head">
           <h2 className="ai-modal-title">{title}</h2>

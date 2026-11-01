@@ -18,11 +18,14 @@ const MODELS = ['', 'haiku', 'sonnet', 'opus'];
 const EFFORTS = ['', 'low', 'medium', 'high', 'xhigh', 'max'];
 const DEFAULT_ROLES = ['triage', 'pm', 'ba', 'designer', 'dev', 'reviewer', 'qa', 'user_tester'];
 
-const slug = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '') || 'step';
+const slug = (s: string) => {
+  let out = '';
+  for (const c of s.toLowerCase()) {
+    if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) out += c;
+    else if (out && !out.endsWith('_')) out += '_';
+  }
+  return out.endsWith('_') ? out.slice(0, -1) || 'step' : out || 'step';
+};
 
 function uniqueKey(base: string, taken: string[]): string {
   let k = base;
@@ -353,8 +356,9 @@ export function TemplateEditor({
                       </label>
                     )}
                   </div>
-                  <label className="wf-line" style={{ cursor: 'pointer' }}>
+                  <label className="wf-line" style={{ cursor: 'pointer' }} htmlFor="wf-retry-opus">
                     <input
+                      id="wf-retry-opus"
                       type="checkbox"
                       checked={step.retryModel === 'opus'}
                       onChange={(e) => patch(sel, { retryModel: e.target.checked ? 'opus' : null })}

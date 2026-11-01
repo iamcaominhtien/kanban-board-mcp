@@ -63,7 +63,6 @@
   align-items: flex-start;
 }
 .pk-name {
-  font-weight: 700;
   color: #1e2a22;
   background: none;
   border: none;
@@ -72,6 +71,11 @@
   font-weight: 700;
   cursor: pointer;
   text-align: left;
+}
+.pk-name::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }
 .pk-tag {
   font-size: 11px;
@@ -226,6 +230,7 @@
   gap: 9px;
   cursor: pointer;
   align-content: start;
+  position: relative;
 }
 .pk-card:hover {
   border-color: #b7c9be;

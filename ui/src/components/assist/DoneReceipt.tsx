@@ -6,6 +6,12 @@ import { STATUS_LABEL, TicketPill } from './assistUi';
 export type AppliedChange = { op: string; ticket?: string; [k: string]: unknown };
 
 const cap = (v: unknown) => String(v ?? '').replace(/^\w/, (c) => c.toUpperCase());
+/** A message without the full stops and spaces at its end. */
+const trimTrailingStops = (s: string) => {
+  let end = s.length;
+  while (end > 0 && (s[end - 1] === '.' || s[end - 1].trim() === '')) end--;
+  return s.slice(0, end);
+};
 const text = (v: unknown) => (v == null || v === '' ? 'nothing' : String(v));
 
 /** What happened, in a sentence that follows the ticket key ("moved to In Progress"). */
@@ -125,8 +131,7 @@ export function DoneReceipt({
           {n} of {n + draft.result.errors.length} went through.{' '}
           {draft.result.errors.map((e, i) => (
             <span key={i}>
-              {e.ticket ? <TicketPill id={e.ticket} /> : 'One change'} was refused: {e.message.replace(/[.\s]+$/, '')}
-              .{' '}
+              {e.ticket ? <TicketPill id={e.ticket} /> : 'One change'} was refused: {trimTrailingStops(e.message)}.{' '}
             </span>
           ))}
           {n === 1 ? 'Undo puts it back.' : `Undo all ${n} puts them back.`}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DialogShell } from './DialogShell';
 
 /** "Continue with a note": the run goes on from where it stopped and is told the note first. A note is required. */
@@ -8,6 +8,8 @@ export function ContinueNoteDialog({
   onClose,
 }: Readonly<{ ended: boolean; onSubmit: (note: string) => Promise<unknown>; onClose: () => void }>) {
   const [note, setNote] = useState('');
+  const field = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => field.current?.focus(), []);
   return (
     <DialogShell
       title="Continue with a note"
@@ -23,7 +25,7 @@ export function ContinueNoteDialog({
     >
       <textarea
         className="ai-input"
-        autoFocus
+        ref={field}
         rows={4}
         value={note}
         placeholder="What should it know or do differently?"

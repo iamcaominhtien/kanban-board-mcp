@@ -52,11 +52,11 @@ export function whoSees(store: KbStore, isPrivate: boolean | undefined): string 
 
 /** A snippet whose matches sit in [brackets]: the matches are marked. */
 export function Snippet({ text }: { text: string }) {
-  const parts = text.split(/(\[[^\]]+\])/g);
+  const parts = text.split(/(\[[^\]]{1,500}\])/g);
   return (
     <>
       {parts.map((p, i) =>
-        /^\[[^\]]+\]$/.test(p) ? (
+        /^\[[^\]]{1,500}\]$/.test(p) ? (
           <mark key={i} style={{ background: '#FBEBB8', color: 'inherit', padding: '0 2px', borderRadius: 3 }}>
             {p.slice(1, -1)}
           </mark>
@@ -308,8 +308,7 @@ export function KbAddForm({
           {sharedOn && <option value="shared">The shared store</option>}
         </select>
         <label className="ai-hint" style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-          <input type="checkbox" checked={priv} onChange={(e) => setPriv(e.target.checked)} />
-          Private
+          <input type="checkbox" checked={priv} onChange={(e) => setPriv(e.target.checked)} /> Private
         </label>
       </div>
       {store === 'shared' && (

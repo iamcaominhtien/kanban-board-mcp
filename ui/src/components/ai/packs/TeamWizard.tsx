@@ -241,7 +241,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             scratch worktree. It creates nothing until you press Create.
           </div>
           <label>
-            Repository folder
+            Repository folder{' '}
             <input
               className="ai-input pk-cmd"
               placeholder="/path/to/the/repository"
@@ -354,7 +354,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
           </div>
 
           <label>
-            Default workflow
+            Default workflow{' '}
             <select
               className="ai-select"
               value={d.workflow}
@@ -387,7 +387,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             {scan.suggested.why.commands && <div className="ai-sub">{scan.suggested.why.commands}</div>}
             <div className="pk-two">
               <label>
-                Prepare command
+                Prepare command{' '}
                 <input
                   className="ai-input pk-cmd"
                   value={d.prepare}
@@ -395,19 +395,19 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
                 />
               </label>
               <label>
-                Test command
+                Test command{' '}
                 <input className="ai-input pk-cmd" value={d.test} onChange={(e) => setD('test', e.target.value)} />
               </label>
               <label>
-                Lint command
+                Lint command{' '}
                 <input className="ai-input pk-cmd" value={d.lint} onChange={(e) => setD('lint', e.target.value)} />
               </label>
               <label>
-                Build command
+                Build command{' '}
                 <input className="ai-input pk-cmd" value={d.build} onChange={(e) => setD('build', e.target.value)} />
               </label>
               <label>
-                Ports: first port for worktrees
+                Ports: first port for worktrees{' '}
                 <input
                   className="ai-input"
                   type="number"
@@ -511,7 +511,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             </div>
           </div>
           <label>
-            The members run as
+            The members run as{' '}
             <select className="ai-select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
               <option value="local">This computer’s own Claude login</option>
               {(windows.data?.accounts ?? [])

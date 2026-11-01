@@ -22,7 +22,7 @@ from pathlib import Path
 
 from models import AiRepoScan
 
-from . import ops, packs, plugins
+from . import ops, packs, plugins, worktrees
 from .store import get_settings
 
 TRIAL_TIMEOUT_S = 10 * 60
@@ -51,10 +51,15 @@ def _ci_commands(root: Path) -> list[str]:
     out: list[str] = []
     for wf in sorted((root / ".github" / "workflows").glob("*.y*ml")):
         text = _read(wf)
-        for m in re.finditer(r"^\s*-?\s*run:\s*(\|)?\s*(.*)$", text, re.MULTILINE):
-            first = m.group(2).strip()
-            if m.group(1):  # a block: take the next indented lines
-                tail = text[m.end() :].splitlines()[1:8]
+        all_lines = text.splitlines()
+        for idx, line in enumerate(all_lines):
+            step = line.strip()
+            step = step[1:].strip() if step.startswith("-") else step
+            if not step.startswith("run:"):
+                continue
+            first = step[len("run:") :].strip()
+            if first.startswith("|"):  # a block: take the next indented lines
+                tail = all_lines[idx + 1 : idx + 8]
                 lines = [t.strip() for t in tail if t.startswith(" ") and t.strip()]
             else:
                 lines = [first]
@@ -277,7 +282,7 @@ def suggest(found: dict) -> dict:
     handover = (
         "local"
         if not found.get("remote")
-        else ("pr" if "github.com" in (found.get("remote") or "") else "branch")
+        else ("pr" if worktrees.is_github(found.get("remote")) else "branch")
     )
     return {
         "commands": {

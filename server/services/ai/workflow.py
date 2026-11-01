@@ -975,7 +975,7 @@ async def send_back(
         await _cancel_runs(to_cancel, by=by, reason=f"Sent back by {by}.")
         # only two AIs going round is no progress: Checks are facts, and a person is never overruled (D24)
         ai_pair = not {to_role, str(sender_role)} & NOT_AI_ROLES
-        stop = await _no_progress(session, wf, pair, rounds[pair]) if ai_pair else None
+        stop = _no_progress(wf, pair, rounds[pair]) if ai_pair else None
         if stop:
             if new_target is not None:
                 new_target.state = "blocked"
@@ -1044,13 +1044,13 @@ async def _diff_size(session, ticket_id: str) -> int | None:
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
-    nums = [int(n) for n in re.findall(r"(\d+) (?:insertion|deletion)", out.stdout)]
+    nums = [
+        int(n) for n in re.findall(r"\b(\d{1,9}) (?:insertion|deletion)", out.stdout)
+    ]
     return sum(nums) if out.returncode == 0 else None
 
 
-async def _no_progress(
-    session, wf: AiTicketWorkflow, pair: str, count: int
-) -> str | None:
+def _no_progress(wf: AiTicketWorkflow, pair: str, count: int) -> str | None:
     """Why the loop stops, or None: the same two roles swapped it three times and the diff changed by under 5%
     between the last two, or the reviewer repeated an objection it already made."""
     objections = [
@@ -1570,12 +1570,22 @@ _NOT_RUN = re.compile(
 )
 
 
+_TEST_SUFFIXES = (".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs")
+
+
 def _test_file(command: str, output: str) -> str | None:
-    m = re.search(
-        r"([\w./-]+(?:test[\w.-]*|_test|\.test|\.spec)\.(?:py|ts|tsx|js|jsx|go|rs))",
-        f"{command}\n{output}",
-    )
-    return m.group(1) if m else None
+    """The first test file the command or its output names (word by word: no regex over the whole output)."""
+    for word in f"{command}\n{output}".split():
+        path = word.strip("\"'`,;:()[]<>").split("::", 1)[0]
+        name = path.rsplit("/", 1)[-1]
+        if path.endswith(_TEST_SUFFIXES) and (
+            name.startswith("test")
+            or ".test." in name
+            or ".spec." in name
+            or "_test." in name
+        ):
+            return path
+    return None
 
 
 def _step_iso(run: AiRun, at: str | None) -> str | None:

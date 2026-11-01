@@ -13,6 +13,7 @@ next to what the board sent it (the system prompt, the prompt, a note it was giv
   file paths and errors.
 """
 
+import asyncio
 import gzip
 import json
 import logging
@@ -136,7 +137,7 @@ def _safe_args(args: list[str]) -> list[str]:
                     # DATABASE_URL with its password): the names are kept, never a value
                     for part in ("headers", "env"):
                         if isinstance(server.get(part), dict) and server[part]:
-                            server[part] = {k: "••••••••" for k in server[part]}
+                            server[part] = dict.fromkeys(server[part], "••••••••")
                 out += [a, json.dumps(cfg)]
             except ValueError:
                 out += [a, "<mcp config>"]
@@ -246,6 +247,11 @@ def note(run_id: str, kind: str, text: str, **data) -> None:
         )
     except OSError:
         logger.exception("Could not write the transcript of run %s", run_id)
+
+
+def _gzip_copy(src: Path, dst: Path) -> None:
+    with open(src, "rb") as raw, gzip.open(dst, "wb") as packed:
+        packed.write(raw.read())
 
 
 def _packed(path: Path) -> Path:
@@ -391,8 +397,7 @@ async def finish(run_id: str) -> None:
             plain = None
             if path.suffix != ".gz" and path.exists():
                 packed = _packed(path)
-                with open(path, "rb") as src, gzip.open(packed, "wb") as dst:
-                    dst.write(src.read())
+                await asyncio.to_thread(_gzip_copy, path, packed)
                 plain, path = path, packed
             row.path = str(path)
             row.bytes = path.stat().st_size if path.exists() else 0

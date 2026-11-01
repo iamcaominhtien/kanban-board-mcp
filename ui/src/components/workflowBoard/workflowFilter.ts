@@ -80,9 +80,9 @@ export function workflowFilterOptions(rows: WorkflowBoardRow[]): WorkflowFilterO
     if (r.waitsForPerson) waitingCount += 1;
   }
   return {
-    roles: [...roles].sort(),
+    roles: [...roles].sort((a, b) => a.localeCompare(b)),
     templates: [...templates].map(([key, name]) => ({ key, name })),
-    steps: [...steps].sort(),
+    steps: [...steps].sort((a, b) => a.localeCompare(b)),
     waitingCount,
   };
 }

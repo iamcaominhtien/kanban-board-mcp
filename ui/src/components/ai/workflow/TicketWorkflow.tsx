@@ -260,9 +260,7 @@ function StopCard({ view }: { view: WorkflowView }) {
     >
       <div className="wf-line">
         <b>It stopped going round</b>
-        <span className={`wf-pill ${t?.tone === 'violet' ? 'wf-pill-red' : 'wf-pill-red'}`}>
-          {t?.title ?? 'Stopped'}
-        </span>
+        <span className={`wf-pill wf-pill-red`}>{t?.title ?? 'Stopped'}</span>
         {t && <span className={`wf-pill ${t.tone === 'violet' ? 'wf-pill-violet' : 'wf-pill-you'}`}>{t.chip}</span>}
       </div>
       <div className="wf-note">{view.stopDetail || t?.goes}</div>

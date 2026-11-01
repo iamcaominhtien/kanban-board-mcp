@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   PAGE_SIZE,
   DEFAULT_FILTERS,
@@ -114,7 +114,13 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
   const [showRetention, setShowRetention] = useState(false);
 
   // The search waits for a pause in typing, then starts again from the first page
+  const firstSearch = useRef(true);
   useEffect(() => {
+    // the first render types nothing: only a changed search goes back to the first page
+    if (firstSearch.current) {
+      firstSearch.current = false;
+      return;
+    }
     const t = setTimeout(() => {
       setFilters((f) => (f.q === typed ? f : { ...f, q: typed }));
       setPage(0);

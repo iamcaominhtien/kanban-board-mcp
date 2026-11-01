@@ -195,6 +195,39 @@ async def describe(body: str, *, project_id: str, title: str) -> dict:
     }
 
 
+_KNOWN_SUFFIXES = (
+    ".pdf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".md",
+    ".txt",
+    ".csv",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".html",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".go",
+    ".rs",
+    ".java",
+    ".sql",
+    ".sh",
+)
+
+
+def known_suffix(name: str) -> str:
+    """The upload's suffix when it is one the board reads ("" otherwise): a constant, never the person's text."""
+    low = (name or "").lower()
+    return next((s for s in _KNOWN_SUFFIXES if low.endswith(s)), "")
+
+
 async def to_text(path: str, name: str, *, project_id: str) -> tuple[str, str]:
     """(kind, text) of an uploaded file. An image is described once by a light model."""
     ext = Path(name).suffix.lower()

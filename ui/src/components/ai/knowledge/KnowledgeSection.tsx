@@ -46,7 +46,7 @@ export function KnowledgeSection({ projectId }: { projectId: string }) {
           className={`ai-tab${tab === 'memory' ? ' ai-tab-active' : ''}`}
           onClick={() => setTab('memory')}
         >
-          Memory
+          Memory{' '}
           <span className="ai-tab-count" data-testid="memory-count">
             {data.lessons.length}
           </span>

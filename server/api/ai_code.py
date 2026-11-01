@@ -1,6 +1,8 @@
 """REST API of where the AIs work and how code is handed over (design/screens/ai-operations.md I, J, K): worktrees,
 merge, the hand-over route, a merge conflict, and leaving the synced folder (wave 2 B3)."""
 
+import asyncio
+import logging
 from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -75,6 +77,17 @@ async def post_keep_worktree(ticket_id: str, session: Session) -> dict:
     return svc_worktrees.to_dict(row)
 
 
+logger = logging.getLogger(__name__)
+_OPENERS: set[asyncio.Task] = set()
+
+
+def _kept_why(exc: Exception) -> str:
+    """Why Clean up kept a worktree, in the board's own words."""
+    if "not committed" in str(exc):
+        return "Some files are not committed: keep it, or commit them first."
+    return "git could not remove it; the server log says why."
+
+
 @router.post("/projects/{project_id}/ai/worktrees/cleanup")
 async def post_cleanup(project_id: str, session: Session) -> dict:
     """Clean up finished: remove the worktrees of merged or done tickets that hold nothing uncommitted."""
@@ -98,7 +111,9 @@ async def post_cleanup(project_id: str, session: Session) -> dict:
             await svc_worktrees.remove(session, row.ticket_id)
             removed.append(row.ticket_id)
         except svc_worktrees.WorktreeError as exc:
-            kept.append({"ticket_id": row.ticket_id, "why": str(exc)})
+            # a fixed sentence per cause: git's own words go to the log, not to the page
+            logger.info("Worktree of %s kept: %s", row.ticket_id, exc)
+            kept.append({"ticket_id": row.ticket_id, "why": _kept_why(exc)})
     return {"removed": removed, "kept": kept}
 
 
@@ -237,7 +252,6 @@ async def post_config_migration(member_id: str, session: Session) -> dict:
 @router.post("/tickets/{ticket_id}/ai/worktree/open")
 async def post_open_worktree(ticket_id: str, session: Session) -> dict:
     """Open the worktree's folder in the computer's file manager (the board runs on this computer)."""
-    import subprocess
     import sys
 
     row = await session.get(AiWorktree, ticket_id)
@@ -245,9 +259,16 @@ async def post_open_worktree(ticket_id: str, session: Session) -> dict:
         raise HTTPException(status_code=404, detail="This ticket has no worktree.")
     opener = {"darwin": ["open"], "win32": ["explorer"]}.get(sys.platform, ["xdg-open"])
     try:
-        subprocess.Popen(
-            [*opener, row.path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        # started and left to run (the file manager outlives the request); it is reaped in the background
+        proc = await asyncio.create_subprocess_exec(
+            *opener,
+            row.path,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
         )
+        reaper = asyncio.create_task(proc.wait())
+        _OPENERS.add(reaper)
+        reaper.add_done_callback(_OPENERS.discard)
     except OSError as exc:
         raise HTTPException(
             status_code=409, detail=f"Could not open the folder: {exc}"

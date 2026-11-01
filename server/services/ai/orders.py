@@ -224,17 +224,18 @@ _HANG = re.compile(
 )
 _NETWORK = re.compile(r"\b(network|5xx|529|overload|connection|mạng)\b", re.I)
 _CI = re.compile(r"\b(ci|pipeline|checks? (fail|red)|red build)\b", re.I)
-_REVIEW = re.compile(
-    r"\b(review)\b.*\b(\d+)\s*(h|hours|giờ|days?)\b|\bin review\b", re.I
-)
+_REVIEW = re.compile(r"\breview\b", re.I)
 _QUOTA = re.compile(r"\b(quota|window|usage|limit)\b", re.I)
-_MINUTES = re.compile(r"(\d+)\s*(minutes?|mins?|phút)|half an hour|nửa tiếng", re.I)
+# bounded counts and a single optional space: nothing here can backtrack on a long string of digits
+_MINUTES = re.compile(
+    r"\b(\d{1,4}) ?(minutes?|mins?|phút)\b|half an hour|nửa tiếng", re.I
+)
 
 
 def parse_sentence(sentence: str) -> dict:
     """The rule a sentence most likely means, read by code (the Board AI chat can refine it; a person changes any part
     before it is saved). Raises OrderError when no ready-made signal fits."""
-    text = sentence or ""
+    text = (sentence or "")[:1000]  # a rule is a sentence, not a document
     if _HANG.search(text):
         base = copy_rule("hang")
         m = _MINUTES.search(text)
