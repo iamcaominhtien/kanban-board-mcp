@@ -68,7 +68,7 @@ describe('arrows that would share a line', () => {
     ]);
     // the leftmost reaching arrow keeps its place, the next ones step down
     expect(shift.get('b')).toBe(0);
-    expect(new Set([shift.get('a'), shift.get('c')])).toEqual(new Set([7, 14]));
+    expect(new Set([shift.get('a'), shift.get('c')])).toEqual(new Set([12, 24]));
     expect(shift.get('far')).toBe(0);
   });
 
@@ -165,5 +165,16 @@ describe('a strict label', () => {
     p.addBox('bar', { x: 90, y: 30, w: 200, h: 40 }, 'mark');
     expect(p.place({ key: 'a', text: 'approved', spots: [right(100, 50)], strict: true })).toBeNull();
     expect(p.place({ key: 'a', text: 'approved', spots: [right(100, 50), right(100, 90)], strict: true })?.y).toBe(90);
+  });
+});
+
+describe('a clean label (a ticket key)', () => {
+  it('never covers a line: it takes a free spot or is left out', () => {
+    const p = new Placer(500);
+    p.addSeg('arrow', { x1: 0, y1: 47, x2: 400, y2: 47 });
+    expect(p.place({ key: 'bar', text: 'AGT-5', spots: [right(100, 50)], clean: true })).toBeNull();
+    expect(p.place({ key: 'bar', text: 'AGT-5', spots: [right(100, 50), right(100, 70)], clean: true })?.y).toBe(70);
+    // a label that may cross a line or two still takes that spot
+    expect(p.place({ key: 'x', text: 'AGT-5', spots: [right(200, 50)] })?.y).toBe(50);
   });
 });

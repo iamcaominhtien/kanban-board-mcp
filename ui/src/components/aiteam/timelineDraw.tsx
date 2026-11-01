@@ -9,6 +9,7 @@ import type {
   TouchMark,
 } from '../../types/aiTeam';
 import { HEAD_H, assignLanes, clock, lengthText, type Axis } from './timelineLayout';
+import { BAR_W, arrowEnds, barAt, laneBox } from './timelineGeometry';
 import { Placer, clipToWidth, staggerArrows, textWidth, type PlacedLabel, type Spot } from './timelinePlace';
 
 /**
@@ -22,7 +23,6 @@ export const GUTTER = 70;
 /** Room on each side of the lanes: the now dot sits at the right edge of the last lane. */
 export const PAD = 8;
 const TOP = 12;
-const BAR_W = 18;
 
 /** Width of the diagram for `n` lanes. */
 export const lanesWidth = (n: number) => n * COL + 2 * PAD;
@@ -561,8 +561,7 @@ export function TimelineBody(props: DrawProps) {
     );
     for (const b of mine) {
       const lane = lanes.get(b.id) ?? 0;
-      const x0 = laneX(index.get(l.id) as number);
-      const w = lane ? BAR_W - 4 : BAR_W;
+      const { x: bx, w } = laneBox(laneX(index.get(l.id) as number), lane);
       const queued = b.state === 'queued';
       const qy = yy(b.queuedAt ?? b.startedAt);
       const sy = b.startedAt ? yy(b.startedAt) : qy;
@@ -571,7 +570,7 @@ export function TimelineBody(props: DrawProps) {
       const bottom = queued ? nowY : Math.max(ey, top + 6);
       bars.push({
         b,
-        x: x0 - BAR_W / 2 + lane * 7,
+        x: bx,
         w,
         lane,
         qy,
@@ -618,12 +617,24 @@ export function TimelineBody(props: DrawProps) {
       cx(a.from) >= 0 &&
       cx(a.to) >= 0,
   );
+  // a permission that Autopilot decided goes to the Autopilot lifeline, as in the design (B and C)
+  const decided = new Set(data.arrows.filter((a) => a.kind === 'auto' && a.runId).map((a) => a.runId));
+  const target = (a: TimelineArrow) =>
+    a.kind === 'perm' && a.runId && decided.has(a.runId) && cx('autopilot') >= 0 ? 'autopilot' : a.to;
+  const barsOf = (id: string) => bars.filter((g) => g.b.memberId === id && !g.queued);
   const raw = visible.map((a) => {
-    const fx = cx(a.from);
-    const tx = cx(a.to);
-    const dir = tx >= fx ? 1 : -1;
+    const to = target(a);
     const fy = yy(a.at);
-    return { id: a.id, x1: fx + dir * 10, y1: fy, x2: tx - dir * 10, y2: Math.max(a.toAt ? yy(a.toAt) : fy, fy) };
+    const ty = Math.max(a.toAt ? yy(a.toAt) : fy, fy);
+    const own = a.runId ? barById.get(a.runId) : undefined;
+    // the sending run: the one that covers the moment it leaves; the receiving one: the run it started, or the
+    // receiver's run that covers the moment it lands
+    const sender =
+      a.from === 'you' || a.from === 'autopilot' ? null : own?.b.memberId === a.from ? own : barAt(barsOf(a.from), fy);
+    const receiver =
+      to === 'you' || to === 'autopilot' || to === 'docs' ? null : own?.b.memberId === to ? own : barAt(barsOf(to), ty);
+    const { x1, x2 } = arrowEnds(cx(a.from), cx(to), sender ?? null, receiver ?? null);
+    return { id: a.id, x1, y1: fy, x2, y2: ty };
   });
   const shift = staggerArrows(raw);
   const docVersion = (a: TimelineArrow) =>
@@ -743,17 +754,17 @@ export function TimelineBody(props: DrawProps) {
     if (!g.label.text || !g.label.important || !(g.askOpen || g.autoAt)) continue;
     const at = g.autoAt ?? { x: cx('you'), y: g.y2 };
     const before = labels.length;
+    const beside: Spot = { x: at.x + 15, y: at.y + 4, anchor: 'start' };
+    const below: Spot = { x: at.x + 15, y: at.y + 17, anchor: 'start' };
+    const above: Spot = { x: at.x + 15, y: at.y - 9, anchor: 'start' };
     put(
       {
         key: `${g.a.id}:L`,
         ignore: [g.a.id],
         text: g.label.text,
         strict: true,
-        spots: [
-          { x: at.x + 15, y: at.y + 4, anchor: 'start' },
-          { x: at.x + 15, y: at.y + 17, anchor: 'start' },
-          { x: at.x + 15, y: at.y - 9, anchor: 'start' },
-        ],
+        // beside its circle, as designed, when the arrow slopes away; a flat arrow would run under the words
+        spots: isFlat(g) ? [above, below, beside] : [beside, below, above],
       },
       labelColor(g),
       { type: 'arrow', id: g.a.id },
@@ -801,14 +812,19 @@ export function TimelineBody(props: DrawProps) {
       const { x, y } = g.autoAt;
       spots.push({ x: x + 15, y: y + 4, anchor: 'start' }, { x: x + 15, y: y - 9, anchor: 'start' });
     }
-    spots.push(
+    const onLine: Spot[] = [
       { x: right, y: at.y + 3.6, anchor: 'start' },
       { x: at.x - 11, y: at.y + 3.6, anchor: 'end' },
-      { x: right, y: at.y + 16.6, anchor: 'start' },
+    ];
+    const offLine: Spot[] = [
       { x: right, y: at.y - 9.4, anchor: 'start' },
-      { x: at.x - 11, y: at.y + 16.6, anchor: 'end' },
+      { x: right, y: at.y + 16.6, anchor: 'start' },
       { x: at.x - 11, y: at.y - 9.4, anchor: 'end' },
-    );
+      { x: at.x - 11, y: at.y + 16.6, anchor: 'end' },
+    ];
+    // the design's spot is beside the badge, on the line: fine for a sloping arrow, which leaves the words at once;
+    // a flat arrow would run under them, so its words go above the line first
+    spots.push(...(isFlat(g) ? [...offLine, ...onLine] : [...onLine, ...offLine]));
     return spots;
   };
   const byTime = [...arrows].sort((p, q) => p.y1 - q.y1 || p.x1 - q.x1);
@@ -858,11 +874,12 @@ export function TimelineBody(props: DrawProps) {
       const right: Spot = { x: g.x + g.w + 6, y: g.top + 11, anchor: 'start' };
       const left: Spot = { x: g.x - 6, y: g.top + 11, anchor: 'end' };
       const lower = (s: Spot): Spot => ({ ...s, y: s.y + 13 });
-      const spots = g.lane ? [left, right] : [right, left];
+      const spots = [right, left];
       if (h > 28) spots.push(...spots.map(lower));
       if (h > 42) spots.push(...spots.slice(0, 2).map((s2) => lower(lower(s2))));
+      // a ticket key never covers a line or a badge: without a free spot it is left out (the hover card has it)
       put(
-        { key: g.b.id, text, spots, optional: true },
+        { key: g.b.id, text, spots, clean: true },
         endLook(g.b, g.look).text,
         { type: 'bar', id: g.b.id },
         { weight: 700 },
@@ -1433,6 +1450,11 @@ export function NowPill({ axis, now, paused }: { axis: Axis; now: number; paused
       </text>
     </svg>
   );
+}
+
+/** An arrow drawn (nearly) level: its own line would run under words placed beside its badge. */
+function isFlat(g: { y1: number; y2: number; x1: number; x2: number }): boolean {
+  return Math.abs(g.y2 - g.y1) < 4 || Math.abs(g.y2 - g.y1) / Math.max(Math.abs(g.x2 - g.x1), 1) < 0.03;
 }
 
 /** Width of a break's pill: its words and some room, never wider than the lanes. */

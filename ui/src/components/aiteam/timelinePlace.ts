@@ -8,14 +8,15 @@
  *
  * 1. The axis (timelineLayout.ts) gives every distinct moment its own row, at least ROW_GAP px below the previous one,
  *    in Compact time. Real time keeps true proportions and relies on the next two steps alone.
- * 2. `staggerArrows` moves an arrow down by a few px when it would run along the same stretch of line as an arrow
- *    already drawn (same rows, overlapping lanes), so two arrows never share a line. Time order is kept: an arrow is
- *    only ever moved down, and never by more than a row.
+ * 2. `staggerArrows` moves an arrow down 12 px (more than half a label, so the two read as two arrows) when it would
+ *    run along the same stretch of line as an arrow already drawn (same rows, overlapping lanes), so two arrows never
+ *    share a line. Time order is kept: an arrow is only ever moved down, at most three steps.
  * 3. A `Placer` places glyph badges and labels one by one, in a fixed priority, against everything already drawn
  *    (bars, waits, nodes, badges, arrow lines and the labels placed before). Each mark has an ordered list of
  *    candidate spots; the first is the design's spot, so sparse data looks exactly as designed. The first spot that
  *    touches nothing wins; otherwise a shorter text is tried; otherwise an optional label is left out (its words stay
  *    in the hover card, the inspector and the Table), and a label that must stay takes the spot that overlaps least.
+ *    A ticket key on a run never covers even a line: without a free spot it is left out.
  *    Marks of your own lifeline that sit closer than a mark is tall are folded into one label first ("×N",
  *    "+N more", see `touchLabels` in timelineDraw.tsx).
  *
@@ -141,7 +142,7 @@ export function runAlong(a: Seg, b: Seg, near = 6): boolean {
  * How far down (px) each arrow moves so that no two run along the same line. Arrows are taken in time order (top
  * first, then left first, then id); each takes the smallest step that clears the ones before it, at most `maxSteps`.
  */
-export function staggerArrows(arrows: (Seg & { id: string })[], step = 7, maxSteps = 3): Map<string, number> {
+export function staggerArrows(arrows: (Seg & { id: string })[], step = 12, maxSteps = 3): Map<string, number> {
   const order = [...arrows].sort(
     (p, q) =>
       Math.min(p.y1, p.y2) - Math.min(q.y1, q.y2) ||
@@ -195,6 +196,8 @@ export interface LabelRequest {
   ignore?: string[];
   /** Only a free spot (or one that just crosses a line) will do: null otherwise, so the caller can try elsewhere. */
   strict?: boolean;
+  /** Only a spot that touches nothing at all, not even a line: null otherwise (the label is left out). */
+  clean?: boolean;
 }
 
 export interface PlacedLabel {
@@ -295,12 +298,12 @@ export class Placer {
         if (cost === lines && lines <= LINE_OK && (!crossing || lines < crossing.lines)) crossing = { ...cand, lines };
         if (!best || cost < best.cost) best = cand;
       }
-      if (crossing) {
+      if (crossing && !req.clean) {
         this.addBox(req.key, crossing.box, 'label');
         return strip(crossing);
       }
     }
-    if (!best || req.strict || (req.optional && best.hard)) return null;
+    if (!best || req.strict || req.clean || (req.optional && best.hard)) return null;
     this.addBox(req.key, best.box, 'label');
     return strip(best);
   }
