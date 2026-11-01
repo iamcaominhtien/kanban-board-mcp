@@ -1,5 +1,5 @@
 import { toCanvas, toSvg } from 'html-to-image';
-import { applyPalette, GIFEncoder, quantize } from 'gifenc';
+import { GIFEncoder, quantize } from 'gifenc';
 import { boardFileUrl, boardPictureUrl, type CanvasBoard } from '../../api/canvases';
 
 /** Thrown for a board that cannot be turned into a picture; the message is safe to show. */
@@ -15,8 +15,9 @@ export interface AnimationInfo {
 }
 
 const MAX_SECONDS = 6;
-const GIF_FPS = 12;
-const GIF_MAX_WIDTH = 720;
+const GIF_FPS = 15;
+const GIF_MAX_WIDTH = 1280;
+const GIF_MAX_PIXELS = 1_600_000;
 
 /** A page loaded in a hidden frame at the board's size, ready to be drawn. */
 interface OpenPage {
@@ -291,9 +292,77 @@ function freezeAnimations(doc: Document, anims: Animation[]): () => void {
   };
 }
 
+/** An 8 x 8 ordered-dither matrix, 0..63. */
+const BAYER = [
+  0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54,
+  22, 3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29,
+  53, 21,
+];
+const DITHER_STRENGTH = 14;
+/** A pixel this close to a palette colour (squared distance) is taken as it is, so flat areas stay clean. */
+const CLOSE = 3 * 4 * 4;
+
 /**
- * An HTML board's animation as a GIF: the page's CSS and Web Animations are stepped frame by frame (12 a second, at most
- * 6 seconds) and drawn, so the result does not depend on how fast this computer is.
+ * Map a frame's pixels to a palette. A pixel the palette holds (almost) exactly keeps that colour; the rest (soft shadows,
+ * gradients, anti-aliased edges) are dithered with a fixed pattern, which looks smoother than 256 flat steps and, because the
+ * pattern depends only on the position, does not shimmer from one frame to the next where nothing moves.
+ * @param rgba - The frame's pixels.
+ * @param width - Its width.
+ * @param palette - At most 256 colours `[r, g, b]`.
+ * @param cache - Nearest colour per 15-bit colour, shared by all frames of one GIF (`Int16Array(32768)` filled with -1).
+ */
+export function ditherToPalette(
+  rgba: Uint8ClampedArray,
+  width: number,
+  palette: number[][],
+  cache: Int16Array,
+): Uint8Array {
+  const out = new Uint8Array(rgba.length / 4);
+  const nearest = (r: number, g: number, b: number): number => {
+    let best = 0;
+    let bestD = Infinity;
+    for (let k = 0; k < palette.length; k++) {
+      const c = palette[k];
+      const d = (c[0] - r) ** 2 + (c[1] - g) ** 2 + (c[2] - b) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = k;
+      }
+    }
+    return best;
+  };
+  const lookup = (r: number, g: number, b: number): number => {
+    const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+    let k = cache[key];
+    if (k < 0) {
+      k = nearest(r, g, b);
+      cache[key] = k;
+    }
+    return k;
+  };
+  const clamp = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : v);
+  for (let i = 0, px = 0; i < rgba.length; i += 4, px++) {
+    const r = rgba[i];
+    const g = rgba[i + 1];
+    const b = rgba[i + 2];
+    const first = lookup(r, g, b);
+    const c = palette[first];
+    if ((c[0] - r) ** 2 + (c[1] - g) ** 2 + (c[2] - b) ** 2 <= CLOSE) {
+      out[px] = first;
+      continue;
+    }
+    const x = px % width;
+    const y = (px - x) / width;
+    const t = (BAYER[(y & 7) * 8 + (x & 7)] / 64 - 0.5) * DITHER_STRENGTH;
+    out[px] = lookup(clamp(r + t) | 0, clamp(g + t) | 0, clamp(b + t) | 0);
+  }
+  return out;
+}
+
+/**
+ * An HTML board's animation as a GIF: the page's CSS and Web Animations are stepped frame by frame (15 a second, at most
+ * 6 seconds) and drawn, so the result does not depend on how fast this computer is. Frames are drawn at up to 2x, share one
+ * palette (chosen from frames across the animation, so colours do not flicker) and are dithered.
  * @param canvasId - The canvas.
  * @param b - An HTML board.
  * @param onProgress - Called with 0..1 as frames are made.
@@ -304,12 +373,12 @@ export async function boardToGif(canvasId: string, b: CanvasBoard, onProgress?: 
   try {
     const info = animationInfo(page.doc);
     if (!info.count || info.seconds <= 0) throw new CaptureError('This page has no animation to record.');
-    const ratio = Math.min(1, GIF_MAX_WIDTH / b.w);
+    const ratio = Math.min(2, GIF_MAX_WIDTH / b.w, Math.sqrt(GIF_MAX_PIXELS / (b.w * b.h)));
     const frames = Math.max(2, Math.min(MAX_SECONDS * GIF_FPS, Math.round(info.seconds * GIF_FPS)));
     const step = (info.seconds * 1000) / frames;
-    const gif = GIFEncoder();
-    let restore: (() => void) | null = null;
-    for (let i = 0; i < frames; i++) {
+    let restore = null as (() => void) | null;
+    /** The page at frame `i`: the animations moved to its time and their values made permanent, then drawn. */
+    const frameAt = async (i: number): Promise<ImageData> => {
       restore?.(); // the animations come back (starting over), to be moved to the time of this frame
       const anims = page.doc.getAnimations();
       for (const a of anims) {
@@ -323,14 +392,40 @@ export async function boardToGif(canvasId: string, b: CanvasBoard, onProgress?: 
       await nextFrame();
       restore = freezeAnimations(page.doc, anims);
       const canvas = await render(page, b, ratio);
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) throw new CaptureError('This browser cannot draw the picture.');
-      const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const palette = quantize(data, 256);
-      gif.writeFrame(applyPalette(data, palette), width, height, {
-        palette,
+      return ctx.getImageData(0, 0, canvas.width, canvas.height);
+    };
+    // one palette for the whole GIF, from a handful of frames spread over the animation (every 3rd pixel of each)
+    const picks = Array.from(
+      new Set(
+        Array.from({ length: Math.min(5, frames) }, (_, k) =>
+          Math.round((k * (frames - 1)) / Math.max(1, Math.min(5, frames) - 1)),
+        ),
+      ),
+    );
+    const parts: Uint8ClampedArray[] = [];
+    for (const i of picks) {
+      const { data } = await frameAt(i);
+      const sample = new Uint8ClampedArray(Math.ceil(data.length / 12) * 4);
+      for (let src = 0, dst = 0; src < data.length; src += 12, dst += 4) sample.set(data.subarray(src, src + 4), dst);
+      parts.push(sample);
+    }
+    const all = new Uint8ClampedArray(parts.reduce((n, p) => n + p.length, 0));
+    let at = 0;
+    for (const p of parts) {
+      all.set(p, at);
+      at += p.length;
+    }
+    const palette = quantize(all, 256);
+    const cache = new Int16Array(32768).fill(-1);
+    const gif = GIFEncoder();
+    for (let i = 0; i < frames; i++) {
+      const { data, width, height } = await frameAt(i);
+      const index = ditherToPalette(data, width, palette, cache);
+      gif.writeFrame(index, width, height, {
+        ...(i === 0 ? { palette, repeat: info.loops ? 0 : -1 } : {}),
         delay: Math.round(step),
-        repeat: i === 0 ? (info.loops ? 0 : -1) : undefined,
       });
       onProgress?.((i + 1) / frames);
     }

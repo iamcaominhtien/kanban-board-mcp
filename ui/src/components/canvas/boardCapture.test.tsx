@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 import type { CanvasBoard } from '../../api/canvases';
-import { animationInfo, cleanSvg, fileStem, frameSource, liveAnimation } from './boardCapture';
+import { animationInfo, cleanSvg, ditherToPalette, fileStem, frameSource, liveAnimation } from './boardCapture';
 import { BoardMenu } from './EditorParts';
 
 afterEach(cleanup);
@@ -124,4 +124,25 @@ test("a page is loaded from the app's own address, https, or this computer; othe
     'http://127.0.0.1:8000/canvases/cv_1/index.html',
   );
   expect(() => frameSource('http://board.example.com/canvases/cv_1/index.html')).toThrow(/secure address/);
+});
+
+test('a GIF frame keeps flat colours clean and dithers a gradient the same way every time', () => {
+  const palette = [
+    [255, 255, 255],
+    [0, 0, 0],
+    [128, 128, 128],
+  ];
+  const cache = () => new Int16Array(32768).fill(-1);
+  const px = (rows: number[][]) => new Uint8ClampedArray(rows.flatMap(([r, g, b]) => [r, g, b, 255]));
+  // flat areas of palette colours are not touched by the dither pattern
+  const flat = px([...Array(64).fill([255, 255, 255]), ...Array(64).fill([0, 0, 0])]);
+  const out = ditherToPalette(flat, 16, palette, cache());
+  expect(Array.from(out.slice(0, 64)).every((i) => i === 0)).toBe(true);
+  expect(Array.from(out.slice(64)).every((i) => i === 1)).toBe(true);
+  // a colour between two palette colours is spread over both, so the area averages out instead of one flat step
+  const mid = px(Array(256).fill([190, 190, 190]));
+  const a = ditherToPalette(mid, 16, palette, cache());
+  expect(new Set(a).size).toBeGreaterThan(1);
+  // the pattern depends on the position only: the same frame twice gives the same result
+  expect(Array.from(ditherToPalette(mid, 16, palette, cache()))).toEqual(Array.from(a));
 });
