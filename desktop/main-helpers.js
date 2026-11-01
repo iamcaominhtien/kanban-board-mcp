@@ -72,8 +72,9 @@ function buildBackendLaunchSpec({
   const stdio = [apiSecret ? 'pipe' : 'ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {
-    // onedir layout: Resources/kanban-server/kanban-server[.exe] (no per-launch temp extraction)
-    const binaryPath = path.join(resourcesPath, 'kanban-server', `kanban-server${getBinaryExtension(platform)}`);
+    // onedir layout (no per-launch temp extraction): the server sits next to kanban-mcp-stdio in one folder whose
+    // _internal/ both share, Resources/kanban-mcp-stdio/kanban-server[.exe] (desktop/kanban-backend.spec)
+    const binaryPath = path.join(resourcesPath, 'kanban-mcp-stdio', `kanban-server${getBinaryExtension(platform)}`);
     return {
       command: binaryPath,
       args: [],
