@@ -26,7 +26,10 @@
   padding: 0;
   background: #1e2a22;
   color: #fff;
-  font: 700 10px/16px inherit;
+  /* "font: 700 10px/16px inherit" is invalid CSS (inherit cannot be part of the shorthand), so it was dropped */
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 16px;
   font-family: inherit;
   text-align: center;
   cursor: pointer;
@@ -54,7 +57,10 @@
   border-radius: 8px;
   background: #1e2a22;
   color: #fff;
-  font: 700 10px/16px inherit;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 16px;
+  font-family: inherit;
   text-align: center;
   vertical-align: 1px;
   user-select: none;

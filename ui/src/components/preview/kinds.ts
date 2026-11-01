@@ -38,9 +38,6 @@ const CODE = new Set([
 ]);
 const TEXT = new Set(['txt', 'log', 'text', 'conf', 'cfg', 'jsonl']);
 
-/** Extensions that can run programs; the viewer asks before opening them in the default app. */
-const RUNNABLE = new Set(['exe', 'bat', 'cmd', 'ps1', 'sh', 'command', 'app', 'msi', 'jar']);
-
 /** Decide how a file opens from its name. */
 export function previewKind(name: string): PreviewKind {
   const ext = getFileExtension(name);
@@ -62,11 +59,6 @@ export function previewKind(name: string): PreviewKind {
 /** Whether the file is a video (otherwise a media file is audio). */
 export function isVideoName(name: string): boolean {
   return /\.(mp4|webm|mov)$/i.test(name);
-}
-
-/** Whether opening the file in the default app could run a program. */
-export function isRunnableFile(name: string): boolean {
-  return RUNNABLE.has(getFileExtension(name));
 }
 
 /** Language label for a code file ("TypeScript"). */

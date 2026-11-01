@@ -13,9 +13,9 @@ echo "=== Building Python binaries for Kanban Board Desktop App ==="
 echo "Workspace: $WORKSPACE_ROOT"
 
 # Activate Python venv (Windows uses Scripts/, Unix uses bin/)
-if [ -f "$SERVER_DIR/.venv/Scripts/python.exe" ]; then
+if [[ -f "$SERVER_DIR/.venv/Scripts/python.exe" ]]; then
     VENV_PYTHON="$SERVER_DIR/.venv/Scripts/python.exe"
-elif [ -f "$SERVER_DIR/.venv/bin/python" ]; then
+elif [[ -f "$SERVER_DIR/.venv/bin/python" ]]; then
     VENV_PYTHON="$SERVER_DIR/.venv/bin/python"
 else
     echo "ERROR: Python venv not found at $SERVER_DIR/.venv"

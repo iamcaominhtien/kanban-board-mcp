@@ -25,6 +25,7 @@ import {
   canStart,
   zoneLabel,
 } from './schedulesUi';
+import { ascendingText, toggleNumber } from '../../utils/sorted';
 
 /** How the editor is opened: from the tab, from a ticket (locked to it) or to change a schedule. */
 export interface EditorOpts {
@@ -137,7 +138,7 @@ function useZones(current: string): { id: string; label: string }[] {
     ids.add('UTC');
     ids.add(current);
     ids.add(browserZone());
-    return [...ids].sort().map((id) => ({ id, label: `${id} · ${zoneLabel(id)}` }));
+    return ascendingText(ids).map((id) => ({ id, label: `${id} · ${zoneLabel(id)}` }));
   }, [current]);
 }
 
@@ -426,9 +427,7 @@ function EditorForm({
                           className={draft.days.includes(i) ? 'sc-day-on' : ''}
                           onClick={() =>
                             set({
-                              days: draft.days.includes(i)
-                                ? draft.days.filter((x) => x !== i)
-                                : [...draft.days, i].sort(),
+                              days: toggleNumber(draft.days, i),
                             })
                           }
                         >

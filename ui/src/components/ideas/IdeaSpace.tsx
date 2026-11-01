@@ -16,6 +16,7 @@ import { PromoteDialog } from './PromoteDialog';
 import { Triage } from './Triage';
 import { useIdeaMoves } from './useIdeaMoves';
 import './ideas.css';
+import { ascendingText } from '../../utils/sorted';
 
 type View = 'list' | 'stages' | 'matrix';
 interface ScopeState {
@@ -226,7 +227,7 @@ export function IdeaSpace({
       ? rows.filter((r) => r.stage !== 'inbox' && (stage === 'archived' || r.stage !== 'archived'))
       : rows;
   }, [list.data, view, stage]);
-  const allTags = useMemo(() => Array.from(new Set((list.data ?? []).flatMap((i) => i.tags))).sort(), [list.data]);
+  const allTags = useMemo(() => ascendingText(new Set((list.data ?? []).flatMap((i) => i.tags))), [list.data]);
 
   const moves = useIdeaMoves({ onPromote: (i) => setPromoting(i as IdeaRow) });
   const newIdea = useCallback(

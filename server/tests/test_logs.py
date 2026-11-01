@@ -83,6 +83,55 @@ def test_setup_logging_writes_formatted_record(log_dir, monkeypatch):
                 h.close()
 
 
+def test_a_logged_value_cannot_add_a_fake_record():
+    fmt = app_logging._IsoFormatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    forged = "abc\n2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed"
+    record = logging.LogRecord(
+        "t", logging.WARNING, __file__, 1, "run %s", (forged,), None
+    )
+    lines = fmt.format(record).split("\n")
+    assert lines[1] == "  2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed"
+    assert [line for line in lines if app_logging._RECORD_RE.match(line)] == [lines[0]]
+
+
+@pytest.mark.parametrize("newline", ["\r", "\r\n"])
+def test_a_carriage_return_cannot_add_a_fake_record_either(
+    log_dir, monkeypatch, newline
+):
+    monkeypatch.setattr(app_logging, "_handler", None)
+    root = logging.getLogger()
+    before = list(root.handlers)
+    app_logging.setup_logging()
+    try:
+        forged = (
+            f"abc{newline}2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed"
+        )
+        logging.getLogger("t").warning("run %s", forged)
+        app_logging._handler.flush()
+        records = list(app_logging.iter_records())
+        assert len(records) == 1
+        assert "admin password changed" in records[0]
+    finally:
+        for h in list(root.handlers):
+            if h not in before:
+                root.removeHandler(h)
+                h.close()
+
+
+def test_a_traceback_stays_as_it_is():
+    fmt = app_logging._IsoFormatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    try:
+        raise ValueError("boom")
+    except ValueError:
+        import sys
+
+        record = logging.LogRecord(
+            "t", logging.ERROR, __file__, 1, "failed", (), sys.exc_info()
+        )
+    text = fmt.format(record)
+    assert "\nTraceback (most recent call last):\n" in text
+
+
 async def _get(path, **params):
     async with httpx.AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"

@@ -11,6 +11,7 @@ import type {
 import { HEAD_H, assignLanes, clock, lengthText, type Axis } from './timelineLayout';
 import { BAR_W, arrowEnds, barAt, laneBox } from './timelineGeometry';
 import { Placer, clipToWidth, staggerArrows, textWidth, type PlacedLabel, type Spot } from './timelinePlace';
+import { ascendingText } from '../../utils/sorted';
 
 /**
  * The Timeline's drawing: a header row, a time gutter and the body, all from one axis (ai-team-timeline.md, B and C;
@@ -679,7 +680,7 @@ export function TimelineBody(props: DrawProps) {
   const pairs = new Map<string, ArrowGeo[]>();
   for (const g of arrows) {
     if (g.a.kind !== 'sent_back') continue;
-    const k = `${g.a.ticketId ?? ''}|${[g.a.from, g.a.to].sort().join('|')}`;
+    const k = `${g.a.ticketId ?? ''}|${ascendingText([g.a.from, g.a.to]).join('|')}`;
     pairs.set(k, [...(pairs.get(k) ?? []), g]);
   }
   for (const [k, list] of pairs) {

@@ -42,6 +42,8 @@ source = ["."]
 # never run
 concurrency = ["thread", "greenlet"]
 omit = ["tests/*", "alembic/*", ".venv/*"]
+# SQLAlchemy async runs code in greenlets; without this, coverage misses everything an endpoint does after its first query
+concurrency = ["greenlet", "thread"]
 
 [tool.ruff.lint]
 # Public classes, methods and functions need a docstring

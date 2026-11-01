@@ -9,7 +9,7 @@ import { HtmlReader } from './HtmlReader';
 import { MediaReader } from './MediaReader';
 import { StatePanel } from './StatePanel';
 import { canShowInFolder, isDesktop, openInDefaultApp, showInFolder } from './desktop';
-import { isRunnableFile, previewKind } from './kinds';
+import { previewKind } from './kinds';
 import { isTyping, useViewerKeys } from './useViewerKeys';
 import { useSketch, type SketchOwner } from '../sketch/SketchContext';
 import { useCanvas, type CanvasOwner } from '../canvas/CanvasContext';
@@ -112,7 +112,6 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
   const [facts, setFacts] = useState<Record<string, string>>({});
   const [details, setDetails] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [confirmRun, setConfirmRun] = useState<null | 'open'>(null);
   const [copied, setCopied] = useState(false);
   const desktop = isDesktop();
   const meta = getFileTypeMeta(item.name);
@@ -148,7 +147,6 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
   useEffect(() => {
     setFacts({});
     setStatus(null);
-    setConfirmRun(null);
   }, [item.id]);
   const onFacts = useCallback((f: Record<string, string>) => setFacts((prev) => ({ ...prev, ...f })), []);
 
@@ -170,17 +168,13 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
     [items.length, index, onIndex],
   );
 
-  async function doOpen() {
-    setConfirmRun(null);
+  // A file that could run a program (.exe, .sh …) is confirmed by the desktop app itself, in a system dialog the page
+  // cannot click through
+  async function openInApp() {
     setStatus('Opening…');
     const res = await openInDefaultApp(item);
     setStatus(res.message);
     if (res.ok) setTimeout(() => setStatus(null), 4000);
-  }
-
-  function openInApp() {
-    if (isRunnableFile(item.name)) setConfirmRun('open');
-    else void doOpen();
   }
 
   async function reveal() {
@@ -208,8 +202,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
       // Esc first clears a search the reader has open, then closes
       const t = e.target as HTMLInputElement | null;
       if (t && t.tagName === 'INPUT' && t.type === 'search' && t.value) return false;
-      if (confirmRun) setConfirmRun(null);
-      else if (document.fullscreenElement) void document.exitFullscreen();
+      if (document.fullscreenElement) void document.exitFullscreen();
       else onClose();
       return true;
     }
@@ -257,7 +250,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
         Download
       </a>
       {desktop && (
-        <button type="button" className={styles.btn} onClick={openInApp}>
+        <button type="button" className={styles.btn} onClick={() => void openInApp()}>
           Open in app
         </button>
       )}
@@ -378,7 +371,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
                 <button
                   type="button"
                   className={styles.btn}
-                  onClick={openInApp}
+                  onClick={() => void openInApp()}
                   title="Open with the default app on this computer"
                 >
                   <Icon d={ICONS.external} size={14} /> <span className={styles.btnLabel}>Open in app</span>
@@ -512,7 +505,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
                   {copied ? 'Copied' : 'Copy link'}
                 </button>
                 {desktop ? (
-                  <button type="button" className={styles.btn} onClick={openInApp}>
+                  <button type="button" className={styles.btn} onClick={() => void openInApp()}>
                     Open in app
                   </button>
                 ) : (
@@ -536,30 +529,6 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
               <Thumb key={it.id + i} item={it} active={i === index} onPick={() => onIndex(i)} />
             ))}
           </nav>
-        )}
-
-        {confirmRun && (
-          <div className={styles.confirmBackdrop}>
-            <div
-              className={styles.confirm}
-              role="alertdialog"
-              aria-labelledby="pv-run-title"
-              aria-describedby="pv-run-text"
-            >
-              <h2 id="pv-run-title">Open {item.name}?</h2>
-              <p id="pv-run-text">
-                This kind of file can run programs on your computer. Open it only if you trust the person who added it.
-              </p>
-              <div className={styles.confirmActions}>
-                <button type="button" className={styles.btn} onClick={() => setConfirmRun(null)} autoFocus>
-                  Cancel
-                </button>
-                <button type="button" className={`${styles.btn} ${styles.btnDanger}`} onClick={() => void doOpen()}>
-                  Open anyway
-                </button>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>,
