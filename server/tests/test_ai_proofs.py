@@ -195,8 +195,10 @@ def test_on_a_docs_page_only_pictures_are_copied_and_what_the_page_held_may_stay
         pictures_only=True,
         keep={"images/flow.png"},
     )
-    assert "qa/evidence" not in md and "](/uploads/" in md
-    assert "[log](run.log)" in md and "![old](images/flow.png)" in md
+    assert "qa/evidence" not in md
+    assert "](/uploads/" in md
+    assert "[log](run.log)" in md
+    assert "![old](images/flow.png)" in md
     with pytest.raises(proofs.ProofError, match="no such file"):
         proofs.localize("![new](images/new.png)", str(folder), pictures_only=True)
 
@@ -228,7 +230,8 @@ async def test_an_ai_docs_page_shows_its_screenshots_from_the_working_folder(
     )
     md = (await c.get(f"/docs/pages/{page['id']}")).json()["markdown"]
     assert out["version"] == version + 1
-    assert "qa/evidence" not in md and "](/uploads/" in md
+    assert "qa/evidence" not in md
+    assert "](/uploads/" in md
     assert "![old](images/flow.png)" in md  # held before this edit, kept as written
 
     with pytest.raises(ValueError, match="Take the screenshot first"):
