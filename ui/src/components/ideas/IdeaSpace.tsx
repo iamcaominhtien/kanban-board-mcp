@@ -225,7 +225,10 @@ export function IdeaSpace({
       ? rows.filter((r) => r.stage !== 'inbox' && (stage === 'archived' || r.stage !== 'archived'))
       : rows;
   }, [list.data, view, stage]);
-  const allTags = useMemo(() => Array.from(new Set((list.data ?? []).flatMap((i) => i.tags))).sort(), [list.data]);
+  const allTags = useMemo(
+    () => Array.from(new Set((list.data ?? []).flatMap((i) => i.tags))).sort((x, y) => x.localeCompare(y)),
+    [list.data],
+  );
 
   const moves = useIdeaMoves({ onPromote: (i) => setPromoting(i as IdeaRow) });
   const newIdea = useCallback(

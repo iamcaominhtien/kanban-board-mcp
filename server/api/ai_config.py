@@ -469,8 +469,9 @@ async def post_tool_test(member_id: str, body: ToolTestBody, session: Session) -
     _, profile = await _ai(session, member_id)
     try:
         args = json.loads(body.args_text or "{}")
-        assert isinstance(args, dict)
-    except (ValueError, AssertionError):
+        if not isinstance(args, dict):  # an assert would be dropped under python -O
+            raise ValueError("not an object")
+    except ValueError:
         _refuse(ValueError("The arguments must be a JSON object."))
     old = merged_config(loads(profile.config, {}))
     saved = next((t for t in old["custom_tools"] if t["id"] == body.tool_id), None)

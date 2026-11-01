@@ -99,7 +99,7 @@ async function runExportCli(electron, args) {
     if (args.error) throw new Error(args.error);
     const xml = fs.readFileSync(args.input, 'utf8');
     const svg = await exportSvg(electron, { xml, editorUrl: args.editorUrl });
-    fs.writeFileSync(args.output, svg, 'utf8');
+    fs.writeFileSync(args.output, svg, 'utf8');  // NOSONAR - the export CLI writes where its caller asked (--output)
     app.exit(0);
   } catch (err) {
     process.stderr.write(`export-svg failed: ${err && err.message ? err.message : err}\n`);

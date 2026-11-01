@@ -241,7 +241,9 @@ export function DraftAiMembers({ draftId, initial }: { draftId: string; initial?
           disabled={busy || n === 0 || !!refusal}
           data-testid="create-ai-members"
           onClick={() =>
-            void act(() => assistApi.apply(d.id, { selected: [...picked].sort(), fields: { members: list } }))
+            void act(() =>
+              assistApi.apply(d.id, { selected: [...picked].sort((x, y) => x - y), fields: { members: list } }),
+            )
           }
         >
           {busy ? <span className="ai-spin" /> : null} Create {n} AI member{n !== 1 ? 's' : ''}

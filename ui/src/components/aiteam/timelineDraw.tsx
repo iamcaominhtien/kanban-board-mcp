@@ -679,7 +679,7 @@ export function TimelineBody(props: DrawProps) {
   const pairs = new Map<string, ArrowGeo[]>();
   for (const g of arrows) {
     if (g.a.kind !== 'sent_back') continue;
-    const k = `${g.a.ticketId ?? ''}|${[g.a.from, g.a.to].sort().join('|')}`;
+    const k = `${g.a.ticketId ?? ''}|${[g.a.from, g.a.to].sort((x, y) => x.localeCompare(y)).join('|')}`;
     pairs.set(k, [...(pairs.get(k) ?? []), g]);
   }
   for (const [k, list] of pairs) {

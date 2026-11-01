@@ -165,6 +165,33 @@ function terminateBackendProcess(processRef) {
   return true;
 }
 
+// File types "Open in app" hands to the system's default app: documents, images, media and archives. Scripts and
+// programs are left out (.js, .py, .sh, .bat, .exe, .html …): their default action on some systems is to run them,
+// so a page that was tricked into asking would run code. Those are shown in their folder instead.
+const OPENABLE_EXTENSIONS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico',
+  '.txt', '.log', '.csv', '.tsv', '.json', '.xml', '.yaml', '.yml', '.md', '.markdown', '.pdf', '.rtf',
+  '.xlsx', '.xls', '.docx', '.doc', '.pptx', '.ppt', '.odt', '.ods', '.odp',
+  '.mp3', '.wav', '.ogg', '.m4a', '.mp4', '.webm', '.mov',
+  '.zip', '.tar', '.gz', '.rar', '.7z',
+]);
+
+/** Whether `filePath` is a file type that may be opened with the system's default app. */
+function isOpenablePath(filePath) {
+  if (typeof filePath !== 'string' || !filePath) return false;
+  return OPENABLE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+/** Whether `url` may be handed to the system: only web pages and mail links, never file:// or app protocols. */
+function isOpenableUrl(url) {
+  if (typeof url !== 'string' || !url) return false;
+  try {
+    return ['https:', 'http:', 'mailto:'].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
   StartupProfiler,
   buildBackendLaunchSpec,
@@ -172,6 +199,8 @@ module.exports = {
   getBinaryExtension,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
+  isOpenablePath,
+  isOpenableUrl,
   parseReadyPort,
   resolveConfiguredUploadsDir,
   shouldRunVscodeSetup,

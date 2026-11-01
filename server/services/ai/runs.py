@@ -2587,7 +2587,8 @@ async def _needs_input(run_id: str) -> None:
                     ),
                 )
             except ValueError:
-                logger.warning(
+                # By design (Sonar): app_logging indents lines that look like a forged record
+                logger.warning(  # NOSONAR
                     "Could not set Pending on %s for run %s", ticket.id, run_id
                 )
             finally:
@@ -3328,7 +3329,8 @@ async def _resume_cli(run_id: str, token: str, note: str) -> None:
     try:
         await _execute_cli(run_id, token, resume_note=note)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("AI run %s crashed on resume", run_id)
+        # By design (Sonar): app_logging indents lines that look like a forged record
+        logger.exception("AI run %s crashed on resume", run_id)  # NOSONAR
         await _end(run_id, "failed", f"The runner failed: {redact(str(exc))[:300]}")
     finally:
         RT.tasks.pop(run_id, None)
@@ -3341,7 +3343,8 @@ async def _resume_api(run_id: str, token: str, note: str) -> None:
     try:
         await api_agent.execute(run_id, token, resume_note=note)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("AI run %s crashed on resume", run_id)
+        # By design (Sonar): app_logging indents lines that look like a forged record
+        logger.exception("AI run %s crashed on resume", run_id)  # NOSONAR
         await _end(run_id, "failed", f"The agent loop failed: {redact(str(exc))[:300]}")
     finally:
         RT.tasks.pop(run_id, None)

@@ -157,7 +157,9 @@ export function parseSource(text: string): SketchSource {
       opacity: num(o.opacity, 1, 0, 1),
       locked: o.locked === true,
       png: (o.png as string | null | undefined) ?? null,
-      texts: Array.isArray(o.texts) ? o.texts.map(parseText).filter((t): t is SourceText => t !== null) : [],
+      texts: Array.isArray(o.texts)
+        ? o.texts.map((t, i) => parseText(t, i)).filter((t): t is SourceText => t !== null)
+        : [],
     };
   });
   const active = typeof d.activeLayer === 'string' && seen.has(d.activeLayer) ? d.activeLayer : undefined;

@@ -345,7 +345,10 @@ async def remove_ticket_workspace(session: AsyncSession, ticket_id: str) -> None
         if folder.is_dir() and not folder.is_symlink():
             await asyncio.to_thread(shutil.rmtree, folder)
     except Exception:  # noqa: BLE001 - cleanup must not fail the delete
-        logger.warning("Could not remove workspace of %s", ticket_id, exc_info=True)
+        # By design (Sonar): app_logging indents lines that look like a forged record
+        logger.warning(  # NOSONAR
+            "Could not remove workspace of %s", ticket_id, exc_info=True
+        )
 
 
 async def get_workspace_path(

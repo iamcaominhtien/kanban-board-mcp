@@ -128,6 +128,8 @@ class _Cdp:
         self.pending: dict[int, asyncio.Future] = {}
         self.waiters: list[tuple[str, asyncio.Future]] = []
         self.blocked: list[str] = []
+        # Fetch replies in flight, held so they are not garbage-collected before they are sent
+        self.replies: set[asyncio.Future] = set()
         self.reader = asyncio.ensure_future(self._read())
 
     async def _read(self) -> None:
@@ -160,9 +162,11 @@ class _Cdp:
                     if verb == "failRequest":
                         args["errorReason"] = "BlockedByClient"
                         self.blocked.append(url)
-                    asyncio.ensure_future(
+                    reply = asyncio.ensure_future(
                         self.call(f"Fetch.{verb}", args, msg.get("sessionId"))
                     )
+                    self.replies.add(reply)
+                    reply.add_done_callback(self.replies.discard)
                 for pair in list(self.waiters):
                     if pair[0] == method and not pair[1].done():
                         pair[1].set_result(params)

@@ -6,6 +6,8 @@ const {
   buildBackendLaunchSpec,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
+  isOpenablePath,
+  isOpenableUrl,
   parseReadyPort,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
@@ -211,4 +213,25 @@ test('the API secret goes to the server on its standard input, never in its envi
   });
   assert.deepEqual(dev.options.stdio, ['pipe', 'pipe', 'pipe']);
   assert.ok(!JSON.stringify(dev.options.env).includes(apiSecret));
+});
+
+test('isOpenablePath opens documents, images and media but never scripts or programs', () => {
+  for (const ok of ['/data/uploads/shot.PNG', 'C:\\work\\report.pdf', '/w/notes.md', '/w/clip.mp4', '/w/sheet.xlsx']) {
+    assert.equal(isOpenablePath(ok), true, ok);
+  }
+  for (const bad of [
+    '/w/run.sh', 'C:\\w\\setup.exe', 'C:\\w\\go.bat', '/w/tool.js', '/w/main.py', '/w/page.html',
+    '/Applications/Calculator.app', '/w/no-extension', '', null, 42,
+  ]) {
+    assert.equal(isOpenablePath(bad), false, String(bad));
+  }
+});
+
+test('isOpenableUrl allows web and mail links only', () => {
+  for (const ok of ['https://github.com/x', 'http://localhost:8000/', 'mailto:a@b.c']) {
+    assert.equal(isOpenableUrl(ok), true, ok);
+  }
+  for (const bad of ['file:///etc/passwd', 'javascript:alert(1)', 'vscode://open', 'smb://host/share', 'not a url', '', null]) {
+    assert.equal(isOpenableUrl(bad), false, String(bad));
+  }
 });

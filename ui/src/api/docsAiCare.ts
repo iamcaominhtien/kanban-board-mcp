@@ -210,7 +210,7 @@ export function healthItemId(kind: 'out_of_date' | 'missing' | 'broken' | 'overl
   if (kind === 'overlaps') {
     return (item as HealthOverlap).pages
       .map((p) => p.pageId)
-      .sort()
+      .sort((x, y) => x.localeCompare(y))
       .join(',');
   }
   return (item as HealthOutOfDate).pageId;

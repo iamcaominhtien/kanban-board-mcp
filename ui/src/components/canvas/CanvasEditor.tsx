@@ -267,7 +267,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   const fit = useCallback(
     (ids?: string[]) => {
       const rects = ids?.length
-        ? ids.map(rectOf).filter((r): r is Rect => !!r)
+        ? ids.map((id) => rectOf(id)).filter((r): r is Rect => !!r)
         : [
             ...pageBoards.map((b) => ({ x: b.x, y: b.y - 22, w: b.w, h: b.h + 22 })),
             ...pageNotes.map((n) => ({ x: n.x, y: n.y, w: n.w, h: n.h })),

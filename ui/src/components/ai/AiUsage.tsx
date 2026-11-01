@@ -734,7 +734,9 @@ function EditBudgetDialog({
                       key={p}
                       type="button"
                       className={`ai-choice ${warn.includes(p) ? 'ai-choice-on' : ''}`}
-                      onClick={() => setWarn(warn.includes(p) ? warn.filter((x) => x !== p) : [...warn, p].sort())}
+                      onClick={() =>
+                        setWarn(warn.includes(p) ? warn.filter((x) => x !== p) : [...warn, p].sort((x, y) => x - y))
+                      }
                     >
                       {p}%
                     </button>

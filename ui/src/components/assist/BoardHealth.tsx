@@ -220,7 +220,9 @@ function ScheduleSettings({ projectId, cfg }: { projectId: string; cfg: HealthCo
               type="button"
               className={cfg.days.includes(i) ? 'ai-seg-on' : ''}
               onClick={() =>
-                void save({ days: cfg.days.includes(i) ? cfg.days.filter((x) => x !== i) : [...cfg.days, i].sort() })
+                void save({
+                  days: cfg.days.includes(i) ? cfg.days.filter((x) => x !== i) : [...cfg.days, i].sort((x, y) => x - y),
+                })
               }
             >
               {d}

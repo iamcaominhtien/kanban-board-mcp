@@ -135,6 +135,9 @@ class SignIn:
     duplicate_of: str | None = None
     account: dict | None = None
     poller: asyncio.Task | None = None
+    exiter: asyncio.Task | None = (
+        None  # held: asyncio keeps only weak references to tasks
+    )
     orphan: asyncio.TimerHandle | None = None
 
     def publish(self, message: dict) -> None:
@@ -255,7 +258,7 @@ def _on_output(session: SignIn) -> None:
         data = b""
     if not data:  # the process closed its end
         asyncio.get_running_loop().remove_reader(session.master)
-        asyncio.create_task(_exited(session))
+        session.exiter = asyncio.create_task(_exited(session))
         return
     session.buffer += data
     if len(session.buffer) > KEEP_BYTES:

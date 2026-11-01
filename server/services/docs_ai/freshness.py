@@ -194,13 +194,18 @@ async def _facts(
                 t["moved_at"],
                 t["comments_total"],
                 t["last_comment_at"],
-                hashlib.sha1((t["description"] or "").encode()).hexdigest()[:8],
+                hashlib.sha1(
+                    (t["description"] or "").encode(), usedforsecurity=False
+                ).hexdigest()[:8],
             ]
             for t in facts.tickets
         ],
         "pages": [[p["id"], p["title"], p["version"]] for p in facts.pages],
     }
-    facts.hash = hashlib.sha1(json.dumps(key, sort_keys=True).encode()).hexdigest()
+    # A change marker, not a security hash
+    facts.hash = hashlib.sha1(
+        json.dumps(key, sort_keys=True).encode(), usedforsecurity=False
+    ).hexdigest()
     return facts
 
 

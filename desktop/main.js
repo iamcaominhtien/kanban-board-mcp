@@ -14,6 +14,8 @@ const {
   buildExportCommand,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
+  isOpenablePath,
+  isOpenableUrl,
   parseReadyPort,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
@@ -53,13 +55,13 @@ function startBackend() {
     if (process.platform === 'darwin' && app.isPackaged) {
       try {
         const { execFileSync } = require('child_process');
-        execFileSync('xattr', ['-d', 'com.apple.quarantine', spec.command], { stdio: 'ignore' });
+        execFileSync('/usr/bin/xattr', ['-d', 'com.apple.quarantine', spec.command], { stdio: 'ignore' });
       } catch { /* attribute may not exist — non-fatal */ }
     }
 
     // Ensure binary is executable (electron-builder may drop +x bit on some builds)
     if (process.platform !== 'win32' && app.isPackaged) {
-      try { fs.chmodSync(spec.command, 0o755); } catch { /* non-fatal */ }
+      try { fs.chmodSync(spec.command, 0o755); } catch { /* non-fatal */ } /* NOSONAR - the bundled server binary must be executable */
     }
 
     let stderrOutput = '';
@@ -344,6 +346,12 @@ ipcMain.handle('select-folder', async () => {
 // IPC: open a file with system default application
 ipcMain.handle('open-path', async (_event, filePath) => {
   if (!filePath || typeof filePath !== 'string') return { error: 'Invalid path' };
+  if (!isOpenablePath(filePath)) {
+    return {
+      success: false,
+      error: 'This kind of file is not opened from the app, because it could run as a program. Use Show in folder.',
+    };
+  }
   try {
     const errorMsg = await shell.openPath(filePath);
     return { success: !errorMsg, error: errorMsg || null };
@@ -365,7 +373,7 @@ ipcMain.handle('show-item-in-folder', async (_event, filePath) => {
 
 // IPC: open external URL in default browser
 ipcMain.handle('open-external', async (_event, url) => {
-  if (!url || typeof url !== 'string') return { error: 'Invalid URL' };
+  if (!isOpenableUrl(url)) return { success: false, error: 'Only web and mail links can be opened' };
   try {
     await shell.openExternal(url);
     return { success: true };

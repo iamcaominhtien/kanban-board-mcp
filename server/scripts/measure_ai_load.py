@@ -251,7 +251,8 @@ def main() -> None:
         else Path(tempfile.gettempdir()) / f"measure-{args.mode}.csv"
     )
     if rows:
-        with open(out, "w", newline="") as fh:
+        # By design (Sonar): a developer script; --out is the path its user asked for
+        with open(out, "w", newline="") as fh:  # NOSONAR
             w = csv.DictWriter(fh, fieldnames=list(rows[0]))
             w.writeheader()
             w.writerows(rows)

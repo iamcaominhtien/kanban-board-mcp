@@ -312,7 +312,8 @@ class Agy(Profile):
         servers[name] = entry
         self.mcp_config.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.mcp_config.with_suffix(".tmp")
-        tmp.write_text(json.dumps(data, indent=2))
+        # By design (Sonar): a fixed file in the profile; only its JSON content varies
+        tmp.write_text(json.dumps(data, indent=2))  # NOSONAR
         tmp.replace(self.mcp_config)
         return True
 

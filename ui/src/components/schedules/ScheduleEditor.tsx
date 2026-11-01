@@ -137,7 +137,7 @@ function useZones(current: string): { id: string; label: string }[] {
     ids.add('UTC');
     ids.add(current);
     ids.add(browserZone());
-    return [...ids].sort().map((id) => ({ id, label: `${id} · ${zoneLabel(id)}` }));
+    return [...ids].sort((x, y) => x.localeCompare(y)).map((id) => ({ id, label: `${id} · ${zoneLabel(id)}` }));
   }, [current]);
 }
 
@@ -428,7 +428,7 @@ function EditorForm({
                             set({
                               days: draft.days.includes(i)
                                 ? draft.days.filter((x) => x !== i)
-                                : [...draft.days, i].sort(),
+                                : [...draft.days, i].sort((x, y) => x - y),
                             })
                           }
                         >

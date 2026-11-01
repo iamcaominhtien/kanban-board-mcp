@@ -1151,7 +1151,8 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         await _publish()
         return
     except Exception as exc:  # noqa: BLE001 - an answer that fails must say so
-        log.exception("Board AI answer %s failed", message_id)
+        # By design (Sonar): app_logging indents lines that look like a forged record
+        log.exception("Board AI answer %s failed", message_id)  # NOSONAR
         await _set(
             message_id,
             state="error",

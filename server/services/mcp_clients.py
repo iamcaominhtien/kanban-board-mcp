@@ -89,10 +89,12 @@ def _same_entry(installed: dict, expected: dict) -> bool:
 
 
 def _read_json(path: Path) -> dict:
-    if not path.exists():
+    # By design (Sonar): the project folder the user picked; the app edits its MCP config
+    if not path.exists():  # NOSONAR
         return {}
     try:
-        data = json.loads(path.read_text(encoding="utf-8") or "{}")
+        # By design (Sonar): the project folder the user picked; the app edits its MCP config
+        data = json.loads(path.read_text(encoding="utf-8") or "{}")  # NOSONAR
     except (OSError, ValueError) as exc:
         raise McpClientError(
             "invalid_json",
@@ -110,7 +112,8 @@ def _write_json(path: Path, data: dict) -> None:
     tmp = path.with_name(path.name + ".kanban-tmp")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        # By design (Sonar): the project folder the user picked; the app edits its MCP config
+        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")  # NOSONAR
         if path.exists():
             shutil.copymode(path, tmp)
         os.replace(tmp, path)
@@ -139,7 +142,8 @@ def _folder(raw: str | None, *, required: bool) -> Path | None:
             raise BadRequest("Choose a project folder first.")
         return None
     path = Path(os.path.realpath(raw.strip()))
-    if not path.is_dir():
+    # By design (Sonar): the project folder the user picked; the app edits its MCP config
+    if not path.is_dir():  # NOSONAR
         raise BadRequest(f"{path} is not a folder.")
     return path
 

@@ -121,11 +121,9 @@ async def lifespan(app: FastAPI):
             sweeper.cancel()
             digests.cancel()
             db_watcher.cancel()
-            for task in (sweeper, digests, db_watcher):
-                try:
-                    await task
-                except asyncio.CancelledError:
-                    pass
+            # Wait for them to stop; their CancelledError is collected, while a cancellation of
+            # the shutdown itself still propagates
+            await asyncio.gather(sweeper, digests, db_watcher, return_exceptions=True)
 
 
 app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
