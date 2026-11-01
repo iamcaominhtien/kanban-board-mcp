@@ -144,6 +144,11 @@ export function NotificationRow({
     setExpanded((e) => !e);
   };
   const actionsShown = row.gone ? row.actions.filter((a) => a.id === 'dismiss') : row.actions;
+  // A row whose only buttons are the hover ones (an update) keeps no empty line for them: they float at its corner
+  const onlyHover =
+    !row.snoozed &&
+    !grouped &&
+    actionsShown.filter((a) => a.id !== 'expand' && !(a.id === 'open' && !row.needs)).length === 0;
 
   const visible = row.items.slice(0, expanded ? shown : 0);
   const rest = row.items.length - shown;
@@ -327,7 +332,7 @@ export function NotificationRow({
           </div>
         )}
 
-        <div className={styles.actions}>
+        <div className={`${styles.actions} ${onlyHover ? styles.actionsFloating : ''}`}>
           {row.snoozed ? (
             <button type="button" className={styles.btn} disabled={busy} onClick={() => void fire('unsnooze')}>
               Bring back now

@@ -141,7 +141,8 @@ async function capture() {
     `Chuông trên thanh trên cùng: số đỏ = chỉ việc Needs you. Bản web cũng hiện số ở tiêu đề tab: “${title}”.`,
   ]);
 
-  // The bell and the Needs you tab
+  // The bell and the Needs you tab (the toasts have gone by then: each lives 12 s)
+  await p.waitForTimeout(12000);
   await p.keyboard.press('n');
   await p.waitForTimeout(1200);
   await shot('03-panel-needs');
@@ -186,6 +187,11 @@ async function capture() {
   await p.waitForTimeout(600);
   await p.getByRole('button', { name: 'Open ticket' }).first().click();
   await p.waitForTimeout(2500);
+  const aiView = p.getByTestId('view-ai').first();
+  if (await aiView.count()) {
+    await aiView.click();
+    await p.waitForTimeout(1200);
+  }
   const input = p.getByTestId('ai-answer-input').first();
   if (await input.count()) {
     await input.scrollIntoViewIfNeeded();
@@ -194,7 +200,7 @@ async function capture() {
     else await input.fill('No, only open tickets.');
     await shot('07-ticket-question');
     note('07-ticket-question', '7. Trả lời ngay trong ticket KAN-215', [
-      'Câu hỏi của BA Bao nằm trong ticket như trước. Bạn trả lời ở đây — không cần đụng tới thông báo.',
+      '“Open ticket” trên dòng thông báo mở ticket; câu hỏi của BA Bao nằm ở tab AI activity như trước. Bạn trả lời ở đây — không cần đụng tới thông báo.',
     ]);
     await p.getByTestId('ai-answer-send').first().click();
     await p.waitForTimeout(900);
@@ -204,18 +210,20 @@ async function capture() {
       'Toast chỉ còn ba lý do: việc Needs you khi bạn đang nhìn, thao tác của bạn bị lỗi, và lời mời Undo.',
     ]);
   }
-  await p.keyboard.press('Escape');
-  await p.waitForTimeout(800);
-  await p.keyboard.press('Escape');
+  const home = async () => {
+    await p.goto(`${UI}?proj=${s.kan}`, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(1500);
+  };
   await p.waitForTimeout(1500);
+  await home();
   await p.keyboard.press('n');
   await p.waitForTimeout(1500);
   await shot('09-closed-itself');
   note('09-closed-itself', '9. Dòng tự đóng, ở mọi cửa sổ', [
-    'Trong vòng một giây dòng chuyển xám với lý do “You answered in the ticket”, số đỏ giảm 4 → 3. Cùng một luật cho mọi việc: duyệt/từ chối ở AI Team, đăng nhập lại tài khoản, Retry run, trả lời thread — ở đâu cũng được, kể cả qua MCP.',
-    'Server giữ read / done / snoozed theo từng người nhận, nên cửa sổ thứ hai cũng xám theo; toast của sự kiện đã xong tự đóng.',
+    'Trong vòng một giây dòng chuyển xám với lý do “Done — you answered in the ticket” và xuống mục Done today; số đỏ giảm theo. Cùng một luật cho mọi việc: duyệt/từ chối ở AI Team, đăng nhập lại tài khoản, Retry run, trả lời thread — ở đâu cũng được, kể cả qua MCP.',
+    'Server giữ read / done / snoozed theo từng người nhận, nên cửa sổ thứ hai cũng xám theo; toast của sự kiện đã xong tự đóng. Ở đây tài khoản Work Claude cũng đã tự đóng: lần kiểm tra đăng nhập tiếp theo của server thấy nó đã đăng nhập lại (“Done — the account signed in again”).',
   ]);
-  await p.keyboard.press('Escape');
+  await home();
 
   // All notifications
   await p.keyboard.press('Shift+N');
@@ -225,7 +233,7 @@ async function capture() {
     'Mọi project, tìm kiếm, bộ lọc All · Unread · Needs you · Snoozed · Done · Cleared, khoảng ngày, lọc theo project và loại (For information / From AI members / From people / Schedules). Giữ 90 ngày (một setting).',
     'Mở bằng nút ở chân panel, Shift N, hoặc mục Notifications ở sidebar khi có việc chờ.',
   ]);
-  const needsTab = p.getByRole('tab', { name: /^Needs you/ }).first();
+  const needsTab = p.locator('button, [role=tab]').filter({ hasText: /^Needs you/ }).first();
   if (await needsTab.count()) {
     await needsTab.click();
     await p.waitForTimeout(1000);
@@ -234,14 +242,10 @@ async function capture() {
       'Chỉ những việc còn chờ bạn. Dòng của ticket đã bị xoá sẽ ghi rõ “KAN-… was deleted, so this cannot be answered.” và chỉ còn Dismiss — Dismiss cũng là một cách hoàn tất (“Dismissed by you”), không xoá lặng lẽ.',
     ]);
   }
-  await p.keyboard.press('Escape');
 
   // The day card
   seed('daycard');
-  await p.waitForTimeout(2000);
-  const back = p.getByRole('button', { name: /Back/ }).first();
-  if (await back.count()) await back.click();
-  await p.waitForTimeout(800);
+  await home();
   await p.keyboard.press('n');
   await p.waitForTimeout(800);
   await p.getByRole('tab', { name: /Updates/ }).click();
@@ -251,7 +255,7 @@ async function capture() {
     'Viết lúc 18:00 các ngày làm việc (giờ và ngày là setting), từ chính log thông báo và các run — không hỏi AI nên không tốn gì và không bịa. Số run xong, lỗi, việc còn chờ, chi phí; mỗi project một dòng; Docs; việc còn snooze; lịch ngày mai.',
     'Đứng đầu tab Updates tới thẻ hôm sau. Thay digest AI safety 9:00 cũ (đã bỏ). Board health 9:00 vẫn giữ riêng.',
   ]);
-  await p.keyboard.press('Escape');
+  await home();
 
   // Settings › Notifications
   await p.evaluate(() =>
@@ -271,8 +275,7 @@ async function capture() {
   ]);
 
   // Follow bell on a ticket
-  await p.goto(`${UI}?proj=${s.kan}`, { waitUntil: 'networkidle' });
-  await p.waitForTimeout(1500);
+  await home();
   await p.getByText('Assign the release checklist').first().click();
   await p.waitForTimeout(1500);
   const bell = p.locator('[aria-label*="ollow"], [title*="ollow"]').first();

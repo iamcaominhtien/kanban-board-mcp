@@ -438,3 +438,22 @@
   gap: 6px;
   padding: 4px 8px;
 }
+
+/* Only Snooze and Mute: no line of their own under the row (it would stay empty while not hovered) */
+.actionsFloating {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  margin-top: 0;
+  container-type: normal;
+}
+
+.actionsFloating .hoverLabel {
+  display: none;
+}
+
+/* The x takes the place of the time while hovered, so the two never overlap */
+.row:has(.clearX):hover .time,
+.row:has(.clearX):focus-within .time {
+  visibility: hidden;
+}
