@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793548337-bcf0",
+  "canvas_version": "1793549179-0849",
   "exported": "2026-11-01",
   "files": {
     "AccountMenu.dc.html": {
@@ -619,6 +619,14 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 14828
+    },
+    "AiTeamProcess.dc.html": {
+      "bytes": 218986,
+      "sha256": "06eb4b6a0ac6cd0ed1e655911f3d89063369ea61ba7062c3486f2a01282b15f5",
+      "title": "AI team & process — skills and plugins, role packs, workflows, review, arbitration, TDD proof",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 13097
     }
   }
 }

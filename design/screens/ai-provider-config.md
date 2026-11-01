@@ -4,6 +4,8 @@
 
 > **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — the block the board writes into `CLAUDE.md` moves into the run’s system prompt, and project-wide instructions plus the lessons the AIs wrote themselves get a screen of their own (section H).
 
+> **Extended by [AI team & process](ai-team-process.md)** (wave 2 of `docs/specs/ai-claude-code-plan.md`) — plugins become a kind of their own beside skills, tools, MCP servers and instructions, installable from a git URL, the marketplace or a folder, with a real pin and a usage count read out of the run stream; the library and the per-member switches stay (section B).
+
 Eyebrow "Screen — v1". The **Configuration** tab of an AI member (AI members, section D) is built from the member’s adapter: Claude Code, Antigravity, API agent, or Other MCP client. Each item is **Documented** (steps only) or **Synced** (stored on the board, written to the provider’s native files before each run). A board-level **library** shares items across members. Desktop only.
 
 ---

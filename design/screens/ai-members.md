@@ -2,6 +2,8 @@
 
 > Screen — v1 · source: [`AiMembers.dc.html`](../source/AiMembers.dc.html) · canvas `1792727511-31c8` · sha256 `d3513e3f2747d8445b9576b773cff2cdcddfbf2f61bb33ec8e4e7facd3935402`
 
+> **Extended by [AI team & process](ai-team-process.md)** (wave 2 of `docs/specs/ai-claude-code-plan.md`) — the four presets in `memberPresets.json` grow into role packs — persona, model, tools, permissions, writable scope, what the role must hand in — with four new roles (Triage, BA, User tester, Designer) and export/import, and a repository scan that proposes a whole team at once (sections C and D).
+
 Eyebrow "Screen — v1". AI members sit next to people: they can be assigned tickets, @mentioned and asked questions. Two ways to connect: a **local runner** that launches the official CLI you are already signed in to (Claude Code, Antigravity), or an **API key** where the board runs the agent loop (Anthropic, OpenAI, Gemini, custom endpoint). One AI is also chosen as the **Board AI** for board-wide features. Desktop only. Every agent can move tickets only up to Review by default.
 
 ---
