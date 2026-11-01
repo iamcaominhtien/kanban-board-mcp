@@ -96,6 +96,13 @@ const ms = (iso: string | null | undefined): number | null => {
   return Number.isNaN(t) ? null : t;
 };
 
+/** The two moments an arrow is drawn at: when it leaves and when it lands. */
+function arrowEnds(e: { at: string; toAt: string | null }): number[] {
+  const a = ms(e.at);
+  const z = ms(e.toAt);
+  return [a, z].filter((t): t is number => t != null);
+}
+
 /** Every stretch in which something is going on: a run, a queue, a wait, or a mark. */
 export function busySpans(data: Timeline, now: number): Span[] {
   const spans: Span[] = [];
@@ -109,11 +116,10 @@ export function busySpans(data: Timeline, now: number): Span[] {
     if (a != null) spans.push({ a, b: ms(w.to) ?? now });
   }
   // A single event (an arrow, a mark) keeps a minute around it so it is not folded into a break
-  for (const e of data.arrows) {
-    const a = ms(e.at);
-    const z = ms(e.toAt) ?? a;
-    if (a != null && z != null) spans.push({ a: Math.min(a, z) - MIN, b: Math.max(a, z) + MIN });
-  }
+  // An arrow keeps a minute around each of its two ends, not the time in between: a hand-off whose next run only
+  // started hours later (the app was closed, nothing was queued) must not stop that quiet stretch from folding.
+  // A real queue or wait between the two ends is a bar or a wait of its own, and keeps its time.
+  for (const e of data.arrows) for (const t of arrowEnds(e)) spans.push({ a: t - MIN, b: t + MIN });
   for (const t of data.touches) {
     const a = ms(t.at);
     if (a != null) spans.push({ a: a - MIN, b: a + MIN });
@@ -121,14 +127,33 @@ export function busySpans(data: Timeline, now: number): Span[] {
   return merge(spans);
 }
 
-/** Everything going on apart from a person being waited for: runs (minus their own waits), marks and short waits. */
-function activeSpans(data: Timeline, now: number): Span[] {
-  const waitsOf = new Map<string, Span[]>();
+/**
+ * Every wait the axis may cap: a person being waited for, and a run's queue (from when it was queued to when it
+ * started, or to now while it is still queued). A queue is a wait too: hatched grey, "waiting for a runner or
+ * another AI" (ai-team-timeline.md, C), so a very long one is capped like a long question.
+ */
+export function waitSpans(data: Timeline, now: number): { id: string; runId: string | null; a: number; b: number }[] {
+  const out: { id: string; runId: string | null; a: number; b: number }[] = [];
   for (const w of data.waits) {
     const a = ms(w.from);
-    if (a == null || !w.runId) continue;
+    if (a != null) out.push({ id: w.id, runId: w.runId, a, b: ms(w.to) ?? now });
+  }
+  for (const b of data.bars) {
+    const q = ms(b.queuedAt);
+    const end = b.state === 'queued' ? now : ms(b.startedAt);
+    if (q != null && end != null && end - q > MIN) out.push({ id: b.id, runId: b.id, a: q, b: end });
+  }
+  return out;
+}
+
+/** Everything going on apart from a wait: runs (minus their waits and queues), marks and short waits. */
+function activeSpans(data: Timeline, now: number): Span[] {
+  const waits = waitSpans(data, now);
+  const waitsOf = new Map<string, Span[]>();
+  for (const w of waits) {
+    if (!w.runId) continue;
     const list = waitsOf.get(w.runId) ?? [];
-    list.push({ a, b: ms(w.to) ?? now });
+    list.push({ a: w.a, b: w.b });
     waitsOf.set(w.runId, list);
   }
   const spans: Span[] = [];
@@ -147,17 +172,11 @@ function activeSpans(data: Timeline, now: number): Span[] {
     }
     spans.push(...pieces);
   }
-  for (const w of data.waits) {
-    const a = ms(w.from);
-    if (a == null) continue;
-    const z = ms(w.to) ?? now;
-    if (z - a <= CAP_MIN * MIN) spans.push({ a, b: z });
-  }
-  for (const e of data.arrows) {
-    const a = ms(e.at);
-    const z = ms(e.toAt) ?? a;
-    if (a != null && z != null) spans.push({ a: Math.min(a, z) - MIN, b: Math.max(a, z) + MIN });
-  }
+  for (const w of waits) if (w.b - w.a <= CAP_MIN * MIN) spans.push({ a: w.a, b: w.b });
+  // An arrow keeps a minute around each of its two ends, not the time in between: a hand-off whose next run only
+  // started hours later (the app was closed, nothing was queued) must not stop that quiet stretch from folding.
+  // A real queue or wait between the two ends is a bar or a wait of its own, and keeps its time.
+  for (const e of data.arrows) for (const t of arrowEnds(e)) spans.push({ a: t - MIN, b: t + MIN });
   for (const t of data.touches) {
     const a = ms(t.at);
     if (a != null) spans.push({ a: a - MIN, b: a + MIN });
@@ -223,10 +242,9 @@ export function buildAxis(data: Timeline, mode: AxisMode, now: number): Axis {
     // A wait over an hour is capped where nothing else is going on; shorter ones stay to scale, and so does any
     // stretch in which another AI works, so that work is not squeezed
     const active = activeSpans(data, now);
-    for (const w of data.waits) {
-      const a = ms(w.from);
-      if (a == null) continue;
-      const z = ms(w.to) ?? now;
+    for (const w of waitSpans(data, now)) {
+      const a = w.a;
+      const z = w.b;
       if (z - a <= CAP_MIN * MIN) continue;
       let cursor = Math.max(a, from);
       const end = Math.min(z, to);

@@ -928,19 +928,34 @@ export function TimelineBody(props: DrawProps) {
       // a ticket key never covers a line or a badge: without a free spot it is left out (the hover card has it)
       put({ key: K.bar(g.b.id), text, spots }, endLook(g.b, g.look).text, { type: 'bar', id: g.b.id }, { weight: 700 });
     }
-    const queuedMin = g.queued ? (now - (ms(g.b.queuedAt) ?? now)) / 60000 : 0;
-    if (g.queued && queuedMin > 10) {
-      const mid = (g.top + g.bottom) / 2 + 4;
+    // how long a run waited in its queue, on the queue (on its break glyph when the queue is capped)
+    const qa = ms(g.b.queuedAt);
+    const qb = g.queued ? now : ms(g.b.startedAt);
+    const queuedMin = qa != null && qb != null ? (qb - qa) / 60000 : 0;
+    if (queuedMin > 10) {
+      const cap = axis.caps.find((c) => c.id === g.b.id);
+      const qTop = g.queued ? g.top : g.qy;
+      const qBottom = g.queued ? g.bottom : g.top;
+      const mid = cap ? TOP + cap.y + cap.h / 2 + 7 : (qTop + qBottom) / 2 + 4;
+      const cx0 = g.x + g.w / 2;
       put(
         {
           key: `${K.bar(g.b.id)}:queued`,
-          text: `queued ${lengthText(queuedMin * 60000)}${g.b.heldByPause ? ', held until resume' : ''}`,
+          text: `${g.queued ? 'queued' : 'waited'} ${lengthText(queuedMin * 60000)}${g.b.heldByPause ? ', held until resume' : ''}`,
           shrink: true,
-          spots: [
-            { x: g.x + g.w + 5, y: mid, anchor: 'start' },
-            { x: g.x - 5, y: mid, anchor: 'end' },
-            { x: g.x + g.w + 5, y: mid + 14, anchor: 'start' },
-          ],
+          crossLines: true,
+          spots: cap
+            ? [
+                { x: cx0 - 19, y: mid, anchor: 'end' },
+                { x: cx0 + 19, y: mid, anchor: 'start' },
+                { x: cx0 - 19, y: mid + 14, anchor: 'end' },
+                { x: cx0 + 19, y: mid + 14, anchor: 'start' },
+              ]
+            : [
+                { x: g.x + g.w + 5, y: mid, anchor: 'start' },
+                { x: g.x - 5, y: mid, anchor: 'end' },
+                { x: g.x + g.w + 5, y: mid + 14, anchor: 'start' },
+              ],
         },
         '#7A5A06',
         { type: 'bar', id: g.b.id },
@@ -1214,6 +1229,20 @@ export function TimelineBody(props: DrawProps) {
                 <RestartMark key={rs.n} x={x + w / 2} y={Math.min(Math.max(yy(rs.at), top + 6), bottom - 6)} />
               ))}
             {queued && b.heldByPause && <Glyph name="pause" x={x + w / 2} y={mid} color="#5B6B60" size={14.4} />}
+            {/* a queue over an hour is capped like a long wait: the design's break glyph across it (E.2) */}
+            {axis.caps
+              .filter((c) => c.id === b.id)
+              .map((c) => (
+                <path
+                  key={c.from}
+                  d={`M${x + w / 2 - 14} ${TOP + c.y + c.h / 2} l7 -4 l7 6 l7 -6 l7 4`}
+                  stroke="#9AA8A0"
+                  strokeWidth={1.6}
+                  fill="#fff"
+                  strokeLinejoin="round"
+                  data-testid="tl-queue-cap"
+                />
+              ))}
             {detailed && b.steps > 0 && !queued && (
               <StepTicks b={b} x={x} w={w} top={top} bottom={bottom} color={end.stroke} />
             )}
@@ -1715,11 +1744,16 @@ export function arrowLabel(
         text: a.label ? `wrote ${a.label}${opts.version ? `, v${opts.version}` : ''}` : 'Docs',
         important: false,
       };
-    default:
+    default: {
+      // the next run started long after the hand-off without a queue in between (for example the app was closed):
+      // a fold may hide that stretch, so the arrow says how long it was
+      const gap = spanMs / 60000;
+      if (wait <= 10 && gap > 10) return { text: `started ${lengthText(spanMs)} later`, important: true };
       return {
         text: wait > 10 ? `waited ${Math.round(wait)} min` : `${ARROW[a.kind].word} ${ticketOf(a.ticketId)}`.trim(),
         important: wait > 10,
       };
+    }
   }
 }
 

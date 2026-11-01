@@ -211,6 +211,54 @@ describe('rows for close events (Compact time)', () => {
   });
 });
 
+describe('a hand-off whose next run started hours later', () => {
+  const handoff = (fromMin: number, toMin: number) => ({
+    id: 'h',
+    at: at(fromMin),
+    toAt: at(toMin),
+    kind: 'handoff' as const,
+    from: 'm1',
+    to: 'm2',
+    ticketId: 'KAN-1',
+    runId: 'b',
+    waitS: 0,
+    round: 0,
+    label: null,
+    count: 1,
+    atLast: at(fromMin),
+    items: [],
+  });
+
+  it('folds the quiet stretch in between when nothing was queued (the app was closed)', () => {
+    const d = data([bar('a', 0, 5), bar('b', 292, 300, { memberId: 'm2' })], 300);
+    d.arrows = [handoff(5, 292)];
+    const axis = buildAxis(d, 'compact', T0 + 300 * 60000);
+    expect(axis.breaks).toHaveLength(1);
+    expect(axis.breaks[0].label).toBe('4 h 45 min with nothing running');
+    expect(axis.height).toBeLessThan(400);
+    // both ends of the arrow stay on the diagram, in order
+    expect(axis.y(T0 + 292 * 60000) - axis.y(T0 + 5 * 60000)).toBeGreaterThan(BREAK_H);
+  });
+
+  it('caps a queue of hours like a long wait, with its real clock on both ends', () => {
+    const d = data([bar('a', 0, 5), bar('b', 292, 300, { memberId: 'm2', queuedAt: at(5) })], 300);
+    d.arrows = [handoff(5, 292)];
+    const axis = buildAxis(d, 'compact', T0 + 300 * 60000);
+    expect(axis.breaks).toHaveLength(0);
+    expect(axis.caps.map((c) => c.id)).toEqual(['b']);
+    expect(axis.caps[0].h).toBe(CAP_H);
+    expect(axis.height).toBeLessThan(CAP_H + 40 * PX_PER_MIN);
+  });
+
+  it('keeps Real time to scale', () => {
+    const d = data([bar('a', 0, 5), bar('b', 292, 300, { memberId: 'm2' })], 300);
+    d.arrows = [handoff(5, 292)];
+    const axis = buildAxis(d, 'real', T0 + 300 * 60000);
+    expect(axis.breaks).toHaveLength(0);
+    expect(axis.height).toBeCloseTo(300 * PX_PER_MIN, 3);
+  });
+});
+
 describe('timeline helpers', () => {
   it('writes lengths of time', () => {
     expect(lengthText(45 * 60000)).toBe('45 min');

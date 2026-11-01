@@ -236,3 +236,48 @@ describe('a dense stretch of the Timeline', () => {
         expect(hits).toEqual([]);
       });
 });
+
+describe('a hand-off across a long quiet stretch', () => {
+  it('says how much later the next run started, at a glance', async () => {
+    const { arrowLabel } = await import('./timelineDraw');
+    const a = arrow('h', 'handoff', 'pm', 'dv', 0, 'r');
+    expect(arrowLabel({ ...a, toAt: at(4.8 * 3600) }, (id) => id ?? '', 4.8 * 3600000)).toEqual({
+      text: 'started 4 h 48 min later',
+      important: true,
+    });
+    // a short hand-off keeps its usual words
+    expect(arrowLabel(a, (id) => id ?? '', 0).important).toBe(false);
+  });
+});
+
+describe('a queue of hours', () => {
+  it('is drawn capped with the break glyph and its exact length', () => {
+    const data = dense();
+    data.bars = [bar('s', 'pm', 0, 10), bar('q', 'dv', 17240, 17700, 'AGT-6', { queuedAt: at(10) })];
+    data.arrows = [arrow('q', 'handoff', 'pm', 'dv', 10, 'q', { toAt: at(17240) })];
+    data.waits = [];
+    data.touches = [];
+    data.pauses = [];
+    data.until = at(17800);
+    data.now = at(17800);
+    const now = new Date(data.now).getTime();
+    const axis = buildAxis(data, 'compact', now);
+    const html = renderToStaticMarkup(
+      <TimelineBody
+        data={data}
+        axis={axis}
+        lifelines={data.lifelines}
+        now={now}
+        detailed={false}
+        selected={null}
+        onPick={() => {}}
+        onHover={() => {}}
+        hidden={new Set()}
+        ticketOf={(id) => id ?? ''}
+      />,
+    );
+    expect(axis.height).toBeLessThan(500);
+    expect(html).toContain('data-testid="tl-queue-cap"');
+    expect(html).toContain('waited 4 h 47 min');
+  });
+});
