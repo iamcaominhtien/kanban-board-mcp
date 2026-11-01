@@ -22,6 +22,10 @@ def get_base_analysis_args(entry_point, app_name):
     # API keys: the encryption key lives in the OS keychain; keyring is imported lazily and finds its
     # backends through entry points, so both the modules and the metadata must be bundled
     keyring_hidden = collect_submodules('keyring')
+    # Time zones: zoneinfo falls back to the tzdata package when the OS has no tz database (Windows,
+    # trimmed Linux). PyInstaller's zoneinfo hook only adds tzdata on Windows; naming it here bundles
+    # it everywhere, and the tzdata hook (pyinstaller-hooks-contrib) collects its data files
+    tzdata_hidden = ['tzdata']
 
     # Common metadata
     pydantic_meta = copy_metadata('pydantic')
@@ -39,7 +43,7 @@ def get_base_analysis_args(entry_point, app_name):
 
     hidden_imports = (
         sqlmodel_hidden + anyio_hidden + alembic_hidden + aiosqlite_hidden +
-        sqlalchemy_async_hidden + keyring_hidden +
+        sqlalchemy_async_hidden + keyring_hidden + tzdata_hidden +
         ['sqlalchemy.dialects.sqlite', 'multiprocessing.freeze_support', 'psutil']
     )
 
