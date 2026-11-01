@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCreateOrder, usePatchOrder } from '../../../../api/aiOrders';
 import { extractError } from '../../../../api/extractError';
-import type { Order, OrderTemplates, Rule, SignalKind } from '../../../../types/aiOrders';
+import type { Order, OrderTemplates, Rule, RuleThen, SignalKind } from '../../../../types/aiOrders';
 import { actionsFor, defaultName, NOT_FIRED_YET, SIGNAL_LABEL } from './ordersText';
 import './orders.css';
 
@@ -16,11 +16,16 @@ export interface EditorSeed {
 
 const TRIAL_CHOICES = [1, 3, 7, 14];
 
-/** The server's key for what a rule does; named once so no object literal here carries a member called `then`. */
-const THEN = 'then';
-
-/** The rule with another action; written to the wire as `then`. */
-const withAction = (r: Rule, action: Rule['then']): Rule => ({ ...r, [THEN]: action });
+/** The rule with another action (every field named, as in `emptyRule`; `then` is the server's key for it). */
+const withAction = (r: Rule, action: RuleThen): Rule => ({
+  when: r.when,
+  if: r.if,
+  then: action,
+  afterwards: r.afterwards,
+  maxPerDay: r.maxPerDay,
+  maxPerTarget: r.maxPerTarget,
+  onlyProject: r.onlyProject,
+});
 
 /** "What I understood — change anything": the rule as lines a person can read and change before it is saved. */
 export function RuleEditor({
@@ -194,7 +199,11 @@ export function RuleEditor({
 
       <div className="so-field">
         <div className="so-lab">Then</div>
-        <label className={`so-opt${isDiagnose ? ' so-opt-on' : ''}`} htmlFor="so-then-diagnose">
+        <label
+          className={`so-opt${isDiagnose ? ' so-opt-on' : ''}`}
+          htmlFor="so-then-diagnose"
+          aria-label="Let the AI analyse, then decide"
+        >
           <input
             id="so-then-diagnose"
             type="radio"

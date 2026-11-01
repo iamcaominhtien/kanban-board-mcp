@@ -19,8 +19,8 @@ export function Dialog({
   foot: ReactNode;
 }) {
   return (
-    <div className="ai-overlay" onClick={onClose} role="presentation">
-      <div className="ai-modal" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
+    <div className="ai-overlay" onClick={(e) => e.target === e.currentTarget && onClose()} role="presentation">
+      <div className="ai-modal" role="dialog" aria-label={title}>
         <div className="ai-modal-head">
           <h2 className="ai-modal-title">{title}</h2>
         </div>

@@ -356,7 +356,12 @@ export function TemplateEditor({
                       </label>
                     )}
                   </div>
-                  <label className="wf-line" style={{ cursor: 'pointer' }} htmlFor="wf-retry-opus">
+                  <label
+                    className="wf-line"
+                    style={{ cursor: 'pointer' }}
+                    htmlFor="wf-retry-opus"
+                    aria-label="Opus at high on a second attempt"
+                  >
                     <input
                       id="wf-retry-opus"
                       type="checkbox"
