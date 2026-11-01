@@ -63,6 +63,12 @@ def _current(view):
     )
 
 
+def _at_done(view) -> bool:
+    """The last step is current and waits for the person (it becomes current a moment before it waits)."""
+    cur = _current(view)
+    return bool(cur) and cur["key"] == "done" and cur["state"] == "waiting"
+
+
 async def test_quick_fix_runs_every_step_and_waits_for_the_person_at_done(
     env, monkeypatch
 ):
@@ -72,7 +78,16 @@ async def test_quick_fix_runs_every_step_and_waits_for_the_person_at_done(
     tid = await _ticket(c, pid)
     r = await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
     assert r.status_code == 200, r.text
-    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    # the last step becomes current, then waits for the person: wait for both
+    view = await _until(
+        c,
+        tid,
+        lambda v: (
+            _current(v)
+            and _current(v)["key"] == "done"
+            and _current(v)["state"] == "waiting"
+        ),
+    )
     steps = {s["key"]: s for s in view["steps"]}
     assert [s["key"] for s in view["steps"]] == [
         "triage",
@@ -105,7 +120,7 @@ async def test_the_reviewer_sends_it_back_and_the_second_attempt_runs_on_opus(
     await _team(c, pid, env["repo"], roles=("triage", "dev", "reviewer"))
     tid = await _ticket(c, pid)
     await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
-    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    view = await _until(c, tid, _at_done)
     fixes = [s for s in view["steps"] if s["key"] == "fix"]
     assert [s["attempt"] for s in fixes] == [
         1,
@@ -138,7 +153,7 @@ async def test_a_repeated_objection_goes_to_the_coordinator_who_rules(
     view = await _until(
         c,
         tid,
-        lambda v: bool(v["rulings"]) and _current(v) and _current(v)["key"] == "done",
+        lambda v: bool(v["rulings"]) and _at_done(v),
     )
     assert view["rulings"][0]["verdict"] == "dev"
     assert view["rulings"][0]["member_id"] == team["pm"]
@@ -175,7 +190,7 @@ async def test_without_a_coordinator_a_person_rules_and_the_reviewer_wins(
         json={"side": "reviewer", "reason": "Naming matters here."},
     )
     assert r.status_code == 200, r.text
-    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    view = await _until(c, tid, _at_done)
     fix = [s for s in view["steps"] if s["key"] == "fix"][-1]
     assert "the reviewer is right" in (fix["note_in"] or "")
 
@@ -236,7 +251,7 @@ async def test_the_design_waits_for_the_person_who_approves_it(env, monkeypatch)
     ]
     r = await c.post(f"/tickets/{tid}/ai/workflow/decide", json={"approve": True})
     assert r.status_code == 200, r.text
-    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    view = await _until(c, tid, _at_done)
     assert [s["key"] for s in view["steps"] if s["state"] == "done"] == [
         "triage",
         "shape",
@@ -258,7 +273,7 @@ async def test_triage_sets_the_depth_and_a_person_overrides_it(
     await _team(c, pid, env["repo"], roles=("triage", "dev", "reviewer"))
     tid = await _ticket(c, pid)
     await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
-    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    view = await _until(c, tid, _at_done)
     assert view["review_depth"] == "deep" and view["depth_by"] == "triage"
     review = next(s for s in view["steps"] if s["key"] == "review")
     async with env["maker"]() as s:
@@ -387,7 +402,7 @@ async def test_measures_per_template_and_the_board_of_holders(env):
     await _team(c, pid, env["repo"], roles=("triage", "dev", "reviewer"))
     tid = await _ticket(c, pid)
     await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
-    await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    await _until(c, tid, _at_done)
     board = (await c.get(f"/projects/{pid}/ai/workflow-board")).json()
     assert board[0]["step"] == "Done" and board[0]["waits_for_person"] is True
     metrics = (await c.get(f"/projects/{pid}/ai/workflow-metrics")).json()
@@ -404,7 +419,7 @@ async def test_triage_may_pick_another_template_before_the_next_step_starts(
     await _team(c, pid, env["repo"], roles=("triage", "dev", "ba"))
     tid = await _ticket(c, pid)
     await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
-    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    view = await _until(c, tid, _at_done)
     assert view["template_key"] == "research"
     assert [s["key"] for s in view["steps"]] == [
         "triage",
@@ -430,7 +445,7 @@ async def test_a_step_with_no_member_can_be_skipped_for_this_ticket(env):
     await _until(c, tid, lambda v: _current(v) and _current(v)["state"] == "blocked")
     r = await c.post(f"/tickets/{tid}/ai/workflow/skip", json={})
     assert r.status_code == 200, r.text
-    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    view = await _until(c, tid, _at_done)
     assert next(s for s in view["steps"] if s["key"] == "fix")["state"] == "skipped"
     flags = (await c.get(f"/tickets/{tid}/ai/ticket-flags")).json()
     assert not any(f["open"] for f in flags if f["kind"] == "no_member")
@@ -468,11 +483,11 @@ async def test_a_new_workflow_after_a_detach_keeps_the_old_steps_out_of_its_stri
     await _team(c, pid, env["repo"], roles=("triage", "dev", "reviewer", "ba"))
     tid = await _ticket(c, pid)
     await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
-    await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    await _until(c, tid, _at_done)
     await c.delete(f"/tickets/{tid}/ai/workflow")
     r = await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "research"})
     assert r.status_code == 200, r.text
-    view = await _until(c, tid, lambda v: _current(v) and _current(v)["key"] == "done")
+    view = await _until(c, tid, _at_done)
     assert [s["key"] for s in view["steps"]] == [
         "triage",
         "investigate",
