@@ -11,6 +11,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 ### Changed
 - **The release page lists two guide files instead of eight**: the full guide PDF, and `kanban-board-guide-sheets-<version>.zip` with the stand-alone PDFs (quick start, shortcut sheet, administration, MCP, self-hosting, troubleshooting, desktop menu).
 
+### Fixed
+- **Pictures on a Docs page written by an AI member were broken.**
+  - **Cause:** an AI referenced its screenshots by a path in its working folder (`qa/evidence/TC-1.png`), which the board cannot show.
+  - **Fix:** inside an AI run, such a picture is now copied into the board and the link rewritten to `/uploads/…`, as test case proofs already did. A picture the page already held stays as written when its file is gone, so an AI can still edit an imported page. A new picture whose file does not exist is refused with what to do.
+- **Opening the app or switching project showed a pile of old "finished" toasts.**
+  - **Cause:** every AI run of the project that had finished hours earlier was announced again as if it had just happened.
+  - **Fix:** the first load of a project now only records the states. A run first seen later is announced only when it was queued after that.
+
 ## [3.18.1] - 2026-11-01
 
 A smaller desktop app, and two fixes for the installed app.
