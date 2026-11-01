@@ -174,10 +174,11 @@ Reuse of the Docs AI machinery (members, permissions, budgets, caps, kill switch
 
 ## Design quality of what an AI writes
 
-An AI that writes frames is told how to design them, not only how to deliver them. The brief is one text in
-`services/canvas_design.py`: `BRIEF` goes into the Ask AI job's rules, `SHORT` into the MCP instructions an agent gets on
-connect, and `.claude/skills/canvas-design/SKILL.md` is the longer version for people and Claude Code (keep the three in
-step). It borrows its shape from the Design skill used for artifacts. The process: **context first** (the product's own
+An AI that writes frames is told how to design them, not only how to deliver them. The guide is one text, `GUIDE` in
+`services/canvas_design.py` (about 9,400 characters, 11 numbered steps). It is given whole to the Ask AI job (its rules)
+and to every MCP agent (appended to the server instructions it gets on connect, which costs about 2,300 tokens a session),
+and `.claude/skills/canvas-design/SKILL.md` for Claude Code is the same text with a header: a test fails if the file and
+the constant differ, so there is one source to edit. It borrows its shape from the Design skill used for artifacts. The process: **context first** (the product's own
 screens, brand, code; match its vocabulary), a **direction** named and kept (purpose, tone, the one memorable thing; 2 to 4
 genuinely different low-fi options with their tradeoffs when it is still open), **real content** (no lorem ipsum, no
 invented facts, `[YOUR PRICE]` placeholders, nothing added unasked), **tokens first** (tinted neutrals, a dominant colour,

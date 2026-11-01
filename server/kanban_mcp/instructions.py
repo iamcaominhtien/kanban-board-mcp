@@ -43,7 +43,7 @@ docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folde
 or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). \
 Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, \
 so use `<meta name="viewport" content="width=device-width, initial-scale=1">`, fluid widths (%, flex, grid, max-width) and media queries \
-(`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. {design} \
+(`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Follow the design guide at the end of these instructions whenever you write or change a frame. \
 You never change an existing frame directly: docs_write(canvas_comment) comments under your own name and docs_write(canvas_propose) offers a changed HTML frame \
 from a folder; a person sees before and after and accepts or rejects. You never take the lock on a frame a person is editing.
 - AI team: ai_team looks at the board's AI members (members, member, usage, runs, run, approvals, docs_jobs) and acts on them \
@@ -69,9 +69,14 @@ def build_instructions(include_ideas: bool | None = None) -> str:
         include_ideas = ideas_enabled()
     tail = _INSTRUCTIONS_TAIL.format(
         ideas_null="",
-        design=canvas_design.SHORT,
     )
-    return _INSTRUCTIONS_HEAD + (_INSTRUCTIONS_IDEAS if include_ideas else "") + tail
+    return (
+        _INSTRUCTIONS_HEAD
+        + (_INSTRUCTIONS_IDEAS if include_ideas else "")
+        + tail
+        + "\n"
+        + canvas_design.GUIDE
+    )
 
 
 MCP_INSTRUCTIONS = build_instructions()

@@ -401,27 +401,38 @@ async def test_canvas_create_says_what_is_missing_before_it_makes_anything(
     assert listed == []
 
 
-def test_the_design_brief_reaches_the_agent_and_the_ai_job():
+def test_the_design_guide_reaches_the_agent_and_the_ai_job():
+    from pathlib import Path
+
     import kanban_mcp
     from services import canvas_design, canvas_proposals
 
-    assert canvas_design.SHORT in kanban_mcp.build_instructions()
-    assert canvas_design.BRIEF in canvas_proposals.RULES
+    assert canvas_design.GUIDE in kanban_mcp.build_instructions()
+    assert canvas_design.GUIDE in canvas_proposals.RULES
+    # the skill file for Claude Code is this same text: one source
+    skill = (
+        Path(__file__).resolve().parents[2] / ".claude/skills/canvas-design/SKILL.md"
+    )
+    assert (
+        skill.read_text(encoding="utf-8")
+        == canvas_design.SKILL_HEADER + canvas_design.GUIDE
+    )
     # the process and its checklist are all there
     for needle in (
-        "Context first",
-        "Direction:",
-        "Tokens first",
-        "never emoji",
+        "## 0. Context before anything",
+        "## 1. Ask once, then decide",
+        "## 2. Direction",
+        "[YOUR PRICE]",
+        "## 4. Tokens",
+        "Never emoji as icons",
+        "No fake phone chrome",
         "empty (say what to do next)",
         "4.5:1",
-        "squint",
-        "[YOUR PRICE]",
-        "A small change stays small",
-        "no fake phone status bar",
+        "## 9. Changing an existing design",
+        "## 10. Check before you send",
     ):
-        assert needle in canvas_design.BRIEF
-    assert "never lorem ipsum" in canvas_design.BRIEF
-    assert "no lorem ipsum" in canvas_design.SHORT
-    # it is a brief, not an essay
-    assert len(canvas_design.SHORT) < 2000 and len(canvas_design.BRIEF) < 5200
+        assert needle in canvas_design.GUIDE, needle
+    # the board's own words about ideas are not in a guide every agent reads
+    assert "idea" not in canvas_design.GUIDE.lower()
+    # a guide, not an essay
+    assert len(canvas_design.GUIDE) < 12_000
