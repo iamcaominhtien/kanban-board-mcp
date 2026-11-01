@@ -13,8 +13,30 @@ permissions:
   contents: read
 
 jobs:
+  # Which parts a change touches, so a docs- or design-only change runs no tests. A job that is skipped this way
+  # still counts as passed for a required check.
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.diff.outputs.backend }}
+      frontend: ${{ steps.diff.outputs.frontend }}
+      desktop: ${{ steps.diff.outputs.desktop }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: bash .github/scripts/changed-parts.sh
+
   backend:
     name: Backend (ruff, pytest)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,6 +63,8 @@ jobs:
 
   frontend:
     name: Frontend (prettier, eslint, tsc, build)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -70,6 +94,8 @@ jobs:
 
   desktop:
     name: Desktop (node tests)
+    needs: changes
+    if: needs.changes.outputs.desktop == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -98,8 +124,10 @@ jobs:
   sonar:
     name: SonarQube Cloud
     runs-on: ubuntu-latest
-    needs: [backend, frontend, desktop]
-    if: ${{ !cancelled() }}
+    needs: [changes, backend, frontend, desktop]
+    if: >-
+      ${{ !cancelled() && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
+      || needs.changes.outputs.desktop == 'true') }}
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
