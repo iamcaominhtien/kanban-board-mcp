@@ -1,0 +1,65 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  color: #3a4a3e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #f6faf7;
+}
+
+.btnOn {
+  border-color: #2e6f40;
+  background: #e6f2ea;
+}
+
+.count {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #c4432a;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fbfcfb;
+  box-sizing: content-box;
+}
+
+.dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid #fbfcfb;
+  box-sizing: content-box;
+}
+
+.dotBlue {
+  background: #2f6fb0;
+}
+
+.dotGrey {
+  background: #9aa8a0;
+}

@@ -2,6 +2,8 @@
 
 > SCREEN — V1 PROPOSAL · source: [`DocsAi.dc.html`](../source/DocsAi.dc.html) · canvas `1793315909-1e64` · sha256 `62d5c43801116643f3da83422efda94f2ebc6acd05b8eddf9a31ca8977bbf761`
 
+> **Extended by [Board AI & beyond](ai-board-wave3.md)** (wave 3 of `docs/specs/ai-claude-code-plan.md`) — the project gains a knowledge base the AIs search on demand — uploaded files, images described once, Docs pages — with a table of contents and keyword search rather than embeddings, per project plus one shared store (section I).
+
 AI inside the Docs space: an AI menu on every page, Ask the docs in the search palette, writing a page from a ticket, idea or notes, helpers for readers, and Docs-only actions in the editor. It uses the existing AI members, limits and audit, and never changes a published page.
 
 Source: [DocsAi.dc.html](../source/DocsAi.dc.html) › header ("SCREEN — V1 PROPOSAL", "Docs AI — ask, write, read and edit" and the intro)

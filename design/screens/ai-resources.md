@@ -2,6 +2,8 @@
 
 > SCREEN — V1 PROPOSAL · source: [`AiResources.dc.html`](../source/AiResources.dc.html) · canvas `1793440105-0d93` · sha256 `d44a525aae5bc009a0e7e972c8bbb2c69cd656f57a751dc8f4ff66dafed32705`
 
+> **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — a run stopped for memory becomes a row in the one **Needs you** queue, and a restart is no longer the first move: the child process eating memory is named first (sections C and D).
+
 > Based on `main`: AI Team (Now, Flow, You stepped in, Health) is a separate proposal; this board adds a **Resources** tab to it and shows the other tabs only to place it.
 
 A live view of RAM and CPU for every running AI and for the machine, with Stop and Restart; resource chips on each run; clear notices when the system restarts or stops a run; settings for the memory limit, parallel runs and tool access; and the empty state.

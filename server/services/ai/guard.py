@@ -8,6 +8,7 @@ approval when one is needed, and writes the audit entry. The model never sees or
 import asyncio
 import hashlib
 import json
+import re
 import secrets
 from contextvars import ContextVar, Token
 from datetime import UTC, datetime, timedelta
@@ -561,6 +562,9 @@ async def _injection_source(ctx: RunContext) -> dict | None:
     return loads(row.detail, None) if row else None
 
 
+_TICKET_KEY = re.compile(r"^[A-Z][A-Z0-9]*-\d+$")
+
+
 async def _refuse(
     ctx: RunContext, perm: str, target, detail: dict, reason: str, code: str = "blocked"
 ) -> AiActionError:
@@ -578,15 +582,21 @@ async def _refuse(
         target=target,
         detail={**detail, "reason": reason, "code": code},
     )
+    # The target is a ticket, a page, a parent or a project: only a ticket key is a ticket
+    ref_kind = None
+    if target:
+        ref_kind = "ticket" if _TICKET_KEY.match(str(target)) else "target"
     await safety.notify(
         ctx.project_id,
         "blocked",
         "AI action blocked",
         f"{ctx.member_name} could not {ACTIONS.get(perm, (perm,))[0].lower()} on {target or 'the board'}: {reason}",
-        ref_kind="ticket" if target else None,
+        ref_kind=ref_kind,
         ref_id=target,
         member_id=ctx.member_id,
         people=[ctx.on_behalf_of],
+        # A move past the ceiling is told once, by the run's own "can't move" notice (_post_move_blocked)
+        to_centre=code != "status_ceiling",
     )
     return AiActionError(f"BLOCKED ({code}): {reason}")
 

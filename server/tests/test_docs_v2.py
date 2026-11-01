@@ -448,9 +448,12 @@ def sse():
 
 
 def _drain(q):
+    """What the stream carried, without the notification centre's "the log moved" messages."""
     out = []
     while not q.empty():
-        out.append(q.get_nowait())
+        e = q.get_nowait()
+        if '"notifications"' not in e:
+            out.append(e)
     return out
 
 

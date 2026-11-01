@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NotificationBellButton } from '../notifications/NotificationsHost';
 import { useIdeaCounts, useIdeaList, type IdeaListParams } from '../../api/ideas';
 import type { Project } from '../../types';
 import type { IdeaBucketCounts, IdeaRow, IdeaScope, IdeaSource } from '../../types/idea';
@@ -333,6 +334,7 @@ export function IdeaSpace({
         <button type="button" className="is-btn is-btn-primary" onClick={newIdea} data-testid="new-idea">
           New idea <Kbd>C</Kbd>
         </button>
+        <NotificationBellButton />
       </div>
 
       {triage ? (

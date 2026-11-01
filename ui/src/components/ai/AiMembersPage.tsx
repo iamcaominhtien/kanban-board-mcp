@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { NotificationBellButton } from '../notifications/NotificationsHost';
 import { aiApi, useAiApprovals, useAiMutation, useAiOverview, useRunnerInfo } from '../../api/ai';
 import { useAiAccounts } from '../../api/aiAccounts';
 import { useAssist } from '../assist/AssistContext';
@@ -111,6 +112,7 @@ export function AiMembersPage({
             <PauseAllButton projectId={projectId} settings={settings} members={members} />
           </span>
         )}
+        <NotificationBellButton />
       </div>
       <div className="ai-page-inner">
         {profile ? (

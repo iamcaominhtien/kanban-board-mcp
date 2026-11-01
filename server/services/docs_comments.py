@@ -390,20 +390,22 @@ async def _record_event(
         }:
             recipients.append(p)
     snippet = snippet_of(comment.body if comment else (thread.anchor_quote or ""))
-    session.add(
-        DocsCommentEvent(
-            project_id=page.project_id,
-            page_id=page.id,
-            thread_id=thread.id,
-            comment_id=comment.id if comment else None,
-            kind=kind,
-            actor=actor,
-            mentioned=json.dumps(mentioned),
-            recipients=json.dumps(recipients),
-            page_title=page.title,
-            snippet=snippet,
-        )
+    event = DocsCommentEvent(
+        project_id=page.project_id,
+        page_id=page.id,
+        thread_id=thread.id,
+        comment_id=comment.id if comment else None,
+        kind=kind,
+        actor=actor,
+        mentioned=json.dumps(mentioned),
+        recipients=json.dumps(recipients),
+        page_title=page.title,
+        snippet=snippet,
     )
+    session.add(event)
+    from services import notifications as centre
+
+    centre.comment_event(event, session)
 
 
 async def list_events(

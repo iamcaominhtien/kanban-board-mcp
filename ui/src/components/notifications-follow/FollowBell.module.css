@@ -1,0 +1,116 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.bell {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #5b6b60;
+  padding: 0;
+  flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bell:hover {
+  background: #f6faf7;
+  color: #1e2a22;
+}
+
+.bellOn {
+  background: #dceee1;
+  color: #1f5a31;
+}
+
+.bellOn:hover {
+  background: #dceee1;
+  color: #1f5a31;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  width: 290px;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+  padding: 5px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.heading {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.item:hover {
+  background: #f6faf7;
+}
+
+.itemOn {
+  background: #f1f8f3;
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.itemHint {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #5b6b60;
+}
+
+.sep {
+  height: 1px;
+  background: #eef3ef;
+  margin: 4px 2px;
+}
+
+.error {
+  padding: 4px 10px 6px;
+  font-size: 11.5px;
+  color: #c4432a;
+}

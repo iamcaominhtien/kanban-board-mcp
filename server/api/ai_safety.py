@@ -222,10 +222,9 @@ async def get_notifications(
     event: Optional[str] = None,
     limit: int = 30,
 ) -> dict:
-    """Safety notifications the caller may see, newest first. `after` (an ISO time) returns only newer ones, for
-    the toast poller; held ones wait for the digest and are not returned."""
+    """The AI safety record the caller may see, newest first (`after`, an ISO time, returns only newer ones). What a
+    person is told lives in the notification centre (/notifications)."""
     await _project(session, project_id)
-    await safety.release_digest(project_id)
     rows = await safety.visible_notifications(
         session,
         project_id,
@@ -242,10 +241,10 @@ async def get_notifications(
 
 @router.get("/projects/{project_id}/ai/alerts")
 async def get_alerts(project_id: str, session: Session) -> list[dict]:
-    """Budget alerts (80% and 100%) of the last days, including the ones held for the digest."""
+    """Budget alerts (80% and 100%) of the last days."""
     await _project(session, project_id)
     rows = await safety.visible_notifications(
-        session, project_id, _by(), event="budget", include_held=True, limit=10
+        session, project_id, _by(), event="budget", limit=10
     )
     return [safety.notification_to_dict(n) for n in rows]
 

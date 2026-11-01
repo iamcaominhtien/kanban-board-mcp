@@ -1214,8 +1214,31 @@ async def week(session, project_id: str, start: datetime, days: int = 7) -> dict
 
 
 def _notify(s: AiSchedule, event: str, text: str, **extra) -> None:
+    """A schedule event: the notification centre's log (for the people the schedule names), and the schedule's own
+    feed. A run that needs input or fails is told by the run itself; a slot that ends is told here."""
     if event not in loads(s.notify, list(NOTIFY_EVENTS)):
         return
+    if event not in ("started", "needs_input"):
+        from services import notifications as centre
+
+        # a skipped slot is news, not work: it is told under the information kind, whichever switch let it through
+        needs = event == "failed" and not extra.get("skipped")
+        centre.enqueue(
+            "run_failed" if needs else "schedule",
+            project_id=s.project_id,
+            names=[s.created_by, *loads(s.notify_people, [])],
+            title=text,
+            body=extra.get("note") or "",
+            target_kind="schedule_run" if extra.get("srun_id") else "run",
+            target_id=extra.get("srun_id") or extra.get("run_id"),
+            ticket_id=s.ticket_id,
+            member_id=s.member_id,
+            data={
+                "schedule_id": s.id,
+                "event": "skipped" if extra.get("skipped") else event,
+                "action": extra.get("action"),
+            },
+        )
     RT.events.append(
         {
             "id": next(RT.seq),
@@ -1642,6 +1665,7 @@ async def _close(
             f"{s.ticket_id} skipped: {(note or '').removeprefix('Skipped: ').rstrip('.')}",
             srun_id=srun_id,
             action="reschedule",
+            skipped=True,
         )
     elif state == "failed":
         _notify(

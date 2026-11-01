@@ -1,0 +1,133 @@
+.card {
+  border: 1px solid #f0dba8;
+  border-radius: 12px;
+  background: #fffbef;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  box-sizing: border-box;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sun {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: #fef3d9;
+  color: #b8860b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.titleBox {
+  flex: 1;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+
+.sub {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+
+.stats {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #f0dba8;
+}
+
+.stat {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.num {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.label {
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.line {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+
+.lineIcon {
+  display: flex;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 26px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn:hover {
+  background: #f6faf7;
+}
+
+.btnPrimary {
+  border-color: #2e6f40;
+  background: #2e6f40;
+  color: #fff;
+}
+
+.btnPrimary:hover {
+  background: #276036;
+}

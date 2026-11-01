@@ -92,3 +92,41 @@ def _resource_monitor_starts_empty():
     resources.MON.reset()
     yield
     resources.MON.reset()
+
+
+@pytest.fixture(autouse=True)
+async def _notification_queues_are_per_test():
+    """Events queued for the notification log by one test must not be written into the next test's database."""
+    import asyncio
+
+    from services import notifications
+
+    notifications._pending.clear()
+    notifications._later.clear()
+    yield
+    if notifications._background:
+        await asyncio.gather(*notifications._background, return_exceptions=True)
+    notifications._pending.clear()
+    notifications._later.clear()
+
+
+def pytest_collection_modifyitems(config, items):
+    """KANBAN_TEST_SHARD=K/N keeps only shard K of N (CI runs the shards side by side). Whole files go to one shard,
+    the largest first onto the lightest shard, so the shards come out even and every worker picks the same set."""
+    shard = os.environ.get("KANBAN_TEST_SHARD", "").strip()
+    if not shard:
+        return
+    k, n = (int(x) for x in shard.split("/"))
+    files: dict[str, list] = {}
+    for item in items:
+        files.setdefault(item.nodeid.split("::", 1)[0], []).append(item)
+    load = [0] * n
+    keep: set[str] = set()
+    for path, its in sorted(files.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        i = load.index(min(load))
+        load[i] += len(its)
+        if i == k - 1:
+            keep.add(path)
+    chosen = [it for it in items if it.nodeid.split("::", 1)[0] in keep]
+    config.hook.pytest_deselected(items=[it for it in items if it not in chosen])
+    items[:] = chosen

@@ -19,7 +19,6 @@ import { Icon } from './Icon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
 import { PublishDialog } from './PublishDialog';
 import { lineDiffCounts } from '../../utils/lineDiff';
-import { markOwnPublish } from './useDocsNotifications';
 import './docs.css';
 import { DocsAi, startSelectionDraft } from '../assist/DocsAi';
 import { useAssist } from '../assist/AssistContext';
@@ -270,7 +269,6 @@ export function DocsEditScreen({
     }
     const md = editor.current?.flush() ?? markdown;
     try {
-      markOwnPublish(page.id);
       const updated = await publish.mutateAsync({
         pageId: page.id,
         baseVersion: base,

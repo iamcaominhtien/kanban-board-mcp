@@ -65,6 +65,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Versions and system facts for About and Report an Issue (never tickets, paths, keys or logs)
   getAppInfo: () => ipcRenderer.invoke('get-app-info'),
 
+  // Desktop notifications (desktop/notifier.js in the main process sends them; the page never does)
+  notifications: {
+    // Who the person is (sent as X-Actor by the notifier); resolves to true once the notifier has it
+    setActor: (name) => ipcRenderer.invoke('notifications-set-actor', name),
+    // { supported: boolean, permission: 'granted' | 'denied' | 'default' }
+    status: () => ipcRenderer.invoke('notifications-status'),
+    // "Send a test": { ok: boolean, reason?: string }
+    test: () => ipcRenderer.invoke('notifications-test'),
+    // Opens System Settings › Notifications (macOS) or Settings › Notifications (Windows); false on Linux
+    openSystemSettings: () => ipcRenderer.invoke('notifications-open-settings'),
+    // A notice was clicked: the row ({...row, action} for a button, {group: true, ids, needs, title} for a grouped
+    // notice). Returns a cleanup function.
+    onOpen: (callback) => {
+      const handler = (_event, payload) => callback(payload);
+      ipcRenderer.on('notifications:open', handler);
+      ipcRenderer.send('notifications-ready');
+      return () => ipcRenderer.removeListener('notifications:open', handler);
+    },
+  },
+
   // Platform info
   platform: process.platform,
 });
