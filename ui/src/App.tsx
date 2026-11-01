@@ -193,7 +193,7 @@ export default function App() {
     }),
     [currentProjectId, aiOverview.data, aiBoard.data],
   );
-  useAiRunNotifications(aiBoard.data?.runs, (id) => openTicketModal(id), aiState.openAiPage);
+  useAiRunNotifications(currentProjectId ?? '', aiBoard.data?.runs, (id) => openTicketModal(id), aiState.openAiPage);
   useAiSafetyNotifications(currentProjectId ?? '', () => setAiPage({ tab: 'approvals', key: Date.now() }));
   const openAccountsTab = useCallback(() => setAiPage({ tab: 'accounts', key: Date.now() }), []);
   useAccountNotifications(currentProjectId ?? '', aiOverview.data?.members, openAccountsTab);
