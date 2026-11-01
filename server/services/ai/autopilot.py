@@ -76,7 +76,7 @@ def validate(data: dict, current: dict) -> dict:
     for key in ("approvals", "questions", "full_rights", "enabled"):
         if key in data and data[key] is not None:
             out[key] = bool(data[key])
-    for key, lo, hi in (("grace_min", 0, 240), ("per_hour_limit", 1, 200)):
+    for key, lo, hi in (("grace_min", 0, 240), ("per_hour_limit", 1, 2000)):
         if data.get(key) is not None:
             if not isinstance(data[key], int) or not lo <= data[key] <= hi:
                 raise ValueError(f"{key.replace('_', ' ').capitalize()}: {lo} to {hi}.")

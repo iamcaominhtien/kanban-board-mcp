@@ -988,3 +988,24 @@ async def test_a_run_a_person_paused_stays_stopped_after_the_board_restarts(
     tid = await _cut_off_by_closing(env, c, monkeypatch, pause=True)
     await runs.start_scheduler()
     assert len(await _runs(c, tid)) == 1
+
+
+async def test_a_run_says_which_other_ais_work_in_the_same_folder(env, monkeypatch):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
+    pid, _ = await _project(c)
+    a = await _runner(c, pid, env["repo"], name="Dev A")
+    b = await _runner(c, pid, env["repo"], name="Dev B")
+    t1, t2 = await _ticket(c, pid, "One"), await _ticket(c, pid, "Two")
+    await _assign(c, t1, a["id"])
+    await _wait(c, t1, ("running",))
+    await _assign(c, t2, b["id"])
+    second = await _wait(c, t2, ("running",))
+    texts = [s["text"] for s in (await _runs(c, t2))[0]["steps"]]
+    assert any(
+        t.startswith("Working in the same folder at the same time: Dev A")
+        for t in texts
+    ), texts
+    # the first one started alone and says nothing
+    first = [s["text"] for s in (await _runs(c, t1))[0]["steps"]]
+    assert not any("same folder" in t for t in first) and second["state"] == "running"

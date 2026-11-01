@@ -884,6 +884,7 @@ async def api(path: str, body: dict | None = None) -> Any:
             "The endpoint must be an AI-team one: /ai/..., /projects/<id>/ai/... or /tickets/<id>/ai/... "
             "(see action 'endpoints')."
         )
+    import api_secret
     from main import app
 
     # the board remembers the address a request came in on to hand it to CLI runs; this one is not a real address
@@ -898,7 +899,16 @@ async def api(path: str, body: dict | None = None) -> Any:
                 method,
                 path,
                 json=body if method in ("POST", "PUT", "PATCH") else None,
-                headers={"X-Actor": _by(), "X-Origin": "mcp"},
+                headers={
+                    "X-Actor": _by(),
+                    "X-Origin": "mcp",
+                    # the same process: it may change what the window may (the person turned this control on)
+                    **(
+                        {api_secret.HEADER: api_secret.SECRET}
+                        if api_secret.SECRET
+                        else {}
+                    ),
+                },
             )
     finally:
         svc_runs.RT.board_url = seen_url

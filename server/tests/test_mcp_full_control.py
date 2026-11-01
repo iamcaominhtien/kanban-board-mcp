@@ -1,6 +1,8 @@
 """Full control over MCP: a switch in Settings (confirmed with an explicit acceptance) that lets an MCP client call any
 AI-team endpoint of the board as the person, with the same rights and checks as the app. Never from inside an AI run."""
 
+import uuid
+
 import pytest
 
 import config
@@ -104,3 +106,22 @@ async def test_an_ai_run_can_never_use_it(env):
                 await ai_team(action, **args)
     finally:
         guard.leave(tokens)
+
+
+async def test_it_still_changes_things_when_the_app_protects_the_board_with_its_secret(
+    env, monkeypatch
+):
+    import api_secret
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    await _runner(c, pid, env["repo"])
+    await _switch(
+        c, True
+    )  # before the secret is set: this stands for the window's own call
+    monkeypatch.setattr(api_secret, "SECRET", uuid.uuid4().hex)
+    await ai_team(
+        "api", path=f"POST /projects/{pid}/ai/pause-all", fields={"reason": "x"}
+    )
+    state = await ai_team("api", path=f"GET /projects/{pid}/ai/overview")
+    assert "paused" in str(state).lower()

@@ -249,14 +249,14 @@ function AutopilotOn({
           className="ai-input"
           type="number"
           min={1}
-          max={200}
+          max={2000}
           style={{ width: 80, height: 32 }}
           disabled={!isOwner}
           value={limit}
           onChange={(e) => setLimit(e.target.value)}
           onBlur={() => {
             const n = Math.round(Number(limit));
-            if (limit.trim() === '' || !Number.isFinite(n) || n < 1 || n > 200) setLimit(String(a.perHourLimit));
+            if (limit.trim() === '' || !Number.isFinite(n) || n < 1 || n > 2000) setLimit(String(a.perHourLimit));
             else if (n !== a.perHourLimit) void save({ perHourLimit: n });
           }}
           data-testid="autopilot-limit"

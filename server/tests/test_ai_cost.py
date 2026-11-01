@@ -189,6 +189,11 @@ async def test_board_runs_per_day_and_parallel_limits(env, monkeypatch):
         profile = await s.get(AiMember, b["id"])
         settings = await get_settings(s, pid)
         assert await budget.blocked_detail(s, profile, settings, "person") is None
+        # a member on a person's own CLI is not held to the board's runs per day: a team handing work to each
+        # other would stop at it with only "waiting" to show for it
+        for kind in ("ai", "schedule"):
+            assert await budget.blocked_detail(s, profile, settings, kind) is None
+        profile.connection = "api_key"  # a member billed by the call is
         for kind in ("ai", "schedule"):
             hit = await budget.blocked_detail(s, profile, settings, kind)
             assert (

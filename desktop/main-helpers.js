@@ -57,6 +57,7 @@ function buildBackendLaunchSpec({
   exportCommand,
   devPythonExists,
   configPath,
+  apiSecret,
 }) {
   const dbPath = path.join(userDataPath, 'kanban.db');
   const uploadsDir = resolveConfiguredUploadsDir(userDataPath, configPath);
@@ -64,7 +65,11 @@ function buildBackendLaunchSpec({
   const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir, KANBAN_SECRET_STORE: 'keychain' };
   // lets the server ask this app (headless) to draw a diagram's SVG with the draw.io editor
   if (exportCommand) env.KANBAN_EXPORT_CMD = JSON.stringify(exportCommand);
-  const stdio = ['ignore', 'pipe', 'pipe'];
+  // The secret only this app's window knows (server/api_secret.py) goes to the server on its standard input, not in
+  // its environment, which `ps` shows to every program of the same user (an AI's shell, say). The flag tells the
+  // server to read it.
+  if (apiSecret) env.KANBAN_API_SECRET_STDIN = '1';
+  const stdio = [apiSecret ? 'pipe' : 'ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {
     // onedir layout: Resources/kanban-server/kanban-server[.exe] (no per-launch temp extraction)

@@ -366,8 +366,12 @@ async def create_run(
     limit_min: int | None = None,
     replaces_comment_id: str | None = None,
     report_back: dict | None = None,
+    allow_self_hold: bool = False,
 ) -> AiRun:
     """Queue a run; the scheduler starts it when it can.
+
+    `allow_self_hold` lets a run queue behind another run of the same member on the ticket (a report-back to a PM
+    that is still working on it): it starts when that run ends.
 
     With `wait_for_hold`, a work run for a ticket another AI holds is queued *behind* the holder instead of being
     refused: it starts when the hold is released (design H1, "Next").
@@ -416,7 +420,9 @@ async def create_run(
         ]
         if held:
             names = await _names(session, [held[0].member_id])
-            if not wait_for_hold or held[0].member_id == member_id:
+            if not wait_for_hold or (
+                held[0].member_id == member_id and not allow_self_hold
+            ):
                 raise RunConflict(
                     f"{ticket_id} is held by {names.get(held[0].member_id, 'another AI member')} "
                     f"(run #{held[0].number}, {held[0].state}). Only one agent works on a ticket at a time."
@@ -771,8 +777,12 @@ async def _blocking_reason(
         )
         if policy == "ask" and await approvals.request_cap_raise(session, profile, hit):
             await board_events.publish(board_events.INVALIDATE)
+        # a request to raise the cap exists only for the daily spending cap: the other limits (runs, tokens, the
+        # month) wait for the day or the month, or for a person to change the limit in Board limits
         return hit["reason"] + (
-            " · waiting for an owner to raise the cap" if policy == "ask" else ""
+            " · waiting for an owner to raise the cap"
+            if policy == "ask" and hit["kind"] == "daily"
+            else ""
         )
     return None
 
@@ -1979,6 +1989,7 @@ async def _execute_cli_held(
     resources.MON.track(run_id, proc, run.project_id)
     if run_id in RT.cancelled:
         proc.kill()  # the cancel came while the process was starting
+    mates = await _folder_mates(run, cwd)
     await _append(
         run_id,
         steps=[
@@ -1997,6 +2008,7 @@ async def _execute_cli_held(
                 ),
             },
             *([{"kind": "start", "text": fresh_note}] if fresh_note else []),
+            *([{"kind": "start", "text": mates}] if mates else []),
             *(_context_step(sent) if sent.get("ticket") else []),
             *(
                 {"kind": "start", "text": note}
@@ -2610,6 +2622,41 @@ def _plain(text: str) -> str:
     return _ANSI.sub("", text)
 
 
+async def _folder_mates(run: AiRun, cwd: str) -> str | None:
+    """Other AIs working in the same folder right now, as a note on this run: they share files and one git tree, so a
+    person reading a failure can see who else was there. Nothing is held back; a team on one folder is allowed."""
+    try:
+        async with database.async_session() as session:
+            others = (
+                await session.exec(
+                    select(AiRun).where(
+                        AiRun.project_id == run.project_id,
+                        AiRun.id != run.id,
+                        col(AiRun.state).in_(["starting", "running"]),
+                    )
+                )
+            ).all()
+            names: list[str] = []
+            for other in others:
+                profile = await session.get(AiMember, other.member_id)
+                member = await session.get(Member, other.member_id)
+                if profile and member and _same_folder(profile.working_dir, cwd):
+                    names.append(f"{member.name} on {other.ticket_id}")
+    except Exception:  # noqa: BLE001 - a note, never a reason to fail a run
+        return None
+    if not names:
+        return None
+    return "Working in the same folder at the same time: " + ", ".join(names[:5])
+
+
+def _same_folder(a: str | None, b: str | None) -> bool:
+    if not a or not b:
+        return False
+    return os.path.realpath(os.path.expanduser(a)) == os.path.realpath(
+        os.path.expanduser(b)
+    )
+
+
 async def _end(
     run_id: str,
     state: str,
@@ -2869,6 +2916,25 @@ async def _wake_delegator(
         for _ in range(WAKE_TRIES):
             try:
                 async with database.async_session() as session:
+                    # several teammates ending near each other tell the delegator once, with every report: a second
+                    # waiting run is not allowed on a ticket, and the first would otherwise hear only one of them
+                    waiting = (
+                        await session.exec(
+                            select(AiRun).where(
+                                AiRun.ticket_id == back["ticket_id"],
+                                AiRun.member_id == back["member_id"],
+                                AiRun.trigger == "report_back",
+                                AiRun.state == "queued",
+                            )
+                        )
+                    ).first()
+                    if waiting is not None:
+                        waiting.instruction = f"{waiting.instruction}\n\n{instruction}"[
+                            :8000
+                        ]
+                        session.add(waiting)
+                        await session.commit()
+                        return
                     await create_run(
                         session,
                         ticket_id=back["ticket_id"],
@@ -2879,6 +2945,7 @@ async def _wake_delegator(
                         instruction=instruction,
                         chain=chain,
                         wait_for_hold=True,
+                        allow_self_hold=True,
                     )
                 return
             except RunConflict:
@@ -2892,6 +2959,13 @@ async def _wake_delegator(
                 )
                 return
         logger.warning("The delegator %s was never free to hear back", back)
+        await post_ai_comment(
+            back["ticket_id"],
+            BOARD_AUTHOR,
+            "The member waiting for this result was busy for too long to be told. Start it with Run on the ticket "
+            "when it can take it.",
+            {"board_note": True},
+        )
     except Exception:  # noqa: BLE001
         logger.exception("Could not wake the delegator of %s", back)
     finally:
@@ -3847,6 +3921,20 @@ async def record_question(ctx: RunContext, text: str, options: list | None) -> d
     }
 
 
+async def _handoff_is_free(ctx: RunContext) -> bool:
+    """Handing work to a teammate AI is how a team works, so it does not wait for a person's approval on every hop.
+    Safe mode and a read-only member still cannot do it."""
+    async with database.async_session() as session:
+        profile = await session.get(AiMember, ctx.member_id)
+        settings = await get_settings(session, ctx.project_id)
+    return not (
+        settings.safe_mode
+        or profile is None
+        or profile.safe_mode
+        or profile.template == "read_only"
+    )
+
+
 async def record_handoff(
     ctx: RunContext, member_ref: str, ticket_ref: str | None, instruction: str
 ) -> dict:
@@ -3899,7 +3987,7 @@ async def record_handoff(
         if ticket.assignee != target.id:
             # handing over is assigning: the member's permission (or a person's approval) decides; handing back to
             # someone who handed work down to this run (up the chain) is always allowed
-            if target.id not in ctx.chain:
+            if target.id not in ctx.chain and not await _handoff_is_free(ctx):
                 await guard.check(
                     ctx,
                     "manage_ticket",

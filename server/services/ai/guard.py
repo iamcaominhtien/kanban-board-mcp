@@ -34,12 +34,12 @@ _ctx: ContextVar[RunContext | None] = ContextVar("ai_run_context", default=None)
 # Set while the board applies an action a person approved: the mode check is skipped (the ceiling is not).
 _approved: ContextVar[str | None] = ContextVar("ai_approved", default=None)
 
-MAX_PENDING_PER_AGENT = 10
+MAX_PENDING_PER_AGENT = 50
 # A tool call that needs approval waits this long for the decision, then the request stays parked (S, run states).
 # Kept under the 300 s Claude Code allows one MCP tool call, so the AI gets an answer instead of a timeout.
 APPROVAL_WAIT_S = 240
 APPROVAL_POLL_S = 1.0
-MAX_PENDING_PER_PROJECT = 25
+MAX_PENDING_PER_PROJECT = 200
 _FIELD_ACTIONS = {"status": "change_status", "assignee": "change_assignee"}
 _REVERTABLE = (
     "title",

@@ -4,6 +4,8 @@ the kill switch, the audit log, prompt injection and loop limits (design/screens
 import json
 from datetime import UTC, datetime, timedelta
 
+import uuid
+
 import pytest
 from sqlmodel import select
 
@@ -264,7 +266,7 @@ async def test_approval_limits_per_agent_and_per_project(env):
                 )
             )
         await s.commit()
-    await _ask_assignee(env, an, tid, ctx)  # the 25th still fits
+    await _ask_assignee(env, an, tid, ctx)  # the last one still fits
     tokens = guard.enter(ctx)
     try:
         with pytest.raises(ValueError, match="approvals_full"):
@@ -275,7 +277,8 @@ async def test_approval_limits_per_agent_and_per_project(env):
     finally:
         guard.leave(tokens)
     backlog = (await c.get(f"/projects/{pid}/ai/approvals-backlog")).json()
-    assert backlog["pending"] == 25 and backlog["project_limit"] == 25
+    assert backlog["pending"] == guard.MAX_PENDING_PER_PROJECT
+    assert backlog["project_limit"] == guard.MAX_PENDING_PER_PROJECT
     assert backlog["agents"][0]["count"] >= 1
 
 
@@ -963,3 +966,52 @@ async def test_always_allow_is_only_offered_for_docs_edits(env):
     assert a["always_allowed"] is False
     await c.post(f"/ai/approvals/{a['id']}/approve", json={"always": True})
     assert (await c.get(f"/projects/{pid}/ai/grants")).json() == []
+
+
+async def test_with_the_apps_secret_a_request_that_changes_something_needs_it(
+    env, monkeypatch
+):
+    import api_secret
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    window_secret = f"{uuid.uuid4().hex}"  # made up for this test
+    monkeypatch.setattr(api_secret, "SECRET", window_secret)
+    # a program on the computer (an AI's curl) has no secret: nothing changes
+    r = await c.patch(
+        f"/projects/{pid}/ai/settings", json={"safe_mode": True}, headers=OWNER
+    )
+    assert r.status_code == 403 and "own window" in r.json()["detail"]
+    assert (await c.get(f"/projects/{pid}/ai/overview")).json()["settings"][
+        "safe_mode"
+    ] is False
+    # reading is open; the window, which has the secret, may change
+    assert (await c.get(f"/projects/{pid}/ai/overview")).status_code == 200
+    ok = {**OWNER, api_secret.HEADER: window_secret}
+    assert (
+        await c.patch(
+            f"/projects/{pid}/ai/settings", json={"safe_mode": True}, headers=ok
+        )
+    ).status_code == 200
+    bad = {**OWNER, api_secret.HEADER: "guess"}
+    assert (
+        await c.patch(
+            f"/projects/{pid}/ai/settings", json={"safe_mode": False}, headers=bad
+        )
+    ).status_code == 403
+    # the MCP endpoint has its own token, and the client log is harmless
+    assert api_secret.allows("POST", "/mcp/", None) and api_secret.allows(
+        "POST", "/logs/client", None
+    )
+
+
+async def test_without_the_secret_nothing_is_checked(env):
+    import api_secret
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    assert api_secret.SECRET == ""
+    r = await c.patch(
+        f"/projects/{pid}/ai/settings", json={"safe_mode": True}, headers=OWNER
+    )
+    assert r.status_code == 200

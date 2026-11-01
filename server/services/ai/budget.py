@@ -185,7 +185,9 @@ async def blocked_detail(
     run that wants to start (`schedule`, `ai` or `person`); without it only budgets are checked."""
     today, month = today_start(), month_start()
     board_runs = settings.board_runs_per_day
-    if board_runs and run_kind in ("schedule", "ai"):
+    # The board's runs per day protects what is billed by the call. A member on a person's own CLI is not held to it:
+    # a team of them handing work to each other would otherwise stop at the cap with only "waiting" to show for it.
+    if board_runs and run_kind in ("schedule", "ai") and profile.connection != "local":
         n = await runs_today(session, None, project_id=profile.project_id)
         if n >= board_runs:
             return _hit(

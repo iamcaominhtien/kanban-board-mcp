@@ -196,14 +196,41 @@ async def test_handing_back_up_the_chain_needs_no_assign_permission(env):
     c = env["c"]
     ctx, pid, _, rin, own = await _ctx(env, template="reviewer")
     pm = await _runner(c, pid, env["repo"], name="PM Mai", template="custom")
-    other = await _runner(c, pid, env["repo"], name="BA Bao")
+    await _runner(c, pid, env["repo"], name="BA Bao")
     # Rin was handed this ticket by PM Mai: PM is up the chain, BA Bao is not
     up = RunContext(**{**ctx.__dict__, "chain": [pm["id"]]})
     out = await _handoff(up, member="PM Mai", instruction="Reviewed, over to you.")
     assert out["ok"] and (await c.get(f"/tickets/{own}")).json()["assignee"] == pm["id"]
-    with pytest.raises(ValueError, match="Change assignee"):
-        await _handoff(up, member=other["id"])
     assert runs  # imported for the module under test
+
+
+async def test_handing_to_a_teammate_needs_no_approval_but_safe_mode_and_read_only_still_stop_it(
+    env,
+):
+    c = env["c"]
+    # a developer or reviewer hands work to a teammate that is not up the chain: it is how a team works
+    ctx, pid, _, rin, own = await _ctx(env, template="reviewer")
+    bao = await _runner(c, pid, env["repo"], name="BA Bao")
+    out = await _handoff(ctx, member=bao["id"], instruction="Over to you.")
+    assert (
+        out["ok"] and (await c.get(f"/tickets/{own}")).json()["assignee"] == bao["id"]
+    )
+    assert (
+        await c.get(f"/projects/{pid}/ai/approvals", params={"status": "pending"})
+        is not None
+    )
+    pending = (
+        await c.get(f"/projects/{pid}/ai/approvals", params={"status": "pending"})
+    ).json()
+    assert pending == []
+    # a member in Safe mode changes nothing, so it hands nothing over
+    async with env["maker"]() as s:
+        prof = await s.get(AiMember, rin["id"])
+        prof.safe_mode = True
+        s.add(prof)
+        await s.commit()
+    with pytest.raises(ValueError):
+        await _handoff(ctx, member=bao["id"], instruction="Again.")
 
 
 async def test_the_delegator_is_woken_when_the_delegated_work_ends(env, monkeypatch):
@@ -240,9 +267,10 @@ async def test_the_delegator_is_woken_when_the_delegated_work_ends(env, monkeypa
     rin_run = next(r for r in await _runs(env, child) if r.member_id == rin["id"])
     assert json.loads(rin_run.report_back)["member_id"] == pm["id"]
     await runs._end(rin_run.id, "finished", None)
-    # the delegator is still busy on its own ticket: the wake waits for its turn
+    # the delegator is still busy on its own ticket: the wake is queued behind that run, and so is not lost
     await asyncio.sleep(0.2)
-    assert not [r for r in await _runs(env, own) if r.trigger == "report_back"]
+    (waiting,) = [r for r in await _runs(env, own) if r.trigger == "report_back"]
+    assert waiting.state == "queued" and waiting.behind_run_id == ctx.run_id
     await runs._end(ctx.run_id, "finished", None)
     for _ in range(60):
         woken = [r for r in await _runs(env, own) if r.trigger == "report_back"]
@@ -406,3 +434,28 @@ async def test_an_assignee_edit_that_starts_nothing_says_so_on_the_ticket(
     await _assign_by_edit(ctx, other, rin["id"])
     comments = (await c.get(f"/tickets/{other}")).json()["comments"]
     assert any("no run was started" in x["text"] for x in comments)
+
+
+async def test_several_teammates_ending_tell_the_busy_delegator_once_with_every_report(
+    env, monkeypatch
+):
+    import asyncio
+
+    monkeypatch.setattr(runs, "WAKE_RETRY_S", 0.05)
+    c = env["c"]
+    ctx, pid, _, pm, own = await _ctx(env, template="custom")
+    members = [
+        await _runner(c, pid, env["repo"], name=n, template="custom")
+        for n in ("Dev A", "Dev B", "Dev C")
+    ]
+    tickets = [await _made_by(ctx, pid, f"Piece {i}") for i in range(3)]
+    for who, ticket in zip(members, tickets):
+        await _handoff(ctx, member=who["name"], ticket=ticket, instruction="Do it.")
+    # all three finish while the PM is still working on its own ticket
+    for ticket in tickets:
+        (r,) = await _runs(env, ticket)
+        await runs._end(r.id, "finished", None)
+    await asyncio.sleep(0.3)
+    (waiting,) = [r for r in await _runs(env, own) if r.trigger == "report_back"]
+    for who in ("Dev A", "Dev B", "Dev C"):
+        assert f"{who} finished the work you handed over" in waiting.instruction
