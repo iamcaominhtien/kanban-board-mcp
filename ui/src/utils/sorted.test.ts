@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ascending, ascendingText, toggleNumber } from './sorted';
+import { ascending, ascendingCodeUnits, ascendingText, toggleNumber } from './sorted';
 
 describe('ascending', () => {
   it('sorts as numbers, not as text', () => {
@@ -27,5 +27,12 @@ describe('ascendingText', () => {
     // a plain .sort() puts every capital before every small letter: ['Zebra', 'apple']
     expect(ascendingText(['Zebra', 'apple'])).toEqual(['apple', 'Zebra']);
     expect(ascendingText(new Set(['b', 'a']))).toEqual(['a', 'b']);
+  });
+});
+
+describe('ascendingCodeUnits', () => {
+  it("orders like Python's sorted(): capitals before small letters", () => {
+    expect(ascendingCodeUnits(['b', 'a', 'B'])).toEqual(['B', 'a', 'b']);
+    expect(ascendingCodeUnits(['a', 'a'])).toEqual(['a', 'a']);
   });
 });

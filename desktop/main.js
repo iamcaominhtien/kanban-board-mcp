@@ -344,7 +344,25 @@ ipcMain.handle('select-folder', async () => {
 });
 
 // IPC: open a file with system default application
-ipcMain.handle('open-path', (_event, filePath) => openPathSafely(shell, filePath));
+ipcMain.handle('open-path', (_event, filePath) =>
+  openPathSafely(shell, filePath, { confirm: confirmOpenAnyway, realpath: fs.realpathSync }),
+);
+
+/** Ask, in a system dialog the page cannot answer, before opening a file that could run a program. */
+async function confirmOpenAnyway(name) {
+  const options = {
+    type: 'warning',
+    buttons: ['Cancel', 'Open anyway'],
+    defaultId: 0,
+    cancelId: 0,
+    message: `Open ${name}?`,
+    detail: 'This kind of file can run programs on your computer. Open it only if you trust the person who added it.',
+  };
+  const { response } = mainWindow
+    ? await dialog.showMessageBox(mainWindow, options)
+    : await dialog.showMessageBox(options);
+  return response === 1;
+}
 
 // IPC: reveal a file in Finder / Explorer
 ipcMain.handle('show-item-in-folder', async (_event, filePath) => {

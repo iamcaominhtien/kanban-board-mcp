@@ -223,7 +223,7 @@ test('isOpenablePath opens documents, images and media but never scripts or prog
   }
   for (const bad of [
     '/w/run.sh', 'C:\\w\\setup.exe', 'C:\\w\\go.bat', '/w/tool.js', '/w/main.py', '/w/page.html',
-    '/Applications/Calculator.app', '/w/no-extension', '', null, 42,
+    '/Applications/Calculator.app', '/w/no-extension', '/w/macro.doc', '\\\\host\\share\\a.pdf', '', null, 42,
   ]) {
     assert.equal(isOpenablePath(bad), false, String(bad));
   }
@@ -254,14 +254,50 @@ function fakeShell({ openPathResult = '', fail = null } = {}) {
   };
 }
 
-test('openPathSafely opens a document and refuses a program without touching the shell', async () => {
+test('openPathSafely opens a document, and a program only once the person confirms', async () => {
   const shell = fakeShell();
   assert.deepEqual(await openPathSafely(shell, '/w/report.pdf'), { success: true, error: null });
-  const refused = await openPathSafely(shell, 'C:\\w\\setup.exe');
-  assert.equal(refused.success, false);
-  assert.match(refused.error, /could run as a program/);
+  // no confirm given: a program is not opened, and the shell is never asked
+  assert.deepEqual(await openPathSafely(shell, 'C:\\w\\setup.exe'), { success: false, error: 'Not opened' });
+  const asked = [];
+  const no = async (name) => (asked.push(name), false);
+  assert.deepEqual(await openPathSafely(shell, '/w/run.sh', { confirm: no }), { success: false, error: 'Not opened' });
+  const yes = async (name) => (asked.push(name), true);
+  assert.deepEqual(await openPathSafely(shell, '/w/notes.ts', { confirm: yes }), { success: true, error: null });
+  assert.deepEqual(asked, ['run.sh', 'notes.ts']);
   assert.deepEqual(await openPathSafely(shell, 42), { success: false, error: 'Invalid path' });
-  assert.deepEqual(shell.calls, [['openPath', '/w/report.pdf']]);
+  assert.deepEqual(shell.calls, [
+    ['openPath', '/w/report.pdf'],
+    ['openPath', '/w/notes.ts'],
+  ]);
+});
+
+test('openPathSafely asks about a link that is named like a document but points at a program', async () => {
+  const shell = fakeShell();
+  const asked = [];
+  const confirm = async (name) => (asked.push(name), false);
+  const realpath = (p) => (p === '/w/report.pdf' ? '/usr/local/bin/tool.sh' : p);
+  assert.deepEqual(await openPathSafely(shell, '/w/report.pdf', { confirm, realpath }), {
+    success: false,
+    error: 'Not opened',
+  });
+  assert.deepEqual(asked, ['report.pdf']);
+  // a missing file is left to openPath, which reports it
+  const missing = () => {
+    throw new Error('ENOENT');
+  };
+  assert.equal((await openPathSafely(fakeShell(), '/w/gone.pdf', { realpath: missing })).success, true);
+  assert.deepEqual(shell.calls, []);
+});
+
+test('openPathSafely never opens a network path, even when confirmed', async () => {
+  const shell = fakeShell();
+  for (const p of ['\\\\attacker\\share\\a.pdf', '//attacker/share/a.pdf']) {
+    const res = await openPathSafely(shell, p, { confirm: async () => true });
+    assert.equal(res.success, false);
+    assert.match(res.error, /network share/);
+  }
+  assert.deepEqual(shell.calls, []);
 });
 
 test('openPathSafely reports what the shell says', async () => {

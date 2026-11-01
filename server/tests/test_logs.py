@@ -94,6 +94,29 @@ def test_a_logged_value_cannot_add_a_fake_record():
     assert [line for line in lines if app_logging._RECORD_RE.match(line)] == [lines[0]]
 
 
+@pytest.mark.parametrize("newline", ["\r", "\r\n"])
+def test_a_carriage_return_cannot_add_a_fake_record_either(
+    log_dir, monkeypatch, newline
+):
+    monkeypatch.setattr(app_logging, "_handler", None)
+    root = logging.getLogger()
+    before = list(root.handlers)
+    app_logging.setup_logging()
+    try:
+        forged = (
+            f"abc{newline}2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed"
+        )
+        logging.getLogger("t").warning("run %s", forged)
+        app_logging._handler.flush()
+        records = list(app_logging.iter_records())
+        assert len(records) == 1 and "admin password changed" in records[0]
+    finally:
+        for h in list(root.handlers):
+            if h not in before:
+                root.removeHandler(h)
+                h.close()
+
+
 def test_a_traceback_stays_as_it_is():
     fmt = app_logging._IsoFormatter("%(asctime)s %(levelname)s %(name)s %(message)s")
     try:

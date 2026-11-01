@@ -165,21 +165,32 @@ function terminateBackendProcess(processRef) {
   return true;
 }
 
-// File types "Open in app" hands to the system's default app: documents, images, media and archives. Scripts and
-// programs are left out (.js, .py, .sh, .bat, .exe, .html …): their default action on some systems is to run them,
-// so a page that was tricked into asking would run code. Those are shown in their folder instead.
+// File types "Open in app" hands to the system's default app straight away: documents, images, media and archives.
+// Anything else (.exe, .sh, .js, .py, .html, macro-capable .doc/.xls/.ppt, unknown types …) could run code when
+// opened, so the desktop app asks first in a system dialog, which a page that was tricked into asking cannot answer.
 const OPENABLE_EXTENSIONS = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico',
-  '.txt', '.log', '.csv', '.tsv', '.json', '.xml', '.yaml', '.yml', '.md', '.markdown', '.pdf', '.rtf',
-  '.xlsx', '.xls', '.docx', '.doc', '.pptx', '.ppt', '.odt', '.ods', '.odp',
-  '.mp3', '.wav', '.ogg', '.m4a', '.mp4', '.webm', '.mov',
-  '.zip', '.tar', '.gz', '.rar', '.7z',
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.heic', '.heif', '.avif', '.tif', '.tiff',
+  '.txt', '.log', '.csv', '.tsv', '.json', '.xml', '.yaml', '.yml', '.md', '.markdown', '.pdf', '.rtf', '.epub',
+  '.xlsx', '.docx', '.pptx', '.odt', '.ods', '.odp', '.pages', '.numbers', '.key',
+  '.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.mp4', '.m4v', '.webm', '.mov', '.mkv', '.avi',
+  '.zip', '.tar', '.gz', '.tgz', '.rar', '.7z',
 ]);
 
-/** Whether `filePath` is a file type that may be opened with the system's default app. */
-function isOpenablePath(filePath) {
-  if (typeof filePath !== 'string' || !filePath) return false;
-  return OPENABLE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+/** A Windows network path (\\host\share\…, also written //host/share/…): opening one can send the user's
+ * credentials to that host, so it is never opened from the app. */
+function isNetworkPath(filePath) {
+  return /^(\\\\|\/\/)/.test(filePath);
+}
+
+/**
+ * Whether `filePath` may be opened with the system's default app without asking.
+ * @param filePath - The path the page asked for.
+ * @param realPath - Where it really points (a symlink's target); a link named report.pdf to a program is not a PDF.
+ */
+function isOpenablePath(filePath, realPath = filePath) {
+  if (typeof filePath !== 'string' || !filePath || isNetworkPath(filePath)) return false;
+  const known = (p) => OPENABLE_EXTENSIONS.has(path.extname(p).toLowerCase());
+  return known(filePath) && known(realPath);
 }
 
 /** Whether `url` may be handed to the system: only web pages and mail links, never file:// or app protocols. */
@@ -192,14 +203,26 @@ function isOpenableUrl(url) {
   }
 }
 
-/** The `open-path` IPC: open a file with its default app, unless it is a type that could run as a program. */
-async function openPathSafely(shell, filePath) {
+/**
+ * The `open-path` IPC: open a file with its default app. A type that is not plainly a document is opened only after
+ * the person says so in `confirm` (a system dialog in the app); a network path never.
+ * @param shell - Electron's shell (or a stand-in in tests).
+ * @param filePath - The path the page asked for.
+ * @param options - `confirm(name)` resolves true to open anyway; `realpath(p)` resolves symlinks.
+ */
+async function openPathSafely(shell, filePath, { confirm = async () => false, realpath = (p) => p } = {}) {
   if (!filePath || typeof filePath !== 'string') return { success: false, error: 'Invalid path' };
-  if (!isOpenablePath(filePath)) {
-    return {
-      success: false,
-      error: 'This kind of file is not opened from the app, because it could run as a program. Use Show in folder.',
-    };
+  if (isNetworkPath(filePath)) {
+    return { success: false, error: 'Files on a network share are not opened from the app. Use Show in folder.' };
+  }
+  let real = filePath;
+  try {
+    real = realpath(filePath);
+  } catch {
+    // a missing file: openPath says so below
+  }
+  if (!isOpenablePath(filePath, real) && !(await confirm(path.basename(filePath)))) {
+    return { success: false, error: 'Not opened' };
   }
   try {
     const errorMsg = await shell.openPath(filePath);
@@ -227,6 +250,7 @@ module.exports = {
   getBinaryExtension,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
+  isNetworkPath,
   isOpenablePath,
   isOpenableUrl,
   openExternalSafely,

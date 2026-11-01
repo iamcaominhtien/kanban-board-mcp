@@ -58,7 +58,8 @@ class _IsoFormatter(logging.Formatter):
         Logged values can come from a request (an id, a client error message). Without this, one
         holding a newline and a timestamp would add a fake record to the log and to its export.
         """
-        first, *rest = super().format(record).split("\n")
+        # The reader opens the file with universal newlines, so \r and \r\n end a line as well
+        first, *rest = re.split(r"\r\n|\r|\n", super().format(record))
         return "\n".join(
             [first, *(f"  {line}" if _RECORD_RE.match(line) else line for line in rest)]
         )
