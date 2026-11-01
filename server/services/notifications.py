@@ -1245,7 +1245,8 @@ async def on_run_question(run_id: str) -> None:
                 session=session,
             )
     except Exception:  # noqa: BLE001 - a notification never breaks a run
-        logger.exception("Could not write the question notification of %s", run_id)
+        # the run id can come from a request: it is not written to the log (log injection)
+        logger.exception("Could not write a question notification")
 
 
 async def on_run_ended(run_id: str) -> None:
@@ -1321,7 +1322,7 @@ async def on_run_ended(run_id: str) -> None:
                     **common,
                 )
     except Exception:  # noqa: BLE001
-        logger.exception("Could not write the end notification of %s", run_id)
+        logger.exception("Could not write a run end notification")
 
 
 async def on_blocked_move(run_id: str, target: str) -> None:
@@ -1351,7 +1352,7 @@ async def on_blocked_move(run_id: str, target: str) -> None:
                 session=session,
             )
     except Exception:  # noqa: BLE001
-        logger.exception("Could not write the blocked-move notification of %s", run_id)
+        logger.exception("Could not write a blocked-move notification")
 
 
 async def on_page_published(page: dict[str, Any], note: str | None = None) -> None:
