@@ -24,6 +24,7 @@ import { useDiagrams } from '../diagrams/DiagramsContext';
 import { useSketch } from '../sketch/SketchContext';
 import { AskAiPanel, ProposalReview, type WorkingJob } from './CanvasAi';
 import { BoardFrame } from './BoardFrame';
+import { FitProbe } from './FitProbe';
 import { CanvasIcon } from './CanvasIcon';
 import { useCanvas, type CanvasResult, type OpenCanvasRequest } from './CanvasContext';
 import { NOTE_BG } from './CanvasStatic';
@@ -96,6 +97,7 @@ const MemoFrame = memo(
   (a, b) =>
     a.canvasId === b.canvasId &&
     a.live === b.live &&
+    a.interactive === b.interactive &&
     a.scale === b.scale &&
     a.reloadKey === b.reloadKey &&
     a.board.id === b.board.id &&
@@ -160,6 +162,8 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   const [editLabel, setEditLabel] = useState<string | null>(null);
   const [editTab, setEditTab] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
+  // the board whose page takes clicks and keys (to try a prototype); the others stay pictures the plane can move
+  const [tryId, setTryId] = useState<string | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [history, setHistory] = useState(false);
   const [askFor, setAskFor] = useState<string[] | null>(null);
@@ -404,6 +408,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   const onPointerDown = (e: React.PointerEvent) => {
     const t = e.target as HTMLElement;
     if (t.closest('[data-ui]')) return;
+    if (tryId) setTryId(null); // a click on the plane (not in the page) ends it
     if (editNote || editLabel) return;
     planeRef.current?.focus({ preventScroll: true });
     setMenuFor(null);
@@ -868,6 +873,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
       if (mod) return;
       if (key === 'escape') {
         if (keys) setKeys(false);
+        else if (tryId) setTryId(null);
         else if (pinDraft) setPinDraft(null);
         else if (rubber) setRubber(null);
         else if (tool !== 'select') setTool('select');
@@ -891,6 +897,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
       if (key === 'm') return setShowMap((v) => !v);
       if (key === 'f') return setFocus((v) => !v);
       if (key === 'p') return present();
+      if (key === 'i' && oneBoard?.kind === 'html') return setTryId((v) => (v === oneBoard.id ? null : oneBoard.id));
       if (key === 'e' && oneBoard) return editBoard(oneBoard.id);
       if (key === 'enter' && oneBoard) return editBoard(oneBoard.id);
       if (key === '0') return fit();
@@ -1466,10 +1473,33 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                     data-kind="board"
                     data-testid="canvas-board"
                   >
-                    <MemoFrame canvasId={canvasId} board={b} scale={1} live={live} reloadKey={reloadKey} />
+                    <MemoFrame
+                      canvasId={canvasId}
+                      board={b}
+                      scale={1}
+                      live={live}
+                      reloadKey={reloadKey}
+                      interactive={tryId === b.id}
+                    />
                   </div>
                 </div>
               ))}
+              {canEdit &&
+                pageBoards
+                  .filter((b) => b.fit)
+                  .map((b) => (
+                    <FitProbe
+                      key={`${b.id}-${b.content?.rev}`}
+                      canvasId={canvasId}
+                      board={b}
+                      onFit={(h) =>
+                        patchBoard(b.id, (x) => {
+                          x.h = Math.min(6000, Math.max(120, h));
+                          x.fit = false;
+                        })
+                      }
+                    />
+                  ))}
               {pageNotes.map((n) => (
                 <div
                   key={n.id}
@@ -1645,6 +1675,18 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                         ))}
                       </>
                     )}
+                    {tryId === b.id && live && (
+                      <button
+                        type="button"
+                        className={styles.tryChip}
+                        style={{ pointerEvents: 'auto' }}
+                        data-ui
+                        onClick={() => setTryId(null)}
+                        data-testid="canvas-try-stop"
+                      >
+                        Trying it: clicks go to the page. Stop
+                      </button>
+                    )}
                     {showTools && (
                       <div
                         className={styles.boardTools}
@@ -1673,6 +1715,23 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                           >
                             <CanvasIcon name="eye" size={14} /> Open
                           </button>
+                          {b.kind === 'html' && (
+                            <button
+                              type="button"
+                              className={`${styles.tbBtn} ${tryId === b.id ? styles.tbBtnOn : ''}`}
+                              aria-pressed={tryId === b.id}
+                              disabled={!live}
+                              title={
+                                live
+                                  ? 'Click and type in the page to try the prototype (I). Esc or Stop to leave.'
+                                  : 'Zoom in to 40% or more to try the page'
+                              }
+                              onClick={() => setTryId(tryId === b.id ? null : b.id)}
+                              data-testid="canvas-board-try"
+                            >
+                              <CanvasIcon name="present" size={14} /> Try it
+                            </button>
+                          )}
                           {canEdit &&
                             (b.kind === 'html' ||
                               b.kind === 'empty' ||
@@ -1750,6 +1809,10 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                                   x.w = w;
                                   x.h = h;
                                 });
+                              }}
+                              onFitHeight={() => {
+                                setMenuFor(null);
+                                patchBoard(b.id, (x) => void (x.fit = true));
                               }}
                               onCustom={() => {
                                 setMenuFor(null);

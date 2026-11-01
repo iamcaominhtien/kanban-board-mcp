@@ -6,7 +6,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { Canvas, CanvasBoard, CanvasDoc, CanvasProposal } from '../../api/canvases';
 import { ToastProvider } from '../Toast';
 import { BoardFrame } from './BoardFrame';
-import { CanvasContext, type CanvasApi } from './CanvasContext';
+import { CanvasContext, useCanvas, type CanvasApi } from './CanvasContext';
+import { CanvasProvider } from './CanvasProvider';
 import { CanvasEmbed } from './CanvasEmbed';
 import { CanvasEditor } from './CanvasEditor';
 import { ProposalReview } from './CanvasAi';
@@ -144,6 +145,51 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
+});
+
+// ---- Present and the large view, through the real provider ----
+
+function OpenViewer() {
+  const api = useCanvas();
+  return (
+    <button type="button" onClick={() => api.openViewer({ id: 'cv_12345678' })}>
+      open the large view
+    </button>
+  );
+}
+function withProvider() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return (
+    <QueryClientProvider client={qc}>
+      <ToastProvider>
+        <CanvasProvider>
+          <OpenViewer />
+        </CanvasProvider>
+      </ToastProvider>
+    </QueryClientProvider>
+  );
+}
+
+test('Present in the large view really presents (the viewer is replaced, not closed)', async () => {
+  render(withProvider());
+  fireEvent.click(screen.getByText('open the large view'));
+  await screen.findByTestId('canvas-viewer');
+  fireEvent.click(await screen.findByTitle('Present (P)'));
+  await screen.findByTestId('canvas-present');
+  expect(screen.queryByTestId('canvas-viewer')).toBeNull();
+  // leaving Present closes it
+  fireEvent.click(screen.getByTestId('present-exit'));
+  await waitFor(() => expect(screen.queryByTestId('canvas-present')).toBeNull());
+});
+
+test('the P key in the large view presents too', async () => {
+  render(withProvider());
+  fireEvent.click(screen.getByText('open the large view'));
+  await screen.findByTestId('canvas-viewer');
+  await screen.findByTitle('Present (P)');
+  fireEvent.keyDown(document.body, { key: 'p' });
+  await screen.findByTestId('canvas-present');
+  expect(screen.queryByTestId('canvas-viewer')).toBeNull();
 });
 
 // ---- the card in a text ----
@@ -351,6 +397,33 @@ test('a board somebody else is editing has a blue ribbon and its Edit is off', a
   expect(ribbon.textContent).toContain('An Nguyen is editing');
   const edit = await screen.findByTestId('canvas-board-edit');
   expect((edit as HTMLButtonElement).disabled).toBe(true);
+});
+
+test('Try it in the editor lets the selected page take clicks, and Stop gives it back to the plane', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => Promise.resolve({ ok: true } as Response)),
+  );
+  render(
+    wrap(
+      <CanvasEditor
+        canvasId="cv_12345678"
+        request={{ ownerKind: 'ticket', ownerId: 'KAN-1', boardId: 'b_aaaaaaaa' }}
+        me="user"
+        onClose={() => undefined}
+      />,
+    ),
+  );
+  const tryIt = (await screen.findByTestId('canvas-board-try')) as HTMLButtonElement;
+  expect(tryIt.disabled).toBe(false);
+  const frames = () => Array.from(document.querySelectorAll<HTMLIFrameElement>('iframe[data-testid=board-iframe]'));
+  await waitFor(() => expect(frames().length).toBeGreaterThan(0));
+  expect(frames().every((f) => f.style.pointerEvents === 'none')).toBe(true);
+  fireEvent.click(tryIt);
+  await waitFor(() => expect(frames().filter((f) => f.style.pointerEvents === 'auto')).toHaveLength(1));
+  fireEvent.click(await screen.findByTestId('canvas-try-stop'));
+  await waitFor(() => expect(frames().every((f) => f.style.pointerEvents === 'none')).toBe(true));
+  vi.unstubAllGlobals();
 });
 
 test('the source editor says who is editing when the lock is taken, and does not start', async () => {

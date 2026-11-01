@@ -1740,3 +1740,22 @@ input.title:focus {
   white-space: nowrap;
   pointer-events: none;
 }
+
+.tryChip {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 7;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--cv-ink);
+  color: #fff;
+  border: 0;
+  font: 700 11px var(--font-body);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(30, 42, 34, 0.25);
+}
+.tbBtnOn {
+  background: var(--cv-ink);
+  color: #fff;
+}

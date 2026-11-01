@@ -7,6 +7,7 @@ rejects (docs/specs/canvas.md).
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Annotated
 
@@ -228,18 +229,34 @@ async def read_canvas(
             raise _error(exc) from exc
 
 
-def _read_folder(root: Path) -> dict[str, bytes]:
+def _read_folder(root: Path, top: bool = False) -> dict[str, bytes]:
+    """The files of a frame folder (frame.json is not a frame file; nor is canvas.json when the frame is the top folder)."""
     files: dict[str, bytes] = {}
     total = 0
     for p in sorted(root.rglob("*")):
-        if p.is_file() and p.name != "frame.json":
-            total += p.stat().st_size
-            if total > svc_canvases.MAX_BOARD_BYTES:
-                raise ValueError(
-                    f"{root.name or root} is over {svc_canvases.MAX_BOARD_BYTES // (1024 * 1024)} MB, the most a frame can hold."
-                )
-            files[p.relative_to(root).as_posix()] = p.read_bytes()
+        if not p.is_file() or p.name == "frame.json":
+            continue
+        if top and p.name == "canvas.json" and p.parent == root:
+            continue
+        total += p.stat().st_size
+        if total > svc_canvases.MAX_BOARD_BYTES:
+            raise ValueError(
+                f"{root.name or root} is over {svc_canvases.MAX_BOARD_BYTES // (1024 * 1024)} MB, the most a frame can hold."
+            )
+        files[p.relative_to(root).as_posix()] = p.read_bytes()
     return files
+
+
+def _json_file(p: Path) -> dict:
+    if not p.is_file():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError(f"{p} is not valid JSON.") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{p} must hold a JSON object.")
+    return data
 
 
 def _frames_of(root: Path, title: str) -> list[dict]:
@@ -251,23 +268,25 @@ def _frames_of(root: Path, title: str) -> list[dict]:
         f.suffix.lower() in (".html", ".htm") for f in root.iterdir() if f.is_file()
     )
     for d in [root] if loose and not sub_frames else sub_frames:
-        meta: dict = {}
-        mf = d / "frame.json"
-        if mf.is_file():
-            try:
-                meta = json.loads(mf.read_text(encoding="utf-8"))
-            except ValueError as exc:
-                raise ValueError(f"{mf} is not valid JSON.") from exc
+        meta = _json_file(d / "frame.json")
         size = meta.get("size")
         if isinstance(size, list) and len(size) == 2:
             size = (int(size[0]), int(size[1]))
         elif not isinstance(size, str):
             size = None
+        shown = d.name if d != root else title
+        shown = (
+            re.sub(r"^\d+[-_. ]+", "", shown) or shown
+        )  # "01-today" shows as "today"
         frames.append(
             {
-                "name": str(meta.get("name") or (title if d == root else d.name))[:120],
+                "key": d.name if d != root else "main",
+                "name": str(meta.get("name") or shown)[:120],
                 "size": size,
-                "files": _read_folder(d),
+                "fit": bool(meta.get("fit")),
+                "x": meta.get("x"),
+                "y": meta.get("y"),
+                "files": _read_folder(d, top=d == root),
             }
         )
     if not frames:
@@ -277,12 +296,87 @@ def _frames_of(root: Path, title: str) -> list[dict]:
     return frames
 
 
+MAX_LAYOUT_ITEMS = 200
+
+
+def _plan_layout(root: Path, frames: list[dict]) -> dict:
+    """The notes, arrows and labels of the folder's canvas.json, checked against the frames (before anything is created)."""
+    data = _json_file(root / "canvas.json")
+    notes = [n for n in data.get("notes", []) if isinstance(n, dict)]
+    arrows = [a for a in data.get("arrows", []) if isinstance(a, dict)]
+    labels = [t for t in data.get("labels", []) if isinstance(t, dict)]
+    if len(notes) + len(arrows) + len(labels) > MAX_LAYOUT_ITEMS:
+        raise ValueError(
+            f"canvas.json holds up to {MAX_LAYOUT_ITEMS} notes, arrows and labels together."
+        )
+    frame_refs = {f["key"] for f in frames} | {f["name"] for f in frames}
+    note_refs = {str(n["id"]) for n in notes if n.get("id")}
+    for n in notes:
+        if n.get("near") and n["near"] not in frame_refs:
+            raise ValueError(
+                f"A note says near {n['near']!r}, which is not a frame (frames: {sorted(f['key'] for f in frames)})."
+            )
+    for a in arrows:
+        for end in ("from", "to"):
+            if a.get(end) not in frame_refs | note_refs:
+                raise ValueError(
+                    f"An arrow {end} {a.get(end)!r} is not a frame or a note id (frames: {sorted(f['key'] for f in frames)}, notes: {sorted(note_refs)})."
+                )
+    return {"notes": notes, "arrows": arrows, "labels": labels}
+
+
+async def _apply_layout(session, canvas, layout: dict, placed: dict[str, dict]) -> dict:
+    """Notes, arrows and labels from canvas.json, saved in one go (a note says `near` a frame or gives x and y)."""
+    if not (layout["notes"] or layout["arrows"] or layout["labels"]):
+        return {}
+    ids: dict[str, str] = {}
+    notes, arrows, labels = [], [], []
+    low = max((b["y"] + b["h"] for b in placed.values()), default=0) + 60
+    for n in layout["notes"]:
+        nid = svc_canvases._id("n")  # noqa: SLF001
+        if n.get("id"):
+            ids[str(n["id"])] = nid
+        near = placed.get(n.get("near")) if n.get("near") else None
+        x = n.get("x", near["x"] + float(n.get("dx", 0)) if near else 0)
+        y = n.get("y", near["y"] + near["h"] + 60 if near else low)
+        notes.append(
+            {"id": nid, "x": x, "y": y, "w": n.get("w", 260), "h": n.get("h", 130),
+             "text": str(n.get("text", "")), "color": n.get("color", "yellow")}
+        )  # fmt: skip
+    for a in layout["arrows"]:
+        ends = [
+            placed[a[e]]["id"] if a[e] in placed else ids[str(a[e])]
+            for e in ("from", "to")
+        ]
+        arrows.append(
+            {
+                "id": svc_canvases._id("a"),
+                "from": ends[0],
+                "to": ends[1],
+                "label": str(a.get("label", "")),
+            }  # noqa: SLF001
+        )
+    top = min((b["y"] for b in placed.values()), default=0)
+    for t in layout["labels"]:
+        labels.append(
+            {"id": svc_canvases._id("t"), "x": t.get("x", 0), "y": t.get("y", top - 120),  # noqa: SLF001
+             "text": str(t.get("text", "")), "size": t.get("size", 24)}
+        )  # fmt: skip
+    await svc_canvases.save(
+        session,
+        canvas.id,
+        base_rev=canvas.rev,
+        upsert={"notes": notes, "arrows": arrows, "labels": labels},
+    )
+    return {"notes": len(notes), "arrows": len(arrows), "labels": len(labels)}
+
+
 @notify_on_success
 async def create_canvas_from_files(
     path: Annotated[
         str,
         Field(
-            description='Absolute folder of web pages: each sub-folder with an .html page becomes one frame (named after the folder), or pages at the top of the folder become one frame. A sub-folder may hold frame.json {"name": "Today", "size": "phone" | "tablet" | "desktop" | [width, height]}. Files are kept exactly as written: scripts, CDN links and fonts all run.'
+            description='Absolute folder of web pages: each sub-folder with an .html page is one frame (in name order), or pages at the top are one frame. Optional frame.json {name, size: "phone"|"tablet"|"desktop"|[w,h], fit, x, y} per frame and canvas.json {notes, arrows, labels} at the top (see the design guide). Files are kept as written; scripts run.'
         ),
     ],
     owner_kind: Annotated[
@@ -312,6 +406,7 @@ async def create_canvas_from_files(
     frames = _frames_of(root, title or "Frame")
     if len(frames) > svc_canvases.MAX_BOARDS:
         raise ValueError(f"A canvas holds up to {svc_canvases.MAX_BOARDS} frames.")
+    layout = _plan_layout(root, frames)
     async with common.async_session() as session:
         try:
             for f in frames:  # check every frame before anything is created
@@ -342,6 +437,7 @@ async def create_canvas_from_files(
                     start="none",
                 )
             boards = []
+            placed: dict[str, dict] = {}
             for f in frames:
                 made = await svc_canvases.add_board(
                     session,
@@ -350,11 +446,17 @@ async def create_canvas_from_files(
                     kind="html",
                     files=f["files"],
                     size=f["size"],
+                    x=f["x"],
+                    y=f["y"],
+                    fit=f["fit"],
                 )
                 b = made["board"]
+                placed[f["key"]] = placed[f["name"]] = b
                 boards.append(
                     {"id": b["id"], "name": b["name"], "w": b["w"], "h": b["h"]}
                 )
+            fresh = await svc_canvases._canvas(session, out["id"])  # noqa: SLF001
+            counts = await _apply_layout(session, fresh, layout, placed)
             fresh = await svc_canvases._canvas(session, out["id"])  # noqa: SLF001
         except svc_canvases.DocsError as exc:
             raise _error(exc) from exc
@@ -364,6 +466,7 @@ async def create_canvas_from_files(
         "version": fresh.version,
         "markdown": f"![{fresh.title}](canvas:{fresh.id})",
         "boards": boards,
+        **counts,
     }
 
 

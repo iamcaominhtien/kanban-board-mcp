@@ -140,9 +140,21 @@ direction is different: then make the substantial changes. Follow the design's o
 
 ## 11. Hand it over
 
-New canvas: a folder with one sub-folder per frame (`index.html`, optional `frame.json` `{"name", "size"}`), then
-`docs_write(canvas_create, owner_kind, owner_id, title, path)`; put the returned `markdown` line on its own line in the
-ticket or Docs page. Change to an existing frame: write the changed files to a folder and `docs_write(canvas_propose)`
-with a one-sentence note on the design decision; a person accepts or rejects. Leave one `canvas_comment` for the open
-questions (what you were unsure of), pinned to the frame it is about, and your assumptions in one line.
+New canvas: a folder with one sub-folder per frame (`index.html`, optional `frame.json`), then
+`docs_write(canvas_create, owner_kind, owner_id, title, path)`; the owner (a ticket or a Docs page) must exist first. Put the
+returned `markdown` line on its own line in that ticket or page, with the tool that edits it (`manage_ticket` or
+`docs_write(update)`).
+
+- **Order and names**: frames are placed left to right in folder-name order, so name the folders `01-today`, `02-new-task`;
+  the number is not part of the shown name.
+- **`frame.json`**: `{"name", "size": "phone"|"tablet"|"desktop"|[w, h], "fit": true, "x", "y"}`. A long page is cut off by a
+  fixed height: either measure `document.documentElement.scrollHeight` at the frame's width and give `[w, h]`, or set
+  `"fit": true` and the editor measures the page once and sets the height.
+- **`canvas.json` at the top**, so a flow is presented and not only drawn: `notes` (`{"id", "text", "near": "<frame>" or
+  "x", "y", "color", "w", "h"}`), `arrows` (`{"from", "to", "label"}`, each end a frame folder name or a note `id`) and
+  `labels` (`{"text", "x", "y", "size"}`). A wrong reference is reported before anything is created.
+- **Change to an existing frame**: write the changed files to a folder and `docs_write(canvas_propose)` with a one-sentence
+  note on the design decision; a person accepts or rejects.
+- Leave one `canvas_comment` for the open questions (what you were unsure of), pinned to the frame it is about, and your
+  assumptions in one line.
 """

@@ -436,3 +436,73 @@ def test_the_design_guide_reaches_the_agent_and_the_ai_job():
     assert "idea" not in canvas_design.GUIDE.lower()
     # a guide, not an essay
     assert len(canvas_design.GUIDE) < 12_000
+
+
+async def test_an_agent_lays_out_a_flow_with_notes_arrows_labels_and_fit(env, tmp_path):
+    c = env["c"]
+    pid, _ = await _project(c)
+    tid = await _ticket(c, pid, "Flow")
+    root = tmp_path / "flow"
+    for folder in ("01-today", "02-new-task"):
+        (root / folder).mkdir(parents=True)
+        (root / folder / "index.html").write_text(f"<h1>{folder}</h1>")
+    (root / "02-new-task" / "frame.json").write_text(
+        json.dumps({"size": "phone", "fit": True, "x": 900, "y": 40})
+    )
+    (root / "canvas.json").write_text(
+        json.dumps(
+            {
+                "notes": [
+                    {"id": "why", "text": "Add in 5 seconds", "near": "01-today"},
+                    {"text": "Loose note", "x": 5, "y": 7, "color": "green"},
+                ],
+                "arrows": [
+                    {"from": "01-today", "to": "02-new-task", "label": "+ button"},
+                    {"from": "why", "to": "today"},
+                ],
+                "labels": [{"text": "Todo flow", "size": 34}],
+            }
+        )
+    )
+    out = await docs_write(
+        action="canvas_create",
+        owner_kind="ticket",
+        owner_id=tid,
+        title="Flow",
+        path=str(root),
+    )
+    assert (out["notes"], out["arrows"], out["labels"]) == (2, 2, 1)
+    assert [b["name"] for b in out["boards"]] == [
+        "today",
+        "new-task",
+    ]  # "01-" is the order, not the name
+    doc = (await c.get(f"/canvases/{out['id']}")).json()["doc"]
+    today, new = doc["boards"]
+    assert (new["x"], new["y"], new.get("fit")) == (
+        900,
+        40,
+        True,
+    ) and "fit" not in today
+    why = next(n for n in doc["notes"] if n["text"] == "Add in 5 seconds")
+    assert (
+        why["x"] == today["x"] and why["y"] == today["y"] + today["h"] + 60
+    )  # near the frame, below it
+    assert {(a["from"], a["to"], a["label"]) for a in doc["arrows"]} == {
+        (today["id"], new["id"], "+ button"),
+        (why["id"], today["id"], ""),
+    }
+    assert doc["labels"][0]["text"] == "Todo flow"
+    # a wrong reference is said before anything is made
+    (root / "canvas.json").write_text(
+        json.dumps({"arrows": [{"from": "today", "to": "nowhere"}]})
+    )
+    before = await docs_read(action="canvases", project_id=pid)
+    with pytest.raises(ValueError, match="'nowhere' is not a frame or a note id"):
+        await docs_write(
+            action="canvas_create",
+            owner_kind="ticket",
+            owner_id=tid,
+            title="Bad",
+            path=str(root),
+        )
+    assert await docs_read(action="canvases", project_id=pid) == before

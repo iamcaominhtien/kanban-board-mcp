@@ -25,6 +25,8 @@ Canvas: boards (called frames) on one large plane, a peer of Sketch and Diagram.
 - Export: ZIP of every frame or one frame, the board as a 2x PNG, an outline overview, PDF through the print dialog. Import: HTML files, pictures, a ZIP of a built page, `.sketch` and `.drawio` files.
 
 ### Changed
+- Fixed: **Present** in the large view (button and `P`) closed the viewer instead of presenting.
+- **Try it** works in the editor too (button on the selected frame, key `I`, a Stop chip). A frame with `fit` (or **Size › Fit height to content**) gets the height of its page, measured once by the editor. `canvas_create` takes `x`, `y` and `fit` per frame and a top-level `canvas.json` with notes, arrows and labels, and orders frames by folder name.
 - The default MCP tool list is about 1,800 characters longer (the five canvas actions); the size test allows for it.
 - `docs_page` has a `kind` (`page` or `canvas`).
 

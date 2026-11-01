@@ -312,6 +312,11 @@ def clean_board_layout(
         "h": _num(src.get("h"), base.get("h", 800), MIN_H, MAX_H),
         "order": int(_num(src.get("order"), base.get("order", 0), -1, 100000)),
         "page": _page_ref(src.get("page", base.get("page"))),
+        **(
+            {"fit": bool(src.get("fit", base.get("fit")))}
+            if src.get("fit", base.get("fit")) is not None
+            else {}
+        ),
     }
 
 
@@ -1431,6 +1436,7 @@ async def add_board(
     size: str | tuple[int, int] | None = None,
     x: float | None = None,
     y: float | None = None,
+    fit: bool = False,
 ) -> dict[str, Any]:
     """Add a frame to the canvas.
 
@@ -1446,6 +1452,7 @@ async def add_board(
         size: A preset name (``desktop``…) or ``(width, height)``.
         x: Position; placed to the right of the last frame when omitted.
         y: Position.
+        fit: Make the height fit the page: the editor measures the page once and sets the height.
 
     Returns:
         ``{board, rev}``.
@@ -1531,6 +1538,8 @@ async def add_board(
         "rev": new_rev,
         "created_by": actor,
     }
+    if fit and kind == "html":
+        board["fit"] = True
     if written:
         write_revision(c.id, board_id, new_rev, written)
     doc["boards"].append(board)

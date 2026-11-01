@@ -132,7 +132,8 @@ icon sets), web fonts and outside images all work, so a mockup can be clicked th
   no `Content-Security-Policy` and no `sandbox`.
 * **No `sandbox` on the iframe**, in the editor, the large view, Present, History, the source editor's live preview, the AI
   before / after panes and Preview of an HTML file. In the plane a frame is a picture the canvas can move
-  (`pointer-events: none`); in the large view and Present **Try it** (key `I`) lets the page take clicks and keys. While it is on,
+  (`pointer-events: none`); **Try it** (the button on the selected frame, key `I`) lets the page take clicks and keys, in the
+  editor (a "Trying it ... Stop" chip, a click on the plane or Esc ends it) and in the large view and Present. While it is on,
   keys typed in the page stay in the page, so use the buttons (or turn it off) to step and close.
 
 **Trust.** This is a local-first app with no sign-in, so a script in a frame can call the board's own API like any page on its

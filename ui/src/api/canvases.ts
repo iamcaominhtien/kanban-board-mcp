@@ -40,6 +40,8 @@ export interface CanvasBoard {
   ref: string | null;
   content: BoardContent | null;
   rev: number;
+  /** The height is to be measured from the page (the editor does it once and clears this). */
+  fit?: boolean;
   createdBy?: string;
 }
 export interface CanvasNote {

@@ -90,7 +90,6 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
         setInteract((v) => !v);
       } else if (e.key.toLowerCase() === 'p' && !present && c) {
         api.present({ id: c.id, boardId: board?.id, pageId });
-        onClose();
       }
     };
     window.addEventListener('keydown', key, true);
@@ -319,7 +318,6 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
               className={`${styles.btn} ${styles.btnSm}`}
               onClick={() => {
                 api.present({ id: c.id, boardId: board?.id, pageId });
-                onClose();
               }}
               title="Present (P)"
             >

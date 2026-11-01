@@ -20,6 +20,7 @@ interface MenuProps {
   onAskAi: () => void;
   onRename: () => void;
   onSize: (w: number, h: number) => void;
+  onFitHeight: () => void;
   onCustom: () => void;
   onDuplicate: () => void;
   onReplace: () => void;
@@ -103,6 +104,12 @@ export function BoardMenu(p: MenuProps) {
                   </small>
                 </button>
               ))}
+              {p.board.kind === 'html' && (
+                <button type="button" role="menuitem" className={styles.menuItem} onClick={p.onFitHeight}>
+                  Fit height to content
+                  <small>Measures the page</small>
+                </button>
+              )}
               <button type="button" role="menuitem" className={styles.menuItem} onClick={p.onCustom}>
                 Custom…
                 <small>Width 320 to 1920</small>
@@ -270,6 +277,7 @@ export function KeysList({ onClose }: { onClose: () => void }) {
     ['M', 'Show or hide the map'],
     ['F', 'Focus: hide the header and panels'],
     ['P', 'Present from the selected board'],
+    ['I', 'Try the selected page: clicks and keys go to it (Esc or Stop to leave)'],
     ['E or Enter', 'Edit the selected board'],
     ['Ctrl J', 'Ask AI about the selection'],
     ['Ctrl D', 'Duplicate the selected board'],
