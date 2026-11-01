@@ -62,13 +62,23 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extraResources": [
         {
-          "from": "../dist-python/kanban-server",
-          "to": "kanban-server"
-        },
-        {
           "from": "../dist-python/kanban-mcp-stdio",
           "to": "kanban-mcp-stdio"
         }
+      ],
+      "electronLanguages": [
+        "en",
+        "en_FEMININE",
+        "en_MASCULINE",
+        "en_NEUTER",
+        "en_GB",
+        "en_GB_FEMININE",
+        "en_GB_MASCULINE",
+        "en_GB_NEUTER",
+        "vi",
+        "vi_FEMININE",
+        "vi_MASCULINE",
+        "vi_NEUTER"
       ]
     },
     "win": {
@@ -82,13 +92,14 @@
       ],
       "extraResources": [
         {
-          "from": "../dist-python/kanban-server",
-          "to": "kanban-server"
-        },
-        {
           "from": "../dist-python/kanban-mcp-stdio",
           "to": "kanban-mcp-stdio"
         }
+      ],
+      "electronLanguages": [
+        "en-US",
+        "en-GB",
+        "vi"
       ]
     },
     "nsis": {

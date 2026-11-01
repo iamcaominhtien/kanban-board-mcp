@@ -28,24 +28,19 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 
-echo ""
-echo "--- Building kanban-server binary ---"
-"$VENV_PYTHON" -m PyInstaller \
-    --distpath "$OUTPUT_DIR" \
-    --workpath "$DESKTOP_DIR/build/pyinstaller-work" \
-    --noconfirm \
-    "$DESKTOP_DIR/kanban-server.spec"
+# Start clean: an old kanban-server/ folder (two-folder layout) must not reach the package
+rm -rf "$OUTPUT_DIR/kanban-server" "$OUTPUT_DIR/kanban-mcp-stdio"
 
 echo ""
-echo "--- Building kanban-mcp-stdio binary ---"
+echo "--- Building kanban-server + kanban-mcp-stdio (one folder, shared _internal/) ---"
 "$VENV_PYTHON" -m PyInstaller \
     --distpath "$OUTPUT_DIR" \
     --workpath "$DESKTOP_DIR/build/pyinstaller-work" \
     --noconfirm \
-    "$DESKTOP_DIR/kanban-mcp-stdio.spec"
+    "$DESKTOP_DIR/kanban-backend.spec"
 
 echo ""
 echo "=== Build complete ==="
 echo "Binaries in: $OUTPUT_DIR"
-ls -lhd "$OUTPUT_DIR/kanban-server"* 2>/dev/null || true
-ls -lhd "$OUTPUT_DIR/kanban-mcp-stdio"* 2>/dev/null || true
+ls -lh "$OUTPUT_DIR/kanban-mcp-stdio" 2>/dev/null || true
+du -sh "$OUTPUT_DIR/kanban-mcp-stdio" 2>/dev/null || true
