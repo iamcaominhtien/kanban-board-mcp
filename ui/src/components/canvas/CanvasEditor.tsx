@@ -35,7 +35,8 @@ import { BoardMenu, BoardsPanel, KeysList } from './EditorParts';
 import { HistoryPanel } from './HistoryPanel';
 import { MoveToDocsDialog } from './MoveToDocsDialog';
 import { SourceEditor } from './SourceEditor';
-import { boardToPng, printBoards } from './exportBoard';
+import { boardToGif, boardToPng, boardToSvg, fileStem, liveAnimation, saveBlob } from './boardCapture';
+import { printBoards } from './exportBoard';
 import { newId } from './ids';
 import { importSketchFile } from './sketchImport';
 import {
@@ -789,6 +790,22 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
           }
     });
   };
+  const downloadAs = (b: CanvasBoard, kind: 'png' | 'svg' | 'gif') => {
+    const what = { png: 'picture', svg: 'SVG', gif: 'GIF' }[kind];
+    toast.info(`Making the ${what}…`, b.name, 5000);
+    const made =
+      kind === 'png' ? boardToPng(canvasId, b, 2) : kind === 'svg' ? boardToSvg(canvasId, b) : boardToGif(canvasId, b);
+    void made
+      .then((blob) => {
+        saveBlob(blob, `${fileStem(b.name)}.${kind}`);
+        toast.success(`${what} saved`, `${fileStem(b.name)}.${kind}`, 4000);
+      })
+      .catch((e: unknown) => toast.error(`Could not make the ${what}`, e instanceof Error ? e.message : ''));
+  };
+  const animatedOf = (b: CanvasBoard): 'yes' | 'no' | 'unknown' => {
+    const info = liveAnimation(frameOf(b.id));
+    return info === null ? 'unknown' : info.count > 0 ? 'yes' : 'no';
+  };
   const copy = (text: string) =>
     void navigator.clipboard?.writeText(text).then(() => toast.success('Link copied', text));
   const startAsk = (ids?: string[]) => {
@@ -1165,21 +1182,39 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                     className={styles.menuItem}
                     onClick={() => {
                       setExportMenu(false);
-                      void boardToPng(canvasId, oneBoard, 2)
-                        .then((blob) => {
-                          const a = document.createElement('a');
-                          a.href = URL.createObjectURL(blob);
-                          a.download = `${oneBoard.name}.png`;
-                          a.click();
-                          setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-                        })
-                        .catch((e: unknown) =>
-                          toast.error('Could not make the picture', e instanceof Error ? e.message : ''),
-                        );
+                      downloadAs(oneBoard, 'png');
                     }}
                   >
                     <CanvasIcon name="image" size={14} /> Board as image <small>PNG, 2x</small>
                   </button>
+                )}
+                {oneBoard?.kind === 'html' && (
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={styles.menuItem}
+                      onClick={() => {
+                        setExportMenu(false);
+                        downloadAs(oneBoard, 'svg');
+                      }}
+                    >
+                      <CanvasIcon name="image" size={14} /> Board as SVG <small>page inside</small>
+                    </button>
+                    {animatedOf(oneBoard) !== 'no' && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={styles.menuItem}
+                        onClick={() => {
+                          setExportMenu(false);
+                          downloadAs(oneBoard, 'gif');
+                        }}
+                      >
+                        <CanvasIcon name="image" size={14} /> Board as GIF <small>animation</small>
+                      </button>
+                    )}
+                  </>
                 )}
                 <a
                   className={styles.menuItem}
@@ -1873,6 +1908,11 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                                 setMenuFor(null);
                                 window.location.assign(canvasDownloadUrl(canvasId, b.id));
                               }}
+                              onDownloadAs={(kind) => {
+                                setMenuFor(null);
+                                downloadAs(b, kind);
+                              }}
+                              animated={animatedOf(b)}
                               onImage={() => {
                                 setMenuFor(null);
                                 void boardToPng(canvasId, b, 2)

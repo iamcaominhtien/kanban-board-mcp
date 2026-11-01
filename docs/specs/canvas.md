@@ -218,8 +218,15 @@ one frame at a time.
 * **Snapshots and overview pictures are outlines, not screenshots.** There is no browser on the server, so the picture shown
   below 40% zoom and written for an export (`overview.png`, `snapshot.png`) is a wireframe drawn from the page's outline
   (headings, text, buttons, fields) and from the plane (`services/canvas_png.py`, no image library). The editor's
-  **Board as image (PNG, 2x)** and **Copy board as image** draw the real page in the browser; **PDF** opens the browser's print
-  dialog with one frame per page.
+  **Download** in a frame's menu (and the header's export menu) draws the real page in the browser (`boardCapture.ts`): the page
+  is loaded in a hidden frame at the frame's size, so what is drawn is the page after its scripts ran. **Files** (ZIP),
+  **Image** (PNG, 2x), **SVG** (the page laid out inside an SVG `foreignObject` with its styles, fonts and pictures embedded;
+  a browser shows it exactly, a vector editor may not; scripts, handlers, frames and `javascript:` links are taken out so
+  the file is safe to open on its own) and **GIF** (only for a page whose CSS or Web Animations animate: the animations are
+  stepped at 12 frames a second for up to 6 seconds, at most 720 px wide, looping when an animation repeats; an animation
+  driven by a script timer cannot be stepped and is not recorded). Fonts and pictures from another website are embedded only
+  when that site allows it. **Copy board as image** copies the PNG; **PDF** opens the browser's print dialog with one frame per
+  page. Uses `html-to-image` and `gifenc` (both MIT).
 * **Ctrl G (group into a named frame) is not built.** Duplicate, align by snapping and multi-select are.
 * **Copy link** copies the markdown link (`[Name](canvas:cv_…#b_…)`), which is what a text takes; there is no app URL
   scheme to open a canvas at a frame from outside the app.

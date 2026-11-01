@@ -25,6 +25,9 @@ interface MenuProps {
   onDuplicate: () => void;
   onReplace: () => void;
   onDownload: () => void;
+  onDownloadAs: (kind: 'png' | 'svg' | 'gif') => void;
+  /** Whether the page animates: `no` is known (live page without animation), `unknown` is found out on click. */
+  animated: 'yes' | 'no' | 'unknown';
   onImage: () => void;
   onCopyLink: () => void;
   onDelete: () => void;
@@ -36,6 +39,7 @@ interface MenuProps {
  */
 export function BoardMenu(p: MenuProps) {
   const [sizes, setSizes] = useState(false);
+  const [downloads, setDownloads] = useState(false);
   const editable = p.board.kind === 'html' || p.board.kind === 'empty';
   return (
     <div
@@ -126,9 +130,61 @@ export function BoardMenu(p: MenuProps) {
         </>
       )}
       <div className={styles.menuSep} />
-      <button type="button" role="menuitem" className={styles.menuItem} onClick={p.onDownload}>
+      <button
+        type="button"
+        role="menuitem"
+        className={styles.menuItem}
+        onClick={() => setDownloads((v) => !v)}
+        aria-expanded={downloads}
+        data-testid="canvas-menu-download"
+      >
         <CanvasIcon name="download" size={14} /> Download
+        <small>{downloads ? '' : 'ZIP, PNG, SVG, GIF'}</small>
       </button>
+      {downloads && (
+        <div style={{ padding: '0 4px 4px 22px' }}>
+          <button type="button" role="menuitem" className={styles.menuItem} onClick={p.onDownload}>
+            Files
+            <small>ZIP</small>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={styles.menuItem}
+            onClick={() => p.onDownloadAs('png')}
+            data-testid="canvas-download-png"
+          >
+            Image
+            <small>PNG, 2x</small>
+          </button>
+          {p.board.kind === 'html' && (
+            <button
+              type="button"
+              role="menuitem"
+              className={styles.menuItem}
+              onClick={() => p.onDownloadAs('svg')}
+              data-testid="canvas-download-svg"
+              title="The page as it looks, laid out inside an SVG: a browser shows it exactly, a vector editor may not"
+            >
+              SVG
+              <small>page inside</small>
+            </button>
+          )}
+          {p.board.kind === 'html' && p.animated !== 'no' && (
+            <button
+              type="button"
+              role="menuitem"
+              className={styles.menuItem}
+              onClick={() => p.onDownloadAs('gif')}
+              data-testid="canvas-download-gif"
+              title="Records the page's CSS animation, up to 6 seconds"
+            >
+              GIF
+              <small>animation</small>
+            </button>
+          )}
+        </div>
+      )}
       <button type="button" role="menuitem" className={styles.menuItem} onClick={p.onImage}>
         <CanvasIcon name="image" size={14} /> Copy board as image
       </button>
