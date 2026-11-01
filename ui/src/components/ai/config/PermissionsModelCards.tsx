@@ -13,7 +13,8 @@ const REJECTED = [
   'bypassPermissions',
   '--permission-mode',
 ];
-const TOOL_RE = /^[A-Za-z_][A-Za-z0-9_-]*(__[A-Za-z0-9_*-]+)*$/;
+// a name, then optionally `__` and a tail that may hold `*` (mcp__kanban__*); one optional group, so no backtracking blow-up
+const TOOL_RE = /^[A-Za-z_][A-Za-z0-9_-]*(?:__[A-Za-z0-9_*-]+)?$/;
 
 /** Why a CLI permission rule is malformed (mirrors the server check), or null. */
 export function ruleProblem(rule: string): string | null {
@@ -169,8 +170,8 @@ function PermissionModeBlock() {
         <div className="perm-warn" data-testid="bypass-warning">
           <b>Bypass permissions runs shell commands and edits files on this computer without asking.</b> Still in force:{' '}
           {codex ? 'the' : 'the Deny rules, the'} board’s own ceiling and approvals, and Safe mode (it overrides
-          Bypass). {codex ? 'The Deny rules do not apply to Codex. ' : ''}Ask runs stay read-only and the web stays off.
-          Use it in a folder you can restore from git.
+          Bypass). {codex ? 'The Deny rules do not apply to Codex. ' : ''}The web stays off. Use it in a folder you can
+          restore from git.
           {projects > 1 ? ` This AI member is in ${projects} projects: the setting applies in all of them.` : ''}
         </div>
       )}
@@ -364,22 +365,6 @@ export function ModelCard() {
             />
             <IssueText issues={issues} path="working_dir" />
           </div>
-          <NumField
-            label="Run timeout"
-            unit="min"
-            value={cfg.runTimeoutMin}
-            onChange={(v) => setCfg({ runTimeoutMin: v })}
-            path="run_timeout_min"
-            issues={issues}
-          />
-          <NumField
-            label="No output timeout"
-            unit="min"
-            value={cfg.idleTimeoutMin}
-            onChange={(v) => setCfg({ idleTimeoutMin: v })}
-            path="idle_timeout_min"
-            issues={issues}
-          />
           {member.provider === 'codex' && (
             <NumField
               label="Auto-compact at"
@@ -482,29 +467,6 @@ export function ModelCard() {
           />
           <IssueText issues={issues} path="working_dir" />
         </div>
-        <NumField
-          label="Max turns per run"
-          value={cfg.maxTurns}
-          onChange={(v) => setCfg({ maxTurns: v })}
-          path="max_turns"
-          issues={issues}
-        />
-        <NumField
-          label="Run timeout"
-          unit="min"
-          value={cfg.runTimeoutMin}
-          onChange={(v) => setCfg({ runTimeoutMin: v })}
-          path="run_timeout_min"
-          issues={issues}
-        />
-        <NumField
-          label="No output timeout"
-          unit="min"
-          value={cfg.idleTimeoutMin}
-          onChange={(v) => setCfg({ idleTimeoutMin: v })}
-          path="idle_timeout_min"
-          issues={issues}
-        />
         <NumField
           label="Auto-compact at"
           unit="% of context"

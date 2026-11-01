@@ -147,10 +147,10 @@ async def test_member_describes_last_call_approvals_and_the_running_ticket(
     d = (await c.get(f"/ai/members/{m['id']}")).json()
     assert d["running"][0]["ticket_title"] == "Add drag handle"
     assert d["running"][0]["ticket_status"] == "in-progress"
-    # Developer template: these actions wait for a person
+    # Developer template: these actions wait for a person (page edits are allowed unless the project asks first)
     assert {a["action"] for a in d["approvals"]} == {
         "change_assignee",
-        "edit_docs",
+        "delete_docs",
     }
     assert d["last_call_at"] is None
     await c.post(f"/ai/runs/{d['running'][0]['run_id']}/cancel", json={})
@@ -376,6 +376,52 @@ def test_rate_limit_wait_reads_what_the_cli_says():
     assert cli.rate_limit_wait("429 usage limit|9999999999") == cli.RATE_WAIT_MAX
 
 
+def test_a_plan_limit_message_is_a_wait_until_its_reset_not_a_failure():
+    now = datetime(2026, 11, 1, 3, 0, tzinfo=UTC)  # 10:00 in Saigon
+    # "resets Nov 2 at 4pm (Asia/Saigon)" is 30 hours away
+    msg = "You've hit your weekly limit · resets Nov 2 at 4pm (Asia/Saigon)"
+    assert cli.reset_wait(msg, now) == 30 * 3600
+    assert cli.reset_wait("resets 3:30pm (America/New_York)", now) == 16.5 * 3600
+    assert (
+        cli.reset_wait("resets Oct 1, 9am", now) > 300 * 86400
+    )  # a past date means next year
+    assert cli.reset_wait("no time here", now) is None
+    assert (
+        cli.reset_wait("resets 9am (Not/AZone)", now) is not None
+    )  # an unknown zone is this computer's own
+    # it is a rate limit, waited for as long as the board allows
+    assert cli.rate_limit_wait(msg) == cli.RATE_WAIT_MAX
+    assert (
+        cli.rate_limit_wait("RESOURCE_EXHAUSTED: Quota exceeded")
+        == cli.RATE_WAIT_DEFAULT
+    )
+    assert cli.rate_limit_wait("the test suite hit a limit of 3 retries") is None
+    # everyday "limit" errors are not the provider's rate limit, and are not waited for
+    for text in (
+        "Context limit reached · /compact or /clear to continue",
+        "Disk quota exceeded",
+        "recursion limit exceeded",
+        "Memory limit exceeded",
+        "You've hit your limit of 5 open files",
+    ):
+        assert cli.rate_limit_wait(text) is None, text
+    for text in (
+        "5-hour limit reached ∙ resets 3pm",
+        "Weekly limit reached ∙ resets Nov 3, 9am",
+        "You've hit your Opus limit · resets 3pm",
+        "You have exhausted your daily quota on this model",
+        "Quota exceeded for quota metric 'GenerateContent'",
+        "insufficient_quota: You exceeded your current quota",
+    ):
+        assert cli.rate_limit_wait(text) is not None, text
+    # a time that does not exist is no time, and does not raise
+    assert cli.reset_wait("resets 3:75pm", now) is None
+    assert cli.reset_wait("resets 13pm", now) is None
+    assert cli.rate_limit_line("a\nYou've hit your weekly limit · resets Nov 2\nb") == (
+        "You've hit your weekly limit · resets Nov 2"
+    )
+
+
 # --------------------------------------------------------------------------- periodic re-detection
 
 
@@ -444,3 +490,33 @@ async def test_health_check_notices_a_sign_in_that_expired_and_came_back(
     assert await members.health_check() == 1
     assert (await c.get(f"/ai/members/{m['id']}")).json()["health"] == "ok"
     assert await members.health_check() == 0  # nothing changed, nothing to say
+
+
+async def test_health_check_holds_no_write_lock_while_it_asks_the_cli(env, monkeypatch):
+    """A slow `claude` check must not block other writers (a run posting its answer, a comment being saved)."""
+    from sqlalchemy import text
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    a = await _runner(c, pid, env["repo"], name="A")
+    b = await _runner(c, pid, env["repo"], name="B")
+    async with env["maker"]() as s:
+        for mid in (a["id"], b["id"]):
+            profile = await s.get(AiMember, mid)
+            profile.health, profile.checked_at = "not_logged_in", None
+            s.add(profile)
+        await s.commit()
+    wrote = []
+
+    async def slow(provider, cli_path):
+        # while the "CLI" runs, another connection must be able to write at once
+        engine = env["maker"].kw["bind"]
+        async with engine.begin() as conn:
+            await conn.execute(text("PRAGMA busy_timeout=300"))
+            await conn.execute(text("UPDATE ticket SET title = title WHERE 0"))
+        wrote.append(True)
+        return {"found": True, "logged_in": True, "version": "1", "account": "x"}
+
+    monkeypatch.setattr(members, "detect_local", slow)
+    await members.health_check()
+    assert len(wrote) == 2

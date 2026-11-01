@@ -75,6 +75,15 @@
       "w": 1480,
       "h": 7910
     },
+    "AiPaused.dc.html": {
+      "bytes": 225894,
+      "sha256": "1c3ea3f26d0dca51d78f8f3889f7225cac52d1d16db614814a007064df548e89",
+      "title": "AI Team — AI paused: one clear state on every screen",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 10280,
+      "note": "Supersedes D1 (header button, paused state) of AiSafetyCost for the banner and top-bar state; D2-D6 stay."
+    },
     "AiResources.dc.html": {
       "bytes": 136640,
       "sha256": "d44a525aae5bc009a0e7e972c8bbb2c69cd656f57a751dc8f4ff66dafed32705",
@@ -570,6 +579,38 @@
       "page": "guideline",
       "w": 1480,
       "h": 8862
+    },
+    "AiTeam.dc.html": {
+      "bytes": 139147,
+      "sha256": "6a2a42b026970571cdade3e52a3614171b96a0ca9a6c654b7d1570aa4052a06f",
+      "title": "AI Team — what the AIs are doing and how work moves",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 5988
+    },
+    "AiTeamReview.dc.html": {
+      "bytes": 133438,
+      "sha256": "933b4a109529a37cf9fc2a0e8288386ceb9bbbeb6f4c688fe4908254f5382374",
+      "title": "AI Team — where people stepped in, and AI health",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 7445
+    },
+    "AiTimeline.dc.html": {
+      "bytes": 139277,
+      "sha256": "733eee8eda7433e45dbe1a6967b77684653adc0ae0d10b7c0d2d3e9ca21c8b00",
+      "title": "AI Team — Flow: the Timeline view",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 4849
+    },
+    "AiTimelineCases.dc.html": {
+      "bytes": 177773,
+      "sha256": "076194223532224b8694e5a5a878b38d32d3facd1d28525ce8fe24b91f998993",
+      "title": "AI Team — Timeline: time, scope, motion, states",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 8098
     }
   }
 }

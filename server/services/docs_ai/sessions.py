@@ -1,4 +1,5 @@
-"""One Claude Code session for each (Docs page, AI member): whatever is asked of that member on the page (an Ask, a
+"""One Claude Code session for each (Docs page, AI member) and, the same way, for each (ticket, AI member):
+whatever is asked of that member on the page (an Ask, a
 tag in a thread, a suggested edit, a summary, the chat about the page) goes into the same conversation, so the AI
 remembers what was said and done on that page. Everyone who talks to the member on the page shares it; the prompt
 names who is asking.
@@ -6,7 +7,8 @@ names who is asking.
 Only a local Claude Code member has sessions; an API-key member gets what it needs in each prompt (rolling summaries).
 A session is resumed only while the CLI still has it on disk and the page is readable by AI; otherwise a new one
 starts and replaces it. Calls on the same (page, member) wait for each other: a CLI session cannot be resumed twice
-at once.
+at once. A ticket's session is shared by the member's runs (a tag, "Do the work", a re-run) and by chats about the
+ticket; a chat that finds a run using it answers in a conversation of its own for that message instead of waiting.
 """
 
 import asyncio
@@ -26,6 +28,22 @@ def page_scope(page_id: str) -> str:
     return f"page:{page_id}"
 
 
+def canvas_scope(canvas_id: str) -> str:
+    """The key of a canvas's session (a canvas that is not a Docs page and has no ticket)."""
+    return f"canvas:{canvas_id}"
+
+
+def ticket_scope(ticket_id: str) -> str:
+    """The key of a ticket's session."""
+    return f"ticket:{ticket_id}"
+
+
+def is_busy(scope: str, member_id: str) -> bool:
+    """Whether a call is using the (scope, member) conversation right now."""
+    lock = _LOCKS.get((scope, member_id))
+    return bool(lock and lock.locked())
+
+
 @asynccontextmanager
 async def exclusive(scope: str, member_id: str) -> AsyncIterator[None]:
     """Hold the (page, member) conversation while a call uses it."""
@@ -40,7 +58,12 @@ async def lookup(scope: str, member_id: str) -> str | None:
         row = await session.get(DocsAiSession, (scope, member_id))
         if row is None:
             return None
-        if session_exists(row.session_id):
+        from services.ai import accounts
+
+        # a member on an AI account keeps its sessions in the account's folder
+        if session_exists(
+            row.session_id, await accounts.config_dir_for_member(session, member_id)
+        ):
             return row.session_id
         await session.delete(row)
         await session.commit()

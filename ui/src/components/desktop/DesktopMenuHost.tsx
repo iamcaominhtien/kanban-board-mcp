@@ -4,7 +4,7 @@ import { useToast } from '../Toast';
 import { emitAppCommand, useAppCommand, type AppCommand } from '../../utils/appCommands';
 import { AboutWindow, KeyboardShortcutsWindow, ReportIssueWindow, WhatsNewWindow } from './DesktopWindows';
 
-export type MenuView = 'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ideas';
+export type MenuView = 'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team' | 'ideas';
 
 interface Props {
   /** The view on screen, reported to the menu for its check mark. */

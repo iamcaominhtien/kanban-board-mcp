@@ -40,7 +40,7 @@ def get_base_analysis_args(entry_point, app_name):
     hidden_imports = (
         sqlmodel_hidden + anyio_hidden + alembic_hidden + aiosqlite_hidden +
         sqlalchemy_async_hidden + keyring_hidden +
-        ['sqlalchemy.dialects.sqlite', 'multiprocessing.freeze_support']
+        ['sqlalchemy.dialects.sqlite', 'multiprocessing.freeze_support', 'psutil']
     )
 
     return {

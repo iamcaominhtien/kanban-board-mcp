@@ -306,11 +306,10 @@ def test_agy_gets_command_rules_from_the_allow_list_and_never_the_bypass_flag():
     assert work[work.index("--conversation") + 1] == "conv-1"
     ask = adapter.launch(_spec(read_only=True)).args
     assert ask[ask.index("--mode") + 1] == "plan"
-    # a question may use the board's MCP server and no command at all
-    assert json.loads(ask[ask.index("--settings") + 1])["permissions"]["allow"] == [
-        "mcp(kanban/*)",
-        "mcp(kanban)",
-    ]
+    # a question may use the board's MCP server and the reading commands only: a denied command ends the whole run
+    asked = set(json.loads(ask[ask.index("--settings") + 1])["permissions"]["allow"])
+    assert {"mcp(kanban/*)", "mcp(kanban)", "command(ls)", "command(cat)"} <= asked
+    assert not any(r in asked for r in ("command(pytest)", "command(rm)", "command(*)"))
     assert "--dangerously-skip-permissions" not in work + ask
     assert adapter.launch(_spec()).env == {
         "KANBAN_RUN_TOKEN": "kbr_secret",
@@ -600,7 +599,7 @@ async def test_an_owner_can_turn_on_bypass_for_the_other_clis(fakes, provider, c
     assert check(_recorded(fakes)[0]["args"])
 
 
-async def test_a_question_runs_read_only(fakes):
+async def test_a_question_runs_with_the_sandbox_of_work(fakes):
     c = fakes["c"]
     pid, _ = await _project(c)
     m = await _member(c, pid, fakes["repo"], "codex")
@@ -612,7 +611,9 @@ async def test_a_question_runs_read_only(fakes):
     assert r.status_code in (200, 201), r.text
     await _wait(c, tid, ("finished", "failed"))
     args = _recorded(fakes)[0]["args"]
-    assert args[args.index("-s") + 1] == "read-only"
+    assert (
+        args[args.index("-s") + 1] == "workspace-write"
+    )  # a question is not held to read-only
 
 
 async def test_the_second_run_on_a_ticket_resumes_the_session(fakes):
@@ -744,14 +745,14 @@ async def test_the_codex_auto_compact_limit_is_validated(fakes):
     assert zero.status_code == 200
 
 
-async def test_antigravity_without_an_account_is_refused_with_the_reason(fakes):
+async def test_antigravity_without_an_account_runs_on_the_login_of_this_computer(fakes):
     c = fakes["c"]
     pid, _ = await _project(c)
     m = await _member(c, pid, fakes["repo"], "antigravity")
     tid = await _ticket(c, pid)
     await _assign(c, tid, m)
-    run = await _wait(c, tid, ("failed",))
-    assert "need an AI account" in run["ended_reason"]
+    run = await _wait(c, tid, ("finished", "failed"))
+    assert run["state"] == "finished", run
 
 
 @pytest.mark.parametrize("provider", ["codex", "opencode", "antigravity"])
@@ -800,3 +801,26 @@ async def test_a_signed_out_cli_is_seen_by_detect(fakes, monkeypatch):
 
 def test_leftover_runs_are_recognised_for_every_cli():
     assert cli.LOCAL_CLIS == ("claude", "codex", "opencode", "agy")
+
+
+def test_agy_result_status_is_kept_so_a_failed_run_can_say_what_it_reported():
+    parser = adapters.for_provider("antigravity").parser("/w")
+    out = parser.feed(
+        '{"event":"result","result":{"conversation_id":"c1","status":"MAX_TURNS","response":"All done.","num_turns":40}}'
+    )
+    assert out["result"]["is_error"] is True and out["result"]["status"] == "MAX_TURNS"
+
+
+def test_agy_result_that_finished_early_is_not_a_finished_task():
+    # `finished_reason` is only present when the turn ended early: a cut-off answer is not a complete one
+    parser = adapters.for_provider("antigravity").parser("/w")
+    out = parser.feed(
+        '{"event":"result","result":{"conversation_id":"c1","status":"SUCCESS","finished_reason":"error","response":"Half of it.","num_turns":3}}'
+    )
+    result = out["result"]
+    assert result["is_error"] is True and result["finished_reason"] == "error"
+    assert any("finished early: error" in s["text"] for s in out["steps"])
+    ok = parser.feed(
+        '{"event":"result","result":{"conversation_id":"c1","status":"SUCCESS","response":"All of it.","num_turns":3}}'
+    )
+    assert ok["result"]["is_error"] is False and ok["steps"] == []

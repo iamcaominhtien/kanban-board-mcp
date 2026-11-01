@@ -1,6 +1,6 @@
 """The Docs tools: reading and writing a project's page tree."""
 
-from .routing import Op, dispatch, params_of
+from .routing import Op, batch, dispatch, params_of
 from pydantic import Field
 from typing import Annotated, Literal
 from .. import operations as ops
@@ -229,6 +229,10 @@ DOCS_WRITE_OPS = {
 }
 
 
+# The light actions that take `items`; page, file and diagram work is one call each
+_BATCH_ACTIONS = {"comment", "reply", "resolve", "reopen"}
+
+
 async def docs_write(
     action: Annotated[
         DocsWriteAction, Field(description="What to do; see the tool description.")
@@ -371,19 +375,25 @@ async def docs_write(
             description="canvas_comment (needs board_id): pin on an element: CSS selector or 'text=Add task'."
         ),
     ] = None,
+    items: Annotated[
+        list[dict] | None,
+        Field(
+            description="comment, reply, resolve, reopen: many at once (max 25): one object of parameters per call; the other arguments apply to all. In order; failures are reported per item."
+        ),
+    ] = None,
 ) -> dict:
     """Write a project's Docs. `action`:
     - create: project_id, title [, markdown, parent_id]. Published as v1. Returns {id, title, slug, status, version}.
-    - update: page_id, markdown, base_version [, note, publish, title]. Replaces the whole body and optionally renames. Returns {id, title, version, published}.
-    - move: page_id [, parent_id, after_id]. Under another page or to the top level; into itself or its own sub-pages is rejected.
-    - duplicate: page_id [, include_children, title]. A new draft copy without history. Returns {id, title, slug, status}.
-    - delete: page_id. Soft-delete of the page and its sub-pages into the Recycle Bin (kept 30 days).
-    - restore: page_id. Brings a deleted page (with the sub-pages deleted with it) back.
-    - restore_version: page_id, version. Publishes an old version again as a new one (history is kept). Returns {id, title, version}.
-    - import: project_id, path [, parent_id]. Local Markdown files become new draft pages, folders a tree. Returns {created, failed}.
-    - comment: page_id, body [, quote]. A comment on selected text (quote) or on the whole page. Returns the thread.
+    - update: page_id, markdown, base_version [, note, publish, title]. Replaces the whole body; may rename. Returns {id, title, version, published}.
+    - move: page_id [, parent_id, after_id]. Under another page or to the top level (not into itself or its sub-pages).
+    - duplicate: page_id [, include_children, title]. A new draft copy. Returns {id, title, slug, status}.
+    - delete: page_id. Moves the page and its sub-pages to the Recycle Bin (30 days).
+    - restore: page_id. Brings a deleted page and its sub-pages back.
+    - restore_version: page_id, version. Publishes an old version again as a new one. Returns {id, title, version}.
+    - import: project_id, path [, parent_id]. Local Markdown files become draft pages, folders a tree. Returns {created, failed}.
+    - comment: page_id, body [, quote]. A comment on quoted text or the whole page. Returns the thread.
     - reply: thread_id, body. Reply in a thread.
-    - edit_comment [, body] / delete_comment: comment_id. Own comments only; deleting a thread's first comment removes the thread.
+    - edit_comment [, body] / delete_comment: comment_id. Own comments only; deleting a thread's first comment removes it.
     - resolve / reopen: thread_id (inline threads).
     - diagram_create: project_id, title, path [, svg_path, summary]. A new diagram from a local .drawio file. Returns {id, label, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.
     - diagram_save: diagram_id, path, base_version [, svg_path, title]. Saves the edited .drawio file as a new version; base_version is the `version` from docs_read(diagram), a stale one is rejected. Returns {id, label, version}.
@@ -395,4 +405,17 @@ async def docs_write(
     - canvas_propose: canvas_id, board_id, path [, note]. Offer a changed HTML frame from a folder (see docs_read(canvas)). Nothing changes until a person accepts; a frame being edited waits.
     The preview of a saved diagram is drawn by the server (boxes, arrows, text) unless you pass an SVG export; a person who opens it in the editor sees the full drawing.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
-    return await dispatch("docs_write", DOCS_WRITE_OPS, action, params_of(locals()))
+    given = params_of(locals())
+    many = given.pop("items", None)
+    if many is not None:
+        if action not in _BATCH_ACTIONS:
+            raise ValueError(
+                f"docs_write: items only works with {', '.join(sorted(_BATCH_ACTIONS))}."
+            )
+        return await batch(
+            lambda extra: dispatch(
+                "docs_write", DOCS_WRITE_OPS, action, {**given, **extra}
+            ),
+            many,
+        )
+    return await dispatch("docs_write", DOCS_WRITE_OPS, action, given)

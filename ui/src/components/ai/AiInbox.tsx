@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAiMutation, useAiOverview } from '../../api/ai';
-import { safetyApi, useAiApprovalList, useAiInbox, useApprovalBacklog, useTicketGrants } from '../../api/aiSafety';
+import {
+  safetyApi,
+  useAiApprovalList,
+  useAiInbox,
+  useAlwaysGrants,
+  useApprovalBacklog,
+  useTicketGrants,
+} from '../../api/aiSafety';
 import { extractError } from '../../api/extractError';
 import type { AiApproval, AiMember } from '../../types/ai';
 import type { Member } from '../../types';
@@ -171,6 +178,7 @@ function ApprovalsTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="ai-approvals">
+      <AlwaysAllowed projectId={projectId} />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <select className="ai-select-sm" value={show} onChange={(e) => setShow(e.target.value as typeof show)}>
           <option value="pending">Pending · {pending.length}</option>
@@ -446,11 +454,14 @@ export function ApprovalCard({
   const [note, setNote] = useState('');
   const [stopRun, setStopRun] = useState(false);
   const toast = useToast();
-  const approve = useAiMutation((v: { remember?: boolean; acceptUpdated?: boolean }) => safetyApi.approve(a.id, v));
+  const approve = useAiMutation((v: { remember?: boolean; always?: boolean; acceptUpdated?: boolean }) =>
+    safetyApi.approve(a.id, v),
+  );
   const deny = useAiMutation(() => safetyApi.deny(a.id, note, stopRun));
   const stale = a.stale;
+  const [always, setAlways] = useState(false);
   const lead = a.ticketId ? `${a.ticketId}${a.targetTitle ? ` · ${a.targetTitle}` : ''}` : '';
-  const decide = async (v: { remember?: boolean; acceptUpdated?: boolean }) => {
+  const decide = async (v: { remember?: boolean; always?: boolean; acceptUpdated?: boolean }) => {
     try {
       const r = await approve.mutateAsync(v);
       if (r.error) toast.error('Approved, but it could not be applied', r.error);
@@ -562,6 +573,27 @@ export function ApprovalCard({
           {a.canDecide === false && (
             <div className="ai-notice ai-notice-slate">{a.cannotReason || 'You can’t decide this request.'}</div>
           )}
+          {a.status === 'pending' && a.alwaysAllowed && !stale && (
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                fontSize: 12.5,
+                color: '#3A4A3E',
+                cursor: 'pointer',
+              }}
+              data-testid="approval-always"
+            >
+              <input
+                type="checkbox"
+                checked={always}
+                onChange={(e) => setAlways(e.target.checked)}
+                style={{ accentColor: '#2E6F40', margin: 0 }}
+              />
+              Don’t ask again for {a.memberName}’s Docs edits
+            </label>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {a.status === 'pending' && (
               <>
@@ -569,10 +601,10 @@ export function ApprovalCard({
                   type="button"
                   className="ai-btn ai-btn-sm ai-btn-primary"
                   disabled={approve.isPending || a.canDecide === false || !!stale}
-                  onClick={() => void decide({})}
+                  onClick={() => void decide(always ? { always: true } : {})}
                   data-testid="approval-approve"
                 >
-                  Approve once
+                  {always ? 'Approve, don’t ask again' : 'Approve once'}
                 </button>
                 {stale && (
                   <button
@@ -607,6 +639,12 @@ export function ApprovalCard({
               Deny…
             </button>
           </div>
+          {a.alwaysAllowed && a.status === 'pending' && (
+            <div className="ai-muted">
+              “Don’t ask again” covers every Docs edit by this AI, on any page, and also stops its page proposals. It is
+              listed under “Always allowed” above and can be revoked there.
+            </div>
+          )}
           {a.rememberAllowed && a.status === 'pending' && (
             <div className="ai-muted">
               Remember covers this action on this ticket only, until it reaches Done. It is listed on the ticket and can
@@ -839,5 +877,46 @@ export function ApprovalRules({ projectId, humans }: { projectId: string; humans
         {error && <div className="ai-error-text">{error}</div>}
       </div>
     </SafetyCard>
+  );
+}
+
+const ACTION_WORDS: Record<string, string> = { edit_docs: 'edit Docs pages' };
+
+/** What the AIs may do without asking, from “Always allow”: one line each, with Revoke. Nothing shows when it is empty. */
+function AlwaysAllowed({ projectId }: { projectId: string }) {
+  const grants = useAlwaysGrants(projectId);
+  const toast = useToast();
+  const revoke = useAiMutation((id: string) => safetyApi.revokeGrant(id));
+  const items = grants.data ?? [];
+  if (!items.length) return null;
+  return (
+    <div
+      className="ai-notice"
+      style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}
+      data-testid="always-allowed"
+    >
+      <b>Always allowed · {items.length}</b>
+      {items.map((g) => (
+        <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ flex: 1 }}>
+            <b>{g.memberName ?? 'An AI'}</b> may {ACTION_WORDS[g.action] ?? g.action} without asking · allowed by{' '}
+            {g.createdBy}
+          </span>
+          <button
+            type="button"
+            className="ai-btn ai-btn-sm"
+            disabled={revoke.isPending}
+            onClick={() =>
+              revoke.mutate(g.id, {
+                onSuccess: () => toast.success('Revoked', 'It asks again next time.'),
+                onError: (err) => toast.error("Couldn't revoke", extractError(err)),
+              })
+            }
+          >
+            Revoke
+          </button>
+        </div>
+      ))}
+    </div>
   );
 }

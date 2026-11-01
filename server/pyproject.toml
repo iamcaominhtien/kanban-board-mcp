@@ -13,6 +13,7 @@ dependencies = [
     "greenlet>=3.3.2",
     "keyring>=25.0",
     "mcp[cli]>=1.27.0",
+    "psutil>=6.0",
     "pyyaml>=6.0",
     "rapidfuzz>=3.9.0",
     "sqlmodel>=0.0.38",

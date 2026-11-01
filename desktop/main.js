@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, clipboard, ipcMain, dialog, shell } = require('electron');
 const os = require('os');
+const crypto = require('crypto');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -23,6 +24,9 @@ const {
 // Logs are emitted to the console as [startup] <stage> +<N>ms
 const profiler = new StartupProfiler();
 
+// Only this app's window gets it (preload.js asks for it); the server reads it from its standard input
+// (KANBAN_NO_API_SECRET=1 starts the app without it, should a window ever be locked out of its own board)
+const apiSecret = process.env.KANBAN_NO_API_SECRET ? '' : crypto.randomBytes(24).toString('hex');
 let mainWindow = null;
 let backendPort = null;
 let backendProcess = null;
@@ -42,6 +46,7 @@ function startBackend() {
       exportCommand: buildExportCommand({ isPackaged: app.isPackaged, execPath: process.execPath, desktopDir: __dirname }),
       devPythonExists: fs.existsSync(path.join(__dirname, '..', 'server', '.venv', 'bin', 'python')),
       configPath: path.join(app.getPath('home'), '.kanban-board', 'config.json'),
+      apiSecret,
     });
 
     // Strip macOS quarantine attribute from packaged binary so it can be spawned
@@ -62,6 +67,10 @@ function startBackend() {
     try {
       child = spawn(spec.command, spec.args, spec.options);
       profiler.mark('backend-spawned');
+      if (apiSecret && child.stdin) {
+        child.stdin.on('error', () => { /* the server exited before it read the secret */ });
+        child.stdin.write(`${apiSecret}\n`);
+      }
     } catch (spawnErr) {
       return reject(new Error(`spawn failed: ${spawnErr.code} — path: ${spec.command}`));
     }
@@ -299,6 +308,12 @@ ipcMain.handle('get-app-info', () => ({
 
 // IPC: renderer asks for backend port
 ipcMain.handle('get-backend-port', () => backendPort);
+
+// IPC: the page asks for the secret that lets it change the board (server/api_secret.py). Synchronous, so the first
+// request already carries it; only the app's own window gets an answer.
+ipcMain.on('get-api-secret', (event) => {
+  event.returnValue = mainWindow && event.sender === mainWindow.webContents ? apiSecret : '';
+});
 
 // IPC: renderer asks to start the backend again after a failure ("Try again" on the splash)
 let backendLaunching = false;

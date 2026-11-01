@@ -40,6 +40,8 @@ interface AppInfo {
 interface Window {
   electronAPI?: {
     getBackendPort: () => Promise<number | null>;
+    /** The secret that lets this window change the board; the server refuses every other caller (server/api_secret.py). */
+    getApiSecret?: () => string;
     selectFolder?: () => Promise<string | null>;
     openPath?: (filePath: string) => Promise<{ success: boolean; error?: string | null }>;
     showItemInFolder?: (filePath: string) => Promise<{ success: boolean; error?: string | null }>;

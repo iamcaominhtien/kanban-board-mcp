@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // May return null if called before the backend is ready.
   getBackendPort: () => ipcRenderer.invoke('get-backend-port'),
 
+  // The secret that lets this window change the board (the server refuses every other caller)
+  getApiSecret: () => ipcRenderer.sendSync('get-api-secret'),
+
   // Subscribe to backend events (one-shot lifecycle events).
   // Returns a cleanup function to deregister the listener if the component unmounts before the event fires.
   onBackendReady: (callback) => {

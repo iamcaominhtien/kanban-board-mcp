@@ -1,4 +1,5 @@
 import { useMentionEstimate } from '../../api/assist';
+import { useAiBoardState } from './aiUi';
 import type { AiMember } from '../../types/ai';
 import type { MentionIntent } from './MentionIntent';
 import './ticketWork.css';
@@ -39,6 +40,7 @@ export function MentionPlan({
   onMode: (m: MentionIntent) => void;
 }) {
   const first = members[0];
+  const paused = !!useAiBoardState().settings?.pausedAll;
   const ask = useMentionEstimate(ticketId, first?.id, 'ask');
   const work = useMentionEstimate(ticketId, first?.id, 'work', mode === 'work');
   if (!first) return null;
@@ -90,7 +92,13 @@ export function MentionPlan({
           </div>
         </>
       )}
-      {e && !e.available && (
+      {paused && (
+        <div className="tw-plan-warn" role="status" data-testid="plan-paused">
+          AI is paused. {members.length > 1 ? 'These AI members' : `@${first.name}`} will not be notified, and the
+          mention is not saved for later.
+        </div>
+      )}
+      {!paused && e && !e.available && (
         <div className="tw-plan-warn" role="alert" data-testid="plan-unavailable">
           ⚠ {e.reason ?? 'It cannot start now.'} The comment is saved, but nothing will run.
         </div>

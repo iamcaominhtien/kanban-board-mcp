@@ -1,0 +1,6 @@
+# The strings GitGuardian flags in server/tests/test_ai_safety.py are made-up values for a test that checks the
+# REST API refuses a request without the app's secret. They are not real keys.
+version: 2
+secret:
+  ignored_paths:
+    - server/tests/test_ai_safety.py

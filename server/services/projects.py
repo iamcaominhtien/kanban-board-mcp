@@ -1,11 +1,12 @@
 import uuid
 
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
+from sqlmodel import SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from services.git_repo import normalize_repo_path
-from models import Member, Project, ProjectCreate, ProjectUpdate, Ticket
+from models import Project, ProjectCreate, ProjectUpdate
 from services.members import create_member as _create_member
 
 
@@ -92,33 +93,54 @@ async def update_project(
     return project
 
 
+def _owned_by(table, project_id: str, seen: tuple[str, ...] = ()):
+    """SQL condition selecting the rows of `table` that belong to the project, or None when the table is not tied to a
+    project (a global setting). A table with a `project_id` column is selected by it; a child table (a chat's messages,
+    a page's versions) through its foreign key to a table that is."""
+    if table.name == "project":
+        return None
+    if "project_id" in table.columns:
+        return table.c.project_id == project_id
+    for fk in table.foreign_keys:
+        parent = fk.column.table
+        if parent.name == "project" or parent.name in seen:
+            continue
+        inner = _owned_by(parent, project_id, (*seen, table.name))
+        if inner is not None:
+            return fk.parent.in_(select(fk.column).where(inner))
+    return None
+
+
 async def delete_project(session: AsyncSession, project_id: str) -> bool:
-    """Delete a project.
+    """Delete a project with everything in it: tickets, members, docs, AI members and runs, chats, ideas, sketches...
+
+    The database does not enforce foreign keys, so the rows are removed here: every table tied to the project, child
+    tables first, then the project. Files that tickets uploaded stay on disk.
 
     Args:
         project_id: Project to delete.
 
     Returns:
         True if deleted, False if it does not exist.
-
-    Raises:
-        ValueError: If the project still has tickets.
     """
     project = await session.get(Project, project_id)
     if project is None:
         return False
 
-    ticket_result = await session.exec(
-        select(Ticket).where(Ticket.project_id == project_id).limit(1)
+    for table in reversed(SQLModel.metadata.sorted_tables):
+        condition = _owned_by(table, project_id)
+        if condition is not None:
+            await session.execute(table.delete().where(condition))
+    # the one child table without a foreign key to its page
+    await session.execute(
+        text(
+            "DELETE FROM docs_ai_ignore WHERE page_id NOT IN (SELECT id FROM docs_page)"
+        )
     )
-    if ticket_result.first() is not None:
-        raise ValueError("Project has tickets — cannot delete")
-
-    member_result = await session.exec(
-        select(Member).where(Member.project_id == project_id)
+    await session.execute(
+        SQLModel.metadata.tables["project"]
+        .delete()
+        .where(SQLModel.metadata.tables["project"].c.id == project_id)
     )
-    for m in member_result.all():
-        await session.delete(m)
-    await session.delete(project)
     await session.commit()
     return True

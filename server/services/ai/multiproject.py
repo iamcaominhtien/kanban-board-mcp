@@ -28,6 +28,7 @@ SHARED = (
     "key_rotated_at",
     "persona",
     "max_parallel",
+    "resource_access",
     "daily_budget",
     "monthly_cap",
     "max_runs_per_day",

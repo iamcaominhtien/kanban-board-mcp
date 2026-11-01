@@ -71,3 +71,30 @@ async def test_a_cli_run_hears_a_person_edit_on_its_next_board_call(env):
         "An Nguyen edited the ticket while you were working."
     )
     assert "board_notice" not in again  # delivered once
+
+
+async def test_asking_again_for_the_same_change_does_not_list_it_twice(env):
+    from kanban_mcp.tools.tickets import manage_ticket
+
+    ctx, pid, an, m, tid = await _ctx(env)
+    c = env["c"]
+
+    async def ask(**fields):
+        tokens = guard.enter(ctx)
+        try:
+            with pytest.raises(ValueError, match="NEEDS_APPROVAL"):
+                await manage_ticket(
+                    action="update", ticket_id=tid, assignee=an, **fields
+                )
+        finally:
+            guard.leave(tokens)
+
+    async def pending():
+        r = await c.get(f"/projects/{pid}/ai/approvals?status=pending")
+        return r.json()
+
+    await ask()
+    await ask()  # the person had closed the card and the AI is asked again (APPROVAL_WAIT_S is 0 in tests)
+    assert len(await pending()) == 1
+    await ask(priority="critical")  # a different change is a different request
+    assert len(await pending()) == 2

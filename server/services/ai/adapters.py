@@ -144,7 +144,7 @@ class Adapter:
     binary = ""
     label = ""
     # Text of an error that means the earlier session is gone, so the run starts a new one
-    resume_missing = ("no conversation", "session not found", "not found")
+    resume_missing = ("no conversation", "session not found")
     needs_account = False  # refuse to run without an AI account
 
     def launch(self, spec: Spec) -> Launch:
@@ -636,6 +636,20 @@ class AgyParser(Parser):
                     }
                 )
             bad = res.get("status") not in (None, "SUCCESS")
+            # `finished_reason` is only there when the turn ended early (print_timeout, interrupted, error): the answer
+            # is partial, whatever the status says
+            early = res.get("finished_reason")
+            bad = bad or bool(early)
+            if bad:
+                # what the CLI really reported, so a failed run that looks finished can be explained
+                out["steps"].append(
+                    {
+                        "kind": "start",
+                        "text": f"Antigravity reported status {res.get('status')}"
+                        + (f", finished early: {early}" if early else "")
+                        + f", {res.get('num_turns')} turn(s)",
+                    }
+                )
             text = _FILE_LINK.sub(r"\1", res.get("response") or "")
             if denied and not text.strip():
                 # Headless mode ends the run at the first denied action: that is a failure, not a finished task
@@ -645,6 +659,8 @@ class AgyParser(Parser):
                     "Add an Allow rule for it in the member's Configuration."
                 )
             out["result"] = {
+                "status": res.get("status"),
+                "finished_reason": early,
                 "is_error": bad,
                 "subtype": "error" if bad else "success",
                 "text": redact(text),
@@ -738,7 +754,7 @@ class AgyAdapter(Adapter):
     cli = "agy"
     binary = "agy"
     label = "Antigravity"
-    resume_missing = ("conversation not found", "no conversation", "not found")
+    resume_missing = ("conversation not found", "no conversation")
     # Its MCP servers live in the account's HOME (mcp_config.json): there is no per-run place for a token, so the run
     # goes through the stdio bridge named there. Without an account that file would be the person's own.
     needs_account = True
@@ -770,7 +786,8 @@ class AgyAdapter(Adapter):
             "--mode",
             "plan" if spec.read_only else "accept-edits",
         ]
-        rules = [] if spec.read_only else agy_command_rules(spec.allowed)
+        # a question may only read, but a denied command ends the whole run: it gets the reading commands too
+        rules = agy_command_rules([] if spec.read_only else spec.allowed)
         # the board's own MCP server: what a run may do there is decided by the board's guard, not by the CLI
         allow = [*rules, "mcp(kanban/*)", "mcp(kanban)"] if spec.mcp_url else rules
         deny = [] if spec.read_only else agy_deny_rules(spec.denied)
@@ -790,7 +807,7 @@ class AgyAdapter(Adapter):
         args += _safe_flags(spec.extra_flags)
         env = {TOKEN_ENV: spec.token, URL_ENV: spec.mcp_url} if spec.mcp_url else {}
         if spec.read_only:
-            note = "Antigravity: a question, so it only plans and reads"
+            note = "Antigravity: a question, so it only plans and reads (reading commands only)"
         elif spec.bypass:
             note = f"Bypass permissions: Antigravity runs any command except what a Deny rule stops ({len(deny)} rule(s))"
         else:

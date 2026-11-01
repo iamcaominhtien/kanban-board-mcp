@@ -112,6 +112,14 @@ async def accept_all(
     return await _out(session, p)
 
 
+@router.post("/docs/ai/proposals/{proposal_id}/always-allow")
+async def always_allow(proposal_id: str, session: Session) -> dict[str, Any]:
+    """Let this AI member edit pages without review from now on (revocable under Approvals)."""
+    p = await _proposal(session, proposal_id)
+    p = await proposals.allow_always(session, p.id, by=by())
+    return await _out(session, p)
+
+
 @router.post("/docs/ai/proposals/{proposal_id}/reject-all")
 async def reject_all(
     proposal_id: str, session: Session, body: Optional[NoteBody] = None

@@ -16,6 +16,7 @@ import database
 from models import AiRun
 
 from . import api_prompt, api_tools, budget, cli, guard, secrets
+from .context import narrow_run
 from .providers import cheap_model, context_window, cost_of, merged_config
 from .store import get_profile, get_settings, loads, now_iso
 
@@ -258,6 +259,11 @@ def make_chat(provider: str, base_url: str, key: str, model: str, temperature: f
 # ---------------------------------------------------------------------------
 
 _S = {"type": "string"}
+
+
+def _tool_mode(run) -> str:
+    """ "ask" (read-only tools) only for Autopilot's delegate; a question gets the tools of work."""
+    return "ask" if narrow_run(run.mode, run.trigger) else "work"
 
 
 def board_tools(mode: str, groups: dict) -> list[dict]:
@@ -706,13 +712,13 @@ async def execute(run_id: str, token: str, resume_note: str | None = None) -> No
         profile.model or "",
         float(config["temperature"]),
     )
-    extra_defs, extra, notes = await api_tools.load_extra_tools(config, run.mode)
+    extra_defs, extra, notes = await api_tools.load_extra_tools(config, _tool_mode(run))
     chat.start(
         system,
         prompt
         if not resume_note
         else "\n\n".join(x for x in (prompt, earlier, resume_note) if x),
-        board_tools(run.mode, config["tool_groups"]) + extra_defs,
+        board_tools(_tool_mode(run), config["tool_groups"]) + extra_defs,
     )
     await runs._append(
         run_id,

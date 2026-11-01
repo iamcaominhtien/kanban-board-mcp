@@ -95,6 +95,7 @@ export function ProposalReview({
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [legend, setLegend] = useState(false);
+  const [always, setAlways] = useState(false);
   const waiting = p.status === 'waiting';
   const decide = waiting && p.canDecide;
   const busy =
@@ -102,6 +103,7 @@ export function ProposalReview({
     act.reject.isPending ||
     act.edit.isPending ||
     act.acceptAll.isPending ||
+    act.alwaysAllow.isPending ||
     act.rejectAll.isPending;
 
   useEffect(() => {
@@ -353,19 +355,45 @@ export function ProposalReview({
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  type="button"
-                  style={primary}
-                  disabled={busy || n === 0}
-                  data-testid="proposal-accept-all"
-                  onClick={() => void run(() => act.acceptAll.mutateAsync({ id: p.id }))}
-                >
-                  Accept all ({n})
-                </button>
-                <button type="button" style={btn} disabled={busy} onClick={() => setRejecting(true)}>
-                  Reject all
-                </button>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {!p.alwaysAllowed && (
+                  <label
+                    style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, color: '#3A4A3E' }}
+                    data-testid="proposal-always"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={always}
+                      onChange={(e) => setAlways(e.target.checked)}
+                      style={{ accentColor: '#2E6F40', marginTop: 2 }}
+                    />
+                    <span>
+                      Don’t ask me again for <b>{p.memberName}</b>
+                      <span style={{ display: 'block', color: '#5E655F', fontSize: 12 }}>
+                        Its page edits are published without review. Undo it in Approvals › Always allowed.
+                      </span>
+                    </span>
+                  </label>
+                )}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    style={primary}
+                    disabled={busy || n === 0}
+                    data-testid="proposal-accept-all"
+                    onClick={() =>
+                      void run(async () => {
+                        await act.acceptAll.mutateAsync({ id: p.id });
+                        if (always && !p.alwaysAllowed) await act.alwaysAllow.mutateAsync({ id: p.id });
+                      })
+                    }
+                  >
+                    Accept all ({n})
+                  </button>
+                  <button type="button" style={btn} disabled={busy} onClick={() => setRejecting(true)}>
+                    Reject all
+                  </button>
+                </div>
               </div>
             )}
           </>

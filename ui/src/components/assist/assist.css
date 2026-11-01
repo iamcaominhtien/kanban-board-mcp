@@ -2,13 +2,15 @@
 
 .as-dock {
   width: 420px; /* the default; the panel sets its own width (components/PanelResizer.tsx) */
-  flex-shrink: 0;
+  /* Floats over the board on the right edge instead of pushing it; the board scrolls sideways to get past it */
+  position: fixed;
+  top: 0;
+  right: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
   background: #fff;
   border-left: 1px solid #e3e8e5;
-  position: relative;
   z-index: 1100; /* above the ticket modal overlay: "Ask about this ticket" stays usable */
   box-shadow: -8px 0 24px rgba(30, 42, 34, 0.06);
 }
@@ -242,7 +244,10 @@
   font-family: inherit;
   font-size: 13px;
   line-height: 1.45;
-  min-height: 22px;
+  /* one line is as tall as the send button, so the text sits in the middle, not at the bottom of the box */
+  box-sizing: border-box;
+  padding: 7.6px 0;
+  min-height: 34px;
   max-height: 140px;
   background: transparent;
   color: #1e2a22;
@@ -271,6 +276,41 @@
   display: flex;
   align-items: center;
   gap: 5px;
+}
+.as-meter {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7a8a80;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+.as-meter-bar {
+  width: 44px;
+  height: 4px;
+  border-radius: 2px;
+  background: #e3e8e5;
+  overflow: hidden;
+}
+.as-meter-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: #2e6f40;
+  transition: width 0.3s ease;
+}
+.as-meter-warm {
+  color: #8a5d0a;
+}
+.as-meter-warm .as-meter-bar i {
+  background: #c98a1b;
+}
+.as-meter-hot {
+  color: #a8341f;
+}
+.as-meter-hot .as-meter-bar i {
+  background: #c4432a;
 }
 .as-draft {
   border: 1.5px dashed #b8c3bc;

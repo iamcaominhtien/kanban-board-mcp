@@ -17,6 +17,8 @@ def _ai_get_routes() -> list[str]:
         for r in app.routes
         if "GET" in getattr(r, "methods", set())
         and ("/ai" in r.path or "assist" in r.path)
+        # a Server-Sent Events stream never ends: its first frame is tested in test_ai_run_limits.py
+        and not r.path.endswith("/stream")
     )
 
 

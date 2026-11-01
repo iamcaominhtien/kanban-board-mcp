@@ -132,7 +132,8 @@ export function Column({
                     <path d="M8.5 5.5V18.5" />
                     <path d="M15.5 5.5V18.5" />
                   </svg>
-                  +{tickets.filter((t) => t.pending).length} pending
+                  +{tickets.filter((t) => t.pending).length}
+                  <span className={styles.pendingWord}> pending</span>
                 </span>
               )}
             </div>

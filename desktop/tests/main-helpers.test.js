@@ -184,3 +184,31 @@ test('terminateBackendProcess only kills valid child processes', () => {
   assert.equal(killed, true);
   assert.equal(terminateBackendProcess(null), false);
 });
+test('the API secret goes to the server on its standard input, never in its environment', () => {
+  const apiSecret = require('crypto').randomBytes(12).toString('hex'); // made up for this test
+  const spec = buildBackendLaunchSpec({
+    isPackaged: true,
+    platform: 'darwin',
+    resourcesPath: '/R',
+    userDataPath: '/U',
+    desktopDir: '/D',
+    baseEnv: {},
+    devPythonExists: false,
+    apiSecret,
+  });
+  assert.deepEqual(spec.options.stdio, ['pipe', 'pipe', 'pipe']);
+  assert.equal(spec.options.env.KANBAN_API_SECRET_STDIN, '1');
+  assert.ok(!JSON.stringify(spec.options.env).includes(apiSecret));
+  const dev = buildBackendLaunchSpec({
+    isPackaged: false,
+    platform: 'darwin',
+    resourcesPath: '/R',
+    userDataPath: '/U',
+    desktopDir: '/D/desktop',
+    baseEnv: {},
+    devPythonExists: true,
+    apiSecret,
+  });
+  assert.deepEqual(dev.options.stdio, ['pipe', 'pipe', 'pipe']);
+  assert.ok(!JSON.stringify(dev.options.env).includes(apiSecret));
+});

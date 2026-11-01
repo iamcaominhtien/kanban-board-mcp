@@ -58,7 +58,7 @@ def test_capability_matrix_follows_the_design():
     # The CLIs the board runs itself: everything goes in the prompt or on the command line, nothing is "documented"
     ag = providers.capabilities("antigravity")
     assert (
-        len([m for m in ag.values() if m != "not_supported"]) == 4
+        len([m for m in ag.values() if m != "not_supported"]) == 5
         and ag["instructions"] == "synced"
         and ag["permissions"] == "synced"
         and ag["skills"] == "not_supported"

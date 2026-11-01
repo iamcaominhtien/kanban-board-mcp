@@ -5,6 +5,7 @@ the account shown is what ``claude auth status`` prints (no token is in that out
 """
 
 import asyncio
+import calendar
 import json
 import os
 import re
@@ -15,7 +16,9 @@ import sys
 import tempfile
 import threading
 import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from . import paths
 from .secrets import redact
@@ -77,6 +80,16 @@ def _popen_kwargs() -> dict:
     return {"start_new_session": True}
 
 
+def low_priority_prefix() -> list[str]:
+    """`taskpolicy -b` on macOS, only when KANBAN_CLI_LOW_PRIORITY=1: the CLI and its children run on the efficiency
+    cores with a lower disk priority. Off by default: five real CLIs took 144 s instead of 106 s with it and the
+    CPU peak did not drop. `taskpolicy` execs the command, so the pid stays the CLI's."""
+    if sys.platform != "darwin" or os.environ.get("KANBAN_CLI_LOW_PRIORITY") != "1":
+        return []
+    tool = shutil.which("taskpolicy")
+    return [tool, "-b"] if tool else []
+
+
 def child_env(compact_at_pct: int | None = None) -> dict:
     """Environment for the CLI: the person's own, minus variables that would make it think it runs inside a
     Claude Code session (when the board itself was started from one). `compact_at_pct` is the share of the context
@@ -92,9 +105,24 @@ def child_env(compact_at_pct: int | None = None) -> dict:
     return env
 
 
-def session_exists(session_id: str, config_dir: str | None = None) -> bool:
+def session_exists(
+    session_id: str, config_dir: str | None = None, provider: str | None = None
+) -> bool:
     """Whether the CLI still has this conversation on disk (it is gone when the person cleaned ~/.claude).
-    ``config_dir`` is the folder of an AI account, which keeps its own sessions."""
+    ``config_dir`` is the folder of an AI account, which keeps its own sessions. Without a `provider` either CLI's
+    conversations count (a ticket's shared conversation belongs to one of them)."""
+    if (
+        provider in (None, "antigravity")
+        and (
+            antigravity_home()
+            / "antigravity-cli"
+            / "conversations"
+            / f"{session_id}.db"
+        ).is_file()
+    ):
+        return True
+    if provider == "antigravity":
+        return False
     root = (
         Path(
             config_dir or os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude"
@@ -183,10 +211,43 @@ async def detect(
 
 
 async def test_run(
-    path: str, model: str | None, cwd: str | None, env: dict | None = None
+    path: str,
+    model: str | None,
+    cwd: str | None,
+    env: dict | None = None,
+    provider: str = "claude-code",
 ) -> dict:
     """A one-line headless run: proves the CLI starts, is signed in and answers."""
     started = time.monotonic()
+    if provider == "antigravity":
+        args = [
+            path,
+            "-p",
+            "Reply with exactly the word: pong",
+            "--output-format",
+            "json",
+        ]
+        if model:
+            args += ["--model", model]
+        code, out, err = await run_capture(args, 120, cwd=cwd, env=env)
+        seconds = round(time.monotonic() - started, 1)
+        try:
+            data = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
+        except ValueError:
+            data = {}
+        reply = str(data.get("response") or "").strip()
+        if code == 0 and data.get("status") == "SUCCESS" and reply:
+            return {"ok": True, "seconds": seconds, "reply": reply[:80]}
+        detail = reply or err.strip() or out.strip() or f"exit code {code}"
+        low = detail.lower()
+        return {
+            "ok": False,
+            "seconds": seconds,
+            "error": redact(detail)[:300],
+            "kind": "not_logged_in"
+            if ("log in" in low or "login" in low or "sign in" in low or "auth" in low)
+            else "failed",
+        }
     args = [
         path,
         "-p",
@@ -226,21 +287,82 @@ async def test_run(
 
 
 _RATE_LIMITED = re.compile(
-    r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests)",
+    r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests"
+    r"|hit your (?:\w+ )?limit\b(?! of)"
+    r"|(?:5-hour|weekly|opus|sonnet|session|daily|usage|monthly) limit reached"
+    r"|resource_exhausted|insufficient_quota|exhausted your \w+ quota|quota exceeded for quota metric)",
+    re.IGNORECASE,
+)
+# "resets Nov 2 at 4pm (Asia/Saigon)", "resets Nov 3, 9am", "resets 3:30pm (America/New_York)"
+_RESETS = re.compile(
+    r"resets?\s+(?:(?P<mon>[A-Za-z]{3,9})\.?\s+(?P<day>\d{1,2})(?:,|\s+at)?\s+)?"
+    r"(?P<h>\d{1,2})(?::(?P<m>\d{2}))?\s*(?P<ap>am|pm)\b(?:\s*\((?P<tz>[A-Za-z_]+(?:/[A-Za-z_+\-0-9]+)*)\))?",
     re.IGNORECASE,
 )
 RATE_WAIT_DEFAULT = 45.0
 RATE_WAIT_MAX = 6 * 3600.0
 
 
+def reset_wait(text: str, now: datetime | None = None) -> float | None:
+    """Seconds until the time a plan-limit message says the limit resets, or None when it names none."""
+    try:
+        return _reset_wait(text, now)
+    except (ValueError, OverflowError):
+        return None
+
+
+def _reset_wait(text: str, now: datetime | None) -> float | None:
+    m = _RESETS.search(text or "")
+    if not m or not 1 <= int(m["h"]) <= 12 or int(m["m"] or 0) > 59:
+        return None
+    try:
+        zone = ZoneInfo(m["tz"]) if m["tz"] else None
+    except (ZoneInfoNotFoundError, ValueError):
+        zone = None
+    now = (now or datetime.now(UTC)).astimezone(zone)  # zone None: this computer's own
+    hour = int(m["h"]) % 12 + (12 if m["ap"].lower() == "pm" else 0)
+    when = now.replace(hour=hour, minute=int(m["m"] or 0), second=0, microsecond=0)
+    if m["mon"]:
+        month = next(
+            (
+                i
+                for i in range(1, 13)
+                if calendar.month_name[i].lower().startswith(m["mon"].lower()[:3])
+            ),
+            None,
+        )
+        if month is None:
+            return None
+        try:
+            when = when.replace(month=month, day=int(m["day"]))
+        except ValueError:
+            return None
+        if when < now - timedelta(days=1):
+            when = when.replace(year=when.year + 1)
+    elif when < now:
+        when += timedelta(days=1)
+    return (when - now).total_seconds()
+
+
+def rate_limit_line(text: str | None) -> str | None:
+    """The line of the CLI's output that says it is limited, to show as the reason."""
+    for line in (text or "").splitlines():
+        if _RATE_LIMITED.search(line):
+            return redact(line.strip())[:160]
+    return None
+
+
 def rate_limit_wait(text: str | None) -> float | None:
     """Seconds to wait when the CLI's output says the provider is rate-limiting it, else None. A usage-limit
-    message names the time it resets (``...limit reached|1760000000``); "retry after N" is honoured too."""
+    message names the time it resets (``...limit reached|1760000000`` or "resets Nov 2 at 4pm (Asia/Saigon)");
+    "retry after N" is honoured too."""
     if not text or not _RATE_LIMITED.search(text):
         return None
     reset = re.search(r"\|(\d{10})\b", text)
     if reset:
         wait = int(reset.group(1)) - time.time()
+    elif (until := reset_wait(text)) is not None:
+        wait = until
     else:
         after = re.search(r"retry[- ]after\D{0,10}(\d+)", text, re.IGNORECASE)
         wait = float(after.group(1)) if after else RATE_WAIT_DEFAULT
@@ -332,7 +454,17 @@ def looks_like_cli(pid: int, binary: str | None = None) -> bool:
                 .decode(errors="replace")
             )
         except OSError:
-            return False
+            # no /proc (macOS, BSD): ask ps for the command line
+            try:
+                out = subprocess.run(
+                    ["ps", "-o", "command=", "-p", str(int(pid))],
+                    capture_output=True,
+                    timeout=10,
+                    check=False,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                return False
+            cmd = out.stdout.decode(errors="replace")
     names = (binary,) if binary else LOCAL_CLIS
     return any(n in cmd for n in names) and any(
         f in cmd for f in ("--output-format", "--json", "--format")
@@ -399,8 +531,16 @@ def spill_long_args(args: list[str]) -> tuple[list[str], str | None, str | None]
 class CliProcess:
     """One running CLI: yields its stdout lines; `kill()` stops the whole tree."""
 
-    def __init__(self, args: list[str], cwd: str, env: dict | None = None):
-        """Prepare the command; nothing starts until `start()`."""
+    def __init__(
+        self,
+        args: list[str],
+        cwd: str,
+        env: dict | None = None,
+        spill: bool = True,
+    ):
+        """Prepare the command; nothing starts until `start()`. `spill` lets a long prompt travel by stdin (Claude
+        Code only)."""
+        self.spill = spill
         self.args = args
         self.cwd = cwd
         self.env = env or child_env()
@@ -410,9 +550,12 @@ class CliProcess:
 
     async def start(self) -> int:
         """Launch; returns the pid."""
-        args, stdin_text, self._temp = spill_long_args(self.args)
+        args, stdin_text, self._temp = (
+            spill_long_args(self.args) if self.spill else (self.args, None, None)
+        )
         try:
             self.proc = await asyncio.create_subprocess_exec(
+                *low_priority_prefix(),
                 *args,
                 cwd=self.cwd,
                 stdin=asyncio.subprocess.DEVNULL
@@ -562,6 +705,9 @@ def parse_stream_line(line: str, cwd: str) -> dict:
         "result": None,
         "ready": False,
         "results": [],
+        # what the conversation held at this model call, and the model's window (tokens)
+        "context_used": None,
+        "context_window": None,
     }
     line = line.strip()
     if not line.startswith("{"):
@@ -586,6 +732,17 @@ def parse_stream_line(line: str, cwd: str) -> dict:
                 }
             )
     elif kind == "assistant":
+        usage = (ev.get("message") or {}).get("usage") or {}
+        held = sum(
+            int(usage.get(k) or 0)
+            for k in (
+                "input_tokens",
+                "cache_creation_input_tokens",
+                "cache_read_input_tokens",
+            )
+        )
+        if held:
+            out["context_used"] = held
         for block in (ev.get("message") or {}).get("content") or []:
             if block.get("type") == "tool_use" and block.get("name") == "ToolSearch":
                 continue  # the CLI loading its own deferred tools: not a step of the work
@@ -645,10 +802,18 @@ def parse_stream_line(line: str, cwd: str) -> dict:
             "tokens_in": int(usage.get("input_tokens") or 0)
             + int(usage.get("cache_creation_input_tokens") or 0)
             + int(usage.get("cache_read_input_tokens") or 0),
+            "tokens_cached": int(usage.get("cache_creation_input_tokens") or 0)
+            + int(usage.get("cache_read_input_tokens") or 0),
             "tokens_out": int(usage.get("output_tokens") or 0),
             "turns": ev.get("num_turns"),
         }
         out["session_id"] = ev.get("session_id")
+        windows = [
+            int(m.get("contextWindow") or 0)
+            for m in (ev.get("modelUsage") or {}).values()
+            if isinstance(m, dict)
+        ]
+        out["context_window"] = max(windows) if windows and max(windows) else None
     return out
 
 
@@ -669,7 +834,7 @@ def claude_args(
     mcp_config: dict,
     allowed: list[str],
     denied: list[str],
-    max_turns: int,
+    max_turns: int | None,
     session_id: str,
     resume: bool,
     effort: str | None = None,
@@ -688,14 +853,14 @@ def claude_args(
         "--verbose",
         "--permission-mode",
         "bypassPermissions" if bypass else "dontAsk",
-        "--max-turns",
-        str(max_turns),
         "--mcp-config",
         json.dumps(mcp_config),
         "--strict-mcp-config",
         "--append-system-prompt",
         system,
     ]
+    if max_turns:
+        args += ["--max-turns", str(max_turns)]
     args += ["--resume", session_id] if resume else ["--session-id", session_id]
     if model:
         args += ["--model", model]
@@ -710,3 +875,277 @@ def claude_args(
             continue
         args.append(flag)
     return args
+
+
+# ---------------------------------------------------------------------------
+# Antigravity (agy) stream-json → run steps
+# ---------------------------------------------------------------------------
+
+# The server name the board's MCP endpoint gets inside an Antigravity run. A person's own `kanban` entry (a stdio
+# server with no run token, acting as that person) is always denied there.
+AGY_BOARD_SERVER = "board"
+
+
+def antigravity_home() -> Path:
+    """Where Antigravity keeps its conversations and settings (KANBAN_AGY_HOME is for tests)."""
+    return Path(os.environ.get("KANBAN_AGY_HOME") or "~/.gemini").expanduser()
+
+
+def antigravity_global_servers() -> list[str]:
+    """Names of the MCP servers in the person's own Antigravity config, except their `kanban` entry."""
+    try:
+        data = json.loads(
+            (antigravity_home() / "config" / "mcp_config.json").read_text(
+                encoding="utf-8"
+            )
+        )
+    except (OSError, ValueError):
+        return []
+    servers = data.get("mcpServers") if isinstance(data, dict) else None
+    return [
+        name
+        for name in (servers or {})
+        if isinstance(name, str) and name and name != "kanban"
+    ]
+
+
+def antigravity_rules(claude_rules: list[str]) -> list[str]:
+    """A member's Claude-style tool rules (`Bash(git status:*)`, `WebFetch(domain:x)`) as Antigravity rules
+    (`command(git status)`, `read_url(x)`). Rules about files and the web search have no counterpart and are left out:
+    file edits come from the run's mode and anything not allowed is denied in a headless run."""
+    out: list[str] = []
+    for rule in claude_rules:
+        name, _, rest = rule.partition("(")
+        arg = rest[:-1] if rest.endswith(")") else ""
+        if name == "Bash" and arg:
+            command = arg[:-2] if arg.endswith(":*") else arg
+            out.append(f"command({command.strip()})")
+        elif name == "WebFetch" and arg.startswith("domain:"):
+            out.append(f"read_url({arg[len('domain:') :]})")
+    return list(dict.fromkeys(out))
+
+
+def antigravity_args(
+    path: str,
+    *,
+    prompt: str,
+    model: str | None,
+    allowed: list[str],
+    denied: list[str],
+    edits: bool,
+    conversation: str | None,
+    add_dirs: list[str],
+    extra_flags: list[str] | None = None,
+    bypass: bool = False,
+) -> list[str]:
+    """Command line of one headless Antigravity run. Tool permissions travel with the run (`--settings`, never saved):
+    what is not allowed is refused, since a headless run cannot ask. `edits` lets it edit files (`--mode accept-edits`).
+    `bypass` (an owner's Bypass permissions) auto-approves every request; the deny rules in `--settings` still refuse."""
+    args = [path, "-p", prompt, "--output-format", "stream-json"]
+    if conversation:
+        args += ["--conversation", conversation]
+    if model:
+        args += ["--model", model]
+    # No --effort: agy refuses it with most models (the level is part of the model's name, gemini-…-low)
+    if edits:
+        args += ["--mode", "accept-edits"]
+    for folder in add_dirs:
+        args += ["--add-dir", folder]
+    if bypass:
+        args.append("--dangerously-skip-permissions")
+    args += [
+        "--settings",
+        json.dumps({"permissions": {"allow": allowed, "deny": denied}}),
+    ]
+    for flag in extra_flags or []:
+        if any(bad in flag for bad in REJECTED_FLAGS) or flag.startswith("--mode"):
+            continue
+        args.append(flag)
+    return args
+
+
+def _first(params: dict, *keys: str) -> str:
+    for key in keys:
+        value = params.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return ""
+
+
+def describe_agy_tool(
+    name: str, params: dict, cwd: str
+) -> tuple[str, str, dict | None]:
+    """(kind, text, file change) for one tool call of Antigravity."""
+    path = _first(params, "Path", "AbsolutePath", "TargetFile", "FilePath", "path")
+    if name in ("write_file", "write_to_file"):
+        return (
+            "create",
+            f"Wrote {_rel(path, cwd)}",
+            {"path": _rel(path, cwd), "added": 0, "removed": 0, "new": False},
+        )
+    if name in (
+        "edit_file",
+        "replace_file_content",
+        "multi_replace_file_content",
+        "sed_file",
+    ):
+        return (
+            "edit",
+            f"Edited {_rel(path, cwd)}",
+            {"path": _rel(path, cwd), "added": 0, "removed": 0, "new": False},
+        )
+    if name in ("read_file", "view_file", "list_dir"):
+        return "read", f"Read {_rel(path or cwd, cwd)}", None
+    if name == "run_command":
+        return "command", f"Ran {_short(_first(params, 'CommandLine'), 120)}", None
+    if name in ("grep_search", "find_by_name"):
+        query = _first(params, "Query", "Pattern", "SearchPattern", "Search")
+        return "search", f"Searched {_short(query, 80)}", None
+    if name == "call_mcp_tool":
+        server, tool = _first(params, "ServerName"), _first(params, "ToolName")
+        arguments = params.get("Arguments")
+        if server == AGY_BOARD_SERVER:
+            return describe_tool(
+                f"mcp__kanban__{tool}",
+                arguments if isinstance(arguments, dict) else {},
+                cwd,
+            )
+        return "tool", f"{server}.{tool}", None
+    return "tool", f"{name} {_short(json.dumps(params)[:200], 80)}", None
+
+
+class AgyStream:
+    """Reads Antigravity's ``--output-format stream-json`` line by line, giving what `parse_stream_line` gives for
+    Claude Code: {steps, files, session_id, result, ready, results, context_used, context_window}. Token totals are
+    summed from this run's own model calls, because the final event counts the whole conversation."""
+
+    def __init__(self, cwd: str):
+        """`cwd` is the folder the agent works in (paths are shown relative to it)."""
+        self.cwd = cwd
+        self.text: dict[int, str] = {}
+        self.announced: set[tuple[str, int]] = set()
+        self.tokens_in = 0
+        self.tokens_out = 0
+        self.conversation: str | None = None
+        # what the board's rules refused during this run (a headless Antigravity run ends its turn at a refusal)
+        self.refused: list[str] = []
+
+    def feed(self, line: str) -> dict:
+        """One line of stdout."""
+        out: dict = {
+            "steps": [],
+            "files": [],
+            "session_id": None,
+            "result": None,
+            "ready": False,
+            "results": [],
+            "context_used": None,
+            "context_window": None,
+        }
+        line = line.strip()
+        if not line.startswith("{"):
+            return out
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            return out
+        kind = ev.get("event")
+        if kind == "init":
+            init = ev.get("init") or {}
+            self.conversation = ev.get("conversation_id") or self.conversation
+            out.update(
+                ready=True,
+                session_id=self.conversation,
+                model=init.get("model"),
+            )
+        elif kind == "step_update":
+            self._step(ev.get("step_update") or {}, out)
+        elif kind == "result":
+            res = ev.get("result") or {}
+            ok = res.get("status") == "SUCCESS"
+            out["session_id"] = res.get("conversation_id")
+            for denied in res.get("denied_actions") or []:
+                label = (
+                    denied.get("display_name") or denied.get("action") or "an action"
+                )
+                if str(label) not in self.refused:
+                    self.refused.append(str(label))
+                out["steps"].append(
+                    {
+                        "kind": "error",
+                        "text": f"Not allowed for this run: {_short(str(label), 80)}. A headless run cannot ask, so the board's rules decide.",
+                    }
+                )
+            out["result"] = {
+                "is_error": not ok,
+                "subtype": None if ok else str(res.get("status") or "error").lower(),
+                "text": redact(str(res.get("response") or res.get("error") or "")),
+                "cost_usd": 0.0,
+                "tokens_in": self.tokens_in,
+                "tokens_out": self.tokens_out,
+                "turns": res.get("num_turns"),
+                "refused": list(dict.fromkeys(self.refused)),
+            }
+        return out
+
+    def _step(self, step: dict, out: dict) -> None:
+        index = int(step.get("step_index") or 0)
+        state = step.get("state")
+        stype = step.get("step_type")
+        if stype == "agent_response":
+            self.text[index] = self.text.get(index, "") + str(
+                step.get("text_delta") or ""
+            )
+            if state == "DONE":
+                text = self.text.pop(index, "").strip()
+                usage = step.get("usage") or {}
+                held = int(usage.get("input_tokens") or 0) + int(
+                    usage.get("cache_read_tokens") or 0
+                )
+                self.tokens_in += held
+                self.tokens_out += int(usage.get("output_tokens") or 0) + int(
+                    usage.get("thinking_tokens") or 0
+                )
+                if held:
+                    out["context_used"] = held
+                if text:
+                    out["steps"].append(
+                        {"kind": "say", "text": redact(_short(text, 300))}
+                    )
+            return
+        if stype != "tool":
+            return
+        tool_id = f"{self.conversation or step.get('conversation_id')}:{index}"
+        info = step.get("tool_info") or {}
+        if ("tool", index) not in self.announced:
+            self.announced.add(("tool", index))
+            k, text, change = describe_agy_tool(
+                step.get("tool_name") or info.get("name") or "",
+                info.get("parameters") or {},
+                self.cwd,
+            )
+            out["steps"].append({"kind": k, "text": redact(text), "tool_id": tool_id})
+            if change and state != "ERROR":
+                out["files"].append(change)
+        if state in ("DONE", "ERROR"):
+            error = info.get("error") or {}
+            message = str(error.get("message") or "") if state == "ERROR" else ""
+            output = message or str(info.get("output") or "")
+            out["results"].append(
+                {
+                    "tool_id": tool_id,
+                    "output": redact(output)[:4000],
+                    "is_error": state == "ERROR",
+                    "exit_code": 1 if state == "ERROR" else 0,
+                }
+            )
+            if state == "ERROR" and "permission" in message.lower():
+                self.refused.append(_short(message, 200))
+            if state == "ERROR":
+                out["steps"].append(
+                    {
+                        "kind": "error",
+                        "text": redact(_short(message, 240)),
+                        "tool_id": tool_id,
+                    }
+                )

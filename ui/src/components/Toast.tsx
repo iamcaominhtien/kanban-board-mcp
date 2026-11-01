@@ -116,31 +116,27 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             <div className={styles.content}>
               <div className={styles.title}>{toast.title}</div>
               {toast.message && <div className={styles.message}>{toast.message}</div>}
+              {(toast.action || toast.secondaryAction) && (
+                <div className={styles.actions}>
+                  {[toast.action, toast.secondaryAction].map(
+                    (a) =>
+                      a && (
+                        <button
+                          key={a.label}
+                          type="button"
+                          className={styles.actionButton}
+                          onClick={() => {
+                            a.onClick();
+                            removeToast(toast.id);
+                          }}
+                        >
+                          {a.label}
+                        </button>
+                      ),
+                  )}
+                </div>
+              )}
             </div>
-            {toast.action && (
-              <button
-                type="button"
-                className={styles.actionButton}
-                onClick={() => {
-                  toast.action?.onClick();
-                  removeToast(toast.id);
-                }}
-              >
-                {toast.action.label}
-              </button>
-            )}
-            {toast.secondaryAction && (
-              <button
-                type="button"
-                className={styles.actionButton}
-                onClick={() => {
-                  toast.secondaryAction?.onClick();
-                  removeToast(toast.id);
-                }}
-              >
-                {toast.secondaryAction.label}
-              </button>
-            )}
             <button
               type="button"
               className={styles.closeButton}

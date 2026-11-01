@@ -168,6 +168,14 @@ export interface CanvasThread {
   resolvedAt: string | null;
   comments: CanvasComment[];
   byAi: boolean;
+  /** Only in the answer to a new comment or reply: what became of each AI member it mentioned. */
+  aiDeliveries?: AiDelivery[];
+}
+export interface AiDelivery {
+  memberId: string;
+  result: 'job' | 'notified' | 'refused' | 'not_delivered';
+  jobId?: string;
+  reason?: string;
 }
 
 export interface CanvasVersion {
@@ -547,13 +555,33 @@ export async function addThread(
     y?: number;
     page?: string | null;
     anchor?: PinAnchor | null;
+    /** What an @mentioned AI member does: answer (ask), answer and propose the change (suggest), or nothing (notify). */
+    aiIntent?: AiIntent;
   },
 ) {
   return (await client.post<CanvasThread>(`/canvases/${id}/threads`, body)).data;
 }
 /** Reply in a comment thread. */
-export async function replyThread(threadId: string, body: string) {
-  return (await client.post<CanvasThread>(`/canvases/threads/${threadId}/replies`, { body })).data;
+export async function replyThread(threadId: string, body: string, aiIntent: AiIntent = 'ask') {
+  return (await client.post<CanvasThread>(`/canvases/threads/${threadId}/replies`, { body, aiIntent })).data;
+}
+export type AiIntent = 'ask' | 'suggest' | 'notify';
+/** An AI member of the project, with whether it can answer now. */
+export interface CanvasAiMember {
+  id: string;
+  name: string;
+  color: string | null;
+  ai?: { status: string; usable: boolean; note: string };
+}
+export interface CanvasAiMembers {
+  /** The AI that knows this canvas best (null: the project's default answers). */
+  defaultMemberId: string | null;
+  why: string;
+  members: CanvasAiMember[];
+}
+/** The AI members that can be asked about a canvas, and who answers by default. */
+export async function fetchAiMembers(id: string) {
+  return (await client.get<CanvasAiMembers>(`/canvases/${id}/ai/members`)).data;
 }
 /** Resolve or reopen a thread. */
 export async function setThreadStatus(threadId: string, status: 'resolved' | 'open') {

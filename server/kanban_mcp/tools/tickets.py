@@ -252,12 +252,12 @@ async def manage_ticket(
     tools). `action`:
     - create: project_id, title [, description, type, priority, status, parent_id, estimate, due_date, start_date, tags, assignee]. The ID comes from the project prefix ('IAM-5'). With parent_id it is a sub-ticket. Returns the ticket.
     - update: ticket_id plus any fields to change; omitted fields are untouched, so a plain status move is just (ticket_id, status). To empty a nullable field name it in clear_fields. 'wont_do' needs wont_do_reason and is not allowed for sub-tickets. Also takes repo_path, block_done_if_acs_incomplete, block_done_if_tcs_incomplete. Returns the ticket.
-    - delete: ticket_id. PERMANENT. Sub-tickets are detached and kept; block/link references to it are removed; its workspace folder is deleted. To retire a ticket but keep its history use update with status='wont_do'.
-    - reopen: ticket_id [, reason, reset_ac, reset_tests, unassign, reopen_parent]. Moves a 'done' / 'wont_do' ticket back to 'todo' and records it in its reopen history. Returns the ticket.
+    - delete: ticket_id. PERMANENT: sub-tickets are detached, links removed, its workspace folder deleted. To keep history use update with status='wont_do'.
+    - reopen: ticket_id [, reason, reset_ac, reset_tests, unassign, reopen_parent]. Moves a 'done' / 'wont_do' ticket back to 'todo'. Returns the ticket.
     - pend: ticket_id, reason_type ('ticket' + target_id, 'person' + member_id, or 'party' + party) [, note, add_blocked_by]. Parks the ticket as Pending without changing its status; not for done / wont_do. Returns the ticket.
     - resume: ticket_id [, reason, add_comment]. Clears Pending. Returns the ticket.
-    - workspace: ticket_id. Gets (and creates if missing) the ticket's local scratch folder: {enabled, path, exists}. Read and write files there with your own file tools (logs, repro scripts, drafts); nothing goes through MCP. If `enabled` is false, do not use it.
-    - block / unblock: ticket_id, target_id. ticket_id cannot proceed until target_id is done (it shows a lock on the board); same project, no circular chains, statuses do not change. Returns {blocker, blocked}.
+    - workspace: ticket_id. Gets (and creates if missing) the ticket's local scratch folder: {enabled, path, exists}. Use your own file tools there (logs, repro scripts, drafts). If `enabled` is false, do not use it.
+    - block / unblock: ticket_id, target_id. ticket_id waits until target_id is done (lock on the board); same project, no cycles. Returns {blocker, blocked}.
     - link: ticket_id, target_id, relation_type. A non-blocking relation (use block for dependencies). Returns {id, target_id, relation_type}; keep `id` for unlink.
     - unlink: ticket_id, link_id. Removes the relation and its inverse. Returns {"removed": link_id}.
     - link_doc / unlink_doc: ticket_id, page_id. Manually link a Docs page to the ticket ('Linked docs')."""

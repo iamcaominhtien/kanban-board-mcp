@@ -6,6 +6,7 @@ import type { AiRun, TestCounts } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
+import { caseName, proofGaps, unprovableCases } from '../../utils/proofRules';
 import { TakeOverButton, UndoRunDialog } from './RunActions';
 import { AiAvatar, SparkleIcon, fmtElapsed, hhmm, money, useAiBoardState } from './aiUi';
 import './ticketWork.css';
@@ -26,6 +27,34 @@ export function TestChips({ counts }: { counts: TestCounts }) {
       )}
       {counts.failed > 0 && <span className="tw-test tw-test-bad">⚠ {counts.failed} failed</span>}
       {counts.lint && <span className="tw-test tw-test-ok">✓ lint {counts.lint}</span>}
+    </div>
+  );
+}
+
+/** What backs the test case results on the ticket: how many have a proof, which have none, which cannot be shown. */
+export function ProofSummary({ ticket }: { ticket: Ticket }) {
+  const given = (ticket.testCases ?? []).filter((t) => t.status === 'pass' || t.status === 'fail');
+  if (given.length === 0) return null;
+  const missing = proofGaps(given);
+  const taken = unprovableCases(given);
+  const shown = given.length - missing.length - taken.length;
+  return (
+    <div style={{ marginTop: 14 }} data-testid="summary-proof">
+      <div className="ai-label">Proof of the test results</div>
+      <div style={{ fontSize: 13, marginTop: 4 }}>
+        {shown} of {given.length} results have a proof on the ticket
+        {taken.length > 0 ? ` · ${taken.length} cannot be shown` : ''}
+      </div>
+      {missing.length > 0 && (
+        <div style={{ fontSize: 12.5, color: '#B4571F', marginTop: 3 }} data-testid="summary-proof-missing">
+          No proof: {missing.map(caseName).join(', ')}. Ask for it before you approve.
+        </div>
+      )}
+      {taken.length > 0 && (
+        <div className="ai-hint" style={{ marginTop: 3 }} data-testid="summary-proof-unprovable">
+          Taken on trust: {taken.map(caseName).join(', ')}. Read the reason on each test case.
+        </div>
+      )}
     </div>
   );
 }
@@ -96,6 +125,7 @@ export function SummaryCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ti
               )}
             </div>
           )}
+          <ProofSummary ticket={ticket} />
           {run.files.length > 0 && (
             <div style={{ marginTop: 14 }}>
               <div className="ai-label">Files · {run.files.length}</div>

@@ -7,9 +7,10 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from mcp.server.fastmcp import FastMCP
 
+import api_secret
 import app_logging
 import events as board_events
 
@@ -144,12 +145,28 @@ app.add_middleware(
         "X-Requested-With",
         "Last-Event-ID",
         "X-Request-Id",
+        "X-Actor",
+        "X-Kanban-Secret",
     ],
 )
 
 
 # AI endpoints check the person's project role first (api/ai_roles.py)
 app.middleware("http")(ai_roles.enforce)
+
+
+@app.middleware("http")
+async def require_the_apps_secret(request: Request, call_next):
+    """Refuse a request that changes something unless it comes with the secret the desktop app gave its window
+    (api_secret.py). Nothing is checked when the server was not started by the app."""
+    if request.method != "OPTIONS" and not api_secret.allows(
+        request.method, request.url.path, request.headers.get(api_secret.HEADER)
+    ):
+        return JSONResponse(
+            {"detail": "This request must come from the board's own window."},
+            status_code=403,
+        )
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -169,9 +186,13 @@ async def record_activity_actor(request: Request, call_next):
         ai_runs.set_board_url(f"http://127.0.0.1:{server[1]}")
     header = (request.headers.get("x-actor") or "").strip()[:80]
     token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
+    origin_token = svc_activity.set_origin(
+        (request.headers.get("x-origin") or "").strip()
+    )
     try:
         return await call_next(request)
     finally:
+        svc_activity.reset_origin(origin_token)
         svc_activity.reset_actor(token)
 
 

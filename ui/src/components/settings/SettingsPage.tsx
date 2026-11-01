@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useProjects } from '../../api/projects';
 import { McpIntegrations } from '../McpIntegrations';
+import { McpFullControl } from '../McpFullControl';
 import { AiSettingsSection } from '../ai/AiSettingsSection';
 import { UpdateSettingsSection } from '../UpdateSettingsSection';
 import { DocsSettingsRow } from '../docs/DocsSettingsRow';
@@ -227,6 +228,9 @@ export function SettingsPage({
         <>
           <div data-setting="mcp">
             <McpIntegrations />
+          </div>
+          <div data-setting="mcp-full-control">
+            <McpFullControl />
           </div>
           <div className={styles.section} data-setting="drawio">
             <span className={styles.sectionTitle}>Diagrams (draw.io)</span>

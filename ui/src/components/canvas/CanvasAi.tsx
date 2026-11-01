@@ -7,8 +7,10 @@ import {
   canvasKeys,
   decideProposal,
   fetchAiJob,
+  fetchAiMembers,
   useCanvasProposals,
   type AiJob,
+  type CanvasAiMembers,
   type CanvasBoard,
   type CanvasProposal,
   type ProposalChange,
@@ -43,6 +45,20 @@ interface AskProps {
  */
 export function AskAiPanel({ canvasId, boards, initialPrompt = '', onClose, onStarted, onFinished }: AskProps) {
   const [text, setText] = useState(initialPrompt);
+  const [members, setMembers] = useState<CanvasAiMembers | null>(null);
+  const [memberId, setMemberId] = useState<string>(() => rememberedMember(canvasId) ?? '');
+  useEffect(() => {
+    let alive = true;
+    fetchAiMembers(canvasId)
+      .then((m) => alive && setMembers(m))
+      .catch(() => undefined); // without the list the panel still works: the project's default answers
+    return () => {
+      alive = false;
+    };
+  }, [canvasId]);
+  const usable = (members?.members ?? []).filter((m) => m.ai?.usable);
+  const chosen = usable.find((m) => m.id === memberId) ?? usable.find((m) => m.id === members?.defaultMemberId);
+  const chosenName = chosen?.name ?? 'AI';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
@@ -53,8 +69,12 @@ export function AskAiPanel({ canvasId, boards, initialPrompt = '', onClose, onSt
     setBusy(true);
     setError(null);
     try {
-      const job = await askAi(canvasId, { boardIds: editable.map((b) => b.id), request: text.trim() });
-      onStarted({ jobId: job.id, boardIds: editable.map((b) => b.id), who: 'AI' });
+      const job = await askAi(canvasId, {
+        boardIds: editable.map((b) => b.id),
+        request: text.trim(),
+        memberId: memberId && usable.some((m) => m.id === memberId) ? memberId : undefined,
+      });
+      onStarted({ jobId: job.id, boardIds: editable.map((b) => b.id), who: chosenName });
       void poll(job.id, onFinished);
       onClose();
     } catch (e) {
@@ -105,6 +125,30 @@ export function AskAiPanel({ canvasId, boards, initialPrompt = '', onClose, onSt
         <div className={styles.hint}>Pick at least one HTML or empty frame. AI proposes changes to HTML frames.</div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+        {usable.length > 0 && (
+          <label className={styles.hint} data-testid="canvas-ai-member">
+            Answering:{' '}
+            <select
+              value={chosen?.id ?? ''}
+              title={
+                chosen && chosen.id === members?.defaultMemberId && members?.why
+                  ? `${chosen.name}: ${members.why}`
+                  : undefined
+              }
+              onChange={(e) => {
+                setMemberId(e.target.value);
+                rememberMember(canvasId, e.target.value);
+              }}
+            >
+              {usable.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                  {m.id === members?.defaultMemberId && members.why ? ` · ${members.why}` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <span className={styles.hint}>Proposes a new version. Nothing changes until you accept.</span>
         <span className={styles.spacer} />
         <button
@@ -121,9 +165,29 @@ export function AskAiPanel({ canvasId, boards, initialPrompt = '', onClose, onSt
   );
 }
 
+/** The AI member picked last for a canvas, kept in this browser only. */
+function rememberedMember(canvasId: string): string | null {
+  try {
+    return localStorage.getItem(`canvas-ai-member:${canvasId}`);
+  } catch {
+    return null;
+  }
+}
+function rememberMember(canvasId: string, id: string) {
+  try {
+    localStorage.setItem(`canvas-ai-member:${canvasId}`, id);
+  } catch {
+    /* private window: the pick lasts until the panel closes */
+  }
+}
+
+/** A runner on this computer may think for a quarter of an hour: the panel waits as long. */
+const POLL_EVERY_MS = 1500;
+const POLL_TIMES = 700;
+
 async function poll(jobId: string, done: (id: string, job: AiJob) => void) {
-  for (let i = 0; i < 160; i++) {
-    await new Promise((r) => setTimeout(r, 1500));
+  for (let i = 0; i < POLL_TIMES; i++) {
+    await new Promise((r) => setTimeout(r, POLL_EVERY_MS));
     try {
       const job = await fetchAiJob(jobId);
       if (job.state === 'finished' || job.state === 'failed' || job.state === 'cancelled') {

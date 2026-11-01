@@ -8,10 +8,12 @@ import {
   type Limits,
   type UsageDashboard,
 } from '../../api/aiSafety';
+import { useResourcesSnapshot } from '../../api/aiResources';
 import { extractError } from '../../api/extractError';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import type { AiMember } from '../../types/ai';
 import { useToast } from '../Toast';
+import { fitEstimate } from '../aiteam/resourcesFormat';
 import { AiAvatar, fmtElapsed } from './aiUi';
 import { ChipChoice, Pill, RadioRow, SafetyCard, compact, dateTime, usd } from './aiSafetyUi';
 
@@ -631,6 +633,7 @@ function EditBudgetDialog({
   const [perRun, setPerRun] = useState(String(row.capPerRun ?? ''));
   const [runsDay, setRunsDay] = useState(String(row.runs?.cap ?? ''));
   const [parallel, setParallel] = useState(row.parallel);
+  const [access, setAccess] = useState<'none' | 'view' | 'control'>(member?.resourceAccess ?? 'none');
   const [warn, setWarn] = useState<number[]>(member?.warnAt ?? [80, 100]);
   const [atCap, setAtCap] = useState(row.atCap);
   const [error, setError] = useState<string | null>(null);
@@ -707,6 +710,21 @@ function EditBudgetDialog({
                 </button>
               </div>
             </div>
+            <div className="ai-field" data-testid="resource-access">
+              <span className="ai-label ai-label-dark">Resource tools</span>
+              <div className="ai-chips">
+                {(['none', 'view', 'control'] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    className={`ai-choice ${access === level ? 'ai-choice-on' : ''}`}
+                    onClick={() => setAccess(level)}
+                  >
+                    {level === 'none' ? 'None' : level === 'view' ? 'View' : 'Control'}
+                  </button>
+                ))}
+              </div>
+            </div>
             {metered && (
               <div className="ai-field">
                 <span className="ai-label ai-label-dark">Warn me at</span>
@@ -749,6 +767,16 @@ function EditBudgetDialog({
               .
             </div>
           )}
+          <div className="ai-hint">
+            {
+              {
+                none: 'Resource tools: the AI cannot see them.',
+                view: 'Resource tools: it can list runs and read RAM, CPU and the machine’s load. It cannot stop or restart.',
+                control:
+                  'Resource tools: everything in View, and Stop and Restart on runs. The Autopilot delegate always has every resource tool.',
+              }[access]
+            }
+          </div>
           {error && <div className="ai-error-text">{error}</div>}
         </div>
         <div className="ai-modal-foot">
@@ -765,6 +793,7 @@ function EditBudgetDialog({
             data-testid="budget-save"
             onClick={async () => {
               const body: Record<string, unknown> = { maxParallel: parallel, config: { atCap } };
+              if (access !== (member?.resourceAccess ?? 'none')) body.resourceAccess = access;
               if (metered) {
                 Object.assign(body, {
                   dailyBudget: num(daily),
@@ -791,6 +820,27 @@ function EditBudgetDialog({
   );
 }
 
+/** "Fits this machine" or the warning that the worst case does not (it never blocks saving). */
+function FitEstimate({ projectId, runs, limitGb }: { projectId: string; runs: number; limitGb: number }) {
+  const snap = useResourcesSnapshot(projectId).data;
+  if (!snap || !(runs > 0)) return null;
+  const est = fitEstimate(runs, Math.round(Math.max(0, limitGb || 0) * 1024), snap.machine);
+  return (
+    <div
+      className="ai-hint"
+      style={{
+        padding: '8px 10px',
+        borderRadius: 10,
+        background: est.fits ? '#E6F2EA' : '#FEF6E7',
+        color: est.fits ? '#1F5A31' : '#7A5A06',
+      }}
+      data-testid="fit-estimate"
+    >
+      <b>{est.fits ? 'Fits this machine for normal runs.' : 'May not fit this machine.'}</b> {est.text}
+    </div>
+  );
+}
+
 /** Board-wide limits: daily cap, monthly budget, tokens, parallel, runs per day and the policy at the cap. */
 function BoardLimitsDialog({ projectId, onClose }: { projectId: string; onClose: () => void }) {
   const overview = useAiOverview(projectId);
@@ -806,6 +856,7 @@ function BoardLimitsDialog({ projectId, onClose }: { projectId: string; onClose:
     tokens: String(s.boardTokensPerDay ?? ''),
     parallel: String(s.boardMaxParallel),
     runs: String(s.boardRunsPerDay ?? ''),
+    memory: String(((s.runMemoryLimitMb ?? 4096) / 1024).toFixed(2).replace(/\.?0+$/, '')),
   };
   const set = (k: string) => (val: string) => setF({ ...v, [k]: val });
   const monthlyErr =
@@ -843,6 +894,12 @@ function BoardLimitsDialog({ projectId, onClose }: { projectId: string; onClose:
             />
             <NumberField label="Parallel runs (total)" value={v.parallel} onChange={set('parallel')} step="1" />
             <NumberField
+              label="Memory limit per run (GB, 0 = none)"
+              value={v.memory}
+              onChange={set('memory')}
+              step="0.5"
+            />
+            <NumberField
               label="Scheduled and AI-started runs per day"
               value={v.runs}
               onChange={set('runs')}
@@ -868,6 +925,11 @@ function BoardLimitsDialog({ projectId, onClose }: { projectId: string; onClose:
               />
             ))}
           </div>
+          <div className="ai-hint">
+            A run whose CLI uses more memory than this is restarted by the system, twice at most, then stopped. A CLI
+            normally uses about 200 MB; a test or a build it starts does not count.
+          </div>
+          <FitEstimate projectId={projectId} runs={Number(v.parallel)} limitGb={Number(v.memory)} />
           <div className="ai-hint">The lower of an agent’s limit and the board’s applies.</div>
           {error && <div className="ai-error-text">{error}</div>}
         </div>
@@ -891,6 +953,7 @@ function BoardLimitsDialog({ projectId, onClose }: { projectId: string; onClose:
                   boardTokensPerDay: num(v.tokens),
                   boardMaxParallel: Number(v.parallel),
                   boardRunsPerDay: num(v.runs),
+                  runMemoryLimitMb: Math.round(Math.max(0, Number(v.memory) || 0) * 1024),
                   boardAtCap: atCap ?? s.boardAtCap,
                 });
                 void overview.refetch();

@@ -87,7 +87,7 @@ function StepText({ step, run }: { step: RunStep; run: AiRun }) {
       }}
     >
       {step.text}
-      {step.detail ? <span className="ai-muted"> · {step.detail}</span> : null}
+      {typeof step.detail === 'string' && step.detail ? <span className="ai-muted"> · {step.detail}</span> : null}
     </span>
   );
 }

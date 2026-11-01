@@ -14,6 +14,7 @@ import {
   AskErrorCard,
   AskPlaceholder,
   ThreadChip,
+  AiBadge,
   askRunOf,
   didNotStart,
   type ThreadState,
@@ -457,7 +458,10 @@ export function CommentsSection({
   function renderComment(c: Comment, index: number) {
     const p = personFor(c.author, members);
     const authorMember = members.find((m) => m.id === p.id);
-    const aiAuthor = authorMember ? aiMembers.get(authorMember.id) : undefined;
+    // an AI's comment keeps the AI look even when several members share its name
+    const aiAuthor =
+      (authorMember ? aiMembers.get(authorMember.id) : undefined) ??
+      (c.ai ? [...aiMembers.values()].find((a) => a.name === c.author) : undefined);
     const mine = isMine(c);
     // where this comment stands in an ask thread: the question, the answer, an error, a reply that asks again
     const asked = askRunOf(c, aiRuns);
@@ -505,8 +509,8 @@ export function CommentsSection({
           display: 'flex',
           gap: 12,
           alignItems: 'flex-start',
-          padding: '8px 10px',
-          margin: '0 -10px',
+          padding: '8px 12px',
+          margin: '0 -12px',
           borderRadius: 10,
         }}
       >
@@ -515,7 +519,7 @@ export function CommentsSection({
             provider={aiAuthor.provider}
             color={aiAuthor.color}
             glyph={aiAuthor.glyph}
-            size={32}
+            size={28}
             title={aiAuthor.name}
           />
         ) : (
@@ -523,13 +527,10 @@ export function CommentsSection({
         )}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>{p.name}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>{p.name}</span>
             {(aiAuthor || c.ai) && (
-              <span
-                className="ai-chip"
-                style={{ height: 18, background: '#1E2A22', color: '#fff', alignSelf: 'center' }}
-              >
-                AI
+              <span style={{ alignSelf: 'center', display: 'inline-flex' }}>
+                <AiBadge />
               </span>
             )}
             {c.ai && AI_KIND[c.ai.kind] && (
@@ -560,13 +561,13 @@ export function CommentsSection({
             )}
             <span
               className="cm-time"
-              style={{ fontSize: 12, color: '#9AA8A0', marginLeft: threadState ? 0 : undefined }}
+              style={{ fontSize: 12, color: '#6B7A70', marginLeft: threadState ? 0 : undefined }}
             >
               {relative(c.at)}
               <span className="cm-tt">{exactTime(c.at)}</span>
             </span>
             {c.editedAt && (
-              <span data-testid="comment-edited" style={{ fontSize: 12, color: '#9AA8A0' }}>
+              <span data-testid="comment-edited" style={{ fontSize: 12, color: '#6B7A70' }}>
                 · edited
               </span>
             )}
@@ -578,7 +579,7 @@ export function CommentsSection({
               onDismiss={() => void remove(c, index)}
             />
           ) : (
-            <div style={{ fontSize: 14, lineHeight: 1.65, color: '#3A4A3E' }}>
+            <div style={{ fontSize: 13.5, lineHeight: 1.65, color: '#3A4A3E' }}>
               <Collapsible text={c.text} />
             </div>
           )}
@@ -814,8 +815,8 @@ export function CommentsSection({
           style={{
             fontSize: 11,
             fontWeight: 700,
-            letterSpacing: '0.06em',
-            color: '#5B6B60',
+            letterSpacing: '0.08em',
+            color: '#8A998F',
             textTransform: 'uppercase',
           }}
         >
@@ -824,12 +825,19 @@ export function CommentsSection({
         <span
           data-testid="comments-count"
           style={{
-            fontSize: 11.5,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 20,
+            height: 20,
+            boxSizing: 'border-box',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
             fontWeight: 700,
-            color: '#5B6B60',
-            background: '#EEF1EE',
+            color: '#3A4A3E',
+            background: '#EEF3EF',
             borderRadius: 999,
-            padding: '1px 8px',
+            padding: '0 7px',
           }}
         >
           {isLoading ? '…' : comments.length}
@@ -849,13 +857,13 @@ export function CommentsSection({
           className="cm-sort-btn"
           style={{
             marginLeft: 'auto',
-            border: '1px solid #DCE3DF',
-            background: '#FFFFFF',
+            border: 'none',
+            background: 'none',
             borderRadius: 6,
             padding: '3px 8px',
             fontSize: 12,
-            fontWeight: 600,
-            color: '#435348',
+            fontWeight: 400,
+            color: '#6B7A70',
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
@@ -865,7 +873,7 @@ export function CommentsSection({
           }}
           title={`Currently ${sortOrder === 'newest' ? 'newest first' : 'oldest first'}. Click to toggle.`}
         >
-          <span style={{ color: '#2E6F40', fontSize: 13, lineHeight: 1 }}>⇅</span>
+          <span style={{ fontSize: 13, lineHeight: 1 }}>⇅</span>
           <span>{sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}</span>
         </button>
       </div>
@@ -917,7 +925,7 @@ export function CommentsSection({
                   {...composerAi}
                 />
               ) : (
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <Avatar person={me} />
                   <button
                     type="button"
@@ -930,9 +938,9 @@ export function CommentsSection({
                       border: '1px solid #E3E8E5',
                       borderRadius: 8,
                       background: '#FFFFFF',
-                      padding: '9px 14px',
+                      padding: '9px 12px',
                       fontFamily: 'inherit',
-                      fontSize: 14,
+                      fontSize: 13.5,
                       color: '#6B7A70',
                       cursor: 'text',
                     }}

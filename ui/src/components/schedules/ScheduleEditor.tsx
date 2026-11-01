@@ -356,6 +356,7 @@ function EditorForm({
   const ticket = tickets.find((t) => t.id === draft.ticketId);
   const criteria = ticket?.acceptanceCriteria?.length;
   const free = member ? Math.max(0, member.maxParallel - member.slotsInUse) : 0;
+  const slotLimited = member?.connection === 'api_key';
   const metered = member?.connection === 'api_key';
   const lockedTicket = saved
     ? 'Locked: a schedule stays on its ticket'
@@ -561,7 +562,9 @@ function EditorForm({
               {member && (
                 <div className="ai-muted" data-testid="member-status">
                   {member.connection === 'local' ? 'Local runner' : 'API key'} · {member.status.label.toLowerCase()} ·{' '}
-                  {free} of {member.maxParallel} slot{member.maxParallel === 1 ? '' : 's'} free
+                  {slotLimited
+                    ? `${free} of ${member.maxParallel} slot${member.maxParallel === 1 ? '' : 's'} free`
+                    : 'no limit on runs at once'}
                 </div>
               )}
               {draft.memberId && errAt('member') && <div className="ai-error-text">{errAt('member')}</div>}

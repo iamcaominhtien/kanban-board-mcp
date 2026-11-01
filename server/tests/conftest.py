@@ -27,6 +27,12 @@ os.environ.setdefault(
 _DEFAULT_DB = os.path.join(tempfile.mkdtemp(prefix="kanban-test-db-"), "kanban.db")
 _DB_FROM_TESTS = "KANBAN_DB_PATH" not in os.environ
 os.environ.setdefault("KANBAN_DB_PATH", _DEFAULT_DB)
+# A data folder chosen in the developer's own ~/.kanban-board/config.json wins over KANBAN_DB_PATH, so `database` must be
+# imported with a config folder of its own, or tests that open their own session would read (and write) the real kanban.db.
+_CONFIG_FROM_TESTS = "KANBAN_CONFIG_DIR" not in os.environ
+os.environ.setdefault(
+    "KANBAN_CONFIG_DIR", tempfile.mkdtemp(prefix="kanban-test-config-")
+)
 
 
 def _migrate_default_db() -> None:
@@ -47,6 +53,8 @@ import database  # noqa: E402,F401
 
 if _DB_FROM_TESTS:
     del os.environ["KANBAN_DB_PATH"]
+if _CONFIG_FROM_TESTS:
+    del os.environ["KANBAN_CONFIG_DIR"]
 
 
 import pytest  # noqa: E402
@@ -58,3 +66,29 @@ def _approvals_do_not_wait(monkeypatch):
     from services.ai import guard
 
     monkeypatch.setattr(guard, "APPROVAL_WAIT_S", 0)
+
+
+@pytest.fixture(autouse=True)
+def _claude_account_is_empty(monkeypatch, tmp_path_factory):
+    """The MCP servers of the machine's own `~/.claude.json` must not leak into a test."""
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path_factory.mktemp("claude-home")))
+
+
+@pytest.fixture(autouse=True)
+def _app_config_in_a_temp_folder(monkeypatch, tmp_path_factory):
+    """App-wide switches (config.json) must never touch the developer's own ~/.kanban-board."""
+    import config
+
+    folder = tmp_path_factory.mktemp("app-config")
+    monkeypatch.setattr(config, "_CONFIG_DIR", folder)
+    monkeypatch.setattr(config, "_CONFIG_FILE", folder / "config.json")
+
+
+@pytest.fixture(autouse=True)
+def _resource_monitor_starts_empty():
+    """The RAM/CPU monitor is process-wide; every test starts without readings, watchers or a running loop."""
+    from services.ai import resources
+
+    resources.MON.reset()
+    yield
+    resources.MON.reset()

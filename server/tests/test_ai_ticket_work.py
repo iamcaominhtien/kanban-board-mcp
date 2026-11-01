@@ -3,6 +3,7 @@ resume, raised limits, step output and test results, questions (details, reminde
 thread (regenerate, feedback, replies), the person-edit notes and the revert preview."""
 
 import asyncio
+import subprocess
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -153,7 +154,7 @@ async def test_a_queued_run_starts_when_the_current_run_ends(env, monkeypatch):
     await c.post(f"/ai/runs/{(await _runs(c, second))[0]['id']}/cancel", json={})
 
 
-async def test_start_now_says_what_blocks_it(env, monkeypatch):
+async def test_start_now_lets_a_cli_member_run_two_at_once(env, monkeypatch):
     c = env["c"]
     monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")
     pid, _ = await _project(c)
@@ -164,8 +165,10 @@ async def test_start_now_says_what_blocks_it(env, monkeypatch):
     running = await _wait(c, first, ("running",))
     await _assign(c, second, m["id"], start="queue")
     queued = (await _runs(c, second))[0]
+    # a CLI member has no slot limit, so "Start now" is allowed: the second run goes beside the first
     r = await c.post(f"/ai/runs/{queued['id']}/start-now")
-    assert r.status_code == 409 and "free slot" in r.json()["detail"]
+    assert r.status_code == 200, r.text
+    await _wait(c, second, ("running",))
     await c.post(f"/ai/runs/{running['id']}/cancel", json={})
     await c.post(f"/ai/runs/{queued['id']}/cancel", json={})
 
@@ -226,7 +229,15 @@ async def _next_runs(c, tid, member_id, states):
 
 
 def _proc_state(pid: int) -> str:
-    return Path(f"/proc/{pid}/stat").read_text().split()[2]
+    if Path("/proc").is_dir():
+        return Path(f"/proc/{pid}/stat").read_text().split()[2]
+    # macOS has no /proc: ps prints the state ("T" stopped, "S" sleeping, "Z" zombie), nothing for a gone process
+    out = subprocess.run(
+        ["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True
+    ).stdout.strip()
+    if not out or out.startswith("Z"):
+        raise FileNotFoundError(pid)
+    return out[0]
 
 
 async def _state_is(pid: int, state: str | None) -> bool:
@@ -852,3 +863,149 @@ async def test_the_revert_preview_names_who_edited_a_field_and_lists_what_stays(
         by_field["Branch"]["kind"] == "branch"
         and by_field["Branch"]["name"] == "ai/kan-142-drag-handle"
     )
+
+
+async def test_closing_the_board_ends_a_run_quietly(env, monkeypatch):
+    """A graceful quit is not the AI's failure: no 'failed' comment, no status move, no auto-trip count."""
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    run = await _wait(c, tid, ("running",))
+    await _until(lambda: _steps_over(c, tid, 2))
+    status = (await c.get(f"/tickets/{tid}")).json()["status"]
+    await runs.stop_scheduler()
+    ended = (await _runs(c, tid))[0]
+    assert ended["id"] == run["id"] and ended["state"] == "failed"
+    assert "board was closed" in ended["ended_reason"]
+    t = (await c.get(f"/tickets/{tid}")).json()
+    assert not any("failed" in x["text"] for x in t["comments"])
+    assert t["status"] == status
+
+
+async def test_work_cut_off_by_closing_the_board_goes_on_at_the_next_start(
+    env, monkeypatch
+):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    old = await _wait(c, tid, ("running",))
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, old["id"])
+        row.report_back = json.dumps({"member_id": "pm-1", "ticket_id": tid})
+        row.chain = json.dumps(["pm-1"])
+        s.add(row)
+        await s.commit()
+    await runs.stop_scheduler()
+    assert (await _runs(c, tid))[0]["state"] == "failed"
+    await runs.start_scheduler()  # the next start
+    again = await _runs(c, tid)
+    assert len(again) == 2
+    new = again[0]
+    assert new["id"] != old["id"] and new["trigger"] == "retry"
+    assert "The board was closed while your previous run" in new["instruction"]
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, new["id"])
+        assert json.loads(row.report_back)["member_id"] == "pm-1"
+        assert json.loads(row.chain) == ["pm-1"]
+    # a third start does not resume it a second time
+    await runs.stop_scheduler()
+    await runs.start_scheduler()
+    assert len(await _runs(c, tid)) == 2
+
+
+async def test_a_retry_keeps_who_is_to_be_told_when_the_work_ends(env, monkeypatch):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "fail")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    old = await _wait(c, tid, ("failed",))
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, old["id"])
+        row.report_back = json.dumps({"member_id": "pm-1", "ticket_id": tid})
+        s.add(row)
+        await s.commit()
+    new = await runs.retry(old["id"], by="An Nguyen")
+    assert json.loads(new.report_back)["member_id"] == "pm-1"
+
+
+async def _cut_off_by_closing(env, c, monkeypatch, *, trigger=None, pause=False):
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    old = await _wait(c, tid, ("running",))
+    await _until(lambda: _steps_over(c, tid, 2))
+    if trigger:
+        async with env["maker"]() as s:
+            row = await s.get(AiRun, old["id"])
+            row.trigger = trigger
+            s.add(row)
+            await s.commit()
+    if pause:
+        assert (
+            await c.post(f"/ai/runs/{old['id']}/pause", headers=AN)
+        ).status_code == 200
+    await runs.stop_scheduler()
+    return tid
+
+
+async def test_a_resumed_run_that_is_cut_off_again_is_not_resumed_a_second_time(
+    env, monkeypatch
+):
+    c = env["c"]
+    tid = await _cut_off_by_closing(env, c, monkeypatch)
+    await runs.start_scheduler()
+    await _until(lambda: _steps_over(c, tid, 1))  # the resumed run is running
+    await (
+        runs.stop_scheduler()
+    )  # it is cut off too (a run that brings the board down, say)
+    await runs.start_scheduler()
+    assert len(await _runs(c, tid)) == 2  # no third run, however often the board starts
+
+
+async def test_a_scheduled_run_cut_off_by_closing_is_left_to_its_schedule(
+    env, monkeypatch
+):
+    c = env["c"]
+    tid = await _cut_off_by_closing(env, c, monkeypatch, trigger="schedule")
+    await runs.start_scheduler()
+    assert len(await _runs(c, tid)) == 1
+
+
+async def test_a_run_a_person_paused_stays_stopped_after_the_board_restarts(
+    env, monkeypatch
+):
+    c = env["c"]
+    tid = await _cut_off_by_closing(env, c, monkeypatch, pause=True)
+    await runs.start_scheduler()
+    assert len(await _runs(c, tid)) == 1
+
+
+async def test_a_run_says_which_other_ais_work_in_the_same_folder(env, monkeypatch):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
+    pid, _ = await _project(c)
+    a = await _runner(c, pid, env["repo"], name="Dev A")
+    b = await _runner(c, pid, env["repo"], name="Dev B")
+    t1, t2 = await _ticket(c, pid, "One"), await _ticket(c, pid, "Two")
+    await _assign(c, t1, a["id"])
+    await _wait(c, t1, ("running",))
+    await _assign(c, t2, b["id"])
+    second = await _wait(c, t2, ("running",))
+    texts = [s["text"] for s in (await _runs(c, t2))[0]["steps"]]
+    assert any(
+        t.startswith("Working in the same folder at the same time: Dev A")
+        for t in texts
+    ), texts
+    # the first one started alone and says nothing
+    first = [s["text"] for s in (await _runs(c, t1))[0]["steps"]]
+    assert not any("same folder" in t for t in first) and second["state"] == "running"

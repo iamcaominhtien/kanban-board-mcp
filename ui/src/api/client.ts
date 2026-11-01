@@ -6,6 +6,20 @@ import { resolveOrigin } from './resolveOrigin';
 /** Axios instance that converts keys between snake_case (API) and camelCase (UI). */
 export const client = axios.create();
 
+let apiSecret: string | null = null;
+
+/** The secret the desktop app gave this window so the server accepts its changes (null: not in the app, or not set). */
+export function apiSecretOf(): string | null {
+  if (apiSecret === null) {
+    try {
+      apiSecret = window.electronAPI?.getApiSecret?.() || '';
+    } catch {
+      apiSecret = '';
+    }
+  }
+  return apiSecret || null;
+}
+
 function isFormDataPayload(value: unknown): value is FormData {
   return typeof FormData !== 'undefined' && value instanceof FormData;
 }
@@ -21,6 +35,8 @@ client.interceptors.response.use((response) => {
 // Transform request bodies: camelCase → snake_case, and resolve baseURL per-request
 client.interceptors.request.use((config) => {
   config.baseURL = resolveOrigin();
+  const secret = apiSecretOf();
+  if (secret) config.headers.set('X-Kanban-Secret', secret);
   // Act as a named project member (Docs comment roles); the board's own user is the default.
   try {
     const actor = localStorage.getItem('kanbanActor');

@@ -304,7 +304,9 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
     return (
       <>
         <div className="is-draft">
-          <MarkdownRenderer>{r.answer ?? ''}</MarkdownRenderer>
+          <MarkdownRenderer docs={idea.projectId ? { projectId: idea.projectId } : undefined}>
+            {r.answer ?? ''}
+          </MarkdownRenderer>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <button
               type="button"

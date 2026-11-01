@@ -110,9 +110,17 @@ export function CommentsPanel(props: Props) {
       if (!next.has('open') && !next.has('resolved')) next.add('open');
       return next;
     });
+  /** Tell the person what became of the AI members a comment mentioned. */
+  const announce = (t: unknown) => {
+    for (const d of (t as CanvasThread | undefined)?.aiDeliveries ?? []) {
+      if (d.result === 'job') toast.success('AI is on it', 'Its answer appears in the thread.');
+      else if (d.result === 'refused' || d.result === 'not_delivered')
+        toast.error('Not sent to the AI', d.reason ?? '');
+    }
+  };
   const run = async (fn: () => Promise<unknown>) => {
     try {
-      await fn();
+      announce(await fn());
       refresh();
     } catch (e) {
       toast.error('Comment failed', canvasFailure(e).message);
@@ -154,7 +162,7 @@ export function CommentsPanel(props: Props) {
           <textarea
             className={styles.input}
             rows={2}
-            placeholder={`Comment on “${nameOf(boardId)}”… Type @ to mention a person or an AI member`}
+            placeholder={`Comment on “${nameOf(boardId)}”… Write @Name to ask a person or an AI member`}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             data-testid="canvas-new-comment"
@@ -166,13 +174,38 @@ export function CommentsPanel(props: Props) {
               disabled={!draft.trim()}
               onClick={() =>
                 void run(async () => {
-                  await addThread(canvasId, { body: draft.trim(), boardId, x: 0.5, y: 0.5 });
+                  const out = await addThread(canvasId, { body: draft.trim(), boardId, x: 0.5, y: 0.5 });
                   setDraft('');
+                  return out;
                 })
               }
             >
               Comment
             </button>
+            {props.aiAvailable && /@\S/.test(draft) && (
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnSm} ${styles.btnAi}`}
+                disabled={!draft.trim()}
+                title="The AI you mention answers and prepares the change for this frame"
+                onClick={() =>
+                  void run(async () => {
+                    const out = await addThread(canvasId, {
+                      body: draft.trim(),
+                      boardId,
+                      x: 0.5,
+                      y: 0.5,
+                      aiIntent: 'suggest',
+                    });
+                    setDraft('');
+                    return out;
+                  })
+                }
+                data-testid="canvas-comment-propose"
+              >
+                <CanvasIcon name="spark" size={13} /> Send &amp; propose
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -215,24 +248,27 @@ export function CommentsPanel(props: Props) {
                   <span className={styles.commentTime}>{relativeTime(c.createdAt)}</span>
                 </div>
                 <div className={styles.commentText}>{mentioned(c.body)}</div>
-                {c.isAi && c.ai?.canPropose && props.aiAvailable && t.boardId && t.status === 'open' && (
-                  <div className={styles.threadActions}>
-                    <button
-                      type="button"
-                      className={`${styles.btn} ${styles.btnSm} ${styles.btnAi}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void run(async () => {
-                          const job = await proposeFixFromThread(t.id);
-                          props.onProposeStarted?.(job.id);
-                        });
-                      }}
-                      data-testid="canvas-propose-fix"
-                    >
-                      <CanvasIcon name="spark" size={13} /> Propose a fix
-                    </button>
-                  </div>
-                )}
+                {((c.isAi && c.ai?.canPropose) || (!c.isAi && t.comments[0]?.id === c.id)) &&
+                  props.aiAvailable &&
+                  t.boardId &&
+                  t.status === 'open' && (
+                    <div className={styles.threadActions}>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnSm} ${styles.btnAi}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void run(async () => {
+                            const job = await proposeFixFromThread(t.id);
+                            props.onProposeStarted?.(job.id);
+                          });
+                        }}
+                        data-testid="canvas-propose-fix"
+                      >
+                        <CanvasIcon name="spark" size={13} /> Propose a fix
+                      </button>
+                    </div>
+                  )}
                 {c.author === me && t.comments[0]?.id === c.id && (
                   <button
                     type="button"
@@ -261,8 +297,9 @@ export function CommentsPanel(props: Props) {
                 if (e.key === 'Enter' && (reply[t.id] ?? '').trim()) {
                   const body = reply[t.id].trim();
                   void run(async () => {
-                    await replyThread(t.id, body);
+                    const out = await replyThread(t.id, body);
                     setReply((r) => ({ ...r, [t.id]: '' }));
+                    return out;
                   });
                 }
               }}

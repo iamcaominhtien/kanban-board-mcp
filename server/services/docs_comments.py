@@ -640,6 +640,21 @@ async def set_status(
         raise DocsError(422, "not_resolvable", "Only inline threads can be resolved")
     if thread.status == status:
         return await _one(session, thread)
+    if status == "resolved" and activity.current_ai():
+        # An AI that resolves a thread says what it did first: the person who opened it should not have to guess
+        replied = (
+            await session.exec(
+                select(DocsComment).where(
+                    DocsComment.thread_id == thread.id, DocsComment.author == actor
+                )
+            )
+        ).first()
+        if replied is None:
+            raise DocsError(
+                422,
+                "reply_first",
+                "Reply in this thread first (what you changed, or why not), then resolve it.",
+            )
     thread.status = status
     thread.resolved_by = actor if status == "resolved" else None
     thread.resolved_at = _now() if status == "resolved" else None

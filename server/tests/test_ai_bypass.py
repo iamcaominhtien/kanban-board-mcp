@@ -77,7 +77,7 @@ async def test_only_the_owner_can_turn_it_on_and_must_type_the_phrase(env):
     assert len(off) == 1
 
 
-async def test_it_is_only_for_claude_code_and_a_new_member_never_starts_with_it(env):
+async def test_it_is_only_for_cli_members_and_a_new_member_never_starts_with_it(env):
     c = env["c"]
     pid, _ = await _project(c)
     await _people(c, pid)
@@ -96,10 +96,13 @@ async def test_it_is_only_for_claude_code_and_a_new_member_never_starts_with_it(
     assert made.json()["config"]["permission_mode"] == "allowlist"
     api = await _api_member(c, pid)
     bad = await _mode(c, api["id"], "bypass", confirm_bypass=PHRASE)
-    assert bad.status_code == 422 and "Claude Code" in bad.text
+    assert (
+        bad.status_code == 422
+        and "Claude Code, Codex, opencode and Antigravity" in bad.text
+    )
 
 
-async def test_work_runs_bypass_but_ask_runs_and_safe_mode_do_not(env, monkeypatch):
+async def test_work_and_ask_runs_bypass_but_safe_mode_does_not(env, monkeypatch):
     c = env["c"]
     record = env["tmp"] / "args.jsonl"
     monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
@@ -116,7 +119,7 @@ async def test_work_runs_bypass_but_ask_runs_and_safe_mode_do_not(env, monkeypat
     # the Deny rules still stop things, and the web (its domain list needs the allow list) stays off
     assert "Bash(rm -rf:*)" in denied and "WebFetch" in denied and "WebSearch" in denied
     assert any("Bypass permissions" in s["text"] for s in run["steps"])
-    # an ask run is read-only whatever the mode
+    # a question has the rights of work
     r = await c.post(
         f"/tickets/{tid}/comments",
         json={
@@ -134,10 +137,49 @@ async def test_work_runs_bypass_but_ask_runs_and_safe_mode_do_not(env, monkeypat
 
         await asyncio.sleep(0.1)
     asked = _calls(record)[-1]
-    assert _flag(asked, "--permission-mode") == "dontAsk"
+    assert _flag(asked, "--permission-mode") == "bypassPermissions"
     # safe mode wins over the bypass
     await c.patch(f"/ai/members/{m['id']}", json={"safe_mode": True}, headers=OWNER)
     t2 = await _ticket(c, pid, "Another")
     await c.post(f"/tickets/{t2}/ai/run", json={"member_id": m["id"]})
     await _wait(c, t2, ("finished", "failed"))
     assert _flag(_calls(record)[-1], "--permission-mode") == "dontAsk"
+
+
+async def test_an_ask_run_also_gets_the_folders_mcp_servers_and_the_tools_of_work(
+    env, monkeypatch
+):
+    import asyncio
+    from pathlib import Path
+
+    c = env["c"]
+    record = env["tmp"] / "args.jsonl"
+    monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
+    pid, m = await _setup(c, env)
+    (Path(env["repo"]) / ".mcp.json").write_text(
+        json.dumps(
+            {"mcpServers": {"ba-graph": {"command": "graph", "args": ["serve"]}}}
+        )
+    )
+    tid = await _ticket(c, pid)
+    r = await c.post(
+        f"/tickets/{tid}/comments",
+        json={
+            "text": f"@[{m['name']}](member:{m['id']}) what does add() do?",
+            "author": "Owen Lead",
+            "ai_intent": "ask",
+        },
+        headers=OWNER,
+    )
+    assert r.status_code in (200, 201), r.text
+    for _ in range(100):
+        if record.exists() and _calls(record):
+            break
+        await asyncio.sleep(0.1)
+    runs_ = (await c.get(f"/tickets/{tid}/ai/runs")).json()
+    assert record.exists(), runs_
+    asked = _calls(record)[-1]
+    assert "ba-graph" in (_flag(asked, "--mcp-config") or "")
+    assert "mcp__ba-graph" in (_flag(asked, "--allowedTools") or "")
+    denied = _flag(asked, "--disallowedTools") or ""
+    assert "Edit" not in denied  # a question is held like work, not read-only

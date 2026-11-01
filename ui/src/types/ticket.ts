@@ -140,7 +140,8 @@ export interface TestCase {
   description?: string | null;
   expectedResult?: string | null;
   notes?: string | null;
-  proof?: string | null; // legacy
+  /** Markdown evidence for the result: text, links, code, pictures, files; "Not provable: <why>" when it cannot be shown. */
+  proof?: string | null;
   note?: string | null; // legacy
   startedAt?: string | null;
   createdAt?: string;

@@ -5,7 +5,6 @@ in safe mode, or its run stopped), the trip is audited and people are told. Only
 - failed runs: N failed runs in M minutes → pause the agent (checked when a run fails)
 - spend spike: spend in the last M minutes above F × the agent's 7-day norm for that span → pause the agent
 - repeated denials: N blocked or denied actions in M minutes → safe mode for the agent
-- loop: the same call (same action, target and content) N times in M minutes → stop the run and hold the ticket
 - many agents: N agents tripped in M minutes → pause all AI in the project (off by default)
 """
 
@@ -16,7 +15,7 @@ from datetime import UTC, datetime, timedelta
 from sqlmodel import col, func, select
 
 import database
-from models import AiAudit, AiMember, AiProjectSettings, AiRun, Member, Ticket
+from models import AiAudit, AiMember, AiProjectSettings, AiRun, Member
 
 from . import audit
 from .store import get_settings, loads, now_iso
@@ -27,14 +26,12 @@ DEFAULTS: dict[str, dict] = {
     "failed_runs": {"on": True, "count": 5, "minutes": 10},
     "spend_spike": {"on": True, "factor": 3.0, "minutes": 15, "min_usd": 0.5},
     "denials": {"on": True, "count": 6, "minutes": 10},
-    "loop": {"on": True, "count": 4, "minutes": 5},
     "many_agents": {"on": False, "count": 3, "minutes": 30},
 }
 LABELS = {
     "failed_runs": ("Failed runs", "Pause that agent"),
     "spend_spike": ("Spend spike", "Pause that agent"),
     "denials": ("Repeated denials", "Safe mode for agent"),
-    "loop": ("Loop detected", "Stop run, hold ticket"),
     "many_agents": ("Many agents tripped", "Pause all AI"),
 }
 LIMITS = {
@@ -62,7 +59,6 @@ def describe(settings: AiProjectSettings) -> list[dict]:
                 f"Spend {r['factor']:g}× its 7-day norm for {r['minutes']} min"
             ),
             "denials": lambda: f"{r['count']} blocked or denied in {r['minutes']} min",
-            "loop": lambda: f"Same action {r['count']}× in {r['minutes']} min",
             "many_agents": lambda: f"{r['count']} agents in {r['minutes']} min",
         }[key]()
         out.append({"key": key, "label": label, "when": when, "then": then, **r})
@@ -110,7 +106,7 @@ async def _trip(
     run_id: str | None = None,
 ) -> bool:
     """Apply a rule's action once; returns whether anything changed."""
-    from . import runs, safety
+    from . import safety
 
     async with database.async_session() as session:
         member = await session.get(Member, member_id)
@@ -130,16 +126,6 @@ async def _trip(
             profile.safe_mode = True
         session.add(profile)
         await session.commit()
-    if action == "stop" and run_id:
-        try:
-            await runs.cancel(
-                run_id,
-                by="auto-trip",
-                reason=f"Loop detected: {reason}. The ticket is held for a person.",
-            )
-        except runs.RunError:
-            return False
-        await _hold_ticket(run_id, reason)
     await audit.record(
         project_id,
         "auto_trip",
@@ -160,27 +146,6 @@ async def _trip(
     )
     await _many_agents(project_id)
     return True
-
-
-async def _hold_ticket(run_id: str, reason: str) -> None:
-    from services import tickets as svc_tickets
-
-    async with database.async_session() as session:
-        run = await session.get(AiRun, run_id)
-        ticket = await session.get(Ticket, run.ticket_id) if run else None
-        if ticket is None or ticket.pending:
-            return
-        try:
-            await svc_tickets.set_pending(
-                session,
-                ticket.id,
-                "party",
-                party="A person (auto-trip)",
-                note=f"Held by auto-trip: {reason}",
-                actor="auto-trip",
-            )
-        except Exception:  # noqa: BLE001 - holding is best effort; the run is already stopped
-            log.exception("Could not hold %s", ticket.id)
 
 
 async def _many_agents(project_id: str) -> None:
@@ -210,10 +175,11 @@ async def _many_agents(project_id: str) -> None:
 
 
 async def on_run_failed(member_id: str) -> None:
-    """Failed runs: called when a run of the agent fails."""
+    """Failed runs: called when a run of the agent fails. Only a member billed by the call is paused for it: a CLI
+    on a person's own computer is not second-guessed."""
     async with database.async_session() as session:
         profile = await session.get(AiMember, member_id)
-        if profile is None:
+        if profile is None or profile.connection != "api_key":
             return
         r = rules(await get_settings(session, profile.project_id))["failed_runs"]
         if not r["on"]:
@@ -246,7 +212,7 @@ async def on_run_failed(member_id: str) -> None:
 
 
 async def check() -> None:
-    """Spend spike, repeated denials and loops for every agent (called from the run scheduler loop)."""
+    """Spend spike and repeated denials for every agent (called from the run scheduler loop)."""
     async with database.async_session() as session:
         profiles = (await session.exec(select(AiMember))).all()
         settings_by: dict[str, AiProjectSettings] = {}
@@ -258,10 +224,8 @@ async def check() -> None:
         try:
             if r["spend_spike"]["on"] and p.connection == "api_key" and not p.paused:
                 await _spend_spike(p, r["spend_spike"])
-            if r["denials"]["on"] and not p.safe_mode:
+            if r["denials"]["on"] and not p.safe_mode and p.connection == "api_key":
                 await _denials(p, r["denials"])
-            if r["loop"]["on"]:
-                await _loops(p, r["loop"])
         except Exception:  # noqa: BLE001
             log.exception("Auto-trip check failed for %s", p.id)
 
@@ -313,59 +277,6 @@ async def _denials(p: AiMember, r: dict) -> None:
             f"{n} blocked or denied in {r['minutes']} minutes",
             action="safe_mode",
         )
-
-
-def _call(detail: str) -> str:
-    """What a call asked for (its request, canonical), so two calls with different content are not the same call."""
-    request = (loads(detail, {}) or {}).get("request")
-    return json.dumps(request, sort_keys=True, default=str) if request else ""
-
-
-async def _loops(p: AiMember, r: dict) -> None:
-    async with database.async_session() as session:
-        runs_ = (
-            await session.exec(
-                select(AiRun).where(
-                    AiRun.member_id == p.id,
-                    col(AiRun.state).in_(["starting", "running"]),
-                )
-            )
-        ).all()
-        for run in runs_:
-            rows = (
-                await session.exec(
-                    select(AiAudit.action, AiAudit.target, AiAudit.detail).where(
-                        AiAudit.run_id == run.id,
-                        col(AiAudit.result).in_(
-                            ["allowed", "blocked", "denied", "needs_approval"]
-                        ),
-                        col(AiAudit.created_at) >= await _since(r["minutes"]),
-                    )
-                )
-            ).all()
-            # The same call is a loop; four different test cases or comments on one ticket are just work
-            same: dict[tuple, int] = {}
-            for a, t, d in rows:
-                key = (a, t, _call(d))
-                same[key] = same.get(key, 0) + 1
-            hit = next(
-                (
-                    (a, t, n)
-                    for (a, t, _), n in same.items()
-                    if n >= r["count"] and a not in ("read",)
-                ),
-                None,
-            )
-            if hit:
-                a, t, n = hit
-                await _trip(
-                    p.project_id,
-                    p.id,
-                    "loop",
-                    f"{a.replace('_', ' ')} on {t or 'the same target'} {n}× in {r['minutes']} min",
-                    action="stop",
-                    run_id=run.id,
-                )
 
 
 def dumps(value: dict) -> str:

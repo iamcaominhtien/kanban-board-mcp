@@ -26,3 +26,12 @@ test('the viewer actions are exposed to the page', () => {
   assert.match(preload, /openPath:/);
   assert.match(preload, /showItemInFolder:/);
 });
+
+test('the page gets the API secret only through a synchronous channel the main process answers', () => {
+  const preload = read('preload.js');
+  const main = read('main.js');
+  assert.match(preload, /getApiSecret:\s*\(\)\s*=>\s*ipcRenderer\.sendSync\('get-api-secret'\)/);
+  assert.match(main, /ipcMain\.on\('get-api-secret'/);
+  // only the app's own window gets an answer
+  assert.match(main, /event\.sender === mainWindow\.webContents/);
+});

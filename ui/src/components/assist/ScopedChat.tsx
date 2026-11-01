@@ -10,6 +10,7 @@ import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 import './scopedChat.css';
+import { ContextMeter } from './ContextMeter';
 
 /** Props of the chat panel. The panel is generic over what the chat is about; see `ChatScope`. */
 export interface ScopedChatProps {
@@ -43,6 +44,49 @@ function costLine(state: ScopeState | undefined, mode: 'ask' | 'work'): string {
   if (!est.metered) return 'Not metered';
   const usdText = est.usd == null ? '' : est.usd < 0.01 ? 'less than $0.01' : usd(est.usd, 2);
   return mode === 'work' ? `About ${usdText} or more, up to its limits` : `About ${usdText} per answer`;
+}
+
+/** The small icon of a "Reading" chip, as the design draws it (Description, comments, linked Docs, branch). */
+const CHIP_ICONS: Record<string, ReactNode> = {
+  description: (
+    <>
+      <path d="M7 3h7l5 5v13H7z" />
+      <path d="M14 3v5h5" />
+    </>
+  ),
+  comments: <path d="M21 12a8 8 0 0 1-11.5 7.2L4 20.5l1.4-4.6A8 8 0 1 1 21 12z" />,
+  docs: <path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10" />,
+  branch: (
+    <>
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="6" cy="18" r="2.5" />
+      <circle cx="18" cy="9" r="2.5" />
+      <path d="M6 8.5v7M18 11.5c0 4-6 3-12 4.5" />
+    </>
+  ),
+};
+CHIP_ICONS.doc = CHIP_ICONS.docs;
+CHIP_ICONS.private_docs = CHIP_ICONS.docs;
+
+function ChipIcon({ kind }: { kind: string }) {
+  const paths = CHIP_ICONS[kind];
+  if (!paths) return null;
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#5B6B60"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      {paths}
+    </svg>
+  );
 }
 
 /** The AI member that answers, with its state in words ("Local runner · online"). */
@@ -211,6 +255,9 @@ export function ScopedChat({
 
   const chat = useChat(chatId);
   const messages = chat.data?.messages ?? [];
+  // how full the shared CLI conversation is, as of the newest answer that says so
+  const sessionFill = [...messages].reverse().find((m) => m.role === 'ai' && m.context.contextWindow)
+    ?.context.contextWindow;
   const lastLen = messages.length ? (messages[messages.length - 1]?.text.length ?? 0) : 0;
   useEffect(() => {
     const el = bodyRef.current;
@@ -360,6 +407,7 @@ export function ScopedChat({
             {st.isLoading && <span className="as-skel" style={{ height: 22, width: 160 }} />}
             {reading.map((r) => (
               <span key={r.label} className={`sc-chip ${r.skipped ? 'sc-chip-skip' : ''}`} data-kind={r.kind}>
+                <ChipIcon kind={r.kind} />
                 {r.label}
               </span>
             ))}
@@ -484,7 +532,23 @@ export function ScopedChat({
                     data-testid="chat-send"
                     onClick={() => void send(text)}
                   >
-                    {mode === 'work' ? '▶' : '➤'}
+                    {mode === 'work' ? (
+                      '▶'
+                    ) : (
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M4 12l16-8-6 16-3-7-7-1z" />
+                      </svg>
+                    )}
                   </button>
                 </div>
                 {error && (
@@ -494,6 +558,7 @@ export function ScopedChat({
                 )}
                 <div className="sc-foot">
                   <span data-testid="chat-cost">{costLine(state, mode)}</span>
+                  {sessionFill && <ContextMeter used={sessionFill.used} size={sessionFill.size} inline />}
                   <span style={{ flex: 1 }} />
                   <span>
                     <kbd>Enter</kbd> send · <kbd>{MOD}</kbd>

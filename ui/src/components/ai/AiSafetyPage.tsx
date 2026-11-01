@@ -6,6 +6,7 @@ import type { AiMember, AiSettings } from '../../types/ai';
 import { useToast } from '../Toast';
 import { AiAvatar, Toggle } from './aiUi';
 import { ChipChoice, Pill, RadioRow, SafetyCard, TrustChip } from './aiSafetyUi';
+import { AutopilotCard } from './AutopilotCard';
 
 const TRUST_ROWS: { source: string; trust: 'trusted' | 'data_only' | 'untrusted'; how: string }[] = [
   {
@@ -116,6 +117,7 @@ export function SafetyView({
       </div>
       <Checklist projectId={projectId} />
       <SafeModeCard s={s} save={save} />
+      <AutopilotCard projectId={projectId} members={members} isOwner={me.data?.role === 'owner'} />
       <AutoTripCard s={s} save={save} />
       <div className="ai-grid2">
         <TrustCard />
@@ -201,7 +203,7 @@ function AutoTripCard({ s, save }: { s: AiSettings; save: (b: Record<string, unk
   return (
     <SafetyCard
       title="Auto-trip rules"
-      sub="Thresholds are invented defaults. They protect against a runaway agent when nobody is watching."
+      sub="They watch members billed by the call (API key) when nobody is watching. Claude Code and Antigravity run on your own CLI and are not tripped."
       id="auto-trip"
       right={
         <button type="button" className="ai-link" onClick={() => setEditing((v) => !v)}>
@@ -580,7 +582,11 @@ function KeysCard({
 function LoopsCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknown>) => Promise<void> }) {
   const [cool, setCool] = useState(String(s.loopCooldownS));
   return (
-    <SafetyCard title="Chain and re-run limits" sub="Invented defaults; owners change them" id="loops">
+    <SafetyCard
+      title="Chain and re-run limits"
+      sub="Depth, repeats and cooldown hold back API-key members only: Claude Code and Antigravity are not limited by them"
+      id="loops"
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ flex: 1 }}>
@@ -605,6 +611,20 @@ function LoopsCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknow
             label="No repeats in a chain"
             testId="no-repeat"
             onChange={(v) => void save({ noRepeatChain: v })}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ flex: 1 }}>
+            <b style={{ fontSize: 13 }}>Ask before an AI edits a Docs page</b>
+            <div className="ai-muted">
+              Off: edits are saved as new versions you can restore. Deleting a page always asks
+            </div>
+          </span>
+          <Toggle
+            on={s.docsEditsAsk}
+            label="Ask before an AI edits a Docs page"
+            testId="docs-edits-ask"
+            onChange={(v) => void save({ docsEditsAsk: v })}
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

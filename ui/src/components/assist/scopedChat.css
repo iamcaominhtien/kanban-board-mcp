@@ -11,14 +11,17 @@
   position: relative;
 }
 .sc-head {
+  container-type: inline-size;
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 14px 14px 10px 16px;
-  border-bottom: 1px solid #edf1ee;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e3e8e5;
+  background: #fff;
 }
 .sc-who {
-  flex: 1;
+  flex: 1 1 140px;
   min-width: 0;
   display: flex;
   gap: 10px;
@@ -26,11 +29,11 @@
   position: relative;
 }
 .sc-who-spark {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: #ece8fb;
-  color: #5a3fd0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #efe8fb;
+  color: #5b3fa6;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -40,9 +43,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 15px;
+  font-size: 13.5px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.3;
   color: #1e2a22;
 }
 .sc-who-name span {
@@ -61,25 +64,36 @@
 .sc-who-sub {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 11.5px;
+  line-height: 1.5;
   color: #5b6b60;
   white-space: nowrap;
+  min-width: 0;
+}
+.sc-who-sub .as-dot {
+  width: 8px;
+  height: 8px;
+}
+.sc-who-sub span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sc-tabs {
   display: inline-flex;
+  flex-shrink: 0;
   gap: 2px;
-  padding: 3px;
+  padding: 2px;
   background: #eef3ef;
-  border-radius: 9px;
+  border-radius: 8px;
 }
 .sc-tabs button {
   border: none;
   background: transparent;
-  padding: 5px 11px;
-  border-radius: 7px;
+  padding: 3px 9px;
+  border-radius: 6px;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: #5b6b60;
   cursor: pointer;
@@ -87,31 +101,32 @@
 .sc-tabs .sc-tab-on {
   background: #fff;
   color: #1e2a22;
-  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.12);
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
 }
 .sc-reading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
-  border-bottom: 1px solid #edf1ee;
+  padding: 8px 14px;
+  border-bottom: 1px solid #eef3ef;
   font-size: 12px;
 }
 .sc-reading-label {
-  color: #7a897f;
-  margin-right: 2px;
+  color: #5b6b60;
+  font-size: 11.5px;
 }
 .sc-chip {
   display: inline-flex;
   align-items: center;
-  padding: 3px 9px;
-  border: 1px solid #e3e8e5;
-  border-radius: 8px;
-  background: #f6faf7;
-  font-size: 12px;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #f1f5f2;
+  font-size: 11.5px;
   font-weight: 600;
-  color: #1e2a22;
+  color: #3a4a3e;
 }
 .sc-chip-skip {
   text-decoration: line-through;
@@ -121,10 +136,22 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px 16px 18px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+/* the messages of the ticket chat (design B): a quiet green bubble for the question, a 26px AI mark beside the answer */
+.sc-panel .as-user {
+  max-width: 86%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 12px 12px 2px 12px;
+  background: #e6f2ea;
+  line-height: 1.5;
+}
+.sc-panel .as-ai {
+  gap: 10px;
 }
 .sc-welcome {
   display: flex;
@@ -140,8 +167,9 @@
   align-items: center;
 }
 .sc-composer {
-  border-top: 1px solid #edf1ee;
-  padding: 10px 16px 10px;
+  border-top: 1px solid #e3e8e5;
+  padding: 12px 14px;
+  background: #fff;
 }
 .sc-modebar {
   display: flex;
@@ -153,17 +181,17 @@
 .sc-mode {
   display: inline-flex;
   gap: 2px;
-  padding: 3px;
+  padding: 2px;
   background: #eef3ef;
-  border-radius: 9px;
+  border-radius: 8px;
 }
 .sc-mode button {
   border: none;
   background: transparent;
-  padding: 5px 11px;
-  border-radius: 7px;
+  padding: 3px 10px;
+  border-radius: 6px;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: #5b6b60;
   cursor: pointer;
@@ -175,7 +203,7 @@
 .sc-mode .sc-mode-on {
   background: #fff;
   color: #1e2a22;
-  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.12);
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
 }
 .sc-mode .sc-mode-work {
   color: #5a3fd0;
@@ -194,13 +222,28 @@
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  border: 1.5px solid #d5ddd8;
-  border-radius: 12px;
-  padding: 8px 8px 8px 12px;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  padding: 8px 10px;
   background: #fff;
 }
 .sc-box:focus-within {
   border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.14);
+}
+/* the design's send is a plain arrow inside the box, not a filled button */
+.sc-box .as-send {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: none;
+  color: #2e6f40;
+}
+.sc-box .as-send:disabled {
+  background: none;
+  color: #9aa8a0;
 }
 .sc-box textarea {
   flex: 1;
@@ -219,19 +262,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 7px;
+  margin-top: 8px;
   font-size: 11.5px;
-  color: #7a897f;
+  color: #5b6b60;
 }
 .sc-foot kbd {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10.5px;
-  padding: 1px 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
   border-radius: 4px;
   border: 1px solid #dce6df;
   background: #f6faf7;
   color: #5b6b60;
-  margin: 0 1px;
 }
 .sc-tile {
   display: flex;
@@ -282,10 +325,35 @@
 }
 .sc-runs-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 5px;
   padding: 9px 10px;
   border: 1px solid #e3e8e5;
   border-radius: 10px;
   font-size: 12.5px;
+}
+.sc-runs-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.sc-runs-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 11.5px;
+}
+
+/* The design has one header row (member, Chat / Runs, close). New chat and maximise do not fit beside the tabs in a
+   narrow panel: the tabs then take a row of their own under the member. */
+@container (max-width: 470px) {
+  .sc-tabs {
+    order: 5;
+    flex: 1 0 100%;
+  }
+  .sc-tabs button {
+    flex: 1;
+  }
 }

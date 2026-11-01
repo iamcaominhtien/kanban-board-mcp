@@ -1813,6 +1813,70 @@
   flex-shrink: 0;
 }
 
+/* The ticket and the AI's work on it take turns: each gets the whole modal */
+.viewSwitch {
+  display: flex;
+  gap: 6px;
+  padding: 8px 28px;
+  border-bottom: 1px solid #e3e8e5;
+  background: #fbfcfb;
+  flex-shrink: 0;
+}
+
+.viewSwitch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+
+.viewSwitch button:hover {
+  color: #1e2a22;
+}
+
+.viewSwitch button[aria-selected='true'] {
+  background: #fff;
+  border-color: #cfe3d5;
+  color: #1f5a31;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.06);
+}
+
+.attnDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e8b93a;
+}
+
+.aiPane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 28px 28px;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+.aiPane[hidden],
+.detailBody[hidden] {
+  display: none;
+}
+
+.aiPane:empty {
+  display: none;
+}
+
 .bannerStack > .reopenBanner,
 .bannerStack > .pendingBanner,
 .bannerStack > .promptBannerDone,

@@ -73,3 +73,63 @@ def params_of(values: dict[str, Any]) -> dict[str, Any]:
     for key in ("action", "item"):
         values.pop(key, None)
     return values
+
+
+MAX_BATCH = 25
+# A refusal that would repeat for every item (or a wait for a person): the rest of the batch is not tried
+_STOPS = ("NEEDS_APPROVAL", "DENIED", "APPROVED_BUT_FAILED", "BLOCKED")
+
+
+async def batch(
+    call: Callable[[dict[str, Any]], Any], items: Any, *, keep_results: bool = True
+) -> dict:
+    """Run one call per item, in order, each as a call of its own (so each goes through the AI guard, permissions and
+    audit as a single call would). An item that fails is reported and the others still run; the batch stops early only
+    at a refusal that would repeat or at an item that waits for a person.
+
+    `call` receives one item's own parameters. With `keep_results` False (the call returns a whole ticket) the result
+    of the last item that worked is returned once, as `ticket`."""
+    if not isinstance(items, list) or not items:
+        raise ValueError("items: a non-empty list of objects, one per call.")
+    if len(items) > MAX_BATCH:
+        raise ValueError(
+            f"items: at most {MAX_BATCH} per call; send the rest in another call."
+        )
+    results: list[dict] = []
+    last = None
+    stopped: str | None = None
+    for i, extra in enumerate(items):
+        if stopped:
+            results.append({"index": i, "ok": False, "error": f"Not run: {stopped}"})
+            continue
+        if not isinstance(extra, dict):
+            results.append(
+                {
+                    "index": i,
+                    "ok": False,
+                    "error": "Each item is an object of parameters.",
+                }
+            )
+            continue
+        try:
+            out = await call(extra)
+        except Exception as exc:  # noqa: BLE001 - reported per item
+            message = str(exc)
+            results.append({"index": i, "ok": False, "error": message})
+            if message.startswith(_STOPS):
+                stopped = "the batch stopped at the first item that needs a person or is refused."
+        else:
+            last = out
+            row: dict[str, Any] = {"index": i, "ok": True}
+            if keep_results:
+                row["result"] = out
+            results.append(row)
+    done = sum(1 for r in results if r["ok"])
+    out_: dict[str, Any] = {
+        "done": done,
+        "failed": len(results) - done,
+        "results": results,
+    }
+    if not keep_results and last is not None:
+        out_["ticket"] = last
+    return out_

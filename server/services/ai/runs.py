@@ -14,11 +14,12 @@ import logging
 import os
 import re
 import secrets as pysecrets
+import shutil
+import tempfile
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
@@ -26,12 +27,14 @@ import database
 import events as board_events
 import services.activity as svc_activity
 import services.mcp_clients as mcp_clients
+import services.proofs as proofs
 import services.tickets as svc_tickets
 import services.workspace as svc_workspace
 from models import (
     AiAccount,
     AiAudit,
     AiMember,
+    AiNotification,
     AiProjectSettings,
     AiRun,
     Member,
@@ -45,18 +48,26 @@ from . import (
     adapters,
     approvals,
     audit,
+    autopilot,
     budget,
     cli,
     config_service,
     guard,
+    resources,
     safety,
 )
+from . import mcp_sources
+from .mcp_sources import folder_servers
 from .context import (
     STATUS_LABELS,
     RunContext,
     activity_block,
+    delta_block,
+    digest,
     instruction_block,
+    narrow_run,
     rules_block,
+    snapshot,
     ticket_block,
 )
 from .mentions import BOARD_AUTHOR
@@ -82,13 +93,22 @@ NEEDS_INPUT_HOLD_HOURS = 24
 # Minutes after the question when a reminder is due: 15 min, then every 2 h; from 6 h the project's admins too
 REMINDER_MINUTES = [15, *range(120, NEEDS_INPUT_HOLD_HOURS * 60, 120)]
 REMINDER_LEAD_MINUTES = 360
-AUTO_TRIP_CHECK_S = 30  # spend spike, denials and loops (autotrip.py)
+AUTO_TRIP_CHECK_S = 30  # spend spike and denials (autotrip.py)
 STARTING_TIMEOUT_S = 30
 MAX_RATE_REQUEUES = 3  # times one run waits out a rate limit before it fails
 
 
 class RunError(ValueError):
     """A run request was refused; the message says why."""
+
+
+class AlreadyResumed(RunError):
+    """Resume was asked for a project that is not paused (someone else resumed it first); `info` says who and when."""
+
+    def __init__(self, info: dict):
+        """`info`: who resumed, when, and how many AI members started."""
+        super().__init__("AI was already resumed.")
+        self.info = info
 
 
 class RunConflict(RunError):
@@ -103,7 +123,11 @@ class _Runtime:
         self.procs: dict[str, cli.CliProcess] = {}
         self.tasks: dict[str, asyncio.Task] = {}
         self.cancelled: set[str] = set()
+        # run id -> {by, rss_mb, limit_mb} when its CLI is being stopped to start it again inside the same run
+        self.restart_requests: dict[str, dict] = {}
         self.waiting: dict[str, str] = {}
+        # run id -> how often an Antigravity run was told its action was refused and went on
+        self.refusal_retries: dict[str, int] = {}
         # run id -> {approval_id, summary, since} while a tool call waits for a person's decision
         self.waiting_approval: dict[str, dict] = {}
         self.wake = asyncio.Event()
@@ -123,10 +147,19 @@ def set_board_url(url: str) -> None:
 
 
 async def _publish(force: bool = False) -> None:
+    """Announce a change in the runs. The steady stream of a run's steps (at most one a second) says only that the AI
+    screens changed; a state change (`force`) may have moved a ticket too, so it says "anything"."""
     loop = asyncio.get_running_loop()
     if force or loop.time() - RT.last_publish > 1.0:
         RT.last_publish = loop.time()
-        await board_events.publish(board_events.INVALIDATE)
+        if force:
+            await board_events.publish(board_events.INVALIDATE)
+        else:
+            await board_events.publish(
+                board_events.INVALIDATE, topics=(board_events.TOPIC_AI,)
+            )
+    else:
+        board_events.mark_own_change()
 
 
 # ---------------------------------------------------------------------------
@@ -173,7 +206,10 @@ def to_dict(run: AiRun, member_name: str | None = None) -> dict:
         "steps": loads(run.steps, []),
         "files": loads(run.files, []),
         "tokens_in": run.tokens_in,
+        "context_used": run.context_used,
+        "context_window": run.context_window,
         "tokens_out": run.tokens_out,
+        "tokens_cached": run.tokens_cached,
         "cost_usd": run.cost_usd,
         "metered": run.metered,
         "status_before": run.status_before,
@@ -188,6 +224,9 @@ def to_dict(run: AiRun, member_name: str | None = None) -> dict:
         "replaces_comment_id": run.replaces_comment_id,
         "feedback": loads(run.feedback, None),
         "stop_code": run.stop_code,
+        "peak_rss_mb": run.peak_rss_mb,
+        "last_rss_mb": run.last_rss_mb,
+        "restarts": resources.restarts_of(run),
         "blocked_move": run.blocked_move,
         "context_notes": loads(run.context_notes, []),
         "tests": observed_tests(loads(run.steps, [])),
@@ -327,8 +366,13 @@ async def create_run(
     queue_after_current: bool = False,
     limit_min: int | None = None,
     replaces_comment_id: str | None = None,
+    report_back: dict | None = None,
+    allow_self_hold: bool = False,
 ) -> AiRun:
     """Queue a run; the scheduler starts it when it can.
+
+    `allow_self_hold` lets a run queue behind another run of the same member on the ticket (a report-back to a PM
+    that is still working on it): it starts when that run ends.
 
     With `wait_for_hold`, a work run for a ticket another AI holds is queued *behind* the holder instead of being
     refused: it starts when the hold is released (design H1, "Next").
@@ -363,7 +407,7 @@ async def create_run(
         for r in await active_runs(session, member_id=member_id)
         if r.state == "queued"
     ]
-    if len(queued) >= MAX_QUEUED_PER_AGENT:
+    if profile.connection == "api_key" and len(queued) >= MAX_QUEUED_PER_AGENT:
         raise RunError(
             f"{member.name} already has {len(queued)} runs queued (limit {MAX_QUEUED_PER_AGENT}). "
             "Wait for some to finish or assign someone else."
@@ -377,7 +421,9 @@ async def create_run(
         ]
         if held:
             names = await _names(session, [held[0].member_id])
-            if not wait_for_hold or held[0].member_id == member_id:
+            if not wait_for_hold or (
+                held[0].member_id == member_id and not allow_self_hold
+            ):
                 raise RunConflict(
                     f"{ticket_id} is held by {names.get(held[0].member_id, 'another AI member')} "
                     f"(run #{held[0].number}, {held[0].state}). Only one agent works on a ticket at a time."
@@ -391,20 +437,13 @@ async def create_run(
                 )
             behind = held[0].id
         settings = await get_settings(session, ticket.project_id)
-        # The per-ticket limit is a loop guard: it stops scheduled and AI-started runs, never a person's
-        auto = bool(chain) or trigger == "schedule"
+        # The per-ticket limit is a loop guard for API-key members (scheduled or AI-started runs). Claude Code and
+        # Antigravity run on the person's own CLI and are not limited
+        auto = profile.connection == "api_key" and (
+            bool(chain) or trigger == "schedule"
+        )
         if auto:
-            since = budget.today_start().isoformat()
-            today = (
-                await session.exec(
-                    select(AiRun).where(
-                        AiRun.ticket_id == ticket_id,
-                        AiRun.mode == "work",
-                        AiRun.queued_at >= since,
-                        or_(AiRun.trigger == "schedule", AiRun.chain != "[]"),
-                    )
-                )
-            ).all()
+            today = await safety.limited_runs_today(session, ticket_id)
             allowed = settings.runs_per_ticket_per_day + await safety.extra_runs_today(
                 session, ticket_id
             )
@@ -428,6 +467,7 @@ async def create_run(
         number=(last.number + 1) if last else 1,
         mode=mode,
         trigger=trigger,
+        started_via=svc_activity.current_origin(),
         started_by=started_by,
         instruction=instruction or "",
         source_comment_id=source_comment_id,
@@ -440,6 +480,7 @@ async def create_run(
         queue_after_current=queue_after_current,
         limit_min=limit_min,
         replaces_comment_id=replaces_comment_id,
+        report_back=json.dumps(report_back) if report_back else None,
     )
     session.add(run)
     try:
@@ -471,9 +512,89 @@ async def create_run(
 # ---------------------------------------------------------------------------
 
 
+BOARD_CLOSED = "board_closed"  # the run was cut off by the board closing or crashing
+BOARD_CLOSED_PAUSED = (
+    "board_closed_paused"  # ... while a person had it paused: it stays stopped
+)
+RESUME_WITHIN = timedelta(hours=24)
+RESUME_NOTE = (
+    "The board was closed while your previous run on this ticket was in progress. Your conversation and every file "
+    "are as you left them. Look at `git status` and the last steps, then carry on from where you stopped; do not "
+    "start over."
+)
+
+
+async def resume_interrupted() -> int:
+    """Work the board's closing cut off goes on by itself at the next start, in the same conversation, with the same
+    chain and the same duty to report back; nobody has to notice. Only recent work runs of a ticket that is still open,
+    and only once."""
+    since = (datetime.now(UTC) - RESUME_WITHIN).isoformat()
+    async with database.async_session() as session:
+        cut = (
+            await session.exec(
+                select(AiRun).where(
+                    AiRun.stop_code
+                    == BOARD_CLOSED,  # not BOARD_CLOSED_PAUSED: a person paused it
+                    AiRun.mode == "work",
+                    AiRun.ended_at >= since,
+                )
+            )
+        ).all()
+    started = 0
+    for old in cut:
+        async with database.async_session() as session:
+            ticket = await session.get(Ticket, old.ticket_id)
+            later = (
+                await session.exec(
+                    select(AiRun).where(
+                        AiRun.ticket_id == old.ticket_id,
+                        AiRun.member_id == old.member_id,
+                        AiRun.queued_at > (old.ended_at or ""),
+                    )
+                )
+            ).first()
+            mark = await session.get(AiRun, old.id)
+            mark.stop_code = f"{BOARD_CLOSED}_seen"  # never looked at twice
+            session.add(mark)
+            await session.commit()
+            if (
+                ticket is None
+                or ticket.status in ("done", "wont_do")
+                or later
+                or old.trigger == "schedule"  # schedules._restart owns those
+                or (old.instruction or "").startswith(
+                    RESUME_NOTE
+                )  # resumed once already: no loop
+            ):
+                continue
+            try:
+                await create_run(
+                    session,
+                    ticket_id=old.ticket_id,
+                    member_id=old.member_id,
+                    mode="work",
+                    trigger="retry",
+                    started_by=old.started_by,
+                    instruction=f"{RESUME_NOTE}\n\n{old.instruction}".strip(),
+                    include_context=old.include_context,
+                    chain=loads(old.chain, []),
+                    resume_session=old.session_id,
+                    wait_for_hold=True,
+                    report_back=loads(old.report_back, None),
+                )
+                started += 1
+            except RunError as exc:
+                logger.info("Did not resume run %s: %s", old.id, exc)
+    return started
+
+
 async def start_scheduler() -> None:
-    """Recover runs left by a crash, then start the scheduler loop."""
+    """Recover runs left by a crash, resume the work the closing cut off, then start the scheduler loop."""
     await recover_on_startup()
+    try:
+        await resume_interrupted()
+    except Exception:  # noqa: BLE001 - a resume that fails must never keep the board from starting
+        logger.exception("Could not resume interrupted runs")
     if RT.scheduler is None or RT.scheduler.done():
         RT.scheduler = asyncio.create_task(_loop())
 
@@ -497,6 +618,11 @@ async def stop_scheduler() -> None:
                 by="board",
                 reason="The board was closed while the run was in progress.",
                 state="failed",
+                revert_status=False,
+                quiet=True,
+                stop_code=BOARD_CLOSED_PAUSED
+                if await _is_paused(run_id)
+                else BOARD_CLOSED,
             )
         except RunError:
             pass  # it ended on its own meanwhile
@@ -548,12 +674,26 @@ async def recover_on_startup() -> None:
             run.state = "failed"
             run.ended_at = now_iso()
             run.ended_reason = "The board restarted while this run was in progress. Retry to start a new run."
+            run.ended_by = "board"
+            run.stop_code = BOARD_CLOSED_PAUSED if run.paused else BOARD_CLOSED
+            run.paused = False
             run.token_hash = None
             session.add(run)
         await session.commit()
         lost = [r.id for r in rows if r.id not in RT.tasks]
     for run_id in lost:
         await approvals.mark_run_ended(run_id)
+    from . import members as svc_members
+
+    async with database.async_session() as session:
+        for member_id in {r.member_id for r in rows if r.id in lost}:
+            profile = await session.get(AiMember, member_id)
+            if (
+                profile is not None
+                and profile.remove_after_run
+                and not await active_runs(session, member_id=member_id)
+            ):
+                await svc_members.finalize_removal(session, member_id)
 
 
 async def _blocking_reason(
@@ -600,13 +740,17 @@ async def _blocking_reason(
             )
         )
     ).all()
-    if len(running) >= max(1, profile.max_parallel):
+    if profile.connection == "api_key" and len(running) >= max(1, profile.max_parallel):
         return (
             f"Waiting for a free slot ({len(running)} of {profile.max_parallel} in use)"
         )
     if any(r.ticket_id == run.ticket_id and r.id != run.id for r in running):
         # One conversation per member and ticket: a second run would resume the session while it is in use
         return "Waiting for this AI's earlier run on the same ticket to finish"
+    from services.docs_ai import sessions as shared
+
+    if shared.is_busy(shared.ticket_scope(run.ticket_id), run.member_id):
+        return "Waiting for a chat with this AI on the same ticket to finish"
     if run.queue_after_current and running and not skip_queue:
         # "Queue": wait behind the work the member is doing, even when a slot is free (design A2)
         return f"Queued behind {running[0].ticket_id}"
@@ -618,7 +762,9 @@ async def _blocking_reason(
             )
         )
     ).all()
-    if len(board_running) >= max(1, settings.board_max_parallel):
+    if profile.connection == "api_key" and len(board_running) >= max(
+        1, settings.board_max_parallel
+    ):
         return (
             f"Waiting for a free slot on the board ({len(board_running)} of "
             f"{settings.board_max_parallel} in use)"
@@ -632,8 +778,12 @@ async def _blocking_reason(
         )
         if policy == "ask" and await approvals.request_cap_raise(session, profile, hit):
             await board_events.publish(board_events.INVALIDATE)
+        # a request to raise the cap exists only for the daily spending cap: the other limits (runs, tokens, the
+        # month) wait for the day or the month, or for a person to change the limit in Board limits
         return hit["reason"] + (
-            " · waiting for an owner to raise the cap" if policy == "ask" else ""
+            " · waiting for an owner to raise the cap"
+            if policy == "ask" and hit["kind"] == "daily"
+            else ""
         )
     return None
 
@@ -660,6 +810,7 @@ async def tick() -> None:
     """Start what can start; time out what has waited too long."""
     async with RT.tick_lock:
         await _housekeeping()
+        await autopilot.tick()
         async with database.async_session() as session:
             await _expire_rate_limits(session)
             # Answers that never came: release the hold after 24 h (Pending and the question stay open)
@@ -928,6 +1079,7 @@ async def _ctx_for(session, run: AiRun) -> RunContext:
         on_behalf_of=run.started_by,
         mode=run.mode,
         chain=loads(run.chain, []),
+        trigger=run.trigger or "",
     )
 
 
@@ -1051,7 +1203,7 @@ async def _execute(run_id: str, token: str) -> None:
                 run_id,
                 "failed",
                 f"{PROVIDERS.get(profile.provider, {}).get('label', profile.provider)} has no headless mode the "
-                "board can start yet. It can still pick up its assigned tickets through MCP.",
+                "board can start. It can still pick up its assigned tickets through MCP.",
             )
     except Exception as exc:  # noqa: BLE001
         logger.exception("AI run %s crashed", run_id)
@@ -1078,7 +1230,7 @@ async def _note_flagged(run: AiRun, ticket: Ticket, humans: set[str], names: set
     flagged = [
         f
         for f in injection.flags_for_comments(loads(ticket.comments, []), humans, names)
-        if f["phrases"] and not f["hidden"]
+        if f["phrases"]
     ]
     if not flagged:
         return
@@ -1161,11 +1313,27 @@ async def _activity_for(session, run: AiRun, names: set[str]) -> str:
 
 
 async def _build_prompt(
-    session, run: AiRun, profile: AiMember, member: Member, *, resume_note: str | None
+    session,
+    run: AiRun,
+    profile: AiMember,
+    member: Member,
+    *,
+    resume_note: str | None,
+    prior: dict | None = None,
+    record: dict | None = None,
 ):
-    """(system, user message, config) of a run, with the project's AI guidance pages added to the system prompt."""
+    """(system, user message, config) of a run, with the project's AI guidance pages added to the system prompt.
+
+    `prior` is what the conversation this run continues was last told about the ticket: the message then carries
+    only what changed. `record` receives what this run tells (the system prompt's digest and the ticket snapshot)."""
     system, prompt, config = await _build_prompt_base(
-        session, run, profile, member, resume_note=resume_note
+        session,
+        run,
+        profile,
+        member,
+        resume_note=resume_note,
+        prior=prior,
+        record=record,
     )
     from services.docs_ai import access as docs_ai_access
 
@@ -1184,11 +1352,20 @@ async def _build_prompt(
                     }
                 ],
             )
+    if record is not None:
+        record["system"] = digest(system)
     return system, prompt, config
 
 
 async def _build_prompt_base(
-    session, run: AiRun, profile: AiMember, member: Member, *, resume_note: str | None
+    session,
+    run: AiRun,
+    profile: AiMember,
+    member: Member,
+    *,
+    resume_note: str | None,
+    prior: dict | None = None,
+    record: dict | None = None,
 ):
     ticket = await session.get(Ticket, run.ticket_id)
     project = await session.get(Project, run.project_id)
@@ -1203,12 +1380,24 @@ async def _build_prompt_base(
         return await api_prompt.build(
             session, run, profile, member, config, resume_note=resume_note
         )
+    team = sorted(
+        m.name
+        for m in (
+            await session.exec(
+                select(Member).where(
+                    Member.project_id == run.project_id, Member.kind == "ai"
+                )
+            )
+        ).all()
+        if m.id != member.id
+    )
     system = rules_block(
         ctx,
         profile,
         settings,
         project_name=project.name if project else "",
         ticket_status=ticket.status,
+        team=team,
     )
     if profile.persona.strip():
         system += f"\n\nRole / persona (set by the project's people):\n{profile.persona.strip()}"
@@ -1229,8 +1418,39 @@ async def _build_prompt_base(
         ).all()
     }
     parts = []
-    if run.include_context:
+    if run.include_context and prior is not None:
         await _note_flagged(run, ticket, humans, names)
+        parts.append(
+            delta_block(
+                ticket,
+                prior,
+                skip_comment_id=run.source_comment_id,
+                skip_author=member.name,
+            )
+        )
+        if record is not None:
+            record.update(
+                mode="delta",
+                ticket=snapshot(ticket),
+                new_comments=len(
+                    [
+                        c
+                        for c in loads(ticket.comments, [])
+                        if isinstance(c, dict)
+                        and not c.get("deleted_at")
+                        and c.get("id") not in set(prior.get("comments") or [])
+                        and c.get("id") != run.source_comment_id
+                        and c.get("author") != member.name
+                    ]
+                ),
+            )
+        activity = await _activity_for(session, run, names)
+        if activity:
+            parts.append(activity)
+    elif run.include_context:
+        await _note_flagged(run, ticket, humans, names)
+        if record is not None:
+            record.update(mode="full", ticket=snapshot(ticket))
         parts.append(
             ticket_block(
                 ticket,
@@ -1290,8 +1510,158 @@ def cli_tool_rules(
     return allowed, denied
 
 
+def mcp_config(
+    config: dict, token: str, folder: str | None = None, config_dir: str | None = None
+) -> dict:
+    """The CLI's MCP servers for a member: the board's own (with the token that says who is calling), the enabled
+    servers the member's configuration lists and, after them, the ones the working folder's `.mcp.json` lists."""
+    mcp = {
+        "mcpServers": {
+            "kanban": {
+                "type": "http",
+                "url": f"{RT.board_url or 'http://127.0.0.1:8000'}/mcp/",
+                "headers": {"Authorization": f"Bearer {token}"},
+            }
+        }
+    }
+    for server in config.get("mcp_servers") or []:
+        name = (server.get("name") or "").strip()
+        if name and name != "kanban" and server.get("enabled", True):
+            spec = {
+                k: v
+                for k, v in server.items()
+                if k in ("type", "command", "args", "url")
+            }
+            for k in ("env", "headers"):
+                if server.get(k):
+                    spec[k] = kv_dict(server[k])
+            mcp["mcpServers"][name] = spec
+    reset = mcp_sources.ACCOUNT_DIR.set(config_dir)
+    try:
+        found = folder_servers(folder)
+    finally:
+        mcp_sources.ACCOUNT_DIR.reset(reset)
+    for name, spec in found.items():
+        mcp["mcpServers"].setdefault(
+            name, spec
+        )  # a server of the member's configuration wins
+    return mcp
+
+
+_AGY_READ_TOOLS = ("get_ticket", "list_tickets", "docs_read", "get_projects")
+
+
+def antigravity_run_rules(
+    mode: str, config: dict, servers: list[str], *, safe: bool, domains: list[str]
+) -> tuple[list[str], list[str], bool]:
+    """Antigravity's permission rules for a run (`--settings`): (allow, deny, may edit files). A headless run cannot
+    ask, so what is not allowed is refused. The person's own `kanban` entry (no run token) is always denied: it would
+    act as that person. Safe mode is read-only (no edits, no commands). A question gets the same rules as work: a
+    denied command ends the whole run, and the person asked for no limit here (what a question may change on the
+    board is still held by the board's guard, and its prompt says not to change anything)."""
+    board = cli.AGY_BOARD_SERVER
+    denied = ["mcp(kanban/*)"]
+    others = [f"mcp({name}/*)" for name in servers if name not in ("kanban", board)]
+    if safe:
+        allowed = [f"mcp({board}/*)"]
+        denied += ["write_file(*)", "command(*)"]
+        return allowed + others, denied, False
+    allowed = (
+        cli.antigravity_rules(list(config.get("allow_rules") or []))
+        + [f"mcp({board}/*)"]
+        + others
+        + [f"read_url({d})" for d in domains if isinstance(d, str) and d]
+    )
+    denied += cli.antigravity_rules(list(config.get("deny_rules") or []))
+    return list(dict.fromkeys(allowed)), list(dict.fromkeys(denied)), True
+
+
+def antigravity_mcp(mcp: dict) -> dict:
+    """The run's MCP servers as Antigravity's `.agents/mcp_config.json` reads them: the board's endpoint is named
+    `board` (not `kanban`, the person's own entry), and a server's `type` is not written (it is told by its fields)."""
+    servers = {}
+    for name, spec in mcp["mcpServers"].items():
+        servers[cli.AGY_BOARD_SERVER if name == "kanban" else name] = {
+            k: v for k, v in spec.items() if k != "type"
+        }
+    return {"mcpServers": servers}
+
+
+def antigravity_brief(cwd: str) -> str:
+    """What a new Antigravity conversation is told first: it starts in a scratch folder, the work is in `cwd`."""
+    return (
+        f"Working folder: {cwd}\n"
+        "You are started in an empty scratch folder. All the work is in the working folder above: use absolute paths "
+        "inside it and run every command with it as the working directory. The board's tools are on the MCP "
+        f"server named {cli.AGY_BOARD_SERVER}."
+    )
+
+
+def _step_context(step: dict) -> dict | None:
+    """What a "Sent the ticket" step recorded (kept in `context`; the first version used `detail`)."""
+    for holder in (step, step.get("detail")):
+        if isinstance(holder, dict) and isinstance(holder.get("context"), dict):
+            return holder["context"]
+    return None
+
+
+async def _prior_context(session, run: AiRun, session_id: str) -> dict | None:
+    """What the conversation `session_id` was last told about the ticket (the ticket snapshot and the digest of its
+    system prompt), or None when that is unknown or the conversation was compacted since: then the ticket is sent
+    in full again."""
+    rows = (
+        await session.exec(
+            select(AiRun)
+            .where(
+                AiRun.ticket_id == run.ticket_id,
+                AiRun.member_id == run.member_id,
+                AiRun.id != run.id,
+                AiRun.session_id == session_id,
+                AiRun.queued_at < run.queued_at,
+            )
+            .order_by(col(AiRun.queued_at).desc())
+            .limit(5)
+        )
+    ).all()
+    for prev in rows:
+        steps = loads(prev.steps, [])
+        at = next(
+            (
+                i
+                for i in range(len(steps) - 1, -1, -1)
+                if _step_context(steps[i]) is not None
+            ),
+            None,
+        )
+        if at is None:
+            continue
+        if any(st.get("kind") == "compact" for st in steps[at:]):
+            return None
+        sent = _step_context(steps[at])
+        if not isinstance(sent.get("ticket"), dict):
+            return None
+        return {**sent["ticket"], "system": sent.get("system")}
+    return None
+
+
+def _context_step(sent: dict) -> list[dict]:
+    """The run's step that says what the AI was told about the ticket (and keeps it for the next run)."""
+    if sent.get("mode") == "delta":
+        n = sent.get("new_comments") or 0
+        text = "Sent what changed on the ticket since the last answer" + (
+            f" ({n} new comment{'s' if n != 1 else ''}, ids only)" if n else ""
+        )
+    else:
+        text = "Sent the ticket"
+    return [{"kind": "read", "text": text, "context": sent}]
+
+
 async def _session_for(
-    session, run: AiRun, config_dir: str | None = None, check: bool = True
+    session,
+    run: AiRun,
+    config_dir: str | None = None,
+    check: bool = True,
+    provider: str = "claude-code",
 ) -> tuple[str | None, str | None]:
     """The CLI session this run continues: the one already on the run (a run resumed after a question, a re-run
     after "Request changes"), else the last session this member used on this ticket, so one agent keeps one
@@ -1299,6 +1669,15 @@ async def _session_for(
     an older one existed)."""
     wanted = run.session_id
     if not wanted:
+        # the member's one conversation on this ticket, which a chat about the ticket may have started
+        from services.docs_ai import sessions as shared
+
+        if not any(st.get("kind") == "fresh_session" for st in loads(run.steps, [])):
+            found = await shared.lookup(
+                shared.ticket_scope(run.ticket_id), run.member_id
+            )
+            if found:
+                return found, None
         prev = (
             await session.exec(
                 select(AiRun)
@@ -1318,18 +1697,57 @@ async def _session_for(
         ):
             return None, None
         wanted = prev.session_id
-    if wanted and (not check or cli.session_exists(wanted, config_dir)):
+    if wanted and (not check or cli.session_exists(wanted, config_dir, provider)):
         return wanted, None
     return None, "Earlier session not found on this computer: starting a new one"
 
 
 async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) -> None:
-    """One run of a local CLI: Claude Code (built here) or Codex, opencode and Antigravity (``adapters.py``)."""
+    """Run the CLI for a run while it holds the member's conversation on the ticket (a chat never uses it at the same
+    time)."""
+    from services.docs_ai import sessions as shared
+
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+    if run is None:
+        return
+    scratch: list[
+        str
+    ] = []  # folders a run made for itself (Antigravity's per-run workspace)
+    try:
+        async with shared.exclusive(shared.ticket_scope(run.ticket_id), run.member_id):
+            await _execute_cli_held(run_id, token, resume_note, scratch)
+    finally:
+        for folder in scratch:
+            shutil.rmtree(folder, ignore_errors=True)
+
+
+async def _execute_cli_held(
+    run_id: str,
+    token: str,
+    resume_note: str | None = None,
+    scratch: list[str] | None = None,
+) -> None:
+    """One run of a local CLI: Claude Code (built here) or Codex, opencode and Antigravity with an account
+    (``adapters.py``). Antigravity without an account is the person's own login on this computer: it runs in a scratch
+    workspace that carries the run's MCP config (``agy`` below)."""
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         member, profile = await get_profile(session, run.member_id)
+        account = (
+            await session.get(AiAccount, profile.account_id)
+            if profile.account_id
+            else None
+        )
         adapter = adapters.for_provider(profile.provider)
-        binary = adapter.binary if adapter else "claude"
+        agy = profile.provider == "antigravity" and account is None
+        if agy:
+            adapter = None
+        binary = (
+            adapter.binary
+            if adapter
+            else PROVIDERS.get(profile.provider, {}).get("binary") or "claude"
+        )
         path, _ = cli.find_cli(binary, profile.cli_path)
         if not path:
             profile.health = "runner_missing"
@@ -1355,53 +1773,48 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
         if not synced["ok"]:
             await _end(run_id, "failed", synced["message"])
             return
-        system, prompt, config = await _build_prompt(
-            session, run, profile, member, resume_note=resume_note
-        )
-        account = (
-            await session.get(AiAccount, profile.account_id)
-            if profile.account_id
-            else None
-        )
-        if adapter and adapter.needs_account and account is None:
-            await _end(
-                run_id,
-                "failed",
-                f"{adapter.label} runs need an AI account: its MCP servers are kept per account. "
-                "Add an account for it and choose it for this AI member.",
-            )
-            return
         session_id, fresh_note = await _session_for(
             session,
             run,
             accounts.claude_config_dir(account),
             check=adapter is None,
+            provider=profile.provider,
         )
+        # A conversation that already holds the ticket is sent only what changed since; its instructions were fixed
+        # when it began, so a changed system prompt starts a new conversation instead.
+        prior = None
+        if session_id and not resume_note and profile.connection != "api_key":
+            prior = await _prior_context(session, run, session_id)
+        sent: dict = {}
+        system, prompt, config = await _build_prompt(
+            session,
+            run,
+            profile,
+            member,
+            resume_note=resume_note,
+            prior=prior,
+            record=sent,
+        )
+        if prior is not None and prior.get("system") != sent.get("system"):
+            session_id = None
+            fresh_note = "The instructions changed since the last answer: starting a new conversation"
+            sent = {}
+            system, prompt, config = await _build_prompt(
+                session, run, profile, member, resume_note=resume_note, record=sent
+            )
         resume = session_id is not None
         # Claude Code takes the session id up front; the others tell it in their first event
-        session_id = session_id or (None if adapter else str(uuid.uuid4()))
-        mcp = {
-            "mcpServers": {
-                "kanban": {
-                    "type": "http",
-                    "url": f"{RT.board_url or 'http://127.0.0.1:8000'}/mcp/",
-                    "headers": {"Authorization": f"Bearer {token}"},
-                }
-            }
-        }
-        for server in config.get("mcp_servers") or []:
-            name = (server.get("name") or "").strip()
-            if name and name != "kanban" and server.get("enabled", True):
-                spec = {
-                    k: v
-                    for k, v in server.items()
-                    if k in ("type", "command", "args", "url")
-                }
-                for k in ("env", "headers"):
-                    if server.get(k):
-                        spec[k] = kv_dict(server[k])
-                mcp["mcpServers"][name] = spec
-        if run.mode == "ask":
+        if not (agy or adapter):
+            session_id = session_id or str(uuid.uuid4())
+        # Antigravity starts in a scratch folder (below), so the folder's own Claude files do not apply to it
+        mcp = mcp_config(
+            config,
+            token,
+            None if agy else cwd,
+            accounts.claude_config_dir(account),
+        )
+        narrow = narrow_run(run.mode, run.trigger)
+        if narrow:
             allowed = [
                 "Read",
                 "Glob",
@@ -1410,6 +1823,13 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                 "mcp__kanban__list_tickets",
                 "mcp__kanban__docs_read",
                 "mcp__kanban__get_projects",
+            ]
+            allowed.append(
+                "mcp__kanban__ai_run"
+            )  # decide / answer, checked by the board
+            # the member's other MCP servers answer too (the delegate reads, it does not write)
+            allowed += [
+                f"mcp__{server}" for server in mcp["mcpServers"] if server != "kanban"
             ]
             denied = ["Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"]
         else:
@@ -1420,20 +1840,28 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
             denied = list(config.get("deny_rules") or [])
         settings = await get_settings(session, run.project_id)
         safe = settings.safe_mode or profile.safe_mode
-        allowed, denied = cli_tool_rules(
-            allowed,
-            denied,
-            safe=safe,
-            domains=loads(settings.allowed_domains, []),
-        )
-        # An owner's "Bypass permissions": work runs only, never in safe mode. Deny rules and the board's own
-        # checks (status ceiling, approvals) still apply; the web stays off because its domain list needs the
-        # allow list the mode skips.
-        bypass = (
-            config.get("permission_mode") == "bypass"
-            and run.mode == "work"
-            and not safe
-        )
+        if agy:
+            allowed, denied, edits = antigravity_run_rules(
+                "ask" if narrow else "work",
+                config,
+                cli.antigravity_global_servers()
+                + [s for s in mcp["mcpServers"] if s != "kanban"],
+                safe=safe,
+                domains=loads(settings.allowed_domains, []),
+            )
+        else:
+            allowed, denied = cli_tool_rules(
+                allowed,
+                denied,
+                safe=safe,
+                domains=loads(settings.allowed_domains, []),
+            )
+            edits = False
+        # An owner's "Bypass permissions" (Claude Code and Antigravity): work runs only, never in safe mode. Deny
+        # rules and the board's own checks (status ceiling, approvals) still apply; the web stays off because its
+        # domain list needs the allow list the mode skips.
+        # Antigravity's questions too: a denied command ends the whole run
+        bypass = config.get("permission_mode") == "bypass" and not narrow and not safe
         if bypass:
             denied += [d for d in _WEB_TOOLS if d not in denied]
         extra_flags = [
@@ -1441,7 +1869,30 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
         ]
         launch = None
         read_dirs: list[str] = []
-        if adapter:
+        workspace = None
+        if agy:
+            workspace = tempfile.mkdtemp(prefix="kanban-agy-")
+            if scratch is not None:
+                scratch.append(workspace)
+            Path(workspace, ".agents").mkdir()
+            Path(workspace, ".agents", "mcp_config.json").write_text(
+                json.dumps(antigravity_mcp(mcp)), encoding="utf-8"
+            )
+            args = cli.antigravity_args(
+                path,
+                prompt=prompt
+                if resume
+                else f"{antigravity_brief(cwd)}\n\n{system}\n\n{prompt}",
+                model=profile.model,
+                allowed=allowed,
+                denied=denied,
+                edits=edits and not safe,
+                conversation=session_id,
+                add_dirs=[cwd],
+                extra_flags=extra_flags,
+                bypass=bypass,
+            )
+        elif adapter:
             if account is not None and adapter.cli == "agy":
                 read_dirs = [
                     str(
@@ -1470,7 +1921,7 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                     token=token,
                     allowed=allowed,
                     denied=denied,
-                    read_only=run.mode == "ask" or safe,
+                    read_only=safe or (narrow and adapter.cli != "agy"),
                     resume_id=session_id if resume else None,
                     effort=config.get("effort"),
                     compact_at_tokens=int(config.get("compact_at_tokens") or 0),
@@ -1489,7 +1940,7 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                 mcp_config=mcp,
                 allowed=allowed,
                 denied=denied,
-                max_turns=int(config.get("max_turns") or 40),
+                max_turns=None,  # the CLI's own judgement; a person can Stop the run
                 session_id=session_id,
                 resume=resume,
                 effort=config.get("effort"),
@@ -1499,6 +1950,15 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
         run.session_id = session_id
         session.add(run)
         await session.commit()
+        from services.docs_ai import sessions as shared
+
+        if session_id:
+            await shared.remember(
+                shared.ticket_scope(run.ticket_id),
+                run.member_id,
+                run.project_id,
+                session_id,
+            )
         account_folder = account.folder if account else None
         account_snapshot = account
         if account is not None:
@@ -1515,24 +1975,39 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
         env = accounts.env_for(account_snapshot, env)
     if launch:
         env.update(launch.env)
-    proc = cli.CliProcess(args, cwd=cwd, env=env)
+    proc = cli.CliProcess(
+        args,
+        cwd=workspace if agy else cwd,
+        env=env,
+        spill=not agy,
+    )
     parser = adapter.parser(cwd) if adapter else None
     RT.procs[run_id] = proc
     pid = await proc.start()
+    resources.MON.track(run_id, proc, run.project_id)
     if run_id in RT.cancelled:
         proc.kill()  # the cancel came while the process was starting
+    mates = await _folder_mates(run, cwd)
     await _append(
         run_id,
         steps=[
             {
                 "kind": "start",
-                "text": "Answer received — resuming"
+                "text": (
+                    "Continuing after a refused action"
+                    if (resume_note or "").startswith("Your last action was refused")
+                    else "Continuing in a new process"
+                    if (resume_note or "").startswith("Your process was restarted")
+                    else "Answer received — resuming"
+                )
                 if resume_note
                 else (
                     "Read the ticket" if run.mode == "work" else "Reading the question"
                 ),
             },
             *([{"kind": "start", "text": fresh_note}] if fresh_note else []),
+            *([{"kind": "start", "text": mates}] if mates else []),
+            *(_context_step(sent) if sent.get("ticket") else []),
             *(
                 {"kind": "start", "text": note}
                 for note in (launch.notes if launch else [])
@@ -1550,38 +2025,26 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
         ],
         pid=pid,
     )
-    idle_s = float(config.get("idle_timeout_min") or 10) * 60
-    total_s = float(config.get("run_timeout_min") or 30) * 60
-    if (
-        run.limit_min
-    ):  # "Raise limit": this run may take longer than the member's own limit
-        total_s = float(run.limit_min) * 60
-        idle_s = max(idle_s, total_s / 3)
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + total_s
+    # A run on a person's own CLI has no time or turn limit: the CLI manages itself and a person can Stop it. Only a
+    # CLI that never starts is given up on.
+    start_s = STARTING_TIMEOUT_S * 4
     result: dict | None = None
+    held_tokens: int | None = None  # what the conversation held at the last model call
+    window_tokens: int | None = None
     timed_out: str | None = None
     lines = proc.lines().__aiter__()
+    stream = cli.AgyStream(cwd) if agy else None
+    remembered = not (agy or adapter) or resume
     ready = False
     pending: asyncio.Future | None = None
     while True:
-        remaining = deadline - loop.time()
-        if remaining <= 0:
-            timed_out = f"Run time limit reached ({total_s / 60:g} min)."
-            break
-        wait = min(idle_s if ready else min(idle_s, STARTING_TIMEOUT_S * 4), remaining)
         if pending is None:
             pending = asyncio.ensure_future(lines.__anext__())
-        done, _ = await asyncio.wait({pending}, timeout=wait)
+        done, _ = await asyncio.wait({pending}, timeout=60 if ready else start_s)
         if not done:
-            if await _is_paused(run_id):
-                deadline += wait  # time spent paused does not count against the limits
-                continue
-            timed_out = (
-                f"No output for {idle_s / 60:g} min."
-                if ready
-                else "The CLI did not start in time."
-            )
+            if ready or await _is_paused(run_id):
+                continue  # a quiet CLI is thinking or a tool is running: keep waiting
+            timed_out = "The CLI did not start in time."
             pending.cancel()
             break
         finished, pending = pending, None
@@ -1589,7 +2052,10 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
             line = finished.result()
         except StopAsyncIteration:
             break
-        parsed = parser.feed(line) if parser else cli.parse_stream_line(line, cwd)
+        reader = stream or parser
+        parsed = reader.feed(line) if reader else cli.parse_stream_line(line, cwd)
+        held_tokens = parsed.get("context_used") or held_tokens
+        window_tokens = parsed.get("context_window") or window_tokens
         fields = {}
         if parsed["ready"] and not ready:
             ready = True
@@ -1598,6 +2064,17 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                 fields["model"] = parsed["model"]
         if parsed["session_id"]:
             fields["session_id"] = parsed["session_id"]
+            if not remembered:
+                # Antigravity names a new conversation itself: share it with the ticket chat from now on
+                remembered = True
+                from services.docs_ai import sessions as shared
+
+                await shared.remember(
+                    shared.ticket_scope(run.ticket_id),
+                    run.member_id,
+                    run.project_id,
+                    parsed["session_id"],
+                )
         if parsed["result"]:
             result = parsed["result"]
         if parsed["steps"] or parsed["files"] or parsed["results"] or fields:
@@ -1619,6 +2096,8 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
     if timed_out:
         proc.kill()
     code = await proc.wait()
+    await resources.MON.untrack(run_id)
+    restart = RT.restart_requests.pop(run_id, None)
     if run_id in RT.cancelled:
         RT.cancelled.discard(run_id)
         return
@@ -1627,34 +2106,86 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
         usage = {
             "tokens_in": result["tokens_in"],
             "tokens_out": result["tokens_out"],
+            "tokens_cached": result.get("tokens_cached"),
             "cost_usd": result["cost_usd"],
         }
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None or run.state in ENDED:
             return
+        if held_tokens:
+            run.context_used = held_tokens
+            run.context_window = window_tokens or run.context_window
         if usage:
             run.tokens_in += usage["tokens_in"]
             run.tokens_out += usage["tokens_out"]
+            if usage["tokens_cached"] is not None:
+                run.tokens_cached = (run.tokens_cached or 0) + usage["tokens_cached"]
             run.cost_usd += usage["cost_usd"]
         run.exit_code = code
         session.add(run)
         await session.commit()
         question = loads(run.question, None)
+    if restart:
+        await _restart_inside_run(run_id, token, restart, scratch)
+        return
     if timed_out:
         await _end(run_id, "timed_out", timed_out)
         return
     if question and not question.get("answered_at"):
         await _needs_input(run_id)
         return
+    if (
+        agy
+        and result
+        and not (result["text"] or "").strip()
+        and result.get("refused")
+        and not question
+    ):
+        # A headless Antigravity run ends its turn when the board refuses an action, so it would stop here with
+        # nothing done. Tell it what was refused and let it carry on another way (Claude Code gets this as an error).
+        tries = RT.refusal_retries.get(run_id, 0)
+        refused = "; ".join(result["refused"])[:600]
+        if tries < REFUSAL_RETRIES and run_id not in RT.cancelled:
+            RT.refusal_retries[run_id] = tries + 1
+            await _append(
+                run_id,
+                steps=[
+                    {
+                        "kind": "start",
+                        "text": f"Antigravity stopped at a refused action: continuing ({tries + 1} of {REFUSAL_RETRIES})",
+                    }
+                ],
+            )
+            await _execute_cli_held(
+                run_id,
+                token,
+                resume_note=(
+                    f"Your last action was refused by the board's rules and you cannot ask for permission: {refused}. "
+                    "Do not repeat it. Carry on with the task another way, using only what you are allowed "
+                    "(reading and editing files in the working folder, the board's MCP tools, the shell commands "
+                    "the board allows). If you cannot finish, say plainly what you could not do and why."
+                ),
+                scratch=scratch,
+            )
+            return
+        RT.refusal_retries.pop(run_id, None)
+        await _end(
+            run_id,
+            "failed",
+            f"Antigravity stopped after the board refused: {refused}",
+        )
+        return
     if result and not result["is_error"] and code == 0:
+        RT.refusal_retries.pop(run_id, None)
         await _finish(run_id, result["text"])
         return
-    rate_wait = cli.rate_limit_wait(
-        (result or {}).get("text") or " ".join(proc.stderr_tail[-5:])
-    )
+    limited = (result or {}).get("text") or " ".join(proc.stderr_tail[-5:])
+    rate_wait = cli.rate_limit_wait(limited)
     if rate_wait is not None and await requeue_rate_limited(
-        run_id, rate_wait, "The provider is rate-limiting the CLI (429)."
+        run_id,
+        rate_wait,
+        f"The provider is limiting the CLI: {cli.rate_limit_line(limited) or '429'}.",
     ):
         return
     said = ((result or {}).get("text") or " ".join(proc.stderr_tail[-5:])).lower()
@@ -1666,6 +2197,13 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
         reason = f"Reached the turn limit ({config.get('max_turns') or 40} turns)."
     elif result and result.get("text"):
         reason = result["text"][:300]
+        if code == 0 and (
+            result.get("status") not in (None, "SUCCESS")
+            or result.get("finished_reason")
+        ):
+            # the CLI said it was done, yet not with success: say what it reported instead of a bare report
+            why = result.get("finished_reason") or result.get("status")
+            reason = f"Antigravity ended early ({why}): {reason}"
     else:
         tail = _plain(" ".join(proc.stderr_tail[-3:]))
         asked = re.search(r"permission requested: ([^;]+)", tail)
@@ -1694,6 +2232,170 @@ async def _execute_cli(run_id: str, token: str, resume_note: str | None = None) 
                     )
                     reason = "Account signed out"
     await _end(run_id, "failed", reason)
+
+
+RESTART_NOTE = (
+    "Your process was restarted ({why}). The conversation and every file are as you left them. Look at "
+    "`git status` and the last steps, then carry on with the task from where you stopped; do not start over."
+)
+
+
+async def _memory_breach(run_id: str, rss_mb: float, limit_mb: int) -> None:
+    """The monitor saw a run's CLI pass the memory limit: stop it; the run goes on in a new CLI (or ends)."""
+    proc = RT.procs.get(run_id)
+    if proc is None:
+        return
+    RT.restart_requests[run_id] = {
+        "by": "system",
+        "rss_mb": rss_mb,
+        "limit_mb": limit_mb,
+    }
+    proc.kill()
+
+
+resources.MON.on_breach = _memory_breach
+
+
+async def restart_run(run_id: str, *, by: str) -> AiRun:
+    """Start a running run's CLI again inside the same run (it resumes its conversation); memory is released.
+
+    Raises:
+        RunError: The run is not running a CLI.
+    """
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+    if run is None:
+        raise RunError("Run not found.")
+    proc = RT.procs.get(run_id)
+    if run.state != "running" or proc is None or proc.proc is None:
+        raise RunError("Only a running run can be restarted.")
+    reading = resources.MON.readings.get(run_id) or {}
+    RT.restart_requests[run_id] = {
+        "by": by,
+        "rss_mb": reading.get("cli_rss_mb"),
+        "limit_mb": await resources.MON.limit_mb(run.project_id),
+    }
+    proc.kill()
+    return run
+
+
+async def _tell_restart(run: AiRun, entry: dict) -> None:
+    """One notice per run for the restarts of the last 10 minutes; a further restart only raises its count."""
+    async with database.async_session() as session:
+        recent = (
+            await session.exec(
+                select(AiNotification)
+                .where(
+                    AiNotification.project_id == run.project_id,
+                    AiNotification.event == "run_restarted",
+                    AiNotification.ref_id == run.id,
+                    col(AiNotification.created_at)
+                    > (datetime.now(UTC) - timedelta(minutes=10)).isoformat(),
+                )
+                .order_by(col(AiNotification.created_at).desc())
+            )
+        ).first()
+        if recent is not None:
+            data = loads(recent.data, {})
+            data["count"] = int(data.get("count", 1)) + 1
+            recent.data = json.dumps(data)
+            recent.title = f"{run.ticket_id}: restarted {data['count']} times (memory)"
+            session.add(recent)
+            await session.commit()
+            return
+    rss, limit = entry.get("rss_mb"), entry.get("limit_mb")
+    await safety.notify(
+        run.project_id,
+        "run_restarted",
+        f"{run.ticket_id}: restarted (memory)",
+        f"The CLI reached {rss / 1024:.2f} GB, over the {limit / 1024:.1f} GB limit, and started again in the same run.",
+        ref_kind="run",
+        ref_id=run.id,
+        member_id=run.member_id,
+        data={"count": 1, "rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
+    )
+
+
+async def _restart_inside_run(
+    run_id: str, token: str, request: dict, scratch: list[str] | None
+) -> None:
+    """The CLI was stopped on purpose (memory limit, or a person pressed Restart): log it and start a new CLI in the
+    same run. After `AUTO_RESTARTS` restarts by the system, the next breach ends the run instead."""
+    by = request["by"]
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.state in ENDED:
+            return
+        log = resources.restarts_of(run)
+        by_system = sum(1 for r in log if r.get("by") == "system")
+        rss, limit = request.get("rss_mb"), request.get("limit_mb")
+        if by == "system" and by_system >= resources.AUTO_RESTARTS:
+            gb = f"{rss / 1024:.2f} GB" if rss else "too much memory"
+            await audit.record(
+                run.project_id,
+                "run_stopped_memory",
+                "info",
+                member_id=run.member_id,
+                member_name="System",
+                run_id=run_id,
+                target=run.ticket_id,
+                detail={"rss_mb": rss, "limit_mb": limit, "restarts": len(log)},
+            )
+            await safety.notify(
+                run.project_id,
+                "run_stopped_memory",
+                f"{run.ticket_id}: stopped, out of memory",
+                f"The CLI went over {limit / 1024:.1f} GB again after {resources.AUTO_RESTARTS} restarts. "
+                "Partial work is kept; retry it or raise the limit.",
+                ref_kind="run",
+                ref_id=run_id,
+                member_id=run.member_id,
+                data={"rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
+            )
+            await _end(
+                run_id,
+                "failed",
+                f"Stopped automatically: the CLI went over the memory limit ({gb} of {limit / 1024:.1f} GB) "
+                f"again after {resources.AUTO_RESTARTS} restarts. Partial work in the folder is kept.",
+                stop_code="memory",
+            )
+            return
+        entry = {
+            "at": now_iso(),
+            "rss_mb": rss,
+            "limit_mb": limit,
+            "by": by,
+            "n": len(log) + 1,
+        }
+        run.restarts = resources.dump(log + [entry])
+        session.add(run)
+        await session.commit()
+        await audit.record(
+            run.project_id,
+            "run_restarted",
+            "info",
+            member_id=run.member_id,
+            member_name="System" if by == "system" else by,
+            run_id=run_id,
+            target=run.ticket_id,
+            detail=entry,
+        )
+        if by == "system":
+            await _tell_restart(run, entry)
+    if by == "system":
+        text = (
+            f"Restarted automatically: the CLI reached {rss / 1024:.2f} GB, over the {limit / 1024:.1f} GB limit "
+            f"(restart {by_system + 1} of {resources.AUTO_RESTARTS})"
+        )
+        why = f"it used {rss / 1024:.2f} GB of memory, over the {limit / 1024:.1f} GB limit"
+    else:
+        text = f"Restarted by {by}"
+        why = f"{by} restarted it"
+    await _append(run_id, steps=[{"kind": "start", "text": text}])
+    await _publish(force=True)
+    await _execute_cli_held(
+        run_id, token, resume_note=RESTART_NOTE.format(why=why), scratch=scratch
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1773,11 +2475,20 @@ async def _finish(run_id: str, final_text: str) -> None:
         mode, ticket_id, trigger = run.mode, run.ticket_id, run.trigger
         usage = _usage_line(run, profile)
     if mode == "ask":
-        reply_id = await post_ai_comment(
-            ticket_id,
-            name,
-            redact(final_text.strip() or "(no answer)") + usage,
-            {**meta, "kind": "answer", "question_comment_id": run.source_comment_id},
+        # Autopilot's delegate decides requests; what it decided is in the audit log and on each ticket, not here
+        reply_id = (
+            None
+            if trigger == "autopilot"
+            else await post_ai_comment(
+                ticket_id,
+                name,
+                redact(final_text.strip() or "(no answer)") + usage,
+                {
+                    **meta,
+                    "kind": "answer",
+                    "question_comment_id": run.source_comment_id,
+                },
+            )
         )
         if run.replaces_comment_id:
             # “Edit and re-run → Replace it”: the old answer goes (it can be restored from the comment's Undo)
@@ -1909,10 +2620,53 @@ def _plain(text: str) -> str:
     return _ANSI.sub("", text)
 
 
+async def _folder_mates(run: AiRun, cwd: str) -> str | None:
+    """Other AIs working in the same folder right now, as a note on this run: they share files and one git tree, so a
+    person reading a failure can see who else was there. Nothing is held back; a team on one folder is allowed."""
+    try:
+        async with database.async_session() as session:
+            others = (
+                await session.exec(
+                    select(AiRun).where(
+                        AiRun.project_id == run.project_id,
+                        AiRun.id != run.id,
+                        col(AiRun.state).in_(["starting", "running"]),
+                    )
+                )
+            ).all()
+            names: list[str] = []
+            for other in others:
+                profile = await session.get(AiMember, other.member_id)
+                member = await session.get(Member, other.member_id)
+                if profile and member and _same_folder(profile.working_dir, cwd):
+                    names.append(f"{member.name} on {other.ticket_id}")
+    except Exception:  # noqa: BLE001 - a note, never a reason to fail a run
+        return None
+    if not names:
+        return None
+    return "Working in the same folder at the same time: " + ", ".join(names[:5])
+
+
+def _same_folder(a: str | None, b: str | None) -> bool:
+    if not a or not b:
+        return False
+    return os.path.realpath(os.path.expanduser(a)) == os.path.realpath(
+        os.path.expanduser(b)
+    )
+
+
 async def _end(
-    run_id: str, state: str, reason: str | None, *, by: str | None = None, **fields
+    run_id: str,
+    state: str,
+    reason: str | None,
+    *,
+    by: str | None = None,
+    quiet: bool = False,
+    **fields,
 ) -> AiRun | None:
-    """Move a run to an ended state (once): releases the hold and kills its token."""
+    """Move a run to an ended state (once): releases the hold and kills its token. `quiet` is for a board that is
+    closing: the run is recorded, but no comment, status move, work-log entry, report-back or auto-trip count follows,
+    as none of them is the AI's doing."""
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None or run.state in ENDED:
@@ -1954,6 +2708,16 @@ async def _end(
         target=run.ticket_id,
         detail={"reason": reason, "by": by},
     )
+    if quiet:
+        if profile and profile.remove_after_run:
+            from . import members as svc_members
+
+            async with database.async_session() as session:
+                if not await active_runs(session, member_id=run.member_id):
+                    await svc_members.finalize_removal(session, run.member_id)
+        RT.wake.set()
+        await _publish(force=True)
+        return run
     if state in ("failed", "timed_out") and run.mode == "work" and member:
         await post_ai_comment(
             run.ticket_id,
@@ -1972,7 +2736,7 @@ async def _end(
         await post_ai_comment(
             run.ticket_id,
             member.name,
-            f"Couldn't answer: {reason or 'the run stopped'}. Nothing was changed.",
+            f"Couldn't answer: {(reason or 'the run stopped').rstrip('. ')}. Nothing was changed.",
             {
                 "kind": "ask_failed",
                 "run_id": run.id,
@@ -1991,6 +2755,9 @@ async def _end(
         await move_status(
             run_id, run.status_before
         )  # output rule: back to the previous status
+    if run.mode == "work" and state in ("finished", "failed", "timed_out"):
+        await _log_work(run, state, reason)
+        await _report_back(run, state, reason)
     if state == "failed":
         await _auto_trip(run.member_id)
     if profile and profile.remove_after_run:
@@ -2002,6 +2769,205 @@ async def _end(
     RT.wake.set()
     await _publish(force=True)
     return run
+
+
+_LOG_ROLES = (
+    ("PM", ("pm", "project manager", "manager")),
+    ("BA", ("ba", "analyst", "requirements")),
+    ("Designer", ("design", "ux", "ui")),
+    ("Tester", ("qa", "test")),
+    ("Developer", ("dev", "developer", "engineer", "coder")),
+)
+
+
+def _log_role(member, profile) -> str:
+    """The work-log role that fits an AI member, from its name and description."""
+    text = f"{member.name} {getattr(profile, 'description', '') or ''}".lower()
+    words = set(re.findall(r"[a-z]+", text))
+    for role, keys in _LOG_ROLES:
+        if any((k in words) if " " not in k else (k in text) for k in keys):
+            return role
+    return "Other"
+
+
+async def _log_work(run: AiRun, state: str, reason: str | None) -> None:
+    """Every ended work run leaves an entry in the ticket's work log (the Debug Space tab): who worked, for how long,
+    what changed, which commands ran and the AI's own summary, so people can follow what the AI did."""
+    try:
+        async with database.async_session() as session:
+            member, profile = await get_profile(session, run.member_id)
+            if member is None:
+                return
+            steps = loads(run.steps, [])
+            files = loads(run.files, [])
+            report = loads(run.report, {})
+            seconds = (
+                int(
+                    (
+                        (parse_iso(run.ended_at) or datetime.now(UTC))
+                        - (parse_iso(run.started_at) or datetime.now(UTC))
+                    ).total_seconds()
+                )
+                if run.started_at
+                else 0
+            )
+            outcome = {
+                "finished": "finished",
+                "failed": "failed",
+                "timed_out": "timed out",
+            }[state]
+            lines = [
+                f"**Run #{run.number}** {outcome} · {seconds // 60} min {seconds % 60} s · "
+                f"{(run.tokens_in or 0) + (run.tokens_out or 0):,} tokens · {run.model or 'default model'} · "
+                f"started by {run.started_by} ({run.trigger})"
+            ]
+            said = (report.get("summary") or run.summary or reason or "").strip()
+            if said:
+                lines += ["", "**Summary**", _clip(said, 1800)]
+            if files:
+                lines += ["", "**Files changed**"] + [
+                    f"- `{f.get('path')}` (+{f.get('added', 0)} −{f.get('removed', 0)})"
+                    for f in files[:15]
+                ]
+            commands = [s["text"] for s in steps if s.get("kind") == "command"][:10]
+            if commands:
+                lines += ["", "**Commands**"] + [f"- {c}" for c in commands]
+            board = list(
+                dict.fromkeys(s["text"] for s in steps if s.get("kind") == "board")
+            )[:12]
+            if board:
+                lines += ["", "**Board actions**"] + [f"- {b}" for b in board]
+            tests = report.get("tests")
+            if isinstance(tests, dict):
+                lines += [
+                    "",
+                    f"**Tests (as reported)**: {tests.get('passed', 0)} passed, {tests.get('failed', 0)} failed",
+                ]
+            if state != "finished" and reason:
+                lines += ["", f"**Why it stopped**: {_clip(reason, 300)}"]
+            kind = (
+                "blocked"
+                if state != "finished"
+                else "fix_attempt"
+                if files
+                else "investigation"
+            )
+            await svc_tickets.add_work_log(
+                session,
+                run.ticket_id,
+                author=member.name,
+                role=_log_role(member, profile),
+                note="\n".join(lines),
+                kind=kind,
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the work log of run %s", run.id)
+
+
+REFUSAL_RETRIES = 3
+WAKE_RETRY_S = 15.0
+WAKE_TRIES = 80  # about 20 minutes of waiting for the delegator to be free
+
+
+async def _report_back(run: AiRun, state: str, reason: str | None) -> None:
+    """Delegated work ended without being passed on: wake the member who delegated it, on the ticket they delegated
+    from, to check the result and carry the lifecycle on. If that member is busy on the ticket (or another teammate is
+    already waiting for it), the wake waits for its turn instead of being lost."""
+    back = loads(run.report_back, None)
+    if (
+        not isinstance(back, dict)
+        or not back.get("member_id")
+        or not back.get("ticket_id")
+    ):
+        return
+    async with database.async_session() as session:
+        member, _ = await get_profile(session, run.member_id)
+    report = loads(run.report, {})
+    said = (report.get("summary") or run.summary or reason or "").strip()
+    outcome = (
+        "finished"
+        if state == "finished"
+        else f"did not finish ({state.replace('_', ' ')})"
+    )
+    instruction = (
+        f"{member.name if member else 'A teammate'} {outcome} the work you handed over on {run.ticket_id} "
+        f"(run #{run.number}). Their summary: {said[:1500] or '(none)'}\n"
+        f"Check it against {run.ticket_id}, update your status comment on this ticket, then hand the next "
+        "piece of the lifecycle to the right teammate (ai_run handoff), or stop if the lifecycle is done."
+    )
+    key = f"report_{run.id}"
+    RT.tasks[key] = asyncio.create_task(
+        _wake_delegator(
+            key,
+            back,
+            instruction,
+            started_by=run.started_by,
+            chain=[*loads(run.chain, []), run.member_id],
+        )
+    )
+
+
+async def _wake_delegator(
+    key: str, back: dict, instruction: str, *, started_by: str, chain: list[str]
+) -> None:
+    try:
+        for _ in range(WAKE_TRIES):
+            try:
+                async with database.async_session() as session:
+                    # several teammates ending near each other tell the delegator once, with every report: a second
+                    # waiting run is not allowed on a ticket, and the first would otherwise hear only one of them
+                    waiting = (
+                        await session.exec(
+                            select(AiRun).where(
+                                AiRun.ticket_id == back["ticket_id"],
+                                AiRun.member_id == back["member_id"],
+                                AiRun.trigger == "report_back",
+                                AiRun.state == "queued",
+                            )
+                        )
+                    ).first()
+                    if waiting is not None:
+                        waiting.instruction = f"{waiting.instruction}\n\n{instruction}"[
+                            :8000
+                        ]
+                        session.add(waiting)
+                        await session.commit()
+                        return
+                    await create_run(
+                        session,
+                        ticket_id=back["ticket_id"],
+                        member_id=back["member_id"],
+                        mode="work",
+                        trigger="report_back",
+                        started_by=started_by,
+                        instruction=instruction,
+                        chain=chain,
+                        wait_for_hold=True,
+                        allow_self_hold=True,
+                    )
+                return
+            except RunConflict:
+                await asyncio.sleep(WAKE_RETRY_S)  # busy: wait for its turn
+            except RunError as exc:
+                await post_ai_comment(
+                    back["ticket_id"],
+                    BOARD_AUTHOR,
+                    f"Could not wake the member waiting for this result: {exc}",
+                    {"board_note": True},
+                )
+                return
+        logger.warning("The delegator %s was never free to hear back", back)
+        await post_ai_comment(
+            back["ticket_id"],
+            BOARD_AUTHOR,
+            "The member waiting for this result was busy for too long to be told. Start it with Run on the ticket "
+            "when it can take it.",
+            {"board_note": True},
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not wake the delegator of %s", back)
+    finally:
+        RT.tasks.pop(key, None)
 
 
 async def _auto_trip(member_id: str) -> None:
@@ -2024,6 +2990,7 @@ async def cancel(
     state: str = "cancelled",
     revert_status: bool = True,
     stop_code: str | None = None,
+    quiet: bool = False,
 ) -> AiRun:
     """Stop a run from any active state; the status the run set returns (and is recorded on the run as a status
     change), files stay as they are. `stop_code` says why when it was not the person's Cancel button: archive,
@@ -2043,7 +3010,12 @@ async def cancel(
         proc.kill()
     task = RT.tasks.get(run_id)
     ended = await _end(
-        run_id, state, reason or f"Cancelled by {by}", by=by, stop_code=stop_code
+        run_id,
+        state,
+        reason or f"Cancelled by {by}",
+        by=by,
+        stop_code=stop_code,
+        quiet=quiet,
     )
     if task and not task.done() and task is not asyncio.current_task():
         try:
@@ -2167,6 +3139,9 @@ async def retry(run_id: str, *, by: str, limit_min: int | None = None) -> AiRun:
             source_comment_id=old.source_comment_id,
             include_context=old.include_context,
             limit_min=limit_min,
+            # whoever was to be told when this work ends still is, and the chain still knows who sent it
+            chain=loads(old.chain, []),
+            report_back=loads(old.report_back, None),
         )
 
 
@@ -2279,7 +3254,7 @@ async def start_now(run_id: str, *, by: str) -> AiRun:
             return run
 
 
-async def answer(run_id: str, *, by: str, text: str) -> AiRun:
+async def answer(run_id: str, *, by: str, text: str, via: str | None = None) -> AiRun:
     """Answer the AI's question from the board: the answer is posted as a comment, Pending clears, the run resumes
     in the same CLI session."""
     text = (text or "").strip()
@@ -2327,6 +3302,7 @@ async def answer(run_id: str, *, by: str, text: str) -> AiRun:
         run = await session.get(AiRun, run_id)
         q["answered_at"] = now_iso()
         q["answered_by"] = by
+        q["answered_via"] = via or svc_activity.current_origin()
         run.question = json.dumps(q)
         run.answer = text
         member, profile = await get_profile(session, run.member_id)
@@ -2716,6 +3692,8 @@ async def pause_all(
         settings.paused_at = now_iso()
         settings.paused_by = by
         settings.paused_reason = (reason or "").strip()[:300] or None
+        settings.paused_let_finish = not cancel_running
+        settings.paused_safe_before = bool(settings.safe_mode)
         session.add(settings)
         await session.commit()
         runs = (
@@ -2779,19 +3757,56 @@ async def pause_all(
         project_id,
         "auto_trip",
         "AI is paused",
-        f"{by} paused all AI. {cancelled} run cancelled, {len(queued)} queued runs held."
+        f"{by} paused all AI. {cancelled} run{'' if cancelled == 1 else 's'} cancelled, "
+        f"{len(queued)} queued run{'' if len(queued) == 1 else 's'} held."
         + (f" Reason: {reason}." if reason else ""),
     )
     await _publish(force=True)
     return {"cancelled": cancelled, "held": len(queued), "revoked_tokens": revoked}
 
 
+async def _last_resume(session, project_id: str) -> dict:
+    """Who resumed last, when, and how many AI members started: for the second person's Resume."""
+    rows = await audit.list_entries(
+        session, project_id, actions=["resume_all"], limit=1
+    )
+    if not rows:
+        return {"by": None, "at": None, "members": None}
+    e = rows[0]
+    members = (json.loads(e.detail or "{}") or {}).get("members")
+    return {
+        "by": e.member_name or None,
+        "at": e.created_at,
+        "members": len(members) if members else None,
+    }
+
+
+async def finishing_after_pause(session, project_id: str) -> int:
+    """Runs that started before Pause all AI and were let finish: still going, counted live (the banner chip)."""
+    settings = await get_settings(session, project_id)
+    if not (settings.paused_all and settings.paused_at):
+        return 0
+    rows = (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.project_id == project_id,
+                col(AiRun.state).in_(["starting", "running"]),
+                AiRun.started_at < settings.paused_at,
+            )
+        )
+    ).all()
+    return len(rows)
+
+
 async def resume_all(
     project_id: str, *, by: str, safe_mode: bool, member_ids: list[str] | None
 ) -> dict:
-    """Resume after Pause all AI: optionally in safe mode, optionally only some agents (the others are paused)."""
+    """Resume after Pause all AI: optionally in safe mode, optionally only some agents (the others are paused).
+    Raises AlreadyResumed when the project is not paused any more (two people opened the dialog)."""
     async with database.async_session() as session:
         settings = await get_settings(session, project_id)
+        if not settings.paused_all:
+            raise AlreadyResumed(await _last_resume(session, project_id))
         settings.paused_all = False
         settings.paused_tokens_revoked = False
         settings.safe_mode = bool(safe_mode)
@@ -2904,6 +3919,229 @@ async def record_question(ctx: RunContext, text: str, options: list | None) -> d
     }
 
 
+async def _handoff_is_free(ctx: RunContext) -> bool:
+    """Handing work to a teammate AI is how a team works, so it does not wait for a person's approval on every hop.
+    Safe mode and a read-only member still cannot do it."""
+    async with database.async_session() as session:
+        profile = await session.get(AiMember, ctx.member_id)
+        settings = await get_settings(session, ctx.project_id)
+    return not (
+        settings.safe_mode
+        or profile is None
+        or profile.safe_mode
+        or profile.template == "read_only"
+    )
+
+
+async def record_handoff(
+    ctx: RunContext, member_ref: str, ticket_ref: str | None, instruction: str
+) -> dict:
+    """The agent hands a ticket to a teammate AI: it assigns the ticket (a permission check like any assignment) and
+    queues a work run for them, behind this run when the ticket is this run's own. They answer on the ticket."""
+    from . import guard
+
+    if ctx.narrow:
+        raise ValueError(
+            "Autopilot cannot hand work over; say in your answer who should do it next."
+        )
+    ref = (member_ref or "").strip()
+    if not ref:
+        raise ValueError(
+            "ai_run(action='handoff') needs `member` (the teammate's exact name)."
+        )
+    ticket_id = (ticket_ref or ctx.ticket_id).strip()
+    async with database.async_session() as session:
+        ticket = await session.get(Ticket, ticket_id)
+        if ticket is None or ticket.project_id != ctx.project_id:
+            raise ValueError(f"Ticket {ticket_id} was not found in this project.")
+        rows = (
+            await session.exec(
+                select(Member).where(
+                    Member.project_id == ctx.project_id, Member.kind == "ai"
+                )
+            )
+        ).all()
+        target = next(
+            (m for m in rows if m.id == ref or m.name.casefold() == ref.casefold()),
+            None,
+        )
+        if target is None:
+            raise ValueError(
+                f"No AI member named '{ref}'. Teammates: {', '.join(sorted(m.name for m in rows))}."
+            )
+        if target.id == ctx.member_id:
+            raise ValueError("You cannot hand a ticket to yourself.")
+        profile = await session.get(AiMember, target.id)
+        if profile is None or profile.connection == "inbox":
+            raise ValueError(
+                f"{target.name} is an MCP client with an inbox only: the board cannot start it."
+            )
+        if (await get_settings(session, ctx.project_id)).paused_all:
+            raise ValueError(
+                "AI is paused for this project; a person resumes it in the board."
+            )
+    tokens = guard.enter(ctx) if guard.current() is None else None
+    try:
+        if ticket.assignee != target.id:
+            # handing over is assigning: the member's permission (or a person's approval) decides; handing back to
+            # someone who handed work down to this run (up the chain) is always allowed
+            if target.id not in ctx.chain and not await _handoff_is_free(ctx):
+                await guard.check(
+                    ctx,
+                    "manage_ticket",
+                    "update",
+                    {"ticket_id": ticket_id, "assignee": target.id},
+                )
+            async with database.async_session() as session:
+                await svc_tickets.update_ticket(
+                    session, ticket_id, TicketUpdate(assignee=target.id)
+                )
+        async with database.async_session() as session:
+            mine = await session.get(AiRun, ctx.run_id)
+            # Who is told when this work ends: for another ticket, the sender (to check it and carry on); for the
+            # same ticket the sender's own duty passes along with the baton and the last one to finish reports
+            if ticket_id != ctx.ticket_id:
+                back = {"member_id": ctx.member_id, "ticket_id": ctx.ticket_id}
+            else:
+                back = loads(mine.report_back, None) if mine else None
+                if mine is not None and back:
+                    mine.report_back = None
+                    session.add(mine)
+            try:
+                run = await create_run(
+                    session,
+                    ticket_id=ticket_id,
+                    member_id=target.id,
+                    mode="work",
+                    trigger="handoff",
+                    started_by=ctx.on_behalf_of,
+                    instruction=(instruction or "").strip()[:2000],
+                    chain=[*ctx.chain, ctx.member_id],
+                    wait_for_hold=True,
+                    report_back=back,
+                )
+            except RunError as exc:
+                await session.rollback()
+                # the assignment was committed before the run could be queued: put it back, or the ticket would
+                # wait on an AI that never starts
+                if ticket.assignee != target.id:
+                    async with database.async_session() as undo:
+                        now_on = await undo.get(Ticket, ticket_id)
+                        # a person who reassigned it meanwhile keeps their choice
+                        if now_on is not None and now_on.assignee == target.id:
+                            await svc_tickets.update_ticket(
+                                undo, ticket_id, TicketUpdate(assignee=ticket.assignee)
+                            )
+                raise ValueError(str(exc)) from exc
+    finally:
+        if tokens is not None:
+            guard.leave(tokens)
+    await audit.record(
+        ctx.project_id,
+        "handoff",
+        "allowed",
+        member_id=ctx.member_id,
+        member_name=ctx.member_name,
+        on_behalf_of=ctx.on_behalf_of,
+        run_id=ctx.run_id,
+        target=ticket_id,
+        detail={"to": target.name, "run": run.number},
+    )
+    return {
+        "ok": True,
+        "ticket": ticket_id,
+        "member": target.name,
+        "run": run.number,
+        "note": f"{target.name} is queued to work on {ticket_id}"
+        + (" after you finish." if ticket_id == ctx.ticket_id else "."),
+    }
+
+
+async def _say_not_started(ticket_id: str, name: str, why: str) -> None:
+    """A ticket was given to an AI that could not be started: say so on the ticket, so it does not wait unseen."""
+    try:
+        await post_ai_comment(
+            ticket_id,
+            BOARD_AUTHOR,
+            f"{name} is now the assignee, but no run was started: {why.rstrip('. ')}. "
+            "Start it with Run on the ticket when it can.",
+            {"kind": "not_started"},
+        )
+    except (
+        Exception
+    ):  # the note is a courtesy; never fail the edit that was already made
+        logger.exception("could not say that %s was not started", ticket_id)
+
+
+async def wake_new_assignee(ticket_id: str, assignee_id: str) -> None:
+    """An AI run assigned a ticket to another AI member by editing it (or a person approved that edit). A ticket
+    handed over is only handed over when the receiver starts, as `ai_run(handoff)` does; without it the ticket waits on
+    someone who is never started and nothing on the board says so. Queues their work run, behind this one."""
+    from . import guard
+
+    ctx = guard.current()
+    if ctx is None or ctx.mode == "ask" or assignee_id == ctx.member_id:
+        return
+    async with database.async_session() as session:
+        ticket = await session.get(Ticket, ticket_id)
+        member = await session.get(Member, assignee_id)
+        profile = await session.get(AiMember, assignee_id)
+        if (
+            ticket is None
+            or ticket.project_id != ctx.project_id
+            or member is None
+            or member.kind != "ai"
+            or profile is None
+            or profile.connection == "inbox"
+            or await active_runs(session, member_id=assignee_id, ticket_id=ticket_id)
+        ):
+            return
+        if (await get_settings(session, ctx.project_id)).paused_all:
+            await _say_not_started(
+                ticket_id, member.name, "AI is paused for this project"
+            )
+            return
+        name = member.name  # read now: the rollback below expires the loaded rows
+        mine = await session.get(AiRun, ctx.run_id) if ctx.run_id else None
+        if ticket_id != ctx.ticket_id:
+            back = {"member_id": ctx.member_id, "ticket_id": ctx.ticket_id}
+        else:
+            # the sender's own duty passes along with the baton, as in a handoff
+            back = loads(mine.report_back, None) if mine else None
+            if mine is not None and back:
+                mine.report_back = None
+                session.add(mine)
+        try:
+            run = await create_run(
+                session,
+                ticket_id=ticket_id,
+                member_id=assignee_id,
+                mode="work",
+                trigger="handoff",
+                started_by=ctx.on_behalf_of,
+                instruction=f"{ctx.member_name} assigned {ticket_id} to you. Read the ticket and its comments, then do the work.",
+                chain=[*ctx.chain, ctx.member_id],
+                wait_for_hold=True,
+                report_back=back,
+            )
+        except RunError as exc:
+            await session.rollback()
+            logger.info("Assigning %s to %s started nothing: %s", ticket_id, name, exc)
+            await _say_not_started(ticket_id, name, str(exc))
+            return
+    await audit.record(
+        ctx.project_id,
+        "handoff",
+        "allowed",
+        member_id=ctx.member_id,
+        member_name=ctx.member_name,
+        on_behalf_of=ctx.on_behalf_of,
+        run_id=ctx.run_id,
+        target=ticket_id,
+        detail={"to": name, "run": run.number, "via": "assignee"},
+    )
+
+
 def _clean_tests(tests) -> dict | None:
     """The agent's claim about tests, reduced to {passed, failed, lint, failing[]}."""
     if not isinstance(tests, dict):
@@ -2916,6 +4154,8 @@ def _clean_tests(tests) -> dict | None:
             return 0
 
     out: dict = {"passed": count("passed"), "failed": count("failed")}
+    if tests.get("command"):
+        out["command"] = str(tests["command"])[:200]
     if tests.get("lint"):
         out["lint"] = str(tests["lint"])[:60]
     failing = tests.get("failing")
@@ -2941,12 +4181,24 @@ async def record_report(
         ][:30],
         "tests": _clean_tests(tests),
     }
+    next_step = "End with a short final message."
+    async with database.async_session() as session:
+        ticket = await session.get(Ticket, ctx.ticket_id)
+    cases = json.loads(ticket.test_cases or "[]") if ticket else []
+    missing = proofs.gaps(cases)
+    if missing:
+        report["proof_gaps"] = missing
+        next_step = (
+            f"Test cases {', '.join(missing)} are marked pass or fail with no proof. Add it now with "
+            "ticket_items(item='test_case', action='update', proof=...): a screenshot, the command and its output, "
+            "or 'Not provable: <why>'. Then end with a short final message."
+        )
     await _append(
         ctx.run_id,
         steps=[{"kind": "report", "text": "Wrote the summary"}],
         report=json.dumps(report),
     )
-    return {"recorded": True, "next": "End with a short final message."}
+    return {"recorded": True, "next": next_step}
 
 
 # ---------------------------------------------------------------------------

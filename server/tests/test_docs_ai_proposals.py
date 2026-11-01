@@ -383,3 +383,85 @@ async def test_draft_rows_are_per_person(env):
             await s.exec(select(DocsDraft).where(DocsDraft.page_id == p["id"]))
         ).all()
     assert [d.author for d in drafts] == ["An Nguyen"]
+
+
+async def test_always_allow_lets_the_ai_publish_without_a_proposal_until_revoked(env):
+    c, ctx, pid, m, tid, p = await _setup(env)
+    first = await _ai_update(ctx, p["id"])
+    assert first["published"] is False
+    prop = (await c.get(f"/docs/pages/{p['id']}/ai/proposals", headers=H)).json()[
+        "proposals"
+    ][0]
+    assert prop["always_allowed"] is False
+    r = await c.post(f"/docs/ai/proposals/{prop['id']}/always-allow", headers=H)
+    assert r.status_code == 200 and r.json()["always_allowed"] is True
+    # asking twice keeps one grant
+    await c.post(f"/docs/ai/proposals/{prop['id']}/always-allow", headers=H)
+    [grant] = (await c.get(f"/projects/{pid}/ai/grants")).json()
+    assert grant["member_id"] == m["id"] and grant["action"] == "edit_docs"
+    # the next edit is made directly: no new proposal, the page moves to version 2
+    second = await _ai_update(ctx, p["id"], markdown=TEXT + "\nMore.\n")
+    assert second.get("status") != "waiting"
+    assert (await _published(c, p["id"]))["version"] == 2
+    # revoking brings the review back
+    assert (await c.delete(f"/ai/grants/{grant['id']}")).status_code == 200
+    third = await _ai_update(
+        ctx, p["id"], markdown=TEXT + "\nMore.\nAgain.\n", base_version=2
+    )
+    assert third["published"] is False
+
+
+async def test_a_viewer_cannot_always_allow(env):
+    c, ctx, pid, m, tid, p = await _setup(env)
+    await _ai_update(ctx, p["id"])
+    prop = (await c.get(f"/docs/pages/{p['id']}/ai/proposals", headers=H)).json()[
+        "proposals"
+    ][0]
+    r = await c.post(
+        f"/docs/ai/proposals/{prop['id']}/always-allow", headers={"X-Actor": "Nobody"}
+    )
+    assert r.status_code in (403, 409), r.text
+    assert (await c.get(f"/projects/{pid}/ai/grants")).json() == []
+
+
+async def test_autopilot_decides_a_docs_proposal_for_the_owner(env):
+    from services.ai import autopilot
+    from tests.test_ai import _runner
+    from tests.test_ai_autopilot import ON, _delegate_ctx, _settings
+
+    c, ctx, pid, m, tid, p = await _setup(env)
+    out = await _ai_update(ctx, p["id"])
+    assert out["status"] == "waiting"
+    delegate = await _runner(c, pid, env["repo"], name="Mai PM")
+    r = await c.put(
+        f"/projects/{pid}/ai/autopilot", json={**ON, "delegate_id": delegate["id"]}
+    )
+    assert r.status_code == 200, r.text
+    autopilot._shown.clear()
+    autopilot._woke.clear()
+    s = await _settings(env, pid)
+    assert await autopilot._wake(s, autopilot.config(s))
+    dctx = await _delegate_ctx(env, pid, delegate)
+    async with database.async_session() as s2:
+        prop = (await s2.exec(select(DocsAiProposal))).first()
+    # the delegate reads the text each change puts on the page
+    async with env["maker"]() as session:
+        from models import AiRun
+
+        run = (
+            await session.exec(select(AiRun).where(AiRun.trigger == "autopilot"))
+        ).first()
+    assert "retried 5 times" in run.instruction
+    res = await autopilot.decide(dctx, prop.approval_id, True, "Matches the ticket")
+    assert res["decided"] == "approved"
+    async with env["maker"]() as session:
+        done = await session.get(DocsAiProposal, prop.id)
+        a = await session.get(AiApproval, prop.approval_id)
+    assert done.status in ("accepted", "partial")
+    assert done.decided_by != "Mai PM"  # decided in the owner's name, as a person must
+    assert "Autopilot (Mai PM): Matches the ticket" in (done.decision_note or "")
+    assert a.status == "approved" and a.decided_via == "autopilot"
+    # Autopilot decides, so the page is published (as the owner, with the AI marked)
+    live = await _published(c, p["id"])
+    assert live["version"] == 2 and "retried 5 times" in live["markdown"]
+    assert "not_published" not in res

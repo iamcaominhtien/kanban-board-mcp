@@ -47,7 +47,7 @@ export const PROVIDERS: Record<
   antigravity: {
     label: 'Antigravity',
     connection: 'local',
-    sub: 'Uses an AI account',
+    sub: 'Uses your signed-in CLI, or an AI account',
     models: [],
     defaultModel: null,
     binary: 'agy',

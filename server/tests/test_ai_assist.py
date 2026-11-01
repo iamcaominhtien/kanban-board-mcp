@@ -25,6 +25,16 @@ class FakeLLM:
         self.prompts: list[str] = []
         self.systems: list[str] = []
         self.sessions: list = []
+        self.tools: list = []
+        self.compacted = (
+            False  # the next answer reports that the CLI compacted its session
+        )
+        # (used, size) tokens: what the CLI says about its session
+        self.window: tuple[int, int] | None = None
+        self.steps: list[
+            str
+        ] = []  # tool calls the next answer reports through `on_step`
+        self.limits: list[dict] = []  # idle_s / paused of each call
         self.delay = 0.0
 
     async def __call__(
@@ -38,8 +48,16 @@ class FakeLLM:
         temperature=0.2,
         on_delta=None,
         session=None,
+        tools=None,
+        on_step=None,
+        idle_s=None,
+        paused=None,
     ):
         """One fake completion, streamed in small pieces."""
+        self.limits.append({"idle_s": idle_s, "paused": paused, "timeout": timeout})
+        for text in self.steps if on_step else []:
+            await on_step(text)
+        self.tools.append(tools)
         self.prompts.append(prompt)
         self.systems.append(system)
         self.sessions.append(session)
@@ -53,7 +71,12 @@ class FakeLLM:
                 await on_delta(item[i : i + 12])
                 if self.delay:
                     await asyncio.sleep(self.delay)
+        compacted, self.compacted = self.compacted, False
+        used, size = self.window or (0, 0)
         return llm.Completion(
+            context_used=used,
+            context_window=size,
+            compacted=compacted,
             text=item,
             tokens_in=120,
             tokens_out=40,

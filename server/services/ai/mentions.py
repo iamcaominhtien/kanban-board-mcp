@@ -7,7 +7,7 @@ from sqlmodel import col, select
 
 import database
 import services.tickets as svc_tickets
-from models import Member, Ticket, TicketUpdate
+from models import AiMember, Member, Ticket, TicketUpdate
 
 from . import audit
 from .context import RunContext
@@ -23,9 +23,35 @@ def plain(text: str) -> str:
     return _MENTION.sub(lambda m: f"@{m.group(1)}", text or "")
 
 
-async def mentioned_ai(session, project_id: str, text: str) -> list[Member]:
-    """AI members mentioned in a text, in order."""
+async def mentioned_ai(
+    session, project_id: str, text: str, *, plain_names: bool = False
+) -> list[Member]:
+    """AI members mentioned in a text, in order. With `plain_names` an AI member's exact name after an @ counts too
+    (an AI writes `@BA Bao`, it has no pill to click)."""
     ids = list(dict.fromkeys(m.group(2) for m in _MENTION.finditer(text or "")))
+    if plain_names:
+        everyone = (
+            await session.exec(
+                select(Member).where(
+                    Member.project_id == project_id, Member.kind == "ai"
+                )
+            )
+        ).all()
+        bare = _MENTION.sub("", text or "")
+        found = []
+        for m in sorted(everyone, key=lambda m: -len(m.name)):
+            at = re.search(
+                rf"(?<![\w@])@{re.escape(m.name)}(?!\w)", bare, re.IGNORECASE
+            )
+            if at:
+                found.append((at.start(), m.id))
+                # a longer name used these characters: a shorter one inside it is not a second mention
+                bare = (
+                    bare[: at.start()]
+                    + " " * (at.end() - at.start())
+                    + bare[at.end() :]
+                )
+        ids += [i for _, i in sorted(found) if i not in ids]
     if not ids:
         return []
     rows = (
@@ -174,15 +200,17 @@ async def _cooldown_left(session, ticket_id: str, cooldown_s: int) -> int:
 
 
 async def from_ai_comment(ctx: RunContext, ticket_id: str, comment: dict) -> None:
-    """An AI member mentioned other AI members: each mention is one chain hop, answered as an Ask. Past the maximum
-    depth, or when the target is already in the chain, the mention is not delivered and a note says why."""
+    """An AI member mentioned other AI members: each mention is one chain hop, answered as an Ask. For a target that
+    is billed by the call (an API-key member), past the maximum depth, when it is already in the chain or inside the
+    cooldown, the mention is not delivered and a note says why. A target that runs on a person's own CLI (Claude Code,
+    Antigravity) is not held back by those: only the project's AI pause stops it."""
     from . import runs
 
     text = comment.get("text") or ""
     async with database.async_session() as session:
         targets = [
             m
-            for m in await mentioned_ai(session, ctx.project_id, text)
+            for m in await mentioned_ai(session, ctx.project_id, text, plain_names=True)
             if m.id != ctx.member_id
         ]
         if not targets:
@@ -198,21 +226,20 @@ async def from_ai_comment(ctx: RunContext, ticket_id: str, comment: dict) -> Non
         cooling = await _cooldown_left(session, ticket_id, settings.loop_cooldown_s)
         for m in targets:
             path = " → ".join([ctx.on_behalf_of, *[names.get(i, "AI") for i in chain]])
-            repeats = m.id in chain and settings.no_repeat_chain
-            if (
-                repeats
-                or len(chain) >= settings.max_chain_depth
-                or settings.paused_all
-                or cooling
-            ):
+            target = await session.get(AiMember, m.id)
+            own_cli = target is not None and target.connection != "api_key"
+            repeats = m.id in chain and settings.no_repeat_chain and not own_cli
+            deep = len(chain) >= settings.max_chain_depth and not own_cli
+            waiting = cooling if not own_cli else 0
+            if repeats or deep or settings.paused_all or waiting:
                 why = (
                     "AI is paused for this project"
                     if settings.paused_all
                     else f"{m.name} is already in it"
                     if repeats
                     else f"it is at depth {len(chain)} of {settings.max_chain_depth}"
-                    if len(chain) >= settings.max_chain_depth
-                    else f"the cooldown between AI mentions on this ticket has {cooling} s left"
+                    if deep
+                    else f"the cooldown between AI mentions on this ticket has {waiting} s left"
                 )
                 await _board_note(
                     ticket_id,
