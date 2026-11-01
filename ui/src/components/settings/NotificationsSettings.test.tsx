@@ -130,6 +130,15 @@ describe('NotificationsSettings', () => {
     await waitFor(() => expect(lastPatch()).toEqual({ retentionDays: 365 }));
   });
 
+  it('retention is read-only for someone who is not an owner or an admin', async () => {
+    setup(base({ retentionEditable: false }));
+    const select = (await screen.findByLabelText('Keep notifications for')) as HTMLSelectElement;
+    expect(select.disabled).toBe(true);
+    expect(
+      screen.getByText('Then they are deleted, for everyone. Only an owner or an admin can change this.'),
+    ).toBeTruthy();
+  });
+
   it('describes the day card days and adds an odd retention choice', async () => {
     setup(base({ dayCard: { on: true, time: '08:00', days: [] }, retentionDays: 45 }));
     await screen.findByText('Not sent.');

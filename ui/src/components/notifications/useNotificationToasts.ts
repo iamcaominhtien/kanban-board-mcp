@@ -49,7 +49,8 @@ function mayToast(row: NotificationRow, feed: Feed): boolean {
   if (!earnsToast(row)) return false;
   // quiet hours (design L): nothing interrupts; the panel still fills
   if (feed.quiet) return false;
-  return document.visibilityState === 'visible';
+  // only the window being looked at toasts: several windows (the desktop app and a tab) would all show the same row
+  return document.visibilityState === 'visible' && document.hasFocus();
 }
 
 function showRowToast(c: ToastContext, row: NotificationRow) {

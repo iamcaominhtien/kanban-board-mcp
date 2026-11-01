@@ -104,6 +104,8 @@ def upgrade() -> None:
     op.create_index(
         "ix_notification_recipient_open", "notification", ["recipient", "done_at"]
     )
+    # the open Needs you rows the centre's loop checks on every publish
+    op.create_index("ix_notification_open_needs", "notification", ["needs", "done_at"])
 
     op.create_table(
         "notify_follow",
@@ -215,7 +217,8 @@ def downgrade() -> None:
     bind = op.get_bind()
     for r, p, at in bind.execute(
         sa.text(
-            "SELECT recipient, scope_id, created_at FROM notify_follow WHERE scope = 'space'"
+            "SELECT recipient, scope_id, created_at FROM notify_follow "
+            "WHERE scope = 'space' AND level != 'mute'"
         )
     ):
         bind.execute(

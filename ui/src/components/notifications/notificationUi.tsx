@@ -318,7 +318,7 @@ export function openActionOf(row: NotificationRow): string | null {
 
 /** What the row keys do to the selected row: E marks it read, S snoozes an open one for an hour, Enter opens it. */
 export function rowKeyAction(
-  onAction: (row: NotificationRow, actionId: string, extra?: { until?: string | null }) => void | Promise<void>,
+  onAction: (row: NotificationRow, actionId: string, extra?: { until?: string | null }) => unknown,
 ): (row: NotificationRow, what: 'open' | 'read' | 'snooze') => void {
   return (row, what) => {
     if (what === 'read') {

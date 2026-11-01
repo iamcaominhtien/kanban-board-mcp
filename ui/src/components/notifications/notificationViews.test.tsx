@@ -89,7 +89,7 @@ afterEach(() => {
 
 describe('NotificationRow branches', () => {
   it('answers with options and free text, and can cancel', async () => {
-    const onAction = vi.fn();
+    const onAction = vi.fn().mockResolvedValueOnce(false); // the first answer fails: the box stays
     render(<NotificationRow row={row({ data: { options: ['Yes', 'No', 3] } })} onAction={onAction} />);
     click(screen.getByRole('button', { name: 'Answer' }));
     click(screen.getByRole('button', { name: 'Yes' }));
@@ -102,6 +102,22 @@ describe('NotificationRow branches', () => {
     expect(onAction).toHaveBeenCalledWith(expect.anything(), 'answer', { text: 'Maybe' });
     click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByLabelText('Your answer')).toBeNull();
+  });
+
+  it('closes and empties the answer box after a successful answer, and never shows it on a done row', async () => {
+    const onAction = vi.fn().mockResolvedValue(undefined);
+    const { rerender } = render(<NotificationRow row={row()} onAction={onAction} />);
+    click(screen.getByRole('button', { name: 'Answer' }));
+    fireEvent.change(screen.getByLabelText('Your answer'), { target: { value: 'Maybe' } });
+    click(screen.getByRole('button', { name: 'Send answer' }));
+    await act(async () => {});
+    expect(screen.queryByLabelText('Your answer')).toBeNull();
+    click(screen.getByRole('button', { name: 'Answer' }));
+    expect((screen.getByLabelText('Your answer') as HTMLTextAreaElement).value).toBe('');
+    // the row resolves while the box is open: the box goes
+    rerender(<NotificationRow row={row({ done: true, doneText: 'Answered' })} onAction={onAction} />);
+    expect(screen.queryByLabelText('Your answer')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Send answer' })).toBeNull();
   });
 
   it('snoozes from the menu, mutes the ticket, brings a snoozed row back', () => {
@@ -350,7 +366,28 @@ describe('AllNotificationsPage branches', () => {
     expect(p.onBack).toHaveBeenCalled();
     expect(p.onOpenSettings).toHaveBeenCalled();
     click(screen.getByRole('button', { name: /Mark all read/ }));
-    await waitFor(() => expect(api.read).toHaveBeenCalledWith('/notifications/read', { all: true }));
+    await waitFor(() =>
+      expect(api.read).toHaveBeenCalledWith('/notifications/read', { all: true, filter: 'all', days: 7 }),
+    );
+  });
+
+  it('marks all read only within the filters on the page', async () => {
+    mountPage();
+    await waitFor(() => expect(api.list).toHaveBeenCalled());
+    fireEvent.change(screen.getByLabelText('Search notifications'), { target: { value: 'export' } });
+    await waitFor(() => expect(lastParams()).toMatchObject({ q: 'export' }));
+    fireEvent.change(screen.getByLabelText('Days'), { target: { value: '30' } });
+    click(screen.getByRole('button', { name: /Unread/ }));
+    await waitFor(() => expect(lastParams()).toMatchObject({ filter: 'unread', q: 'export', days: 30 }));
+    click(screen.getByRole('button', { name: /Mark all read/ }));
+    await waitFor(() =>
+      expect(api.read).toHaveBeenCalledWith('/notifications/read', {
+        all: true,
+        filter: 'unread',
+        q: 'export',
+        days: 30,
+      }),
+    );
   });
 
   it('searches after a pause and changes the days', async () => {

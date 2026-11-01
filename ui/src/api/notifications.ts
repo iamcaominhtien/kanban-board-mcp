@@ -5,6 +5,8 @@ import type {
   FollowBody,
   NotificationCounts,
   NotificationFeed,
+  NotificationFamily,
+  NotificationFilter,
   NotificationList,
   NotificationListParams,
 } from '../types/notifications';
@@ -43,8 +45,27 @@ export const notificationsApi = {
   /** Without `since` only `head` comes back. */
   feed: async (since?: number) =>
     (await client.get<NotificationFeed>('/notifications/feed', { params: since === undefined ? {} : { since } })).data,
-  read: async (body: { ids?: string[]; all?: boolean; tab?: 'needs' | 'updates' }) =>
-    (await client.post<{ read: number }>('/notifications/read', body)).data,
+  /** With `all`, the page's filters narrow what is marked (same fields as `GET /notifications?view=page`). */
+  read: async (body: {
+    ids?: string[];
+    all?: boolean;
+    tab?: 'needs' | 'updates';
+    filter?: NotificationFilter;
+    q?: string;
+    projectId?: string;
+    kind?: string[];
+    family?: NotificationFamily;
+    days?: number;
+  }) => {
+    const { projectId, q, ...rest } = body;
+    return (
+      await client.post<{ read: number }>('/notifications/read', {
+        ...rest,
+        q: q || undefined,
+        project_id: projectId,
+      })
+    ).data;
+  },
   opened: async (targetKind: string, targetId: string) =>
     (await client.post<{ read: number }>('/notifications/opened', { targetKind, targetId })).data,
   dismiss: async (id: string) => (await client.post(`/notifications/${id}/dismiss`)).data,

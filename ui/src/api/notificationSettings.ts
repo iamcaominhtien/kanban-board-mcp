@@ -38,6 +38,8 @@ export interface NotificationSettings {
   sound: boolean;
   dayCard: { on: boolean; time: string; days: number[] };
   retentionDays: number;
+  /** Retention deletes everyone's history: only the board's own user or a project owner or admin may change it. */
+  retentionEditable?: boolean;
   muted: MutedItem[];
 }
 

@@ -1505,7 +1505,11 @@ class Notification(SQLModel, table=True):
     group (same kind and project inside 10 minutes, or the same request) are merged into one row (table)."""
 
     __tablename__ = "notification"
-    __table_args__ = (Index("ix_notification_recipient_open", "recipient", "done_at"),)
+    __table_args__ = (
+        Index("ix_notification_recipient_open", "recipient", "done_at"),
+        # the open Needs you rows `reconcile` checks on every publish
+        Index("ix_notification_open_needs", "needs", "done_at"),
+    )
 
     id: str = Field(
         default_factory=lambda: f"nt_{uuid.uuid4().hex[:12]}", primary_key=True

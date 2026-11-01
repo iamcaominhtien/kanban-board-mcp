@@ -479,7 +479,10 @@ async def test_unanswered_questions_are_reminded_at_15_min_then_every_2_hours(
                     NotifyEvent.kind == "question", NotifyEvent.target_id == run["id"]
                 )
             )
-            return len(rows.all())
+            # only the reminders: the loop may also write the question once more at its start (what was waiting)
+            return sum(
+                json.loads(e.data or "{}").get("reminder") is True for e in rows.all()
+            )
 
     asked = await question_events()
     q = await asked_ago(10)

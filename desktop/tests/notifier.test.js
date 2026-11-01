@@ -176,3 +176,14 @@ test('another person or backend: queued notices are dropped, shown ones withdraw
   assert.strictEqual(h.core.head, 3);
   assert.strictEqual(h.shown.length, 1, 'the first feed after a reset replays nothing');
 });
+
+test('cursor_too_old: shown notices are withdrawn and the core restarts from the new head', () => {
+  const h = harness();
+  h.core.applyFeed({ head: 11, items: [row('a', { last_event_id: 11 })] });
+  h.core.applyFeed({ head: 12, items: [row('a', { last_event_id: 12 })] });
+  assert.strictEqual(h.shown.length, 1);
+  h.core.applyFeed({ cursor_too_old: true, head: 2, items: [row('z', { last_event_id: 2 })] });
+  assert.strictEqual(h.closed.length, 1);
+  assert.strictEqual(h.core.head, 2);
+  assert.strictEqual(h.shown.length, 1, 'nothing replayed');
+});

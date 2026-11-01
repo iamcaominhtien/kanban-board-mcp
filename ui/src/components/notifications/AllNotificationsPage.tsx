@@ -92,7 +92,16 @@ export function AllNotificationsPage({
   const ordered = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
   const selected = useRowKeys(!panelOpen, ordered, rowKeyAction(onAction));
   const markAll = async () => {
-    await notificationsApi.read({ all: true }).catch(() => undefined);
+    await notificationsApi
+      .read({
+        all: true,
+        filter,
+        q,
+        projectId: projectId ?? undefined,
+        family: family ?? undefined,
+        days: byDays ? days : undefined,
+      })
+      .catch(() => undefined);
     void qc.invalidateQueries({ queryKey: notificationKeys.all });
   };
   const scroller = useRef<HTMLDivElement>(null);

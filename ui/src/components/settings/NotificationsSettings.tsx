@@ -161,9 +161,8 @@ function mutedText(m: MutedItem): string {
   return date ? `muted on ${date}` : 'muted';
 }
 
-function toggleDay(days: number[], i: number, on: boolean): number[] {
-  return on ? days.filter((d) => d !== i) : [...days, i].sort((a, b) => a - b);
-}
+const withoutDay = (days: number[], i: number) => days.filter((d) => d !== i);
+const withDay = (days: number[], i: number) => [...days, i].sort((a, b) => a - b);
 
 function computerHint(status: DesktopStatus | null): string {
   if (status?.permission === 'default') return 'Your computer has not been asked yet. ';
@@ -413,7 +412,9 @@ export function NotificationsSettings() {
                     type="button"
                     aria-pressed={on}
                     className={`${styles.day} ${on ? styles.dayOn : ''}`}
-                    onClick={() => save({ dayCard: { days: toggleDay(s.dayCard.days, i, on) } })}
+                    onClick={() =>
+                      save({ dayCard: { days: on ? withoutDay(s.dayCard.days, i) : withDay(s.dayCard.days, i) } })
+                    }
                   >
                     {name}
                   </button>
@@ -434,11 +435,16 @@ export function NotificationsSettings() {
         <Setting
           id="notif-retention"
           name="Keep notifications for"
-          hint="Then they are deleted. The audit log keeps its own record."
+          hint={
+            s.retentionEditable === false
+              ? 'Then they are deleted, for everyone. Only an owner or an admin can change this.'
+              : 'Then they are deleted. The audit log keeps its own record.'
+          }
           control={
             <div className={styles.input}>
               <select
                 aria-label="Keep notifications for"
+                disabled={s.retentionEditable === false}
                 value={s.retentionDays}
                 onChange={(e) => save({ retentionDays: Number(e.target.value) })}
               >

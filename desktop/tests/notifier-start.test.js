@@ -320,10 +320,6 @@ test("no secret header without a secret; setPort starts a notifier created witho
   await waitFor(
     () => b2.count("/notifications/feed") >= 1 && b2.sse.length >= 1,
   );
-  assert.strictEqual(
-    b2.requests.find((r) => r.path === "/notifications/feed").since,
-    null,
-  );
   b2.items = [row()];
   b2.invalidate();
   await waitFor(() => h.Notification.all.length === 1);
@@ -447,4 +443,87 @@ test("setPort(null) when the backend exits: no request reaches the old port, the
   h.n.setPort(h.b.port);
   await waitFor(() => h.b.requests.length > count && h.b.sse.length >= 2);
   assert.ok(h.b.count("/notifications/feed") >= 2);
+});
+
+test("setPort to a new port of the same backend keeps the shown notices and the cursor", async (t) => {
+  const h = await setup(t);
+  await ready(h);
+  h.b.items = [row()];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  const nt = h.Notification.all[0];
+  const b2 = await backend();
+  t.after(() => b2.close());
+  h.n.setPort(b2.port);
+  await waitFor(() => b2.count("/notifications/feed") >= 1 && b2.sse.length >= 1);
+  assert.strictEqual(nt.closed, false, "the open notice is not closed");
+  assert.strictEqual(b2.requests.find((r) => r.path === "/notifications/feed").since, "11");
+  // the item is not told again, and its resolution still withdraws the old notice
+  b2.items = [row({ last_event_id: 12, done: true })];
+  b2.invalidate();
+  await waitFor(() => nt.closed);
+  assert.strictEqual(h.Notification.all.length, 1);
+});
+
+test("setPort(null) keeps the notices but clears the badge; cursor_too_old after a new port starts over", async (t) => {
+  const h = await setup(t);
+  await ready(h);
+  h.b.items = [row()];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  h.n.setPort(null);
+  assert.strictEqual(h.badges.at(-1), 0);
+  assert.strictEqual(h.Notification.all[0].closed, false);
+  const b2 = await backend();
+  t.after(() => b2.close());
+  b2.feedBody = JSON.stringify({ cursor_too_old: true, head: 2, items: [] });
+  h.n.setPort(b2.port);
+  await waitFor(() => h.Notification.all[0].closed);
+});
+
+test("restartStream: the replaced stream's late abort does not destroy the new one", async (t) => {
+  const h = await setup(t);
+  await ready(h);
+  const before = h.b.count("/events");
+  h.n.setPort(h.b.port);
+  await sleep(1800); // past the 1 s reconnect backoff a wrongly destroyed stream would wait for
+  assert.strictEqual(h.b.count("/events"), before + 1);
+});
+
+test("win32: a toast that closes into Action Center can still be clicked and withdrawn", async (t) => {
+  const h = await setup(t, { platform: "win32" });
+  await ready(h);
+  h.b.items = [row()];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  const nt = h.Notification.all[0];
+  nt.emit("close"); // timed out into Action Center
+  nt.emit("click");
+  assert.strictEqual(h.opened.length, 1, "the click handler still works");
+  assert.strictEqual(h.opened[0].id, "r1");
+});
+
+test("win32: a closed toast is still withdrawn when its row resolves; other platforms forget it on close", async (t) => {
+  const h = await setup(t, { platform: "win32" });
+  await ready(h);
+  h.b.items = [row()];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  const nt = h.Notification.all[0];
+  nt.emit("close");
+  h.b.items = [row({ last_event_id: 12, done: true })];
+  h.b.invalidate();
+  await waitFor(() => nt.closed);
+
+  const h2 = await setup(t, { platform: "linux" });
+  await ready(h2);
+  h2.b.items = [row()];
+  h2.b.invalidate();
+  await waitFor(() => h2.Notification.all.length === 1);
+  const n2 = h2.Notification.all[0];
+  n2.emit("close");
+  h2.b.items = [row({ last_event_id: 12, done: true })];
+  h2.b.invalidate();
+  await sleep(300);
+  assert.strictEqual(n2.closed, false);
 });

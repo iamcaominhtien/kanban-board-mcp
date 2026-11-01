@@ -101,7 +101,7 @@ const HANDLERS = new Map<string, ActionHandler>(
 );
 
 /** Anything else goes to the app: opening it marks the row read. */
-async function openInApp(c: ActionContext, actionId: string) {
+function openInApp(c: ActionContext, actionId: string) {
   if (!c.row.read) void notificationsApi.read({ ids: [c.row.id] }).then(c.refresh, () => undefined);
   c.navigate(c.row, actionId, c.extra);
 }
@@ -126,9 +126,11 @@ export function useNotificationActions(navigate: NavigateHandler): RowActionHand
       try {
         const handler = HANDLERS.get(actionId);
         if (handler) await handler(c);
-        else await openInApp(c, actionId);
+        else openInApp(c, actionId);
+        return true;
       } catch (err) {
         toast.error('Could not do that', extractError(err));
+        return false;
       }
     },
     [qc, toast],

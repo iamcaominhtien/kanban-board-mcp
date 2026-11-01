@@ -20,7 +20,8 @@ export type RowActionHandler = (
   row: Row,
   actionId: string,
   extra?: { text?: string; until?: string | null; ticketId?: string | null; label?: string },
-) => void | Promise<void>;
+  /** `false` when the action failed (the row then keeps what the person typed); anything else counts as done. */
+) => void | boolean | Promise<void | boolean>;
 
 const ACTION_ICONS: Record<string, IconName> = {
   answer: 'reply',
@@ -510,7 +511,12 @@ export function NotificationRow({
   const fire: Fire = async (id, extra) => {
     setBusy(true);
     try {
-      await onAction(row, id, extra);
+      const ok = await onAction(row, id, extra);
+      // an answer that went through closes the box and empties the field; a failed one keeps both for another try
+      if (id === 'answer' && ok !== false) {
+        setAnswering(false);
+        setAnswer('');
+      }
     } finally {
       setBusy(false);
     }
@@ -563,7 +569,7 @@ export function NotificationRow({
           </div>
         )}
 
-        {answering && (
+        {answering && !row.done && (
           <AnswerBox
             options={f.options}
             answer={answer}
@@ -620,7 +626,8 @@ export function NotificationRow({
                   );
                 })}
               {f.open && <OpenRowHoverButtons row={row} fire={fire} />}
-              {!row.gone && <MoreMenu fire={fire} />}
+              {/* "Turn this kind off" changes nothing on a Needs you row (a mute never quiets one), so it is not offered */}
+              {!row.gone && !row.needs && <MoreMenu fire={fire} />}
             </>
           )}
         </div>

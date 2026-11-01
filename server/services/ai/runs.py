@@ -3464,7 +3464,8 @@ async def reassign_question(run_id: str, *, by: str, to_member_id: str) -> AiRun
     await _publish(force=True)
     from services import notifications as centre
 
-    await centre.on_run_question(run_id)  # the new person gets it as Needs you too
+    # the new person gets it as Needs you too; the person it was taken from sees theirs close
+    await centre.on_run_question(run_id, passed_to=person.name, by=by)
     async with database.async_session() as session:
         return await session.get(AiRun, run_id)
 

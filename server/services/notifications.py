@@ -24,7 +24,7 @@ from collections import deque
 from datetime import UTC, datetime, timedelta
 from typing import Any, Iterable, TypedDict, Unpack
 
-from sqlalchemy import delete, func, or_
+from sqlalchemy import and_, case, delete, false, func, not_, or_
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -252,6 +252,27 @@ async def owners_and_admins(session: AsyncSession, project_id: str | None) -> li
     return out
 
 
+async def managed_projects(session: AsyncSession, me: str) -> set[str] | None:
+    """The projects this person is an owner or admin of; None means every project (the board's own user)."""
+    if me == "user":
+        return None
+    rows = (
+        await session.exec(
+            select(Member).where(
+                Member.kind == "human", col(Member.role).in_(["admin", "owner"])
+            )
+        )
+    ).all()
+    return {m.project_id for m in rows if person_key(m.name) == me}
+
+
+async def may_manage(session: AsyncSession, me: str) -> bool:
+    """Whether a person may change the app-wide notification settings: the board's own user, or an owner or admin
+    of a project (as for every AI safety event, `owners_and_admins`)."""
+    managed = await managed_projects(session, me)
+    return managed is None or bool(managed)
+
+
 async def followers(
     session: AsyncSession, scope: str, scope_id: str | None
 ) -> list[str]:
@@ -357,6 +378,7 @@ async def settings_for(session: AsyncSession, recipient: str) -> dict[str, Any]:
         "sound": bool(prefs["sound"]),
         "day_card": prefs["day_card"],
         "retention_days": await retention_days(session),
+        "retention_editable": await may_manage(session, recipient),
         "muted": await muted_list(session, recipient),
     }
 
@@ -404,7 +426,15 @@ def _apply_day_card(mine: dict, src: dict) -> None:
 async def update_settings(
     session: AsyncSession, recipient: str, body: dict[str, Any]
 ) -> dict[str, Any]:
-    """Save part of a recipient's settings. A Needs you kind's In app cannot be switched off (400)."""
+    """Save part of a recipient's settings. A Needs you kind's In app cannot be switched off (ValueError). The
+    app-wide `retention_days` deletes everyone's history: only the board's own user or an owner or admin of a
+    project changes it (PermissionError)."""
+    if body.get("retention_days") is not None and not await may_manage(
+        session, recipient
+    ):
+        raise PermissionError(
+            "Only the board's own user, or an owner or admin of a project, changes how long notifications are kept."
+        )
     row = await session.get(NotifyPrefs, recipient) or NotifyPrefs(recipient=recipient)
     mine = _loads(row.prefs, {})
     _apply_event_choices(mine, body.get("events") or [])
@@ -1230,9 +1260,16 @@ async def _reconcile() -> int:
     await flush_pending()
     async with database.async_session() as session:
         await _watch_accounts(session)
-        for same in (await _open_needs_groups(session)).values():
+        groups = list((await _open_needs_groups(session)).values())
+        # rows that only their target going away can close are checked together, in a few queries
+        static = [g for g in groups if not _closes_by_itself(g[0])]
+        alive = await _alive_targets(session, [g[0] for g in static])
+        for same in groups:
             try:
-                why = await _why_closed(session, same[0])
+                if _closes_by_itself(same[0]):
+                    why = await _why_closed(session, same[0])
+                else:
+                    why = _why_gone(same[0], alive)
             except Exception:  # noqa: BLE001
                 logger.exception("Could not check notification %s", same[0].id)
                 continue
@@ -1248,15 +1285,21 @@ async def _reconcile() -> int:
     return closed
 
 
+# A row whose target is gone says so once (`_mark_gone`) and then waits for Dismiss: nothing closes it by itself
+_GONE = '"gone": true'
+
+
 async def _open_needs_groups(
     session: AsyncSession,
 ) -> dict[tuple, list[Notification]]:
-    """The open Needs you rows, by what they point at (each group is judged once)."""
+    """The open Needs you rows, by what they point at (each group is judged once). Rows already marked gone are left
+    out: nothing but Dismiss closes them."""
     rows = (
         await session.exec(
             select(Notification).where(
                 Notification.needs == True,  # noqa: E712
                 col(Notification.done_at).is_(None),
+                not_(col(Notification.data).contains(_GONE)),
             )
         )
     ).all()
@@ -1269,6 +1312,55 @@ async def _open_needs_groups(
             [],
         ).append(r)
     return groups
+
+
+def _closes_by_itself(r: Notification) -> bool:
+    """Whether something other than its target going away can close a row. A blocked or offline row closes only by
+    Dismiss, and a mention of an AI member only when its thread goes (an AI does not reply in Docs)."""
+    if r.kind in ("blocked", "offline"):
+        return r.target_kind in ("approval", "account", "thread")
+    if r.kind == "mention" and r.target_kind == "thread":
+        return not r.recipient.startswith("ai:")
+    return True
+
+
+async def _alive_targets(
+    session: AsyncSession, rows: list[Notification]
+) -> dict[str, set[str]]:
+    """Which of the tickets, runs and threads these rows point at still exist: one query per table, not per row."""
+    wanted: dict[str, set[str]] = {"ticket": set(), "run": set(), "thread": set()}
+    for r in rows:
+        if r.ticket_id:
+            wanted["ticket"].add(r.ticket_id)
+        if r.target_kind in ("run", "thread") and r.target_id:
+            wanted[r.target_kind].add(r.target_id)
+    models = {"ticket": Ticket, "run": AiRun, "thread": DocsCommentThread}
+    alive: dict[str, set[str]] = {}
+    for name, ids in wanted.items():
+        model = models[name]
+        found: set[str] = set()
+        chunk = sorted(ids)
+        for i in range(0, len(chunk), 500):
+            found.update(
+                (
+                    await session.exec(
+                        select(model.id).where(col(model.id).in_(chunk[i : i + 500]))
+                    )
+                ).all()
+            )
+        alive[name] = found
+    return alive
+
+
+def _why_gone(r: Notification, alive: dict[str, set[str]]) -> _Why:
+    """`_why_closed` of a row that does not close by itself: only its ticket, run or thread going away changes it."""
+    if r.ticket_id and r.ticket_id not in alive["ticket"]:
+        return f"{r.ticket_id} was deleted, so this cannot be answered.", None, True
+    if r.target_kind == "run" and r.target_id and r.target_id not in alive["run"]:
+        return "The run is gone.", None, True
+    if r.target_kind == "thread" and r.target_id and r.target_id not in alive["thread"]:
+        return "The thread is gone.", None, True
+    return None
 
 
 async def _mark_gone(
@@ -1375,9 +1467,17 @@ async def _run_people(session: AsyncSession, run: AiRun) -> list[str]:
     return out
 
 
-async def on_run_question(run_id: str, *, reminder: bool = False) -> None:
+async def on_run_question(
+    run_id: str,
+    *,
+    reminder: bool = False,
+    passed_to: str | None = None,
+    by: str | None = None,
+) -> None:
     """An AI asked and its run paused: a question for the person it asked (Needs you). A `reminder` (15 min, then
-    every 2 h unanswered) brings the same row back to the top and toasts again, without counting as a new item."""
+    every 2 h unanswered) brings the same row back to the top and toasts again, without counting as a new item.
+    `passed_to`: the question was passed to this person ("Ask someone else", by `by`); whoever is no longer one of
+    its recipients sees their row close ("Passed to Hoa Mai")."""
     try:
         async with database.async_session() as session:
             run = await session.get(AiRun, run_id)
@@ -1411,9 +1511,32 @@ async def on_run_question(run_id: str, *, reminder: bool = False) -> None:
                 },
                 session=session,
             )
+            if passed_to:
+                await _close_passed_question(session, run, keys, passed_to, by)
     except Exception:  # noqa: BLE001 - a notification never breaks a run
         # the run id can come from a request: it is not written to the log (log injection)
         logger.exception("Could not write a question notification")
+
+
+async def _close_passed_question(
+    session: AsyncSession,
+    run: AiRun,
+    keys: list[str],
+    passed_to: str,
+    by: str | None,
+) -> None:
+    """A question passed to someone else: the open rows of the people it is no longer addressed to close."""
+    group_key = _group_key("question", run.project_id, "run", run.id, run.ticket_id)
+    stale = (
+        await session.exec(
+            select(Notification).where(
+                Notification.group_key == group_key,
+                col(Notification.done_at).is_(None),
+                col(Notification.recipient).not_in(keys),
+            )
+        )
+    ).all()
+    await _resolve_rows(session, list(stale), f"Passed to {passed_to}", by)
 
 
 async def on_run_ended(run_id: str) -> None:
@@ -1802,21 +1925,27 @@ async def list_rows(
         days=days,
         before=before,
     )
-    rows = list(
-        (
-            await session.exec(
-                stmt.order_by(col(Notification.updated_at).desc()).limit(2000)
-            )
-        ).all()
-    )
     if view == "panel":
-        rows = [r for r in rows if not _is_snoozed(r, now)]
+        stmt = stmt.where(_not_snoozed(now))
     else:
-        rows = _page_filter(rows, filter, now)
+        stmt = _where_page_filter(stmt, filter, now)
+    total = int(
+        (await session.exec(select(func.count()).select_from(stmt.subquery()))).one()
+        or 0
+    )
     if view == "panel" and tab == "needs":
-        rows.sort(key=_needs_order)
-    total = len(rows)
-    page = rows[: max(1, min(limit, 500))]
+        # open first, the longest waiting first; then today's done rows, newest activity first
+        open_first = col(Notification.done_at).is_(None)
+        order = (
+            not_(open_first),
+            case((open_first, col(Notification.created_at)), else_=""),
+            col(Notification.updated_at).desc(),
+        )
+    else:
+        order = (col(Notification.updated_at).desc(),)
+    page = list(
+        (await session.exec(stmt.order_by(*order).limit(max(1, min(limit, 500))))).all()
+    )
     names = await member_names(session, page)
     out = [to_dict(r, me, names) for r in page]
     day_card = None
@@ -1865,11 +1994,6 @@ def _rows_stmt(
     if q:
         stmt = _where_search(stmt, q)
     return stmt
-
-
-def _needs_order(r: Notification) -> tuple[bool, str]:
-    """The Needs you tab: open first, oldest waiting first; then today's done rows."""
-    return r.done_at is not None, r.created_at if not r.done_at else ""
 
 
 async def _day_card_dict(session: AsyncSession, me: str) -> dict | None:
@@ -1933,23 +2057,37 @@ def _is_snoozed(r: Notification, now: datetime) -> bool:
     return bool(r.snoozed_until and (_parse(r.snoozed_until) or now) > now)
 
 
-def _page_filter(
-    rows: list[Notification], filter: str, now: datetime
-) -> list[Notification]:
+def _snoozed(now: datetime):
+    """A row hidden by a snooze that has not run out (times are kept as UTC ISO text, so they compare as text)."""
+    return col(Notification.snoozed_until) > now.isoformat()
+
+
+def _not_snoozed(now: datetime):
+    return or_(
+        col(Notification.snoozed_until).is_(None),
+        col(Notification.snoozed_until) <= now.isoformat(),
+    )
+
+
+def _where_page_filter(stmt, filter: str | None, now: datetime):
     """The All notifications page's filter: all | unread | needs | snoozed | done | cleared."""
     if filter == "unread":
-        return [r for r in rows if r.read_at is None and not r.cleared_at]
+        return stmt.where(
+            col(Notification.read_at).is_(None), col(Notification.cleared_at).is_(None)
+        )
     if filter == "needs":
-        return [
-            r for r in rows if r.needs and not r.done_at and not _is_snoozed(r, now)
-        ]
+        return stmt.where(
+            Notification.needs == True,  # noqa: E712
+            col(Notification.done_at).is_(None),
+            _not_snoozed(now),
+        )
     if filter == "snoozed":
-        return [r for r in rows if _is_snoozed(r, now)]
+        return stmt.where(_snoozed(now))
     if filter == "done":
-        return [r for r in rows if r.done_at]
+        return stmt.where(col(Notification.done_at).is_not(None))
     if filter == "cleared":
-        return [r for r in rows if r.cleared_at]
-    return [r for r in rows if not r.cleared_at]
+        return stmt.where(col(Notification.cleared_at).is_not(None))
+    return stmt.where(col(Notification.cleared_at).is_(None))
 
 
 async def _latest_day_card(session: AsyncSession, me: str) -> Notification | None:
@@ -1963,65 +2101,53 @@ async def _latest_day_card(session: AsyncSession, me: str) -> Notification | Non
 
 
 async def counts(session: AsyncSession, me: str) -> dict:
-    """The bell: the red number is open Needs you rows (not snoozed); a blue dot for unread updates."""
+    """The bell: the red number is open Needs you rows (not snoozed); a blue dot for unread updates. Counted in SQL,
+    so it costs the same however long the history is."""
     now = datetime.now(UTC)
     since = (now - timedelta(days=PANEL_DAYS)).isoformat()
-    rows = (
-        await session.exec(
-            select(Notification).where(
-                Notification.recipient == me,
-                Notification.inapp == True,  # noqa: E712
-                col(Notification.cleared_at).is_(None),
-                or_(
-                    col(Notification.done_at).is_(None),
-                    col(Notification.updated_at) >= since,
-                ),
-            )
-        )
-    ).all()
+    shown = and_(
+        Notification.inapp == True,  # noqa: E712
+        col(Notification.cleared_at).is_(None),
+    )
+    unread = col(Notification.read_at).is_(None)
+    needs_open = and_(
+        shown,
+        Notification.needs == True,  # noqa: E712
+        col(Notification.done_at).is_(None),
+        _not_snoozed(now),
+    )
+    updates = and_(
+        shown,
+        Notification.needs == False,  # noqa: E712
+        col(Notification.updated_at) >= since,
+    )
 
-    def snoozed(r: Notification) -> bool:
-        return bool(r.snoozed_until and (_parse(r.snoozed_until) or now) > now)
+    def n(cond):
+        return func.coalesce(func.sum(case((cond, 1), else_=0)), 0)
 
-    needs = [r for r in rows if r.needs and not r.done_at and not snoozed(r)]
-    unread_updates = [
-        r
-        for r in rows
-        if not r.needs
-        and r.read_at is None
-        and r.updated_at >= since
-        and not snoozed(r)
-    ]
-    snoozed_rows = (
+    row = (
         await session.exec(
-            select(func.count())
-            .select_from(Notification)
-            .where(
-                Notification.recipient == me,
-                col(Notification.snoozed_until) > now.isoformat(),
-            )
+            select(
+                n(needs_open),
+                n(and_(needs_open, unread)),
+                n(and_(updates, unread, _not_snoozed(now))),
+                n(updates),
+                n(_snoozed(now)),
+                n(and_(unread, col(Notification.cleared_at).is_(None))),
+                func.min(case((needs_open, col(Notification.created_at)))),
+            ).where(Notification.recipient == me)
         )
     ).one()
-    unread_all = (
-        await session.exec(
-            select(func.count())
-            .select_from(Notification)
-            .where(
-                Notification.recipient == me,
-                col(Notification.read_at).is_(None),
-                col(Notification.cleared_at).is_(None),
-            )
-        )
-    ).one()
+    needs, needs_unread, updates_unread, n_updates, snoozed, unread_all, oldest = row
     return {
-        "needs": len(needs),
-        "needs_unread": len([r for r in needs if r.read_at is None]),
-        "updates_unread": len(unread_updates),
-        "updates": len([r for r in rows if not r.needs and r.updated_at >= since]),
-        "snoozed": int(snoozed_rows or 0),
-        "unread": int(unread_all or 0),
+        "needs": int(needs),
+        "needs_unread": int(needs_unread),
+        "updates_unread": int(updates_unread),
+        "updates": int(n_updates),
+        "snoozed": int(snoozed),
+        "unread": int(unread_all),
         "head": await head_id(session),
-        "oldest_needs_at": min((r.created_at for r in needs), default=None),
+        "oldest_needs_at": oldest,
     }
 
 
@@ -2087,8 +2213,11 @@ async def log_since(
     *,
     project_id: str | None = None,
     limit: int = 200,
+    readers: list[str] | None = None,
 ) -> dict:
-    """The raw log after an id (the planned `wait` tool and `kanban wait` read this)."""
+    """The raw log after an id (the planned `wait` tool and `kanban wait` read this). `readers`: the caller's
+    recipient keys, so only the events told to them, and every event of the projects they own or administer, come
+    back; None reads everything (the board's own user)."""
     head = await head_id(session)
     g = await _global(session)
     pruned = int(g.get("pruned_through") or 0)
@@ -2097,6 +2226,8 @@ async def log_since(
     stmt = select(NotifyEvent).where(col(NotifyEvent.id) > since)
     if project_id:
         stmt = stmt.where(NotifyEvent.project_id == project_id)
+    if readers is not None:
+        stmt = stmt.where(await _readable_by(session, readers))
     rows = (
         await session.exec(
             stmt.order_by(col(NotifyEvent.id)).limit(max(1, min(limit, 1000)))
@@ -2129,6 +2260,21 @@ async def log_since(
     }
 
 
+async def _readable_by(session: AsyncSession, readers: list[str]):
+    """The log events these recipient keys may read: the ones told to them, and the events of the projects one of
+    them owns or administers (who are told every AI safety event there anyway)."""
+    told = [
+        col(NotifyEvent.recipients).contains(json.dumps(k), autoescape=True)
+        for k in readers
+    ]
+    managed: set[str] = set()
+    for k in readers:
+        managed |= await managed_projects(session, k) or set()
+    if managed:
+        told.append(col(NotifyEvent.project_id).in_(sorted(managed)))
+    return or_(false(), *told)
+
+
 # ---------------------------------------------------------------------------
 # A person acting on rows: read, dismiss, snooze, clear
 # ---------------------------------------------------------------------------
@@ -2141,6 +2287,17 @@ async def _mine(session: AsyncSession, me: str, row_id: str) -> Notification:
     return r
 
 
+class PageFilters(TypedDict, total=False):
+    """The All notifications page's filters, as `GET /notifications?view=page` takes them."""
+
+    filter: str | None
+    q: str | None
+    project_id: str | None
+    kinds: list[str] | None
+    family: str | None
+    days: int | None
+
+
 async def mark_read(
     session: AsyncSession,
     me: str,
@@ -2148,17 +2305,38 @@ async def mark_read(
     ids: list[str] | None = None,
     all: bool = False,
     tab: str | None = None,
+    **page: Unpack[PageFilters],
 ) -> int:
     """Reading is not resolving: a Needs you row stays open, and Mark all read clears the count of unread, not the
-    list (the red number counts open work, not unread rows)."""
+    list (the red number counts open work, not unread rows). With `all` and any of the page's filters, only the rows
+    that page lists are read."""
     at = now_iso()
-    stmt = select(Notification).where(
-        Notification.recipient == me, col(Notification.read_at).is_(None)
-    )
+    now = datetime.now(UTC)
     if ids:
-        stmt = stmt.where(col(Notification.id).in_(ids))
+        stmt = select(Notification).where(
+            Notification.recipient == me, col(Notification.id).in_(ids)
+        )
     elif not all:
         return 0
+    elif any(v not in (None, "", []) for v in page.values()):
+        if page.get("filter") not in (None, *FILTERS):
+            raise ValueError(f"filter must be one of {', '.join(FILTERS)}")
+        stmt = _rows_stmt(
+            me,
+            now,
+            view="page",
+            tab=None,
+            q=page.get("q"),
+            project_id=page.get("project_id"),
+            kinds=page.get("kinds"),
+            family=page.get("family"),
+            days=page.get("days"),
+            before=None,
+        )
+        stmt = _where_page_filter(stmt, page.get("filter") or "all", now)
+    else:
+        stmt = select(Notification).where(Notification.recipient == me)
+    stmt = stmt.where(col(Notification.read_at).is_(None))
     if tab == "needs":
         stmt = stmt.where(Notification.needs == True)  # noqa: E712
     elif tab == "updates":
@@ -2205,8 +2383,14 @@ async def mark_target_read(
     return len(rows)
 
 
+# Kinds addressed to each recipient on their own: dismissing one closes only the caller's row (a mention of you is
+# not a mention of the others in the thread)
+PER_RECIPIENT_KINDS = {"mention"}
+
+
 async def dismiss(session: AsyncSession, me: str, row_id: str, by: str) -> dict:
-    """Dismiss resolves: the row goes grey with "Dismissed by you", for every recipient of the same thing."""
+    """Dismiss resolves: the row goes grey with "Dismissed by you", for every recipient of the same thing (shared
+    work, such as a failed run). A mention is the caller's own: only their row closes."""
     r = await _mine(session, me, row_id)
     gone = bool(_loads(r.data, {}).get("gone"))
     if r.done_at:
@@ -2217,14 +2401,13 @@ async def dismiss(session: AsyncSession, me: str, row_id: str, by: str) -> dict:
         raise ValueError(
             "This one closes when the work is done; it cannot be dismissed."
         )
-    same = (
-        await session.exec(
-            select(Notification).where(
-                Notification.group_key == r.group_key,
-                col(Notification.done_at).is_(None),
-            )
-        )
-    ).all()
+    stmt = select(Notification).where(
+        Notification.group_key == r.group_key,
+        col(Notification.done_at).is_(None),
+    )
+    if r.kind in PER_RECIPIENT_KINDS:
+        stmt = stmt.where(Notification.recipient == me)
+    same = (await session.exec(stmt)).all()
     await _resolve_rows(session, list(same), "Dismissed by {who}", by)
     await session.refresh(r)
     return to_dict(r, me)
@@ -2535,10 +2718,12 @@ async def write_day_cards(
             prefs = await get_prefs(session, me)
             if not force_for and not _card_due(prefs.get("day_card") or {}, local):
                 continue
-            last = await _latest_day_card(session, me)
             day_id = _day_id(me, local, now, forced=bool(force_for))
-            if not force_for and last is not None and last.target_id == day_id:
+            # the scheduled card of the day is written once: a card asked for now ("Sum up today") neither stands in
+            # for it nor makes it come again
+            if not force_for and await _card_of(session, me, day_id) is not None:
                 continue
+            last = await _latest_scheduled_card(session, me)
             facts = await build_day_card(
                 session, me, since=_card_since(last, local), until=now
             )
@@ -2559,6 +2744,34 @@ async def write_day_cards(
     return n
 
 
+async def _card_of(session: AsyncSession, me: str, day_id: str) -> Notification | None:
+    """The person's card that points at this day id."""
+    return (
+        await session.exec(
+            select(Notification).where(
+                Notification.recipient == me,
+                Notification.kind == "day_card",
+                Notification.target_id == day_id,
+            )
+        )
+    ).first()
+
+
+async def _latest_scheduled_card(session: AsyncSession, me: str) -> Notification | None:
+    """The person's latest card written at the card time (not one asked for now): a card counts from it."""
+    return (
+        await session.exec(
+            select(Notification)
+            .where(
+                Notification.recipient == me,
+                Notification.kind == "day_card",
+                not_(col(Notification.target_id).contains(_FORCED)),
+            )
+            .order_by(col(Notification.created_at).desc())
+        )
+    ).first()
+
+
 def _card_due(card: dict, local: datetime) -> bool:
     """Whether a person's card is due now: it is on, today is one of its days and its time has come."""
     if not card.get("on", True) or local.weekday() not in card.get(
@@ -2571,11 +2784,15 @@ def _card_due(card: dict, local: datetime) -> bool:
 def _day_id(me: str, local: datetime, now: datetime, *, forced: bool) -> str:
     """What a card points at: the person's day (one card a day), or this moment for a card asked for now."""
     day_id = f"{me}:{local.date().isoformat()}"
-    return f"{day_id}:now:{int(now.timestamp())}" if forced else day_id
+    return f"{day_id}{_FORCED}{int(now.timestamp())}" if forced else day_id
+
+
+# What the day id of a card asked for now has after the day
+_FORCED = ":now:"
 
 
 def _card_since(last: Notification | None, local: datetime) -> datetime | None:
-    """A card counts from the last card, or from midnight for the first one."""
+    """A card counts from the last scheduled card, or from midnight for the first one."""
     if last is not None:
         return _parse(last.created_at)
     return local.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(UTC)

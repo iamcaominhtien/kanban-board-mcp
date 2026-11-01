@@ -87,23 +87,63 @@ async def get_feed(session: Session, since: Optional[int] = None) -> dict:
 async def get_log(
     session: Session, since: int = 0, project_id: Optional[str] = None, limit: int = 200
 ) -> dict:
-    """The event log after an id, oldest first (what an external AI waiting on the board will read)."""
-    return await svc.log_since(session, since, project_id=project_id, limit=limit)
+    """The event log after an id, oldest first (what an external AI waiting on the board will read). The board's own
+    user reads every event; anyone else the events told to them (an AI member as `ai:<id>`, or by its name in
+    `project_id`) and every event of the projects they own or administer."""
+    me = _me()
+    readers = None
+    if me != "user":
+        readers = [me]
+        if project_id:
+            for k in await svc.recipient_keys(session, project_id, [_by()]):
+                if k not in readers:
+                    readers.append(k)
+    return await svc.log_since(
+        session, since, project_id=project_id, limit=limit, readers=readers
+    )
 
 
 class ReadBody(BaseModel):
-    """Rows to mark read."""
+    """Rows to mark read: `ids`, or `all` (of a `tab`, and narrowed by the All notifications page's filters, with the
+    same names and meaning as `GET /notifications?view=page`)."""
 
     ids: Optional[list[str]] = None
     all: bool = False
     tab: Optional[str] = None
+    filter: Optional[str] = None
+    q: Optional[str] = None
+    project_id: Optional[str] = None
+    kind: Optional[list[str] | str] = None
+    family: Optional[str] = None
+    days: Optional[int] = None
 
 
-@router.post("/read")
+@router.post(
+    "/read",
+    responses={422: {"description": "`filter` is not one of the known filters"}},
+)
 async def post_read(body: ReadBody, session: Session) -> dict:
-    """Mark rows read (`ids`), or all of a tab (`all`, `tab` needs | updates). Reading is not resolving."""
-    n = await svc.mark_read(session, _me(), ids=body.ids, all=body.all, tab=body.tab)
-    return {"read": n}
+    """Mark rows read (`ids`), or all of a tab (`all`, `tab` needs | updates); with `all` and any of the page's
+    filters (`filter`, `q`, `project_id`, `kind`, `family`, `days`) only the rows that page lists. Reading is not
+    resolving."""
+    kinds = [body.kind] if isinstance(body.kind, str) else body.kind
+    try:
+        read = await svc.mark_read(
+            session,
+            _me(),
+            ids=body.ids,
+            all=body.all,
+            tab=body.tab,
+            filter=body.filter,
+            q=body.q,
+            project_id=body.project_id,
+            kinds=kinds,
+            family=body.family,
+            days=body.days,
+        )
+        return {"read": read}
+    except ValueError as exc:
+        _bad(exc, 422)
 
 
 class OpenedBody(BaseModel):
@@ -179,12 +219,22 @@ async def get_settings(session: Session) -> dict:
     return await svc.settings_for(session, _me())
 
 
-@router.patch("/settings")
+@router.patch(
+    "/settings",
+    responses={
+        403: {
+            "description": "`retention_days` from someone who is not an owner or admin"
+        },
+        422: {"description": "A value out of range, or In app off for Needs you"},
+    },
+)
 async def patch_settings(body: dict[str, Any], session: Session) -> dict:
     """Change part of the settings: `events` [{kind, inapp?, desktop?}] (In app is locked on for Needs you),
     `quiet` {on, start, end}, `dnd`, `sound`, `day_card` {on, time, days}, `retention_days`."""
     try:
         return await svc.update_settings(session, _me(), body)
+    except PermissionError as exc:
+        _bad(exc, 403)
     except ValueError as exc:
         _bad(exc, 422)
 

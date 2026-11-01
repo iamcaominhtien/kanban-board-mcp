@@ -321,7 +321,7 @@ describe('NotificationRow grouping', () => {
     const onAction = vi.fn();
     render(
       <NotificationRow
-        row={row({})}
+        row={row({ needs: false, kind: 'ai_finished', actions: [] })}
         onAction={onAction}
         projects={new Map([['p1', { id: 'p1', name: 'Mobile App', color: '#fff' } as never]])}
       />,
@@ -332,6 +332,11 @@ describe('NotificationRow grouping', () => {
     act(() => screen.getByRole('button', { name: 'More' }).click());
     act(() => screen.getByRole('menuitem', { name: 'Turn this kind off' }).click());
     expect(onAction).toHaveBeenCalledWith(expect.anything(), 'mute_kind', undefined);
+  });
+
+  it('does not offer "Turn this kind off" on a Needs you row', () => {
+    render(<NotificationRow row={row({})} onAction={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'More' })).toBeNull();
   });
 
   it('tells a snoozed row and offers Bring back now', () => {
@@ -356,7 +361,9 @@ describe('useNotificationToasts', () => {
 
   beforeEach(() => {
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
   });
+  afterEach(() => vi.restoreAllMocks());
 
   it('shows nothing on the first load, only stores the head', async () => {
     api.feed.mockResolvedValueOnce({ head: 5, cursorTooOld: false, items: [row({})], resolved: [] });
@@ -470,6 +477,25 @@ describe('useNotificationToasts', () => {
     rerender({ h: 12 });
     await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(3));
     expect(toastApi.showToast).not.toHaveBeenCalled();
+  });
+
+  it('does not toast a row that arrives while the window is not focused', async () => {
+    api.feed.mockResolvedValueOnce({ head: 5, cursorTooOld: false, items: [], resolved: [] });
+    const { rerender } = renderHook(({ h }) => useNotificationToasts(vi.fn(), h), {
+      wrapper: ({ children }) => wrap(children),
+      initialProps: { h: 5 as number | undefined },
+    });
+    await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(1));
+    const focus = vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    api.feed.mockResolvedValueOnce(feed([row({ id: 'z' })], [], 12));
+    rerender({ h: 12 });
+    await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(2));
+    expect(toastApi.showToast).not.toHaveBeenCalled();
+    focus.mockReturnValue(true);
+    api.feed.mockResolvedValueOnce(feed([row({ id: 'y' })], [], 14));
+    rerender({ h: 14 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(1));
+    focus.mockRestore();
   });
 });
 

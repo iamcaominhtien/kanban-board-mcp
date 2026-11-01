@@ -84,17 +84,20 @@ it off (422), and muting a ticket or project never makes it quiet.
 
 | Kind | Event | Closes itself when | Dismiss |
 |---|---|---|---|
-| `question` | An AI asked and its run paused | the run is answered anywhere (ticket, AI Team, the panel, a toast, MCP), or ends | no |
+| `question` | An AI asked and its run paused | the run is answered anywhere (ticket, AI Team, the panel, a toast, MCP), or ends; passed to someone else ("Ask someone else"), it closes for whoever is no longer asked ("Passed to Hoa Mai") | no |
 | `approval` | An approval request | approved, denied, expired, or its run ended | no |
 | `run_failed` | A run failed or timed out; a scheduled slot failed | a new run starts on the ticket (Retry) | yes |
 | `blocked` | An AI was blocked by a permission (a guard block, a move past its ceiling, Ask owner for access) | — | yes |
 | `account_signed_out` | An AI account was found signed out (one per account, not per member) | the account is confirmed signed in again (a missing CLI does not close it) | no |
-| `mention` | Someone mentioned you in a Docs thread | you reply in the thread | yes |
+| `mention` | Someone mentioned you in a Docs thread | you reply in the thread | yes, your own row only |
 | `run_stopped_memory` | A run was stopped for memory | a new run starts on the ticket | yes |
 | `budget` | A cap was reached (100 %) | the day rolls over, or the cap is raised | yes |
 | `page_proposal` | An AI proposed a change to a page | accepted, rejected or expired (its approval) | no |
 | `auto_trip` | An AI member auto-tripped, or Pause all AI | the member or the project is resumed | yes |
 | `offline` | An AI member's MCP token was revoked | — | yes |
+
+Dismiss closes the thing for every recipient of the same group (a failed run is shared work), except a `mention`,
+which is each person's own: dismissing yours leaves the others' mentions in the thread open.
 
 **For information** never interrupts: bell only, and only a blue dot.
 
@@ -128,7 +131,7 @@ A row whose target is gone (the ticket was deleted, the run removed) is marked `
 | Event | Recipients |
 |---|---|
 | AI safety events (`safety.notify`) | the project's owners and admins, the board's own user, and the `people` the event names |
-| A question | the person (or AI) it was asked of, and the person the run acts for |
+| A question | the person (or AI) it was asked of, and the person the run acts for (owners and admins when neither is a person); passed to someone else, the new person gets a row and the rows of those no longer asked close |
 | A run that finished, failed, was archived; a blocked move | the person the run acts for, the ticket's human assignee, the ticket's followers; owners and admins too when an AI started it (so a person always hears) |
 | An AI waiting on a run (`report_back`) | that AI member (`ai:<id>`) when the run finishes |
 | A schedule event | the schedule's creator and its extra people |
@@ -159,7 +162,9 @@ The person who caused an information event is not told about it.
   checks the open Needs you rows whenever anything is published (and every 15 s): an answered run, a decided
   approval, a signed-in account, a reply, a new run on a failed ticket, a deleted ticket. Changes made by another
   process (the stdio MCP server) reach it through the database watcher, which publishes too. A row closes for every
-  recipient within about a second, and every open window greys it.
+  recipient within about a second, and every open window greys it. Rows already marked gone are not checked again,
+  and rows that only their target going away can change (`blocked`, `offline`, a mention of an AI member) are checked
+  together in one query per table.
 - **A snooze that runs out** writes a `wake` event: the row points at it, is unread again and comes back in the
   panel, the count, a toast and the desktop notifier.
 - **The desktop notifier** (`desktop/notifier.js`) follows the same feed from the Electron main process. When the
@@ -180,13 +185,13 @@ All under `/notifications`, as the person of the request (`X-Actor`, or the boar
 | `GET /notifications?view=page&filter=all\|unread\|needs\|snoozed\|done\|cleared&q=&project_id=&kind=&family=ai\|people\|schedules\|info&days=` | All notifications, every project, everything still kept. |
 | `GET /notifications/counts` | `needs` (the red number), `updates_unread` (the blue dot), `snoozed`, `unread`, `head`, `oldest_needs_at`. |
 | `GET /notifications/feed?since=N` | Rows new or merged since log id N and rows closed since (`resolved`), plus `quiet` (in quiet hours now), `dnd`, `sound`. Without `since`: only `head`. `cursor_too_old` when N was pruned. |
-| `GET /notifications/log?since=N&project_id=` | The raw log, oldest first (for the planned `wait` tool and `kanban wait`). |
-| `POST /notifications/read` | `{ids}` or `{all: true, tab}`. Reading is not resolving. |
+| `GET /notifications/log?since=N&project_id=` | The raw log, oldest first (for the planned `wait` tool and `kanban wait`). The board's own user reads every event; anyone else reads the events told to them (an AI member as `X-Actor: ai:<id>`, or by its name with `project_id`) and every event of the projects they own or administer. |
+| `POST /notifications/read` | `{ids}` or `{all: true, tab}`; with `all` and any of the page's filters (`filter`, `q`, `project_id`, `kind`, `family`, `days`, as in `view=page`) only the rows that page lists are read (422 for an unknown `filter`). Reading is not resolving. |
 | `POST /notifications/opened` | `{target_kind, target_id}`: the person opened a ticket, page or run; its rows are read. |
-| `POST /notifications/{id}/dismiss` | Resolves the thing for every recipient ("Dismissed by you"). 409 for a kind that closes only when the work is done. |
+| `POST /notifications/{id}/dismiss` | Resolves the thing for every recipient ("Dismissed by you"); a mention only for the caller. 409 for a kind that closes only when the work is done. |
 | `POST /notifications/{id}/snooze` | `{until}` (ISO), or `{until: null}` to bring it back. |
 | `POST /notifications/{id}/clear` | `{on}`; 409 for an open Needs you row. `POST /notifications/clear-read` clears every read update. |
-| `GET/PATCH /notifications/settings` | The event table (`inapp_locked` for Needs you), `desktop_on`, `quiet`, `dnd`, `sound`, `day_card`, `retention_days`, `muted`. |
+| `GET/PATCH /notifications/settings` | The event table (`inapp_locked` for Needs you), `desktop_on`, `quiet`, `dnd`, `sound`, `day_card`, `retention_days` (`retention_editable`: whether the caller may change it; 403 otherwise), `muted`. |
 | `GET/PUT /notifications/follow`, `DELETE /notifications/follow/{id}` | The bell on a ticket, page, space; mutes from a row; the Muted list. |
 | `GET /notifications/day-card` (`?preview=true`), `POST /notifications/day-card` | The latest card; today so far; write it now. |
 
@@ -214,8 +219,9 @@ group; `open` otherwise; only `dismiss` when the target is gone.
 
 ## Retention
 
-One setting, `retention_days` (90 by default), is the only thing that deletes: rows (by last activity) and log events
-older than it, checked once a minute. The newest deleted event id is kept as `pruned_through`; a cursor below it gets
+One setting, `retention_days` (90 by default), is the only thing that deletes. It is app-wide and deletes everyone's
+history, so only the board's own user or an owner or admin of a project changes it (anyone else gets 403). It deletes
+rows (by last activity) and log events older than it, checked once a minute. The newest deleted event id is kept as `pruned_through`; a cursor below it gets
 `cursor_too_old`. The panel's 30 days is a view; clearing is a state. The audit log keeps its own retention.
 
 ## The day card
@@ -224,7 +230,9 @@ At the card time (weekdays 18:00 by default) the loop writes one `day_card` even
 the log and the runs since the previous card (nothing is asked of an AI): runs finished, failed (with the reason and
 whether they were retried), what still waits for you (the oldest first), spend, a line per project, Docs published
 and proposals unanswered, what is still snoozed, and tomorrow's scheduled runs. A quiet day says so in one line. If
-the app was closed at the card time, the card is written the next time the loop runs that day. It is never Needs you,
+the app was closed at the card time, the card is written the next time the loop runs that day. "Sum up today" writes
+a card of its own for this moment: the scheduled card of the day is still written once, and counts from the previous
+scheduled card (or midnight), not from a card asked for now. It is never Needs you,
 and the panel shows it as its first row until the next one. Board health keeps its own 09:00 digest.
 
 The 09:00 AI safety digest is gone: `safety.release_digest`, `AiNotification.digest` and `AiProjectSettings.digest`

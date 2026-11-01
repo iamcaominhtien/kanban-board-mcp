@@ -145,7 +145,9 @@ class NotifierCore {
     if (typeof feed.quiet === 'boolean') this.quiet = feed.quiet;
     const head = Number.isFinite(feed.head) ? feed.head : this.head;
     if (this.head === null || feed.cursor_too_old) {
-      // first call, or the cursor was pruned: start from now
+      // first call, or the cursor was pruned or the database changed: nothing shown or told belongs to this log any
+      // more; start from now
+      if (this.head !== null) this.reset();
       this.head = head;
       return;
     }
@@ -323,7 +325,11 @@ function startNotifier(opts) {
     });
     live.add(n);
     // Linux often never sends 'close': keep only the newest notices referenced
-    while (live.size > LIVE_MAX) live.delete(live.values().next().value);
+    while (live.size > LIVE_MAX) {
+      const oldest = live.values().next().value;
+      live.delete(oldest);
+      core.forget(oldest); // bounded: a notice that is no longer referenced can no longer be withdrawn either
+    }
     const done = () => {
       live.delete(n);
       core.forget(n);
@@ -337,7 +343,9 @@ function startNotifier(opts) {
       const action = actions[index];
       if (open && onOpen) onOpen(action ? { ...open, action: action.id } : open);
     });
-    n.on('close', done);
+    // Windows emits 'close' when a toast times out into Action Center, where it stays and can still be clicked or
+    // withdrawn: keep the notice (and its handlers) until it is clicked, withdrawn or its row resolves.
+    n.on('close', () => { if (platform !== 'win32') done(); });
     n.on('failed', () => { live.delete(n); });
     n.show();
     return n;
@@ -407,10 +415,15 @@ function startNotifier(opts) {
 
   function connect() {
     if (stopped || !port || stream) return;
+    // handlers only act while this request is still the current `stream` (a replaced one reports "aborted" late)
     const req = http.get({ host: '127.0.0.1', port, path: '/events', headers: { Accept: 'text/event-stream', ...headers() } }, (res) => {
+      if (stream !== req) {
+        res.resume();
+        return;
+      }
       if (res.statusCode !== 200) {
         res.resume();
-        scheduleReconnect();
+        scheduleReconnect(req);
         return;
       }
       streamAttempt = 0;
@@ -420,16 +433,17 @@ function startNotifier(opts) {
       res.on('data', (chunk) => {
         const parsed = parseSse(buffer + chunk);
         buffer = parsed.rest;
-        if (parsed.events.some(touchesNotifications)) refresh();
+        if (stream === req && parsed.events.some(touchesNotifications)) refresh();
       });
-      res.on('end', scheduleReconnect);
-      res.on('error', scheduleReconnect);
+      res.on('end', () => scheduleReconnect(req));
+      res.on('error', () => scheduleReconnect(req));
     });
-    req.on('error', scheduleReconnect);
+    req.on('error', () => scheduleReconnect(req));
     stream = req;
   }
 
-  function scheduleReconnect() {
+  function scheduleReconnect(source) {
+    if (source && source !== stream) return; // a replaced connection's late error must not kill the new one
     if (stream) {
       try { stream.destroy(); } catch { /* already closed */ }
     }
@@ -476,10 +490,11 @@ function startNotifier(opts) {
   if (port) start();
 
   return {
-    /** The backend (re)started on a new port: follow it from its head. */
+    /** The backend (re)started on a new port. It is the same backend (same database), so the notices still open and
+     * the cursor are kept; if the database did change the feed answers cursor_too_old and the core restarts from its
+     * head. Only a new person (setActor) resets. A null port pauses: no request, no badge. */
     setPort(p) {
       port = p;
-      core.reset();
       if (!port) return pause();
       if (!pollTimer) start();
       else {

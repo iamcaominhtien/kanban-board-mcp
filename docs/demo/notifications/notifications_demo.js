@@ -140,7 +140,7 @@ async function capture() {
   await shot('02-toasts');
   const title = await p.title();
   note('02-toasts', '2. Sau: tối đa 3 toast, cái thứ 4 gộp thành “+N more”', [
-    'Bốn việc “Needs you” đến cùng lúc khi bạn đang nhìn (BA Bao hỏi, Dev An xin duyệt, run #3 trên MOB-77 lỗi, tài khoản Work Claude bị đăng xuất). Toast chỉ dành cho việc cần bạn; tối đa 3 cái, cái cũ hơn gộp vào “+N more · in Notifications · Open”. Câu hỏi của BA Bao đã chờ 41 phút nên lời nhắc 15 phút đưa nó lên lại và nó toast lần nữa (+2 more).',
+    'Bốn việc “Needs you” đến cùng lúc khi bạn đang nhìn (BA Bao hỏi, Dev An xin duyệt, run #3 trên MOB-77 lỗi, tài khoản Work Claude bị đăng xuất). Toast chỉ dành cho việc cần bạn; tối đa 3 cái, cái cũ hơn gộp vào “+N more · in Notifications · Open”. Câu hỏi của BA Bao đã chờ 41 phút, nên lời nhắc 15 phút có thể đưa nó lên lại và toast thêm lần nữa.',
     'Tám AI xong việc ở bước 1 không bật toast nào nữa: chúng thành một dòng trong tab Updates.',
     `Chuông trên thanh trên cùng: số đỏ = chỉ việc Needs you. Bản web cũng hiện số ở tiêu đề tab: “${title}”.`,
   ]);
