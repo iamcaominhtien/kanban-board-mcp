@@ -6,8 +6,9 @@ short ask run and decides it with `ai_run` (decide / answer). The board checks e
 effect, so what an AI may decide stays small and visible:
 
 - never its own requests, never the budget (raise cap), nothing above the risk the owner set (Medium by default),
-- never a Docs proposal (a person reads those), and never more than `per_hour_limit` decisions an hour; it does
-  accept or reject a canvas proposal (the person sees before and after and can still undo it in the canvas history),
+- never more than `per_hour_limit` decisions an hour; it accepts or rejects Docs and canvas proposals too (accepted
+  Docs text goes into the owner's draft of the page, which they still publish; a canvas change is a version they can
+  restore),
 - each request is shown to the delegate once; what it leaves undecided stays for a person,
 - every decision is in the audit log and marked "Autopilot" (`decided_via` / `answered_via`), and Pause all AI stops it.
 
@@ -266,8 +267,6 @@ def _rank(risk: str | None) -> int:
 
 async def _may_decide(session: AsyncSession, a: AiApproval, cfg: dict) -> str | None:
     """Why Autopilot may not decide this request, or None."""
-    if svc_approvals.is_proposal(a):
-        return "A person reads Docs proposals."
     if a.action in NEVER:
         return "Raising the budget is a person's decision."
     if a.member_id == cfg["delegate_id"]:
@@ -280,6 +279,37 @@ async def _may_decide(session: AsyncSession, a: AiApproval, cfg: dict) -> str | 
     if (settings and settings.safe_mode) or (asker and asker.safe_mode):
         return "Safe mode is on; a person decides."
     return None
+
+
+async def _docs_proposal_text(session: AsyncSession, a: AiApproval) -> str:
+    """The summary of a Docs proposal and, per change, what it replaces and what it puts there."""
+    from models import DocsAiProposal
+
+    pid = (loads(a.payload, {}) or {}).get("proposal_id")
+    p = await session.get(DocsAiProposal, pid) if pid else None
+    if p is None:
+        return a.summary
+    lines = [a.summary]
+    for c in loads(p.changes, []):
+        if c.get("status", "pending") != "pending":
+            continue
+        lines.append(
+            f"Change {c.get('n')}: {c.get('title')}"
+            + (f" ({c['reason']})" if c.get("reason") else "")
+            + f"\n  now: {(c.get('old') or '')[:600]}\n  new: {(c.get('new') or '')[:600]}"
+        )
+    return "\n".join(lines)[:6000]
+
+
+def _owner(cfg: dict) -> str:
+    """The person Autopilot decides for. A Docs proposal is decided by a person (who may edit the page): the owner."""
+    from services import activity
+
+    return (
+        cfg["enabled_by"]
+        if cfg["enabled_by"] not in (None, "user")
+        else activity.HUMAN_ACTOR
+    )
 
 
 async def pending_items(
@@ -314,7 +344,9 @@ async def pending_items(
                     "ticket_id": a.ticket_id,
                     "member_id": a.member_id,
                     "at": a.requested_at,
-                    "text": a.summary,
+                    "text": await _docs_proposal_text(session, a)
+                    if svc_approvals.is_proposal(a)
+                    else a.summary,
                     "risk": a.risk,
                 }
             )
@@ -522,11 +554,15 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
         raise AutopilotError(f"Left for a person: {why}")
     tokens = guard.suspend()
     try:
+        proposal = svc_approvals.is_proposal(a)
+        reason = (note or "").strip()
         out = await svc_approvals.decide(
             request,
-            by=ctx.member_name,
+            # a Docs proposal is decided in the owner's name (an AI member may not decide one); the note says who
+            by=_owner(cfg) if proposal else ctx.member_name,
             approve=approve,
-            note=(note or "").strip() or None,
+            note=(f"Autopilot ({ctx.member_name}): {reason}" if proposal else reason)
+            or None,
             delegate=True,
             via=VIA,
         )
@@ -534,6 +570,13 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
         raise AutopilotError(str(exc)) from exc
     finally:
         guard.leave(tokens)
+    if proposal:  # the proposal's own code closed the request: mark it as Autopilot's, so it is counted and shown
+        async with database.async_session() as session:
+            row = await session.get(AiApproval, request)
+            if row is not None:
+                row.decided_via = VIA
+                session.add(row)
+                await session.commit()
     await audit.record(
         ctx.project_id,
         "autopilot_decision",
