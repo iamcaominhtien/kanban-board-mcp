@@ -4,6 +4,7 @@ changed until a person accepts, and an AI run is checked by the same guard and p
 
 import json
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
@@ -179,20 +180,20 @@ async def test_an_ai_run_goes_through_the_guard_and_its_own_project(env, tmp_pat
     work.mkdir()
     (work / "index.html").write_text("<h1>AI</h1>")
     args = {"canvas_id": cv["id"], "board_id": bid, "path": str(work)}
-    tokens = guard.enter(replace(ctx, mode="ask"))
+    tokens = guard.enter(replace(ctx, mode="ask", trigger="autopilot"))
     try:
-        with pytest.raises(ValueError, match="Ask runs only read"):
+        with pytest.raises(ValueError, match="Autopilot only reads"):
             await docs_write(action="canvas_propose", **args)
         assert (await docs_read(action="canvas", canvas_id=cv["id"]))["id"] == cv[
             "id"
         ]  # reading is fine
     finally:
         guard.leave(tokens)
-    # a project that asks before an AI edits docs (the developer template does not: a page edit is a new version)
+    # a project that asks before an AI comments (a comment or a proposal changes nothing until a person accepts)
     await _people(c, pid)
     r = await c.patch(
         f"/ai/members/{m['id']}",
-        json={"permissions": {"edit_docs": "approval"}},
+        json={"permissions": {"comment": "approval"}},
         headers=OWNER,
     )
     assert r.status_code == 200, r.text
@@ -205,7 +206,7 @@ async def test_an_ai_run_goes_through_the_guard_and_its_own_project(env, tmp_pat
     assert (await c.get(f"/canvases/{cv['id']}/threads")).json() == []
     r = await c.patch(
         f"/ai/members/{m['id']}",
-        json={"template": "custom", "permissions": {"edit_docs": "allowed"}},
+        json={"template": "custom", "permissions": {"comment": "allowed"}},
         headers=OWNER,
     )
     assert r.status_code == 200, r.text
@@ -587,3 +588,80 @@ async def test_a_comment_pins_to_an_element_and_the_rest_is_kept_clean(env, tmp_
             },
         )
         assert r.status_code == 201 and r.json()["anchor"] is None
+
+
+async def test_an_ai_run_cannot_read_or_write_private_places(
+    env, tmp_path, monkeypatch
+):
+    ctx, pid, an, m, tid = await _ctx(env)
+    c = env["c"]
+    home = tmp_path / "home"
+    (home / ".ssh").mkdir(parents=True)
+    (home / ".ssh" / "id_rsa").write_text("PRIVATE")
+    monkeypatch.setenv("HOME", str(home))
+    cv = (
+        await c.post(
+            "/canvases",
+            json={"owner_kind": "ticket", "owner_id": tid, "title": "By a person"},
+        )
+    ).json()
+    bid = cv["doc"]["boards"][0]["id"]
+    work = home / "project" / "frame"
+    (work / ".git").mkdir(parents=True)
+    (work / "node_modules").mkdir()
+    (work / "index.html").write_text("<h1>AI</h1>")
+    (work / ".env").write_text("TOKEN=1")
+    (work / ".git" / "config").write_text("[core]")
+    (work / "node_modules" / "x.js").write_text("1")
+    (work / "credentials.json").write_text("{}")
+    args = {"canvas_id": cv["id"], "board_id": bid}
+    tokens = guard.enter(ctx)
+    try:
+        # the home folder, and a dot-folder in it, are too wide or private for frames
+        for bad in (home, home / ".ssh", home.parent, Path("/")):
+            with pytest.raises(ValueError, match="too wide|private"):
+                await docs_write(action="canvas_propose", path=str(bad), **args)
+        # a folder that is fine: the pages go, the secrets and build folders do not
+        out = await docs_write(action="canvas_propose", path=str(work), **args)
+        assert set(out["skipped"]) == {
+            ".env",
+            ".git/config",
+            "node_modules/x.js",
+            "credentials.json",
+        }
+        # reading a frame to a folder that is not made yet is checked too
+        with pytest.raises(ValueError, match="private"):
+            await docs_read(
+                action="canvas",
+                canvas_id=cv["id"],
+                board_id=bid,
+                path=str(home / ".config" / "x"),
+            )
+        ok = await docs_read(
+            action="canvas", canvas_id=cv["id"], board_id=bid, path=str(home / "out")
+        )
+        assert ok["board"]["path"] == str(home / "out")
+    finally:
+        guard.leave(tokens)
+    # safe mode: an AI run writes no files, not even to a fine folder
+    r = await c.patch(f"/projects/{pid}/ai/settings", json={"safe_mode": True})
+    assert r.status_code == 200, r.text
+    tokens = guard.enter(ctx)
+    try:
+        with pytest.raises(ValueError, match="Safe mode"):
+            await docs_read(
+                action="canvas",
+                canvas_id=cv["id"],
+                board_id=bid,
+                path=str(home / "out2"),
+            )
+    finally:
+        guard.leave(tokens)
+    # a person (no run) may name any folder
+    ok = await docs_read(
+        action="canvas",
+        canvas_id=cv["id"],
+        board_id=bid,
+        path=str(home / ".config" / "y"),
+    )
+    assert ok["board"]["path"].endswith("y")

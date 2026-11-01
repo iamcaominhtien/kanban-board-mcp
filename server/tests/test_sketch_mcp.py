@@ -204,10 +204,10 @@ async def test_an_ai_run_goes_through_the_guard_and_its_own_project(env, tmp_pat
     await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": True})
     p = write(tmp_path, "a.png", png())
     args = {"owner_kind": "ticket", "owner_id": tid, "title": "By the AI", "path": p}
-    # an ask run only reads and answers
-    tokens = guard.enter(replace(ctx, mode="ask"))
+    # Autopilot's delegate only reads and decides
+    tokens = guard.enter(replace(ctx, mode="ask", trigger="autopilot"))
     try:
-        with pytest.raises(ValueError, match="Ask runs only read"):
+        with pytest.raises(ValueError, match="Autopilot only reads"):
             await docs_write(action="sketch_create", **args)
         assert (
             await docs_read(action="sketches", project_id=pid) == []

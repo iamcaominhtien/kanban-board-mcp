@@ -560,8 +560,15 @@ async def _claude_cli_run(
                 "auth",
                 "Claude Code is not signed in on this computer. Run claude and sign in.",
             )
-        if "rate" in low or "limit" in low:
-            raise LlmError("rate", secrets.redact(msg)[:200], retry_after=60.0)
+        wait = cli.rate_limit_wait(msg)
+        if (
+            wait is not None
+        ):  # the same wordings as a run: "5-hour limit reached", "resets 4pm", 429 ...
+            raise LlmError(
+                "rate",
+                cli.rate_limit_line(msg) or secrets.redact(msg)[:200],
+                retry_after=wait,
+            )
         raise LlmError("runner", secrets.redact(msg)[:200])
     if not out.text:
         out.text = str(result.get("result") or "")

@@ -169,8 +169,8 @@ function PermissionModeBlock() {
         <div className="perm-warn" data-testid="bypass-warning">
           <b>Bypass permissions runs shell commands and edits files on this computer without asking.</b> Still in force:{' '}
           {codex ? 'the' : 'the Deny rules, the'} board’s own ceiling and approvals, and Safe mode (it overrides
-          Bypass). {codex ? 'The Deny rules do not apply to Codex. ' : ''}Ask runs stay read-only and the web stays off.
-          Use it in a folder you can restore from git.
+          Bypass). {codex ? 'The Deny rules do not apply to Codex. ' : ''}The web stays off. Use it in a folder you can
+          restore from git.
           {projects > 1 ? ` This AI member is in ${projects} projects: the setting applies in all of them.` : ''}
         </div>
       )}

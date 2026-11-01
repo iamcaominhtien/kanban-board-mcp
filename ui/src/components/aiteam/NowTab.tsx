@@ -223,6 +223,28 @@ function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
         </button>
       );
       break;
+    case 'canvas_proposal':
+      icon = ICONS.page;
+      title = `${who} proposed ${item.changes} change${item.changes === 1 ? '' : 's'} to a canvas`;
+      body = (
+        <>
+          <b>{who}</b> on <b>{item.canvasTitle ?? 'a canvas'}</b>
+          {ticket ? <> for {ticket}</> : null}
+        </>
+      );
+      hint = `${wait}${item.ticketId ? ` · blocks the review of ${item.ticketId}` : ''}`;
+      buttons = (
+        <button
+          type="button"
+          className="st-btn st-btn-primary st-btn-sm"
+          onClick={() =>
+            item.pageId ? actions.onOpenDocsPage(item.pageId) : item.ticketId && actions.onOpenTicket(item.ticketId)
+          }
+        >
+          <Icon>{ICONS.eye}</Icon>Review on canvas
+        </button>
+      );
+      break;
   }
   return (
     <div className="at-need" data-testid={`needs-${item.kind}`}>

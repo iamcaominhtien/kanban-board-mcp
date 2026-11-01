@@ -102,7 +102,7 @@ async def test_it_is_only_for_cli_members_and_a_new_member_never_starts_with_it(
     )
 
 
-async def test_work_runs_bypass_but_ask_runs_and_safe_mode_do_not(env, monkeypatch):
+async def test_work_and_ask_runs_bypass_but_safe_mode_does_not(env, monkeypatch):
     c = env["c"]
     record = env["tmp"] / "args.jsonl"
     monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
@@ -119,7 +119,7 @@ async def test_work_runs_bypass_but_ask_runs_and_safe_mode_do_not(env, monkeypat
     # the Deny rules still stop things, and the web (its domain list needs the allow list) stays off
     assert "Bash(rm -rf:*)" in denied and "WebFetch" in denied and "WebSearch" in denied
     assert any("Bypass permissions" in s["text"] for s in run["steps"])
-    # an ask run is read-only whatever the mode
+    # a question has the rights of work
     r = await c.post(
         f"/tickets/{tid}/comments",
         json={
@@ -137,7 +137,7 @@ async def test_work_runs_bypass_but_ask_runs_and_safe_mode_do_not(env, monkeypat
 
         await asyncio.sleep(0.1)
     asked = _calls(record)[-1]
-    assert _flag(asked, "--permission-mode") == "dontAsk"
+    assert _flag(asked, "--permission-mode") == "bypassPermissions"
     # safe mode wins over the bypass
     await c.patch(f"/ai/members/{m['id']}", json={"safe_mode": True}, headers=OWNER)
     t2 = await _ticket(c, pid, "Another")
@@ -146,7 +146,7 @@ async def test_work_runs_bypass_but_ask_runs_and_safe_mode_do_not(env, monkeypat
     assert _flag(_calls(record)[-1], "--permission-mode") == "dontAsk"
 
 
-async def test_an_ask_run_also_gets_the_folders_mcp_servers_but_stays_read_only(
+async def test_an_ask_run_also_gets_the_folders_mcp_servers_and_the_tools_of_work(
     env, monkeypatch
 ):
     import asyncio
@@ -182,5 +182,4 @@ async def test_an_ask_run_also_gets_the_folders_mcp_servers_but_stays_read_only(
     assert "ba-graph" in (_flag(asked, "--mcp-config") or "")
     assert "mcp__ba-graph" in (_flag(asked, "--allowedTools") or "")
     denied = _flag(asked, "--disallowedTools") or ""
-    assert "Bash" in denied and "Edit" in denied
-    assert _flag(asked, "--permission-mode") == "dontAsk"
+    assert "Edit" not in denied  # a question is held like work, not read-only

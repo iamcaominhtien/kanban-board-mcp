@@ -2,6 +2,7 @@
 starts on its own, so a project manager AI can run a lifecycle. An @mention in a comment only asks a question."""
 
 import json
+from dataclasses import replace
 
 import pytest
 from sqlmodel import select
@@ -83,11 +84,11 @@ async def test_it_refuses_self_unknown_names_ask_runs_and_other_projects(env):
         await _handoff(ctx, member="BA Bao", ticket=foreign)
 
 
-async def test_an_ask_run_cannot_hand_work_over(env):
+async def test_autopilot_cannot_hand_work_over(env):
     ask_ctx, pid, _, _, _ = await _ctx(env, mode="ask")
     await _runner(env["c"], pid, env["repo"], name="BA Bao")
-    with pytest.raises(ValueError, match="ask run cannot hand work over"):
-        await _handoff(ask_ctx, member="BA Bao")
+    with pytest.raises(ValueError, match="Autopilot cannot hand work over"):
+        await _handoff(replace(ask_ctx, trigger="autopilot"), member="BA Bao")
 
 
 async def test_a_member_who_may_not_assign_cannot_hand_over(env):

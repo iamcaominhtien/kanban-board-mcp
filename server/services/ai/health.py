@@ -83,6 +83,9 @@ class Data:
     versions: list[DocsVersion] = field(default_factory=list)
     links: list[DocsLink] = field(default_factory=list)
     proposals: list[DocsAiProposal] = field(default_factory=list)
+    canvas_open: list[str] = field(
+        default_factory=list
+    )  # ticket ids with a canvas proposal waiting for a person
     events: list[dict] = field(default_factory=list)
     cap: float | None = None
 
@@ -676,6 +679,20 @@ async def load(session: AsyncSession, project_id: str, since: datetime) -> Data:
             select(DocsAiProposal).where(DocsAiProposal.project_id == project_id)
         )
     ).all()
+    from models import Canvas, CanvasProposal
+
+    canvas_open = (
+        await session.exec(
+            select(Canvas.owner_id)
+            .join(CanvasProposal, CanvasProposal.canvas_id == Canvas.id)  # type: ignore[arg-type]
+            .where(
+                Canvas.project_id == project_id,
+                Canvas.owner_kind == "ticket",
+                Canvas.deleted_at.is_(None),  # type: ignore[union-attr]
+                col(CanvasProposal.status).in_(("open", "partly")),
+            )
+        )
+    ).all()
     d = Data(
         project_id=project_id,
         ais=ais,
@@ -692,6 +709,7 @@ async def load(session: AsyncSession, project_id: str, since: datetime) -> Data:
         versions=list(versions),
         links=list(links),
         proposals=list(proposals),
+        canvas_open=list(canvas_open),
         cap=settings.board_monthly_budget or None,
     )
     d.events = flow.events(runs, ais, templates)

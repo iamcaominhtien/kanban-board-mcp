@@ -97,6 +97,14 @@ export type NeedsItem =
       pageVersion: number | null;
       proposalId: string;
       changes: number;
+    })
+  | (ItemBase & {
+      kind: 'canvas_proposal';
+      canvasId: string;
+      canvasTitle: string | null;
+      pageId: string | null;
+      proposalId: string;
+      changes: number;
     });
 
 export interface HandoffEnd {

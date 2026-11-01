@@ -2485,10 +2485,17 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                   aiAvailable={!!canvas.projectId}
                   onProposeStarted={(jobId) => {
                     const t = threads.find((x) => x.id === selThread);
-                    setJobs((js) => [...js, { jobId, boardIds: t?.boardId ? [t.boardId] : [], who: 'AI' }]);
+                    setJobs((js) => [
+                      ...js,
+                      {
+                        jobId,
+                        boardIds: t?.boardId ? [t.boardId] : [],
+                        who: t?.comments.find((c) => c.isAi)?.author ?? 'AI',
+                      },
+                    ]);
                     const poll = async () => {
                       const { fetchAiJob } = await import('../../api/canvases');
-                      for (let i = 0; i < 120; i++) {
+                      for (let i = 0; i < 700; i++) {
                         await new Promise((r) => setTimeout(r, 1500));
                         const job = await fetchAiJob(jobId).catch(() => null);
                         if (job && ['finished', 'failed', 'cancelled'].includes(job.state))

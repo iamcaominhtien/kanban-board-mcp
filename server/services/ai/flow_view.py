@@ -412,6 +412,8 @@ def _parent_block(
     for p in d.proposals:
         if p.status == "waiting" and p.ticket_id:
             proposals[p.ticket_id] += 1
+    for tid in d.canvas_open:  # a canvas proposal waits for a person like a Docs one
+        proposals[tid] += 1
     rows = []
     lead = ticket.assignee
     start = None

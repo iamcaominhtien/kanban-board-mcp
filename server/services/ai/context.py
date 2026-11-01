@@ -33,6 +33,13 @@ LINK_RULE = (
 )
 
 
+def narrow_run(mode: str, trigger: str | None) -> bool:
+    """Whether a run may only read and decide. A question (an ask run) has the same rights as work, held by the
+    member's permissions, approvals and safe mode; Autopilot's delegate reads text nobody vouches for, so it stays
+    read-only and decides through ``ai_run``."""
+    return mode == "ask" and trigger == "autopilot"
+
+
 @dataclass
 class RunContext:
     """Who is acting while a run's tool calls are handled."""
@@ -45,6 +52,12 @@ class RunContext:
     on_behalf_of: str
     mode: str  # work | ask
     chain: list[str] = field(default_factory=list)
+    trigger: str = ""
+
+    @property
+    def narrow(self) -> bool:
+        """Only Autopilot's delegate is held to reading and deciding (``narrow_run``)."""
+        return narrow_run(self.mode, self.trigger)
 
     def activity(self) -> dict:
         """Attribution stored on activity entries."""
@@ -347,7 +360,12 @@ def rules_block(
         lines.append(f"Blocked: {', '.join(blocked)}.")
     if ctx.mode == "ask":
         lines += [
-            "This is an ASK run: answer the question below. Do not change any file, field or status.",
+            "This is an ASK run: answer the question below."
+            + (
+                " Do not change any file, field or status."
+                if ctx.narrow
+                else " You may also do what it asks, with the rights you have."
+            ),
             "Your final message is posted as your reply comment: Markdown, short and specific (at most ~200 words).",
         ]
     else:

@@ -170,8 +170,11 @@ Reuse of the Docs AI machinery (members, permissions, budgets, caps, kill switch
   files written to a folder), `docs_write(canvas_create, path [, owner_kind, owner_id, title | canvas_id])` (a new canvas, or frames
   added to one, from a folder: a sub-folder with an `.html` page per frame, optional `frame.json` `{"name", "size"}`; every frame
   is checked before anything is created), `docs_write(canvas_comment, canvas_id, body [, board_id, at, thread_id])` and
-  `docs_write(canvas_propose, canvas_id, board_id, path [, note])`. `docs_write` needs the member's **Edit docs** permission, an
-  ask run only reads, and an AI run may only touch canvases of its own project.
+  `docs_write(canvas_propose, canvas_id, board_id, path [, note])`. A comment or a proposal needs the member's **Comment** permission
+  (neither changes a frame until a person, or Autopilot, accepts), other `docs_write` actions need **Edit docs**, and an AI run
+  may only touch canvases of its own project. A folder an AI run names must not be the computer's root, the home folder or one
+  of its dot-folders; files in dot-folders, `node_modules` and key or secret-named files are left out (a proposal says which),
+  and in Safe mode a frame is not written to a folder (read it inline instead).
 
 ## Design quality of what an AI writes
 

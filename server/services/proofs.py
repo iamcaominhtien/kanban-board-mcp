@@ -65,6 +65,22 @@ def unprovable(test_cases: list[dict]) -> list[str]:
     ]
 
 
+def never_copied(rel: Path) -> bool:
+    """True for a file the board never copies out of a working folder, by its path below that folder: anything in or
+    named by a dot (.git, .ssh, .env ...), build folders, key files and files named for what they hold (pictures are
+    exempt from the name rule)."""
+    suffix = rel.suffix.lower()
+    return bool(
+        set(rel.parts) & _DENIED_PARTS
+        or any(part.startswith(".") for part in rel.parts)
+        or suffix in _DENIED_SUFFIXES
+        or (
+            suffix not in uploads.SUPPORTED_IMAGE_EXTENSIONS
+            and _SECRET_NAME.search(rel.name)
+        )
+    )
+
+
 def ingest_file(raw: str, folder: str) -> str:
     """Copy a file from `folder` into the uploads folder and return its `/uploads/…` url.
 
@@ -85,15 +101,7 @@ def ingest_file(raw: str, folder: str) -> str:
             "e.g. qa/evidence/TC-1.png). Take the screenshot first, then write the proof."
         )
     suffix = path.suffix.lower()
-    if (
-        set(rel.parts) & _DENIED_PARTS
-        or any(part.startswith(".") for part in rel.parts)
-        or suffix in _DENIED_SUFFIXES
-        or (
-            suffix not in uploads.SUPPORTED_IMAGE_EXTENSIONS
-            and _SECRET_NAME.search(path.name)
-        )
-    ):
+    if never_copied(rel):
         raise ProofError(f"{raw}: this kind of file is never attached.")
     if suffix not in uploads.MIME_BY_EXTENSION:
         raise ProofError(

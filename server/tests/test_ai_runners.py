@@ -599,7 +599,7 @@ async def test_an_owner_can_turn_on_bypass_for_the_other_clis(fakes, provider, c
     assert check(_recorded(fakes)[0]["args"])
 
 
-async def test_a_question_runs_read_only(fakes):
+async def test_a_question_runs_with_the_sandbox_of_work(fakes):
     c = fakes["c"]
     pid, _ = await _project(c)
     m = await _member(c, pid, fakes["repo"], "codex")
@@ -611,7 +611,9 @@ async def test_a_question_runs_read_only(fakes):
     assert r.status_code in (200, 201), r.text
     await _wait(c, tid, ("finished", "failed"))
     args = _recorded(fakes)[0]["args"]
-    assert args[args.index("-s") + 1] == "read-only"
+    assert (
+        args[args.index("-s") + 1] == "workspace-write"
+    )  # a question is not held to read-only
 
 
 async def test_the_second_run_on_a_ticket_resumes_the_session(fakes):

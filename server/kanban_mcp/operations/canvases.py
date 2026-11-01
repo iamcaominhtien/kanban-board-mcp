@@ -7,11 +7,13 @@ rejects (docs/specs/canvas.md).
 """
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Annotated
 
 import services.canvases as svc_canvases
+import services.proofs as svc_proofs
 from pydantic import Field
 
 from .. import common
@@ -42,6 +44,55 @@ async def _same_project(project_id: str | None) -> None:
     if ctx is not None and project_id != ctx.project_id:
         raise ValueError(
             "That canvas belongs to another project than this run works in, so it was left alone."
+        )
+
+
+def _ai_folder(path: str, *, create: bool = False) -> Path:
+    """The folder an AI run names for frames, checked: an absolute folder (that exists, unless `create`), and for an AI
+    run not the computer's root, the home folder (or one above it) or a dot-folder in the home (.ssh, .aws, .config
+    ...). A person or another client may name any folder."""
+    root = Path(path)
+    if not root.is_absolute() or (not create and not root.is_dir()):
+        raise ValueError(f"Give an absolute folder that exists (got {path!r}).")
+    from services.ai import guard
+
+    if guard.current() is None:
+        return root
+    real = Path(
+        os.path.realpath(root)
+    )  # follows links, also of a folder that is not made yet
+    home = Path(os.path.realpath(os.path.expanduser("~")))
+    if real == real.parent or real == home or real in home.parents:
+        raise ValueError(
+            f"{path} is too wide a folder for frames: give the folder that holds the pages."
+        )
+    if home in real.parents and real.relative_to(home).parts[0].startswith("."):
+        raise ValueError(f"{path} is a private folder, so it was left alone.")
+    return root
+
+
+def _ai_skips(root: Path, file: Path) -> bool:
+    """True when an AI run's folder holds a file that is never taken from it (see ``proofs.never_copied``)."""
+    from services.ai import guard
+
+    return guard.current() is not None and svc_proofs.never_copied(
+        file.relative_to(root)
+    )
+
+
+async def _not_in_safe_mode(session) -> None:
+    """Writing files to a folder is a write: an AI run in safe mode only reads."""
+    from services.ai import guard
+    from services.ai.store import get_profile
+
+    ctx = guard.current()
+    if ctx is None:
+        return
+    _, profile = await get_profile(session, ctx.member_id)
+    settings = await guard._settings_for(session, ctx)  # noqa: SLF001
+    if settings.safe_mode or (profile is not None and profile.safe_mode):
+        raise ValueError(
+            "Safe mode is on, so nothing is written to a folder. Read the frame inline instead (leave out `path`)."
         )
 
 
@@ -199,9 +250,8 @@ async def read_canvas(
                     "entry": src["entry"],
                 }
                 if path:
-                    root = Path(path)
-                    if not root.is_absolute():
-                        raise ValueError(f"Give an absolute folder (got {path!r}).")
+                    root = _ai_folder(path, create=True)
+                    await _not_in_safe_mode(session)
                     written = []
                     content = board.get("content")
                     if content:
@@ -210,6 +260,10 @@ async def read_canvas(
                         )
                         for f in content["files"]:
                             target = root / f["path"]
+                            if not target.resolve().is_relative_to(root.resolve()):
+                                raise ValueError(
+                                    f"{f['path']} would land outside {root}."
+                                )
                             target.parent.mkdir(parents=True, exist_ok=True)
                             target.write_bytes((src_root / f["path"]).read_bytes())
                             written.append(str(target))
@@ -234,7 +288,7 @@ def _read_folder(root: Path, top: bool = False) -> dict[str, bytes]:
     files: dict[str, bytes] = {}
     total = 0
     for p in sorted(root.rglob("*")):
-        if not p.is_file() or p.name == "frame.json":
+        if not p.is_file() or p.name == "frame.json" or _ai_skips(root, p):
             continue
         if top and p.name == "canvas.json" and p.parent == root:
             continue
@@ -396,9 +450,7 @@ async def create_canvas_from_files(
     canvas_id: CanvasId | None = None,
 ) -> dict:
     """Create a canvas from folders of web pages, or add frames to an existing one (canvas_id). Returns {id, title, version, markdown, boards: [{id, name, w, h}]}: put `markdown` on its own line in the ticket, idea or Docs page."""
-    root = Path(path)
-    if not root.is_absolute() or not root.is_dir():
-        raise ValueError(f"Give an absolute folder that exists (got {path!r}).")
+    root = _ai_folder(path)
     if not canvas_id and not (owner_kind and owner_id):
         raise ValueError(
             "Give owner_kind and owner_id for a new canvas, or canvas_id to add frames to one."
@@ -566,13 +618,15 @@ async def propose_canvas_change(
     from services import canvas_proposals
     from services.ai import guard
 
-    root = Path(path)
-    if not root.is_absolute() or not root.is_dir():
-        raise ValueError(f"Give an absolute folder that exists (got {path!r}).")
+    root = _ai_folder(path)
     files: dict[str, bytes] = {}
+    skipped: list[str] = []
     total = 0
     for p in sorted(root.rglob("*")):
         if p.is_file():
+            if _ai_skips(root, p):
+                skipped.append(p.relative_to(root).as_posix())
+                continue
             total += p.stat().st_size
             if total > svc_canvases.MAX_BOARD_BYTES:
                 raise ValueError(
@@ -593,6 +647,7 @@ async def propose_canvas_change(
                 canvas_id,
                 changes=[{"board_id": board_id, "files": files}],
                 note=note or "",
+                request=request or "",
                 member_id=ctx.member_id if ctx else None,
             )
         except svc_canvases.DocsError as exc:
@@ -606,4 +661,5 @@ async def propose_canvas_change(
             (c_["waiting_for"] for c_ in out["changes"] if c_["waiting_for"]), None
         ),
         "message": "Proposed. A person sees before and after and accepts or rejects it; nothing was changed.",
+        **({"skipped": skipped[:20]} if skipped else {}),
     }

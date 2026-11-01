@@ -9,6 +9,7 @@ from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from pydantic import BaseModel, Field
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
@@ -16,6 +17,7 @@ from database import get_session
 from services import activity as svc_activity
 from services import canvas_comments as comments
 from services import canvas_proposals as proposals
+from services import canvas_replies as replies
 from services import canvases as svc
 from services.docs_ai import DocsAiError, access, engine, jobs
 from services.docs_ai import settings as ai_settings
@@ -501,6 +503,7 @@ class NewThread(BaseModel):
     y: float = 0.5
     page: Optional[str] = None
     anchor: Optional[dict[str, Any]] = None
+    ai_intent: str = "ask"
 
 
 @router.post("/canvases/{canvas_id}/threads", status_code=201)
@@ -519,13 +522,33 @@ async def post_thread(
         anchor=body.anchor,
     )
     await _changed()
+    out["ai_deliveries"] = await _deliver(session, canvas_id, out, body.ai_intent)
     return out
 
 
 class Body(BaseModel):
-    """Comment text."""
+    """Comment text. ``ai_intent`` is what an @mentioned AI member does: ask (answer), suggest (answer and propose a
+    change to the frame) or notify (nothing runs)."""
 
     body: str
+    ai_intent: str = "ask"
+
+
+async def _deliver(
+    session: AsyncSession, canvas_id: str, thread: dict[str, Any], intent: str
+) -> list[dict[str, Any]]:
+    """Wake the AI members the newest comment of a thread mentions (see ``canvas_replies``)."""
+    if not thread.get("comments"):
+        return []
+    c = await svc._canvas(session, canvas_id)  # noqa: SLF001
+    return await replies.deliver(
+        session,
+        canvas=c,
+        thread=thread,
+        comment=thread["comments"][-1],
+        by=svc_activity.current_actor(),
+        intent=intent,
+    )
 
 
 @router.post("/canvases/threads/{thread_id}/replies", status_code=201)
@@ -533,6 +556,8 @@ async def post_reply(thread_id: str, body: Body, session: Session) -> dict[str, 
     """Reply in a thread."""
     out = await comments.reply(session, thread_id, body.body)
     await _changed()
+    c = await svc._canvas(session, out["canvas_id"])  # noqa: SLF001
+    out["ai_deliveries"] = await _deliver(session, c.id, out, body.ai_intent)
     return out
 
 
@@ -627,6 +652,51 @@ class AskBody(BaseModel):
     member_id: Optional[str] = None
 
 
+async def _same_ask(
+    session: AsyncSession, canvas_id: str, body: AskBody, member_id: str | None
+) -> Any:
+    """The job still working on exactly this ask (same canvas, frames, request and AI member), else None."""
+    from models import DocsAiJob
+    from services.ai.store import loads
+
+    rows = await session.exec(
+        select(DocsAiJob).where(
+            DocsAiJob.kind == "canvas",
+            DocsAiJob.state.in_(("queued", "running")),  # type: ignore[attr-defined]
+            DocsAiJob.member_id == member_id,
+        )
+    )
+    for j in rows.all():
+        res = loads(j.result, {}) or {}
+        mine = res.get("input") or res.get("working_on") or {}
+        if (
+            mine.get("canvas_id") == canvas_id
+            and sorted(mine.get("board_ids") or []) == sorted(body.board_ids)
+            and (mine.get("request") or "")[:200] == body.request[:200]
+        ):
+            return j
+    return None
+
+
+@router.get("/canvases/{canvas_id}/ai/members")
+async def get_ai_members(canvas_id: str, session: Session) -> dict[str, Any]:
+    """The AI members that can be asked about this canvas, with who answers by default and why."""
+    from models import Member
+    from services.docs_ai import threads as docs_threads
+
+    c = await svc._canvas(session, canvas_id)  # noqa: SLF001
+    if not c.project_id:
+        return {"default_member_id": None, "why": "", "members": []}
+    rows = (
+        await session.exec(
+            select(Member).where(Member.project_id == c.project_id, Member.kind == "ai")
+        )
+    ).all()
+    members = await docs_threads.member_rows(session, c.project_id, list(rows), True)
+    default, why = await proposals.likely_member(session, c)
+    return {"default_member_id": default, "why": why, "members": members}
+
+
 @router.post("/canvases/{canvas_id}/ai/ask", status_code=202)
 async def post_ask(canvas_id: str, body: AskBody, session: Session) -> dict[str, Any]:
     """Start a Docs AI job that prepares a proposal for the frames. Nothing changes until a person accepts."""
@@ -643,16 +713,24 @@ async def post_ask(canvas_id: str, body: AskBody, session: Session) -> dict[str,
         page = await session.get(DocsPage, c.page_id)
         if page is not None and not await access.ai_can_read(session, page):
             raise DocsAiError("hidden", "This page is hidden from AI.")
+    member_id = body.member_id
+    if (
+        not member_id
+    ):  # the AI that knows this canvas answers, else the project's default
+        member_id, _ = await proposals.likely_member(session, c)
     await engine.check_ready(
-        c.project_id, await engine.resolve(c.project_id, body.member_id)
+        c.project_id, await engine.resolve(c.project_id, member_id)
     )
+    same = await _same_ask(session, c.id, body, member_id)
+    if same is not None:  # a double Ctrl J must not pay twice
+        return jobs.to_dict(same)
     job = await jobs.start(
         session,
         project_id=c.project_id,
         kind="canvas",
         started_by=svc_activity.current_actor(),
         page_id=c.page_id,
-        member_id=body.member_id,
+        member_id=member_id,
         instruction=body.request[:200],
         result={
             "input": {
@@ -673,9 +751,22 @@ async def post_propose_from_thread(thread_id: str, session: Session) -> dict[str
         raise DocsError(
             422, "no_board", "Pin the comment to a frame to propose a fix for it."
         )
-    first = t["comments"][0]["body"] if t["comments"] else ""
+    thread = "\n".join(f"{c['author']}: {c['body']}" for c in t["comments"])
+    c = await svc._canvas(session, t["canvas_id"])  # noqa: SLF001
+    writer = next(
+        (c_ for c_ in t["comments"] if c_.get("is_ai")), None
+    )  # the AI that wrote the comment answers it
+    member_id = (
+        await proposals.ai_named(session, c.project_id, writer["author"])
+        if writer
+        else None
+    )
     return await post_ask(
         t["canvas_id"],
-        AskBody(board_ids=[t["board_id"]], request=f"Fix this: {first}"),
+        AskBody(
+            board_ids=[t["board_id"]],
+            request=f"Fix what this comment thread asks for:\n{thread}",
+            member_id=member_id,
+        ),
         session,
     )

@@ -1000,13 +1000,13 @@ async def intercept(ctx, action: str, params: dict[str, Any]) -> dict[str, Any] 
             raise await guard._refuse(
                 ctx, "edit_docs", page.id, detail, REFUSED_ACTIONS[action]
             )
-        if ctx.mode == "ask":
+        if ctx.narrow:
             raise await guard._refuse(
                 ctx,
                 "edit_docs",
                 page.id,
                 detail,
-                "Ask runs only read and answer. Nothing was changed.",
+                "Autopilot only reads and decides; it does not change anything itself. Nothing was changed.",
             )
         _, profile = await get_profile(session, ctx.member_id)
         settings = await guard._settings_for(session, ctx)

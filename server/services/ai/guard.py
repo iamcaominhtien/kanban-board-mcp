@@ -181,6 +181,7 @@ async def context_for_token(token: str) -> RunContext:
             on_behalf_of=run.started_by,
             mode=run.mode,
             chain=loads(run.chain, []),
+            trigger=run.trigger or "",
         )
 
 
@@ -200,8 +201,16 @@ def classify(tool: str, action: str, params: dict) -> list[str]:
     if tool == "manage_project":
         return ["manage_project"]
     if tool == "docs_write":
-        # commenting on a page is a comment (a reviewer may), not an edit of it
-        if action in ("comment", "reply", "edit_comment", "delete_comment"):
+        # commenting on a page is a comment (a reviewer may), not an edit of it; a canvas proposal changes nothing
+        # until a person (or Autopilot) accepts it
+        if action in (
+            "comment",
+            "reply",
+            "edit_comment",
+            "delete_comment",
+            "canvas_comment",
+            "canvas_propose",
+        ):
             return ["comment"]
         if action in ("delete", "diagram_delete"):
             return ["delete_docs"]
@@ -374,13 +383,13 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
             raise await _refuse(
                 ctx, perm, target, detail, "This AI member was removed."
             )
-        if ctx.mode == "ask" and not approved_id:
+        if ctx.narrow and not approved_id:
             raise await _refuse(
                 ctx,
                 perm,
                 target,
                 detail,
-                "Ask runs only read and answer; the board posts your reply. Nothing was changed.",
+                "Autopilot only reads and decides; it does not change anything itself. Nothing was changed.",
             )
         ticket = (
             await session.get(Ticket, params["ticket_id"])

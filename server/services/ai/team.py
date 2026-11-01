@@ -350,6 +350,42 @@ async def needs_you(
                 "blocks": p.ticket_id,
             }
         )
+    from models import Canvas, CanvasProposal
+
+    canvas_rows = (
+        await session.exec(
+            select(CanvasProposal, Canvas)
+            .join(Canvas, Canvas.id == CanvasProposal.canvas_id)  # type: ignore[arg-type]
+            .where(
+                Canvas.project_id == project_id,
+                Canvas.deleted_at.is_(None),  # type: ignore[union-attr]
+                col(CanvasProposal.status).in_(("open", "partly")),
+            )
+        )
+    ).all()
+    for p, cv in canvas_rows:
+        ticket_id = cv.owner_id if cv.owner_kind == "ticket" else None
+        t = tickets.get(ticket_id or "")
+        if not (ticket_id or cv.page_id):  # nothing to open it from
+            continue
+        changes = loads(p.changes, [])
+        items.append(
+            {
+                "kind": "canvas_proposal",
+                "since": p.created_at,
+                "member_id": p.member_id,
+                "member_name": names.get(p.member_id) or p.author,
+                "ticket_id": ticket_id,
+                "ticket_title": t.title if t else None,
+                "page_id": cv.page_id,
+                "canvas_id": cv.id,
+                "canvas_title": cv.title,
+                "proposal_id": p.id,
+                "changes": len([c for c in changes if c.get("status") == "open"]),
+                "text": p.note or p.request,
+                "blocks": ticket_id,
+            }
+        )
     # a run the system stopped for memory stays here for a day, until someone retries it
     day_ago = (now - timedelta(hours=24)).isoformat()
     stopped = (

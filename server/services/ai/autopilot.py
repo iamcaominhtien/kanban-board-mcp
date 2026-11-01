@@ -6,7 +6,8 @@ short ask run and decides it with `ai_run` (decide / answer). The board checks e
 effect, so what an AI may decide stays small and visible:
 
 - never its own requests, never the budget (raise cap), nothing above the risk the owner set (Medium by default),
-- never a Docs proposal (a person reads those), and never more than `per_hour_limit` decisions an hour,
+- never a Docs proposal (a person reads those), and never more than `per_hour_limit` decisions an hour; it does
+  accept or reject a canvas proposal (the person sees before and after and can still undo it in the canvas history),
 - each request is shown to the delegate once; what it leaves undecided stays for a person,
 - every decision is in the audit log and marked "Autopilot" (`decided_via` / `answered_via`), and Pause all AI stops it.
 
@@ -113,6 +114,7 @@ async def decided_since(session: AsyncSession, project_id: str, since: datetime)
         )
     ).all()
     count += len([a for a in rows if (parse_iso(a.decided_at) or since) >= since])
+    count += await _canvas_decided_since(session, project_id, since)
     runs = (
         await session.exec(
             select(AiRun).where(
@@ -130,6 +132,113 @@ async def decided_since(session: AsyncSession, project_id: str, since: datetime)
     return count
 
 
+CANVAS_VIA = (
+    " (Autopilot)"  # what the delegate's name carries on a canvas proposal it decided
+)
+
+
+async def _canvas_decided_since(
+    session: AsyncSession, project_id: str, since: datetime
+) -> int:
+    from models import Canvas, CanvasProposal
+
+    rows = (
+        await session.exec(
+            select(CanvasProposal.decided_at)
+            .join(Canvas, Canvas.id == CanvasProposal.canvas_id)  # type: ignore[arg-type]
+            .where(
+                Canvas.project_id == project_id,
+                col(CanvasProposal.decided_by).endswith(CANVAS_VIA),
+            )
+        )
+    ).all()
+    return len([at for at in rows if (parse_iso(at) or since) >= since])
+
+
+async def _canvas_why_not(session: AsyncSession, p, cv, cfg: dict) -> str | None:
+    """Why Autopilot leaves a canvas proposal to a person, or None."""
+    if p.member_id == cfg["delegate_id"]:
+        return "The delegate cannot decide its own proposal."
+    settings = await session.get(AiProjectSettings, cv.project_id)
+    _, author = await get_profile(session, p.member_id) if p.member_id else (None, None)
+    if (settings and settings.safe_mode) or (author and author.safe_mode):
+        return "Safe mode is on; a person decides."
+    return None
+
+
+def _canvas_text(view: dict) -> str:
+    """What the delegate reads about a canvas proposal: the request, the note and, per frame, the changed lines."""
+    import difflib
+
+    lines = [f"Request: {view['request']}"] if view.get("request") else []
+    if view.get("note"):
+        lines.append(f"Note: {view['note']}")
+    for ch in view["changes"]:
+        if ch["status"] != "open":
+            continue
+        lines.append(
+            f"Frame {ch['name']} ({ch['board_id']}), {ch['lines']} lines changed:"
+        )
+        after = {f["path"]: f["text"] for f in ch.get("after", [])}
+        before = {f["path"]: f["text"] for f in ch.get("before", [])}
+        for path, text in after.items():
+            diff = difflib.unified_diff(
+                (before.get(path) or "").splitlines(),
+                text.splitlines(),
+                f"before/{path}",
+                f"after/{path}",
+                lineterm="",
+                n=1,
+            )
+            lines.append("\n".join(list(diff)[:120]))
+    return "\n".join(lines)[:6000]
+
+
+async def canvas_items(
+    session: AsyncSession, project_id: str, cfg: dict, now: datetime
+) -> list[dict]:
+    """Canvas proposals that waited past the grace time and that the delegate was not shown before."""
+    from models import Canvas, CanvasProposal
+    from services import canvas_proposals
+
+    grace = timedelta(minutes=cfg["grace_min"])
+    rows = (
+        await session.exec(
+            select(CanvasProposal, Canvas)
+            .join(Canvas, Canvas.id == CanvasProposal.canvas_id)  # type: ignore[arg-type]
+            .where(
+                Canvas.project_id == project_id,
+                Canvas.owner_kind == "ticket",  # the delegate works on a ticket
+                Canvas.deleted_at.is_(None),  # type: ignore[union-attr]
+                col(CanvasProposal.status).in_(("open", "partly")),
+            )
+        )
+    ).all()
+    items = []
+    for p, cv in rows:
+        created = parse_iso(p.created_at)
+        if (
+            p.id in _shown
+            or (created and now - created < grace)
+            or await _canvas_why_not(session, p, cv, cfg)
+        ):
+            continue
+        view = await canvas_proposals.view(session, p)
+        if not any(c["status"] == "open" for c in view["changes"]):
+            continue
+        items.append(
+            {
+                "kind": "canvas",
+                "id": p.id,
+                "ticket_id": cv.owner_id,
+                "member_id": p.member_id,
+                "at": p.created_at,
+                "text": _canvas_text(view),
+            }
+        )
+    return items
+
+
 def briefed_ids(instruction: str | None) -> set[str]:
     """The ids of the items a delegate's brief shows, read from the headers the board wrote. Text inside an
     <untrusted> fence was written by an AI and may contain anything, so it is never read for ids."""
@@ -143,10 +252,11 @@ def briefed_ids(instruction: str | None) -> set[str]:
             inside = True
             continue
         m = re.match(
-            r"(?:permission request (\S+) from |question, run (\S+), from ).*:$", line
+            r"(?:permission request (\S+) from |question, run (\S+), from |canvas proposal (\S+) from ).*:$",
+            line,
         )
         if m:
-            out.add(m.group(1) or m.group(2))
+            out.add(m.group(1) or m.group(2) or m.group(3))
     return out
 
 
@@ -208,6 +318,7 @@ async def pending_items(
                     "risk": a.risk,
                 }
             )
+        items += await canvas_items(session, project_id, cfg, now)
     if cfg["questions"]:
         runs = (
             await session.exec(
@@ -245,6 +356,7 @@ def _brief(items: list[dict], names: dict[str, str], person: str) -> str:
     lines = [
         f"{person} is away and gave you, the project's Autopilot delegate, the call on the requests below. For each one:",
         "- permission request: ai_run decide, request = its id, approve = true or false, instruction = your reason in a sentence.",
+        "- canvas proposal: ai_run decide, request = its id, approve = true to accept the change to the frame(s), false to reject it, instruction = your reason.",
         "- question: ai_run answer, request = its id, instruction = your answer.",
         "Approve only what clearly serves the ticket and that the person would accept; deny what you doubt, with the reason. "
         "Answer a question with your best judgement and state your assumption. If only the person can know, leave it "
@@ -256,6 +368,8 @@ def _brief(items: list[dict], names: dict[str, str], person: str) -> str:
         head = (
             f"permission request {i['id']} from {who} on {i['ticket_id']} (risk {i['risk']})"
             if i["kind"] == "approval"
+            else f"canvas proposal {i['id']} from {who} on {i['ticket_id']}"
+            if i["kind"] == "canvas"
             else f"question, run {i['id']}, from {who} on {i['ticket_id']}"
         )
         text = i["text"]
@@ -397,6 +511,8 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
     if request not in briefed_ids(run.instruction):
         raise AutopilotError(f"Request {request} was not in your brief.")
     await _within_limit(ctx.project_id, cfg)
+    if request.startswith("cp_"):
+        return await _decide_canvas(ctx, cfg, request, approve, note)
     async with database.async_session() as session:
         a = await session.get(AiApproval, request)
         if a is None or a.project_id != ctx.project_id:
@@ -433,6 +549,75 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
         "request": request,
         "decided": "approved" if approve else "denied",
         "error": out.get("error"),
+    }
+
+
+async def _decide_canvas(
+    ctx, cfg: dict, request: str, approve: bool, note: str | None
+) -> dict:
+    """The delegate accepts or rejects a canvas proposal (all its frames), as itself, marked "(Autopilot)"."""
+    from models import Canvas, CanvasProposal
+    from services import activity, canvas_proposals
+    from services.docs_text import DocsError
+
+    from . import guard
+
+    async with database.async_session() as session:
+        p = await session.get(CanvasProposal, request)
+        cv = await session.get(Canvas, p.canvas_id) if p else None
+        if p is None or cv is None or cv.project_id != ctx.project_id:
+            raise AutopilotError(f"No canvas proposal {request} in this project.")
+        why = await _canvas_why_not(session, p, cv, cfg)
+        if why:
+            raise AutopilotError(f"Left for a person: {why}")
+        ticket_id = cv.owner_id
+        canvas_id = cv.id
+    tokens = guard.suspend()
+    actor = activity.set_actor(
+        ctx.member_name
+    )  # a member of the project, so it may edit
+    try:
+        async with database.async_session() as session:
+            out = await canvas_proposals.decide(
+                session,
+                canvas_id,
+                request,
+                accept="all" if approve else [],
+                reject=None if approve else "all",
+            )
+            p = await session.get(CanvasProposal, request)
+            p.decided_by = (
+                ctx.member_name + CANVAS_VIA
+            )  # how a person sees it was Autopilot
+            session.add(p)
+            await session.commit()
+    except (
+        DocsError
+    ) as exc:  # a person is editing the frame, or it changed since: it stays for them
+        raise AutopilotError(f"Left for a person: {exc.message}") from exc
+    finally:
+        activity.reset_actor(actor)
+        guard.leave(tokens)
+    await audit.record(
+        ctx.project_id,
+        "autopilot_decision",
+        "approved" if approve else "denied",
+        member_id=ctx.member_id,
+        member_name=ctx.member_name,
+        on_behalf_of=cfg["enabled_by"],
+        run_id=ctx.run_id,
+        target=ticket_id,
+        detail={
+            "canvas_proposal": request,
+            "canvas_id": canvas_id,
+            "note": note,
+            "via": VIA,
+        },
+    )
+    return {
+        "request": request,
+        "decided": "approved" if approve else "denied",
+        "status": out["status"],
     }
 
 

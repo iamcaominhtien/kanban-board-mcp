@@ -65,6 +65,7 @@ from .context import (
     delta_block,
     digest,
     instruction_block,
+    narrow_run,
     rules_block,
     snapshot,
     ticket_block,
@@ -1078,6 +1079,7 @@ async def _ctx_for(session, run: AiRun) -> RunContext:
         on_behalf_of=run.started_by,
         mode=run.mode,
         chain=loads(run.chain, []),
+        trigger=run.trigger or "",
     )
 
 
@@ -1811,7 +1813,8 @@ async def _execute_cli_held(
             None if agy else cwd,
             accounts.claude_config_dir(account),
         )
-        if run.mode == "ask":
+        narrow = narrow_run(run.mode, run.trigger)
+        if narrow:
             allowed = [
                 "Read",
                 "Glob",
@@ -1821,11 +1824,10 @@ async def _execute_cli_held(
                 "mcp__kanban__docs_read",
                 "mcp__kanban__get_projects",
             ]
-            if run.trigger == autopilot.TRIGGER:
-                allowed.append(
-                    "mcp__kanban__ai_run"
-                )  # decide / answer, checked by the board
-            # the member's other MCP servers answer too (a question is read-only on the board and on the files)
+            allowed.append(
+                "mcp__kanban__ai_run"
+            )  # decide / answer, checked by the board
+            # the member's other MCP servers answer too (the delegate reads, it does not write)
             allowed += [
                 f"mcp__{server}" for server in mcp["mcpServers"] if server != "kanban"
             ]
@@ -1840,7 +1842,7 @@ async def _execute_cli_held(
         safe = settings.safe_mode or profile.safe_mode
         if agy:
             allowed, denied, edits = antigravity_run_rules(
-                run.mode,
+                "ask" if narrow else "work",
                 config,
                 cli.antigravity_global_servers()
                 + [s for s in mcp["mcpServers"] if s != "kanban"],
@@ -1859,11 +1861,7 @@ async def _execute_cli_held(
         # rules and the board's own checks (status ceiling, approvals) still apply; the web stays off because its
         # domain list needs the allow list the mode skips.
         # Antigravity's questions too: a denied command ends the whole run
-        bypass = (
-            config.get("permission_mode") == "bypass"
-            and (run.mode == "work" or agy or (adapter and adapter.cli == "agy"))
-            and not safe
-        )
+        bypass = config.get("permission_mode") == "bypass" and not narrow and not safe
         if bypass:
             denied += [d for d in _WEB_TOOLS if d not in denied]
         extra_flags = [
@@ -1923,7 +1921,7 @@ async def _execute_cli_held(
                     token=token,
                     allowed=allowed,
                     denied=denied,
-                    read_only=safe or (run.mode == "ask" and adapter.cli != "agy"),
+                    read_only=safe or (narrow and adapter.cli != "agy"),
                     resume_id=session_id if resume else None,
                     effort=config.get("effort"),
                     compact_at_tokens=int(config.get("compact_at_tokens") or 0),
@@ -3942,9 +3940,9 @@ async def record_handoff(
     queues a work run for them, behind this run when the ticket is this run's own. They answer on the ticket."""
     from . import guard
 
-    if ctx.mode == "ask":
+    if ctx.narrow:
         raise ValueError(
-            "An ask run cannot hand work over; say in your answer who should do it next."
+            "Autopilot cannot hand work over; say in your answer who should do it next."
         )
     ref = (member_ref or "").strip()
     if not ref:

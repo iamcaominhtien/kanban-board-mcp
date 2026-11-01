@@ -608,13 +608,15 @@ async def test_guard_allows_blocks_and_parks_for_approval(env):
     assert (await c.get(f"/projects/{pid}/ai/audit/verify")).json()["ok"]
 
 
-async def test_ask_runs_cannot_write_and_ended_tokens_are_dead(env):
+async def test_autopilot_cannot_write_and_ended_tokens_are_dead(env):
+    from dataclasses import replace
+
     from kanban_mcp.tools.items import ticket_items
 
     ctx, pid, an, m, tid = await _ctx(env, mode="ask")
-    tokens = guard.enter(ctx)
+    tokens = guard.enter(replace(ctx, trigger="autopilot"))
     try:
-        with pytest.raises(ValueError, match="Ask runs only read"):
+        with pytest.raises(ValueError, match="Autopilot only reads"):
             await ticket_items(
                 ticket_id=tid, item="comment", action="add", text="hi", author="x"
             )

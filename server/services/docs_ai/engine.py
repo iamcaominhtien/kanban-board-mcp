@@ -205,6 +205,7 @@ async def call(
     on_delta: Any = None,
     page_id: str | None = None,
     feature: str = "docs",
+    scope: str | None = None,
 ) -> llm.Completion:
     """Ask the AI member and meter the call.
 
@@ -212,6 +213,7 @@ async def call(
         who: The resolved member (else resolved from `member_id` or the project's choice).
         page_id: The Docs page the call is about (else the page of `job_id`). A local Claude Code member keeps one
             session per (page, member): every call about the page continues it (see `sessions`).
+        scope: The session key to continue instead (a canvas of a ticket shares the ticket's session).
         job_id: A job to add tokens, cost and the session to.
 
     Raises:
@@ -225,7 +227,9 @@ async def call(
     max_tokens = assist.max_tokens_for(row, profile, max_tokens)
     scope = None
     if profile.connection == "local" and profile.provider == "claude-code":
-        scope = await _session_scope(job_id, page_id)
+        scope = scope or await _session_scope(job_id, page_id)
+    else:
+        scope = None
     if scope:
         prompt = sessions.asked_by(person, prompt)
         async with sessions.exclusive(scope, who.member.id):

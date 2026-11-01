@@ -10,7 +10,7 @@ import { CanvasContext, useCanvas, type CanvasApi } from './CanvasContext';
 import { CanvasProvider } from './CanvasProvider';
 import { CanvasEmbed } from './CanvasEmbed';
 import { CanvasEditor } from './CanvasEditor';
-import { ProposalReview } from './CanvasAi';
+import { AskAiPanel, ProposalReview } from './CanvasAi';
 import { SourceEditor } from './SourceEditor';
 
 // ---- a canvas of two boards, served by a fake API ----
@@ -726,4 +726,44 @@ test('Ctrl Z does not undo or delete what other people did meanwhile', async () 
   expect(patches.every((p) => !(p.body as { remove?: string[] }).remove?.length)).toBe(true);
   expect(screen.getAllByTestId('canvas-board')).toHaveLength(3);
   expect(screen.getAllByTestId('canvas-note')).toHaveLength(1);
+});
+
+test('Ask AI shows who answers (the AI that knows the canvas), remembers a pick and sends it', async () => {
+  handlers['GET /canvases/cv_12345678/ai/members'] = () =>
+    reply({
+      defaultMemberId: 'm_dev',
+      why: 'it is working on this ticket',
+      members: [
+        { id: 'm_dev', name: 'Dev An', color: null, ai: { status: 'ready', usable: true, note: '' } },
+        { id: 'm_qa', name: 'QA Quy', color: null, ai: { status: 'ready', usable: true, note: '' } },
+        { id: 'm_off', name: 'Paused Pat', color: null, ai: { status: 'paused', usable: false, note: 'Paused' } },
+      ],
+    });
+  handlers['POST /canvases/cv_12345678/ai/ask'] = () => reply({ id: 'dj_1', state: 'queued' });
+  const started = vi.fn();
+  render(
+    wrap(
+      <AskAiPanel
+        canvasId="cv_12345678"
+        boards={[board('b_00000001', 'Sign in', 0)]}
+        onClose={() => undefined}
+        onStarted={started}
+        onFinished={() => undefined}
+      />,
+    ),
+  );
+  const chip = (await screen.findByTestId('canvas-ai-member')).querySelector('select') as HTMLSelectElement;
+  expect(chip.value).toBe('m_dev');
+  const names = Array.from(chip.options).map((o) => o.textContent);
+  expect(names.join('|')).toContain('Dev An · it is working on this ticket');
+  expect(names.join('|')).not.toContain('Paused Pat'); // only AIs that can answer now are offered
+  fireEvent.change(chip, { target: { value: 'm_qa' } });
+  fireEvent.change(screen.getByTestId('canvas-ai-text'), { target: { value: 'Make it bigger' } });
+  fireEvent.click(screen.getByTestId('canvas-ai-send'));
+  await waitFor(() => expect(started).toHaveBeenCalled());
+  expect(started.mock.calls[0][0]).toMatchObject({ who: 'QA Quy' });
+  expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/ai/ask'))?.body).toMatchObject({
+    memberId: 'm_qa',
+  });
+  expect(localStorage.getItem('canvas-ai-member:cv_12345678')).toBe('m_qa');
 });

@@ -28,6 +28,11 @@ def page_scope(page_id: str) -> str:
     return f"page:{page_id}"
 
 
+def canvas_scope(canvas_id: str) -> str:
+    """The key of a canvas's session (a canvas that is not a Docs page and has no ticket)."""
+    return f"canvas:{canvas_id}"
+
+
 def ticket_scope(ticket_id: str) -> str:
     """The key of a ticket's session."""
     return f"ticket:{ticket_id}"
