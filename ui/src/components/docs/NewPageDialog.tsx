@@ -13,6 +13,7 @@ import { WriteWithAi } from './ai/WriteWithAi';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { slugify } from '../../utils/docsMarkdown';
 import { Icon } from './Icon';
+import { createCanvasPage } from '../../api/canvases';
 
 interface Props {
   projectId: string;
@@ -28,6 +29,7 @@ interface Props {
 
 const TEMPLATE_ICON: Record<string, string> = {
   blank: 'i00',
+  canvas: 'canvas',
   requirements: 'i13',
   'meeting-notes': 'i32',
   'decision-log': 'i17',
@@ -122,7 +124,18 @@ export function NewPageDialog({
   onClose,
   onCreated,
 }: Props) {
-  const { data: templates = [] } = useDocsTemplates();
+  const { data: serverTemplates = [] } = useDocsTemplates();
+  // A canvas page sits beside the text templates: "Page / Canvas" in the New page menu
+  const templates = useMemo(
+    () =>
+      serverTemplates.some((t) => t.id === 'canvas')
+        ? serverTemplates
+        : [
+            ...serverTemplates,
+            { id: 'canvas', name: 'Canvas', description: 'Boards on one large plane', markdown: '' },
+          ],
+    [serverTemplates],
+  );
   const create = useCreatePage(projectId);
   const [template, setTemplate] = useState(initialTemplate);
   const [title, setTitle] = useState(initialTitle ?? '');
@@ -254,6 +267,11 @@ export function NewPageDialog({
       return;
     }
     try {
+      if (template === 'canvas') {
+        const made = await createCanvasPage({ projectId, title: trimmed, parentId });
+        onCreated((await client.get<DocsPage>(`/docs/pages/${made.page.id}`)).data);
+        return;
+      }
       const page = await create.mutateAsync({ title: trimmed, parentId, template });
       onCreated(page);
     } catch (err) {

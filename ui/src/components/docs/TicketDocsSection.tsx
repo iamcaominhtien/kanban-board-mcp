@@ -7,6 +7,7 @@ import type { DocsSuggestItem, TicketDocOrigin, TicketDocRow } from '../../types
 import { useToast } from '../Toast';
 import { SuggestRows } from './DocsSuggest';
 import { Icon } from './Icon';
+import { useCanvas } from '../canvas/CanvasContext';
 
 interface TicketDocsSectionProps {
   ticketId: string;
@@ -98,7 +99,9 @@ function Row({
         }}
       >
         <span style={{ display: 'flex', color: '#2E6F40' }}>
-          {doc.section ? (
+          {doc.kind === 'canvas' ? (
+            <Icon name="canvas" size={16} strokeWidth={1.8} />
+          ) : doc.section ? (
             <Icon name="i04" size={16} strokeWidth={1.8} />
           ) : (
             <Icon name="i00" size={16} strokeWidth={1.8} />
@@ -332,6 +335,7 @@ function LinkPopover({
  * @param props.onOpenPage - Called with page id and project id when a doc is opened.
  */
 export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDocsSectionProps) {
+  const canvas = useCanvas();
   const toast = useToast();
   const { data } = useTicketDocs(ticketId);
   const { link, unlink } = useLinkTicketDoc(ticketId);
@@ -377,7 +381,11 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
               doc={d}
               origin={groups.originOf(d)}
               last={i === list.length - 1}
-              onOpen={() => onOpenPage(d.pageId, d.projectId)}
+              onOpen={() =>
+                d.kind === 'canvas' && d.canvasId && canvas.available
+                  ? canvas.openViewer({ id: d.canvasId })
+                  : onOpenPage(d.pageId, d.projectId)
+              }
               onRemove={groups.originOf(d) === 'manual' ? () => void remove(d) : undefined}
             />
           ))}

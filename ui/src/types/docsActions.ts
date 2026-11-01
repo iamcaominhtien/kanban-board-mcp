@@ -78,6 +78,9 @@ export interface TicketDocRow {
   /** Test case code (TC-3) when origin is test_case. */
   detail?: string;
   version?: number;
+  /** `canvas`: the row is a canvas shown in the ticket (the layers icon); `canvasId` opens it. */
+  kind?: 'canvas';
+  canvasId?: string;
 }
 
 export interface DocsSuggestItem {

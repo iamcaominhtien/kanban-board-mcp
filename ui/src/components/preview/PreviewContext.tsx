@@ -1,6 +1,7 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { uploadUrl } from '../../api/tickets';
 import { SketchOwnerContext, type SketchOwner } from '../sketch/SketchContext';
+import { CanvasOwnerContext, type CanvasOwner } from '../canvas/CanvasContext';
 import { cleanDisplayFileName, getFileExtension } from '../../utils/fileIcons';
 import type { PreviewItem } from './types';
 
@@ -13,6 +14,8 @@ interface Open {
   returnTo: HTMLElement | null;
   /** Where "Draw on it" saves to, when the page that opened the viewer said so. */
   sketchOwner: SketchOwner | null;
+  /** Where "Open on a canvas" puts the file as a board, when the page said so. */
+  canvasOwner: CanvasOwner | null;
 }
 
 interface PreviewApi {
@@ -22,7 +25,12 @@ interface PreviewApi {
 
 /** The provider's own open: the page's sketch owner rides along, so the viewer can offer "Draw on it". */
 interface ProviderApi {
-  open: (items: PreviewItem[], index?: number, sketchOwner?: SketchOwner | null) => void;
+  open: (
+    items: PreviewItem[],
+    index?: number,
+    sketchOwner?: SketchOwner | null,
+    canvasOwner?: CanvasOwner | null,
+  ) => void;
 }
 
 const PreviewContext = createContext<ProviderApi | null>(null);
@@ -30,15 +38,24 @@ const PreviewContext = createContext<ProviderApi | null>(null);
 /** Mounts the one viewer for the whole app. Anything that shows a file only says "open this". */
 export function PreviewProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState<Open | null>(null);
-  const open = useCallback((items: PreviewItem[], index = 0, sketchOwner: SketchOwner | null = null) => {
-    if (!items.length) return;
-    setCurrent({
-      items,
-      index: Math.min(Math.max(index, 0), items.length - 1),
-      returnTo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
-      sketchOwner,
-    });
-  }, []);
+  const open = useCallback(
+    (
+      items: PreviewItem[],
+      index = 0,
+      sketchOwner: SketchOwner | null = null,
+      canvasOwner: CanvasOwner | null = null,
+    ) => {
+      if (!items.length) return;
+      setCurrent({
+        items,
+        index: Math.min(Math.max(index, 0), items.length - 1),
+        returnTo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+        sketchOwner,
+        canvasOwner,
+      });
+    },
+    [],
+  );
   const api = useMemo(() => ({ open }), [open]);
   return (
     <PreviewContext.Provider value={api}>
@@ -49,6 +66,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
             items={current.items}
             index={current.index}
             sketchOwner={current.sketchOwner}
+            canvasOwner={current.canvasOwner}
             onIndex={(i) => setCurrent((c) => (c ? { ...c, index: i } : c))}
             onClose={() => {
               const back = current.returnTo;
@@ -67,9 +85,10 @@ export function usePreview(): PreviewApi {
   const api = useContext(PreviewContext);
   // The viewer is mounted above every page, so the page's sketch owner is read here, where it is opened from
   const sketchOwner = useContext(SketchOwnerContext);
+  const canvasOwner = useContext(CanvasOwnerContext);
   return useMemo(
-    () => ({ open: (items: PreviewItem[], index?: number) => api?.open(items, index, sketchOwner) }),
-    [api, sketchOwner],
+    () => ({ open: (items: PreviewItem[], index?: number) => api?.open(items, index, sketchOwner, canvasOwner) }),
+    [api, sketchOwner, canvasOwner],
   );
 }
 

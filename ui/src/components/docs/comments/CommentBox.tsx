@@ -7,6 +7,8 @@ import { firstDiagramFile } from '../../diagrams/diagramFile';
 import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
 import { SketchIcon } from '../../sketch/SketchIcon';
 import { useSketchStarter } from '../../sketch/useSketchStarter';
+import { CanvasIcon } from '../../canvas/CanvasIcon';
+import { useCanvasStarter } from '../../canvas/useCanvasStarter';
 import { RefSuggester, type SuggestMember } from '../RefSuggester';
 import { Icon } from '../Icon';
 import { mentionRefs, toFriendly, toStored } from '../../../utils/mentionText';
@@ -126,6 +128,12 @@ export function CommentBox({
   }
   const diagram = useDiagramStarter({ projectId, saveTo: 'Docs comment', itemKind: 'comment', onInsert: insertBlock });
   const sketch = useSketchStarter({
+    ownerKind: 'comment',
+    projectId,
+    ownerLabel: 'Docs comment',
+    onInsert: insertBlock,
+  });
+  const canvas = useCanvasStarter({
     ownerKind: 'comment',
     projectId,
     ownerLabel: 'Docs comment',
@@ -288,6 +296,21 @@ export function CommentBox({
             }}
           >
             <SketchIcon name="sketch" size={14} />
+          </button>
+        )}
+        {canvas.available && (
+          <button
+            type="button"
+            className="dc-tool"
+            aria-label="Canvas"
+            title="Canvas (boards on one large plane)"
+            data-testid="comment-canvas"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              void canvas.start();
+            }}
+          >
+            <CanvasIcon name="canvas" size={14} />
           </button>
         )}
         {diagram.available && (

@@ -78,6 +78,13 @@ from .sketches import (
     create_sketch_from_files,
     save_sketch_files,
 )
+from .canvases import (
+    list_project_canvases,
+    read_canvas,
+    create_canvas_from_files,
+    comment_on_canvas,
+    propose_canvas_change,
+)
 from .ideas import (
     list_idea_tickets,
     create_idea_ticket,
@@ -140,6 +147,11 @@ __all__ = [
     "export_sketch",
     "create_sketch_from_files",
     "save_sketch_files",
+    "list_project_canvases",
+    "read_canvas",
+    "create_canvas_from_files",
+    "comment_on_canvas",
+    "propose_canvas_change",
     "list_docs_pages",
     "get_docs_page",
     "create_docs_page",
