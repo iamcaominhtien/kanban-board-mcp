@@ -13,7 +13,8 @@ const REJECTED = [
   'bypassPermissions',
   '--permission-mode',
 ];
-const TOOL_RE = /^[A-Za-z_][A-Za-z0-9_-]*(__[A-Za-z0-9_*-]+)*$/;
+// a name, then optionally `__` and a tail that may hold `*` (mcp__kanban__*); one optional group, so no backtracking blow-up
+const TOOL_RE = /^[A-Za-z_][A-Za-z0-9_-]*(?:__[A-Za-z0-9_*-]+)?$/;
 
 /** Why a CLI permission rule is malformed (mirrors the server check), or null. */
 export function ruleProblem(rule: string): string | null {
