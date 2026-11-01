@@ -14,8 +14,8 @@ const {
   buildExportCommand,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
-  isOpenablePath,
-  isOpenableUrl,
+  openExternalSafely,
+  openPathSafely,
   parseReadyPort,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
@@ -344,21 +344,7 @@ ipcMain.handle('select-folder', async () => {
 });
 
 // IPC: open a file with system default application
-ipcMain.handle('open-path', async (_event, filePath) => {
-  if (!filePath || typeof filePath !== 'string') return { error: 'Invalid path' };
-  if (!isOpenablePath(filePath)) {
-    return {
-      success: false,
-      error: 'This kind of file is not opened from the app, because it could run as a program. Use Show in folder.',
-    };
-  }
-  try {
-    const errorMsg = await shell.openPath(filePath);
-    return { success: !errorMsg, error: errorMsg || null };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-});
+ipcMain.handle('open-path', (_event, filePath) => openPathSafely(shell, filePath));
 
 // IPC: reveal a file in Finder / Explorer
 ipcMain.handle('show-item-in-folder', async (_event, filePath) => {
@@ -372,15 +358,7 @@ ipcMain.handle('show-item-in-folder', async (_event, filePath) => {
 });
 
 // IPC: open external URL in default browser
-ipcMain.handle('open-external', async (_event, url) => {
-  if (!isOpenableUrl(url)) return { success: false, error: 'Only web and mail links can be opened' };
-  try {
-    await shell.openExternal(url);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-});
+ipcMain.handle('open-external', (_event, url) => openExternalSafely(shell, url));
 
 function launchBackend() {
   return startBackend()

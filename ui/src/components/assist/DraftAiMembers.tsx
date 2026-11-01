@@ -4,7 +4,7 @@ import { extractError } from '../../api/extractError';
 import type { AssistDraft, ProposedMember } from '../../types/assist';
 import { hhmm } from '../ai/aiUi';
 import { DraftTag } from './assistUi';
-import { ascending } from '../../utils/numberSets';
+import { ascending } from '../../utils/sorted';
 
 const TEMPLATES: { id: ProposedMember['template']; label: string; hint: string }[] = [
   { id: 'developer', label: 'Developer', hint: 'Works on tickets and may change code' },

@@ -7,7 +7,7 @@ import { useAssist } from './AssistContext';
 import { BoardAiAvatar, DraftTag, TicketPill, usd } from './assistUi';
 import { DraftChanges } from './DraftChanges';
 import './assist.css';
-import { toggleNumber } from '../../utils/numberSets';
+import { toggleNumber } from '../../utils/sorted';
 
 const KIND: Record<Insight['kind'], { label: string; bg: string; color: string }> = {
   stuck: { label: 'Stuck', bg: '#FFF1E2', color: '#B4541A' },

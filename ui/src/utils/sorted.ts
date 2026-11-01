@@ -1,8 +1,13 @@
-/** Lists of numbers kept in ascending order: warning thresholds, weekdays, picked rows. */
+/** Sorting that does not trip on `.sort()` without a compare: numbers compared as numbers, text by locale. */
 
 /** The numbers in ascending order. A plain `.sort()` compares them as text, which puts 100 before 50. */
 export function ascending(values: Iterable<number>): number[] {
   return [...values].sort((a, b) => a - b);
+}
+
+/** The strings in locale order (tags, zones, ids joined into a key). */
+export function ascendingText(values: Iterable<string>): string[] {
+  return [...values].sort((a, b) => a.localeCompare(b));
 }
 
 /** `values` with `value` removed when it is there, otherwise added, in ascending order. */

@@ -192,6 +192,34 @@ function isOpenableUrl(url) {
   }
 }
 
+/** The `open-path` IPC: open a file with its default app, unless it is a type that could run as a program. */
+async function openPathSafely(shell, filePath) {
+  if (!filePath || typeof filePath !== 'string') return { success: false, error: 'Invalid path' };
+  if (!isOpenablePath(filePath)) {
+    return {
+      success: false,
+      error: 'This kind of file is not opened from the app, because it could run as a program. Use Show in folder.',
+    };
+  }
+  try {
+    const errorMsg = await shell.openPath(filePath);
+    return { success: !errorMsg, error: errorMsg || null };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** The `open-external` IPC: hand a web or mail link to the system, nothing else. */
+async function openExternalSafely(shell, url) {
+  if (!isOpenableUrl(url)) return { success: false, error: 'Only web and mail links can be opened' };
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
   StartupProfiler,
   buildBackendLaunchSpec,
@@ -201,6 +229,8 @@ module.exports = {
   getMcpStdioBinaryPath,
   isOpenablePath,
   isOpenableUrl,
+  openExternalSafely,
+  openPathSafely,
   parseReadyPort,
   resolveConfiguredUploadsDir,
   shouldRunVscodeSetup,

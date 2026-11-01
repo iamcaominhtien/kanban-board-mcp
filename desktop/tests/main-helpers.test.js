@@ -8,6 +8,8 @@ const {
   getMcpStdioBinaryPath,
   isOpenablePath,
   isOpenableUrl,
+  openExternalSafely,
+  openPathSafely,
   parseReadyPort,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
@@ -234,4 +236,49 @@ test('isOpenableUrl allows web and mail links only', () => {
   for (const bad of ['file:///etc/passwd', 'javascript:alert(1)', 'vscode://open', 'smb://host/share', 'not a url', '', null]) {
     assert.equal(isOpenableUrl(bad), false, String(bad));
   }
+});
+
+function fakeShell({ openPathResult = '', fail = null } = {}) {
+  const calls = [];
+  return {
+    calls,
+    async openPath(p) {
+      calls.push(['openPath', p]);
+      if (fail) throw new Error(fail);
+      return openPathResult;
+    },
+    async openExternal(u) {
+      calls.push(['openExternal', u]);
+      if (fail) throw new Error(fail);
+    },
+  };
+}
+
+test('openPathSafely opens a document and refuses a program without touching the shell', async () => {
+  const shell = fakeShell();
+  assert.deepEqual(await openPathSafely(shell, '/w/report.pdf'), { success: true, error: null });
+  const refused = await openPathSafely(shell, 'C:\\w\\setup.exe');
+  assert.equal(refused.success, false);
+  assert.match(refused.error, /could run as a program/);
+  assert.deepEqual(await openPathSafely(shell, 42), { success: false, error: 'Invalid path' });
+  assert.deepEqual(shell.calls, [['openPath', '/w/report.pdf']]);
+});
+
+test('openPathSafely reports what the shell says', async () => {
+  assert.deepEqual(await openPathSafely(fakeShell({ openPathResult: 'No app' }), '/w/a.png'), {
+    success: false,
+    error: 'No app',
+  });
+  assert.deepEqual(await openPathSafely(fakeShell({ fail: 'boom' }), '/w/a.png'), { success: false, error: 'boom' });
+});
+
+test('openExternalSafely opens web links only', async () => {
+  const shell = fakeShell();
+  assert.deepEqual(await openExternalSafely(shell, 'https://github.com/x'), { success: true });
+  assert.equal((await openExternalSafely(shell, 'file:///etc/passwd')).success, false);
+  assert.deepEqual(await openExternalSafely(fakeShell({ fail: 'no browser' }), 'https://a.b'), {
+    success: false,
+    error: 'no browser',
+  });
+  assert.deepEqual(shell.calls, [['openExternal', 'https://github.com/x']]);
 });

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { DocsAiJob } from './docsAi';
 import type { CareChange, CareReason, DismissLevel, HealthCounts, TicketDraft } from '../utils/careRules';
+import { ascendingText } from '../utils/sorted';
 
 /** Keeping pages true, Docs health and tickets from a page (docs-ai-care A and C). */
 
@@ -208,10 +209,7 @@ export function healthItemId(kind: 'out_of_date' | 'missing' | 'broken' | 'overl
   if (kind === 'missing') return (item as HealthMissing).ticketId;
   if (kind === 'broken') return `${(item as HealthBroken).pageId}|${(item as HealthBroken).ref}`;
   if (kind === 'overlaps') {
-    return (item as HealthOverlap).pages
-      .map((p) => p.pageId)
-      .sort((x, y) => x.localeCompare(y))
-      .join(',');
+    return ascendingText((item as HealthOverlap).pages.map((p) => p.pageId)).join(',');
   }
   return (item as HealthOutOfDate).pageId;
 }

@@ -16,7 +16,7 @@ import { useToast } from '../Toast';
 import { fitEstimate } from '../aiteam/resourcesFormat';
 import { AiAvatar, fmtElapsed } from './aiUi';
 import { ChipChoice, Pill, RadioRow, SafetyCard, compact, dateTime, usd } from './aiSafetyUi';
-import { toggleNumber } from '../../utils/numberSets';
+import { toggleNumber } from '../../utils/sorted';
 
 const SERIES = ['#B4571F', '#B0446E', '#2F6FB0', '#6D5DD3', '#2E6F40', '#B4791E', '#5B6B60'];
 const RANGES = [

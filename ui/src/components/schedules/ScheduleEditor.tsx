@@ -25,7 +25,7 @@ import {
   canStart,
   zoneLabel,
 } from './schedulesUi';
-import { toggleNumber } from '../../utils/numberSets';
+import { ascendingText, toggleNumber } from '../../utils/sorted';
 
 /** How the editor is opened: from the tab, from a ticket (locked to it) or to change a schedule. */
 export interface EditorOpts {
@@ -138,7 +138,7 @@ function useZones(current: string): { id: string; label: string }[] {
     ids.add('UTC');
     ids.add(current);
     ids.add(browserZone());
-    return [...ids].sort((x, y) => x.localeCompare(y)).map((id) => ({ id, label: `${id} · ${zoneLabel(id)}` }));
+    return ascendingText(ids).map((id) => ({ id, label: `${id} · ${zoneLabel(id)}` }));
   }, [current]);
 }
 

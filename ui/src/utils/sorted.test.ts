@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ascending, toggleNumber } from './numberSets';
+import { ascending, ascendingText, toggleNumber } from './sorted';
 
 describe('ascending', () => {
   it('sorts as numbers, not as text', () => {
@@ -19,5 +19,13 @@ describe('toggleNumber', () => {
     const days = [1, 3];
     toggleNumber(days, 2);
     expect(days).toEqual([1, 3]);
+  });
+});
+
+describe('ascendingText', () => {
+  it('sorts by locale, not by character code', () => {
+    // a plain .sort() puts every capital before every small letter: ['Zebra', 'apple']
+    expect(ascendingText(['Zebra', 'apple'])).toEqual(['apple', 'Zebra']);
+    expect(ascendingText(new Set(['b', 'a']))).toEqual(['a', 'b']);
   });
 });
