@@ -30,8 +30,13 @@ jobs:
         run: uv run ruff check .
       - name: Format
         run: uv run ruff format --check .
-      - name: Tests
-        run: uv run pytest -q -n auto
+      - name: Tests (with coverage for SonarQube Cloud)
+        run: uv run pytest -q -n auto --cov --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-server
+          path: server/coverage.xml
+          retention-days: 3
 
   frontend:
     name: Frontend (prettier, eslint, tsc, build)
@@ -51,8 +56,13 @@ jobs:
         run: npm run format:check
       - name: Lint (includes the JSDoc rule)
         run: npm run lint -- --max-warnings=40
-      - name: Unit tests (plain Node, no test framework)
-        run: npm test
+      - name: Unit tests (with coverage for SonarQube Cloud)
+        run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-ui
+          path: ui/coverage/lcov.info
+          retention-days: 3
       - name: Typecheck and build
         run: npm run build
 
@@ -71,4 +81,38 @@ jobs:
           cache-dependency-path: desktop/package-lock.json
       # --ignore-scripts: the tests need no Electron binary, so skip its download
       - run: npm ci --ignore-scripts
-      - run: npm test
+      - name: Tests (with coverage for SonarQube Cloud)
+        run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-desktop
+          path: desktop/lcov.info
+          retention-days: 3
+
+  # Code quality, security and coverage on SonarQube Cloud (config: sonar-project.properties).
+  # Skipped while the SONAR_TOKEN secret is not set (and on PRs from forks, which do not get secrets).
+  sonar:
+    name: SonarQube Cloud
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, desktop]
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.SONAR_TOKEN != ''
+        with:
+          fetch-depth: 0 # full history, so new code and blame are right
+      - uses: actions/download-artifact@v4
+        if: env.SONAR_TOKEN != ''
+        with:
+          pattern: coverage-*
+          path: coverage-reports
+      # The reports name files relative to server/, ui/ and desktop/; Sonar needs paths it can find from here
+      - name: Point the coverage reports at the checkout
+        if: env.SONAR_TOKEN != ''
+        run: |
+          sed -i "s#<source>.*</source>#<source>$GITHUB_WORKSPACE/server</source>#" coverage-reports/coverage-server/coverage.xml
+          sed -i "s#^SF:#SF:$GITHUB_WORKSPACE/ui/#" coverage-reports/coverage-ui/lcov.info
+          sed -i "s#^SF:#SF:$GITHUB_WORKSPACE/desktop/#" coverage-reports/coverage-desktop/lcov.info
+      - uses: SonarSource/sonarqube-scan-action@v8
+        if: env.SONAR_TOKEN != ''

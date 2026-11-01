@@ -28,11 +28,17 @@ dev = [
     "httpx>=0.28.1",
     "ruff>=0.9.0",
     "pytest-xdist>=3.8.0",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
+
+# Coverage for SonarQube Cloud (CI runs pytest --cov --cov-report=xml)
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", "alembic/*", ".venv/*"]
 
 [tool.ruff.lint]
 # Public classes, methods and functions need a docstring
