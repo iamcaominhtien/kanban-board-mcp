@@ -177,11 +177,16 @@ Reuse of the Docs AI machinery (members, permissions, budgets, caps, kill switch
 An AI that writes frames is told how to design them, not only how to deliver them. The brief is one text in
 `services/canvas_design.py`: `BRIEF` goes into the Ask AI job's rules, `SHORT` into the MCP instructions an agent gets on
 connect, and `.claude/skills/canvas-design/SKILL.md` is the longer version for people and Claude Code (keep the three in
-step). The process: a brief with realistic copy, **tokens first** (one accent, tinted neutrals, soft semantic tints,
-spacing, radius and type scales) reused by every frame, layout and hierarchy rules (one primary action, thumb zone, 44 px
-targets), details (inline SVG icons, never emoji; every state drawn, including empty, loading and error), contrast and
-access, a list of things to avoid, and a check before sending (squint test, everything from the scale, holds at 390, 820
-and 1280 px). `test_canvas_mcp.py` checks that the brief reaches both places.
+step). It borrows its shape from the Design skill used for artifacts. The process: **context first** (the product's own
+screens, brand, code; match its vocabulary), a **direction** named and kept (purpose, tone, the one memorable thing; 2 to 4
+genuinely different low-fi options with their tradeoffs when it is still open), **real content** (no lorem ipsum, no
+invented facts, `[YOUR PRICE]` placeholders, nothing added unasked), **tokens first** (tinted neutrals, a dominant colour,
+spacing, radius and type scales) reused by every frame, layout and hierarchy (one primary action, gap-based flex or grid,
+44 px targets), built to be used (real buttons, links and labelled inputs, inline SVG icons, no fake status bar, every state
+drawn), contrast and access, things to avoid (gradient washes, left-border cards, sameness from one brief to the next),
+"a small change stays small", and a check before sending (squint test, everything from the scale, holds at 390, 820 and
+1280 px). The skill adds one round of questions for a person who can answer; the Ask AI job and headless agents decide and
+state assumptions in a line. `test_canvas_mcp.py` checks that the brief reaches both places.
 
 ## The editor
 

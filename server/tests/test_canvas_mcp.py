@@ -407,15 +407,21 @@ def test_the_design_brief_reaches_the_agent_and_the_ai_job():
 
     assert canvas_design.SHORT in kanban_mcp.build_instructions()
     assert canvas_design.BRIEF in canvas_proposals.RULES
-    # the process and its checklist are all there: tokens first, states, contrast, no emoji icons, squint
+    # the process and its checklist are all there
     for needle in (
+        "Context first",
+        "Direction:",
         "Tokens first",
         "never emoji",
-        "empty, loading, error",
+        "empty (say what to do next)",
         "4.5:1",
         "squint",
+        "[YOUR PRICE]",
+        "A small change stays small",
+        "no fake phone status bar",
     ):
         assert needle in canvas_design.BRIEF
-    assert "never lorem ipsum" in canvas_design.SHORT
+    assert "never lorem ipsum" in canvas_design.BRIEF
+    assert "no lorem ipsum" in canvas_design.SHORT
     # it is a brief, not an essay
-    assert len(canvas_design.SHORT) < 1300 and len(canvas_design.BRIEF) < 2800
+    assert len(canvas_design.SHORT) < 2000 and len(canvas_design.BRIEF) < 5200
