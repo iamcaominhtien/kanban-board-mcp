@@ -424,6 +424,14 @@ async def _apply(approval: AiApproval, member_name: str, by: str = "user"):
         return await _apply_raise_cap(approval, by)
     if approval.action == RUN_CONTROL:
         return await _apply_run_control(approval, member_name, by)
+    # Safe mode may have been switched on since the request was made: an AI changes nothing then, even approved
+    async with database.async_session() as session:
+        settings = await get_settings(session, approval.project_id)
+        asker = await session.get(AiMember, approval.member_id)
+    if settings.safe_mode or (asker is not None and asker.safe_mode):
+        raise ApprovalError(
+            "Safe mode is on, so this change was not applied. Once Safe mode is off the AI can ask again."
+        )
     payload = loads(approval.payload, {})
     tool, action, params = (
         payload.get("tool"),

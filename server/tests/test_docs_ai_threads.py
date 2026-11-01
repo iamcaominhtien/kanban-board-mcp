@@ -85,7 +85,7 @@ async def test_a_mention_starts_a_job_and_the_ai_replies_in_the_thread(env, fake
 
 
 async def test_a_second_tag_continues_the_conversation(env, fake, monkeypatch):
-    monkeypatch.setattr(sessions, "session_exists", lambda _sid: True)
+    monkeypatch.setattr(sessions, "session_exists", lambda _sid, *a, **k: True)
     c, pid, m = await setup(env)
     p = await page(c, pid, "API", TEXT)
     fake.queue += [

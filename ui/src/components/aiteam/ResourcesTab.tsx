@@ -205,6 +205,7 @@ function RowActions({ run, canAct, onDone }: { run: ResourceRun; canAct: boolean
             <button
               type="button"
               className={asking === 'stop' ? 'st-btn st-btn-sm st-btn-danger' : 'st-btn st-btn-sm st-btn-primary'}
+              disabled={stop.isPending || restart.isPending}
               onClick={() => {
                 const done = () => {
                   setAsking(null);

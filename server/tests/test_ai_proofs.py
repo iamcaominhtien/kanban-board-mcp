@@ -21,6 +21,14 @@ def folder(tmp_path, monkeypatch):
     (work / "run.log").write_text("ok")
     (work / "prod.env").write_text("SECRET=1")
     (work / "outside.png").write_bytes(b"x")
+    for hidden in (
+        ".claude/.credentials.json",
+        ".config/app.json",
+        "deploy/credentials.json",
+    ):
+        (work / hidden).parent.mkdir(parents=True, exist_ok=True)
+        (work / hidden).write_text("{}")
+    (work / "secrets.yaml").write_text("k: v")
     return work
 
 
@@ -42,7 +50,8 @@ def test_a_picture_named_by_a_path_is_copied_and_the_reference_rewritten(folder)
 def test_web_links_uploaded_files_code_and_plain_links_stay_as_written(folder):
     md = (
         "[ci](https://ci.example.com/run/1) ![a](/uploads/a.png) [ticket](AGT-5)\n"
-        "```\n![not a file](qa/evidence/missing.png)\n```"
+        "```\n![not a file](qa/evidence/missing.png)\n```\n"
+        "and `![inline](qa/evidence/missing.png)` as code"
     )
     assert proofs.localize(md, str(folder)) == md
     assert proofs.localize(None, str(folder)) is None
@@ -55,6 +64,10 @@ def test_web_links_uploaded_files_code_and_plain_links_stay_as_written(folder):
         ("qa/evidence/missing.png", "no such file"),
         ("../outside.png", "outside the working folder"),
         ("prod.env", "never attached"),
+        (".claude/.credentials.json", "never attached"),
+        (".config/app.json", "never attached"),
+        ("secrets.yaml", "never attached"),
+        ("deploy/credentials.json", "never attached"),
     ],
 )
 def test_a_file_that_is_missing_outside_or_secret_is_refused(folder, ref, why):

@@ -671,3 +671,62 @@ async def test_signing_in_again_to_a_signed_in_account_waits_for_the_login_to_en
     signin.write(s, "good\n")
     await _drain(q, lambda m: m["type"] == "state" and m.get("signed_in"))
     await signin.stop(s)
+
+
+# --------------------------------------------------------------------------- the account everywhere a CLI is started
+
+
+async def test_the_board_ai_chat_and_docs_ai_run_under_the_members_account(
+    fake_cli, monkeypatch
+):
+    from models import AiMember
+    from services.ai import llm
+
+    c = fake_cli["c"]
+    pid, _ = await _project(c)
+    a = await _account(c)
+    _login(a)
+    m = await _runner(c, pid, fake_cli["repo"], account_id=a["id"])
+    seen = {}
+
+    class Recorder:
+        def __init__(self, args, cwd, env=None):
+            seen["env"] = env
+
+        async def start(self):
+            raise RuntimeError("stop here")
+
+    monkeypatch.setattr(cli, "CliProcess", Recorder)
+    async with fake_cli["maker"]() as s:
+        profile = await s.get(AiMember, m["id"])
+    with pytest.raises(RuntimeError, match="stop here"):
+        await llm.complete(profile, system="s", prompt="hi")
+    assert seen["env"]["CLAUDE_CONFIG_DIR"] == a["folder"]
+    # a member on the login already on this computer keeps the person's own environment
+    other = await _runner(c, pid, fake_cli["repo"], name="Plain")
+    async with fake_cli["maker"]() as s:
+        profile = await s.get(AiMember, other["id"])
+    seen.clear()
+    with pytest.raises(RuntimeError, match="stop here"):
+        await llm.complete(profile, system="s", prompt="hi")
+    assert seen["env"].get("CLAUDE_CONFIG_DIR") != a["folder"]
+
+
+async def test_a_shared_conversation_is_looked_up_in_the_accounts_folder(fake_cli):
+    from services.docs_ai import sessions
+
+    c = fake_cli["c"]
+    pid, _ = await _project(c)
+    a = await _account(c)
+    _login(a)
+    on = await _runner(c, pid, fake_cli["repo"], account_id=a["id"])
+    plain = await _runner(c, pid, fake_cli["repo"], name="Plain")
+    folder = Path(a["folder"], "projects", "p")
+    folder.mkdir(parents=True)
+    (folder / "sess-1.jsonl").write_text("{}")
+    scope = sessions.ticket_scope("T-1")
+    await sessions.remember(scope, on["id"], pid, "sess-1")
+    await sessions.remember(scope, plain["id"], pid, "sess-1")
+    # the account's session is found for the member on the account, and not kept for one that is not on it
+    assert await sessions.lookup(scope, on["id"]) == "sess-1"
+    assert await sessions.lookup(scope, plain["id"]) is None

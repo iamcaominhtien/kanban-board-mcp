@@ -7,8 +7,8 @@ import pytest
 from sqlmodel import select
 
 from kanban_mcp.tools.ai_run import ai_run
-from models import AiRun
-from services.ai import guard
+from models import AiMember, AiRun
+from services.ai import guard, runs
 from tests.test_ai import (  # noqa: F401
     _ctx,
     _runner,
@@ -355,3 +355,54 @@ async def test_a_person_assigning_in_the_board_starts_nothing_here(env):
 
     await manage_ticket(action="update", ticket_id=other, assignee=rin["id"])
     assert await _runs(env, other) == []
+
+
+async def test_giving_a_ticket_to_a_paused_ai_queues_its_run_for_when_it_is_resumed(
+    env,
+):
+    c = env["c"]
+    ctx, pid, _, pm, own = await _ctx(env, template="custom")
+    rin = await _runner(c, pid, env["repo"], name="Reviewer Rin")
+    async with env["maker"]() as s:
+        profile = await s.get(AiMember, rin["id"])
+        profile.paused = True
+        s.add(profile)
+        await s.commit()
+    other = await _made_by(ctx, pid, "Review the brief")
+    await _assign_by_edit(ctx, other, rin["id"])
+    (run,) = await _runs(env, other)
+    assert run.member_id == rin["id"] and run.state == "queued"
+
+
+async def test_a_handoff_that_cannot_be_queued_does_not_leave_the_ticket_assigned(
+    env, monkeypatch
+):
+    c = env["c"]
+    ctx, pid, _, pm, own = await _ctx(env, template="custom")
+    bao = await _runner(c, pid, env["repo"], name="BA Bao")
+    other = await _made_by(ctx, pid, "Write the brief")
+
+    async def refuse(*args, **kwargs):
+        raise runs.RunError("BA Bao already has an AI waiting behind its holder")
+
+    monkeypatch.setattr(runs, "create_run", refuse)
+    with pytest.raises(ValueError, match="already has an AI waiting"):
+        await _handoff(ctx, member="BA Bao", ticket=other, instruction="Write it.")
+    assert (await c.get(f"/tickets/{other}")).json()["assignee"] != bao["id"]
+
+
+async def test_an_assignee_edit_that_starts_nothing_says_so_on_the_ticket(
+    env, monkeypatch
+):
+    c = env["c"]
+    ctx, pid, _, pm, own = await _ctx(env, template="custom")
+    rin = await _runner(c, pid, env["repo"], name="Reviewer Rin")
+    other = await _made_by(ctx, pid, "Review the brief")
+
+    async def refuse(*args, **kwargs):
+        raise runs.RunError("Reviewer Rin has too many runs today")
+
+    monkeypatch.setattr(runs, "create_run", refuse)
+    await _assign_by_edit(ctx, other, rin["id"])
+    comments = (await c.get(f"/tickets/{other}")).json()["comments"]
+    assert any("no run was started" in x["text"] for x in comments)

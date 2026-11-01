@@ -232,7 +232,11 @@ function AutopilotOn({
           disabled={!isOwner}
           value={grace}
           onChange={(e) => setGrace(e.target.value)}
-          onBlur={() => Number(grace) !== a.graceMin && void save({ graceMin: Number(grace) })}
+          onBlur={() => {
+            const n = Math.round(Number(grace));
+            if (grace.trim() === '' || !Number.isFinite(n) || n < 0 || n > 240) setGrace(String(a.graceMin));
+            else if (n !== a.graceMin) void save({ graceMin: n });
+          }}
           data-testid="autopilot-grace"
         />
         <span className="ai-muted">min</span>
@@ -250,7 +254,11 @@ function AutopilotOn({
           disabled={!isOwner}
           value={limit}
           onChange={(e) => setLimit(e.target.value)}
-          onBlur={() => Number(limit) !== a.perHourLimit && void save({ perHourLimit: Number(limit) })}
+          onBlur={() => {
+            const n = Math.round(Number(limit));
+            if (limit.trim() === '' || !Number.isFinite(n) || n < 1 || n > 200) setLimit(String(a.perHourLimit));
+            else if (n !== a.perHourLimit) void save({ perHourLimit: n });
+          }}
           data-testid="autopilot-limit"
         />
         <span className="ai-muted">decisions</span>

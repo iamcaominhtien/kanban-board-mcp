@@ -235,3 +235,15 @@ async def test_a_crowded_window_groups_harder_before_it_drops_anything(
     assigns = [x for x in data["arrows"] if x["kind"] == "assign"]
     assert data["grouped_harder"] is True and data["truncated"] is False
     assert sum(x["count"] for x in assigns) == 8 and len(assigns) <= 5
+
+
+async def test_a_run_queued_before_the_window_but_still_going_has_its_bar(env):
+    c = env["c"]
+    pid, _an = await _project(c)
+    dev = await _runner(c, pid, env["repo"], name="Dev")
+    tid = await _ticket(c, pid, "Long job")
+    async with env["maker"]() as s:
+        # queued 90 minutes ago and still running: it belongs to "Last hour" though it was queued before it
+        await _run(s, pid, tid, dev["id"], 90, None, state="running", number=1)
+    data = await _tl(c, pid, range="hour")
+    assert [b["state"] for b in data["bars"]] == ["running"]

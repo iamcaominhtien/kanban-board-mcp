@@ -20,7 +20,7 @@ def _prompt(call: list[str]) -> str:
 async def _setup_ticket(c, env, monkeypatch):
     record = env["tmp"] / "args.jsonl"
     monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
-    monkeypatch.setattr(cli, "session_exists", lambda sid: True)
+    monkeypatch.setattr(cli, "session_exists", lambda sid, *a, **k: True)
     pid, _ = await _project(c)
     m = await _runner(c, pid, env["repo"])
     tid = await _ticket(c, pid, description=f"Why it fails. {MARK}")
@@ -173,8 +173,8 @@ async def _scope_chat(c, tid):
 async def test_a_chat_about_the_ticket_continues_the_conversation_of_its_runs(
     env, fake, monkeypatch
 ):
-    monkeypatch.setattr(shared, "session_exists", lambda sid: True)
-    monkeypatch.setattr(cli, "session_exists", lambda sid: True)
+    monkeypatch.setattr(shared, "session_exists", lambda sid, *a, **k: True)
+    monkeypatch.setattr(cli, "session_exists", lambda sid, *a, **k: True)
     record = env["tmp"] / "args.jsonl"
     monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
     c, pid, an, m = await _setup(env)
@@ -195,8 +195,8 @@ async def test_a_chat_about_the_ticket_continues_the_conversation_of_its_runs(
 
 
 async def test_a_run_goes_on_in_the_conversation_a_chat_began(env, fake, monkeypatch):
-    monkeypatch.setattr(shared, "session_exists", lambda sid: True)
-    monkeypatch.setattr(cli, "session_exists", lambda sid: True)
+    monkeypatch.setattr(shared, "session_exists", lambda sid, *a, **k: True)
+    monkeypatch.setattr(cli, "session_exists", lambda sid, *a, **k: True)
     record = env["tmp"] / "args.jsonl"
     monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
     c, pid, an, m = await _setup(env)
@@ -213,8 +213,8 @@ async def test_a_run_goes_on_in_the_conversation_a_chat_began(env, fake, monkeyp
 async def test_a_chat_does_not_wait_for_a_run_that_is_using_the_conversation(
     env, fake, monkeypatch
 ):
-    monkeypatch.setattr(shared, "session_exists", lambda sid: True)
-    monkeypatch.setattr(cli, "session_exists", lambda sid: True)
+    monkeypatch.setattr(shared, "session_exists", lambda sid, *a, **k: True)
+    monkeypatch.setattr(cli, "session_exists", lambda sid, *a, **k: True)
     c, pid, an, m = await _setup(env)
     tid = await _ticket(c, pid)
     chat = await _scope_chat(c, tid)

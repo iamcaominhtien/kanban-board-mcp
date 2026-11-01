@@ -18,12 +18,18 @@ from pathlib import Path
 import uploads
 
 MAX_FILE_BYTES = 25 * 1024 * 1024
-# Never copied out of a working folder, whatever the AI asks for
-_DENIED_PARTS = {".git", ".ssh", ".aws", ".gnupg", "node_modules", "__pycache__"}
+# Never copied out of a working folder, whatever the AI asks for: any folder or file whose name starts with a dot (.git,
+# .ssh, .claude, .config, .npmrc ...), build folders, and files named for what they hold
+_DENIED_PARTS = {"node_modules", "__pycache__"}
 _DENIED_SUFFIXES = {".pem", ".key", ".p12", ".pfx", ".keystore", ".env"}
+_SECRET_NAME = re.compile(
+    r"(credential|secret|password|passwd|token|private[-_]?key|id_rsa|id_ed25519)", re.I
+)
 # [text](target) and ![alt](target), the target without spaces, an optional "title"
 _REF = re.compile(r'(!?\[[^\]\n]*\]\()([^)\s]+)((?:\s+"[^"\n]*")?\))')
-_FENCE = re.compile(r"(```.*?```|~~~.*?~~~)", re.S)
+_FENCE = re.compile(
+    r"(```.*?```|~~~.*?~~~|`[^`\n]+`)", re.S
+)  # code is shown as written
 _UNPROVABLE = re.compile(r"^\s*(not provable|không chứng minh được)\b", re.I)
 
 
@@ -81,8 +87,9 @@ def ingest_file(raw: str, folder: str) -> str:
     suffix = path.suffix.lower()
     if (
         set(rel.parts) & _DENIED_PARTS
-        or path.name.lower().startswith(".env")
+        or any(part.startswith(".") for part in rel.parts)
         or suffix in _DENIED_SUFFIXES
+        or _SECRET_NAME.search(path.name)
     ):
         raise ProofError(f"{raw}: this kind of file is never attached.")
     if suffix not in uploads.MIME_BY_EXTENSION:

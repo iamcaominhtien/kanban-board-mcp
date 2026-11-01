@@ -376,6 +376,28 @@ def test_rate_limit_wait_reads_what_the_cli_says():
     assert cli.rate_limit_wait("429 usage limit|9999999999") == cli.RATE_WAIT_MAX
 
 
+def test_a_plan_limit_message_is_a_wait_until_its_reset_not_a_failure():
+    now = datetime(2026, 11, 1, 3, 0, tzinfo=UTC)  # 10:00 in Saigon
+    # "resets Nov 2 at 4pm (Asia/Saigon)" is 30 hours away
+    msg = "You've hit your weekly limit · resets Nov 2 at 4pm (Asia/Saigon)"
+    assert cli.reset_wait(msg, now) == 30 * 3600
+    assert cli.reset_wait("resets 3:30pm (America/New_York)", now) == 16.5 * 3600
+    assert (
+        cli.reset_wait("resets Oct 1, 9am", now) > 300 * 86400
+    )  # a past date means next year
+    assert cli.reset_wait("no time here", now) is None
+    assert (
+        cli.reset_wait("resets 9am (Not/AZone)", now) is not None
+    )  # an unknown zone is this computer's own
+    # it is a rate limit, waited for as long as the board allows
+    assert cli.rate_limit_wait(msg) == cli.RATE_WAIT_MAX
+    assert (
+        cli.rate_limit_wait("RESOURCE_EXHAUSTED: Quota exceeded")
+        == cli.RATE_WAIT_DEFAULT
+    )
+    assert cli.rate_limit_wait("the test suite hit a limit of 3 retries") is None
+
+
 # --------------------------------------------------------------------------- periodic re-detection
 
 

@@ -14,7 +14,7 @@ from tests.test_ai import (  # noqa: F401
     _runner,
     env,
 )
-from tests.test_ai_safety import _ask_assignee, _pending, _people
+from tests.test_ai_safety import OWNER, _ask_assignee, _pending, _people
 
 ON = {"enabled": True, "accept_risks": True, "grace_min": 0}
 
@@ -184,6 +184,12 @@ async def test_decide_is_refused_outside_an_autopilot_run_and_past_the_limit(env
     assert len(row) == 1
     await _ask_assignee(env, an, tid, ctx)
     [b] = await _pending(c, pid)
+    # the limit counts what was decided this hour; the second request is in the brief of the run too
+    async with env["maker"]() as session:
+        run = await session.get(AiRun, dctx.run_id)
+        run.instruction = f"{run.instruction} {b['id']}"
+        session.add(run)
+        await session.commit()
     with pytest.raises(autopilot.AutopilotError, match="limit"):
         await autopilot.decide(dctx, b["id"], True, None)
 
@@ -259,3 +265,46 @@ async def test_pause_all_and_switching_it_off_stop_the_wake(env, monkeypatch):
     await c.put(f"/projects/{pid}/ai/autopilot", json={"enabled": False})
     await autopilot.tick()
     assert woken == [pid]
+
+
+async def test_the_delegate_decides_only_what_its_brief_showed(env):
+    c = env["c"]
+    ctx, pid, an, m, tid, delegate = await _setup(env)
+    await _ask_assignee(env, an, tid, ctx)
+    [a] = await _pending(c, pid)
+    s = await _settings(env, pid)
+    await autopilot._wake(s, autopilot.config(s))
+    dctx = await _delegate_ctx(env, pid, delegate)
+    # a request made after the brief was written (or still inside the grace time) was never put to the delegate
+    async with env["maker"]() as session:
+        row = await session.get(AiApproval, a["id"])
+        session.add(AiApproval(**{**row.model_dump(), "id": "apr_after_the_brief"}))
+        await session.commit()
+    later = [{"id": "apr_after_the_brief"}]
+    with pytest.raises(autopilot.AutopilotError, match="not in your brief"):
+        await autopilot.decide(dctx, later[0]["id"], True, None)
+    with pytest.raises(autopilot.AutopilotError, match="not in your brief"):
+        await autopilot.answer(dctx, "run_unknown", "yes")
+    assert (await autopilot.decide(dctx, a["id"], True, None))["decided"] == "approved"
+
+
+async def test_safe_mode_keeps_autopilot_from_deciding_and_blocks_an_approved_change(
+    env,
+):
+    c = env["c"]
+    ctx, pid, an, m, tid, delegate = await _setup(env)
+    await _people(c, pid)
+    await _ask_assignee(env, an, tid, ctx)
+    [a] = await _pending(c, pid)
+    r = await c.patch(
+        f"/projects/{pid}/ai/settings", json={"safe_mode": True}, headers=OWNER
+    )
+    assert r.status_code == 200, r.text
+    s = await _settings(env, pid)
+    # nothing is put to the delegate: Autopilot does not decide while Safe mode is on
+    assert await autopilot._wake(s, autopilot.config(s)) is False
+    # and a person who approves it anyway does not get the change applied
+    r = await c.post(f"/ai/approvals/{a['id']}/approve", json={}, headers=OWNER)
+    assert r.status_code == 200 and r.json()["status"] == "failed", r.text
+    assert "Safe mode is on" in r.json()["error"]
+    assert (await c.get(f"/tickets/{tid}")).json()["assignee"] != an

@@ -421,3 +421,30 @@ async def test_week_view_marks_overlaps(env, fake):
     runs_ = [i for i in w["items"] if i["kind"] == "run"]
     assert len(runs_) == 14 and any(i.get("overlap") for i in runs_)
     assert w["members"][0]["name"] == "Claude Code · Backend"
+
+
+async def test_a_slot_waiting_when_the_schedule_is_paused_does_not_start_later(
+    env, fake
+):
+    c, pid, dev, rev, tid = await _setup(env)
+    run_at, at = _soon()
+    s = (
+        await c.post(
+            f"/projects/{pid}/ai/schedules",
+            json={**_body(tid, dev["id"], run_at), "catch_up_hours": 1},
+            headers=H,
+        )
+    ).json()
+    await c.post(f"/ai/members/{dev['id']}/pause", json={})
+    await svc.tick(now=at + timedelta(seconds=5))
+    slot = (await c.get(f"/ai/schedules/{s['id']}")).json()["runs"][0]
+    assert slot["state"] == "waiting"
+    # the person pauses the schedule, then the AI comes back: the slot that waited must not start
+    assert (
+        await c.post(f"/ai/schedules/{s['id']}/pause", headers=H)
+    ).status_code == 200
+    await c.post(f"/ai/members/{dev['id']}/resume", json={}, headers=H)
+    await svc.tick(now=at + timedelta(minutes=10))
+    d = (await c.get(f"/ai/schedules/{s['id']}")).json()
+    assert d["runs"][0]["state"] == "skipped"
+    assert d["runs"][0]["note"] == "Skipped: the schedule is paused."

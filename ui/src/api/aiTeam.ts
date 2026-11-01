@@ -28,6 +28,12 @@ export function useTeamNow(projectId: string, range: TeamRange = 'today') {
   });
 }
 
+/** The query of the You stepped in tab. The server reads snake_case names (only request bodies are converted on the
+ *  way out), so `memberId` must not travel as it is. */
+export function steppedParams(range: TeamRange, filters: SteppedFilters) {
+  return { range, mark: filters.mark, member_id: filters.memberId, person: filters.person, via: filters.via };
+}
+
 /** The AI Team view, You stepped in tab: every touch by a person, marked by rule, needed or avoidable. */
 export function useTeamStepped(projectId: string, range: TeamRange, filters: SteppedFilters = {}) {
   return useQuery({
@@ -35,7 +41,7 @@ export function useTeamStepped(projectId: string, range: TeamRange, filters: Ste
     queryFn: async () =>
       (
         await client.get<SteppedIn>(`/projects/${projectId}/ai/team/stepped-in`, {
-          params: { range, ...filters },
+          params: steppedParams(range, filters),
         })
       ).data,
     enabled: !!projectId,

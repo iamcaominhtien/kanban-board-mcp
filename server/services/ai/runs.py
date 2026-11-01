@@ -530,6 +530,8 @@ async def stop_scheduler() -> None:
                 by="board",
                 reason="The board was closed while the run was in progress.",
                 state="failed",
+                revert_status=False,
+                quiet=True,
             )
         except RunError:
             pass  # it ended on its own meanwhile
@@ -2498,9 +2500,17 @@ def _plain(text: str) -> str:
 
 
 async def _end(
-    run_id: str, state: str, reason: str | None, *, by: str | None = None, **fields
+    run_id: str,
+    state: str,
+    reason: str | None,
+    *,
+    by: str | None = None,
+    quiet: bool = False,
+    **fields,
 ) -> AiRun | None:
-    """Move a run to an ended state (once): releases the hold and kills its token."""
+    """Move a run to an ended state (once): releases the hold and kills its token. `quiet` is for a board that is
+    closing: the run is recorded, but no comment, status move, work-log entry, report-back or auto-trip count follows,
+    as none of them is the AI's doing."""
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None or run.state in ENDED:
@@ -2542,6 +2552,10 @@ async def _end(
         target=run.ticket_id,
         detail={"reason": reason, "by": by},
     )
+    if quiet:
+        RT.wake.set()
+        await _publish(force=True)
+        return run
     if state in ("failed", "timed_out") and run.mode == "work" and member:
         await post_ai_comment(
             run.ticket_id,
@@ -2787,6 +2801,7 @@ async def cancel(
     state: str = "cancelled",
     revert_status: bool = True,
     stop_code: str | None = None,
+    quiet: bool = False,
 ) -> AiRun:
     """Stop a run from any active state; the status the run set returns (and is recorded on the run as a status
     change), files stay as they are. `stop_code` says why when it was not the person's Cancel button: archive,
@@ -2806,7 +2821,12 @@ async def cancel(
         proc.kill()
     task = RT.tasks.get(run_id)
     ended = await _end(
-        run_id, state, reason or f"Cancelled by {by}", by=by, stop_code=stop_code
+        run_id,
+        state,
+        reason or f"Cancelled by {by}",
+        by=by,
+        stop_code=stop_code,
+        quiet=quiet,
     )
     if task and not task.done() and task is not asyncio.current_task():
         try:
@@ -3796,6 +3816,13 @@ async def record_handoff(
                 )
             except RunError as exc:
                 await session.rollback()
+                # the assignment was committed before the run could be queued: put it back, or the ticket would
+                # wait on an AI that never starts
+                if ticket.assignee != target.id:
+                    async with database.async_session() as undo:
+                        await svc_tickets.update_ticket(
+                            undo, ticket_id, TicketUpdate(assignee=ticket.assignee)
+                        )
                 raise ValueError(str(exc)) from exc
     finally:
         if tokens is not None:
@@ -3821,6 +3848,22 @@ async def record_handoff(
     }
 
 
+async def _say_not_started(ticket_id: str, name: str, why: str) -> None:
+    """A ticket was given to an AI that could not be started: say so on the ticket, so it does not wait unseen."""
+    try:
+        await post_ai_comment(
+            ticket_id,
+            BOARD_AUTHOR,
+            f"{name} is now the assignee, but no run was started: {why.rstrip('. ')}. "
+            "Start it with Run on the ticket when it can.",
+            {"kind": "not_started"},
+        )
+    except (
+        Exception
+    ):  # the note is a courtesy; never fail the edit that was already made
+        logger.exception("could not say that %s was not started", ticket_id)
+
+
 async def wake_new_assignee(ticket_id: str, assignee_id: str) -> None:
     """An AI run assigned a ticket to another AI member by editing it (or a person approved that edit). A ticket
     handed over is only handed over when the receiver starts, as `ai_run(handoff)` does; without it the ticket waits on
@@ -3841,11 +3884,15 @@ async def wake_new_assignee(ticket_id: str, assignee_id: str) -> None:
             or member.kind != "ai"
             or profile is None
             or profile.connection == "inbox"
-            or profile.paused
-            or (await get_settings(session, ctx.project_id)).paused_all
             or await active_runs(session, member_id=assignee_id, ticket_id=ticket_id)
         ):
             return
+        if (await get_settings(session, ctx.project_id)).paused_all:
+            await _say_not_started(
+                ticket_id, member.name, "AI is paused for this project"
+            )
+            return
+        name = member.name  # read now: the rollback below expires the loaded rows
         mine = await session.get(AiRun, ctx.run_id) if ctx.run_id else None
         if ticket_id != ctx.ticket_id:
             back = {"member_id": ctx.member_id, "ticket_id": ctx.ticket_id}
@@ -3870,9 +3917,8 @@ async def wake_new_assignee(ticket_id: str, assignee_id: str) -> None:
             )
         except RunError as exc:
             await session.rollback()
-            logger.info(
-                "Assigning %s to %s started nothing: %s", ticket_id, member.name, exc
-            )
+            logger.info("Assigning %s to %s started nothing: %s", ticket_id, name, exc)
+            await _say_not_started(ticket_id, name, str(exc))
             return
     await audit.record(
         ctx.project_id,
@@ -3883,7 +3929,7 @@ async def wake_new_assignee(ticket_id: str, assignee_id: str) -> None:
         on_behalf_of=ctx.on_behalf_of,
         run_id=ctx.run_id,
         target=ticket_id,
-        detail={"to": member.name, "run": run.number, "via": "assignee"},
+        detail={"to": name, "run": run.number, "via": "assignee"},
     )
 
 

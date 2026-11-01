@@ -53,7 +53,12 @@ async def lookup(scope: str, member_id: str) -> str | None:
         row = await session.get(DocsAiSession, (scope, member_id))
         if row is None:
             return None
-        if session_exists(row.session_id):
+        from services.ai import accounts
+
+        # a member on an AI account keeps its sessions in the account's folder
+        if session_exists(
+            row.session_id, await accounts.config_dir_for_member(session, member_id)
+        ):
             return row.session_id
         await session.delete(row)
         await session.commit()

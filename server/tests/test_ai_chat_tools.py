@@ -212,7 +212,7 @@ async def test_the_board_context_goes_in_once_then_the_session_holds_it(
     env, fake, monkeypatch
 ):
     monkeypatch.setattr(
-        cli, "session_exists", lambda sid: True
+        cli, "session_exists", lambda sid, *a, **k: True
     )  # the CLI keeps the chat
     c, pid, an, m = await _setup(env)
     await _ticket(c, pid, title="Open one", status="in-progress")
@@ -239,7 +239,7 @@ async def test_the_board_context_goes_in_once_then_the_session_holds_it(
 async def test_the_context_comes_again_after_a_compaction_or_a_pick(
     env, fake, monkeypatch
 ):
-    monkeypatch.setattr(cli, "session_exists", lambda sid: True)
+    monkeypatch.setattr(cli, "session_exists", lambda sid, *a, **k: True)
     c, pid, an, m = await _setup(env)
     await _ticket(c, pid, title="Open one", status="todo")
     chat = await _chat(c, pid)
@@ -260,7 +260,7 @@ async def test_the_context_comes_again_after_a_compaction_or_a_pick(
 async def test_a_chat_without_the_members_tools_gets_the_full_context_every_time(
     env, fake, monkeypatch
 ):
-    monkeypatch.setattr(cli, "session_exists", lambda sid: True)
+    monkeypatch.setattr(cli, "session_exists", lambda sid, *a, **k: True)
     monkeypatch.setattr(chat_tools, "applies", lambda chat, profile: False)
     c, pid, an, m = await _setup(env)
     await _ticket(c, pid, title="Finished one", status="done")

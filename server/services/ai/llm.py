@@ -18,7 +18,8 @@ from dataclasses import dataclass
 
 import httpx
 
-from models import AiMember
+import database
+from models import AiAccount, AiMember
 
 from . import cli, secrets
 from .providers import PROVIDERS, cost_of
@@ -478,11 +479,16 @@ async def _claude_cli_run(
         if profile.working_dir and os.path.isdir(profile.working_dir)
         else tempfile.gettempdir()
     )
-    proc = cli.CliProcess(
-        args,
-        cwd,
-        env=cli.child_env(session.compact_at_pct if session else None),
-    )
+    env = cli.child_env(session.compact_at_pct if session else None)
+    # a member on an AI account runs under the account's login and keeps its sessions in the account's folder
+    if getattr(profile, "account_id", None):
+        async with database.async_session() as db:
+            account = await db.get(AiAccount, profile.account_id)
+        if account is not None:
+            from . import accounts
+
+            env = accounts.env_for(account, env)
+    proc = cli.CliProcess(args, cwd, env=env)
     out = Completion(model=model, metered=False)
     await proc.start()
     result: dict | None = None

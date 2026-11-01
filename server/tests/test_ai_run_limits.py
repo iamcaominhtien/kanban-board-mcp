@@ -287,3 +287,19 @@ async def test_the_stream_sends_a_snapshot_first(env):
     finally:
         resources.MON.unsubscribe(pid, queue)
     assert json.dumps(snap)  # plain JSON
+
+
+async def test_a_setting_that_cannot_be_empty_answers_422_not_500(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    for key in ("max_chain_depth", "board_max_parallel", "runs_per_ticket_per_day"):
+        r = await c.patch(f"/projects/{pid}/ai/settings", json={key: None})
+        assert r.status_code == 422, (key, r.text)
+    r = await c.patch(
+        f"/projects/{pid}/ai/settings", json={"runs_per_ticket_per_day": 0}
+    )
+    assert r.status_code == 422
+    r = await c.patch(
+        f"/projects/{pid}/ai/settings", json={"runs_per_ticket_per_day": 40}
+    )
+    assert r.status_code == 200 and r.json()["runs_per_ticket_per_day"] == 40

@@ -169,7 +169,7 @@ export function TimelineTab({
     ro.observe(el);
     setWidth(el.clientWidth);
     return () => ro.disconnect();
-  }, [data == null]);
+  }, [data == null, table]);
 
   // Lifelines to draw: on a narrow window, AIs with nothing in the range fold into one strip
   const all = useMemo(() => data?.lifelines ?? [], [data]);
@@ -592,6 +592,7 @@ export function TimelineTab({
           )}
           {selected && (
             <Inspector
+              key={JSON.stringify(selected)}
               data={data}
               pick={selected}
               people={people}

@@ -5,6 +5,7 @@ the account shown is what ``claude auth status`` prints (no token is in that out
 """
 
 import asyncio
+import calendar
 import json
 import os
 import re
@@ -15,7 +16,9 @@ import sys
 import tempfile
 import threading
 import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from . import paths
 from .secrets import redact
@@ -284,21 +287,65 @@ async def test_run(
 
 
 _RATE_LIMITED = re.compile(
-    r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests)",
+    r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests"
+    r"|hit your .{0,30}limit|limit (?:reached|exceeded)|quota (?:exceeded|exhausted)|resource_exhausted)",
+    re.IGNORECASE,
+)
+# "resets Nov 2 at 4pm (Asia/Saigon)", "resets Nov 3, 9am", "resets 3:30pm (America/New_York)"
+_RESETS = re.compile(
+    r"resets?\s+(?:(?P<mon>[A-Za-z]{3,9})\.?\s+(?P<day>\d{1,2})(?:,|\s+at)?\s+)?"
+    r"(?P<h>\d{1,2})(?::(?P<m>\d{2}))?\s*(?P<ap>am|pm)\b(?:\s*\((?P<tz>[A-Za-z_]+(?:/[A-Za-z_+\-0-9]+)*)\))?",
     re.IGNORECASE,
 )
 RATE_WAIT_DEFAULT = 45.0
 RATE_WAIT_MAX = 6 * 3600.0
 
 
+def reset_wait(text: str, now: datetime | None = None) -> float | None:
+    """Seconds until the time a plan-limit message says the limit resets, or None when it names none."""
+    m = _RESETS.search(text or "")
+    if not m:
+        return None
+    try:
+        zone = ZoneInfo(m["tz"]) if m["tz"] else None
+    except (ZoneInfoNotFoundError, ValueError):
+        zone = None
+    now = (now or datetime.now(UTC)).astimezone(zone)  # zone None: this computer's own
+    hour = int(m["h"]) % 12 + (12 if m["ap"].lower() == "pm" else 0)
+    when = now.replace(hour=hour, minute=int(m["m"] or 0), second=0, microsecond=0)
+    if m["mon"]:
+        month = next(
+            (
+                i
+                for i in range(1, 13)
+                if calendar.month_name[i].lower().startswith(m["mon"].lower()[:3])
+            ),
+            None,
+        )
+        if month is None:
+            return None
+        try:
+            when = when.replace(month=month, day=int(m["day"]))
+        except ValueError:
+            return None
+        if when < now - timedelta(hours=1):
+            when = when.replace(year=when.year + 1)
+    elif when < now:
+        when += timedelta(days=1)
+    return (when - now).total_seconds()
+
+
 def rate_limit_wait(text: str | None) -> float | None:
     """Seconds to wait when the CLI's output says the provider is rate-limiting it, else None. A usage-limit
-    message names the time it resets (``...limit reached|1760000000``); "retry after N" is honoured too."""
+    message names the time it resets (``...limit reached|1760000000`` or "resets Nov 2 at 4pm (Asia/Saigon)");
+    "retry after N" is honoured too."""
     if not text or not _RATE_LIMITED.search(text):
         return None
     reset = re.search(r"\|(\d{10})\b", text)
     if reset:
         wait = int(reset.group(1)) - time.time()
+    elif (until := reset_wait(text)) is not None:
+        wait = until
     else:
         after = re.search(r"retry[- ]after\D{0,10}(\d+)", text, re.IGNORECASE)
         wait = float(after.group(1)) if after else RATE_WAIT_DEFAULT
@@ -390,7 +437,17 @@ def looks_like_cli(pid: int, binary: str | None = None) -> bool:
                 .decode(errors="replace")
             )
         except OSError:
-            return False
+            # no /proc (macOS, BSD): ask ps for the command line
+            try:
+                out = subprocess.run(
+                    ["ps", "-o", "command=", "-p", str(int(pid))],
+                    capture_output=True,
+                    timeout=10,
+                    check=False,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                return False
+            cmd = out.stdout.decode(errors="replace")
     names = (binary,) if binary else LOCAL_CLIS
     return any(n in cmd for n in names) and any(
         f in cmd for f in ("--output-format", "--json", "--format")

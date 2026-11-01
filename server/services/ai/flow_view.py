@@ -189,7 +189,7 @@ async def team_map(
                 "offline"
                 if offline
                 else "waiting"
-                if mine_live and mine_live.get("state") == "needs_input"
+                if mine_live and mine_live.get("state") == "waiting_you"
                 else "paused"
             )
         durations = [s for r in mine if (s := flow._secs(r.started_at, r.ended_at))]

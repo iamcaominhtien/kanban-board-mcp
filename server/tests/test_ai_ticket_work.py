@@ -3,6 +3,7 @@ resume, raised limits, step output and test results, questions (details, reminde
 thread (regenerate, feedback, replies), the person-edit notes and the revert preview."""
 
 import asyncio
+import subprocess
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -228,7 +229,15 @@ async def _next_runs(c, tid, member_id, states):
 
 
 def _proc_state(pid: int) -> str:
-    return Path(f"/proc/{pid}/stat").read_text().split()[2]
+    if Path("/proc").is_dir():
+        return Path(f"/proc/{pid}/stat").read_text().split()[2]
+    # macOS has no /proc: ps prints the state ("T" stopped, "S" sleeping, "Z" zombie), nothing for a gone process
+    out = subprocess.run(
+        ["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True
+    ).stdout.strip()
+    if not out or out.startswith("Z"):
+        raise FileNotFoundError(pid)
+    return out[0]
 
 
 async def _state_is(pid: int, state: str | None) -> bool:
@@ -854,3 +863,23 @@ async def test_the_revert_preview_names_who_edited_a_field_and_lists_what_stays(
         by_field["Branch"]["kind"] == "branch"
         and by_field["Branch"]["name"] == "ai/kan-142-drag-handle"
     )
+
+
+async def test_closing_the_board_ends_a_run_quietly(env, monkeypatch):
+    """A graceful quit is not the AI's failure: no 'failed' comment, no status move, no auto-trip count."""
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    run = await _wait(c, tid, ("running",))
+    await _until(lambda: _steps_over(c, tid, 2))
+    status = (await c.get(f"/tickets/{tid}")).json()["status"]
+    await runs.stop_scheduler()
+    ended = (await _runs(c, tid))[0]
+    assert ended["id"] == run["id"] and ended["state"] == "failed"
+    assert "board was closed" in ended["ended_reason"]
+    t = (await c.get(f"/tickets/{tid}")).json()
+    assert not any("failed" in x["text"] for x in t["comments"])
+    assert t["status"] == status

@@ -110,6 +110,17 @@ def env_for(account: AiAccount, base: dict[str, str]) -> dict[str, str]:
     return profile_of(account).overlay(base)
 
 
+async def config_dir_for_member(session, member_id: str) -> str | None:
+    """The CLAUDE_CONFIG_DIR of the AI account a member uses (where its Claude Code sessions are kept), or None for a
+    member on the login already on this computer."""
+    from models import AiMember
+
+    member = await session.get(AiMember, member_id)
+    if member is None or not member.account_id:
+        return None
+    return claude_config_dir(await session.get(AiAccount, member.account_id))
+
+
 def claude_config_dir(account: AiAccount | None) -> str | None:
     """The CLAUDE_CONFIG_DIR a Claude Code account uses, where its sessions are kept."""
     return account.folder if account and account.cli == "claude" else None

@@ -143,6 +143,11 @@ async def _may_decide(session: AsyncSession, a: AiApproval, cfg: dict) -> str | 
         return "The delegate cannot decide its own request."
     if _rank(a.risk) > _rank(cfg["max_risk"]):
         return f"This is {a.risk} risk; Autopilot stops at {cfg['max_risk']}."
+    # Safe mode (of the project or of the member who asked) means no AI change: a person decides what waits then
+    settings = await session.get(AiProjectSettings, a.project_id)
+    _, asker = await get_profile(session, a.member_id)
+    if (settings and settings.safe_mode) or (asker and asker.safe_mode):
+        return "Safe mode is on; a person decides."
     return None
 
 
@@ -364,9 +369,12 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
     """The delegate approves or denies a permission request."""
     from . import guard
 
-    _, _, cfg = await _delegate_run(ctx)
+    run, _, cfg = await _delegate_run(ctx)
     if not cfg["approvals"]:
         raise AutopilotError("Autopilot is not set to decide permission requests.")
+    # only what this run's brief put in front of the delegate (after the grace time, within the risk it may take)
+    if request not in (run.instruction or ""):
+        raise AutopilotError(f"Request {request} was not in your brief.")
     await _within_limit(ctx.project_id, cfg)
     async with database.async_session() as session:
         a = await session.get(AiApproval, request)
@@ -411,11 +419,13 @@ async def answer(ctx, request: str, text: str) -> dict:
     """The delegate answers an AI's question."""
     from . import guard, runs
 
-    _, _, cfg = await _delegate_run(ctx)
+    run, _, cfg = await _delegate_run(ctx)
     if not cfg["questions"]:
         raise AutopilotError("Autopilot is not set to answer questions.")
     if not (text or "").strip():
         raise AutopilotError("Write the answer.")
+    if request not in (run.instruction or ""):
+        raise AutopilotError(f"Question {request} was not in your brief.")
     await _within_limit(ctx.project_id, cfg)
     async with database.async_session() as session:
         target = await session.get(AiRun, request)

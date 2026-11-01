@@ -612,8 +612,13 @@ async def load(session: AsyncSession, project_id: str, since: datetime) -> Data:
     all_runs = (
         await session.exec(select(AiRun).where(AiRun.project_id == project_id))
     ).all()
+    # a run queued before `since` that is still going, or ended inside the range, belongs to it too
     recent_tickets = {
-        r.ticket_id for r in all_runs if (parse_iso(r.queued_at) or since) >= since
+        r.ticket_id
+        for r in all_runs
+        if (parse_iso(r.queued_at) or since) >= since
+        or r.state in ("queued", "starting", "running", "needs_input")
+        or (parse_iso(r.ended_at) or since - timedelta(seconds=1)) >= since
     }
     runs = [r for r in all_runs if r.ticket_id in recent_tickets]
     tickets = {

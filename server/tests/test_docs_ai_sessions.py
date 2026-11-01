@@ -17,7 +17,7 @@ from tests.test_docs_ai_threads import TEXT, _mention, _thread, _wait
 @pytest.fixture(autouse=True)
 def cli_has_every_session(monkeypatch):
     """The fake CLI writes no session files: pretend the CLI still has any session."""
-    monkeypatch.setattr(sessions, "session_exists", lambda _sid: True)
+    monkeypatch.setattr(sessions, "session_exists", lambda _sid, *a, **k: True)
 
 
 async def _rows(pid):
@@ -119,7 +119,7 @@ async def test_a_session_the_cli_lost_is_replaced(env, fake, monkeypatch):
     t = await _thread(c, p["id"], f"{_mention(m)} hi")
     await _wait(c, t["ai_delivery"][0]["job_id"])
     first = [x for x in fake.sessions if x is not None][0].id
-    monkeypatch.setattr(sessions, "session_exists", lambda _sid: False)
+    monkeypatch.setattr(sessions, "session_exists", lambda _sid, *a, **k: False)
     fake.queue.append("Ok.\nVERDICT: OK")
     r = await c.post(
         f"/docs/comments/threads/{t['id']}/replies",

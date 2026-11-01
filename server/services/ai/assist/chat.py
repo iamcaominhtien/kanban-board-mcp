@@ -766,7 +766,11 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 if not docs_sessions.is_busy(shared, profile.id):
                     page_scope = shared
                     session_id = await docs_sessions.lookup(shared, profile.id)
-            resume = bool(session_id) and cli.session_exists(session_id)
+            from .. import accounts
+
+            resume = bool(session_id) and cli.session_exists(
+                session_id, await accounts.config_dir_for_member(session, profile.id)
+            )
             session_use = llm.SessionUse(
                 session_id if resume else str(uuid.uuid4()),
                 resume,

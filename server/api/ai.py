@@ -22,6 +22,7 @@ from database import get_session
 from models import (
     AiAccount,
     AiMember,
+    AiProjectSettings,
     AiRun,
     Member,
     Project,
@@ -911,11 +912,27 @@ async def patch_settings(project_id: str, body: SettingsBody, session: Session) 
                 status_code=422,
                 detail=f"{member.name} is not reachable right now; fix it first.",
             )
+    # A column that cannot be empty answers 422 to an empty value, not a database error
+    columns = AiProjectSettings.__table__.columns
+    for key, value in data.items():
+        col_ = columns.get(key)
+        if value is None and col_ is not None and not col_.nullable:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{key.replace('_', ' ').capitalize()} cannot be empty.",
+            )
     if (
         data.get("max_chain_depth") is not None
         and not 1 <= data["max_chain_depth"] <= 10
     ):
         raise HTTPException(status_code=422, detail="Max chain depth: 1 to 10.")
+    if (
+        data.get("runs_per_ticket_per_day") is not None
+        and not 1 <= data["runs_per_ticket_per_day"] <= 1000
+    ):
+        raise HTTPException(
+            status_code=422, detail="Runs per ticket per day: 1 to 1000."
+        )
     if data.get("approval_expiry_hours") is not None and data[
         "approval_expiry_hours"
     ] not in (1, 4, 24, 72):
