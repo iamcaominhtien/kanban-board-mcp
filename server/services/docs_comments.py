@@ -405,7 +405,7 @@ async def _record_event(
     session.add(event)
     from services import notifications as centre
 
-    centre.comment_event(event)
+    centre.comment_event(event, session)
 
 
 async def list_events(

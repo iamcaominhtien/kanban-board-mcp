@@ -287,7 +287,7 @@ async def needs() -> None:
         ticket_id=k["208"],
         target_kind="run",
     )
-    await centre.reconcile()
+    # the running server notes the signed-out account and closes rows (its loop); doing it here too would race it
     print("needs done", q, aid, f)
 
 

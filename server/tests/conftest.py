@@ -95,12 +95,16 @@ def _resource_monitor_starts_empty():
 
 
 @pytest.fixture(autouse=True)
-def _notification_queues_are_per_test():
+async def _notification_queues_are_per_test():
     """Events queued for the notification log by one test must not be written into the next test's database."""
+    import asyncio
+
     from services import notifications
 
     notifications._pending.clear()
     notifications._later.clear()
     yield
+    if notifications._background:
+        await asyncio.gather(*notifications._background, return_exceptions=True)
     notifications._pending.clear()
     notifications._later.clear()

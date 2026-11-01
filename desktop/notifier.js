@@ -117,6 +117,9 @@ function backoffMs(attempt) {
  * deps: { now(), setTimer(fn, ms) → handle, clearTimer(handle), show(notice) → handle, close(handle), context() →
  * {focused} }. `show` returns whatever the caller needs to close the notice later (an Electron Notification).
  */
+const TOLD_MAX = 2000;
+const LIVE_MAX = 50;
+
 class NotifierCore {
   constructor(deps) {
     this.deps = deps;
@@ -158,7 +161,10 @@ class NotifierCore {
       }
       const last = row.last_event_id ?? row.event_id ?? null;
       if (this.told.has(row.id) && this.told.get(row.id) === last) continue;
+      this.told.delete(row.id);
       this.told.set(row.id, last);
+      // what has been told is kept for the newest rows only (insertion order: the oldest go first)
+      while (this.told.size > TOLD_MAX) this.told.delete(this.told.keys().next().value);
       if (!shouldNotify(row, ctx)) continue;
       this.enqueue(row);
     }
@@ -236,6 +242,17 @@ class NotifierCore {
     this.timer = null;
     this.pending.clear();
   }
+
+  /** Another person or another backend: nothing queued for the old one is shown, its notices are withdrawn, and the
+   * next feed only gives the head again. */
+  reset() {
+    this.stop();
+    for (const handle of [...this.handleRows.keys()]) this.deps.close(handle);
+    this.handleRows.clear();
+    this.shown.clear();
+    this.told.clear();
+    this.head = null;
+  }
 }
 
 // ── The Electron side ───────────────────────────────────────────────────────────────────────────────────────────
@@ -303,6 +320,8 @@ function startNotifier(opts) {
       actions: platform === 'darwin' ? actions.map((a) => ({ type: 'button', text: a.label })) : [],
     });
     live.add(n);
+    // Linux often never sends 'close': keep only the newest notices referenced
+    while (live.size > LIVE_MAX) live.delete(live.values().next().value);
     const done = () => {
       live.delete(n);
       core.forget(n);
@@ -440,8 +459,7 @@ function startNotifier(opts) {
     /** The backend (re)started on a new port: follow it from its head. */
     setPort(p) {
       port = p;
-      core.head = null;
-      core.told.clear();
+      core.reset();
       if (!port) return;
       if (!pollTimer) start();
       else {
@@ -454,8 +472,7 @@ function startNotifier(opts) {
       const next = typeof name === 'string' && name.trim() ? name.trim() : 'user';
       if (next === actor) return;
       actor = next;
-      core.head = null;
-      core.told.clear();
+      core.reset();
       refresh();
     },
     status() {

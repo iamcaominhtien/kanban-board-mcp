@@ -162,3 +162,17 @@ test('system settings links and the event stream', () => {
   assert.strictEqual(n.backoffMs(0), 1000);
   assert.strictEqual(n.backoffMs(10), 30000);
 });
+
+test('another person or backend: queued notices are dropped, shown ones withdrawn, the next feed only sets the head', () => {
+  const h = harness();
+  h.core.applyFeed({ head: 11, items: [row('a', { last_event_id: 11 })] });
+  h.core.applyFeed({ head: 12, items: [row('b', { last_event_id: 12 })] }); // waits for the 20 s window
+  assert.strictEqual(h.shown.length, 1);
+  h.core.reset();
+  assert.strictEqual(h.closed.length, 1, 'the shown notice is withdrawn');
+  h.advance(30000);
+  assert.strictEqual(h.shown.length, 1, 'the queued one is never shown');
+  h.core.applyFeed({ head: 3, items: [row('c', { last_event_id: 3 })] });
+  assert.strictEqual(h.core.head, 3);
+  assert.strictEqual(h.shown.length, 1, 'the first feed after a reset replays nothing');
+});

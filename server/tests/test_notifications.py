@@ -529,9 +529,9 @@ async def test_the_feed_starts_at_head_and_a_pruned_cursor_is_too_old(env):
     assert old["cursor_too_old"] is True
     log = (await c.get("/notifications/log", params={"since": head})).json()
     assert log["cursor_too_old"] is True
-    assert (await c.get("/notifications", params={"view": "page"})).json()[
-        "items"
-    ] == []
+    # the update is gone; the question still waits, so its row stays (retention never drops open work)
+    kept = (await c.get("/notifications", params={"view": "page"})).json()["items"]
+    assert [r["kind"] for r in kept] == ["question"]
     # ids are never reused after a prune
     new = await centre.emit(
         "ai_finished", project_id=pid, recipients=["user"], title="z"
@@ -631,3 +631,83 @@ async def test_the_desktop_master_switch_keeps_the_per_kind_choices(env):
     )
     [row] = (await _panel(c, "needs"))["items"]
     assert row["desktop"] is False and row["inapp"] is True
+
+
+async def test_pause_all_is_one_row_per_project_and_closes_on_resume(env):
+    c, pid, m, tid = await _setup(env)
+    other, _ = await _project_b(c)
+    await safety.notify(pid, "auto_trip", "AI is paused", "user paused all AI.")
+    await safety.notify(other, "auto_trip", "AI is paused", "user paused all AI.")
+    rows = (await _panel(c, "needs"))["items"]
+    assert sorted(r["project_id"] for r in rows) == sorted([pid, other])
+    async with env["maker"]() as s:
+        from models import AiProjectSettings
+
+        for p_ in (pid, other):
+            st = await s.get(AiProjectSettings, p_) or AiProjectSettings(project_id=p_)
+            st.paused_all = (
+                p_ == other
+            )  # the first project resumed, the other is still paused
+            s.add(st)
+        await s.commit()
+    await centre.reconcile()
+    rows = {r["project_id"]: r for r in (await _panel(c, "needs"))["items"]}
+    assert rows[pid]["done_text"] == "AI was resumed" and not rows[other]["done"]
+
+
+async def _project_b(c):
+    p = (
+        await c.post(
+            "/projects",
+            json={"name": "Mobile App", "prefix": "MOB", "color": "#3A6EA5"},
+        )
+    ).json()
+    return p["id"], None
+
+
+async def test_a_reply_closes_only_the_mention_of_who_replied(env):
+    from models import DocsComment, DocsCommentThread, DocsPage
+
+    c, pid, m, tid = await _setup(env)
+    async with env["maker"]() as s:
+        page = DocsPage(project_id=pid, title="API", slug="api")
+        s.add(page)
+        await s.flush()
+        th = DocsCommentThread(page_id=page.id)
+        s.add(th)
+        await s.commit()
+        thread_id = th.id
+    for who in ("user", "hoa mai"):
+        await centre.emit(
+            "mention",
+            project_id=pid,
+            recipients=[who],
+            title="Rin mentioned you",
+            target_kind="thread",
+            target_id=thread_id,
+        )
+    async with env["maker"]() as s:
+        s.add(DocsComment(thread_id=thread_id, author="Hoa Mai", body="Done."))
+        await s.commit()
+    await centre.reconcile()
+    [mine] = (await _panel(c, "needs"))["items"]
+    [hers] = (await _panel(c, "needs", {"X-Actor": "Hoa Mai"}))["items"]
+    assert not mine["done"] and hers["done_text"] == "You replied"
+
+
+async def test_an_ask_run_does_not_count_as_a_retry(env):
+    c, pid, m, tid = await _setup(env)
+    rid = await _run(env, pid, m["id"], tid, state="failed", number=1)
+    await _set(env, AiRun, rid, ended_at=datetime.now(UTC).isoformat())
+    await centre.on_run_ended(rid)
+    await _run(env, pid, m["id"], tid, state="finished", number=2, mode="ask")
+    await centre.reconcile()
+    [row] = (await _panel(c, "needs"))["items"]
+    assert not row["done"]
+
+
+async def test_a_cursor_above_the_head_is_too_old(env):
+    c, pid, m, tid = await _setup(env)
+    await centre.emit("ai_finished", project_id=pid, recipients=["user"], title="a")
+    feed = (await c.get("/notifications/feed", params={"since": 999})).json()
+    assert feed["cursor_too_old"] is True and feed["head"] >= 1

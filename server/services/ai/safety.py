@@ -307,6 +307,7 @@ async def notify(
     member_id: str | None = None,
     people: list[str] | None = None,
     data: dict | None = None,
+    to_centre: bool = True,
 ) -> AiNotification | None:
     """Record a safety event and tell the notification centre. Owners and admins are recipients of every one;
     `people` also get this one. Nothing is held back and nothing is skipped: whether it shows in the panel or on
@@ -348,12 +349,15 @@ async def notify(
             a = await session.get(AiApproval, ref_id)
             ticket_id = a.ticket_id if a else None
         if event == "auto_trip" and ref_kind != "member":
-            target_kind, target_id = None, None
+            # Pause all AI: the project itself (resumed when the project is)
+            target_kind, target_id = "project", project_id
         kind = _centre_kind(event, ref_kind, data)
         actor = None
         if member_id:
             m = await session.get(Member, member_id)
             actor = m.name if m else None
+    if not to_centre:
+        return row
     try:
         await centre.emit(
             kind,

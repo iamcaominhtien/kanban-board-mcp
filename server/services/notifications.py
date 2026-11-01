@@ -178,8 +178,10 @@ async def _announce(head: int | None) -> None:
 
 
 async def head_id(session: AsyncSession) -> int:
-    """The newest id of the log (0 when empty)."""
-    return int((await session.exec(select(func.max(NotifyEvent.id)))).one() or 0)
+    """The newest id of the log (0 when empty); never below what retention deleted, so a cursor never goes back."""
+    top = int((await session.exec(select(func.max(NotifyEvent.id)))).one() or 0)
+    g = await _global(session)
+    return max(top, int(g.get("pruned_through") or 0))
 
 
 # ---------------------------------------------------------------------------
@@ -603,7 +605,10 @@ def _group_key(
         # ticket are one row, as Retry answers them all
         if kind in ("run_failed", "run_stopped_memory") and ticket_id:
             return f"{kind}:ticket:{ticket_id}"
-        return f"{kind}:{target_kind or '-'}:{target_id or '-'}"
+        if target_id:
+            return f"{kind}:{target_kind or '-'}:{target_id}"
+        # nothing to point at: one row per project, never across projects
+        return f"{kind}:project:{project_id or '-'}"
     if kind == "run_restarted" and target_id:
         return (
             f"{kind}:{target_id}"  # several restarts of one run in minutes are one row
@@ -726,13 +731,16 @@ async def emit(
             row.updated_at = now.isoformat()
             row.snoozed_until = None if needs else row.snoozed_until
             if needs:
-                if kind == "run_failed":
+                # the latest words of the same request (a failure again, a question asked again); a safety
+                # reminder of it ("has waited 6 h") keeps the request's own words
+                if not (data or {}).get("safety_id"):
                     row.title, row.body = ev.title, ev.body
+                if target_kind == "run" or row.target_kind != "run":
                     row.target_kind, row.target_id = target_kind, target_id
             else:
                 row.title, row.body = (
                     _group_title(kind, items, row.count),
-                    _group_body(kind, items),
+                    _group_body(kind, items, row.count),
                 )
                 row.data = json.dumps({**_loads(row.data, {}), **(data or {})})
             session.add(row)
@@ -786,11 +794,23 @@ async def flush_pending() -> int:
         kind = item.pop("kind")
         names = item.pop("names", None)
         try:
-            if names is not None:
-                async with database.async_session() as s:
+            async with database.async_session() as s:
+                if names is not None:
                     item["recipients"] = await recipient_keys(
                         s, item.get("project_id"), names
                     )
+                if item.get("target_kind") == "schedule_run" and item.get("target_id"):
+                    # a scheduled slot points at its last run, so Retry and "retried" work as for any run
+                    from models import AiScheduleRun
+
+                    srun = await s.get(AiScheduleRun, item["target_id"])
+                    run_ids = _loads(srun.run_ids, []) if srun else []
+                    if run_ids:
+                        item["data"] = {
+                            **(item.get("data") or {}),
+                            "srun_id": item["target_id"],
+                        }
+                        item["target_kind"], item["target_id"] = "run", run_ids[-1]
             await emit(kind, **item)
             n += 1
         except Exception:  # noqa: BLE001 - a notification never breaks the feature that sent it
@@ -817,9 +837,10 @@ def _group_title(kind: str, items: list[dict], count: int) -> str:
     return _GROUP_TITLES.get(kind, "{n} updates").format(n=n)
 
 
-def _group_body(kind: str, items: list[dict]) -> str:
-    if len(items) > GROUP_NAMES_MAX:
-        return f"{len(items)} in 10 minutes"
+def _group_body(kind: str, items: list[dict], count: int | None = None) -> str:
+    total = count or len(items)
+    if total > GROUP_NAMES_MAX:
+        return f"{total} in 10 minutes"
     names: list[str] = []
     for i in items:
         who = i.get("actor") or ""
@@ -961,6 +982,7 @@ async def _why_closed(
                 select(AiRun)
                 .where(
                     AiRun.ticket_id == r.ticket_id,
+                    AiRun.mode == "work",
                     col(AiRun.queued_at) > r.updated_at,
                 )
                 .order_by(col(AiRun.queued_at))
@@ -1028,7 +1050,7 @@ async def _why_closed(
             if raised is not None:
                 return "{who} raised the cap", raised.created_by, False
         return None
-    if r.kind == "auto_trip" and r.project_id and r.target_kind is None:
+    if r.kind == "auto_trip" and r.project_id and r.target_kind in (None, "project"):
         s = await session.get(AiProjectSettings, r.project_id)
         if s is not None and not s.paused_all:
             return "AI was resumed", None, False
@@ -1042,9 +1064,28 @@ async def _why_closed(
     return None
 
 
+_reconcile_lock: asyncio.Lock | None = None
+
+
 async def reconcile() -> int:
     """Close every open Needs you row whose thing no longer needs a person, and note AI accounts that signed out.
-    Cheap: it reads only open Needs you rows. Returns how many rows closed."""
+    Cheap: it reads only open Needs you rows. One at a time (requests and the loop both call it), so an account is
+    noted and a row resolved once. Returns how many rows closed."""
+    global _reconcile_lock
+    if _reconcile_lock is None:
+        _reconcile_lock = asyncio.Lock()
+    try:
+        async with _reconcile_lock:
+            return await _reconcile()
+    except (
+        RuntimeError
+    ):  # the lock was made on another event loop (tests): make a new one
+        _reconcile_lock = asyncio.Lock()
+        async with _reconcile_lock:
+            return await _reconcile()
+
+
+async def _reconcile() -> int:
     closed = 0
     await flush_pending()
     async with database.async_session() as session:
@@ -1059,10 +1100,13 @@ async def reconcile() -> int:
         ).all()
         groups: dict[tuple, list[Notification]] = {}
         for r in rows:
+            # a reply closes the mention of the person who replied, not everyone's: threads are judged per row
+            who = r.recipient if r.target_kind == "thread" else ""
             groups.setdefault(
-                (r.kind, r.target_kind, r.target_id, r.ticket_id), []
+                (r.kind, r.target_kind, r.target_id, r.ticket_id, r.project_id, who),
+                [],
             ).append(r)
-        for (_, _, _, _), same in groups.items():
+        for same in groups.values():
             try:
                 why = await _why_closed(session, same[0])
             except Exception:  # noqa: BLE001
@@ -1255,6 +1299,8 @@ async def on_run_ended(run_id: str) -> None:
             elif run.state in ("failed", "timed_out") and run.mode == "work":
                 if run.stop_code == "memory":
                     return  # "stopped for memory" was written by the safety event
+                if run.trigger == "schedule":
+                    return  # its schedule tells the slot's failure, once
                 verb = "failed" if run.state == "failed" else "timed out"
                 await emit(
                     "run_failed",
@@ -1332,8 +1378,13 @@ async def on_page_published(page: dict[str, Any], note: str | None = None) -> No
         logger.exception("Could not write the publish notification")
 
 
-def comment_event(e: Any) -> None:
-    """Called where a Docs comment event is added (before its commit): told within a second, by the loop."""
+_background: set[asyncio.Task] = set()
+
+
+def comment_event(e: Any, session: Any = None) -> None:
+    """Called where a Docs comment event is added. In the board's server the loop writes it within a second; in a
+    process without the loop (the stdio MCP server) it is written right after `session` commits (or now, when it
+    was already committed)."""
     fields = {
         "project_id": e.project_id,
         "page_id": e.page_id,
@@ -1346,8 +1397,25 @@ def comment_event(e: Any) -> None:
         "page_title": e.page_title,
         "snippet": e.snippet,
     }
-    _later.append((on_comment_event, fields))
-    mark_dirty()
+    if _task is not None and not _task.done():
+        _later.append((on_comment_event, fields))
+        mark_dirty()
+        return
+
+    def run(*_args) -> None:
+        try:
+            t = asyncio.get_running_loop().create_task(on_comment_event(fields))
+        except RuntimeError:
+            return
+        _background.add(t)
+        t.add_done_callback(_background.discard)
+
+    if session is not None:
+        from sqlalchemy import event as sa_event
+
+        sa_event.listen(session.sync_session, "after_commit", run, once=True)
+    else:
+        run()
 
 
 async def on_comment_event(fields: dict) -> None:
@@ -1724,7 +1792,8 @@ async def feed(session: AsyncSession, me: str, since: int | None) -> dict:
     head = await head_id(session)
     g = await _global(session)
     pruned = int(g.get("pruned_through") or 0)
-    too_old = since is not None and since > 0 and since < pruned
+    # below what was deleted, or above the head (the database was restored or switched): start again from head
+    too_old = since is not None and since > 0 and (since < pruned or since > head)
     if since is None or too_old:
         return {"head": head, "cursor_too_old": too_old, "items": [], "resolved": []}
     rows = (
@@ -1783,7 +1852,7 @@ async def log_since(
     head = await head_id(session)
     g = await _global(session)
     pruned = int(g.get("pruned_through") or 0)
-    if since > 0 and since < pruned:
+    if since > 0 and (since < pruned or since > head):
         return {"head": head, "cursor_too_old": True, "events": []}
     stmt = select(NotifyEvent).where(col(NotifyEvent.id) > since)
     if project_id:
@@ -2057,22 +2126,25 @@ async def build_day_card(
                 ),
             }
         )
+    not_retried: list[AiRun] = []
+    for r in failed:
+        newer = (
+            await session.exec(
+                select(AiRun).where(
+                    AiRun.ticket_id == r.ticket_id,
+                    AiRun.mode == "work",
+                    col(AiRun.queued_at) > (r.ended_at or r.queued_at),
+                )
+            )
+        ).first()
+        if newer is None:
+            not_retried.append(r)
     if failed:
         parts = []
         for r in failed[:3]:
             why = (r.ended_reason or r.state.replace("_", " ")).split(". ")[0][:60]
             parts.append(f"{r.ticket_id} ({why})")
-        retried = 0
-        for r in failed:
-            newer = (
-                await session.exec(
-                    select(AiRun).where(
-                        AiRun.ticket_id == r.ticket_id,
-                        col(AiRun.queued_at) > (r.ended_at or r.queued_at),
-                    )
-                )
-            ).first()
-            retried += 1 if newer else 0
+        retried = len(failed) - len(not_retried)
         lines.append(
             {
                 "kind": "failed",
@@ -2177,7 +2249,8 @@ async def build_day_card(
         "until": u_iso,
         "finished": len(finished),
         "failed": len(failed),
-        "failed_runs": [r.id for r in failed],
+        # only what has not been retried yet, so "Retry both failed" never starts a run twice
+        "failed_runs": [r.id for r in not_retried],
         "waiting": len(waiting_open),
         "waiting_ids": [r.id for r in waiting_open],
         "snoozed": len(snoozed),
@@ -2217,7 +2290,9 @@ async def write_day_cards(
                     .order_by(col(Notification.created_at).desc())
                 )
             ).first()
-            day_id = f"{me}:{local.date().isoformat()}"
+            day_id = f"{me}:{local.date().isoformat()}" + (
+                f":now:{int(now.timestamp())}" if force_for else ""
+            )
             if not force_for and last is not None and last.target_id == day_id:
                 continue
             since = (
@@ -2260,7 +2335,14 @@ async def prune(now: datetime | None = None) -> int:
             )
         ).one()
         r1 = await session.exec(
-            delete(Notification).where(col(Notification.updated_at) < cutoff)
+            delete(Notification).where(
+                col(Notification.updated_at) < cutoff,
+                # an open Needs you row is work still waiting: it stays until it is done
+                or_(
+                    Notification.needs == False,  # noqa: E712
+                    col(Notification.done_at).is_not(None),
+                ),
+            )
         )
         await session.exec(
             delete(NotifyEvent).where(col(NotifyEvent.created_at) < cutoff)
