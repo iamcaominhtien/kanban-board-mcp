@@ -2,6 +2,8 @@
 
 > SCREEN — V1 PROPOSAL · source: [`AiAccounts.dc.html`](../source/AiAccounts.dc.html) · canvas `1793441542-8a90` · sha256 `776dbd2758914f3d55d71c09c336c44076e14a7d09227fd1ad3e00825e567d2a`
 
+> **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — E3 says a subscription account is *not metered*. A Claude account now shows how much of its usage window it has spent, when the window reopens, and lets urgent work move to an account with room (section E).
+
 > Based on `main` and [ai-members.md](ai-members.md). Desktop only. Mock terminal text is illustrative: each CLI words its own prompts.
 
 A list of AI accounts (one sign-in of one CLI), a sign-in window with a real terminal that tells you what it is waiting for, choosing an account when creating or editing an AI member, how members show their account and what happens when it is signed out, and the new CLI types: Codex, opencode and Antigravity.

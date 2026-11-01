@@ -2,6 +2,8 @@
 
 > SCREEN — V1 PROPOSAL · source: [`AiEverywhere.dc.html`](../source/AiEverywhere.dc.html) · canvas `1793295530-5588` · sha256 `567d8b0a57df9c42b3bc44dd6035c732162a9143fd0ddf352bc8d64aa006db6e`
 
+> **Extended by [AI team & process](ai-team-process.md)** (wave 2 of `docs/specs/ai-claude-code-plan.md`) — a box on the ticket sends a sentence to the AI that is running right now, and a chat with the coordinator assigns work itself instead of handing you a list (section J).
+
 AI built into the ticket, the comment box and every editor, using the AI members, limits and audit that already exist. You can chat on the ticket, call an AI with @ and choose whether it only answers or does the work, and get help while writing as a draft you accept.
 
 Source: [AiEverywhere.dc.html](../source/AiEverywhere.dc.html) › header ("SCREEN — V1 PROPOSAL", "AI where you work — ticket chat, @mentions and editor" and the intro)

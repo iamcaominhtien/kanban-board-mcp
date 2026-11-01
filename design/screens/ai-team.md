@@ -2,6 +2,10 @@
 
 > SCREEN — V1 PROPOSAL · source: [`AiTeam.dc.html`](../source/AiTeam.dc.html) · canvas `1793406673-3d1f` · sha256 `6a2a42b026970571cdade3e52a3614171b96a0ca9a6c654b7d1570aa4052a06f`
 
+> **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — the **Needs you** strip in *Now* keeps its name but every row gains a diagnosis, what was already tried and the same four ways out (section D); *Open the run* finally has a screen behind it (section G).
+
+> **Extended by [AI team & process](ai-team-process.md)** (wave 2 of `docs/specs/ai-claude-code-plan.md`) — two AIs that stop converging go to a coordinator AI before they reach you (section H), and Health gains a second grouping — per workflow template rather than per AI (section L).
+
 A view for any project that has an AI team. It shows what each AI is doing now, how work passes between them (tickets, Docs deliverables and whole parent tickets), and where a person had to step in. It reads records the app already keeps.
 
 Source: [AiTeam.dc.html](../source/AiTeam.dc.html) › header ("SCREEN — V1 PROPOSAL", "AI Team — what the AIs are doing and how work moves between them" and the intro)

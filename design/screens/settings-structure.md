@@ -2,6 +2,10 @@
 
 > SCREEN — V1 PROPOSAL · source: [`SettingsNav.dc.html`](../source/SettingsNav.dc.html) · canvas `1793277091-b441` · sha256 `c9e13b688590060debe423521f04370231e26fa69dede263c76994af418356e1`
 
+> **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — the *Repositories* page is drawn: one git worktree per ticket with its branch, state, size and port, plus the prepare command and how finished code is handed over (sections I, J and K).
+
+> **Extended by [AI team & process](ai-team-process.md)** (wave 2 of `docs/specs/ai-claude-code-plan.md`) — Project settings → AI gains two pages: **Skills & plugins** and **Workflows** (sections B and E).
+
 Settings becomes a full page with a list of pages, search and direct links, instead of one long modal. This board shows the options considered, the new page, where each current setting goes, and how search and navigation work. The pages themselves and their states are on the next board.
 
 Source: [SettingsNav.dc.html](../source/SettingsNav.dc.html) › header ("SCREEN — V1 PROPOSAL", "Settings — structure & navigation" and the intro)

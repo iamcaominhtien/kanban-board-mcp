@@ -2,6 +2,8 @@
 
 > Screen — v1 · source: [`MainBoard.dc.html`](../source/MainBoard.dc.html) · canvas `1789831198-eb58` · sha256 `c9cfebf2497dd15ff4d691c68f3fc1fdc9737424dc41902e89cf493acc1c73ec`
 
+> **Extended by [AI team & process](ai-team-process.md)** (wave 2 of `docs/specs/ai-claude-code-plan.md`) — a ticket can carry a workflow: a strip of steps with a role on each, an assignee that means *who is holding it* without erasing who held it before, and new filters for role, workflow, step and *waiting for me* (sections F and K).
+
 The whole app shell — sidebar, top bar, filters, columns — pulled together from the pieces already designed (Ticket Card, Tags, Sub-task Grouping, Drag & Drop).
 
 Biggest change from today's `Board.tsx` / `Column.tsx`: columns drop the flat neon fill (`#F5C518` / `#E8441A` / `#AACC2E` / `#F472B6`) for the quiet header-plus-count treatment already established in Sub-task Grouping — a thin color bar carries identity instead of a loud background.

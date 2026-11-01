@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793534201-93f9",
-  "exported": "2026-10-31",
+  "canvas_version": "1793552517-25b5",
+  "exported": "2026-11-01",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -68,8 +68,8 @@
       "h": 7975
     },
     "AiSafetyCost.dc.html": {
-      "bytes": 336509,
-      "sha256": "fdbaa589d309b09f3f9d52d2c944eacb66c597e314a5896a94c4d9701198cebd",
+      "bytes": 333892,
+      "sha256": "b76e1a31f4eb34c67b7d9b23c233f4cc4449d73cc81432de017476c1e0de6616",
       "title": "AI safety & cost",
       "page": "screens_ai",
       "w": 1480,
@@ -619,6 +619,30 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 8098
+    },
+    "AiOperations.dc.html": {
+      "bytes": 245805,
+      "sha256": "b36309e624168c51842faea3646a8be6f614c1a9515abc2fe5dadf11d515e300",
+      "title": "AI operations — hangs, the needs-you queue, quota, run history, knowledge, worktrees",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 16040
+    },
+    "AiTeamProcess.dc.html": {
+      "bytes": 231817,
+      "sha256": "e354b3009272ad4f81e59f49f7eda1146854818ababc8f0683efa0dd95206ecd",
+      "title": "AI team & process — skills and plugins, role packs, workflows, review, arbitration, TDD proof",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 14153
+    },
+    "AiBoardWave3.dc.html": {
+      "bytes": 169735,
+      "sha256": "752524874dfcb5c2dbd0e47d4818972429533fa1df09d619261d79c3a194219d",
+      "title": "Board AI & beyond — risk tiers, standing orders, knowledge base, GitHub, marks",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 12020
     }
   }
 }
