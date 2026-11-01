@@ -69,6 +69,11 @@ if "--output-format" in args and args[args.index("--output-format") + 1] == "jso
             }
         )
         sys.exit(1)
+    if os.environ.get("FAKE_CLAUDE_JSON_HANG"):
+        # a light model that never answers: its pid goes to that file, so a test can see it is not left behind
+        with open(os.environ["FAKE_CLAUDE_JSON_HANG"], "w") as fh:
+            fh.write(str(os.getpid()))
+        time.sleep(300)
     # a one-shot call (a light model's diagnosis or lesson): FAKE_CLAUDE_JSON_RESULT is its answer
     emit(
         {
@@ -150,6 +155,42 @@ emit(
         "model": "claude-haiku-test",
     }
 )
+if os.environ.get("FAKE_CLAUDE_TEXT_MESSAGE"):
+    # an event whose `message` is plain text, not an object (seen from a real CLI)
+    emit({"type": "system", "message": os.environ["FAKE_CLAUDE_TEXT_MESSAGE"]})
+if os.environ.get("FAKE_CLAUDE_RED_TESTS"):
+    # a test command that fails, its summary coloured as pytest prints it on a terminal
+    emit(
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "red",
+                        "name": "Bash",
+                        "input": {"command": "python3 -m pytest -q"},
+                    }
+                ]
+            },
+        }
+    )
+    emit(
+        {
+            "type": "user",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "red",
+                        "is_error": True,
+                        "content": "Exit code 1\n\x1b[31mFAILED\x1b[0m tests/test_calc.py::test_add\n"
+                        "\x1b[31m\x1b[1m1 failed\x1b[0m, \x1b[32m3 passed\x1b[0m in 0.10s",
+                    }
+                ]
+            },
+        }
+    )
 if mode == "silent":
     time.sleep(300)
 if mode == "spawn":
@@ -257,10 +298,27 @@ if mode == "dev_server":
             },
         }
     )
-    server = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(300)"])
+    # its command line carries the command the AI ran, as a shell would
+    server = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(300)", "npm", "run", "dev"]
+    )
     if os.environ.get("FAKE_CLAUDE_PIDFILE"):
         with open(os.environ["FAKE_CLAUDE_PIDFILE"], "w") as fh:
             fh.write(str(server.pid))
+    if os.environ.get("FAKE_CLAUDE_HEARTBEAT"):
+        # the real CLI says it is alive while a Bash call runs (every 30 s; here every 0.1 s)
+        while server.poll() is None:
+            emit(
+                {
+                    "type": "tool_progress",
+                    "tool_use_id": "srv-heartbeat-0",
+                    "tool_name": "Bash",
+                    "parent_tool_use_id": "srv",
+                    "elapsed_time_seconds": 30,
+                    "heartbeat": True,
+                }
+            )
+            time.sleep(0.1)
     server.wait()  # until the board stops it
     emit(
         {

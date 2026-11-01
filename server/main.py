@@ -62,6 +62,7 @@ from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
 from services.ai import orders as ai_orders
 from services.ai import github as ai_github
+from services.ai import workflow as ai_workflow
 from services import notifications as svc_notifications
 from services.ai import signin as ai_signin
 from services.docs_text import DocsError
@@ -115,6 +116,7 @@ async def lifespan(app: FastAPI):
         await ai_runs.start_scheduler()
         await assist_chat.recover()
         await docs_ai_jobs.recover()
+        await ai_workflow.recover()  # Checks a restart cut off run again
         assist_health.start_scheduler()
         docs_ai_freshness.start_scheduler()
         ai_schedules.start_scheduler()

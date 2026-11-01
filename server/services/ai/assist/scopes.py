@@ -37,6 +37,7 @@ from .settings import AssistError
 CORE_OPS = (
     "status",
     "priority",
+    "tags",
     "assignee",
     "due_date",
     "estimate",

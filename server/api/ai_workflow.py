@@ -183,7 +183,7 @@ class SendBackBody(BaseModel):
 async def post_send_back(ticket_id: str, body: SendBackBody, session: Session) -> dict:
     """You may change the step: back to a role's step, with a note."""
     row = await svc_workflow.send_back(
-        ticket_id, to_role=body.role, note=body.note, by=_by()
+        ticket_id, to_role=body.role, note=body.note, by=_by(), from_role="person"
     )
     if row is None:
         raise HTTPException(

@@ -784,3 +784,47 @@ async def test_a_member_on_an_account_gets_the_servers_of_its_account_not_the_de
     on = runs.mcp_config({}, "kbr_x", str(tmp_path), a["folder"])
     assert set(on["mcpServers"]) == {"kanban", "mine"}
     assert mcp_sources.ACCOUNT_DIR.get() is None  # nothing leaks into the next call
+
+
+async def test_a_run_moved_to_another_account_signs_out_that_account(
+    fake_cli, monkeypatch
+):
+    from models import AiRun
+    from services.ai.store import get_settings
+
+    c = fake_cli["c"]
+    pid, _ = await _project(c)
+    own, other = await _account(c, "Own"), await _account(c, "Other")
+    for a in (own, other):
+        _login(a)
+        await c.post(f"/ai/accounts/{a['id']}/check")
+    m = await _runner(c, pid, fake_cli["repo"], account_id=own["id"])
+    async with fake_cli["maker"]() as s:
+        settings = await get_settings(s, pid)
+        settings.paused_all = True  # the run waits in the queue while it is moved
+        s.add(settings)
+        await s.commit()
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "run_logged_out")
+    tid = await _ticket(c, pid)
+    await c.post(
+        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
+    )
+    run = await _wait(c, tid, ("queued",))
+    async with fake_cli["maker"]() as s:
+        row = await s.get(AiRun, run["id"])
+        row.account_id = other["id"]  # urgent work moved to an account with room
+        s.add(row)
+        settings = await get_settings(s, pid)
+        settings.paused_all = False
+        s.add(settings)
+        await s.commit()
+    held = await _wait_held(c, tid)
+    assert (await c.get(f"/ai/accounts/{other['id']}")).json()["status"] == (
+        "needs_sign_in"
+    )
+    assert (await c.get(f"/ai/accounts/{own['id']}")).json()["status"] == "signed_in"
+    # it waits on the account it spends, not on the member's own one
+    await asyncio.sleep(0.3)
+    again = (await c.get(f"/tickets/{tid}/ai/runs")).json()[0]
+    assert again["id"] == held["id"] and again["state"] == "queued"
+    assert "Other" in (again["waiting_reason"] or "")

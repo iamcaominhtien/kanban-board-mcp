@@ -22,6 +22,7 @@ FREE, UNDO, ASK = "free", "undo", "ask"
 TIERS: dict[str, tuple[str, bool]] = {
     "status": (UNDO, False),
     "priority": (UNDO, False),
+    "tags": (UNDO, False),
     "assignee": (UNDO, False),
     "due_date": (UNDO, False),
     "estimate": (UNDO, False),
@@ -89,10 +90,22 @@ def decide(
                 + (" (it cannot be moved out of this tier)" if key in LOCKED else "")
             )
     tickets = {ch.get("ticket") for ch in changes if ch.get("ticket")}
-    if len(tickets) > BULK_TICKETS:
-        reasons.append(
-            f"{len(tickets)} tickets at once is a bulk action, which asks first"
+    # pausing or resuming AIs names members, not tickets: they count toward the same limit (else pausing every AI
+    # one by one would be Pause all without asking)
+    members = {
+        ch.get("member")
+        for ch in changes
+        if op_key(ch) in ("pause_member", "resume_member") and ch.get("member")
+    }
+    if len(tickets) + len(members) > BULK_TICKETS:
+        what = (
+            f"{len(tickets)} tickets"
+            if not members
+            else f"{len(members)} AI members"
+            if not tickets
+            else f"{len(tickets)} tickets and {len(members)} AI members"
         )
+        reasons.append(f"{what} at once is a bulk action, which asks first")
     if project_ids and len(project_ids) > 1:
         reasons.append("Changes across more than one project ask first")
     act = not reasons and bool(changes)

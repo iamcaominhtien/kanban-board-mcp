@@ -30,7 +30,15 @@ BUILTIN: list[dict] = [
         "tagline": "Reads a new ticket and sorts it",
         "model": "haiku",
         "effort": "low",
-        "template": "reviewer",
+        # Developer narrowed to the fields it sorts: labels and the like without asking, nothing else it could make
+        "template": "developer",
+        "permissions": {
+            "change_assignee": "blocked",
+            "create_tickets": "blocked",
+            "edit_docs": "blocked",
+            "delete_docs": "blocked",
+            "create_branches": "blocked",
+        },
         "ceiling": "todo",
         "writes": "nothing",
         "hands_in": "Labels, the workflow, the review depth: a ticket with a process on it",
@@ -167,7 +175,9 @@ BUILTIN: list[dict] = [
             "Bash(npm run lint:*)",
             "Bash(pytest:*)",
             "Bash(python -m pytest:*)",
+            "Bash(python3 -m pytest:*)",
             "Bash(uv run pytest:*)",
+            "Bash(uvx pytest:*)",
         ],
         "plugins": [],
         "mcp": [],
@@ -306,6 +316,7 @@ _FIELDS = (
     "effort",
     "depth_models",
     "template",
+    "permissions",
     "ceiling",
     "writes",
     "hands_in",
@@ -442,6 +453,10 @@ async def import_pack(session, project_id: str, data: dict, *, by: str) -> dict:
     return {"pack": pack, "missing": missing}
 
 
+_WRITES_CODE = ("worktree", "tests")
+_WRITE_TOOLS = ["Read", "Glob", "Grep", "Edit", "Write", "MultiEdit", "Bash"]
+
+
 def member_body(
     pack: dict,
     *,
@@ -457,6 +472,10 @@ def member_body(
             "{plays}", plays or (pack.get("personas") or ["a typical user"])[0]
         )
     limits = pack.get("limits") or {}
+    allow = list(pack.get("allow") or [])
+    if pack.get("writes") in _WRITES_CODE:
+        # A pack that changes code edits files and runs commands; the member's deny rules still apply
+        allow += [t for t in _WRITE_TOOLS if t not in allow]
     body = {
         "name": name,
         "provider": "claude-code",
@@ -466,13 +485,14 @@ def member_body(
         "persona": persona,
         "template": pack.get("template") or "developer",
         "ceiling": pack.get("ceiling") or "review",
+        "permissions": dict(pack.get("permissions") or {}) or None,
         "max_parallel": limits.get("max_parallel"),
         "max_runs_per_day": limits.get("max_runs_per_day"),
         "glyph": None,
         "description": pack.get("tagline"),
         "config": {
             "effort": pack.get("effort"),
-            "allow_rules": list(pack.get("allow") or []),
+            "allow_rules": allow,
             "role": pack["key"],
             "pack": {"key": pack["key"], "version": pack.get("version", 1)},
             **({"plays": plays} if plays else {}),

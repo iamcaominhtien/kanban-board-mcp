@@ -260,7 +260,8 @@ def test_a_server_in_the_foreground_is_diagnosed_and_its_child_stopped():
         [
             sys.executable,
             "-c",
-            "import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)']); time.sleep(60)",
+            # the child runs the command (its command line carries it, as a shell's would)
+            "import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)', 'npm', 'run', 'dev']); time.sleep(60)",
         ]
     )
     try:
@@ -290,7 +291,15 @@ def test_a_server_in_the_foreground_is_diagnosed_and_its_child_stopped():
         assert diag["actions"][0] == "stop_child"
         assert "background" in diag["lesson"]
         child = diag["child"]["pid"]
-        assert watchdog.stop_child(child)
+        # never a process outside the run's CLI, nor one that only reuses the pid
+        other = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+        try:
+            assert not watchdog.stop_child(child, other.pid)
+        finally:
+            other.kill()
+        assert not watchdog.stop_child(child, holder.pid, diag["child"]["started"] + 5)
+        assert psutil.pid_exists(child)
+        assert watchdog.stop_child(child, holder.pid, diag["child"]["started"])
         time.sleep(0.3)
         assert (
             not psutil.pid_exists(child)
@@ -298,6 +307,88 @@ def test_a_server_in_the_foreground_is_diagnosed_and_its_child_stopped():
         )
     finally:
         holder.kill()
+
+
+def test_a_busy_child_that_is_not_the_command_is_never_offered_for_stopping():
+    # the CLI's MCP server is busy; the open command has no process of its own
+    holder = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', 'while True: pass', 'mcp-server-linear']); time.sleep(60)",
+        ]
+    )
+    try:
+        time.sleep(0.6)
+        w = watchdog.RunWatch()
+        w.observe(
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "id": "x",
+                                "name": "Bash",
+                                "input": {"command": "git commit"},
+                            }
+                        ]
+                    },
+                }
+            )
+        )
+        w.open["x"]["at"] -= watchdog.SLOW_AFTER_S + 5
+        w.last_event -= watchdog.SLOW_AFTER_S + 5
+        diag = asyncio.run(watchdog.diagnose(w, holder.pid))
+        assert diag is not None
+        assert diag.get("child") is None
+        assert "stop_child" not in diag["actions"]
+        assert "tell_ai" not in diag["actions"]
+    finally:
+        for p in psutil.Process(holder.pid).children(recursive=True):
+            p.kill()
+        holder.kill()
+
+
+async def test_a_trouble_action_is_checked_against_the_diagnosis_and_the_live_run(
+    env, monkeypatch
+):
+    c = env["c"]
+    pid, m, tid = await _start(env, "sleep", monkeypatch)
+    run = await _wait(c, tid, ("running",))
+    stranger = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        diag = {
+            "cause": "foreground_server",
+            "trigger": "No output",
+            "what": "x",
+            "child": {"pid": stranger.pid, "cmd": "npm run dev"},
+            "actions": ["stop_child", "wait", "cancel"],
+        }
+        async with env["maker"]() as s:
+            row = await s.get(AiRun, run["id"])
+            row.diagnosis = json.dumps(diag)
+            s.add(row)
+            await s.commit()
+        # the pid is not under the run's CLI (stale, or reused by another process): nothing is stopped
+        with pytest.raises(runs.RunError, match="no longer running"):
+            await runs.act_on_trouble(run["id"], "stop_child", by="An")
+        assert stranger.poll() is None
+        # an action the diagnosis does not offer
+        with pytest.raises(runs.RunError, match="does not offer"):
+            await runs.act_on_trouble(run["id"], "continue_note", by="An")
+        # a diagnosis that was cleared no longer holds
+        async with env["maker"]() as s:
+            row = await s.get(AiRun, run["id"])
+            row.diagnosis = json.dumps({**diag, "cleared_at": "2026-01-01T00:00:00"})
+            s.add(row)
+            await s.commit()
+        with pytest.raises(runs.RunError, match="no longer holds"):
+            await runs.act_on_trouble(run["id"], "wait", by="An")
+    finally:
+        stranger.kill()
+        await runs.cancel(run["id"], by="t")
 
 
 def test_a_quiet_run_under_the_threshold_is_left_alone():
@@ -461,3 +552,223 @@ async def test_a_live_run_reads_a_message_at_its_next_turn(env, monkeypatch, tmp
         e["type"] == "message" and "Use the cursor." in (e.get("text") or "")
         for e in body["entries"]
     )
+
+
+async def test_a_message_the_run_never_read_goes_to_the_tickets_next_run(
+    env, monkeypatch
+):
+    c = env["c"]
+    pid, m, tid = await _start(env, "sleep", monkeypatch)
+    first = await _wait(c, tid, ("running",))
+    r = await c.post(
+        f"/ai/runs/{first['id']}/tell", json={"text": "Also update the README."}
+    )
+    assert r.json()["delivered"] == "next_board_call"
+    # the run ends before its next board call (its input closed as it finished)
+    await runs.cancel(first["id"], by="t")
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "finish")
+    nxt = await runs.retry(first["id"], by="t")
+    done = await _wait(c, tid, ("finished",))
+    assert done["id"] == nxt.id
+    notice = await runs.take_context_notes(nxt.id)
+    assert "Also update the README." in notice
+    assert f"run #{first['number']}" in notice
+    old = (await c.get(f"/ai/runs/{first['id']}")).json()
+    carried = [n for n in old["context_notes"] if n.get("text")]
+    assert carried[0]["delivered"] and carried[0]["carried_to"] == nxt.number
+    # given once: a third run gets nothing
+    assert await runs.take_context_notes(nxt.id) is None
+
+
+async def test_messages_sent_at_once_are_neither_lost_nor_given_twice(env, monkeypatch):
+    c = env["c"]
+    pid, m, tid = await _start(env, "sleep", monkeypatch)
+    run = await _wait(c, tid, ("running",))
+    said = [f"note {i}" for i in range(8)]
+    got = await asyncio.gather(
+        *[runs.add_context_note(run["id"], by="An", text=t) for t in said[:4]],
+        runs.take_context_notes(run["id"]),
+        *[runs.add_context_note(run["id"], by="An", text=t) for t in said[4:]],
+    )
+    rest = await runs.take_context_notes(run["id"])
+    delivered = " ".join(x for x in [got[4], rest] if x)
+    assert sorted(t for t in said if t in delivered) == said
+    assert all(delivered.count(t) == 1 for t in said)
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, run["id"])
+    assert len([n for n in json.loads(row.context_notes) if n.get("text")]) == 8
+    await runs.cancel(run["id"], by="t")
+
+
+async def test_a_run_that_ends_under_its_cli_stops_the_cli(env, monkeypatch):
+    c = env["c"]
+    pid, m, tid = await _start(env, "ticks", monkeypatch)
+    run = await _wait(c, tid, ("running",))
+    proc = runs.RT.procs[run["id"]]
+    # ended without its process being stopped (a cancel that came while there was no process yet)
+    await runs._end(run["id"], "cancelled", "Cancelled by t")
+    deadline = time.monotonic() + 5
+    while proc.proc.returncode is None and time.monotonic() < deadline:
+        await asyncio.sleep(0.1)
+    assert proc.proc.returncode is not None
+
+
+async def test_a_light_model_that_does_not_answer_is_not_left_behind(
+    env, monkeypatch, tmp_path
+):
+    c = env["c"]
+    pidfile = tmp_path / "haiku.pid"
+    monkeypatch.setenv("FAKE_CLAUDE_JSON_HANG", str(pidfile))
+    monkeypatch.setattr(runs, "MODEL_DIAGNOSIS_TIMEOUT_S", 1)
+    pid, m, tid = await _start(env, "sleep", monkeypatch)
+    run = await _wait(c, tid, ("running",))
+    got = await runs._model_diagnosis(run["id"], {"trigger": "x", "what": "y"})
+    assert got is None
+    child = int(pidfile.read_text())
+    assert (
+        not psutil.pid_exists(child)
+        or psutil.Process(child).status() == psutil.STATUS_ZOMBIE
+    )
+    await runs.cancel(run["id"], by="t")
+
+
+async def test_the_light_models_reading_never_holds_up_the_run(env, monkeypatch):
+    c = env["c"]
+    pid, m, tid = await _start(env, "sleep", monkeypatch)
+    run = await _wait(c, tid, ("running",))
+    release = asyncio.Event()
+
+    async def unknown(watch, pid, hang_after_s=0):
+        return {
+            "cause": "unknown",
+            "trigger": "No output for 10 minutes",
+            "what": "nothing",
+            "means": "The board cannot tell why.",
+            "actions": ["continue_note", "wait", "cancel"],
+        }
+
+    async def slow_model(run_id, diag):
+        await release.wait()
+        return {"means": "It waits for a lock.", "action": "wait", "lesson": ""}
+
+    monkeypatch.setattr(watchdog, "diagnose", unknown)
+    monkeypatch.setattr(runs, "_model_diagnosis", slow_model)
+    watch = watchdog.RunWatch()
+    # returns at once: the model reads in the background while the run's output is still read
+    await asyncio.wait_for(
+        runs._check_trouble(run["id"], watch, runs.RT.procs[run["id"]]), timeout=2
+    )
+    release.set()
+    row = await _until(
+        c, tid, lambda r: any(s["kind"] == "trouble" for s in r["steps"])
+    )
+    assert row["diagnosis"]["means"] == "It waits for a lock."
+    await runs.cancel(run["id"], by="t")
+
+
+async def test_cli_runs_of_other_providers_never_wait_on_claudes_window(env):
+    from models import AiMember
+
+    claude = AiMember(id="m1", project_id="p", provider="claude-code")
+    codex = AiMember(id="m2", project_id="p", provider="codex")
+    assert quota.key_for(claude) == quota.LOCAL
+    assert quota.key_for(codex) == "local:codex"
+    async with env["maker"]() as s:
+        row = await quota.state(s, quota.LOCAL)
+        quota.hold(
+            row, (datetime.now(UTC) + timedelta(hours=2)).isoformat(), "five_hour"
+        )
+        s.add(row)
+        await s.commit()
+        run = AiRun(project_id="p", ticket_id="t", member_id="m2")
+        assert await quota.blocking(s, run, codex) is None
+        assert "next window" in await quota.blocking(
+            s, AiRun(project_id="p", ticket_id="t", member_id="m1"), claude
+        )
+
+
+def test_heartbeats_while_a_server_runs_are_not_progress():
+    holder = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        w = watchdog.RunWatch()
+        w.observe(
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "id": "srv",
+                                "name": "Bash",
+                                "input": {"command": "python3 -m http.server 8766"},
+                            }
+                        ]
+                    },
+                }
+            )
+        )
+        assert w.progressed
+        w.observe(
+            json.dumps(
+                {
+                    "type": "system",
+                    "subtype": "task_started",
+                    "tool_use_id": "srv",
+                    "description": "python3 -m http.server 8766",
+                    "task_type": "local_bash",
+                }
+            )
+        )
+        w.open["srv"]["at"] -= watchdog.SERVER_AFTER_S + 5
+        w.last_event -= watchdog.SERVER_AFTER_S + 5
+        for i in range(5):  # one every 30 s on the real CLI
+            w.observe(
+                json.dumps(
+                    {
+                        "type": "tool_progress",
+                        "tool_use_id": "srv-heartbeat-0",
+                        "tool_name": "Bash",
+                        "parent_tool_use_id": "srv",
+                        "elapsed_time_seconds": 30 * (i + 1),
+                        "heartbeat": True,
+                    }
+                )
+            )
+            assert not w.progressed
+        w.observe(
+            json.dumps(
+                {
+                    "type": "rate_limit_event",
+                    "rate_limit_info": {
+                        "status": "allowed",
+                        "rateLimitType": "five_hour",
+                    },
+                }
+            )
+        )
+        assert not w.progressed and w.quota["status"] == "allowed"  # still read
+        assert w.quiet_s() > watchdog.SERVER_AFTER_S
+        assert "srv" in w.open
+        diag = asyncio.run(watchdog.diagnose(w, holder.pid))
+        assert diag["cause"] == "foreground_server"
+    finally:
+        holder.kill()
+
+
+async def test_a_heartbeat_never_clears_a_card(env, monkeypatch, tmp_path):
+    c = env["c"]
+    monkeypatch.setattr(watchdog, "SERVER_AFTER_S", 0.5)
+    monkeypatch.setattr(runs, "WATCH_EVERY_S", 0.3)
+    monkeypatch.setenv("FAKE_CLAUDE_HEARTBEAT", "1")
+    pid, m, tid = await _start(env, "dev_server", monkeypatch)
+    run = await _until(
+        c, tid, lambda r: any(s["kind"] == "trouble" for s in r["steps"])
+    )
+    await asyncio.sleep(1.0)  # heartbeats keep coming
+    now = (await c.get(f"/ai/runs/{run['id']}")).json()
+    assert now["diagnosis"]["cause"] == "foreground_server"
+    assert not now["diagnosis"].get("cleared_at")
+    r = await c.post(f"/ai/runs/{run['id']}/trouble", json={"action": "stop_child"})
+    assert r.status_code == 200, r.text
+    await _wait(c, tid, ("finished",))

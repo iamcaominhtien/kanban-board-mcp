@@ -639,3 +639,43 @@ def test_a_plugin_the_folder_enables_adds_its_servers_and_the_others_stay_out(
     assert set(got) == {"plugin_on_graph", "plugin_flat_serena"}
     assert got["plugin_on_graph"]["command"] == f"{on}/run"
     assert got["plugin_on_graph"]["args"] == ["--db", f"{on}/db"]
+
+
+async def test_a_board_ai_that_acts_by_tier_reads_with_its_tools_and_changes_only_through_its_block(
+    env,
+):
+    chat, profile, member, pid = await _chat_parts(env)
+    tid = await _ticket(env["c"], pid, assignee=member.id)
+    tier = RunContext(
+        "chat_t",
+        member.id,
+        member.name,
+        pid,
+        "",
+        "An Nguyen",
+        "work",
+        acts_by_tier=True,
+    )
+    await guard.check(tier, "get_ticket", "", {"ticket_id": tid})  # a read goes through
+    with pytest.raises(guard.AiActionError, match="actions block"):
+        await guard.check(
+            tier, "manage_ticket", "update", {"ticket_id": tid, "priority": "high"}
+        )
+    with pytest.raises(guard.AiActionError, match="actions block"):
+        await guard.check(
+            tier, "ticket_items", "comment.add", {"ticket_id": tid, "text": "hi"}
+        )
+    # without acting by tier the chat's tools still change the board within the member's permissions
+    plain = RunContext("chat_p", member.id, member.name, pid, "", "An Nguyen", "work")
+    await guard.check(
+        plain, "manage_ticket", "update", {"ticket_id": tid, "priority": "high"}
+    )
+
+
+async def test_the_chat_token_carries_whether_the_board_ai_acts_by_tier(env):
+    chat, profile, member, pid = await _chat_parts(env)
+    tools, token = await chat_tools.build(chat, profile, member, acts_by_tier=True)
+    try:
+        assert (await guard.context_for_token(token)).acts_by_tier is True
+    finally:
+        guard.revoke_chat_token(token)

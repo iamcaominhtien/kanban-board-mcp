@@ -494,23 +494,28 @@ def _through_cmd_exe(args: list[str]) -> bool:
     )
 
 
-def spill_long_args(args: list[str]) -> tuple[list[str], str | None, str | None]:
+def spill_long_args(
+    args: list[str], prompt_on_stdin: bool = True
+) -> tuple[list[str], str | None, str | None]:
     """Move a long prompt and system prompt off the command line.
 
     Returns:
         (args to run, text for stdin or None, temp folder holding the system prompt file or None). Short commands come
         back unchanged, except behind a Windows `.cmd` shim. `-p <text>` becomes a bare `-p` (the CLI then reads the prompt from stdin); `--system-prompt
-        <text>` becomes `--system-prompt-file <path>`.
+        <text>` becomes `--system-prompt-file <path>`. `prompt_on_stdin=False` (a live run: its stdin carries
+        stream-json and `-p` takes no text) moves only the system prompts.
     """
     if (
         not _through_cmd_exe(args)
-        and len(subprocess.list2cmdline(args)) <= _MAX_COMMAND_CHARS
+        # counted in bytes: Linux limits one argument to 128 KB, and a character may take up to four
+        and len(subprocess.list2cmdline(args).encode("utf-8")) <= _MAX_COMMAND_CHARS
     ):
         return args, None, None
     out = list(args)
     stdin_text: str | None = None
     folder: str | None = None
-    for flag, file_flag in (("-p", None), *_FILE_FLAGS.items()):
+    flags = (("-p", None),) if prompt_on_stdin else ()
+    for flag, file_flag in (*flags, *_FILE_FLAGS.items()):
         if flag not in out or out.index(flag) + 1 >= len(out):
             continue
         i = out.index(flag)
@@ -557,9 +562,11 @@ class CliProcess:
 
     async def start(self) -> int:
         """Launch; returns the pid."""
+        # A live run's stdin carries its messages, so only the system prompt moves to a file: on the command line
+        # a cmd.exe shim mangles it, and one argument over 128 KB fails on Linux (E2BIG)
         args, stdin_text, self._temp = (
-            spill_long_args(self.args)
-            if self.spill and not self.live
+            spill_long_args(self.args, prompt_on_stdin=not self.live)
+            if self.spill
             else (self.args, None, None)
         )
         try:
@@ -661,6 +668,12 @@ class CliProcess:
 # ---------------------------------------------------------------------------
 
 
+def message_of(ev: dict) -> dict:
+    """An event's ``message`` when it is an object; a CLI may print one as plain text, which holds no blocks."""
+    msg = ev.get("message") if isinstance(ev, dict) else None
+    return msg if isinstance(msg, dict) else {}
+
+
 def _short(text: str, n: int = 160) -> str:
     text = " ".join((text or "").split())
     return text if len(text) <= n else text[: n - 1] + "…"
@@ -716,6 +729,14 @@ def describe_tool(name: str, inp: dict, cwd: str) -> tuple[str, str, dict | None
     return "tool", f"{name} {_short(json.dumps(inp)[:200], 80)}", None
 
 
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+
+
+def strip_ansi(text: str) -> str:
+    """Text without terminal colour codes (pytest colours its summary: "\\x1b[32m6 passed\\x1b[0m")."""
+    return _ANSI.sub("", text or "")
+
+
 _PASSED = re.compile(r"\b(\d+) (?:passed|passing)\b", re.IGNORECASE)
 _FAILED = re.compile(r"\b(\d+) (?:failed|failing)\b", re.IGNORECASE)
 _FAILING_NAME = re.compile(r"^(?:FAILED|FAIL|✗|×)\s+(\S.{0,120})$", re.MULTILINE)
@@ -724,8 +745,11 @@ _FAILING_NAME = re.compile(r"^(?:FAILED|FAIL|✗|×)\s+(\S.{0,120})$", re.MULTIL
 def parse_tests(output: str) -> dict | None:
     """Pass and fail counts read from a test command's output (pytest, jest, vitest, mocha, ...), or None when the
     output does not look like a test run."""
-    passed = _PASSED.findall(output or "")
-    failed = _FAILED.findall(output or "")
+    output = strip_ansi(
+        output
+    )  # a colour code right before the count leaves no word boundary
+    passed = _PASSED.findall(output)
+    failed = _FAILED.findall(output)
     if not passed and not failed:
         return None
     return {
@@ -780,7 +804,7 @@ def parse_stream_line(line: str, cwd: str) -> dict:
                 }
             )
     elif kind == "assistant":
-        usage = (ev.get("message") or {}).get("usage") or {}
+        usage = message_of(ev).get("usage") or {}
         held = sum(
             int(usage.get(k) or 0)
             for k in (
@@ -791,7 +815,9 @@ def parse_stream_line(line: str, cwd: str) -> dict:
         )
         if held:
             out["context_used"] = held
-        for block in (ev.get("message") or {}).get("content") or []:
+        for block in message_of(ev).get("content") or []:
+            if not isinstance(block, dict):
+                continue
             if block.get("type") == "tool_use" and block.get("name") == "ToolSearch":
                 continue  # the CLI loading its own deferred tools: not a step of the work
             if block.get("type") == "tool_use":
@@ -808,9 +834,10 @@ def parse_stream_line(line: str, cwd: str) -> dict:
                     {"kind": "say", "text": redact(_short(block["text"], 300))}
                 )
     elif kind == "user":
-        for block in (ev.get("message") or {}).get("content") or []:
+        for block in message_of(ev).get("content") or []:
             if isinstance(block, dict) and block.get("type") == "tool_result":
-                text = _result_text(block.get("content"))
+                # what a command printed is kept and shown without its colour codes
+                text = strip_ansi(_result_text(block.get("content")))
                 code = re.match(r"Exit code (\d+)", text)
                 out["results"].append(
                     {
@@ -835,7 +862,7 @@ def parse_stream_line(line: str, cwd: str) -> dict:
                 out["steps"].append(
                     {
                         "kind": "error",
-                        "text": redact(_short(str(content), 240)),
+                        "text": redact(_short(strip_ansi(str(content)), 240)),
                         "tool_id": block.get("tool_use_id"),
                     }
                 )

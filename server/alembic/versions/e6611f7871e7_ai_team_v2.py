@@ -28,8 +28,44 @@ def bind_is_sqlite() -> bool:
     return op.get_bind().dialect.name == "sqlite"
 
 
+# Every step checks what is already there, so the upgrade can run again on a database that an early build of this
+# revision half-migrated; the next revision (b3e1c9d7a5f2) does exactly that.
+def _create_table(name: str, *columns: sa.Column) -> None:
+    if not sa.inspect(op.get_bind()).has_table(name):
+        op.create_table(name, *columns)
+
+
+def _create_index(name: str, table: str, columns: list[str]) -> None:
+    if name not in {i["name"] for i in sa.inspect(op.get_bind()).get_indexes(table)}:
+        op.create_index(name, table, columns)
+
+
+class _batch:
+    """batch_alter_table that adds only the columns the table lacks."""
+
+    def __init__(self, table: str) -> None:
+        self.table = table
+        self.columns: list[sa.Column] = []
+
+    def __enter__(self) -> "_batch":
+        return self
+
+    def add_column(self, column: sa.Column) -> None:
+        self.columns.append(column)
+
+    def __exit__(self, *exc: object) -> None:
+        if exc[0] is not None:
+            return
+        have = {c["name"] for c in sa.inspect(op.get_bind()).get_columns(self.table)}
+        missing = [c for c in self.columns if c.name not in have]
+        if missing:
+            with op.batch_alter_table(self.table) as batch:
+                for column in missing:
+                    batch.add_column(column)
+
+
 def upgrade() -> None:
-    op.create_table(
+    _create_table(
         "ai_run_transcript",
         sa.Column("run_id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -43,15 +79,13 @@ def upgrade() -> None:
         sa.Column("ended_at", sa.String(), nullable=True),
         sa.Column("deleted_at", sa.String(), nullable=True),
     )
-    op.create_index(
+    _create_index(
         "ix_ai_run_transcript_project_id", "ai_run_transcript", ["project_id"]
     )
-    op.create_index(
-        "ix_ai_run_transcript_member_id", "ai_run_transcript", ["member_id"]
-    )
-    op.create_index("ix_ai_run_transcript_ended_at", "ai_run_transcript", ["ended_at"])
+    _create_index("ix_ai_run_transcript_member_id", "ai_run_transcript", ["member_id"])
+    _create_index("ix_ai_run_transcript_ended_at", "ai_run_transcript", ["ended_at"])
 
-    op.create_table(
+    _create_table(
         "ai_skill_use",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("run_id", sa.String(), nullable=False),
@@ -63,9 +97,9 @@ def upgrade() -> None:
         sa.Column("at", sa.String(), nullable=False),
     )
     for column in ("run_id", "project_id", "member_id", "name", "plugin"):
-        op.create_index(f"ix_ai_skill_use_{column}", "ai_skill_use", [column])
+        _create_index(f"ix_ai_skill_use_{column}", "ai_skill_use", [column])
 
-    with op.batch_alter_table("ai_run") as batch:
+    with _batch("ai_run") as batch:
         batch.add_column(sa.Column("diagnosis", sa.String(), nullable=True))
         batch.add_column(sa.Column("retry_at", sa.String(), nullable=True))
         batch.add_column(
@@ -75,7 +109,7 @@ def upgrade() -> None:
         batch.add_column(sa.Column("model_override", sa.String(), nullable=True))
         batch.add_column(sa.Column("effort_override", sa.String(), nullable=True))
 
-    op.create_table(
+    _create_table(
         "ai_account_state",
         sa.Column("key", sa.String(), primary_key=True),
         sa.Column("max_parallel", sa.Integer(), nullable=False, server_default="2"),
@@ -90,11 +124,11 @@ def upgrade() -> None:
         sa.Column("held_reason", sa.String(), nullable=True),
         sa.Column("updated_at", sa.String(), nullable=True),
     )
-    with op.batch_alter_table("ai_project_settings") as batch:
+    with _batch("ai_project_settings") as batch:
         batch.add_column(
             sa.Column("ops", sa.String(), nullable=False, server_default="{}")
         )
-    op.create_table(
+    _create_table(
         "ai_ticket_flag",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("ticket_id", sa.String(), nullable=False),
@@ -108,8 +142,8 @@ def upgrade() -> None:
         sa.Column("resolution", sa.String(), nullable=True),
     )
     for column in ("ticket_id", "project_id", "kind"):
-        op.create_index(f"ix_ai_ticket_flag_{column}", "ai_ticket_flag", [column])
-    op.create_table(
+        _create_index(f"ix_ai_ticket_flag_{column}", "ai_ticket_flag", [column])
+    _create_table(
         "ai_project_knowledge",
         sa.Column("project_id", sa.String(), primary_key=True),
         sa.Column("instructions", sa.String(), nullable=False, server_default=""),
@@ -117,7 +151,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.String(), nullable=True),
         sa.Column("updated_by", sa.String(), nullable=True),
     )
-    op.create_table(
+    _create_table(
         "ai_lesson",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -133,8 +167,8 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.String(), nullable=False),
     )
     for column in ("project_id", "state", "source_ticket_id"):
-        op.create_index(f"ix_ai_lesson_{column}", "ai_lesson", [column])
-    op.create_table(
+        _create_index(f"ix_ai_lesson_{column}", "ai_lesson", [column])
+    _create_table(
         "ai_worktree",
         sa.Column("ticket_id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -154,9 +188,9 @@ def upgrade() -> None:
         sa.Column("last_used_at", sa.String(), nullable=True),
         sa.Column("merged_at", sa.String(), nullable=True),
     )
-    op.create_index("ix_ai_worktree_project_id", "ai_worktree", ["project_id"])
-    op.create_index("ix_ai_worktree_state", "ai_worktree", ["state"])
-    op.create_table(
+    _create_index("ix_ai_worktree_project_id", "ai_worktree", ["project_id"])
+    _create_index("ix_ai_worktree_state", "ai_worktree", ["state"])
+    _create_table(
         "ai_plugin",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=True),
@@ -183,9 +217,9 @@ def upgrade() -> None:
         sa.Column("installed_at", sa.String(), nullable=False),
         sa.Column("updated_at", sa.String(), nullable=False),
     )
-    op.create_index("ix_ai_plugin_project_id", "ai_plugin", ["project_id"])
-    op.create_index("ix_ai_plugin_name", "ai_plugin", ["name"])
-    op.create_table(
+    _create_index("ix_ai_plugin_project_id", "ai_plugin", ["project_id"])
+    _create_index("ix_ai_plugin_name", "ai_plugin", ["name"])
+    _create_table(
         "ai_role_pack",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -198,9 +232,9 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.String(), nullable=False),
         sa.Column("updated_by", sa.String(), nullable=True),
     )
-    op.create_index("ix_ai_role_pack_project_id", "ai_role_pack", ["project_id"])
-    op.create_index("ix_ai_role_pack_key", "ai_role_pack", ["key"])
-    op.create_table(
+    _create_index("ix_ai_role_pack_project_id", "ai_role_pack", ["project_id"])
+    _create_index("ix_ai_role_pack_key", "ai_role_pack", ["key"])
+    _create_table(
         "ai_repo_scan",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -211,8 +245,8 @@ def upgrade() -> None:
         sa.Column("applied_at", sa.String(), nullable=True),
         sa.Column("created_at", sa.String(), nullable=False),
     )
-    op.create_index("ix_ai_repo_scan_project_id", "ai_repo_scan", ["project_id"])
-    op.create_table(
+    _create_index("ix_ai_repo_scan_project_id", "ai_repo_scan", ["project_id"])
+    _create_table(
         "ai_workflow_template",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -225,11 +259,11 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.String(), nullable=False),
         sa.Column("updated_by", sa.String(), nullable=True),
     )
-    op.create_index(
+    _create_index(
         "ix_ai_workflow_template_project_id", "ai_workflow_template", ["project_id"]
     )
-    op.create_index("ix_ai_workflow_template_key", "ai_workflow_template", ["key"])
-    op.create_table(
+    _create_index("ix_ai_workflow_template_key", "ai_workflow_template", ["key"])
+    _create_table(
         "ai_ticket_workflow",
         sa.Column("ticket_id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -253,11 +287,11 @@ def upgrade() -> None:
         sa.Column("created_at", sa.String(), nullable=False),
         sa.Column("updated_at", sa.String(), nullable=False),
     )
-    op.create_index(
+    _create_index(
         "ix_ai_ticket_workflow_project_id", "ai_ticket_workflow", ["project_id"]
     )
-    op.create_index("ix_ai_ticket_workflow_state", "ai_ticket_workflow", ["state"])
-    op.create_table(
+    _create_index("ix_ai_ticket_workflow_state", "ai_ticket_workflow", ["state"])
+    _create_table(
         "ai_ticket_step",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("ticket_id", sa.String(), nullable=False),
@@ -279,8 +313,8 @@ def upgrade() -> None:
         sa.Column("ended_at", sa.String(), nullable=True),
     )
     for column in ("ticket_id", "state", "run_id"):
-        op.create_index(f"ix_ai_ticket_step_{column}", "ai_ticket_step", [column])
-    op.create_table(
+        _create_index(f"ix_ai_ticket_step_{column}", "ai_ticket_step", [column])
+    _create_table(
         "ai_standing_order",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -299,11 +333,11 @@ def upgrade() -> None:
         sa.Column("created_by", sa.String(), nullable=True),
         sa.Column("created_at", sa.String(), nullable=False),
     )
-    op.create_index(
+    _create_index(
         "ix_ai_standing_order_project_id", "ai_standing_order", ["project_id"]
     )
-    op.create_index("ix_ai_standing_order_state", "ai_standing_order", ["state"])
-    op.create_table(
+    _create_index("ix_ai_standing_order_state", "ai_standing_order", ["state"])
+    _create_table(
         "ai_order_firing",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("order_id", sa.String(), nullable=False),
@@ -320,8 +354,8 @@ def upgrade() -> None:
         sa.Column("undone_by", sa.String(), nullable=True),
     )
     for column in ("order_id", "project_id", "at", "target"):
-        op.create_index(f"ix_ai_order_firing_{column}", "ai_order_firing", [column])
-    op.create_table(
+        _create_index(f"ix_ai_order_firing_{column}", "ai_order_firing", [column])
+    _create_table(
         "ai_watched_pr",
         sa.Column("ticket_id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=False),
@@ -337,8 +371,8 @@ def upgrade() -> None:
         sa.Column("checked_at", sa.String(), nullable=True),
         sa.Column("last_error", sa.String(), nullable=True),
     )
-    op.create_index("ix_ai_watched_pr_project_id", "ai_watched_pr", ["project_id"])
-    op.create_table(
+    _create_index("ix_ai_watched_pr_project_id", "ai_watched_pr", ["project_id"])
+    _create_table(
         "ai_knowledge_doc",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("project_id", sa.String(), nullable=True),
@@ -359,11 +393,9 @@ def upgrade() -> None:
         sa.Column("last_read_at", sa.String(), nullable=True),
         sa.Column("deleted_at", sa.String(), nullable=True),
     )
-    op.create_index(
-        "ix_ai_knowledge_doc_project_id", "ai_knowledge_doc", ["project_id"]
-    )
-    op.create_index("ix_ai_knowledge_doc_store", "ai_knowledge_doc", ["store"])
-    op.create_table(
+    _create_index("ix_ai_knowledge_doc_project_id", "ai_knowledge_doc", ["project_id"])
+    _create_index("ix_ai_knowledge_doc_store", "ai_knowledge_doc", ["store"])
+    _create_table(
         "ai_eval_mark",
         sa.Column("id", sa.String(), primary_key=True),
         sa.Column("suite", sa.String(), nullable=False),
@@ -377,8 +409,8 @@ def upgrade() -> None:
         sa.Column("created_at", sa.String(), nullable=False),
         sa.Column("ended_at", sa.String(), nullable=True),
     )
-    op.create_index("ix_ai_eval_mark_suite", "ai_eval_mark", ["suite"])
-    op.create_index("ix_ai_eval_mark_created_at", "ai_eval_mark", ["created_at"])
+    _create_index("ix_ai_eval_mark_suite", "ai_eval_mark", ["suite"])
+    _create_index("ix_ai_eval_mark_created_at", "ai_eval_mark", ["created_at"])
     if bind_is_sqlite():
         try:
             op.get_bind().execute(
@@ -389,7 +421,6 @@ def upgrade() -> None:
             )
         except DBAPIError:
             pass
-    # NEXT-UPGRADE
 
     bind = op.get_bind()
     if bind.dialect.name == "sqlite":
@@ -400,7 +431,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # NEXT-DOWNGRADE
     if bind_is_sqlite():
         op.get_bind().execute(sa.text("DROP TABLE IF EXISTS kb_fts"))
     op.drop_index("ix_ai_eval_mark_created_at", table_name="ai_eval_mark")

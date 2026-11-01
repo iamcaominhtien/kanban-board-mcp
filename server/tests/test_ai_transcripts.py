@@ -1,6 +1,7 @@
 """The board keeps its own transcript of every CLI run (design/screens/ai-operations.md, F and G): what it sent, what
 the CLI printed, secrets masked, compressed at the end, searchable, pinned against the retention, exported."""
 
+import asyncio
 import gzip
 import json
 from datetime import UTC, datetime, timedelta
@@ -8,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from models import AiRunTranscript
-from services.ai import history, transcripts
+from models import AiRun, AiRunTranscript
+from services.ai import history, runs, transcripts
 from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
@@ -29,6 +30,14 @@ async def _finished_run(env, monkeypatch, mode="finish"):
     )
     assert r.status_code == 200, r.text
     run = await _wait(c, tid, ("finished", "failed"))
+    # the end path settles the transcript right after the run's state
+    deadline = asyncio.get_running_loop().time() + 5
+    while asyncio.get_running_loop().time() < deadline:
+        async with __import__("database").async_session() as session:
+            row = await session.get(AiRunTranscript, run["id"])
+        if row is not None and row.ended_at:
+            break
+        await asyncio.sleep(0.05)
     return pid, m, tid, run
 
 
@@ -170,3 +179,136 @@ def test_markdown_fences_never_break_on_backticks():
         ],
     )
     assert "````" in md
+
+
+async def test_an_event_whose_message_is_text_never_stops_the_runs_end(
+    env, monkeypatch
+):
+    c = env["c"]
+    hooked: list[str] = []
+    monkeypatch.setattr(runs, "_after_odd_job", lambda run_id: hooked.append(run_id))
+    monkeypatch.setenv("FAKE_CLAUDE_TEXT_MESSAGE", "some text")
+    pid, _, tid, run = await _finished_run(env, monkeypatch)
+    assert run["state"] == "finished"
+    deadline = asyncio.get_running_loop().time() + 5
+    while not hooked and asyncio.get_running_loop().time() < deadline:
+        await asyncio.sleep(0.05)
+    # the rest of the end path ran: the hook after a finished run (an odd job's reviewer, the workflow)
+    assert hooked == [run["id"]]
+    async with __import__("database").async_session() as session:
+        row = await session.get(AiRunTranscript, run["id"])
+    assert row.ended_at is not None
+    found = (
+        await c.get("/ai/history", params={"q": "pytest", "project_id": pid})
+    ).json()
+    assert found["total"] == 1
+    body = (await c.get(f"/ai/runs/{run['id']}/transcript")).json()
+    assert body["available"] is True
+    # and every reader skips such an event
+    rec = {"k": "event", "e": {"type": "assistant", "message": "plain"}}
+    assert transcripts._index_text([rec], None) == ""
+    assert transcripts.snippet([rec], "plain") is None
+    system = {"k": "event", "e": {"type": "system", "message": "text"}}
+    user = {"k": "event", "e": {"type": "user", "message": "text"}}
+    from services.ai import knowledge
+
+    assert isinstance(
+        knowledge.digest([rec, system, user]), str
+    )  # the ticket-end lesson
+    assert isinstance(history.timeline([rec, system, user]), list)
+    # the skill counter of an open transcript reads it too
+    await transcripts.begin(
+        "run_text", project_id=pid, member_id="m", system="", prompt=""
+    )
+    transcripts.feed("run_text", json.dumps(rec["e"]))
+    assert transcripts._OPEN.pop("run_text").skills == []
+
+
+async def test_a_transcript_that_was_finished_is_never_reopened(env):
+    async with __import__("database").async_session() as session:
+        session.add(
+            AiRunTranscript(
+                run_id="run_done",
+                project_id="p",
+                member_id="m",
+                path="/nowhere/run_done.jsonl.gz",
+                started_at="2026-01-01T00:00:00",
+                ended_at="2026-01-01T00:10:00",
+            )
+        )
+        await session.commit()
+    # a late start for a run that a cancel already ended
+    await transcripts.begin(
+        "run_done", project_id="p", member_id="m", system="s", prompt="p"
+    )
+    assert "run_done" not in transcripts._OPEN
+    async with __import__("database").async_session() as session:
+        row = await session.get(AiRunTranscript, "run_done")
+    assert row.ended_at == "2026-01-01T00:10:00"
+    assert row.path.endswith(".gz")
+
+
+def test_mcp_server_env_values_never_reach_the_transcript():
+    cfg = {
+        "mcpServers": {
+            "linear": {
+                "command": "npx",
+                "env": {
+                    "LINEAR_API_KEY": "lin_api_abcdef123456",
+                    "DATABASE_URL": "postgres://me:hunter2@db/app",
+                },
+            },
+            "kanban": {"type": "http", "headers": {"Authorization": "Bearer kbr_x"}},
+        }
+    }
+    out = transcripts._safe_args(["claude", "--mcp-config", json.dumps(cfg)])
+    text = " ".join(out)
+    assert "lin_api_abcdef123456" not in text
+    assert "hunter2" not in text
+    assert "kbr_x" not in text
+    kept = json.loads(out[2])["mcpServers"]["linear"]["env"]
+    assert sorted(kept) == ["DATABASE_URL", "LINEAR_API_KEY"]
+
+
+async def test_a_search_inside_one_project_is_not_cut_by_other_projects_hits(env):
+    async with __import__("database").async_session() as session:
+        for i in range(5):
+            await transcripts.index(
+                session, AiRun(id=f"a{i}", project_id="A", summary="needle"), []
+            )
+        await transcripts.index(
+            session, AiRun(id="b0", project_id="B", summary="needle"), []
+        )
+        await session.commit()
+        assert await transcripts.search_ids(
+            session, "needle", limit=3, project_id="B"
+        ) == ["b0"]
+
+
+async def test_an_index_that_fails_never_orphans_the_transcript(env, monkeypatch):
+    async def broken(session, run, records):
+        raise RuntimeError("the search index broke")
+
+    monkeypatch.setattr(transcripts, "index", broken)
+    _, _, _, run = await _finished_run(env, monkeypatch)
+    maker = __import__("database").async_session
+
+    async def recorded():
+        async with maker() as session:
+            return (await session.get(AiRunTranscript, run["id"])).ended_at
+
+    deadline = asyncio.get_running_loop().time() + 5
+    while not await recorded() and asyncio.get_running_loop().time() < deadline:
+        await asyncio.sleep(
+            0.05
+        )  # the end path settles the transcript right after the state
+    async with maker() as session:
+        row = await session.get(AiRunTranscript, run["id"])
+        assert row.path.endswith(".jsonl.gz") and Path(row.path).is_file()
+        assert row.ended_at is not None and row.bytes > 0
+        assert len(await transcripts.read(run["id"])) >= 5
+        # a row left by the earlier crash names the plain file, of which only the .gz exists: still read
+        row.path = row.path[: -len(".gz")]
+        session.add(row)
+        await session.commit()
+    assert len(await transcripts.read(run["id"])) >= 5

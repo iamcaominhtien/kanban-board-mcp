@@ -6,7 +6,9 @@ On a subscription what runs out is the window of an account, not money. Claude C
 reading per account and, when a window is used up, holds every run of that account until it reopens. A hold is not a
 failure and is never counted as a try.
 
-An account here is an ``AiAccount`` id, or ``"local"`` for members that run on the person's own CLI login.
+An account here is an ``AiAccount`` id, or ``"local"`` for Claude Code members that run on the person's own CLI
+login (``"local:<provider>"`` for another CLI's own login, so its runs never count on Claude's). Windows and slots
+are Claude's: only Claude Code runs wait on them.
 
 Concurrency: at most ``max_parallel`` CLI runs per account at once (2 by default, set per account).
 """
@@ -24,10 +26,14 @@ NEAR = 0.8  # "quota near" signal and the bar's amber
 
 
 def key_for(profile: AiMember | None, run: AiRun | None = None) -> str:
-    """Which account a run spends: the run's own override (urgent work moved), else the member's account."""
+    """Which account a run spends: the run's own override (urgent work moved), else the member's account, else this
+    computer's own login of the member's CLI."""
     if run is not None and getattr(run, "account_id", None):
         return run.account_id
-    return (profile.account_id if profile else None) or LOCAL
+    if profile is not None and profile.account_id:
+        return profile.account_id
+    provider = (profile.provider if profile else None) or "claude-code"
+    return LOCAL if provider == "claude-code" else f"{LOCAL}:{provider}"
 
 
 def _iso(epoch) -> str | None:
@@ -163,7 +169,8 @@ def _local(when: str | None) -> str:
 
 async def blocking(session, run: AiRun, profile: AiMember) -> str | None:
     """Why a queued CLI run waits on its account (the window or the slots), or None."""
-    if profile.connection == "api_key":
+    if profile.connection == "api_key" or profile.provider != "claude-code":
+        # windows and slots are Claude's (the accounts page shows only those): another CLI is not held by them
         return None
     key = key_for(profile, run)
     row = await state(session, key)

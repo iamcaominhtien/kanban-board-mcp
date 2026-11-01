@@ -163,12 +163,17 @@ async def ensure(
             check=False,
         )
     ).returncode == 0
-    if Path(path).is_dir() and (Path(path) / ".git").exists():
+    reused = Path(path).is_dir() and (Path(path) / ".git").exists()
+    if reused:
         pass  # left from an earlier session of the board: use it as it is
     elif exists:
         await git(repo, "worktree", "add", path, branch)
     else:
         await git(repo, "worktree", "add", "-b", branch, path, base)
+    if not reused and row is not None:
+        # a new folder (the ticket's earlier worktree was merged or removed): it is prepared again
+        row.prepared_at = None
+        row.prepare_s = None
     port = (
         row.port
         if row is not None and row.port
@@ -321,6 +326,10 @@ async def remove(session, ticket_id: str, *, force: bool = False) -> AiWorktree:
         await git(row.repo, "worktree", "prune", check=False)
     row.state = "removed"
     row.port = None
+    row.prepared_at = (
+        None  # a worktree made again for the ticket runs the prepare command again
+    )
+    row.prepare_s = None
     session.add(row)
     await session.commit()
     return row
@@ -555,28 +564,87 @@ async def merge(ticket_id: str, *, by: str) -> dict:
 
 def on_status(ticket_id: str, status: str, previous: str, *, by_ai: bool) -> None:
     """Hand-over on the ticket's moves: Review pushes (and opens the draft PR), Done merges or marks the PR ready, but
-    only when a person moved it. In the background, never in the request."""
+    only when a person moved it. In the background, never in the request.
+
+    A move to Review the Board AI made (its changes carry "suggested by", whether it acted by itself in its Undo tier
+    or a person applied its card) hands nothing over: a push and a pull request post outside the board, which the
+    Board AI never does by itself, and its Undo could not take them back. The person's own move to Review (or the AI
+    member's that worked on the ticket) does."""
     if status == previous or status not in ("review", "done"):
         return
     if status == "done" and by_ai:
         return  # no AI ever merges (D7)
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        return
+    from services import activity as act
+
+    if status == "review" and act._suggested.get():
+        return  # a Board AI move (Done is always asked first, so a person confirmed that one)
 
     async def go() -> None:
         try:
             if status == "review":
+                # the AI may have moved its own ticket mid-run: while its CLI may still be writing, the hand-over
+                # waits for the run to stop (``after_run``); whichever side finds it free takes it, once
+                _DEFERRED.add(ticket_id)
+                if await _run_is_working(ticket_id) or ticket_id not in _DEFERRED:
+                    return
+                _DEFERRED.discard(ticket_id)
                 await on_review(ticket_id)
             else:
                 await merge(ticket_id, by="person")
         except Exception:  # noqa: BLE001 - a hand-over that fails must never disturb the board
             logger.exception("Hand-over of %s failed", ticket_id)
 
-    task = loop.create_task(go())
+    _spawn(go())
+
+
+async def _run_is_working(ticket_id: str) -> bool:
+    """Whether a CLI run is working in the ticket's worktree right now."""
+    from models import AiRun
+
+    async with database.async_session() as session:
+        row = (
+            await session.exec(
+                select(AiRun).where(
+                    AiRun.ticket_id == ticket_id,
+                    col(AiRun.state).in_(["starting", "running"]),
+                )
+            )
+        ).first()
+    return row is not None
+
+
+def after_run(ticket_id: str) -> None:
+    """A run of the ticket stopped (its CLI exited): a Review hand-over that waited for it goes now, if the ticket is
+    still in Review and nothing else works in its worktree."""
+    if ticket_id not in _DEFERRED:
+        return
+
+    async def go() -> None:
+        try:
+            if await _run_is_working(ticket_id) or ticket_id not in _DEFERRED:
+                return  # another run took the worktree (it hands over when that one stops), or it was taken
+            _DEFERRED.discard(ticket_id)
+            async with database.async_session() as session:
+                ticket = await session.get(Ticket, ticket_id)
+            if ticket is not None and ticket.status == "review":
+                await on_review(ticket_id)
+        except Exception:  # noqa: BLE001 - a hand-over that fails must never disturb the board
+            logger.exception("Hand-over of %s failed", ticket_id)
+
+    _spawn(go())
+
+
+def _spawn(coro) -> None:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        coro.close()
+        return
+    task = loop.create_task(coro)
     _TASKS.add(task)
     task.add_done_callback(_TASKS.discard)
 
 
 _TASKS: set[asyncio.Task] = set()
+# tickets moved to Review while their run was still working: handed over when it stops
+_DEFERRED: set[str] = set()

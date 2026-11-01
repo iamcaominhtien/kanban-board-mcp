@@ -5,12 +5,13 @@ configuration per run (nothing written into the repo), merging only when a perso
 import asyncio
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from models import AiWorktree
-from services.ai import run_config, worktrees
+from models import AiRun, AiWorktree
+from services.ai import failures, run_config, runs, worktrees
 from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
@@ -250,10 +251,10 @@ async def test_the_members_skills_travel_as_a_plugin_folder_not_into_the_repo(
     assert run["state"] == "finished"
     args = [json.loads(x) for x in record.read_text().splitlines()][-1]
     folder = args[args.index("--plugin-dir") + 1]
-    assert Path(folder, "skills", "red-green", "SKILL.md").is_file()
-    assert json.loads(Path(folder, ".claude-plugin", "plugin.json").read_text())[
-        "name"
-    ].startswith("kanban-")
+    # the run's own folder (what it held is checked while runs work, below), removed when the run ends
+    assert Path(folder).name == run["id"]
+    await _wait_for(lambda: _gone([folder], run["id"]))
+    assert run_config.plugin_name("Claude Code · Backend").startswith("kanban-")
     system = args[args.index("--append-system-prompt") + 1]
     assert "Always run ruff." in system
     assert not (Path(repo) / ".claude").exists()
@@ -301,3 +302,243 @@ def test_names_and_paths():
     assert worktrees.slug("Fix the CSV export, please!") == "fix-the-csv-export-please"
     assert worktrees.path_for("/code/kanban", "KAN-1") == "/code/kanban.worktrees/KAN-1"
     assert run_config.plugin_name("Dev An (TDD)") == "kanban-dev-an-tdd"
+
+
+def _py(code: str) -> str:
+    return f'"{sys.executable}" -c "{code}"'
+
+
+async def test_a_cancel_while_the_worktree_is_prepared_never_starts_the_cli(
+    env, repo, monkeypatch, tmp_path
+):
+    c = env["c"]
+    record = tmp_path / "args.jsonl"
+    monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
+    pid, _ = await _project(c)
+    await _on(c, pid, prepare=_py("import time; time.sleep(1.5)"))
+    m = await _runner(c, pid, repo)
+    tid = await _ticket(c, pid)
+    await c.post(
+        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
+    )
+    run = await _wait(c, tid, ("starting",))
+    await asyncio.sleep(
+        0.3
+    )  # the prepare command is running: there is no process to stop yet
+    await runs.cancel(run["id"], by="An")
+    await asyncio.sleep(2.5)
+    assert not record.exists()
+    assert (await c.get(f"/ai/runs/{run['id']}")).json()["state"] == "cancelled"
+
+
+async def test_a_run_that_failed_before_its_cli_started_starts_again_from_the_ticket(
+    env, repo, monkeypatch, tmp_path
+):
+    c = env["c"]
+    monkeypatch.setattr(failures, "NETWORK_DELAYS_S", (0, 0, 0))
+    record = tmp_path / "args.jsonl"
+    monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
+    marker = tmp_path / "prepared-once"
+    pid, _ = await _project(c)
+    # the prepare command fails the first time only
+    await _on(
+        c,
+        pid,
+        prepare=_py(
+            f"import os, sys; p = r'{marker}'; ok = os.path.exists(p); open(p, 'w').close(); sys.exit(0 if ok else 1)"
+        ),
+    )
+    m = await _runner(c, pid, repo)
+    tid, run = await _run_ticket(c, pid, m)
+    assert run["state"] == "finished"
+    assert any(s["kind"] == "retry" for s in run["steps"])
+    args = [json.loads(x) for x in record.read_text().splitlines()][-1]
+    prompt = args[args.index("-p") + 1]
+    assert "Fix add()" in prompt
+    assert (
+        "board tool failed" not in prompt
+    )  # no "carry on from where you stopped": it never started
+    assert any(ch["to"] == "in-progress" for ch in run["status_changes"])
+
+
+async def test_a_worktree_made_again_runs_the_prepare_command_again(
+    env, repo, tmp_path
+):
+    c = env["c"]
+    count = tmp_path / "prepared.txt"
+    pid, _ = await _project(c)
+    await _on(c, pid, prepare=_py(f"open(r'{count}', 'a').write('x')"))
+    m = await _runner(c, pid, repo)
+    tid, _ = await _run_ticket(c, pid, m)
+    assert count.read_text() == "x"
+    r = await c.post(f"/tickets/{tid}/ai/worktree/remove", json={})
+    assert r.status_code == 200, r.text
+    await c.post(
+        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
+    )
+    await asyncio.sleep(0.3)
+    await _wait(c, tid, ("finished", "failed"))
+    assert count.read_text() == "xx"
+
+
+async def test_a_move_to_review_mid_run_hands_over_when_the_run_stops(
+    env, repo, monkeypatch
+):
+    c = env["c"]
+    handed: list[str] = []
+
+    async def on_review(ticket_id):
+        handed.append(ticket_id)
+
+    monkeypatch.setattr(worktrees, "on_review", on_review)
+    pid, _ = await _project(c)
+    tid = await _ticket(c, pid, status="in-progress")
+    async with env["maker"]() as s:
+        s.add(
+            AiRun(
+                id="r1", project_id=pid, ticket_id=tid, member_id="m", state="running"
+            )
+        )
+        await s.commit()
+    # the AI moves its own ticket while its CLI is still writing
+    await c.patch(f"/tickets/{tid}", json={"status": "review"})
+    await asyncio.sleep(0.3)
+    assert handed == []
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, "r1")
+        row.state = "finished"
+        s.add(row)
+        await s.commit()
+    worktrees.after_run(tid)
+    await _wait_for(lambda: _true(handed))
+    assert handed == [tid]
+    worktrees.after_run(tid)  # once only
+    await asyncio.sleep(0.2)
+    assert handed == [tid]
+
+
+async def _true(xs):
+    return bool(xs)
+
+
+async def test_a_board_ai_move_to_review_pushes_nothing(env, repo, monkeypatch):
+    from services import activity as act
+
+    c = env["c"]
+    handed: list[str] = []
+
+    async def on_review(ticket_id):
+        handed.append(ticket_id)
+
+    monkeypatch.setattr(worktrees, "on_review", on_review)
+    pid, _ = await _project(c)
+    tid = await _ticket(c, pid, status="in-progress")
+    token = act.set_suggested("Board AI")
+    try:
+        worktrees.on_status(tid, "review", "in-progress", by_ai=False)
+    finally:
+        act.reset_suggested(token)
+    await asyncio.sleep(0.2)
+    assert handed == []
+    worktrees.on_status(
+        tid, "review", "in-progress", by_ai=False
+    )  # a person's own move
+    await _wait_for(lambda: _true(handed))
+
+
+async def test_leaving_the_synced_folder_keeps_a_persons_own_json_settings(env, repo):
+    c = env["c"]
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, repo)
+    Path(repo, ".mcp.json").write_text(
+        json.dumps({"mcpServers": {"mine": {"command": "my-server"}}})
+    )
+    Path(repo, ".claude").mkdir(exist_ok=True)
+    Path(repo, ".claude", "settings.json").write_text(
+        json.dumps(
+            {"env": {"MY_FLAG": "1"}, "permissions": {"allow": ["Bash(make:*)"]}}
+        )
+    )
+    r = await c.patch(
+        f"/ai/members/{m['id']}",
+        json={
+            "config": {
+                "mcp_servers": [
+                    {
+                        "name": "github",
+                        "type": "stdio",
+                        "command": "npx",
+                        "args": ["gh"],
+                    }
+                ],
+                "allow_rules": ["Read"],
+            }
+        },
+    )
+    assert r.status_code == 200, r.text
+    w = await c.post(f"/ai/members/{m['id']}/config/write", json={})
+    assert w.status_code == 200, w.text
+    merged = json.loads(Path(repo, ".mcp.json").read_text())["mcpServers"]
+    assert {"mine", "github", "kanban"} <= set(merged)
+    listed = (await c.get(f"/ai/members/{m['id']}/config-migration")).json()
+    assert all(f["block_only"] for f in listed["files"] if f["path"].endswith(".json"))
+    removed = (await c.post(f"/ai/members/{m['id']}/config-migration")).json()[
+        "removed"
+    ]
+    assert ".mcp.json" in removed
+    assert json.loads(Path(repo, ".mcp.json").read_text()) == {
+        "mcpServers": {"mine": {"command": "my-server"}}
+    }
+    settings = json.loads(Path(repo, ".claude", "settings.json").read_text())
+    assert settings["env"] == {"MY_FLAG": "1"}
+    assert settings["permissions"]["allow"] == ["Bash(make:*)"]
+
+
+async def test_two_runs_of_one_member_each_have_their_own_plugin_folder(
+    env, repo, monkeypatch, tmp_path
+):
+    c = env["c"]
+    record = tmp_path / "args.jsonl"
+    monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")
+    pid, _ = await _project(c)
+    await c.patch(f"/projects/{pid}/ai/ops", json={"per_run_config": True})
+    m = await _runner(c, pid, repo)
+    await c.patch(
+        f"/ai/members/{m['id']}",
+        json={
+            "config": {
+                "skills": [
+                    {
+                        "content": "---\nname: red-green\ndescription: TDD.\n---\nx",
+                        "enabled": True,
+                    }
+                ]
+            }
+        },
+    )
+    t1, t2 = await _ticket(c, pid, "one"), await _ticket(c, pid, "two")
+    for t in (t1, t2):
+        await c.post(
+            f"/tickets/{t}/ai/assign", json={"member_id": m["id"], "start": "now"}
+        )
+    r1 = await _wait(c, t1, ("running",))
+    r2 = await _wait(c, t2, ("running",))
+    folders = [
+        a[a.index("--plugin-dir") + 1]
+        for a in (json.loads(x) for x in record.read_text().splitlines())
+    ]
+    assert len(set(folders)) == 2
+    assert all(Path(f, "skills", "red-green", "SKILL.md").is_file() for f in folders)
+    assert json.loads(Path(folders[0], ".claude-plugin", "plugin.json").read_text())[
+        "name"
+    ].startswith("kanban-")
+    await runs.cancel(r1["id"], by="t")
+    # the other run's folder is untouched; the ended run's own folder is gone
+    assert Path(folders[1] if r1["id"] in folders[0] else folders[0]).is_dir()
+    await _wait_for(lambda: _gone(folders, r1["id"]))
+    await runs.cancel(r2["id"], by="t")
+
+
+async def _gone(folders, run_id):
+    return not any(Path(f).exists() for f in folders if run_id in f)

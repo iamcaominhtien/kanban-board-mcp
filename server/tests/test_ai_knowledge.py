@@ -8,7 +8,7 @@ import pytest
 
 from models import AiLesson
 from services.ai import knowledge
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.test_ai import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 @pytest.fixture(autouse=True)
@@ -240,3 +240,44 @@ def test_the_digest_keeps_commands_errors_and_words():
     assert "[board] Stopped" in text
     assert knowledge.parse_proposal('{"lesson": "  a  b  "}') == "a b"
     assert knowledge.parse_proposal("nothing") is None
+
+
+async def test_a_lesson_from_a_diagnosis_does_not_stop_the_ticket_end_lesson(
+    env, monkeypatch
+):
+    c = env["c"]
+    monkeypatch.setenv(
+        "FAKE_CLAUDE_JSON_RESULT",
+        json.dumps({"lesson": "Run the linter before the tests.", "why": "x"}),
+    )
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await c.post(
+        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
+    )
+    run = await _wait(c, tid, ("finished",))
+    # while it ran, the watchdog proposed a lesson from a diagnosis of the same ticket
+    await knowledge.propose_from_diagnosis(
+        run["id"], "Start dev servers in the background."
+    )
+    got = await knowledge.propose_from_ticket(tid)
+    assert got is not None and "linter" in got.text
+    assert await knowledge.propose_from_ticket(tid) is None
+
+
+async def test_a_light_model_that_never_answers_is_stopped(env, monkeypatch, tmp_path):
+    import psutil
+
+    from models import AiMember
+
+    pidfile = tmp_path / "haiku.pid"
+    monkeypatch.setenv("FAKE_CLAUDE_JSON_HANG", str(pidfile))
+    monkeypatch.setattr(knowledge, "LIGHT_MODEL_TIMEOUT_S", 1)
+    profile = AiMember(id="m", project_id="p", provider="claude-code", cli_path=FAKE)
+    assert await knowledge._ask_light_model("x", profile, None) is None
+    child = int(pidfile.read_text())
+    assert (
+        not psutil.pid_exists(child)
+        or psutil.Process(child).status() == psutil.STATUS_ZOMBIE
+    )

@@ -167,15 +167,14 @@ class OrderPatch(BaseModel):
 
 @router.patch("/ai/orders/{order_id}")
 async def patch_order(order_id: str, body: OrderPatch, session: Session) -> dict:
-    """Start the trial, turn it on (only after its trial ran), pause it, or edit it."""
-    import json
-
+    """Start the trial, turn it on (only after its trial ran), pause it, or edit it (a changed rule that was live goes
+    back to its trial)."""
     row = await session.get(AiStandingOrder, order_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Rule not found")
     try:
         if body.rule is not None:
-            row.rule = json.dumps(svc_orders.check_rule(body.rule))
+            row = await svc_orders.change_rule(session, row, body.rule)
         if body.name is not None:
             row.name = body.name[:120]
         session.add(row)
@@ -304,6 +303,13 @@ async def post_kb(
 ) -> dict:
     """Add a document: a file (PDF, image, text, code) or pasted text. Everything becomes text on the way in."""
     await _project(session, project_id)
+    if store == "shared" and "shared" not in await svc_kb.stores_for(
+        session, project_id
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="This project does not use the shared store; turn it on in the project's AI settings first.",
+        )
     name = (file.filename if file else None) or title or "Untitled"
     if file is not None:
         data = await file.read()
@@ -352,10 +358,29 @@ class KbPatch(BaseModel):
 
 @router.patch("/ai/kb/{doc_id}")
 async def patch_kb_doc(doc_id: str, body: KbPatch, session: Session) -> dict:
-    """Putting a document into the shared store says who will be able to read it."""
+    """Putting a document into the shared store says who will be able to read it. Only who added a document changes
+    who sees it; the shared store takes a document only from a project that opted in to it."""
+    person = _by()
     doc = await session.get(AiKnowledgeDoc, doc_id)
-    if doc is None or doc.deleted_at:
+    if doc is None or doc.deleted_at or not svc_kb.visible(doc, person=person):
         raise HTTPException(status_code=404, detail="Document not found")
+    if doc.created_by and doc.created_by != person:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Only {doc.created_by}, who added it, can change who sees it.",
+        )
+    if body.store == "shared" and doc.store != "shared":
+        if not doc.project_id or "shared" not in await svc_kb.stores_for(
+            session, doc.project_id
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="This project does not use the shared store; turn it on in the project's AI settings first.",
+            )
+    if body.store == "project" and doc.store != "project" and not doc.project_id:
+        raise HTTPException(
+            status_code=409, detail="This document came from no project."
+        )
     if body.store is not None:
         doc.store = body.store
     if body.private is not None:
@@ -371,7 +396,7 @@ async def patch_kb_doc(doc_id: str, body: KbPatch, session: Session) -> dict:
 async def delete_kb_doc(doc_id: str, session: Session) -> None:
     """Delete a document from the knowledge base."""
     doc = await session.get(AiKnowledgeDoc, doc_id)
-    if doc is None:
+    if doc is None or doc.deleted_at or not svc_kb.visible(doc, person=_by()):
         raise HTTPException(status_code=404, detail="Document not found")
     await svc_kb.remove(session, doc)
 

@@ -237,9 +237,12 @@ def suggest(found: dict) -> dict:
                 tests.append(f"{prefix}{runner}pytest -q")
             if pkg.get("ruff"):
                 lints.append(f"{prefix}{runner}ruff check .")
-            prepares.append(
-                f"{prefix}{'uv sync' if pkg.get('manager') == 'uv' else ('poetry install' if pkg.get('manager') == 'poetry' else 'pip install -e .')}"
-            )
+            if pkg.get("manager") in ("uv", "poetry"):
+                prepares.append(
+                    f"{prefix}{'uv sync' if pkg.get('manager') == 'uv' else 'poetry install'}"
+                )
+            # plain pip has no environment of its own: `pip install -e .` would install into whatever Python is on
+            # the PATH, the person's own, so nothing is proposed and a person writes the command they use
     for cmd in found.get("ci_commands") or []:
         low = cmd.lower()
         if not tests and re.search(r"\b(test|pytest|vitest|jest)\b", low):
@@ -267,7 +270,9 @@ def suggest(found: dict) -> dict:
     }
     team = [{"pack": r, "name": names[r]} for r in roles]
     suggested_plugins = [
-        c["key"] for c in plugins.CATALOGUE if set(c["roles"]) & set(roles)
+        c["key"]
+        for c in plugins.CATALOGUE
+        if set(c["roles"]) & set(roles) and (found["ui"] or not c.get("ui"))
     ]
     handover = (
         "local"

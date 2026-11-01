@@ -55,6 +55,26 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def content_of(event) -> list | str | None:
+    """The ``message.content`` of a stream event, or None. A CLI may print an event whose ``message`` is plain text
+    (or none at all): every reader goes through here, so such an event is skipped, never a crash."""
+    if not isinstance(event, dict):
+        return None
+    message = event.get("message")
+    if not isinstance(message, dict):
+        return None
+    content = message.get("content")
+    return content if isinstance(content, (list, str)) else None
+
+
+def blocks_of(event) -> list[dict]:
+    """The content blocks of a stream event (dicts only), [] when it has none."""
+    content = content_of(event)
+    if not isinstance(content, list):
+        return []
+    return [b for b in content if isinstance(b, dict)]
+
+
 def _mask(value):
     """Redact every string of a JSON value and cut very long ones."""
     if isinstance(value, str):
@@ -95,7 +115,8 @@ def _path_for(run_id: str, started: str | None = None) -> Path:
 
 
 def _safe_args(args: list[str]) -> list[str]:
-    """The command line without the prompt texts (recorded on their own) and with the MCP config's token masked."""
+    """The command line without the prompt texts (recorded on their own) and with the MCP config's headers and env
+    values masked."""
     out: list[str] = []
     skip = {"-p", "--append-system-prompt", "--system-prompt"}
     i = 0
@@ -109,8 +130,13 @@ def _safe_args(args: list[str]) -> list[str]:
             try:
                 cfg = json.loads(args[i + 1])
                 for server in (cfg.get("mcpServers") or {}).values():
-                    if isinstance(server, dict) and server.get("headers"):
-                        server["headers"] = {k: "••••••••" for k in server["headers"]}
+                    if not isinstance(server, dict):
+                        continue
+                    # headers carry tokens, and an env carries whatever the server needs (an API key, a
+                    # DATABASE_URL with its password): the names are kept, never a value
+                    for part in ("headers", "env"):
+                        if isinstance(server.get(part), dict) and server[part]:
+                            server[part] = {k: "••••••••" for k in server[part]}
                 out += [a, json.dumps(cfg)]
             except ValueError:
                 out += [a, "<mcp config>"]
@@ -134,7 +160,8 @@ async def begin(
     note: str | None = None,
     started_at: str | None = None,
 ) -> None:
-    """Open (or reopen, after a restart) a run's transcript and record what the board sent the CLI."""
+    """Open (or reopen, after a restart inside the run) a run's transcript and record what the board sent the CLI.
+    A transcript that was finished stays as it is."""
     try:
         opened = _OPEN.get(run_id)
         if opened is None:
@@ -151,22 +178,11 @@ async def begin(
                     )
                     session.add(row)
                     await session.commit()
+                if row.ended_at or _existing(Path(row.path)).suffix == ".gz":
+                    # an ended run is never reopened (a retry is a new run): a late start for it, after a cancel,
+                    # must not reopen the finished, compressed and indexed transcript
+                    return
                 path = Path(row.path)
-                if (
-                    path.suffix == ".gz"
-                ):  # a run that ended and was resumed: decompress and go on
-                    plain = path.with_suffix("")
-                    with (
-                        gzip.open(path, "rt", encoding="utf-8") as src,
-                        open(plain, "w", encoding="utf-8") as dst,
-                    ):
-                        dst.write(src.read())
-                    path.unlink(missing_ok=True)
-                    row.path = str(plain)
-                    row.ended_at = None
-                    session.add(row)
-                    await session.commit()
-                    path = plain
             opened = _OPEN[run_id] = _Open(path)
         opened.write(
             {
@@ -202,7 +218,7 @@ def feed(run_id: str, line: str) -> None:
             return
         opened.write({"t": _now(), "k": "event", "e": _mask(event)})
         if event.get("type") == "assistant":
-            for block in (event.get("message") or {}).get("content") or []:
+            for block in blocks_of(event):
                 if not isinstance(block, dict) or block.get("type") != "tool_use":
                     continue
                 inp = block.get("input") or {}
@@ -232,7 +248,20 @@ def note(run_id: str, kind: str, text: str, **data) -> None:
         logger.exception("Could not write the transcript of run %s", run_id)
 
 
+def _packed(path: Path) -> Path:
+    return path.with_suffix(path.suffix + ".gz")
+
+
+def _existing(path: Path) -> Path:
+    """The file a recorded path stands for: the path itself, else its compressed sibling (a finish that compressed it
+    but could not record the new name)."""
+    if path.suffix != ".gz" and not path.exists() and _packed(path).exists():
+        return _packed(path)
+    return path
+
+
 def _read_lines(path: Path) -> list[dict]:
+    path = _existing(path)
     opener = gzip.open if path.suffix == ".gz" else open
     out: list[dict] = []
     try:
@@ -281,7 +310,7 @@ def _index_text(records: list[dict], run: AiRun | None) -> str:
         ev = rec.get("e") if rec.get("k") == "event" else None
         if not isinstance(ev, dict):
             continue
-        content = (ev.get("message") or {}).get("content")
+        content = content_of(ev)
         if not isinstance(content, list):
             continue
         for block in content:
@@ -341,7 +370,9 @@ async def index(session, run: AiRun, records: list[dict]) -> None:
 
 
 async def finish(run_id: str) -> None:
-    """The run ended: close and compress its transcript, record the skills it used, index it for search."""
+    """The run ended: close and compress its transcript, record the skills it used, index it for search. The file and
+    its row are settled first and on their own: a search index that fails never leaves the row naming a file that is
+    gone."""
     opened = _OPEN.pop(run_id, None)
     skills = opened.skills if opened else []
     if opened is not None:
@@ -355,15 +386,15 @@ async def finish(run_id: str) -> None:
             run = await session.get(AiRun, run_id)
             if row is None or run is None:
                 return
-            path = Path(row.path)
+            path = _existing(Path(row.path))
             records = _read_lines(path)
+            plain = None
             if path.suffix != ".gz" and path.exists():
-                packed = path.with_suffix(path.suffix + ".gz")
+                packed = _packed(path)
                 with open(path, "rb") as src, gzip.open(packed, "wb") as dst:
                     dst.write(src.read())
-                path.unlink(missing_ok=True)
-                row.path = str(packed)
-                path = packed
+                plain, path = path, packed
+            row.path = str(path)
             row.bytes = path.stat().st_size if path.exists() else 0
             row.events = len(records)
             row.ended_at = _now()
@@ -380,8 +411,18 @@ async def finish(run_id: str) -> None:
                         plugin=plugin,
                     )
                 )
-            await index(session, run, records)
+            try:
+                # in a savepoint of the same commit: the run is searchable the moment it is recorded as ended, and
+                # an index that fails rolls back only itself
+                async with session.begin_nested():
+                    await index(session, run, records)
+            except Exception:  # noqa: BLE001 - search is a convenience: the transcript itself is kept
+                logger.exception("Could not index the transcript of run %s", run_id)
             await session.commit()
+            if plain is not None:
+                plain.unlink(
+                    missing_ok=True
+                )  # only once the row names the compressed file
     except (OSError, DBAPIError):
         logger.exception("Could not finish the transcript of run %s", run_id)
 
@@ -417,7 +458,7 @@ async def prune(retention_days: int, now: datetime | None = None) -> int:
             )
         ).all()
         for row in rows:
-            Path(row.path).unlink(missing_ok=True)
+            _existing(Path(row.path)).unlink(missing_ok=True)
             row.deleted_at = _now()
             row.bytes = 0
             session.add(row)
@@ -452,8 +493,11 @@ def fts_query(q: str) -> str | None:
     return " ".join('"' + w.replace('"', "") + '"' for w in words)
 
 
-async def search_ids(session, q: str, limit: int = 500) -> list[str] | None:
-    """Run ids that match `q`, best first; None when the index cannot be used (the caller falls back)."""
+async def search_ids(
+    session, q: str, limit: int = 500, project_id: str | None = None
+) -> list[str] | None:
+    """Run ids that match `q`, best first; None when the index cannot be used (the caller falls back). With
+    `project_id` only that project's runs count, inside the query (the cap would otherwise go to other projects)."""
     query = fts_query(q)
     if query is None:
         return []
@@ -465,9 +509,10 @@ async def search_ids(session, q: str, limit: int = 500) -> list[str] | None:
             await conn.execute(
                 text(
                     "SELECT run_id FROM ai_run_fts WHERE ai_run_fts MATCH :q "
-                    "ORDER BY rank LIMIT :n"
+                    + ("AND project_id = :p " if project_id else "")
+                    + "ORDER BY rank LIMIT :n"
                 ),
-                {"q": query, "n": limit},
+                {"q": query, "n": limit, **({"p": project_id} if project_id else {})},
             )
         ).all()
     except DBAPIError:
@@ -483,7 +528,7 @@ def snippet(records: list[dict], q: str, width: int = 160) -> str | None:
     for rec in records:
         if rec.get("k") != "event":
             continue
-        content = ((rec.get("e") or {}).get("message") or {}).get("content")
+        content = content_of(rec.get("e"))
         if not isinstance(content, list):
             continue
         for block in content:

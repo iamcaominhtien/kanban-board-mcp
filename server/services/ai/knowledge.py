@@ -230,6 +230,8 @@ def lesson_dict(r: AiLesson) -> dict:
 # A light model proposes at most one lesson when a ticket ends
 # ---------------------------------------------------------------------------
 
+LIGHT_MODEL_TIMEOUT_S = 180
+
 LESSON_PROMPT = (
     "You read the log of an AI coding agent's work on one ticket. Propose AT MOST ONE lesson that would save the next "
     "AI on this project time or a mistake: a fact about this repository or how it is worked on (a command that must be "
@@ -249,7 +251,7 @@ def digest(records: list[dict], limit: int = 12000) -> str:
         ev = rec.get("e") if rec.get("k") == "event" else None
         if not isinstance(ev, dict):
             continue
-        for block in (ev.get("message") or {}).get("content") or []:
+        for block in transcripts.blocks_of(ev):
             if not isinstance(block, dict):
                 continue
             if block.get("type") == "text" and ev.get("type") == "assistant":
@@ -318,8 +320,14 @@ async def _ask_light_model(prompt: str, profile, account) -> str | None:
             env=env,
             cwd=tempfile.gettempdir(),
         )
-        out, _ = await asyncio.wait_for(child.communicate(), timeout=180)
-    except (OSError, asyncio.TimeoutError):
+        out, _ = await asyncio.wait_for(
+            child.communicate(), timeout=LIGHT_MODEL_TIMEOUT_S
+        )
+    except asyncio.TimeoutError:  # before OSError, which it is a kind of
+        cli.kill_tree(child.pid)  # never left behind
+        await child.wait()
+        return None
+    except OSError:
         return None
     try:
         return json.loads(out.decode(errors="replace") or "{}").get("result")
@@ -341,9 +349,14 @@ async def propose_from_ticket(ticket_id: str) -> AiLesson | None:
         settings = await get_settings(session, ticket.project_id)
         if not ops.get(settings).get("propose_lessons"):
             return None
+        # only the ticket-end reading marks the ticket as read: a lesson a diagnosis proposed during a run of the
+        # same ticket is another kind
         done = (
             await session.exec(
-                select(AiLesson).where(AiLesson.source_ticket_id == ticket_id)
+                select(AiLesson).where(
+                    AiLesson.source_ticket_id == ticket_id,
+                    AiLesson.proposed_by == "model",
+                )
             )
         ).first()
         if done is not None:

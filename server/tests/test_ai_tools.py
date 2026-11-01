@@ -140,6 +140,70 @@ def test_a_bare_skills_folder_and_a_single_skill(tmp_path):
         plugins.build(empty, into=tmp_path / "o3")
 
 
+def _market(src: Path, entry: dict) -> None:
+    (src / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+    (src / ".claude-plugin" / "marketplace.json").write_text(
+        json.dumps({"plugins": [{"name": "evil", "source": "./", **entry}]})
+    )
+
+
+def test_a_marketplace_cannot_copy_files_from_outside_its_checkout(tmp_path):
+    secret = tmp_path / "home" / ".ssh"
+    secret.mkdir(parents=True)
+    (secret / "id_rsa").write_text("PRIVATE KEY")
+    src = tmp_path / "repo"
+    _skill(src / "skills", "ok")
+    for listed in (["../home/.ssh"], [str(secret)], ["./skills/../../home/.ssh"]):
+        _market(src, {"skills": listed})
+        with pytest.raises(plugins.PluginError, match="outside its own repository"):
+            plugins.build(src, plugin="evil", into=tmp_path / "out")
+        assert not (tmp_path / "out" / "skills" / ".ssh").exists()
+    # a sibling folder whose name starts like the checkout's is outside it too
+    _skill(tmp_path / "repo-other" / "skills", "x")
+    _market(src, {"source": "../repo-other"})
+    with pytest.raises(plugins.PluginError, match="outside its own repository"):
+        plugins.build(src, plugin="evil", into=tmp_path / "out2")
+
+
+def test_a_link_in_a_plugin_is_refused_and_a_huge_one_is_not_copied(
+    tmp_path, monkeypatch
+):
+    secret = tmp_path / "home"
+    secret.mkdir()
+    (secret / "id_rsa").write_text("PRIVATE KEY")
+    src = tmp_path / "linked"
+    _skill(src / "skills", "tdd")
+    (src / "skills" / "tdd" / "keys").symlink_to(secret, target_is_directory=True)
+    with pytest.raises(plugins.PluginError, match="is a link"):
+        plugins.build(src, into=tmp_path / "out")
+    assert not (tmp_path / "out" / "skills" / "tdd" / "keys").exists()
+    big = tmp_path / "big"
+    _skill(big / "skills", "tdd")
+    (big / "skills" / "tdd" / "blob.bin").write_bytes(b"x" * 2048)
+    monkeypatch.setattr(plugins, "MAX_PLUGIN_BYTES", 1024)
+    with pytest.raises(plugins.PluginError, match="larger than"):
+        plugins.build(big, into=tmp_path / "out-big")
+    assert not (tmp_path / "out-big").exists()
+
+
+def test_a_git_url_is_never_read_as_an_option(tmp_path, monkeypatch):
+    seen = []
+
+    def fake_run(args, cwd=None, timeout=300):
+        seen.append(args)
+        return subprocess.CompletedProcess(args, 1, "", "nope")
+
+    monkeypatch.setattr(plugins, "_run", fake_run)
+    with pytest.raises(plugins.PluginError):
+        plugins._clone("--upload-pack=touch /tmp/x", None, str(tmp_path / "c"))
+    with pytest.raises(plugins.PluginError):
+        plugins._clone("--upload-pack=x", "abc1234", str(tmp_path / "d"))
+    for args in seen:
+        assert args.index("--") < args.index(
+            next(a for a in args if a.startswith("--upload-pack"))
+        )
+
+
 # --------------------------------------------------------------------------- install, update, roll back, pin
 
 
@@ -465,3 +529,16 @@ async def test_the_scan_creates_nothing_until_apply(env, tmp_path):
     assert out["settings"]["worktrees"]["prepare"] == scan["suggested"]["prepare"]
     members_after = (await c.get(f"/projects/{pid}/members")).json()
     assert len(members_after) == len(members_before) + 2
+
+
+def test_a_plain_pip_library_gets_no_global_install_and_no_browser_plugins(tmp_path):
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "calc"\nversion = "0.1.0"\n'
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_calc.py").write_text("def test_x():\n    assert True\n")
+    s = repo_scan.suggest(repo_scan.scan(str(tmp_path)))
+    assert (
+        "pip install" not in s["prepare"]
+    )  # it would install into the person's own Python
+    assert not {"webapp-testing", "chrome-devtools", "playwright"} & set(s["plugins"])

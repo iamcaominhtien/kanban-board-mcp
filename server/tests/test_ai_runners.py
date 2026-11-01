@@ -831,3 +831,61 @@ def test_agy_result_that_finished_early_is_not_a_finished_task():
         '{"event":"result","result":{"conversation_id":"c1","status":"SUCCESS","response":"All of it.","num_turns":3}}'
     )
     assert ok["result"]["is_error"] is False and ok["steps"] == []
+
+
+def test_a_live_run_still_moves_a_long_system_prompt_to_a_file(monkeypatch):
+    monkeypatch.setattr(cli, "_MAX_COMMAND_CHARS", 200)
+    args = cli.claude_args(
+        "claude",
+        prompt="the prompt",
+        system="s" * 500,
+        model=None,
+        mcp_config={"mcpServers": {}},
+        allowed=[],
+        denied=[],
+        max_turns=None,
+        session_id="sid",
+        resume=False,
+        live=True,
+    )
+    out, stdin_text, folder = cli.spill_long_args(args, prompt_on_stdin=False)
+    try:
+        assert stdin_text is None  # stdin carries the live messages
+        assert out[out.index("-p") + 1] == "--input-format"  # `-p` takes no text here
+        assert "s" * 500 not in out
+        file = Path(out[out.index("--append-system-prompt-file") + 1])
+        assert file.read_text(encoding="utf-8") == "s" * 500
+    finally:
+        if folder:
+            import shutil
+
+            shutil.rmtree(folder, ignore_errors=True)
+
+
+def test_coloured_test_output_is_read():
+    out = "\x1b[31m\x1b[1m1 failed\x1b[0m, \x1b[32m\x1b[1m6 passed\x1b[0m in 0.12s"
+    got = cli.parse_tests(out)
+    assert got["passed"] == 6 and got["failed"] == 1
+    assert cli.parse_tests("\x1b[32m\x1b[1m6 passed\x1b[0m")["passed"] == 6
+
+
+async def test_a_failing_test_command_keeps_its_exit_code_and_counts(env, monkeypatch):
+    from tests.test_ai import _runner
+
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_RED_TESTS", "1")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await c.post(
+        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
+    )
+    run = await _wait(c, tid, ("finished", "failed"))
+    step = next(
+        s
+        for s in run["steps"]
+        if s["kind"] == "command" and "python3 -m pytest" in s.get("text", "")
+    )
+    assert step["exit_code"] == 1
+    assert step["tests"]["failed"] == 1 and step["tests"]["passed"] == 3
+    assert "\x1b[" not in step["output"]

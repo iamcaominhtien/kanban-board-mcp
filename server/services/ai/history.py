@@ -67,7 +67,7 @@ async def list_runs(
         stmt = stmt.where(col(AiRun.id).in_(kept))
     order: list[str] | None = None
     if q and q.strip():
-        ids = await transcripts.search_ids(session, q)
+        ids = await transcripts.search_ids(session, q, project_id=project_id)
         if ids is None:  # no index: the run's own text
             like = f"%{q.strip()}%"
             stmt = stmt.where(
@@ -249,7 +249,7 @@ def timeline(records: list[dict]) -> list[dict]:
                 }
             )
         elif et == "assistant":
-            for block in (ev.get("message") or {}).get("content") or []:
+            for block in transcripts.blocks_of(ev):
                 if not isinstance(block, dict):
                     continue
                 if block.get("type") == "text" and (block.get("text") or "").strip():
@@ -273,7 +273,7 @@ def timeline(records: list[dict]) -> list[dict]:
                     by_tool[block.get("id") or ""] = entry
                     out.append(entry)
         elif et == "user":
-            content = (ev.get("message") or {}).get("content")
+            content = transcripts.content_of(ev)
             if isinstance(content, str):
                 out.append({"at": at, "type": "message", "text": content})
                 continue

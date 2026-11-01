@@ -929,9 +929,6 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             " without repeating anything, and without an actions block unless the earlier part promised one."
         )
     # the member's own configured tools (MCP servers, tool rules) when this chat answers from the board
-    chat_tools = chat_token = None
-    if lean and not (turn_in and turn_in.images):
-        chat_tools, chat_token = await chat_tools_mod.build(c, profile, member)
     from .. import ops as ai_ops
     from ..store import get_settings as _ai_settings
 
@@ -939,13 +936,19 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         board_ai_cfg = (
             ai_ops.get(await _ai_settings(session, c.project_id)).get("board_ai") or {}
         )
+    acts = bool(board_ai_cfg.get("acts")) and provider is None and form is None
+    chat_tools = chat_token = None
+    if lean and not (turn_in and turn_in.images):
+        chat_tools, chat_token = await chat_tools_mod.build(
+            c, profile, member, acts_by_tier=acts
+        )
     system = prompts.system(
         member.name,
         project.name if project else "",
         row,
         extra,
         tools=chat_tools is not None,
-        acts=bool(board_ai_cfg.get("acts")) and provider is None and form is None,
+        acts=acts,
     )
 
     # the proposal that is still open: a request to change it must come back as the whole updated list
@@ -1286,7 +1289,11 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         async with database.async_session() as session:
             base = {}
             for ch in changes:
-                t = await session.get(Ticket, ch["ticket"])
+                t = (
+                    await session.get(Ticket, ch["ticket"])
+                    if ch.get("ticket")
+                    else None
+                )  # pausing or resuming one AI names no ticket
                 if t:
                     base[t.id] = t.updated_at
             d = await svc_drafts.start(

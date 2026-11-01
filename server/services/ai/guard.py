@@ -222,6 +222,8 @@ def classify(tool: str, action: str, params: dict) -> list[str]:
         item = action.split(".", 1)[0]
         return {
             "comment": ["comment"],
+            # the AI's own notes on its work, which every run is asked to write: a comment, not a field edit
+            "work_log": ["comment"],
             "test_case": ["manage_test_cases"],
         }.get(item, ["edit_fields"])
     if tool == "manage_ticket":
@@ -373,6 +375,15 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
                     + " for this AI member, so nothing was read.",
                 )
         return detail
+    if ctx.acts_by_tier and not _approved.get():
+        # D23, checked here and not only in the prompt: a Board AI that acts by tier changes the board through its
+        # actions block, so every change gets its tier, one Undo, or the person's yes first
+        # (not a safety refusal, so no "AI action blocked" notice: the AI only used the wrong door)
+        raise AiActionError(
+            "BLOCKED (use_actions_block): Nothing was changed: as the Board AI you change the board only through your "
+            "answer's actions block. List this change there; the board makes it by risk tier, with one Undo, or asks "
+            "the person first."
+        )
     approved_id = _approved.get()
     parked: tuple[str, str, str]
     async with database.async_session() as session:

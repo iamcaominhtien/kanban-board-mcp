@@ -22,10 +22,14 @@ from datetime import UTC, datetime
 
 import psutil
 
+from .cli import message_of
+
 logger = logging.getLogger(__name__)
 
 HANG_AFTER_S = 10 * 60  # no stream event at all for this long: look at it
-SERVER_AFTER_S = 2 * 60  # an open command that looks like a server, for this long
+# an open command that looks like a server, for this long: under the CLI's own 2-minute Bash timeout, after which it
+# moves the command to the background by itself
+SERVER_AFTER_S = 90
 INPUT_AFTER_S = 60  # an open command that waits for a key, for this long
 MCP_AFTER_S = 15 * 60  # an open board call: the board's own fault
 SLOW_AFTER_S = 30 * 60  # a busy command this long gets a card that only offers to wait
@@ -39,6 +43,19 @@ _SERVER = re.compile(
     r"|\bstorybook\b|\bexpo\s+start\b|\bphp\s+-S\b|\bjupyter\s+(notebook|lab)\b)",
     re.IGNORECASE,
 )
+# Events that only say the CLI is alive (a running Bash call's heartbeat every 30 s, a usage reading): they are not
+# progress, so they never reset the quiet clock nor clear a card
+_KEEP_ALIVE = ("rate_limit_event", "keep_alive", "ping")
+
+
+def is_keep_alive(ev: dict) -> bool:
+    """Whether a stream event is only a sign of life."""
+    kind = ev.get("type")
+    if kind in _KEEP_ALIVE:
+        return True
+    return kind == "tool_progress" and bool(ev.get("heartbeat"))
+
+
 _INPUT = re.compile(
     r"(\bgit\s+commit\b(?!.*\s(-m|-F|--message|--file|-C|--reuse-message|--no-edit)\b)"
     r"|\bgit\s+rebase\s+(-i|--interactive)\b|\bgit\s+merge\b(?!.*--no-edit)(?!.*--abort)(?!.*--ff-only)"
@@ -71,22 +88,29 @@ class RunWatch:
         self.mcp_errors = (
             0  # board calls that failed on the board's side (board faults)
         )
+        self.progressed = False  # whether the last line observed was progress, not only a sign of life
 
     def observe(self, line: str) -> dict | None:
-        """One stdout line: the parsed event, or None."""
+        """One stdout line: the parsed event, or None. `progressed` says whether it moved the run on."""
+        self.progressed = False
         line = (line or "").strip()
         if not line.startswith("{"):
             if line:
                 self.last_event = time.monotonic()
+                self.progressed = True
             return None
         try:
             ev = json.loads(line)
         except ValueError:
             return None
-        self.last_event = time.monotonic()
+        if not isinstance(ev, dict):
+            return None
         kind = ev.get("type")
+        if not is_keep_alive(ev):
+            self.last_event = time.monotonic()
+            self.progressed = True
         if kind == "assistant":
-            for block in (ev.get("message") or {}).get("content") or []:
+            for block in message_of(ev).get("content") or []:
                 if isinstance(block, dict) and block.get("type") == "tool_use":
                     self.open[block.get("id") or ""] = {
                         "name": block.get("name") or "",
@@ -94,7 +118,7 @@ class RunWatch:
                         "at": time.monotonic(),
                     }
         elif kind == "user":
-            for block in (ev.get("message") or {}).get("content") or []:
+            for block in message_of(ev).get("content") or []:
                 if isinstance(block, dict) and block.get("type") == "tool_result":
                     self.open.pop(block.get("tool_use_id") or "", None)
         elif kind == "result":
@@ -163,6 +187,10 @@ def _sample(pid: int | None) -> dict:
             continue
         total_cpu += cpu
         if p.pid != proc.pid:
+            try:
+                started = p.create_time()
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
             out.append(
                 {
                     "pid": p.pid,
@@ -170,6 +198,8 @@ def _sample(pid: int | None) -> dict:
                     "cpu": round(cpu, 1),
                     "rss_mb": round(rss, 1),
                     "status": status,
+                    # with the pid, what tells this process from a later one that reuses its number
+                    "started": started,
                 }
             )
     try:
@@ -190,15 +220,21 @@ def _minutes(seconds: float) -> str:
 
 
 def _child_for(command: str, children: list[dict]) -> dict | None:
-    """The child process that runs `command` (the deepest match), else the busiest one."""
+    """The child process that runs `command` (the deepest match), or None. Never a guess: the busiest child may be
+    one of the run's MCP servers, and "Stop that command" must stop that command."""
     words = [w for w in re.split(r"\s+", command or "") if len(w) > 2][:4]
     best = None
     for c in children:
         if words and all(w in c["cmd"] for w in words[:2]):
             best = c
-    if best is None and children:
-        best = max(children, key=lambda c: (c["cpu"], c["rss_mb"]))
     return best
+
+
+def _without_child(actions: list[str], child: dict | None) -> list[str]:
+    """The actions of a diagnosis: stopping a child (or telling the AI it was stopped) only when one was found."""
+    if child:
+        return actions
+    return [a for a in actions if a not in ("stop_child", "tell_ai")]
 
 
 async def diagnose(
@@ -257,7 +293,9 @@ async def diagnose(
                     "means": "A server does not end by itself, so the run is waiting for a command that will never return. The work before it is intact.",
                     "child": child,
                     "lesson": f"Start long-running servers in the background (for example `{command[:60]} &` with its output in a log file), never in the foreground.",
-                    "actions": ["stop_child", "tell_ai", "wait", "cancel"],
+                    "actions": _without_child(
+                        ["stop_child", "tell_ai", "wait", "cancel"], child
+                    ),
                     "confidence": "high",
                 }
             stopped = child and child.get("status") in (
@@ -277,7 +315,9 @@ async def diagnose(
                     "means": "Something is waiting for a key nobody will press: an editor, a confirmation prompt, a REPL.",
                     "child": child,
                     "lesson": "Run commands non-interactively (git commit -m, npx --yes, npm init -y) so nothing waits for a key.",
-                    "actions": ["stop_child", "tell_ai", "wait", "cancel"],
+                    "actions": _without_child(
+                        ["stop_child", "tell_ai", "wait", "cancel"], child
+                    ),
                     "confidence": "high" if _INPUT.search(command) else "medium",
                 }
             if busy:
@@ -290,7 +330,7 @@ async def diagnose(
                     "what": f"`{command[:120]}` is still working ({child['cpu'] if child else state['cpu']}% CPU).",
                     "means": "A long build or test. Not a hang, only slow.",
                     "child": child,
-                    "actions": ["wait", "stop_child", "cancel"],
+                    "actions": _without_child(["wait", "stop_child", "cancel"], child),
                     "confidence": "high",
                 }
             heavy = max(state["children"], key=lambda c: c["rss_mb"], default=None)
@@ -335,8 +375,25 @@ async def diagnose(
     }
 
 
-def stop_child(pid: int) -> bool:
-    """Stop one child process and what it started; the run goes on and its tool call returns."""
+def is_child_of(pid: int, root: int | None, started: float | None = None) -> bool:
+    """Whether `pid` is, right now, a process the run's CLI (`root`) started, and the same one that was diagnosed (its
+    start time), not a later process that reuses the number."""
+    if not root or not pid or pid == root:
+        return False
+    try:
+        proc = psutil.Process(pid)
+        if started is not None and abs(proc.create_time() - float(started)) > 0.01:
+            return False
+        return any(p.pid == root for p in proc.parents())
+    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+        return False
+
+
+def stop_child(pid: int, root: int | None = None, started: float | None = None) -> bool:
+    """Stop one child process and what it started; the run goes on and its tool call returns. With `root` (the run's
+    CLI) only a process still under it is stopped."""
+    if root is not None and not is_child_of(pid, root, started):
+        return False
     try:
         proc = psutil.Process(pid)
         for p in [*proc.children(recursive=True), proc]:

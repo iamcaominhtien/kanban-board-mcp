@@ -143,6 +143,7 @@ async def _ticket_state(session: AsyncSession, project_id: str) -> tuple[dict, d
             "due_date": t.due_date,
             "estimate": t.estimate,
             "title": t.title,
+            "tags": loads(t.tags, []),
             "criteria": [
                 a.get("text", "")
                 for a in loads(t.acceptance_criteria, [])
@@ -1256,7 +1257,7 @@ async def apply_changes(
         for i, ch in enumerate(changes):
             if i not in picks:
                 continue
-            tid = ch["ticket"]
+            tid = ch.get("ticket")  # pausing or resuming one AI names no ticket
             try:
                 if ch.get("scope"):
                     provider = scopes.get(ch["scope"])
@@ -1315,7 +1316,7 @@ async def apply_changes(
                     continue
                 t = await session.get(Ticket, tid)
                 field = ch["op"]
-                before = getattr(t, field)
+                before = _field_value(t, field)
                 if field == "assignee":
                     await ai_runs.before_ticket_change(
                         tid, assignee=ch["to"], by=person
@@ -1736,6 +1737,11 @@ async def _undo_team_op(session: AsyncSession, a: dict, person: str) -> str | No
     return None
 
 
+def _field_value(t: Ticket, field: str):
+    """A ticket field as a change records it (the labels are stored as JSON)."""
+    return loads(t.tags, []) if field == "tags" else getattr(t, field)
+
+
 async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
     """Undo an applied draft (B10, C4, D3). A field a person changed since is left as they set it."""
     d = await _get(session, draft_id)
@@ -1779,7 +1785,7 @@ async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
                 t = await session.get(Ticket, a["ticket"])
                 if t is None:
                     continue
-                if getattr(t, a["op"]) != a["after"]:
+                if _field_value(t, a["op"]) != a["after"]:
                     skipped.append(f"{a['ticket']} {a['op']} was changed since")
                     continue
                 try:

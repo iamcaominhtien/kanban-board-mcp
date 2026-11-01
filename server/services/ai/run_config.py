@@ -14,6 +14,7 @@ depend on where it is delivered.
 import json
 import re
 import shutil
+import uuid
 from pathlib import Path
 
 import database
@@ -26,7 +27,7 @@ from .store import loads
 
 
 def root() -> Path:
-    """``ai-plugins`` beside the database (one folder per member)."""
+    """``ai-plugins`` beside the database (a folder per member, and in it one per run)."""
     base = database.get_db_path().parent / "ai-plugins"
     base.mkdir(parents=True, exist_ok=True)
     return base
@@ -54,8 +55,16 @@ def _unchanged(entry, now: str) -> bool:
     return bool(entry.get("sha")) and cm.sha(now) == entry["sha"]
 
 
-async def build(session, profile: AiMember, member_name: str, board_url: str) -> dict:
-    """The member's plugin folder (rebuilt from its configuration) and the text for the system prompt.
+async def build(
+    session,
+    profile: AiMember,
+    member_name: str,
+    board_url: str,
+    run_id: str | None = None,
+) -> dict:
+    """The member's plugin folder (built from its configuration) and the text for the system prompt. The folder is
+    the run's own (``ai-plugins/<member>/<run>``): two runs of one member on two tickets at once never rewrite or
+    delete each other's; the caller removes it when the run ends.
 
     Returns:
         {"plugin_dir": str | None, "system": str | None, "skills": [...], "agents": [...], "hooks": int,
@@ -66,8 +75,8 @@ async def build(session, profile: AiMember, member_name: str, board_url: str) ->
     cfg = merged_config(loads(profile.config, {}))
     state = await config_service.get_state(session, profile.id)
     specs, notes = cs.desired_specs(cfg, board_url, loads(state.hooks_ok, None), set())
-    folder = root() / profile.id
-    if folder.exists():
+    folder = root() / profile.id / (run_id or uuid.uuid4().hex)
+    if folder.exists():  # a restart inside the same run builds it again
         shutil.rmtree(folder, ignore_errors=True)
     system = None
     skills: set[str] = set()
@@ -156,19 +165,59 @@ async def migration(session, profile: AiMember) -> dict:
             now = target.read_text(encoding="utf-8")
         except OSError:
             continue
+        kind = (entry.get("kind") if isinstance(entry, dict) else None) or _MERGED.get(
+            rel
+        )
         out.append(
             {
                 "path": rel,
                 "unchanged": _unchanged(entry, now),
-                "block_only": rel == "CLAUDE.md",
+                # only the board's part leaves: its block, or its entries in a JSON file it shares with the person
+                "block_only": rel == "CLAUDE.md" or kind in ("mcp", "settings"),
             }
         )
     return {"member_id": profile.id, "folder": str(folder), "files": out}
 
 
+# the JSON files the board shares with the person, by the kind of units it keeps in them (config_sync)
+_MERGED = {".mcp.json": "mcp", ".claude/settings.json": "settings"}
+
+
+def _empty(value) -> bool:
+    """Whether a JSON value holds nothing (empty objects and lists all the way down)."""
+    if isinstance(value, dict):
+        return all(_empty(v) for v in value.values())
+    if isinstance(value, list):
+        return all(_empty(v) for v in value)
+    return False
+
+
+def _remove_units(target: Path, rel: str, kind: str, entry, now: str) -> bool:
+    """Take the board's own units (the ones still as the board wrote them) out of a merged JSON file. True when the
+    file changed or went."""
+    base = dict((entry.get("units") if isinstance(entry, dict) else None) or {})
+    if not base:
+        return False
+    spec = cs.Spec(rel, kind, {})
+    try:
+        cur = cs.read_units(spec, now, set(base))
+        mine = {k: None for k, v in base.items() if v is not None and cur.get(k) == v}
+        if not mine:
+            return False
+        text = cs.build_text(spec, now, mine)
+        data = json.loads(text) if text else {}
+    except (cs._Bad, ValueError):
+        return False  # not valid JSON any more: the person's to fix, nothing is touched
+    if _empty(data):
+        target.unlink()
+    else:
+        target.write_text(text, encoding="utf-8")
+    return True
+
+
 async def remove_written(session, profile: AiMember) -> list[str]:
-    """Remove what the board wrote and nobody changed since; the CLAUDE.md block is cut out, the rest of the file
-    stays. Returns the paths removed."""
+    """Remove what the board wrote and nobody changed since; the CLAUDE.md block is cut out and the board's entries
+    leave ``.mcp.json`` and ``.claude/settings.json``, the rest of each file stays. Returns the paths removed."""
     from . import config_service
 
     state = await config_service.get_state(session, profile.id)
@@ -182,6 +231,15 @@ async def remove_written(session, profile: AiMember) -> list[str]:
         try:
             now = target.read_text(encoding="utf-8")
         except OSError:
+            continue
+        kind = (entry.get("kind") if isinstance(entry, dict) else None) or _MERGED.get(
+            rel
+        )
+        if kind in ("mcp", "settings"):
+            # a file the board merged its units into (the person's own servers, rules and hooks sit beside them):
+            # only the board's units leave, and the file goes only when nothing else is left in it
+            if _remove_units(target, rel, kind, entry, now):
+                removed.append(rel)
             continue
         if rel == "CLAUDE.md":
             cut = re.sub(

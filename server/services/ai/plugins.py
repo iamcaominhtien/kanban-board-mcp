@@ -33,6 +33,9 @@ from models import AiMember, AiPlugin, AiSkillUse
 
 from .store import loads
 
+# the most a plugin may copy into the board's cache (checked before anything is copied)
+MAX_PLUGIN_BYTES = 50 * 1024 * 1024
+
 # The "Suggested for a role" catalogue (D2, D16): what each role is suggested to install.
 CATALOGUE: list[dict] = [
     {
@@ -80,6 +83,7 @@ CATALOGUE: list[dict] = [
         "source": "https://github.com/anthropics/skills",
         "plugin": "example-skills",
         "skills": ["webapp-testing"],
+        "ui": True,  # a browser tool: only for a project with a UI
         "roles": ["designer", "user_tester", "qa"],
         "what": "Testing a local web app with Playwright (Anthropic skills).",
     },
@@ -101,6 +105,7 @@ CATALOGUE: list[dict] = [
             "command": "npx",
             "args": ["-y", "chrome-devtools-mcp@latest"],
         },
+        "ui": True,  # a browser tool: only for a project with a UI
         "roles": ["dev"],
         "what": "Performance and network debugging in a real Chrome.",
     },
@@ -114,6 +119,7 @@ CATALOGUE: list[dict] = [
             "command": "npx",
             "args": ["-y", "@playwright/mcp@latest", "--isolated"],
         },
+        "ui": True,  # a browser tool: only for a project with a UI
         "roles": ["user_tester", "qa"],
         "what": "A fresh browser per run, driven through the page's structure; can emulate a phone.",
     },
@@ -151,7 +157,7 @@ def _run(
 def _clone(url: str, ref: str | None, into: str) -> str:
     """Shallow clone of `url` at `ref` (a tag, branch or commit); returns the commit."""
     if ref and re.fullmatch(r"[0-9a-f]{7,40}", ref):
-        out = _run(["git", "clone", "-q", url, into])
+        out = _run(["git", "clone", "-q", "--", url, into])
         if out.returncode == 0:
             out = _run(["git", "checkout", "-q", ref], cwd=into)
     else:
@@ -163,6 +169,7 @@ def _clone(url: str, ref: str | None, into: str) -> str:
                 "--depth",
                 "1",
                 *(["--branch", ref] if ref else []),
+                "--",  # a URL that starts with "-" is never read as an option
                 url,
                 into,
             ]
@@ -192,11 +199,39 @@ def _skill_dirs(folder: Path) -> list[Path]:
     return sorted(out)
 
 
+_IGNORED = (".git", "node_modules", "__pycache__")
+
+
+def _inside(checkout: Path, path: Path) -> bool:
+    """Whether `path` (resolved) stays inside the checkout."""
+    return path.resolve().is_relative_to(checkout.resolve())
+
+
+def _check_tree(src: Path) -> int:
+    """The bytes a copy of `src` takes. A link is refused: it could point anywhere on this machine (a key, a home
+    folder), and the copy would carry it into every AI's plugins."""
+    total = 0
+    if src.is_symlink():
+        raise PluginError(f"{src.name} is a link; a plugin's files must be real files.")
+    for root, dirs, files in os.walk(src):
+        dirs[:] = [d for d in dirs if d not in _IGNORED]
+        for name in [*dirs, *files]:
+            p = Path(root) / name
+            if p.is_symlink():
+                raise PluginError(
+                    f"{p.relative_to(src)} is a link; a plugin's files must be real files."
+                )
+        for name in files:
+            total += (Path(root) / name).stat().st_size
+    return total
+
+
 def _copy(src: Path, dst: Path) -> None:
     shutil.copytree(
         src,
         dst,
-        ignore=shutil.ignore_patterns(".git", "node_modules", "__pycache__"),
+        symlinks=True,  # never follows a link (_check_tree refused them already)
+        ignore=shutil.ignore_patterns(*_IGNORED),
         dirs_exist_ok=True,
     )
 
@@ -235,12 +270,21 @@ def build(
             raise PluginError(
                 f"{plugin} lives in another repository ({src.get('url')}); install it from there."
             )
+        if src is not None and not isinstance(src, str):
+            raise PluginError(f"{plugin} has a source the board cannot read.")
         base = (checkout / (src or "./")).resolve()
-        if not str(base).startswith(str(checkout.resolve())):
+        if not _inside(checkout, base):
             raise PluginError("The marketplace points outside its own repository.")
         listed = entry.get("skills")
         if isinstance(listed, list) and listed:
-            picked_skills = [(checkout / s).resolve() for s in listed]
+            picked_skills = []
+            for s in listed:
+                p = (checkout / str(s)).resolve()
+                if not isinstance(s, str) or not _inside(checkout, p):
+                    raise PluginError(
+                        "The marketplace points outside its own repository."
+                    )
+                picked_skills.append(p)
         elif (base / ".claude-plugin" / "plugin.json").is_file() or (
             base / "skills"
         ).is_dir():
@@ -276,6 +320,16 @@ def build(
             raise PluginError(f"None of {', '.join(skills)} was found there.")
         if len(skills) == 1:
             meta["name"] = skills[0]
+    sources = [source_dir] if source_dir is not None else list(picked_skills or [])
+    total = 0
+    for src_dir in sources:
+        if not _inside(checkout, src_dir):
+            raise PluginError("The marketplace points outside its own repository.")
+        total += _check_tree(src_dir)
+        if total > MAX_PLUGIN_BYTES:
+            raise PluginError(
+                f"The plugin is larger than {MAX_PLUGIN_BYTES // (1024 * 1024)} MB; the board does not copy it."
+            )
     into.mkdir(parents=True, exist_ok=True)
     if source_dir is not None:
         _copy(source_dir, into)
@@ -492,7 +546,7 @@ async def latest_commit(row: AiPlugin) -> str | None:
     if row.source_kind == "folder":
         return None
     out = await asyncio.to_thread(
-        _run, ["git", "ls-remote", row.source, row.ref or "HEAD"], None, 60
+        _run, ["git", "ls-remote", "--", row.source, row.ref or "HEAD"], None, 60
     )
     first = out.stdout.split()
     return first[0] if out.returncode == 0 and first else None

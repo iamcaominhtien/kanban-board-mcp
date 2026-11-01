@@ -31,6 +31,8 @@ from .store import get_settings, loads
 logger = logging.getLogger(__name__)
 
 TICK_S = 30
+# a rule holds at most this many runs at once: more is a bulk action, ask-first under D23
+HOLD_MAX = 3
 TRIAL_MIN = timedelta(days=1)
 COOLDOWN = timedelta(
     minutes=10
@@ -145,6 +147,31 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+def _check_conditions(cond) -> dict:
+    """The "only if" part, each value of its own type (a bad one would fail the rule on every tick)."""
+    if not isinstance(cond, dict):
+        raise OrderError("“Only if” is a set of conditions.")
+    out: dict = {}
+    if cond.get("min_minutes") not in (None, ""):
+        mins = cond["min_minutes"]
+        if isinstance(mins, bool) or not isinstance(mins, (int, float, str)):
+            raise OrderError("The minutes are a whole number.")
+        try:
+            out["min_minutes"] = max(0, min(int(str(mins).strip()), 7 * 24 * 60))
+        except ValueError as exc:
+            raise OrderError("The minutes are a whole number.") from exc
+    if "confident" in cond:
+        if not isinstance(cond["confident"], bool):
+            raise OrderError("“Only when the cause is clear” is yes or no.")
+        out["confident"] = cond["confident"]
+    for k in ("member_id", "label"):
+        if cond.get(k) not in (None, ""):
+            if not isinstance(cond[k], str):
+                raise OrderError(f"{k} is a text.")
+            out[k] = cond[k][:200]
+    return out
+
+
 def check_rule(rule: dict) -> dict:
     """A rule as the server accepts it: a known signal, an action of the middle tier that fits it, sane limits.
 
@@ -181,14 +208,9 @@ def check_rule(rule: dict) -> dict:
         per_target = max(1, min(int(rule.get("max_per_target") or 1), 10))
     except (TypeError, ValueError) as exc:
         raise OrderError("The limits are whole numbers.") from exc
-    cond = rule.get("if") or {}
     return {
         "when": when,
-        "if": {
-            k: cond[k]
-            for k in ("min_minutes", "confident", "member_id", "label")
-            if k in cond
-        },
+        "if": _check_conditions(rule.get("if") or {}),
         "then": {"mode": mode, **({"action": action} if mode == "fixed" else {})},
         "afterwards": {"lesson": bool((rule.get("afterwards") or {}).get("lesson"))},
         "max_per_day": per_day,
@@ -296,6 +318,24 @@ async def create(
     return row
 
 
+async def change_rule(session, row: AiStandingOrder, rule: dict) -> AiStandingOrder:
+    """Edit a rule. A changed rule was never tried: one that was on or in trial starts its trial again, so it cannot
+    act live until the new rule has run in trial (G)."""
+    new = check_rule(rule)
+    if new == loads(row.rule, {}):
+        return row
+    row.rule = json.dumps(new)
+    if row.state in ("on", "trial"):
+        row.state = "trial"
+        row.trial_started_at = _now().isoformat()
+        row.trial_fired_at = None
+        row.would_have = 0
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return row
+
+
 async def set_state(
     session, row: AiStandingOrder, state: str, *, trial_days: int | None = None
 ) -> AiStandingOrder:
@@ -337,10 +377,18 @@ async def _recent_targets(session, project_id: str) -> set[str]:
 
 
 async def _count(
-    session, order_id: str, *, target: str | None = None, since: datetime
+    session,
+    order_id: str,
+    *,
+    would: bool,
+    target: str | None = None,
+    since: datetime,
 ) -> int:
+    """Firings of the rule's current mode: what a trial would have done never uses up the limits of the real rule."""
     stmt = select(AiOrderFiring).where(
-        AiOrderFiring.order_id == order_id, col(AiOrderFiring.at) >= since.isoformat()
+        AiOrderFiring.order_id == order_id,
+        AiOrderFiring.would == would,
+        col(AiOrderFiring.at) >= since.isoformat(),
     )
     if target:
         stmt = stmt.where(AiOrderFiring.target == target)
@@ -351,10 +399,14 @@ def _matches(rule: dict, finding: dict) -> bool:
     if finding["kind"] != rule["when"]:
         return False
     cond = rule.get("if") or {}
-    if cond.get("min_minutes") and int(
-        (finding.get("data") or {}).get("minutes") or 0
-    ) < int(cond["min_minutes"]):
-        return False
+    if cond.get("min_minutes"):
+        try:
+            if int((finding.get("data") or {}).get("minutes") or 0) < int(
+                cond["min_minutes"]
+            ):
+                return False
+        except (TypeError, ValueError):
+            return False  # a rule saved before its conditions were checked: it matches nothing
     if cond.get("confident") and (finding.get("data") or {}).get("cause") in (
         None,
         "unknown",
@@ -396,8 +448,26 @@ async def _pm_is_on_it(session, finding: dict) -> bool:
     return False
 
 
+# project id -> [its lock, how many ticks hold or wait for it]: the loop and POST …/orders/tick never tick one project
+# at once, so the limits are counted once
+_TICK_LOCKS: dict[str, list] = {}
+
+
 async def tick(project_id: str) -> list[AiOrderFiring]:
-    """Look at the project's signals once and fire the rules that match (trial ones only write it down)."""
+    """Look at the project's signals once and fire the rules that match (trial ones only write it down). One tick
+    per project at a time."""
+    entry = _TICK_LOCKS.setdefault(project_id, [asyncio.Lock(), 0])
+    entry[1] += 1
+    try:
+        async with entry[0]:
+            return await _tick(project_id)
+    finally:
+        entry[1] -= 1
+        if entry[1] == 0 and _TICK_LOCKS.get(project_id) is entry:
+            _TICK_LOCKS.pop(project_id, None)
+
+
+async def _tick(project_id: str) -> list[AiOrderFiring]:
     fired: list[AiOrderFiring] = []
     async with database.async_session() as session:
         settings = await get_settings(session, project_id)
@@ -416,34 +486,55 @@ async def tick(project_id: str) -> list[AiOrderFiring]:
         findings = await signals.for_rules(session, project_id)
         busy = await _recent_targets(session, project_id)
         day_ago = _now() - timedelta(days=1)
-        for order in orders:
-            rule = loads(order.rule, {})
-            if order.state == "trial" and order.trial_started_at:
-                if _now() - datetime.fromisoformat(order.trial_started_at) > timedelta(
-                    days=order.trial_days or 3
-                ):
-                    continue  # the trial is over: it waits for a person to read it and turn it on
-            for f in findings:
-                if not _matches(rule, f):
-                    continue
-                target = _target(f)
-                if order.state == "on" and target in busy:
-                    continue
-                if await _count(session, order.id, since=day_ago) >= rule.get(
-                    "max_per_day", 3
-                ):
-                    break
-                if await _count(
-                    session, order.id, target=target, since=day_ago
-                ) >= rule.get("max_per_target", 1):
-                    continue
-                if await _pm_is_on_it(session, f):
-                    continue
-                firing = await _fire(
-                    session, order, rule, f, would=order.state == "trial"
-                )
-                fired.append(firing)
-                busy.add(target)
+        for oid in [o.id for o in orders]:
+            try:
+                # read afresh: a rollback after another rule's failure expired what was loaded
+                order = await session.get(AiStandingOrder, oid, populate_existing=True)
+                if order is not None:
+                    fired += await _tick_order(session, order, findings, busy, day_ago)
+            except Exception:  # noqa: BLE001 - one bad rule never stops the others
+                logger.exception("The standing order %s failed this tick", oid)
+                await session.rollback()
+    return fired
+
+
+async def _tick_order(
+    session,
+    order: AiStandingOrder,
+    findings: list[dict],
+    busy: set[str],
+    day_ago: datetime,
+) -> list[AiOrderFiring]:
+    fired: list[AiOrderFiring] = []
+    rule = loads(order.rule, {})
+    if order.state == "trial" and order.trial_started_at:
+        if _now() - datetime.fromisoformat(order.trial_started_at) > timedelta(
+            days=order.trial_days or 3
+        ):
+            return []  # the trial is over: it waits for a person to read it and turn it on
+    for f in findings:
+        if not _matches(rule, f):
+            continue
+        target = _target(f)
+        if order.state == "on" and target in busy:
+            continue
+        would = order.state == "trial"
+        if await _count(session, order.id, would=would, since=day_ago) >= rule.get(
+            "max_per_day", 3
+        ):
+            break
+        if await _count(
+            session, order.id, would=would, target=target, since=day_ago
+        ) >= rule.get("max_per_target", 1):
+            continue
+        if await _pm_is_on_it(session, f):
+            continue
+        firing = await _fire(session, order, rule, f, would=order.state == "trial")
+        session.expunge(
+            firing
+        )  # kept as it was saved, whatever a later rule's rollback does
+        fired.append(firing)
+        busy.add(target)
     return fired
 
 
@@ -583,17 +674,28 @@ async def _apply(
         )
     if action == "hold_low":
         held = []
+        key = finding.get("account_key")
         async with database.async_session() as session:
-            from models import Ticket
+            from models import AiMember, Ticket
+
+            from . import quota
 
             queued = (
                 await session.exec(
-                    select(AiRun).where(
-                        AiRun.project_id == project_id, AiRun.state == "queued"
-                    )
+                    select(AiRun)
+                    .where(AiRun.project_id == project_id, AiRun.state == "queued")
+                    .order_by(col(AiRun.queued_at).desc())
                 )
             ).all()
             for run in queued:
+                if len(held) >= HOLD_MAX:
+                    break  # holding more is a bulk action: a person's to ask for (D23)
+                if (
+                    not key
+                    or quota.key_for(await session.get(AiMember, run.member_id), run)
+                    != key
+                ):
+                    continue  # only work that spends the account near its window
                 t = await session.get(Ticket, run.ticket_id)
                 if (
                     t is not None

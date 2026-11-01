@@ -34,6 +34,10 @@ The AI team on Claude Code, all nine phases of `docs/specs/ai-claude-code-implem
 - A run on a person's own Claude Code login is limited per account (2 by default), no longer unlimited.
 - A run whose account signed out is held, not failed.
 - The board's MCP instructions now say that an @mention inside an AI run does wake the other AI, and name `ai_run(action='handoff')`.
+- **A Board AI on Claude Code looks things up with its tools and changes the board only through its answer**, so every change it makes has its risk tier and its Undo (the board refuses a change made with a board tool). It can now change a ticket's labels too.
+
+### Fixed
+- **An AI writing its own work log no longer waits for a person's approval** when its role may not edit ticket fields (a Reviewer, a Triage): a work log note is the AI's account of its own work and needs only the right to comment.
 
 ## [3.19.0] - 2026-11-01
 

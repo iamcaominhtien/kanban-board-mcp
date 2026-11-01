@@ -192,6 +192,8 @@ DEPTH_UP = {"light": "standard", "standard": "deep", "deep": "deep"}
 NO_PROGRESS_ROUNDS = 3
 NO_PROGRESS_DIFF = 0.05
 REPEAT_SIMILARITY = 85
+# who sends work back without being an AI in a dispute: the Checks by code, and a person
+NOT_AI_ROLES = {"checks", "person"}
 VERDICT = re.compile(
     r"VERDICT:\s*(PASS|CHANGES|REVIEWER|DEV|SPLIT|UNDECIDED)\b", re.IGNORECASE
 )
@@ -448,15 +450,44 @@ async def attach(
     return wf
 
 
+async def _close_needs(
+    session, ticket_id: str, waiting: list[str], *, by: str, why: str
+) -> None:
+    """The workflow no longer waits for anyone: its open flags resolve and the Needs you rows of its waiting steps
+    close."""
+    from services import notifications as centre
+
+    for kind in flags.KINDS:
+        await flags.resolve(session, ticket_id, kind, by=by, how=why)
+    for step_id in waiting:
+        await centre.resolve_target("step", step_id, why, by=by)
+    await centre.resolve_target(
+        "ticket", ticket_id, why, by=by, kinds=list(flags.KINDS)
+    )
+
+
 async def detach(session, ticket_id: str, *, by: str) -> None:
-    """Take a ticket off its workflow (the step rows stay as history)."""
+    """Take a ticket off its workflow (the step rows stay as history; a step that waited for a person no longer
+    does; a run already going finishes as an odd job's would)."""
     wf = await session.get(AiTicketWorkflow, ticket_id)
     if wf is None:
         return
     wf.state = "detached"
     wf.updated_at = _now()
     session.add(wf)
+    waiting = []
+    for row in await steps_of(session, ticket_id):
+        if row.state in ("pending", "active", "waiting", "blocked"):
+            if row.state == "waiting":
+                waiting.append(row.id)
+            row.state = "skipped"
+            row.note = f"Taken off the workflow by {by}."
+            row.ended_at = _now()
+            session.add(row)
     await session.commit()
+    await _close_needs(
+        session, ticket_id, waiting, by=by, why="The ticket was taken off its workflow."
+    )
 
 
 def _template_steps(wf: AiTicketWorkflow) -> list[dict]:
@@ -558,8 +589,25 @@ def _instruction(
     return "\n\n".join(parts)
 
 
+# ticket id -> [its lock, how many callers hold or wait for it]
+_ADVANCE_LOCKS: dict[str, list] = {}
+
+
 async def advance(ticket_id: str) -> None:
-    """Start whatever the workflow's current step needs: an AI run, the checks by code, or a person's decision."""
+    """Start whatever the workflow's current step needs: an AI run, the checks by code, or a person's decision.
+    One at a time per ticket (the server is one process), so two callers never both start the same step."""
+    entry = _ADVANCE_LOCKS.setdefault(ticket_id, [asyncio.Lock(), 0])
+    entry[1] += 1
+    try:
+        async with entry[0]:
+            await _advance(ticket_id)
+    finally:
+        entry[1] -= 1
+        if entry[1] == 0 and _ADVANCE_LOCKS.get(ticket_id) is entry:
+            _ADVANCE_LOCKS.pop(ticket_id, None)
+
+
+async def _advance(ticket_id: str) -> None:
     async with database.async_session() as session:
         wf = await session.get(AiTicketWorkflow, ticket_id)
         ticket = await session.get(Ticket, ticket_id)
@@ -609,11 +657,7 @@ async def advance(ticket_id: str) -> None:
             row.started_at = _now()
             session.add(row)
             await session.commit()
-            task = asyncio.get_running_loop().create_task(
-                _run_checks(ticket_id, row.id)
-            )
-            _TASKS.add(task)
-            task.add_done_callback(_TASKS.discard)
+            _start_checks(ticket_id, row.id)
             return
         member = await resolve_member(session, wf.project_id, ticket_id, row.role)
         if member is None:
@@ -676,6 +720,32 @@ async def advance(ticket_id: str) -> None:
 _TASKS: set[asyncio.Task] = set()
 
 
+def _start_checks(ticket_id: str, step_id: str) -> None:
+    task = asyncio.get_running_loop().create_task(_run_checks(ticket_id, step_id))
+    _TASKS.add(task)
+    task.add_done_callback(_TASKS.discard)
+
+
+async def recover() -> int:
+    """At startup: the Checks of a step left `active` ran in a task the restart killed; run them again."""
+    async with database.async_session() as session:
+        rows = (
+            await session.exec(
+                select(AiTicketStep).where(
+                    AiTicketStep.kind == "code", AiTicketStep.state == "active"
+                )
+            )
+        ).all()
+        todo = []
+        for row in rows:
+            wf = await session.get(AiTicketWorkflow, row.ticket_id)
+            if wf is not None and wf.state == "active" and row.seq >= wf.seq_base:
+                todo.append((row.ticket_id, row.id))
+    for ticket_id, step_id in todo:
+        _start_checks(ticket_id, step_id)
+    return len(todo)
+
+
 async def _tell_person(session, ticket: Ticket, row: AiTicketStep) -> None:
     from services import notifications as centre
 
@@ -731,11 +801,28 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
                 ).first()
                 prof = await session.get(AiMember, last.member_id) if last else None
                 folder = prof.working_dir if prof else None
+        if cmds and not (folder and Path(folder).expanduser().is_dir()):
+            # commands that never ran prove nothing: the review must not start on them
+            async with database.async_session() as session:
+                row = await session.get(AiTicketStep, step_id)
+                if row is None or row.state != "active":
+                    return
+                row.state = "blocked"
+                row.result = json.dumps(
+                    {"checks": [], "no_commands": False, "no_folder": True}
+                )
+                row.note = (
+                    "The check commands are set, but there is no folder to run them in: the ticket has no "
+                    "worktree and no AI member that worked on it has a working folder."
+                )
+                session.add(row)
+                await session.commit()
+            return
         results = []
         ok = True
         for name in ("lint", "build", "test"):
             cmd = cmds.get(name)
-            if not cmd or not folder:
+            if not cmd:
                 continue
             started = datetime.now(UTC)
             try:
@@ -767,6 +854,8 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
         evidence = await tdd_evidence(ticket_id)
         async with database.async_session() as session:
             row = await session.get(AiTicketStep, step_id)
+            if row is None or row.state != "active":
+                return  # sent back, skipped or detached while the checks ran
             row.result = json.dumps(
                 {"checks": results, "tdd": evidence, "no_commands": not cmds}
             )
@@ -799,8 +888,19 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
                 by="Checks",
                 from_role="checks",
             )
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001 - the step must fail where a person sees it, never stay active
         logger.exception("Checks failed to run on %s", ticket_id)
+        try:
+            async with database.async_session() as session:
+                row = await session.get(AiTicketStep, step_id)
+                if row is not None and row.state == "active":
+                    row.state = "failed"
+                    row.ended_at = _now()
+                    row.note = f"The checks could not run: {exc}"[:2000]
+                    session.add(row)
+                    await session.commit()
+        except Exception:  # noqa: BLE001
+            logger.exception("Could not mark the checks of %s as failed", ticket_id)
 
 
 async def send_back(
@@ -847,9 +947,12 @@ async def send_back(
         for r in later_template:
             latest_by_idx[r.idx] = r
         new_target = None
+        to_cancel: list[str] = []
         for i, idx in enumerate(sorted(latest_by_idx)):
             old = latest_by_idx[idx]
             if old.state in ("pending", "active", "waiting", "blocked"):
+                if old.state == "active" and old.run_id:
+                    to_cancel.append(old.run_id)
                 old.state = "superseded"
                 session.add(old)
             fresh = AiTicketStep(
@@ -868,7 +971,11 @@ async def send_back(
             if idx == target.idx:
                 new_target = fresh
         await session.commit()
-        stop = await _no_progress(session, wf, pair, rounds[pair])
+        # the step's run is no longer wanted: its end finds the row superseded and moves nothing (on_run_ended)
+        await _cancel_runs(to_cancel, by=by, reason=f"Sent back by {by}.")
+        # only two AIs going round is no progress: Checks are facts, and a person is never overruled (D24)
+        ai_pair = not {to_role, str(sender_role)} & NOT_AI_ROLES
+        stop = await _no_progress(session, wf, pair, rounds[pair]) if ai_pair else None
         if stop:
             if new_target is not None:
                 new_target.state = "blocked"
@@ -909,6 +1016,16 @@ async def send_back(
     return new_target
 
 
+async def _cancel_runs(run_ids: list[str], *, by: str, reason: str) -> None:
+    from . import runs
+
+    for run_id in run_ids:
+        try:
+            await runs.cancel(run_id, by=by, reason=reason, revert_status=False)
+        except runs.RunError:
+            pass  # it already ended
+
+
 async def _diff_size(session, ticket_id: str) -> int | None:
     """Lines changed on the ticket's branch against its base (the worktree), or None."""
     from models import AiWorktree
@@ -936,7 +1053,11 @@ async def _no_progress(
 ) -> str | None:
     """Why the loop stops, or None: the same two roles swapped it three times and the diff changed by under 5%
     between the last two, or the reviewer repeated an objection it already made."""
-    objections = json.loads(wf.objections or "[]")
+    objections = [
+        o
+        for o in json.loads(wf.objections or "[]")
+        if o.get("role") not in NOT_AI_ROLES
+    ]
     if len(objections) >= 2:
         last, *earlier = reversed(objections)
         for prev in earlier:
@@ -960,6 +1081,26 @@ async def _no_progress(
     return None
 
 
+async def _retried_row(
+    session, wf: AiTicketWorkflow, run: AiRun
+) -> AiTicketStep | None:
+    """The failed step a "Try again", "Continue with a note" or "Hand to another AI" run carries on (it has a new
+    run id): the latest failed AI step of the ticket's workflow; a retry must also be that step's own instruction."""
+    failed = [
+        r
+        for r in await steps_of(session, run.ticket_id)
+        if r.state == "failed" and r.kind == "ai"
+    ]
+    if not failed:
+        return None
+    row = failed[-1]
+    if run.trigger == "retry" and f"the step “{row.label}”" not in (
+        run.instruction or ""
+    ):
+        return None  # a retry of some other run on this ticket
+    return row
+
+
 async def on_run_ended(run_id: str) -> None:
     """A run of a workflow step ended: finish the step and move on, send it back, or stop."""
     async with database.async_session() as session:
@@ -971,6 +1112,9 @@ async def on_run_ended(run_id: str) -> None:
                 select(AiTicketStep).where(AiTicketStep.run_id == run_id)
             )
         ).first()
+        wf = await session.get(AiTicketWorkflow, run.ticket_id)
+        if wf is None:
+            return
         if row is None:
             row = (
                 await session.exec(
@@ -981,8 +1125,34 @@ async def on_run_ended(run_id: str) -> None:
                     )
                 )
             ).first()
-        wf = await session.get(AiTicketWorkflow, run.ticket_id)
-        if row is None or wf is None or wf.state != "active":
+        if (
+            row is None
+            and run.trigger in ("retry", "handoff")
+            and (
+                wf.state == "active"
+                or (wf.state == "stopped" and wf.stop_reason == "board_fault")
+            )
+        ):
+            row = await _retried_row(session, wf, run)
+            if row is not None:
+                # the retry takes the failed step back: it is this step's run now
+                row.state, row.run_id, row.member_id = "active", run.id, run.member_id
+                row.note = None
+                session.add(row)
+                if wf.state == "stopped" and wf.stop_reason == "board_fault":
+                    wf.state, wf.stop_reason, wf.stop_detail = "active", None, None
+                    session.add(wf)
+                    await session.commit()
+                    await flags.resolve(
+                        session,
+                        run.ticket_id,
+                        "board_fault",
+                        by=run.started_by or "user",
+                        how=f"Retried in run #{run.number}",
+                    )
+                await session.commit()
+        # a step sent back, skipped or settled while its run went on: that run's end moves nothing
+        if row is None or row.state != "active" or wf.state != "active":
             return
         report = loads(run.report, {}) or {}
         text = "\n".join(x for x in (report.get("summary"), run.summary) if x) or ""
@@ -1037,7 +1207,7 @@ async def on_run_ended(run_id: str) -> None:
                         session.add(
                             AiTicketStep(
                                 ticket_id=run.ticket_id,
-                                seq=i * 100,
+                                seq=wf.seq_base + i * 100,
                                 idx=i,
                                 key=step["key"],
                                 label=step["label"],
@@ -1118,8 +1288,11 @@ async def on_ticket_done(ticket_id: str) -> None:
         wf = await session.get(AiTicketWorkflow, ticket_id)
         if wf is None or wf.state in ("done", "detached"):
             return
+        waiting = []
         for row in await steps_of(session, ticket_id):
             if row.state in ("pending", "waiting", "active", "blocked"):
+                if row.state == "waiting":
+                    waiting.append(row.id)
                 row.state = "done" if row.key == "done" else "skipped"
                 row.ended_at = _now()
                 session.add(row)
@@ -1127,6 +1300,9 @@ async def on_ticket_done(ticket_id: str) -> None:
         wf.updated_at = _now()
         session.add(wf)
         await session.commit()
+        await _close_needs(
+            session, ticket_id, waiting, by="user", why="The ticket is Done."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1145,27 +1321,33 @@ ARBITRATION_TASK = (
 )
 
 
-async def coordinator(session, project_id: str) -> AiMember | None:
-    """The coordinator: the project's chosen PM member, else the first member made from the PM pack."""
+async def coordinator(
+    session, project_id: str, exclude: set[str] | frozenset[str] = frozenset()
+) -> AiMember | None:
+    """The coordinator: the project's chosen PM member, else the first member made from the PM pack. Never a paused
+    member, nor one in `exclude` (a party to the dispute: it cannot be independent of both, D12)."""
     from . import plugins as ai_plugins
+
+    def fits(p: AiMember | None) -> bool:
+        return p is not None and not p.paused and p.id not in exclude
 
     settings = await get_settings(session, project_id)
     chosen = ops.get(settings).get("coordinator_id")
     if chosen:
         prof = await session.get(AiMember, chosen)
-        if prof is not None:
+        if fits(prof) and prof.project_id == project_id:
             return prof
     for p in (
         await session.exec(select(AiMember).where(AiMember.project_id == project_id))
     ).all():
-        if ai_plugins.role_of(p) == "pm":
+        if ai_plugins.role_of(p) == "pm" and fits(p):
             return p
     return None
 
 
 async def start_arbitration(ticket_id: str, *, why: str) -> AiRun | None:
-    """No progress: the coordinator rules first (one chance); a second time, or with no coordinator, it goes to a
-    person with the ruling attached."""
+    """No progress: the coordinator rules first (one chance); a second time, with no coordinator free of the
+    dispute, or one that cannot start, it goes to a person with the ruling attached."""
     from services import notifications as centre
 
     from . import runs
@@ -1176,7 +1358,41 @@ async def start_arbitration(ticket_id: str, *, why: str) -> AiRun | None:
         if wf is None or ticket is None:
             return None
         rulings = json.loads(wf.rulings or "[]")
-        pm = await coordinator(session, wf.project_id)
+        rows = await steps_of(session, ticket_id)
+        # whoever worked on the ticket's steps is a party to it, not an independent coordinator
+        parties = {s.member_id for s in rows if s.member_id}
+        pm = None if rulings else await coordinator(session, wf.project_id, parties)
+        run = None
+        could_not_start = None
+        if pm is not None:
+            objections = [
+                o
+                for o in json.loads(wf.objections or "[]")
+                if o.get("role") not in NOT_AI_ROLES
+            ]
+            dev_notes = [s.note for s in rows if s.role == "dev" and s.note][-2:]
+            try:
+                run = await runs.create_run(
+                    session,
+                    ticket_id=ticket_id,
+                    member_id=pm.id,
+                    mode="work",
+                    trigger="arbitration",
+                    started_by=wf.attached_by or "user",
+                    instruction=ARBITRATION_TASK.format(
+                        ticket=ticket_id,
+                        why=why,
+                        objections="\n".join(
+                            f"- {o['text'][:600]}" for o in objections[-4:]
+                        )
+                        or "(none recorded)",
+                        dev="\n".join(f"- {n[:600]}" for n in dev_notes)
+                        or "(none recorded)",
+                    ),
+                    wait_for_hold=True,
+                )
+            except runs.RunError as exc:
+                could_not_start = str(exc)
         await flags.open_flag(
             session,
             ticket_id,
@@ -1185,61 +1401,40 @@ async def start_arbitration(ticket_id: str, *, why: str) -> AiRun | None:
             {
                 "why": why,
                 "rulings": rulings,
-                "with": "person" if (rulings or pm is None) else "coordinator",
+                "with": "coordinator" if run is not None else "person",
+                **({"coordinator_error": could_not_start} if could_not_start else {}),
             },
         )
-        if rulings or pm is None:
-            await centre.emit(
-                "arbitration",
-                project_id=wf.project_id,
-                recipients=await centre.owners_and_admins(session, wf.project_id),
-                title=f"Dev and Reviewer are not converging on {ticket_id}"
-                + (": the coordinator could not settle it" if rulings else ""),
-                body=why
-                + (
-                    f" Ruling: {rulings[-1]['verdict']} — {rulings[-1]['reason']}"
-                    if rulings
-                    else ""
-                ),
-                target_kind="ticket",
-                target_id=ticket_id,
-                ticket_id=ticket_id,
-                data={"why": why, "rulings": rulings},
-                session=session,
+        if run is not None:
+            wf.arbitration_run_id = run.id
+            session.add(wf)
+            await session.commit()
+            return run
+        if rulings:
+            title, extra = (
+                ": the coordinator could not settle it",
+                f" Ruling: {rulings[-1]['verdict']} — {rulings[-1]['reason']}",
             )
-            return None
-        objections = json.loads(wf.objections or "[]")
-        dev_notes = [
-            s.note
-            for s in await steps_of(session, ticket_id)
-            if s.role == "dev" and s.note
-        ][-2:]
-        try:
-            run = await runs.create_run(
-                session,
-                ticket_id=ticket_id,
-                member_id=pm.id,
-                mode="work",
-                trigger="arbitration",
-                started_by=wf.attached_by or "user",
-                instruction=ARBITRATION_TASK.format(
-                    ticket=ticket_id,
-                    why=why,
-                    objections="\n".join(
-                        f"- {o['text'][:600]}" for o in objections[-4:]
-                    )
-                    or "(none recorded)",
-                    dev="\n".join(f"- {n[:600]}" for n in dev_notes)
-                    or "(none recorded)",
-                ),
-                wait_for_hold=True,
+        elif could_not_start:
+            title, extra = (
+                ": the coordinator could not start",
+                f" The coordinator could not start: {could_not_start}",
             )
-        except runs.RunError:
-            return None
-        wf.arbitration_run_id = run.id
-        session.add(wf)
-        await session.commit()
-        return run
+        else:
+            title, extra = "", ""
+        await centre.emit(
+            "arbitration",
+            project_id=wf.project_id,
+            recipients=await centre.owners_and_admins(session, wf.project_id),
+            title=f"Dev and Reviewer are not converging on {ticket_id}{title}",
+            body=why + extra,
+            target_kind="ticket",
+            target_id=ticket_id,
+            ticket_id=ticket_id,
+            data={"why": why, "rulings": rulings},
+            session=session,
+        )
+        return None
 
 
 async def on_arbitration_ended(run_id: str) -> None:
@@ -1322,15 +1517,25 @@ async def apply_ruling(ticket_id: str, side: str, *, by: str, reason: str = "") 
                 session.add(blocked)
                 await session.commit()
         elif side in ("dev", "split"):
-            # the review is settled: skip to the step after the reviewer's
+            # the dispute is settled: the work the reviewer asked for is not done, but the Checks still run and the
+            # review still happens (everything is reviewed, D13), told of the ruling
             review = next((r for r in reversed(rows) if r.role == "reviewer"), None)
             for r in rows:
-                if r.state in ("blocked", "pending") and (
-                    review is None or r.idx <= review.idx
+                if r.state not in ("blocked", "pending") or (
+                    review is not None and r.idx > review.idx
                 ):
+                    continue
+                if r.kind == "code" or r.role == "reviewer":
+                    r.state = "pending"
+                    if r.role == "reviewer":
+                        r.note_in = (
+                            f"Ruling ({by}): the developer is right on “{last[:600]}”. {reason}\n"
+                            "Do not raise that objection again; review the rest."
+                        )
+                else:
                     r.state = "skipped"
                     r.note = f"Settled by {by}: {side}"
-                    session.add(r)
+                session.add(r)
             await session.commit()
             if side == "split":
                 child = await svc_tickets.create_ticket(
@@ -1600,18 +1805,35 @@ async def skip_step(ticket_id: str, *, by: str, step_id: str | None = None) -> N
             raise WorkflowError("There is no step to skip.")
         if row.key == "done":
             raise WorkflowError("The last step is yours: move the ticket to Done.")
+        to_cancel = [row.run_id] if row.state == "active" and row.run_id else []
+        waiting = [row.id] if row.state == "waiting" else []
         row.state = "skipped"
         row.note = f"Skipped by {by} for this ticket."
         row.ended_at = _now()
         session.add(row)
-        if wf.state == "stopped":
+        was_stopped = wf.state == "stopped"
+        if was_stopped:
             wf.state = "active"
             wf.stop_reason = None
+            if wf.arbitration_run_id:
+                to_cancel.append(
+                    wf.arbitration_run_id
+                )  # a person settled it by skipping
+                wf.arbitration_run_id = None
             session.add(wf)
         await session.commit()
-        await flags.resolve(
-            session, ticket_id, "no_member", by=by, how=f"{row.label} skipped"
-        )
+        # the skipped step's run is no longer wanted (its end finds the row skipped and moves nothing)
+        await _cancel_runs(to_cancel, by=by, reason=f"The step was skipped by {by}.")
+        how = f"{row.label} skipped"
+        await flags.resolve(session, ticket_id, "no_member", by=by, how=how)
+        if was_stopped:
+            # the stop is over: what it waited for no longer waits
+            for kind in ("arbitration", "board_fault", "no_progress", "quota_cap"):
+                await flags.resolve(session, ticket_id, kind, by=by, how=how)
+        if waiting:
+            from services import notifications as centre
+
+            await centre.resolve_target("step", waiting[0], how, by=by)
     await advance(ticket_id)
 
 
