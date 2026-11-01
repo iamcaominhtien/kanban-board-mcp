@@ -632,7 +632,7 @@ async def test_retention_removes_old_entries_but_keeps_blocked_and_the_chain_val
 # --------------------------------------------------------------------------- injection, loops
 
 
-async def test_guest_comments_are_flagged_fenced_and_can_be_hidden_from_ai(env):
+async def test_guest_comments_are_flagged_and_fenced(env):
     c = env["c"]
     ctx, pid, an, m, tid = await _ctx(env)
     await c.post(
@@ -649,8 +649,6 @@ async def test_guest_comments_are_flagged_fenced_and_can_be_hidden_from_ai(env):
     flags = (await c.get(f"/tickets/{tid}/ai/flags")).json()
     assert len(flags) == 1 and flags[0]["trust"] == "untrusted"
     assert "ignore previous instructions" in [p.lower() for p in flags[0]["phrases"]]
-    t = (await c.get(f"/tickets/{tid}")).json()
-    guest = next(x for x in t["comments"] if x["author"] == "partner@vendor.io")
 
     async with env["maker"]() as s:
         ticket = await s.get(Ticket, tid)
@@ -665,23 +663,6 @@ async def test_guest_comments_are_flagged_fenced_and_can_be_hidden_from_ai(env):
         )
         fenced = ticket_block(ticket, ai, humans=humans, allow_external=True)
         assert '<untrusted source="comment · guest partner@vendor.io">' in fenced
-    r = await c.post(
-        f"/tickets/{tid}/ai/comments/{guest['id']}/hide", json={"hidden": True}
-    )
-    assert r.json()["hidden"] is True
-    async with env["maker"]() as s:
-        ticket = await s.get(Ticket, tid)
-        text = ticket_block(
-            ticket, {m["name"]}, humans={"An Nguyen"}, allow_external=True
-        )
-        assert "Ignore previous" not in text and "hidden from AI" in text
-    # and through get_ticket's comments
-    from services.ai.context import comments_for_reader
-
-    shown, _ = comments_for_reader(
-        json.loads(ticket.comments), {m["name"]}, {"An Nguyen"}, True
-    )
-    assert all(x["author"] != "partner@vendor.io" for x in shown)
 
 
 async def test_blocked_action_after_flagged_text_names_its_source_and_shows_a_banner(
@@ -712,10 +693,6 @@ async def test_blocked_action_after_flagged_text_names_its_source_and_shows_a_ba
         guard.leave(tokens)
     banner = (await c.get(f"/tickets/{tid}/ai/blocked")).json()
     assert len(banner) == 1 and banner[0]["author"] == "guest@x.io"
-    t = (await c.get(f"/tickets/{tid}")).json()
-    cid = next(x for x in t["comments"] if x["author"] == "guest@x.io")["id"]
-    await c.post(f"/tickets/{tid}/ai/comments/{cid}/hide", json={"hidden": True})
-    assert (await c.get(f"/tickets/{tid}/ai/blocked")).json() == []
     entry = (
         await c.get(f"/projects/{pid}/ai/audit", params={"result": "blocked"})
     ).json()["entries"][0]

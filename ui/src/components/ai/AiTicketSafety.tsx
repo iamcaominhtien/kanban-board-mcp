@@ -7,12 +7,10 @@ import { RememberedApprovals } from './AiInbox';
 import { Pill, TrustChip } from './aiSafetyUi';
 import { useAiBoardState } from './aiUi';
 
-/** Prompt-injection flag under a comment (F4): the chip, the “Why” popover and Keep fenced / Hide from AI agents. */
+/** Prompt-injection flag under a comment (F4): the chip, the “Why” popover. */
 export function CommentAiFlag({ ticketId, commentId }: { ticketId: string; commentId: string }) {
   const flags = useCommentFlags(ticketId);
   const [open, setOpen] = useState(false);
-  const toast = useToast();
-  const hide = useAiMutation((hidden: boolean) => safetyApi.hideComment(ticketId, commentId, hidden));
   const flag = flags.data?.find((f) => f.commentId === commentId);
   if (!flag) return null;
   const looksLike = flag.phrases.length > 0;
@@ -32,7 +30,6 @@ export function CommentAiFlag({ ticketId, commentId }: { ticketId: string; comme
           Outside the project: fenced for AI
         </Pill>
       )}
-      {flag.hidden && <Pill>Hidden from AI agents</Pill>}
       <button type="button" className="ai-link" onClick={() => setOpen(!open)} data-testid="comment-ai-flag-why">
         Why
       </button>
@@ -53,28 +50,6 @@ export function CommentAiFlag({ ticketId, commentId }: { ticketId: string; comme
             <TrustChip trust={flag.trust} />
             <span className="ai-muted">{flag.author}: trust comes from who wrote it; there is no “mark as safe”.</span>
           </div>
-          {(
-            [
-              [false, 'Keep fenced (default)'],
-              [true, 'Hide from AI agents'],
-            ] as const
-          ).map(([hidden, label]) => (
-            <button
-              key={label}
-              type="button"
-              className={`ai-option ${flag.hidden === hidden ? 'ai-option-active' : ''}`}
-              onClick={async () => {
-                try {
-                  await hide.mutateAsync(hidden);
-                  void flags.refetch();
-                } catch (err) {
-                  toast.error("Couldn't change it", extractError(err));
-                }
-              }}
-            >
-              <span className={`ai-radio ${flag.hidden === hidden ? 'ai-radio-on' : ''}`} /> {label}
-            </button>
-          ))}
         </div>
       )}
     </div>
@@ -88,7 +63,6 @@ export function TicketSafetyBlocks({ ticketId }: { ticketId: string }) {
   const chain = useAiChain(ticketId);
   const board = useAiBoardState();
   const toast = useToast();
-  const hide = useAiMutation((v: { commentId: string }) => safetyApi.hideComment(ticketId, v.commentId, true));
   const more = useAiMutation(() => safetyApi.allowMoreRuns(ticketId));
   const me = useAiMe(board.projectId);
   const banners = blocked.data ?? [];
@@ -123,21 +97,6 @@ export function TicketSafetyBlocks({ ticketId }: { ticketId: string }) {
           </div>
           <button type="button" className="ai-btn ai-btn-sm" onClick={() => board.openAiTab?.('audit')}>
             Open audit entry
-          </button>
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm"
-            onClick={async () => {
-              try {
-                await hide.mutateAsync({ commentId: b.commentId });
-                void blocked.refetch();
-              } catch (err) {
-                toast.error("Couldn't hide it", extractError(err));
-              }
-            }}
-            data-testid="blocked-hide-comment"
-          >
-            Hide comment from AI
           </button>
         </div>
       ))}

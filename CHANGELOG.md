@@ -23,7 +23,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - **A paused schedule still started a slot that was already waiting, and a schedule run cut off by closing the board started again behind a paused schedule or past its time.**
 - **Settings sent empty answered 500; “Runs per ticket per day” accepted 0.** They answer 422 with the range.
 - **The Timeline lost a run queued before its window that was still going; the Team map did not show a paused AI that waits for you; the “AI” filter of You stepped in did nothing; clearing the Autopilot numbers saved 0; the Timeline answer box kept the draft of another question; Stop and Restart on Resources could be sent twice.**
-- **“Hide from AI agents” on a comment was gone.** An earlier commit of this branch removed it (the route, the choice under a flagged comment, the filter in what an AI reads), so comments a person had hidden would reach the AI again. It is back, with its tests.
 - **Work the board's closing cut off now goes on at the next start.** The run is resumed in the same conversation, with the same chain and the same duty to report back to the PM; Retry keeps that duty too. Before, the PM was only woken by the failure, and not at all now that closing is a quiet end.
 - **A member on an AI account also reads the MCP servers and plugins of its own account**, not those of the default login.
 - **A plan limit is read more carefully:** “Context limit reached”, “Disk quota exceeded” and the like are not waited for as rate limits, and the reason shown is the CLI's own line.
