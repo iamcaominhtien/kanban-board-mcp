@@ -300,18 +300,20 @@ async def test_approval_creates_a_notification_toast_for_the_assigner(env):
         )
     ).json()
     assert len(mine["items"]) == 1
-    # switching the event off in-app and on the desktop records nothing
-    await c.patch(
-        f"/projects/{pid}/ai/settings",
-        json={
-            "notify": [
-                {"event": "approval_requested", "inapp": False, "desktop": False}
-            ]
-        },
-    )
-    await _ask_assignee(env, an, tid, ctx)
-    feed = (await c.get(f"/projects/{pid}/ai/notifications")).json()
-    assert len([i for i in feed["items"] if i["event"] == "approval_requested"]) == 1
+    # the notification centre has the same event as a Needs you row for the assigner and for the owner
+    row = (
+        await c.get("/notifications", params={"view": "panel", "tab": "needs"})
+    ).json()["items"]
+    assert [r["kind"] for r in row] == ["approval"]
+    assert row[0]["target_id"] == n["ref_id"]
+    theirs = (
+        await c.get(
+            "/notifications",
+            params={"view": "panel", "tab": "needs"},
+            headers={"X-Actor": "An Nguyen"},
+        )
+    ).json()["items"]
+    assert len(theirs) == 1
 
 
 # --------------------------------------------------------------------------- permissions

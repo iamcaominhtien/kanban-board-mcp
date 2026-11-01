@@ -446,6 +446,8 @@ async def test_import_notify_only_when_published_and_asked(c, pid):
         assert all(not e.startswith("{") for e in _drain(q))
         await do_import(c, pid, [("b.md", "x")], publish=True, notify=True)
         events = [json.loads(e) for e in _drain(q) if e.startswith("{")]
+        # the notification centre's "the log moved" message is not the publish announcement
+        events = [e for e in events if e.get("topics") != ["notifications"]]
         assert (
             len(events) == 1
             and events[0]["type"] == "docs_published"

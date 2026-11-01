@@ -126,7 +126,7 @@ export function SafetyView({
       <LinksCard s={s} save={save} />
       <KeysCard projectId={projectId} s={s} save={save} />
       <LoopsCard s={s} save={save} />
-      <NotificationsCard s={s} save={save} />
+      <NotificationsLink />
       <div className="ai-grid2">
         <DefaultsCard projectId={projectId} />
         <RolesCard role={me.data?.role} onOpenAudit={onOpenAudit} />
@@ -668,77 +668,18 @@ function LoopsCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknow
   );
 }
 
-function NotificationsCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknown>) => Promise<void> }) {
-  const toggle = async (event: string, field: 'inapp' | 'desktop', on: boolean) => {
-    if (field === 'desktop' && on && typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      try {
-        await Notification.requestPermission();
-      } catch {
-        /* ignore */
-      }
-    }
-    const cur = s.notify.find((n) => n.event === event)!;
-    await save({ notify: [{ event, inapp: cur.inapp, desktop: cur.desktop, [field]: on }] });
-  };
+/** The per-project notification switches and the digest are gone; one line points to the app-wide page. */
+function NotificationsLink() {
   return (
-    <SafetyCard
-      title="AI safety notifications"
-      sub="In-app toasts and desktop notifications; no email."
-      id="notifications"
-    >
-      <table className="ai-table" data-testid="notify-table">
-        <thead>
-          <tr>
-            <th>When this happens</th>
-            <th>In-app</th>
-            <th>Desktop</th>
-          </tr>
-        </thead>
-        <tbody>
-          {s.notify.map((n) => (
-            <tr key={n.event}>
-              <td>
-                {n.label}{' '}
-                {n.urgent ? <span className="ai-muted">· urgent</span> : <span className="ai-muted">· digest</span>}
-              </td>
-              <td>
-                <Toggle
-                  on={n.inapp}
-                  label={`${n.label} in-app`}
-                  testId={`notify-${n.event}-inapp`}
-                  onChange={(v) => void toggle(n.event, 'inapp', v)}
-                />
-              </td>
-              <td>
-                <Toggle
-                  on={n.desktop}
-                  label={`${n.label} desktop`}
-                  testId={`notify-${n.event}-desktop`}
-                  onChange={(v) => void toggle(n.event, 'desktop', v)}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
-        <span className="ai-label ai-label-dark">Non-urgent as one digest</span>
-        <select
-          className="ai-select-sm"
-          value={s.digest}
-          onChange={(e) => void save({ digest: e.target.value })}
-          data-testid="digest"
-        >
-          <option value="off">Off: show them as they happen</option>
-          <option value="daily">Daily 09:00</option>
-          <option value="weekdays">Daily 09:00, Mon to Fri</option>
-        </select>
-      </div>
-      <div className="ai-muted" style={{ marginTop: 6 }}>
-        Urgent ones (approvals, auto-trip) are never held for the digest. Owners and admins get all; members only their
-        own.
-      </div>
-    </SafetyCard>
+    <div className="ai-hint" data-testid="notifications-link">
+      <button
+        type="button"
+        className="ai-link"
+        onClick={() => window.dispatchEvent(new CustomEvent('kanban:notifications', { detail: { open: 'settings' } }))}
+      >
+        Notifications are set app-wide in Settings › Notifications
+      </button>
+    </div>
   );
 }
 

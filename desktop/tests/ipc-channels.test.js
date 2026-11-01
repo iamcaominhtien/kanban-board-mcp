@@ -35,3 +35,24 @@ test('the page gets the API secret only through a synchronous channel the main p
   // only the app's own window gets an answer
   assert.match(main, /event\.sender === mainWindow\.webContents/);
 });
+
+test('every channel preload.js sends to has a listener in the main process', () => {
+  const listened = new Set();
+  for (const [, channel] of read('main.js').matchAll(/ipcMain\.on\(\s*'([\w:-]+)'/g)) listened.add(channel);
+  const missing = [];
+  for (const [, channel] of read('preload.js').matchAll(/ipcRenderer\.send\(\s*'([\w:-]+)'/g)) {
+    if (!listened.has(channel)) missing.push(channel);
+  }
+  assert.deepStrictEqual(missing, []);
+});
+
+test('the notifications API is exposed and its click channel is the one the main process sends', () => {
+  const preload = read('preload.js');
+  const main = read('main.js');
+  for (const name of ['setActor', 'status', 'test', 'openSystemSettings', 'onOpen']) {
+    assert.match(preload, new RegExp(`\\b${name}:`));
+  }
+  assert.match(preload, /ipcRenderer\.on\('notifications:open'/);
+  assert.match(main, /webContents\.send\('notifications:open'/);
+  assert.match(main, /\.send\('notifications:open'/);
+});

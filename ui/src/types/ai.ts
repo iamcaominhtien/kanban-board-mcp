@@ -290,8 +290,6 @@ export interface AiSettings {
   noRepeatChain: boolean;
   docsEditsAsk: boolean;
   allowedDomains: string[];
-  notify: { event: string; label: string; urgent: boolean; inapp: boolean; desktop: boolean }[];
-  digest: 'off' | 'daily' | 'weekdays';
   keyReminderDays: number;
   pausedCancelled: number;
   pausedHeld: number;

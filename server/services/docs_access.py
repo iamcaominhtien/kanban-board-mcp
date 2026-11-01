@@ -153,15 +153,17 @@ async def request_access(
     )
     if recent.first() is not None:
         return {"sent": False, "admins": admins}
-    session.add(
-        DocsCommentEvent(
-            project_id=project.id,
-            page_id=None,
-            kind="access_request",
-            actor=actor,
-            recipients=json.dumps([activity.HUMAN_ACTOR, *admins]),
-            snippet=" ".join(note.split())[:MAX_NOTE],
-        )
+    event = DocsCommentEvent(
+        project_id=project.id,
+        page_id=None,
+        kind="access_request",
+        actor=actor,
+        recipients=json.dumps([activity.HUMAN_ACTOR, *admins]),
+        snippet=" ".join(note.split())[:MAX_NOTE],
     )
+    session.add(event)
     await session.commit()
+    from services import notifications as centre
+
+    centre.comment_event(event)
     return {"sent": True, "admins": admins}

@@ -801,7 +801,6 @@ async def _housekeeping() -> None:
         await approvals.expire(session)
         projects = (await session.exec(select(AiProjectSettings))).all()
     for s in projects:
-        await safety.release_digest(s.project_id)
         await safety.check_key_reminders(s.project_id)
     await audit.prune()
 
@@ -871,7 +870,8 @@ async def tick() -> None:
 
 async def _remind(session, run: AiRun, asked: datetime) -> None:
     """Reminders for an unanswered question: after 15 min, then every 2 h; from 6 h the project's admins are told
-    too. They are recorded on the question; the board shows a dot and a toast for each new one."""
+    too. They are recorded on the question, and each one is a new event on the question's notification, so its row
+    comes back to the top and toasts again; from 6 h the admins' notification is that event."""
     q = loads(run.question, {}) or {}
     sent = list(q.get("reminders") or [])
     minutes = (datetime.now(UTC) - asked).total_seconds() / 60
@@ -896,6 +896,11 @@ async def _remind(session, run: AiRun, asked: datetime) -> None:
     run.question = json.dumps(q)
     session.add(run)
     await session.commit()
+    if not entry.get("lead"):
+        # 15 min and every 2 h: the question's row comes back to the top and toasts again (one more event on it)
+        from services import notifications as centre
+
+        await centre.on_run_question(run.id, reminder=True)
     if entry.get("lead"):
         # From 6 h the project's admins are told too, as a notification (not only on the question)
         hours = int(minutes // 60)
@@ -1127,12 +1132,39 @@ async def move_status(run_id: str, target: str) -> bool:
     return True
 
 
+# One append at a time per run: steps and files are read, extended and written back, so two appends at once (the
+# CLI output reader and a pause, say) would otherwise lose one of them
+_append_locks: dict[str, asyncio.Lock] = {}
+
+
 async def _append(
     run_id: str,
     steps: list[dict] | None = None,
     files: list[dict] | None = None,
     results: list[dict] | None = None,
     **fields,
+) -> AiRun | None:
+    lock = _append_locks.setdefault(run_id, asyncio.Lock())
+    async with lock:
+        run = await _append_now(run_id, steps, files, results, fields)
+    if (run is None or run.state in ENDED) and not lock.locked():
+        _append_locks.pop(
+            run_id, None
+        )  # nothing more is expected; a late line takes a new lock
+    if run is None:
+        return None
+    if "cost_usd" in fields and run.metered:
+        await safety.check_budget_alerts(run.member_id)
+    await _publish()
+    return run
+
+
+async def _append_now(
+    run_id: str,
+    steps: list[dict] | None,
+    files: list[dict] | None,
+    results: list[dict] | None,
+    fields: dict,
 ) -> AiRun | None:
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
@@ -1175,9 +1207,6 @@ async def _append(
         session.add(run)
         await session.commit()
         await session.refresh(run)
-    if "cost_usd" in fields and run.metered:
-        await safety.check_budget_alerts(run.member_id)
-    await _publish()
     return run
 
 
@@ -2302,6 +2331,21 @@ async def _tell_restart(run: AiRun, entry: dict) -> None:
             recent.title = f"{run.ticket_id}: restarted {data['count']} times (memory)"
             session.add(recent)
             await session.commit()
+            from services import notifications as centre
+
+            # The notification centre merges restarts of one run into one row ("restarted N times")
+            await centre.emit(
+                "run_restarted",
+                project_id=run.project_id,
+                recipients=await centre.owners_and_admins(session, run.project_id),
+                title=recent.title,
+                body=recent.body,
+                target_kind="run",
+                target_id=run.id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                data={"count": data["count"]},
+            )
             return
     rss, limit = entry.get("rss_mb"), entry.get("limit_mb")
     await safety.notify(
@@ -2610,6 +2654,9 @@ async def _needs_input(run_id: str) -> None:
         ],
     )
     await _publish(force=True)
+    from services import notifications as centre
+
+    await centre.on_run_question(run_id)
 
 
 _ANSI = re.compile(r"\x1b?\[[0-9;]*m")
@@ -2708,6 +2755,10 @@ async def _end(
         target=run.ticket_id,
         detail={"reason": reason, "by": by},
     )
+    if not quiet:
+        from services import notifications as centre
+
+        await centre.on_run_ended(run.id)
     if quiet:
         if profile and profile.remove_after_run:
             from . import members as svc_members
@@ -3435,6 +3486,10 @@ async def reassign_question(run_id: str, *, by: str, to_member_id: str) -> AiRun
         steps=[{"kind": "question", "text": f"Question passed to {person.name}"}],
     )
     await _publish(force=True)
+    from services import notifications as centre
+
+    # the new person gets it as Needs you too; the person it was taken from sees theirs close
+    await centre.on_run_question(run_id, passed_to=person.name, by=by)
     async with database.async_session() as session:
         return await session.get(AiRun, run_id)
 
@@ -3515,6 +3570,9 @@ async def set_feedback(
 async def mark_blocked_move(run_id: str, target: str) -> None:
     """The AI tried to move the ticket past its ceiling: remember it, so the board can tell the person."""
     await _append(run_id, blocked_move=target)
+    from services import notifications as centre
+
+    await centre.on_blocked_move(run_id, target)
     await _publish(force=True)
 
 

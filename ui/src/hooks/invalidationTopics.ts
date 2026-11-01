@@ -8,6 +8,8 @@ import type { QueryKey } from '@tanstack/react-query';
  */
 const TOPIC_KEYS: Record<string, QueryKey[]> = {
   ai: [['ai'], ['ticket_workspace'], ['ticket_branches']],
+  // The bell, the panel, the page and the feed of toasts (server/services/notifications.py publishes this)
+  notifications: [['notifications']],
 };
 
 /** What an SSE message asks to refetch: topic names, or null for everything. */

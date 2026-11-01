@@ -20,6 +20,9 @@ TOPIC_AI = "ai"  # a run's steps and state: the AI screens, the run panels, the 
 # Global set of subscriber queues
 _subscribers: set[asyncio.Queue] = set()
 
+# Called (without waiting) on every publish: the notification centre checks its open rows soon after any change
+_on_publish: list = []
+
 # Number of events published so far (lets the database watcher tell whether this process already announced a change)
 _published = 0
 
@@ -29,6 +32,12 @@ def subscribe() -> asyncio.Queue:
     q: asyncio.Queue = asyncio.Queue(maxsize=100)
     _subscribers.add(q)
     return q
+
+
+def on_publish(callback) -> None:
+    """Call `callback()` (synchronously, cheaply) whenever something is published."""
+    if callback not in _on_publish:
+        _on_publish.append(callback)
 
 
 def unsubscribe(q: asyncio.Queue) -> None:
@@ -47,6 +56,11 @@ async def publish(event: str, topics: Iterable[str] | None = None) -> None:
     """
     global _published
     _published += 1
+    for cb in _on_publish:
+        try:
+            cb()
+        except Exception:  # noqa: BLE001 - a listener never stops an announcement
+            logger.debug("A publish listener failed", exc_info=True)
     if topics:
         event = json.dumps({"type": event, "topics": sorted(set(topics))})
     for q in _subscribers:

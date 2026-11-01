@@ -83,6 +83,7 @@ import { StatusMenu } from './StatusMenu';
 import { TagPill } from './TagPill';
 import { useToast } from './Toast';
 import { Icon } from './docs/Icon';
+import { FollowBell } from './notifications-follow/FollowBell';
 import { WontDoDialog } from './WontDoDialog';
 import { ReopenDialog } from './ReopenDialog';
 import { PendingCloseConfirm } from './PendingCloseConfirm';
@@ -1312,6 +1313,7 @@ function TicketModalInner({
             </div>
 
             <div className={styles.headerRight}>
+              <FollowBell scope="ticket" scopeId={ticket.id} projectId={ticket.projectId} />
               <button
                 type="button"
                 className={styles.fullscreenBtn}

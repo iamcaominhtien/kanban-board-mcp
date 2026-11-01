@@ -128,7 +128,11 @@ class TicketDocBody(BaseModel):
 
 
 async def _announce(page: dict[str, Any], note: str | None) -> None:
-    """Tell watchers a page was published (SSE `data:` is this JSON string)."""
+    """Tell watchers a page was published (SSE `data:` is this JSON string), and write it to the notification log
+    for the people who follow the space or the page (only when the author chose to notify)."""
+    from services import notifications as centre
+
+    await centre.on_page_published(page, note)
     await board_events.publish(
         json.dumps(
             {

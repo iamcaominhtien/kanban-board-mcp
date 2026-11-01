@@ -6,6 +6,7 @@ a project count as its owner; that is the only role with the last word on High r
 """
 
 import json
+import logging
 from datetime import UTC, datetime, timedelta
 
 from sqlmodel import col, select
@@ -13,16 +14,20 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
 from models import (
+    AiApproval,
     AiGrant,
     AiMember,
     AiNotification,
     AiProjectSettings,
+    AiRun,
     AiWorkspaceDefaults,
     Member,
 )
 
 from .budget import day_key as local_day, today_start
 from .store import get_settings, loads, parse_iso
+
+logger = logging.getLogger("kanban.ai.safety")
 
 ROLE_RANK = {"viewer": 0, "member": 1, "admin": 2, "owner": 3}
 ROLE_LABEL = {
@@ -34,7 +39,7 @@ ROLE_LABEL = {
 DEFAULT_APPROVERS = {"low": "member", "medium": "admin", "high": "owner"}
 RISKS = ("low", "medium", "high")
 
-# event: (label, urgent, in-app default, desktop default). Urgent ones are never held for the digest.
+# event: (label, urgent, in-app default, desktop default) of the safety record (the centre has its own switches)
 EVENTS: dict[str, tuple[str, bool, bool, bool]] = {
     "approval_requested": ("Approval requested", True, True, True),
     "auto_trip": ("Auto-trip or Pause all AI", True, True, True),
@@ -45,8 +50,6 @@ EVENTS: dict[str, tuple[str, bool, bool, bool]] = {
     "run_restarted": ("A run was restarted (memory)", True, True, False),
     "run_stopped_memory": ("A run was stopped (memory)", True, True, True),
 }
-DIGESTS = ("off", "daily", "weekdays")
-DIGEST_HOUR = 9
 
 
 # ---------------------------------------------------------------------------
@@ -267,19 +270,70 @@ async def extra_runs_today(session: AsyncSession, ticket_id: str) -> int:
 # ---------------------------------------------------------------------------
 
 
-def notify_prefs(settings: AiProjectSettings) -> dict[str, dict]:
-    """In-app / desktop switches per event, with the design's defaults filled in."""
-    raw = loads(settings.notify, {})
-    out = {}
-    for key, (label, urgent, inapp, desktop) in EVENTS.items():
-        mine = raw.get(key) if isinstance(raw.get(key), dict) else {}
-        out[key] = {
-            "label": label,
-            "urgent": urgent,
-            "inapp": bool(mine.get("inapp", inapp)),
-            "desktop": bool(mine.get("desktop", desktop)),
-        }
-    return out
+# The eight AI safety events, written to the notification centre as these kinds (services/notifications.py)
+_KIND = {
+    "approval_requested": "approval",
+    "auto_trip": "auto_trip",
+    "budget": "budget",
+    "blocked": "blocked",
+    "offline": "offline",
+    "question": "question",
+    "run_restarted": "run_restarted",
+    "run_stopped_memory": "run_stopped_memory",
+}
+
+
+def _centre_kind(event: str, ref_kind: str | None, data: dict) -> str:
+    kind = _KIND.get(event, "blocked")
+    if kind == "approval" and data.get("proposal_id"):
+        return "page_proposal"
+    if kind == "approval" and ref_kind == "audit":
+        return "blocked"  # "Ask owner for access": nothing to approve here, dismissed once seen to
+    if kind == "budget" and (
+        data.get("kind") == "key_reminder" or int(data.get("percent") or 100) < 100
+    ):
+        return "budget_warning"
+    return kind
+
+
+async def _recipients(
+    session: AsyncSession, project_id: str, people: list[str]
+) -> list[str]:
+    """Owners and admins of the project, then the people of this event who are not one of them."""
+    from services import notifications as centre
+
+    recipients = await centre.owners_and_admins(session, project_id)
+    for k in await centre.recipient_keys(session, project_id, people):
+        if k not in recipients:
+            recipients.append(k)
+    return recipients
+
+
+async def _ticket_of(
+    session: AsyncSession,
+    ref_kind: str | None,
+    ref_id: str | None,
+    ticket_id: str | None,
+) -> str | None:
+    """The ticket the event is about: the reference itself, or the ticket of its run or approval when not given."""
+    if ref_kind == "ticket":
+        return ref_id
+    if not ref_id or ticket_id:
+        return ticket_id
+    if ref_kind == "run":
+        run = await session.get(AiRun, ref_id)
+        return run.ticket_id if run else None
+    if ref_kind == "approval":
+        a = await session.get(AiApproval, ref_id)
+        return a.ticket_id if a else None
+    return ticket_id
+
+
+async def _member_name(session: AsyncSession, member_id: str | None) -> str | None:
+    if not member_id:
+        return None
+    m = await session.get(Member, member_id)
+    return m.name if m else None
 
 
 async def notify(
@@ -293,14 +347,13 @@ async def notify(
     member_id: str | None = None,
     people: list[str] | None = None,
     data: dict | None = None,
+    to_centre: bool = True,
 ) -> AiNotification | None:
-    """Record a safety notification unless the project switched this event off in-app and on the desktop. Owners
-    and admins see all of them; `people` also see this one. Non-urgent events wait for the daily digest."""
+    """Record a safety event and tell the notification centre. Owners and admins are recipients of every one;
+    `people` also get this one. Nothing is held back and nothing is skipped: whether it shows in the panel or on
+    the desktop is each recipient's setting (Settings › Notifications), and "off" means quiet, not unrecorded."""
+    data = data or {}
     async with database.async_session() as session:
-        settings = await get_settings(session, project_id)
-        prefs = notify_prefs(settings)[event]
-        if not prefs["inapp"] and not prefs["desktop"]:
-            return None
         row = AiNotification(
             project_id=project_id,
             event=event,
@@ -310,16 +363,54 @@ async def notify(
             ref_id=ref_id,
             member_id=member_id,
             people=json.dumps(sorted({p for p in (people or []) if p})),
-            urgent=prefs["urgent"],
-            inapp=prefs["inapp"],
-            desktop=prefs["desktop"],
-            digest=(not prefs["urgent"]) and settings.digest != "off",
-            data=json.dumps(data or {}),
+            urgent=EVENTS.get(event, ("", True))[1],
+            inapp=True,
+            desktop=EVENTS.get(event, ("", True, True, False))[3],
+            data=json.dumps(data),
         )
         session.add(row)
         await session.commit()
         await session.refresh(row)
-        return row
+    if to_centre:
+        await tell_centre(row)
+    return row
+
+
+async def tell_centre(row: AiNotification) -> None:
+    """Write a recorded safety event to the notification centre (also used once, after the upgrade, for an approval
+    that was already waiting)."""
+    from services import notifications as centre
+
+    data = json.loads(row.data or "{}")
+    people = json.loads(row.people or "[]")
+    async with database.async_session() as session:
+        recipients = await _recipients(session, row.project_id, people)
+        ticket_id = await _ticket_of(
+            session, row.ref_kind, row.ref_id, data.get("ticket_id")
+        )
+        target_kind, target_id = row.ref_kind, row.ref_id
+        if row.event == "auto_trip" and row.ref_kind != "member":
+            # Pause all AI: the project itself (resumed when the project is)
+            target_kind, target_id = "project", row.project_id
+        kind = _centre_kind(row.event, row.ref_kind, data)
+        actor = await _member_name(session, row.member_id)
+    try:
+        await centre.emit(
+            kind,
+            project_id=row.project_id,
+            recipients=recipients,
+            title=row.title,
+            body=row.body,
+            target_kind=target_kind,
+            target_id=target_id,
+            ticket_id=ticket_id,
+            page_id=data.get("page_id"),
+            member_id=row.member_id,
+            actor=actor,
+            data={**data, "safety_id": row.id, "event": row.event},
+        )
+    except Exception:  # noqa: BLE001 - the safety record is kept even if the centre cannot write
+        logger.exception("Could not write the %s notification", row.event)
 
 
 def notification_to_dict(n: AiNotification) -> dict:
@@ -336,7 +427,6 @@ def notification_to_dict(n: AiNotification) -> dict:
         "urgent": n.urgent,
         "inapp": n.inapp,
         "desktop": n.desktop,
-        "held": n.digest,
         "data": loads(n.data, {}),
         "created_at": n.created_at,
     }
@@ -349,7 +439,6 @@ async def visible_notifications(
     *,
     after: str | None = None,
     event: str | None = None,
-    include_held: bool = False,
     limit: int = 50,
 ) -> list[AiNotification]:
     """Notifications this person may see, newest first."""
@@ -358,8 +447,6 @@ async def visible_notifications(
         stmt = stmt.where(col(AiNotification.created_at) > after)
     if event:
         stmt = stmt.where(AiNotification.event == event)
-    if not include_held:
-        stmt = stmt.where(AiNotification.digest == False)  # noqa: E712
     rows = (
         await session.exec(
             stmt.order_by(col(AiNotification.created_at).desc()).limit(200)
@@ -419,57 +506,6 @@ async def check_key_reminders(project_id: str) -> int:
             data={"kind": "key_reminder"},
         )
     return len(due)
-
-
-async def release_digest(project_id: str) -> int:
-    """Once a day at 09:00 (Mon to Fri for the weekday digest) turn the held notifications into one digest
-    notification. Returns how many were summarised."""
-    now = datetime.now().astimezone()
-    async with database.async_session() as session:
-        settings = await get_settings(session, project_id)
-        if settings.digest == "off" or now.hour < DIGEST_HOUR:
-            return 0
-        if settings.digest == "weekdays" and now.weekday() >= 5:
-            return 0
-        state = loads(settings.alert_state, {})
-        if state.get("digest_day") == local_day(now):
-            return 0
-        held = (
-            await session.exec(
-                select(AiNotification).where(
-                    AiNotification.project_id == project_id,
-                    AiNotification.digest == True,  # noqa: E712
-                    col(AiNotification.event) != "digest",
-                )
-            )
-        ).all()
-        state["digest_day"] = local_day(now)
-        settings.alert_state = json.dumps(state)
-        session.add(settings)
-        await session.commit()
-    if not held:
-        return 0
-    by_event: dict[str, int] = {}
-    for n in held:
-        by_event[n.event] = by_event.get(n.event, 0) + 1
-    parts = ", ".join(
-        f"{c} {EVENTS[e][0].lower() if e in EVENTS else e}" for e, c in by_event.items()
-    )
-    async with database.async_session() as session:
-        session.add(
-            AiNotification(
-                project_id=project_id,
-                event="digest",
-                title="AI safety digest",
-                body=f"Since the last digest: {parts}.",
-                urgent=True,
-                inapp=True,
-                desktop=False,
-                digest=False,
-            )
-        )
-        await session.commit()
-    return len(held)
 
 
 async def check_budget_alerts(member_id: str) -> None:

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, clipboard, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, Menu, Notification, clipboard, ipcMain, dialog, nativeImage, shell } = require('electron');
 const os = require('os');
 const crypto = require('crypto');
 const path = require('path');
@@ -7,6 +7,7 @@ const fs = require('fs');
 const { registerMcpServer } = require('./vscode-setup');
 const { parseExportArgs, runExportCli } = require('./export-svg');
 const { setupUpdater, getUpdateState, checkNow } = require('./updater');
+const { startNotifier, systemSettingsUrl } = require('./notifier');
 const { buildMenuTemplate, buildDiagnosticsText, resolveCommand, VIEWS } = require('./menu');
 const {
   StartupProfiler,
@@ -34,6 +35,10 @@ let backendPort = null;
 let backendProcess = null;
 // What the page tells the menu so the check mark follows the view on screen
 let currentView = null;
+// The desktop notifier (notifier.js): started once the backend port is known, the only sender of OS notifications
+let notifier = null;
+// A notification clicked while no page was listening yet (the window had to be created): delivered when it is
+let pendingOpen = null;
 
 function startBackend() {
   profiler.mark('backend-spawn-start');
@@ -113,6 +118,8 @@ function startBackend() {
       console.log(`Backend exited with code ${code} signal ${signal}`);
       backendProcess = null;
       backendPort = null;
+      // The notifier stops calling the old port; launchBackend gives it the new one once the backend is ready
+      if (notifier) notifier.setPort(null);
       refreshMenu();
       if (!settled) {
         settled = true;
@@ -183,6 +190,7 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     profiler.mark('window-first-paint');
     mainWindow.show();
+    if (notifier) notifier.refresh(); // the Windows taskbar overlay belongs to the window
   });
 
   if (process.env.ELECTRON_DEV === '1') {
@@ -308,6 +316,78 @@ ipcMain.handle('get-app-info', () => ({
   window: mainWindow && !mainWindow.isDestroyed() ? mainWindow.getSize() : null,
 }));
 
+// ── Desktop notifications ───────────────────────────────────────────────────────────────────────────────────────
+// Clicking a notice brings the window up (created again if it was closed, macOS) and hands the row to the page, which
+// opens the thing itself (ticket, run, account). `payload` is the feed row ({...row, action} for a button), a group
+// ({group: true, ids, needs, title}), or null for the test notice.
+function openFromNotification(payload) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    pendingOpen = payload;
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+  if (payload) mainWindow.webContents.send('notifications:open', payload);
+}
+
+function ensureNotifier(port) {
+  if (notifier) return void notifier.setPort(port);
+  notifier = startNotifier({
+    Notification,
+    app,
+    nativeImage,
+    platform: process.platform,
+    apiSecret,
+    port,
+    getWindow: () => mainWindow,
+    onOpen: openFromNotification,
+  });
+}
+
+const fromOwnWindow = (event) => Boolean(mainWindow && !mainWindow.isDestroyed() && event.sender === mainWindow.webContents);
+
+// IPC: the page says who the person is (sent as X-Actor); kept in memory only
+ipcMain.handle('notifications-set-actor', (event, name) => {
+  if (!fromOwnWindow(event) || !notifier) return false;
+  notifier.setActor(name);
+  return true;
+});
+
+// IPC: {supported, permission: 'granted' | 'denied' | 'default'} for Settings › Notifications
+ipcMain.handle('notifications-status', () => {
+  if (notifier) return notifier.status();
+  const supported = Notification.isSupported();
+  return { supported, permission: supported ? 'granted' : 'denied' };
+});
+
+// IPC: Send a test — shown now, past the 20 s limit and quiet hours; {ok, reason?}
+ipcMain.handle('notifications-test', async () => {
+  if (!notifier) ensureNotifier(backendPort);
+  return notifier.test();
+});
+
+// IPC: the system page where notifications are allowed; false where there is none (Linux)
+ipcMain.handle('notifications-open-settings', async () => {
+  const url = systemSettingsUrl(process.platform);
+  if (!url) return false;
+  try {
+    await shell.openExternal(url);
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+// The page started listening for notifications:open: deliver a click that arrived before it did
+ipcMain.on('notifications-ready', (event) => {
+  if (!fromOwnWindow(event) || !pendingOpen) return;
+  const payload = pendingOpen;
+  pendingOpen = null;
+  event.sender.send('notifications:open', payload);
+});
+
 // IPC: renderer asks for backend port
 ipcMain.handle('get-backend-port', () => backendPort);
 
@@ -382,6 +462,7 @@ function launchBackend() {
   return startBackend()
     .then((port) => {
       backendPort = port; // Set the global port immediately for any future lookups
+      ensureNotifier(port);
 
       // VS Code MCP setup — one-time, packaged builds only
       const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
@@ -437,6 +518,8 @@ if (exportArgs) {
 } else {
   app.whenReady().then(() => {
     profiler.mark('app-ready');
+    // Windows shows an app's notifications only under its App User Model ID (the installer's appId)
+    if (process.platform === 'win32') app.setAppUserModelId('com.kanbanboard.app');
     // macOS shows the system About window (Linux uses these too); Windows gets the in-app one
     app.setAboutPanelOptions({
       applicationName: app.name || 'Kanban Board',
@@ -458,11 +541,13 @@ if (exportArgs) {
   });
 }
 
+// macOS keeps the app — and the notifier — running with every window closed; quitting stops both
 app.on('window-all-closed', () => {
   if (!exportArgs && process.platform !== 'darwin') app.quit();
 });
 
 app.on('before-quit', () => {
+  if (notifier) notifier.stop();
   if (terminateBackendProcess(backendProcess)) {
     backendProcess = null;
   }

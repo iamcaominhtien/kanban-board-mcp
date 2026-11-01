@@ -4,9 +4,10 @@
   right: 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: flex-end;
+  gap: 8px;
   z-index: 9999;
-  width: 360px;
+  width: 352px;
   max-width: calc(100vw - 48px);
   pointer-events: none;
 }
@@ -17,16 +18,13 @@
   box-sizing: border-box;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 14px;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 11px;
   background: #ffffff;
-  border: 1px solid #dce6df;
-  box-shadow: 0 10px 24px rgba(30, 42, 34, 0.1);
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 8px 24px rgba(30, 42, 34, 0.14);
   animation: toastSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  transition:
-    transform 0.2s ease,
-    opacity 0.2s ease;
 }
 
 @keyframes toastSlideIn {
@@ -41,110 +39,175 @@
 }
 
 .icon {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  font-weight: 700;
-  user-select: none;
   flex-shrink: 0;
 }
 
 .iconSuccess {
-  background: #cfffdc;
+  background: #e6f2ea;
   color: #2e6f40;
 }
 
 .iconError {
-  background: #fbe7e4;
+  background: #fdece8;
   color: #c4432a;
 }
 
 .iconWarning {
-  background: #fcefd9;
-  color: #b4791e;
+  background: #fef3d9;
+  color: #b8860b;
 }
 
 .iconInfo {
-  background: #eaf2fb;
-  color: #2f6fb0;
+  background: #e8f1fa;
+  color: #244e78;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex-grow: 1;
+  flex: 1;
   min-width: 0;
 }
 
 .title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: #1e2a22;
   line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .message {
-  font-size: 13px;
+  font-size: 12px;
   color: #5b6b60;
   line-height: 1.4;
-  word-break: break-word;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .closeButton {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #b7c4bc;
-  font-size: 14px;
-  font-weight: 600;
+  width: 20px;
+  height: 20px;
+  padding: 0;
   border: none;
   background: transparent;
+  color: #9aa8a0;
   cursor: pointer;
-  padding: 0;
   flex-shrink: 0;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
 }
 
 .closeButton:hover {
-  background: #f6faf7;
   color: #5b6b60;
 }
 
-/* Actions (Undo, Open, Review and Deny, Retry rest): links in a row under the text (design ai-safety-cost B4) */
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin-top: 8px;
-}
-
+/* The buttons of a toast (Answer, Retry, Undo, Open) are the small buttons of the design (st-btn-sm) */
 .actionButton {
-  padding: 0;
-  border: none;
-  background: none;
-  color: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 26px;
+  padding: 5px 10px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  color: #1e2a22;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
   white-space: nowrap;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .actionButton:hover {
-  color: #1f5230;
+  background: #f6faf7;
+}
+
+/* "+N more · in Notifications · Open" */
+.more {
+  pointer-events: auto;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f1f3f1;
+  border: 1px solid #e3e8e5;
+  font-size: 12.5px;
+  color: #3a4a3e;
+}
+
+.moreCount {
+  font-weight: 700;
+}
+
+.moreHint {
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+
+.moreSpacer {
+  flex: 1;
+}
+
+/* The quiet line: action feedback, 2 s, no icon, no close, no history */
+.quiet {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100vw - 48px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(30, 42, 34, 0.86);
+  color: #eaf0ec;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.quietText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quietDot {
+  opacity: 0.6;
+}
+
+.quietAction {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #9fdcb4;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* Inline Banner Variant */
