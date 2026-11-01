@@ -77,7 +77,8 @@ async def test_a_question_waits_for_you_and_the_answer_comes_back(env):
         await _run(
             s, pid, tid, ba["id"], 50, None, state="needs_input", question=json.dumps(q)
         )
-    data = await _tl(c, pid, range="today")
+    # 24h, not today: the run began 50 minutes ago, which is yesterday for the first hour after midnight
+    data = await _tl(c, pid, range="24h")
     [wait] = data["waits"]
     assert wait["kind"] == "question" and wait["to"] is None
     # the person assigned it (you to BA), then BA asks the person
