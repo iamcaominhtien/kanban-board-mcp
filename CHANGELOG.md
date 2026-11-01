@@ -26,6 +26,7 @@ One place for what needs you and what happened: Notifications ([#253](https://gi
 - The six features that toasted on their own (AI runs, schedules, Docs publishes, Docs comments, AI accounts, AI safety) now write to the one log; nothing arrives twice.
 - "Off" means quiet, not unrecorded: an AI safety event is always recorded, even when both switches are off.
 - The notification switches moved from each project's AI settings to the app-wide Settings › Notifications; the Docs space Follow is now one case of following.
+- **The release page lists two guide files instead of eight**: the full guide PDF, and `kanban-board-guide-sheets-<version>.zip` with the stand-alone PDFs (quick start, shortcut sheet, administration, MCP, self-hosting, troubleshooting, desktop menu).
 
 ### Removed
 - The 09:00 AI safety digest: quiet safety events are ordinary Updates rows when they happen, and the day card is the only summary. Board health keeps its own 09:00 digest.
