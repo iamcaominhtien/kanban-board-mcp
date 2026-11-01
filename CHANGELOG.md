@@ -8,6 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.19.0] - 2026-11-01
+
 One place for what needs you and what happened: Notifications ([#253](https://github.com/iamcaominhtien/kanban-board-mcp/issues/253), design `design/screens/notifications.md`, spec `docs/specs/notifications.md`).
 
 ### Added
