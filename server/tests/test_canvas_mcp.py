@@ -399,3 +399,23 @@ async def test_canvas_create_says_what_is_missing_before_it_makes_anything(
         )
     listed = await docs_read(action="canvases", project_id=pid)
     assert listed == []
+
+
+def test_the_design_brief_reaches_the_agent_and_the_ai_job():
+    import kanban_mcp
+    from services import canvas_design, canvas_proposals
+
+    assert canvas_design.SHORT in kanban_mcp.build_instructions()
+    assert canvas_design.BRIEF in canvas_proposals.RULES
+    # the process and its checklist are all there: tokens first, states, contrast, no emoji icons, squint
+    for needle in (
+        "Tokens first",
+        "never emoji",
+        "empty, loading, error",
+        "4.5:1",
+        "squint",
+    ):
+        assert needle in canvas_design.BRIEF
+    assert "never lorem ipsum" in canvas_design.SHORT
+    # it is a brief, not an essay
+    assert len(canvas_design.SHORT) < 1300 and len(canvas_design.BRIEF) < 2800
