@@ -38,9 +38,6 @@ pythonpath = ["."]
 # Coverage for SonarQube Cloud (CI runs pytest --cov --cov-report=xml)
 [tool.coverage.run]
 source = ["."]
-# SQLAlchemy's async session runs through greenlets: without this, every line after an `await session.…` reads as
-# never run
-concurrency = ["thread", "greenlet"]
 omit = ["tests/*", "alembic/*", ".venv/*"]
 # SQLAlchemy async runs code in greenlets; without this, coverage misses everything an endpoint does after its first query
 concurrency = ["greenlet", "thread"]

@@ -25,8 +25,12 @@ const OUT = process.argv.slice(2).find((a) => !a.startsWith('--')) || path.join(
 const DB = process.env.KANBAN_DB_PATH || '/tmp/notif-demo/kanban.db';
 fs.mkdirSync(DIR, { recursive: true });
 
-const pages = [];
-const note = (file, title, bullets) => pages.push({ file, title, bullets });
+// The pages are noted while capturing and saved beside the screenshots, so --build-only prints the same PDF again
+let pages = [];
+const note = (file, title, bullets) => {
+  pages.push({ file, title, bullets });
+  fs.writeFileSync(DIR + 'pages.json', JSON.stringify(pages, null, 2));
+};
 const state = () => JSON.parse(fs.readFileSync(path.join(path.dirname(DB), 'demo-state.json'), 'utf8'));
 const seedEnv = { ...process.env, KANBAN_DB_PATH: DB };
 const seed = (step, extra = {}) =>
@@ -313,6 +317,8 @@ ${(n.actions || []).length ? `<div class="osa">${n.actions.map((a) => `<span>${e
 }
 
 async function build() {
+  if (!pages.length && fs.existsSync(DIR + 'pages.json')) pages = JSON.parse(fs.readFileSync(DIR + 'pages.json', 'utf8'));
+  if (!pages.length) throw new Error('No screenshots noted: run the capture first (without --build-only)');
   let html = `<!doctype html><meta charset=utf-8><style>
 @page{size:A4 landscape;margin:0}*{box-sizing:border-box}body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#1E2A22}
 .p{width:297mm;height:210mm;padding:12mm 14mm;page-break-after:always;display:flex;flex-direction:column;gap:5mm;overflow:hidden}
