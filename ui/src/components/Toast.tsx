@@ -18,6 +18,8 @@ export interface ToastItem {
   action?: ToastAction;
   /** Optional second button (e.g. Review and Deny). */
   secondaryAction?: ToastAction;
+  /** Called once when the toast goes away: closed, timed out, collapsed into "+N more" or removed. */
+  onClose?: () => void;
 }
 
 interface ToastContextValue {
@@ -121,7 +123,9 @@ function ToastCard({ toast, onClose }: { toast: ToastItem; onClose: (id: string)
         <VariantIcon variant={toast.variant} />
       </span>
       <div className={styles.content}>
-        <div className={styles.title}>{toast.title}</div>
+        <div className={styles.title} title={toast.title}>
+          {toast.title}
+        </div>
         {toast.message && <div className={styles.message}>{toast.message}</div>}
       </div>
       {[toast.action, toast.secondaryAction].map(
@@ -201,8 +205,16 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [more, setMore] = useState(0);
   const [quietItem, setQuietItem] = useState<QuietItem | null>(null);
 
+  // mirrors `toasts` so the list can be changed (and `onClose` called) outside a state updater
+  const toastsRef = useRef<ToastItem[]>([]);
+
   const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    const gone = toastsRef.current.find((t) => t.id === id);
+    if (gone) {
+      toastsRef.current = toastsRef.current.filter((t) => t.id !== id);
+      setToasts(toastsRef.current);
+      gone.onClose?.();
+    }
     setQuietItem((prev) => (prev && prev.id === id ? null : prev));
   }, []);
 
@@ -213,19 +225,21 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    ({ variant, title, message, duration, action, secondaryAction }: Omit<ToastItem, 'id'>) => {
+    ({ variant, title, message, duration, action, secondaryAction, onClose }: Omit<ToastItem, 'id'>) => {
       if ((variant === 'success' || variant === 'info') && !secondaryAction && duration !== 0) {
         return quiet(message ? `${title} · ${message}` : title, action);
       }
       // a toast with an action button stays a little longer so it can be used
       if (duration === undefined) duration = action ? 8000 : 4000;
       const id = newId();
-      setToasts((prev) => {
-        const next = [...prev, { id, variant, title, message, duration, action, secondaryAction }];
-        const over = next.length - MAX_TOASTS;
-        if (over > 0) setMore((m) => m + over);
-        return over > 0 ? next.slice(over) : next;
-      });
+      const next = [...toastsRef.current, { id, variant, title, message, duration, action, secondaryAction, onClose }];
+      const over = next.length - MAX_TOASTS;
+      toastsRef.current = over > 0 ? next.slice(over) : next;
+      setToasts(toastsRef.current);
+      if (over > 0) {
+        setMore((m) => m + over);
+        next.slice(0, over).forEach((t) => t.onClose?.());
+      }
       return id;
     },
     [quiet],

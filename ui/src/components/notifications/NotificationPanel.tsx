@@ -11,7 +11,7 @@ import type { NotificationRow as Row } from '../../types/notifications';
 import { DayCard } from './DayCard';
 import { NotificationRow, type RowActionHandler } from './NotificationRow';
 import { EmptyState, LoadingRows, OfflineNotice } from './NotificationStates';
-import { Icon, groupByDay, openActionOf, snoozeChoices } from './notificationUi';
+import { Icon, dayLabel, groupByDay, openActionOf, snoozeChoices } from './notificationUi';
 import { useReadWhenVisible } from './useReadWhenVisible';
 import { isTyping, useRowKeys } from './useRowKeys';
 import styles from './NotificationPanel.module.css';
@@ -42,8 +42,20 @@ export function NotificationPanel({
   const list = useNotificationList({ view: 'panel', tab });
   const projects = useProjects().data;
   const projectMap = useMemo(() => new Map((projects ?? []).map((p) => [p.id, p])), [projects]);
-  const rows = list.data?.items ?? [];
-  const dayCard = tab === 'updates' ? (list.data?.dayCard ?? null) : null;
+  // while the other tab's rows are still on screen as placeholder data, show the grey rows instead
+  const placeholder = list.isPlaceholderData;
+  const rows = useMemo(() => (placeholder ? [] : (list.data?.items ?? [])), [placeholder, list.data]);
+  const dayCard = tab === 'updates' && !placeholder ? (list.data?.dayCard ?? null) : null;
+  // the layout the rows are shown in: Needs you open rows by when they began, done rows under their own header
+  const groups = useMemo(() => {
+    if (tab === 'updates') return groupByDay(rows, Date.now(), (r) => r.updatedAt);
+    const openRows = rows.filter((r) => !r.done);
+    const doneRows = rows.filter((r) => r.done);
+    const out = groupByDay(openRows, Date.now(), (r) => r.createdAt);
+    if (doneRows.length > 0) out.push({ key: `done:${out.length}`, label: 'Done today', rows: doneRows });
+    return out;
+  }, [rows, tab]);
+  const ordered = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
   const scroller = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -69,9 +81,9 @@ export function NotificationPanel({
   const refresh = () => void qc.invalidateQueries({ queryKey: notificationKeys.all });
   const sendRead = (ids: string[]) => void notificationsApi.read({ ids }).then(refresh, () => undefined);
   const signature = [dayCard?.id, ...rows.map((r) => `${r.id}:${r.read ? 1 : 0}:${r.lastEventId}`)].join('|');
-  useReadWhenVisible(scroller, !list.isError, signature, sendRead);
+  useReadWhenVisible(scroller, !list.isError && !placeholder, signature, sendRead);
 
-  const selected = useRowKeys(true, rows, (row, what) => {
+  const selected = useRowKeys(true, ordered, (row, what) => {
     if (what === 'read') void onAction(row, 'read');
     else if (what === 'snooze') {
       if (row.needs && !row.done) void onAction(row, 'snooze', { until: snoozeChoices()[0].until });
@@ -89,8 +101,11 @@ export function NotificationPanel({
   const needs = counts.data?.needs ?? 0;
   const updates = counts.data?.updates ?? 0;
   const offline = list.isError || (counts.isError && !list.data);
-  const loading = list.isLoading || (list.isPlaceholderData && !list.data);
-  const groups = groupByDay(rows);
+  const loading = list.isLoading || placeholder;
+  // "N updates from today" counts today's rows of the Updates list, not the 30-day total of the tab
+  const needsEmpty = tab === 'needs' && !loading && !offline && rows.length === 0;
+  const todayList = useNotificationList({ view: 'panel', tab: 'updates' }, needsEmpty);
+  const todayUpdates = (todayList.data?.items ?? []).filter((r) => dayLabel(r.updatedAt) === 'Today').length;
   const nothing = !loading && !offline && rows.length === 0 && !dayCard;
   const showNeeds = () => onTab('needs');
 
@@ -145,7 +160,11 @@ export function NotificationPanel({
             <EmptyState
               icon="check"
               title="Nothing needs you"
-              text={`${updates} update${updates === 1 ? '' : 's'} from today are in the other tab.`}
+              text={
+                todayUpdates > 0
+                  ? `${todayUpdates} update${todayUpdates === 1 ? '' : 's'} from today ${todayUpdates === 1 ? 'is' : 'are'} in the other tab.`
+                  : 'Earlier updates are in the other tab.'
+              }
             />
           ) : (
             <EmptyState
@@ -155,7 +174,7 @@ export function NotificationPanel({
             />
           ))}
         {groups.map((g) => (
-          <div key={g.label} style={{ display: 'contents' }}>
+          <div key={g.key} style={{ display: 'contents' }}>
             <div className={styles.dayHead}>
               <span className={styles.dayName}>{g.label}</span>
               <span className={styles.rule} />

@@ -19,14 +19,16 @@ export const NOTIFICATIONS_EVENT = 'kanban:notifications';
 export type NotificationsOpen = 'panel' | 'page' | 'settings';
 
 /** Ask the app to open the panel, the All notifications page or Settings › Notifications. */
-export function requestOpenNotifications(open: NotificationsOpen, tab?: PanelTab): void {
-  window.dispatchEvent(new CustomEvent(NOTIFICATIONS_EVENT, { detail: { open, tab } }));
+export function requestOpenNotifications(open: NotificationsOpen, tab?: PanelTab, rowId?: string): void {
+  window.dispatchEvent(new CustomEvent(NOTIFICATIONS_EVENT, { detail: { open, tab, rowId } }));
 }
 
 interface Ctx {
   panelOpen: boolean;
   togglePanel: () => void;
   onAction: RowActionHandler;
+  /** The row the All notifications page should open expanded (from the panel's "Open the list"). */
+  focusRowId: string | null;
 }
 
 const NotificationsContext = createContext<Ctx | null>(null);
@@ -55,7 +57,16 @@ export function NotificationBellButton() {
 export function NotificationsPageView({ onBack, onOpenSettings }: { onBack: () => void; onOpenSettings: () => void }) {
   const ctx = useContext(NotificationsContext);
   if (!ctx) return null;
-  return <AllNotificationsPage onBack={onBack} onOpenSettings={onOpenSettings} onAction={ctx.onAction} />;
+  return (
+    <AllNotificationsPage
+      onBack={onBack}
+      onOpenSettings={onOpenSettings}
+      onAction={ctx.onAction}
+      bell={<NotificationBellButton />}
+      panelOpen={ctx.panelOpen}
+      focusRowId={ctx.focusRowId}
+    />
+  );
 }
 
 /**
@@ -83,6 +94,7 @@ export function NotificationsHost({
   const counts = useNotificationCounts().data;
   const [panelOpen, setPanelOpen] = useState(false);
   const [tab, setTab] = useState<PanelTab>('needs');
+  const [focusRowId, setFocusRowId] = useState<string | null>(null);
   const props = useRef({ onOpenTicket, onOpenDoc, onOpenAiTab, onOpenAiMember, onOpenPage, onOpenSettings });
   props.current = { onOpenTicket, onOpenDoc, onOpenAiTab, onOpenAiMember, onOpenPage, onOpenSettings };
   const assistRef = useRef(assist);
@@ -118,6 +130,7 @@ export function NotificationsHost({
         p.onOpenAiMember(row.memberId);
         break;
       case 'open_list':
+        setFocusRowId(row.id);
         p.onOpenPage();
         break;
       case 'board_health':
@@ -150,6 +163,7 @@ export function NotificationsHost({
       } else if (e.key === 'N') {
         e.preventDefault();
         setPanelOpen(false);
+        setFocusRowId(null);
         props.current.onOpenPage();
       }
     };
@@ -160,10 +174,11 @@ export function NotificationsHost({
   // The event other parts send (a toast's "+N more", the Settings link)
   useEffect(() => {
     const onEvent = (e: Event) => {
-      const d = (e as CustomEvent<{ open?: NotificationsOpen; tab?: PanelTab }>).detail;
+      const d = (e as CustomEvent<{ open?: NotificationsOpen; tab?: PanelTab; rowId?: string }>).detail;
       if (d?.open === 'panel') openPanel(d.tab);
       else if (d?.open === 'page') {
         setPanelOpen(false);
+        setFocusRowId(d.rowId ?? null);
         props.current.onOpenPage();
       } else if (d?.open === 'settings') {
         setPanelOpen(false);
@@ -221,7 +236,10 @@ export function NotificationsHost({
     };
   }, [openPanel]);
 
-  const ctx = useMemo<Ctx>(() => ({ panelOpen, togglePanel, onAction }), [panelOpen, togglePanel, onAction]);
+  const ctx = useMemo<Ctx>(
+    () => ({ panelOpen, togglePanel, onAction, focusRowId }),
+    [panelOpen, togglePanel, onAction, focusRowId],
+  );
 
   return (
     <NotificationsContext.Provider value={ctx}>
@@ -233,6 +251,7 @@ export function NotificationsHost({
           onClose={closePanel}
           onOpenPage={() => {
             setPanelOpen(false);
+            setFocusRowId(null);
             onOpenPage();
           }}
           onOpenSettings={() => {

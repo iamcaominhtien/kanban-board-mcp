@@ -89,6 +89,7 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   back: <path d="M15 6l-6 6 6 6" />,
+  more: <path d="M5 12h.01M12 12h.01M19 12h.01" />,
 };
 
 export type IconName = keyof typeof PATHS;
@@ -220,17 +221,21 @@ export function dayLabel(iso: string, now: number = Date.now()): string {
   return new Date(t).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-/** Rows in the order given, cut into runs of the same day. */
+/**
+ * Rows in the order given, cut into runs of the same day by `timeOf` (the time the list is sorted by). A label
+ * is never emitted twice in a row; `key` is unique even when a label comes back.
+ */
 export function groupByDay(
   rows: NotificationRow[],
   now: number = Date.now(),
-): { label: string; rows: NotificationRow[] }[] {
-  const out: { label: string; rows: NotificationRow[] }[] = [];
+  timeOf: (r: NotificationRow) => string = rowTime,
+): { key: string; label: string; rows: NotificationRow[] }[] {
+  const out: { key: string; label: string; rows: NotificationRow[] }[] = [];
   for (const r of rows) {
-    const label = dayLabel(rowTime(r), now);
+    const label = dayLabel(timeOf(r), now);
     const last = out[out.length - 1];
     if (last && last.label === label) last.rows.push(r);
-    else out.push({ label, rows: [r] });
+    else out.push({ key: `${label}:${out.length}`, label, rows: [r] });
   }
   return out;
 }
@@ -300,6 +305,8 @@ const OPEN_ORDER = [
 
 /** The action that opens the thing a row is about (Enter, a click on a desktop notice); null when there is none. */
 export function openActionOf(row: NotificationRow): string | null {
+  // a row whose target is gone never opens anything; it only offers Dismiss
+  if (row.gone) return null;
   for (const id of OPEN_ORDER) if (row.actions.some((a) => a.id === id)) return id;
   if (row.ticketId) return 'open_ticket';
   return row.kind === 'day_card' ? 'open' : null;

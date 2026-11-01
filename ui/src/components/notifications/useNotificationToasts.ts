@@ -17,6 +17,13 @@ export function earnsToast(row: NotificationRow): boolean {
   return row.needs && row.inapp && !row.read && !row.done && !row.snoozed && !row.gone && !row.cleared;
 }
 
+/** The detail line under the title: "KAN-215 · Should the export include archived tickets?". */
+export function toastDetail(row: NotificationRow): string {
+  const id = row.ticketId;
+  if (!id || row.body.includes(id) || row.title.includes(id)) return row.body;
+  return row.body ? `${id} · ${row.body}` : id;
+}
+
 /**
  * Toasts for Needs you (design G): follows `GET /notifications/feed?since=`. The first call only stores `head`, so
  * opening the app never replays old news. Each new open row gets one toast with its action; when the row closes
@@ -66,19 +73,26 @@ export function useNotificationToasts(onAction: RowActionHandler, headHint: numb
             drop(row.id);
             continue;
           }
-          if (!earnsToast(row) || feed.dnd) continue;
+          // `dnd` is the setting "follow the system Do not disturb", for the OS notifier; it never silences a toast
+          if (!earnsToast(row)) continue;
+          // quiet hours (design L): nothing interrupts; the panel still fills
+          if (feed.quiet) continue;
           if (document.visibilityState !== 'visible') continue;
-          if (toasts.current.has(row.id)) continue;
-          const [first, second] = row.actions;
-          const mk = (a?: { id: string; label: string }) =>
-            a ? { label: a.label, onClick: () => void actionRef.current(row, a.id) } : undefined;
-          const toastId = t.showToast({
+          const shown = toasts.current.get(row.id);
+          // a reminder (the row's newest event moved on) toasts again; the same event never twice
+          if (shown && row.lastEventId <= shown.event) continue;
+          if (shown) drop(row.id);
+          const first = row.actions[0];
+          const toastId: string = t.showToast({
             variant: toastVariantFor(row.kind),
             title: row.title,
-            message: row.body || undefined,
+            message: toastDetail(row) || undefined,
             duration: 12000,
-            action: mk(first),
-            secondaryAction: mk(second),
+            action: first ? { label: first.label, onClick: () => void actionRef.current(row, first.id) } : undefined,
+            // closed, timed out or collapsed: forget it, so a later reminder may toast again
+            onClose: () => {
+              if (toasts.current.get(row.id)?.toastId === toastId) toasts.current.delete(row.id);
+            },
           });
           toasts.current.set(row.id, { toastId, event: row.lastEventId });
         }

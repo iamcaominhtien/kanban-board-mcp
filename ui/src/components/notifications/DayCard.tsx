@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { DayCardData, NotificationRow } from '../../types/notifications';
 import styles from './DayCard.module.css';
 import type { RowActionHandler } from './NotificationRow';
@@ -39,6 +40,9 @@ export function DayCard({
 }) {
   const d = row.data as DayCardData;
   const failed = d.failed ?? 0;
+  // only runs that were not retried yet come in `failedRuns`; one click retries them, then the button rests
+  const retryable = d.failedRuns ? d.failedRuns.length : failed;
+  const [retried, setRetried] = useState<number | null>(null);
   const waiting = d.waiting ?? 0;
   const money = `$${(d.spent ?? 0).toFixed(2)}`;
   return (
@@ -103,13 +107,23 @@ export function DayCard({
               Open the {waiting} waiting
             </button>
           )}
-          {failed > 0 && (
-            <button type="button" className={styles.btn} onClick={() => void onAction(row, 'retry_failed')}>
-              {failed === 1
-                ? 'Retry the failed run'
-                : failed === 2
-                  ? 'Retry both failed'
-                  : `Retry the ${failed} failed`}
+          {retryable > 0 && (
+            <button
+              type="button"
+              className={styles.btn}
+              disabled={retried !== null}
+              onClick={() => {
+                setRetried(retryable);
+                void onAction(row, 'retry_failed');
+              }}
+            >
+              {retried !== null
+                ? `Retried ${retried}`
+                : retryable === 1
+                  ? 'Retry the failed run'
+                  : retryable === 2
+                    ? 'Retry both failed'
+                    : `Retry the ${retryable} failed`}
             </button>
           )}
           <button type="button" className={styles.btn} onClick={() => void onAction(row, 'board_health')}>

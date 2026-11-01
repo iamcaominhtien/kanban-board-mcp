@@ -38,10 +38,19 @@ export function AllNotificationsPage({
   onBack,
   onOpenSettings,
   onAction,
+  bell,
+  panelOpen,
+  focusRowId,
 }: {
   onBack: () => void;
   onOpenSettings: () => void;
   onAction: RowActionHandler;
+  /** The bell of the top bar (design C1: on every screen). */
+  bell?: ReactNode;
+  /** The panel is open over the page: its keys win, the page's stay quiet. */
+  panelOpen?: boolean;
+  /** A grouped row to open expanded, from "Open the list" in the panel. */
+  focusRowId?: string | null;
 }) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<NotificationFilter>('all');
@@ -56,7 +65,16 @@ export function AllNotificationsPage({
   }, [search]);
 
   const counts = useNotificationCounts().data;
-  const list = useNotificationList({ view: 'page', filter, q, days, family: family ?? undefined, limit: 500 });
+  // Needs you and Snoozed are about what is open now, however old: the days select does not cut them
+  const byDays = filter !== 'needs' && filter !== 'snoozed';
+  const list = useNotificationList({
+    view: 'page',
+    filter,
+    q,
+    days: byDays ? days : undefined,
+    family: family ?? undefined,
+    limit: 500,
+  });
   const projectsData = useProjects().data;
   const projects = useMemo(() => projectsData ?? [], [projectsData]);
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
@@ -68,8 +86,10 @@ export function AllNotificationsPage({
     return m;
   }, [all]);
   const rows = projectId ? all.filter((r) => r.projectId === projectId) : all;
-  const groups = groupByDay(rows);
-  const selected = useRowKeys(true, rows, (row, what) => {
+  // grouped by the time the page is sorted by: the last activity
+  const groups = useMemo(() => groupByDay(rows, Date.now(), (r) => r.updatedAt), [rows]);
+  const ordered = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
+  const selected = useRowKeys(!panelOpen, ordered, (row, what) => {
     if (what === 'read') void onAction(row, 'read');
     else if (what === 'snooze') {
       if (row.needs && !row.done) void onAction(row, 'snooze', { until: snoozeChoices()[0].until });
@@ -103,7 +123,7 @@ export function AllNotificationsPage({
         </button>
         <h1 className={styles.title}>All notifications</h1>
         <span className={styles.total}>
-          {list.data?.total ?? 0} in the last {days} days
+          {byDays ? `${list.data?.total ?? 0} in the last ${days} days` : `${list.data?.total ?? 0} in all`}
         </span>
         <span className={styles.spacer} />
         <button type="button" className={styles.btn} onClick={() => void markAll()}>
@@ -114,6 +134,7 @@ export function AllNotificationsPage({
           <Icon name="gear" />
           Notification settings
         </button>
+        {bell}
       </div>
       <div className={styles.filters}>
         <label className={styles.search}>
@@ -144,6 +165,8 @@ export function AllNotificationsPage({
           className={styles.days}
           aria-label="Days"
           value={days}
+          disabled={!byDays}
+          title={byDays ? undefined : 'This list is not cut by days'}
           onChange={(e) => setDays(Number(e.target.value))}
         >
           <option value={7}>Last 7 days</option>
@@ -167,7 +190,7 @@ export function AllNotificationsPage({
             />
           )}
           {groups.map((g) => (
-            <div key={g.label} style={{ display: 'contents' }}>
+            <div key={g.key} style={{ display: 'contents' }}>
               <div className={panel.dayHead}>
                 <span className={panel.dayName}>{g.label}</span>
                 <span className={panel.rule} />
@@ -180,6 +203,8 @@ export function AllNotificationsPage({
                   projects={projectMap}
                   onAction={onAction}
                   selected={selected === r.id}
+                  onPage
+                  focused={focusRowId === r.id}
                 />
               ))}
             </div>

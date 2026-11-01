@@ -36,7 +36,11 @@ export function useNotificationActions(navigate: NavigateHandler): RowActionHand
             } else nav.current(row, 'open_ticket');
             return;
           case 'approve':
-            if (row.targetId) await safetyApi.approve(row.targetId);
+            if (row.targetId) {
+              const r = await safetyApi.approve(row.targetId);
+              // the decision is kept, but the board could not apply the change (HTTP 200 with `error`)
+              if (r?.error) toast.error('Approved, but it could not be applied', r.error);
+            }
             refresh();
             return;
           case 'deny':
@@ -49,7 +53,10 @@ export function useNotificationActions(navigate: NavigateHandler): RowActionHand
             return;
           case 'retry_failed': {
             const ids = (row.data as DayCardData).failedRuns ?? [];
-            await Promise.allSettled(ids.map((id) => aiApi.retry(id)));
+            const results = await Promise.allSettled(ids.map((id) => aiApi.retry(id)));
+            const ok = results.filter((r) => r.status === 'fulfilled').length;
+            if (ok > 0) toast.info(`Retried ${ok} failed run${ok === 1 ? '' : 's'}`);
+            if (ok < ids.length) toast.error('Could not retry every run', `${ids.length - ok} did not start.`);
             refresh();
             return;
           }
@@ -84,6 +91,34 @@ export function useNotificationActions(navigate: NavigateHandler): RowActionHand
               });
               toast.info(`${row.ticketId} is muted`, 'Questions and approvals still reach you.', 5000);
             }
+            refresh();
+            return;
+          case 'mute_project':
+            if (row.projectId) {
+              await notificationsApi.setFollow({
+                scope: 'project',
+                scopeId: row.projectId,
+                level: 'mute',
+                projectId: row.projectId,
+                label: extra?.label,
+              });
+              toast.info(
+                `${extra?.label ?? 'The project'} is muted`,
+                'Needs you items addressed to you still reach you.',
+                5000,
+              );
+            }
+            refresh();
+            return;
+          case 'mute_kind':
+            await notificationsApi.setFollow({
+              scope: 'kind',
+              scopeId: row.kind,
+              level: 'mute',
+              projectId: row.projectId,
+              label: row.kindLabel,
+            });
+            toast.info(`${row.kindLabel} is off`, 'You can turn it back on in Settings.', 5000);
             refresh();
             return;
           default:

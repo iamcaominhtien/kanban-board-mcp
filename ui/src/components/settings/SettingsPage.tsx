@@ -14,6 +14,7 @@ import { ProjectRepoRow } from './ProjectRepoRow';
 import { StoragePage } from './StoragePage';
 import { DiagnosticsPage } from './DiagnosticsPage';
 import { NotificationsSettings } from './NotificationsSettings';
+import { NotificationBellButton } from '../notifications/NotificationsHost';
 import {
   SETTINGS_PAGES,
   isSettingsPageId,
@@ -321,6 +322,7 @@ export function SettingsPage({
             </div>
           )}
         </div>
+        <NotificationBellButton />
       </div>
 
       <select

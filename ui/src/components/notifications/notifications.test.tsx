@@ -13,8 +13,8 @@ const api = vi.hoisted(() => ({
 }));
 vi.mock('../../api/client', () => ({
   client: {
-    get: async (url: string, cfg?: { params?: { since?: number } }) => {
-      if (url === '/notifications') return { data: await api.list() };
+    get: async (url: string, cfg?: { params?: { since?: number } & Record<string, unknown> }) => {
+      if (url === '/notifications') return { data: await api.list(cfg?.params) };
       if (url === '/notifications/counts') return { data: await api.counts() };
       if (url === '/notifications/feed') return { data: await api.feed(cfg?.params?.since) };
       throw new Error(url);
@@ -29,10 +29,12 @@ vi.mock('../../api/projects', () => ({
 const toastApi = vi.hoisted(() => ({ showToast: vi.fn((_t: unknown) => 'toast-1'), removeToast: vi.fn() }));
 vi.mock('../Toast', () => ({ useToast: () => toastApi }));
 
+import { AllNotificationsPage } from './AllNotificationsPage';
 import { NotificationBell } from './NotificationBell';
 import { NotificationPanel } from './NotificationPanel';
 import { NotificationRow } from './NotificationRow';
-import { useNotificationToasts } from './useNotificationToasts';
+import { openActionOf } from './notificationUi';
+import { toastDetail, useNotificationToasts } from './useNotificationToasts';
 
 function row(over: Partial<Row>): Row {
   return {
@@ -176,12 +178,27 @@ describe('NotificationPanel', () => {
     expect(screen.queryByRole('button', { name: 'Answer' })).toBeNull();
   });
 
-  it('says Nothing needs you and points at the other tab', async () => {
+  it('says Nothing needs you and counts the updates of today, not the 30-day total', async () => {
     api.counts.mockResolvedValue({ needs: 0, updatesUnread: 0, updates: 23, snoozed: 0, unread: 0, head: 1 });
-    api.list.mockResolvedValue({ items: [], total: 0, head: 1, dayCard: null, now: '' });
+    const old = new Date(Date.now() - 5 * 86400_000).toISOString();
+    api.list.mockImplementation(async (p?: { tab?: string }) => ({
+      items:
+        p?.tab === 'updates'
+          ? [
+              row({ id: 'u1', needs: false, kind: 'page_published' }),
+              row({ id: 'u2', needs: false, kind: 'comment' }),
+              row({ id: 'u3', needs: false, kind: 'comment', updatedAt: old, createdAt: old }),
+            ]
+          : [],
+      total: 0,
+      head: 1,
+      dayCard: null,
+      now: '',
+    }));
     open('needs');
     expect(await screen.findByText('Nothing needs you')).toBeTruthy();
-    expect(screen.getByText('23 updates from today are in the other tab.')).toBeTruthy();
+    expect(await screen.findByText('2 updates from today are in the other tab.')).toBeTruthy();
+    expect(screen.queryByText(/23 updates/)).toBeNull();
   });
 
   it('shows the day card first on the Updates tab', async () => {
@@ -265,6 +282,58 @@ describe('NotificationRow grouping', () => {
     expect(screen.queryByRole('button', { name: /Show all/ })).toBeNull();
   });
 
+  it('on the page, Open the list lists the items instead of leaving; in the panel it asks to open the page', () => {
+    const big = Array.from({ length: 23 }, (_, i) => ({ ...items[i % 8], eventId: 100 + i }));
+    const g = row({ needs: false, kind: 'ai_finished', title: '20+ AI finished work', count: 23, items: big });
+    const onAction = vi.fn();
+    const { unmount } = render(<NotificationRow row={g} onAction={onAction} />);
+    act(() => screen.getByRole('button', { name: 'Open the list' }).click());
+    expect(onAction).toHaveBeenCalledWith(expect.objectContaining({ id: g.id }), 'open_list', undefined);
+    unmount();
+    render(<NotificationRow row={g} onAction={onAction} onPage />);
+    act(() => screen.getByRole('button', { name: 'Open the list' }).click());
+    expect(screen.getAllByRole('button', { name: 'Open' })).toHaveLength(23);
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts expanded when the page was opened for this row', () => {
+    const g = row({ needs: false, kind: 'ai_finished', title: '9 AI finished work', count: 9, items });
+    render(<NotificationRow row={g} onAction={() => undefined} onPage focused />);
+    expect(screen.getAllByRole('button', { name: 'Open' })).toHaveLength(8);
+  });
+
+  it('keeps the chips of a gone row as plain text and finds no action to open', () => {
+    const g = row({
+      gone: true,
+      goneReason: 'KAN-215 was deleted.',
+      data: { pageTitle: 'Export spec' },
+      actions: [{ id: 'dismiss', label: 'Dismiss' }],
+    });
+    render(<NotificationRow row={g} onAction={() => undefined} />);
+    expect(screen.getByText('KAN-215')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /KAN-215/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Export spec/ })).toBeNull();
+    expect(openActionOf(g)).toBeNull();
+    expect(openActionOf({ ...g, gone: false })).toBe('open_ticket');
+  });
+
+  it('mutes the project from its chip and the kind from the overflow', () => {
+    const onAction = vi.fn();
+    render(
+      <NotificationRow
+        row={row({})}
+        onAction={onAction}
+        projects={new Map([['p1', { id: 'p1', name: 'Mobile App', color: '#fff' } as never]])}
+      />,
+    );
+    act(() => screen.getByRole('button', { name: /Mobile App/ }).click());
+    act(() => screen.getByRole('menuitem', { name: 'Mute Mobile App' }).click());
+    expect(onAction).toHaveBeenCalledWith(expect.anything(), 'mute_project', { label: 'Mobile App' });
+    act(() => screen.getByRole('button', { name: 'More' }).click());
+    act(() => screen.getByRole('menuitem', { name: 'Turn this kind off' }).click());
+    expect(onAction).toHaveBeenCalledWith(expect.anything(), 'mute_kind', undefined);
+  });
+
   it('tells a snoozed row and offers Bring back now', () => {
     const until = new Date(Date.now() + 2 * 3600_000).toISOString();
     render(<NotificationRow row={row({ snoozed: true, snoozedUntil: until })} onAction={() => undefined} />);
@@ -276,7 +345,14 @@ describe('NotificationRow grouping', () => {
 describe('useNotificationToasts', () => {
   const run = (head?: number) =>
     renderHook(() => useNotificationToasts(vi.fn(), head), { wrapper: ({ children }) => wrap(children) });
-  const feed = (items: Row[], resolved: string[] = [], head = 10) => ({ head, cursorTooOld: false, items, resolved });
+  // `dnd: true` is the server's default setting (follow the system Do not disturb); it never silences a toast
+  const feed = (items: Row[], resolved: string[] = [], head = 10) => ({
+    head,
+    cursorTooOld: false,
+    items,
+    resolved,
+    dnd: true,
+  });
 
   beforeEach(() => {
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
@@ -315,6 +391,58 @@ describe('useNotificationToasts', () => {
     await waitFor(() => expect(toastApi.removeToast).toHaveBeenCalledWith('toast-1'));
   });
 
+  const primed = async () => {
+    api.feed.mockResolvedValueOnce({ head: 5, cursorTooOld: false, items: [], resolved: [] });
+    const hook = renderHook(({ h }) => useNotificationToasts(vi.fn(), h), {
+      wrapper: ({ children }) => wrap(children),
+      initialProps: { h: 5 as number | undefined },
+    });
+    await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(1));
+    return hook;
+  };
+
+  it('shows no toast in quiet hours, though the row is loud', async () => {
+    const { rerender } = await primed();
+    api.feed.mockResolvedValueOnce({ ...feed([row({ id: 'q1' })]), quiet: true });
+    rerender({ h: 10 });
+    await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(2));
+    expect(toastApi.showToast).not.toHaveBeenCalled();
+  });
+
+  it('toasts a question again when it is asked again, and after its toast closed', async () => {
+    const { rerender } = await primed();
+    api.feed.mockResolvedValueOnce(feed([row({ id: 'q1', lastEventId: 3 })]));
+    rerender({ h: 10 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(1));
+    // the same event again: nothing new
+    api.feed.mockResolvedValueOnce(feed([row({ id: 'q1', lastEventId: 3 })], [], 11));
+    rerender({ h: 11 });
+    await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(3));
+    expect(toastApi.showToast).toHaveBeenCalledTimes(1);
+    // a reminder moved the row on: the old toast goes, a new one comes
+    api.feed.mockResolvedValueOnce(feed([row({ id: 'q1', lastEventId: 9 })], [], 12));
+    rerender({ h: 12 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(2));
+    expect(toastApi.removeToast).toHaveBeenCalledWith('toast-1');
+    // its toast closed; a later event toasts once more
+    (toastApi.showToast.mock.calls[1][0] as { onClose: () => void }).onClose();
+    api.feed.mockResolvedValueOnce(feed([row({ id: 'q1', lastEventId: 9 })], [], 13));
+    rerender({ h: 13 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(3));
+  });
+
+  it('shows the ticket and the question as the detail line, and one action', async () => {
+    const { rerender } = await primed();
+    api.feed.mockResolvedValueOnce(feed([row({ id: 'q1' })]));
+    rerender({ h: 10 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(1));
+    const t = toastApi.showToast.mock.calls[0][0] as Record<string, unknown>;
+    expect(t.message).toBe('KAN-215 · Should the export include archived tickets?');
+    expect(t.action).toMatchObject({ label: 'Answer' });
+    expect(t.secondaryAction).toBeUndefined();
+    expect(toastDetail(row({ body: 'KAN-215 failed', ticketId: 'KAN-215' }))).toBe('KAN-215 failed');
+  });
+
   it('does not toast a loud row that is already done, quiet, or when the window is hidden', async () => {
     api.feed.mockResolvedValueOnce({ head: 5, cursorTooOld: false, items: [], resolved: [] });
     const { rerender } = renderHook(({ h }) => useNotificationToasts(vi.fn(), h), {
@@ -330,5 +458,42 @@ describe('useNotificationToasts', () => {
     rerender({ h: 12 });
     await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(3));
     expect(toastApi.showToast).not.toHaveBeenCalled();
+  });
+});
+
+describe('AllNotificationsPage', () => {
+  const lastParams = () => api.list.mock.calls[api.list.mock.calls.length - 1]?.[0] as Record<string, unknown>;
+  it('does not cut Needs you and Snoozed by the days select', async () => {
+    api.counts.mockResolvedValue({ needs: 1, updatesUnread: 0, updates: 0, snoozed: 1, unread: 1, head: 1 });
+    api.list.mockResolvedValue({ items: [], total: 0, head: 1, dayCard: null, now: '' });
+    render(wrap(<AllNotificationsPage onBack={() => undefined} onOpenSettings={() => undefined} onAction={vi.fn()} />));
+    await waitFor(() => expect(api.list).toHaveBeenCalled());
+    expect(lastParams()).toMatchObject({ filter: 'all', days: 7 });
+    act(() => screen.getByRole('button', { name: /Needs you/ }).click());
+    await waitFor(() => expect(lastParams()).toMatchObject({ filter: 'needs' }));
+    expect(lastParams().days).toBeUndefined();
+    act(() => screen.getByRole('button', { name: /Snoozed/ }).click());
+    await waitFor(() => expect(lastParams()).toMatchObject({ filter: 'snoozed' }));
+    expect(lastParams().days).toBeUndefined();
+    act(() => screen.getByRole('button', { name: /Unread/ }).click());
+    await waitFor(() => expect(lastParams()).toMatchObject({ filter: 'unread', days: 7 }));
+  });
+
+  it('groups by the last activity and never repeats a day header', async () => {
+    api.counts.mockResolvedValue({ needs: 0, updatesUnread: 0, updates: 3, snoozed: 0, unread: 0, head: 1 });
+    const old = new Date(Date.now() - 3 * 86400_000).toISOString();
+    api.list.mockResolvedValue({
+      items: [
+        row({ id: 'a', needs: false, title: 'A', createdAt: old }),
+        row({ id: 'b', needs: false, title: 'B', createdAt: old }),
+      ],
+      total: 2,
+      head: 1,
+      dayCard: null,
+      now: '',
+    });
+    render(wrap(<AllNotificationsPage onBack={() => undefined} onOpenSettings={() => undefined} onAction={vi.fn()} />));
+    await screen.findByText('A');
+    expect(screen.getAllByText('Today')).toHaveLength(1);
   });
 });

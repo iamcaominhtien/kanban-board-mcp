@@ -165,6 +165,13 @@
 .chipProject {
   background: #f1f3f1;
   color: #5b6b60;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.chipProject:hover {
+  background: #e6ebe7;
 }
 
 .chipDone {

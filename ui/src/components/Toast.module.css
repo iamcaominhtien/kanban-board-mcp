@@ -80,7 +80,9 @@
   font-weight: 700;
   color: #1e2a22;
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .message {

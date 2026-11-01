@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, type Ref } from 'react';
+import { useEffect, useState, type MouseEvent, type Ref } from 'react';
 import type { Project } from '../../types';
 import type { NotificationRow as Row } from '../../types/notifications';
 import {
@@ -19,7 +19,7 @@ import styles from './NotificationRow.module.css';
 export type RowActionHandler = (
   row: Row,
   actionId: string,
-  extra?: { text?: string; until?: string | null; ticketId?: string | null },
+  extra?: { text?: string; until?: string | null; ticketId?: string | null; label?: string },
 ) => void | Promise<void>;
 
 const ACTION_ICONS: Record<string, IconName> = {
@@ -46,6 +46,14 @@ function Avatar({ name, small }: { name: string; small?: boolean }) {
 }
 
 function TicketChip({ id, onClick }: { id: string; onClick?: () => void }) {
+  // without a click handler (a gone row, a line inside a group) it is only a label
+  if (!onClick)
+    return (
+      <span className={styles.chipTicket}>
+        <span className={styles.dotSmall} />
+        {id}
+      </span>
+    );
   return (
     <button type="button" className={styles.chipTicket} onClick={onClick} title={`Open ${id}`}>
       <span className={styles.dotSmall} />
@@ -66,6 +74,8 @@ export function NotificationRow({
   selected,
   rowRef,
   now,
+  onPage,
+  focused,
 }: {
   row: Row;
   projects?: Map<string, Project>;
@@ -73,13 +83,26 @@ export function NotificationRow({
   selected?: boolean;
   rowRef?: Ref<HTMLDivElement>;
   now?: number;
+  /** On the All notifications page "Open the list" lists the items here instead of leaving for the page. */
+  onPage?: boolean;
+  /** The page was opened for this row (from the panel's "Open the list"): start expanded and scroll to it. */
+  focused?: boolean;
 }) {
   const [answering, setAnswering] = useState(false);
   const [answer, setAnswer] = useState('');
   const [busy, setBusy] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [shown, setShown] = useState(STEP);
+  const [expanded, setExpanded] = useState(!!focused);
+  const [shown, setShown] = useState(focused ? row.items.length || STEP : STEP);
+  const [projMenu, setProjMenu] = useState(false);
+  const [moreMenu, setMoreMenu] = useState(false);
+  useEffect(() => {
+    if (!focused) return;
+    setExpanded(true);
+    setShown(row.items.length || STEP);
+    document.querySelector(`[data-row-id="${row.id}"]`)?.scrollIntoView?.({ block: 'start' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused, row.id]);
 
   const v = visualOf(row.kind);
   const project = row.projectId ? projects?.get(row.projectId) : undefined;
@@ -115,6 +138,12 @@ export function NotificationRow({
     : row.snoozed && row.snoozedUntil
       ? snoozeText(row.snoozedUntil, now)
       : row.body;
+
+  const toggleList = () => {
+    if (!expanded && huge) setShown(row.items.length || STEP);
+    setExpanded((e) => !e);
+  };
+  const actionsShown = row.gone ? row.actions.filter((a) => a.id === 'dismiss') : row.actions;
 
   const visible = row.items.slice(0, expanded ? shown : 0);
   const rest = row.items.length - shown;
@@ -160,17 +189,49 @@ export function NotificationRow({
           {row.kind === 'account_signed_out' && Number(row.data?.members) > 0 && (
             <span className={`${styles.chip} ${styles.chipAi}`}>{`${Number(row.data?.members)} members`}</span>
           )}
-          {row.ticketId && !grouped && <TicketChip id={row.ticketId} onClick={() => void fire('open_ticket')} />}
-          {pageTitle && (
-            <button type="button" className={styles.chipPage} onClick={() => void fire('open')}>
-              <Icon name="doc" size={11} />
-              {pageTitle}
-            </button>
+          {row.ticketId && !grouped && (
+            <TicketChip id={row.ticketId} onClick={row.gone ? undefined : () => void fire('open_ticket')} />
           )}
+          {pageTitle &&
+            (row.gone ? (
+              <span className={styles.chipPage}>
+                <Icon name="doc" size={11} />
+                {pageTitle}
+              </span>
+            ) : (
+              <button type="button" className={styles.chipPage} onClick={() => void fire('open')}>
+                <Icon name="doc" size={11} />
+                {pageTitle}
+              </button>
+            ))}
           {project && (
-            <span className={`${styles.chip} ${styles.chipProject}`}>
-              <span className={styles.projectDot} style={{ background: project.color }} />
-              {project.name}
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <button
+                type="button"
+                className={`${styles.chip} ${styles.chipProject}`}
+                aria-haspopup="menu"
+                aria-expanded={projMenu}
+                title={`${project.name} — mute`}
+                onClick={() => setProjMenu((m) => !m)}
+              >
+                <span className={styles.projectDot} style={{ background: project.color }} />
+                {project.name}
+              </button>
+              {projMenu && (
+                <div className={styles.menu} role="menu" style={{ top: 24 }}>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.menuItem}
+                    onClick={() => {
+                      setProjMenu(false);
+                      void fire('mute_project', { label: project.name });
+                    }}
+                  >
+                    Mute {project.name}
+                  </button>
+                </div>
+              )}
             </span>
           )}
         </div>
@@ -251,6 +312,11 @@ export function NotificationRow({
                 )}
               </div>
             ))}
+            {row.count > row.items.length && (
+              <div className={styles.itemMore}>
+                Showing the last {row.items.length} of {row.count}.
+              </div>
+            )}
             {rest > 0 && (
               <div className={styles.itemMore}>
                 <button type="button" className={styles.linkBtn} onClick={() => setShown((n) => n + STEP)}>
@@ -270,16 +336,20 @@ export function NotificationRow({
             <>
               {grouped &&
                 (huge ? (
-                  <button type="button" className={styles.btn} onClick={() => void fire('open_list')}>
-                    Open the list
+                  <button
+                    type="button"
+                    className={styles.btn}
+                    onClick={() => (onPage ? toggleList() : void fire('open_list'))}
+                  >
+                    {onPage && expanded ? 'Hide the list' : 'Open the list'}
                   </button>
                 ) : (
-                  <button type="button" className={styles.btn} onClick={() => setExpanded((e) => !e)}>
+                  <button type="button" className={styles.btn} onClick={toggleList}>
                     <Icon name="down" size={12} />
                     {expanded ? 'Hide' : `Show all ${row.count}`}
                   </button>
                 ))}
-              {row.actions
+              {actionsShown
                 .filter((a) => a.id !== 'expand' && !(a.id === 'open' && !row.needs))
                 .map((a, i) => {
                   const icon = ACTION_ICONS[a.id];
@@ -343,6 +413,36 @@ export function NotificationRow({
                     </button>
                   )}
                 </>
+              )}
+              {!row.gone && (
+                <span style={{ position: 'relative', display: 'inline-flex' }} className={styles.hoverOnly}>
+                  <button
+                    type="button"
+                    className={styles.btn}
+                    aria-haspopup="menu"
+                    aria-expanded={moreMenu}
+                    aria-label="More"
+                    title="More"
+                    onClick={() => setMoreMenu((m) => !m)}
+                  >
+                    <Icon name="more" />
+                  </button>
+                  {moreMenu && (
+                    <div className={styles.menu} role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={styles.menuItem}
+                        onClick={() => {
+                          setMoreMenu(false);
+                          void fire('mute_kind');
+                        }}
+                      >
+                        Turn this kind off
+                      </button>
+                    </div>
+                  )}
+                </span>
               )}
             </>
           )}
