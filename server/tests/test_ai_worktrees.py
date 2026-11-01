@@ -542,3 +542,29 @@ async def test_two_runs_of_one_member_each_have_their_own_plugin_folder(
 
 async def _gone(folders, run_id):
     return not any(Path(f).exists() for f in folders if run_id in f)
+
+
+def test_the_board_commits_as_itself_only_where_git_has_no_identity(
+    tmp_path, monkeypatch
+):
+    import subprocess
+
+    from services.ai import worktrees
+
+    empty = tmp_path / "gitconfig"
+    empty.write_text("")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(empty))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    for k in worktrees._BOARD_IDENTITY:
+        monkeypatch.delenv(k, raising=False)
+    bare, own = tmp_path / "bare", tmp_path / "own"
+    for repo in (bare, own):
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(
+        ["git", "-C", str(own), "config", "user.email", "an@example.com"], check=True
+    )
+    monkeypatch.setattr(worktrees, "_HAS_IDENTITY", {})
+    assert worktrees._identity_env(str(bare))["GIT_COMMITTER_NAME"] == "Kanban Board"
+    assert (
+        worktrees._identity_env(str(own)) == {}
+    )  # a person's own identity always wins

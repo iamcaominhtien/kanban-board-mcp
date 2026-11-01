@@ -1224,12 +1224,15 @@ async def on_run_ended(run_id: str) -> None:
                 wf.review_depth = m.group(1).lower()
                 wf.depth_by = "triage"
                 session.add(wf)
+        changes_asked = (
+            row.role == "reviewer" and verdict and verdict[-1].upper() == "CHANGES"
+        )
+        if row.role == "reviewer":
+            # in the same commit as "done": nobody ever reads a finished review without its outcome
+            row.outcome = "changes" if changes_asked else "pass"
         session.add(row)
         await session.commit()
-        if row.role == "reviewer" and verdict and verdict[-1].upper() == "CHANGES":
-            row.outcome = "changes"
-            session.add(row)
-            await session.commit()
+        if changes_asked:
             changes = text.split("VERDICT:")[-1]
             await send_back(
                 run.ticket_id,
@@ -1239,10 +1242,6 @@ async def on_run_ended(run_id: str) -> None:
                 from_role="reviewer",
             )
             return
-        if row.role == "reviewer":
-            row.outcome = "pass"
-            session.add(row)
-            await session.commit()
     await advance(run.ticket_id)
 
 

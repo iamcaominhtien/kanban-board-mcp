@@ -46,6 +46,35 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+# The board's own commits (a merge, what an AI left uncommitted) when the repository has no identity of its own;
+# a person's configured name and email always win
+_BOARD_IDENTITY = {
+    "GIT_AUTHOR_NAME": "Kanban Board",
+    "GIT_AUTHOR_EMAIL": "kanban-board@localhost",
+    "GIT_COMMITTER_NAME": "Kanban Board",
+    "GIT_COMMITTER_EMAIL": "kanban-board@localhost",
+}
+_HAS_IDENTITY: dict[str, bool] = {}
+
+
+def _identity_env(cwd: str) -> dict[str, str]:
+    if cwd not in _HAS_IDENTITY:
+        try:
+            out = subprocess.run(
+                ["git", "config", "user.email"],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            _HAS_IDENTITY[cwd] = bool(out.stdout.strip())
+        except (OSError, subprocess.TimeoutExpired):
+            _HAS_IDENTITY[cwd] = True
+    if _HAS_IDENTITY[cwd] or any(k in os.environ for k in _BOARD_IDENTITY):
+        return {}
+    return _BOARD_IDENTITY
+
+
 def _git(
     cwd: str, *args: str, timeout: float = 120, check: bool = True
 ) -> subprocess.CompletedProcess:
@@ -55,7 +84,12 @@ def _git(
         capture_output=True,
         text=True,
         timeout=timeout,
-        env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_EDITOR": "true"},
+        env={
+            **os.environ,
+            **_identity_env(cwd),
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_EDITOR": "true",
+        },
     )
     if check and proc.returncode != 0:
         raise WorktreeError(
@@ -515,6 +549,13 @@ async def merge(ticket_id: str, *, by: str) -> dict:
             await git(row.repo, "diff", "--name-only", "--diff-filter=U", check=False)
         ).stdout.split()
         await git(row.repo, "merge", "--abort", check=False)
+        if not files:
+            # not a conflict (a hook, a lock, git itself): say what git said instead of naming no files
+            return {
+                "merged": False,
+                "refused": "git could not merge: "
+                + (out.stderr or out.stdout).strip()[:300],
+            }
         async with database.async_session() as session:
             row = await session.get(AiWorktree, ticket_id)
             row.state = "conflict"

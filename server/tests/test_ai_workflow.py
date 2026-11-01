@@ -212,13 +212,23 @@ async def test_the_design_waits_for_the_person_who_approves_it(env, monkeypatch)
     await _team(c, pid, env["repo"])
     tid = await _ticket(c, pid)
     await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "feature_ui"})
+    # the step is made current, then set waiting, then its Needs you row is posted: wait for all three
     view = await _until(
-        c, tid, lambda v: _current(v) and _current(v)["key"] == "approve_design"
+        c,
+        tid,
+        lambda v: (
+            _current(v)
+            and _current(v)["key"] == "approve_design"
+            and _current(v)["state"] == "waiting"
+        ),
     )
-    assert _current(view)["state"] == "waiting"
-    panel = (
-        await c.get("/notifications", params={"view": "panel", "tab": "needs"})
-    ).json()
+    for _ in range(100):
+        panel = (
+            await c.get("/notifications", params={"view": "panel", "tab": "needs"})
+        ).json()
+        if any(i["kind"] == "workflow_step" for i in panel["items"]):
+            break
+        await asyncio.sleep(0.05)
     row = next(i for i in panel["items"] if i["kind"] == "workflow_step")
     assert [a["id"] for a in row["actions"]][:2] == [
         "workflow:approve",
