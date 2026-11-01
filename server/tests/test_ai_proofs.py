@@ -184,3 +184,77 @@ async def test_reporting_when_every_result_has_a_proof_just_asks_to_finish(env, 
     )
     out = await _as(ctx, ai_run, action="report", summary="Done")
     assert out["next"] == "End with a short final message."
+
+
+def test_on_a_docs_page_only_pictures_are_copied_and_what_the_page_held_may_stay(
+    folder,
+):
+    md = proofs.localize(
+        "![TC-1](qa/evidence/TC-1.png) [log](run.log) ![old](images/flow.png)",
+        str(folder),
+        pictures_only=True,
+        keep={"images/flow.png"},
+    )
+    assert "qa/evidence" not in md
+    assert "](/uploads/" in md
+    assert "[log](run.log)" in md
+    assert "![old](images/flow.png)" in md
+    with pytest.raises(proofs.ProofError, match="no such file"):
+        proofs.localize("![new](images/new.png)", str(folder), pictures_only=True)
+
+
+async def test_an_ai_docs_page_shows_its_screenshots_from_the_working_folder(
+    env, folder
+):
+    from kanban_mcp.tools.docs import docs_write
+
+    c = env["c"]
+    ctx, pid, _, member, _ = await _ctx(env)
+    await c.patch(f"/ai/members/{member['id']}", json={"working_dir": str(folder)})
+    page = (
+        await c.post(
+            f"/projects/{pid}/docs/pages",
+            json={"title": "Demo", "markdown": "![old](images/flow.png)"},
+        )
+    ).json()
+    await c.post(f"/docs/pages/{page['id']}/publish", json={"base_version": 0})
+    version = (await c.get(f"/docs/pages/{page['id']}")).json()["version"]
+
+    out = await _as(
+        ctx,
+        docs_write,
+        action="update",
+        page_id=page["id"],
+        base_version=version,
+        markdown="![old](images/flow.png)\n\n![TC-1](qa/evidence/TC-1.png)",
+    )
+    md = (await c.get(f"/docs/pages/{page['id']}")).json()["markdown"]
+    assert out["version"] == version + 1
+    assert "qa/evidence" not in md
+    assert "](/uploads/" in md
+    assert "![old](images/flow.png)" in md  # held before this edit, kept as written
+
+    with pytest.raises(ValueError, match="Take the screenshot first"):
+        await _as(
+            ctx,
+            docs_write,
+            action="update",
+            page_id=page["id"],
+            base_version=out["version"],
+            markdown=md + "\n\n![TC-9](qa/evidence/TC-9.png)",
+        )
+
+
+async def test_a_page_a_person_writes_over_mcp_keeps_its_paths_as_written(env):
+    from kanban_mcp.tools.docs import docs_write
+
+    c = env["c"]
+    ctx, pid, _, _, _ = await _ctx(env)
+    out = await docs_write(
+        action="create",
+        project_id=pid,
+        title="Notes",
+        markdown="![x](qa/evidence/TC-1.png)",
+    )
+    md = (await c.get(f"/docs/pages/{out['id']}")).json()["markdown"]
+    assert md == "![x](qa/evidence/TC-1.png)"

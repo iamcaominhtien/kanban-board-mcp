@@ -124,24 +124,42 @@ def _is_local(target: str) -> bool:
     )
 
 
-def localize(markdown: str | None, folder: str | None) -> str | None:
+def targets(markdown: str | None) -> set[str]:
+    """Every link and picture target the Markdown names."""
+    return {m.group(2) for m in _REF.finditer(markdown or "")}
+
+
+def localize(
+    markdown: str | None,
+    folder: str | None,
+    *,
+    pictures_only: bool = False,
+    keep: set[str] | frozenset[str] = frozenset(),
+) -> str | None:
     """Markdown with each picture or file named by a local path replaced by its copy in the uploads folder.
 
     Fenced code is left alone. Without a folder (a person, not an AI run) a local path is refused: the person attaches
-    the file in the editor instead."""
+    the file in the editor instead. `pictures_only` copies pictures and leaves links as written (on a Docs page a link
+    may name another page). A target in `keep` that cannot be copied stays as written instead of being refused (what
+    a page already held before this edit, such as an imported page's `images/…`)."""
     if not markdown or "](" not in markdown:
         return markdown
 
     def swap(match: re.Match) -> str:
         head, target, tail = match.groups()
-        if not _is_local(target):
+        if not _is_local(target) or (pictures_only and not head.startswith("!")):
             return match.group(0)
         if not folder:
             raise ProofError(
                 f"{target}: a file is attached by path only from inside an AI run; "
                 "upload it in the editor instead."
             )
-        return f"{head}{ingest_file(target, folder)}{tail}"
+        try:
+            return f"{head}{ingest_file(target, folder)}{tail}"
+        except ProofError:
+            if target in keep:
+                return match.group(0)
+            raise
 
     parts = _FENCE.split(markdown)
     return "".join(p if i % 2 else _REF.sub(swap, p) for i, p in enumerate(parts))
