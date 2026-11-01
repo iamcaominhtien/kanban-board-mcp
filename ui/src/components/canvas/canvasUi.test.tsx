@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { Canvas, CanvasBoard, CanvasDoc, CanvasProposal } from '../../api/canvases';
 import { ToastProvider } from '../Toast';
-import { BoardFrame, FRAME_SANDBOX } from './BoardFrame';
+import { BoardFrame } from './BoardFrame';
 import { CanvasContext, type CanvasApi } from './CanvasContext';
 import { CanvasEmbed } from './CanvasEmbed';
 import { CanvasEditor } from './CanvasEditor';
@@ -30,8 +30,6 @@ const board = (id: string, name: string, x: number, extra: Partial<CanvasBoard> 
     entry: 'index.html',
     files: [{ path: 'index.html', bytes: 90 }],
     bytes: 90,
-    blocked: [],
-    blockedTotal: 0,
     skipped: [],
     title: name,
   },
@@ -380,7 +378,7 @@ test('the source editor says who is editing when the lock is taken, and does not
   expect(screen.queryByTestId('canvas-source-text')).toBeNull();
 });
 
-test('the source editor takes the lock, previews in a locked frame and saves with the revision it started from', async () => {
+test('the source editor takes the lock, previews the page as written and saves with the revision it started from', async () => {
   handlers['POST /canvases/cv_12345678/boards/b_aaaaaaaa/lock'] = () => reply({ holder: 'user' });
   handlers['GET /canvases/cv_12345678/boards/b_aaaaaaaa/source'] = () =>
     reply({
@@ -407,13 +405,12 @@ test('the source editor takes the lock, previews in a locked frame and saves wit
   const text = (await screen.findByTestId('canvas-source-text')) as HTMLTextAreaElement;
   await waitFor(() => expect(text.value).toContain('<h1>Sign in</h1>'));
   expect(screen.getByTestId('canvas-locked-for-you')).toBeTruthy();
-  // the preview is the Preview's locked frame: no scripts (empty sandbox), a policy that blocks every outside request
+  // the preview is an open page: nothing is removed from it and the frame has no sandbox
   const frame = screen.getByTestId('canvas-source-preview') as HTMLIFrameElement;
-  expect(frame.getAttribute('sandbox')).toBe('');
+  expect(frame.hasAttribute('sandbox')).toBe(false);
   const doc = frame.getAttribute('srcdoc') ?? '';
-  expect(doc).not.toMatch(/<script/i);
-  expect(doc).toContain("default-src 'none'");
-  expect(doc).not.toContain('t.example');
+  expect(doc).toContain('<h1>Sign in</h1>');
+  expect(doc).not.toContain('Content-Security-Policy');
   fireEvent.change(text, { target: { value: '<h1>Sign in again</h1>' } });
   fireEvent.click(screen.getByTestId('canvas-source-save'));
   await waitFor(() => expect(saved).toHaveBeenCalled());
@@ -425,9 +422,9 @@ test('the source editor takes the lock, previews in a locked frame and saves wit
   });
 });
 
-// ---- boards never run a script or reach outside ----
+// ---- boards are open web pages ----
 
-test('a board is drawn in a frame with an empty sandbox, served by the API, never from a data address', async () => {
+test('a board is drawn in an open frame (no sandbox), served by the API, never from a data address', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(() => Promise.resolve({ ok: true } as Response)),
@@ -438,11 +435,26 @@ test('a board is drawn in a frame with an empty sandbox, served by the API, neve
     expect(f).toBeTruthy();
     return f as HTMLIFrameElement;
   });
-  expect(FRAME_SANDBOX).toBe(''); // no allow-scripts, allow-same-origin, allow-forms, allow-popups, allow-top-navigation
-  expect(frame.getAttribute('sandbox')).toBe('');
-  expect(frame.getAttribute('referrerpolicy')).toBe('no-referrer');
+  expect(frame.hasAttribute('sandbox')).toBe(false); // scripts, pop-ups, forms, same-origin and storage all work
+  expect(frame.style.pointerEvents).toBe('none'); // a picture the plane can move until "Try it"
   expect(frame.getAttribute('src')).toMatch(/\/canvases\/cv_12345678\/boards\/b_aaaaaaaa\/r\/2\/index\.html$/);
   expect(frame.getAttribute('srcdoc')).toBeNull();
+  vi.unstubAllGlobals();
+});
+
+test('"Try it" lets a board take clicks and keys', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => Promise.resolve({ ok: true } as Response)),
+  );
+  const { container } = render(<BoardFrame canvasId="cv_12345678" board={DOC.boards[0]} scale={1} live interactive />);
+  const frame = await waitFor(() => {
+    const f = container.querySelector('iframe');
+    expect(f).toBeTruthy();
+    return f as HTMLIFrameElement;
+  });
+  expect(frame.style.pointerEvents).toBe('auto');
+  expect(frame.hasAttribute('sandbox')).toBe(false);
   vi.unstubAllGlobals();
 });
 
@@ -476,7 +488,6 @@ const PROPOSAL = (over: Partial<CanvasProposal['changes'][number]> = {}): Canvas
       entry: 'index.html',
       files: [{ path: 'index.html', bytes: 10 }],
       lines: 4,
-      blocked: [],
       waitingFor: null,
       exists: true,
       before: [{ path: 'index.html', text: '<p>a</p>' }],
@@ -492,7 +503,6 @@ const PROPOSAL = (over: Partial<CanvasProposal['changes'][number]> = {}): Canvas
       entry: 'index.html',
       files: [{ path: 'index.html', bytes: 10 }],
       lines: 3,
-      blocked: [],
       waitingFor: null,
       exists: true,
       before: [{ path: 'index.html', text: '<p>a</p>' }],
@@ -513,10 +523,10 @@ test('a proposal shows before and after and is accepted for all boards in one ca
   expect(card.textContent).toContain('Designer AI proposes a change to 2 boards');
   expect(card.textContent).toContain('Version 4 · nothing is saved yet');
   expect(screen.getAllByTestId('canvas-change')).toHaveLength(2);
-  // before and after are locked frames too
+  // before and after are open frames too
   const frames = card.querySelectorAll('iframe');
   expect(frames.length).toBe(4);
-  frames.forEach((f) => expect(f.getAttribute('sandbox')).toBe(''));
+  frames.forEach((f) => expect(f.hasAttribute('sandbox')).toBe(false));
   fireEvent.click(screen.getByTestId('canvas-proposal-accept-all'));
   await waitFor(() => expect(accepted).toHaveBeenCalled());
   expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/decide'))?.body).toMatchObject({ accept: 'all' });

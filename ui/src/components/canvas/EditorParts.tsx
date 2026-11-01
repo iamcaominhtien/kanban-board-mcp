@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BlockedItem, CanvasBoard } from '../../api/canvases';
+import type { CanvasBoard } from '../../api/canvases';
 import { CanvasIcon } from './CanvasIcon';
 import { boardThumbUrl } from './BoardFrame';
 import styles from './Canvas.module.css';
@@ -11,23 +11,6 @@ export const SIZE_PRESETS = [
   { id: 'tablet', label: 'Tablet', w: 820, h: 1180 },
   { id: 'phone', label: 'Phone', w: 390, h: 844 },
 ] as const;
-
-/** One line for the chip on a board: "3 blocked". */
-export function blockedTotal(list: BlockedItem[] | undefined): number {
-  return (list ?? []).reduce((n, b) => n + b.count, 0);
-}
-
-/**
- * What was left out of a board, as the chip's list: "1 script", "2 requests to cdn.example.com".
- * @param item - One entry of the board's blocked list.
- */
-export function blockedLine(item: BlockedItem): string {
-  const n = item.count;
-  if (item.kind === 'script') return `${n} script${n === 1 ? '' : 's'}`;
-  if (item.kind === 'handler') return `${n} event handler${n === 1 ? '' : 's'}`;
-  if (item.kind === 'active') return `${n} frame${n === 1 ? '' : 's'} or embed${n === 1 ? '' : 's'}`;
-  return `${n} request${n === 1 ? '' : 's'} to ${item.host ?? 'an outside address'}`;
-}
 
 interface MenuProps {
   board: CanvasBoard;

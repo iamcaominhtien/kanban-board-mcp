@@ -37,7 +37,7 @@ const draftKey = (c: string, b: string) => `kanban-canvas-source:${c}:${b}`;
 const TEXT = /\.(html?|css|txt|md|json)$/i;
 
 /**
- * Edit a board's source with a live, locked preview, the same frame Preview uses. Opening it takes the lock on this
+ * Edit a board's source with a live preview that runs like the file opened in a browser. Opening it takes the lock on this
  * board (nobody else can change its content, everyone can still look, comment and move it); the lock ends on Save,
  * Cancel, closing, or after 10 idle minutes (the person is told first). A draft is kept on this computer.
  * @param props - The canvas, the board and what to do when it ends.
@@ -478,9 +478,9 @@ export function SourceEditor({
             <span
               className={styles.chip}
               style={{ background: '#f1f8f3', color: '#1f5a31' }}
-              title="Scripts, forms, pop-ups and outside requests are off"
+              title="Runs like the file opened in a browser"
             >
-              Safe preview
+              Live preview
             </span>
             <span className={styles.spacer} />
             <span className={styles.hint}>
@@ -492,27 +492,10 @@ export function SourceEditor({
               className={styles.previewFrame}
               style={{ width: PREVIEW[width] }}
               title="Live preview"
-              sandbox=""
-              referrerPolicy="no-referrer"
               srcDoc={preview.srcDoc}
               data-testid="canvas-source-preview"
             />
           </div>
-          {(preview.scripts > 0 || preview.external.images + preview.external.styles + preview.external.other > 0) && (
-            <div className={styles.hint} style={{ padding: '6px 12px', background: '#fff8e1' }}>
-              Left out of the preview and of the saved board:{' '}
-              {[
-                preview.scripts && `${preview.scripts} script${preview.scripts === 1 ? '' : 's'}`,
-                preview.external.images &&
-                  `${preview.external.images} outside image${preview.external.images === 1 ? '' : 's'}`,
-                preview.external.styles &&
-                  `${preview.external.styles} outside style${preview.external.styles === 1 ? '' : 's'}`,
-                preview.external.other && `${preview.external.other} other`,
-              ]
-                .filter(Boolean)
-                .join(', ')}
-            </div>
-          )}
         </div>
       </div>
     </div>,

@@ -17,7 +17,7 @@ conflict behaviour.
 | **Both forms in v1?** | **Both.** An inline canvas is an attachment of its owner; a canvas can also be a Docs page (`docs_page.kind = 'canvas'`, layers icon in the tree, **Docs › New page › Canvas**). **Move to Docs** turns the first into the second without changing the id, so every text that embeds it keeps showing it. |
 | **History of a page that embeds a canvas.** | **Always the latest**, as the design's cheaper option says. A text never freezes a canvas; the canvas has its own history (versions). |
 | **Limits.** | As proposed: **60 frames, 5 MB per frame, 50 MB per canvas, 10 page tabs**, lock released after **10 idle minutes**. The numbers are constants in `services/canvases.py` and `services/canvas_locks.py`; the API returns them (`limits`). |
-| **HTML boards.** | **A folder**: `index.html` (or the page you name) with its CSS, pictures and fonts, shown in the same locked frame the Preview uses. A ZIP of a built page works. |
+| **HTML boards.** | **A folder**: `index.html` (or the page you name) with its CSS, pictures and fonts, shown as an open web page (scripts and CDN links run). A ZIP of a built page works. |
 
 ## What is stored
 
@@ -44,7 +44,7 @@ The tables (migration `b8c9d0e1f2a3`): `canvas` (owner, `rev`, latest `version`)
   "boards": [{ "id": "b_…", "page": "p_…", "name": "Sign in", "kind": "html|image|sketch|diagram|empty",
                "x": 0, "y": 0, "w": 1280, "h": 800, "order": 0, "ref": null, "rev": 5,
                "content": { "rev": 2, "entry": "index.html", "files": [{"path": "index.html", "bytes": 1234}],
-                            "bytes": 1234, "blocked": [{"kind": "request", "count": 2, "host": "cdn.example.com"}] } }],
+                            "bytes": 1234, "skipped": [], "title": "Sign in" } }],
   "notes":  [{ "id": "n_…", "page": "p_…", "x": 0, "y": 0, "w": 160, "h": 100, "text": "", "color": "yellow", "by": "HM", "rev": 5 }],
   "arrows": [{ "id": "a_…", "page": "p_…", "from": "b_…", "to": "n_…", "label": "", "rev": 5 }],
   "labels": [{ "id": "t_…", "page": "p_…", "x": 0, "y": 0, "text": "Step 2", "size": 20, "rev": 5 }]
@@ -120,26 +120,24 @@ page. A version holds a frozen copy of `canvas.json`; frame content is never ove
 so any version can be looked at, compared and restored. **Restoring makes a new version**; nothing is lost. Compare shows
 the two frames side by side with a list of frames that changed, were added or removed, and a source diff.
 
-## HTML frames: no script, no outside request
+## HTML frames: open web pages
 
-Defence in depth, because the files come from a person, an upload, a ZIP or an AI:
+A frame runs like an HTML file opened in a browser tab: scripts, event handlers, forms, pop-ups, CDN libraries (React, Tailwind,
+icon sets), web fonts and outside images all work, so a mockup can be clicked through and a prototype can have logic.
 
-1. **On the way in** (`services/canvas_html.py`): a real HTML parser (not a regular expression) drops `<script>`,
-   `<iframe>`, `<object>`, `<embed>`, `<base>`, `<meta http-equiv>`, event handlers, `javascript:` and outside addresses
-   in `src`, `href`, `srcset`, `style`, `<style>` and CSS files (`@import`, `url(…)`); script files (`.js` …) are not kept.
-   What was left out is counted per board (`blocked`: scripts, handlers, requests by host) and shown as a **"3 blocked"**
-   chip that lists them.
-2. **When served** (`api/canvases.py`): every file comes with
-   `Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; media-src 'self' data:; form-action 'none'; base-uri 'none'; sandbox`,
-   `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. `sandbox` without `allow-scripts` means a
-   frame opened on its own is as locked as one inside the editor.
-3. **In the page**: `<iframe sandbox="">` (no scripts, forms, pop-ups, top navigation or same origin), the same locked frame
-   as Preview. The source editor's live preview uses Preview's `makeSafeHtml` with the board's own files inlined.
+* **Nothing is removed on the way in.** `services/canvas_html.py` only reads a page (outline and title for AI and the
+  thumbnail). Files are stored exactly as given; `.js`, `.mjs`, `.json`, `.wasm`, audio and video files are kept too. Only
+  file types outside the list are skipped (reported as `skipped`).
+* **No policy when served.** `api/canvases.py` sends the files with `X-Content-Type-Options: nosniff` and CORS for fonts, and
+  no `Content-Security-Policy` and no `sandbox`.
+* **No `sandbox` on the iframe**, in the editor, the large view, Present, History, the source editor's live preview, the AI
+  before / after panes and Preview of an HTML file. In the plane a frame is a picture the canvas can move
+  (`pointer-events: none`); in the large view and Present **Try it** (key `I`) lets the page take clicks and keys. While it is on,
+  keys typed in the page stay in the page, so use the buttons (or turn it off) to step and close.
 
-Verified in a real browser (`docs/demo/canvas/frame-check.js`): a hostile page written straight onto the disk, past
-step 1, runs no script, raises no dialog and makes no request to the outside, in the large view and opened on its own.
-`server/tests/test_canvases.py` covers the cleaning and the headers; `ui/src/components/canvas/canvasUi.test.tsx` the
-frame attributes.
+**Trust.** This is a local-first app with no sign-in, so a script in a frame can call the board's own API like any page on its
+origin (read, change or delete tickets). Open a ZIP or HTML file from someone else only if you trust it. Exports (PNG, PDF)
+still draw a static copy without scripts.
 
 ## Limits and their errors
 
@@ -166,9 +164,11 @@ Reuse of the Docs AI machinery (members, permissions, budgets, caps, kill switch
   the proposal **wait** ("AI is waiting for Sign in") and is accepted when the lock ends. Proposals change HTML frames only.
 * **AI comments** under the member's own name, can offer **Propose a fix** (starts the same job on that frame) and never
   resolve a person's thread (`403 ai_cannot_resolve`).
-* **MCP: no new tool.** Four actions of the Docs tools: `docs_read(canvases)`, `docs_read(canvas, canvas_id [, board_id,
+* **MCP: no new tool.** Five actions of the Docs tools: `docs_read(canvases)`, `docs_read(canvas, canvas_id [, board_id,
   path])` (frames, notes, arrows, labels, comments, open proposals, locks; with `board_id` a frame's source or, with `path`, its
-  files written to a folder), `docs_write(canvas_comment, canvas_id, body [, board_id, thread_id])` and
+  files written to a folder), `docs_write(canvas_create, path [, owner_kind, owner_id, title | canvas_id])` (a new canvas, or frames
+  added to one, from a folder: a sub-folder with an `.html` page per frame, optional `frame.json` `{"name", "size"}`; every frame
+  is checked before anything is created), `docs_write(canvas_comment, canvas_id, body [, board_id, thread_id])` and
   `docs_write(canvas_propose, canvas_id, board_id, path [, note])`. `docs_write` needs the member's **Edit docs** permission, an
   ask run only reads, and an AI run may only touch canvases of its own project.
 
@@ -218,13 +218,13 @@ one frame at a time.
 ## Tests
 
 * `server/tests/test_canvases.py`: create, read, files in the uploads folder, HTML folder frames, placement, limits and their
-  errors, the cleaner and the serving headers, ZIP import, the per-item merge and conflict, locks (one per frame, idle
+  errors, files kept as given and the serving headers, ZIP import, the per-item merge and conflict, locks (one per frame, idle
   expiry, content needs the lock, layout does not), versions (Done, named, restore makes a new one, compare, source diff),
   Docs page canvases and auto versions, Move to Docs, comments, permissions (viewers), download / overview / snapshot,
   proposals (nothing changes until accepted, accept one, stale, waiting for a lock, HTML frames only), the model reply parser,
   boards as sections, Linked docs and backlinks.
-* `server/tests/test_canvas_mcp.py`: the four MCP actions, the guard, the project scope.
+* `server/tests/test_canvas_mcp.py`: the MCP actions (including `canvas_create`), the guard, the project scope.
 * `ui/src/components/canvas/*.test.ts(x)`: plane math (zoom, fit, snap, resize, order, arrows), the merge after a save and the
   undo re-stamp, the line diff, the preview inlining, the canvas line and exports, and the UI (embed display and hover
-  actions, editor load and save, lock and conflict cards, offline draft, source editor, the locked frame, proposal accept and
+  actions, editor load and save, lock and conflict cards, offline draft, source editor, the open frame and Try it, proposal accept and
   reject, a view-only person).

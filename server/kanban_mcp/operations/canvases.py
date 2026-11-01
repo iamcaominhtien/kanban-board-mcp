@@ -1,10 +1,12 @@
 """Canvas operations: boards of HTML, pictures, Sketches and Diagrams with notes and comments on one plane.
 
-An agent reads a canvas as data (frames, notes, arrows, comments, open proposals), comments on it, and *proposes* a
-changed frame from a local folder. It never changes a frame itself and never takes a lock from a person: a person sees
-before and after and accepts or rejects (docs/specs/canvas.md).
+An agent reads a canvas as data (frames, notes, arrows, comments, open proposals), comments on it, *creates* a canvas
+(or adds frames to one) from local folders of web pages, and *proposes* a changed frame from a local folder. It never
+changes an existing frame itself and never takes a lock from a person: a person sees before and after and accepts or
+rejects (docs/specs/canvas.md).
 """
 
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -124,7 +126,6 @@ async def read_canvas(
                         "files": [
                             f["path"] for f in (b.get("content") or {}).get("files", [])
                         ],
-                        "blocked": (b.get("content") or {}).get("blocked", []),
                         "locked_by": next(
                             (
                                 lk["holder"]
@@ -225,6 +226,145 @@ async def read_canvas(
             return result
         except svc_canvases.DocsError as exc:
             raise _error(exc) from exc
+
+
+def _read_folder(root: Path) -> dict[str, bytes]:
+    files: dict[str, bytes] = {}
+    total = 0
+    for p in sorted(root.rglob("*")):
+        if p.is_file() and p.name != "frame.json":
+            total += p.stat().st_size
+            if total > svc_canvases.MAX_BOARD_BYTES:
+                raise ValueError(
+                    f"{root.name or root} is over {svc_canvases.MAX_BOARD_BYTES // (1024 * 1024)} MB, the most a frame can hold."
+                )
+            files[p.relative_to(root).as_posix()] = p.read_bytes()
+    return files
+
+
+def _frames_of(root: Path, title: str) -> list[dict]:
+    """The frames in a folder: each sub-folder with an .html page is one (named after it, or by its frame.json); loose pages at the top are one frame."""
+    frames: list[dict] = []
+    subs = [d for d in sorted(root.iterdir()) if d.is_dir()]
+    sub_frames = [d for d in subs if any(d.rglob("*.html")) or any(d.rglob("*.htm"))]
+    loose = any(
+        f.suffix.lower() in (".html", ".htm") for f in root.iterdir() if f.is_file()
+    )
+    for d in [root] if loose and not sub_frames else sub_frames:
+        meta: dict = {}
+        mf = d / "frame.json"
+        if mf.is_file():
+            try:
+                meta = json.loads(mf.read_text(encoding="utf-8"))
+            except ValueError as exc:
+                raise ValueError(f"{mf} is not valid JSON.") from exc
+        size = meta.get("size")
+        if isinstance(size, list) and len(size) == 2:
+            size = (int(size[0]), int(size[1]))
+        elif not isinstance(size, str):
+            size = None
+        frames.append(
+            {
+                "name": str(meta.get("name") or (title if d == root else d.name))[:120],
+                "size": size,
+                "files": _read_folder(d),
+            }
+        )
+    if not frames:
+        raise ValueError(
+            "Found no HTML page: put an index.html in the folder (one frame) or in each sub-folder (one frame each)."
+        )
+    return frames
+
+
+@notify_on_success
+async def create_canvas_from_files(
+    path: Annotated[
+        str,
+        Field(
+            description='Absolute folder of web pages: each sub-folder with an .html page becomes one frame (named after the folder), or pages at the top of the folder become one frame. A sub-folder may hold frame.json {"name": "Today", "size": "phone" | "tablet" | "desktop" | [width, height]}. Files are kept exactly as written: scripts, CDN links and fonts all run.'
+        ),
+    ],
+    owner_kind: Annotated[
+        str | None,
+        Field(
+            description="New canvas: where it belongs, 'ticket', 'doc' (a Docs page) or 'idea'."
+        ),
+    ] = None,
+    owner_id: Annotated[
+        str | None,
+        Field(description="New canvas: ticket id 'IAM-12', Docs page id or idea id."),
+    ] = None,
+    title: Annotated[
+        str | None,
+        Field(description="New canvas: its name (the alt text)."),
+    ] = None,
+    canvas_id: CanvasId | None = None,
+) -> dict:
+    """Create a canvas from folders of web pages, or add frames to an existing one (canvas_id). Returns {id, title, version, markdown, boards: [{id, name, w, h}]}: put `markdown` on its own line in the ticket, idea or Docs page."""
+    root = Path(path)
+    if not root.is_absolute() or not root.is_dir():
+        raise ValueError(f"Give an absolute folder that exists (got {path!r}).")
+    if not canvas_id and not (owner_kind and owner_id):
+        raise ValueError(
+            "Give owner_kind and owner_id for a new canvas, or canvas_id to add frames to one."
+        )
+    frames = _frames_of(root, title or "Frame")
+    if len(frames) > svc_canvases.MAX_BOARDS:
+        raise ValueError(f"A canvas holds up to {svc_canvases.MAX_BOARDS} frames.")
+    async with common.async_session() as session:
+        try:
+            for f in frames:  # check every frame before anything is created
+                svc_canvases.prepare_files(f["files"])
+            if canvas_id:
+                c = await svc_canvases._canvas(session, canvas_id)  # noqa: SLF001
+                await _same_project(c.project_id)
+                if not await _ai_may_read(session, c):
+                    raise ValueError(
+                        "That canvas is a page hidden from AI, so it was left alone."
+                    )
+                out = {"id": c.id, "title": c.title, "version": c.version}
+            else:
+                from services import sketches as svc_sketches
+
+                project = await svc_sketches._project_of(  # noqa: SLF001
+                    session,
+                    svc_canvases._owner_for_project(owner_kind),
+                    owner_id,
+                    None,  # noqa: SLF001
+                )
+                await _same_project(project)
+                out = await svc_canvases.create_canvas(
+                    session,
+                    owner_kind=owner_kind,
+                    owner_id=owner_id,
+                    title=title,
+                    start="none",
+                )
+            boards = []
+            for f in frames:
+                made = await svc_canvases.add_board(
+                    session,
+                    out["id"],
+                    name=f["name"],
+                    kind="html",
+                    files=f["files"],
+                    size=f["size"],
+                )
+                b = made["board"]
+                boards.append(
+                    {"id": b["id"], "name": b["name"], "w": b["w"], "h": b["h"]}
+                )
+            fresh = await svc_canvases._canvas(session, out["id"])  # noqa: SLF001
+        except svc_canvases.DocsError as exc:
+            raise _error(exc) from exc
+    return {
+        "id": fresh.id,
+        "title": fresh.title,
+        "version": fresh.version,
+        "markdown": f"![{fresh.title}](canvas:{fresh.id})",
+        "boards": boards,
+    }
 
 
 @notify_on_success

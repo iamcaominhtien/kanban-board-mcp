@@ -2,6 +2,7 @@
 reads frames, notes and comments, comments under its own name and *proposes* a changed frame as files; nothing is
 changed until a person accepts, and an AI run is checked by the same guard and project scope as the other Docs actions."""
 
+import json
 from dataclasses import replace
 
 import pytest
@@ -94,7 +95,7 @@ async def test_an_agent_comments_and_proposes_but_never_changes_a_frame(env, tmp
     work = tmp_path / "work"
     work.mkdir()
     (work / "index.html").write_text(
-        "<title>Sign in</title><h1>Sign in</h1><button class=big>Go</button><script>alert(1)</script>"
+        "<title>Sign in</title><h1>Sign in</h1><button class=big>Go</button><script>go()</script>"
     )
     out = await docs_write(
         action="canvas_propose",
@@ -114,7 +115,7 @@ async def test_an_agent_comments_and_proposes_but_never_changes_a_frame(env, tmp
     listed = (await c.get(f"/canvases/{cv['id']}/proposals")).json()
     assert (
         listed[0]["note"] == "Bigger button"
-        and "<script" not in listed[0]["changes"][0]["after"][0]["text"].lower()
+        and "<script>go()</script>" in listed[0]["changes"][0]["after"][0]["text"]
     )
     # a person accepts
     assert (
@@ -313,3 +314,88 @@ async def test_ai_cannot_read_a_hidden_canvas_page_or_reply_into_another_canvas(
         guard.leave(tokens)
     # a person's own agent (no AI run) still reads it
     assert (await docs_read(action="canvas", canvas_id=cv["id"]))["id"] == cv["id"]
+
+
+async def test_an_agent_creates_a_canvas_of_frames_and_adds_more(env, tmp_path):
+    c = env["c"]
+    pid, _ = await _project(c)
+    tid = await _ticket(c, pid, "Todo app design")
+    root = tmp_path / "todo"
+    for name, size in (
+        ("Today", "phone"),
+        ("Add task", [390, 700]),
+        ("Tablet", "tablet"),
+    ):
+        d = root / name
+        d.mkdir(parents=True)
+        (d / "index.html").write_text(
+            f"<title>{name}</title><h1>{name}</h1><script>document.title='ran'</script>"
+            '<button onclick="go()">Go</button>'
+        )
+        (d / "frame.json").write_text(
+            json.dumps({"name": f"Todo: {name}", "size": size})
+        )
+    out = await docs_write(
+        action="canvas_create",
+        owner_kind="ticket",
+        owner_id=tid,
+        title="Todo app",
+        path=str(root),
+    )
+    assert out["markdown"] == f"![Todo app](canvas:{out['id']})"
+    names = {b["name"]: (b["w"], b["h"]) for b in out["boards"]}
+    assert names == {
+        "Todo: Add task": (390, 700),
+        "Todo: Today": (390, 844),
+        "Todo: Tablet": (820, 1180),
+    }
+    # the files are kept as written: the script and the handler are still there
+    got = await docs_read(
+        action="canvas", canvas_id=out["id"], board_id=out["boards"][0]["id"]
+    )
+    text = got["board"]["files"][0]["text"]
+    assert "<script>" in text and 'onclick="go()"' in text
+    assert "frame.json" not in {f["path"] for f in got["board"]["files"]}
+    # more frames into the same canvas, from loose pages at the top of a folder
+    extra = tmp_path / "extra"
+    extra.mkdir()
+    (extra / "index.html").write_text("<h1>Done</h1>")
+    more = await docs_write(
+        action="canvas_create", canvas_id=out["id"], title="Done", path=str(extra)
+    )
+    assert more["id"] == out["id"] and [b["name"] for b in more["boards"]] == ["Done"]
+    doc = (await c.get(f"/canvases/{out['id']}")).json()
+    assert len(doc["doc"]["boards"]) == 4
+
+
+async def test_canvas_create_says_what_is_missing_before_it_makes_anything(
+    env, tmp_path
+):
+    c = env["c"]
+    pid, _ = await _project(c)
+    tid = await _ticket(c, pid, "Todo app design")
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    with pytest.raises(ValueError, match="owner_kind and owner_id"):
+        await docs_write(action="canvas_create", path=str(empty))
+    with pytest.raises(ValueError, match="no HTML page"):
+        await docs_write(
+            action="canvas_create", owner_kind="ticket", owner_id=tid, path=str(empty)
+        )
+    with pytest.raises(ValueError, match="absolute folder"):
+        await docs_write(
+            action="canvas_create", owner_kind="ticket", owner_id=tid, path="rel"
+        )
+    # one bad frame stops the whole call: no half-made canvas
+    bad = tmp_path / "bad"
+    (bad / "a").mkdir(parents=True)
+    (bad / "a" / "index.html").write_text("<h1>ok</h1>")
+    (bad / "b").mkdir()
+    (bad / "b" / "index.html").write_text("<h1>x</h1>")
+    (bad / "b" / "frame.json").write_text("{nope")
+    with pytest.raises(ValueError, match="not valid JSON"):
+        await docs_write(
+            action="canvas_create", owner_kind="ticket", owner_id=tid, path=str(bad)
+        )
+    listed = await docs_read(action="canvases", project_id=pid)
+    assert listed == []

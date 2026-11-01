@@ -11,21 +11,12 @@ export type NoteColor = 'yellow' | 'green' | 'blue' | 'pink' | 'purple' | 'grey'
 /** Create a canvas for a ticket, comment, Docs page or idea. */
 /** Make a board of each file (HTML, pictures, ZIP of a built page). */
 /** Docs › New page › Canvas: a Docs page of kind canvas with its canvas. */
-/** What a cleaning left out of a board: `{kind: script|handler|active|request, count, host?}`. */
-export interface BlockedItem {
-  kind: 'script' | 'handler' | 'active' | 'request';
-  count: number;
-  host?: string;
-}
-
 /** The saved content of an HTML or image board (a folder of files, one revision of it). */
 export interface BoardContent {
   rev: number;
   entry: string;
   files: { path: string; bytes: number }[];
   bytes: number;
-  blocked: BlockedItem[];
-  blockedTotal: number;
   skipped: string[];
   title: string;
 }
@@ -202,7 +193,6 @@ export interface ProposalChange {
   entry: string;
   files: { path: string; bytes: number }[];
   lines: number;
-  blocked: BlockedItem[];
   waitingFor: string | null;
   exists: boolean;
   before?: { path: string; text: string }[];

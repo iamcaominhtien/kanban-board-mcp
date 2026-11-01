@@ -3,18 +3,17 @@ import { boardFileUrl, boardPictureUrl, boardSnapshotUrl, type CanvasBoard } fro
 import { CanvasIcon } from './CanvasIcon';
 import styles from './Canvas.module.css';
 
-/** The sandbox of every board frame: no scripts, forms, pop-ups, top navigation or same-origin access. */
-export const FRAME_SANDBOX = '';
-
 interface Props {
   canvasId: string;
   board: CanvasBoard;
   /** How big the frame is drawn: 1 is the board's own size. */
   scale: number;
-  /** Draw the page live in its locked frame; false shows a picture of its last saved state. */
+  /** Draw the page live in its frame; false shows a picture of its last saved state. */
   live: boolean;
   /** Show this older revision of the content (history, compare). */
   rev?: number;
+  /** Let the page take clicks and keys (to try a prototype); false keeps it a picture the plane can move. */
+  interactive?: boolean;
   /** Called when the page could not be drawn. */
   onBroken?: (broken: boolean) => void;
   /** Changes to draw it again. */
@@ -22,18 +21,18 @@ interface Props {
 }
 
 /**
- * The picture of one board: its HTML page in a locked frame, its picture, its Sketch or Diagram, or an empty frame.
- * The page is served by the API with a policy that allows drawing only, and the frame has an empty `sandbox`, so
- * nothing in it can run a script or reach outside the board.
+ * The picture of one board: its HTML page in an open frame (scripts, CDN links and fonts run as in a browser tab),
+ * its picture, its Sketch or Diagram, or an empty frame.
  * @param props.canvasId - The canvas.
  * @param props.board - The board.
  * @param props.scale - Draw size (1 = the board's size).
  * @param props.live - Draw live (zoom from 40%) or show the snapshot.
  * @param props.rev - Show another revision of the content.
+ * @param props.interactive - Let the page take clicks and keys.
  * @param props.onBroken - Told when the page cannot be drawn.
  * @param props.reloadKey - Change to reload.
  */
-export function BoardFrame({ canvasId, board, scale, live, rev, onBroken, reloadKey = 0 }: Props) {
+export function BoardFrame({ canvasId, board, scale, live, rev, interactive = false, onBroken, reloadKey = 0 }: Props) {
   const w = Math.max(1, board.w * scale);
   const h = Math.max(1, board.h * scale);
   const content = board.content;
@@ -129,9 +128,7 @@ export function BoardFrame({ canvasId, board, scale, live, rev, onBroken, reload
             key={`${entryUrl}-${reloadKey}`}
             title={board.name}
             src={entryUrl ?? undefined}
-            sandbox={FRAME_SANDBOX}
-            referrerPolicy="no-referrer"
-            tabIndex={-1}
+            tabIndex={interactive ? 0 : -1}
             data-testid="board-iframe"
             style={{
               width: board.w,
@@ -140,7 +137,7 @@ export function BoardFrame({ canvasId, board, scale, live, rev, onBroken, reload
               background: '#fff',
               transform: `scale(${scale})`,
               transformOrigin: '0 0',
-              pointerEvents: 'none',
+              pointerEvents: interactive ? 'auto' : 'none',
               opacity: state === 'ready' ? 1 : 0,
             }}
           />

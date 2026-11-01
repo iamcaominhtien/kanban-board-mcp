@@ -319,7 +319,6 @@ function ChangeView({
         <span className={`${styles.state} ${ch.status === 'stale' ? styles.stateRemoved : styles.stateChanged}`}>
           {ch.status === 'stale' ? 'Changed since' : 'Changed'}
         </span>
-        {ch.blocked.length > 0 && <span className={styles.hint}>scripts and outside addresses were removed</span>}
         <span className={styles.spacer} />
         <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={onToggleSource}>
           Compare in source
@@ -339,13 +338,7 @@ function ChangeView({
         <div className={styles.baPane}>
           <span className={styles.baLabel}>Before</span>
           {beforeUrl ? (
-            <iframe
-              className={styles.baFrame}
-              title={`${ch.name} before`}
-              src={beforeUrl}
-              sandbox=""
-              referrerPolicy="no-referrer"
-            />
+            <iframe className={styles.baFrame} title={`${ch.name} before`} src={beforeUrl} />
           ) : (
             <div className={styles.baFrame} />
           )}
@@ -357,8 +350,6 @@ function ChangeView({
               className={styles.baFrame}
               title={`${ch.name} after`}
               src={afterUrl}
-              sandbox=""
-              referrerPolicy="no-referrer"
               data-testid="canvas-after-frame"
             />
           ) : (

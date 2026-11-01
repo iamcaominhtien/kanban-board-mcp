@@ -28,7 +28,7 @@ interface Props {
   names?: boolean;
   /** Plain picture without the dotted plane (a board alone). */
   bare?: boolean;
-  /** Draw each page live in its locked frame (a few boards, a card in a text); false uses the pictures. */
+  /** Draw each page live in its frame (a few boards, a card in a text); false uses the pictures. */
   live?: boolean;
 }
 

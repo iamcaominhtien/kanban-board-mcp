@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database import get_session
 from main import app
-from services import canvas_html, canvas_locks
+from services import canvas_locks
 from services import canvases as svc
 from tests.fast_db import fresh_tables
 from tests.test_sketches import png
@@ -59,12 +59,6 @@ async def add_member(c, pid, name, role="member"):
         json={"name": name, "color": "#123456", "role": role},
     )
     assert r.status_code in (200, 201), r.text
-
-
-def svc_csp():
-    from api.canvases import FRAME_CSP
-
-    return FRAME_CSP
 
 
 PAGE = (
@@ -194,10 +188,7 @@ async def test_html_board_is_a_folder_with_its_own_css_and_images(c, pid, tmp_pa
         "..%2f..%2f..%2fcanvas.json",
     ):
         out = await c.get(f"{base}/{way}")
-        assert (
-            "kanban-canvas" not in out.text
-            and out.headers.get("content-security-policy") != svc_csp()
-        )
+        assert "kanban-canvas" not in out.text
 
 
 async def test_new_boards_are_placed_to_the_right_never_on_top(c, pid):
@@ -278,80 +269,48 @@ async def test_page_tab_limit(c, pid, monkeypatch):
     assert r.status_code == 422 and r.json()["detail"]["code"] == "too_many_pages"
 
 
-# --- HTML never runs a script or makes an outside request --------------------------------------------------------------
+# --- a frame is an open web page: its files are kept exactly as given ---------------------------------------------------
 
-HOSTILE = b"""<!doctype html><html><head>
+OPEN_PAGE = b"""<!doctype html><html><head>
 <script src="https://cdn.example.com/a.js"></script>
-<script>alert(1)</script>
 <link rel="stylesheet" href="https://cdn.example.com/site.css">
 <link rel="stylesheet" href="local.css">
-<style>@import url(https://evil.example/x.css); body{background:url(https://evil.example/p.png)} h1{color:red}</style>
-<meta http-equiv="refresh" content="0;url=https://evil.example">
-<base href="https://evil.example/">
-</head><body onload="steal()">
-<h1 onclick="x()">Hello</h1>
-<img src="https://tracker.example/pixel.gif"><img src="ok.png" srcset="https://t.example/a.png 2x, ok.png 1x">
-<a href="https://evil.example/go">go</a> <a href="javascript:alert(1)">js</a>
-<iframe src="https://evil.example"></iframe><object data="x.swf"></object><embed src="x.swf">
-<svg viewBox="0 0 10 10"><script>alert(2)</script><circle r="3"/></svg>
-<div style="background:url('https://evil.example/b.png')">x</div>
-<form action="https://evil.example/post"><button>Go</button></form>
+<style>@import url(https://fonts.example/x.css); h1{color:red}</style>
+</head><body onload="start()">
+<h1 onclick="go()">Hello</h1><img src="https://images.example/p.png">
+<script>document.title = 'ran'</script>
 </body></html>"""
 
 
-def test_the_cleaner_removes_scripts_handlers_frames_and_outside_requests():
-    clean, blocked = canvas_html.clean_html(HOSTILE.decode())
-    low = clean.lower()
-    for bad in (
-        "<script", "alert(", "onload", "onclick", "evil.example", "tracker.example", "cdn.example.com",
-        "<iframe", "<object", "<embed", "<base", "javascript:", "http-equiv", "@import",
-    ):  # fmt: skip
-        assert bad not in low, bad
-    # what is local stays
-    assert 'href="local.css"' in clean
-    assert 'src="ok.png"' in clean
-    assert "Hello</h1>" in clean
-    assert "<circle" in clean
-    listed = {(b["kind"], b.get("host")) for b in blocked.as_list()}
-    assert ("script", None) in listed and ("handler", None) in listed
-    assert any(k == "request" and h == "cdn.example.com" for k, h in listed)
-    assert any(k == "request" and h == "evil.example" for k, h in listed)
-    assert blocked.total() >= 10
-
-
-async def test_hostile_files_are_cleaned_on_the_way_in_and_served_locked(c, pid):
+async def test_files_are_kept_as_given_and_served_without_a_policy(c, pid):
     cv = await make(c, pid, start="none")
+    css = b"@import 'https://fonts.example/a.css'; a{background:url(https://x.example/a.png)}"
     r = await c.post(
         f"/canvases/{cv['id']}/boards",
-        data={"kind": "html", "name": "Evil"},
+        data={"kind": "html", "name": "Open"},
         files=[
-            ("files", ("index.html", HOSTILE, "text/html")),
-            (
-                "files",
-                (
-                    "local.css",
-                    b"@import 'https://evil.example/a.css'; a{background:url(http://x.example/a.png)}",
-                    "text/css",
-                ),
-            ),
-            ("files", ("app.js", b"alert(1)", "text/javascript")),
+            ("files", ("index.html", OPEN_PAGE, "text/html")),
+            ("files", ("local.css", css, "text/css")),
+            ("files", ("app.js", b"console.log(1)", "text/javascript")),
+            ("files", ("tool.exe", b"MZ", "application/octet-stream")),
         ],
     )
     assert r.status_code == 201, r.text
     b = r.json()["board"]
-    assert b["content"]["blocked_total"] > 0 and "app.js" in b["content"]["skipped"]
-    assert "app.js" not in {f["path"] for f in b["content"]["files"]}
+    assert "blocked" not in b["content"] and "blocked_total" not in b["content"]
+    assert b["content"]["skipped"] == ["tool.exe"]
+    assert "app.js" in {f["path"] for f in b["content"]["files"]}
     base = f"/canvases/{cv['id']}/boards/{b['id']}/r/{b['content']['rev']}"
     page = await c.get(f"{base}/index.html")
-    assert "<script" not in page.text.lower() and "evil.example" not in page.text
-    css = await c.get(f"{base}/local.css")
-    assert "evil.example" not in css.text and "x.example" not in css.text
-    csp = page.headers["content-security-policy"]
-    # no scripts, nothing from outside, sandboxed: the policy a frame opened on its own gets
-    assert "default-src 'none'" in csp and "sandbox" in csp and "script-src" not in csp
-    assert "http" not in csp and "*" not in csp.replace("Access", "")
+    assert page.content == OPEN_PAGE
+    assert (await c.get(f"{base}/local.css")).content == css
+    js = await c.get(f"{base}/app.js")
+    assert js.status_code == 200 and js.headers["content-type"].startswith(
+        "text/javascript"
+    )
+    # nothing restricts the page: no policy, no sandbox
+    assert "content-security-policy" not in page.headers
     assert page.headers["x-content-type-options"] == "nosniff"
-    assert (await c.get(f"{base}/app.js")).status_code == 404
 
 
 async def test_a_zip_of_a_built_page_becomes_one_board(c, pid):
@@ -974,11 +933,11 @@ async def propose(c, cid, bid, text="<h1>Better</h1>", **extra):
 async def test_a_proposal_changes_nothing_until_a_person_accepts(c, pid):
     cv = await make(c, pid)
     b = await html_board(c, cv["id"])
-    p = await propose(c, cv["id"], b["id"], "<h1>Better</h1><script>alert(1)</script>")
+    p = await propose(c, cv["id"], b["id"], "<h1>Better</h1><script>go()</script>")
     ch = p["changes"][0]
     assert p["status"] == "open" and ch["lines"] > 0 and ch["name"] == "Sign in"
     after_html = next(f["text"] for f in ch["after"] if f["path"] == "index.html")
-    assert "Better" in after_html and "<script" not in after_html.lower()
+    assert "Better" in after_html and "<script>go()</script>" in after_html
     assert "Sign in" in next(
         f["text"] for f in ch["before"] if f["path"] == "index.html"
     )
@@ -988,14 +947,11 @@ async def test_a_proposal_changes_nothing_until_a_person_accepts(c, pid):
         now["doc"]["boards"][1]["content"]["rev"] == b["content"]["rev"]
         and now["proposals_open"] == 1
     )
-    # the "After" preview is served as locked as a frame
+    # the "After" preview is served like a frame
     after = await c.get(
         f"/canvases/{cv['id']}/proposals/{p['id']}/{b['id']}/index.html"
     )
-    assert (
-        after.status_code == 200
-        and "sandbox" in after.headers["content-security-policy"]
-    )
+    assert after.status_code == 200 and "content-security-policy" not in after.headers
     done = await c.post(
         f"/canvases/{cv['id']}/proposals/{p['id']}/decide", json={"accept": "all"}
     )
@@ -1233,28 +1189,6 @@ async def test_boards_are_sections_of_a_canvas_page_and_the_ticket_lists_the_can
         inline["id"],
     }
     assert b["name"] == "Sign in: wrong password"
-
-
-def test_the_cleaner_reads_urls_and_css_the_way_a_browser_does():
-    cases = [
-        "<svg><style><img src=x onerror=alert(1)></style></svg>",  # a style in svg is markup to a browser
-        '<a href="java&#x09;script:alert(1)">x</a>',  # a tab inside the scheme
-        '<img src="/\\evil.example/x.png">',  # a backslash reads as a slash: a host
-        '<div style="background:\\75 rl(https://evil.example/a.png)">x</div>',  # a CSS escape
-        '<style>a{background:image-set("https://evil.example/a.png" 1x)}</style>',
-    ]
-    for html in cases:
-        clean, blocked = canvas_html.clean_html(html)
-        assert (
-            "evil.example" not in clean
-            and "javascript" not in clean.lower().replace("&#", "")
-        ), html
-        assert "<img" not in clean.replace("<img>", "") or "&lt;img" in clean, html
-        assert blocked.total() >= 1 or "&lt;" in clean, html
-    ok, none = canvas_html.clean_html(
-        '<p>ok</p><img src="img/a.png"><svg><style>a{fill:red}</style></svg>'
-    )
-    assert 'src="img/a.png"' in ok and none.total() == 0
 
 
 async def test_a_stale_save_about_a_deleted_frame_is_a_conflict_not_a_dead_end(c, pid):

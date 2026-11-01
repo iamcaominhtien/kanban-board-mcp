@@ -161,6 +161,7 @@ DocsWriteAction = Literal[
     "diagram_restore",
     "sketch_create",
     "sketch_save",
+    "canvas_create",
     "canvas_comment",
     "canvas_propose",
 ]
@@ -212,6 +213,11 @@ DOCS_WRITE_OPS = {
         ("sketch_id", "path", "base_version"),
         ("source_path", "title"),
     ),
+    "canvas_create": Op(
+        ops.create_canvas_from_files,
+        ("path",),
+        ("owner_kind", "owner_id", "title", "canvas_id"),
+    ),
     "canvas_comment": Op(
         ops.comment_on_canvas,
         ("canvas_id", "body"),
@@ -237,7 +243,7 @@ async def docs_write(
     title: Annotated[
         str | None,
         Field(
-            description="create: page title (body headings start at '##'). update: new title (renames the page; links to it are rewritten). duplicate: title of the copy (default '<title> (copy)'). sketch_create, sketch_save: name of the sketch."
+            description="create: page title (body headings start at '##'). update: new title (renames the page; links to it are rewritten). duplicate: title of the copy (default '<title> (copy)'). sketch_create, sketch_save, canvas_create: name of the sketch or canvas."
         ),
     ] = None,
     markdown: Annotated[
@@ -338,18 +344,22 @@ async def docs_write(
         ),
     ] = None,
     owner_kind: Annotated[
-        Literal["ticket", "doc"] | None,
+        Literal["ticket", "doc", "idea"] | None,
         Field(
-            description="sketch_create: the sketch belongs to a ticket or a Docs page."
+            description="sketch_create: ticket or doc (a Docs page). canvas_create: ticket, doc or idea."
         ),
     ] = None,
     owner_id: Annotated[
         str | None,
-        Field(description="sketch_create: ticket id 'IAM-12' or Docs page id (UUID)."),
+        Field(
+            description="sketch_create, canvas_create: ticket id 'IAM-12', Docs page id (UUID) or idea id."
+        ),
     ] = None,
     canvas_id: Annotated[
         str | None,
-        Field(description="canvas_comment, canvas_propose: canvas id."),
+        Field(
+            description="canvas_comment, canvas_propose: canvas id. canvas_create: add the frames to this canvas instead of making a new one."
+        ),
     ] = None,
     board_id: Annotated[
         str | None,
@@ -376,8 +386,9 @@ async def docs_write(
     - diagram_delete / diagram_restore: diagram_id. Unlink a diagram (kept, restorable) / bring it back.
     - sketch_create: owner_kind (ticket|doc), owner_id, title, path [, source_path]. A new sketch from a local PNG and its .sketch.json. Returns {id, title, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.
     - sketch_save: sketch_id, path, base_version [, source_path, title]. Saves the PNG and source as a new version; base_version is the `version` from docs_read(sketch), a stale one is rejected. Returns {id, title, version}. The PNG is what the text shows, so keep it the flattened picture of the source.
+    - canvas_create: path [, owner_kind (ticket|doc|idea), owner_id, title | canvas_id]. A new canvas, or frames added to canvas_id, from a folder: a sub-folder with an .html page per frame (optional frame.json {"name", "size": "phone"|"tablet"|"desktop"|[w,h]}). Files are kept as written; scripts run. Returns {id, title, version, markdown, boards}: put `markdown` on its own line in the text.
     - canvas_comment: canvas_id, body [, board_id, thread_id]. Comment under your own name: a new pin on a frame or the plane, or a reply. You never resolve a person's thread.
-    - canvas_propose: canvas_id, board_id, path [, note]. Offer a changed HTML frame from a folder (see docs_read(canvas)). Nothing changes until a person accepts it; a frame being edited is never touched, the proposal waits. Scripts and outside addresses are removed.
+    - canvas_propose: canvas_id, board_id, path [, note]. Offer a changed HTML frame from a folder (see docs_read(canvas)). Nothing changes until a person accepts it; a frame being edited is never touched, the proposal waits.
     The preview of a saved diagram is drawn by the server (boxes, arrows, text) unless you pass an SVG export; a person who opens it in the editor sees the full drawing.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     return await dispatch("docs_write", DOCS_WRITE_OPS, action, params_of(locals()))

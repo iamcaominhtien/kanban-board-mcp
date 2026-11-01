@@ -1,5 +1,3 @@
-import { makeSafeHtml } from '../preview/htmlSafe';
-
 const norm = (p: string) => p.replace(/\\/g, '/').replace(/^\.?\//, '');
 
 /** Resolve `href` against the folder of the page, so "css/site.css" and "./css/site.css" are the same file. */
@@ -48,13 +46,13 @@ export function inlineBoard(entry: string, text: Record<string, string>, assets:
 }
 
 /**
- * The document for the source editor's live preview: the page with its files inlined, made safe like a Preview.
+ * The document for the source editor's live preview: the page with its files inlined, otherwise as written.
  * @param entry - Path of the page.
  * @param text - Text files by path.
  * @param assets - Data addresses of pictures and fonts by path.
  */
 export function previewDocument(entry: string, text: Record<string, string>, assets: Record<string, string>) {
-  return makeSafeHtml(inlineBoard(entry, text, assets));
+  return { srcDoc: inlineBoard(entry, text, assets) };
 }
 
 /** A byte array as a data address. */

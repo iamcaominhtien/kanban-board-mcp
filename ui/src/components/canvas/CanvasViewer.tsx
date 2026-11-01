@@ -43,6 +43,7 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
   const [grid, setGrid] = useState(false);
   const [side, setSide] = useState(!!request.comments);
   const [notes, setNotes] = useState(false);
+  const [interact, setInteract] = useState(false);
   const [barVisible, setBarVisible] = useState(true);
   const [selThread, setSelThread] = useState<string | null>(null);
   const hideTimer = useRef<number | undefined>(undefined);
@@ -83,6 +84,8 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
         go(-1);
       } else if (e.key.toLowerCase() === 'g') {
         setGrid((v) => !v);
+      } else if (e.key.toLowerCase() === 'i') {
+        setInteract((v) => !v);
       } else if (e.key.toLowerCase() === 'p' && !present && c) {
         api.present({ id: c.id, boardId: board?.id, pageId });
         onClose();
@@ -192,7 +195,7 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
           data-testid="canvas-viewer-board"
           style={{ width: shown.w * scale, height: shown.h * scale }}
         >
-          <BoardFrame canvasId={c.id} board={shown} scale={scale} live />
+          <BoardFrame canvasId={c.id} board={shown} scale={scale} live interactive={interact} />
         </div>
         {present && notes && near.length > 0 && (
           <div
@@ -288,6 +291,16 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
             title="All boards (G)"
           >
             <CanvasIcon name="grid" size={14} /> All
+          </button>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnSm} ${interact ? styles.btnOn : ''}`}
+            aria-pressed={interact}
+            onClick={() => setInteract((v) => !v)}
+            title="Click and type in the page, to try a prototype (I). Arrow keys and Esc work again when this is off."
+            data-testid="canvas-interact"
+          >
+            <CanvasIcon name="present" size={14} /> Try it
           </button>
           <button
             type="button"
@@ -404,6 +417,15 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
             <CanvasIcon name="right" size={16} />
           </button>
           <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,.2)', margin: '0 4px' }} />
+          <button
+            type="button"
+            className={`${styles.pbBtn} ${interact ? styles.pbOn : ''}`}
+            aria-pressed={interact}
+            onClick={() => setInteract((v) => !v)}
+            data-testid="present-interact"
+          >
+            Try it
+          </button>
           <button
             type="button"
             className={`${styles.pbBtn} ${notes ? styles.pbOn : ''}`}

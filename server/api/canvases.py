@@ -24,16 +24,11 @@ from services.docs_text import DocsError
 router = APIRouter(tags=["canvases"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
-# What a frame's files may do when opened by themselves: nothing but draw. The editor adds `sandbox` on the iframe too.
-FRAME_CSP = (
-    "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
-    "media-src 'self' data:; form-action 'none'; base-uri 'none'; sandbox"
-)
+# A frame's files are open web pages (scripts, CDN links and fonts all run, as when the file is opened in a browser):
+# no Content-Security-Policy and no `sandbox`, here or on the iframe.
 _FRAME_HEADERS = {
-    "Content-Security-Policy": FRAME_CSP,
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
-    "Access-Control-Allow-Origin": "*",  # a sandboxed frame has an opaque origin; fonts need this
+    "Access-Control-Allow-Origin": "*",
     "Cache-Control": "private, max-age=31536000, immutable",
 }
 
@@ -607,7 +602,7 @@ async def post_decide(
 async def get_proposal_file(
     canvas_id: str, proposal_id: str, board_id: str, path: str, session: Session
 ) -> Response:
-    """A file of a proposal (the "After" preview), served as locked as a frame."""
+    """A file of a proposal (the "After" preview), served like a frame."""
     data, media = await proposals.read_file(
         session, canvas_id, proposal_id, board_id, path
     )

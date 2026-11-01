@@ -11,7 +11,7 @@ Rules the design (design/screens/canvas.md) asks for, and where they live:
   canvas revision it was last changed in, a save names the revision of each item it changes, and only an item changed
   twice conflicts (``save``).
 * A board's content changes under a **lock** (``canvas_locks``); an AI member only ever *proposes* (``canvas_proposals``).
-* Boards render in a locked frame; their files are cleaned on the way in (``canvas_html``).
+* Boards are open web pages: their files are kept exactly as given and run like a file opened in a browser.
 * Versions are made on Done, on accepting a proposal, and every 10 minutes for a canvas that is a Docs page.
 """
 
@@ -69,16 +69,20 @@ SIZE_PRESETS = {
 CANVAS_REF = re.compile(r"\(canvas:(cv_[0-9a-f]{8})(?:#((?:b|p)_[0-9a-f]{8}))?\)")
 _ALLOWED_EXT = {
     ".html", ".htm", ".css", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg", ".ico",
-    ".woff", ".woff2", ".ttf", ".otf", ".txt", ".json", ".md",
+    ".woff", ".woff2", ".ttf", ".otf", ".txt", ".json", ".md", ".js", ".mjs", ".cjs", ".map", ".wasm", ".xml",
+    ".csv", ".mp3", ".mp4", ".webm", ".ogg", ".wav", ".webmanifest",
 }  # fmt: skip
-_SCRIPT_EXT = {".js", ".mjs", ".cjs", ".ts", ".jsx", ".tsx", ".wasm", ".map"}
 _IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"}
 MEDIA = {
     ".html": "text/html; charset=utf-8", ".htm": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp",
     ".avif": "image/avif", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".woff": "font/woff",
     ".woff2": "font/woff2", ".ttf": "font/ttf", ".otf": "font/otf", ".txt": "text/plain; charset=utf-8",
-    ".json": "application/json", ".md": "text/plain; charset=utf-8",
+    ".json": "application/json", ".md": "text/plain; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+    ".mjs": "text/javascript; charset=utf-8", ".cjs": "text/javascript; charset=utf-8", ".map": "application/json",
+    ".wasm": "application/wasm", ".xml": "application/xml", ".csv": "text/csv; charset=utf-8",
+    ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".webm": "video/webm", ".ogg": "audio/ogg", ".wav": "audio/wav",
+    ".webmanifest": "application/manifest+json",
 }  # fmt: skip
 
 
@@ -1288,14 +1292,14 @@ def image_size(data: bytes) -> tuple[int, int] | None:
 def prepare_files(
     files: dict[str, bytes], entry: str | None = None
 ) -> tuple[dict[str, bytes], dict[str, Any]]:
-    """Check and clean the files of an HTML board.
+    """Check the files of an HTML board (kept as given: nothing is stripped).
 
     Args:
         files: ``{path: bytes}``.
         entry: The page to show (``index.html`` or the first ``.html`` file when omitted).
 
     Returns:
-        ``(clean files, content info {entry, files, bytes, blocked, title})``.
+        ``(files, content info {entry, files, bytes, skipped, title})``.
 
     Raises:
         DocsError: 413 over the size limit, 422 for no page, too many files or a bad path.
@@ -1304,30 +1308,16 @@ def prepare_files(
         raise DocsError(
             422, "too_many_files", f"A frame holds up to {MAX_FILES} files."
         )
-    blocked = canvas_html.Blocked()
     clean: dict[str, bytes] = {}
     skipped: list[str] = []
     title = ""
     for raw, data in files.items():
         path = safe_path(raw)
         ext = PurePosixPath(path).suffix.lower()
-        if ext in _SCRIPT_EXT:
-            blocked.script += 1
-            skipped.append(path)
-            continue
         if ext not in _ALLOWED_EXT:
             skipped.append(path)
             continue
-        if ext in (".html", ".htm"):
-            text, b = canvas_html.clean_html(data.decode("utf-8", errors="replace"))
-            blocked.merge(b)
-            clean[path] = text.encode("utf-8")
-        elif ext == ".css":
-            clean[path] = canvas_html.clean_css(
-                data.decode("utf-8", errors="replace"), blocked
-            ).encode("utf-8")
-        else:
-            clean[path] = data
+        clean[path] = data
     names = set(clean)
     for path in names:
         parent = path.rsplit("/", 1)[0] if "/" in path else ""
@@ -1358,8 +1348,6 @@ def prepare_files(
         "entry": entry,
         "files": [{"path": p, "bytes": len(clean[p])} for p in sorted(clean)],
         "bytes": total,
-        "blocked": blocked.as_list(),
-        "blocked_total": blocked.total(),
         "skipped": skipped,
         "title": title,
     }
@@ -1508,7 +1496,7 @@ async def add_board(
         written = {file_name: data}
         content = {
             "entry": file_name, "files": [{"path": file_name, "bytes": len(data)}], "bytes": len(data),
-            "blocked": [], "blocked_total": 0, "skipped": [], "title": PurePosixPath(raw_name).stem,
+            "skipped": [], "title": PurePosixPath(raw_name).stem,
         }  # fmt: skip
         title = content["title"]
         dims = image_size(data)

@@ -28,7 +28,7 @@ import { CanvasIcon } from './CanvasIcon';
 import { useCanvas, type CanvasResult, type OpenCanvasRequest } from './CanvasContext';
 import { NOTE_BG } from './CanvasStatic';
 import { CommentsPanel } from './CommentsPanel';
-import { BoardMenu, BoardsPanel, KeysList, blockedLine, blockedTotal } from './EditorParts';
+import { BoardMenu, BoardsPanel, KeysList } from './EditorParts';
 import { HistoryPanel } from './HistoryPanel';
 import { MoveToDocsDialog } from './MoveToDocsDialog';
 import { SourceEditor } from './SourceEditor';
@@ -156,7 +156,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [addMenu, setAddMenu] = useState(false);
   const [exportMenu, setExportMenu] = useState(false);
-  const [blockedFor, setBlockedFor] = useState<string | null>(null);
   const [editNote, setEditNote] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState<string | null>(null);
   const [editTab, setEditTab] = useState<string | null>(null);
@@ -410,7 +409,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     setMenuFor(null);
     setAddMenu(false);
     setExportMenu(false);
-    setBlockedFor(null);
     const s = local(e);
     const p = toPlane(view, s);
     const base = { start: p, startScreen: s, startView: view, moved: false };
@@ -1572,7 +1570,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 const lockedByOther = !!lock && lock.holder !== me;
                 const job = jobOf(b.id);
                 const waits = waitingJob(b.id);
-                const blocked = blockedTotal(b.content?.blocked);
                 const showTools = (hover === b.id || (selected && sel.length === 1)) && !drag.current;
                 const bw = b.w * z;
                 const bh = b.h * z;
@@ -1646,41 +1643,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                             }}
                           />
                         ))}
-                      </>
-                    )}
-                    {blocked > 0 && (
-                      <>
-                        <button
-                          type="button"
-                          className={styles.blockedChip}
-                          style={{ pointerEvents: 'auto' }}
-                          data-ui
-                          onClick={() => setBlockedFor(blockedFor === b.id ? null : b.id)}
-                          data-testid="canvas-blocked-chip"
-                        >
-                          <CanvasIcon name="warning" size={11} /> {blocked} blocked
-                        </button>
-                        {blockedFor === b.id && (
-                          <div
-                            className={styles.blockedList}
-                            style={{ pointerEvents: 'auto' }}
-                            data-ui
-                            data-testid="canvas-blocked-list"
-                          >
-                            <b>
-                              {blocked} blocked on {b.name}
-                            </b>
-                            <ul style={{ margin: '4px 0 6px', paddingLeft: 16 }}>
-                              {b.content?.blocked.map((x, i) => (
-                                <li key={i}>{blockedLine(x)}</li>
-                              ))}
-                            </ul>
-                            <span className={styles.hint}>
-                              Boards run without scripts and without outside requests, as in Preview. The chip lists
-                              what was left out, so a missing font or chart is explained.
-                            </span>
-                          </div>
-                        )}
                       </>
                     )}
                     {showTools && (
