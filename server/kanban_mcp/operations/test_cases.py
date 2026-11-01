@@ -1,18 +1,16 @@
 """Ticket test cases."""
 
-import os
 from typing import Annotated
 
 import services.proofs as svc_proofs
 import services.tickets as svc_tickets
-from models import AiMember
 from pydantic import Field
+from .. import common
 from ..common import (
     TestCaseRef,
     TestCaseStatus,
     TicketId,
     _edit_ticket,
-    async_session,
     notify_on_success,
 )
 
@@ -23,26 +21,13 @@ _PROOF_HELP = (
 )
 
 
-async def _run_folder() -> str | None:
-    """The working folder of the AI run making this call (None for a person or another client)."""
-    from services.ai import guard
-
-    ctx = await guard.resolve()
-    if ctx is None:
-        return None
-    async with async_session() as session:
-        member = await session.get(AiMember, ctx.member_id)
-    folder = os.path.expanduser(member.working_dir or "") if member else ""
-    return folder or None
-
-
 async def _localized(
     proof: str | None, notes: str | None
 ) -> tuple[str | None, str | None]:
     """proof and notes with the pictures named by a path copied into the board (services/proofs.py)."""
     if "](" not in (proof or "") + (notes or ""):
         return proof, notes
-    folder = await _run_folder()
+    folder = await common.run_folder()
     return svc_proofs.localize(proof, folder), svc_proofs.localize(notes, folder)
 
 

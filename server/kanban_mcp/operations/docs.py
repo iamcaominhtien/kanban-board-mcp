@@ -4,6 +4,7 @@ import services.docs as svc_docs
 import services.docs_anchors as svc_anchors
 import services.docs_comments as svc_comments
 import services.activity as svc_activity
+import services.proofs as svc_proofs
 from pydantic import Field
 from typing import Annotated, Literal
 from .. import common
@@ -13,6 +14,22 @@ from ..common import ProjectId, TicketId, notify_on_success
 DocsPageId = Annotated[
     str, Field(description="Docs page id (UUID) from docs_read(action='list').")
 ]
+
+
+async def _with_pictures(session, markdown: str, page_id: str | None = None) -> str:
+    """`markdown` with each picture an AI run names by a path in its working folder copied into the board, like a test
+    case's proof (services/proofs.py); a person's text is kept as written. A picture the page already held stays as
+    written when its file is not there (an imported page's `images/…`), so the AI can still edit that page."""
+    if "](" not in markdown:
+        return markdown
+    folder = await common.run_folder()
+    if folder is None:
+        return markdown
+    keep: set[str] = set()
+    if page_id is not None:
+        current = await svc_docs.page_detail(session, page_id)
+        keep = svc_proofs.targets(current["markdown"])
+    return svc_proofs.localize(markdown, folder, pictures_only=True, keep=keep)
 
 
 def _docs_error(exc: "svc_docs.DocsError") -> ValueError:
@@ -92,6 +109,7 @@ async def create_docs_page(
     ctx = await guard.resolve()
     async with common.async_session() as session:
         try:
+            markdown = await _with_pictures(session, markdown)
             page = await svc_docs.create_page(
                 session, project_id, title, parent_id=parent_id, markdown=markdown
             )
@@ -138,6 +156,7 @@ async def update_docs_page(
     """Replace a Docs page's Markdown and optionally rename it. Returns {id, title, version, published}."""
     async with common.async_session() as session:
         try:
+            markdown = await _with_pictures(session, markdown, page_id)
             if title is not None:
                 current = await svc_docs.page_detail(session, page_id)
                 if title.strip() != current["title"]:

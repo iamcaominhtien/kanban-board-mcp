@@ -26,10 +26,24 @@ One place for what needs you and what happened: Notifications ([#253](https://gi
 - The six features that toasted on their own (AI runs, schedules, Docs publishes, Docs comments, AI accounts, AI safety) now write to the one log; nothing arrives twice.
 - "Off" means quiet, not unrecorded: an AI safety event is always recorded, even when both switches are off.
 - The notification switches moved from each project's AI settings to the app-wide Settings › Notifications; the Docs space Follow is now one case of following.
-- **The release page lists two guide files instead of eight**: the full guide PDF, and `kanban-board-guide-sheets-<version>.zip` with the stand-alone PDFs (quick start, shortcut sheet, administration, MCP, self-hosting, troubleshooting, desktop menu).
 
 ### Removed
 - The 09:00 AI safety digest: quiet safety events are ordinary Updates rows when they happen, and the day card is the only summary. Board health keeps its own 09:00 digest.
+
+## [3.18.2] - 2026-11-01
+
+Two fixes for AI members: pictures on the Docs pages they write, and no replay of old "finished" toasts.
+
+### Changed
+- **The release page lists two guide files instead of eight**: the full guide PDF, and `kanban-board-guide-sheets-<version>.zip` with the stand-alone PDFs (quick start, shortcut sheet, administration, MCP, self-hosting, troubleshooting, desktop menu).
+
+### Fixed
+- **Pictures on a Docs page written by an AI member were broken.**
+  - **Cause:** an AI referenced its screenshots by a path in its working folder (`qa/evidence/TC-1.png`), which the board cannot show.
+  - **Fix:** inside an AI run, such a picture is now copied into the board and the link rewritten to `/uploads/…`, as test case proofs already did. A picture the page already held stays as written when its file is gone, so an AI can still edit an imported page. A new picture whose file does not exist is refused with what to do.
+- **Opening the app or switching project showed a pile of old "finished" toasts.**
+  - **Cause:** every AI run of the project that had finished hours earlier was announced again as if it had just happened.
+  - **Fix:** the first load of a project now only records the states. A run first seen later is announced only when it was queued after that.
 
 ## [3.18.1] - 2026-11-01
 
