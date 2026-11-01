@@ -137,7 +137,7 @@ function SunIcon() {
 
 /** "Weekdays at 18:00." */
 function dayCardHint(d: NotificationSettings['dayCard']): string {
-  const days = [...d.days].sort();
+  const days = [...d.days].sort((a, b) => a - b);
   let when: string;
   if (days.length === 0) when = 'Never';
   else if (days.length === 7) when = 'Every day';
@@ -404,7 +404,11 @@ export function NotificationsSettings() {
                     className={`${styles.day} ${on ? styles.dayOn : ''}`}
                     onClick={() =>
                       save({
-                        dayCard: { days: on ? s.dayCard.days.filter((d) => d !== i) : [...s.dayCard.days, i].sort() },
+                        dayCard: {
+                          days: on
+                            ? s.dayCard.days.filter((d) => d !== i)
+                            : [...s.dayCard.days, i].sort((a, b) => a - b),
+                        },
                       })
                     }
                   >

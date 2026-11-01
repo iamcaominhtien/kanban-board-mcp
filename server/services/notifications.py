@@ -2003,7 +2003,6 @@ async def snooze(
         r.snoozed_until = when.astimezone(UTC).isoformat()
     else:
         r.snoozed_until = None
-    r.updated_at = r.updated_at
     session.add(r)
     await session.commit()
     await _announce(await head_id(session))
@@ -2411,5 +2410,8 @@ async def stop() -> None:
         try:
             await _task
         except asyncio.CancelledError:
-            pass
+            # the loop's own cancellation is expected; a cancellation of stop() itself goes on
+            current = asyncio.current_task()
+            if current is not None and current.cancelling():
+                raise
     _task = None

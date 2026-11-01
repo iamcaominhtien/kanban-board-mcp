@@ -162,6 +162,13 @@ export function NotificationRow({
         clickable ? styles.clickable : ''
       } ${selected ? styles.selected : ''}`}
       onClick={onBodyClick}
+      onKeyDown={(e) => {
+        // Enter or Space on the focused row opens it, as a click does (J/K and Enter in the list do the same)
+        if (clickable && e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          void fire('open');
+        }
+      }}
     >
       {unread ? (
         <span className={`${styles.dot} ${row.needs ? styles.dotNeeds : styles.dotUpdate}`} aria-label="Unread" />
