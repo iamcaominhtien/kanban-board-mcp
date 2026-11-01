@@ -28,6 +28,8 @@ export const codeApi = {
   keep: async (ticketId: string) => (await client.post<Worktree>(`/tickets/${ticketId}/ai/worktree/keep`)).data,
   cleanup: async (projectId: string) =>
     (await client.post<CleanupResult>(`/projects/${projectId}/ai/worktrees/cleanup`)).data,
+  open: async (ticketId: string) =>
+    (await client.post<{ opened: string }>(`/tickets/${ticketId}/ai/worktree/open`)).data,
   merge: async (ticketId: string) => (await client.post<MergeResult>(`/tickets/${ticketId}/ai/merge`)).data,
   handover: async (ticketId: string, route: HandoverRoute) =>
     (await client.patch<WorktreeWithRoute>(`/tickets/${ticketId}/ai/handover`, { route })).data,

@@ -62,6 +62,12 @@ export function readText(readAt: string | null | undefined): string {
   return readAt ? `Read from Claude Code at ${clock(readAt)}` : 'Not read yet';
 }
 
+/** "Last read 09:58, before it signed out": the reading of an account that is signed out now. */
+export function lastReadText(readAt: string | null | undefined, signedOut: boolean): string {
+  if (!readAt || !signedOut) return readText(readAt);
+  return `Last read ${clock(readAt)}, before it signed out`;
+}
+
 /** Is the account held (its window is used up, or it signed out) right now? */
 export function isHeld(a: Pick<AccountWindow, 'heldUntil'>, nowMs: number): boolean {
   return !!a.heldUntil && new Date(a.heldUntil).getTime() > nowMs;

@@ -5,6 +5,7 @@ import { ContinueNoteDialog } from '../ai/trouble/ContinueNoteDialog';
 import { HandToDialog } from '../ai/trouble/HandToDialog';
 import { MoveAccountDialog, type AccountRoom } from '../ai/trouble/MoveAccountDialog';
 import { DiagnosisBlock } from './DiagnosisBlock';
+import { isBoardFault } from './needsFilters';
 import {
   Icon,
   avatarColors,
@@ -631,6 +632,12 @@ export function NotificationRow({
       <div className={styles.main}>
         <div className={styles.head}>
           <div className={`${styles.title} ${f.unread || f.open ? '' : styles.titleQuiet}`}>{row.title}</div>
+          {row.needs && !row.done && isBoardFault(row) && (
+            <span className={`${styles.chip} ${styles.chipFault}`}>Board fault</span>
+          )}
+          {row.needs && !row.done && !isBoardFault(row) && typeof row.data?.verdict === 'string' && (
+            <span className={`${styles.chip} ${styles.chipPm}`}>PM could not settle it</span>
+          )}
           <span className={styles.time}>{relTime(rowTime(row), now)}</span>
         </div>
         {f.body && <div className={styles.body}>{f.body}</div>}

@@ -69,6 +69,7 @@ export function MemberPluginsCard({ memberId, projectId }: { memberId: string; p
         const eff = effective(p, memberId, role);
         const def = followed(p, role);
         const own = eff.why === 'own';
+        const mine = (p.used?.byMember ?? []).some((m) => m.memberId === memberId);
         return (
           <div key={p.id} data-testid={`mp-${p.name}`} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <Toggle label={p.name} on={eff.on} disabled={setM.isPending} onChange={(v) => void set(p.id, v)} />
@@ -78,7 +79,7 @@ export function MemberPluginsCard({ memberId, projectId }: { memberId: string; p
               Project default is {def ? 'on' : 'off'}
               {eff.why === 'role' ? ' (suggested for this role)' : ''}.
               {p.skills.length ? ` ${p.skills.length} skills` : ''}
-              {p.used?.uses ? ` · used ${p.used.uses} times` : ''}
+              {p.used?.uses ? ` · used ${p.used.uses} times${mine ? ' by this member' : ''}` : ''}
               {own ? ' Switched here.' : ''}
             </span>
             {own && (
@@ -110,8 +111,8 @@ export function MemberPluginsCard({ memberId, projectId }: { memberId: string; p
         </div>
       )}
       <div className="ai-hint">
-        Changing any of these starts a new conversation on the next run: the list of plugins is part of the prompt.
-        Every change takes effect from the next run.
+        Changing any of these starts a new conversation on the next run: the list of plugins is part of the prompt, and
+        --resume cannot be trusted across a different set. Every change takes effect from the next run.
       </div>
     </>,
   );

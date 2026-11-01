@@ -168,7 +168,16 @@ export type DraftKind =
 export interface DraftChange {
   /** The board's own kinds, or a kind that another scope adds (an idea's, for example). */
   op:
-    'status' | 'priority' | 'assignee' | 'due_date' | 'estimate' | 'title' | 'comment' | 'add_criteria' | (string & {});
+    | 'status'
+    | 'priority'
+    | 'tags'
+    | 'assignee'
+    | 'due_date'
+    | 'estimate'
+    | 'title'
+    | 'comment'
+    | 'add_criteria'
+    | (string & {});
   ticket: string;
   from?: unknown;
   to?: unknown;

@@ -9,6 +9,7 @@ vi.mock('../../../api/client', () => ({ client: http }));
 
 import { AddFromSource, NO_REVIEW } from './AddFromSource';
 import { InstalledTab } from './InstalledTab';
+import { SkillsPluginsSection } from './SkillsPluginsSection';
 import { applyFilter, buildRows, effective, followed } from './pluginLogic';
 
 const plugin = (o: Partial<Plugin> = {}): Plugin => ({
@@ -158,5 +159,22 @@ describe('install dialog', () => {
     await screen.findByTestId('source-error');
     expect(http.post.mock.calls[1][1]).toMatchObject({ plugin: 'one' });
     expect(screen.getByTestId('source-error').textContent).toContain('Nothing found there');
+  });
+});
+
+describe('the page actions', () => {
+  it('reloads every plugin from its source and says it takes effect from the next run', async () => {
+    http.get.mockImplementation((url: string) =>
+      Promise.resolve({ data: url.endsWith('/plugins') ? [plugin(), plugin({ id: 'p2', name: 'idle' })] : [] }),
+    );
+    http.post.mockResolvedValue({ data: plugin() });
+    render(wrap(<SkillsPluginsSection projectId="pr" />));
+    await screen.findByTestId('installed-tab');
+    expect(screen.getByRole('button', { name: 'Add from a source' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reset all to the catalogue' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Reload all' }));
+    await screen.findByText(/Reloaded 2 from the source/);
+    expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/reload');
+    expect(http.post).toHaveBeenCalledWith('/ai/plugins/p2/reload');
   });
 });

@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { Worktree } from '../../../types/aiCode';
+import type { AiRun } from '../../../types/ai';
 import { ConflictCard, STATE_LABEL, WorktreeRow, canRemove, mbText } from './worktreeUi';
 
 const wt = (over: Partial<Worktree> = {}, uncommitted: string[] = []): Worktree => ({
@@ -24,11 +25,21 @@ const wt = (over: Partial<Worktree> = {}, uncommitted: string[] = []): Worktree 
   live: { uncommitted, sizeMb: 420, exists: true, ahead: 1 },
   ...over,
 });
-const row = (w: Worktree) =>
+const run = (state: string) =>
+  ({ id: 'r1', ticketId: 'KAN-1', memberName: 'Dev An', state, endedAt: '2026-01-01T10:31:00' }) as unknown as AiRun;
+const row = (w: Worktree, r?: AiRun) =>
   renderToStaticMarkup(
     <table>
       <tbody>
-        <WorktreeRow w={w} onRemove={() => {}} onKeep={() => {}} onCopyPath={() => {}} />
+        <WorktreeRow
+          w={w}
+          run={r}
+          onRemove={() => {}}
+          onKeep={() => {}}
+          onCopyPath={() => {}}
+          onOpen={() => {}}
+          onStop={() => {}}
+        />
       </tbody>
     </table>,
   );
@@ -59,6 +70,23 @@ describe('worktree list', () => {
     const html = row(wt({ state: 'conflict' }));
     expect(html).toContain('>Resolve<');
     expect(html).toContain('Conflict with main');
+  });
+});
+
+describe('worktree row, run and folder', () => {
+  it('offers Open folder, and Stop while a run is going', () => {
+    const html = row(wt({}, ['a.ts']), run('running'));
+    expect(html).toContain('>Open folder<');
+    expect(html).toContain('>Stop<');
+    expect(html).toContain('Dev An · 1 file changed, not committed');
+    expect(html).toContain('In use');
+  });
+
+  it('says Waiting for you when the AI stopped with changes that are not committed', () => {
+    const html = row(wt({}, ['a.ts', 'b.ts']), run('finished'));
+    expect(html).toContain('Waiting for you');
+    expect(html).toContain('Dev An stopped at');
+    expect(html).not.toContain('>Stop<');
   });
 });
 

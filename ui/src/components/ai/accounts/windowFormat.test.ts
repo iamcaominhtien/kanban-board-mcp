@@ -4,6 +4,7 @@ import {
   countdown,
   isHeld,
   planLine,
+  lastReadText,
   readText,
   reopensText,
   runsText,
@@ -68,6 +69,8 @@ describe('window formatting', () => {
   it('labels a reading as read from Claude Code, not as an estimate', () => {
     expect(readText(at(9, 58))).toBe('Read from Claude Code at 09:58');
     expect(readText(null)).toBe('Not read yet');
+    expect(lastReadText(at(9, 58), true)).toBe('Last read 09:58, before it signed out');
+    expect(lastReadText(at(9, 58), false)).toBe('Read from Claude Code at 09:58');
   });
 
   it('knows when an account is held and says what waits', () => {

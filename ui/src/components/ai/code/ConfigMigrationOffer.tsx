@@ -33,7 +33,7 @@ export function ConfigMigrationOffer({ memberId, projectId }: { memberId: string
         servers). Configuration is now loaded per run, so they can go. Only what nobody changed is removed; your own
         files stay
         {kept.length ? `, and ${kept.length} changed file${kept.length === 1 ? '' : 's'} will be left as they are` : ''}
-        . The next run of this member starts a fresh conversation.
+        ; the next run of this member starts a fresh conversation, because the plugin list is part of the prompt.
       </div>
       <ul className="ai-mono" style={{ margin: '0 0 8px', paddingLeft: 18, fontSize: 12 }}>
         {files.map((f) => (

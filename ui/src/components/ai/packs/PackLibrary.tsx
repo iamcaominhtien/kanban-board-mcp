@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { packsApi, useDeletePack, usePacks } from '../../../api/aiPacks';
 import { extractError } from '../../../api/extractError';
 import type { Pack } from '../../../types/aiPacks';
-import { CeilingChip, LoadError } from '../aiUi';
+import { CeilingChip, LoadError, STATUS_NAMES } from '../aiUi';
 import { EditPackModal, ImportPackModal, MakeMemberModal } from './PackDialogs';
 import { WRITES_LABEL, downloadJson, limitsLabel, modelLabel, toolsLabel } from './packLabels';
 import './packs.css';
@@ -54,59 +54,50 @@ export function PackLibrary({ projectId }: { projectId: string }) {
       {packs.length === 0 ? (
         <div className="ai-notice ai-notice-slate">No packs yet.</div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table className="pk-table" data-testid="pack-table">
-            <thead>
-              <tr>
-                <th>ROLE</th>
-                <th>MODEL</th>
-                <th>WRITES</th>
-                <th>HANDS IN</th>
-                <th>CEILING</th>
-                <th>TOOLS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {packs.map((p) => (
-                <tr
-                  key={p.id}
-                  className={`pk-row${sel === p.key ? ' pk-row-on' : ''}`}
-                  data-testid={`pack-row-${p.key}`}
-                  onClick={() => setSel(p.key)}
-                >
-                  <td>
-                    <div className="pk-role">
-                      <span className="pk-glyph" aria-hidden="true">
-                        {p.glyph}
-                      </span>
-                      <div>
-                        <button
-                          type="button"
-                          className="pk-name"
-                          aria-pressed={sel === p.key}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSel(p.key);
-                          }}
-                        >
-                          {p.name}
-                        </button>{' '}
-                        {!p.builtin && <span className="ai-chip pk-own">Project copy v{p.version}</span>}
-                        <div className="pk-tag">{p.tagline}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{modelLabel(p)}</td>
-                  <td>{WRITES_LABEL[p.writes] ?? p.writes}</td>
-                  <td>{p.handsIn}</td>
-                  <td>
-                    <CeilingChip ceiling={p.ceiling} />
-                  </td>
-                  <td>{toolsLabel(p)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="pk-cards" data-testid="pack-table">
+          {packs.map((p) => (
+            <div
+              key={p.id}
+              className={`pk-card${sel === p.key ? ' pk-card-on' : ''}`}
+              data-testid={`pack-row-${p.key}`}
+              onClick={() => setSel(p.key)}
+            >
+              <div className="pk-role">
+                <span className="pk-glyph" aria-hidden="true">
+                  {p.glyph}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <button
+                    type="button"
+                    className="pk-name"
+                    aria-pressed={sel === p.key}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSel(p.key);
+                    }}
+                  >
+                    {p.name}
+                  </button>
+                  <div className="pk-tag">{p.tagline}</div>
+                </div>
+                {!p.builtin && <span className="ai-chip pk-own">Project copy v{p.version}</span>}
+              </div>
+              <dl className="pk-fields">
+                <dt>Model</dt>
+                <dd>{modelLabel(p)}</dd>
+                <dt>Writes</dt>
+                <dd>{WRITES_LABEL[p.writes] ?? p.writes}</dd>
+                <dt>Hands in</dt>
+                <dd>{p.handsIn}</dd>
+                <dt>Ceiling</dt>
+                <dd>
+                  <CeilingChip ceiling={p.ceiling} />
+                </dd>
+                <dt>Tools</dt>
+                <dd>{toolsLabel(p)}</dd>
+              </dl>
+            </div>
+          ))}
         </div>
       )}
 
@@ -126,7 +117,11 @@ export function PackLibrary({ projectId }: { projectId: string }) {
             </dd>
             <dt>Permissions and ceiling</dt>
             <dd>
-              The {open.template} template; <CeilingChip ceiling={open.ceiling} />
+              The {open.template} template; <CeilingChip ceiling={open.ceiling} />{' '}
+              {open.ceiling === 'none'
+                ? 'It may not move a ticket.'
+                : `It may move a ticket as far as ${STATUS_NAMES[open.ceiling] ?? open.ceiling} and no further.`}{' '}
+              Changing an assignee needs approval; deleting a ticket is never allowed.
             </dd>
             <dt>Where it may write</dt>
             <dd>{WRITES_LABEL[open.writes] ?? open.writes}</dd>
@@ -152,14 +147,14 @@ export function PackLibrary({ projectId }: { projectId: string }) {
             </dd>
           </dl>
           <div className="pk-actions">
-            <button className="ai-btn ai-btn-primary ai-btn-sm" onClick={() => setMaking(open)}>
-              Make a member from it
+            <button className="ai-btn ai-btn-sm" onClick={() => void doExport(open)}>
+              Export
             </button>
             <button className="ai-btn ai-btn-sm" onClick={() => setEdit(open)}>
               Edit
             </button>
-            <button className="ai-btn ai-btn-sm" onClick={() => void doExport(open)}>
-              Export
+            <button className="ai-btn ai-btn-primary ai-btn-sm" onClick={() => setMaking(open)}>
+              Make a member from it
             </button>
             {!open.builtin && (
               <button

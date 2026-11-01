@@ -73,6 +73,7 @@ describe('KnowledgeBasePanel', () => {
     http.patch.mockResolvedValue({ data: { ...detail, store: 'shared' } });
     mount();
     expect(await screen.findByText('Billing.pdf')).toBeTruthy();
+    expect(await screen.findByText(/PDF · added 28 Oct · not read yet/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Search the knowledge base'), { target: { value: 'webhook' } });
     fireEvent.click(screen.getByText('Search'));
     expect(await screen.findByText(/from the shared store/)).toBeTruthy();

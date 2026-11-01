@@ -7,6 +7,8 @@ import { extractError } from '../../../api/extractError';
 import type { AiSignal, SignalKind } from '../../../types/aiBoard';
 import { requestOpenNotifications } from '../../notifications/NotificationsHost';
 import { useAssist } from '../../assist/AssistContext';
+import { openRun } from '../../aiteam/runLink';
+import { useAiBoardState } from '../aiUi';
 
 const LOOK: Record<SignalKind, { border: string; bg: string; dot: string }> = {
   ai_hang: { border: '#F2C7BB', bg: '#FDECE8', dot: '#C4432A' },
@@ -16,9 +18,11 @@ const LOOK: Record<SignalKind, { border: string; bg: string; dot: string }> = {
   arbitration_wait: { border: '#F0DBA8', bg: '#FFFBEF', dot: '#B8860B' },
 };
 
-function SignalCard({ signal, projectId }: { signal: AiSignal; projectId: string }) {
+function SignalCard({ signal, projectId, onLeave }: { signal: AiSignal; projectId: string; onLeave: () => void }) {
   const qc = useQueryClient();
   const assist = useAssist();
+  const board = useAiBoardState();
+  const member = signal.memberId ? board.members.get(signal.memberId) : undefined;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -61,7 +65,9 @@ function SignalCard({ signal, projectId }: { signal: AiSignal; projectId: string
         openTicket();
         return;
       case 'quota_near':
-        setNote('Accounts are on the Members page, under AI accounts: move an urgent run to another account there.');
+        if (board.openAiTab) board.openAiTab('accounts');
+        else
+          setNote('Accounts are on the Members page, under AI accounts: move an urgent run to another account there.');
         return;
     }
   };
@@ -107,11 +113,36 @@ function SignalCard({ signal, projectId }: { signal: AiSignal; projectId: string
       <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>{signal.detail}</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <button type="button" className="ai-btn ai-btn-primary ai-btn-sm" disabled={busy} onClick={() => void act()}>
-          {signal.action}
+          {signal.kind === 'quota_near' && board.openAiTab ? 'Open AI accounts' : signal.action}
         </button>
-        {signal.ticketId && signal.kind !== 'arbitration_wait' && (
+        {signal.runId && (signal.kind === 'ai_hang' || signal.kind === 'ai_failing') && (
+          <button type="button" className="ai-btn ai-btn-sm" onClick={() => openRun(signal.runId!)}>
+            {signal.kind === 'ai_failing' ? 'Open the last run' : 'Open the run'}
+          </button>
+        )}
+        {signal.kind === 'ai_failing' && signal.memberId && member && (
+          <button
+            type="button"
+            className="ai-btn ai-btn-sm"
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                await aiApi.pause(signal.memberId!, { reason: 'Paused from an AI signal' });
+                return `${member.name} is paused. Resume it from the AI members page.`;
+              })
+            }
+          >
+            Pause {member.name}
+          </button>
+        )}
+        {signal.ticketId && signal.kind !== 'arbitration_wait' && !signal.runId && (
           <button type="button" className="ai-btn ai-btn-sm" onClick={openTicket}>
             Open {signal.ticketId}
+          </button>
+        )}
+        {(signal.kind === 'quota_near' || signal.kind === 'needs_queue') && (
+          <button type="button" className="ai-btn ai-btn-sm" onClick={onLeave}>
+            Leave it
           </button>
         )}
       </div>
@@ -129,6 +160,8 @@ function SignalCard({ signal, projectId }: { signal: AiSignal; projectId: string
  * sixth card of the design, Stuck, is the board's own insight and stays where Board health already shows it. */
 export function SignalCards({ projectId }: { projectId: string }) {
   const q = useSignals(projectId);
+  // Leave it: the card stays away until it is worse than when it was left (its score went up)
+  const [left, setLeft] = useState<Record<string, number>>({});
   if (q.isError)
     return (
       <div className="ai-notice ai-notice-error" role="alert" data-testid="signals-error" style={{ margin: 12 }}>
@@ -139,7 +172,7 @@ export function SignalCards({ projectId }: { projectId: string }) {
       </div>
     );
   if (q.isLoading) return <div className="as-skel" style={{ height: 60, margin: 12 }} data-testid="signals-loading" />;
-  const list = q.data ?? [];
+  const list = (q.data ?? []).filter((s) => !(s.key in left) || s.score > left[s.key]);
   if (!list.length) return <div data-testid="signal-cards" data-empty="true" />;
   return (
     <div
@@ -147,7 +180,12 @@ export function SignalCards({ projectId }: { projectId: string }) {
       style={{ display: 'flex', gap: 11, flexWrap: 'wrap', padding: '12px 18px', borderBottom: '1px solid #EDF1EE' }}
     >
       {list.map((s) => (
-        <SignalCard key={s.key} signal={s} projectId={projectId} />
+        <SignalCard
+          key={s.key}
+          signal={s}
+          projectId={projectId}
+          onLeave={() => setLeft((m) => ({ ...m, [s.key]: s.score }))}
+        />
       ))}
     </div>
   );

@@ -4,6 +4,7 @@ import {
   DEFAULT_FILTERS,
   useHistory,
   useHistoryCounts,
+  useHistoryTotal,
   useSkillUsage,
   useTranscriptUsage,
 } from '../../api/aiHistory';
@@ -57,6 +58,13 @@ function Snippet({ text }: { text: string }) {
       })}
     </div>
   );
+}
+
+/** "1,104 runs", or "1,104 runs · 17 match" while searching (just "17 match" until the full count is in). */
+function countWords(total: number, all: number | null, searching: boolean): string {
+  const runs = (n: number) => `${n.toLocaleString()} run${n === 1 ? '' : 's'}`;
+  if (!searching) return runs(total);
+  return all == null ? `${total.toLocaleString()} match` : `${runs(all)} · ${total.toLocaleString()} match`;
 }
 
 function Row({ r, onOpen }: { r: HistoryRow; onOpen: () => void }) {
@@ -121,6 +129,8 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
 
   const list = useHistory(projectId, filters, page);
   const counts = useHistoryCounts(projectId, filters);
+  const searching = filters.q.trim() !== '';
+  const allRuns = useHistoryTotal(projectId, filters, searching);
   const skills = useSkillUsage(projectId);
   const usage = useTranscriptUsage();
   const settings = useNotificationSettings();
@@ -130,7 +140,6 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
 
   const total = list.data?.total ?? 0;
   const runs = list.data?.runs ?? [];
-  const searching = filters.q.trim() !== '';
   const filtered =
     searching ||
     filters.memberId ||
@@ -145,7 +154,7 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
       <div className="hs-head">
         <h2>Run history</h2>
         <span className="hs-count" data-testid="hs-count">
-          {list.data ? (searching ? `${total} match` : `${total.toLocaleString()} run${total === 1 ? '' : 's'}`) : ''}
+          {list.data ? countWords(total, searching ? (allRuns.data ?? null) : null, searching) : ''}
         </span>
         <span style={{ flex: 1 }} />
         <label className="hs-search">
@@ -169,9 +178,9 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
       {showRetention ? (
         <div className="hs-panel" data-testid="hs-retention">
           <div className="hs-ret">
-            <span className="h">WHAT</span>
-            <span className="h">KEPT FOR</span>
-            <span className="h">WHY</span>
+            <span className="h">What</span>
+            <span className="h">Kept for</span>
+            <span className="h">Why</span>
             <b>The summary of a run</b>
             <span>Forever</span>
             <span>
@@ -190,9 +199,14 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
               You pin it, or the board pins it: the run behind a reverted change, the run that produced a lesson, the
               run attached to an arbitration.
             </span>
+            <b>Very large tool output</b>
+            <span>{retention} days, truncated in place</span>
+            <span>
+              The step keeps the first and last part; the whole output is stored beside it and fetched when you open it.
+            </span>
             <b>Anything that looks like a secret</b>
             <span>Never stored</span>
-            <span>Masked before writing.</span>
+            <span>Masked before writing, the same masking the board already applies to step output today.</span>
           </div>
         </div>
       ) : null}
@@ -304,12 +318,13 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
       ) : null}
 
       <div className="hs-note">
-        What the search reads: the summary and report, what the AI said, the name and arguments of every tool call, file
-        paths, error text, and the question it asked you.
+        <b>What the search reads.</b> The summary and report, what the AI said, the name and arguments of every tool
+        call, file paths, error text, and the question it asked you. Full text, so <code>npm test 2 failed</code> finds
+        the run that printed it.
       </div>
       <div className="hs-note" data-testid="hs-usage">
         {usage.data
-          ? `Transcripts: ${fmtBytes(usage.data.bytes)} of ${retention} days across ${usage.data.runs} run${usage.data.runs === 1 ? '' : 's'}. Summaries are kept forever and are small. ${usage.data.pinned} pinned run${usage.data.pinned === 1 ? ' is' : 's are'} never deleted.`
+          ? `Transcripts: ${fmtBytes(usage.data.bytes)} of ${retention} days. Summaries are kept forever and are small. ${usage.data.pinned} pinned run${usage.data.pinned === 1 ? ' is' : 's are'} never deleted.`
           : `Transcripts are kept for ${retention} days. Summaries are kept forever.`}
       </div>
     </div>

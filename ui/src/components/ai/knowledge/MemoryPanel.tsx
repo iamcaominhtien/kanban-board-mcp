@@ -111,7 +111,11 @@ export function MemoryPanel({ projectId, data }: { projectId: string; data: Know
           <div className="ai-hint">
             {l.sourceTicketId && (
               <>
-                From the run that finished <Source lesson={l} />.{' '}
+                From the run that finished <Source lesson={l} />
+                {l.createdAt
+                  ? ` at ${new Date(l.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`
+                  : ''}
+                .{' '}
               </>
             )}
             {proposedByLine(l.proposedBy)} It is not in any prompt until you keep it.

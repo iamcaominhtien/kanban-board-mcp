@@ -63,7 +63,8 @@ describe('a Needs you row with a diagnosis', () => {
     show(stuck());
     expect(screen.getByText(/did not answer/)).toBeTruthy();
     expect(screen.getByText('Retried at 30 s.')).toBeTruthy();
-    expect(screen.getByText(/Board fault/)).toBeTruthy();
+    expect(screen.getByText('Board fault · came straight to you, no AI was asked first')).toBeTruthy();
+    expect(screen.getByText('Already tried')).toBeTruthy();
   });
 
   it('runs a plain action straight away', () => {

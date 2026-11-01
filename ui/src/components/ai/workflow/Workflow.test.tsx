@@ -174,6 +174,7 @@ describe('the strip of steps', () => {
     expect(within(strip).getByTestId('wf-step-review').textContent).toContain('Review · Standard');
     expect(within(strip).getByTestId('wf-step-done').textContent).toContain('waiting for you');
     expect(screen.getByTestId('step-position').textContent).toBe('step 2 of 5');
+    expect(screen.getByTestId('who-held').textContent).toContain('Who did what');
     expect(screen.getByTestId('who-held').textContent).toContain('Dev An');
   });
 
@@ -189,8 +190,16 @@ describe('the strip of steps', () => {
   it('says a blocked step has no member', async () => {
     wf = view();
     wf.steps[1] = { ...wf.steps[1], state: 'blocked' };
+    const stepId = wf.steps[1].id;
     mount(<TicketWorkflow ticket={ticket} />);
-    expect((await screen.findByTestId('wf-step-build')).textContent).toContain('No member holds the Dev role');
+    const row = await screen.findByTestId('wf-step-build');
+    expect(row.textContent).toContain('No Dev on this project.');
+    expect(row.textContent).toContain('or skip the step for this ticket');
+    http.post.mockResolvedValue(ok(view()));
+    fireEvent.click(within(row).getByRole('button', { name: 'Skip this step' }));
+    await waitFor(() =>
+      expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow/skip', { step_id: stepId }),
+    );
   });
 
   it('offers only the control when the ticket has no workflow, and puts it on one', async () => {
@@ -270,7 +279,7 @@ describe('the design approval', () => {
     wf = waiting();
     mount(<TicketWorkflow ticket={ticket} />);
     const card = await screen.findByTestId('design-approval');
-    fireEvent.click(within(card).getByRole('button', { name: 'Send back with a note' }));
+    fireEvent.click(within(card).getByRole('button', { name: 'Change this first' }));
     fireEvent.change(within(card).getByLabelText('What to change'), { target: { value: ' Use a single line ' } });
     fireEvent.click(within(card).getByRole('button', { name: 'Send it back' }));
     await waitFor(() =>
@@ -376,7 +385,7 @@ describe('the test-first evidence', () => {
     wf.steps[1] = { ...wf.steps[1], state: 'done' };
     mount(<TicketWorkflow ticket={ticket} />);
     expect((await screen.findByTestId('tdd-why')).textContent).toContain('every run passed');
-    fireEvent.click(screen.getByRole('button', { name: 'Send it back to Dev' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send it back to Dev An' }));
     await waitFor(() =>
       expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow/send-back', {
         role: 'dev',

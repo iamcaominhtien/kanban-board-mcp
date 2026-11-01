@@ -66,7 +66,7 @@ export function ArbitrationCard({
             </b>{' '}
             {ruling.reason}
             <div className="wf-hint">
-              It saw the diff and both sides, and neither AI’s transcript. It did not touch the ticket.
+              It saw the diff and both rounds, and neither AI’s transcript. It did not touch the ticket.
             </div>
           </div>
           <span className="wf-hint">{hhmm(ruling.at)}</span>

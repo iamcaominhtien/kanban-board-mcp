@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { aiApi, useAiBoard } from '../../../api/ai';
 import { codeApi, useCodeMutation, useWorktrees } from '../../../api/aiCode';
 import { extractError } from '../../../api/extractError';
 import { usePatchProjectOps, useProjectOps, type ProjectOps } from '../../../api/aiProjectOps';
@@ -68,12 +69,16 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
   const ops = useProjectOps(projectId);
   const patch = usePatchProjectOps(projectId);
   const list = useWorktrees(projectId);
+  const board = useAiBoard(projectId);
+  const runOf = new Map((board.data?.runs ?? []).map((r) => [r.ticketId, r]));
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const remove = useCodeMutation((id: string) => codeApi.remove(id));
   const keep = useCodeMutation((id: string) => codeApi.keep(id));
   const cleanup = useCodeMutation(() => codeApi.cleanup(projectId));
+  const stop = useCodeMutation((runId: string) => aiApi.cancel(runId, 'Stopped from Repositories'));
+  const open = useCodeMutation((id: string) => codeApi.open(id));
 
   if (ops.isLoading) return <div className="ai-skel" style={{ height: 120 }} aria-busy="true" aria-label="Loading" />;
   if (ops.error || !ops.data)
@@ -234,7 +239,7 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
         <div className="ai-card" style={{ padding: 12 }} data-testid="worktree-list">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <div style={{ flex: 1 }}>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>Worktrees</span>{' '}
+              <span style={{ fontSize: 13, fontWeight: 700 }}>Where the AIs work</span>{' '}
               {list.data && (
                 <span className="ai-hint">
                   {list.data.worktrees.length} worktree{list.data.worktrees.length === 1 ? '' : 's'} ·{' '}
@@ -289,7 +294,13 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
                   <WorktreeRow
                     key={w.ticketId}
                     w={w}
-                    busy={remove.isPending || keep.isPending}
+                    run={runOf.get(w.ticketId)}
+                    busy={remove.isPending || keep.isPending || stop.isPending}
+                    onOpen={() => void act(() => open.mutateAsync(w.ticketId))}
+                    onStop={() => {
+                      const r = runOf.get(w.ticketId);
+                      if (r) void act(() => stop.mutateAsync(r.id));
+                    }}
                     onRemove={() => void act(() => remove.mutateAsync(w.ticketId))}
                     onKeep={() => void act(() => keep.mutateAsync(w.ticketId))}
                     onCopyPath={() => void navigator.clipboard?.writeText(w.path)}

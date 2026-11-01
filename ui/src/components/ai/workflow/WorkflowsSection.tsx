@@ -12,6 +12,7 @@ export function WorkflowsSection({ projectId }: { projectId: string }) {
   const q = useWorkflowTemplates(projectId);
   const metrics = useWorkflowMetrics(projectId);
   const [edit, setEdit] = useState<WorkflowTemplate | null>(null);
+  const [fresh, setFresh] = useState(false);
   const byKey = useMemo(() => {
     const m = new Map<string, WorkflowMetric>();
     (metrics.data ?? []).forEach((x) => m.set(x.templateKey, x));
@@ -34,6 +35,12 @@ export function WorkflowsSection({ projectId }: { projectId: string }) {
 
   return (
     <div data-testid="workflows-section" data-project={projectId} className="wf-wrap">
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ flex: 1 }} />
+        <button type="button" className="ai-btn ai-btn-sm ai-btn-primary" onClick={() => setFresh(true)}>
+          New workflow
+        </button>
+      </div>
       <div className="wf-hint">
         A ticket follows one of these. Triage picks it from the type and the labels; you change it on the ticket. The
         last three columns are measured, over the last 30 days.
@@ -100,8 +107,41 @@ export function WorkflowsSection({ projectId }: { projectId: string }) {
         <b>The italic step is done by code, not by an AI.</b> <i>Checks</i> runs the project’s test, lint and build
         commands and collects the test-first evidence. It costs no quota, and no AI review starts until it passes.
       </div>
+      <div className="wf-hint">
+        <b>Few steps, cut where the context has to change.</b> A step exists because the next worker should start clean,
+        not because a phase has a name.
+      </div>
+      <div className="wf-hint">
+        <b>An odd job has no workflow.</b> Handing a ticket straight to one AI still works and is not a failure of the
+        system. It gets an optional reviewer field and nothing else.
+      </div>
       {edit && (
-        <TemplateEditor projectId={projectId} template={edit} templates={templates} onClose={() => setEdit(null)} />
+        <TemplateEditor
+          projectId={projectId}
+          template={edit}
+          templates={templates}
+          ticketsOn={byKey.get(edit.key)?.tickets ?? 0}
+          onClose={() => setEdit(null)}
+        />
+      )}
+      {fresh && (
+        <TemplateEditor
+          projectId={projectId}
+          template={{
+            key: '',
+            name: 'New workflow',
+            description: '',
+            version: 0,
+            builtin: false,
+            personStops: 1,
+            warning: null,
+            steps: (templates.find((t) => t.key === 'quick_fix') ?? templates[0])?.steps ?? [],
+          }}
+          templates={templates}
+          isNew
+          ticketsOn={0}
+          onClose={() => setFresh(false)}
+        />
       )}
     </div>
   );

@@ -49,16 +49,13 @@
 }
 .tc-mark {
   flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-top: 7px;
+  margin-top: 2px;
 }
 .tc-mark-amber {
-  background: #b8860b;
+  color: #7a5a06;
 }
 .tc-mark-grey {
-  background: #9aa8a0;
+  color: #5b6b60;
 }
 .tc-actions {
   display: flex;

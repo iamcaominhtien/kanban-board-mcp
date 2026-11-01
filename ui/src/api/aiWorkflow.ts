@@ -35,6 +35,16 @@ export const workflowApi = {
     (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/decide`, { approve, note })).data,
   sendBack: async (ticketId: string, role: string, note: string) =>
     (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/send-back`, { role, note })).data,
+  reviewer: async (ticketId: string) =>
+    (await client.get<{ ticketId: string; reviewerId: string | null }>(`/tickets/${ticketId}/ai/reviewer`)).data,
+  setReviewer: async (ticketId: string, memberId: string | null) =>
+    (
+      await client.put<{ ticketId: string; reviewerId: string | null }>(`/tickets/${ticketId}/ai/reviewer`, {
+        member_id: memberId,
+      })
+    ).data,
+  skip: async (ticketId: string, stepId?: string) =>
+    (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/skip`, { step_id: stepId })).data,
   depth: async (ticketId: string, depth: ReviewDepth) =>
     (await client.patch<WorkflowView>(`/tickets/${ticketId}/ai/workflow/depth`, { depth })).data,
   rule: async (ticketId: string, side: 'reviewer' | 'dev' | 'split', reason?: string) =>
@@ -77,6 +87,16 @@ export function useTicketWorkflow(ticketId: string, enabled = true) {
     queryFn: () => workflowApi.view(ticketId),
     enabled: !!ticketId && enabled,
     refetchInterval: (q) => (q.state.data?.steps.some((s) => s.state === 'active') ? LIVE_POLL_MS : SAFETY_POLL_MS),
+  });
+}
+
+/** An odd job's optional reviewer (an AI member id), or null. */
+export function useOddJobReviewer(ticketId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['ai', 'ticket-reviewer', ticketId],
+    queryFn: () => workflowApi.reviewer(ticketId),
+    enabled: !!ticketId && enabled,
+    retry: false,
   });
 }
 

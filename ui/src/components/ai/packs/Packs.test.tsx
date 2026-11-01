@@ -159,6 +159,8 @@ describe('pack library', () => {
     expect(within(table).getAllByText('Sonnet · medium, Opus on a retry').length).toBeTruthy();
     expect(within(table).getByText('By depth: Haiku / Sonnet / Opus')).toBeTruthy();
     expect(within(table).getAllByText(/Figma MCP/).length).toBeTruthy();
+    for (const l of ['Model', 'Writes', 'Hands in', 'Ceiling', 'Tools'])
+      expect(within(table).getAllByText(l).length).toBe(8);
   });
 
   it('shows an error with a retry', async () => {
@@ -174,6 +176,13 @@ describe('pack library', () => {
     expect(within(d).getByText('Dev (TDD) — what is in the pack')).toBeTruthy();
     expect(within(d).getByText('A red run, then a green one')).toBeTruthy();
     expect(within(d).getByText(/1 run at a time, 10 runs a day/)).toBeTruthy();
+    expect(d.textContent).toContain(
+      'and no further. Changing an assignee needs approval; deleting a ticket is never allowed.',
+    );
+    const names = within(d)
+      .getAllByRole('button')
+      .map((b) => b.textContent);
+    expect(names.indexOf('Export')).toBeLessThan(names.indexOf('Make a member from it'));
   });
 
   it('edits a pack and saves it as a new version', async () => {

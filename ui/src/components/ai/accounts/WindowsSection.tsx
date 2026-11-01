@@ -6,7 +6,7 @@ import { useToast } from '../../Toast';
 import { LoadError, Toggle } from '../aiUi';
 import { MoveUrgentDialog } from './MoveUrgentDialog';
 import { WindowBar } from './WindowBar';
-import { clock, isHeld, planLine, readText, runsText, windowTone } from './windowFormat';
+import { clock, isHeld, lastReadText, planLine, runsText, windowTone } from './windowFormat';
 
 function minutesSince(iso: string | null, nowMs: number): number {
   return iso ? Math.max(0, Math.round((nowMs - new Date(iso).getTime()) / 60_000)) : 0;
@@ -64,7 +64,7 @@ function WindowCard({
   const signedOut = account.status !== 'signed_in';
   return (
     <div
-      className={`win-card ${held || tone === 'full' ? 'win-card-held' : ''}`}
+      className={`win-card ${held || tone === 'full' ? 'win-card-held' : ''} ${signedOut ? 'win-card-out' : ''}`}
       data-testid={`window-${account.key}`}
       data-held={held}
     >
@@ -79,8 +79,7 @@ function WindowCard({
         <WindowBar label="5 hours" window={account.fiveHour} nowMs={nowMs} />
         <WindowBar label="Week" window={account.sevenDay} nowMs={nowMs} />
         <div className="acc-hint" data-testid="win-read">
-          {readText(account.readAt)}
-          {signedOut && account.readAt ? ', before it signed out' : ''}
+          {lastReadText(account.readAt, signedOut)}
         </div>
       </div>
       <div className="win-runs">
@@ -92,7 +91,7 @@ function WindowCard({
         ))}
         {runs.running && <div className="acc-hint">{runs.running}</div>}
         <div
-          className={held ? 'win-held' : 'acc-hint'}
+          className={held || signedOut ? 'win-held' : 'acc-hint'}
           data-testid="win-waiting"
           title={account.heldReason ?? undefined}
         >
@@ -163,6 +162,12 @@ export function WindowsSection({ projectId }: { projectId: string }) {
     const room: RoomAccount[] = windows.data.room;
     body = (
       <div className="win-list">
+        <div className="win-card win-cols" aria-hidden="true">
+          <span>Claude account</span>
+          <span>This window</span>
+          <span>Running now</span>
+          <span />
+        </div>
         {windows.data.accounts.map((a) => (
           <WindowCard
             key={a.key}
@@ -186,6 +191,11 @@ export function WindowsSection({ projectId }: { projectId: string }) {
         </span>
       </div>
       {body}
+      <div className="win-note">
+        <b>Where these numbers come from.</b> The CLI does not publish what is left in a window. The board learns it two
+        ways: it counts what it spent itself, and it reads the reset time the CLI gives when a limit is actually hit. So
+        the bar is the board’s own count and says so; the reset time is exact.
+      </div>
       {moving && windows.data && (
         <MoveUrgentDialog
           account={moving}

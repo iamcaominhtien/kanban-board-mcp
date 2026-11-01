@@ -9,6 +9,7 @@ import { AsksFirst, DoneReceipt } from './DoneReceipt';
 const FIELD_LABEL: Record<string, string> = {
   status: 'Status',
   priority: 'Priority',
+  tags: 'Labels',
   assignee: 'Assignee',
   due_date: 'Due date',
   estimate: 'Estimate',
@@ -21,6 +22,7 @@ function show(ch: DraftChange, side: 'from' | 'to'): string {
   if (ch.op === 'status') return STATUS_LABEL[String(v)] ?? String(v);
   if (ch.op === 'priority') return String(v ?? '').replace(/^\w/, (c) => c.toUpperCase());
   if (ch.op === 'estimate') return v == null ? 'No estimate' : `${v} pt`;
+  if (ch.op === 'tags') return Array.isArray(v) && v.length ? v.join(', ') : 'No labels';
   if (ch.op === 'due_date')
     return v ? new Date(String(v)).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'No date';
   return v == null ? '—' : String(v);

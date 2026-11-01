@@ -1,6 +1,13 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAiBoardState, LoadError, ago } from '../aiUi';
-import { useWorkflowMutation, useWorkflowTemplates, useTicketWorkflow, workflowApi } from '../../../api/aiWorkflow';
+import {
+  useOddJobReviewer,
+  useWorkflowMutation,
+  useWorkflowTemplates,
+  useTicketWorkflow,
+  workflowApi,
+} from '../../../api/aiWorkflow';
 import { extractError } from '../../../api/extractError';
 import { useTicketFlags } from '../../../api/aiCode';
 import type { Ticket } from '../../../types';
@@ -22,7 +29,9 @@ import {
 import { RoleChip } from './WfUi';
 import './workflow.css';
 
-function StepRow({ s, last, view }: { s: ViewStep; last: boolean; view: WorkflowView }) {
+function StepRow({ s, last, view, ticketId }: { s: ViewStep; last: boolean; view: WorkflowView; ticketId: string }) {
+  const [skipError, setSkipError] = useState<string | null>(null);
+  const skip = useWorkflowMutation(ticketId, (_: void) => workflowApi.skip(ticketId, s.id));
   const st = stepStateLabel(s, last);
   const you = s.kind === 'person';
   const bad = s.state === 'blocked' || s.state === 'failed';
@@ -87,8 +96,26 @@ function StepRow({ s, last, view }: { s: ViewStep; last: boolean; view: Workflow
         ))}
         {s.state === 'blocked' && s.kind === 'ai' && (
           <div className="wf-note" style={{ color: '#a5321e' }}>
-            No member holds the {roleName(s.role)} role on this project. Make one from the pack in Project settings › AI
-            › Role packs.
+            <b>No {roleName(s.role)} on this project.</b> Make one from the pack in Project settings › AI › Role packs,
+            or skip the step for this ticket.
+            <div className="wf-actions" style={{ marginTop: 6 }}>
+              <button
+                type="button"
+                className="ai-btn ai-btn-sm"
+                disabled={skip.isPending}
+                onClick={() => {
+                  setSkipError(null);
+                  skip.mutate(undefined, { onError: (e) => setSkipError(extractError(e)) });
+                }}
+              >
+                Skip this step
+              </button>
+            </div>
+            {skipError && (
+              <div className="ai-error-text" role="alert">
+                {skipError}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -163,8 +190,7 @@ function DesignApproval({ step, view, ticketId }: { step: ViewStep; view: Workfl
       <div className="wf-line">
         {prev && <RoleChip role={prev.role} />}
         <b>
-          {prev?.memberName ?? 'The AI'} has a {prev?.label.toLowerCase() ?? 'result'} for{' '}
-          {step.label.toLowerCase().replace(/^you approve /, '')}
+          {prev?.memberName ?? 'The AI'} has a {prev?.label.toLowerCase() ?? 'result'} for {ticketId}
         </b>
         <span className="wf-grow" style={{ flex: 1 }} />
         <span className="wf-pill wf-pill-you">Waiting for you</span>
@@ -195,7 +221,7 @@ function DesignApproval({ step, view, ticketId }: { step: ViewStep; view: Workfl
               Approve, go on and build it
             </button>
             <button type="button" className="ai-btn ai-btn-sm" onClick={() => setSendBack(true)}>
-              Send back with a note
+              Change this first
             </button>
           </>
         ) : (
@@ -252,6 +278,14 @@ function PutOnWorkflow({ ticket, onDone }: { ticket: Ticket; onDone?: () => void
   const put = useWorkflowMutation(ticket.id, async (k: string) => {
     return workflowApi.attach(ticket.id, k);
   });
+  const { members } = useAiBoardState();
+  const reviewer = useOddJobReviewer(ticket.id);
+  const qc = useQueryClient();
+  const setReviewer = useMutation({
+    mutationFn: (id: string | null) => workflowApi.setReviewer(ticket.id, id),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['ai', 'ticket-reviewer', ticket.id] }),
+  });
+  const assignee = ticket.assignee ? members.get(ticket.assignee) : undefined;
   if (templates.isLoading) return <div className="ai-skel" style={{ height: 44 }} aria-busy="true" />;
   if (templates.error || !templates.data)
     return <LoadError what="the workflows" error={templates.error} onRetry={() => void templates.refetch()} />;
@@ -259,8 +293,27 @@ function PutOnWorkflow({ ticket, onDone }: { ticket: Ticket; onDone?: () => void
   return (
     <div className="wf-line" data-testid="put-on-workflow">
       <span className="wf-hint" style={{ flexBasis: '100%' }}>
-        No workflow &mdash; an odd job. Put it on one and the AIs follow its steps instead of inventing a process.
+        {assignee ? `No workflow — assigned to ${assignee.name}` : 'No workflow'}. An odd job: put it on one and the AIs
+        follow its steps instead of inventing a process.
       </span>
+      <label className="wf-line" style={{ gap: 6 }}>
+        <span className="wf-h">Reviewer</span>
+        <select
+          className="wf-input"
+          style={{ width: 'auto', minWidth: 160 }}
+          aria-label="Reviewer"
+          value={reviewer.data?.reviewerId ?? ''}
+          disabled={setReviewer.isPending || reviewer.isLoading}
+          onChange={(e) => setReviewer.mutate(e.target.value || null, { onError: (x) => setError(extractError(x)) })}
+        >
+          <option value="">Optional</option>
+          {[...members.values()].map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+      </label>
       <select
         className="wf-input"
         style={{ width: 'auto', minWidth: 180 }}
@@ -370,11 +423,7 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
   const position = (current?.idx ?? (view.state === 'done' ? last : 0)) + 1;
   const approval = view.steps.find((s) => s.kind === 'person' && s.idx < last && s.state === 'waiting');
   const rounds = totalRounds(view.rounds);
-  const held: { name: string; role: string | null }[] = [];
-  view.steps.forEach((s) => {
-    if (s.kind === 'ai' && s.memberName && !held.some((h) => h.name === s.memberName))
-      held.push({ name: s.memberName, role: s.role });
-  });
+  const did = view.steps.filter((s) => s.state === 'done' || s.state === 'active').filter((s) => s.kind !== 'code');
   const arbitrationOpen = !!flags.data?.some((f) => f.kind === 'arbitration' && f.open);
 
   return wrap(
@@ -398,17 +447,25 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
       {changing && <ChangeWorkflow ticket={ticket} onDone={() => setChanging(false)} />}
       <div className="wf-strip" data-testid="workflow-strip">
         {view.steps.map((s) => (
-          <StepRow key={s.id} s={s} last={s.idx === last} view={view} />
+          <StepRow key={s.id} s={s} last={s.idx === last} view={view} ticketId={ticket.id} />
         ))}
       </div>
-      {held.length > 0 && (
-        <div className="wf-line" data-testid="who-held">
-          <span className="wf-h">Who held it</span>
-          {held.map((h) => (
-            <span key={h.name} className="wf-line" style={{ gap: 5 }}>
-              <RoleChip role={h.role} />
-              <span style={{ fontSize: 12.5 }}>{h.name}</span>
-            </span>
+      {did.length > 0 && (
+        <div style={{ display: 'grid', gap: 4 }} data-testid="who-held">
+          <span className="wf-h">Who did what</span>
+          {did.map((s) => (
+            <div key={s.id} className="wf-line" style={{ gap: 6 }}>
+              <RoleChip
+                role={s.kind === 'person' ? 'you' : s.role}
+                title={s.kind === 'person' ? 'You' : roleName(s.role)}
+              />
+              <span style={{ fontSize: 12.5 }}>
+                {s.kind === 'person' ? 'You approved' : (s.memberName ?? roleName(s.role))}
+              </span>
+              <span className="wf-hint">
+                {s.label} · {s.state === 'active' ? 'now' : s.endedAt ? ago(s.endedAt) : ''}
+              </span>
+            </div>
           ))}
         </div>
       )}

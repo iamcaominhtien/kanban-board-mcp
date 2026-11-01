@@ -32,6 +32,9 @@ export function KbRow({
   };
   const isPrivate = d.data?.private;
   const read = d.data?.lastReadAt ? ago(d.data.lastReadAt) : d.data ? 'never' : '';
+  const added = d.data
+    ? new Date(d.data.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    : '';
   const shared = doc.store === 'shared';
   const pane = open && d.data && (
     <KbDetailPane
@@ -107,7 +110,8 @@ export function KbRow({
               </>
             )}
             {isPrivate ? ' · private' : ''}
-            {d.data ? ` · read ${read}` : ''}
+            {d.data ? ` · added ${added}` : ''}
+            {d.data ? (d.data.lastReadAt ? ` · last read ${read}` : ' · not read yet') : ''}
           </span>
           <span style={{ flex: 1 }} />
           {toggle}

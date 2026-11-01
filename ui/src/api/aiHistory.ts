@@ -95,6 +95,17 @@ export function useHistoryCounts(projectId: string, f: HistoryFilters) {
   >;
 }
 
+/** How many runs the other filters hold without the search text: the "1,104 runs" of "1,104 runs · 17 match". */
+export function useHistoryTotal(projectId: string, f: HistoryFilters, enabled: boolean) {
+  const params = { ...historyParams(projectId, { ...f, q: '' }, 0), limit: 1 };
+  return useQuery({
+    queryKey: historyKeys.list(params),
+    queryFn: async () => (await client.get<HistoryPage>('/ai/history', { params })).data.total,
+    enabled: !!projectId && enabled,
+    placeholderData: keepPreviousData,
+  });
+}
+
 /** What the board kept of one run. */
 export function useTranscript(runId: string | null) {
   return useQuery({

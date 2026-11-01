@@ -1,4 +1,6 @@
+import type { AiRun } from '../../../types/ai';
 import type { HandoverRoute, Worktree, WorktreeState } from '../../../types/aiCode';
+import { hhmm } from '../aiUi';
 
 export const STATE_LABEL: Record<WorktreeState, string> = {
   active: 'In use',
@@ -28,12 +30,24 @@ export const ROUTE_TEXT: Record<Exclude<HandoverRoute, 'auto'>, string> = {
   branch: 'The branch is pushed and you open whatever your host calls a merge request.',
 };
 
+/** A run that is queued or going on this ticket. */
+export function isRunning(run: AiRun | null | undefined): boolean {
+  return !!run && ['queued', 'starting', 'running'].includes(run.state);
+}
+
+/** "Waiting for you": nothing is running and the AI left changes that are not committed (design I). */
+export function waitsForYou(w: Worktree, run: AiRun | null | undefined): boolean {
+  return w.state === 'active' && !isRunning(run) && uncommittedCount(w) > 0;
+}
+
+export const WAITING_LABEL = 'Waiting for you';
+
 /** A worktree state as a chip. */
-export function StateChip({ state }: { state: WorktreeState }) {
-  const t = STATE_TONE[state];
+export function StateChip({ state, waiting }: { state: WorktreeState; waiting?: boolean }) {
+  const t = waiting ? { bg: '#FDF0E6', fg: '#B4571F' } : STATE_TONE[state];
   return (
     <span className="ai-chip" style={{ background: t.bg, color: t.fg }} data-testid="worktree-state">
-      {STATE_LABEL[state]}
+      {waiting ? WAITING_LABEL : STATE_LABEL[state]}
     </span>
   );
 }
@@ -68,18 +82,29 @@ export function uncommittedText(w: Worktree): string {
 /** One row of the worktree list. */
 export function WorktreeRow({
   w,
+  run,
   busy,
   onRemove,
   onKeep,
   onCopyPath,
+  onOpen,
+  onStop,
 }: {
   w: Worktree;
+  /** The latest run on the ticket, when known. */
+  run?: AiRun | null;
   busy?: boolean;
   onRemove: () => void;
   onKeep: () => void;
   onCopyPath: () => void;
+  onOpen?: () => void;
+  onStop?: () => void;
 }) {
   const dirty = uncommittedCount(w) > 0;
+  const running = isRunning(run);
+  const who = run?.memberName
+    ? `${run.memberName}${running ? '' : ` stopped${run.endedAt ? ` at ${hhmm(run.endedAt)}` : ''}`} · `
+    : '';
   return (
     <tr data-testid={`worktree-${w.ticketId}`}>
       <td>
@@ -88,20 +113,31 @@ export function WorktreeRow({
       <td>
         <div className="ai-mono">{w.branch}</div>
         <div className="ai-muted">
+          {who}
           {uncommittedText(w)}
           {w.live && !w.live.exists ? ' · folder missing' : ''}
         </div>
       </td>
       <td>
-        <StateChip state={w.state} />
+        <StateChip state={w.state} waiting={waitsForYou(w, run)} />
       </td>
       <td>{mbText(w.live?.sizeMb)}</td>
       <td className="ai-mono">{w.port ?? '-'}</td>
       <td>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {onOpen && w.state !== 'removed' && (
+            <button type="button" className="ai-btn ai-btn-sm" onClick={onOpen} title={w.path}>
+              Open folder
+            </button>
+          )}
           <button type="button" className="ai-btn ai-btn-sm" onClick={onCopyPath} title={w.path}>
             Copy path
           </button>
+          {running && onStop && (
+            <button type="button" className="ai-btn ai-btn-sm ai-btn-danger-outline" disabled={busy} onClick={onStop}>
+              Stop
+            </button>
+          )}
           {w.state === 'conflict' && (
             <a
               className="ai-btn ai-btn-sm ai-btn-primary"

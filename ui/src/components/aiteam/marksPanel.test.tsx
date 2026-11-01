@@ -48,7 +48,7 @@ describe('MarksPanel', () => {
     mount();
     expect((await screen.findAllByTestId('mark-never')).length).toBeTruthy();
     expect(screen.getByText('Not runnable yet')).toBeTruthy();
-    expect(screen.getByText(/Marks run on a sandbox/)).toBeTruthy();
+    expect(screen.getByText(/Why a sandbox/)).toBeTruthy();
   });
 
   it('shows the last score and runs a suite with the chosen member', async () => {
@@ -59,5 +59,15 @@ describe('MarksPanel', () => {
     expect(await screen.findByTestId('marks-light-hint')).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Run Board tools'));
     await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/evals/run', { suite: 'board', memberId: 'a1' }));
+  });
+
+  it('runs every suite that can run with Run all now', async () => {
+    wire([]);
+    http.post.mockResolvedValue({ data: { markId: 'm2', suite: 'board', runs: 1 } });
+    mount();
+    await screen.findAllByTestId('mark-never');
+    fireEvent.click(screen.getByText('Run all now'));
+    await waitFor(() => expect(http.post).toHaveBeenCalledTimes(1));
+    expect(http.post).toHaveBeenCalledWith('/ai/evals/run', { suite: 'board', memberId: 'a1' });
   });
 });

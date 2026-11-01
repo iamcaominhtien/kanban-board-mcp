@@ -270,7 +270,14 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
           <div className="pk-box">
             <div className="pk-box-title">What the board read</div>
             <FoundList scan={scan} />
+            <div className="ai-sub">All of it read from files. No quota spent.</div>
           </div>
+          {!d.test && !d.lint && !d.build && !d.prepare && (
+            <div className="ai-notice ai-notice-warn" role="status" data-testid="scan-found-nothing">
+              The scan found no manifest and no CI workflow, so it has no commands to suggest and will not invent them.
+              Type the prepare, test, lint and build commands below by hand.
+            </div>
+          )}
           <div className="pk-box-title">What it suggests — change anything</div>
 
           <div className="pk-box" data-testid="team-box">
@@ -400,7 +407,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
                 <input className="ai-input pk-cmd" value={d.build} onChange={(e) => setD('build', e.target.value)} />
               </label>
               <label>
-                First port for worktrees
+                Ports: first port for worktrees
                 <input
                   className="ai-input"
                   type="number"

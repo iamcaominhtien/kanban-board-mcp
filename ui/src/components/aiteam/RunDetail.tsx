@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { aiKeys } from '../../api/ai';
+import { aiOpsApi } from '../../api/aiOps';
+import { ContinueNoteDialog } from '../ai/trouble/ContinueNoteDialog';
 import { exportRunUrl, usePinRun, useRunRecord, useTranscript } from '../../api/aiHistory';
 import { extractError } from '../../api/extractError';
 import type { Entry, HistoryRow } from '../../types/aiHistory';
@@ -151,7 +155,10 @@ function Given({ entries, run }: { entries: Entry[]; run: HistoryRow }) {
         {sent?.system ? (
           <>
             <b>System prompt</b>
-            <Collapsible label="Persona, the board’s own rules, and the project instructions" text={sent.system} />
+            <Collapsible
+              label={`Persona of ${whoOf(run)}, the board’s own rules, and the project instructions — about ${Math.round(sent.system.length / 4).toLocaleString()} tokens`}
+              text={sent.system}
+            />
           </>
         ) : null}
         {sent?.prompt ? (
@@ -205,6 +212,8 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
   const pin = usePinRun();
   const [pane, setPane] = useState<Pane>('steps');
   const [pinError, setPinError] = useState<string | null>(null);
+  const [noting, setNoting] = useState(false);
+  const qc = useQueryClient();
 
   if (t.isError) {
     return (
@@ -226,6 +235,7 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
   const pinned = !!transcript?.pinned;
   const removed = transcript?.removedAt ?? null;
   const rec = record.data;
+  const startNote = givenOf(entries).sent?.note?.trim() ?? '';
   const tests = rec?.report?.tests;
 
   const togglePin = () => {
@@ -261,6 +271,11 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
         ) : null}
         <span style={{ flex: 1 }} />
         <div className="hs-actions">
+          {run.state === 'failed' || run.state === 'timed_out' || run.state === 'cancelled' ? (
+            <button type="button" className="tl-btn" onClick={() => setNoting(true)}>
+              Continue with a note
+            </button>
+          ) : null}
           <a className="tl-btn" href={exportRunUrl(runId, 'md')} download>
             Export as Markdown
           </a>
@@ -321,6 +336,16 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
           </span>
         ) : null}
       </div>
+      {noting ? (
+        <ContinueNoteDialog
+          ended
+          onSubmit={async (note) => {
+            await aiOpsApi.continueWith(runId, note);
+            void qc.invalidateQueries({ queryKey: aiKeys.all });
+          }}
+          onClose={() => setNoting(false)}
+        />
+      ) : null}
       {pinError ? (
         <div className="hs-warn" role="alert">
           {pinError}
@@ -375,8 +400,8 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
             </div>
             <div className="hs-body">
               <button type="button" className="hs-line" onClick={() => setPane('given')}>
-                <span className="t">Started, with everything it was given</span>
-                <span className="hs-meta">open</span>
+                <span className="t">Started.{startNote ? ` The note it was given: “${startNote}”` : ''}</span>
+                <span className="hs-meta">what it was given</span>
               </button>
             </div>
           </div>

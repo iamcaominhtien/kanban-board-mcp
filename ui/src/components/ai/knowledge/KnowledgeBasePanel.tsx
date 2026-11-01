@@ -76,7 +76,12 @@ export function KnowledgeBasePanel({ projectId }: { projectId: string }) {
             </button>
           )}
           <span style={{ flex: 1 }} />
-          <button type="button" className="ai-btn ai-btn-sm" onClick={() => setAdding(!adding)} aria-expanded={adding}>
+          <button
+            type="button"
+            className="ai-btn ai-btn-primary ai-btn-sm"
+            onClick={() => setAdding(!adding)}
+            aria-expanded={adding}
+          >
             Add files
           </button>
         </div>

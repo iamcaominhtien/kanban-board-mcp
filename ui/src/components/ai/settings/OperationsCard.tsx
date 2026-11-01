@@ -43,7 +43,7 @@ export function OperationsCard({ projectId }: { projectId: string }) {
       <div className="ai-hint">Changes take effect on the next run.</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>Look at a run that printed nothing for</div>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>Say nothing is moving after</div>
           <div className="ai-hint">
             How long with no new output before the board diagnoses the run. A build that is still printing never trips
             it.

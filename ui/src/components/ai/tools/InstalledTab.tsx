@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { aiPluginsApi, usePluginMutation } from '../../../api/aiPlugins';
 import { extractError } from '../../../api/extractError';
 import type { Plugin, PluginAction, PluginChanges, UpdateCheck } from '../../../types/aiPlugins';
-import { ago } from '../aiUi';
-import { Toggle } from '../aiUi';
+import { ago, Toggle, useAiBoardState } from '../aiUi';
 import { ROLES, applyFilter, buildRows, countOf, mb, roleName, type Filter, type Row } from './pluginLogic';
 import type { SkillUsage } from '../../../types/aiPlugins';
 
@@ -53,7 +52,12 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
       setUpdate(null);
       setChanges(null);
     });
+  const { members } = useAiBoardState();
   const uses = p.used?.uses ?? 0;
+  const usedBy = (p.used?.byMember ?? [])
+    .map((m) => members.get(m.memberId)?.name)
+    .filter((n): n is string => !!n)
+    .join(', ');
 
   return (
     <div className="ai-card" data-testid={`plugin-${p.name}`} style={{ padding: 12, display: 'grid', gap: 6 }}>
@@ -73,7 +77,9 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
           {p.pinned ? ' · pinned' : ''}
           {update?.update && update.latest ? ` → ${update.latest}` : ''}
         </span>
-        <span data-testid="used">{uses === 0 ? 'never used' : `used ${uses} times`}</span>
+        <span data-testid="used">
+          {uses === 0 ? 'never used' : `used ${uses} times${usedBy ? ` by ${usedBy}` : ''}`}
+        </span>
         <span>
           On by default: {p.defaultOn ? 'every member' : p.roles.length ? p.roles.map(roleName).join(', ') : 'nobody'}
         </span>
@@ -211,7 +217,7 @@ function LooseRow({ r }: { r: Row }) {
       <span className="ai-hint" style={{ flex: 1 }}>
         Attached to members · managed in each member's configuration
       </span>
-      <span className="ai-hint">{u.uses === 0 ? `never · in ${u.runs} runs` : `used ${u.uses} times`}</span>
+      <span className="ai-hint">{u.uses === 0 ? `never in ${u.runs} runs` : `used ${u.uses} times`}</span>
     </div>
   );
 }

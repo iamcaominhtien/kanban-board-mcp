@@ -9,9 +9,11 @@ vi.mock('../../../api/client', () => ({ client: http }));
 
 import { BoardAiSection } from './BoardAiSection';
 import { SignalCards } from './SignalCards';
-import { DoneReceipt, appliedWords } from '../../assist/DoneReceipt';
+import { AiBoardContext, type AiBoardState } from '../aiUi';
+import { AsksFirst, DoneReceipt, appliedWords } from '../../assist/DoneReceipt';
 import type { AssistDraft } from '../../../types/assist';
 
+const emptyBoard: AiBoardState = { projectId: 'p1', members: new Map(), runsByTicket: new Map(), settings: null };
 const wrap = (ui: ReactNode) => (
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
     {ui}
@@ -92,6 +94,40 @@ describe('SignalCards', () => {
     await screen.findByTestId('signal-note');
   });
 
+  it('opens the accounts page from the quota card, and Leave it puts the card away', async () => {
+    const openAiTab = vi.fn();
+    http.get.mockReturnValue(
+      ok([sig({ kind: 'quota_near', key: 'q1', ticketId: null, runId: null, action: 'Hold low-priority work' })]),
+    );
+    render(
+      wrap(
+        <AiBoardContext.Provider value={{ ...emptyBoard, openAiTab }}>
+          <SignalCards projectId="p1" />
+        </AiBoardContext.Provider>,
+      ),
+    );
+    fireEvent.click(await screen.findByText('Open AI accounts'));
+    expect(openAiTab).toHaveBeenCalledWith('accounts');
+    fireEvent.click(screen.getByText('Leave it'));
+    await waitFor(() => expect(screen.queryByTestId('signal-quota_near')).toBeNull());
+  });
+
+  it('offers the run and pausing the AI on a failing card', async () => {
+    const members = new Map([['m1', { id: 'm1', name: 'Reviewer Rin' }]]);
+    http.get.mockReturnValue(ok([sig({ memberId: 'm1' })]));
+    http.post.mockReturnValue(ok({}));
+    render(
+      wrap(
+        <AiBoardContext.Provider value={{ ...emptyBoard, members: members as never }}>
+          <SignalCards projectId="p1" />
+        </AiBoardContext.Provider>,
+      ),
+    );
+    expect(await screen.findByText('Open the last run')).toBeTruthy();
+    fireEvent.click(screen.getByText('Pause Reviewer Rin'));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/members/m1/pause', expect.anything()));
+  });
+
   it('shows nothing when there are no signals', async () => {
     http.get.mockReturnValue(ok([]));
     render(wrap(<SignalCards projectId="p1" />));
@@ -119,5 +155,27 @@ describe('DoneReceipt', () => {
     fireEvent.click(screen.getByText('Undo all 2'));
     expect(undo).toHaveBeenCalled();
     expect(appliedWords({ op: 'status', after: 'in-progress' })).toBe('moved to In Progress');
+  });
+
+  it('says which change was refused and why, and offers to undo the rest', () => {
+    const draft = {
+      status: 'applied',
+      appliedBy: 'An Nguyen',
+      result: {
+        count: 1,
+        applied: [{ i: 0, op: 'status', ticket: 'KAN-220', before: 'todo', after: 'in-progress' }],
+        errors: [{ i: 1, ticket: 'KAN-219', message: 'Done asks first.' }],
+      },
+    } as unknown as AssistDraft;
+    render(<DoneReceipt draft={draft} busy={false} onUndo={vi.fn()} />);
+    const t = screen.getByTestId('done-refused').textContent ?? '';
+    expect(t).toContain('1 of 2 went through.');
+    expect(t).toContain('was refused: Done asks first.');
+    expect(t).toContain('Undo puts it back.');
+  });
+
+  it('names the ask-first card the way the design does', () => {
+    render(<AsksFirst reasons={['Moving KAN-219 to Done asks first']} />);
+    expect(screen.getByText('One thing I will not do without you')).toBeTruthy();
   });
 });

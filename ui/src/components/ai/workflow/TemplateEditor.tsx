@@ -51,11 +51,17 @@ export function TemplateEditor({
   projectId,
   template,
   templates,
+  ticketsOn = 0,
+  isNew = false,
   onClose,
 }: {
   projectId: string;
   template: WorkflowTemplate;
   templates: WorkflowTemplate[];
+  /** How many tickets are on this template now (from the measurements). */
+  ticketsOn?: number;
+  /** A workflow written from a copy of a template: only "Save as new" applies. */
+  isNew?: boolean;
   onClose: () => void;
 }) {
   const packs = usePacks(projectId);
@@ -141,7 +147,7 @@ export function TemplateEditor({
   };
   const saveNew = () => {
     const taken = templates.map((t) => t.key);
-    const n = name.trim() === template.name ? `${name.trim()} (copy)` : name.trim();
+    const n = !isNew && name.trim() === template.name ? `${name.trim()} (copy)` : name.trim();
     setName(n);
     void run(uniqueKey(slug(n), taken), n);
   };
@@ -152,12 +158,12 @@ export function TemplateEditor({
       className="ai-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label={`Edit ${template.name}`}
+      aria-label={isNew ? 'New workflow' : `Edit ${template.name}`}
       data-testid="template-editor"
     >
       <div className="ai-modal" style={{ width: 780 }}>
         <div className="ai-modal-head">
-          <h2 className="ai-modal-title">Edit workflow</h2>
+          <h2 className="ai-modal-title">{isNew ? 'New workflow' : 'Edit workflow'}</h2>
           <div className="wf-hint">
             Templates are versioned: a ticket remembers the version it started on, so editing one never rewrites what a
             ticket did last week.
@@ -184,6 +190,12 @@ export function TemplateEditor({
               />
             </label>
           </div>
+          {ticketsOn > 0 && (
+            <div className="ai-notice ai-notice-info" data-testid="in-use">
+              {ticketsOn} ticket{ticketsOn === 1 ? ' is' : 's are'} on this template. Changing it leaves them to finish
+              on the old shape; save it as a new template to keep both.
+            </div>
+          )}
           <StepChain steps={steps} names={names} selected={sel} onSelect={setSel} />
           <div className="wf-hint">
             {stepsSummary(steps)}
@@ -396,20 +408,22 @@ export function TemplateEditor({
           <span className="wf-grow" style={{ flex: 1 }} />
           <button
             type="button"
-            className="ai-btn"
+            className={isNew ? 'ai-btn ai-btn-primary' : 'ai-btn'}
             disabled={save.isPending || !!noRole || !name.trim()}
             onClick={saveNew}
           >
             Save as new
           </button>
-          <button
-            type="button"
-            className="ai-btn ai-btn-primary"
-            disabled={save.isPending || !!noRole || !name.trim()}
-            onClick={() => void run(template.key, name.trim())}
-          >
-            Change this one
-          </button>
+          {!isNew && (
+            <button
+              type="button"
+              className="ai-btn ai-btn-primary"
+              disabled={save.isPending || !!noRole || !name.trim()}
+              onClick={() => void run(template.key, name.trim())}
+            >
+              Change this one
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -17,6 +17,8 @@ export function appliedWords(a: AppliedChange): string {
       return a.after ? `given to ${text(a.after)}` : 'taken off its assignee';
     case 'priority':
       return `priority set to ${cap(a.after)}`;
+    case 'tags':
+      return Array.isArray(a.after) && a.after.length ? `labels set to ${a.after.join(', ')}` : 'labels cleared';
     case 'estimate':
       return a.after == null ? 'estimate cleared' : `estimate set to ${a.after} pt`;
     case 'due_date':
@@ -119,7 +121,16 @@ export function DoneReceipt({
         </div>
       ))}
       {draft.result.errors?.length ? (
-        <div className="ai-hint">{draft.result.errors.length} could not be applied.</div>
+        <div className="ai-hint" data-testid="done-refused" style={{ color: '#7A5A06' }}>
+          {n} of {n + draft.result.errors.length} went through.{' '}
+          {draft.result.errors.map((e, i) => (
+            <span key={i}>
+              {e.ticket ? <TicketPill id={e.ticket} /> : 'One change'} was refused: {e.message.replace(/[.\s]+$/, '')}
+              .{' '}
+            </span>
+          ))}
+          {n === 1 ? 'Undo puts it back.' : `Undo all ${n} puts them back.`}
+        </div>
       ) : null}
       {skipped.length ? (
         <div className="ai-hint" data-testid="undo-skipped">
@@ -153,7 +164,11 @@ export function AsksFirst({ reasons }: { reasons: string[] }) {
         gap: 6,
       }}
     >
-      <b style={{ fontSize: 12.5 }}>This asks you first</b>
+      <b style={{ fontSize: 12.5 }}>
+        {reasons.length === 1
+          ? 'One thing I will not do without you'
+          : `${reasons.length} things I will not do without you`}
+      </b>
       <ul style={{ margin: 0, paddingLeft: 17, fontSize: 12.5, lineHeight: 1.6 }}>
         {reasons.map((r, i) => (
           <li key={i}>{r}</li>

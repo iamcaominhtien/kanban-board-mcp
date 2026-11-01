@@ -72,30 +72,21 @@ export function WorkflowFilters({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 6,
-          padding: '5px 10px',
-          borderRadius: 6,
-          border: waiting ? '1.5px solid #C77700' : '1px solid #F0C77A',
-          background: waiting ? '#FFE8BD' : '#FFFAF0',
-          color: '#8A4B00',
-          fontSize: 12.5,
+          gap: 5,
+          height: 28,
+          padding: '0 11px',
+          borderRadius: 999,
+          border: waiting ? '1px solid #2E6F40' : '1px solid #D5DED8',
+          background: waiting ? '#2E6F40' : '#fff',
+          color: waiting ? '#fff' : '#3A4A3E',
+          fontSize: 12,
           fontWeight: 600,
+          whiteSpace: 'nowrap',
           cursor: 'pointer',
         }}
       >
         Waiting for me
-        <span
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            fontWeight: 700,
-            background: 'rgba(199,119,0,0.18)',
-            padding: '0 5px',
-            borderRadius: 999,
-          }}
-        >
-          {options.waitingCount}
-        </span>
+        <b style={{ fontWeight: 700, opacity: 0.8 }}>{options.waitingCount}</b>
       </button>
       {options.roles.length > 0 &&
         dropdown(

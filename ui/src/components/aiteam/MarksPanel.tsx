@@ -30,12 +30,26 @@ export function MarksPanel({ projectId }: { projectId: string }) {
   const chosen = members.find((m) => m.id === memberId) ?? members[0];
   const light = (m: string | null | undefined) => !!m && /haiku|mini|flash|lite/i.test(m);
   const all = marks.data ?? [];
+  const idle = (suites.data ?? []).filter(
+    (s) => s.runnable && !all.some((m) => m.suite === s.key && m.state === 'running'),
+  );
 
   const start = async (suite: string) => {
     if (!chosen) return;
     setError(null);
     try {
       await run.mutateAsync({ suite, memberId: chosen.id });
+    } catch (e) {
+      setError(extractError(e));
+    }
+  };
+
+  /** Every suite that can run from here and is not running, one after the other. */
+  const startAll = async () => {
+    if (!chosen) return;
+    setError(null);
+    try {
+      for (const s of idle) await run.mutateAsync({ suite: s.key, memberId: chosen.id });
     } catch (e) {
       setError(extractError(e));
     }
@@ -72,6 +86,14 @@ export function MarksPanel({ projectId }: { projectId: string }) {
             ))}
           </select>
         </label>
+        <button
+          type="button"
+          className="ai-btn ai-btn-primary ai-btn-sm"
+          disabled={!chosen || !idle.length || run.isPending}
+          onClick={() => void startAll()}
+        >
+          Run all now
+        </button>
       </div>
       <div style={{ ...note, maxWidth: 1000 }}>
         Run against a fixed sandbox project with a sample repository whose bugs are known. Use a light model, which is
@@ -240,8 +262,8 @@ export function MarksPanel({ projectId }: { projectId: string }) {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <div style={noteCard}>
           <div style={note}>
-            <b>Marks run on a sandbox.</b> A mark is only comparable if the questions do not change. Running these
-            against your real project would measure the project, and would also leave litter in it.
+            <b>Why a sandbox.</b> A mark is only comparable if the questions do not change. Running these against your
+            real project would measure the project, and would also leave litter in it.
           </div>
         </div>
         <div style={noteCard}>

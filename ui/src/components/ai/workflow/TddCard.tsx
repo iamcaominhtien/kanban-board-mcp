@@ -78,8 +78,8 @@ export function TddCard({ ticketId, view }: { ticketId: string; view: WorkflowVi
         {e.runsSeen > 0 ? ` (${e.runsSeen} run${e.runsSeen === 1 ? '' : 's'} looked at)` : ''}
       </div>
       <div className="wf-note">
-        The pack says a red run and a green one, and prose is not either of them. The choice below is not a stop of its
-        own: it waits with everything else at the last step.
+        The step is <b>not marked done</b>. The pack says a red run and a green one, and prose is not either of them.
+        The choice below is not a stop of its own: it waits with everything else at the last step.
       </div>
       <div className="wf-actions">
         <button
@@ -91,7 +91,7 @@ export function TddCard({ ticketId, view }: { ticketId: string; view: WorkflowVi
             send.mutate(`No test-first evidence: ${e.why}`, { onError: (x) => setError(extractError(x)) });
           }}
         >
-          Send it back to Dev
+          Send it back to {dev.memberName ?? 'Dev'}
         </button>
       </div>
       {error && (

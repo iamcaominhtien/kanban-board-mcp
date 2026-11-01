@@ -4,6 +4,7 @@ import type { Tier } from '../../../types/aiBoard';
 export const OP_WORDS: Record<string, string> = {
   status: 'Move a ticket to another column',
   priority: 'Change a ticket’s priority',
+  tags: 'Change a ticket’s labels',
   assignee: 'Assign a ticket',
   due_date: 'Set a due date',
   estimate: 'Set an estimate',

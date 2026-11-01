@@ -5,6 +5,7 @@ import { aiOpsApi } from '../../../api/aiOps';
 import { extractError } from '../../../api/extractError';
 import type { AiRun } from '../../../types/ai';
 import { openRun } from '../../aiteam/runLink';
+import { Badge } from '../../aiteam/teamUi';
 import { ContinueNoteDialog } from './ContinueNoteDialog';
 import { HandToDialog } from './HandToDialog';
 import { TROUBLE_LABELS, isTroubleAction, liveDiagnosis, processWords, troubleTitle } from './troubleUi';
@@ -12,11 +13,35 @@ import './trouble.css';
 
 type Dialog = 'note' | 'hand' | null;
 
-/** One line of the card: an icon word, a bold lead and the text. */
-function Line({ lead, tone, children }: Readonly<{ lead: string; tone?: 'amber' | 'grey'; children: string }>) {
+const LINE_ICONS = {
+  found: 'M11 4.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM16 16l4.5 4.5',
+  means: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z',
+  tried: 'M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4M12 8v4l3 2',
+} as const;
+
+/** One line of the card: an icon, a bold lead and the text. */
+function Line({
+  lead,
+  icon,
+  tone,
+  children,
+}: Readonly<{ lead: string; icon: keyof typeof LINE_ICONS; tone?: 'amber' | 'grey'; children: string }>) {
   return (
     <div className="tc-line">
-      <span className={`tc-mark tc-mark-${tone ?? 'amber'}`} aria-hidden="true" />
+      <svg
+        className={`tc-mark tc-mark-${tone ?? 'amber'}`}
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d={LINE_ICONS[icon]} />
+      </svg>
       <div>
         <b>{lead}.</b> {children}
       </div>
@@ -67,6 +92,7 @@ export function TroubleCard({ run }: Readonly<{ run: AiRun }>) {
   return (
     <div className="tc-card" data-testid="trouble-card">
       <div className="tc-head">
+        <Badge name={run.memberName ?? 'AI'} size={28} />
         <div className="tc-headtext">
           <div className="tc-title">{troubleTitle(d, run.memberName ?? 'The AI')}</div>
           <div className="ai-muted">
@@ -79,9 +105,13 @@ export function TroubleCard({ run }: Readonly<{ run: AiRun }>) {
         </span>
       </div>
       <hr className="tc-rule" />
-      <Line lead="What the board found">{d.what}</Line>
-      <Line lead="What that means">{d.means}</Line>
-      <Line lead="Already tried" tone="grey">
+      <Line lead="What the board found" icon="found">
+        {d.what}
+      </Line>
+      <Line lead="What that means" icon="means">
+        {d.means}
+      </Line>
+      <Line lead="Already tried" icon="tried" tone="grey">
         {tried}
       </Line>
       <div className="tc-actions">

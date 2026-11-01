@@ -372,6 +372,29 @@
   border-color: #f2c7bb;
   background: #fdece8;
 }
+.win-card-out {
+  border-color: #f0dba8;
+  background: #fffbef;
+}
+.win-cols {
+  padding-top: 0;
+  padding-bottom: 2px;
+  border: none;
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.win-note {
+  border: 1px solid #cbddee;
+  border-radius: 10px;
+  background: #f2f7fc;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
 .win-bars,
 .win-runs,
 .win-actions {
@@ -454,6 +477,9 @@
 @media (max-width: 900px) {
   .win-card {
     grid-template-columns: 1fr;
+  }
+  .win-cols {
+    display: none;
   }
   .win-actions {
     align-items: flex-start;
