@@ -1132,12 +1132,39 @@ async def move_status(run_id: str, target: str) -> bool:
     return True
 
 
+# One append at a time per run: steps and files are read, extended and written back, so two appends at once (the
+# CLI output reader and a pause, say) would otherwise lose one of them
+_append_locks: dict[str, asyncio.Lock] = {}
+
+
 async def _append(
     run_id: str,
     steps: list[dict] | None = None,
     files: list[dict] | None = None,
     results: list[dict] | None = None,
     **fields,
+) -> AiRun | None:
+    lock = _append_locks.setdefault(run_id, asyncio.Lock())
+    async with lock:
+        run = await _append_now(run_id, steps, files, results, fields)
+    if (run is None or run.state in ENDED) and not lock.locked():
+        _append_locks.pop(
+            run_id, None
+        )  # nothing more is expected; a late line takes a new lock
+    if run is None:
+        return None
+    if "cost_usd" in fields and run.metered:
+        await safety.check_budget_alerts(run.member_id)
+    await _publish()
+    return run
+
+
+async def _append_now(
+    run_id: str,
+    steps: list[dict] | None,
+    files: list[dict] | None,
+    results: list[dict] | None,
+    fields: dict,
 ) -> AiRun | None:
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
@@ -1180,9 +1207,6 @@ async def _append(
         session.add(run)
         await session.commit()
         await session.refresh(run)
-    if "cost_usd" in fields and run.metered:
-        await safety.check_budget_alerts(run.member_id)
-    await _publish()
     return run
 
 

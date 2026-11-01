@@ -32,6 +32,9 @@ One place for what needs you and what happened: Notifications ([#253](https://gi
 ### Removed
 - The 09:00 AI safety digest: quiet safety events are ordinary Updates rows when they happen, and the day card is the only summary. Board health keeps its own 09:00 digest.
 
+### Fixed
+- **A step of an AI run could be lost**, such as "Paused by …" when output was still arriving: two steps written at the same moment each overwrote the other's list. They are now written one at a time per run.
+
 ## [3.18.2] - 2026-11-01
 
 Two fixes for AI members: pictures on the Docs pages they write, and no replay of old "finished" toasts.
