@@ -165,11 +165,11 @@ Hàng 24–32 đã đối chiếu (2026-11-01).
 **Tổng kết (sau khi đối chiếu đủ 32 hàng):** 12 màn mới (5, 7, 8, 9, 10, 11, 12, 18, 23, 25, 27, 28), 10 sửa màn cũ (2, 4, 6, 13, 14, 15, 16, 19, 20, 22), 6 vừa sửa vừa thêm phần mới (1, 3, 17, 24, 26, 29), 1 phần lớn đã có (21), 3 hàng thuộc mục khác (30 → #5, 31 → #20, 32 → #21).
 Hai việc cần người dùng xác nhận trước khi giao designer: #19 đảo nguyên tắc "chỉ nháp" của Board AI (tài liệu `ai-board-assistant` nhắc bất biến này ở 10 chỗ: A1, B1, B2, C1, D1, F1, I, I7, I10 và ô Invariant — đảo nó là sửa cả tài liệu, không phải một dòng); #12 thêm phát hiện vòng lặp (đã xem lý do bản cũ bị bỏ; không mâu thuẫn, chỉ cần người dùng biết).
 
-**Mâu thuẫn phát hiện khi đối chiếu:** `ai-safety-cost` H1 có cột **Email** và bản tóm tắt 09:00, trong khi thiết kế thông báo (PR #251) bỏ bản 09:00 (thay bằng thẻ 18:00) và bảng kênh của nó không có cột Email. Khi làm hàng #22 phải thống nhất hai bảng này.
+**Mâu thuẫn phát hiện khi đối chiếu, đã chốt ở D26:** `ai-safety-cost` H1 có cột **Email** và bản tóm tắt 09:00, trong khi thiết kế thông báo (PR #251) bỏ bản 09:00 (thay bằng thẻ 18:00) và bảng kênh của nó không có cột Email. H1 là bên phải sửa; việc đó thuộc board `ai-safety-cost`.
 
 **Đã thiết kế:**
 - Đợt 1 — [`design/screens/ai-operations.md`](../../design/screens/ai-operations.md) (mục A–M): phủ các hàng 16, 17, 18, 20, 21, 24 (phần chỉ dẫn + trí nhớ), 31, 32.
-- Đợt 2 — [`design/screens/ai-team-process.md`](../../design/screens/ai-team-process.md) (mục A–N): phủ các hàng 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 25, 26, 30.
+- Đợt 2 — [`design/screens/ai-team-process.md`](../../design/screens/ai-team-process.md) (mục A–N): phủ các hàng 1, 2, 3, **4**, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 25, 26, 30. (Hàng 4 — ngân sách context của member — nằm ở mục B: thẻ member ghi "base prompt 3,140 tokens".)
 - Đợt 3 — [`design/screens/ai-board-wave3.md`](../../design/screens/ai-board-wave3.md) (mục A–N): phủ các hàng 19, 22, 24 (phần kho kiến thức), 27, 28, 29.
 
 Cả 32 hàng của mục 5 đã có thiết kế. Mục B của đợt 3 liệt kê đúng 10 chỗ trong `ai-board-assistant` nói "chỉ nháp" và nói rõ cái gì thay thế từng chỗ — đây là việc #19 cần người dùng xác nhận trước khi giao dev.
@@ -290,6 +290,7 @@ Câu hỏi:
   tự điều phối (tách việc, giao, cho chạy, gắn quy trình) hoặc giao cho PM lo phần điều phối kéo dài. Thứ bậc: người dùng > Board AI (nói thay người dùng)
   > PM > các member. Lệnh từ Board AI thắng quyết định của PM; PM cần người thì báo qua Board AI / thông báo.
 - D25. **Board AI chủ động, làm kỹ** (chi tiết ngay dưới).
+- D26. **Bảng kênh `ai-safety-cost` H1 theo thiết kế thông báo.** Bỏ cột **Email** (app không gửi email) và bỏ bản tóm tắt 09:00 (thẻ 18:00 của thiết kế thông báo thay nó). Sửa trên chính board `ai-safety-cost`, không phải ở ba board AI.
 
 ### Board AI chủ động (D25)
 
