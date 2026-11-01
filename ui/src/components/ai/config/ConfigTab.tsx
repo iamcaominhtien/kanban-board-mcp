@@ -25,6 +25,7 @@ import { BYPASS_PHRASE, CfgCard, Chip, Dialog, ModeChip, SkeletonCard, useDeboun
 import { SkillsCard } from './SkillsCard';
 import { SyncPreview } from './SyncPreview';
 import { countChanges } from './changes';
+import { ConfigMigrationOffer } from '../code/ConfigMigrationOffer';
 
 const GROUP_LABEL: Record<string, string> = {
   skills: 'Skills',
@@ -564,6 +565,7 @@ export function ConfigTab({
             </>
           )}
         </div>
+        {kind !== 'inbox' && <ConfigMigrationOffer memberId={member.id} projectId={member.projectId} />}
         {matrix && <MatrixPanel provider={member.provider} />}
         {status?.undo && (
           <div className="ai-notice ai-notice-info" style={{ alignItems: 'center' }} data-testid="undo-reset">

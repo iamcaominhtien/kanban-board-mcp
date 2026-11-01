@@ -58,6 +58,7 @@ def classify(
         api in ("authentication_failed", "authentication_error")
         or status == 401
         or (not said and _SIGNED_OUT.search(err))
+        or re.search(r"not logged in|please run /login", said, re.IGNORECASE)
     ):
         return "signed_out", said or err
     if _COMPACT.search(both):

@@ -2221,6 +2221,15 @@ async def _execute_cli_held(
             )
         if fresh_with_note:
             prompt = f"{prompt}\n\n---\n\n{fresh_with_note}"
+        # The member's own plugin folder (per-run configuration) and the plugins installed on the project that it
+        # gets (design B: the project default, its role, its own switch)
+        plugin_dirs = (
+            [run_cfg["plugin_dir"]] if run_cfg and run_cfg.get("plugin_dir") else []
+        )
+        if profile.provider == "claude-code" and not (agy or adapter):
+            from . import plugins as ai_plugins
+
+            plugin_dirs += await ai_plugins.dirs_for(session, profile)
         if run_cfg and run_cfg.get("system"):
             system = f"{system}\n\nThis member's own instructions:\n{run_cfg['system']}"
         if worktree is not None:
@@ -2374,9 +2383,7 @@ async def _execute_cli_held(
                 effort=config.get("effort"),
                 extra_flags=extra_flags,
                 bypass=bypass,
-                plugin_dirs=[run_cfg["plugin_dir"]]
-                if run_cfg and run_cfg.get("plugin_dir")
-                else None,
+                plugin_dirs=plugin_dirs or None,
             )
         run.session_id = session_id
         session.add(run)
@@ -2691,25 +2698,29 @@ async def _execute_cli_held(
             reason = f"Exit code {code}." + (f" {tail[:240]}" if tail else "")
         low = tail.lower()
         if "log in" in low or "login" in low or "not authenticated" in low:
-            async with database.async_session() as session:
-                _, profile = await get_profile(session, run.member_id)
-                profile.health = "not_logged_in"
-                profile.health_detail = "The CLI is installed but its session expired."
-                session.add(profile)
-                await session.commit()
-                if profile.account_id and (
-                    acct := await session.get(AiAccount, profile.account_id)
-                ):
-                    # Every member on the account is held together, and told once
-                    await accounts.mark_signed_out(
-                        session,
-                        acct,
-                        how="run",
-                        detail="The CLI said it is not signed in.",
-                    )
-            # Held, not failed: the run resumes by itself the moment the account is signed in again (design C5)
-            await _hold_signed_out(run_id, tail or "not signed in")
-            return
+            kind = "signed_out"
+    if kind == "signed_out":
+        # the CLI says it is not signed in (in stderr, or in its result as "Not logged in · Please run /login")
+        tail = _plain(" ".join(proc.stderr_tail[-3:])) or said
+        async with database.async_session() as session:
+            _, profile = await get_profile(session, run.member_id)
+            profile.health = "not_logged_in"
+            profile.health_detail = "The CLI is installed but its session expired."
+            session.add(profile)
+            await session.commit()
+            if profile.account_id and (
+                acct := await session.get(AiAccount, profile.account_id)
+            ):
+                # Every member on the account is held together, and told once
+                await accounts.mark_signed_out(
+                    session,
+                    acct,
+                    how="run",
+                    detail="The CLI said it is not signed in.",
+                )
+        # Held, not failed: the run resumes by itself the moment the account is signed in again (design C5)
+        await _hold_signed_out(run_id, tail or "not signed in")
+        return
     async with database.async_session() as session:
         stopped = await session.get(AiRun, run_id)
     diagnosis = (

@@ -6,6 +6,8 @@ import { BoardAiPicker } from './AiDialogs';
 import { AiAvatar, Toggle } from './aiUi';
 import { LibraryModal } from './config/LibraryView';
 import { OperationsCard } from './settings/OperationsCard';
+import { KnowledgeSection } from './knowledge/KnowledgeSection';
+import { RepositoriesSection } from './code/RepositoriesSection';
 
 const EXPIRY = [
   [1, '1 h'],
@@ -206,6 +208,12 @@ export function AiSettingsSection({
       <div className="ai-divider" />
       <div style={{ fontSize: 13, fontWeight: 700 }}>Operations</div>
       <OperationsCard projectId={projectId} />
+      <div className="ai-divider" />
+      <div style={{ fontSize: 13, fontWeight: 700 }}>Project knowledge</div>
+      <KnowledgeSection projectId={projectId} />
+      <div className="ai-divider" />
+      <div style={{ fontSize: 13, fontWeight: 700 }}>Repositories</div>
+      <RepositoriesSection projectId={projectId} />
       {library && <LibraryModal projectId={projectId} onClose={() => setLibrary(false)} />}
       {picker && overview.data && (
         <BoardAiPicker

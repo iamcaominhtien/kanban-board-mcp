@@ -150,6 +150,62 @@ def upgrade() -> None:
     )
     op.create_index("ix_ai_worktree_project_id", "ai_worktree", ["project_id"])
     op.create_index("ix_ai_worktree_state", "ai_worktree", ["state"])
+    op.create_table(
+        "ai_plugin",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("source_kind", sa.String(), nullable=False, server_default="git"),
+        sa.Column("source", sa.String(), nullable=False),
+        sa.Column("ref", sa.String(), nullable=True),
+        sa.Column("plugin", sa.String(), nullable=True),
+        sa.Column("skills_wanted", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("commit", sa.String(), nullable=True),
+        sa.Column("version", sa.String(), nullable=True),
+        sa.Column("description", sa.String(), nullable=True),
+        sa.Column("path", sa.String(), nullable=True),
+        sa.Column("skills", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("hooks", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("mcp", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("size_bytes", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("pinned", sa.Boolean(), nullable=False, server_default="0"),
+        sa.Column("default_on", sa.Boolean(), nullable=False, server_default="0"),
+        sa.Column("roles", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("members", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("previous", sa.String(), nullable=True),
+        sa.Column("installed_by", sa.String(), nullable=True),
+        sa.Column("installed_at", sa.String(), nullable=False),
+        sa.Column("updated_at", sa.String(), nullable=False),
+    )
+    op.create_index("ix_ai_plugin_project_id", "ai_plugin", ["project_id"])
+    op.create_index("ix_ai_plugin_name", "ai_plugin", ["name"])
+    op.create_table(
+        "ai_role_pack",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("key", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
+        sa.Column("body", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("history", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("created_at", sa.String(), nullable=False),
+        sa.Column("updated_at", sa.String(), nullable=False),
+        sa.Column("updated_by", sa.String(), nullable=True),
+    )
+    op.create_index("ix_ai_role_pack_project_id", "ai_role_pack", ["project_id"])
+    op.create_index("ix_ai_role_pack_key", "ai_role_pack", ["key"])
+    op.create_table(
+        "ai_repo_scan",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("folder", sa.String(), nullable=False),
+        sa.Column("found", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("suggested", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("trial", sa.String(), nullable=False, server_default="{}"),
+        sa.Column("applied_at", sa.String(), nullable=True),
+        sa.Column("created_at", sa.String(), nullable=False),
+    )
+    op.create_index("ix_ai_repo_scan_project_id", "ai_repo_scan", ["project_id"])
     # NEXT-UPGRADE
 
     bind = op.get_bind()
@@ -162,6 +218,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # NEXT-DOWNGRADE
+    op.drop_index("ix_ai_repo_scan_project_id", table_name="ai_repo_scan")
+    op.drop_table("ai_repo_scan")
+    op.drop_index("ix_ai_role_pack_key", table_name="ai_role_pack")
+    op.drop_index("ix_ai_role_pack_project_id", table_name="ai_role_pack")
+    op.drop_table("ai_role_pack")
+    op.drop_index("ix_ai_plugin_name", table_name="ai_plugin")
+    op.drop_index("ix_ai_plugin_project_id", table_name="ai_plugin")
+    op.drop_table("ai_plugin")
     op.drop_index("ix_ai_worktree_state", table_name="ai_worktree")
     op.drop_index("ix_ai_worktree_project_id", table_name="ai_worktree")
     op.drop_table("ai_worktree")

@@ -88,6 +88,7 @@ async def _needs_row(c, pred, timeout=10.0):
         (None, 139, ["Segmentation fault"], "crash"),
         ({"text": "Prompt is too long"}, 1, [], "compact"),
         (None, 1, ["Not logged in. Please log in"], "signed_out"),
+        ({"text": "Not logged in · Please run /login"}, 1, [], "signed_out"),
         (
             {"text": "API Error: 429 rate_limit_error. Retry after 30 seconds."},
             1,

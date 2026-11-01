@@ -1390,6 +1390,84 @@ class AiWorktree(SQLModel, table=True):
     merged_at: Optional[str] = Field(default=None)
 
 
+class AiPlugin(SQLModel, table=True):
+    """A plugin installed on a project from a git URL, a marketplace or a folder (services/ai/plugins.py) (table)."""
+
+    __tablename__ = "ai_plugin"
+
+    id: str = Field(
+        default_factory=lambda: f"plg_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: Optional[str] = Field(default=None, index=True)
+    name: str = Field(index=True)
+    source_kind: str = Field(default="git")  # git | marketplace | folder
+    source: str
+    ref: Optional[str] = Field(
+        default=None
+    )  # a tag, branch or commit; a commit when pinned
+    plugin: Optional[str] = Field(default=None)  # the marketplace entry
+    skills_wanted: str = Field(
+        default="[]"
+    )  # a subset of the entry's skills, when chosen
+    commit: Optional[str] = Field(default=None)
+    version: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
+    path: Optional[str] = Field(default=None)  # the installed copy
+    skills: str = Field(default="[]")
+    hooks: int = Field(default=0)
+    mcp: int = Field(default=0)
+    size_bytes: int = Field(default=0)
+    pinned: bool = Field(default=False)
+    default_on: bool = Field(default=False)  # the project default
+    roles: str = Field(default="[]")  # role pack keys that get it
+    members: str = Field(default="{}")  # {member_id: on/off}: a member's own switch
+    previous: Optional[str] = Field(
+        default=None
+    )  # JSON {path, commit, version, skills}: one button puts it back
+    installed_by: Optional[str] = Field(default=None)
+    installed_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiRolePack(SQLModel, table=True):
+    """A project's own role pack, or its edited copy of a ready-made one (services/ai/packs.py) (table)."""
+
+    __tablename__ = "ai_role_pack"
+
+    id: str = Field(
+        default_factory=lambda: f"pck_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    key: str = Field(index=True)
+    name: str
+    version: int = Field(default=1)
+    body: str = Field(
+        default="{}"
+    )  # JSON: persona, model, effort, tools, permissions, writes, hands in, limits
+    history: str = Field(default="[]")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+    updated_by: Optional[str] = Field(default=None)
+
+
+class AiRepoScan(SQLModel, table=True):
+    """What the repository scan found, what it suggested and how its trial run went (services/ai/repo_scan.py)
+    (table)."""
+
+    __tablename__ = "ai_repo_scan"
+
+    id: str = Field(
+        default_factory=lambda: f"scn_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    folder: str
+    found: str = Field(default="{}")
+    suggested: str = Field(default="{}")
+    trial: str = Field(default="{}")
+    applied_at: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+
+
 class AiAccountState(SQLModel, table=True):
     """The usage window and run limit of one Claude account, or of "local" (members on the person's own login)
     (table). Read from the CLI's `rate_limit_event` (services/ai/quota.py)."""
