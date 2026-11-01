@@ -5,6 +5,7 @@ import { fmtShort, fmtUsd } from './teamFormat';
 import { TicketChip } from './teamUi';
 import { TimelineTab } from './TimelineTab';
 import type { TimelineLink } from './timelineLink';
+import { NODE_H, NODE_Y, arcReach, teamMapHeight } from './teamMapLayout';
 import { PAUSE_COLOR, clockTime } from '../ai/pausedUi';
 
 export interface FlowActions {
@@ -14,8 +15,6 @@ export interface FlowActions {
 
 const NODE_W = 130;
 const NODE_GAP = 60;
-const NODE_Y = 70;
-const NODE_H = 140;
 
 const LIVE_WORD: Record<LiveRun['state'], string> = {
   working: 'working',
@@ -111,9 +110,9 @@ function TeamMap({ map }: { map: FlowMap }) {
     ...backs.map((e) => ({ e, color: '#2E6F40', dash: undefined, marker: 'ah', label: `${e.count} hand-off back` })),
     ...sent.map((e) => ({ e, color: '#C4432A', dash: '5 4', marker: 'ahr', label: `${e.count} sent back` })),
   ].sort((a, b) => Math.abs(pos(a.e.to) - pos(a.e.from)) - Math.abs(pos(b.e.to) - pos(b.e.from)));
-  const M = 40 + Math.min(above.length, 6) * 22 + 20;
+  // as tall as the outermost arc and its label: with many hand-offs back the old fixed room cut the arcs off
+  const { top: M, height } = teamMapHeight(above.length, below.length);
   const bottom = NODE_Y + NODE_H;
-  const height = M + bottom + 30 + Math.min(below.length, 6) * 22 + 20;
   return (
     <svg
       width="100%"
@@ -147,7 +146,7 @@ function TeamMap({ map }: { map: FlowMap }) {
         {above.map(({ e, color, dash, marker, label }, k) => {
           const a = cx(pos(e.from));
           const b = cx(pos(e.to));
-          const rise = 30 + k * 22;
+          const rise = arcReach(k);
           const top = NODE_Y - rise;
           return (
             <g key={`u-${marker}-${e.from}-${e.to}`}>
@@ -296,7 +295,7 @@ function TeamMap({ map }: { map: FlowMap }) {
         {below.map(({ e, color, dash, marker, label }, k) => {
           const a = cx(pos(e.from));
           const b = cx(pos(e.to));
-          const drop = 30 + k * 22;
+          const drop = arcReach(k);
           const low = bottom + drop;
           return (
             <g key={`d-${marker}-${e.from}-${e.to}`}>
