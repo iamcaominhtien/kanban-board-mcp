@@ -629,9 +629,8 @@ async def export_to_files(
         )
     try:
         png_target.parent.mkdir(parents=True, exist_ok=True)
-        # By design (Sonar): exporting to a folder the user chose is the feature
-        png_target.write_bytes(png)  # NOSONAR
-        source_target.write_bytes(src)  # NOSONAR
+        png_target.write_bytes(png)
+        source_target.write_bytes(src)
     except OSError as e:
         raise _file_error(
             f"{png_target.parent} could not be written ({e.strerror})."

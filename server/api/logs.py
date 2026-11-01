@@ -45,8 +45,7 @@ async def log_client_event(entry: ClientLogEntry) -> None:
     if len(_client_log_times) >= _CLIENT_LOGS_PER_MINUTE:
         raise HTTPException(status_code=429, detail="Too many client log entries")
     _client_log_times.append(now)
-    # By design (Sonar): app_logging indents lines that look like a forged record
-    client_logger.log(  # NOSONAR
+    client_logger.log(
         logging.ERROR if entry.level == "error" else logging.WARNING,
         "%s%s%s",
         entry.message,

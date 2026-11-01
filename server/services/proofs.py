@@ -111,8 +111,7 @@ def ingest_file(raw: str, folder: str) -> str:
     if path.stat().st_size > MAX_FILE_BYTES:
         raise ProofError(f"{raw}: larger than {MAX_FILE_BYTES // (1024 * 1024)} MB.")
     stored = uploads.build_upload_filename(path.name)
-    # By design (Sonar): source checked to be in the working folder; the stored name is generated
-    (uploads.get_uploads_dir() / stored).write_bytes(path.read_bytes())  # NOSONAR
+    (uploads.get_uploads_dir() / stored).write_bytes(path.read_bytes())
     return f"/uploads/{stored}"
 
 

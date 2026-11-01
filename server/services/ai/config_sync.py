@@ -549,8 +549,7 @@ def backup_file(root: Path, rel: str, text: str) -> str:
     folder.mkdir(parents=True, exist_ok=True)
     (root / ".claude" / ".kanban" / ".gitignore").write_text("*\n", encoding="utf-8")
     bid = _stamp()
-    # By design (Sonar): folder checked by _safe_target; the backup id is a timestamp
-    (folder / f"{bid}.bak").write_text(text, encoding="utf-8")  # NOSONAR
+    (folder / f"{bid}.bak").write_text(text, encoding="utf-8")
     for old in sorted(folder.glob("*.bak"))[:-KEEP_BACKUPS]:
         old.unlink(missing_ok=True)
     return bid

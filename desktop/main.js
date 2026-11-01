@@ -61,7 +61,7 @@ function startBackend() {
 
     // Ensure binary is executable (electron-builder may drop +x bit on some builds)
     if (process.platform !== 'win32' && app.isPackaged) {
-      try { fs.chmodSync(spec.command, 0o755); } catch { /* non-fatal */ } /* NOSONAR - the bundled server binary must be executable */
+      try { fs.chmodSync(spec.command, 0o755); } catch { /* non-fatal */ }
     }
 
     let stderrOutput = '';
