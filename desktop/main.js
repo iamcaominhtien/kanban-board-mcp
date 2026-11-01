@@ -25,7 +25,8 @@ const {
 const profiler = new StartupProfiler();
 
 // Only this app's window gets it (preload.js asks for it); the server reads it from its standard input
-const apiSecret = crypto.randomBytes(24).toString('hex');
+// (KANBAN_NO_API_SECRET=1 starts the app without it, should a window ever be locked out of its own board)
+const apiSecret = process.env.KANBAN_NO_API_SECRET ? '' : crypto.randomBytes(24).toString('hex');
 let mainWindow = null;
 let backendPort = null;
 let backendProcess = null;
@@ -66,7 +67,7 @@ function startBackend() {
     try {
       child = spawn(spec.command, spec.args, spec.options);
       profiler.mark('backend-spawned');
-      if (child.stdin) {
+      if (apiSecret && child.stdin) {
         child.stdin.on('error', () => { /* the server exited before it read the secret */ });
         child.stdin.write(`${apiSecret}\n`);
       }
