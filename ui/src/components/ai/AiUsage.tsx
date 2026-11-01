@@ -16,6 +16,7 @@ import { useToast } from '../Toast';
 import { fitEstimate } from '../aiteam/resourcesFormat';
 import { AiAvatar, fmtElapsed } from './aiUi';
 import { ChipChoice, Pill, RadioRow, SafetyCard, compact, dateTime, usd } from './aiSafetyUi';
+import { toggleNumber } from '../../utils/numberSets';
 
 const SERIES = ['#B4571F', '#B0446E', '#2F6FB0', '#6D5DD3', '#2E6F40', '#B4791E', '#5B6B60'];
 const RANGES = [
@@ -734,9 +735,7 @@ function EditBudgetDialog({
                       key={p}
                       type="button"
                       className={`ai-choice ${warn.includes(p) ? 'ai-choice-on' : ''}`}
-                      onClick={() =>
-                        setWarn(warn.includes(p) ? warn.filter((x) => x !== p) : [...warn, p].sort((x, y) => x - y))
-                      }
+                      onClick={() => setWarn(toggleNumber(warn, p))}
                     >
                       {p}%
                     </button>
