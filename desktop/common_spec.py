@@ -20,8 +20,10 @@ EXCLUDES = [
     # rich only inside a try/except (mcp's logging) and httpx imports its CLI the same way.
     'fastapi.cli', 'fastapi_cli', 'fastapi_cloud_cli', 'rich_toolkit', 'rignore', 'fastar', 'sentry_sdk',
     'mcp.cli', 'typer', 'rich', 'pygments', 'markdown_it', 'mdurl', 'httpx._main',
-    # Build tools
-    'setuptools', 'pkg_resources', 'distutils', 'pip',
+    # Build tools. Not setuptools / pkg_resources / distutils: on Windows something imports distutils, and
+    # PyInstaller's distutils hook aliases it to setuptools._distutils, which fails when either is excluded
+    # ("Target module "distutils" already imported as ExcludedModule").
+    'pip',
 ]
 
 def get_base_analysis_args(entry_point, app_name):
