@@ -461,5 +461,7 @@ async def test_autopilot_decides_a_docs_proposal_for_the_owner(env):
     assert done.decided_by != "Mai PM"  # decided in the owner's name, as a person must
     assert "Autopilot (Mai PM): Matches the ticket" in (done.decision_note or "")
     assert a.status == "approved" and a.decided_via == "autopilot"
-    # the text sits in the owner's draft; the page itself is published by a person
-    assert (await _published(c, p["id"]))["version"] == 1
+    # Autopilot decides, so the page is published (as the owner, with the AI marked)
+    live = await _published(c, p["id"])
+    assert live["version"] == 2 and "retried 5 times" in live["markdown"]
+    assert "not_published" not in res

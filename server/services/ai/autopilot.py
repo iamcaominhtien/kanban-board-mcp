@@ -6,9 +6,8 @@ short ask run and decides it with `ai_run` (decide / answer). The board checks e
 effect, so what an AI may decide stays small and visible:
 
 - never its own requests, never the budget (raise cap), nothing above the risk the owner set (Medium by default),
-- never more than `per_hour_limit` decisions an hour; it accepts or rejects Docs and canvas proposals too (accepted
-  Docs text goes into the owner's draft of the page, which they still publish; a canvas change is a version they can
-  restore),
+- never more than `per_hour_limit` decisions an hour; it accepts or rejects Docs and canvas proposals too (an accepted
+  Docs change is published as the owner, a canvas change is a version they can restore),
 - each request is shown to the delegate once; what it leaves undecided stays for a person,
 - every decision is in the audit log and marked "Autopilot" (`decided_via` / `answered_via`), and Pause all AI stops it.
 
@@ -301,6 +300,36 @@ async def _docs_proposal_text(session: AsyncSession, a: AiApproval) -> str:
     return "\n".join(lines)[:6000]
 
 
+async def _publish_accepted(a: AiApproval, cfg: dict, delegate: str) -> str | None:
+    """After Autopilot accepted a Docs proposal, publish the page from the owner's draft: Autopilot decides, so the
+    change is live. Returns why it could not (the text then waits in the owner's draft), else None."""
+    from services import activity
+    from services import docs as svc_docs
+    from services.docs_text import DocsError
+
+    from models import DocsAiProposal, DocsPage
+
+    pid = (loads(a.payload, {}) or {}).get("proposal_id")
+    async with database.async_session() as session:
+        p = await session.get(DocsAiProposal, pid) if pid else None
+        page = await session.get(DocsPage, p.page_id) if p else None
+        if p is None or page is None or p.status not in ("accepted", "partial"):
+            return None  # nothing was accepted (a denial, or every change was stale)
+        token = activity.set_actor(_owner(cfg))
+        try:
+            await svc_docs.publish_page(
+                session,
+                page.id,
+                base_version=page.version,
+                note=f"Accepted by Autopilot ({delegate}): {(p.summary or '')[:200]}".strip(),
+            )
+        except DocsError as exc:
+            return exc.message
+        finally:
+            activity.reset_actor(token)
+    return None
+
+
 def _owner(cfg: dict) -> str:
     """The person Autopilot decides for. A Docs proposal is decided by a person (who may edit the page): the owner."""
     from services import activity
@@ -570,6 +599,7 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
         raise AutopilotError(str(exc)) from exc
     finally:
         guard.leave(tokens)
+    not_published = None
     if proposal:  # the proposal's own code closed the request: mark it as Autopilot's, so it is counted and shown
         async with database.async_session() as session:
             row = await session.get(AiApproval, request)
@@ -577,6 +607,8 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
                 row.decided_via = VIA
                 session.add(row)
                 await session.commit()
+        if approve:
+            not_published = await _publish_accepted(a, cfg, ctx.member_name)
     await audit.record(
         ctx.project_id,
         "autopilot_decision",
@@ -592,6 +624,13 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
         "request": request,
         "decided": "approved" if approve else "denied",
         "error": out.get("error"),
+        **(
+            {
+                "not_published": f"Accepted into the owner's draft; it could not be published: {not_published}"
+            }
+            if not_published
+            else {}
+        ),
     }
 
 
