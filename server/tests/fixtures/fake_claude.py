@@ -69,7 +69,15 @@ if "--output-format" in args and args[args.index("--output-format") + 1] == "jso
             }
         )
         sys.exit(1)
-    emit({"type": "result", "subtype": "success", "is_error": False, "result": "pong"})
+    # a one-shot call (a light model's diagnosis or lesson): FAKE_CLAUDE_JSON_RESULT is its answer
+    emit(
+        {
+            "type": "result",
+            "subtype": "success",
+            "is_error": False,
+            "result": os.environ.get("FAKE_CLAUDE_JSON_RESULT", "pong"),
+        }
+    )
     sys.exit(0)
 
 record = os.environ.get("FAKE_CLAUDE_RECORD")
@@ -80,6 +88,31 @@ config_record = os.environ.get("FAKE_CLAUDE_CONFIG_RECORD")
 if config_record:
     with open(config_record, "a") as fh:
         fh.write(os.environ.get("CLAUDE_CONFIG_DIR", "") + "\n")
+cwd_record = os.environ.get("FAKE_CLAUDE_CWD_RECORD")
+if cwd_record:  # where the run works, and the port it was given (worktrees)
+    with open(cwd_record, "a") as fh:
+        fh.write(
+            json.dumps({"cwd": os.getcwd(), "port": os.environ.get("PORT")}) + "\n"
+        )
+if os.environ.get("FAKE_CLAUDE_COMMIT"):
+    # the AI changes a file and commits it on its branch
+    with open(os.path.join(os.getcwd(), "calc.py"), "w") as fh:
+        fh.write(os.environ["FAKE_CLAUDE_COMMIT"])
+    subprocess.run(["git", "add", "-A"], check=False, capture_output=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=ai@test",
+            "-c",
+            "user.name=AI",
+            "commit",
+            "-m",
+            "AI change",
+        ],
+        check=False,
+        capture_output=True,
+    )
 env_record = os.environ.get("FAKE_CLAUDE_ENV_RECORD")
 if env_record:
     with open(env_record, "a") as fh:

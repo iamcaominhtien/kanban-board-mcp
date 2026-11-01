@@ -1325,6 +1325,71 @@ class AiTicketFlag(SQLModel, table=True):
     resolution: Optional[str] = Field(default=None)
 
 
+class AiProjectKnowledge(SQLModel, table=True):
+    """A project's instructions for every AI on it (services/ai/knowledge.py) (table)."""
+
+    __tablename__ = "ai_project_knowledge"
+
+    project_id: str = Field(primary_key=True)
+    instructions: str = Field(default="")
+    history: str = Field(default="[]")  # JSON [{at, by, text}] of earlier versions
+    updated_at: Optional[str] = Field(default=None)
+    updated_by: Optional[str] = Field(default=None)
+
+
+class AiLesson(SQLModel, table=True):
+    """One thing the project's AIs learned: proposed by an AI, kept or dropped by a person (table)."""
+
+    __tablename__ = "ai_lesson"
+
+    id: str = Field(
+        default_factory=lambda: f"lsn_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    text: str = Field(default="")
+    # proposed | kept | dropped | none (a ticket read by the light model with nothing to propose)
+    state: str = Field(default="proposed", index=True)
+    source_ticket_id: Optional[str] = Field(default=None, index=True)
+    source_run_id: Optional[str] = Field(default=None)
+    proposed_by: Optional[str] = Field(
+        default=None
+    )  # model | diagnosis | a person's name
+    kept_by: Optional[str] = Field(default=None)
+    uses: int = Field(default=0)  # runs whose prompt carried it
+    last_used_at: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiWorktree(SQLModel, table=True):
+    """A ticket's git worktree, beside the repository, on its own branch and port (services/ai/worktrees.py) (table).
+    The board stores only the mapping; size and uncommitted files are read from git when asked."""
+
+    __tablename__ = "ai_worktree"
+
+    ticket_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    repo: str  # the main checkout
+    path: str
+    branch: str
+    base: str = Field(default="main")
+    port: Optional[int] = Field(default=None)
+    state: str = Field(
+        default="active", index=True
+    )  # active | conflict | kept | merged | removed
+    handover: Optional[str] = Field(
+        default=None
+    )  # per-ticket override: pr | local | branch
+    pr_url: Optional[str] = Field(default=None)
+    pr_number: Optional[int] = Field(default=None)
+    conflict_files: str = Field(default="[]")
+    prepared_at: Optional[str] = Field(default=None)
+    prepare_s: Optional[int] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    last_used_at: Optional[str] = Field(default=None)
+    merged_at: Optional[str] = Field(default=None)
+
+
 class AiAccountState(SQLModel, table=True):
     """The usage window and run limit of one Claude account, or of "local" (members on the person's own login)
     (table). Read from the CLI's `rate_limit_event` (services/ai/quota.py)."""

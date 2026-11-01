@@ -103,6 +103,53 @@ def upgrade() -> None:
     )
     for column in ("ticket_id", "project_id", "kind"):
         op.create_index(f"ix_ai_ticket_flag_{column}", "ai_ticket_flag", [column])
+    op.create_table(
+        "ai_project_knowledge",
+        sa.Column("project_id", sa.String(), primary_key=True),
+        sa.Column("instructions", sa.String(), nullable=False, server_default=""),
+        sa.Column("history", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("updated_at", sa.String(), nullable=True),
+        sa.Column("updated_by", sa.String(), nullable=True),
+    )
+    op.create_table(
+        "ai_lesson",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("text", sa.String(), nullable=False, server_default=""),
+        sa.Column("state", sa.String(), nullable=False, server_default="proposed"),
+        sa.Column("source_ticket_id", sa.String(), nullable=True),
+        sa.Column("source_run_id", sa.String(), nullable=True),
+        sa.Column("proposed_by", sa.String(), nullable=True),
+        sa.Column("kept_by", sa.String(), nullable=True),
+        sa.Column("uses", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("last_used_at", sa.String(), nullable=True),
+        sa.Column("created_at", sa.String(), nullable=False),
+        sa.Column("updated_at", sa.String(), nullable=False),
+    )
+    for column in ("project_id", "state", "source_ticket_id"):
+        op.create_index(f"ix_ai_lesson_{column}", "ai_lesson", [column])
+    op.create_table(
+        "ai_worktree",
+        sa.Column("ticket_id", sa.String(), primary_key=True),
+        sa.Column("project_id", sa.String(), nullable=False),
+        sa.Column("repo", sa.String(), nullable=False),
+        sa.Column("path", sa.String(), nullable=False),
+        sa.Column("branch", sa.String(), nullable=False),
+        sa.Column("base", sa.String(), nullable=False, server_default="main"),
+        sa.Column("port", sa.Integer(), nullable=True),
+        sa.Column("state", sa.String(), nullable=False, server_default="active"),
+        sa.Column("handover", sa.String(), nullable=True),
+        sa.Column("pr_url", sa.String(), nullable=True),
+        sa.Column("pr_number", sa.Integer(), nullable=True),
+        sa.Column("conflict_files", sa.String(), nullable=False, server_default="[]"),
+        sa.Column("prepared_at", sa.String(), nullable=True),
+        sa.Column("prepare_s", sa.Integer(), nullable=True),
+        sa.Column("created_at", sa.String(), nullable=False),
+        sa.Column("last_used_at", sa.String(), nullable=True),
+        sa.Column("merged_at", sa.String(), nullable=True),
+    )
+    op.create_index("ix_ai_worktree_project_id", "ai_worktree", ["project_id"])
+    op.create_index("ix_ai_worktree_state", "ai_worktree", ["state"])
     # NEXT-UPGRADE
 
     bind = op.get_bind()
@@ -115,6 +162,13 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # NEXT-DOWNGRADE
+    op.drop_index("ix_ai_worktree_state", table_name="ai_worktree")
+    op.drop_index("ix_ai_worktree_project_id", table_name="ai_worktree")
+    op.drop_table("ai_worktree")
+    for column in ("project_id", "state", "source_ticket_id"):
+        op.drop_index(f"ix_ai_lesson_{column}", table_name="ai_lesson")
+    op.drop_table("ai_lesson")
+    op.drop_table("ai_project_knowledge")
     for column in ("ticket_id", "project_id", "kind"):
         op.drop_index(f"ix_ai_ticket_flag_{column}", table_name="ai_ticket_flag")
     op.drop_table("ai_ticket_flag")

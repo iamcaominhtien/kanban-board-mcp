@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type MouseEvent, type Ref } from 'react';
 import type { Project } from '../../types';
 import type { NotificationRow as Row } from '../../types/notifications';
+import { ContinueNoteDialog } from '../ai/trouble/ContinueNoteDialog';
+import { HandToDialog } from '../ai/trouble/HandToDialog';
+import { MoveAccountDialog, type AccountRoom } from '../ai/trouble/MoveAccountDialog';
+import { DiagnosisBlock } from './DiagnosisBlock';
 import {
   Icon,
   avatarColors,
@@ -19,7 +23,14 @@ import styles from './NotificationRow.module.css';
 export type RowActionHandler = (
   row: Row,
   actionId: string,
-  extra?: { text?: string; until?: string | null; ticketId?: string | null; label?: string },
+  extra?: {
+    text?: string;
+    until?: string | null;
+    ticketId?: string | null;
+    label?: string;
+    memberId?: string;
+    accountId?: string;
+  },
   /** `false` when the action failed (the row then keeps what the person typed); anything else counts as done. */
 ) => void | boolean | Promise<void | boolean>;
 
@@ -29,12 +40,39 @@ const ACTION_ICONS: Record<string, IconName> = {
   retry: 'retry',
   approve: 'tick',
   sign_in: 'plug',
+  'trouble:stop_child': 'stop',
+  'trouble:tell_ai': 'bubble',
+  'trouble:wait': 'clock',
+  move_account: 'arrow',
 };
+
+/** Actions that ask for a little more first: a note, another AI, an account. */
+export type RowDialog = 'note' | 'hand' | 'account';
+const DIALOG_OF: Record<string, RowDialog> = {
+  continue_note: 'note',
+  'trouble:continue_note': 'note',
+  hand_to: 'hand',
+  move_account: 'account',
+};
+
+/** The accounts with room, from a window_urgent row's data. */
+export function accountRoomOf(row: Row): AccountRoom[] {
+  const room = row.data.room;
+  if (!Array.isArray(room)) return [];
+  return (room as Record<string, unknown>[]).map((a) => ({
+    accountId: String(a.accountId ?? ''),
+    name: String(a.name ?? a.email ?? a.accountId ?? ''),
+    email: typeof a.email === 'string' ? a.email : undefined,
+    plan: typeof a.plan === 'string' ? a.plan : undefined,
+    used: typeof a.used === 'number' ? a.used : undefined,
+    free: typeof a.free === 'number' ? a.free : undefined,
+  }));
+}
 const LIST_LIMIT = 20;
 const STEP = 4;
 
 type Extra = Parameters<RowActionHandler>[2];
-type Fire = (id: string, extra?: Extra) => Promise<void>;
+type Fire = (id: string, extra?: Extra) => Promise<boolean>;
 type RowItem = Row['items'][number];
 
 function Avatar({ name, small }: Readonly<{ name: string; small?: boolean }>) {
@@ -475,6 +513,48 @@ function MoreMenu({ fire }: Readonly<{ fire: Fire }>) {
   );
 }
 
+/** The small dialog of an action that needs a note, another AI or an account; a failed action keeps it open. */
+function RowDialogs({
+  row,
+  dialog,
+  fire,
+  onClose,
+}: Readonly<{
+  row: Row;
+  dialog: { id: string; kind: RowDialog };
+  fire: (id: string, extra?: Extra) => Promise<boolean>;
+  onClose: () => void;
+}>) {
+  const submit = async (id: string, extra: Extra) => {
+    if (!(await fire(id, extra))) throw new Error('That did not go through. Nothing was changed; try again.');
+  };
+  if (dialog.kind === 'note')
+    return (
+      <ContinueNoteDialog
+        ended={row.kind !== 'run_stuck'}
+        onSubmit={(note) => submit(dialog.id, { text: note })}
+        onClose={onClose}
+      />
+    );
+  if (dialog.kind === 'hand')
+    return (
+      <HandToDialog
+        projectId={row.projectId ?? ''}
+        currentMemberId={row.memberId}
+        onSubmit={(memberId, note) => submit(dialog.id, { memberId, text: note })}
+        onClose={onClose}
+      />
+    );
+  return (
+    <MoveAccountDialog
+      room={accountRoomOf(row)}
+      until={typeof row.data.until === 'string' ? row.data.until : undefined}
+      onSubmit={(accountId) => submit(dialog.id, { accountId })}
+      onClose={onClose}
+    />
+  );
+}
+
 /**
  * One notification (design D1): unread dot, kind icon, one line, detail, chips, waiting time and the actions it
  * offers. Hovering adds Snooze and Mute beside the other buttons; a grouped row lists its items; a row whose target
@@ -504,6 +584,7 @@ export function NotificationRow({
   const [answering, setAnswering] = useState(false);
   const [answer, setAnswer] = useState('');
   const [busy, setBusy] = useState(false);
+  const [dialog, setDialog] = useState<{ id: string; kind: RowDialog } | null>(null);
   const huge = !row.needs && row.count > LIST_LIMIT;
   const { expanded, shown, setShown, toggleList } = useRowList(row, focused, huge);
   const f = rowFacts(row, projects, expanded, shown, now);
@@ -517,6 +598,7 @@ export function NotificationRow({
         setAnswering(false);
         setAnswer('');
       }
+      return ok !== false;
     } finally {
       setBusy(false);
     }
@@ -569,6 +651,8 @@ export function NotificationRow({
           </div>
         )}
 
+        <DiagnosisBlock row={row} />
+
         {answering && !row.done && (
           <AnswerBox
             options={f.options}
@@ -618,7 +702,11 @@ export function NotificationRow({
                       type="button"
                       disabled={busy}
                       className={`${styles.btn} ${i === 0 && row.needs ? styles.btnPrimary : ''}`}
-                      onClick={() => (a.id === 'answer' ? setAnswering((x) => !x) : void fire(a.id))}
+                      onClick={() => {
+                        if (a.id === 'answer') setAnswering((x) => !x);
+                        else if (DIALOG_OF[a.id]) setDialog({ id: a.id, kind: DIALOG_OF[a.id] });
+                        else void fire(a.id);
+                      }}
                     >
                       {icon && <Icon name={icon} />}
                       {a.label}
@@ -632,6 +720,7 @@ export function NotificationRow({
           )}
         </div>
       </div>
+      {dialog && <RowDialogs row={row} dialog={dialog} fire={fire} onClose={() => setDialog(null)} />}
       {!row.needs && !row.cleared && !row.snoozed && (
         <button
           type="button"

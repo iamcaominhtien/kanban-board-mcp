@@ -457,3 +457,34 @@
 .row:has(.clearX):focus-within .time {
   visibility: hidden;
 }
+
+.diagnosis {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #34455a;
+}
+
+.triedHead {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #6b7a70;
+}
+
+.tried {
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+
+.chipFault {
+  background: #fdece8;
+  color: #a5321e;
+  align-self: flex-start;
+  height: auto;
+  padding: 2px 8px;
+  white-space: normal;
+}

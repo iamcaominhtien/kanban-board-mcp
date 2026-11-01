@@ -5,6 +5,7 @@ import type { AiSettings } from '../../types/ai';
 import { BoardAiPicker } from './AiDialogs';
 import { AiAvatar, Toggle } from './aiUi';
 import { LibraryModal } from './config/LibraryView';
+import { OperationsCard } from './settings/OperationsCard';
 
 const EXPIRY = [
   [1, '1 h'],
@@ -202,6 +203,9 @@ export function AiSettingsSection({
       <div className="ai-divider" />
       <div style={{ fontSize: 13, fontWeight: 700 }}>AI members · safety and limits</div>
       {overview.data && <AiSafetySettings projectId={projectId} settings={overview.data.settings} />}
+      <div className="ai-divider" />
+      <div style={{ fontSize: 13, fontWeight: 700 }}>Operations</div>
+      <OperationsCard projectId={projectId} />
       {library && <LibraryModal projectId={projectId} onClose={() => setLibrary(false)} />}
       {picker && overview.data && (
         <BoardAiPicker

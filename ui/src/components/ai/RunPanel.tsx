@@ -19,6 +19,8 @@ import { PAUSE_COLOR, PauseGlyph, PausedStrip, clockTime, pausedSummary } from '
 import { AccountNote } from './accounts/AccountBanner';
 import { ChangeAccountDialog } from './accounts/AccountPicker';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
+import { TellBox } from './trouble/TellBox';
+import { TroubleCard } from './trouble/TroubleCard';
 import './accounts/accountsMember.css';
 import {
   ACTIVE_RUN_STATES,
@@ -517,7 +519,16 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
                   : 'in progress'}{' '}
             · {run.memberName}
           </div>
-          <div className="ai-muted" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div
+            className="ai-muted"
+            data-testid={run.state === 'queued' ? 'why-waiting' : undefined}
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              color: run.state === 'queued' ? '#B4571F' : undefined,
+            }}
+          >
             {run.state === 'queued'
               ? run.behindTicketId && !run.behindRunId
                 ? `Position #${run.queuePosition ?? 1} behind ${run.behindTicketId}`
@@ -560,7 +571,9 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
         {run.state === 'running' && !run.paused && <div className="ai-progress" />}
       </div>
       <RestartNotice run={run} />
+      {run.state === 'running' && <TroubleCard run={run} />}
       {run.state === 'running' && <RunResourcesStrip run={run} />}
+      {run.state === 'running' && <TellBox run={run} />}
       {run.state === 'running' && (
         <div
           className="ai-hint"

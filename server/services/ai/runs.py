@@ -58,9 +58,11 @@ from . import (
     ops,
     quota,
     resources,
+    run_config,
     safety,
     transcripts,
     watchdog,
+    worktrees,
 )
 from . import mcp_sources
 from .mcp_sources import folder_servers
@@ -241,6 +243,11 @@ def to_dict(run: AiRun, member_name: str | None = None) -> dict:
         "blocked_move": run.blocked_move,
         "context_notes": loads(run.context_notes, []),
         "tests": observed_tests(loads(run.steps, [])),
+        # AI team v2: the board's reading of a run in trouble, its own retries, the account it spends
+        "diagnosis": loads(run.diagnosis, None),
+        "retries": loads(run.retries, []),
+        "retry_at": run.retry_at,
+        "account_id": run.account_id,
     }
 
 
@@ -681,7 +688,9 @@ async def _after_sleep(seconds: float) -> None:
     minutes = int(seconds // 60)
     for run_id, proc in list(RT.procs.items()):
         alive = proc.proc is not None and proc.proc.returncode is None
-        text = f"The computer was asleep for {minutes} min; " + ("the CLI is still alive." if alive else "the CLI did not survive.")
+        text = f"The computer was asleep for {minutes} min; " + (
+            "the CLI is still alive." if alive else "the CLI did not survive."
+        )
         transcripts.note(run_id, "sleep", text)
         await _append(run_id, steps=[{"kind": "start", "text": text}])
         if not alive:
@@ -1741,6 +1750,12 @@ async def _build_prompt_base(
         ticket_status=ticket.status,
         team=team,
     )
+    # The project's instructions and the lessons its AIs learned: every run, before the member's own persona (D18)
+    from . import knowledge
+
+    known = await knowledge.prompt_block(session, run.project_id, record_use=True)
+    if known:
+        system += f"\n\n{known}"
     if profile.persona.strip():
         system += f"\n\nRole / persona (set by the project's people):\n{profile.persona.strip()}"
     # Claude Code reads the instructions from the CLAUDE.md the board writes (config_sync); API agents get them here
@@ -2111,11 +2126,66 @@ async def _execute_cli_held(
                 f"Working folder not found on this computer: {profile.working_dir or '(not set)'}",
             )
             return
-        # Synced configuration (CLAUDE.md, skills, .mcp.json, settings.json) is written before the CLI starts
-        synced = await config_service.sync_for_run(session, profile)
-        if not synced["ok"]:
-            await _end(run_id, "failed", synced["message"])
-            return
+        # One worktree per ticket when the project uses them (design I): the run works there, on its own branch
+        # and port; roles without a ticket of their own read the main checkout
+        ticket_row = await session.get(Ticket, run.ticket_id)
+        worktree = None
+        if ticket_row is not None and not (agy or adapter):
+            try:
+                if run.mode == "work":
+                    worktree = await worktrees.ensure(session, ticket_row, cwd)
+                else:
+                    existing = await worktrees.for_ticket(session, run.ticket_id)
+                    if (
+                        existing is not None
+                        and existing.state in ("active", "conflict", "kept")
+                        and Path(existing.path).is_dir()
+                    ):
+                        worktree = existing
+            except (worktrees.WorktreeError, OSError) as exc:
+                # a worktree that cannot be made is the board's fault, never the AI's (D11)
+                if not await _retry_later(
+                    run_id, "board_fault", f"The worktree could not be made: {exc}"
+                ):
+                    async with database.async_session() as fresh:
+                        stopped = await fresh.get(AiRun, run_id)
+                    diag = _stop_diagnosis(
+                        "board_fault",
+                        f"The worktree could not be made: {exc}",
+                        stopped,
+                        [],
+                    )
+                    await _end(
+                        run_id,
+                        "failed",
+                        f"The worktree could not be made: {exc}",
+                        diagnosis=json.dumps(diag),
+                    )
+                return
+        if worktree is not None:
+            cwd = worktree.path
+        cfg_ops = ops.get(await get_settings(session, run.project_id))
+        per_run = (
+            profile.provider == "claude-code"
+            and not (agy or adapter)
+            and (cfg_ops.get("per_run_config") or worktree is not None)
+        )
+        run_cfg = None
+        if per_run:
+            # The member's skills, subagents and hooks travel by --plugin-dir, its instructions by the system prompt:
+            # nothing is written into the repository (D5)
+            run_cfg = await run_config.build(
+                session,
+                profile,
+                member.name if member else "member",
+                RT.board_url or "http://127.0.0.1:8000",
+            )
+        else:
+            # Synced configuration (CLAUDE.md, skills, .mcp.json, settings.json) is written before the CLI starts
+            synced = await config_service.sync_for_run(session, profile)
+            if not synced["ok"]:
+                await _end(run_id, "failed", synced["message"])
+                return
         session_id, fresh_note = await _session_for(
             session,
             run,
@@ -2151,6 +2221,15 @@ async def _execute_cli_held(
             )
         if fresh_with_note:
             prompt = f"{prompt}\n\n---\n\n{fresh_with_note}"
+        if run_cfg and run_cfg.get("system"):
+            system = f"{system}\n\nThis member's own instructions:\n{run_cfg['system']}"
+        if worktree is not None:
+            system = (
+                f"{system}\n\nYou work in your own git worktree for {run.ticket_id}: {worktree.path}, on the branch "
+                f"{worktree.branch} (from {worktree.base}). Commit your work on this branch; never switch branches or "
+                f"touch the main checkout. If you start a server, use the port {worktree.port} (the PORT environment "
+                "variable) and run it in the background."
+            )
         resume = session_id is not None
         # Claude Code takes the session id up front; the others tell it in their first event
         if not (agy or adapter):
@@ -2295,6 +2374,9 @@ async def _execute_cli_held(
                 effort=config.get("effort"),
                 extra_flags=extra_flags,
                 bypass=bypass,
+                plugin_dirs=[run_cfg["plugin_dir"]]
+                if run_cfg and run_cfg.get("plugin_dir")
+                else None,
             )
         run.session_id = session_id
         session.add(run)
@@ -2337,6 +2419,10 @@ async def _execute_cli_held(
         started_at=run.started_at,
     )
     env = cli.child_env(compact_at)
+    if worktree is not None and worktree.port:
+        env["PORT"] = str(
+            worktree.port
+        )  # a server the AI starts uses the worktree's own port
     if account_folder:
         env = accounts.env_for(account_snapshot, env)
     if launch:
@@ -2734,6 +2820,11 @@ async def _set_trouble(run_id: str, diag: dict) -> None:
     from services import notifications as centre
 
     await centre.on_run_trouble(run_id)
+    if diag.get("lesson"):
+        # a cause the project will meet again becomes a proposed lesson (design C "4 · Learn", H)
+        from . import knowledge
+
+        await knowledge.propose_from_diagnosis(run_id, diag["lesson"])
 
 
 async def _clear_trouble(run_id: str, why: str) -> None:

@@ -581,6 +581,22 @@ async def update_ticket(
     session.add(ticket)
     await session.commit()
     await session.refresh(ticket)
+    if update_data.get("status") == "done" and previous_status != "done":
+        # a light model may propose one lesson from the ticket's AI work (services/ai/knowledge.py), in the background
+        from services.ai import knowledge as ai_knowledge
+
+        ai_knowledge.on_ticket_done(ticket.id)
+    if update_data.get("status") and update_data["status"] != previous_status:
+        # hand the code over: Review pushes and opens the draft PR, Done merges, only when a person moved it (D7)
+        from services.ai import guard as ai_guard
+        from services.ai import worktrees as ai_worktrees
+
+        ai_worktrees.on_status(
+            ticket.id,
+            update_data["status"],
+            previous_status,
+            by_ai=ai_guard.current() is not None,
+        )
     return ticket
 
 

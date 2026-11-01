@@ -9,6 +9,7 @@ import { ProjectSidebar } from './components/ProjectSidebar';
 import { SettingsPage, type SettingsTarget } from './components/settings/SettingsPage';
 import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
+import { OPEN_RUN_EVENT } from './components/aiteam/runLink';
 import { OPEN_TIMELINE_EVENT, parseTimelineLink, setPendingTimeline } from './components/aiteam/timelineLink';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
@@ -528,6 +529,22 @@ export default function App() {
     };
     window.addEventListener(OPEN_TIMELINE_EVENT, open);
     return () => window.removeEventListener(OPEN_TIMELINE_EVENT, open);
+  }, []);
+
+  // A link to one run (AI Team › Run history): show the AI Team view, over whatever is open
+  useEffect(() => {
+    const open = () => {
+      setSettingsTarget(null);
+      setAiPage(null);
+      setActiveBoard('main');
+      setViewMode('ai_team');
+      setModalState(null);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('ticket');
+      window.history.replaceState({}, '', url.toString());
+    };
+    window.addEventListener(OPEN_RUN_EVENT, open);
+    return () => window.removeEventListener(OPEN_RUN_EVENT, open);
   }, []);
 
   function closeModal() {

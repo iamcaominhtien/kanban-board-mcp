@@ -851,6 +851,7 @@ def claude_args(
     effort: str | None = None,
     extra_flags: list[str] | None = None,
     bypass: bool = False,
+    plugin_dirs: list[str] | None = None,
 ) -> list[str]:
     """Command line of one headless Claude Code run. By default it never skips the CLI's own permission checks:
     only the Allow rules run, anything else is denied. `bypass` (an owner's explicit choice for the member) lets
@@ -881,6 +882,11 @@ def claude_args(
         args += ["--allowedTools", ",".join(allowed)]
     if denied:
         args += ["--disallowedTools", ",".join(denied)]
+    for folder in plugin_dirs or []:
+        args += [
+            "--plugin-dir",
+            folder,
+        ]  # skills, subagents and hooks loaded for this run only (D5)
     for flag in extra_flags or []:
         if any(bad in flag for bad in REJECTED_FLAGS):
             continue
