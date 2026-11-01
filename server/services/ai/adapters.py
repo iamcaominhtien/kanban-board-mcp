@@ -636,6 +636,20 @@ class AgyParser(Parser):
                     }
                 )
             bad = res.get("status") not in (None, "SUCCESS")
+            # `finished_reason` is only there when the turn ended early (print_timeout, interrupted, error): the answer
+            # is partial, whatever the status says
+            early = res.get("finished_reason")
+            bad = bad or bool(early)
+            if bad:
+                # what the CLI really reported, so a failed run that looks finished can be explained
+                out["steps"].append(
+                    {
+                        "kind": "start",
+                        "text": f"Antigravity reported status {res.get('status')}"
+                        + (f", finished early: {early}" if early else "")
+                        + f", {res.get('num_turns')} turn(s)",
+                    }
+                )
             text = _FILE_LINK.sub(r"\1", res.get("response") or "")
             if denied and not text.strip():
                 # Headless mode ends the run at the first denied action: that is a failure, not a finished task
@@ -646,6 +660,7 @@ class AgyParser(Parser):
                 )
             out["result"] = {
                 "status": res.get("status"),
+                "finished_reason": early,
                 "is_error": bad,
                 "subtype": "error" if bad else "success",
                 "text": redact(text),

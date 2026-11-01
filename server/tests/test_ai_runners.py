@@ -807,3 +807,18 @@ def test_agy_result_status_is_kept_so_a_failed_run_can_say_what_it_reported():
         '{"event":"result","result":{"conversation_id":"c1","status":"MAX_TURNS","response":"All done.","num_turns":40}}'
     )
     assert out["result"]["is_error"] is True and out["result"]["status"] == "MAX_TURNS"
+
+
+def test_agy_result_that_finished_early_is_not_a_finished_task():
+    # `finished_reason` is only present when the turn ended early: a cut-off answer is not a complete one
+    parser = adapters.for_provider("antigravity").parser("/w")
+    out = parser.feed(
+        '{"event":"result","result":{"conversation_id":"c1","status":"SUCCESS","finished_reason":"error","response":"Half of it.","num_turns":3}}'
+    )
+    result = out["result"]
+    assert result["is_error"] is True and result["finished_reason"] == "error"
+    assert any("finished early: error" in s["text"] for s in out["steps"])
+    ok = parser.feed(
+        '{"event":"result","result":{"conversation_id":"c1","status":"SUCCESS","response":"All of it.","num_turns":3}}'
+    )
+    assert ok["result"]["is_error"] is False and ok["steps"] == []
