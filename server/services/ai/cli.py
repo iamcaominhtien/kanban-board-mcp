@@ -288,7 +288,9 @@ async def test_run(
 
 _RATE_LIMITED = re.compile(
     r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests"
-    r"|hit your (?:weekly |5-hour |usage |daily |session |monthly )?limit\b(?! of)|resource_exhausted)",
+    r"|hit your (?:\w+ )?limit\b(?! of)"
+    r"|(?:5-hour|weekly|opus|sonnet|session|daily|usage|monthly) limit reached"
+    r"|resource_exhausted|insufficient_quota|exhausted your \w+ quota|quota exceeded for quota metric)",
     re.IGNORECASE,
 )
 # "resets Nov 2 at 4pm (Asia/Saigon)", "resets Nov 3, 9am", "resets 3:30pm (America/New_York)"

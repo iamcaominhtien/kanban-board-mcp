@@ -144,7 +144,7 @@ class Adapter:
     binary = ""
     label = ""
     # Text of an error that means the earlier session is gone, so the run starts a new one
-    resume_missing = ("no conversation", "session not found", "not found")
+    resume_missing = ("no conversation", "session not found")
     needs_account = False  # refuse to run without an AI account
 
     def launch(self, spec: Spec) -> Launch:

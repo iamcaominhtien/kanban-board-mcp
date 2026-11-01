@@ -506,6 +506,9 @@ async def create_run(
 
 
 BOARD_CLOSED = "board_closed"  # the run was cut off by the board closing or crashing
+BOARD_CLOSED_PAUSED = (
+    "board_closed_paused"  # ... while a person had it paused: it stays stopped
+)
 RESUME_WITHIN = timedelta(hours=24)
 RESUME_NOTE = (
     "The board was closed while your previous run on this ticket was in progress. Your conversation and every file "
@@ -523,7 +526,8 @@ async def resume_interrupted() -> int:
         cut = (
             await session.exec(
                 select(AiRun).where(
-                    AiRun.stop_code == BOARD_CLOSED,
+                    AiRun.stop_code
+                    == BOARD_CLOSED,  # not BOARD_CLOSED_PAUSED: a person paused it
                     AiRun.mode == "work",
                     AiRun.ended_at >= since,
                 )
@@ -546,7 +550,15 @@ async def resume_interrupted() -> int:
             mark.stop_code = f"{BOARD_CLOSED}_seen"  # never looked at twice
             session.add(mark)
             await session.commit()
-            if ticket is None or ticket.status in ("done", "wont_do") or later:
+            if (
+                ticket is None
+                or ticket.status in ("done", "wont_do")
+                or later
+                or old.trigger == "schedule"  # schedules._restart owns those
+                or (old.instruction or "").startswith(
+                    RESUME_NOTE
+                )  # resumed once already: no loop
+            ):
                 continue
             try:
                 await create_run(
@@ -601,7 +613,9 @@ async def stop_scheduler() -> None:
                 state="failed",
                 revert_status=False,
                 quiet=True,
-                stop_code=BOARD_CLOSED,
+                stop_code=BOARD_CLOSED_PAUSED
+                if await _is_paused(run_id)
+                else BOARD_CLOSED,
             )
         except RunError:
             pass  # it ended on its own meanwhile
@@ -654,13 +668,25 @@ async def recover_on_startup() -> None:
             run.ended_at = now_iso()
             run.ended_reason = "The board restarted while this run was in progress. Retry to start a new run."
             run.ended_by = "board"
-            run.stop_code = BOARD_CLOSED
+            run.stop_code = BOARD_CLOSED_PAUSED if run.paused else BOARD_CLOSED
+            run.paused = False
             run.token_hash = None
             session.add(run)
         await session.commit()
         lost = [r.id for r in rows if r.id not in RT.tasks]
     for run_id in lost:
         await approvals.mark_run_ended(run_id)
+    from . import members as svc_members
+
+    async with database.async_session() as session:
+        for member_id in {r.member_id for r in rows if r.id in lost}:
+            profile = await session.get(AiMember, member_id)
+            if (
+                profile is not None
+                and profile.remove_after_run
+                and not await active_runs(session, member_id=member_id)
+            ):
+                await svc_members.finalize_removal(session, member_id)
 
 
 async def _blocking_reason(

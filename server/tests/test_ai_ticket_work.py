@@ -934,3 +934,57 @@ async def test_a_retry_keeps_who_is_to_be_told_when_the_work_ends(env, monkeypat
         await s.commit()
     new = await runs.retry(old["id"], by="An Nguyen")
     assert json.loads(new.report_back)["member_id"] == "pm-1"
+
+
+async def _cut_off_by_closing(env, c, monkeypatch, *, trigger=None, pause=False):
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    old = await _wait(c, tid, ("running",))
+    await _until(lambda: _steps_over(c, tid, 2))
+    if trigger:
+        async with env["maker"]() as s:
+            row = await s.get(AiRun, old["id"])
+            row.trigger = trigger
+            s.add(row)
+            await s.commit()
+    if pause:
+        assert (
+            await c.post(f"/ai/runs/{old['id']}/pause", headers=AN)
+        ).status_code == 200
+    await runs.stop_scheduler()
+    return tid
+
+
+async def test_a_resumed_run_that_is_cut_off_again_is_not_resumed_a_second_time(
+    env, monkeypatch
+):
+    c = env["c"]
+    tid = await _cut_off_by_closing(env, c, monkeypatch)
+    await runs.start_scheduler()
+    await _until(lambda: _steps_over(c, tid, 1))  # the resumed run is running
+    await (
+        runs.stop_scheduler()
+    )  # it is cut off too (a run that brings the board down, say)
+    await runs.start_scheduler()
+    assert len(await _runs(c, tid)) == 2  # no third run, however often the board starts
+
+
+async def test_a_scheduled_run_cut_off_by_closing_is_left_to_its_schedule(
+    env, monkeypatch
+):
+    c = env["c"]
+    tid = await _cut_off_by_closing(env, c, monkeypatch, trigger="schedule")
+    await runs.start_scheduler()
+    assert len(await _runs(c, tid)) == 1
+
+
+async def test_a_run_a_person_paused_stays_stopped_after_the_board_restarts(
+    env, monkeypatch
+):
+    c = env["c"]
+    tid = await _cut_off_by_closing(env, c, monkeypatch, pause=True)
+    await runs.start_scheduler()
+    assert len(await _runs(c, tid)) == 1

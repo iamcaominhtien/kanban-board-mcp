@@ -405,6 +405,15 @@ def test_a_plan_limit_message_is_a_wait_until_its_reset_not_a_failure():
         "You've hit your limit of 5 open files",
     ):
         assert cli.rate_limit_wait(text) is None, text
+    for text in (
+        "5-hour limit reached ∙ resets 3pm",
+        "Weekly limit reached ∙ resets Nov 3, 9am",
+        "You've hit your Opus limit · resets 3pm",
+        "You have exhausted your daily quota on this model",
+        "Quota exceeded for quota metric 'GenerateContent'",
+        "insufficient_quota: You exceeded your current quota",
+    ):
+        assert cli.rate_limit_wait(text) is not None, text
     # a time that does not exist is no time, and does not raise
     assert cli.reset_wait("resets 3:75pm", now) is None
     assert cli.reset_wait("resets 13pm", now) is None
