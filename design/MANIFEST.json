@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793469596-c902",
+  "canvas_version": "1793530707-4a14",
   "exported": "2026-10-31",
   "files": {
     "AccountMenu.dc.html": {
@@ -571,6 +571,14 @@
       "page": "screens_account",
       "w": 1480,
       "h": 6579
+    },
+    "Notifications.dc.html": {
+      "bytes": 227497,
+      "sha256": "9028c264068d816508fece870c4c5535c068afef3b2273dd3c587dfe14fc2aa0",
+      "title": "Notifications — one place for what needs you and what happened",
+      "page": "screens_account",
+      "w": 1480,
+      "h": 12547
     },
     "GuidelineDesign.dc.html": {
       "bytes": 144551,
