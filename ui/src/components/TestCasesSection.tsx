@@ -10,6 +10,7 @@ import { useDocsRefs } from './docs/DocsRefsContext';
 import { TestCaseMention } from './ai/TestCaseMention';
 import { usePeopleAndAiSuggest } from './ai/useMentionList';
 import type { SuggestMember } from './docs/RefSuggester';
+import { hasProof, isUnprovable } from '../utils/proofRules';
 import styles from './TestCasesSection.module.css';
 
 interface ChildTestCaseSource {
@@ -201,6 +202,25 @@ function TestCaseRowItem({
           </span>
         ) : null}
 
+        {(tc.status === 'pass' || tc.status === 'fail') && !hasProof(tc) && (
+          <span
+            className={`${styles.proofBadge} ${styles.proofBadgeMissing}`}
+            title="Marked as a result without a proof. Add a screenshot, the command and its output, or say why it cannot be shown."
+            data-testid="proof-missing"
+          >
+            No proof
+          </span>
+        )}
+        {(tc.status === 'pass' || tc.status === 'fail') && isUnprovable(tc) && (
+          <span
+            className={`${styles.proofBadge} ${styles.proofBadgeUnprovable}`}
+            title="The result is taken on trust: the proof says it cannot be shown."
+            data-testid="proof-unprovable"
+          >
+            Not provable
+          </span>
+        )}
+
         {/* Title */}
         <div className={styles.titleArea}>
           {isEditingTitle && !readOnly ? (
@@ -323,6 +343,21 @@ function TestCaseRowItem({
               value={tc.expectedResult || ''}
               onChange={(val) => onUpdate({ ...tc, expectedResult: val, updatedAt: new Date().toISOString() })}
               placeholderText="What is the expected behavior or pass bar?"
+              ai={aiNote}
+              readOnly={readOnly || disabled}
+              compact={true}
+              onUploadFile={uploadAnyFile}
+              onUploadImage={uploadAnyFile}
+            />
+          </div>
+
+          {/* Result and proof */}
+          <div className={styles.fieldGroup}>
+            <span className={styles.fieldLabel}>Result and proof</span>
+            <MarkdownEditor
+              value={tc.proof || ''}
+              onChange={(val) => onUpdate({ ...tc, proof: val, updatedAt: new Date().toISOString() })}
+              placeholderText="What happened, with evidence: a screenshot, the command and its output, a link. If it cannot be shown, write “Not provable: why”."
               ai={aiNote}
               readOnly={readOnly || disabled}
               compact={true}

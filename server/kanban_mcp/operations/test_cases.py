@@ -1,15 +1,49 @@
 """Ticket test cases."""
 
-import services.tickets as svc_tickets
-from pydantic import Field
+import os
 from typing import Annotated
+
+import services.proofs as svc_proofs
+import services.tickets as svc_tickets
+from models import AiMember
+from pydantic import Field
 from ..common import (
     TestCaseRef,
     TestCaseStatus,
     TicketId,
     _edit_ticket,
+    async_session,
     notify_on_success,
 )
+
+_PROOF_HELP = (
+    "Markdown evidence for the result: a screenshot as ![what it shows](qa/evidence/TC-1.png) (a path from the "
+    "working folder, the file must exist; the board keeps a copy and shows it on the ticket), the command you ran "
+    "and its output in a ``` block, links. If it cannot be shown, write 'Not provable: <why>' instead of inventing one."
+)
+
+
+async def _run_folder() -> str | None:
+    """The working folder of the AI run making this call (None for a person or another client)."""
+    from services.ai import guard
+
+    ctx = await guard.resolve()
+    if ctx is None:
+        return None
+    async with async_session() as session:
+        member = await session.get(AiMember, ctx.member_id)
+    folder = os.path.expanduser(member.working_dir or "") if member else ""
+    return folder or None
+
+
+async def _localized(
+    proof: str | None, notes: str | None
+) -> tuple[str | None, str | None]:
+    """proof and notes with the pictures named by a path copied into the board (services/proofs.py)."""
+    if "](" not in (proof or "") + (notes or ""):
+        return proof, notes
+    folder = await _run_folder()
+    return svc_proofs.localize(proof, folder), svc_proofs.localize(notes, folder)
 
 
 @notify_on_success
@@ -26,10 +60,7 @@ async def add_test_case(
         str | None, Field(description="Markdown: what should happen.")
     ] = None,
     notes: Annotated[str | None, Field(description="Markdown: observations.")] = None,
-    proof: Annotated[
-        str | None,
-        Field(description="Evidence such as a log excerpt, URL or file path."),
-    ] = None,
+    proof: Annotated[str | None, Field(description=_PROOF_HELP)] = None,
     note: Annotated[
         str | None, Field(description="Deprecated alias of `notes`; use `notes`.")
     ] = None,
@@ -40,6 +71,7 @@ async def add_test_case(
     """Add a test case to a ticket to track verification. It gets a code 'TC-<n>' (shown in the returned `test_cases`).
     With the ticket's "Done requires: all test cases passed" guard on, the ticket cannot move to 'done' until every
     test case has status 'pass'. Returns the updated ticket."""
+    proof, notes = await _localized(proof, notes)
     return await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.add_test_case(
@@ -71,10 +103,7 @@ async def update_test_case(
     description: str | None = None,
     expected_result: str | None = None,
     notes: str | None = None,
-    proof: Annotated[
-        str | None,
-        Field(description="Evidence such as a log excerpt, URL or file path."),
-    ] = None,
+    proof: Annotated[str | None, Field(description=_PROOF_HELP)] = None,
     note: Annotated[
         str | None, Field(description="Deprecated alias of `notes`; use `notes`.")
     ] = None,
@@ -82,6 +111,7 @@ async def update_test_case(
 ) -> dict:
     """Update a test case, typically its `status` after running it (and `proof`). Omitted fields are unchanged.
     Returns the updated ticket."""
+    proof, notes = await _localized(proof, notes)
     return await _edit_ticket(
         ticket_id,
         lambda s, tid: svc_tickets.update_test_case(

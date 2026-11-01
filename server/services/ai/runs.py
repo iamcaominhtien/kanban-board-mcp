@@ -27,6 +27,7 @@ import database
 import events as board_events
 import services.activity as svc_activity
 import services.mcp_clients as mcp_clients
+import services.proofs as proofs
 import services.tickets as svc_tickets
 import services.workspace as svc_workspace
 from models import (
@@ -3899,6 +3900,8 @@ def _clean_tests(tests) -> dict | None:
             return 0
 
     out: dict = {"passed": count("passed"), "failed": count("failed")}
+    if tests.get("command"):
+        out["command"] = str(tests["command"])[:200]
     if tests.get("lint"):
         out["lint"] = str(tests["lint"])[:60]
     failing = tests.get("failing")
@@ -3924,12 +3927,24 @@ async def record_report(
         ][:30],
         "tests": _clean_tests(tests),
     }
+    next_step = "End with a short final message."
+    async with database.async_session() as session:
+        ticket = await session.get(Ticket, ctx.ticket_id)
+    cases = json.loads(ticket.test_cases or "[]") if ticket else []
+    missing = proofs.gaps(cases)
+    if missing:
+        report["proof_gaps"] = missing
+        next_step = (
+            f"Test cases {', '.join(missing)} are marked pass or fail with no proof. Add it now with "
+            "ticket_items(item='test_case', action='update', proof=...): a screenshot, the command and its output, "
+            "or 'Not provable: <why>'. Then end with a short final message."
+        )
     await _append(
         ctx.run_id,
         steps=[{"kind": "report", "text": "Wrote the summary"}],
         report=json.dumps(report),
     )
-    return {"recorded": True, "next": "End with a short final message."}
+    return {"recorded": True, "next": next_step}
 
 
 # ---------------------------------------------------------------------------

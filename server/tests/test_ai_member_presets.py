@@ -1,4 +1,4 @@
-"""The ready-made AI members of the Add dialog (PM, Dev, Reviewer): the data file the UI and the guideline share, and
+"""The ready-made AI members of the Add dialog (PM, Dev, Reviewer, QA): the data file the UI and the guideline share, and
 that a member created the way the dialog creates one keeps the template, ceiling and CLI rules of its preset."""
 
 import json
@@ -18,8 +18,8 @@ PRESETS = json.loads(
 READ_ONLY_CLI = {"pm", "reviewer"}  # they never edit files
 
 
-def test_the_three_roles_are_there_in_both_languages():
-    assert [p["id"] for p in PRESETS] == ["pm", "dev", "reviewer"]
+def test_the_roles_are_there_in_both_languages():
+    assert [p["id"] for p in PRESETS] == ["pm", "dev", "reviewer", "qa"]
     for p in PRESETS:
         for lang in ("en", "vi"):
             assert p["tagline"][lang] and p["description"][lang]
@@ -68,3 +68,11 @@ async def test_a_member_created_from_a_preset_keeps_its_template_ceiling_and_cli
             assert m["config"]["allow_rules"] == preset["cliAllow"]
         else:  # Dev keeps the default rules, with Edit and Write
             assert "Edit" in m["config"]["allow_rules"]
+
+
+@pytest.mark.parametrize("pid", ["dev", "reviewer", "qa"])
+def test_the_roles_that_run_or_check_tests_say_how_a_result_is_proved(pid):
+    preset = next(p for p in PRESETS if p["id"] == pid)
+    for lang in ("en", "vi"):
+        persona = preset["persona"][lang]
+        assert "proof" in persona.lower() and "Not provable" in persona, (pid, lang)

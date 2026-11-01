@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Added
+- **A test case's proof is shown, and can be a picture, a command, a link or a reason.** Until now the `proof` an AI wrote on a test case was stored but never shown. The test case has a **Result and proof** field (Markdown, like Expected result, with uploads). An AI writes a screenshot as `![login](qa/evidence/TC-1.png)`: the board copies the file from the run's working folder, so it shows on the ticket and survives a cleaned folder (a missing file, a file outside the folder, keys and `.env` are refused with what to do). When a result cannot be shown, the proof says `Not provable: <why>`; that is shown apart from a proof.
+- **Missing proof is flagged.** A test case set to pass or fail with no proof shows a **No proof** badge, the Review summary lists those cases (and the ones taken on trust), and `ai_run` report tells the AI which cases to back before it finishes. A run's prompt says how to write the proof and not to invent it.
+- **A QA preset**, and proof rules in the Dev and Reviewer presets: QA lists test cases before the build, writes checks test-first, runs them on the real app and logs bugs as tickets. The report's `tests` may carry the `command` that was run.
+
 ### Fixed
 - **A ticket an AI gave to another AI waited for ever.** When an AI changed a ticket's assignee to another AI (by editing it, or in an edit a person or Autopilot approved) the new assignee was never started, nothing on the board said so, and the lifecycle stood still. The receiver now gets a work run, queued behind the sender's, as `ai_run` handoff does.
 

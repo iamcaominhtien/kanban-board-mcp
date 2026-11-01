@@ -363,6 +363,10 @@ def rules_block(
             "you decided and why, and what is left. The board records the facts (time, files, commands) itself.",
             "When you are done, call ai_run(action='report', summary=..., criteria=[{text, met, evidence}]) and end "
             "with a short final message: it becomes the AI summary on the ticket.",
+            "A test case you set to pass or fail needs its proof in the same call (`proof`, Markdown): a screenshot as "
+            "![what it shows](path/in/working/folder.png) (take it first), the command and its output in a ``` block. "
+            "If it cannot be shown write 'Not provable: <why>'; never invent evidence, and leave a case you could not "
+            "run as pending.",
             "Shell commands run only when the whole command matches an allowed rule: run each one on its own "
             "(for example `python3 -m pytest -q`), without `;`, `&&`, pipes, `echo` or `cd` (you already are in the "
             "working folder). If one is refused, try the plain form once before reporting it.",

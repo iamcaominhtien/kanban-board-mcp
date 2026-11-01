@@ -182,7 +182,7 @@ async def ticket_items(
     proof: Annotated[
         str | None,
         Field(
-            description="test_case: evidence such as a log excerpt, URL or file path."
+            description="test_case: Markdown evidence: ![what it shows](qa/x.png) (a path in the working folder; the file must exist, the board keeps a copy), the command and its output in a ``` block, links. Cannot be shown: 'Not provable: <why>'."
         ),
     ] = None,
     assignee: Annotated[

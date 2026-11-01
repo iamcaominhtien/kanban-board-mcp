@@ -552,3 +552,22 @@
   opacity: 0.6;
   cursor: default;
 }
+
+.proofBadge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.proofBadgeMissing {
+  background: #fdf3dc;
+  color: #8a5a00;
+}
+
+.proofBadgeUnprovable {
+  background: #eef0f2;
+  color: #55606a;
+}
