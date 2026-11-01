@@ -316,18 +316,29 @@ export function openActionOf(row: NotificationRow): string | null {
   return row.kind === 'day_card' ? 'open' : null;
 }
 
+/** Run a row action from a click or a key without waiting for it; the handler reports its own errors. */
+export function runAction(
+  onAction: (row: NotificationRow, actionId: string, extra?: { until?: string | null }) => unknown,
+  row: NotificationRow,
+  actionId: string,
+  extra?: { until?: string | null },
+): void {
+  const result = extra === undefined ? onAction(row, actionId) : onAction(row, actionId, extra);
+  if (result instanceof Promise) result.catch(() => undefined);
+}
+
 /** What the row keys do to the selected row: E marks it read, S snoozes an open one for an hour, Enter opens it. */
 export function rowKeyAction(
   onAction: (row: NotificationRow, actionId: string, extra?: { until?: string | null }) => unknown,
 ): (row: NotificationRow, what: 'open' | 'read' | 'snooze') => void {
   return (row, what) => {
     if (what === 'read') {
-      void onAction(row, 'read');
+      runAction(onAction, row, 'read');
     } else if (what === 'snooze') {
-      if (row.needs && !row.done) void onAction(row, 'snooze', { until: snoozeChoices()[0].until });
+      if (row.needs && !row.done) runAction(onAction, row, 'snooze', { until: snoozeChoices()[0].until });
     } else {
       const id = openActionOf(row);
-      if (id) void onAction(row, id);
+      if (id) runAction(onAction, row, id);
     }
   };
 }

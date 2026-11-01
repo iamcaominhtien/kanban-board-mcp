@@ -3,6 +3,7 @@ import { notificationsApi } from '../../api/notifications';
 import type { NotificationRow } from '../../types/notifications';
 import { useToast, type ToastVariant } from '../Toast';
 import type { RowActionHandler } from './NotificationRow';
+import { runAction } from './notificationUi';
 
 const POLL_MS = 30_000;
 const ERROR_KINDS = new Set(['run_failed', 'run_stopped_memory', 'offline', 'auto_trip', 'account_signed_out']);
@@ -64,7 +65,7 @@ function showRowToast(c: ToastContext, row: NotificationRow) {
     title: row.title,
     message: toastDetail(row) || undefined,
     duration: 12000,
-    action: first ? { label: first.label, onClick: () => void c.onAction(row, first.id) } : undefined,
+    action: first ? { label: first.label, onClick: () => runAction(c.onAction, row, first.id) } : undefined,
     // closed, timed out or collapsed: forget it, so a later reminder may toast again
     onClose: () => {
       if (c.shown.get(row.id)?.toastId === toastId) c.shown.delete(row.id);

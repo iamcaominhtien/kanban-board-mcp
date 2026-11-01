@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { DayCardData, NotificationRow } from '../../types/notifications';
 import styles from './DayCard.module.css';
 import type { RowActionHandler } from './NotificationRow';
-import { Icon, type IconName } from './notificationUi';
+import { Icon, runAction, type IconName } from './notificationUi';
 
 const LINE_ICONS: Record<string, IconName> = {
   project: 'check',
@@ -68,7 +68,7 @@ export function DayCard({
           <div className={styles.title}>{row.title}</div>
           <div className={styles.sub}>{row.body}</div>
         </div>
-        <button type="button" className={styles.btn} onClick={() => void onAction(row, 'open')}>
+        <button type="button" className={styles.btn} onClick={() => runAction(onAction, row, 'open')}>
           Open
         </button>
       </div>
@@ -127,13 +127,13 @@ export function DayCard({
               disabled={retried !== null}
               onClick={() => {
                 setRetried(retryable);
-                void onAction(row, 'retry_failed');
+                runAction(onAction, row, 'retry_failed');
               }}
             >
               {retryLabel(retried, retryable)}
             </button>
           )}
-          <button type="button" className={styles.btn} onClick={() => void onAction(row, 'board_health')}>
+          <button type="button" className={styles.btn} onClick={() => runAction(onAction, row, 'board_health')}>
             Board health
           </button>
         </div>
