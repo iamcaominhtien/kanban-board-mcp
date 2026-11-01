@@ -618,7 +618,9 @@ async def test_a_sign_in_whose_window_was_closed_is_stopped(fake_cli, monkeypatc
     q = signin.attach(s)
     signin.detach(s, q)  # the tab was closed
     await _until(lambda: signin.active(a["id"]) is None)
-    assert s.ended == "cancelled" and s.proc.poll() is not None
+    assert s.ended == "cancelled"
+    # the process is told to stop and exits a moment later, on a busy machine not at once
+    await _until(lambda: s.proc.poll() is not None)
     # a window that comes back in time keeps it
     await c.post(f"/ai/accounts/{a['id']}/signin")
     s = signin.active(a["id"])

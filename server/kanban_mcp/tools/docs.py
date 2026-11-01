@@ -23,6 +23,8 @@ DocsReadAction = Literal[
     "diagram",
     "sketches",
     "sketch",
+    "canvases",
+    "canvas",
 ]
 
 DOCS_READ_OPS = {
@@ -38,6 +40,8 @@ DOCS_READ_OPS = {
     "diagram": Op(ops.export_diagram, ("diagram_id", "path"), ("version",)),
     "sketches": Op(ops.list_project_sketches, ("project_id",)),
     "sketch": Op(ops.export_sketch, ("sketch_id", "path")),
+    "canvases": Op(ops.list_project_canvases, ("project_id",)),
+    "canvas": Op(ops.read_canvas, ("canvas_id",), ("board_id", "path")),
 }
 
 
@@ -48,7 +52,7 @@ async def docs_read(
     project_id: Annotated[
         str | None,
         Field(
-            description="Project UUID from get_projects (list, search, recycle_bin, check_links, diagrams, sketches)."
+            description="Project UUID from get_projects (list, search, recycle_bin, check_links, diagrams, sketches, canvases)."
         ),
     ] = None,
     page_id: PageId = None,
@@ -82,7 +86,7 @@ async def docs_read(
     path: Annotated[
         str | None,
         Field(
-            description="diagram: absolute path to write the .drawio file to (a folder gets '<name>.drawio' inside it). sketch: absolute folder (gets '<name>.png' and '<name>.sketch.json') or a '.png' path."
+            description="diagram: absolute path to write the .drawio file to (a folder gets '<name>.drawio' inside it). sketch: absolute folder (gets '<name>.png' and '<name>.sketch.json') or a '.png' path. canvas: folder to write a frame's files to."
         ),
     ] = None,
     sketch_id: Annotated[
@@ -90,6 +94,14 @@ async def docs_read(
         Field(
             description="sketch, sketch_save: id 'sk_xxxxxxxx' from `(sketch:sk_xxxxxxxx)` in a text."
         ),
+    ] = None,
+    canvas_id: Annotated[
+        str | None,
+        Field(description="canvas: id 'cv_xxxxxxxx'."),
+    ] = None,
+    board_id: Annotated[
+        str | None,
+        Field(description="canvas: frame id 'b_xxxxxxxx' to read the source of."),
     ] = None,
     compare_to: Annotated[
         int | None,
@@ -120,7 +132,9 @@ async def docs_read(
     - diagrams: project_id. draw.io diagrams: [{id, label, version, updated_by, updated_at, summary}]. A text shows one as `[Name](diagram:dg_xxxxxxxx)`.
     - diagram: diagram_id, path [, version]. Writes the diagram's .drawio file (XML) to `path`: edit it with your own file tools, then docs_write(diagram_save). Returns {path, version, markdown}.
     - sketches: project_id. Freehand sketches: [{id, title, owner_kind, owner_id, version, width, height, layers, updated_by, updated_at, markdown}]. A text shows one as `![Name](sketch:sk_xxxxxxxx)`.
-    - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}."""
+    - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.
+    - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
+    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose))."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 
@@ -145,6 +159,9 @@ DocsWriteAction = Literal[
     "diagram_restore",
     "sketch_create",
     "sketch_save",
+    "canvas_create",
+    "canvas_comment",
+    "canvas_propose",
 ]
 
 DOCS_WRITE_OPS = {
@@ -194,6 +211,21 @@ DOCS_WRITE_OPS = {
         ("sketch_id", "path", "base_version"),
         ("source_path", "title"),
     ),
+    "canvas_create": Op(
+        ops.create_canvas_from_files,
+        ("path",),
+        ("owner_kind", "owner_id", "title", "canvas_id"),
+    ),
+    "canvas_comment": Op(
+        ops.comment_on_canvas,
+        ("canvas_id", "body"),
+        ("board_id", "thread_id", "at"),
+    ),
+    "canvas_propose": Op(
+        ops.propose_canvas_change,
+        ("canvas_id", "board_id", "path"),
+        ("note",),
+    ),
 }
 
 
@@ -209,7 +241,7 @@ async def docs_write(
     title: Annotated[
         str | None,
         Field(
-            description="create: page title (body headings start at '##'). update: new title (renames the page; links to it are rewritten). duplicate: title of the copy (default '<title> (copy)'). sketch_create, sketch_save: name of the sketch."
+            description="create: page title (body headings start at '##'). update: new title (renames the page; links to it are rewritten). duplicate: title of the copy (default '<title> (copy)'). sketch_create, sketch_save, canvas_create: name of the sketch or canvas."
         ),
     ] = None,
     markdown: Annotated[
@@ -237,7 +269,10 @@ async def docs_write(
         ),
     ] = None,
     note: Annotated[
-        str | None, Field(description="update: change note for the page history.")
+        str | None,
+        Field(
+            description="update: change note for the page history. canvas_propose: what you changed."
+        ),
     ] = None,
     publish: Annotated[
         bool | None,
@@ -257,7 +292,7 @@ async def docs_write(
     body: Annotated[
         str | None,
         Field(
-            description="comment, reply, edit_comment: comment text (Markdown; @Name mentions a member)."
+            description="comment, reply, edit_comment, canvas_comment: comment text (Markdown; @Name mentions a member)."
         ),
     ] = None,
     quote: Annotated[
@@ -268,7 +303,7 @@ async def docs_write(
     ] = None,
     thread_id: Annotated[
         str | None,
-        Field(description="reply, resolve, reopen: thread id."),
+        Field(description="reply, resolve, reopen, canvas_comment: thread id."),
     ] = None,
     comment_id: Annotated[
         str | None,
@@ -277,7 +312,7 @@ async def docs_write(
     path: Annotated[
         str | None,
         Field(
-            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB)."
+            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB). canvas_propose: folder with the frame's files."
         ),
     ] = None,
     diagram_id: Annotated[
@@ -307,14 +342,34 @@ async def docs_write(
         ),
     ] = None,
     owner_kind: Annotated[
-        Literal["ticket", "doc"] | None,
+        Literal["ticket", "doc", "idea"] | None,
         Field(
-            description="sketch_create: the sketch belongs to a ticket or a Docs page."
+            description="sketch_create: ticket or doc (a Docs page). canvas_create: ticket, doc or idea."
         ),
     ] = None,
     owner_id: Annotated[
         str | None,
-        Field(description="sketch_create: ticket id 'IAM-12' or Docs page id (UUID)."),
+        Field(
+            description="sketch_create, canvas_create: ticket id 'IAM-12', Docs page id (UUID) or idea id."
+        ),
+    ] = None,
+    canvas_id: Annotated[
+        str | None,
+        Field(
+            description="canvas_comment, canvas_propose: canvas id. canvas_create: add frames to it instead of making a new canvas."
+        ),
+    ] = None,
+    board_id: Annotated[
+        str | None,
+        Field(
+            description="canvas_propose: the HTML frame to change. canvas_comment: pin to this frame."
+        ),
+    ] = None,
+    at: Annotated[
+        str | None,
+        Field(
+            description="canvas_comment (needs board_id): pin on an element: CSS selector or 'text=Add task'."
+        ),
     ] = None,
 ) -> dict:
     """Write a project's Docs. `action`:
@@ -335,6 +390,9 @@ async def docs_write(
     - diagram_delete / diagram_restore: diagram_id. Unlink a diagram (kept, restorable) / bring it back.
     - sketch_create: owner_kind (ticket|doc), owner_id, title, path [, source_path]. A new sketch from a local PNG and its .sketch.json. Returns {id, title, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.
     - sketch_save: sketch_id, path, base_version [, source_path, title]. Saves the PNG and source as a new version; base_version is the `version` from docs_read(sketch), a stale one is rejected. Returns {id, title, version}. The PNG is what the text shows, so keep it the flattened picture of the source.
+    - canvas_create: path [, owner_kind (ticket|doc|idea), owner_id, title | canvas_id]. A new canvas, or frames added to canvas_id, from a folder: one sub-folder with an .html page per frame (name order); optional frame.json, canvas.json (see the design guide). Returns {id, markdown, boards}: put `markdown` on its own line in the text.
+    - canvas_comment: canvas_id, body [, board_id, at, thread_id]. Comment under your own name: pin on an element (at) of a frame, the plane, or reply. You never resolve a person's thread.
+    - canvas_propose: canvas_id, board_id, path [, note]. Offer a changed HTML frame from a folder (see docs_read(canvas)). Nothing changes until a person accepts; a frame being edited waits.
     The preview of a saved diagram is drawn by the server (boxes, arrows, text) unless you pass an SVG export; a person who opens it in the editor sees the full drawing.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     return await dispatch("docs_write", DOCS_WRITE_OPS, action, params_of(locals()))

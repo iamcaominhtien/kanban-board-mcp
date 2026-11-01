@@ -38,6 +38,8 @@ import { MarkdownEditor } from './MarkdownEditor';
 import { itemFromUpload, usePreview } from './preview/PreviewContext';
 import { SketchOwnerContext } from './sketch/SketchContext';
 import { sketchIdOf } from './sketch/sketchRefs';
+import { CanvasOwnerContext } from './canvas/CanvasContext';
+import { canvasRefOf } from './canvas/canvasRefs';
 import { FileCategoryIcon, getFileTypeMeta, formatFileSize } from '../utils/fileIcons';
 import { AcceptanceCriteriaSection } from './AcceptanceCriteriaSection';
 import { RelationsSection } from './RelationsSection';
@@ -2158,7 +2160,13 @@ function TicketModalInner({
                               const [, alt, rawSrc] = m;
                               // a sketch is attached as its PNG
                               const sketchId = sketchIdOf(rawSrc);
-                              const src = sketchId ? `/uploads/sketches/${sketchId}.png` : rawSrc;
+                              // a canvas is attached as its overview picture
+                              const canvasRef = canvasRefOf(rawSrc);
+                              const src = sketchId
+                                ? `/uploads/sketches/${sketchId}.png`
+                                : canvasRef
+                                  ? `/uploads/canvases/${canvasRef.id}/overview.png`
+                                  : rawSrc;
                               if (src && !src.startsWith('uploading:')) {
                                 allAttachments.push({
                                   type: 'image',
@@ -3247,19 +3255,35 @@ export function TicketModal(props: TicketModalProps) {
       toast.success('Saved a copy', `“${r.title}” is attached to ${ticket.id}.`);
     },
   };
+  const canvasOwner = {
+    ownerKind: 'ticket' as const,
+    ownerId: ticket.id,
+    projectId: ticket.projectId,
+    ownerLabel: ticket.id,
+    onCreated: (markdown: string, title: string) => {
+      const current = latestTicket.current?.description ?? '';
+      updateTicket.mutate({
+        ticketId: ticket.id,
+        data: { description: `${current}${current.trim() ? '\n\n' : ''}${markdown}` },
+      });
+      toast.success('Canvas added', `“${title}” is in the description of ${ticket.id}.`);
+    },
+  };
   return (
     <SketchOwnerContext.Provider value={sketchOwner}>
-      <TicketDocsHost
-        projectId={ticket.projectId}
-        ticketId={ticket.id}
-        onOpenDocsPage={(pageId) => onOpenDocsPage?.(pageId)}
-        onOpenTicket={(id) => {
-          const next = allTickets.find((t) => t.id.toLowerCase() === id.toLowerCase());
-          if (next) onOpenTicket?.(next);
-        }}
-      >
-        <TicketModalInner {...props} />
-      </TicketDocsHost>
+      <CanvasOwnerContext.Provider value={canvasOwner}>
+        <TicketDocsHost
+          projectId={ticket.projectId}
+          ticketId={ticket.id}
+          onOpenDocsPage={(pageId) => onOpenDocsPage?.(pageId)}
+          onOpenTicket={(id) => {
+            const next = allTickets.find((t) => t.id.toLowerCase() === id.toLowerCase());
+            if (next) onOpenTicket?.(next);
+          }}
+        >
+          <TicketModalInner {...props} />
+        </TicketDocsHost>
+      </CanvasOwnerContext.Provider>
     </SketchOwnerContext.Provider>
   );
 }

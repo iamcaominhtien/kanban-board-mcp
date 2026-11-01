@@ -28,6 +28,7 @@ import { DocsFollowToggle } from './DocsFollowToggle';
 import { DocsHero } from './DocsHero';
 import { SinceViewedDigest } from './ai/SinceViewedDigest';
 import { DocsPageView, type PageAction } from './DocsPageView';
+import { CanvasPageView } from './CanvasPageView';
 import { DocsRail } from './DocsRail';
 import {
   DeletedPage,
@@ -53,6 +54,7 @@ import { useDocsOffline } from './useDocsOffline';
 import './docs.css';
 import { useAppCommand } from '../../utils/appCommands';
 import { sketchesAsImages } from '../sketch/sketchRefs';
+import { canvasesAsImages } from '../canvas/canvasRefs';
 
 interface Props {
   projectId: string;
@@ -427,7 +429,7 @@ export function DocsView({
     else if (action === 'duplicate') setDupFor(full);
     else if (action === 'copy-markdown') await copy(`# ${full.title}\n\n${full.markdown}`, 'Markdown copied');
     else if (action === 'export')
-      download(`${full.slug}.md`, `# ${full.title}\n\n${sketchesAsImages(full.markdown)}\n`);
+      download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(full.markdown))}\n`);
   }
 
   const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor);
@@ -732,6 +734,17 @@ export function DocsView({
         failedAt={failedAt}
         onRetry={() => void pageQuery.refetch()}
         onBack={goOverview}
+      />
+    );
+  } else if (page.kind === 'canvas' && !offlineCopy) {
+    content = (
+      <CanvasPageView
+        key={page.id}
+        page={page}
+        projectId={projectId}
+        projectName={projectName}
+        onAction={(a) => void runAction(a, page)}
+        onOpenPage={select}
       />
     );
   } else if (editing && !offlineCopy) {

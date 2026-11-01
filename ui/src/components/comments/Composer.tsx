@@ -7,6 +7,8 @@ import { DiagramIcon } from '../diagrams/DiagramIcon';
 import { useDiagramStarter } from '../diagrams/useDiagramStarter';
 import { SketchIcon } from '../sketch/SketchIcon';
 import { useSketchStarter } from '../sketch/useSketchStarter';
+import { CanvasIcon } from '../canvas/CanvasIcon';
+import { useCanvasStarter } from '../canvas/useCanvasStarter';
 import { firstDiagramFile } from '../diagrams/diagramFile';
 import { aiAvailability } from '../ai/aiAvailability';
 import { mentionedAi, type MentionIntent, type SendOpts } from '../ai/MentionIntent';
@@ -244,6 +246,14 @@ export function Composer({
     onInsert: insertDiagramLine,
   });
 
+  const canvas = useCanvasStarter({
+    ownerKind: 'comment',
+    ownerId: ticketId,
+    projectId,
+    ownerLabel: ticketId,
+    onInsert: insertDiagramLine,
+  });
+
   function addFiles(files: FileList | File[]) {
     for (const file of Array.from(files)) {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -411,6 +421,21 @@ export function Composer({
                   }}
                 >
                   <SketchIcon name="sketch" size={14} />
+                </button>
+              )}
+              {canvas.available && (
+                <button
+                  type="button"
+                  aria-label="Canvas"
+                  title="Canvas (boards on one large plane)"
+                  data-testid="comment-canvas"
+                  style={{ ...btn, color: '#244E78' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    void canvas.start();
+                  }}
+                >
+                  <CanvasIcon name="canvas" size={14} />
                 </button>
               )}
               {diagram.available && (

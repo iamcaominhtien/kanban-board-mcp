@@ -15,6 +15,7 @@ import { NeedsInput } from './NeedsInput';
 import { Placeholder } from './Placeholder';
 import { Shortcuts } from './Shortcuts';
 import { Sketch } from './Sketch';
+import { Canvas } from './Canvas';
 import { TableMethods } from './TableMethods';
 import { TicketRef } from './TicketRef';
 
@@ -69,6 +70,7 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     DocImage,
     Diagram,
     Sketch,
+    Canvas,
     Callout,
     DocRefInput,
     MathInline,

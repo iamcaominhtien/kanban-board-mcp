@@ -79,6 +79,8 @@ export const ICON_PATHS: Record<string, string> = {
   // Sketch tool
   sketch:
     '<path d="M18.5 3.5C14 6 10.5 10 9.5 13.5L11.5 15.5C15 14.5 19 11 20.5 5.5Z"/><path d="M9.5 13.5C7 13.5 5.5 15 5.5 17.5C5.5 19 4.5 20 3.5 20.5C7 21.5 11.5 20.5 11.5 15.5"/>',
+  // Canvas (the layers icon: also the page tree row of a canvas page)
+  canvas: '<path d="M12 3L22 8.5L12 14L2 8.5Z"/><path d="M2 13L12 18.5L22 13"/>',
   // ticket-doc-refs board
   sidePanel: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4V20"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8A4 4 0 0 1 16 8V11"/>',

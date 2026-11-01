@@ -10,6 +10,8 @@ interface Props {
   onPickImage: () => void;
   /** Starts a sketch; the button is hidden without it. */
   onSketch?: () => void;
+  /** Starts a canvas; the button is hidden without it. */
+  onCanvas?: () => void;
   ticketPrefix: string;
   /** Board AI "Ask AI" button (A6). */
   onAskAi?: () => void;
@@ -24,10 +26,20 @@ const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
  * @param props.onLink - Called by the link button.
  * @param props.onPickImage - Called by the image button.
  * @param props.onSketch - Called by the Sketch button (hidden when missing).
+ * @param props.onCanvas - Called by the Canvas button (hidden when missing).
  * @param props.ticketPrefix - Ticket key prefix used by the reference button.
  * @param props.onAskAi - Shows the Board AI "Ask AI" button.
  */
-export function EditorToolbar({ editor, disabled, onLink, onPickImage, onSketch, ticketPrefix, onAskAi }: Props) {
+export function EditorToolbar({
+  editor,
+  disabled,
+  onLink,
+  onPickImage,
+  onSketch,
+  onCanvas,
+  ticketPrefix,
+  onAskAi,
+}: Props) {
   const st = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -164,6 +176,11 @@ export function EditorToolbar({ editor, disabled, onLink, onPickImage, onSketch,
       {onSketch && (
         <Btn label="Sketch (/draw)" onClick={onSketch}>
           <Icon name="sketch" size={16} />
+        </Btn>
+      )}
+      {onCanvas && (
+        <Btn label="Canvas (/canvas)" onClick={onCanvas}>
+          <Icon name="canvas" size={16} />
         </Btn>
       )}
       <div style={{ flex: 1 }} />
