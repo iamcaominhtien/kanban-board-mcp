@@ -157,6 +157,9 @@ export function NotificationRow({
           {row.memberName && actors.length === 0 && (
             <span className={`${styles.chip} ${styles.chipAi}`}>{row.memberName}</span>
           )}
+          {row.kind === 'account_signed_out' && Number(row.data?.members) > 0 && (
+            <span className={`${styles.chip} ${styles.chipAi}`}>{`${Number(row.data?.members)} members`}</span>
+          )}
           {row.ticketId && !grouped && <TicketChip id={row.ticketId} onClick={() => void fire('open_ticket')} />}
           {pageTitle && (
             <button type="button" className={styles.chipPage} onClick={() => void fire('open')}>
@@ -301,10 +304,12 @@ export function NotificationRow({
                       className={styles.btn}
                       aria-haspopup="menu"
                       aria-expanded={menu}
+                      aria-label="Snooze"
+                      title="Snooze"
                       onClick={() => setMenu((m) => !m)}
                     >
                       <Icon name="clock" />
-                      Snooze
+                      <span className={styles.hoverLabel}>Snooze</span>
                     </button>
                     {menu && (
                       <div className={styles.menu} role="menu">
@@ -329,10 +334,12 @@ export function NotificationRow({
                     <button
                       type="button"
                       className={`${styles.btn} ${styles.hoverOnly}`}
+                      aria-label="Mute this ticket"
+                      title="Mute this ticket"
                       onClick={() => void fire('mute')}
                     >
                       <Icon name="mute" />
-                      Mute this ticket
+                      <span className={styles.hoverLabel}>Mute this ticket</span>
                     </button>
                   )}
                 </>

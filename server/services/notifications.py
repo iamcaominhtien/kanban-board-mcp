@@ -625,6 +625,7 @@ async def emit(
     member_id: str | None = None,
     actor: str | None = None,
     data: dict | None = None,
+    since: str | None = None,
     session: AsyncSession | None = None,
 ) -> int | None:
     """Append an event to the log and write (or merge into) one row per recipient. Returns the event id.
@@ -648,6 +649,7 @@ async def emit(
                 member_id=member_id,
                 actor=actor,
                 data=data,
+                since=since,
                 session=s,
             )
     needs = is_needs(kind)
@@ -756,7 +758,8 @@ async def emit(
                 data=ev.data,
                 inapp=inapp and not quiet,
                 desktop=desktop and not quiet,
-                created_at=ev.created_at,
+                # how long it has waited counts from when the thing began (an AI's question: when it asked)
+                created_at=since or ev.created_at,
                 updated_at=ev.created_at,
             )
         )
@@ -1189,6 +1192,7 @@ async def on_run_question(run_id: str) -> None:
                 ticket_id=run.ticket_id,
                 member_id=run.member_id,
                 actor=name,
+                since=q.get("asked_at"),
                 data={
                     "to": q.get("to"),
                     "options": q.get("options") or [],

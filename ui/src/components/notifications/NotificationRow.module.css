@@ -233,6 +233,15 @@
   margin-top: 7px;
   flex-wrap: wrap;
   position: relative;
+  container-type: inline-size;
+}
+
+/* In the narrow panel Snooze and Mute are icons (with their names as tooltips), so they fit on the action line and
+   a hidden second line never leaves a gap under the row; the wide page shows their words as in D1 */
+@container (max-width: 460px) {
+  .hoverLabel {
+    display: none;
+  }
 }
 
 .btn {
