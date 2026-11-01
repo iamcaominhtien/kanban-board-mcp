@@ -55,6 +55,8 @@ export const ACTION_LABEL: Record<string, string> = {
   settings_updated: 'Project AI settings',
   autopilot_decision: 'Autopilot decided',
   autopilot_changed: 'Autopilot settings',
+  comment_hidden_from_ai: 'Comment hidden from AI',
+  comment_unhidden: 'Comment shown to AI',
   token_revoked: 'Token revoked',
   token_reconnected: 'Token reconnected',
   injection_detected: 'Flagged text read',

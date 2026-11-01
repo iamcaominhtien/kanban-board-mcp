@@ -102,6 +102,7 @@ def flags_for_comments(
                     "author": author,
                     "trust": trust,
                     "phrases": found,
+                    "hidden": bool((c.get("ai_hidden") or {}).get("hidden")),
                 }
             )
     return out

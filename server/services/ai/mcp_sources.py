@@ -12,6 +12,7 @@ A nearer scope wins a name. The board's own `kanban` server is never taken from 
 the permission guard's token.
 """
 
+import contextvars
 import json
 import os
 import re
@@ -52,12 +53,23 @@ def _same_path(a: str, b: str) -> bool:
     return norm(a) == norm(b)
 
 
+# The config folder of the AI account a call is made for (None: the login already on this computer). A contextvar, so
+# the readers below need no extra argument and two runs on different accounts never see each other's servers.
+ACCOUNT_DIR: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "mcp_sources_account_dir", default=None
+)
+
+
 def _config_dir() -> str:
-    return os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    return (
+        ACCOUNT_DIR.get()
+        or os.environ.get("CLAUDE_CONFIG_DIR")
+        or os.path.expanduser("~/.claude")
+    )
 
 
 def _account_file() -> str:
-    custom = os.environ.get("CLAUDE_CONFIG_DIR")
+    custom = ACCOUNT_DIR.get() or os.environ.get("CLAUDE_CONFIG_DIR")
     return os.path.join(custom or os.path.expanduser("~"), ".claude.json")
 
 

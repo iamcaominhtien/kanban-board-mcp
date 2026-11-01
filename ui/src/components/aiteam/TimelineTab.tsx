@@ -114,7 +114,13 @@ export function TimelineTab({
   const [width, setWidth] = useState(1100);
   const [pinned, setPinned] = useState(true);
   const [missed, setMissed] = useState(0);
-  const scroller = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement | null>(null);
+  // the scroller is mounted anew when the range empties and fills again or the view changes: watch each one
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
+  const attachScroller = useCallback((el: HTMLDivElement | null) => {
+    scroller.current = el;
+    setScrollEl(el);
+  }, []);
   const rootRef = useRef<HTMLDivElement>(null);
   // Runs and arrows that arrived since the last read are drawn in, once; the first read draws everything still
   const known = useRef<{ key: string; ids: Set<string> }>({ key: '', ids: new Set() });
@@ -163,13 +169,13 @@ export function TimelineTab({
   };
 
   useLayoutEffect(() => {
-    const el = scroller.current;
+    const el = scrollEl;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => setWidth(el.clientWidth));
     ro.observe(el);
     setWidth(el.clientWidth);
     return () => ro.disconnect();
-  }, [data == null, table]);
+  }, [scrollEl]);
 
   // Lifelines to draw: on a narrow window, AIs with nothing in the range fold into one strip
   const all = useMemo(() => data?.lifelines ?? [], [data]);
@@ -546,7 +552,7 @@ export function TimelineTab({
           />
           <div
             className="tl-scroll"
-            ref={scroller}
+            ref={attachScroller}
             onScroll={onScroll}
             tabIndex={0}
             aria-label="Timeline diagram"

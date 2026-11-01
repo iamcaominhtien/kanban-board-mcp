@@ -288,7 +288,7 @@ async def test_run(
 
 _RATE_LIMITED = re.compile(
     r"(\b429\b|rate.?limit|usage limit|overloaded_error|too many requests"
-    r"|hit your .{0,30}limit|limit (?:reached|exceeded)|quota (?:exceeded|exhausted)|resource_exhausted)",
+    r"|hit your (?:weekly |5-hour |usage |daily |session |monthly )?limit\b(?! of)|resource_exhausted)",
     re.IGNORECASE,
 )
 # "resets Nov 2 at 4pm (Asia/Saigon)", "resets Nov 3, 9am", "resets 3:30pm (America/New_York)"
@@ -303,8 +303,15 @@ RATE_WAIT_MAX = 6 * 3600.0
 
 def reset_wait(text: str, now: datetime | None = None) -> float | None:
     """Seconds until the time a plan-limit message says the limit resets, or None when it names none."""
+    try:
+        return _reset_wait(text, now)
+    except (ValueError, OverflowError):
+        return None
+
+
+def _reset_wait(text: str, now: datetime | None) -> float | None:
     m = _RESETS.search(text or "")
-    if not m:
+    if not m or not 1 <= int(m["h"]) <= 12 or int(m["m"] or 0) > 59:
         return None
     try:
         zone = ZoneInfo(m["tz"]) if m["tz"] else None
@@ -328,11 +335,19 @@ def reset_wait(text: str, now: datetime | None = None) -> float | None:
             when = when.replace(month=month, day=int(m["day"]))
         except ValueError:
             return None
-        if when < now - timedelta(hours=1):
+        if when < now - timedelta(days=1):
             when = when.replace(year=when.year + 1)
     elif when < now:
         when += timedelta(days=1)
     return (when - now).total_seconds()
+
+
+def rate_limit_line(text: str | None) -> str | None:
+    """The line of the CLI's output that says it is limited, to show as the reason."""
+    for line in (text or "").splitlines():
+        if _RATE_LIMITED.search(line):
+            return redact(line.strip())[:160]
+    return None
 
 
 def rate_limit_wait(text: str | None) -> float | None:

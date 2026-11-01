@@ -754,7 +754,7 @@ class AgyAdapter(Adapter):
     cli = "agy"
     binary = "agy"
     label = "Antigravity"
-    resume_missing = ("conversation not found", "no conversation", "not found")
+    resume_missing = ("conversation not found", "no conversation")
     # Its MCP servers live in the account's HOME (mcp_config.json): there is no per-run place for a token, so the run
     # goes through the stdio bridge named there. Without an account that file would be the person's own.
     needs_account = True

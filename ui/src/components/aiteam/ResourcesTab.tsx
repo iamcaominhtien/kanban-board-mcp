@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { aiApi, useAiBoard, useAiMutation } from '../../api/ai';
+import { extractError } from '../../api/extractError';
+import { useToast } from '../Toast';
 import { useRestartRun, useResourcesStream } from '../../api/aiResources';
 import type { ResourceRun, ResourceSnapshot } from '../../types/aiResources';
 import { LEVEL_COLOR, fmtGb, fmtMb, levelOf, limitPct, linePoints, verdictOf, type Verdict } from './resourcesFormat';
@@ -165,6 +167,7 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
 function RowActions({ run, canAct, onDone }: { run: ResourceRun; canAct: boolean; onDone: () => void }) {
   const [asking, setAsking] = useState<'stop' | 'restart' | null>(null);
   const restart = useRestartRun();
+  const toast = useToast();
   const stop = useAiMutation((id: string) => aiApi.cancel(id, 'Stopped from the Resources tab'));
   if (!run.live) return null;
   const who = `${run.memberName ?? 'This AI'}’s run on ${run.ticketId}`;
@@ -211,8 +214,9 @@ function RowActions({ run, canAct, onDone }: { run: ResourceRun; canAct: boolean
                   setAsking(null);
                   onDone();
                 };
-                if (asking === 'stop') stop.mutate(run.runId, { onSuccess: done });
-                else restart.mutate(run.runId, { onSuccess: done });
+                const failed = (err: unknown) => toast.error("Couldn't do it", extractError(err));
+                if (asking === 'stop') stop.mutate(run.runId, { onSuccess: done, onError: failed });
+                else restart.mutate(run.runId, { onSuccess: done, onError: failed });
               }}
             >
               {asking === 'stop' ? 'Stop run' : 'Restart'}

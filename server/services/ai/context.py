@@ -105,10 +105,13 @@ def ticket_block(
         items = items[-comment_limit:]
         if items:
             lines.append("Recent comments (oldest first):")
-            held_back = 0
+            held_back = hidden = 0
             for c in items:
                 author = c.get("author") or "user"
                 text = redact(c.get("text", ""))
+                if (c.get("ai_hidden") or {}).get("hidden"):
+                    hidden += 1
+                    continue
                 trust = (
                     trust_of(author, humans, ai_names)
                     if humans is not None
@@ -131,6 +134,8 @@ def ticket_block(
                     f"({held_back} comment(s) from outside the project are not shown to you: this AI member does not "
                     "read external sources.)"
                 )
+            if hidden:
+                lines.append(f"({hidden} comment(s) were hidden from AI by a person.)")
     return "\n".join(lines)
 
 
@@ -142,13 +147,15 @@ def comments_for_reader(
 ) -> tuple[list[dict], int]:
     """The comments of a ticket as an AI may read them through a tool (`get_ticket`): deleted ones left out, secrets
     redacted, text by other AI members, agents and outsiders fenced as data, outsiders' comments held back unless the
-    member reads external sources. Returns (comments, how many were held back). The prompt's `ticket_block` applies
+    member reads external sources, comments a person hid from AI left out. Returns (comments, how many were held back). The prompt's `ticket_block` applies
     the same rules to the comments it prints."""
     out: list[dict] = []
     held_back = 0
     for c in raw:
         if not isinstance(c, dict) or c.get("deleted_at"):
             continue
+        if (c.get("ai_hidden") or {}).get("hidden"):
+            continue  # a person hid it from AI agents
         author = c.get("author") or "user"
         text = redact(c.get("text") or "")
         if humans is not None and author not in ai_names and author != "agent":

@@ -56,6 +56,7 @@ from . import (
     resources,
     safety,
 )
+from . import mcp_sources
 from .mcp_sources import folder_servers
 from .context import (
     STATUS_LABELS,
@@ -504,9 +505,77 @@ async def create_run(
 # ---------------------------------------------------------------------------
 
 
+BOARD_CLOSED = "board_closed"  # the run was cut off by the board closing or crashing
+RESUME_WITHIN = timedelta(hours=24)
+RESUME_NOTE = (
+    "The board was closed while your previous run on this ticket was in progress. Your conversation and every file "
+    "are as you left them. Look at `git status` and the last steps, then carry on from where you stopped; do not "
+    "start over."
+)
+
+
+async def resume_interrupted() -> int:
+    """Work the board's closing cut off goes on by itself at the next start, in the same conversation, with the same
+    chain and the same duty to report back; nobody has to notice. Only recent work runs of a ticket that is still open,
+    and only once."""
+    since = (datetime.now(UTC) - RESUME_WITHIN).isoformat()
+    async with database.async_session() as session:
+        cut = (
+            await session.exec(
+                select(AiRun).where(
+                    AiRun.stop_code == BOARD_CLOSED,
+                    AiRun.mode == "work",
+                    AiRun.ended_at >= since,
+                )
+            )
+        ).all()
+    started = 0
+    for old in cut:
+        async with database.async_session() as session:
+            ticket = await session.get(Ticket, old.ticket_id)
+            later = (
+                await session.exec(
+                    select(AiRun).where(
+                        AiRun.ticket_id == old.ticket_id,
+                        AiRun.member_id == old.member_id,
+                        AiRun.queued_at > (old.ended_at or ""),
+                    )
+                )
+            ).first()
+            mark = await session.get(AiRun, old.id)
+            mark.stop_code = f"{BOARD_CLOSED}_seen"  # never looked at twice
+            session.add(mark)
+            await session.commit()
+            if ticket is None or ticket.status in ("done", "wont_do") or later:
+                continue
+            try:
+                await create_run(
+                    session,
+                    ticket_id=old.ticket_id,
+                    member_id=old.member_id,
+                    mode="work",
+                    trigger="retry",
+                    started_by=old.started_by,
+                    instruction=f"{RESUME_NOTE}\n\n{old.instruction}".strip(),
+                    include_context=old.include_context,
+                    chain=loads(old.chain, []),
+                    resume_session=old.session_id,
+                    wait_for_hold=True,
+                    report_back=loads(old.report_back, None),
+                )
+                started += 1
+            except RunError as exc:
+                logger.info("Did not resume run %s: %s", old.id, exc)
+    return started
+
+
 async def start_scheduler() -> None:
-    """Recover runs left by a crash, then start the scheduler loop."""
+    """Recover runs left by a crash, resume the work the closing cut off, then start the scheduler loop."""
     await recover_on_startup()
+    try:
+        await resume_interrupted()
+    except Exception:  # noqa: BLE001 - a resume that fails must never keep the board from starting
+        logger.exception("Could not resume interrupted runs")
     if RT.scheduler is None or RT.scheduler.done():
         RT.scheduler = asyncio.create_task(_loop())
 
@@ -532,6 +601,7 @@ async def stop_scheduler() -> None:
                 state="failed",
                 revert_status=False,
                 quiet=True,
+                stop_code=BOARD_CLOSED,
             )
         except RunError:
             pass  # it ended on its own meanwhile
@@ -583,6 +653,8 @@ async def recover_on_startup() -> None:
             run.state = "failed"
             run.ended_at = now_iso()
             run.ended_reason = "The board restarted while this run was in progress. Retry to start a new run."
+            run.ended_by = "board"
+            run.stop_code = BOARD_CLOSED
             run.token_hash = None
             session.add(run)
         await session.commit()
@@ -1400,7 +1472,9 @@ def cli_tool_rules(
     return allowed, denied
 
 
-def mcp_config(config: dict, token: str, folder: str | None = None) -> dict:
+def mcp_config(
+    config: dict, token: str, folder: str | None = None, config_dir: str | None = None
+) -> dict:
     """The CLI's MCP servers for a member: the board's own (with the token that says who is calling), the enabled
     servers the member's configuration lists and, after them, the ones the working folder's `.mcp.json` lists."""
     mcp = {
@@ -1424,7 +1498,12 @@ def mcp_config(config: dict, token: str, folder: str | None = None) -> dict:
                 if server.get(k):
                     spec[k] = kv_dict(server[k])
             mcp["mcpServers"][name] = spec
-    for name, spec in folder_servers(folder).items():
+    reset = mcp_sources.ACCOUNT_DIR.set(config_dir)
+    try:
+        found = folder_servers(folder)
+    finally:
+        mcp_sources.ACCOUNT_DIR.reset(reset)
+    for name, spec in found.items():
         mcp["mcpServers"].setdefault(
             name, spec
         )  # a server of the member's configuration wins
@@ -1690,7 +1769,12 @@ async def _execute_cli_held(
         if not (agy or adapter):
             session_id = session_id or str(uuid.uuid4())
         # Antigravity starts in a scratch folder (below), so the folder's own Claude files do not apply to it
-        mcp = mcp_config(config, token, None if agy else cwd)
+        mcp = mcp_config(
+            config,
+            token,
+            None if agy else cwd,
+            accounts.claude_config_dir(account),
+        )
         if run.mode == "ask":
             allowed = [
                 "Read",
@@ -2060,11 +2144,12 @@ async def _execute_cli_held(
         RT.refusal_retries.pop(run_id, None)
         await _finish(run_id, result["text"])
         return
-    rate_wait = cli.rate_limit_wait(
-        (result or {}).get("text") or " ".join(proc.stderr_tail[-5:])
-    )
+    limited = (result or {}).get("text") or " ".join(proc.stderr_tail[-5:])
+    rate_wait = cli.rate_limit_wait(limited)
     if rate_wait is not None and await requeue_rate_limited(
-        run_id, rate_wait, "The provider is rate-limiting the CLI (429)."
+        run_id,
+        rate_wait,
+        f"The provider is limiting the CLI: {cli.rate_limit_line(limited) or '429'}.",
     ):
         return
     said = ((result or {}).get("text") or " ".join(proc.stderr_tail[-5:])).lower()
@@ -2553,6 +2638,12 @@ async def _end(
         detail={"reason": reason, "by": by},
     )
     if quiet:
+        if profile and profile.remove_after_run:
+            from . import members as svc_members
+
+            async with database.async_session() as session:
+                if not await active_runs(session, member_id=run.member_id):
+                    await svc_members.finalize_removal(session, run.member_id)
         RT.wake.set()
         await _publish(force=True)
         return run
@@ -2950,6 +3041,9 @@ async def retry(run_id: str, *, by: str, limit_min: int | None = None) -> AiRun:
             source_comment_id=old.source_comment_id,
             include_context=old.include_context,
             limit_min=limit_min,
+            # whoever was to be told when this work ends still is, and the chain still knows who sent it
+            chain=loads(old.chain, []),
+            report_back=loads(old.report_back, None),
         )
 
 
@@ -3820,9 +3914,12 @@ async def record_handoff(
                 # wait on an AI that never starts
                 if ticket.assignee != target.id:
                     async with database.async_session() as undo:
-                        await svc_tickets.update_ticket(
-                            undo, ticket_id, TicketUpdate(assignee=ticket.assignee)
-                        )
+                        now_on = await undo.get(Ticket, ticket_id)
+                        # a person who reassigned it meanwhile keeps their choice
+                        if now_on is not None and now_on.assignee == target.id:
+                            await svc_tickets.update_ticket(
+                                undo, ticket_id, TicketUpdate(assignee=ticket.assignee)
+                            )
                 raise ValueError(str(exc)) from exc
     finally:
         if tokens is not None:

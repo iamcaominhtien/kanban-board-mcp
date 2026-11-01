@@ -89,7 +89,10 @@ def ingest_file(raw: str, folder: str) -> str:
         set(rel.parts) & _DENIED_PARTS
         or any(part.startswith(".") for part in rel.parts)
         or suffix in _DENIED_SUFFIXES
-        or _SECRET_NAME.search(path.name)
+        or (
+            suffix not in uploads.SUPPORTED_IMAGE_EXTENSIONS
+            and _SECRET_NAME.search(path.name)
+        )
     ):
         raise ProofError(f"{raw}: this kind of file is never attached.")
     if suffix not in uploads.MIME_BY_EXTENSION:

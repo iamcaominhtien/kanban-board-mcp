@@ -730,3 +730,37 @@ async def test_a_shared_conversation_is_looked_up_in_the_accounts_folder(fake_cl
     # the account's session is found for the member on the account, and not kept for one that is not on it
     assert await sessions.lookup(scope, on["id"]) == "sess-1"
     assert await sessions.lookup(scope, plain["id"]) is None
+
+
+async def test_a_member_on_an_account_gets_the_servers_of_its_account_not_the_default_login(
+    fake_cli, monkeypatch, tmp_path
+):
+    import json
+
+    from services.ai import mcp_sources
+
+    # the login already on this computer has a server with a saved key; the account has its own
+    default_home = tmp_path / "default-home"
+    default_home.mkdir()
+    (default_home / ".claude.json").write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "private": {"type": "http", "url": "https://a.example/mcp"}
+                }
+            }
+        )
+    )
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(default_home))
+    c = fake_cli["c"]
+    a = await _account(c)
+    Path(a["folder"], ".claude.json").write_text(
+        json.dumps(
+            {"mcpServers": {"mine": {"type": "http", "url": "https://b.example/mcp"}}}
+        )
+    )
+    plain = runs.mcp_config({}, "kbr_x", str(tmp_path))
+    assert set(plain["mcpServers"]) == {"kanban", "private"}
+    on = runs.mcp_config({}, "kbr_x", str(tmp_path), a["folder"])
+    assert set(on["mcpServers"]) == {"kanban", "mine"}
+    assert mcp_sources.ACCOUNT_DIR.get() is None  # nothing leaks into the next call

@@ -12,7 +12,7 @@ import os
 import database
 from models import AiChat, AiMember, Member
 
-from .. import config_service, guard, llm, runs
+from .. import accounts, config_service, guard, llm, runs
 from ..context import RunContext
 from ..providers import merged_config
 from ..store import get_settings, loads
@@ -59,7 +59,9 @@ async def build(
             mode="work",
         )
     )
-    mcp = runs.mcp_config(config, token, profile.working_dir)
+    async with database.async_session() as db:
+        config_dir = await accounts.config_dir_for_member(db, member.id)
+    mcp = runs.mcp_config(config, token, profile.working_dir, config_dir)
     allowed = list(config.get("allow_rules") or []) + ["mcp__kanban"]
     allowed += [f"mcp__{name}" for name in mcp["mcpServers"] if name != "kanban"]
     safe = bool(settings.safe_mode or profile.safe_mode)

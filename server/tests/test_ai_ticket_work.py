@@ -883,3 +883,54 @@ async def test_closing_the_board_ends_a_run_quietly(env, monkeypatch):
     t = (await c.get(f"/tickets/{tid}")).json()
     assert not any("failed" in x["text"] for x in t["comments"])
     assert t["status"] == status
+
+
+async def test_work_cut_off_by_closing_the_board_goes_on_at_the_next_start(
+    env, monkeypatch
+):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "ticks")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    old = await _wait(c, tid, ("running",))
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, old["id"])
+        row.report_back = json.dumps({"member_id": "pm-1", "ticket_id": tid})
+        row.chain = json.dumps(["pm-1"])
+        s.add(row)
+        await s.commit()
+    await runs.stop_scheduler()
+    assert (await _runs(c, tid))[0]["state"] == "failed"
+    await runs.start_scheduler()  # the next start
+    again = await _runs(c, tid)
+    assert len(again) == 2
+    new = again[0]
+    assert new["id"] != old["id"] and new["trigger"] == "retry"
+    assert "The board was closed while your previous run" in new["instruction"]
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, new["id"])
+        assert json.loads(row.report_back)["member_id"] == "pm-1"
+        assert json.loads(row.chain) == ["pm-1"]
+    # a third start does not resume it a second time
+    await runs.stop_scheduler()
+    await runs.start_scheduler()
+    assert len(await _runs(c, tid)) == 2
+
+
+async def test_a_retry_keeps_who_is_to_be_told_when_the_work_ends(env, monkeypatch):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "fail")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await _assign(c, tid, m["id"])
+    old = await _wait(c, tid, ("failed",))
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, old["id"])
+        row.report_back = json.dumps({"member_id": "pm-1", "ticket_id": tid})
+        s.add(row)
+        await s.commit()
+    new = await runs.retry(old["id"], by="An Nguyen")
+    assert json.loads(new.report_back)["member_id"] == "pm-1"

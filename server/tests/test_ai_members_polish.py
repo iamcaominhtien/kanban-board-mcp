@@ -396,6 +396,21 @@ def test_a_plan_limit_message_is_a_wait_until_its_reset_not_a_failure():
         == cli.RATE_WAIT_DEFAULT
     )
     assert cli.rate_limit_wait("the test suite hit a limit of 3 retries") is None
+    # everyday "limit" errors are not the provider's rate limit, and are not waited for
+    for text in (
+        "Context limit reached · /compact or /clear to continue",
+        "Disk quota exceeded",
+        "recursion limit exceeded",
+        "Memory limit exceeded",
+        "You've hit your limit of 5 open files",
+    ):
+        assert cli.rate_limit_wait(text) is None, text
+    # a time that does not exist is no time, and does not raise
+    assert cli.reset_wait("resets 3:75pm", now) is None
+    assert cli.reset_wait("resets 13pm", now) is None
+    assert cli.rate_limit_line("a\nYou've hit your weekly limit · resets Nov 2\nb") == (
+        "You've hit your weekly limit · resets Nov 2"
+    )
 
 
 # --------------------------------------------------------------------------- periodic re-detection

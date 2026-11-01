@@ -16,6 +16,7 @@ the hard locks (deleting tickets and pages, managing members and the project) st
 
 import asyncio
 import json
+import re
 from datetime import UTC, datetime, timedelta
 
 from sqlmodel import col, select
@@ -127,6 +128,26 @@ async def decided_since(session: AsyncSession, project_id: str, since: datetime)
         ):
             count += 1
     return count
+
+
+def briefed_ids(instruction: str | None) -> set[str]:
+    """The ids of the items a delegate's brief shows, read from the headers the board wrote. Text inside an
+    <untrusted> fence was written by an AI and may contain anything, so it is never read for ids."""
+    out: set[str] = set()
+    inside = False
+    for line in (instruction or "").splitlines():
+        if inside:
+            inside = line.strip() != "</untrusted>"
+            continue
+        if line.startswith("<untrusted"):
+            inside = True
+            continue
+        m = re.match(
+            r"(?:permission request (\S+) from |question, run (\S+), from ).*:$", line
+        )
+        if m:
+            out.add(m.group(1) or m.group(2))
+    return out
 
 
 def _rank(risk: str | None) -> int:
@@ -373,7 +394,7 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
     if not cfg["approvals"]:
         raise AutopilotError("Autopilot is not set to decide permission requests.")
     # only what this run's brief put in front of the delegate (after the grace time, within the risk it may take)
-    if request not in (run.instruction or ""):
+    if request not in briefed_ids(run.instruction):
         raise AutopilotError(f"Request {request} was not in your brief.")
     await _within_limit(ctx.project_id, cfg)
     async with database.async_session() as session:
@@ -424,7 +445,7 @@ async def answer(ctx, request: str, text: str) -> dict:
         raise AutopilotError("Autopilot is not set to answer questions.")
     if not (text or "").strip():
         raise AutopilotError("Write the answer.")
-    if request not in (run.instruction or ""):
+    if request not in briefed_ids(run.instruction):
         raise AutopilotError(f"Question {request} was not in your brief.")
     await _within_limit(ctx.project_id, cfg)
     async with database.async_session() as session:

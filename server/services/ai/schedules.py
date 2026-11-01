@@ -1814,15 +1814,16 @@ async def _restart(
         srun = await session.get(AiScheduleRun, srun_id)
         fresh = await session.get(AiSchedule, s.id)
         slot = parse_iso(srun.slot_at) or datetime.now(UTC)
-        # a run cut off when the board closed is not started again behind a paused schedule, nor past its time
+        # nothing starts again behind a paused schedule; a run cut off when the board closed is not started again
+        # past its allowed time either (a fix round or a retry after the run itself ended is not held to it)
         if fresh is not None and fresh.state == "paused":
             await _close(
-                srun_id, "failed", "Not started again: the schedule is paused."
+                srun_id, "skipped", "Not started again: the schedule is paused."
             )
             return
-        if datetime.now(UTC) > _deadline(s, slot):
+        if run.ended_by == "board" and datetime.now(UTC) > _deadline(s, slot):
             await _close(
-                srun_id, "failed", "Not started again: its allowed time has passed."
+                srun_id, "skipped", "Not started again: its allowed time has passed."
             )
             return
         try:
