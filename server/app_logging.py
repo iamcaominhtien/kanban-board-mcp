@@ -52,6 +52,18 @@ class _IsoFormatter(logging.Formatter):
         dt = datetime.fromtimestamp(record.created).astimezone()
         return dt.isoformat(timespec="milliseconds")
 
+    def format(self, record: logging.LogRecord) -> str:
+        """Format the record; a later line that reads like a record of its own is indented.
+
+        Logged values can come from a request (an id, a client error message). Without this, one
+        holding a newline and a timestamp would add a fake record to the log and to its export.
+        """
+        # The reader opens the file with universal newlines, so \r and \r\n end a line as well
+        first, *rest = re.split(r"\r\n|\r|\n", super().format(record))
+        return "\n".join(
+            [first, *(f"  {line}" if _RECORD_RE.match(line) else line for line in rest)]
+        )
+
 
 def get_log_dir() -> Path:
     """Return the folder holding the log files (`KANBAN_LOG_DIR`, else `~/.kanban-board/logs`).

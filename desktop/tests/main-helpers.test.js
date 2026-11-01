@@ -6,6 +6,10 @@ const {
   buildBackendLaunchSpec,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
+  isOpenablePath,
+  isOpenableUrl,
+  openExternalSafely,
+  openPathSafely,
   parseReadyPort,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
@@ -211,4 +215,106 @@ test('the API secret goes to the server on its standard input, never in its envi
   });
   assert.deepEqual(dev.options.stdio, ['pipe', 'pipe', 'pipe']);
   assert.ok(!JSON.stringify(dev.options.env).includes(apiSecret));
+});
+
+test('isOpenablePath opens documents, images and media but never scripts or programs', () => {
+  for (const ok of ['/data/uploads/shot.PNG', 'C:\\work\\report.pdf', '/w/notes.md', '/w/clip.mp4', '/w/sheet.xlsx']) {
+    assert.equal(isOpenablePath(ok), true, ok);
+  }
+  for (const bad of [
+    '/w/run.sh', 'C:\\w\\setup.exe', 'C:\\w\\go.bat', '/w/tool.js', '/w/main.py', '/w/page.html',
+    '/Applications/Calculator.app', '/w/no-extension', '/w/macro.doc', '\\\\host\\share\\a.pdf', '', null, 42,
+  ]) {
+    assert.equal(isOpenablePath(bad), false, String(bad));
+  }
+});
+
+test('isOpenableUrl allows web and mail links only', () => {
+  for (const ok of ['https://github.com/x', 'http://localhost:8000/', 'mailto:a@b.c']) {
+    assert.equal(isOpenableUrl(ok), true, ok);
+  }
+  for (const bad of ['file:///etc/passwd', 'javascript:alert(1)', 'vscode://open', 'smb://host/share', 'not a url', '', null]) {
+    assert.equal(isOpenableUrl(bad), false, String(bad));
+  }
+});
+
+function fakeShell({ openPathResult = '', fail = null } = {}) {
+  const calls = [];
+  return {
+    calls,
+    async openPath(p) {
+      calls.push(['openPath', p]);
+      if (fail) throw new Error(fail);
+      return openPathResult;
+    },
+    async openExternal(u) {
+      calls.push(['openExternal', u]);
+      if (fail) throw new Error(fail);
+    },
+  };
+}
+
+test('openPathSafely opens a document, and a program only once the person confirms', async () => {
+  const shell = fakeShell();
+  assert.deepEqual(await openPathSafely(shell, '/w/report.pdf'), { success: true, error: null });
+  // no confirm given: a program is not opened, and the shell is never asked
+  assert.deepEqual(await openPathSafely(shell, 'C:\\w\\setup.exe'), { success: false, error: 'Not opened' });
+  const asked = [];
+  const no = async (name) => (asked.push(name), false);
+  assert.deepEqual(await openPathSafely(shell, '/w/run.sh', { confirm: no }), { success: false, error: 'Not opened' });
+  const yes = async (name) => (asked.push(name), true);
+  assert.deepEqual(await openPathSafely(shell, '/w/notes.ts', { confirm: yes }), { success: true, error: null });
+  assert.deepEqual(asked, ['run.sh', 'notes.ts']);
+  assert.deepEqual(await openPathSafely(shell, 42), { success: false, error: 'Invalid path' });
+  assert.deepEqual(shell.calls, [
+    ['openPath', '/w/report.pdf'],
+    ['openPath', '/w/notes.ts'],
+  ]);
+});
+
+test('openPathSafely asks about a link that is named like a document but points at a program', async () => {
+  const shell = fakeShell();
+  const asked = [];
+  const confirm = async (name) => (asked.push(name), false);
+  const realpath = (p) => (p === '/w/report.pdf' ? '/usr/local/bin/tool.sh' : p);
+  assert.deepEqual(await openPathSafely(shell, '/w/report.pdf', { confirm, realpath }), {
+    success: false,
+    error: 'Not opened',
+  });
+  assert.deepEqual(asked, ['report.pdf']);
+  // a missing file is left to openPath, which reports it
+  const missing = () => {
+    throw new Error('ENOENT');
+  };
+  assert.equal((await openPathSafely(fakeShell(), '/w/gone.pdf', { realpath: missing })).success, true);
+  assert.deepEqual(shell.calls, []);
+});
+
+test('openPathSafely never opens a network path, even when confirmed', async () => {
+  const shell = fakeShell();
+  for (const p of ['\\\\attacker\\share\\a.pdf', '//attacker/share/a.pdf']) {
+    const res = await openPathSafely(shell, p, { confirm: async () => true });
+    assert.equal(res.success, false);
+    assert.match(res.error, /network share/);
+  }
+  assert.deepEqual(shell.calls, []);
+});
+
+test('openPathSafely reports what the shell says', async () => {
+  assert.deepEqual(await openPathSafely(fakeShell({ openPathResult: 'No app' }), '/w/a.png'), {
+    success: false,
+    error: 'No app',
+  });
+  assert.deepEqual(await openPathSafely(fakeShell({ fail: 'boom' }), '/w/a.png'), { success: false, error: 'boom' });
+});
+
+test('openExternalSafely opens web links only', async () => {
+  const shell = fakeShell();
+  assert.deepEqual(await openExternalSafely(shell, 'https://github.com/x'), { success: true });
+  assert.equal((await openExternalSafely(shell, 'file:///etc/passwd')).success, false);
+  assert.deepEqual(await openExternalSafely(fakeShell({ fail: 'no browser' }), 'https://a.b'), {
+    success: false,
+    error: 'no browser',
+  });
+  assert.deepEqual(shell.calls, [['openExternal', 'https://github.com/x']]);
 });

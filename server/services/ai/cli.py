@@ -545,6 +545,8 @@ class CliProcess:
         self.cwd = cwd
         self.env = env or child_env()
         self.proc: asyncio.subprocess.Process | None = None
+        # Held so the drain is not garbage-collected while the CLI runs (asyncio keeps only weak references)
+        self._stderr_task: asyncio.Task | None = None
         self.stderr_tail: list[str] = []
         self._temp: str | None = None
 
@@ -577,7 +579,7 @@ class CliProcess:
                 self.proc.stdin.close()
             except (ConnectionError, OSError):
                 pass  # the CLI already exited; its exit code and stderr say why
-        asyncio.create_task(self._drain_stderr())
+        self._stderr_task = asyncio.create_task(self._drain_stderr())
         return self.proc.pid
 
     def _cleanup(self) -> None:

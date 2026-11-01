@@ -4,6 +4,7 @@ import { extractError } from '../../api/extractError';
 import type { AssistDraft, ProposedMember } from '../../types/assist';
 import { hhmm } from '../ai/aiUi';
 import { DraftTag } from './assistUi';
+import { ascending } from '../../utils/sorted';
 
 const TEMPLATES: { id: ProposedMember['template']; label: string; hint: string }[] = [
   { id: 'developer', label: 'Developer', hint: 'Works on tickets and may change code' },
@@ -241,7 +242,7 @@ export function DraftAiMembers({ draftId, initial }: { draftId: string; initial?
           disabled={busy || n === 0 || !!refusal}
           data-testid="create-ai-members"
           onClick={() =>
-            void act(() => assistApi.apply(d.id, { selected: [...picked].sort(), fields: { members: list } }))
+            void act(() => assistApi.apply(d.id, { selected: ascending(picked), fields: { members: list } }))
           }
         >
           {busy ? <span className="ai-spin" /> : null} Create {n} AI member{n !== 1 ? 's' : ''}

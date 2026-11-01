@@ -81,15 +81,14 @@ function paragraphAt(value: string, caret: number): [number, number] {
   return [start, stop];
 }
 
-function insertText(el: HTMLTextAreaElement | HTMLInputElement, text: string): boolean {
+function insertText(el: HTMLTextAreaElement | HTMLInputElement, text: string): void {
   el.focus();
   // execCommand keeps the browser's own undo stack, so Ctrl+Z takes the AI text back
-  if (document.execCommand('insertText', false, text)) return true;
+  if (document.execCommand('insertText', false, text)) return;
   const a = el.selectionStart ?? 0;
   const b = el.selectionEnd ?? a;
   el.setRangeText(text, a, b, 'end');
   el.dispatchEvent(new Event('input', { bubbles: true }));
-  return true;
 }
 
 /**
@@ -136,12 +135,14 @@ export function textareaAdapter(
           el.focus();
           if (how.kind === 'replace') {
             el.setSelectionRange(s, e);
-            return insertText(el, text);
+            insertText(el, text);
+            return true;
           }
           el.setSelectionRange(e, e);
           const now = el.value;
           const lead = how.block && e > 0 && now[e - 1] !== '\n' ? '\n\n' : '';
-          return insertText(el, lead + text);
+          insertText(el, lead + text);
+          return true;
         },
       };
       return cap;
