@@ -110,10 +110,15 @@ async def _ai_may_read(session, c) -> bool:
 
 async def design_guide() -> dict:
     """The whole canvas design guide: how to design frames that look like one considered product (in Claude Code it
-    is also the canvas-design skill)."""
+    is also the canvas-design skill), its craft page, and the folder of its exemplar boards on this machine."""
     from services import canvas_design
+    from services.ai import board_skills
 
-    return {"guide": canvas_design.GUIDE}
+    return {
+        "guide": canvas_design.GUIDE,
+        "craft": canvas_design.CRAFT,
+        "examples": board_skills.examples_dir(),
+    }
 
 
 async def list_project_canvases(project_id: ProjectId) -> list[dict]:
@@ -346,6 +351,7 @@ def _frames_of(root: Path, title: str) -> list[dict]:
                 "name": str(meta.get("name") or shown)[:120],
                 "size": size,
                 "fit": bool(meta.get("fit")),
+                "page": _page_name(meta.get("page")),
                 "x": meta.get("x"),
                 "y": meta.get("y"),
                 "files": _read_folder(d, top=d == root),
@@ -359,6 +365,38 @@ def _frames_of(root: Path, title: str) -> list[dict]:
 
 
 MAX_LAYOUT_ITEMS = 200
+
+
+def _page_name(value) -> str | None:
+    """A page tab named in frame.json or canvas.json ("Foundations"), or None for the first one."""
+    return str(value).strip()[:80] or None if isinstance(value, str) else None
+
+
+async def _make_pages(session, canvas, names: list[str], fresh: bool) -> dict[str, str]:
+    """``{page name: page id}`` for the pages the folder names, in the order they first appear: an existing page of
+    that name is reused, the others are added. A new canvas's first page ("Page 1") takes the first name."""
+    if not names:
+        return {}
+    pages = svc_canvases.read_doc(canvas.id)["pages"]
+    by_name = {p["name"]: p["id"] for p in pages}
+    ids: dict[str, str] = {}
+    upsert: list[dict] = []
+    for i, name in enumerate(names):
+        if name in by_name:
+            ids[name] = by_name[name]
+        elif fresh and i == 0:
+            first = pages[0]
+            ids[name] = first["id"]
+            upsert.append({"id": first["id"], "rev": first.get("rev"), "name": name})
+        else:
+            pid = svc_canvases._id("p")  # noqa: SLF001
+            ids[name] = pid
+            upsert.append({"id": pid, "name": name, "order": len(pages) + len(upsert)})
+    if upsert:
+        await svc_canvases.save(
+            session, canvas.id, base_rev=canvas.rev, upsert={"pages": upsert}
+        )
+    return ids
 
 
 def _plan_layout(root: Path, frames: list[dict]) -> dict:
@@ -387,42 +425,72 @@ def _plan_layout(root: Path, frames: list[dict]) -> dict:
     return {"notes": notes, "arrows": arrows, "labels": labels}
 
 
-async def _apply_layout(session, canvas, layout: dict, placed: dict[str, dict]) -> dict:
+def _layout_pages(layout: dict) -> list[str]:
+    """The page names canvas.json's notes and labels give, beside the frames'."""
+    names = [_page_name(i.get("page")) for i in layout["notes"] + layout["labels"]]
+    return [n for n in names if n]
+
+
+async def _apply_layout(
+    session,
+    canvas,
+    layout: dict,
+    placed: dict[str, dict],
+    pages: dict[str, str] | None = None,
+) -> dict:
     """Notes, arrows and labels from canvas.json, saved in one go (a note says `near` a frame or gives x and y)."""
     if not (layout["notes"] or layout["arrows"] or layout["labels"]):
         return {}
+    pages = pages or {}
     ids: dict[str, str] = {}
+    note_page: dict[str, str | None] = {}
     notes, arrows, labels = [], [], []
-    low = max((b["y"] + b["h"] for b in placed.values()), default=0) + 60
+
+    def on(page: str | None) -> list[dict]:
+        return (
+            [b for b in placed.values() if b.get("page") == page]
+            if page
+            else list(placed.values())
+        )
+
     for n in layout["notes"]:
         nid = svc_canvases._id("n")  # noqa: SLF001
         if n.get("id"):
             ids[str(n["id"])] = nid
         near = placed.get(n.get("near")) if n.get("near") else None
+        page = near.get("page") if near else pages.get(_page_name(n.get("page")) or "")
+        note_page[nid] = page
+        low = max((b["y"] + b["h"] for b in on(page)), default=0) + 60
         x = n.get("x", near["x"] + float(n.get("dx", 0)) if near else 0)
         y = n.get("y", near["y"] + near["h"] + 60 if near else low)
         notes.append(
             {"id": nid, "x": x, "y": y, "w": n.get("w", 260), "h": n.get("h", 130),
-             "text": str(n.get("text", "")), "color": n.get("color", "yellow")}
+             "text": str(n.get("text", "")), "color": n.get("color", "yellow"),
+             **({"page": page} if page else {})}
         )  # fmt: skip
     for a in layout["arrows"]:
         ends = [
             placed[a[e]]["id"] if a[e] in placed else ids[str(a[e])]
             for e in ("from", "to")
         ]
+        start = placed.get(a["from"])
+        page = start.get("page") if start else note_page.get(ends[0])
         arrows.append(
             {
-                "id": svc_canvases._id("a"),
+                "id": svc_canvases._id("a"),  # noqa: SLF001
                 "from": ends[0],
                 "to": ends[1],
                 "label": str(a.get("label", "")),
-            }  # noqa: SLF001
+                **({"page": page} if page else {}),
+            }
         )
-    top = min((b["y"] for b in placed.values()), default=0)
     for t in layout["labels"]:
+        page = pages.get(_page_name(t.get("page")) or "")
+        top = min((b["y"] for b in on(page)), default=0)
         labels.append(
             {"id": svc_canvases._id("t"), "x": t.get("x", 0), "y": t.get("y", top - 120),  # noqa: SLF001
-             "text": str(t.get("text", "")), "size": t.get("size", 24)}
+             "text": str(t.get("text", "")), "size": t.get("size", 24),
+             **({"page": page} if page else {})}
         )  # fmt: skip
     await svc_canvases.save(
         session,
@@ -438,7 +506,7 @@ async def create_canvas_from_files(
     path: Annotated[
         str,
         Field(
-            description='Absolute folder: each sub-folder with an .html page is a frame (name order), or pages at the top are one frame. Optional frame.json {name, size: "phone"|"tablet"|"desktop"|[w,h], fit, x, y} per frame and canvas.json {notes, arrows, labels} at the top (see the design guide).'
+            description='Absolute folder: each sub-folder with an .html page is a frame (name order), or pages at the top are one frame. Optional frame.json {name, page, size: "phone"|"tablet"|"desktop"|[w,h], fit, x, y} per frame (frames with the same page share a page tab) and canvas.json {notes, arrows, labels} at the top (see the design guide).'
         ),
     ],
     owner_kind: Annotated[
@@ -467,6 +535,11 @@ async def create_canvas_from_files(
     if len(frames) > svc_canvases.MAX_BOARDS:
         raise ValueError(f"A canvas holds up to {svc_canvases.MAX_BOARDS} frames.")
     layout = _plan_layout(root, frames)
+    page_names = list(
+        dict.fromkeys([f["page"] for f in frames if f["page"]] + _layout_pages(layout))
+    )
+    if len(page_names) > svc_canvases.MAX_PAGES:
+        raise ValueError(f"A canvas has up to {svc_canvases.MAX_PAGES} page tabs.")
     async with common.async_session() as session:
         try:
             for f in frames:  # check every frame before anything is created
@@ -496,6 +569,12 @@ async def create_canvas_from_files(
                     title=title,
                     start="none",
                 )
+            pages = await _make_pages(
+                session,
+                await svc_canvases._canvas(session, out["id"]),  # noqa: SLF001
+                page_names,
+                fresh=not canvas_id,
+            )
             boards = []
             placed: dict[str, dict] = {}
             for f in frames:
@@ -504,6 +583,7 @@ async def create_canvas_from_files(
                     out["id"],
                     name=f["name"],
                     kind="html",
+                    page=pages.get(f["page"] or ""),
                     files=f["files"],
                     size=f["size"],
                     x=f["x"],
@@ -516,7 +596,7 @@ async def create_canvas_from_files(
                     {"id": b["id"], "name": b["name"], "w": b["w"], "h": b["h"]}
                 )
             fresh = await svc_canvases._canvas(session, out["id"])  # noqa: SLF001
-            counts = await _apply_layout(session, fresh, layout, placed)
+            counts = await _apply_layout(session, fresh, layout, placed, pages)
             fresh = await svc_canvases._canvas(session, out["id"])  # noqa: SLF001
         except svc_canvases.DocsError as exc:
             raise _error(exc) from exc
@@ -526,6 +606,7 @@ async def create_canvas_from_files(
         "version": fresh.version,
         "markdown": f"![{fresh.title}](canvas:{fresh.id})",
         "boards": boards,
+        **({"pages": list(pages)} if pages else {}),
         **counts,
     }
 

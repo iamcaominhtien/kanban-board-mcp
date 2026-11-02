@@ -772,3 +772,29 @@ async def test_a_heartbeat_never_clears_a_card(env, monkeypatch, tmp_path):
     r = await c.post(f"/ai/runs/{run['id']}/trouble", json={"action": "stop_child"})
     assert r.status_code == 200, r.text
     await _wait(c, tid, ("finished",))
+
+
+async def test_a_cli_that_answered_but_stays_open_is_stopped_and_the_run_finishes(
+    env, monkeypatch, tmp_path
+):
+    # the Designer started `python3 -m http.server &` to look at its frames: the CLI gave its final answer, then
+    # waited for that server for good, holding the run, its cost and the member (a live run, 2026-11-02)
+    import os
+
+    monkeypatch.setattr(runs, "RESULT_GRACE_S", 0.5)
+    pidfile = tmp_path / "server.pid"
+    monkeypatch.setenv("FAKE_CLAUDE_PIDFILE", str(pidfile))
+    pid, m, tid = await _start(env, "linger", monkeypatch)
+    run = await _until(env["c"], tid, lambda r: r["state"] == "finished")
+    assert (
+        run["cost_usd"] > 0
+    )  # its answer and cost are kept: stopping what it left running is not a failure
+    server = int(pidfile.read_text())
+    for _ in range(50):  # the server it left behind is stopped with it
+        try:
+            os.kill(server, 0)
+        except ProcessLookupError:
+            break
+        await asyncio.sleep(0.1)
+    else:
+        raise AssertionError("the background server outlived the run")

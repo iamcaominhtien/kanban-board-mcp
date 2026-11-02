@@ -57,9 +57,8 @@ async def test_apply_installs_pack_plugins_once_and_reports_mcp(
     async with env["maker"]() as s:
         out = await repo_scan.apply(s, row.id, choice, by="t", create_member=_create)
     assert fake_install.count("design") == 1  # chosen and in the pack: once
-    assert {"ui-ux-pro-max", "frontend-design"} <= set(out["plugins"]) or (
-        "example-skills" in out["plugins"]
-    )
+    # the rest of the Designer pack comes with it
+    assert "https://github.com/LottieFiles/motion-design-skill" in out["plugins"]
     # Figma signs in through a browser, which a run cannot do: not in the Designer pack
     assert "Playwright MCP" in out["mcp"] and "Figma MCP" not in out["mcp"]
     assert out["plugin_failures"] == []
