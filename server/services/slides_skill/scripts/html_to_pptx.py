@@ -50,10 +50,26 @@ _EXTRACT = r"""
   const base = slide.getBoundingClientRect();
   const box = (el) => { const r = el.getBoundingClientRect(); return {x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height}; };
   const visible = (el) => { const s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden' && parseFloat(s.opacity) > 0.01; };
+  // an inline tag laid out as a block (display: block, or a flex or grid item) starts a box of its own
+  const inline = (c) => c.nodeType !== 1 || (INLINE.has(c.tagName) && getComputedStyle(c).display.startsWith('inline')) || c.tagName === 'BR';
   const isText = (el) => {
     if (!el.textContent.trim()) return false;
-    for (const c of el.childNodes) if (c.nodeType === 1 && !INLINE.has(c.tagName)) return false;
+    for (const c of el.childNodes) if (!inline(c)) return false;
     return true;
+  };
+  // Text beside a block child ("Title<span class=d>detail</span>" in a flex row): wrap each run of inline content in
+  // a span of its own, so it becomes a text box of its own
+  const wrapLoose = (el) => {
+    let group = [];
+    const flush = () => {
+      if (group.some(n => n.textContent.trim())) {
+        const w = document.createElement('span'); w.dataset.x2pWrap = '1';
+        group[0].before(w); for (const n of group) w.appendChild(n);
+      }
+      group = [];
+    };
+    for (const c of [...el.childNodes]) { if (inline(c)) group.push(c); else flush(); }
+    flush();
   };
   const transform = (t, how) => how === 'uppercase' ? t.toUpperCase() : how === 'lowercase' ? t.toLowerCase() : t;
   const runStyle = (el) => { const s = getComputedStyle(el); return {
@@ -93,6 +109,7 @@ _EXTRACT = r"""
       el.dataset.x2p = 'text';
       return;
     }
+    wrapLoose(el);
     for (const c of el.children) walk(c);
   };
   for (const c of slide.children) walk(c);
@@ -136,7 +153,7 @@ def _slides(page, src: Path) -> list:
     return page.query_selector_all("section.slide") or [page.query_selector("body")]
 
 
-def _text_box(slide, t: dict) -> None:
+def _text_box(slide, t: dict, swap: dict[str, str]) -> None:
     single = t["lines"] <= 1
     # PowerPoint measures text a little wider than Chrome: give a one-line box room and no wrapping, so it never breaks
     slack = 0.06 * t["w"] + 4 if single else 0.02 * t["w"]
@@ -181,9 +198,8 @@ def _text_box(slide, t: dict) -> None:
         r = p.add_run()
         r.text = run["text"]
         f = r.font
-        f.name = run["font"]
+        f.name, f.bold = _font(run["font"], run["weight"], swap)
         f.size = Pt(round(run["size"] * 0.75 * 2) / 2)
-        f.bold = run["weight"] >= 600
         f.italic = run["italic"]
         f.underline = run["underline"]
         color, alpha = _rgb(run["color"])
@@ -194,6 +210,31 @@ def _text_box(slide, t: dict) -> None:
             r._r.get_or_add_rPr().set("spc", str(int(run["spacing"] * 0.75 * 100)))
         if run["href"]:
             r.hyperlink.address = run["href"]
+
+
+# Fonts every Office has (Windows and Mac): weights other than regular and bold are drawn bold
+_OFFICE = {"aptos", "arial", "calibri", "cambria", "candara", "consolas", "constantia", "corbel", "georgia",
+           "garamond", "segoe ui", "tahoma", "times new roman", "trebuchet ms", "verdana", "helvetica neue",
+           "helvetica"}  # fmt: skip
+_WEIGHT = {
+    100: "Thin",
+    200: "ExtraLight",
+    300: "Light",
+    500: "Medium",
+    600: "SemiBold",
+    800: "ExtraBold",
+    900: "Black",
+}
+
+
+def _font(name: str, weight: int, swap: dict[str, str]) -> tuple[str, bool]:
+    """The font name and bold flag PowerPoint needs. PowerPoint has only regular and bold: another weight of an
+    installed font family is its own name ("Be Vietnam Pro ExtraBold"), as Windows and Office list it."""
+    name = swap.get(name, name)
+    w = round(weight / 100) * 100
+    if name.lower() in _OFFICE or w in (400, 700) or w not in _WEIGHT:
+        return name, w >= 600
+    return f"{name} {_WEIGHT[w]}", False
 
 
 def _alpha(run, alpha: float) -> None:
@@ -276,9 +317,14 @@ def _chart(slide, c: dict) -> None:
 
 
 def convert(
-    src: Path, out: Path, browser: str | None = None, scale: int = 2
+    src: Path,
+    out: Path,
+    browser: str | None = None,
+    scale: int = 2,
+    swap: dict[str, str] | None = None,
 ) -> list[Path]:
-    """Write ``out`` from the HTML slides at ``src``; returns the browser's picture of each slide (to compare with)."""
+    """Write ``out`` from the HTML slides at ``src``; returns the browser's picture of each slide (to compare with).
+    ``swap`` renames fonts in the deck ({"Fraunces": "Georgia"}), for a file sent to people without them."""
     from playwright.sync_api import sync_playwright
 
     files = sorted(src.glob("*.html")) if src.is_dir() else [src]
@@ -348,7 +394,7 @@ def convert(
                         mime_type="video/mp4",
                     )
                 for t in found["texts"]:
-                    _text_box(s, t)
+                    _text_box(s, t, swap or {})
                 if found["notes"]:
                     s.notes_slide.notes_text_frame.text = found["notes"]
         b.close()
@@ -373,8 +419,14 @@ def main() -> None:
         type=Path,
         help="copy the browser's picture of each slide here, to compare",
     )
+    ap.add_argument(
+        "--fonts",
+        default="",
+        help='swap fonts in the deck for ones the reader has: "Fraunces=Georgia,Be Vietnam Pro=Calibri"',
+    )
     a = ap.parse_args()
-    previews = convert(a.src, a.out, a.browser)
+    swap = dict(pair.split("=", 1) for pair in a.fonts.split(",") if "=" in pair)
+    previews = convert(a.src, a.out, a.browser, swap=swap)
     if a.previews:
         a.previews.mkdir(parents=True, exist_ok=True)
         for p in previews:

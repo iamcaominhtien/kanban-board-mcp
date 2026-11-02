@@ -263,7 +263,12 @@ def _from_layout(prs, spec: dict):
     for ph in list(slide.placeholders):
         kind = _ph_type(ph)
         # a title slide's title is a "center_title": "title" finds it too
-        keys = (str(ph.placeholder_format.idx), ph.name, kind, "title" if kind == "center_title" else kind)
+        keys = (
+            str(ph.placeholder_format.idx),
+            ph.name,
+            kind,
+            "title" if kind == "center_title" else kind,
+        )
         value = next((fill[k] for k in keys if k in fill), None)
         if value is None:
             ph._element.getparent().remove(

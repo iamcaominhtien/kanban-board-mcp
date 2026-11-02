@@ -43,6 +43,10 @@ def _soffice() -> str | None:
 
 def _pdf_to_pngs(pdf: Path, out: Path, dpi: int) -> list[Path]:
     out.mkdir(parents=True, exist_ok=True)
+    for old in out.glob(
+        "page-*.png"
+    ):  # pages of an earlier, longer render would be taken for this one's
+        old.unlink()
     if shutil.which("pdftoppm"):
         subprocess.run(
             ["pdftoppm", "-png", "-r", str(dpi), str(pdf), str(out / "page")],
