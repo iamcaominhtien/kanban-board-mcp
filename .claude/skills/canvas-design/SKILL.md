@@ -115,7 +115,10 @@ asked for, or a change to one, stays a frame.)
 - **Pages, in order**: Directions (a new product), Wireframes (when asked), Foundations, Components, then one page per
   area of screens ("Screens · Today"), set with `"page"` in `frame.json`. Each page opens with a title label.
 - **Wireframes** show structure before style: every screen in greys, real labels, no colour or type choices, side by
-  side in the order of the flow, with the steps between them; a caption names what each screen must answer.
+  side in the order of the flow, with the steps between them; a caption names what each screen must answer. The main
+  element (the signature, a 3D hero) is a grey line silhouette at its true size and place, never a hatched box with a
+  label: its shape, what it overlaps, its states as dashed outlines, and its motion as arrows with timing ("↻ 20 s",
+  "↑ 1,4 s"). Secondary pictures stay labelled boxes.
 - **Every board is a spec board**: a wide page (1440 to 1800 px, `"fit": true`) that opens with a small uppercase eyebrow
   (`FOUNDATIONS`, `SCREEN · V1`), a title and one or two sentences on what it is for and what it decides. Then lettered
   sections (`a. Type scale, spacing, radii`, `c2. The six states of a reminder card`), each with a heading saying what
