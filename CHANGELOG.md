@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.21.3] - 2026-11-02
+## [3.22.1] - 2026-11-02
 
 ### Added
 - **The draw.io editor comes with the desktop app.** Diagrams open with nothing to run and work offline: the board serves draw.io 32.6.9 (Apache 2.0, pinned and trimmed by `desktop/scripts/fetch-drawio.sh`) at `/drawio`, with every feature that needs an internet service off. Settings › Diagrams has *Built into the app* as the default; a self-hosted setting left at the old default address uses it too. The installer grows by about 21 MB (65 MB installed).
@@ -22,6 +22,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - Set up the AI team: suggested commands no longer go into folders git does not track or `cd` the commands after them; Next and Try again try the commands as edited.
 - A sent comment came back as the draft; links in Docs pages did nothing (web links now open in the browser, page links by slug resolve); saving the PM pack failed with 422; accepting a Docs AI proposal failed with 409 when the reviewer had an old draft.
 - Vietnamese ticket titles make readable branch names; `ticket_items` without `action` adds (or updates with `item_id`); a 403 for a request outside the board's window names the MCP tool to use.
+
+## [3.22.0] - 2026-11-02
+
+A notification that needs the person reaches them when the board is not in front (#270, `design/screens/notifications.md` J).
+
+### Added
+- **System notifications in the browser.** The board in a background tab shows a system notification for a *Needs you* (the Web Notifications API), allowed from Settings › Notifications with *Send a test*, never asked on first load. One tab sends (a Web Lock; the tabs tell each other over a `BroadcastChannel` whether one is in front, and then a toast is enough), at most one every 20 s with the rest grouped, withdrawn when the question is answered anywhere, and a click brings the tab up at the thing itself.
+- **A sound for a *Needs you*, never for information**: a choice of Chime, Drop or Bell (or off) in Settings › Notifications, with *Play* to hear it. The browser plays it in the tab that notifies and in the window being looked at; the desktop app plays it from its main process, so it sounds with the window closed (macOS) too. If the browser would not let the page make sound yet (nobody has clicked on it), the system's own sound stands in.
+- **A reminder when a *Needs you* stays unanswered**: *Remind me if unanswered* (never, 5, 10, 15, 30 or 60 min; 15 by default). A *Needs you* nobody has opened after that time notifies once more, with the sound, saying *Still waiting*. Once per request, never in quiet hours.
+- **Not to slip**: the tab's icon gets a red dot while something needs you, and on macOS the dock bounces once for a *Needs you* that arrives while the window is not in front.
+
+### Changed
+- **In the window**, the toast for a *Needs you* stays until it is acted on or closed (it used to fade after 12 s), and plays the sound.
+- **Sound is on by default** (a chime), because a silent notification is easy to miss. It is only ever for a *Needs you*. Switch it off in Settings › Notifications. The desktop app's notices used to be silent unless this was switched on, which was off by default.
+- A question's first reminder is now this setting (15 min by default, as before) instead of a fixed 15 min; the repeats every 2 h stay.
 
 ## [3.21.2] - 2026-11-02
 

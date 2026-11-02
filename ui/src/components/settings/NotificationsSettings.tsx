@@ -8,6 +8,13 @@ import {
   type NotificationSettings,
   type NotificationSettingsPatch,
 } from '../../api/notificationSettings';
+import {
+  browserPermission,
+  requestBrowserPermission,
+  sendBrowserTest,
+  type BrowserPermission,
+} from '../../utils/browserNotifications';
+import { playNotificationSound, SOUND_NAMES, SOUNDS } from '../../utils/notificationSound';
 import styles from './NotificationsSettings.module.css';
 
 /** Settings › Notifications (design/screens/notifications.md, L and M). */
@@ -33,6 +40,9 @@ const KIND_NOTE: Record<string, string> = {
   ai_finished: 'Grouped',
   page_published: 'Spaces you follow',
 };
+
+/** What "Remind me if unanswered" offers, in minutes (0 = never). */
+const REMIND_CHOICES = [0, 5, 10, 15, 30, 60];
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const RETENTION_CHOICES = [30, 90, 180, 365];
@@ -170,6 +180,54 @@ function computerHint(status: DesktopStatus | null): string {
   return 'Allowed for this computer. ';
 }
 
+/** The line under "Desktop notifications" in a browser: what the browser allowed, and the button for the next step. */
+function BrowserHint({
+  permission,
+  testResult,
+  onAllow,
+  onTest,
+}: Readonly<{
+  permission: BrowserPermission;
+  testResult: string | null;
+  onAllow: () => void;
+  onTest: () => void;
+}>) {
+  switch (permission) {
+    case 'unsupported':
+      return <>This browser cannot show system notifications. The tab title still shows the count.</>;
+    case 'denied':
+      return (
+        <>
+          The browser is blocking notifications for this site. Allow them in the site settings of the address bar, then{' '}
+          <button type="button" className={styles.linkBtn} onClick={onTest}>
+            send a test
+          </button>
+          .{testResult && <> {testResult}</>}
+        </>
+      );
+    case 'default':
+      return (
+        <>
+          Your browser has not been asked yet.{' '}
+          <button type="button" className={styles.linkBtn} onClick={onAllow}>
+            Allow in this browser
+          </button>
+          {testResult && <> {testResult}</>}
+        </>
+      );
+    default:
+      return (
+        <>
+          Allowed in this browser, even when this tab is in the background.{' '}
+          <button type="button" className={styles.linkBtn} onClick={onTest}>
+            Send a test
+          </button>
+          {testResult && <> {testResult}</>}
+        </>
+      );
+  }
+}
+
 /** The Notifications page of App settings. */
 export function NotificationsSettings() {
   const q = useNotificationSettings();
@@ -178,6 +236,7 @@ export function NotificationsSettings() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<DesktopStatus | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [browser, setBrowser] = useState<BrowserPermission>(() => browserPermission());
   const bridge = desktopBridge();
   const inApp = !!bridge;
 
@@ -215,6 +274,19 @@ export function NotificationsSettings() {
     } catch {
       /* keep what was shown */
     }
+  }
+
+  /** The browser asks once, from this button, never on first load (design J). */
+  async function allowInBrowser() {
+    setTestResult(null);
+    setBrowser(await requestBrowserPermission());
+  }
+
+  async function sendBrowserNotice() {
+    setTestResult(null);
+    const r = await sendBrowserTest({ on: !!s?.sound, name: s?.soundName ?? 'chime' });
+    setBrowser(browserPermission());
+    setTestResult(r.ok ? 'Sent. Look for it on your screen.' : (r.reason ?? 'The test could not be sent.'));
   }
 
   if (q.isLoading) return <div className={styles.hint}>Loading…</div>;
@@ -349,11 +421,16 @@ export function NotificationsSettings() {
                   {testResult && <> {testResult}</>}
                 </>
               ) : (
-                'In the web version the tab title shows the count; desktop notifications need the desktop app.'
+                <BrowserHint
+                  permission={browser}
+                  testResult={testResult}
+                  onAllow={allowInBrowser}
+                  onTest={sendBrowserNotice}
+                />
               )
             }
             control={
-              inApp ? (
+              inApp || browser !== 'unsupported' ? (
                 <Switch on={desktopOn} label="Desktop notifications" onChange={(v) => save({ desktopOn: v })} />
               ) : undefined
             }
@@ -395,9 +472,67 @@ export function NotificationsSettings() {
           id="notif-sound"
           name="Sound"
           hint={
-            s.sound ? 'On. Only Needs you events make a sound.' : 'Off. When on, only Needs you events make a sound.'
+            s.sound
+              ? 'On. A Needs you plays this, in the desktop app and in the browser; information never does.'
+              : 'Off. When on, only Needs you events make a sound.'
           }
-          control={<Switch on={s.sound} label="Sound" onChange={(v) => save({ sound: v })} />}
+          control={
+            <>
+              <div className={styles.input}>
+                <select
+                  aria-label="Which sound"
+                  value={s.soundName}
+                  disabled={!s.sound}
+                  onChange={(e) => {
+                    save({ soundName: e.target.value });
+                    void playNotificationSound(e.target.value);
+                  }}
+                >
+                  {SOUND_NAMES.map((name) => (
+                    <option key={name} value={name}>
+                      {SOUNDS[name].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className={styles.btn}
+                disabled={!s.sound}
+                onClick={() => void playNotificationSound(s.soundName)}
+              >
+                Play
+              </button>
+              <Switch on={s.sound} label="Sound" onChange={(v) => save({ sound: v })} />
+            </>
+          }
+        />
+        <Setting
+          id="notif-remind"
+          name="Remind me if unanswered"
+          hint={
+            s.remindAfterMin > 0
+              ? `A Needs you nobody has opened after ${s.remindAfterMin} min notifies once more, with the sound. Never in quiet hours.`
+              : 'Off. A Needs you notifies once, when it arrives.'
+          }
+          control={
+            <div className={styles.input}>
+              <select
+                aria-label="Remind me if unanswered"
+                value={s.remindAfterMin}
+                onChange={(e) => save({ remindAfterMin: Number(e.target.value) })}
+              >
+                {(REMIND_CHOICES.includes(s.remindAfterMin)
+                  ? REMIND_CHOICES
+                  : [...REMIND_CHOICES, s.remindAfterMin].sort((a, b) => a - b)
+                ).map((m) => (
+                  <option key={m} value={m}>
+                    {m === 0 ? 'Never' : `After ${m} min`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          }
         />
         <div className={styles.setting} data-setting="notif-daycard" style={{ alignItems: 'flex-start' }}>
           <div className={styles.settingText}>

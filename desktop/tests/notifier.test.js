@@ -142,6 +142,14 @@ test('notice text and actions (max 2, no dismiss)', () => {
   assert.strictEqual(n.noticeFor([row('a', { needs: false }), row('b', { needs: false })]).title, '2 updates');
 });
 
+test('a notice knows whether it is a Needs you, and a reminder says so', () => {
+  assert.strictEqual(n.noticeFor([row('a')]).needs, true);
+  assert.strictEqual(n.noticeFor([row('a', { needs: false })]).needs, false);
+  assert.strictEqual(n.noticeFor([row('a', { needs: false }), row('b')]).needs, true);
+  assert.strictEqual(n.noticeFor([row('a', { title: 'Dev An asks', reminded: true })]).title, 'Still waiting: Dev An asks');
+  assert.strictEqual(n.noticeFor([row('a', { title: 'Dev An asks' })]).title, 'Dev An asks');
+});
+
 test('badge: a number on macOS and Linux, a red dot overlay on Windows', () => {
   assert.deepStrictEqual(n.badgePlan('darwin', 5), { kind: 'count', count: 5 });
   assert.deepStrictEqual(n.badgePlan('linux', undefined), { kind: 'count', count: 0 });
