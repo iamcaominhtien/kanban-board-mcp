@@ -134,6 +134,12 @@ def test_a_bare_skills_folder_and_a_single_skill(tmp_path):
     single.mkdir()
     (single / "SKILL.md").write_text("---\nname: single\ndescription: s\n---\nx")
     assert plugins.build(single, into=tmp_path / "o2")["skills"] == ["single"]
+    # a repository that is one skill is cloned into a folder called "checkout": it keeps the name in its SKILL.md
+    one = tmp_path / "checkout"
+    one.mkdir()
+    (one / "SKILL.md").write_text("---\nname: tufte-data-viz\ndescription: d\n---\nx")
+    built = plugins.build(one, into=tmp_path / "built")
+    assert (built["name"], built["skills"]) == ("tufte-data-viz", ["tufte-data-viz"])
     empty = tmp_path / "empty"
     empty.mkdir()
     with pytest.raises(plugins.PluginError, match="No plugin"):

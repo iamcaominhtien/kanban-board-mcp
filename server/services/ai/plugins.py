@@ -76,6 +76,154 @@ CATALOGUE: list[dict] = [
         "roles": [],
         "what": "Design fluency: modes per surface, a craft floor of banned patterns, critique, audit and polish commands. Apache-2.0. Its hooks run a downloaded helper on every edit.",
     },
+    # Niche frontend skills (vetted 2026-11: license, no hooks, nothing downloaded at run time; a subset where a repository
+    # also carries skills that need an API key, a browser download or an MCP engine)
+    {
+        "key": "make-interfaces-feel-better",
+        "name": "make-interfaces-feel-better",
+        "kind": "plugin",
+        "source": "https://github.com/jakubkrehel/make-interfaces-feel-better",
+        "ui": True,
+        "roles": ["designer", "dev"],
+        "what": "The finishing details: text wrapping, tabular numbers, optical alignment, nested radii, shadows, hit areas, icon states, restrained motion. MIT.",
+    },
+    {
+        "key": "emil-design-eng",
+        "name": "Emil Kowalski's design engineering",
+        "kind": "plugin",
+        "source": "https://github.com/emilkowalski/skills",
+        "skills": [
+            "emil-design-eng",
+            "animate",
+            "review-animations",
+            "improve-animations",
+            "find-animation-opportunities",
+            "animation-performance",
+            "animation-vocabulary",
+            "mobile-native",
+            "break-ui",
+        ],
+        "ui": True,
+        "roles": ["designer", "dev"],
+        "what": "Animation craft (whether to animate, easing, duration, interruption), animation reviews and performance, a web app that feels native on a phone. MIT.",
+    },
+    {
+        "key": "gsap",
+        "name": "GSAP",
+        "kind": "plugin",
+        "source": "https://github.com/greensock/gsap-skills",
+        "plugin": "gsap-skills",
+        "ui": True,
+        "roles": ["dev"],
+        "what": "GSAP's own skills: tweens, timelines, ScrollTrigger, Flip and Draggable, React cleanup with useGSAP, performance, reduced motion. MIT.",
+    },
+    {
+        "key": "motion-design",
+        "name": "motion-design",
+        "kind": "plugin",
+        "source": "https://github.com/LottieFiles/motion-design-skill",
+        "ui": True,
+        "roles": ["designer"],
+        "what": "Motion principles for any stack: timing, easing, choreography, purpose (LottieFiles). MIT.",
+    },
+    {
+        "key": "ui-foundations",
+        "name": "UI foundations (dembrandt)",
+        "kind": "plugin",
+        "source": "https://github.com/dembrandt/dembrandt-skills",
+        # not the skills that need the dembrandt engine (an MCP server fetched with npx and a browser)
+        "skills": [
+            "modular-scale-typography",
+            "algorithmic-color-palette",
+            "color-mode-and-theme",
+            "button-states",
+            "ui-density",
+            "surface-separation",
+            "visual-emphasis-and-hierarchy",
+            "status-colors-and-errors",
+            "elevation-and-depth",
+            "form-design",
+            "loading-states-and-perceived-performance",
+            "operational-expert-tool-ui",
+            "data-display-and-selection",
+            "gestalt-ui-organisation",
+            "responsive-paradigms",
+            "real-world-metaphors",
+            "micro-interactions",
+            "component-family-consistency",
+            "wcag-accessibility",
+        ],
+        "ui": True,
+        "roles": ["designer"],
+        "what": "Interface rules one by one: type scales, derived palettes, themes, button states, density, surfaces, hierarchy, forms, loading states, dense expert tools, WCAG. MIT.",
+    },
+    {
+        "key": "web-quality",
+        "name": "Web quality",
+        "kind": "plugin",
+        "source": "https://github.com/addyosmani/web-quality-skills",
+        "skills": ["accessibility", "performance", "core-web-vitals", "best-practices"],
+        "ui": True,
+        "roles": ["dev", "qa"],
+        "what": "WCAG 2.2 audits from evidence, performance and Core Web Vitals, web best practices (Addy Osmani). MIT.",
+    },
+    {
+        "key": "tufte-data-viz",
+        "name": "tufte-data-viz",
+        "kind": "plugin",
+        "source": "https://github.com/caylent/tufte-data-viz",
+        "roles": ["designer", "dev"],
+        "what": "Charts after Tufte: data-ink, direct labels, range frames, accessible and dark-mode ready; for Recharts, ECharts, Chart.js, D3 or SVG. MIT.",
+    },
+    {
+        "key": "threejs",
+        "name": "three.js",
+        "kind": "plugin",
+        "source": "https://github.com/CloudAI-X/threejs-skills",
+        # not threejs-asset-pipeline, which runs an npx tool
+        "skills": [
+            "threejs-fundamentals",
+            "threejs-shaders",
+            "threejs-react-three-fiber",
+            "threejs-materials",
+            "threejs-postprocessing",
+            "threejs-performance",
+            "threejs-lighting",
+            "threejs-animation",
+            "threejs-geometry",
+            "threejs-interaction",
+            "threejs-loaders",
+            "threejs-textures",
+        ],
+        "ui": True,
+        "roles": ["dev"],
+        "what": "Current three.js, React Three Fiber and drei APIs (with WebGPU), each skill with the mistakes models still make. MIT.",
+    },
+    {
+        "key": "webgl-animation",
+        "name": "WebGL animation",
+        "kind": "plugin",
+        "source": "https://github.com/iart-ai/webgl-animation-skills",
+        "ui": True,
+        "roles": ["dev"],
+        "what": "Particle systems, GLSL backgrounds and image transitions, three.js hero scenes with a scroll-linked camera. MIT.",
+    },
+    {
+        "key": "shader-art",
+        "name": "Shader art",
+        "kind": "plugin",
+        "source": "https://github.com/gokayfem/shader-skills",
+        "roles": [],
+        "what": "GLSL shaders in the Shadertoy style (raymarching, noise, terrain, water, clouds) from a tested function library, with a local checker. MIT.",
+    },
+    {
+        "key": "genart",
+        "name": "Generative art",
+        "kind": "plugin",
+        "source": "https://github.com/camilleroux/genart-skill",
+        "roles": [],
+        "what": "Seeded, reproducible generative art and creative coding, resolution-independent, with traits. MIT.",
+    },
     {
         "key": "frontend-design",
         "name": "frontend-design",
@@ -212,6 +360,23 @@ def _manifest(folder: Path, name: str) -> dict:
         return {}
 
 
+def _skill_name(folder: Path) -> str:
+    """The `name` in a skill's SKILL.md front matter (safe as a folder name), else the folder's own name."""
+    try:
+        head = (folder / "SKILL.md").read_text(encoding="utf-8")[:2000]
+    except OSError:
+        return folder.name
+    m = (
+        re.search(r"^name:\s*[\"']?([^\"'\n]+)", head, re.MULTILINE)
+        if head.startswith("---")
+        else None
+    )
+    name = (
+        re.sub(r"[^a-z0-9-]+", "-", m.group(1).strip().lower()).strip("-") if m else ""
+    )
+    return name or folder.name
+
+
 def _skill_dirs(folder: Path) -> list[Path]:
     out = []
     for skill_md in folder.rglob("SKILL.md"):
@@ -337,6 +502,8 @@ def build(
         picked_skills = _skill_dirs(checkout / "skills")
     elif (checkout / "SKILL.md").is_file():
         picked_skills = [checkout]
+        # a repository that is one skill: named by its SKILL.md, not by the folder it was cloned into
+        meta["name"] = _skill_name(checkout)
     else:
         raise PluginError("No plugin, marketplace or skill was found there.")
     if skills:
@@ -367,7 +534,12 @@ def build(
         _copy(source_dir, into)
     else:
         for skill in picked_skills or []:
-            _copy(skill, into / "skills" / skill.name)
+            _copy(
+                skill,
+                into
+                / "skills"
+                / (_skill_name(skill) if skill == checkout else skill.name),
+            )
     name = (
         re.sub(
             r"[^a-z0-9-]+", "-", (meta.get("name") or plugin or into.name).lower()

@@ -132,7 +132,13 @@ BUILTIN: list[dict] = [
         "allow": ["Read", "Glob", "Grep"],
         # not Anthropic's canvas-design (poster art as a PNG; its name hides the board's own guide), nor Figma (it signs
         # in through a browser, which a run cannot do): both stay in the catalogue for a person to add
-        "plugins": ["design", "taste-skill", "ui-ux-pro-max", "frontend-design"],
+        "plugins": [
+            "design",
+            "taste-skill",
+            "make-interfaces-feel-better",
+            "ui-ux-pro-max",
+            "frontend-design",
+        ],
         "mcp": ["playwright"],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
         "persona": (
