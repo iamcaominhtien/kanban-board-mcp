@@ -1,0 +1,153 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Lesson · Giáo dục, bài giảng</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Lexend:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"><style>/* The layouts every theme shares. A theme sets the variables and adds its own signature (themes/<key>/theme.css).
+   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: #7a7a7a; }
+body { font-family: var(--font-body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+aside.notes { display: none; }
+
+section.slide {
+  --pad: 88px;
+  width: 1280px; height: 720px; position: relative; overflow: hidden; margin: 0 auto 24px;
+  background: var(--ground); color: var(--ink);
+  font-size: var(--body-size, 22px); line-height: 1.4;
+  font-feature-settings: "lnum", "tnum";
+}
+.slide .title { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: var(--title-size, 46px);
+  line-height: 1.08; letter-spacing: var(--display-tracking, -0.01em); text-wrap: balance; }
+.slide .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.slide .lede { font-size: 24px; line-height: 1.4; color: var(--muted); text-wrap: pretty; }
+.slide .muted { color: var(--muted); }
+.slide .num { font-family: var(--font-display); font-weight: var(--display-weight, 700); line-height: 0.95;
+  letter-spacing: -0.02em; color: var(--accent); }
+.slide .cap { font-size: 18px; color: var(--muted); line-height: 1.35; }
+.slide .footer { position: absolute; left: var(--pad); right: var(--pad); bottom: 30px; display: flex; justify-content: space-between;
+  font-size: 13px; letter-spacing: 0.06em; color: var(--muted); }
+
+/* Cover: the deck's point in one sentence */
+.l-cover .eyebrow { position: absolute; left: var(--pad); top: 72px; }
+.l-cover .title { position: absolute; left: var(--pad); top: 210px; width: 680px; font-size: var(--cover-size, 76px); line-height: 1.02; }
+.l-cover .lede { position: absolute; left: var(--pad); bottom: 96px; width: 640px; }
+.l-cover .art { position: absolute; right: 0; top: 0; bottom: 0; width: 460px; }
+
+/* Section break */
+.l-section .num { position: absolute; left: var(--pad); top: 150px; font-size: 180px; }
+.l-section .title { position: absolute; left: var(--pad); top: 380px; width: 900px; font-size: 60px; }
+.l-section .lede { position: absolute; left: var(--pad); top: 540px; width: 760px; }
+
+/* Agenda */
+.l-agenda .title { position: absolute; left: var(--pad); top: 80px; width: 420px; }
+.l-agenda ol { position: absolute; left: 600px; top: 84px; width: 590px; list-style: none; }
+.l-agenda li { display: flex; gap: 28px; align-items: baseline; padding: 20px 0; border-top: 1px solid var(--rule); }
+.l-agenda li .n { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 28px; color: var(--accent); width: 44px; }
+.l-agenda li .t { font-size: 26px; font-weight: 600; }
+.l-agenda li .d { display: block; font-size: 17px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+
+/* A big number and what it means */
+.l-number .num { position: absolute; left: var(--pad); top: 130px; font-size: 240px; }
+.l-number .title { position: absolute; left: var(--pad); top: 430px; width: 820px; font-size: 44px; }
+.l-number .lede { position: absolute; left: var(--pad); top: 560px; width: 760px; font-size: 21px; }
+.l-number .art { position: absolute; right: 0; top: 0; bottom: 0; width: 360px; }
+
+/* A chart and its point */
+.l-chart .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-chart .lede { position: absolute; left: var(--pad); top: 140px; width: 900px; font-size: 19px; }
+.l-chart .chart { position: absolute; left: calc(var(--pad) - 12px); top: 210px; width: 760px; height: 440px; }
+.l-chart .side { position: absolute; left: 900px; top: 236px; width: 300px; }
+.l-chart .side .num { font-size: 96px; }
+.l-chart .side .cap { margin-top: 10px; }
+.l-chart .side p { margin-top: 28px; font-size: 19px; line-height: 1.45; }
+
+/* A picture beside the text */
+.l-split .art { position: absolute; left: 0; top: 0; bottom: 0; width: 600px; }
+.l-split .eyebrow { position: absolute; left: 680px; top: 110px; }
+.l-split .title { position: absolute; left: 680px; top: 150px; width: 520px; }
+.l-split .body { position: absolute; left: 680px; top: 330px; width: 500px; font-size: 21px; line-height: 1.5; }
+.l-split .body p + p { margin-top: 14px; }
+
+/* Two options side by side */
+.l-compare .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-compare .cols { position: absolute; left: var(--pad); right: var(--pad); top: 210px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+.l-compare .col { padding-top: 22px; border-top: 4px solid var(--rule-strong, var(--ink)); }
+.l-compare .col.pick { border-top-color: var(--accent); }
+.l-compare .col h3 { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 30px; line-height: 1.15; }
+.l-compare .col .tag { font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.l-compare .col.pick .tag { color: var(--accent); }
+.l-compare .col p { margin-top: 14px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+.l-compare .col .k { margin-top: 22px; font-size: 19px; }
+.l-compare .col .k b { font-family: var(--font-display); font-size: 40px; display: block; color: var(--ink); }
+
+/* Steps or a timeline */
+.l-steps .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 250px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.l-steps .step { border-top: 2px solid var(--rule-strong, var(--ink)); padding-top: 18px; }
+.l-steps .step .when { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.l-steps .step h3 { margin-top: 10px; font-size: 25px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
+.l-steps .step p { margin-top: 10px; font-size: 18px; line-height: 1.45; color: var(--muted); }
+
+/* A quote */
+.l-quote .mark { position: absolute; left: var(--pad); top: 70px; font-family: var(--font-display); font-size: 200px; line-height: 1; color: var(--accent); }
+.l-quote .title { position: absolute; left: var(--pad); top: 210px; width: 1000px; font-size: 52px; line-height: 1.15; }
+.l-quote .who { position: absolute; left: var(--pad); top: 520px; font-size: 20px; }
+.l-quote .who b { display: block; font-size: 22px; }
+
+/* Closing: what is asked of the room */
+.l-closing .eyebrow { position: absolute; left: var(--pad); top: 110px; }
+.l-closing .title { position: absolute; left: var(--pad); top: 150px; width: 820px; font-size: 64px; }
+.l-closing .asks { position: absolute; left: var(--pad); top: 420px; width: 1100px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.l-closing .asks div { font-size: 20px; line-height: 1.4; }
+.l-closing .asks b { display: block; font-size: 22px; margin-bottom: 6px; color: var(--accent); }
+
+/* Lesson: a teacher's slides for a class. Exercise-book paper with its red margin line, a chalkboard green for the
+   lesson's own world, and a marigold highlighter that marks the one term to remember. Fraunces for a warm, bookish
+   voice; Lexend, made for reading, for everything students must read. */
+section.slide {
+  --ground: #FBF6EA; --ink: #1E2B24; --muted: #5E6A62; --accent: #2F6B4F; --rule: #E2D9C3; --rule-strong: #1E2B24;
+  --mark: #F6C34A;
+  --font-display: "Fraunces", Georgia, serif; --font-body: "Lexend", Calibri, sans-serif;
+  --display-weight: 700; --title-size: 46px; --display-tracking: -0.01em; --cover-size: 70px; --body-size: 22px;
+  font-family: var(--font-body);
+}
+/* the exercise book: a red margin line on every page but the board */
+section.slide:not(.l-cover):not(.l-quote)::before { content: ""; position: absolute; top: 0; bottom: 0; left: 56px;
+  width: 2px; background: #E07A6B; opacity: .55; }
+/* the chalkboard */
+section.slide.l-cover { --ground: #22402F; --ink: #F3EFE2; --muted: #B9C8BC; --accent: #F6C34A; }
+section.slide.l-cover::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26px; background: #8A5A35; }
+.l-cover .title { width: 720px; top: 200px; }
+.l-cover .lede { bottom: 80px; }
+.l-cover .art { width: 420px; }
+section.slide.l-quote { --ground: #22402F; --ink: #F3EFE2; --muted: #B9C8BC; --accent: #F6C34A; }
+section.slide.l-quote::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26px; background: #8A5A35; }
+.l-quote .title { font-weight: 500; font-style: italic; }
+.l-agenda .title { width: 440px; }
+.l-agenda li .n { font-family: var(--font-display); color: #C0503F; }
+.l-number .num { color: var(--accent); font-size: 200px; top: 120px; }
+.l-number .art { width: 470px; }
+.l-number .title { width: 700px; top: 380px; }
+.l-number .lede { width: 680px; top: 520px; }
+.l-chart .side .num { color: var(--accent); }
+.l-split .eyebrow { color: #C0503F; }
+.l-steps .step .when { color: #C0503F; }
+.l-steps .row { top: 300px; }
+.l-steps .step { border-top: 3px solid var(--accent); padding-top: 22px; }
+.l-steps .step h3 { font-size: 32px; }
+.l-steps .step p { font-size: 21px; }
+/* a chart title of two lines: the lede and the chart move down */
+.l-chart .lede { top: 190px; }
+.l-chart .chart { top: 250px; height: 410px; }
+.l-chart .side { top: 270px; }
+.l-compare .col { border-top: 4px solid #C0503F; }
+.l-compare .col.pick { border-top-color: var(--accent); }
+.l-compare .col .tag { color: #C0503F; }
+.l-compare .col.pick .tag { color: var(--accent); }
+.l-closing .asks b { color: #C0503F; }
+.l-closing .eyebrow { color: #C0503F; }
+</style></head><body><section class="slide l-cover"><div class="eyebrow">Sinh học 10 · Bài 16</div><h1 class="title">Quang hợp: lá cây biến ánh sáng thành đường</h1><p class="lede">Cô Trần Thu Hà · Lớp 10A3 · Tiết 2, thứ Tư 4/11/2026</p><div class="art"><svg width='420' height='720' viewBox='0 0 420 720'><g stroke='#F3EFE2' stroke-width='3' fill='none' stroke-linecap='round' opacity='.9'><circle cx='300' cy='150' r='52'/><g stroke-width='2.5'><line x1='300' y1='72' x2='300' y2='54'/><line x1='378' y1='150' x2='396' y2='150'/><line x1='355' y1='95' x2='368' y2='82'/><line x1='245' y1='95' x2='232' y2='82'/><line x1='355' y1='205' x2='368' y2='218'/></g><path d='M120 600 C 120 470 150 380 210 330' /><path d='M210 330 C 150 300 100 330 90 380 C 140 400 190 380 210 330 Z' fill='#4E7D5F' fill-opacity='.65'/><path d='M168 440 C 230 400 300 420 320 470 C 260 500 200 480 168 440 Z' fill='#4E7D5F' fill-opacity='.65'/><path d='M140 520 C 90 500 60 520 50 560 C 90 575 125 560 140 520 Z' fill='#4E7D5F' fill-opacity='.65'/></g><g stroke='#F6C34A' stroke-width='2.5' stroke-dasharray='6 8' fill='none'><path d='M262 196 L 222 300'/><path d='M282 205 L 270 420'/></g><g font-family='Lexend' font-size='17' fill='#F3EFE2' opacity='.85'><text x='300' y='560'>CO₂</text><text x='40' y='660'>H₂O</text><text x='320' y='640' fill='#F6C34A'>O₂ ↑</text></g></svg></div><aside class="notes"></aside></section>
+<section class="slide l-agenda"><h2 class="title">Hôm nay các em sẽ biết</h2><ol><li><span class="n">01</span><span class="t">Quang hợp là gì<span class="d">Ánh sáng + nước + CO₂ → đường + O₂</span></span></li><li><span class="n">02</span><span class="t">Diễn ra ở đâu<span class="d">Lục lạp và sắc tố diệp lục</span></span></li><li><span class="n">03</span><span class="t">Hai pha của quang hợp<span class="d">Pha sáng và pha tối khác nhau thế nào</span></span></li><li><span class="n">04</span><span class="t">Thí nghiệm nhỏ<span class="d">Đếm bọt khí của rong đuôi chó</span></span></li></ol><div class="footer"><span>Sinh học 10 · Bài 16: Quang hợp</span><span>02</span></div></section>
+<section class="slide l-number"><div class="num">1–2%</div><h2 class="title">ánh sáng chiếu lên lá được biến thành năng lượng hoá học</h2><p class="lede">Phần còn lại bị phản xạ, xuyên qua lá hoặc toả ra thành nhiệt. Chỉ chừng ấy mà nuôi gần như mọi sự sống trên Trái Đất.</p><div class="art"><svg width='470' height='720' viewBox='0 0 470 720'><g transform='translate(70 140)'><rect width='320' height='320' fill='#E8E0CB'/><rect width='320' height='320' fill='none' stroke='#1E2B24' stroke-width='2'/><rect x='0' y='0' width='32' height='32' fill='#2F6B4F'/><text x='0' y='370' font-family='Lexend' font-size='17' fill='#5E6A62'>100 ô là toàn bộ ánh sáng;</text><text x='0' y='396' font-family='Lexend' font-size='17' fill='#5E6A62'>ô xanh là phần lá dùng được.</text></g><g transform='translate(70 140)' stroke='#FBF6EA' stroke-width='2'><line x1='32' y1='0' x2='32' y2='320'/><line x1='64' y1='0' x2='64' y2='320'/><line x1='96' y1='0' x2='96' y2='320'/><line x1='128' y1='0' x2='128' y2='320'/><line x1='160' y1='0' x2='160' y2='320'/><line x1='192' y1='0' x2='192' y2='320'/><line x1='224' y1='0' x2='224' y2='320'/><line x1='256' y1='0' x2='256' y2='320'/><line x1='288' y1='0' x2='288' y2='320'/><line x1='0' y1='32' x2='320' y2='32'/><line x1='0' y1='64' x2='320' y2='64'/><line x1='0' y1='96' x2='320' y2='96'/><line x1='0' y1='128' x2='320' y2='128'/><line x1='0' y1='160' x2='320' y2='160'/><line x1='0' y1='192' x2='320' y2='192'/><line x1='0' y1='224' x2='320' y2='224'/><line x1='0' y1='256' x2='320' y2='256'/><line x1='0' y1='288' x2='320' y2='288'/></g></svg></div><div class="footer"><span>Sinh học 10 · Bài 16: Quang hợp</span><span>03</span></div></section>
+<section class="slide l-chart"><h2 class="title">Càng nhiều ánh sáng, rong nhả càng nhiều bọt khí, đến một mức thì dừng</h2><p class="lede">Số bọt khí O₂ trong 1 phút, rong đuôi chó, theo khoảng cách tới đèn (cm). Kết quả lớp 10A1.</p><div class="chart" data-pptx="chart" data-chart='{&quot;type&quot;: &quot;bar&quot;, &quot;categories&quot;: [&quot;50 cm&quot;, &quot;40 cm&quot;, &quot;30 cm&quot;, &quot;20 cm&quot;, &quot;10 cm&quot;, &quot;5 cm&quot;], &quot;series&quot;: {&quot;Bọt khí/phút&quot;: [4, 7, 12, 19, 24, 25]}, &quot;colors&quot;: [&quot;C9D6CB&quot;, &quot;C9D6CB&quot;, &quot;C9D6CB&quot;, &quot;C9D6CB&quot;, &quot;2F6B4F&quot;, &quot;2F6B4F&quot;], &quot;labels&quot;: [&quot;4&quot;, &quot;7&quot;, &quot;12&quot;, &quot;19&quot;, &quot;24&quot;, &quot;25&quot;], &quot;size&quot;: 17, &quot;muted&quot;: &quot;5E6A62&quot;, &quot;font&quot;: &quot;Lexend&quot;}'></div><div class="side"><div class="num">25</div><div class="cap">bọt khí mỗi phút: mức trần</div><p>Gần hơn 10 cm, đèn sáng hơn mà bọt khí gần như không tăng: lá đã quang hợp hết sức.</p></div><div class="footer"><span>Sinh học 10 · Bài 16: Quang hợp</span><span>04</span></div></section>
+<section class="slide l-split"><div class="art"><svg width='600' height='720' viewBox='0 0 600 720'><rect width='600' height='720' fill='#EFE6CF'/><g transform='translate(300 360) rotate(-14)'><ellipse rx='230' ry='130' fill='#B9D3A8' stroke='#2F6B4F' stroke-width='4'/><ellipse rx='205' ry='108' fill='none' stroke='#2F6B4F' stroke-width='2' opacity='.6'/><g fill='#2F6B4F'><rect x='-150' y='-46' width='60' height='14' rx='7'/><rect x='-150' y='-28' width='60' height='14' rx='7'/><rect x='-150' y='-10' width='60' height='14' rx='7'/><rect x='-150' y='8' width='60' height='14' rx='7'/><rect x='-40' y='-70' width='60' height='14' rx='7'/><rect x='-40' y='-52' width='60' height='14' rx='7'/><rect x='-40' y='-34' width='60' height='14' rx='7'/><rect x='70' y='-20' width='60' height='14' rx='7'/><rect x='70' y='-2' width='60' height='14' rx='7'/><rect x='70' y='16' width='60' height='14' rx='7'/><rect x='70' y='34' width='60' height='14' rx='7'/><rect x='-30' y='30' width='60' height='14' rx='7'/><rect x='-30' y='48' width='60' height='14' rx='7'/></g></g><g font-family='Lexend' font-size='17' fill='#1E2B24'><line x1='220' y1='300' x2='150' y2='150' stroke='#1E2B24' stroke-width='1.5'/><text x='60' y='138'>Hạt grana: pha sáng</text><line x1='390' y1='420' x2='450' y2='580' stroke='#1E2B24' stroke-width='1.5'/><text x='330' y='606'>Chất nền: pha tối</text></g></svg></div><div class="eyebrow">Diễn ra ở đâu</div><h2 class="title">Trong lục lạp, diệp lục bắt lấy ánh sáng</h2><div class="body"><p>Mỗi tế bào lá có khoảng 20–100 lục lạp, mỗi cái dài chừng 5 micromet.</p><p>Diệp lục hấp thụ ánh sáng đỏ và xanh tím, phản xạ ánh sáng xanh lục: vì vậy ta thấy lá màu xanh.</p></div><div class="footer"><span>Sinh học 10 · Bài 16: Quang hợp</span><span>05</span></div></section>
+<section class="slide l-compare"><h2 class="title">Pha sáng cần ánh sáng; pha tối thì không, nhưng cần sản phẩm của pha sáng</h2><div class="cols"><div class="col"><div class="tag">Pha sáng · ở hạt grana</div><h3>Ánh sáng tách nước, nhả O₂</h3><p>Năng lượng ánh sáng được giữ lại trong ATP và NADPH.</p><div class="k"><b>O₂</b>khí ta thở, là sản phẩm phụ</div></div><div class="col pick"><div class="tag">Pha tối · ở chất nền</div><h3>CO₂ được ghép thành đường</h3><p>Chu trình Calvin dùng ATP, NADPH của pha sáng để tạo glucôzơ.</p><div class="k"><b>C₆H₁₂O₆</b>đường nuôi cây</div></div></div><div class="footer"><span>Sinh học 10 · Bài 16: Quang hợp</span><span>06</span></div></section>
+<section class="slide l-steps"><h2 class="title">Thí nghiệm: đếm bọt khí của rong đuôi chó</h2><div class="row"><div class="step"><div class="when">Bước 1</div><h3>Chuẩn bị</h3><p>Cắt 10 cm rong, úp ngược trong ống nghiệm đầy nước.</p></div><div class="step"><div class="when">Bước 2</div><h3>Đặt đèn</h3><p>Đèn bàn 40 W, bắt đầu cách ống 50 cm.</p></div><div class="step"><div class="when">Bước 3</div><h3>Đếm</h3><p>Chờ 2 phút cho ổn định, đếm bọt khí trong 1 phút.</p></div><div class="step"><div class="when">Bước 4</div><h3>Dời đèn</h3><p>Mỗi lần gần thêm 10 cm, ghi số vào bảng của nhóm.</p></div></div><div class="footer"><span>Sinh học 10 · Bài 16: Quang hợp</span><span>07</span></div></section>
+<section class="slide l-quote"><div class="mark">“</div><h2 class="title">Một cây sồi không cần gì ngoài nắng, nước và không khí, vậy mà nó tự làm ra cả tấn gỗ.</h2><div class="who"><b>Jan Ingenhousz</b>Người phát hiện cây cần ánh sáng để nhả khí oxy, năm 1779</div><div class="footer"><span>Sinh học 10 · Bài 16: Quang hợp</span><span>08</span></div></section>
+<section class="slide l-closing"><div class="eyebrow">Về nhà</div><h2 class="title">Viết phương trình quang hợp và giải thích vì sao lá màu xanh</h2><div class="asks"><div><b>Bài tập 1, 2, 4</b>Sách giáo khoa trang 87. Nộp đầu giờ thứ Sáu.</div><div><b>Nhóm thí nghiệm</b>Vẽ biểu đồ số bọt khí của nhóm mình trên giấy kẻ ô.</div><div><b>Đọc trước</b>Bài 17: Hô hấp tế bào, chỉ phần I.</div></div><div class="footer"><span>Sinh học 10 · Bài 16: Quang hợp</span><span>09</span></div></section></body></html>
