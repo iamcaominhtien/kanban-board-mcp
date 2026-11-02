@@ -365,6 +365,47 @@ async def test_eight_ready_made_packs_and_a_project_copy_with_versions(env):
     assert (await c.get(f"/projects/{pid}/ai/packs/dev")).json()["builtin"] is True
 
 
+async def test_the_edit_dialog_saves_a_pack_without_personas(env):
+    """The UI sends every field it shows, `personas: null` for a pack that has none (all but the User tester)."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    pm = (await c.get(f"/projects/{pid}/ai/packs/pm")).json()
+    assert not pm.get("personas")
+    body = {
+        k: pm.get(k)
+        for k in (
+            "name",
+            "tagline",
+            "model",
+            "effort",
+            "template",
+            "ceiling",
+            "writes",
+            "hands_in",
+            "persona",
+            "allow",
+            "plugins",
+            "mcp",
+            "limits",
+            "glyph",
+        )
+    }
+    r = await c.put(
+        f"/projects/{pid}/ai/packs/pm",
+        json={
+            **body,
+            "tagline": "Plans the work",
+            "retry_model": None,
+            "depth_models": pm.get("depth_models"),
+            "personas": None,
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["tagline"] == "Plans the work" and r.json()["version"] == 1
+    bad = await c.put(f"/projects/{pid}/ai/packs/pm", json={**body, "allow": "Bash"})
+    assert bad.status_code == 422 and "allow must be a list" in bad.text
+
+
 async def test_a_pack_exports_to_one_file_and_imports_saying_what_is_missing(env):
     c = env["c"]
     pid, _ = await _project(c)
