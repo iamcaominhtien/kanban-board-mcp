@@ -8,6 +8,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.24.0] - 2026-11-02
+
+AI schedules checked end to end against their design (#271).
+
+### Added
+- **Start from a template** in New schedule: Nightly test run (every night at 02:00, runs your tests), Weekly dependency check (Monday 09:00, lists outdated or vulnerable packages, upgrades nothing) and Daily summary (weekdays 18:00, what moved on the board). One click fills the days, the time, the checks, the limits and the words for the AI; the ticket, the AI and the time zone stay as you chose. The test command of the nightly run is left for you: the board cannot know it.
+- **MCP `ai_schedules(action='preview')`**: the same fields as `create`, nothing saved; returns the plain-language summary, the next 5 runs and every error or warning, so an agent can fix a schedule before it creates it.
+- The schedule block on a ticket shows under the ticket's header in both views (it was only in the AI activity view, where nobody looked); one-offs that already ran stay out of it while something else is planned. A board card's chip carries the AI's avatar, as designed, and its text is cut with an ellipsis instead of clipped.
+
+### Fixed
+- **The Schedules tab's column titles were not over their columns** (and the week's day names did not line up): the table header used the class name `sc-head`, which the Ask AI chat also uses. Schedules classes `sc-head`, `sc-chip` and `sc-tile` are now `sc-thead`, `sc-pill` and `sc-stat`.
+- A schedule waiting for its AI (paused, over budget, runner away) showed a red "That time has passed" in its detail. A one-off whose time has come is being run; the message is for the editor only.
+- A one-off a few seconds ahead said "That time has passed. Next free time: tomorrow". It now says it is less than a minute away.
+- The time boxes (At, window end) followed the browser's language (`02:00 AM` in English, a 24 h schedule everywhere else). They are 24 h, typed as `0230`, `2:30` or `02:30`.
+- Selects in Schedules (filters, time zone, limits) use the design's chevron instead of each system's arrow.
+- A review that could not run copied the CLI's whole error into the notification; it is cut to one line.
+- MCP `ai_schedules` ignored a field it did not know (`timezone` for `tz`) and created the schedule with the default; it now names the unknown field and lists the ones that exist. `notify` is in the field list.
+
 ## [3.23.0] - 2026-11-02
 
 AI permissions: fewer needless stops, the risky things still with a person (#275).

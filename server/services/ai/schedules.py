@@ -725,7 +725,13 @@ async def assess(
             at = _once_at(s)
             if at is None:
                 add("error", "Pick the date and time.", "when")
-            elif at <= now + timedelta(minutes=1):
+            elif now < at <= now + timedelta(minutes=1):
+                add(
+                    "error",
+                    "That is less than a minute away. Pick a later time, or use Run now.",
+                    "when",
+                )
+            elif at <= now:
                 local = at.astimezone(zone(s.tz))
                 nxt = datetime.combine(
                     now.astimezone(zone(s.tz)).date(), local.timetz()
@@ -1097,8 +1103,13 @@ async def detail(session, schedule_id: str) -> dict:
     }
     out["runs"] = runs
     out["summary"] = await summary_text(session, s)
+    # a one-off whose time has come is being run (or waits for its AI): "that time has passed" is for the editor
     out["problems"] = (
-        [c for c in await assess(session, s, s.created_by) if c["level"] != "ok"]
+        [
+            c
+            for c in await assess(session, s, s.created_by)
+            if c["level"] != "ok" and not (s.kind == "once" and c["key"] == "when")
+        ]
         if s.state != "ended"
         else []
     )
@@ -1824,6 +1835,12 @@ async def _follow(srun_id: str, now: datetime) -> None:
     await _pass(srun_id, s, run, results, None)
 
 
+def _short(text: object, limit: int = 160) -> str:
+    """One line of an error, cut: a CLI's last stderr lines can be a whole traceback."""
+    one = " ".join(str(text).split())
+    return one if len(one) <= limit else one[: limit - 1].rstrip() + "…"
+
+
 def _met_line(results: list[dict]) -> str:
     crit = next((r for r in results if r["key"] == "criteria"), None)
     if crit and crit.get("count"):
@@ -2171,7 +2188,7 @@ async def _review_inner(srun_id: str) -> None:
             srun_id,
             s,
             "partly",
-            f"Checks passed, but the review failed: {exc}. A person decides.",
+            f"Checks passed, but the review failed: {_short(exc)}. A person decides.",
             results,
         )
     async with database.async_session() as session:
@@ -2391,6 +2408,7 @@ async def for_tickets(session, project_id: str) -> dict[str, dict]:
                 "at": s.next_run_at,
             }
         item["schedule_id"] = s.id
+        item["member_id"] = s.member_id
         cur = out.get(s.ticket_id)
         rank = {"missed": 0, "soon": 1, "planned": 2, "paused": 3}
         if (

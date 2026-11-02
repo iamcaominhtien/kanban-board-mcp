@@ -220,6 +220,7 @@ export interface ScheduleCard {
   state: 'missed' | 'soon' | 'planned' | 'paused';
   label: string;
   at?: string;
+  memberId?: string;
 }
 
 /** A notification for the person (toast). */

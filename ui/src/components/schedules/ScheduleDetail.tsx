@@ -40,9 +40,9 @@ const FILTERS = [
 
 function Tile({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="sc-tile">
+    <div className="sc-stat">
       <div className="ai-label">{label}</div>
-      <div className="sc-tile-v">{value}</div>
+      <div className="sc-stat-v">{value}</div>
       <div className="ai-hint">{sub}</div>
     </div>
   );
@@ -495,7 +495,7 @@ export function ScheduleDetailLayer({
             </div>
           )}
 
-          <div className="sc-tiles">
+          <div className="sc-stats">
             <Tile
               label="NEXT RUN"
               value={
