@@ -284,6 +284,47 @@ async def test_a_stale_change_cannot_be_accepted_and_page_changed_since(env):
     ]
 
 
+async def test_an_old_untouched_draft_of_the_reviewer_does_not_block_accepting(env):
+    """The reviewer opened the page earlier (an autosaved draft of v1, nothing of theirs in it); the page was
+    published again since and the AI proposed against the new text. Accepting must not fail with "your draft no longer
+    has the text" (409 on every try): the untouched draft is started again from the published text."""
+    c, ctx, pid, m, tid, p = await _setup(env)
+    r = await c.put(f"/docs/pages/{p['id']}/draft", json={"markdown": TEXT}, headers=H)
+    assert r.status_code == 200, r.text
+    v2 = TEXT.replace("not implemented yet", "being built")
+    await c.put(f"/docs/pages/{p['id']}/draft", json={"markdown": v2})
+    r = await c.post(f"/docs/pages/{p['id']}/publish", json={"base_version": 1})
+    assert r.status_code == 200, r.text
+    out = await _ai_update(
+        ctx, p["id"], markdown=v2.replace("being built", "done"), base_version=2
+    )
+    r = await c.post(
+        f"/docs/ai/proposals/{out['proposal_id']}/changes/1/accept", headers=H
+    )
+    assert r.status_code == 200, r.text
+    draft = (await _published(c, p["id"]))["draft"]
+    assert "Retries are done." in draft["markdown"] and draft["base_version"] == 2
+
+
+async def test_a_draft_with_the_reviewers_own_edits_says_what_to_do(env):
+    c, ctx, pid, m, tid, p = await _setup(env)
+    mine = TEXT + "\nMy own note.\n"
+    await c.put(f"/docs/pages/{p['id']}/draft", json={"markdown": mine}, headers=H)
+    v2 = TEXT.replace("not implemented yet", "being built")
+    await c.put(f"/docs/pages/{p['id']}/draft", json={"markdown": v2})
+    await c.post(f"/docs/pages/{p['id']}/publish", json={"base_version": 1})
+    out = await _ai_update(
+        ctx, p["id"], markdown=v2.replace("being built", "done"), base_version=2
+    )
+    r = await c.post(
+        f"/docs/ai/proposals/{out['proposal_id']}/accept-all", json={}, headers=H
+    )
+    assert r.status_code == 409 and r.json()["code"] == "stale"
+    assert "draft" in r.json()["detail"] and "v1" in r.json()["detail"]
+    # their own text is kept
+    assert "My own note." in (await _published(c, p["id"]))["draft"]["markdown"]
+
+
 async def test_the_ai_cannot_decide_its_own_proposal(env):
     c, ctx, pid, m, tid, p = await _setup(env)
     out = await _ai_update(ctx, p["id"])
