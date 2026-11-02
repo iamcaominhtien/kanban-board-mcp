@@ -82,6 +82,53 @@ describe('RepositoriesSection settings', () => {
     );
   });
 
+  it('turns a command off as a check, and back on, without losing the command', async () => {
+    const ops = { commands: { test: 'npm test', lint: '', build: 'npm run build' }, checksOff: ['build'] };
+    setup({ ops });
+    http.patch.mockImplementation((_u: string, body: unknown) =>
+      Promise.resolve({ data: { hangAfterMin: 5, ...ops, ...(body as object) } }),
+    );
+    renderIt();
+    const test = (await screen.findByTestId('check-test')) as HTMLInputElement;
+    const lint = screen.getByTestId('check-lint') as HTMLInputElement;
+    const build = screen.getByTestId('check-build') as HTMLInputElement;
+    expect([test.checked, build.checked]).toEqual([true, false]);
+    expect(lint.disabled).toBe(true); // no lint command: nothing to switch
+    fireEvent.click(test);
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { checksOff: ['build', 'test'] }),
+    );
+    fireEvent.click(build);
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { checksOff: ['test'] }));
+  });
+
+  it('edits the folders put in front of the PATH', async () => {
+    setup({ ops: { envPath: ['/opt/homebrew/bin'] } });
+    http.patch.mockImplementation((_u: string, body: unknown) =>
+      Promise.resolve({ data: { hangAfterMin: 5, envPath: ['/opt/homebrew/bin'], ...(body as object) } }),
+    );
+    renderIt();
+    const toggle = await screen.findByTestId('env-toggle');
+    expect(screen.getByTestId('env-summary').textContent).toContain('/opt/homebrew/bin');
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole('button', { name: 'Add a folder' }));
+    const add = screen.getByLabelText('New folder');
+    fireEvent.change(add, { target: { value: '/Users/me/.nvm/versions/node/v22/bin' } });
+    fireEvent.blur(add);
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', {
+        envPath: ['/opt/homebrew/bin', '/Users/me/.nvm/versions/node/v22/bin'],
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Remove /opt/homebrew/bin' }));
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', {
+        envPath: ['/Users/me/.nvm/versions/node/v22/bin'],
+      }),
+    );
+    expect(screen.queryByLabelText('The app’s own PATH')).toBeNull(); // the settings page does not know it
+  });
+
   it('shows a skeleton while loading, then the off note', async () => {
     setup({ ops: { worktrees: { on: false } } });
     renderIt();

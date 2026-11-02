@@ -39,6 +39,13 @@ DEFAULTS: dict = {
         "lint": "",
         "build": "",
     },  # the project's checks (the Checks step, the scan)
+    # Commands saved but not run as checks yet (a repository whose own tests already fail would otherwise send every
+    # ticket back to Dev): names out of test, lint, build (design/screens/ai-repo-commands.md, D2/D5)
+    "checks_off": [],
+    # Extra folders put in front of the PATH for everything this project runs: the wizard's trial, a ticket's prepare,
+    # the checks and the AI members' runs (services/ai/project_env.py). An app opened from the Dock does not see
+    # Homebrew or nvm without them.
+    "env_path": [],
     # Phase 6 — workflows
     "workflow_default": "standard",  # a template key, or "" for none (hand work straight to one AI)
     "coordinator_id": None,  # the PM member that arbitrates (D12, D24)

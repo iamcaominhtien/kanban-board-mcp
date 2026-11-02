@@ -584,7 +584,10 @@ def test_the_trial_runs_the_commands_in_a_scratch_worktree_and_shows_failures(tm
     assert ok["test"]["tail"] == ["42"]
     bad = repo_scan._try(str(tmp_path), "exit 3", "echo never")
     assert bad["prepare"]["ok"] is False and bad["prepare"]["exit_code"] == 3
-    assert bad["test"] is None  # nothing runs after a failing step
+    assert bad["prepare"]["status"] == "fails"
+    # nothing runs after a failing prepare, and the row says why
+    assert bad["test"]["status"] == "not_run"
+    assert bad["test"]["reason"] == "prepare failed first"
     worktrees = _git(tmp_path, "worktree", "list").stdout.strip().splitlines()
     assert len(worktrees) == 1  # the scratch worktree was removed
 

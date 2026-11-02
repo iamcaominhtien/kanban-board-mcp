@@ -12,6 +12,10 @@ export interface ProjectOps {
   lessonsInPrompt: number;
   worktrees?: Record<string, unknown>;
   commands?: { test?: string; lint?: string; build?: string };
+  /** Commands saved but not run as checks: names out of test, lint, build. */
+  checksOff?: string[];
+  /** Extra folders put in front of the PATH for everything this project runs. */
+  envPath?: string[];
   /** A workflow template key, or "" for none. */
   workflowDefault?: string | null;
   /** The PM member that arbitrates and runs the team; null: the first PM. */

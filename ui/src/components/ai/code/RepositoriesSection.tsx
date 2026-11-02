@@ -8,6 +8,7 @@ import type { HandoverRoute } from '../../../types/aiCode';
 import { LoadError, Toggle } from '../aiUi';
 import { ROUTE_TEXT, ROUTE_TITLE, WorktreeRow, mbText } from './worktreeUi';
 import { TeamRow } from '../settings/settingsUi';
+import { EnvBlock } from '../packs/EnvBlock';
 import '../settings/teamOwn.css';
 
 interface WtSettings {
@@ -62,6 +63,35 @@ function TextSetting({
   );
 }
 
+/** "Use as a check" for a command the Checks step runs; off keeps the command saved but out of the loop. */
+function CheckBox({
+  name,
+  hasCommand,
+  off,
+  disabled,
+  onChange,
+}: {
+  name: 'test' | 'lint' | 'build';
+  hasCommand: boolean;
+  off: boolean;
+  disabled: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  return (
+    <label className="ai-hint" style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+      <input
+        type="checkbox"
+        data-testid={`check-${name}`}
+        aria-label={`Use ${name} as a check`}
+        checked={!off}
+        disabled={disabled || !hasCommand}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      Use as a check
+    </label>
+  );
+}
+
 /** Where the AIs work (design/screens/ai-operations.md, I and K): worktrees, ports, the prepare command, hand-over. */
 export function RepositoriesSection({ projectId }: { projectId: string }) {
   const ops = useProjectOps(projectId);
@@ -94,6 +124,9 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
       setError(extractError(e));
     }
   };
+  const checksOff = ops.data.checksOff ?? [];
+  const setCheck = (name: string, on: boolean) =>
+    save({ checksOff: on ? checksOff.filter((x) => x !== name) : [...new Set([...checksOff, name])] });
   const saveWt = (part: WtSettings) => save({ worktrees: part as Record<string, unknown> });
   const act = async (fn: () => Promise<unknown>) => {
     setError(null);
@@ -217,6 +250,13 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
             testId="cmd-test"
             onSave={(v) => void save({ commands: { test: v.trim() } })}
           />
+          <CheckBox
+            name="test"
+            hasCommand={!!ops.data.commands?.test}
+            off={checksOff.includes('test')}
+            disabled={patch.isPending}
+            onChange={(on) => void setCheck('test', on)}
+          />
         </Row>
         <Row title="Lint command" hint="Run by the Checks step. Empty: no lint check.">
           <TextSetting
@@ -226,6 +266,13 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
             width={240}
             testId="cmd-lint"
             onSave={(v) => void save({ commands: { lint: v.trim() } })}
+          />
+          <CheckBox
+            name="lint"
+            hasCommand={!!ops.data.commands?.lint}
+            off={checksOff.includes('lint')}
+            disabled={patch.isPending}
+            onChange={(on) => void setCheck('lint', on)}
           />
         </Row>
         <Row title="Build command" hint="Run by the Checks step. Empty: no build check.">
@@ -237,7 +284,20 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
             testId="cmd-build"
             onSave={(v) => void save({ commands: { build: v.trim() } })}
           />
+          <CheckBox
+            name="build"
+            hasCommand={!!ops.data.commands?.build}
+            off={checksOff.includes('build')}
+            disabled={patch.isPending}
+            onChange={(on) => void setCheck('build', on)}
+          />
         </Row>
+        <EnvBlock
+          folders={(ops.data.envPath ?? []).map((path) => ({ path, by: 'project' as const }))}
+          onChange={(next) => void save({ envPath: next.map((f) => f.path) })}
+          changeNote="Saved for this project. The next run of a command or a ticket uses it."
+          disabled={patch.isPending}
+        />
         <div className="ai-divider" />
         <Row
           title="Load each member's configuration per run"

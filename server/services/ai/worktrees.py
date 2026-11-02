@@ -31,7 +31,7 @@ from sqlmodel import col, select
 import database
 from models import AiWorktree, Ticket
 
-from . import ops
+from . import ops, project_env
 from .store import get_settings
 
 logger = logging.getLogger(__name__)
@@ -267,7 +267,10 @@ async def ensure(
                 encoding="utf-8",
                 errors="replace",
                 timeout=PREPARE_TIMEOUT_S,
-                env={**os.environ, "PORT": str(port)},
+                env={
+                    **project_env.with_path(None, project_env.extra(settings)),
+                    "PORT": str(port),
+                },
             )
         except subprocess.TimeoutExpired as exc:
             raise WorktreeError(

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import { aiKeys } from './ai';
 import type {
+  AiBody,
   ApplyBody,
   ApplyResult,
   CatalogueEntry,
@@ -13,6 +14,7 @@ import type {
   PackExport,
   PackImportResult,
   Scan,
+  TryBody,
 } from '../types/aiPacks';
 import type { AiMember } from '../types/ai';
 
@@ -21,6 +23,8 @@ export const packKeys = {
   catalogue: ['ai', 'catalogue'] as const,
   member: (memberId: string) => ['ai', 'member-pack', memberId] as const,
   diff: (memberId: string) => ['ai', 'member-pack-diff', memberId] as const,
+  latestScan: (projectId: string) => ['ai', 'scan-latest', projectId] as const,
+  scan: (scanId: string) => ['ai', 'scan', scanId] as const,
 };
 
 export const packsApi = {
@@ -36,15 +40,16 @@ export const packsApi = {
     (await client.post<PackImportResult>(`/projects/${projectId}/ai/packs/import`, body)).data,
   makeMember: async (projectId: string, key: string, body: MakeMemberBody) =>
     (await client.post<AiMember>(`/projects/${projectId}/ai/packs/${key}/member`, body)).data,
-  /** `tryCommands`: the prepare and test commands as the person edited them, tried instead of the suggestion's. */
-  scan: async (projectId: string, folder: string, tryCommands?: { prepare: string; test: string }) =>
-    (
-      await client.post<Scan>(`/projects/${projectId}/ai/scan`, {
-        folder,
-        trial: true,
-        ...(tryCommands ? { ...tryCommands, refine: false } : {}),
-      })
-    ).data,
+  /** Reads files only (no AI, no command is run); the commands come in step 3. */
+  scan: async (projectId: string, folder: string) =>
+    (await client.post<Scan>(`/projects/${projectId}/ai/scan`, { folder, trial: false })).data,
+  /** The project's latest scan that was not applied, from the last 24 hours (null: none). */
+  latestScan: async (projectId: string) =>
+    (await client.get<Scan | null>(`/projects/${projectId}/ai/scans/latest`)).data ?? null,
+  getScan: async (scanId: string) => (await client.get<Scan>(`/ai/scans/${scanId}`)).data,
+  startAi: async (scanId: string, body: AiBody) => (await client.post<Scan>(`/ai/scans/${scanId}/ai`, body)).data,
+  tryCommands: async (scanId: string, body: TryBody) => (await client.post<Scan>(`/ai/scans/${scanId}/try`, body)).data,
+  cancelScan: async (scanId: string) => (await client.post<Scan>(`/ai/scans/${scanId}/cancel`)).data,
   apply: async (scanId: string, body: ApplyBody) =>
     (await client.post<ApplyResult>(`/ai/scans/${scanId}/apply`, body)).data,
   memberPack: async (memberId: string) => (await client.get<MemberPack | null>(`/ai/members/${memberId}/pack`)).data,
@@ -103,12 +108,52 @@ export function useMakeMember(projectId: string) {
   });
 }
 
-/** Scan a folder and try its commands (creates nothing). */
+/** Read a folder (files only; creates nothing). */
 export function useScan(projectId: string) {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ folder, tryCommands }: { folder: string; tryCommands?: { prepare: string; test: string } }) =>
-      packsApi.scan(projectId, folder, tryCommands),
+    mutationFn: ({ folder }: { folder: string }) => packsApi.scan(projectId, folder),
+    onSuccess: (scan) => qc.setQueryData(packKeys.scan(scan.id), scan),
   });
+}
+
+/** The project's latest scan that was not applied, so the wizard can offer to continue it. */
+export function useLatestScan(projectId: string) {
+  return useQuery({
+    queryKey: packKeys.latestScan(projectId),
+    queryFn: () => packsApi.latestScan(projectId),
+    enabled: !!projectId,
+    retry: false,
+    staleTime: 0,
+  });
+}
+
+/** A scan, re-read every second while its job runs. The mutations below write their answer into this cache. */
+export function useScanPoll(scanId: string | null) {
+  return useQuery({
+    queryKey: packKeys.scan(scanId ?? ''),
+    queryFn: () => packsApi.getScan(scanId as string),
+    enabled: !!scanId,
+    staleTime: 30_000,
+    refetchInterval: (q) => ((q.state.data?.job as { state?: string } | undefined)?.state === 'running' ? 1000 : false),
+  });
+}
+
+/** Start the AI on a scan, start a "try" run of the commands, or cancel the job: each answers with the scan. */
+export function useScanJob() {
+  const qc = useQueryClient();
+  const keep = (scan: Scan) => qc.setQueryData(packKeys.scan(scan.id), scan);
+  return {
+    startAi: useMutation({
+      mutationFn: ({ scanId, body }: { scanId: string; body: AiBody }) => packsApi.startAi(scanId, body),
+      onSuccess: keep,
+    }),
+    tryCommands: useMutation({
+      mutationFn: ({ scanId, body }: { scanId: string; body: TryBody }) => packsApi.tryCommands(scanId, body),
+      onSuccess: keep,
+    }),
+    cancel: useMutation({ mutationFn: (scanId: string) => packsApi.cancelScan(scanId), onSuccess: keep }),
+  };
 }
 
 /** Create the team from an edited scan suggestion. */

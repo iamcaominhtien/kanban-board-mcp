@@ -15,7 +15,6 @@ import collections
 import itertools
 import json
 import logging
-import os
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -36,7 +35,7 @@ from models import (
     Ticket,
 )
 
-from . import budget, cli, llm
+from . import budget, cli, llm, project_env
 from . import runs as svc_runs
 from .assist.context import fence
 from .store import get_profile, get_settings, loads, now_iso, parse_iso
@@ -1884,6 +1883,11 @@ async def _evaluate(s: AiSchedule, srun: AiScheduleRun, run: AiRun) -> list[dict
             if checks["tests"].get("on")
             else None
         )
+        extra_path = (
+            project_env.extra(await get_settings(session, ticket.project_id))
+            if ticket is not None
+            else []
+        )
     if ticket is None:
         return [
             {
@@ -1911,7 +1915,9 @@ async def _evaluate(s: AiSchedule, srun: AiScheduleRun, run: AiRun) -> list[dict
             }
         )
     if checks["tests"].get("on"):
-        out.append(await _run_tests(checks["tests"].get("command") or "", folder))
+        out.append(
+            await _run_tests(checks["tests"].get("command") or "", folder, extra_path)
+        )
     if checks["summary"]:
         report = loads(run.report, {}) or {}
         ok = bool(run.reply_comment_id or (report.get("summary") or "").strip())
@@ -1941,7 +1947,9 @@ async def _evaluate(s: AiSchedule, srun: AiScheduleRun, run: AiRun) -> list[dict
     return out
 
 
-async def _run_tests(command: str, folder: Path | None) -> dict:
+async def _run_tests(
+    command: str, folder: Path | None, extra_path: list[str] | None = None
+) -> dict:
     base = {"key": "tests", "label": "Tests pass", "kind": "machine"}
     if folder is None or not folder.is_dir():
         return {
@@ -1955,7 +1963,8 @@ async def _run_tests(command: str, folder: Path | None) -> dict:
             cwd=str(folder),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
-            env={**os.environ, "CI": "1"},
+            # the project's extra PATH folders, as for every command the project runs
+            env={**project_env.with_path(None, extra_path), "CI": "1"},
             **cli._popen_kwargs(),  # its own process group, so a timeout stops the tests it started too
         )
         try:
