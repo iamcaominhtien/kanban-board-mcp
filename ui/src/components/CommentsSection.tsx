@@ -235,8 +235,8 @@ export function CommentsSection({
     } catch {
       // ignore
     }
-    // Oldest first with the composer at the end (TicketComments A, comp-2 TD-4 / board CM-1); the toggle is kept
-    return 'oldest';
+    // Newest first by default: wave 3 put it back as a feature kept (the design draws oldest first; the toggle switches)
+    return 'newest';
   });
 
   const me = useMemo<Person>(

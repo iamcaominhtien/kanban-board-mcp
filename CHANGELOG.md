@@ -25,6 +25,14 @@ Tickets look like their designs, and every AI uses every part of a ticket: crite
 - `get_ticket` says what is really there: `workspace` {path, exists, file_count, files, note} read from disk, `workspace_path` only when the folder exists, and `worktree` {path, branch, state, uncommitted, outputs, note}.
 - A rule in every run's prompt and in the MCP instructions: never claim without checking. Before saying a file, branch or page exists or where it is, look, and name the exact place.
 - The work-log `role` field says which role a QA (Tester) or a reviewer (Other) takes.
+- **Ticket screens 1:1 with their designs**, read from the design source (`design/source/*.dc.html`), one table per design in `docs/ui-audit/269/` (detail: 84 rows, 29 fixed; board: 61 rows):
+  - Ticket detail: every button in the ticket panel was drawn in Arial (the Add buttons, tooltips, the Pending and Reopen buttons): they use the app's font. Criteria rows 26 px apart (were 36), no empty band and doubled line above Attachments, the comment box's Attach button has the paperclip, the Pending and Reopened badges are pills, the pending banner's status pill has the status's own colour (it was always blue), the Set Pending dialog's status dots match the status menu, test-case group headers and the time of a pending case as in the design, Linked docs' origin chips in blue.
+  - Card: a Done card keeps a dark title and shows no priority bars; a Testing card shows "Test — 2 pass · 1 running · 1 pending"; the design's gaps and priority-bar size; the blocked lock where Main Board draws it; an unassigned card shows the dashed empty circle instead of a grey "?".
+  - Drag and drop: the card tilts −1.5° as drawn, the ghost keeps its place without shifting the cards below, and the drop slot takes the dragged card's height.
+  - New Ticket, the filter menus and the top bar: sizes, gaps and icons as drawn. List View: a Done row keeps a dark title.
+  - Event timeline: an assignee change names the person, and an added or removed item reads "Added test case — …" instead of "none → …".
+  - Kept on purpose: comments newest first by default (wave 3 kept it; the toggle gives the design's order), and where the code does more than an older design (Story, AI and schedule chips, the Workspace's file manager).
+- The dev server proxies `/upload-info`, so attachment chips show their size there too.
 
 ### Fixed
 - **A QA's screenshots and logs were committed into the product's branch**: the hand-over at Review and Done ran `git add -A` on the worktree, so whatever a run left there went into the pull request or the merge. Outputs now go to the Workspace first, and stay out of the commit when the Workspace is off.
