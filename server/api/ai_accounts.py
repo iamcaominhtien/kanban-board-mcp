@@ -91,6 +91,7 @@ async def get_accounts(
         "clis": svc_accounts.cli_cards(),
         "platform": sys.platform,
         "terminal": signin.pty is not None,
+        "console": signin.pty is None and signin.CONSOLE,
     }
 
 
@@ -267,7 +268,7 @@ async def post_signin(
     except svc_accounts.AccountError as exc:
         _fail(exc)
     try:
-        await signin.start(account, _by(), cols, rows)
+        opened = await signin.start(account, _by(), cols, rows)
     except signin.SignInBusy as exc:
         raise HTTPException(
             status_code=409,
@@ -282,6 +283,9 @@ async def post_signin(
         }
     except svc_accounts.AccountError as exc:
         _fail(exc)
+    if opened.console:
+        # Windows: the login opened in a console window of its own; the command is there should none appear
+        return {"mode": "console", **_fallback(account)}
     return {"mode": "terminal"}
 
 

@@ -2,6 +2,7 @@
 API, members that run as an account, the sign-in terminal against a fake CLI, and who may do what."""
 
 import asyncio
+import subprocess
 import os
 import sys
 from pathlib import Path
@@ -539,6 +540,99 @@ async def test_without_a_pseudo_terminal_the_window_gets_the_command_to_run_itse
     assert (await c.post(f"/ai/accounts/{a['id']}/check")).json()[
         "status"
     ] == "signed_in"
+
+
+async def test_on_windows_the_sign_in_opens_in_a_console_window_of_its_own(
+    fake_cli, monkeypatch
+):
+    """Windows has no pseudo-terminal: the login opens in its own console window (the account's folder in its
+    environment), the board asks the CLI until it is signed in, and the command is there in case no window appears."""
+    c = fake_cli["c"]
+    a = await _account(c)
+    monkeypatch.setattr(signin, "pty", None)
+    monkeypatch.setattr(signin, "CONSOLE", True)
+    opened = {}
+
+    def console(argv, cwd, env):
+        # the person answers in the window that opened
+        opened.update(argv=argv, env=env)
+        proc = subprocess.Popen(
+            argv, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL
+        )
+        proc.stdin.write(b"good\n")
+        proc.stdin.flush()
+        return proc
+
+    monkeypatch.setattr(signin, "_open_console", console)
+    assert (await c.get("/ai/accounts")).json()["console"] is True
+    r = (await c.post(f"/ai/accounts/{a['id']}/signin")).json()
+    assert r["mode"] == "console" and "auth login --claudeai" in r["command"]
+    assert opened["env"]["CLAUDE_CONFIG_DIR"] == a["folder"]
+    s = signin.SESSIONS[a["id"]]
+    await _until(lambda: s.signed_in)  # the board asked the CLI after the login ended
+    assert s.ended == "exited" and s.exit_code == 0
+    assert (await c.get(f"/ai/accounts/{a['id']}")).json()["status"] == "signed_in"
+
+
+async def test_cancelling_a_sign_in_in_a_console_window_closes_it(
+    fake_cli, monkeypatch
+):
+    c = fake_cli["c"]
+    a = await _account(c)
+    monkeypatch.setattr(signin, "pty", None)
+    monkeypatch.setattr(signin, "CONSOLE", True)
+    monkeypatch.setattr(
+        signin,
+        "_open_console",
+        lambda argv, cwd, env: subprocess.Popen(
+            argv,
+            cwd=cwd,
+            env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            start_new_session=True,
+        ),
+    )
+    await c.post(f"/ai/accounts/{a['id']}/signin")
+    s = signin.active(a["id"])
+    assert s is not None and s.console
+    assert (await c.delete(f"/ai/accounts/{a['id']}/signin")).json() == {
+        "stopped": True
+    }
+    await _until(lambda: s.proc.poll() is not None)
+    assert (await c.get(f"/ai/accounts/{a['id']}")).json()["status"] == "needs_sign_in"
+
+
+async def test_a_window_that_cannot_open_falls_back_to_the_command(
+    fake_cli, monkeypatch
+):
+    c = fake_cli["c"]
+    a = await _account(c)
+    monkeypatch.setattr(signin, "pty", None)
+    monkeypatch.setattr(signin, "CONSOLE", True)
+
+    def broken(argv, cwd, env):
+        raise OSError("no console")
+
+    monkeypatch.setattr(signin, "_open_console", broken)
+    r = (await c.post(f"/ai/accounts/{a['id']}/signin")).json()
+    assert r["mode"] == "fallback" and "auth login --claudeai" in r["command"]
+    assert signin.active(a["id"]) is None
+
+
+def test_the_powershell_command_quotes_the_folder_and_goes_there(monkeypatch):
+    cmd = signin._powershell(
+        ["claude.cmd", "auth", "login", "--claudeai"],
+        {"CLAUDE_CONFIG_DIR": r"C:\Users\O'Neil\acc"},
+        r"C:\Users\O'Neil\acc",
+    )
+    assert cmd == (
+        "$env:CLAUDE_CONFIG_DIR='C:\\Users\\O''Neil\\acc'; "
+        "Set-Location 'C:\\Users\\O''Neil\\acc'; claude.cmd auth login --claudeai"
+    )
+    assert signin._powershell([r"C:\Program Files\claude.exe"], {}, None) == (
+        "& 'C:\\Program Files\\claude.exe'"
+    )
 
 
 async def test_the_same_login_added_twice_is_noticed_for_claude(fake_cli):

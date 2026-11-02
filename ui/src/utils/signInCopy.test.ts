@@ -133,6 +133,16 @@ describe('step dots', () => {
     expect(currentStep('claude', 'fallback')).toBe(1);
     expect(currentStep('claude', 'no_terminal')).toBe(0);
     expect(currentStep('claude', 'fallback_signed')).toBe(2);
+    expect(currentStep('claude', 'console')).toBe(1);
+    expect(currentStep('agy', 'console')).toBe(1);
+  });
+
+  it('on Windows says the sign-in is in the window that opened, and still offers the command', () => {
+    const line = statusLine('console', ctx);
+    expect(line.tone).toBe('blue');
+    expect(line.title).toBe('Finish signing in in the window that opened');
+    expect(plain(line.body)).toContain('No window? Run the command below in PowerShell.');
+    expect(closingNeedsConfirm('console')).toBe(true);
   });
 });
 
