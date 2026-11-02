@@ -186,7 +186,19 @@ export const ICONS = {
     </>
   ),
   sparkle: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />,
+  /** The design's range button (AiTeam.dc.html, "Last 7 days"). */
+  calendar: (
+    <>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M4 10h16M9 3v4M15 3v4" />
+    </>
+  ),
 };
+
+/** The calendar glyph of the range buttons, at the design's size and stroke. */
+export function CalendarIcon() {
+  return <Icon size={14}>{ICONS.calendar}</Icon>;
+}
 
 export const KIND_LOOK: Record<string, { bg: string; fg: string }> = {
   mention: { bg: '#EFE8FB', fg: '#5B3AA6' },

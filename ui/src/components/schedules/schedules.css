@@ -972,3 +972,19 @@
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
+
+/* The time zone picker (ZoneSelect): the design's .sc-in field, a search box and a scrolling list */
+.sc-select-field {
+  min-height: 36px;
+  padding: 8px 10px;
+}
+.sc-pop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow: auto;
+}
+.sc-pop-list .sc-mi-active {
+  background: #f1f8f3;
+}

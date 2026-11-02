@@ -422,3 +422,9 @@
     grid-template-columns: 1fr;
   }
 }
+.wf-chain-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}

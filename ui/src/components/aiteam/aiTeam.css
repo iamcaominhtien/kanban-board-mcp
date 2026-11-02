@@ -89,16 +89,6 @@
   cursor: default;
   opacity: 0.55;
 }
-.at-range {
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: #1e2a22;
-  border: 1px solid #e3e8e5;
-  border-radius: 8px;
-  background: #fff;
-  padding: 5px 8px;
-}
 .at-states {
   display: flex;
   align-items: center;
@@ -482,8 +472,9 @@
   background: #fff6f4;
 }
 .at-banner.unknown {
-  border-color: #e3e8e5;
-  background: #fbfcfb;
+  /* the design's info banner for too few runs (AiTeamReview.dc.html, D "Too few runs to judge") */
+  border-color: #c9ddf0;
+  background: #e8f1fa;
 }
 .at-banner-ico {
   width: 44px;

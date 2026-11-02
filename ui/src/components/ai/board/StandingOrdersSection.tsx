@@ -93,8 +93,13 @@ export function StandingOrdersSection({ projectId }: { projectId: string }) {
     <div className="so-root" data-testid="standing-orders-section" data-project={projectId}>
       <div className="so-head">
         <h2 className="so-h1">Standing orders</h2>
-        <span className="ai-chip" style={{ background: '#E6F2EA', color: '#1F5A31' }}>
-          This project
+        {/* G, H: a rule applies everywhere unless "Only on this project"; the chip says the real scope */}
+        <span className="ai-chip" style={{ background: '#E6F2EA', color: '#1F5A31' }} data-testid="orders-scope">
+          {list.length > 0 && list.every((o) => o.rule.onlyProject)
+            ? 'This project'
+            : list.some((o) => o.rule.onlyProject)
+              ? 'All projects · some only here'
+              : 'All projects'}
         </span>
         <span className="so-spacer" />
         <button

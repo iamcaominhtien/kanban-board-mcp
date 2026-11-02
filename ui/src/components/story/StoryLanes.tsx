@@ -181,28 +181,26 @@ function StoryLane({
       </button>
       <span className={styles.mono}>{ticket.id}</span>
       <StoryStateChip face={face} />
-      {!draft && (
+      <span style={{ flex: 1 }} />
+      {draft ? (
+        // D: a Draft has the same full-width header; it simply has no tickets yet
+        <span className={styles.hint} data-testid="lane-empty">
+          0 tickets yet
+        </span>
+      ) : (
         <>
-          <span style={{ flex: 1 }} />
           {needsYou && <span style={{ fontSize: 11.5, color: '#A5321E', fontWeight: 600 }}>Needs you</span>}
           <StoryBar story={story} width={110} />
           <span style={{ fontSize: 12, color: '#3A4A3E', width: 92, flexShrink: 0 }}>
             {story.progress.done} of {story.progress.total} done
           </span>
-          <RoleBadge role="pm" size={22} title={story.pm?.name ?? 'PM'} />
         </>
       )}
+      <RoleBadge role="pm" size={22} title={story.pm?.name ?? 'PM'} />
     </div>
   );
 
-  if (draft) {
-    // A Draft has no children yet: its header sits in Backlog
-    return (
-      <div className={styles.laneGrid}>
-        <div style={{ gridColumn: '1 / span 1', minWidth: 0 }}>{header}</div>
-      </div>
-    );
-  }
+  if (draft) return header;
 
   return (
     <>

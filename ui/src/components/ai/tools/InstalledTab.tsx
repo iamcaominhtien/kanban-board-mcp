@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LineIcon } from '../../ui/LineIcon';
 import { aiPluginsApi, usePluginMutation } from '../../../api/aiPlugins';
 import { extractError } from '../../../api/extractError';
 import type { Plugin, PluginAction, PluginChanges, UpdateCheck } from '../../../types/aiPlugins';
@@ -234,36 +235,62 @@ export function InstalledTab({
   usage: SkillUsage[];
 }) {
   const [filter, setFilter] = useState<Filter>('all');
+  const [q, setQ] = useState('');
   const rows = buildRows(plugins, usage);
-  const shown = applyFilter(rows, filter);
+  const needle = q.trim().toLowerCase();
+  const shown = applyFilter(rows, filter).filter((r) => !needle || r.name.toLowerCase().includes(needle));
   return (
     <div style={{ display: 'grid', gap: 10 }} data-testid="installed-tab">
       <BoardSkillsCard projectId={projectId} />
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} role="group" aria-label="Filter">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            className={`ai-btn ai-btn-sm${filter === f.key ? ' ai-btn-primary' : ''}`}
-            aria-pressed={filter === f.key}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label} {applyFilter(rows, f.key).length}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* B: a search field beside the filter chips */}
+        <label className="ai-search-field" style={{ width: 220 }}>
+          <LineIcon name="search" size={14} color="#9AA8A0" />
+          <input
+            placeholder="Search skills and plugins…"
+            aria-label="Search installed"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            data-testid="installed-search"
+          />
+        </label>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} role="group" aria-label="Filter">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              className={`ai-btn ai-btn-sm${filter === f.key ? ' ai-btn-primary' : ''}`}
+              aria-pressed={filter === f.key}
+              onClick={() => setFilter(f.key)}
+            >
+              {f.label} {applyFilter(rows, f.key).length}
+            </button>
+          ))}
+        </div>
       </div>
       {shown.length === 0 ? (
         <div className="ai-hint" data-testid="installed-empty">
           {rows.length === 0
             ? 'Nothing installed yet. Pick one from the suggestions, or add one from a source.'
-            : 'Nothing matches this filter.'}
+            : needle
+              ? 'Nothing matches this search.'
+              : 'Nothing matches this filter.'}
         </div>
       ) : (
         shown.map((r) =>
           r.plugin ? <PluginRow key={r.id} p={r.plugin} projectId={projectId} /> : <LooseRow key={r.id} r={r} />,
         )
       )}
-      <div className="ai-hint">
-        “Really used” is counted from the Skill and Task tool calls in the run stream, not guessed. {TAKES_EFFECT}
+      {/* B: the two notes as cards (green, amber) */}
+      <div className="tl-callouts">
+        <div className="tl-callout tl-callout-green">
+          <b>“Really used” is counted, not guessed.</b> The board reads the Skill and Task tool calls out of the run
+          stream, so a skill nothing has ever reached for can be found and removed. {TAKES_EFFECT}
+        </div>
+        <div className="tl-callout tl-callout-amber">
+          <b>No approval step, and no pretending otherwise.</b> Installing from the internet runs other people’s code on
+          your machine. The board records the source and the commit, shows the diff before an update, and keeps one
+          button back to the version that worked.
+        </div>
       </div>
     </div>
   );

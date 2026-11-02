@@ -32,6 +32,7 @@ import {
   zoneLabel,
 } from './schedulesUi';
 import { LineIcon } from '../ui/LineIcon';
+import { MenuSelect } from '../ui/MenuSelect';
 
 type View = 'list' | 'week';
 type Tab = 'upcoming' | 'paused' | 'history';
@@ -555,34 +556,35 @@ export function SchedulesTab({ projectId, tickets }: { projectId: string; ticket
         )}
         {!empty && (
           <>
-            <select
-              className="ai-select sc-filter"
+            <MenuSelect
+              label="Filter by AI"
+              testId="filter-ai"
+              className="sc-filter"
+              style={{ width: 150 }}
+              menuWidth={220}
               value={aiFilter}
-              onChange={(e) => setAiFilter(e.target.value)}
-              aria-label="Filter by AI"
-              data-testid="filter-ai"
-            >
-              <option value="">All AI</option>
-              {aiOptions.map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name ?? aiMap.get(id)?.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="ai-select sc-filter"
+              options={[
+                { value: '', label: 'All AI' },
+                ...aiOptions.map(([id, name]) => ({ value: id, label: name ?? aiMap.get(id)?.name ?? id })),
+              ]}
+              onChange={setAiFilter}
+            />
+            <MenuSelect
+              label="Filter by ticket"
+              testId="filter-ticket"
+              className="sc-filter"
+              style={{ width: 150 }}
+              menuWidth={300}
               value={ticketFilter ?? ''}
-              onChange={(e) => setTicketFilter(e.target.value || null)}
-              aria-label="Filter by ticket"
-              data-testid="filter-ticket"
-            >
-              <option value="">All tickets</option>
-              {ticketOptions.map(([id, title]) => (
-                <option key={id} value={id}>
-                  {id} · {title ?? ticketMap.get(id)?.title}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'All tickets' },
+                ...ticketOptions.map(([id, title]) => ({
+                  value: id,
+                  label: `${id} · ${title ?? ticketMap.get(id)?.title ?? ''}`,
+                })),
+              ]}
+              onChange={(v) => setTicketFilter(v || null)}
+            />
           </>
         )}
         <button

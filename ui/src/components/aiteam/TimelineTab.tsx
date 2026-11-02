@@ -3,12 +3,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { aiApi, useTicketRuns } from '../../api/ai';
 import { useTimeline } from '../../api/aiTeam';
 import { extractError } from '../../api/extractError';
+import { safetyApi } from '../../api/aiSafety';
+import { openRun } from './runLink';
 import type { Timeline, TimelineBar, TimelineLifeline, TimelineRange } from '../../types/aiTeam';
 import { useToast } from '../Toast';
 import { PAUSE_COLOR, PauseGlyph, clockTime } from '../ai/pausedUi';
 import { AUTO_RESTARTS, fmtMb } from './resourcesFormat';
 import { fmtShort } from './teamFormat';
-import { ICONS, Icon } from './teamUi';
+import { CalendarIcon, ICONS, Icon } from './teamUi';
+import { MenuSelect } from '../ui/MenuSelect';
 import {
   GUTTER,
   NowPill,
@@ -40,6 +43,8 @@ export interface TimelineActions {
 }
 
 type Preset = Exclude<TimelineRange, 'custom'>;
+/** What the range button can pick: a preset, the day or window already open, or a custom range. */
+type RangeChoice = Preset | 'day' | 'custom';
 const PRESETS: { id: Preset; label: string }[] = [
   { id: 'hour', label: 'Last hour' },
   { id: 'today', label: 'Today' },
@@ -62,6 +67,85 @@ const ms = (iso: string | null | undefined): number | null => {
   const t = new Date(iso).getTime();
   return Number.isNaN(t) ? null : t;
 };
+
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+/** A local date as the value of a date input (yyyy-mm-dd). */
+function dateValue(t: number): string {
+  const d = new Date(t);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Local midnight of a date input's value, in ms (NaN when empty). */
+function midnightOf(value: string): number {
+  const [y, m, d] = value.split('-').map(Number);
+  return y && m && d ? new Date(y, m - 1, d).getTime() : NaN;
+}
+
+/**
+ * The "Custom…" range (design/screens/ai-team-timeline-cases.md, E4): two days, from the start of the first to the
+ * end of the last.
+ */
+function CustomRange({
+  initial,
+  now,
+  onApply,
+  onClose,
+}: {
+  initial: { since: string; until: string } | null;
+  now: number;
+  onApply: (since: string, until: string) => void;
+  onClose: () => void;
+}) {
+  const [from, setFrom] = useState(() => dateValue(initial ? (ms(initial.since) ?? now) : now - 2 * 86400000));
+  const [to, setTo] = useState(() => dateValue(initial ? (ms(initial.until) ?? now) - 1 : now));
+  const a = midnightOf(from);
+  const b = midnightOf(to);
+  const error =
+    Number.isNaN(a) || Number.isNaN(b) ? 'Pick both days.' : a > b ? 'The first day is after the last.' : '';
+  return (
+    <div
+      className="tl-menu tl-custom"
+      role="dialog"
+      aria-label="Custom range"
+      data-testid="tl-custom-range"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div className="tl-menu-h">Custom range</div>
+      <div className="tl-custom-row">
+        <label>
+          From
+          <input type="date" value={from} max={dateValue(now)} onChange={(e) => setFrom(e.target.value)} />
+        </label>
+        <label>
+          To
+          <input type="date" value={to} max={dateValue(now)} onChange={(e) => setTo(e.target.value)} />
+        </label>
+      </div>
+      {error && (
+        <div className="tl-custom-error" role="alert">
+          {error}
+        </div>
+      )}
+      <div className="tl-custom-foot">
+        <button type="button" className="tl-btn" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="tl-btn primary"
+          disabled={!!error}
+          onClick={() => onApply(new Date(a).toISOString(), new Date(b + 86400000).toISOString())}
+        >
+          Show this range
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function rangeKey(projectId: string) {
   return `kanban.timeline.range.${projectId}`;
@@ -114,6 +198,7 @@ export function TimelineTab({
   const [selected, setSelected] = useState<Pick | null>(null);
   const [hover, setHover] = useState<{ pick: Pick; x: number; y: number } | null>(null);
   const [menu, setMenu] = useState<'scope' | 'show' | null>(null);
+  const [customOpen, setCustomOpen] = useState(false);
   const [openQuiet, setOpenQuiet] = useState(false);
   const [width, setWidth] = useState(1100);
   const [pinned, setPinned] = useState(true);
@@ -266,6 +351,7 @@ export function TimelineTab({
       if (e.key === 'Escape') {
         setSelected(null);
         setMenu(null);
+        setCustomOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -301,7 +387,9 @@ export function TimelineTab({
   const dayLabel = day
     ? zoomWindow
       ? `${clock(ms(day.since) ?? 0)} – ${clock(ms(day.until) ?? 0)}`
-      : new Date(day.since).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+      : (ms(day.until) ?? 0) - (ms(day.since) ?? 0) > 86400000 + 3600000
+        ? `${shortDate(day.since)} – ${shortDate(new Date((ms(day.until) ?? 0) - 1).toISOString())}`
+        : new Date(day.since).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
     : '';
 
   return (
@@ -470,19 +558,37 @@ export function TimelineTab({
         >
           Table
         </button>
-        <select
-          className="at-range"
-          aria-label="Range"
-          value={day ? 'day' : preset}
-          onChange={(e) => choose(e.target.value as Preset)}
-        >
-          {PRESETS.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label}
-            </option>
-          ))}
-          {day && <option value="day">{dayLabel}</option>}
-        </select>
+        <div className="tl-menuwrap">
+          <MenuSelect<RangeChoice>
+            variant="button"
+            label="Range"
+            testId="tl-range"
+            icon={<CalendarIcon />}
+            value={day ? 'day' : preset}
+            options={[
+              ...PRESETS.map((p) => ({ value: p.id as RangeChoice, label: p.label })),
+              ...(day ? [{ value: 'day' as const, label: dayLabel }] : []),
+              { value: 'custom', label: 'Custom…' },
+            ]}
+            onChange={(v) => {
+              if (v === 'custom') setCustomOpen(true);
+              else if (v !== 'day') choose(v);
+            }}
+          />
+          {customOpen && (
+            <CustomRange
+              initial={day}
+              now={now}
+              onClose={() => setCustomOpen(false)}
+              onApply={(since, until) => {
+                setDay({ since, until });
+                setZoomWindow(false);
+                setSelected(null);
+                setCustomOpen(false);
+              }}
+            />
+          )}
+        </div>
         {paused ? (
           <span className="tl-follow paused">AI paused since {clockTime(data.pausedAt)}</span>
         ) : following && pinned ? (
@@ -724,50 +830,70 @@ function EmptyRange({
 
 /** Seven days: a band per day with what ran, what failed and what waited long; a click opens that day. */
 function DayBands({ data, onPick }: { data: Timeline; onPick: (since: string, until: string) => void }) {
-  const days = new Map<string, { start: Date; runs: number; failed: number; long: number }>();
+  type Day = { start: Date; runs: number; failed: number; long: number; hours: number[] };
+  const days = new Map<string, Day>();
   const from = new Date(data.since);
   for (let i = 0; i < 8; i++) {
     const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
     if (d.getTime() > (ms(data.until) ?? Date.now())) break;
-    days.set(d.toDateString(), { start: d, runs: 0, failed: 0, long: 0 });
+    days.set(d.toDateString(), { start: d, runs: 0, failed: 0, long: 0, hours: new Array(24).fill(0) });
   }
   for (const b of data.bars) {
-    const d = days.get(new Date(ms(b.queuedAt) ?? 0).toDateString());
+    const at = new Date(ms(b.queuedAt) ?? 0);
+    const d = days.get(at.toDateString());
     if (!d) continue;
     d.runs += 1;
+    d.hours[at.getHours()] += 1;
     if (b.endKind === 'failed' || b.endKind === 'memory' || b.endKind === 'timeout') d.failed += 1;
   }
   for (const w of data.waits) {
     const d = days.get(new Date(ms(w.from) ?? 0).toDateString());
     if (d && ((ms(w.to) ?? Date.now()) - (ms(w.from) ?? 0)) / 60000 > 10) d.long += 1;
   }
-  const max = Math.max(1, ...[...days.values()].map((d) => d.runs));
+  // Newest first, seven days as drawn (design E5); the part-day at the start of the range shows only when it ran
+  const list = [...days.values()].reverse().filter((d, i) => i < 7 || d.runs > 0);
+  const peak = Math.max(1, ...list.flatMap((d) => d.hours));
   return (
     <div className="tl-days" data-testid="tl-days">
-      {[...days.values()].map((d) => {
-        const end = new Date(d.start.getFullYear(), d.start.getMonth(), d.start.getDate() + 1);
-        return d.runs === 0 ? (
-          <div key={d.start.toISOString()} className="tl-day quiet">
-            <b>{d.start.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</b>
-            <span className="at-hint">nothing ran</span>
-          </div>
-        ) : (
-          <button
-            key={d.start.toISOString()}
-            type="button"
-            className="tl-day"
-            onClick={() => onPick(d.start.toISOString(), end.toISOString())}
-          >
-            <b>{d.start.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</b>
-            <span className="tl-day-bar">
-              <i style={{ width: `${Math.max((d.runs / max) * 100, 4)}%` }} />
-            </span>
-            <span>{d.runs} runs</span>
-            {d.failed > 0 && <span className="tl-day-chip bad">{d.failed} failed</span>}
-            {d.long > 0 && <span className="tl-day-chip wait">{d.long} waited long</span>}
-          </button>
-        );
-      })}
+      <div className="tl-days-list">
+        {list.map((d) => {
+          const end = new Date(d.start.getFullYear(), d.start.getMonth(), d.start.getDate() + 1);
+          const label = d.start.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+          const cells = (
+            <>
+              <b className="tl-day-date">{label}</b>
+              <span className="tl-day-hours" aria-hidden={d.runs > 0}>
+                {d.runs === 0 ? (
+                  <span className="at-hint">nothing ran</span>
+                ) : (
+                  d.hours.map((n, h) => <i key={h} style={{ height: n ? Math.max(3, (n / peak) * 18) : 0 }} />)
+                )}
+              </span>
+              <span className="tl-day-runs">
+                {d.runs} run{d.runs === 1 ? '' : 's'}
+              </span>
+              <span className="tl-day-chips">
+                {d.failed > 0 && <span className="tl-day-chip bad">{d.failed} failed</span>}
+                {d.long > 0 && <span className="tl-day-chip wait">{d.long} waited long</span>}
+              </span>
+            </>
+          );
+          return d.runs === 0 ? (
+            <div key={d.start.toISOString()} className="tl-day quiet">
+              {cells}
+            </div>
+          ) : (
+            <button
+              key={d.start.toISOString()}
+              type="button"
+              className="tl-day"
+              onClick={() => onPick(d.start.toISOString(), end.toISOString())}
+            >
+              {cells}
+            </button>
+          );
+        })}
+      </div>
       <span className="at-hint">Over a day the diagram would be unreadable. Click a day to open it as a timeline.</span>
     </div>
   );
@@ -866,6 +992,10 @@ interface Facts {
   /** What a click opens. */
   hint: string;
   pageId?: string;
+  /** A Docs proposal still waiting for a person: the page opens to review it. */
+  review?: boolean;
+  /** An approval still waiting for a person (its id): the inspector can approve or deny it. */
+  approvalId?: string;
   bar?: TimelineBar;
   question?: { runId: string; text: string; options: string[]; from: number; to: number | null; open: boolean };
   note?: string;
@@ -961,6 +1091,7 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
       hint: q && open ? 'Click for the full question and Answer' : 'Click for details',
       question:
         q && w.runId ? { runId: w.runId, text: w.text, options: w.options ?? [], from, to: ms(w.to), open } : undefined,
+      approvalId: !q && open ? w.id.replace(/:p$/, '') : undefined,
     };
   }
   if (pick.type === 'arrow') {
@@ -1058,6 +1189,7 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
         ...(n.summary ? [{ text: n.summary }] : []),
       ],
       pageId: n.pageId,
+      review: n.kind === 'proposal' && n.status === 'waiting',
       hint: 'Click to open the page',
     };
   }
@@ -1265,7 +1397,39 @@ function Inspector({
       setBusy(false);
     }
   };
+  const decide = async (approve: boolean) => {
+    if (!f.approvalId) return;
+    setBusy(true);
+    try {
+      if (approve) {
+        const out = await safetyApi.approve(f.approvalId);
+        if (out.error) throw new Error(out.error);
+      } else await safetyApi.deny(f.approvalId);
+      toast.success(approve ? 'Approved' : 'Denied');
+      void qc.invalidateQueries({ queryKey: ['ai', 'team'] });
+      onClose();
+    } catch (err) {
+      toast.error(approve ? "Couldn't approve" : "Couldn't deny", extractError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
   const b = f.bar;
+  // A run still going can be paused (and a paused one resumed) from here, as on its Now card
+  const live = !!b && !b.endedAt && ['running', 'starting', 'needs_input'].includes(b.state);
+  const pauseRun = async () => {
+    if (!b) return;
+    setBusy(true);
+    try {
+      await (b.paused ? aiApi.resumeRun(b.id) : aiApi.pauseRun(b.id));
+      toast.success(b.paused ? 'Run resumed' : 'Run paused', b.paused ? undefined : 'Nothing is lost: Resume goes on.');
+      void qc.invalidateQueries({ queryKey: ['ai', 'team'] });
+    } catch (err) {
+      toast.error(b.paused ? "Couldn't resume the run" : "Couldn't pause the run", extractError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
   const started = b ? data.arrows.find((a) => a.runId === b.id && a.to === b.memberId) : undefined;
   const who = (id: string) => people.get(id)?.name ?? (id === 'you' ? 'You' : id);
   const q = f.question;
@@ -1438,6 +1602,27 @@ function Inspector({
             Answer
           </button>
         )}
+        {f.approvalId && (
+          <>
+            <button
+              type="button"
+              className="tl-btn primary"
+              disabled={busy}
+              onClick={() => void decide(true)}
+              data-testid="tl-approve"
+            >
+              Approve
+            </button>
+            <button type="button" className="tl-btn" disabled={busy} onClick={() => void decide(false)}>
+              Deny
+            </button>
+          </>
+        )}
+        {b && (
+          <button type="button" className="tl-btn primary" onClick={() => openRun(b.id)} data-testid="tl-open-run">
+            Open the run
+          </button>
+        )}
         {f.ticketId && (
           <button type="button" className="tl-btn" onClick={() => actions.onOpenTicket(f.ticketId as string)}>
             Open the ticket
@@ -1450,7 +1635,19 @@ function Inspector({
         )}
         {f.pageId && (
           <button type="button" className="tl-btn primary" onClick={() => actions.onOpenDocsPage(f.pageId as string)}>
-            Open the page
+            {f.review ? 'Review changes' : 'Open the page'}
+          </button>
+        )}
+        {live && (
+          <button
+            type="button"
+            className="tl-btn"
+            disabled={busy}
+            onClick={() => void pauseRun()}
+            data-testid="tl-pause-run"
+          >
+            <Icon size={14}>{b?.paused ? ICONS.play : ICONS.pause}</Icon>
+            {b?.paused ? 'Resume' : 'Pause'}
           </button>
         )}
       </div>

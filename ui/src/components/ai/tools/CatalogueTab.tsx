@@ -1,3 +1,4 @@
+import { MenuSelect } from '../../ui/MenuSelect';
 import { useState } from 'react';
 import { aiPluginsApi, useCatalogue, usePluginMutation } from '../../../api/aiPlugins';
 import { extractError } from '../../../api/extractError';
@@ -47,17 +48,21 @@ export function CatalogueTab({
 
   return (
     <div style={{ display: 'grid', gap: 10 }} data-testid="catalogue-tab">
-      <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <span className="ai-label">Role</span>
-        <select className="ai-select" aria-label="Role" value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="">All roles</option>
-          {Object.entries(ROLES).map(([k, n]) => (
-            <option key={k} value={k}>
-              {n}
-            </option>
-          ))}
-        </select>
-      </label>
+      {/* B: the role filter is the design's dropdown chip */}
+      <div>
+        <MenuSelect
+          variant="chip"
+          label="Role"
+          prefix="Role:"
+          value={role}
+          onChange={setRole}
+          testId="catalogue-role"
+          options={[
+            { value: '', label: 'All roles' },
+            ...Object.entries(ROLES).map(([k, n]) => ({ value: k, label: n })),
+          ]}
+        />
+      </div>
       {err && (
         <div className="ai-notice ai-notice-error" role="alert">
           {err}

@@ -13,7 +13,8 @@ import { useAiBoardState } from '../ai/aiUi';
 import { ResourcesTab } from './ResourcesTab';
 import { HistoryTab } from './HistoryTab';
 import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
-import { Icon, ICONS } from './teamUi';
+import { CalendarIcon, Icon, ICONS } from './teamUi';
+import { MenuSelect } from '../ui/MenuSelect';
 import { OPEN_TIMELINE_EVENT, syncFlowAddress, takePendingTimeline, type TimelineLink } from './timelineLink';
 import { PROJECT_SCOPE, scopeLevel, type FlowScope, type FlowView } from './flowScope';
 import './aiTeam.css';
@@ -218,26 +219,30 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
           ))}
         </div>
         <span style={{ flex: 1 }} />
-        <select
-          className="at-range"
+        {!(tab === 'resources' || tab === 'history' || (tab === 'flow' && flowView === 'timeline')) && (
           // Flow › Timeline has its own range in its toolbar: a second one here disagreed with it
-          hidden={tab === 'resources' || tab === 'history' || (tab === 'flow' && flowView === 'timeline')}
-          value={life ? 'life' : range}
-          onChange={(e) => {
-            if (e.target.value === 'life') {
-              setFlowLife(true);
-              return;
-            }
-            setRange(e.target.value as TeamRange);
-            if (tab === 'flow') setFlowLife(false);
-          }}
-          aria-label="Range"
-        >
-          {scoped && <option value="life">Whole life</option>}
-          <option value="today">Today</option>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-        </select>
+          <MenuSelect<TeamRange | 'life'>
+            variant="button"
+            label="Range"
+            testId="at-range"
+            icon={<CalendarIcon />}
+            value={life ? 'life' : range}
+            options={[
+              ...(scoped ? [{ value: 'life' as const, label: 'Whole life' }] : []),
+              { value: 'today', label: 'Today' },
+              { value: '7d', label: 'Last 7 days' },
+              { value: '30d', label: 'Last 30 days' },
+            ]}
+            onChange={(v) => {
+              if (v === 'life') {
+                setFlowLife(true);
+                return;
+              }
+              setRange(v);
+              if (tab === 'flow') setFlowLife(false);
+            }}
+          />
+        )}
         <span className="at-hint" hidden={tab === 'resources' || tab === 'history'} data-testid="range-hint">
           {life
             ? `The whole life of ${scopeId}`
