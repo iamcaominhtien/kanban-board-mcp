@@ -29,7 +29,7 @@ import database
 
 from models import AiAccount, AiPlugin, AiRepoScan
 
-from . import accounts, cli, ops, packs, plugins, project_env, worktrees
+from . import accounts, cli, ops, packs, paths, plugins, project_env, worktrees
 from .store import get_settings
 
 log = logging.getLogger(__name__)
@@ -618,7 +618,9 @@ async def try_commands(
             if name not in wanted:
                 continue
             if not cmd:
-                out[name] = None  # no command: nothing to try (the wizard shows it as empty)
+                out[name] = (
+                    None  # no command: nothing to try (the wizard shows it as empty)
+                )
             elif not prepared:
                 out[name] = not_run(name, "prepare failed first")
             else:
@@ -652,7 +654,19 @@ async def run_scan(
 ) -> AiRepoScan:
     """Scan, suggest and (by default) try the commands; nothing is created. `refine` asks a light model to improve
     the role and plugin suggestions (it fails soft back to the code's). `prepare` and `test` are the commands as the
-    person edited them: when given ("" for none), they are tried instead of the suggestion's."""
+    person edited them: when given ("" for none), they are tried instead of the suggestion's.
+
+    Raises:
+        ValueError: No such folder, or one the AI members could not work in (outside the home folder and
+            KANBAN_AI_ROOTS): said at step 1, not after the whole wizard when Create skips every member.
+    """
+    try:
+        paths.folder(folder)
+    except paths.PathRefused as exc:
+        raise ValueError(
+            f"The AI team can only work in a folder inside your home folder, or one listed in {paths.ROOTS_ENV}. "
+            f"Move the repository there, or add its parent folder to {paths.ROOTS_ENV}: {folder.strip()}"
+        ) from exc
     found = await asyncio.to_thread(scan, folder)
     proposal = suggest(found)
     if refine:

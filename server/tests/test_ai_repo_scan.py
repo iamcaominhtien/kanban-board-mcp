@@ -422,3 +422,26 @@ async def test_apply_saves_the_environment_and_the_checks_that_are_off(
     ).json()
     assert out["settings"]["env_path"] == ["/opt/homebrew/bin"]
     assert out["settings"]["checks_off"] == ["test"]
+
+
+async def test_a_folder_the_members_could_not_work_in_is_refused_at_step_one(
+    env, tmp_path, monkeypatch
+):
+    """Create would skip every member made for it (services/ai/paths.py), so the scan says so first."""
+    from services.ai import paths
+
+    monkeypatch.setenv(paths.ROOTS_ENV, str(tmp_path / "work"))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    pid, _ = await _project(env["c"])
+    repo = _repo(tmp_path / "elsewhere" / "r")
+    r = await env["c"].post(
+        f"/projects/{pid}/ai/scan", json={"folder": str(repo), "trial": False}
+    )
+    assert r.status_code == 422
+    assert "inside your home folder" in r.json()["detail"]
+    assert str(repo) in r.json()["detail"]
+    ok = _repo(tmp_path / "work" / "r")
+    r = await env["c"].post(
+        f"/projects/{pid}/ai/scan", json={"folder": str(ok), "trial": False}
+    )
+    assert r.status_code == 201, r.text
