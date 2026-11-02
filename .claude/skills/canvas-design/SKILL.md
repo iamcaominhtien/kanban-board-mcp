@@ -41,8 +41,14 @@ Name four things and keep them for the whole canvas:
 - **Type, colour, space**: a characterful display face over a plain body face (Google Fonts, with a system fallback of
   close metrics), a dominant colour with sharp accents rather than an even, timid palette, and generous space or
   controlled density, on purpose.
+- **Composition and ground**: a layout with intent (an asymmetric hero, one element that breaks the grid, overlap that
+  never covers text, a rhythm of big and small) and, where the tone calls for it, a ground with depth (a soft mesh, a fine
+  grain or pattern, layered translucency, one dramatic shadow), done with restraint. A flat white page of centred cards is
+  the generic default: earn it or avoid it.
 
-Do not converge on the same choices from one brief to the next: vary light and dark, fonts, palettes and layouts.
+Do not converge on the same choices from one brief to the next: vary light and dark, fonts, palettes and layouts. A cream
+ground, a serif display face and terracotta are a habit, not a direction: only when the brief asks. Inter, Roboto, Arial
+or the system face as the display face is the template look, unless the product already uses it.
 
 **When a direction is still open** and a person is waiting, make 2 to 4 low-fi frames, each differing on an axis you can
 name ("Warm editorial" vs "Dense data-first"), not five shades of one look. Name them once and keep the names ("Option B"
@@ -69,11 +75,11 @@ One `tokens.css` copied into every frame (or one `:root` block), and nothing in 
 
 | Token | Rule of thumb |
 | --- | --- |
-| Neutrals | ink, muted, line, surface, background; tinted slightly toward the accent (never pure grey on pure white) |
-| Colour | one dominant colour, at most two accents of similar chroma and lightness, soft tints for success, warning, danger |
+| Neutrals | ink, muted, line, surface, background; tinted slightly toward the accent (whites below 0.02 chroma; never pure grey on pure white) |
+| Colour | in `oklch()`: one dominant colour, at most two accents sharing its chroma and lightness (the hue varies), soft tints for success, warning, danger |
 | Spacing | 4, 8, 12, 16, 24, 32, 48 |
 | Radius | 8 (inputs), 12 (cards), 16 or 20 (sheets), 999 (pills) |
-| Type | 1 to 3 families; sizes 12, 14, 16, 20, 28, 34 (more for display); weights 400, 600, 700; line height 1.4 for text, 1.15 for titles; tight tracking on big titles |
+| Type | 1 to 3 families; sizes 12, 14, 16, 20, 28, 34 (more for display); weights 400, 600, 700; line height 1.4 for text, 1.15 for titles; tight tracking on big titles; `text-wrap: balance` on titles, `pretty` on text |
 | Elevation | two levels at most: a hairline for cards, a soft shadow for floating things |
 | Motion | a few high-impact moments (one well-staged reveal), not micro-animation everywhere; honour `prefers-reduced-motion` |
 
@@ -81,11 +87,14 @@ One `tokens.css` copied into every frame (or one `:root` block), and nothing in 
 
 - Mobile first, 8 px grid, 16 to 20 px side margins; group by proximity. Use flex or grid with `gap`, never siblings spaced
   by whitespace or per-element margins (gaps survive edits and reordering).
-- One primary action per screen, in the lower half on a phone; tap targets at least 44 px; no text under 12 px.
+- One primary action per screen, in the lower half on a phone; tap targets at least 44 px; no text under 12 px. In every
+  state (an alert, an error, a banner) that action stays on the first phone screen (844 px tall): the state makes room
+  for it, never pushes it below.
 - The title and the main action are what the eye finds first. Get there with size, weight and colour, not with borders and
   boxes around everything. Meta text is muted, 12 to 14 px.
 - The three widths differ on purpose: the same page with a media query at about 700 px for a second column or a side pane,
-  not a stretched phone. Fluid roots (`max-width`, %, rem, `auto-fit` grids), never a fixed pixel page.
+  not a stretched phone. Fluid roots (`max-width`, %, rem), never a fixed pixel page; a grid of cards is
+  `repeat(auto-fit, minmax(min(280px, 100%), 1fr))`, so a phone gets one column instead of an overflow.
 - Prototype flow: one frame per screen, arrows on the canvas between them. Frames of one canvas share `localStorage` (same
   address), so a prototype can carry data from one screen to the next. Add behaviour where it is cheap and sells the concept
   (a toggle, tabs, a form that adds to a list, a toast).
@@ -111,7 +120,7 @@ colour alone for a state: add an icon or a word. Visible focus.
 
 ## 8. Avoid
 
-Lorem ipsum, invented numbers, gradient washes as decoration, containers with a rounded corner and a left accent border,
+Lorem ipsum, invented numbers, a purple-to-blue gradient wash behind everything, containers with a rounded corner and a left accent border,
 emoji, shadows on everything, long centred text, text under 12 px, grey boxes in place of content, one-off pixel values,
 the same look as last time.
 
@@ -125,9 +134,11 @@ direction is different: then make the substantial changes. Follow the design's o
 
 1. Squint: are the title and the main action what you see first?
 2. Is every gap, size and colour from the tokens, and is the direction the one you named?
-3. Does it hold at 390, 820 and 1280 px (the Desktop / Tablet / Phone switch in the large view)?
+3. Does it hold at 390, 820 and 1280 px (the Desktop / Tablet / Phone switch in the large view)? No short label broken
+   over two lines, nothing cut off, the main action on the first screen in every state.
 4. States there, copy real, nothing added that nobody asked for?
 5. Does it match what was asked, and nothing else changed?
+6. Would someone remember it? If it could be any template, push the one thing harder.
 
 ## 11. Hand it over
 

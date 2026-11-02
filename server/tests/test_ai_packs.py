@@ -62,11 +62,12 @@ def _body(key: str) -> dict:
     return packs.member_body(_pack(key), name="x", working_dir=None, account_id=None)
 
 
-def test_a_designer_gets_figma_and_a_user_tester_gets_playwright():
-    figma = _body("designer")["config"]["mcp_servers"]
-    # the Designer looks at its own frames in a browser too
-    assert [s["name"] for s in figma] == ["figma", "playwright"]
-    assert figma[0]["type"] == "http" and figma[0]["url"].startswith("https://")
+def test_a_designer_and_a_user_tester_get_playwright():
+    # the Designer looks at its own frames in a browser; Figma signs in through a browser, which a run cannot do
+    designer = _body("designer")["config"]
+    assert [s["name"] for s in designer["mcp_servers"]] == ["playwright"]
+    # Anthropic's canvas-design (poster art) would hide the board's own canvas-design guide
+    assert "canvas-design" not in designer["pack_plugins"]
     tester = _body("user_tester")["config"]
     assert [s["name"] for s in tester["mcp_servers"]] == ["playwright"]
     assert tester["mcp_servers"][0]["command"] == "npx"

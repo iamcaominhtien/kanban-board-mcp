@@ -165,6 +165,19 @@ def test_a_marketplace_cannot_copy_files_from_outside_its_checkout(tmp_path):
         plugins.build(src, plugin="evil", into=tmp_path / "out2")
 
 
+def test_a_link_to_a_file_of_the_same_repository_is_copied_as_that_file(tmp_path):
+    # ui-ux-pro-max links its data files from a gallery folder into its skill
+    src = tmp_path / "repo"
+    _skill(src / "skills", "pro")
+    (src / "data").mkdir()
+    (src / "data" / "styles.csv").write_text("name,palette")
+    (src / "skills" / "pro" / "styles.csv").symlink_to(src / "data" / "styles.csv")
+    plugins.build(src, into=tmp_path / "out")
+    copied = tmp_path / "out" / "skills" / "pro" / "styles.csv"
+    assert copied.is_file() and not copied.is_symlink()
+    assert copied.read_text() == "name,palette"
+
+
 def test_a_link_in_a_plugin_is_refused_and_a_huge_one_is_not_copied(
     tmp_path, monkeypatch
 ):
@@ -174,9 +187,17 @@ def test_a_link_in_a_plugin_is_refused_and_a_huge_one_is_not_copied(
     src = tmp_path / "linked"
     _skill(src / "skills", "tdd")
     (src / "skills" / "tdd" / "keys").symlink_to(secret, target_is_directory=True)
-    with pytest.raises(plugins.PluginError, match="is a link"):
+    with pytest.raises(plugins.PluginError, match="is a link out of the repository"):
         plugins.build(src, into=tmp_path / "out")
     assert not (tmp_path / "out" / "skills" / "tdd" / "keys").exists()
+    # a folder link back into its own parents would copy forever
+    loop = tmp_path / "loop"
+    _skill(loop / "skills", "tdd")
+    (loop / "skills" / "tdd" / "again").symlink_to(
+        loop / "skills", target_is_directory=True
+    )
+    with pytest.raises(plugins.PluginError, match="holds it"):
+        plugins.build(loop, into=tmp_path / "out-loop")
     big = tmp_path / "big"
     _skill(big / "skills", "tdd")
     (big / "skills" / "tdd" / "blob.bin").write_bytes(b"x" * 2048)

@@ -653,14 +653,19 @@ def _instruction(
         )
     if step.get("role") == "designer":
         parts.append(
-            "First load the `canvas-design` skill (without it: docs_read(design_guide)) and follow it. "
-            "Design in this order, as the canvas design guide says. 1) Context: the product's own screens and Docs; "
+            "First load the board's design guide, the `kanban-board:canvas-design` skill (without it: "
+            "docs_read(design_guide)), and follow it; another skill of the same name is not this guide. Other design "
+            "skills (palettes, font pairings, UX checks) are ideas; where they differ, the guide wins. "
+            "Design in this order, as the guide says. 1) Context: the product's own screens and Docs; "
             'when there is no design system yet, make one and keep it on a Docs page ("Design system") the next '
-            "tickets follow. 2) A visual direction in two sentences, from good references for this kind of product. "
+            "tickets follow. 2) A visual direction in two sentences (tone, the one thing someone will remember, type "
+            "and colour), drawn from the best real products of this kind, never a copy of one. "
             "3) Tokens in one stylesheet every frame links: colour, type scale, spacing, radius, shadow; a real font. "
-            "4) The frames, every state, at phone and desktop width. 5) Look: open each frame with the browser "
-            "(Playwright) at 390 and 1280 wide, screenshot it, and fix what is unbalanced, cramped, misaligned or "
-            "plain. Hand in the canvas, the screenshots (in a ticket comment) and what you would still improve."
+            "4) The frames, every state, at phone and desktop width. 5) Look: serve the frames folder "
+            "(`python3 -m http.server 8765 --bind 127.0.0.1 &`; the browser does not open file://), open each "
+            "frame with the browser (Playwright) at 390 and 1280 wide, screenshot it, and fix what is unbalanced, cramped, misaligned or "
+            "plain, then look again; a frame that could be any template is not done. Hand in the canvas, the "
+            "screenshots (in a ticket comment) and what you would still improve."
         )
     if step.get("role") == "triage":
         parts.append(

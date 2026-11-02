@@ -73,8 +73,10 @@ CATALOGUE: list[dict] = [
         "source": "https://github.com/anthropics/skills",
         "plugin": "example-skills",
         "skills": ["canvas-design"],
-        "roles": ["designer"],
-        "what": "Visual art and design on a canvas (Anthropic skills).",
+        # poster and art pieces as a PNG or PDF, not the board's canvas frames; its name hides the board's own
+        # canvas-design guide, so no role gets it by default
+        "roles": [],
+        "what": "Posters and visual art as a PNG or PDF (Anthropic skills); not for the board's canvas frames.",
     },
     {
         "key": "webapp-testing",
@@ -120,7 +122,7 @@ CATALOGUE: list[dict] = [
             "args": ["-y", "@playwright/mcp@latest", "--isolated"],
         },
         "ui": True,  # a browser tool: only for a project with a UI
-        "roles": ["user_tester", "qa"],
+        "roles": ["designer", "user_tester", "qa"],
         "what": "A fresh browser per run, driven through the page's structure; can emulate a phone.",
     },
 ]
@@ -207,20 +209,30 @@ def _inside(checkout: Path, path: Path) -> bool:
     return path.resolve().is_relative_to(checkout.resolve())
 
 
-def _check_tree(src: Path) -> int:
-    """The bytes a copy of `src` takes. A link is refused: it could point anywhere on this machine (a key, a home
-    folder), and the copy would carry it into every AI's plugins."""
+def _check_link(checkout: Path, link: Path, shown: str) -> None:
+    """A link may stay: a repository that links one of its own files from another folder (ui-ux-pro-max does) is
+    copied with that file in place of the link. One that leaves the repository could point anywhere on this machine
+    (a key, a home folder) and is refused, and so is a folder link back into its own parents (the copy never ends)."""
+    target = link.resolve()
+    if not _inside(checkout, target):
+        raise PluginError(
+            f"{shown} is a link out of the repository; a plugin's files must be its own."
+        )
+    if target.is_dir() and link.parent.resolve().is_relative_to(target):
+        raise PluginError(f"{shown} is a link to a folder that holds it.")
+
+
+def _check_tree(src: Path, checkout: Path) -> int:
+    """The bytes a copy of `src` takes, with every link checked (_check_link)."""
     total = 0
     if src.is_symlink():
-        raise PluginError(f"{src.name} is a link; a plugin's files must be real files.")
-    for root, dirs, files in os.walk(src):
+        _check_link(checkout, src, src.name)
+    for root, dirs, files in os.walk(src, followlinks=True):
         dirs[:] = [d for d in dirs if d not in _IGNORED]
         for name in [*dirs, *files]:
             p = Path(root) / name
             if p.is_symlink():
-                raise PluginError(
-                    f"{p.relative_to(src)} is a link; a plugin's files must be real files."
-                )
+                _check_link(checkout, p, str(p.relative_to(src)))
         for name in files:
             total += (Path(root) / name).stat().st_size
     return total
@@ -230,7 +242,7 @@ def _copy(src: Path, dst: Path) -> None:
     shutil.copytree(
         src,
         dst,
-        symlinks=True,  # never follows a link (_check_tree refused them already)
+        symlinks=False,  # a link inside the repository becomes the file it points to (_check_tree checked them)
         ignore=shutil.ignore_patterns(*_IGNORED),
         dirs_exist_ok=True,
     )
@@ -325,7 +337,7 @@ def build(
     for src_dir in sources:
         if not _inside(checkout, src_dir):
             raise PluginError("The marketplace points outside its own repository.")
-        total += _check_tree(src_dir)
+        total += _check_tree(src_dir, checkout)
         if total > MAX_PLUGIN_BYTES:
             raise PluginError(
                 f"The plugin is larger than {MAX_PLUGIN_BYTES // (1024 * 1024)} MB; the board does not copy it."

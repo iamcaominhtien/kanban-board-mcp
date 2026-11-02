@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.21.2] - 2026-11-02
+
+### Changed
+- **The Designer designs with more taste.** The canvas design guide now asks for a composition with intent and a ground with depth where the tone calls for it, colours in `oklch()` with accents that share chroma and lightness, balanced titles, card grids that fold to one column on a phone, and a last check: would someone remember it? It names the habits to avoid (cream, serif and terracotta every time; Inter as the display face). In every state the main action stays on the first phone screen, and no short label breaks over two lines. The Designer loads the board's guide by its full name, even when it is assigned a ticket outside a workflow, and treats other design skills as ideas. It keeps a "Design system" Docs page when the project has none, looks at its frames through a local server (the browser does not open `file://`), and hands in a ticket comment with screenshots of the key screens.
+- The Designer pack (v4) no longer installs Anthropic's `canvas-design` skill (poster art as a PNG, whose name hid the board's own guide) or Figma (it signs in through a browser, which a run cannot do); both stay in the catalogue. Playwright is suggested for the Designer.
+
+### Fixed
+- A plugin whose repository links one of its own files from another folder installs, with the file copied in place of the link (`ui-ux-pro-max`, the Designer's palettes and font pairings, never installed before). A link out of the repository, or a folder link into its own parents, is still refused.
+
 ## [3.21.1] - 2026-11-02
 
 ### Changed

@@ -130,16 +130,20 @@ BUILTIN: list[dict] = [
         "writes": "canvas",
         "hands_in": "A mock-up for you to approve",
         "allow": ["Read", "Glob", "Grep"],
-        "plugins": ["design", "ui-ux-pro-max", "frontend-design", "canvas-design"],
-        "mcp": ["figma", "playwright"],
+        # not Anthropic's canvas-design (poster art as a PNG; its name hides the board's own guide), nor Figma (it signs
+        # in through a browser, which a run cannot do): both stay in the catalogue for a person to add
+        "plugins": ["design", "ui-ux-pro-max", "frontend-design"],
+        "mcp": ["playwright"],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
         "persona": (
-            "You are the Designer on this project, judged on how your work looks as much as on what it covers. Design "
-            "what the ticket asks as responsive HTML frames on a Canvas with real copy and every state, following the "
-            "canvas design guide: context, a clear visual direction, tokens, then screens. Use good references, real "
-            "fonts and icons. Look at your own frames in the browser (Playwright) at phone and desktop width and fix "
-            "what looks unbalanced or plain before you hand in, with screenshots. You do not write production code. "
-            "The flow between screens is a draw.io Diagram. " + _COMMON_RULES
+            "You are the Designer, judged on how your work looks as much as on what it covers. First load the "
+            "board's design guide (skill `kanban-board:canvas-design`, else docs_read(design_guide)) and follow it: "
+            "context, a visual direction, tokens, then responsive HTML frames on a Canvas, real copy, every state. "
+            'With no design system yet, keep yours on a Docs page "Design system". Look at your frames in the browser '
+            "(Playwright via `python3 -m http.server`; no file://) at phone and desktop width, fix what is unbalanced "
+            "or plain, look again. Hand in the canvas and a ticket comment with screenshots of the key screens "
+            "(`![Today](shots/today-390.png)`). No production code; the screen flow is a draw.io Diagram. "
+            + _COMMON_RULES
         ),
     },
     {
@@ -277,7 +281,8 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # The ready-made packs' version: raised when their persona or tools change, so a member made from an older one is
 # offered the update (v2: the Designer, BA and PM write the files of a canvas or a diagram, the User tester starts the
 # app, every role knows which drawing to use)
-BUILTIN_VERSION = 3  # v3: the Designer looks at its frames in a browser and starts from tokens; the PM judges design
+# v3: the Designer looks at its frames in a browser and starts from tokens; the PM judges design
+BUILTIN_VERSION = 4  # v4: the Designer drops Anthropic's canvas-design (it shadows the board's guide) and Figma
 
 
 def _now() -> str:
