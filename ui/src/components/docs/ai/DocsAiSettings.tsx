@@ -2,26 +2,21 @@ import { useDocsAccess } from '../../../api/docsAccess';
 import { useDocsTree } from '../../../api/docs';
 import { docsAiError, useDocsAiState, useUpdateDocsAi, type DocsAiSettingsPatch } from '../../../api/docsAi';
 import type { Project } from '../../../types/ticket';
+import { Switch } from '../../settings/settingsUi';
 
-const box: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 12,
-  padding: '12px 14px',
-  background: '#F8FAF8',
-  borderRadius: 8,
-  border: '1px solid #E3E8E5',
-};
-const label: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: '#1E2A22' };
-const hint: React.CSSProperties = { fontSize: 12, color: '#5B6B60', marginTop: 2 };
+const box: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 14 };
+const label: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: '#1E2A22' };
+const hint: React.CSSProperties = { fontSize: 12, color: '#5B6B60', lineHeight: 1.5 };
 const select: React.CSSProperties = {
   font: 'inherit',
-  fontSize: 12.5,
-  padding: '5px 8px',
-  borderRadius: 6,
-  border: '1px solid #D5DDD8',
+  fontSize: 13,
+  minHeight: 34,
+  padding: '0 10px',
+  borderRadius: 8,
+  border: '1px solid #C7D2CB',
   background: '#fff',
-  maxWidth: 260,
+  color: '#1E2A22',
+  maxWidth: 240,
 };
 
 function Row({ title, text, children }: { title: string; text: string; children: React.ReactNode }) {
@@ -51,24 +46,17 @@ export function DocsAiSettings({ project }: { project: Project }) {
   const off = !d.enabled;
   return (
     <div className="docs-root" style={box} data-testid="docs-ai-settings">
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
-        {project.name} ({project.prefix}) · Docs › AI
-      </span>
       <Row
         title="Use AI in Docs"
         text="Ask the docs, the AI menu, Check this page and Docs health. On by default; turn it off here."
       >
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600 }}>
-          <input
-            type="checkbox"
-            role="switch"
-            checked={d.enabled}
-            disabled={!admin || update.isPending || !d.master}
-            onChange={(e) => save({ enabled: e.target.checked })}
-            data-testid="docs-ai-enabled"
-          />
-          {d.enabled ? 'On' : 'Off'}
-        </label>
+        <Switch
+          on={d.enabled}
+          label="Use AI in Docs"
+          disabled={!admin || update.isPending || !d.master}
+          onChange={(v) => save({ enabled: v })}
+          testId="docs-ai-enabled"
+        />
       </Row>
       {!d.master && (
         <div style={hint}>
@@ -159,13 +147,11 @@ export function DocsAiSettings({ project }: { project: Project }) {
           title="Freshness checks"
           text="Compare pages with their tickets every day. A digest goes out on Mondays at 09:00."
         >
-          <input
-            type="checkbox"
-            role="switch"
-            aria-label="Freshness checks"
-            checked={d.freshnessOn}
+          <Switch
+            on={d.freshnessOn}
+            label="Freshness checks"
             disabled={!admin || off}
-            onChange={(e) => save({ freshnessOn: e.target.checked })}
+            onChange={(v) => save({ freshnessOn: v })}
           />
         </Row>
         <Row

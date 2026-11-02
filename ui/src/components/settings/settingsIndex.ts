@@ -58,7 +58,7 @@ export const SETTINGS_PAGES: SettingsPageDef[] = [
     scope: 'project',
     label: 'Idea Space',
     title: 'Idea Space',
-    summary: 'AI helpers and what they may use.',
+    summary: 'AI helpers and what they may use. Everything else in Idea Space works without them.',
   },
   { id: 'appearance', scope: 'app', label: 'Appearance', title: 'Appearance', summary: 'How the app looks.' },
   {
