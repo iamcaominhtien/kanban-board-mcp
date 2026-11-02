@@ -17,16 +17,14 @@ import { CommentBox } from './CommentBox';
 afterEach(() => cleanup());
 
 describe('the comment box toolbar', () => {
-  it('keeps B, I, code, @ and [[ in the bar and puts attach and diagram behind "+"', () => {
+  it('keeps B, I, code, @ and [[ in the bar, with attach and diagram as inline tools after a separator', () => {
     render(<CommentBox projectId="p" members={[]} onSubmit={async () => undefined} onCancel={() => undefined} />);
     for (const label of ['Bold', 'Italic', 'Code', 'Mention', 'Link a page'])
       expect(screen.getByRole('button', { name: label })).toBeTruthy();
-    expect(screen.queryByTestId('comment-attach')).toBeNull();
-
-    fireEvent.click(screen.getByTestId('comment-more'));
+    expect(screen.queryByTestId('comment-more')).toBeNull();
     expect(screen.getByTestId('comment-attach')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('comment-diagram'));
+    fireEvent.mouseDown(screen.getByTestId('comment-diagram'));
     expect(startNew).toHaveBeenCalled();
-    expect(screen.queryByTestId('comment-attach')).toBeNull();
+    expect(screen.getByTestId('comment-attach')).toBeTruthy();
   });
 });

@@ -30,17 +30,18 @@ describe('desktop windows (design desktop-menu E)', () => {
     delete (window as unknown as { electronAPI?: unknown }).electronAPI;
   });
 
-  it('Report an issue shows only the facts, then what is and is never included', async () => {
+  it('Report an issue shows the full issue text, then what is and is never included', async () => {
     render(
       <ToastProvider>
         <ReportIssueWindow onClose={vi.fn()} />
       </ToastProvider>,
     );
-    const facts = await screen.findByTestId('report-facts');
+    const facts = await screen.findByTestId('report-preview');
     expect(facts.textContent).toContain('App 3.15.0 · Backend running');
     expect(facts.textContent).toContain('macOS 15.1 (arm64) · Electron 39');
     expect(facts.textContent).toContain('Window 1400 × 900 · Language en');
-    expect(screen.queryByText(/What happened/)).toBeNull();
+    expect(facts.textContent).toContain('**What happened**');
+    expect(facts.textContent).toContain('**Steps**');
     expect(screen.getByText('Included: versions, system, window size')).toBeTruthy();
     expect(screen.getByText('Never included: tickets, Docs, file paths, keys, logs')).toBeTruthy();
     for (const name of ['Cancel', 'Copy text', 'Open GitHub'])

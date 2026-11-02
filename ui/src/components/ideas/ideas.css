@@ -125,6 +125,9 @@
 .is-seg-validated {
   background: #2e6f40;
 }
+.is-seg-testing {
+  background: #e8b93a;
+}
 .is-seg-disproved {
   background: #c4432a;
 }

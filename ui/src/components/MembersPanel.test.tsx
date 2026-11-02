@@ -48,6 +48,15 @@ describe('MembersPanel (design members-view 3, 4)', () => {
     expect(await screen.findByText('A member named Tuan already exists.')).toBeTruthy();
   });
 
+  it('shows the server sentence for a 422, not the generic text', async () => {
+    mount();
+    m.add.mockRejectedValueOnce(axiosError(422, 'Enter a name.'));
+    fireEvent.change(screen.getByPlaceholderText('Member name…'), { target: { value: 'Tuan' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(await screen.findByText('Enter a name.')).toBeTruthy();
+    expect(screen.queryByText('Failed to add member. Please try again.')).toBeNull();
+  });
+
   it('shows a blocked remove under its own row, with that row’s remove button tinted', async () => {
     mount();
     m.remove.mockRejectedValueOnce(axiosError(400, 'Cannot remove: assigned to 3 open tickets. Reassign first.'));

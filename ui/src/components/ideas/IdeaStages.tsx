@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { IdeaRow, IdeaStage } from '../../types/idea';
 import { STAGE_LABELS } from '../../types/idea';
-import { AiChip, ReadinessBar, shortDate } from './ideaShared';
+import { AiChip, Demand, ReadinessBar, shortDate } from './ideaShared';
 import { IdeaIcon } from './ideaIcons';
 import { WarningChip } from './IdeaList';
 
@@ -105,12 +105,13 @@ export function IdeaStages({ ideas, showArchived, onOpen, onMove }: Props) {
                 )}
                 <ReadinessBar idea={idea} />
                 <div className="is-card-foot">
-                  <span
-                    className="is-card-votes"
-                    title={idea.voters.length ? `Wanted by ${idea.voters.join(', ')}` : 'Nobody has asked for this yet'}
-                  >
+                  <span className="is-card-votes">
                     <IdeaIcon name="thumb" size={13} color="#5B6B60" />
-                    {idea.voters.length}
+                    {idea.voters.length ? (
+                      <Demand voters={idea.voters} max={2} title={`Wanted by ${idea.voters.join(', ')}`} />
+                    ) : (
+                      <span title="Nobody has asked for this yet">0</span>
+                    )}
                   </span>
                   <span className="is-mono is-muted is-card-key">{idea.id}</span>
                   <span className="is-grow" />

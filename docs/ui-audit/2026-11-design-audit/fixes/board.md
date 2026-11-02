@@ -90,7 +90,7 @@ Medium or High one.
 
 - MB-1 · Already fixed (wave 1)
 - MB-2 · Skipped (Low, wave 4)
-- MB-3 · Fixed: Role, Workflow and Step are folded into one "More filters" dropdown with a count badge; the search box is 170 px; the bar keeps one line at 1440 with the rail (`workflowBoard/WorkflowFilters.tsx`, `FilterBar.module.css`; tests updated and one added)
+MB-3 · Skipped — folding the filters into one menu would add a click to each; the three stay on the bar
 - MB-4 · Fixed: the Type menu has the 15 px type icon per row, and the trigger shows the chosen type's icon (`FilterBar.tsx`)
 - MB-5 · Fixed: the blocked-drag confirmation is the design's card (16 px line triangle #B4791E, 1.5 px #E8B93A border, radius 10, filled Move Anyway, outlined Cancel, shadow) shown over the board under the filter bar, so the header stays usable (`App.tsx`, `Board.tsx`, `Board.module.css`)
 - MB-6 · Fixed with MB-4: the Assignee trigger shows the chosen member's avatar; the menu uses the 20 px tinted `MemberAvatar` (`FilterBar.tsx`)

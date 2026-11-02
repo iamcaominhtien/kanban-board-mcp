@@ -483,10 +483,10 @@ export function NotificationsSettings() {
             }
             control={
               inApp || browser !== 'unsupported' ? (
-                // a browser that blocks notifications shows the switch off: nothing can reach the screen
+                // a browser that blocks notifications cannot be asked to turn it on, but a saved "on" can still go off
                 <Switch
-                  on={desktopOn && !(!inApp && browser === 'denied')}
-                  disabled={!inApp && browser === 'denied'}
+                  on={desktopOn}
+                  disabled={!inApp && browser === 'denied' && !desktopOn}
                   label="Desktop notifications"
                   onChange={(v) => save({ desktopOn: v })}
                 />

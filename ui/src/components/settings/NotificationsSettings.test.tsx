@@ -325,10 +325,20 @@ describe('NotificationsSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: 'send a test' }));
       await screen.findByText(/blocking notifications for this site\. Allow them in its site settings/);
       expect(made).toHaveLength(0);
-      // the switch says what happens: nothing reaches the screen while the browser blocks it
+      // a saved "on" stays shown and can still be turned off
       const sw = screen.getByLabelText('Desktop notifications');
+      expect(sw.getAttribute('aria-checked')).toBe('true');
+      expect((sw as HTMLButtonElement).disabled).toBe(false);
+      fireEvent.click(sw);
+      await waitFor(() => expect(lastPatch()).toEqual({ desktopOn: false }));
+    });
+
+    it('does not let a blocked browser be asked to turn desktop notifications on', async () => {
+      install('denied');
+      setup(base({ desktopOn: false }));
+      const sw = (await screen.findByLabelText('Desktop notifications')) as HTMLButtonElement;
       expect(sw.getAttribute('aria-checked')).toBe('false');
-      expect((sw as HTMLButtonElement).disabled).toBe(true);
+      expect(sw.disabled).toBe(true);
     });
 
     it('has a switch for the master setting', async () => {

@@ -25,18 +25,19 @@ export function AiChip({ title }: { title?: string }) {
 }
 
 /**
- * The readiness bar: one continuous bar, green for the validated share, red for the disproved share, grey for the rest
- * (untested and being tested).
+ * The readiness bar: one continuous bar, green for the validated share, amber for the ones being tested, red for the disproved share, grey for
+ * the untested rest.
  * @param props.idea - The idea whose assumptions are drawn.
  */
 export function ReadinessBar({ idea }: { idea: Pick<Idea, 'assumptions' | 'readiness'> }) {
-  const { total, validated, disproved } = idea.readiness;
+  const { total, validated, testing, disproved } = idea.readiness;
   if (total === 0) return <span className="is-muted">No assumptions</span>;
   const pct = (n: number) => `${(n / total) * 100}%`;
   return (
     <span className="is-readiness" title={`${validated} of ${total} assumptions validated`}>
       <span className="is-bar" aria-hidden="true">
         <i className="is-seg-validated" style={{ width: pct(validated) }} />
+        <i className="is-seg-testing" style={{ width: pct(testing) }} />
         <i className="is-seg-disproved" style={{ width: pct(disproved) }} />
       </span>
       <span className="is-readiness-n">
@@ -63,10 +64,13 @@ export function ReadinessBadge({ readiness }: { readiness: IdeaReadiness }) {
 }
 
 /** Round avatars of the people who want an idea, "+n" for the rest. */
-export function Demand({ voters, max = 3 }: { voters: string[]; max?: number }) {
+export function Demand({ voters, max = 3, title }: { voters: string[]; max?: number; title?: string }) {
   if (voters.length === 0) return <span className="is-muted">—</span>;
   return (
-    <span className="is-demand" title={`${voters.length} ${voters.length === 1 ? 'person wants' : 'people want'} this`}>
+    <span
+      className="is-demand"
+      title={title ?? `${voters.length} ${voters.length === 1 ? 'person wants' : 'people want'} this`}
+    >
       {voters.slice(0, max).map((v) => (
         <Avatar key={v} name={v} size={20} />
       ))}

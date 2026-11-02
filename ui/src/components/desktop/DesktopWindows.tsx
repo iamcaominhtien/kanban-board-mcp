@@ -9,7 +9,6 @@ import {
   filterShortcuts,
   formatKeys,
   releaseNotesFor,
-  reportIssueFacts,
   reportIssueText,
   reportIssueUrl,
   type AppInfo,
@@ -205,8 +204,8 @@ export function ReportIssueWindow({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <div className={styles.factsBlock} data-testid="report-facts">
-        {info ? reportIssueFacts(info).map((l) => <div key={l}>{l}</div>) : 'Loading…'}
+      <div className={styles.preview} data-testid="report-preview">
+        {info ? reportIssueText(info) : 'Loading…'}
       </div>
       <div className={styles.scope}>
         <span className={styles.included}>

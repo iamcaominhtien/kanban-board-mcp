@@ -17,11 +17,9 @@ const options: WorkflowFilterOptions = {
 
 afterEach(cleanup);
 
-function setup(value: WorkflowFilterState = NO_WORKFLOW_FILTER, opts = options, openMore = true) {
+function setup(value: WorkflowFilterState = NO_WORKFLOW_FILTER, opts = options) {
   const onChange = vi.fn();
   render(<WorkflowFilters options={opts} value={value} onChange={onChange} />);
-  // Role, Workflow and Step live in the "More filters" dropdown
-  if (openMore) fireEvent.click(screen.getByTestId('workflow-filter-more'));
   return onChange;
 }
 
@@ -86,15 +84,12 @@ describe('WorkflowFilters', () => {
     expect(screen.getByTestId('workflow-filter-role').textContent).toContain('All');
   });
 
-  it('keeps Role, Workflow and Step in a closed More filters dropdown, with a count of the ones set', () => {
-    setup({ ...NO_WORKFLOW_FILTER, role: 'dev', step: 'Build' }, options, false);
-    expect(screen.queryByTestId('workflow-filter-role')).toBeNull();
-    expect(screen.getByTestId('workflow-filter-more-count').textContent).toBe('2');
-    fireEvent.click(screen.getByTestId('workflow-filter-more'));
-    expect(screen.getByTestId('workflow-filter-more').getAttribute('aria-expanded')).toBe('true');
+  it('keeps Role, Workflow and Step directly on the bar, each showing its value, with no More filters control', () => {
+    setup({ ...NO_WORKFLOW_FILTER, role: 'dev', step: 'Build' });
+    expect(screen.queryByTestId('workflow-filter-more')).toBeNull();
     expect(screen.getByTestId('workflow-filter-role').textContent).toContain('Dev');
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByTestId('workflow-filter-role')).toBeNull();
+    expect(screen.getByTestId('workflow-filter-template').textContent).toContain('All');
+    expect(screen.getByTestId('workflow-filter-step').textContent).toContain('Build');
   });
 
   it('hides the role and step menus when there is nothing to choose', () => {

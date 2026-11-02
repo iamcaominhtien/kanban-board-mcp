@@ -69,10 +69,11 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
       await addMemberMutation.mutateAsync({ name, color: newColor });
       setNewName('');
     } catch (err) {
-      // 409: names are unique across people and AI in a project, so @mentions never point at two members.
-      // Only that answer carries a sentence worth showing; network and 5xx errors get the design's sentence.
+      // Any 4xx carries the server's sentence (409: names are unique across people and AI in a project; 422: "Enter a
+      // name."). Network errors and 5xx get the generic text.
       const status = (err as AxiosError)?.response?.status;
-      setAddError(status === 409 ? extractError(err) : 'Failed to add member. Please try again.');
+      const fromServer = status !== undefined && status >= 400 && status < 500 ? extractError(err) : '';
+      setAddError(fromServer || 'Failed to add member. Please try again.');
     }
   }
 

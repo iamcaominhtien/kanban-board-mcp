@@ -60,26 +60,6 @@ export function CommentBox({
 }: Props) {
   // the box shows a mention as @PM; the comment is saved with the member's id (`stored`)
   const [text, setText] = useState(() => toFriendly(initial));
-  // the attach / sketch / canvas / diagram menu behind "+"
-  const [more, setMore] = useState(false);
-  const moreRef = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!more) return undefined;
-    const away = (e: MouseEvent) => {
-      if (!moreRef.current?.contains(e.target as Node)) setMore(false);
-    };
-    const esc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      setMore(false);
-    };
-    document.addEventListener('mousedown', away);
-    document.addEventListener('keydown', esc, true);
-    return () => {
-      document.removeEventListener('mousedown', away);
-      document.removeEventListener('keydown', esc, true);
-    };
-  }, [more]);
   const people = useMemo(() => [...members, ...mentionRefs(initial)], [members, initial]);
   const stored = useMemo(() => toStored(text, people), [text, people]);
   const [busy, setBusy] = useState(false);
@@ -284,94 +264,18 @@ export function CommentBox({
             </button>
           </span>
         ))}
-        <span className="dc-more" ref={moreRef}>
-          <button
-            type="button"
-            className="dc-tool"
-            aria-label="More: attach, sketch, canvas, diagram"
-            title="Attach a file, sketch, canvas or diagram"
-            aria-haspopup="menu"
-            aria-expanded={more}
-            data-testid="comment-more"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setMore((v) => !v)}
-          >
-            <Icon name="plus" size={14} strokeWidth={1.9} />
-          </button>
-          {more && (
-            <div className="dc-more-menu" role="menu" onMouseDown={(e) => e.preventDefault()}>
-              <button
-                type="button"
-                role="menuitem"
-                title="Attach an image or file (or paste one)"
-                data-testid="comment-attach"
-                onClick={() => {
-                  setMore(false);
-                  fileRef.current?.click();
-                }}
-              >
-                <span>
-                  <Icon name="i54" size={14} strokeWidth={1.8} />
-                </span>
-                Attach an image or file
-              </button>
-              {sketch.available && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  aria-label="Sketch"
-                  title="Sketch (draw freehand)"
-                  data-testid="comment-sketch"
-                  onClick={() => {
-                    setMore(false);
-                    void sketch.start();
-                  }}
-                >
-                  <span>
-                    <SketchIcon name="sketch" size={14} />
-                  </span>
-                  Sketch
-                </button>
-              )}
-              {canvas.available && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  aria-label="Canvas"
-                  title="Canvas (boards on one large plane)"
-                  data-testid="comment-canvas"
-                  onClick={() => {
-                    setMore(false);
-                    void canvas.start();
-                  }}
-                >
-                  <span>
-                    <CanvasIcon name="canvas" size={14} />
-                  </span>
-                  Canvas
-                </button>
-              )}
-              {diagram.available && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  aria-label="Diagram"
-                  title="Diagram (draw.io)"
-                  data-testid="comment-diagram"
-                  onClick={() => {
-                    setMore(false);
-                    diagram.startNew();
-                  }}
-                >
-                  <span>
-                    <DiagramIcon name="drawio" size={14} />
-                  </span>
-                  Diagram
-                </button>
-              )}
-            </div>
-          )}
-        </span>
+        <span className="dc-sep" aria-hidden />
+        <button
+          type="button"
+          className="dc-tool"
+          aria-label="Attach an image or file"
+          title="Attach an image or file (or paste one)"
+          data-testid="comment-attach"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => fileRef.current?.click()}
+        >
+          <Icon name="i54" size={14} strokeWidth={1.8} />
+        </button>
         <input
           ref={fileRef}
           type="file"
@@ -382,7 +286,54 @@ export function CommentBox({
             e.target.value = '';
           }}
         />
-        {diagram.available && diagram.fileInput}
+        {sketch.available && (
+          <button
+            type="button"
+            className="dc-tool"
+            aria-label="Sketch"
+            title="Sketch (draw freehand)"
+            data-testid="comment-sketch"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              void sketch.start();
+            }}
+          >
+            <SketchIcon name="sketch" size={14} />
+          </button>
+        )}
+        {canvas.available && (
+          <button
+            type="button"
+            className="dc-tool"
+            aria-label="Canvas"
+            title="Canvas (boards on one large plane)"
+            data-testid="comment-canvas"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              void canvas.start();
+            }}
+          >
+            <CanvasIcon name="canvas" size={14} />
+          </button>
+        )}
+        {diagram.available && (
+          <>
+            <button
+              type="button"
+              className="dc-tool"
+              aria-label="Diagram"
+              title="Diagram (draw.io)"
+              data-testid="comment-diagram"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                diagram.startNew();
+              }}
+            >
+              <DiagramIcon name="drawio" size={14} />
+            </button>
+            {diagram.fileInput}
+          </>
+        )}
         <span style={{ flex: 1 }} />
         {stored.length > MAX - 300 && (
           <span className="dc-count" style={{ color: stored.length > MAX ? '#C4432A' : undefined }}>
