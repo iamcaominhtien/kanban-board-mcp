@@ -6,6 +6,8 @@ import { readCachedPageCount, useDocsPageCount } from '../../api/docsFx';
 import { extractError } from '../../api/extractError';
 import { useDocsAccess } from '../../api/docsAccess';
 import type { DocsEditPolicy, Project } from '../../types/ticket';
+import { SettingRow, SettingsCard, Switch } from '../settings/settingsUi';
+import ss from '../settings/SettingsPage.module.css';
 
 const POLICIES: { value: DocsEditPolicy; label: string; hint: string }[] = [
   { value: 'everyone', label: 'Everyone', hint: 'Anyone with project access, including viewers' },
@@ -38,62 +40,41 @@ export function DocsSettingsRow({ project }: { project: Project }) {
   }
 
   return (
-    <div
-      className="docs-root"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        padding: '12px 14px',
-        background: '#F8FAF8',
-        borderRadius: 8,
-        border: '1px solid #E3E8E5',
-      }}
+    <SettingsCard
+      title="Docs"
+      hint="A page tree per project for requirements, designs and decisions. Turning it off hides the Docs tab for everyone; pages are kept and come back when you turn it on again."
+      setting="docs-enabled"
+      status={status ? { ok: status.kind === 'ok', text: status.text } : null}
     >
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
-        {project.name} ({project.prefix})
-      </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22', flexGrow: 1 }}>Docs</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: enabled ? '#2E6F40' : '#5B6B60' }}>
-            {enabled ? 'Enabled for this project' : 'Disabled for this project'}
+      <SettingRow title="Enable Docs" hint={enabled ? 'On for this project.' : 'Off for this project.'}>
+        <Switch
+          on={enabled}
+          label={`Docs enabled for ${project.name}`}
+          disabled={update.isPending || readOnly}
+          onChange={(v) => void save({ docs_enabled: v })}
+        />
+      </SettingRow>
+      {!enabled && (
+        <div className={ss.notice}>
+          <Icon name="i28" size={15} strokeWidth={1.9} style={{ color: '#5B6B60', flexShrink: 0 }} />
+          <span>
+            {hiddenCount === null
+              ? 'Pages are hidden while Docs is off.'
+              : `${hiddenCount} ${hiddenCount === 1 ? 'page is' : 'pages are'} hidden while Docs is off.`}{' '}
+            Links to them from tickets show as unavailable.
           </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            aria-label={`Docs enabled for ${project.name}`}
-            className="st-toggle-track"
-            disabled={update.isPending || readOnly}
-            onClick={() => void save({ docs_enabled: !enabled })}
-            style={{ background: enabled ? '#2E6F40' : '#C7D2CB', border: 'none', padding: 0 }}
-          >
-            <span className="st-toggle-dot" style={{ left: enabled ? 17 : 2 }} />
-          </button>
         </div>
-      </div>
-      <div className="st-hint">
-        A page tree per project for requirements, designs and decisions. Turning it off hides the Docs tab for everyone;
-        pages are kept and come back when you turn it on again.
-      </div>
-      <div data-setting="docs-edit-policy" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <span
-          id={`docs-policy-${project.id}`}
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            color: '#5B6B60',
-          }}
-        >
+      )}
+      <div className={ss.divider} />
+      <div data-setting="docs-edit-policy" className={ss.field}>
+        <span className={ss.fieldLab} id={`docs-policy-${project.id}`}>
           Who can edit pages
         </span>
         <div
           role="radiogroup"
           aria-labelledby={`docs-policy-${project.id}`}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}
+          className={ss.grid3}
+          style={{ opacity: enabled ? 1 : 0.5 }}
         >
           {POLICIES.map((o) => {
             const on = policy === o.value;
@@ -106,79 +87,23 @@ export function DocsSettingsRow({ project }: { project: Project }) {
                 aria-checked={on}
                 disabled={off}
                 onClick={() => !on && void save({ docs_edit_policy: o.value })}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 8,
-                  padding: '10px 11px',
-                  textAlign: 'left',
-                  borderRadius: 8,
-                  border: `1px solid ${on && enabled ? '#2E6F40' : '#E3E8E5'}`,
-                  background: on && enabled ? '#F1F7F2' : '#FFFFFF',
-                  cursor: off ? 'default' : 'pointer',
-                  opacity: enabled ? 1 : 0.5,
-                  font: 'inherit',
-                }}
+                className={`${ss.choice} ${on && enabled ? ss.choiceOn : ''}`}
+                style={{ font: 'inherit', textAlign: 'left', cursor: off ? 'default' : 'pointer' }}
               >
-                <span
-                  aria-hidden
-                  style={{
-                    flexShrink: 0,
-                    width: 14,
-                    height: 14,
-                    marginTop: 1,
-                    borderRadius: '50%',
-                    border: `1.5px solid ${on && enabled ? '#2E6F40' : '#C7D2CB'}`,
-                    display: 'grid',
-                    placeItems: 'center',
-                  }}
-                >
-                  {on && enabled && (
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2E6F40' }} />
-                  )}
-                </span>
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1E2A22' }}>{o.label}</span>
-                  <span style={{ fontSize: 11.5, color: '#5B6B60', lineHeight: 1.4 }}>{o.hint}</span>
+                <span className={`${ss.radioDot} ${on && enabled ? ss.radioDotOn : ''}`} aria-hidden />
+                <span className={ss.choiceText}>
+                  <span className={ss.settingName}>{o.label}</span>
+                  <span className={ss.hint}>{o.hint}</span>
                 </span>
               </button>
             );
           })}
         </div>
-        <div className="st-hint">
+        <span className={ss.hint}>
           Everyone with project access can always <b>read</b> published pages. Drafts stay visible to their author only.
           {readOnly && ' Only project admins can change these settings.'}
-        </div>
+        </span>
       </div>
-      {status && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: status.kind === 'ok' ? '#2E6F40' : '#C4432A' }}>
-            {status.text}
-          </span>
-        </div>
-      )}
-      {!enabled && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 12px',
-            borderRadius: 8,
-            background: '#F1F3F1',
-            border: '1px solid #E3E8E5',
-            fontSize: 12.5,
-            color: '#3A4A3E',
-            lineHeight: 1.45,
-          }}
-        >
-          <Icon name="i28" size={15} strokeWidth={1.9} style={{ color: '#5B6B60' }} />
-          {hiddenCount === null
-            ? 'Pages are hidden while Docs is off.'
-            : `${hiddenCount} ${hiddenCount === 1 ? 'page is' : 'pages are'} hidden while Docs is off.`}{' '}
-          Links to them from tickets show as unavailable.
-        </div>
-      )}
-    </div>
+    </SettingsCard>
   );
 }

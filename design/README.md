@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1793585772-d343` (81 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool, AI where you work, the AI Team boards, the AI paused board, the AI Team Resources board, the AI accounts board, the Docs AI boards, the desktop menu bar, the guideline design, the Notifications board, the three AI wave boards and the Story, Flow and Live commentary board — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1793629780-1b20` (82 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool, AI where you work, the AI Team boards, the AI paused board, the AI Team Resources board, the AI accounts board, the Docs AI boards, the desktop menu bar, the guideline design, the Notifications board, the three AI wave boards the Story, Flow and Live commentary board and the AI sets up the commands board — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -93,6 +93,7 @@ Each doc's header links to its source file and records the canvas version and sh
 - [AI team & process — skills and plugins, role packs, workflows, review, arbitration, TDD proof](screens/ai-team-process.md)
 - [Board AI & beyond — risk tiers, standing orders, the knowledge base, GitHub, marking the team](screens/ai-board-wave3.md)
 - [Story, Flow by scope and Live commentary — a job the PM owns, one bar for what Flow shows, and the screens that ran without a design](screens/ai-story-flow.md)
+- [AI sets up the commands — the wizard's middle step: an AI reads the repo, tries each command, shows the proof and the environment it needed](screens/ai-repo-commands.md)
 - [Forgot / Reset Password](screens/password-reset.md)
 - [Idea Space — AI help](screens/idea-ai-help.md)
 - [Idea Space — capture & triage](screens/idea-capture-triage.md)

@@ -27,20 +27,29 @@ export function McpFullControl() {
   };
 
   return (
-    <div className={styles.section} data-testid="mcp-full-control">
-      <div className={styles.headRow}>
-        <h3 className={styles.title}>Full control over MCP</h3>
-        {on && (
-          <span className={styles.toolsChip} data-testid="mcp-full-control-on">
-            On
-          </span>
-        )}
+    <section
+      className={styles.section}
+      data-testid="mcp-full-control"
+      data-setting="mcp-full-control"
+      data-toc="Full control over MCP"
+    >
+      <div className={styles.sectionHead}>
+        <div className={styles.headRow}>
+          <h2 className={styles.title} style={{ flex: 1 }}>
+            Full control over MCP
+          </h2>
+          {on && (
+            <span className={styles.onChip} data-testid="mcp-full-control-on">
+              On
+            </span>
+          )}
+        </div>
+        <p className={styles.hint}>
+          Lets a connected AI tool do everything you can do with the AI team: add, change and remove AI members, assign
+          and cancel work, decide approvals, pause or resume AI for a project, change safety settings and read the audit
+          log. Off by default.
+        </p>
       </div>
-      <p className={styles.hint}>
-        Lets a connected AI tool do everything you can do with the AI team: add, change and remove AI members, assign
-        and cancel work, decide approvals, pause or resume AI for a project, change safety settings and read the audit
-        log. Off by default.
-      </p>
 
       {asking ? (
         <div className={styles.confirm} role="alertdialog" aria-label="Turn on full control over MCP">
@@ -120,6 +129,6 @@ export function McpFullControl() {
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }

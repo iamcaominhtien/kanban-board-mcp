@@ -28,6 +28,32 @@ AI schedules checked end to end against their design (#271).
 - Selects in Schedules (filters, time zone, limits) use the design's chevron instead of each system's arrow.
 - A review that could not run copied the CLI's whole error into the notification; it is cut to one line.
 - MCP `ai_schedules` ignored a field it did not know (`timezone` for `tz`) and created the schedule with the default; it now names the unknown field and lists the ones that exist. `notify` is in the field list.
+## [3.23.2] - 2026-11-02
+
+Settings drawn the way the design draws it (#283, design `design/screens/settings-structure.md`, `settings-pages.md`).
+
+### Fixed
+- **The Settings page did not follow its design.** The top bar now has a bordered *Back to board*, the *Settings* title and a search box with its icon and the `/` key; the list of pages has its tinted background, an icon for each page, *App settings · all projects* and a project picker drawn as a drop-down (colour dot, name, key), with a dot beside Updates when an update is ready.
+- Every page has its title with a scope chip (*Project · Kanban Board* or *App*) and its sections as cards: a title, one line on what it does, and *Saved* or the error beside the title. A column *On this page* on the right lists the sections, follows the scroll and jumps to one; in a narrow window it becomes a row of pills above the sections (it replaces the row of buttons at the top of Settings › AI).
+- Search results show the page icon, where the setting lives and the typed word marked, with the result count and the ↑ ↓ Enter Esc hints; *No results* offers words to try.
+- Appearance picks the look with two cards (colour strips, the one in use marked) instead of a *Switch to B&W* button with an emoji. Storage & backup, Repositories, Docs, Integrations (MCP, Full control, Diagrams), Updates, Diagnostics, Board assistant and Idea Space use the same cards, switches, fields and pill options. A switch replaces the checkboxes in Docs AI and Idea Space.
+- Repositories saves each setting by itself like every other section (the *Save repo* and *Save worktree settings* buttons are gone; *Apply* appears when a path is edited, *Unlink* stays). The project picker works with the keyboard (arrows, Home, End, Esc).
+
+## [3.23.1] - 2026-11-02
+
+Set up the AI team: the AI sets up the project's commands, and the board proves them (#282, design `design/screens/ai-repo-commands.md`).
+
+### Added
+- **The AI sets up the commands.** Step 3 of Set up the AI team (now *Commands*) lets Claude Code read the repository in a temporary copy (Read, Glob and Grep only) and propose the prepare, test, lint and build commands, each with where it came from and a note. You watch its steps and a live log, and can cancel; it stops by itself after 10 minutes and keeps going if the window closes (the wizard picks it up again). *Type them myself* stays one click away, and is the way when Claude Code is missing or not signed in.
+- **The board proves every command.** Each one runs once in a scratch worktree the way a ticket runs it, and gets its own row: works, *command is wrong* (the shell could not run it), *the repo's own tests fail* (the command is right), or not run and why. Run one row or all again, or *Ask the AI to fix* with a sentence.
+- **An environment per project.** Extra folders in front of the PATH (Homebrew, nvm…) for everything the project runs: the wizard's trial, a ticket's prepare, the workflow checks, a schedule's test check and the AI members' own runs. The AI's step finds a program the app's PATH lacks (`npm` in `/opt/homebrew/bin`) and adds its folder. Editable in the wizard and in Settings › AI.
+- **A command saved but not a check yet.** A test, lint or build command that fails in the repository itself can stay saved without being a check, so it does not send every ticket back to Dev. The wizard suggests it, Confirm says what a failing check would cost, and Settings › AI has *Use as a check* per command.
+
+### Fixed
+- **`npm: command not found` (exit 127) when the app was opened from the Dock**, in the wizard's trial and on tickets: commands ran with the app's short PATH, which has no Homebrew or nvm.
+- The trial stopped at the first failure and then said *Test: not tried (no command)*; every command now has its own result and a reason when it did not run.
+- A tooling folder (`.github/skills/…/scripts`, `.claude/…`) no longer lands in the suggested prepare command.
+- A folder the AI members cannot work in (outside the home folder and `KANBAN_AI_ROOTS`) is refused when the wizard reads it, with what to do, instead of every member being skipped at Create.
 
 ## [3.23.0] - 2026-11-02
 

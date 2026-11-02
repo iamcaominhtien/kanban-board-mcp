@@ -12,15 +12,18 @@ export function Dialog({
   onClose,
   children,
   foot,
+  wide,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   foot: ReactNode;
+  /** The result of the commands step needs room for a row of three columns. */
+  wide?: boolean;
 }) {
   return (
     <div className="ai-overlay" onClick={(e) => e.target === e.currentTarget && onClose()} role="presentation">
-      <div className="ai-modal" role="dialog" aria-label={title}>
+      <div className={`ai-modal${wide ? ' pk-modal-wide' : ''}`} role="dialog" aria-label={title}>
         <div className="ai-modal-head">
           <h2 className="ai-modal-title">{title}</h2>
         </div>

@@ -51,9 +51,7 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
       style={{ background: 'transparent', flex: 'none' }}
       data-testid="idea-settings"
     >
-      <p className="is-muted">AI helpers and what they may use. Everything else in Idea Space works without them.</p>
-
-      <section className="is-set-card" data-setting="idea-ai-enable">
+      <section className="is-set-card" data-setting="idea-ai-enable" data-toc="AI help in Idea Space">
         <h3>AI help in Idea Space</h3>
         <p className="is-muted">
           Turn the optional helpers on or off for this project. Off hides every AI button and panel in Idea Space.
@@ -88,7 +86,7 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
         />
       </section>
 
-      <section className="is-set-card" data-setting="idea-ai-member">
+      <section className="is-set-card" data-setting="idea-ai-member" data-toc="Who and what it may use">
         <h3>Who and what it may use</h3>
         <p className="is-muted">The AI member and the data it can read.</p>
         <div className="is-set-row">
@@ -130,7 +128,7 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
         </div>
       </section>
 
-      <section className="is-set-card" data-setting="idea-ai-cap">
+      <section className="is-set-card" data-setting="idea-ai-cap" data-toc="Cost">
         <h3>Cost</h3>
         <p className="is-muted">Shown before each action and added up on the AI member’s page.</p>
         <div className="is-set-row">

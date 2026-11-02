@@ -1,21 +1,45 @@
 import { useMemo, useState } from 'react';
 import { useAiWindows } from '../../../api/aiWindows';
-import { useApplyScan, useCatalogue, usePacks, useScan } from '../../../api/aiPacks';
+import {
+  packKeys,
+  useApplyScan,
+  useCatalogue,
+  useLatestScan,
+  usePacks,
+  useScan,
+  useScanPoll,
+} from '../../../api/aiPacks';
 import { extractError } from '../../../api/extractError';
+import { useQueryClient } from '@tanstack/react-query';
 import type {
   ApplyResult,
+  CheckName,
+  CommandName,
   HandoverKind,
   Scan,
-  Suggestion,
   SuggestedMember,
-  TrialRun,
   WorkflowKey,
 } from '../../../types/aiPacks';
 import { WORKFLOW_NAME, WORKFLOW_ROLES, lostRoles, workflowFor } from './packLabels';
 import { Dialog } from './PackDialogs';
+import { CommandsStep, type CmdLook } from './CommandsStep';
+import { CHECKS, COMMANDS, ROW_NAME, failCounts, fmtSeconds, isBad, jobOf, type RowKind } from './scanParts';
+import {
+  checksOffOf,
+  draftFromScan,
+  isCheckOn,
+  isDecided,
+  jobKey,
+  kindsOf,
+  takeProposal,
+  toDraft,
+  withChoice,
+  type Draft,
+} from './wizardDraft';
+import { Ico } from './wizardIcons';
 import './packs.css';
 
-const STEPS = ['Read the repository', 'What it suggests', 'Try the commands', 'Confirm'];
+const STEPS = ['Read the repository', 'The team', 'Commands', 'Confirm'];
 
 const HANDOVER: Record<HandoverKind, string> = {
   pr: 'Opening a pull request',
@@ -23,93 +47,105 @@ const HANDOVER: Record<HandoverKind, string> = {
   local: 'Leaving it in the worktree',
 };
 
-/** Everything the person can change before Create; it lives here so the steps keep it. */
-interface Draft {
-  test: string;
-  lint: string;
-  build: string;
-  prepare: string;
-  basePort: string;
-  workflow: WorkflowKey;
-  handover: HandoverKind;
-  worktrees: boolean;
-  team: SuggestedMember[];
-  plugins: string[];
+const WORD = ['No', 'One', 'Two', 'Three'];
+
+/** What a left-over scan was doing, for the notice in step 1. */
+function leftOver(scan: Scan): string {
+  const job = jobOf(scan);
+  if (job?.state === 'running')
+    return job.mode === 'ai' ? 'The AI is still setting up the commands' : 'The commands are still running';
+  if (job?.state === 'timeout') return 'The AI ran out of time before it had all four commands';
+  return job?.mode === 'try' ? 'The commands were tried' : 'The AI finished setting up the commands';
 }
 
-function toDraft(s: Suggestion): Draft {
-  return {
-    test: s.commands.test ?? '',
-    lint: s.commands.lint ?? '',
-    build: s.commands.build ?? '',
-    prepare: s.prepare ?? '',
-    basePort: s.basePort == null ? '' : String(s.basePort),
-    workflow: s.workflowDefault,
-    handover: s.handover,
-    worktrees: s.worktrees,
-    team: s.team.map((m) => ({ ...m })),
-    plugins: [...s.plugins],
-  };
+/** One line of the Confirm step's COMMANDS list: icon, name, command and what the board found. */
+function statusLine(
+  n: CommandName,
+  kind: RowKind,
+  seconds: number | undefined,
+  tail: string[],
+  isCheck: boolean,
+  checkOn: boolean,
+): { icon: string; color: string; text: string } {
+  const suffix = isCheck ? (checkOn ? ' · used as a check anyway' : ' · saved, not a check yet') : '';
+  switch (kind) {
+    case 'works':
+      return { icon: 'check', color: '#2E6F40', text: `works · ${fmtSeconds(seconds ?? 0)}` };
+    case 'fails': {
+      const c = n === 'test' ? failCounts(tail) : null;
+      const what = n === 'test' ? 'repo tests fail' : n === 'prepare' ? 'exits with an error' : `repo ${n} fails`;
+      return { icon: 'warn', color: '#B8860B', text: `${what}${c ? ` (${c.failed} of ${c.total})` : ''}${suffix}` };
+    }
+    case 'wrong':
+      return { icon: 'xcircle', color: '#C4432A', text: `command is wrong${suffix}` };
+    case 'timeout':
+      return { icon: 'clock', color: '#B8860B', text: 'timed out' };
+    case 'untried':
+      return { icon: 'dot', color: '#9AA8A0', text: 'not tried' };
+    case 'changed':
+      return { icon: 'edit', color: '#B8860B', text: 'changed since the last run' };
+    case 'empty':
+      return { icon: 'dash', color: '#9AA8A0', text: 'empty' };
+    default:
+      return { icon: 'dash', color: '#9AA8A0', text: 'not run' };
+  }
 }
 
-function Trial({ label, run, current }: { label: string; run: TrialRun | null; current: string }) {
-  if (!run) return <div className="pk-trial">{label}: not tried (no command).</div>;
-  const stale = current.trim() !== run.command;
-  return (
-    <div className={`pk-trial${run.ok ? '' : ' pk-trial-fail'}`} data-testid={`trial-${label.toLowerCase()}`}>
-      <strong>
-        {label} · <code>{run.command}</code> · {run.ok ? 'passed' : `failed (exit ${run.exitCode ?? '?'})`} ·{' '}
-        {run.seconds.toFixed(1)} s
-      </strong>
-      {run.tail.length > 0 && <pre>{run.tail.join('\n')}</pre>}
-      {stale && (
-        <span className="ai-error-text">You changed this command after it was tried. Try again to prove it.</span>
-      )}
-    </div>
-  );
-}
-
-/** The one-pass wizard: 1 Scan, 2 Review, 3 Try, 4 Confirm. Nothing exists until Create (design D). */
+/** The wizard: 1 Read the repository, 2 The team, 3 Commands, 4 Confirm. Nothing exists until Create (design D). */
 export function TeamWizard({ projectId, onClose }: { projectId: string; onClose: () => void }) {
+  const qc = useQueryClient();
   const scanM = useScan(projectId);
   const apply = useApplyScan(projectId);
   const packs = usePacks(projectId);
   const catalogue = useCatalogue();
   const windows = useAiWindows();
+  const latest = useLatestScan(projectId);
   const [step, setStep] = useState(1);
   const [folder, setFolder] = useState('');
-  const [scan, setScan] = useState<Scan | null>(null);
+  const [scanId, setScanId] = useState<string | null>(null);
+  const scanQ = useScanPoll(scanId);
+  const scan = scanQ.data ?? null;
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [look, setLook] = useState<CmdLook>('choose');
   const [accountId, setAccountId] = useState('local');
   const [workflowNote, setWorkflowNote] = useState<string | null>(null);
   const [result, setResult] = useState<ApplyResult | null>(null);
+
+  // A finished AI run puts its commands and folders in the boxes, once
+  const key = jobKey(scan);
+  if (draft && scan && key && draft.syncedJob !== key) setDraft(takeProposal(draft, scan));
 
   const packList = useMemo(() => packs.data ?? [], [packs.data]);
   const setD = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => (d ? { ...d, [k]: v } : d));
   const roleName = (key: string) => packList.find((p) => p.key === key)?.name ?? key;
   const glyph = (key: string) => packList.find((p) => p.key === key)?.glyph ?? key.slice(0, 2).toUpperCase();
 
-  // "Try again" and Next after an edit try the commands as the person typed them, not the scan's suggestion
-  const runScan = (keepDraft: boolean) =>
+  const runScan = () =>
     scanM.mutate(
-      {
-        folder: folder.trim(),
-        tryCommands: keepDraft && draft ? { prepare: draft.prepare, test: draft.test } : undefined,
-      },
+      { folder: folder.trim() },
       {
         onSuccess: (s) => {
-          setScan(s);
-          if (!keepDraft || !draft) setDraft(toDraft(s.suggested));
-          setStep(keepDraft ? 3 : 2);
+          setScanId(s.id);
+          setDraft(toDraft(s.suggested));
+          setLook('choose');
+          setStep(2);
         },
       },
     );
-  // The commands on screen differ from the ones the last trial ran: Next tries them first
-  const edited =
-    !!scan &&
-    !!draft &&
-    (draft.prepare.trim() !== (scan.trial.prepare?.command ?? '') ||
-      draft.test.trim() !== (scan.trial.test?.command ?? ''));
+
+  // A scan left earlier: its commands come back, and step 3 shows them
+  const continueScan = (s: Scan) => {
+    qc.setQueryData(packKeys.scan(s.id), s);
+    setScanId(s.id);
+    setFolder(s.folder);
+    setDraft(draftFromScan(s));
+    setLook(jobOf(s) ? 'result' : 'choose');
+    setStep(3);
+  };
+  const left = latest.data;
+  const leftJob = jobOf(left);
+  const resumable =
+    !!left && !left.appliedAt && !!leftJob && ['running', 'done', 'timeout'].includes(leftJob.state) && !scanId;
 
   const changeTeam = (team: SuggestedMember[]) => {
     if (!draft) return;
@@ -130,8 +166,12 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
       {
         scanId: scan.id,
         body: {
-          commands: { test: draft.test || null, lint: draft.lint || null, build: draft.build || null },
-          prepare: draft.prepare || null,
+          commands: {
+            test: draft.test.trim() || null,
+            lint: draft.lint.trim() || null,
+            build: draft.build.trim() || null,
+          },
+          prepare: draft.prepare.trim() || null,
           basePort: draft.basePort ? Number(draft.basePort) : null,
           workflowDefault: draft.workflow,
           handover: draft.handover,
@@ -139,6 +179,8 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
           team: draft.team,
           plugins: draft.plugins,
           accountId: accountId === 'local' ? null : accountId,
+          envPath: draft.env.map((e) => e.path),
+          checksOff: checksOffOf(scan, draft),
         },
       },
       { onSuccess: setResult },
@@ -198,46 +240,38 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
     );
 
   const d = draft;
+  const kinds = scan && d ? kindsOf(scan, d) : null;
+  // Test, lint and build that the board proved wrong or failing, and the person has not decided about yet
+  const undecided: CheckName[] =
+    scan && d && kinds ? CHECKS.filter((n) => d[n].trim() && isBad(kinds[n]) && !isDecided(d, n, kinds[n])) : [];
+  const undecidedFails = undecided.filter((n) => kinds?.[n] === 'fails');
+  const undecidedWrong = undecided.filter((n) => kinds?.[n] === 'wrong');
+  const keepAll = (names: CheckName[]) =>
+    setDraft((x) => (x && kinds ? names.reduce((acc, n) => withChoice(acc, n, kinds[n], false), x) : x));
+
   return (
     <Dialog
       title="Set up the AI team"
+      wide={step === 3}
       onClose={onClose}
       foot={
         <>
           {step === 1 && (
-            <button
-              className="ai-btn ai-btn-primary"
-              disabled={!folder.trim() || scanM.isPending}
-              onClick={() => runScan(false)}
-            >
+            <button className="ai-btn ai-btn-primary" disabled={!folder.trim() || scanM.isPending} onClick={runScan}>
               {scanM.isPending ? 'Reading…' : 'Read the repository'}
             </button>
           )}
           {step === 2 && (
-            <button
-              className="ai-btn ai-btn-primary"
-              disabled={scanM.isPending}
-              onClick={() => (edited ? runScan(true) : setStep(3))}
-            >
-              {scanM.isPending ? 'Trying…' : 'Next: try the commands'}
+            <button className="ai-btn ai-btn-primary" onClick={() => setStep(3)}>
+              Next: commands
             </button>
-          )}
-          {step === 3 && (
-            <>
-              <button className="ai-btn ai-btn-primary" onClick={() => setStep(4)}>
-                Next: confirm
-              </button>
-              <button className="ai-btn" disabled={scanM.isPending} onClick={() => runScan(true)}>
-                {scanM.isPending ? 'Trying…' : 'Try again'}
-              </button>
-            </>
           )}
           {step === 4 && (
             <button className="ai-btn ai-btn-primary" disabled={apply.isPending || !d?.team.length} onClick={create}>
               {apply.isPending ? 'Creating…' : 'Create the team'}
             </button>
           )}
-          {step > 1 && !scanM.isPending && (
+          {(step === 2 || step === 4) && !scanM.isPending && (
             <button className="ai-btn" onClick={() => setStep(step - 1)}>
               Back
             </button>
@@ -253,10 +287,21 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
       {step === 1 && (
         <div className="pk-form" data-testid="wizard-step-1">
           <div className="ai-sub">
-            Nothing is created until the last step. The scan reads manifests, lock files, the CI workflow, CLAUDE.md,
-            the README, the test folders and the git remote, and it proves its commands by running them once in a
-            scratch worktree. It creates nothing until you press Create.
+            Nothing is created until the last step. This step reads the code only: manifests, lock files, the CI
+            workflow, CLAUDE.md, the README, the test folders and the git remote. It runs no command and uses no AI
+            quota. The commands are set up in step 3.
           </div>
+          {resumable && left && (
+            <div className="ai-notice ai-notice-info" role="status" data-testid="resume-scan">
+              <div style={{ flex: 1 }}>
+                <b>{leftOver(left)}</b> for <span className="ai-code">{left.folder}</span>. You can pick it up where it
+                stopped instead of reading the repository again.
+              </div>
+              <button className="ai-btn ai-btn-sm" onClick={() => continueScan(left)}>
+                Continue it
+              </button>
+            </div>
+          )}
           <label>
             Repository folder{' '}
             <input
@@ -271,7 +316,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
               <div className="pk-progress">
                 <span />
               </div>
-              <div className="ai-sub">Reading the files and trying the commands. This can take a minute or two.</div>
+              <div className="ai-sub">Reading the files. This takes a few seconds.</div>
             </div>
           )}
           {scanM.error && (
@@ -289,12 +334,6 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             <FoundList scan={scan} />
             <div className="ai-sub">All of it read from files. No quota spent.</div>
           </div>
-          {!d.test && !d.lint && !d.build && !d.prepare && (
-            <div className="ai-notice ai-notice-warn" role="status" data-testid="scan-found-nothing">
-              The scan found no manifest and no CI workflow, so it has no commands to suggest and will not invent them.
-              Type the prepare, test, lint and build commands below by hand.
-            </div>
-          )}
           <div className="pk-box-title">What it suggests — change anything</div>
 
           <div className="pk-box" data-testid="team-box">
@@ -400,42 +439,6 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
           </label>
 
           <div className="pk-box">
-            <div className="pk-box-title">Commands</div>
-            {scan.suggested.why.commands && <div className="ai-sub">{scan.suggested.why.commands}</div>}
-            <div className="pk-two">
-              <label>
-                Prepare command{' '}
-                <input
-                  className="ai-input pk-cmd"
-                  value={d.prepare}
-                  onChange={(e) => setD('prepare', e.target.value)}
-                />
-              </label>
-              <label>
-                Test command{' '}
-                <input className="ai-input pk-cmd" value={d.test} onChange={(e) => setD('test', e.target.value)} />
-              </label>
-              <label>
-                Lint command{' '}
-                <input className="ai-input pk-cmd" value={d.lint} onChange={(e) => setD('lint', e.target.value)} />
-              </label>
-              <label>
-                Build command{' '}
-                <input className="ai-input pk-cmd" value={d.build} onChange={(e) => setD('build', e.target.value)} />
-              </label>
-              <label>
-                Ports: first port for worktrees{' '}
-                <input
-                  className="ai-input"
-                  type="number"
-                  value={d.basePort}
-                  onChange={(e) => setD('basePort', e.target.value)}
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="pk-box">
             <div className="pk-box-title">Hand over by</div>
             {scan.suggested.why.handover && <div className="ai-sub">{scan.suggested.why.handover}</div>}
             <select
@@ -453,6 +456,15 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             <label style={{ display: 'flex', gap: 6, alignItems: 'center', flexDirection: 'row' }}>
               <input type="checkbox" checked={d.worktrees} onChange={(e) => setD('worktrees', e.target.checked)} />A
               worktree for each ticket
+            </label>
+            <label>
+              Ports: first port for worktrees{' '}
+              <input
+                className="ai-input"
+                type="number"
+                value={d.basePort}
+                onChange={(e) => setD('basePort', e.target.value)}
+              />
             </label>
           </div>
 
@@ -484,22 +496,21 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
       )}
 
       {step === 3 && scan && d && (
-        <div className="pk-form" data-testid="wizard-step-3">
-          <div className="ai-sub">
-            The prepare command and the test command were run once in a scratch worktree. A command that fails is shown
-            failing, not quietly dropped. The scratch worktree is removed afterwards.
-          </div>
-          <Trial label="Prepare" run={scan.trial.prepare} current={d.prepare} />
-          <Trial label="Test" run={scan.trial.test} current={d.test} />
-          {scanM.error && (
-            <span className="ai-error-text" role="alert">
-              {extractError(scanM.error)}
-            </span>
-          )}
+        <div data-testid="wizard-step-3" className="pk-form">
+          <CommandsStep
+            scan={scan}
+            draft={d}
+            setDraft={(f) => setDraft((x) => (x ? f(x) : x))}
+            look={look}
+            setLook={setLook}
+            onBack={() => setStep(2)}
+            onContinue={() => setStep(4)}
+            onRecheck={() => void scanQ.refetch()}
+          />
         </div>
       )}
 
-      {step === 4 && d && (
+      {step === 4 && d && scan && kinds && (
         <div className="pk-form" data-testid="wizard-step-4">
           <div className="ai-notice ai-notice-info">Nothing exists until you press Create.</div>
           <div className="pk-box">
@@ -516,17 +527,100 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
               Default workflow: {WORKFLOW_NAME[d.workflow]} · hand over by {HANDOVER[d.handover].toLowerCase()}
               {d.plugins.length ? ` · plugins: ${d.plugins.join(', ')}` : ''}
             </div>
-            <div className="ai-sub pk-cmd">
-              {[
-                d.prepare && `prepare: ${d.prepare}`,
-                d.test && `test: ${d.test}`,
-                d.lint && `lint: ${d.lint}`,
-                d.build && `build: ${d.build}`,
-              ]
-                .filter(Boolean)
-                .join(' · ') || 'No commands.'}
+            <div className="pk-box-title" style={{ marginTop: 4 }}>
+              Commands
             </div>
+            <div data-testid="confirm-commands">
+              {COMMANDS.map((n) => {
+                const isCheck = (CHECKS as CommandName[]).includes(n);
+                const line = statusLine(
+                  n,
+                  kinds[n],
+                  scan.trial?.[n]?.seconds,
+                  scan.trial?.[n]?.tail ?? [],
+                  isCheck,
+                  isCheck && isCheckOn(d, n as CheckName, kinds[n]),
+                );
+                return (
+                  <div className="pk-conf-row" key={n} data-testid={`confirm-${n}`}>
+                    <Ico name={line.icon} color={line.color} sw={2.3} />
+                    <span className="pk-conf-name">{n}</span>
+                    <span className="pk-cmd pk-conf-cmd">{d[n].trim()}</span>
+                    <span className="ai-hint">{line.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {d.env.length > 0 && (
+              <div className="ai-sub" data-testid="confirm-env">
+                {/* one child: .ai-sub is a flex column, which would put each part on its own line */}
+                <span>
+                  Environment: PATH +{' '}
+                  {d.env.map((e, i) => (
+                    <span key={e.path}>
+                      {i > 0 && ', '}
+                      <span className="ai-code">{e.path}</span>
+                    </span>
+                  ))}
+                  , for this project only
+                </span>
+              </div>
+            )}
           </div>
+          {undecided.length > 0 && (
+            <div className="pk-banner pk-banner-warn" data-testid="confirm-stop-banner" role="status">
+              <Ico name="warn" size={17} color="#B8860B" sw={2} />
+              <div style={{ flex: 1 }}>
+                <div className="pk-banner-title">
+                  {undecided.length === 1
+                    ? 'One command would stop tickets if it were a check'
+                    : `${WORD[Math.min(undecided.length, 3)]} commands would stop tickets if they were checks`}
+                </div>
+                <div className="ai-hint pk-banner-body">
+                  {undecidedWrong.map((n) => (
+                    <span key={n}>
+                      <b>{ROW_NAME[n]}</b> does not run: the command is wrong. As a check it would send every ticket
+                      back to Dev to “fix” it, and because checks stop at the first failure, the ones after it would
+                      never run.{' '}
+                    </span>
+                  ))}
+                  {undecidedFails.map((n) => {
+                    const c = n === 'test' ? failCounts(scan.trial?.[n]?.tail ?? []) : null;
+                    return (
+                      <span key={n}>
+                        <b>{ROW_NAME[n]}</b> fails {c ? `${c.failed} tests` : 'in the repository itself'}
+                        {c ? ' in the repository itself' : ''}; as a check it would send every ticket back until{' '}
+                        {c ? 'they pass' : 'it passes'}.{' '}
+                      </span>
+                    );
+                  })}
+                  <b>Suggested:</b> keep {undecided.length === 1 ? 'it' : 'both'} saved,{' '}
+                  {undecided.length === 1 ? 'not a check yet' : 'neither a check yet'}. Nothing loops, and you can fix
+                  the text under Project settings › AI › Commands.
+                </div>
+                <div className="pk-btns" style={{ marginTop: 9 }}>
+                  <button className="ai-btn ai-btn-primary ai-btn-sm" onClick={() => keepAll(undecided)}>
+                    <Ico name="check" />
+                    {undecided.length === 1 ? 'Keep it saved, not a check yet' : 'Keep both saved, not checks yet'}
+                  </button>
+                  {undecidedWrong.map((n) => (
+                    <button key={n} className="ai-btn ai-btn-sm" onClick={() => setD(n, '')}>
+                      Leave {n} empty for now
+                    </button>
+                  ))}
+                  {undecidedFails.map((n) => (
+                    <button
+                      key={n}
+                      className="ai-btn ai-btn-sm"
+                      onClick={() => setDraft((x) => (x ? withChoice(x, n, kinds[n], true) : x))}
+                    >
+                      Use {n} as a check anyway
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           <label>
             The members run as{' '}
             <select className="ai-select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>

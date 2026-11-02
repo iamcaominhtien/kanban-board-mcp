@@ -184,3 +184,264 @@ async def test_the_light_model_fails_soft(env, tmp_path, monkeypatch):
     monkeypatch.setattr(repo_scan, "_ask_light", junk)
     async with env["maker"]() as s:
         assert await repo_scan.refine_suggestion(s, row.project_id, found, base) == base
+
+
+# --------------------------------------------------------------------------- the AI sets up the commands
+
+
+import asyncio  # noqa: E402
+
+from services.ai import project_env  # noqa: E402
+
+
+def _tool(folder, name, body="echo from-tool"):
+    folder.mkdir(parents=True, exist_ok=True)
+    prog = folder / name
+    prog.write_text(f"#!/bin/sh\n{body}\n")
+    prog.chmod(0o755)
+    return folder
+
+
+async def _until_done(c, scan_id):
+    for _ in range(300):
+        scan = (await c.get(f"/ai/scans/{scan_id}")).json()
+        if scan["job"].get("state") != "running":
+            return scan
+        await asyncio.sleep(0.1)
+    raise AssertionError("the job never finished")
+
+
+@pytest.fixture
+def ai_on(monkeypatch):
+    async def available(session, force=False):
+        return {"available": True, "why": None}
+
+    monkeypatch.setattr(repo_scan, "ai_status", available)
+
+
+def test_the_server_tells_a_wrong_command_from_a_failing_project():
+    assert repo_scan.classify(0, "") == "works"
+    assert repo_scan.classify(127, "sh: npm: command not found") == "wrong"
+    assert repo_scan.classify(1, 'npm error Missing script: "lint:ci"') == "wrong"
+    assert repo_scan.classify(1, "FAIL src/a.test.ts\nTests  2 failed") == "fails"
+    assert repo_scan.classify(None, "", timed_out=True) == "timeout"
+
+
+async def test_every_command_gets_its_own_result(tmp_path):
+    repo = _repo(tmp_path / "r")
+    out = await repo_scan.try_commands(
+        str(repo),
+        {
+            "prepare": "true",
+            "test": "echo 'FAIL a'; exit 1",
+            "lint": "no-such-tool-xyz --check",
+            "build": "echo built",
+        },
+    )
+    assert out["prepare"]["status"] == "works"
+    assert out["test"]["status"] == "fails"  # one failing does not hide the next
+    assert out["lint"]["status"] == "wrong" and out["lint"]["exit_code"] == 127
+    assert "not found" in out["lint"]["reason"]
+    assert out["build"]["status"] == "works" and out["build"]["tail"] == ["built"]
+
+
+async def test_the_project_path_goes_in_front_of_the_apps(tmp_path):
+    repo = _repo(tmp_path / "r")
+    tools = _tool(tmp_path / "tools", "mytool-xyz")
+    without = await repo_scan.try_commands(str(repo), {"test": "mytool-xyz"})
+    assert without["test"]["status"] == "wrong"
+    with_path = await repo_scan.try_commands(
+        str(repo), {"test": "mytool-xyz"}, [str(tools)]
+    )
+    assert with_path["test"]["status"] == "works"
+    assert with_path["test"]["tail"] == ["from-tool"]
+
+
+def test_the_programs_a_command_needs_and_where_they_are(tmp_path, monkeypatch):
+    assert project_env.programs("npm --prefix ui ci && uv --directory server sync") == [
+        "npm",
+        "uv",
+    ]
+    assert project_env.programs("PATH=/x:$PATH npm test; cd ui && ./gradlew b") == [
+        "npm"
+    ]
+    tools = _tool(tmp_path / "bin", "mytool-xyz")
+    monkeypatch.setattr(project_env, "_TOOL_DIRS", (str(tools),))
+    assert project_env.missing_folders(["mytool-xyz run"], "/usr/bin:/bin") == [
+        {"path": str(tools), "program": "mytool-xyz"}
+    ]
+    assert project_env.missing_folders(["sh -c true"], "/usr/bin:/bin") == []
+    env = project_env.with_path({"PATH": "/usr/bin:/bin"}, [str(tools), "/usr/bin"])
+    assert env["PATH"] == f"{tools}:/usr/bin:/bin"
+
+
+def test_a_manifest_under_a_hidden_folder_is_tooling(tmp_path):
+    repo = _repo(tmp_path / "r")
+    tool = repo / ".github" / "skills" / "x" / "scripts"
+    tool.mkdir(parents=True)
+    (tool / "pyproject.toml").write_text("[project]\nname='x'\n")
+    (tool / "uv.lock").write_text("")
+    found = repo_scan.scan(str(repo))
+    assert [p["path"] for p in found["packages"]] == ["."]
+    assert ".github" not in repo_scan.suggest(found)["prepare"]
+
+
+async def test_the_ai_proposes_and_the_board_proves_each_command(
+    env, tmp_path, monkeypatch, ai_on
+):
+    _, _, row = await _scan(env, tmp_path)
+    tools = _tool(tmp_path / "tools", "mytool-xyz")
+    monkeypatch.setattr(project_env, "_TOOL_DIRS", (str(tools),))
+    seen = {}
+
+    async def fake_ai(prompt, cwd, account, on_line):
+        seen["prompt"], seen["cwd"] = prompt, cwd
+        on_line("Read package.json")
+        return json.dumps(
+            {
+                "commands": {
+                    "prepare": {"command": "true", "source": "package.json"},
+                    "test": {
+                        "command": "mytool-xyz",
+                        "source": "package.json › scripts.test",
+                        "note": "",
+                    },
+                    "lint": {
+                        "command": "echo 'lint failed'; exit 2",
+                        "source": "ci.yml",
+                    },
+                    "build": {"command": "", "source": ""},
+                },
+                "notes": "One app at the root.",
+            }
+        )
+
+    monkeypatch.setattr(repo_scan, "_ask_ai", fake_ai)
+    c = env["c"]
+    r = await c.post(f"/ai/scans/{row.id}/ai", json={"hint": "the app is at the root"})
+    assert r.status_code == 200, r.text
+    assert r.json()["job"]["state"] == "running"
+    again = await c.post(f"/ai/scans/{row.id}/ai", json={})
+    assert again.status_code == 409  # one job at a time
+    scan = await _until_done(c, row.id)
+    assert scan["job"]["state"] == "done", scan["job"]
+    assert "The person says: the app is at the root" in seen["prompt"]
+    assert seen["cwd"] != row.folder  # the AI reads a temporary copy
+    assert (
+        scan["proposal"]["commands"]["test"]["source"] == "package.json › scripts.test"
+    )
+    assert scan["proposal"]["env_path"] == [
+        {"path": str(tools), "by": "ai", "why": "mytool-xyz was found here"}
+    ]
+    trial = scan["trial"]
+    assert trial["prepare"]["status"] == "works"
+    # proven by the board itself, with the folder the AI's step found in front of the PATH
+    assert trial["test"]["status"] == "works" and trial["test"]["tail"] == ["from-tool"]
+    assert trial["lint"]["status"] == "fails"
+    assert trial["build"] is None
+    assert any("Read package.json" in line for line in scan["job"]["log"])
+    keys = [s["key"] for s in scan["job"]["steps"]]
+    assert keys == ["ai", "path", "prepare", "test", "lint", "build"]
+    latest = (await c.get(f"/projects/{scan['project_id']}/ai/scans/latest")).json()
+    assert latest["id"] == row.id
+
+
+async def test_the_ai_is_refused_when_claude_code_is_not_there(
+    env, tmp_path, monkeypatch
+):
+    _, _, row = await _scan(env, tmp_path)
+
+    async def unavailable(session, force=False):
+        return {
+            "available": False,
+            "why": "Claude Code is not signed in on this computer.",
+        }
+
+    monkeypatch.setattr(repo_scan, "ai_status", unavailable)
+    r = await env["c"].post(f"/ai/scans/{row.id}/ai", json={})
+    assert r.status_code == 422
+    assert "not signed in" in r.json()["detail"]
+    scan = (await env["c"].get(f"/ai/scans/{row.id}")).json()
+    assert scan["ai_available"] is False
+    assert scan["ai_unavailable_why"].startswith("Claude Code is not signed in")
+
+
+async def test_cancel_stops_a_running_trial(env, tmp_path):
+    _, _, row = await _scan(env, tmp_path)
+    c = env["c"]
+    r = await c.post(
+        f"/ai/scans/{row.id}/try",
+        json={"commands": {"prepare": "", "test": "sleep 30"}, "env_path": []},
+    )
+    assert r.status_code == 200, r.text
+    for _ in range(100):
+        scan = (await c.get(f"/ai/scans/{row.id}")).json()
+        if (scan["trial"].get("test") or {}).get("status") == "running":
+            break
+        await asyncio.sleep(0.1)
+    r = await c.post(f"/ai/scans/{row.id}/cancel")
+    scan = r.json()
+    assert scan["job"]["state"] == "cancelled"
+    assert scan["job"]["elapsed_s"] < 20
+    assert scan["trial"]["test"]["status"] == "not_run"
+    assert scan["trial"]["test"]["reason"] == "Cancelled."
+
+
+async def test_one_rows_run_keeps_the_others_results(env, tmp_path):
+    _, _, row = await _scan(env, tmp_path)
+    c = env["c"]
+    await c.post(
+        f"/ai/scans/{row.id}/try",
+        json={"commands": {"test": "true", "lint": "exit 1"}, "env_path": []},
+    )
+    first = await _until_done(c, row.id)
+    assert first["trial"]["lint"]["status"] == "fails"
+    await c.post(
+        f"/ai/scans/{row.id}/try",
+        json={"commands": {"test": "true", "lint": "true"}, "only": ["lint"]},
+    )
+    second = await _until_done(c, row.id)
+    assert second["trial"]["lint"]["status"] == "works"
+    assert second["trial"]["test"]["status"] == "works"  # kept from the first run
+
+
+async def test_apply_saves_the_environment_and_the_checks_that_are_off(
+    env, tmp_path, fake_install
+):
+    _, _, row = await _scan(env, tmp_path)
+    out = (
+        await env["c"].post(
+            f"/ai/scans/{row.id}/apply",
+            json={
+                "team": [],
+                "commands": {"test": "npm test", "lint": "npm run lint"},
+                "env_path": ["/opt/homebrew/bin", " "],
+                "checks_off": ["test", "nope"],
+            },
+        )
+    ).json()
+    assert out["settings"]["env_path"] == ["/opt/homebrew/bin"]
+    assert out["settings"]["checks_off"] == ["test"]
+
+
+async def test_a_folder_the_members_could_not_work_in_is_refused_at_step_one(
+    env, tmp_path, monkeypatch
+):
+    """Create would skip every member made for it (services/ai/paths.py), so the scan says so first."""
+    from services.ai import paths
+
+    monkeypatch.setenv(paths.ROOTS_ENV, str(tmp_path / "work"))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    pid, _ = await _project(env["c"])
+    repo = _repo(tmp_path / "elsewhere" / "r")
+    r = await env["c"].post(
+        f"/projects/{pid}/ai/scan", json={"folder": str(repo), "trial": False}
+    )
+    assert r.status_code == 422
+    assert "inside your home folder" in r.json()["detail"]
+    assert str(repo) in r.json()["detail"]
+    ok = _repo(tmp_path / "work" / "r")
+    r = await env["c"].post(
+        f"/projects/{pid}/ai/scan", json={"folder": str(ok), "trial": False}
+    )
+    assert r.status_code == 201, r.text

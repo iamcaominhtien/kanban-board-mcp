@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ICONS, SIcon, SettingsCard } from './settings/settingsUi';
 import styles from './settings/SettingsPage.module.css';
 
 type Result =
@@ -39,42 +40,65 @@ export function UpdateSettingsSection() {
     else setResult(res.info ? { kind: 'available', version: res.info.version } : { kind: 'latest' });
   };
 
+  const status =
+    result?.kind === 'latest'
+      ? { ok: true, text: 'Up to date' }
+      : result?.kind === 'error'
+        ? { ok: false, text: result.automatic ? 'Last check failed' : "Couldn't check" }
+        : null;
+
   return (
-    <div className={styles.section} data-testid="update-settings">
-      <span className={styles.sectionTitle}>Updates</span>
-      <div className={styles.hint}>
-        Installed version: <span className={styles.code}>{version ?? '…'}</span>
-        {' · '}
-        {lastCheck ? `Last checked ${formatCheckedAt(lastCheck.at)}` : 'Not checked yet'}
-      </div>
-      <div className={styles.hint}>
-        Kanban Board looks for a new version when it starts and every 6 hours. If the download in the app does not work,
-        get the installer from the releases page.
-      </div>
-      <div className={styles.inputRow}>
+    <SettingsCard
+      title="Updates"
+      hint={
+        <>
+          Installed version <span className={styles.code}>{version ?? '…'}</span>
+          {' · '}
+          {lastCheck ? `last checked ${formatCheckedAt(lastCheck.at)}` : 'not checked yet'}. Kanban Board looks for a
+          new version when it starts and every 6 hours.
+        </>
+      }
+      setting="updates"
+      status={status}
+      testId="update-settings"
+    >
+      <div className={styles.row}>
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}
           disabled={checking}
           onClick={() => void check()}
         >
+          <SIcon d={ICONS.updates} size={14} />
           {checking ? 'Checking…' : 'Check for updates'}
         </button>
         <button type="button" className={styles.btn} onClick={() => void api.openReleasesPage?.()}>
-          Open releases page ↗
+          <SIcon d={ICONS.external} size={14} />
+          Release notes
         </button>
       </div>
-      {result?.kind === 'latest' && <span className={styles.statusOk}>✓ You're on the latest version.</span>}
-      {result?.kind === 'available' && (
+      {result?.kind === 'latest' && (
         <span className={styles.statusOk}>
-          ✓ Version {result.version} is available. Download it from the notice in the corner.
+          <SIcon d={ICONS.checkCircle} size={13} width={2.2} />
+          You are on the latest version.
         </span>
+      )}
+      {result?.kind === 'available' && (
+        <div className={`${styles.notice} ${styles.noticeWarn}`} role="status">
+          <SIcon d={ICONS.updates} size={15} stroke="#B4791E" />
+          <span>
+            <b>Version {result.version} is available.</b> Download it from the notice in the corner.
+          </span>
+        </div>
       )}
       {result?.kind === 'error' && (
         <span className={styles.statusErr}>
-          ✗ {result.automatic ? 'The last update check failed' : "Couldn't check for updates"}: {result.message}
+          {result.automatic ? 'The last update check failed' : "Couldn't check for updates"}: {result.message}
         </span>
       )}
-    </div>
+      <div className={styles.hint}>
+        If the download in the app does not work, get the installer from the releases page.
+      </div>
+    </SettingsCard>
   );
 }

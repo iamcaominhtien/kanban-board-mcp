@@ -3,37 +3,48 @@ import { client } from '../../api/client';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import { useSettings, useSetDataPath } from '../../api/settings';
 import { WorkspaceSettingsSection } from './WorkspaceSettingsSection';
+import { Field, ICONS, SIcon, SettingsCard } from './settingsUi';
 import styles from './SettingsPage.module.css';
 
-/** Storage & backup: data folder, workspace, export and import (import confirms inline). */
+type Status = { ok: boolean; text: string } | null;
+
+/** Storage & backup: data folder, workspace, export and import (design/screens/settings-pages.md F, H). */
 export function StoragePage() {
   const { data: settings, isLoading } = useSettings();
   const setDataPath = useSetDataPath();
-  const [folderInput, setFolderInput] = useState('');
-  const [folderStatus, setFolderStatus] = useState<string | null>(null);
-  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [folderInput, setFolderInput] = useState<string | null>(null);
+  const [folderStatus, setFolderStatus] = useState<Status>(null);
+  const [folderWarning, setFolderWarning] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<{ kind: 'ok' | 'err' | 'busy'; text: string } | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [pendingImport, setPendingImport] = useState<File | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const isElectron = !!(window as any).electronAPI?.selectFolder;
 
+  const current = settings?.dataFolder ?? '';
+  const folder = folderInput ?? current;
+  const changed = folderInput !== null && folderInput.trim() !== '' && folderInput.trim() !== current;
+
   async function handleBrowse() {
-    const folder = await (window as any).electronAPI?.selectFolder?.();
-    if (folder) setFolderInput(folder);
+    const picked = await (window as any).electronAPI?.selectFolder?.();
+    if (picked) {
+      setFolderInput(picked);
+      setFolderStatus(null);
+    }
   }
 
   async function handleApplyFolder() {
-    const path = folderInput.trim();
+    const path = folder.trim();
     if (!path) return;
     setFolderStatus(null);
+    setFolderWarning(null);
     try {
       const result = await setDataPath.mutateAsync(path);
-      let msg = '✓ Data folder updated successfully.';
-      if ((result as any)?.warning) msg += ` ⚠️ ${(result as any).warning}`;
-      setFolderStatus(msg);
-      setFolderInput('');
+      setFolderStatus({ ok: true, text: 'Saved' });
+      if ((result as any)?.warning) setFolderWarning((result as any).warning);
+      setFolderInput(null);
     } catch (e: any) {
-      setFolderStatus(`Error: ${e?.response?.data?.detail ?? e?.message ?? 'Failed'}`);
+      setFolderStatus({ ok: false, text: e?.response?.data?.detail ?? e?.message ?? 'Could not change the folder' });
     }
   }
 
@@ -64,7 +75,7 @@ export function StoragePage() {
     e.target.value = '';
     if (!file) return;
     if (!file.name.endsWith('.zip')) {
-      setImportStatus('Error: Only .zip files are accepted.');
+      setImportStatus({ kind: 'err', text: 'Only .zip files are accepted.' });
       return;
     }
     setImportStatus(null);
@@ -75,89 +86,107 @@ export function StoragePage() {
     const file = pendingImport;
     if (!file) return;
     setPendingImport(null);
-    setImportStatus('Importing...');
+    setImportStatus({ kind: 'busy', text: 'Importing…' });
     try {
       const formData = new FormData();
       formData.append('file', file);
       await client.post('/data/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setImportStatus('✓ Import successful. The page will reload.');
+      setImportStatus({ kind: 'ok', text: 'Import successful. The page will reload.' });
       setTimeout(() => window.location.reload(), 1500);
     } catch (err: any) {
-      setImportStatus(`Error: ${err?.response?.data?.detail ?? err?.message ?? 'Import failed'}`);
+      setImportStatus({ kind: 'err', text: err?.response?.data?.detail ?? err?.message ?? 'Import failed' });
     }
   }
 
   return (
     <>
-      <div className={styles.section} data-setting="data-folder">
-        <span className={styles.sectionTitle}>Data folder</span>
-        <div className={styles.hint}>
-          Where tickets, attachments and the database are stored. Current:{' '}
-          <span className={styles.code}>{isLoading ? 'Loading…' : settings?.dataFolder || 'Default'}</span>
-        </div>
-        <div className={styles.inputRow}>
+      <SettingsCard
+        title="Data folder"
+        hint="Where tickets, attachments and the database are stored."
+        setting="data-folder"
+        status={folderStatus}
+      >
+        <Field
+          label="Current folder"
+          htmlFor="data-folder-input"
+          hint={changed ? 'Apply moves the database and attachments to the new folder.' : undefined}
+        >
           <input
-            className={styles.input}
+            id="data-folder-input"
+            className={`${styles.input} ${styles.mono}`}
             type="text"
-            aria-label="New data folder path"
-            placeholder="New folder path (e.g. /Users/you/kanban-data)"
-            value={folderInput}
+            aria-label="Data folder path"
+            placeholder={isLoading ? 'Loading…' : '/Users/you/kanban-data'}
+            value={folder}
             onChange={(e) => {
               setFolderInput(e.target.value);
               setFolderStatus(null);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && changed) void handleApplyFolder();
+            }}
           />
+        </Field>
+        <div className={styles.row}>
           {isElectron && (
             <button type="button" className={styles.btn} onClick={handleBrowse}>
+              <SIcon d={ICONS.folder} size={14} />
               Browse…
             </button>
           )}
-        </div>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnPrimary}`}
-          style={{ alignSelf: 'flex-start' }}
-          disabled={!folderInput.trim() || setDataPath.isPending}
-          onClick={handleApplyFolder}
-        >
-          {setDataPath.isPending ? 'Moving…' : 'Apply'}
-        </button>
-        {folderStatus && (
-          <span className={folderStatus.startsWith('✓') ? styles.statusOk : styles.statusErr}>{folderStatus}</span>
-        )}
-      </div>
-
-      <div data-setting="workspace">
-        <WorkspaceSettingsSection />
-      </div>
-
-      <div className={styles.section} data-setting="export">
-        <span className={styles.sectionTitle}>Import and export</span>
-        <div className={styles.hint} data-setting="import">
-          Export all data (database and attachments) as a ZIP. Use the same file to restore. Workspace files are not
-          included; they live outside the data folder on purpose.
-        </div>
-        <div className={styles.inputRow}>
-          <button type="button" className={styles.btn} onClick={handleExport}>
-            ⬇ Export data
-          </button>
           <button
             type="button"
-            className={`${styles.btn} ${styles.btnDangerOutline}`}
-            onClick={() => importRef.current?.click()}
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            disabled={!changed || setDataPath.isPending}
+            onClick={handleApplyFolder}
           >
-            ⬆ Import data…
+            {setDataPath.isPending ? 'Moving…' : 'Apply'}
+          </button>
+          {changed && (
+            <button type="button" className={styles.btn} onClick={() => setFolderInput(null)}>
+              Cancel
+            </button>
+          )}
+        </div>
+        {folderWarning && (
+          <div className={`${styles.notice} ${styles.noticeWarn}`} role="status">
+            <SIcon d={ICONS.alert} size={15} stroke="#B4791E" />
+            <span>
+              <b>Data folder updated.</b> {folderWarning}
+            </span>
+          </div>
+        )}
+      </SettingsCard>
+
+      <WorkspaceSettingsSection />
+
+      <SettingsCard
+        title="Import and export"
+        hint="Export all data (database and attachments) as a ZIP. Use the same file to restore."
+        setting="export"
+      >
+        <div className={styles.row} data-setting="import">
+          <button type="button" className={styles.btn} onClick={handleExport}>
+            <SIcon d={ICONS.download} size={14} />
+            Export data
+          </button>
+          <button type="button" className={styles.btn} onClick={() => importRef.current?.click()}>
+            <SIcon d={ICONS.upload} size={14} />
+            Import data…
           </button>
           <input ref={importRef} type="file" accept=".zip" style={{ display: 'none' }} onChange={handlePickImport} />
         </div>
         {pendingImport && (
           <div className={styles.confirmBox} role="alertdialog" aria-label="Confirm import">
-            <strong>Import will replace all current data</strong>
+            <span className={styles.confirmTitle}>
+              <SIcon d={ICONS.alert} size={16} stroke="#C4432A" />
+              Import will replace all current data
+            </span>
             <span>
               Tickets, projects, members and attachments. This cannot be undone. Export first if you are not sure. File:{' '}
               <span className={styles.code}>{pendingImport.name}</span>
             </span>
-            <div className={styles.inputRow}>
+            <div className={styles.row}>
               <button type="button" className={styles.btn} onClick={() => setPendingImport(null)}>
                 Cancel
               </button>
@@ -171,17 +200,21 @@ export function StoragePage() {
         {importStatus && (
           <span
             className={
-              importStatus.startsWith('✓')
+              importStatus.kind === 'ok'
                 ? styles.statusOk
-                : importStatus === 'Importing...'
+                : importStatus.kind === 'busy'
                   ? styles.statusInfo
                   : styles.statusErr
             }
+            role="status"
           >
-            {importStatus}
+            {importStatus.text}
           </span>
         )}
-      </div>
+        <div className={styles.hint}>
+          Workspace files are not included; they live outside the data folder on purpose.
+        </div>
+      </SettingsCard>
     </>
   );
 }

@@ -42,7 +42,7 @@ from models import (
     TicketUpdate,
 )
 
-from . import flags, ops
+from . import flags, ops, project_env
 from .store import get_settings, loads
 
 logger = logging.getLogger(__name__)
@@ -1136,11 +1136,15 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
             row = await session.get(AiTicketStep, step_id)
             wf = await session.get(AiTicketWorkflow, ticket_id)
             settings = await get_settings(session, wf.project_id)
+            cfg = ops.get(settings)
+            # a command saved but not a check yet (the repository's own tests already fail, say) stays out
+            off = set(cfg.get("checks_off") or [])
             cmds = {
                 k: v
-                for k, v in (ops.get(settings).get("commands") or {}).items()
-                if (v or "").strip()
+                for k, v in (cfg.get("commands") or {}).items()
+                if (v or "").strip() and k not in off
             }
+            run_env = project_env.with_path(None, project_env.extra(settings))
             from models import AiWorktree
 
             wt = await session.get(AiWorktree, ticket_id)
@@ -1203,6 +1207,7 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
                     encoding="utf-8",
                     errors="replace",
                     timeout=20 * 60,
+                    env=run_env,
                 )
                 tail = (
                     ((res.stdout or "") + (res.stderr or "")).strip().splitlines()[-15:]
