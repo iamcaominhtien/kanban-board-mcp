@@ -151,3 +151,6 @@ def test_an_outside_agent_is_told_where_the_guides_are():
 
     text = kanban_mcp.build_instructions(True)
     assert "docs_read(guides)" in text and len(text) < 10_000
+    # and the core rules themselves, as a board run has them in its prompt
+    for rule in shared_skills.CORE_RULES:
+        assert rule in text

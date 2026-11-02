@@ -197,6 +197,10 @@ def _entry_time(entry: dict) -> datetime | None:
 
 
 DEFAULT_ACTIVITY_ENTRIES = 10
+_HOW_TO_WORK = (
+    "Before you work on this ticket, read docs_read(action='guides') once: how to work a ticket here, show proof, "
+    "ask, brainstorm, check your work as its user would, and make office files."
+)
 _ACTIVITY_TEXT_CLIP = 300
 
 
@@ -296,6 +300,10 @@ async def get_ticket(
             data["comments"] = viewed["comments"]
             if viewed["held_back"]:
                 data["comments_held_back"] = viewed["held_back"]
+        else:
+            # an agent outside a board run has no prompt from the board: it skipped the instructions' mention of the
+            # guides, but reads what a tool returns (issue #277)
+            data["how_to_work"] = _HOW_TO_WORK
         files = _upload_files(data)
         if files:
             data["files"] = files

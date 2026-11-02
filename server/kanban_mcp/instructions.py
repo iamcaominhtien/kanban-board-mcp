@@ -55,6 +55,9 @@ from a folder; a person sees before and after and accepts or rejects. You never 
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 - Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, brainstorm, check as the user would, office files).
 
+Working a ticket (the same rules every AI on the board follows)
+{core_rules}
+
 Conventions
 - Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it; docs_read(permissions_guide) says what you may do and what needs a person.
 - Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).
@@ -70,8 +73,13 @@ def build_instructions(include_ideas: bool | None = None) -> str:
     """The server instructions sent on connect (they only mention the Idea Space when its tools are exposed)."""
     if include_ideas is None:
         include_ideas = ideas_enabled()
+    from services import shared_skills
+
+    # an outside agent skipped a mention of the guides three times, even one in get_ticket's result: the few rules
+    # that matter most ride here, as they ride in every board run's prompt (issue #277)
     tail = _INSTRUCTIONS_TAIL.format(
         ideas_null="",
+        core_rules="\n".join(f"- {r}" for r in shared_skills.CORE_RULES),
     )
     # The canvas design guide is too long to ride here (Claude Code keeps the first 10,000 characters of a server's
     # instructions and drops the rest): it is the canvas-design skill in every Claude Code run, and docs_read
