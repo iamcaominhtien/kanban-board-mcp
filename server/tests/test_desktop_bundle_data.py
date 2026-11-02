@@ -58,9 +58,8 @@ def _data_files() -> list[Path]:
 
 def test_every_services_data_file_is_bundled_at_its_own_path(datas):
     files = _data_files()
-    assert any(
-        p.name == "guide.md" for p in files
-    )  # the folder 3.27.0 left out is seen by this test
+    # the folder 3.27.0 left out is seen by this test
+    assert any(p.name == "guide.md" for p in files)
     wrong = {
         str(p.relative_to(SERVER)): _bundled_as(p, datas)
         for p in files
