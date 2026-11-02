@@ -21,7 +21,18 @@ DESCRIPTION = (
 )
 
 # the files the skill ships beside its SKILL.md, by suffix; sample.html and the .pptx are what a run copies from
-_SHIP = {".py", ".css", ".json", ".html", ".pptx", ".jpg", ".png", ".svg", ".mp4", ".gif"}
+_SHIP = {
+    ".py",
+    ".css",
+    ".json",
+    ".html",
+    ".pptx",
+    ".jpg",
+    ".png",
+    ".svg",
+    ".mp4",
+    ".gif",
+}
 
 
 def themes() -> list[dict]:
@@ -29,7 +40,14 @@ def themes() -> list[dict]:
     out = []
     for p in sorted((HERE / "themes").glob("*/content.json")):
         c = json.loads(p.read_text())
-        out.append({"key": p.parent.name, "label": c["label"], "for": c.get("for", ""), "fonts": c["fonts"]})
+        out.append(
+            {
+                "key": p.parent.name,
+                "label": c["label"],
+                "for": c.get("for", ""),
+                "fonts": c["fonts"],
+            }
+        )
     return out
 
 
@@ -54,6 +72,10 @@ def files() -> dict[str, bytes]:
             continue
         for p in sorted(root.rglob("*")):
             rel = p.relative_to(HERE)
-            if p.is_file() and p.suffix in _SHIP and not any(part.startswith((".", "__")) for part in rel.parts):
+            if (
+                p.is_file()
+                and p.suffix in _SHIP
+                and not any(part.startswith((".", "__")) for part in rel.parts)
+            ):
                 out[str(rel)] = p.read_bytes()
     return out

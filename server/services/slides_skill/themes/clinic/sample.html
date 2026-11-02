@@ -1,5 +1,7 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Clinic · Y tế</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Manrope:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"><style>/* The layouts every theme shares. A theme sets the variables and adds its own signature (themes/<key>/theme.css).
-   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint. */
+   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint.
+   The variables live on section.slide: a theme that changes them for one layout writes `section.slide.l-cover`
+   (a plain `.l-cover` is less specific and loses). Use weights 400 to 800: lighter cuts are rarely installed. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { background: #7a7a7a; }
 body { font-family: var(--font-body); color: var(--ink); -webkit-font-smoothing: antialiased; }
@@ -8,7 +10,7 @@ aside.notes { display: none; }
 section.slide {
   --pad: 88px;
   width: 1280px; height: 720px; position: relative; overflow: hidden; margin: 0 auto 24px;
-  background: var(--ground); color: var(--ink);
+  background: var(--ground); color: var(--ink); font-family: var(--font-body);
   font-size: var(--body-size, 22px); line-height: 1.4;
   font-feature-settings: "lnum", "tnum";
 }
@@ -78,11 +80,11 @@ section.slide {
 
 /* Steps or a timeline */
 .l-steps .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
-.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 250px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 300px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
 .l-steps .step { border-top: 2px solid var(--rule-strong, var(--ink)); padding-top: 18px; }
 .l-steps .step .when { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
-.l-steps .step h3 { margin-top: 10px; font-size: 25px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
-.l-steps .step p { margin-top: 10px; font-size: 18px; line-height: 1.45; color: var(--muted); }
+.l-steps .step h3 { margin-top: 12px; font-size: 30px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
+.l-steps .step p { margin-top: 12px; font-size: 20px; line-height: 1.45; color: var(--muted); }
 
 /* A quote */
 .l-quote .mark { position: absolute; left: var(--pad); top: 70px; font-family: var(--font-display); font-size: 200px; line-height: 1; color: var(--accent); }

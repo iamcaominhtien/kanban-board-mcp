@@ -231,7 +231,9 @@ def _font(name: str, weight: int, swap: dict[str, str]) -> tuple[str, bool]:
     """The font name and bold flag PowerPoint needs. PowerPoint has only regular and bold: another weight of an
     installed font family is its own name ("Be Vietnam Pro ExtraBold"), as Windows and Office list it."""
     name = swap.get(name, name)
-    w = round(weight / 100) * 100
+    w = max(
+        400, round(weight / 100) * 100
+    )  # a light cut is rarely installed: regular is drawn instead
     if name.lower() in _OFFICE or w in (400, 700) or w not in _WEIGHT:
         return name, w >= 600
     return f"{name} {_WEIGHT[w]}", False
@@ -266,6 +268,10 @@ def _chart(slide, c: dict) -> None:
     ).chart
     chart.has_title = False
     chart.has_legend = len(spec["series"]) > 1
+    ink = spec.get("label_color") or spec.get("ink")
+    if chart.has_legend and ink:
+        chart.legend.font.color.rgb = RGBColor.from_string(ink.lstrip("#"))
+        chart.legend.include_in_layout = False
     chart.font.name = spec.get("font", "Calibri")
     chart.font.size = Pt(spec.get("size", 14))
     muted = RGBColor.from_string(spec.get("muted", "6B7280").lstrip("#"))
@@ -277,6 +283,8 @@ def _chart(slide, c: dict) -> None:
         ca.format.line.fill.background()
         ca.tick_labels.font.color.rgb = muted
         chart.plots[0].gap_width = spec.get("gap", 50)
+        if kind == XL_CHART_TYPE.BAR_CLUSTERED:
+            ca.reverse_order = True  # PowerPoint draws bars bottom up: keep the first category on top, as written
         # category names at the bottom edge, so a negative bar does not cover its name
         ca.tick_label_position = XL_TICK_LABEL_POSITION.LOW
     colors = spec.get("colors") or []

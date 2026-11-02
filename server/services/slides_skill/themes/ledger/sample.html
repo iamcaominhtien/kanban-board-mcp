@@ -1,5 +1,7 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Ledger · Báo cáo kinh doanh</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"><style>/* The layouts every theme shares. A theme sets the variables and adds its own signature (themes/<key>/theme.css).
-   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint. */
+   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint.
+   The variables live on section.slide: a theme that changes them for one layout writes `section.slide.l-cover`
+   (a plain `.l-cover` is less specific and loses). Use weights 400 to 800: lighter cuts are rarely installed. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { background: #7a7a7a; }
 body { font-family: var(--font-body); color: var(--ink); -webkit-font-smoothing: antialiased; }
@@ -8,7 +10,7 @@ aside.notes { display: none; }
 section.slide {
   --pad: 88px;
   width: 1280px; height: 720px; position: relative; overflow: hidden; margin: 0 auto 24px;
-  background: var(--ground); color: var(--ink);
+  background: var(--ground); color: var(--ink); font-family: var(--font-body);
   font-size: var(--body-size, 22px); line-height: 1.4;
   font-feature-settings: "lnum", "tnum";
 }
@@ -78,11 +80,11 @@ section.slide {
 
 /* Steps or a timeline */
 .l-steps .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
-.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 250px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 300px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
 .l-steps .step { border-top: 2px solid var(--rule-strong, var(--ink)); padding-top: 18px; }
 .l-steps .step .when { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
-.l-steps .step h3 { margin-top: 10px; font-size: 25px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
-.l-steps .step p { margin-top: 10px; font-size: 18px; line-height: 1.45; color: var(--muted); }
+.l-steps .step h3 { margin-top: 12px; font-size: 30px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
+.l-steps .step p { margin-top: 12px; font-size: 20px; line-height: 1.45; color: var(--muted); }
 
 /* A quote */
 .l-quote .mark { position: absolute; left: var(--pad); top: 70px; font-family: var(--font-display); font-size: 200px; line-height: 1; color: var(--accent); }
@@ -107,11 +109,11 @@ section.slide {
 /* the account-book rule: two hairlines across the top of every slide but the cover */
 section.slide:not(.l-cover)::before { content: ""; position: absolute; left: var(--pad); right: var(--pad); top: 40px;
   height: 4px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); opacity: .55; }
-.l-cover { --ground: #15213B; --ink: #F6F2EA; --muted: #B7BDC9; }
+section.slide.l-cover { --ground: #15213B; --ink: #F6F2EA; --muted: #B7BDC9; }
 .l-cover .eyebrow { color: #E9A08F; }
 .l-number .num, .l-section .num { color: var(--ink); }
 .l-number .num em { font-style: normal; color: var(--accent); }
-.l-quote { --ground: #EFE8DB; }
+section.slide.l-quote { --ground: #EFE8DB; }
 .l-agenda li .n { font-feature-settings: "lnum"; }
 </style></head><body><section class="slide l-cover"><div class="eyebrow">Sao Mai · Báo cáo quý 3/2026</div><h1 class="title">Doanh thu tăng 18%, nhờ khách quay lại</h1><p class="lede">Họp ban giám đốc, 12/10/2026. Bốn con số, hai việc cần quyết.</p><div class="art"><svg width='460' height='720' viewBox='0 0 460 720'><rect width='460' height='720' fill='#C2412A'/><g stroke='#F6F2EA' stroke-opacity='.28'><line x1='0' y1='120' x2='460' y2='120'/><line x1='0' y1='126' x2='460' y2='126'/><line x1='0' y1='600' x2='460' y2='600'/></g><text x='40' y='520' font-family='Source Serif 4' font-weight='600' font-size='300' fill='#F6F2EA' letter-spacing='-12'>Q3</text><text x='44' y='180' font-family='Inter' font-size='15' font-weight='700' letter-spacing='3' fill='#F6F2EA' fill-opacity='.8'>2026</text></svg></div><aside class="notes"></aside></section>
 <section class="slide l-agenda"><h2 class="title">Hôm nay bàn bốn việc</h2><ol><li><span class="n">01</span><span class="t">Kết quả quý 3<span class="d">Doanh thu, lợi nhuận, khách hàng</span></span></li><li><span class="n">02</span><span class="t">Vì sao khách quay lại<span class="d">Chương trình thành viên sau 6 tháng</span></span></li><li><span class="n">03</span><span class="t">Hai hướng cho quý 4<span class="d">Mở chi nhánh hay đẩy bán online</span></span></li><li><span class="n">04</span><span class="t">Việc cần quyết hôm nay<span class="d">Ngân sách và người phụ trách</span></span></li></ol><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>02</span></div></section>
