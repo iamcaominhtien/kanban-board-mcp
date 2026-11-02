@@ -4,6 +4,8 @@
 
 > **Extended by [AI operations](ai-operations.md)** (wave 1 of `docs/specs/ai-claude-code-plan.md`) — the run inspector’s *Open the run* leads to the run detail designed in section G.
 
+> **Extended by [Story, Flow by scope and Live commentary](ai-story-flow.md)** — the scope button in the Timeline header is replaced by the Flow scope bar (section G). Inside a Story the Timeline is one row per child ticket, the PM on top (section I2), and the button *Open ticket story* is renamed *Open ticket flow* because Story is now a ticket type.
+
 A second way to read Flow: a sequence diagram of the AI team. Each AI is a lifeline, time runs down, and every hand-off, report back, question and approval is an arrow. It shows who did what and when, where the waiting is, and what is happening now, with detail on hover and click.
 
 Source: [AiTimeline.dc.html](../source/AiTimeline.dc.html) › header ("SCREEN — V1 PROPOSAL", "AI Team — Flow, the Timeline view" and the intro)
