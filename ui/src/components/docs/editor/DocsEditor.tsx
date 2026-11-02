@@ -15,7 +15,7 @@ import { client } from '../../../api/client';
 import { docsKeys } from '../../../api/docs';
 import { useProject } from '../../../api/projects';
 import { resolveOrigin } from '../../../api/resolveOrigin';
-import { uploadDescriptionImage, useTickets } from '../../../api/tickets';
+import { uploadAnyFile, uploadDescriptionImage, useTickets } from '../../../api/tickets';
 import type { DocsPage, DocsTreeNode } from '../../../types/docs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../Toast';
@@ -114,6 +114,10 @@ interface Props {
 }
 
 const EMIT_MS = 180;
+
+/** The picture types the image upload takes (server/uploads.py); every other file is attached as a link. */
+const PICTURE_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+const isPicture = (file: File) => PICTURE_TYPES.has(file.type);
 // stable props: a new object on every render makes the drag handle re-register its ProseMirror plugin,
 // which tears down the "/" and "[[" suggestion views while they are open
 const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const;
@@ -193,6 +197,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const resolver = useMemo(() => new RefResolver(projectId), [projectId]);
   const hostRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const attachRef = useRef<HTMLInputElement>(null);
   const [linkOpen, setLinkOpen] = useState(false);
 
   const aiSlash = useMemo(
@@ -229,6 +234,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   };
   const editorRef = useRef<Editor | null>(null);
   const pickImage = useCallback(() => fileRef.current?.click(), []);
+  const pickFile = useCallback(() => attachRef.current?.click(), []);
 
   // draw.io: /diagram starts a drawing, a dropped .drawio/.svg file opens in the editor layer first
   const insertDiagram = useCallback((md: string) => {
@@ -295,6 +301,11 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const uploadImage = useCallback(async (file: File, at?: number) => {
     const ed = editorRef.current;
     if (!ed) return;
+    // Anything that is not a picture (an Excel sheet picked with "All files", a PDF) is attached as a file instead
+    if (!isPicture(file)) {
+      await uploadFileRef.current(file, at);
+      return;
+    }
     try {
       const res = await uploadDescriptionImage(file);
       const src = res.url.startsWith('/uploads/') ? `${resolveOrigin()}${res.url}` : res.url;
@@ -308,6 +319,26 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       );
     }
   }, []);
+
+  // Any other file (Excel, Word, PDF, zip…): stored like a ticket attachment and inserted as a link to it, which
+  // the page shows as a file card (DocsMarkdown) and opens in the viewer on double-click.
+  const uploadFile = useCallback(async (file: File, at?: number) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    try {
+      const res = await uploadAnyFile(file);
+      const nodes = [
+        { type: 'text', text: res.name || file.name, marks: [{ type: 'link', attrs: { href: res.url } }] },
+        { type: 'text', text: ' ' },
+      ];
+      const chain = ed.chain().focus();
+      (at != null ? chain.insertContentAt(at, nodes) : chain.insertContent(nodes)).run();
+    } catch {
+      live.current.toast.error('Could not attach the file', 'Files up to 100 MB can be attached.');
+    }
+  }, []);
+  const uploadFileRef = useRef(uploadFile);
+  uploadFileRef.current = uploadFile;
 
   // AI in the text: /ai (a slash item), Ctrl+J, the selection bar. The hook is told how to read and write this editor.
   const aiAdapter = useMemo(() => tiptapAdapter(() => editorRef.current), []);
@@ -500,9 +531,16 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       },
       handlePaste: (_view, event) => {
         live.current.onUserInput?.();
-        const file = Array.from(event.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'));
-        if (!file) return false;
-        void uploadImage(file);
+        const files = Array.from(event.clipboardData?.files ?? []);
+        const image = files.find(isPicture);
+        if (image) {
+          void uploadImage(image);
+          return true;
+        }
+        if (!files.length) return false;
+        void (async () => {
+          for (const f of files) await uploadFile(f);
+        })();
         return true;
       },
       handleDrop: (view, event) => {
@@ -512,12 +550,14 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           void starterRef.current.startImport(diagramFile);
           return true;
         }
-        const file = Array.from((event as DragEvent).dataTransfer?.files ?? []).find((f) =>
-          f.type.startsWith('image/'),
-        );
-        if (!file) return false;
+        const files = Array.from((event as DragEvent).dataTransfer?.files ?? []);
+        if (!files.length) return false;
+        event.preventDefault();
         const at = view.posAtCoords({ left: (event as DragEvent).clientX, top: (event as DragEvent).clientY })?.pos;
-        void uploadImage(file, at);
+        void (async () => {
+          // in reverse, so each one lands at the drop point ahead of the ones after it
+          for (const f of [...files].reverse()) await (isPicture(f) ? uploadImage(f, at) : uploadFile(f, at));
+        })();
         return true;
       },
     },
@@ -650,6 +690,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             disabled={readOnly}
             onLink={openLink}
             onPickImage={pickImage}
+            onPickFile={pickFile}
             onSketch={sketchStarter.available ? () => void sketchStarter.start() : undefined}
             onCanvas={canvasStarter.available ? () => void canvasStarter.start() : undefined}
             ticketPrefix={ticketPrefix}
@@ -798,6 +839,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
               openAi: hasTextAi ? openAi : undefined,
               ai: aiSlash,
               pickImage,
+              pickFile,
               newDiagram: diagramStarter.startNew,
               newSketch: () => void sketchStarter.start(),
               newCanvas: () => void canvasStarter.start(),
@@ -839,6 +881,21 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             const f = e.target.files?.[0];
             e.target.value = '';
             if (f) void uploadImage(f);
+          }}
+        />
+        <input
+          ref={attachRef}
+          type="file"
+          multiple
+          hidden
+          aria-label="Attach a file"
+          data-testid="docs-attach-input"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            e.target.value = '';
+            void (async () => {
+              for (const f of files) await uploadFile(f);
+            })();
           }}
         />
       </div>

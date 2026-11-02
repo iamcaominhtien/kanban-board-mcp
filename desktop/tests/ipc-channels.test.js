@@ -56,3 +56,26 @@ test('the notifications API is exposed and its click channel is the one the main
   assert.match(main, /webContents\.send\('notifications:open'/);
   assert.match(main, /\.send\('notifications:open'/);
 });
+
+// A link the page opens in a new window (target=_blank: a web link in a Docs page, a ticket, a comment) must reach the
+// browser; a bare deny dropped it silently, so links "did not open" in the desktop app.
+test('a link opened in a new window goes to the browser, never to a second app window', () => {
+  const main = read('main.js');
+  const handler = main.match(/setWindowOpenHandler\(\(\{ url \}\) => \{([\s\S]*?)\n  \}\);/);
+  assert.ok(handler, 'setWindowOpenHandler takes the url');
+  assert.match(handler[1], /openExternalSafely\(shell, url\)/);
+  assert.match(handler[1], /return \{ action: 'deny' \}/);
+});
+
+// Settings › Diagrams offers the public draw.io editor; the window's policy blocked its frame, so "public" never opened.
+test('the window may frame the public draw.io editor, and nothing else on the internet', () => {
+  const frameSrc = read('main.js').match(/frame-src ([^;]*);/);
+  assert.ok(frameSrc, 'the policy has a frame-src');
+  // the exact list of sources, compared whole (not as substrings)
+  assert.deepEqual(frameSrc[1].trim().split(/\s+/), [
+    "'self'",
+    'http://127.0.0.1:*',
+    'http://localhost:*',
+    'https://embed.diagrams.net',
+  ]);
+});

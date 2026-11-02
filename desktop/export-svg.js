@@ -67,6 +67,15 @@ function decodeSvgData(data) {
 }
 
 /**
+ * What to say when the editor's page did not load: Electron's error reads "ERR_CONNECTION_REFUSED (-102) loading
+ * 'http://localhost:8080/clear.html'", which does not say that no draw.io editor is running at that address.
+ */
+function describeLoadError(err, editorUrl) {
+  const code = (err && err.code) || (/\bERR_[A-Z_]+\b/.exec(String(err && err.message)) || [])[0];
+  return `the draw.io editor at ${editorUrl} could not be reached (${code || (err && err.message) || err})`;
+}
+
+/**
  * Runs the export in a hidden window and returns the SVG text.
  * @param {object} electron  The `electron` module (injected so the pure helpers stay testable).
  */
@@ -82,7 +91,11 @@ async function exportSvg(electron, { xml, editorUrl, timeoutMs = EXPORT_TIMEOUT_
     callback({ cancel: !isAllowedUrl(details.url, editorUrl) });
   });
   try {
-    await win.loadURL(`${editorUrl}/clear.html`);
+    try {
+      await win.loadURL(`${editorUrl}/clear.html`);
+    } catch (err) {
+      throw new Error(describeLoadError(err, editorUrl));
+    }
     const script = `(${PAGE_SCRIPT})(${JSON.stringify(xml)}, ${JSON.stringify(editorUrl)}, ${timeoutMs})`;
     const data = await win.webContents.executeJavaScript(script, true);
     return decodeSvgData(data);
@@ -107,4 +120,12 @@ async function runExportCli(electron, args) {
   }
 }
 
-module.exports = { PAGE_SCRIPT, parseExportArgs, isAllowedUrl, decodeSvgData, exportSvg, runExportCli };
+module.exports = {
+  PAGE_SCRIPT,
+  parseExportArgs,
+  isAllowedUrl,
+  decodeSvgData,
+  describeLoadError,
+  exportSvg,
+  runExportCli,
+};

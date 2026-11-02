@@ -110,16 +110,17 @@ async def ticket_items(
         ItemKind, Field(description="Which list of the ticket to work on.")
     ],
     action: Annotated[
-        ItemAction,
+        ItemAction | None,
         Field(
-            description="add, update, delete, toggle (criterion, sub_task) or restore (comment)."
+            description="add, update, delete, toggle (criterion, sub_task) or restore (comment). Left out: add, or "
+            "update when item_id is given."
         ),
-    ],
+    ] = None,
     item_id: ItemId = None,
     text: Annotated[
         str | None,
         Field(
-            description="comment: Markdown, max 50,000 chars; @Name mentions a member, but only ai_team(ask) wakes an AI. criterion: one checkable condition, max 1,000 chars (e.g. 'Login fails with a clear message on a wrong password'). sub_task: one small step, max 500 chars."
+            description="comment: Markdown, max 50,000 chars; ![a](x.png)/[b](x.xlsx) by working-folder path attach (also work_log); @Name mentions a member, but only ai_team(ask) wakes an AI. criterion: one checkable condition, max 1,000 chars (e.g. 'Login fails with a clear message on a wrong password'). sub_task: one small step, max 500 chars."
         ),
     ] = None,
     author: Annotated[
@@ -207,13 +208,18 @@ async def ticket_items(
     - test_case: add (title [, status, description, expected_result, notes, proof, assignee]) gets a code 'TC-<n>' | update (item_id [, same fields + title]; typically status and proof after running it) | delete (item_id). With the ticket's 'Done requires: all test cases passed' guard on, it cannot move to 'done' until every test case is 'pass'."""
     given = params_of(locals())
     many = given.pop("items", None)
+
+    # AIs often leave `action` out of a work_log note (`ticket_items(item='work_log', note=...)`); that was refused
+    def act(extra: dict) -> str:
+        return action or ("update" if extra.get("item_id") or item_id else "add")
+
     if many is not None:
         return await batch(
-            lambda extra: _run_one(item, action, {**given, **extra}),
+            lambda extra: _run_one(item, act(extra), {**given, **extra}),
             many,
             keep_results=False,
         )
-    return await _run_one(item, action, given)
+    return await _run_one(item, act({}), given)
 
 
 async def _run_one(item: str, action: str, given: dict) -> dict:

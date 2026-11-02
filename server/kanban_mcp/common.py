@@ -34,16 +34,51 @@ def async_session():
 
 
 async def run_folder() -> str | None:
-    """The working folder of the AI run making this call (None for a person or another client)."""
-    from services.ai import guard
+    """The working folder of the AI run making this call (None for a person or another client): the ticket's
+    worktree when it has one, which is where the run works (services/ai/runs.py), else the member's folder. Paths an
+    AI writes (`qa/evidence/TC-1.png`) are from that folder; the member's folder alone missed every file a run made in
+    its worktree ("no such file", or "outside the working folder" for its absolute path)."""
+    from services.ai import guard, worktrees
 
     ctx = await guard.resolve()
     if ctx is None:
         return None
     async with async_session() as session:
         member = await session.get(AiMember, ctx.member_id)
+        wt = (
+            await worktrees.for_ticket(session, ctx.ticket_id)
+            if ctx.ticket_id
+            else None
+        )
+    if (
+        wt is not None
+        and wt.state in ("active", "conflict", "kept")
+        and os.path.isdir(wt.path)
+    ):
+        return wt.path
     folder = os.path.expanduser(member.working_dir or "") if member else ""
     return folder or None
+
+
+async def attach_from_run(
+    markdown: str | None, current: str | None = None
+) -> str | None:
+    """`markdown` written by an AI run with the pictures, and the documents it links (an Excel sheet, a PDF), named by
+    a path in its working folder copied into the board, as on a Docs page (services/proofs.py). A person's text, and
+    what `current` (the text being replaced) already named, stay as written."""
+    if not markdown or "](" not in markdown:
+        return markdown
+    folder = await run_folder()
+    if folder is None:
+        return markdown
+    import services.proofs as svc_proofs
+
+    return svc_proofs.localize(
+        markdown,
+        folder,
+        pictures_only=True,
+        keep=svc_proofs.targets(current) if current else frozenset(),
+    )
 
 
 # ---------------------------------------------------------------------------

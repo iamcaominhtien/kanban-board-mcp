@@ -124,6 +124,26 @@ def _is_local(target: str) -> bool:
     )
 
 
+# Files a person reads rather than code: a link to one of these on a Docs page, a comment or a work log is attached
+# when the file is in the run's working folder (a link to code or to another page stays a link)
+_DOCUMENTS = {
+    ".pdf", ".xlsx", ".xls", ".csv", ".tsv", ".docx", ".doc", ".pptx", ".ppt",
+    ".zip", ".tar", ".gz", ".rar", ".7z", ".log", ".txt", ".mp3", ".wav", ".ogg", ".mp4", ".webm",
+}  # fmt: skip
+
+
+def _present(target: str, folder: str) -> bool:
+    """The target names a file inside `folder` that exists (outside or missing: False)."""
+    base = Path(os.path.realpath(os.path.expanduser(folder)))
+    given = Path(os.path.expanduser(target.strip()))
+    path = Path(os.path.realpath(given if given.is_absolute() else base / given))
+    try:
+        path.relative_to(base)
+    except ValueError:
+        return False
+    return path.is_file()
+
+
 def targets(markdown: str | None) -> set[str]:
     """Every link and picture target the Markdown names."""
     return {m.group(2) for m in _REF.finditer(markdown or "")}
@@ -139,16 +159,25 @@ def localize(
     """Markdown with each picture or file named by a local path replaced by its copy in the uploads folder.
 
     Fenced code is left alone. Without a folder (a person, not an AI run) a local path is refused: the person attaches
-    the file in the editor instead. `pictures_only` copies pictures and leaves links as written (on a Docs page a link
-    may name another page). A target in `keep` that cannot be copied stays as written instead of being refused (what
+    the file in the editor instead. `pictures_only` copies pictures, and of the links only those to a document (an
+    Excel sheet, a PDF, a log, a zip) that is in the folder; other links stay as written (on a Docs page a link may name
+    another page). A target in `keep` that cannot be copied stays as written instead of being refused (what
     a page already held before this edit, such as an imported page's `images/…`)."""
     if not markdown or "](" not in markdown:
         return markdown
 
     def swap(match: re.Match) -> str:
         head, target, tail = match.groups()
-        if not _is_local(target) or (pictures_only and not head.startswith("!")):
+        if not _is_local(target):
             return match.group(0)
+        if pictures_only and not head.startswith("!"):
+            # a link: an Excel sheet or a PDF the run made is attached; anything else stays as written
+            if not (
+                folder
+                and Path(target).suffix.lower() in _DOCUMENTS
+                and _present(target, folder)
+            ):
+                return match.group(0)
         if not folder:
             raise ProofError(
                 f"{target}: a file is attached by path only from inside an AI run; "

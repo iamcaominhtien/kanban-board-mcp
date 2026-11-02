@@ -36,8 +36,15 @@ export const packsApi = {
     (await client.post<PackImportResult>(`/projects/${projectId}/ai/packs/import`, body)).data,
   makeMember: async (projectId: string, key: string, body: MakeMemberBody) =>
     (await client.post<AiMember>(`/projects/${projectId}/ai/packs/${key}/member`, body)).data,
-  scan: async (projectId: string, folder: string) =>
-    (await client.post<Scan>(`/projects/${projectId}/ai/scan`, { folder, trial: true })).data,
+  /** `tryCommands`: the prepare and test commands as the person edited them, tried instead of the suggestion's. */
+  scan: async (projectId: string, folder: string, tryCommands?: { prepare: string; test: string }) =>
+    (
+      await client.post<Scan>(`/projects/${projectId}/ai/scan`, {
+        folder,
+        trial: true,
+        ...(tryCommands ? { ...tryCommands, refine: false } : {}),
+      })
+    ).data,
   apply: async (scanId: string, body: ApplyBody) =>
     (await client.post<ApplyResult>(`/ai/scans/${scanId}/apply`, body)).data,
   memberPack: async (memberId: string) => (await client.get<MemberPack | null>(`/ai/members/${memberId}/pack`)).data,
@@ -98,7 +105,10 @@ export function useMakeMember(projectId: string) {
 
 /** Scan a folder and try its commands (creates nothing). */
 export function useScan(projectId: string) {
-  return useMutation({ mutationFn: (folder: string) => packsApi.scan(projectId, folder) });
+  return useMutation({
+    mutationFn: ({ folder, tryCommands }: { folder: string; tryCommands?: { prepare: string; test: string } }) =>
+      packsApi.scan(projectId, folder, tryCommands),
+  });
 }
 
 /** Create the team from an edited scan suggestion. */

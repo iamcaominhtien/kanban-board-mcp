@@ -22,7 +22,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Diagram, DiagramSettings, DiagramVersion, Project
-from services import activity, diagram_export, diagram_model
+from services import activity, diagram_export, diagram_model, drawio_bundle
 from services.docs_text import DocsError
 
 MAX_BYTES = 2 * 1024 * 1024  # per diagram: the .drawio source and the SVG preview each
@@ -611,24 +611,62 @@ async def restore_pins(session: AsyncSession, pins: dict[str, int]) -> None:
 # --- editor setting -----------------------------------------------------------------
 
 
-async def get_settings(session: AsyncSession) -> dict[str, Any]:
-    """Where the draw.io editor runs, with the address the browser should open."""
+async def get_settings(
+    session: AsyncSession, origin: str | None = None
+) -> dict[str, Any]:
+    """Where the draw.io editor runs, with the address the browser should open.
+
+    The editor shipped with the app (``built-in``, services/drawio_bundle.py) is the default when this install has
+    it, also for a self-hosted setting left at its default address: that address (http://localhost:8080) was only
+    ever an example, which nobody had started, so Edit spun and failed. ``origin`` is the board's address as the
+    caller sees it (a request's base URL); without it the board's own local address is used, and
+    ``effective_url`` is None for the built-in editor until that is known.
+    """
     row = await session.get(DiagramSettings, 1)
-    mode = row.mode if row else "self-hosted"
     url = (row.url if row else "").strip()
-    effective = PUBLIC_URL if mode == "public" else (url or SELF_HOSTED_DEFAULT)
+    mode = row.mode if row else "self-hosted"
+    built_in = drawio_bundle.available()
+    if mode == "built-in" or (built_in and mode == "self-hosted" and not url):
+        mode = "built-in"
+    if mode == "public":
+        effective: str | None = PUBLIC_URL
+    elif mode == "built-in":
+        effective = drawio_bundle.url(origin) if built_in else None
+    else:
+        effective = url or SELF_HOSTED_DEFAULT
     return {
         "mode": mode,
         "url": url,
-        "effective_url": effective.rstrip("/"),
+        "effective_url": effective.rstrip("/") if effective else None,
         "default_self_hosted_url": SELF_HOSTED_DEFAULT,
         "public_url": PUBLIC_URL,
+        "built_in_available": built_in,
+        "built_in_version": drawio_bundle.version(),
         "sends_drawings_to_third_party": mode == "public",
     }
 
 
+async def editor_check(
+    session: AsyncSession, origin: str | None = None
+) -> dict[str, Any]:
+    """Whether the editor answers at its address. The public editor is not probed (the browser loads it from the
+    internet), the built-in one is there when this install ships it; a self-hosted one is asked with a short TCP
+    connection."""
+    s = await get_settings(session, origin)
+    if s["mode"] == "public":
+        return {"mode": "public", "url": s["effective_url"], "reachable": True}
+    if s["mode"] == "built-in":
+        return {
+            "mode": "built-in",
+            "url": s["effective_url"],
+            "reachable": bool(s["effective_url"]),
+        }
+    ok = await diagram_export._reachable(s["effective_url"], timeout=1.5)
+    return {"mode": s["mode"], "url": s["effective_url"], "reachable": ok}
+
+
 async def set_settings(
-    session: AsyncSession, *, mode: str, url: str | None
+    session: AsyncSession, *, mode: str, url: str | None, origin: str | None = None
 ) -> dict[str, Any]:
     """Change where the editor runs. Admin only.
 
@@ -649,8 +687,16 @@ async def set_settings(
         raise DocsError(
             403, "admin_only", "Only an admin can change where the editor runs."
         )
-    if mode not in ("self-hosted", "public"):
-        raise DocsError(422, "invalid_mode", "mode must be self-hosted or public")
+    if mode not in ("built-in", "self-hosted", "public"):
+        raise DocsError(
+            422, "invalid_mode", "mode must be built-in, self-hosted or public"
+        )
+    if mode == "built-in" and not drawio_bundle.available():
+        raise DocsError(
+            422,
+            "no_built_in_editor",
+            "This install has no built-in draw.io editor; choose self-hosted or public.",
+        )
     clean = (url or "").strip()
     if clean and not re.match(r"^https?://[^\s/?#]+(/[^\s?#]*)?$", clean):
         raise DocsError(
@@ -661,7 +707,7 @@ async def set_settings(
     row.url = clean
     session.add(row)
     await session.commit()
-    return await get_settings(session)
+    return await get_settings(session, origin)
 
 
 # --- AI agent access: the .drawio file on disk ---------------------------------------------------
@@ -735,7 +781,11 @@ async def _preview(
         return _read_file(svg_path, "svg_path"), "agent"
     settings = await get_settings(session)
     if diagram_export.enabled(settings["mode"]):
-        exact = await diagram_export.export_svg(source, settings["effective_url"])
+        exact = (
+            await diagram_export.export_svg(source, settings["effective_url"])
+            if settings["effective_url"]
+            else None
+        )
         if exact:
             return exact, "editor"
     return diagram_model.render_svg(source), "basic"

@@ -12,7 +12,15 @@ import type { DocsRefRequest } from '../../types/docs';
 import { escapeStrayDollars } from '../../utils/mathDollars';
 import { markNeedsInput, NEEDS_INPUT_SCHEME } from '../../utils/writeRules';
 import type { ProposedMark } from '../../utils/docsProposalRules';
-import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
+import {
+  linkifyDocs,
+  pageRefKey,
+  parseDocRef,
+  remarkDocs,
+  slugify,
+  REF_SCHEME,
+  TICKET_SCHEME,
+} from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
 import { galleryAround, previewAttrs, usePreview } from '../preview/PreviewContext';
 import { highlight } from './docsHighlight';
@@ -191,6 +199,23 @@ function DocsImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
+/** The heading a `#section` link points at, in the page the link sits in (heading ids carry the `docs-` prefix). */
+function sectionOf(from: HTMLElement, href: string): HTMLElement | null {
+  let id = href.slice(1);
+  try {
+    id = decodeURIComponent(id);
+  } catch {
+    /* keep it as written */
+  }
+  const scope: ParentNode = from.closest('.dk-md') ?? document;
+  const ids = [id, `docs-${id}`, `docs-${slugify(id.replace(/^docs-/, ''))}`];
+  for (const candidate of ids) {
+    const el = scope.querySelector<HTMLElement>(`[id="${CSS.escape(candidate)}"]`);
+    if (el) return el;
+  }
+  return null;
+}
+
 /**
  * Reader for a Docs page: the board's dk-md typography with callouts, tables, code, task lists and reference chips.
  * @param props.children - Markdown source of the page.
@@ -216,14 +241,17 @@ export function DocsMarkdown({
   proposed,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
-  const linked = useMemo(() => linkifyDocs(markNeedsInput(escapeStrayDollars(cleaned))), [cleaned]);
+  const linked = useMemo(
+    () => linkifyDocs(markNeedsInput(escapeStrayDollars(cleaned)), { pageLinks: true }),
+    [cleaned],
+  );
   const resolved = useResolveRefs(projectId, linked.refs.length ? linked.refs : NO_REFS);
   const pages = new Map<string, NonNullable<typeof resolved.data>[number]>();
   const tickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
   linked.refs.forEach((ref, i) => {
     const res = resolved.data?.[i];
     if (!res) return;
-    if (ref.kind === 'page') pages.set(`${ref.title}#${ref.anchor ?? ''}`, res);
+    if (ref.kind === 'page') pages.set(pageRefKey(ref), res);
     else tickets.set(ref.key, res);
   });
 
@@ -459,7 +487,7 @@ export function DocsMarkdown({
               pageTitle={ref?.title}
               anchor={ref?.anchor}
               custom={!!ref && label !== dflt}
-              result={ref ? live.current.pages.get(`${ref.title}#${ref.anchor ?? ''}`) : undefined}
+              result={ref ? live.current.pages.get(pageRefKey(ref)) : undefined}
               projectId={live.current.projectId}
               projectName={live.current.projectName}
               onOpenPage={live.current.onOpenPage}
@@ -471,6 +499,22 @@ export function DocsMarkdown({
           );
         }
         if (href && href.includes('/uploads/')) return <FileAttachmentCard url={href} fileName={textOf(inner)} />;
+        if (href?.startsWith('#')) {
+          // A section of this page: scroll to it (a new window would open nothing in the desktop app)
+          return (
+            <a
+              href={href}
+              {...props}
+              onClick={(e) => {
+                e.preventDefault();
+                const target = sectionOf(e.currentTarget, href);
+                target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              {inner}
+            </a>
+          );
+        }
         return (
           <a className="dk-ext" href={href} target="_blank" rel="noopener noreferrer" {...props}>
             {inner}

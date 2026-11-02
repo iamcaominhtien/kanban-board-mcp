@@ -1001,6 +1001,12 @@ async def test_with_the_apps_secret_a_request_that_changes_something_needs_it(
             f"/projects/{pid}/ai/settings", json={"safe_mode": False}, headers=bad
         )
     ).status_code == 403
+    # an AI that reached for the REST API is told which MCP tool does it (it tried curl and a browser instead)
+    up = await c.post("/uploads/files", files={"file": ("a.xlsx", b"PK")})
+    assert up.status_code == 403 and "working folder" in up.json()["detail"]
+    links = await c.post(f"/projects/{pid}/docs/resolve", json={"refs": []})
+    assert "check_links" in links.json()["detail"]
+    assert "MCP tools" in r.json()["detail"]
     # the MCP endpoint has its own token, and the client log is harmless
     assert api_secret.allows("POST", "/mcp/", None) and api_secret.allows(
         "POST", "/logs/client", None

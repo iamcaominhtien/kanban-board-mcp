@@ -10,20 +10,25 @@ echo "=== Kanban Board Desktop Build Script ==="
 echo ""
 
 # Step 1: Build React UI
-echo "Step 1/3: Building React UI..."
+echo "Step 1/4: Building React UI..."
 cd "$REPO_ROOT/ui"
 npm install
 npm run build
 echo "  ✓ UI built to ui/dist/"
 
-# Step 2: Build Python binaries
+# Step 2: The draw.io editor the app ships (pinned version, trimmed)
 echo ""
-echo "Step 2/3: Building Python binaries..."
+echo "Step 2/4: Fetching the draw.io editor..."
+"$REPO_ROOT/desktop/scripts/fetch-drawio.sh"
+
+# Step 3: Build Python binaries
+echo ""
+echo "Step 3/4: Building Python binaries..."
 "$REPO_ROOT/desktop/scripts/build-python.sh"
 
-# Step 3: Package with electron-builder
+# Step 4: Package with electron-builder
 echo ""
-echo "Step 3/3: Packaging Electron app..."
+echo "Step 4/4: Packaging Electron app..."
 cd "$REPO_ROOT/desktop"
 npm install
 npm run dist

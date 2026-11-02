@@ -8,6 +8,8 @@ interface Props {
   disabled?: boolean;
   onLink: () => void;
   onPickImage: () => void;
+  /** Opens the picker for any file (attached as a link); the button is left out without it. */
+  onPickFile?: () => void;
   /** Starts a sketch; the button is hidden without it. */
   onSketch?: () => void;
   /** Starts a canvas; the button is hidden without it. */
@@ -25,6 +27,7 @@ const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
  * @param props.disabled - Disable all buttons.
  * @param props.onLink - Called by the link button.
  * @param props.onPickImage - Called by the image button.
+ * @param props.onPickFile - Called by the attach-a-file button.
  * @param props.onSketch - Called by the Sketch button (hidden when missing).
  * @param props.onCanvas - Called by the Canvas button (hidden when missing).
  * @param props.ticketPrefix - Ticket key prefix used by the reference button.
@@ -35,6 +38,7 @@ export function EditorToolbar({
   disabled,
   onLink,
   onPickImage,
+  onPickFile,
   onSketch,
   onCanvas,
   ticketPrefix,
@@ -173,6 +177,11 @@ export function EditorToolbar({
       <Btn label="Image" onClick={onPickImage}>
         <Icon name="i54" size={16} />
       </Btn>
+      {onPickFile && (
+        <Btn label="Attach a file (Excel, Word, PDF…)" onClick={onPickFile}>
+          <Icon name="attach" size={16} />
+        </Btn>
+      )}
       {onSketch && (
         <Btn label="Sketch (/draw)" onClick={onSketch}>
           <Icon name="sketch" size={16} />

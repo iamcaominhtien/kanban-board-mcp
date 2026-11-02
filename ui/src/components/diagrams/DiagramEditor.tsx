@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
+  checkDiagramEditor,
   createDiagram,
+  diagramKeys,
+  saveDiagramSettings,
   diagramFailure,
   fetchDiagramWithSource,
   updateDiagram,
@@ -11,6 +15,8 @@ import {
 } from '../../api/diagrams';
 import { diagramMarkdown } from '../../api/diagrams';
 import { useToast } from '../Toast';
+import { resolveOrigin } from '../../api/resolveOrigin';
+import { extractError } from '../../api/extractError';
 import { DiagramIcon } from './DiagramIcon';
 import type { EditorRequest } from './DiagramsContext';
 import { EMPTY_DIAGRAM_XML, decodeExportData, fileStem, saveBlob, svgToPng } from './diagramFile';
@@ -54,9 +60,11 @@ function writeDraft(key: string, draft: Draft | null): void {
   }
 }
 
-/** Build the embed URL of the draw.io editor. */
-function editorSrc(base: string): string {
+/** Build the embed URL of the draw.io editor. The built-in one also turns off every feature that needs a service
+ * on the internet (stealth), so a drawing never leaves the computer. */
+function editorSrc(base: string, builtIn = false): string {
   const q = new URLSearchParams({
+    ...(builtIn ? { stealth: '1' } : {}),
     embed: '1',
     proto: 'json',
     spin: '1',
@@ -83,6 +91,10 @@ interface Props {
 export function DiagramEditor({ request, onClose }: Props) {
   const toast = useToast();
   const settings = useDiagramSettings();
+  const qc = useQueryClient();
+  // a self-hosted address where nothing answers (the default http://localhost:8080; the app ships no draw.io)
+  const [noEditorAt, setNoEditorAt] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
   const key = useMemo(() => draftKey(request), [request]);
   const frame = useRef<HTMLIFrameElement>(null);
   const waiters = useRef(new Map<string, (data: string) => void>());
@@ -206,6 +218,41 @@ export function DiagramEditor({ request, onClose }: Props) {
     return () => window.removeEventListener('message', onMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin, post]);
+
+  // ask first whether a self-hosted editor answers at all: without one the iframe spun for 20 s before failing
+  useEffect(() => {
+    if (!base || attempt === 0 || settings.data?.mode !== 'self-hosted') return;
+    let cancelled = false;
+    checkDiagramEditor()
+      .then((c) => {
+        if (cancelled) return;
+        if (c.reachable) {
+          setNoEditorAt(null);
+        } else {
+          setNoEditorAt(c.url);
+          setPhase((p) => (p === 'loading' ? 'unreachable' : p));
+        }
+      })
+      .catch(() => undefined); // the iframe's own timeout still applies
+    return () => {
+      cancelled = true;
+    };
+  }, [base, attempt, settings.data?.mode]);
+
+  const switchEditor = async (mode: 'built-in' | 'public') => {
+    setSwitching(true);
+    try {
+      await saveDiagramSettings({ mode, url: settings.data?.url ?? '' });
+      await qc.invalidateQueries({ queryKey: diagramKeys.settings });
+      setNoEditorAt(null);
+      setPhase('loading');
+      setAttempt((a) => a + 1);
+    } catch (e) {
+      toast.error("Couldn't switch the editor", extractError(e));
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   // the editor never answered: say so, the diagram stays viewable and downloadable
   useEffect(() => {
@@ -480,13 +527,15 @@ export function DiagramEditor({ request, onClose }: Props) {
         )}
 
         <div className={styles.frameWrap}>
-          {base && phase !== 'missing' && (
+          {/* only once the drawing is loaded (attempt > 0): mounted before, the editor loaded twice, the second time
+              when the key changed, and the page stood still meanwhile */}
+          {base && attempt > 0 && phase !== 'missing' && !noEditorAt && (
             <iframe
               key={attempt}
               ref={frame}
               className={styles.frame}
               title="draw.io editor"
-              src={editorSrc(base)}
+              src={editorSrc(base, settings.data?.mode === 'built-in')}
               allow="clipboard-read; clipboard-write"
             />
           )}
@@ -503,27 +552,67 @@ export function DiagramEditor({ request, onClose }: Props) {
             <div className={styles.cover}>
               <div className={styles.card} role="alert" data-testid="diagram-editor-unreachable">
                 <div className={styles.cardTitle}>
-                  {phase === 'missing' ? 'Diagram not found' : 'Editor could not be reached'}
+                  {phase === 'missing'
+                    ? 'Diagram not found'
+                    : noEditorAt
+                      ? 'No draw.io editor is running'
+                      : 'Editor could not be reached'}
                 </div>
                 <div className={styles.cardText}>
-                  {phase === 'missing'
-                    ? 'It was deleted, or you do not have access.'
-                    : 'The diagram is still shown on the page and can be downloaded. Editing needs the draw.io service. Ask an admin to check the editor address in Settings.'}
+                  {phase === 'missing' ? (
+                    'It was deleted, or you do not have access.'
+                  ) : noEditorAt && settings.data?.builtInAvailable ? (
+                    <>
+                      The editor address is <code>{noEditorAt}</code> and nothing answers there. Use the editor built
+                      into the app instead (nothing to run, the drawing stays on this computer), or start the one at
+                      that address, then Retry.
+                    </>
+                  ) : noEditorAt ? (
+                    <>
+                      The editor address is <code>{noEditorAt}</code> and nothing answers there: this install does not
+                      include draw.io. Use the public editor ({settings.data?.publicUrl ?? 'embed.diagrams.net'}; the
+                      drawing is sent there while the editor is open), or start draw.io on this computer, for example{' '}
+                      <code>docker run -d -p 8080:8080 jgraph/drawio</code>, then Retry. The diagram is still shown on
+                      the page and can be downloaded.
+                    </>
+                  ) : (
+                    'The diagram is still shown on the page and can be downloaded. Editing needs the draw.io service. Ask an admin to check the editor address in Settings.'
+                  )}
                 </div>
                 <div className={styles.cardRow}>
                   {request.diagramId && phase === 'unreachable' && (
                     <a
                       className={styles.btn}
-                      href={`${import.meta.env.VITE_API_URL ?? ''}/diagrams/${request.diagramId}/download?format=drawio`}
+                      href={`${resolveOrigin()}/diagrams/${request.diagramId}/download?format=drawio`}
                       download
                     >
                       Download .drawio
                     </a>
                   )}
-                  {phase === 'unreachable' && (
+                  {phase === 'unreachable' && noEditorAt && settings.data?.builtInAvailable && (
                     <button
                       type="button"
                       className={`${styles.btn} ${styles.btnPrimary}`}
+                      disabled={switching}
+                      onClick={() => void switchEditor('built-in')}
+                    >
+                      {switching ? 'Switching…' : 'Use the built-in editor'}
+                    </button>
+                  )}
+                  {phase === 'unreachable' && noEditorAt && !settings.data?.builtInAvailable && (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                      disabled={switching}
+                      onClick={() => void switchEditor('public')}
+                    >
+                      {switching ? 'Switching…' : 'Use the public editor'}
+                    </button>
+                  )}
+                  {phase === 'unreachable' && (
+                    <button
+                      type="button"
+                      className={noEditorAt ? styles.btn : `${styles.btn} ${styles.btnPrimary}`}
                       onClick={() => {
                         setPhase('loading');
                         setAttempt((a) => a + 1);

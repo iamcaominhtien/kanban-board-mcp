@@ -7,8 +7,10 @@ is signed in (it never reads the login). The terminal output is kept in memory o
 Only a person can open it: the routes that use this module are the account routes of the UI, and no MCP tool or AI
 runner calls it.
 
-A pseudo-terminal needs the ``pty`` module (macOS and Linux). Without it ``start`` raises ``PtyUnavailable`` and the
-window offers the command to run in the person's own terminal instead (``fallback_command``).
+A pseudo-terminal needs the ``pty`` module (macOS and Linux). Windows has none: there the login opens in a console
+window of its own (``CONSOLE``), with the account's folder in its environment, and the app asks the CLI who is signed in
+as before; the command to run by hand is offered too, should no window appear. Anywhere else without a pseudo-terminal
+``start`` raises ``PtyUnavailable`` and the window offers that command instead (``fallback_command``).
 """
 
 import asyncio
@@ -33,6 +35,9 @@ try:  # not on Windows
     import termios
 except ImportError:  # pragma: no cover - Windows
     pty = None
+
+# Windows: no pseudo-terminal, but a program can open a console window of its own
+CONSOLE = sys.platform == "win32"
 
 KEEP_BYTES = 64 * 1024  # what a window that attaches late replays
 POLL_S = 3.0  # how often the CLI is asked who is signed in
@@ -98,8 +103,7 @@ def fallback_command(account: AiAccount) -> str:
     argv = [os.path.basename(argv[0]), *argv[1:]]
     env = profile.env()
     if sys.platform == "win32":
-        sets = "; ".join(f"$env:{k}='{v}'" for k, v in env.items())
-        return f"{sets}; {' '.join(argv)}" if sets else " ".join(argv)
+        return _powershell(argv, env, profile.login_cwd())
     prefix = " ".join(f"{k}={shlex.quote(v)}" for k, v in env.items())
     cmd = shlex.join(argv)
     cwd = profile.login_cwd()
@@ -109,6 +113,24 @@ def fallback_command(account: AiAccount) -> str:
         )
         return cmd
     return f"{prefix} {cmd}".strip()
+
+
+def _ps_quote(value: str) -> str:
+    """A PowerShell string literal: single quotes, a quote inside doubled."""
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def _powershell(argv: list[str], env: dict[str, str], cwd) -> str:
+    """The sign-in command for PowerShell (the Windows Terminal default): the account's variables, its folder, then
+    the login. `&` runs a quoted program name."""
+    parts = [f"$env:{k}={_ps_quote(v)}" for k, v in env.items()]
+    if cwd:
+        parts.append(f"Set-Location {_ps_quote(str(cwd))}")
+    program = (
+        argv[0] if re.fullmatch(r"[\w.-]+", argv[0]) else f"& {_ps_quote(argv[0])}"
+    )
+    parts.append(" ".join([program, *argv[1:]]))
+    return "; ".join(parts)
 
 
 @dataclass
@@ -139,6 +161,8 @@ class SignIn:
         None  # held: asyncio keeps only weak references to tasks
     )
     orphan: asyncio.TimerHandle | None = None
+    # Windows: the login runs in a console window of its own, not in a terminal the app shows
+    console: bool = False
 
     def publish(self, message: dict) -> None:
         """Send a message to every window attached."""
@@ -200,6 +224,8 @@ async def start(account: AiAccount, by: str, cols: int = 80, rows: int = 24) -> 
     if (open_one := active(account.id)) is not None:
         raise SignInBusy(open_one.by)
     if pty is None:
+        if CONSOLE:
+            return _start_console(account, by)
         raise PtyUnavailable("No pseudo-terminal on this platform")
     profile = accounts.profile_of(account)
     if not profile.binary:
@@ -246,6 +272,52 @@ async def start(account: AiAccount, by: str, cols: int = 80, rows: int = 24) -> 
     loop = asyncio.get_running_loop()
     loop.add_reader(master, _on_output, session)
     session.poller = asyncio.create_task(_poll(session))
+    return session
+
+
+def _open_console(argv: list[str], cwd, env: dict[str, str]) -> subprocess.Popen:
+    """Start the login in a console window of its own (Windows), so the person answers it there."""
+    return subprocess.Popen(
+        argv,
+        cwd=cwd,
+        env=env,
+        creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
+    )
+
+
+def _start_console(account: AiAccount, by: str) -> SignIn:
+    """The sign-in where there is no pseudo-terminal but a console window can be opened (Windows).
+
+    Raises:
+        accounts.AccountError: The CLI is not installed.
+        PtyUnavailable: The window could not be opened (the person then runs the command themselves).
+    """
+    profile = accounts.profile_of(account)
+    if not profile.binary:
+        raise accounts.AccountError(
+            "The CLI was not found on this computer.", "cli_missing"
+        )
+    profile.prepare()
+    argv = profile.login_argv([])
+    env = profile.overlay(cli.child_env())
+    cwd = profile.login_cwd() or profile.dir
+    try:
+        proc = _open_console(argv, cwd, env)
+    except OSError as exc:
+        raise PtyUnavailable(
+            f"Could not open a window for the CLI ({exc.strerror or exc})"
+        ) from exc
+    session = SignIn(
+        account.id,
+        by,
+        argv,
+        proc=proc,
+        console=True,
+        was_signed_in=account.status == "signed_in",
+    )
+    SESSIONS[account.id] = session
+    session.poller = asyncio.create_task(_poll(session))
+    session.exiter = asyncio.create_task(_exited(session))
     return session
 
 

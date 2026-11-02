@@ -115,6 +115,31 @@ def fingerprint(root: Path) -> str:
     return h.hexdigest()
 
 
+def _committed(root: Path) -> set[str] | None:
+    """The files of the repository's HEAD commit (posix paths from the root), which is all a worktree made from HEAD
+    has, or None when the folder is not the root of a git repository with a commit (then nothing is filtered)."""
+    if not (root / ".git").exists():
+        return None
+    try:
+        res = subprocess.run(
+            ["git", "ls-tree", "-r", "-z", "--name-only", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if res.returncode != 0:
+        return None
+    return {p for p in res.stdout.decode("utf-8", "replace").split("\0") if p}
+
+
+def _in_worktree(path: Path, root: Path, committed: set[str] | None) -> bool:
+    """Whether a manifest is in a ticket's worktree: a git-ignored or untracked checkout inside the repository (a
+    vendored tool, a nested clone) is on this disk but not in a worktree, so a command that goes there fails."""
+    return committed is None or path.relative_to(root).as_posix() in committed
+
+
 def scan(folder: str) -> dict:
     """What the repository is, read by code (nothing runs, nothing is sent anywhere)."""
     root = Path(os.path.expanduser(folder))
@@ -127,14 +152,17 @@ def scan(folder: str) -> dict:
         "packages": [],
         "scripts": {},
     }
+    committed = _committed(root)
     pkg_files = [
         p
         for p in root.rglob("package.json")
-        if "node_modules" not in p.parts and ".git" not in p.parts
+        if "node_modules" not in p.parts
+        and ".git" not in p.parts
+        and _in_worktree(p, root, committed)
     ][:12]
     for pkg in pkg_files:
         data = _json(pkg)
-        rel = str(pkg.parent.relative_to(root)) or "."
+        rel = pkg.parent.relative_to(root).as_posix()
         deps = {
             **(data.get("dependencies") or {}),
             **(data.get("devDependencies") or {}),
@@ -167,10 +195,12 @@ def scan(folder: str) -> dict:
     for py in [
         p
         for p in root.rglob("pyproject.toml")
-        if ".git" not in p.parts and ".venv" not in p.parts
+        if ".git" not in p.parts
+        and ".venv" not in p.parts
+        and _in_worktree(p, root, committed)
     ][:8]:
         text = _read(py)
-        rel = str(py.parent.relative_to(root)) or "."
+        rel = py.parent.relative_to(root).as_posix()
         manager = (
             "uv"
             if (py.parent / "uv.lock").exists()
@@ -237,6 +267,8 @@ def scan(folder: str) -> dict:
             cwd=root,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         ).stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
@@ -257,16 +289,39 @@ def scan(folder: str) -> dict:
     return found
 
 
+def _dir(pkg: dict) -> str | None:
+    """A package's folder for a command line (forward slashes, which npm and uv take on Windows too; quoted when it
+    has a space), or None for the repository root."""
+    path = pkg["path"].replace("\\", "/")
+    if path in ("", "."):
+        return None
+    return f'"{path}"' if " " in path else path
+
+
+def _npm(pkg: dict, args: str) -> str:
+    """An npm command for a package's folder. `--prefix` instead of `cd folder &&`: the commands are joined with `&&`
+    into one shell line, where a `cd` would also move every command after it (`cd ui && npm ci && uv sync` ran
+    `uv sync` in ui/)."""
+    d = _dir(pkg)
+    return f"npm {args}" if d is None else f"npm --prefix {d} {args}"
+
+
+def _py(pkg: dict, args: str) -> str:
+    """A uv or poetry command run in a package's folder (`--directory`, for the same reason as `_npm`)."""
+    d = _dir(pkg)
+    tool = "uv" if pkg.get("manager") == "uv" else "poetry"
+    return f"{tool} {args}" if d is None else f"{tool} --directory {d} {args}"
+
+
 def _pkg_cmd(pkg: dict, script: str) -> str | None:
-    """The npm command of a package script, run from the package's folder (a test run never watches)."""
+    """The npm command of a package script, run in the package's folder (a test run never watches)."""
     scripts = pkg.get("scripts") or {}
     if script not in scripts:
         return None
-    prefix = "" if pkg["path"] == "." else f"cd {pkg['path']} && "
     if script == "test":
         watches = "vitest" in scripts["test"] and "run" not in scripts["test"].split()
-        return f"{prefix}npm test" + (" -- --run" if watches else "")
-    return f"{prefix}npm run {script}"
+        return _npm(pkg, "test" + (" -- --run" if watches else ""))
+    return _npm(pkg, f"run {script}")
 
 
 _ROLE_NAMES = {
@@ -291,26 +346,29 @@ def suggest(found: dict) -> dict:
     tests, lints, builds, prepares = [], [], [], []
     for pkg in found["packages"]:
         if pkg["kind"] == "node":
-            prefix = "" if pkg["path"] == "." else f"cd {pkg['path']} && "
             for name, bucket in (("test", tests), ("lint", lints), ("build", builds)):
                 cmd = _pkg_cmd(pkg, name)
                 if cmd:
                     bucket.append(cmd)
-            prepares.append(f"{prefix}npm ci")
+            prepares.append(_npm(pkg, "ci"))
         elif pkg["kind"] == "python":
-            prefix = "" if pkg["path"] == "." else f"cd {pkg['path']} && "
-            runner = (
-                "uv run "
-                if pkg.get("manager") == "uv"
-                else ("poetry run " if pkg.get("manager") == "poetry" else "")
-            )
+            managed = pkg.get("manager") in ("uv", "poetry")
+            d = _dir(pkg)
             if pkg.get("pytest"):
-                tests.append(f"{prefix}{runner}pytest -q")
+                tests.append(
+                    _py(pkg, "run pytest -q")
+                    if managed
+                    else ("pytest -q" if d is None else f"pytest -q {d}")
+                )
             if pkg.get("ruff"):
-                lints.append(f"{prefix}{runner}ruff check .")
-            if pkg.get("manager") in ("uv", "poetry"):
+                lints.append(
+                    _py(pkg, "run ruff check .")
+                    if managed
+                    else f"ruff check {d or '.'}"
+                )
+            if managed:
                 prepares.append(
-                    f"{prefix}{'uv sync' if pkg.get('manager') == 'uv' else 'poetry install'}"
+                    _py(pkg, "sync" if pkg.get("manager") == "uv" else "install")
                 )
             # plain pip has no environment of its own: `pip install -e .` would install into whatever Python is on
             # the PATH, the person's own, so nothing is proposed and a person writes the command they use
@@ -383,6 +441,8 @@ def _try(folder: str, prepare: str, test: str) -> dict:
                 cwd=root,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=60,
             )
             made_worktree = res.returncode == 0
@@ -404,9 +464,13 @@ def _try(folder: str, prepare: str, test: str) -> dict:
                     cwd=work,
                     capture_output=True,
                     text=True,
+                    encoding="utf-8",
+                    errors="replace",
                     timeout=TRIAL_TIMEOUT_S,
                 )
-                tail = (res.stdout + res.stderr).strip().splitlines()[-6:]
+                tail = (
+                    ((res.stdout or "") + (res.stderr or "")).strip().splitlines()[-6:]
+                )
                 out[name] = {
                     "command": cmd,
                     "ok": res.returncode == 0,
@@ -443,16 +507,22 @@ async def run_scan(
     *,
     trial: bool = True,
     refine: bool = False,
+    prepare: str | None = None,
+    test: str | None = None,
 ) -> AiRepoScan:
     """Scan, suggest and (by default) try the commands; nothing is created. `refine` asks a light model to improve
-    the role and plugin suggestions (it fails soft back to the code's)."""
+    the role and plugin suggestions (it fails soft back to the code's). `prepare` and `test` are the commands as the
+    person edited them: when given ("" for none), they are tried instead of the suggestion's."""
     found = await asyncio.to_thread(scan, folder)
     proposal = suggest(found)
     if refine:
         proposal = await refine_suggestion(session, project_id, found, proposal)
     tried = (
         await asyncio.to_thread(
-            _try, found["folder"], proposal["prepare"], proposal["commands"]["test"]
+            _try,
+            found["folder"],
+            proposal["prepare"] if prepare is None else prepare.strip(),
+            proposal["commands"]["test"] if test is None else test.strip(),
         )
         if trial
         else {}

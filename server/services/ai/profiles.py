@@ -134,6 +134,8 @@ class Profile(ABC):
                 stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=45,
                 **kwargs,
             )
@@ -275,6 +277,8 @@ class Agy(Profile):
             env=self.build_env(),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             stdin=subprocess.DEVNULL,
         )
         if result.returncode:

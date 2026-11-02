@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { PAGE_SCRIPT, parseExportArgs, isAllowedUrl, decodeSvgData } = require('../export-svg');
+const { PAGE_SCRIPT, parseExportArgs, isAllowedUrl, decodeSvgData, describeLoadError } = require('../export-svg');
 const { buildExportCommand, buildBackendLaunchSpec } = require('../main-helpers');
 
 test('a normal start is not an export', () => {
@@ -68,4 +68,20 @@ test('the server is told how to reach the app: packaged exe, or electron plus th
     configPath: '/none',
   });
   assert.equal(spec.options.env.KANBAN_EXPORT_CMD, '["/opt/Kanban Board"]');
+});
+
+test('an editor that does not answer is named as such, not as a bare Chromium code', () => {
+  const err = Object.assign(new Error("ERR_CONNECTION_REFUSED (-102) loading 'http://localhost:8080/clear.html'"), {
+    code: 'ERR_CONNECTION_REFUSED',
+    errno: -102,
+  });
+  assert.equal(
+    describeLoadError(err, 'http://localhost:8080'),
+    'the draw.io editor at http://localhost:8080 could not be reached (ERR_CONNECTION_REFUSED)',
+  );
+  // the code is read from the message when the error has none
+  assert.match(
+    describeLoadError(new Error("ERR_NAME_NOT_RESOLVED (-105) loading 'http://draw:8080/clear.html'"), 'http://draw:8080'),
+    /could not be reached \(ERR_NAME_NOT_RESOLVED\)$/,
+  );
 });

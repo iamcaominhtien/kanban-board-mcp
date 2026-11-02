@@ -106,7 +106,9 @@ export interface SignInState {
 export type SignInStart =
   | { mode: 'terminal' }
   /** No pseudo-terminal: the command to run in the person's own terminal; the window polls the account. */
-  | { mode: 'fallback'; reason: string; command: string };
+  | { mode: 'fallback'; reason: string; command: string }
+  /** Windows: the login opened in a console window of its own; the command is offered should none appear. */
+  | { mode: 'console'; command: string };
 
 export type TerminalMessage = { type: 'out'; data: string } | SignInState;
 

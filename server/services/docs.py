@@ -9,6 +9,7 @@ indexed in ``DocsLink`` when a page is published.
 import difflib
 import json
 import re
+import unicodedata
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -1268,6 +1269,8 @@ async def _resolve_page_ref(
     headings_of: dict[str, list[dict[str, Any]]],
     aliases: dict[str, dict[str, str]] | None = None,
     old_titles: dict[str, str] | None = None,
+    *,
+    by_slug: bool = False,
 ) -> dict[str, Any]:
     needle = title.strip().lower()
     by_id = {p.id: p for p in pages}
@@ -1294,6 +1297,21 @@ async def _resolve_page_ref(
         matches = [
             p for p in pages if p.id == old_titles[needle]
         ]  # old title of a renamed page
+    if not matches and by_slug:
+        # A Markdown link by slug or page id (`[Overview](tong-quan)`, `/docs/overview`): the slug a page got at
+        # creation stays after a rename, so it is matched first, then the slug of the current title.
+        key = slugify(unicodedata.normalize("NFC", needle))
+        if key:
+            matches = [
+                p
+                for p in pages
+                if p.id == title.strip()
+                or unicodedata.normalize("NFC", p.slug or "") == key
+            ] or [
+                p
+                for p in pages
+                if slugify(unicodedata.normalize("NFC", p.title.lower())) == key
+            ]
     if not matches:
         gone = next((p for p in deleted if p.title.lower() == needle), None)
         if gone is not None:
@@ -1355,7 +1373,10 @@ async def resolve_refs(
 
     Args:
         project_id: Project the references are written in.
-        refs: Requests, each `{kind: "page", title, anchor}` or `{kind: "ticket", key}`.
+        refs: Requests, each `{kind: "page", title, anchor}` or `{kind: "ticket", key}`. A page request with
+            `by_slug: true` comes from a Markdown link (`[Overview](tong-quan)`): its title may also be the page's
+            slug, the slug of its title or its id. A `[[Title]]` reference matches by title only, so renaming a
+            page away still breaks it.
         from_ticket: The references are written in a ticket, which links by page id:
             the old title of a renamed page still resolves.
 
@@ -1398,6 +1419,7 @@ async def resolve_refs(
                 headings,
                 aliases,
                 renamed,
+                by_slug=bool(r.get("by_slug")),
             )
             out.append({"kind": "page", **res})
     return out

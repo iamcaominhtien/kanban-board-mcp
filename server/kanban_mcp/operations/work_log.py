@@ -3,6 +3,7 @@
 import services.tickets as svc_tickets
 from pydantic import Field
 from typing import Annotated
+from .. import common
 from ..common import (
     TicketId,
     WorkLogId,
@@ -42,7 +43,10 @@ async def add_work_log(
     ] = None,
 ) -> dict:
     """Append an entry to the ticket's debug journal (the Debug Space tab): keep a running record of what you investigated,
-    tried and found, so humans (and later sessions) can follow along. Returns the updated ticket."""
+    tried and found, so humans (and later sessions) can follow along. In an AI run a picture or a document (a log, an
+    Excel sheet, a PDF) named by its path in your working folder is attached: ![error](qa/evidence/err.png).
+    Returns the updated ticket."""
+    note = await common.attach_from_run(note)
     return await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.add_work_log(
@@ -81,6 +85,7 @@ async def update_work_log(
 ) -> dict:
     """Correct or extend a work log entry. To record that a problem is fixed, add a new entry with kind 'resolved'
     instead of editing the old one (that keeps the history). Omitted fields are unchanged. Returns the updated ticket."""
+    note = await common.attach_from_run(note)
     return await _edit_ticket(
         ticket_id,
         lambda s, lid: svc_tickets.update_work_log(

@@ -406,3 +406,25 @@ async def test_forward_reference_resolves_when_target_is_published_later(c, pid)
     assert (
         len((await c.get(f"/docs/pages/{target['id']}/backlinks")).json()["pages"]) == 1
     )
+
+
+async def test_resolve_markdown_link_by_slug_after_rename(c, pid):
+    """A link written by slug or page id (what the AI sees in docs_read) opens the page; a rename keeps the slug."""
+    page = await mk(c, pid, "Tổng quan")
+    old_slug = page["slug"]
+    assert old_slug == "tổng-quan"
+    await c.patch(f"/docs/pages/{page['id']}", json={"title": "Overview"})
+    link = {"kind": "page", "by_slug": True}
+    refs = [
+        {**link, "title": old_slug},  # the slug kept from the old title
+        {**link, "title": "Overview"},  # the new title itself
+        {**link, "title": page["id"]},  # the page id
+        {**link, "title": "overview", "anchor": "Nope"},
+        {**link, "title": "no-such-page"},
+        {"kind": "page", "title": old_slug},  # [[tổng-quan]] matches by title only
+    ]
+    res = (await c.post(f"/projects/{pid}/docs/resolve", json={"refs": refs})).json()
+    assert [r.get("page_id") for r in res[:3]] == [page["id"]] * 3
+    assert [r["title"] for r in res[:3]] == ["Overview"] * 3
+    assert res[3]["status"] == "section_missing"
+    assert [r["status"] for r in res[4:]] == ["missing", "missing"]

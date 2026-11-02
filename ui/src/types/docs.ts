@@ -150,7 +150,9 @@ export interface DocsTicketDoc {
   version: number;
 }
 
-export type DocsRefRequest = { kind: 'page'; title: string; anchor?: string | null } | { kind: 'ticket'; key: string };
+/** A reference to resolve; `bySlug` (from a Markdown link) also matches a page's slug, the slug of its title, or its id. */
+export type DocsRefRequest =
+  { kind: 'page'; title: string; anchor?: string | null; bySlug?: boolean } | { kind: 'ticket'; key: string };
 
 export interface DocsRefResult {
   kind: 'page' | 'ticket';
