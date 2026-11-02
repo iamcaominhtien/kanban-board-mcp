@@ -119,11 +119,10 @@
   white-space: nowrap;
 }
 .counter {
-  color: var(--pv-muted);
+  color: var(--pv-text);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--pv-surface-2);
+  padding: 2px 8px;
 }
 .actions {
   display: flex;
@@ -172,15 +171,6 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btnDraw {
-  background: #6d5dd3;
-  border-color: #6d5dd3;
-  color: #fff;
-  border-radius: 999px;
-}
-.btnDraw:hover {
-  background: #5a49c2 !important;
-}
 .iconBtn {
   display: inline-flex;
   align-items: center;
@@ -192,6 +182,37 @@
   background: transparent;
   color: var(--pv-text);
   cursor: pointer;
+}
+.iconBtn {
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.iconBtnDraw {
+  color: #6d5dd3;
+}
+.counterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.headRule {
+  width: 1px;
+  height: 22px;
+  background: var(--pv-border);
+}
+.btnPrimary {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #fff;
+}
+.btnPrimary:hover {
+  background: #255a34 !important;
+}
+.btnWide {
+  width: 100%;
+  justify-content: center;
+  padding: 9px 12px;
+  font-size: 13px;
 }
 .iconBtn:hover,
 .iconBtn[aria-pressed='true'] {
@@ -250,6 +271,10 @@
 .navNext {
   right: 10px;
 }
+/* the PDF reader has its own page rail on the left: the arrow sits past it, on the stage (design B) */
+.stage[data-kind='pdf'] .navPrev {
+  left: 132px;
+}
 
 /* ── Thumbnail strip ──────────────────────────────────── */
 .strip {
@@ -302,10 +327,18 @@
   padding: 14px;
   overflow-y: auto;
   background: var(--pv-surface);
+  display: flex;
+  flex-direction: column;
+}
+.detailsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 6px;
 }
 .details h2 {
   font-size: 13px;
-  margin: 0 0 10px;
+  margin: 0;
 }
 .details h3 {
   font-size: 11px;
@@ -338,13 +371,72 @@
   padding: 0;
 }
 .usedIn li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 4px 0;
+  font-weight: 600;
+}
+.usedIn li svg {
+  color: var(--pv-muted);
+  flex-shrink: 0;
 }
 .quick {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+.quickRow {
+  display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 16px;
+}
+
+/* ── No preview (design preview-types M) ─────────────── */
+.noPreview {
+  margin: auto;
+  width: min(420px, calc(100% - 32px));
+  padding: 32px 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.noPreviewTile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  background: #e6ebe8;
+  color: #5b6b80;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.noPreviewFacts {
+  width: 100%;
+  margin: 8px 0 0;
+  text-align: left;
+}
+.noPreviewFacts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--pv-border);
+}
+.noPreviewFacts dt {
+  color: var(--pv-muted);
+}
+.noPreviewFacts dd {
+  margin: 0;
+  font-weight: 600;
 }
 
 /* ── States ───────────────────────────────────────────── */
@@ -601,19 +693,53 @@
   box-sizing: border-box;
 }
 .imageToolbar {
-  display: flex;
+  /* the design's dark pill over the stage (preview-viewer C: .pv-ctl / .pv-cb) */
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px;
-  border-top: 1px solid var(--pv-border);
-  background: var(--pv-surface);
-  flex-wrap: wrap;
-  flex-shrink: 0;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(20, 28, 23, 0.86);
+  color: #eef3ef;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  flex-wrap: nowrap;
+  max-width: calc(100% - 24px);
 }
-.imageToolbar button[data-active] {
-  background: var(--pv-accent-soft);
-  color: var(--pv-accent);
+.imageToolbar.bgPill {
+  left: auto;
+  right: 12px;
+  top: 12px;
+  bottom: auto;
+  transform: none;
+}
+.imageReader .imageToolbar button {
+  min-width: 32px;
+  height: 32px;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: #eef3ef;
+  font-size: 12px;
+  font-weight: 600;
+}
+.imageReader .imageToolbar button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.imageReader .imageToolbar button[data-active] {
+  background: rgba(255, 255, 255, 0.18);
+  color: #eef3ef;
+}
+.pillText {
+  font-size: 11.5px;
+  color: #b7c9be;
 }
 .zoomLabel {
   min-width: 44px;
@@ -621,17 +747,24 @@
   font-variant-numeric: tabular-nums;
   color: var(--pv-muted);
 }
+.imageToolbar .zoomLabel {
+  width: 44px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #eef3ef;
+}
 .toolbarSep {
   width: 1px;
   height: 18px;
-  background: var(--pv-border);
+  margin: 0 2px;
+  background: rgba(255, 255, 255, 0.18);
 }
 .bgWrap {
   position: relative;
 }
 .bgMenu {
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
   display: flex;
   flex-direction: column;
@@ -642,9 +775,12 @@
   padding: 4px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
-.bgMenu button {
-  border: none !important;
+.imageReader .bgMenu button {
   justify-content: flex-start;
+  color: var(--pv-text);
+}
+.imageReader .bgMenu button:hover {
+  background: var(--pv-surface-2);
 }
 .bgMenu button[aria-checked='true'] {
   color: var(--pv-accent);
@@ -1166,15 +1302,6 @@
 }
 
 @media (max-width: 720px) {
-  /* icon only, but still named for screen readers */
-  .btnLabel {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
   .actions .btn {
     padding: 6px 8px;
   }

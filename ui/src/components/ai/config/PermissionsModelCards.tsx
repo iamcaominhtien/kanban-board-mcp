@@ -361,12 +361,16 @@ export function ModelCard() {
           )}
           <div className="ai-field" style={{ gridColumn: '1 / -1' }}>
             <span className="ai-label ai-label-dark">Working folder</span>
-            <input
-              data-path="working_dir"
-              className={`ai-input ai-mono ${hasError(issues, 'working_dir') ? 'ai-input-error' : ''}`}
-              value={draft.workingDir}
-              onChange={(e) => setDraft({ workingDir: e.target.value })}
-            />
+            <span className="ai-input-icon">
+              <LineIcon name="folder" size={14} color="#5B6B60" />
+              <input
+                data-path="working_dir"
+                aria-label="Working folder"
+                className={`ai-input ai-mono ${hasError(issues, 'working_dir') ? 'ai-input-error' : ''}`}
+                value={draft.workingDir}
+                onChange={(e) => setDraft({ workingDir: e.target.value })}
+              />
+            </span>
             <IssueText issues={issues} path="working_dir" />
           </div>
           {member.provider === 'codex' && (
@@ -463,12 +467,16 @@ export function ModelCard() {
         </div>
         <div className="ai-field" style={{ gridColumn: '1 / -1' }}>
           <span className="ai-label ai-label-dark">Working folder (Synced files are written here)</span>
-          <input
-            data-path="working_dir"
-            className={`ai-input ai-mono ${hasError(issues, 'working_dir') ? 'ai-input-error' : ''}`}
-            value={draft.workingDir}
-            onChange={(e) => setDraft({ workingDir: e.target.value })}
-          />
+          <span className="ai-input-icon">
+            <LineIcon name="folder" size={14} color="#5B6B60" />
+            <input
+              data-path="working_dir"
+              aria-label="Working folder"
+              className={`ai-input ai-mono ${hasError(issues, 'working_dir') ? 'ai-input-error' : ''}`}
+              value={draft.workingDir}
+              onChange={(e) => setDraft({ workingDir: e.target.value })}
+            />
+          </span>
           <IssueText issues={issues} path="working_dir" />
         </div>
         <NumField

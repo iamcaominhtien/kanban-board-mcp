@@ -4,6 +4,7 @@ import { Icon } from '../Icon';
 import { CommentBox } from './CommentBox';
 import { anchorFromRange } from './anchorDom';
 import type { SuggestMember } from '../RefSuggester';
+import type { CommentPerson } from './people';
 
 export interface Pick {
   anchor: CommentAnchorInput;
@@ -129,6 +130,7 @@ export function SelectionToolbar({
  * @param props.members - Members offered after `@`.
  * @param props.onSubmit - Posts the comment; reject to keep the text.
  * @param props.onCancel - Close the box.
+ * @param props.me - The writer, shown as the avatar in the header ("ME New comment").
  */
 export function ComposePopover({
   pick,
@@ -136,10 +138,12 @@ export function ComposePopover({
   members,
   onSubmit,
   onCancel,
+  me,
 }: {
   pick: Pick;
   projectId: string;
   members: SuggestMember[];
+  me?: CommentPerson;
   onSubmit: (text: string) => Promise<unknown>;
   onCancel: () => void;
 }) {
@@ -163,7 +167,27 @@ export function ComposePopover({
       data-testid="compose-popover"
       data-nocomment
     >
-      <div className="dc-compose-title">New comment</div>
+      <div className="dc-compose-head">
+        <span
+          className="dc-compose-avatar"
+          title={me?.name ?? 'You'}
+          style={{ background: me?.bg ?? '#1E2A22', color: me?.color ?? '#FFFFFF' }}
+        >
+          {me?.initials ?? 'ME'}
+        </span>
+        <span className="dc-compose-title">New comment</span>
+        <span style={{ flex: 1 }} />
+        <button
+          type="button"
+          className="dk-icobtn"
+          aria-label="Close"
+          data-testid="compose-close"
+          style={{ width: 22, height: 22 }}
+          onClick={onCancel}
+        >
+          <Icon name="close" size={13} strokeWidth={2} />
+        </button>
+      </div>
       <div className="dc-quote">
         <Icon name="comment" size={13} strokeWidth={1.8} />
         <span>“{pick.anchor.quote}”</span>
@@ -177,7 +201,8 @@ export function ComposePopover({
         onSubmit={onSubmit}
       />
       <div className="dc-hint">
-        <kbd>Enter</kbd> to post · <kbd>Esc</kbd> to cancel
+        <span className="dk-kbd">Enter</span> to post · <span className="dk-kbd">Shift</span>{' '}
+        <span className="dk-kbd">Enter</span> new line · <span className="dk-kbd">Esc</span> to cancel
       </div>
     </div>
   );

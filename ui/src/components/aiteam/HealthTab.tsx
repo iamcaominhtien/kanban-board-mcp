@@ -295,6 +295,7 @@ export function HealthTab({
     return <div className="at-hint">{q.isError ? "Couldn't load the health page." : 'Working out the numbers…'}</div>;
   const m = h.measures;
   const pct = (v: number | null) => (v == null ? '–' : `${Math.round(v * 100)}%`);
+  const unknown = h.state === 'unknown';
   const bannerClass = h.state === 'good' ? 'good' : h.state === 'fix' ? 'fix' : h.state === 'unknown' ? 'unknown' : '';
   const rest = h.runs < 20 && h.canJudge ? ' Too few runs to be sure about a change.' : '';
   const maxNotOk = Math.max(...h.notOk.map((x) => x.count), 1);
@@ -305,15 +306,25 @@ export function HealthTab({
       <div className={`at-banner ${bannerClass}`} data-testid="health-banner">
         <span
           className="at-banner-ico"
-          style={{ borderColor: h.state === 'good' ? '#2E6F40' : h.state === 'fix' ? '#C4432A' : undefined }}
+          style={{
+            borderColor:
+              h.state === 'good' ? '#2E6F40' : h.state === 'fix' ? '#C4432A' : unknown ? '#C9DDF0' : undefined,
+          }}
         >
-          <Icon color={h.state === 'good' ? '#2E6F40' : h.state === 'fix' ? '#C4432A' : '#B8860B'} size={22}>
-            {h.state === 'good' ? ICONS.check : <path d="M12 4l9 16H3L12 4zM12 10v4M12 17v.5" />}
-          </Icon>
+          {unknown ? (
+            // Too few runs (or none) is information, not a warning: the design's blue (i) banner
+            <Icon color="#244E78" size={22}>
+              {ICONS.info}
+            </Icon>
+          ) : (
+            <Icon color={h.state === 'good' ? '#2E6F40' : h.state === 'fix' ? '#C4432A' : '#B8860B'} size={22}>
+              {h.state === 'good' ? ICONS.check : <path d="M12 4l9 16H3L12 4zM12 10v4M12 17v.5" />}
+            </Icon>
+          )}
         </span>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <b style={{ fontSize: 18 }}>
+            <b style={{ fontSize: 18, color: unknown ? '#244E78' : undefined }}>
               {h.runs === 0 ? `No AI work between ${dayPart} and ${endPart}` : STATE_TITLE[h.state]}
             </b>
             <span className="at-hint">
@@ -337,8 +348,6 @@ export function HealthTab({
         )}
       </div>
 
-      <WorkflowMetrics projectId={projectId} />
-      <MarksPanel projectId={projectId} />
       <div className="at-measures">
         <Tile
           name="Reliability"
@@ -381,15 +390,6 @@ export function HealthTab({
           hint={`${m.cost.perTicket != null ? `${fmtUsd(m.cost.perTicket)} per ticket on priced runs. ` : ''}${m.cost.tokensOnly ? `${m.cost.tokensOnly} runs report tokens only. ` : ''}${m.cost.cap ? `${Math.round((m.cost.capShare ?? 0) * 100)}% of the ${fmtUsd(m.cost.cap)} cap` : 'No monthly cap set'}`}
         />
       </div>
-
-      {h.stories && (
-        <StoryAutonomy
-          projectId={projectId}
-          stories={h.stories}
-          onOpenStepped={() => actions.onOpenStepped?.()}
-          onOpenStory={(id) => (actions.onOpenStory ? actions.onOpenStory(id) : actions.onOpenTicket(id))}
-        />
-      )}
 
       <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
         <b style={{ fontSize: 14, flex: 1 }}>Each AI</b>
@@ -510,6 +510,18 @@ export function HealthTab({
           </div>
         </div>
       </div>
+
+      {/* The extensions (ai-team-process, ai-board-wave3) come after the design's own sections */}
+      {h.stories && (
+        <StoryAutonomy
+          projectId={projectId}
+          stories={h.stories}
+          onOpenStepped={() => actions.onOpenStepped?.()}
+          onOpenStory={(id) => (actions.onOpenStory ? actions.onOpenStory(id) : actions.onOpenTicket(id))}
+        />
+      )}
+      <WorkflowMetrics projectId={projectId} />
+      <MarksPanel projectId={projectId} />
     </>
   );
 }

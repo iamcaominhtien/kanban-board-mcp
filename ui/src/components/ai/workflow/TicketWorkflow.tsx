@@ -65,9 +65,30 @@ function StepRow({
   const label = s.role === 'reviewer' && view.reviewDepth ? `${s.label} · ${cap(view.reviewDepth)}` : s.label;
   return (
     <div className={`wf-step ${cls}`} data-testid={`wf-step-${s.key}`} data-state={s.state}>
-      <span className="wf-n">{s.idx + 1}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <b>{label}</b>
+      {/* F: a tile per step: number, a check or a clock, the step; then who holds it; then its state */}
+      <div className="wf-tile-head">
+        <span className="wf-n">{s.idx + 1}</span>
+        <span className={`wf-mark wf-mark-${s.state === 'done' ? 'done' : bad ? 'bad' : 'wait'}`} aria-hidden="true">
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {s.state === 'done' ? (
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            ) : bad ? (
+              <path d="M12 7v6M12 17v.5" />
+            ) : (
+              <path d="M12 7v5l3 2" />
+            )}
+          </svg>
+        </span>
+        <b className="wf-tile-label">{label}</b>
         {s.attempt > 1 && (
           <span className="wf-pill wf-pill-blue" data-testid={`wf-attempt-${s.key}`}>
             attempt {s.attempt}

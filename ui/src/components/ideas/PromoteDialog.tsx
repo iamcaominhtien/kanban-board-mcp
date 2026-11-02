@@ -8,6 +8,23 @@ import { FooterNote, ModalShell, Spacer, plural } from '../docs/docsShared';
 import { useToast } from '../Toast';
 import { ProjectSelect } from './TriageDialogs';
 import { LineIcon } from '../ui/LineIcon';
+import { MarkdownRenderer } from '../MarkdownRenderer';
+
+/** One row of "What comes with it": a tick when it goes to the ticket, an empty box when it stays. */
+function CarryRow({ on, label, to }: { on: boolean; label: string; to: string }) {
+  return (
+    <li className="is-carry-row">
+      <span className={`is-tick ${on ? 'is-tick-on' : ''}`} aria-hidden="true">
+        {on && <LineIcon name="check" size={11} strokeWidth={2.4} />}
+      </span>
+      <span>
+        <span className="is-carry-label">{label}</span>
+        <span className="is-sr">{on ? ' (goes with the ticket)' : ' (stays with the idea)'}</span>
+        <span className="is-muted is-carry-to">→ {to}</span>
+      </span>
+    </li>
+  );
+}
 
 type Subject = Pick<Idea, 'id' | 'title' | 'projectId' | 'stage'>;
 
@@ -41,6 +58,7 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
   const [status, setStatus] = useState<(typeof COLUMNS)[number]['id']>('backlog');
   const [description, setDescription] = useState<string | null>(null);
+  const [editingDesc, setEditingDesc] = useState(false);
   const [subs, setSubs] = useState<string[]>(['']);
   const [ack, setAck] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
@@ -297,14 +315,58 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
             </div>
           )}
           <div className="is-field">
-            <span className="is-label">Description (built from the idea; you can edit it here)</span>
-            <textarea
-              className="is-textarea"
-              rows={10}
-              value={description ?? ''}
-              onChange={(e) => setDescription(e.target.value)}
-              aria-label="Ticket description"
-            />
+            <div className="is-promote-desc-head">
+              <span className="is-label is-grow">Description (built from the idea; you can edit it here)</span>
+              <button
+                type="button"
+                className="is-btn is-btn-sm is-btn-ghost"
+                aria-pressed={editingDesc}
+                onClick={() => setEditingDesc(!editingDesc)}
+                data-testid="description-edit"
+              >
+                <LineIcon name={editingDesc ? 'eye' : 'edit'} size={13} />
+                {editingDesc ? 'Preview' : 'Edit'}
+              </button>
+            </div>
+            {editingDesc ? (
+              <textarea
+                className="is-textarea"
+                rows={10}
+                autoFocus
+                value={description ?? ''}
+                onChange={(e) => setDescription(e.target.value)}
+                aria-label="Ticket description"
+              />
+            ) : (
+              <div
+                className="is-promote-preview"
+                role="button"
+                tabIndex={0}
+                aria-label="Ticket description: click to edit"
+                data-testid="description-preview"
+                onClick={(e) => {
+                  // a link or a sketch inside the preview keeps its own click
+                  if ((e.target as HTMLElement).closest('a, button, img')) return;
+                  setEditingDesc(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    setEditingDesc(true);
+                  }
+                }}
+              >
+                {description?.trim() ? (
+                  <MarkdownRenderer docs={target ? { projectId: target } : undefined}>{description}</MarkdownRenderer>
+                ) : (
+                  <span className="is-muted">No description. Click to write one.</span>
+                )}
+                <div className="is-muted is-promote-from">
+                  From idea {idea.id}
+                  {p.draft.demand ? ` · ${p.draft.demand}` : ''}
+                </div>
+              </div>
+            )}
           </div>
           {wsFiles > 0 && (
             <div className="is-field" data-testid="workspace-choice">
@@ -346,32 +408,52 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
         </div>
         <aside className="is-promote-side">
           <div className="is-label">What comes with it</div>
-          <ul className="is-carry">
-            <li>
-              <b>Problem and idea text</b> → Description
-            </li>
-            <li>
-              <b>Open assumptions</b> ({p.carried.openAssumptions}) → Checklist, each with its test ticket
-            </li>
-            <li>
-              <b>Validated assumptions</b> ({p.carried.validatedAssumptions}) → An “Already confirmed” list
-            </li>
-            <li>
-              <b>Evidence</b> ({p.carried.evidence}) → Stays on the idea; the ticket links to it
-            </li>
-            {p.draft.demand && (
-              <li>
-                <b>Demand</b> → A note: “{p.draft.demand}”
-              </li>
-            )}
-            <li>
-              <b>Research log and activity</b> ({plural(p.carried.logEntries, 'entry', 'entries')}) → Stay on the idea
-            </li>
-            {p.carried.disprovedAssumptions > 0 && (
-              <li>
-                <b>Disproved assumptions</b> ({p.carried.disprovedAssumptions}) → Not copied. Kept on the idea.
-              </li>
-            )}
+          <ul className="is-carry is-carry-ticks">
+            <CarryRow on label="Problem and idea text" to="Description" />
+            <CarryRow
+              on={p.carried.openAssumptions > 0}
+              label={`Open assumptions (${p.carried.openAssumptions})`}
+              to="Checklist, each with its test ticket"
+            />
+            <CarryRow
+              on={p.carried.validatedAssumptions > 0}
+              label={`Validated assumptions (${p.carried.validatedAssumptions})`}
+              to="An “Already confirmed” list"
+            />
+            <CarryRow
+              on={p.carried.evidence > 0}
+              label={`Evidence (${p.carried.evidence})`}
+              to="Stays on the idea; the ticket links to it"
+            />
+            <CarryRow on label="Sketches and diagrams" to="Go with the description, still editable" />
+            <CarryRow
+              on={!!p.draft.demand}
+              label="Demand"
+              to={p.draft.demand ? `A note: “${p.draft.demand}”` : 'Nobody has asked for it yet'}
+            />
+            <CarryRow
+              on={wsFiles > 0 && workspace !== 'leave'}
+              label="Workspace folder"
+              to={
+                wsFiles === 0
+                  ? 'No files yet'
+                  : workspace === 'move'
+                    ? 'Moved to the ticket (you can copy or leave it)'
+                    : workspace === 'copy'
+                      ? 'Copied to the ticket'
+                      : 'Left with the idea'
+              }
+            />
+            <CarryRow
+              on={false}
+              label={`Research log and activity (${plural(p.carried.logEntries, 'entry', 'entries')})`}
+              to="Stay on the idea; the ticket links to them"
+            />
+            <CarryRow
+              on={false}
+              label={`Disproved assumptions (${p.carried.disprovedAssumptions})`}
+              to="Not copied. Kept on the idea."
+            />
           </ul>
           {notReady && (
             <div className="is-banner is-banner-warn" data-testid="not-ready">

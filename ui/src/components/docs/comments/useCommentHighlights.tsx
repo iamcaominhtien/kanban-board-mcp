@@ -1,16 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { DocsCommentThread } from '../../../types/docs';
 import { collectBlocks, rangeForThread } from './anchorDom';
 
-export interface Badge {
-  id: string;
-  number: number;
-  left: number;
-  top: number;
-}
-
 interface Opts {
-  /** Element holding the rendered page body; also the badge container (must be `position: relative`). */
+  /** Element holding the rendered page body (the badges are placed inline in it). */
   root: HTMLElement | null;
   threads: DocsCommentThread[];
   activeId: string | null;
@@ -29,21 +22,49 @@ const registry = (): HighlightRegistry | null =>
 const HighlightCtor = (): (new (...r: Range[]) => unknown) | null =>
   (globalThis as unknown as { Highlight?: new (...r: Range[]) => unknown }).Highlight ?? null;
 
-/**
- * Highlight commented text in the rendered page without touching its DOM (CSS Custom Highlight API),
- * and return numbered badges to draw at the end of each highlight.
- * @param opts - Page body element, threads, active thread and callbacks.
- * @returns Badge positions relative to `opts.root`.
- */
-export function useCommentHighlights({ root, threads, activeId, revision, onSelect, pending }: Opts): Badge[] {
-  const [badges, setBadges] = useState<Badge[]>([]);
+/** Where a badge goes: right after the highlight, or after the chip, link or code span it ends in (their text can
+ *  change on its own, so it is never split). */
+const ATOMIC_SEL = '.dk-chip,a,code,.katex,[data-ref]';
 
+function badgePlace(range: Range, root: HTMLElement): { parent: Node; before: Node | null } | null {
+  const node = range.endContainer;
+  let offset = range.endOffset;
+  const el = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+  const atomic = el?.closest(ATOMIC_SEL);
+  if (atomic && root.contains(atomic) && atomic !== root) {
+    return atomic.parentNode ? { parent: atomic.parentNode, before: atomic.nextSibling } : null;
+  }
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = node as Text;
+    if (offset > 0 && offset < text.length) text.splitText(offset);
+    if (!text.parentNode) return null;
+    return offset === 0
+      ? { parent: text.parentNode, before: text }
+      : { parent: text.parentNode, before: text.nextSibling };
+  }
+  offset = Math.min(offset, node.childNodes.length);
+  return { parent: node, before: node.childNodes[offset] ?? null };
+}
+
+/**
+ * Highlight commented text in the rendered page (CSS Custom Highlight API) and put its number right after the
+ * highlighted text, inline, as the design draws it ("bearer token ❶;"). The badges are the only nodes added to the
+ * page; the rendered Markdown is keyed by its content (DocsPageView), so React never edits a text node a badge split.
+ * @param opts - Page body element, threads, active thread and callbacks.
+ */
+export function useCommentHighlights({ root, threads, activeId, revision, onSelect, pending }: Opts): void {
   useEffect(() => {
     const reg = registry();
     const H = HighlightCtor();
     if (!root) return;
     let entries: { id: string; number: number; range: Range }[] = [];
     let frame = 0;
+    let placed: HTMLButtonElement[] = [];
+    const removeBadges = () => {
+      for (const b of placed) b.remove();
+      placed = [];
+    };
+    const OBSERVE: MutationObserverInit = { childList: true, subtree: true, characterData: true };
 
     const layout = () => {
       frame = 0;
@@ -61,22 +82,36 @@ export function useCommentHighlights({ root, threads, activeId, revision, onSele
         reg.set('dk-cmt-active', new H(...act));
         reg.set('dk-cmt-pending', new H(...(pending ? [pending] : [])));
       }
-      const box = root.getBoundingClientRect();
-      setBadges(
-        entries.map((e) => {
-          const rects = e.range.getClientRects();
-          const r = rects[rects.length - 1] ?? e.range.getBoundingClientRect();
-          return { id: e.id, number: e.number, left: r.right - box.left - 1, top: r.top - box.top - 14 };
-        }),
-      );
+      // our own changes to the page must not wake the observer, or the badges would be placed again and again
+      mo.disconnect();
+      removeBadges();
+      for (const e of entries) {
+        const at = badgePlace(e.range, root);
+        if (!at) continue;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'dk-cmt-badge' + (e.id === activeId ? ' is-active' : '');
+        b.dataset.testid = 'comment-badge';
+        b.dataset.thread = e.id;
+        b.dataset.nocomment = '';
+        b.setAttribute('aria-label', `Open comment ${e.number}`);
+        b.textContent = String(e.number);
+        b.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          onSelect(e.id);
+        });
+        at.parent.insertBefore(b, at.before);
+        placed.push(b);
+      }
+      mo.takeRecords();
+      mo.observe(root, OBSERVE);
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(layout);
     };
-    layout();
-
     const mo = new MutationObserver(schedule);
-    mo.observe(root, { childList: true, subtree: true, characterData: true });
+    mo.observe(root, OBSERVE);
+    layout();
     const ro = new ResizeObserver(schedule);
     ro.observe(root);
     window.addEventListener('resize', schedule);
@@ -101,46 +136,10 @@ export function useCommentHighlights({ root, threads, activeId, revision, onSele
       ro.disconnect();
       window.removeEventListener('resize', schedule);
       root.removeEventListener('click', onClick);
+      removeBadges();
       reg?.delete('dk-cmt');
       reg?.delete('dk-cmt-active');
       reg?.delete('dk-cmt-pending');
     };
   }, [root, threads, activeId, revision, onSelect, pending]);
-
-  return badges;
-}
-
-/**
- * Numbered markers drawn after each highlighted text (click one to open its thread).
- * @param props.badges - Positions from `useCommentHighlights`.
- * @param props.activeId - Thread to emphasise.
- * @param props.onSelect - Called with a thread id when its number is clicked.
- */
-export function CommentBadges({
-  badges,
-  activeId,
-  onSelect,
-}: {
-  badges: Badge[];
-  activeId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div data-nocomment style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-      {badges.map((b) => (
-        <button
-          key={b.id}
-          type="button"
-          data-testid="comment-badge"
-          data-thread={b.id}
-          aria-label={`Open comment ${b.number}`}
-          className={'dk-cmt-badge' + (activeId === b.id ? ' is-active' : '')}
-          style={{ left: b.left, top: b.top }}
-          onClick={() => onSelect(b.id)}
-        >
-          {b.number}
-        </button>
-      ))}
-    </div>
-  );
 }

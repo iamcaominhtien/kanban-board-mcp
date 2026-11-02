@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState, useRef, useEffect } from 'react';
-import type { TestCase, TestCaseStatus, TestCaseFileData } from '../types';
+import type { Member, TestCase, TestCaseStatus, TestCaseFileData } from '../types';
+import { MemberAvatar } from './MemberAvatar';
 import { uploadAttachment, uploadUrl, uploadAnyFile } from '../api/tickets';
 import { extractError } from '../api/extractError';
 import { MarkdownEditor } from './MarkdownEditor';
@@ -80,6 +81,7 @@ function TestCaseRowItem({
   ac,
   mentionMembers,
   askTicketId,
+  members = [],
 }: {
   tc: TestCase;
   index: number;
@@ -93,6 +95,8 @@ function TestCaseRowItem({
   mentionMembers?: SuggestMember[];
   /** The ticket this case belongs to: set when an AI mention in the note can be asked. */
   askTicketId?: string;
+  /** Project members, to show the assignee's own avatar. */
+  members?: Member[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -127,6 +131,9 @@ function TestCaseRowItem({
     }
   }
   const codeDisplay = tc.code || `TC-${index + 1}`;
+  const assigneeMember = tc.assignee
+    ? members.find((m) => m.id === tc.assignee || m.name.toLowerCase() === tc.assignee!.toLowerCase())
+    : undefined;
 
   function cycleStatus() {
     if (readOnly || disabled) return;
@@ -265,9 +272,16 @@ function TestCaseRowItem({
         </span>
 
         {/* Assignee Avatar */}
-        <div className={styles.avatarBadge} title={tc.assignee || 'Assigned QA'}>
-          {getInitials(tc.assignee)}
-        </div>
+        {/* The assignee through the members list; nothing assigned shows a dashed circle, not a made-up "QA" (comp-2 TC-1) */}
+        {assigneeMember ? (
+          <MemberAvatar member={assigneeMember} size={20} />
+        ) : tc.assignee ? (
+          <div className={styles.avatarBadge} title={tc.assignee}>
+            {getInitials(tc.assignee)}
+          </div>
+        ) : (
+          <div className={`${styles.avatarBadge} ${styles.avatarNone}`} title="Unassigned" />
+        )}
 
         {/* Expand / Collapse Button */}
         <button
@@ -533,7 +547,8 @@ export function TestCasesSection({
   criteria,
 }: TestCasesSectionProps) {
   const projectId = useDocsRefs()?.projectId ?? '';
-  const mentionMembers = usePeopleAndAiSuggest(useMembers(projectId).data ?? []);
+  const projectMembers = useMembers(projectId).data ?? [];
+  const mentionMembers = usePeopleAndAiSuggest(projectMembers);
   const acIndex: Record<string, number> = Object.fromEntries((criteria ?? []).map((c, i) => [c.id, i + 1]));
   const [statusFilter, setStatusFilter] = useState<'all' | TestCaseStatus>('all');
   const [rollupSource, setRollupSource] = useState<string>('all');
@@ -872,6 +887,7 @@ export function TestCasesSection({
                   ac={tc.criterionId ? acIndex[tc.criterionId] : undefined}
                   mentionMembers={mentionMembers}
                   askTicketId={ticketId}
+                  members={projectMembers}
                 />
               ))
             )}
@@ -904,6 +920,7 @@ export function TestCasesSection({
                       onDelete={() => {}}
                       readOnly={true}
                       disabled={true}
+                      members={projectMembers}
                     />
                   ))
                 )}

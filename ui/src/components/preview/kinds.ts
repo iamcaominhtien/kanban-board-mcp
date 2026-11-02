@@ -86,3 +86,20 @@ export function languageLabel(name: string): string {
   };
   return map[ext] ?? (ext ? ext.toUpperCase() : 'Text');
 }
+
+const AUDIO = new Set(['mp3', 'wav', 'ogg', 'm4a']);
+
+/**
+ * The kind of a file as the viewer's subtitle names it ("CSV · 1.8 MB", design preview-types): the app-wide label
+ * groups CSV with Excel, Markdown with plain text and audio with video, so the viewer names them itself.
+ */
+export function kindLabel(name: string, fallback: string): string {
+  const ext = getFileExtension(name);
+  if (ext === 'csv') return 'CSV';
+  if (ext === 'tsv') return 'TSV';
+  if (MARKDOWN.has(ext)) return 'Markdown';
+  if (HTML.has(ext)) return 'HTML';
+  if (MEDIA.has(ext)) return AUDIO.has(ext) ? 'Audio' : 'Video';
+  if (CODE.has(ext)) return languageLabel(name);
+  return fallback;
+}

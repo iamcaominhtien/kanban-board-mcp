@@ -155,42 +155,86 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+/* The workflow on a ticket: a grid of step tiles (design ai-team-process F) */
 .wf-strip {
-  border: 1px solid #e3e8e5;
-  border-radius: 10px;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 9px;
+  align-items: start;
 }
 .wf-step {
-  display: grid;
-  grid-template-columns: 22px 190px minmax(0, 1fr) 110px;
-  align-items: start;
-  gap: 10px;
-  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px 11px;
   font-size: 12.5px;
-  border-top: 1px solid #eef3ef;
-}
-.wf-step:first-child {
-  border-top: none;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
 }
 .wf-step-done {
   background: #f3f9f5;
+  border-color: #cfe3d6;
 }
 .wf-step-active {
   background: #f2f7fc;
+  border-color: #cbddee;
 }
 .wf-step-waiting-you {
   background: #fffbef;
+  border-color: #f0dba8;
 }
 .wf-step-bad {
   background: #fdece8;
+  border-color: #f2c7bb;
+}
+.wf-tile-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.wf-tile-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wf-mark {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid #9aa8a0;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-sizing: border-box;
+}
+.wf-mark-done {
+  border-color: #1f5a31;
+  color: #1f5a31;
+}
+.wf-mark-bad {
+  border-color: #a5321e;
+  color: #a5321e;
 }
 .wf-n {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
   color: #9aa8a0;
   font-weight: 700;
 }
 .wf-state {
+  font-size: 10px;
   font-weight: 700;
-  text-align: right;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 .wf-s-done {
   color: #1f5a31;
@@ -359,8 +403,13 @@
   font-family: inherit;
 }
 .wf-editor-list button.wf-pill.on {
-  border-color: #2e6f40;
+  border-color: #bfdcc7;
   background: #e6f2ea;
+  color: #1f5a31;
+}
+.wf-editor-list button.wf-pill:focus-visible {
+  outline: 2px solid rgba(46, 111, 64, 0.35);
+  outline-offset: 1px;
 }
 @media (max-width: 760px) {
   .wf-th {
@@ -369,10 +418,13 @@
   .wf-row {
     grid-template-columns: 1fr 1fr;
   }
-  .wf-step {
-    grid-template-columns: 22px 1fr;
+  .wf-strip {
+    grid-template-columns: 1fr;
   }
-  .wf-state {
-    text-align: left;
-  }
+}
+.wf-chain-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
 }

@@ -150,7 +150,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   const [tool, setTool] = useState<Tool>('select');
   const [sel, setSel] = useState<string[]>(request.boardId ? [request.boardId] : []);
   const [hover, setHover] = useState<string | null>(null);
-  const [side, setSide] = useState<'boards' | 'comments' | null>(null);
+  const [side, setSideState] = useState<'boards' | 'comments' | null>(null);
   const [showMap, setShowMap] = useState(true);
   const [focus, setFocus] = useState(false);
   const [space, setSpace] = useState(false);
@@ -169,6 +169,15 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   const [tryId, setTryId] = useState<string | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [history, setHistory] = useState(false);
+  // One side panel at a time (CA-2): Boards / Comments share the side, and History replaces it
+  const setSide = useCallback((next: 'boards' | 'comments' | null) => {
+    setSideState(next);
+    if (next) setHistory(false);
+  }, []);
+  const openHistory = useCallback(() => {
+    setSideState(null);
+    setHistory(true);
+  }, []);
   const [askFor, setAskFor] = useState<string[] | null>(null);
   const [askText, setAskText] = useState('');
   const [proposals, setProposals] = useState(false);
@@ -1126,7 +1135,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
           <button
             type="button"
             className={`${styles.btn} ${styles.btnSm}`}
-            onClick={() => setHistory(true)}
+            onClick={openHistory}
             data-testid="canvas-history-btn"
           >
             <CanvasIcon name="history" size={14} /> History

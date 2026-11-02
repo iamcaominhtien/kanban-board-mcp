@@ -67,6 +67,12 @@ function formatDate(iso?: string): string {
 export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionProps) {
   const [activeTab, setActiveTab] = useState<'graph' | 'list'>('graph');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // The Create branch button the form hangs from (Branches 5)
+  const [createAnchor, setCreateAnchor] = useState<DOMRect | null>(null);
+  const openCreate = (e: React.MouseEvent<HTMLElement>) => {
+    setCreateAnchor(e.currentTarget.getBoundingClientRect());
+    setIsCreateModalOpen(true);
+  };
 
   const { data: branches = [], isLoading } = useTicketBranches(ticketId);
   const baseName = useDefaultBase(ticketId).data ?? 'main';
@@ -178,22 +184,24 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
     return <div className={styles.emptyState}>Loading branches...</div>;
   }
 
-  // Ensure default main/baseline is present in list if empty
-  const allBranches: TicketBranch[] =
-    branches.length > 0
-      ? branches
+  // The list starts with the baseline ("● main · baseline"), then the ticket's branches (Branches 4, comp-2 BR-4)
+  const allBranches: TicketBranch[] = [
+    ...(branches.some((b) => b.status === 'baseline' || b.name === baseName)
+      ? []
       : [
           {
             id: 'baseline-main',
             name: baseName,
-            status: 'baseline',
+            status: 'baseline' as const,
             branchFrom: '',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             aheadCount: 0,
             behindCount: 0,
           },
-        ];
+        ]),
+    ...branches,
+  ];
 
   return (
     <div className={styles.container}>
@@ -217,7 +225,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
         </div>
 
         {!readOnly && (
-          <button type="button" className={styles.brAddBtn} onClick={() => setIsCreateModalOpen(true)}>
+          <button type="button" className={styles.brAddBtn} onClick={openCreate}>
             <svg
               width="11"
               height="11"
@@ -365,29 +373,6 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
             );
           })}
         </div>
-      )}
-
-      {activeTab === 'list' && !readOnly && (
-        <button
-          type="button"
-          className={styles.brAddBtn}
-          onClick={() => setIsCreateModalOpen(true)}
-          style={{ alignSelf: 'flex-start' }}
-        >
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d="M12 5V19" />
-            <path d="M5 12H19" />
-          </svg>
-          Create branch
-        </button>
       )}
 
       {/* Confirmation Dialog for branch actions with worktree */}
@@ -570,6 +555,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
 
       <CreateBranchModal
         isOpen={isCreateModalOpen}
+        anchor={createAnchor}
         onClose={() => setIsCreateModalOpen(false)}
         ticketId={ticketId}
         branches={allBranches}

@@ -68,8 +68,8 @@ function useHoverTimer(ms: number, onDone: () => void) {
 }
 
 const ICON_PROPS = {
-  width: 13,
-  height: 13,
+  width: 16,
+  height: 16,
   viewBox: '0 0 24 24',
   fill: 'none',
   strokeWidth: 2.6,
@@ -94,9 +94,8 @@ function VariantIcon({ variant }: Readonly<{ variant: ToastVariant }>) {
       );
     case 'warning':
       return (
-        <svg {...ICON_PROPS} stroke="#B8860B">
-          <path d="M12 4l9 16H3L12 4z" />
-          <path d="M12 10v4M12 17v.5" />
+        <svg {...ICON_PROPS} stroke="#B4791E">
+          <path d="M12 5v9M12 18.5v.5" />
         </svg>
       );
     case 'info':

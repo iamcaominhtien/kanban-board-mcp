@@ -41,13 +41,25 @@ describe('BoardAiSection', () => {
     render(wrap(<BoardAiSection projectId="p1" />));
     await screen.findByTestId('board-ai-table');
     expect(screen.getByTestId('tier-row-done').getAttribute('data-locked')).toBe('true');
-    expect(screen.getByTestId('tier-row-done').textContent).toContain('Fixed in the last tier');
-    fireEvent.change(screen.getByLabelText('Tier of: Move a ticket to another column'), { target: { value: 'free' } });
+    // the reason is said once, above the fixed rows
+    expect(screen.getByTestId('tier-locked-reason').textContent).toContain('Fixed in the last tier');
+    fireEvent.click(screen.getByRole('button', { name: 'Tier of: Move a ticket to another column' }));
+    fireEvent.click(screen.getByRole('option', { name: /^Just does it/ }));
     await waitFor(() =>
       expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/board-ai', { tiers: { status: 'free' } }),
     );
     fireEvent.click(screen.getByTestId('board-ai-acts'));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/board-ai', { acts: false }));
+  });
+
+  it('lists the real operations of each tier in its card', async () => {
+    http.get.mockReturnValue(ok(view));
+    render(wrap(<BoardAiSection projectId="p1" />));
+    await screen.findByTestId('board-ai-table');
+    expect(screen.getByTestId('tier-undo-status').textContent).toBe('Move a ticket to another column');
+    expect(screen.getByTestId('tier-free-comment').textContent).toBe('Comment on a ticket');
+    expect(screen.getByTestId('tier-ask-done').textContent).toBe('Move a ticket to Done');
+    expect(screen.queryByTestId('tier-undo-comment')).toBeNull();
   });
 
   it('says why a change was refused', async () => {

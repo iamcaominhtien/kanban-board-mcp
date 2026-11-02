@@ -197,6 +197,12 @@
   padding: 0;
 }
 
+/* a 24 h time typed as text, sized to "00:00" */
+.input input.time {
+  width: 5.5ch;
+  font-variant-numeric: tabular-nums;
+}
+
 /* A select inside the field box: the box is the control, so the select draws no box of its own (the app-wide
    dropdown look, index.css, keeps only its chevron here) */
 .input select {

@@ -249,19 +249,22 @@ export function CommentBox({
         </div>
       )}
       <div className="dc-box-bar">
-        {tools.map((t) => (
-          <button
-            key={t.label}
-            type="button"
-            className="dc-tool"
-            aria-label={t.label}
-            title={t.label}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={t.run}
-          >
-            {t.node}
-          </button>
+        {tools.map((t, i) => (
+          <span key={t.label} style={{ display: 'contents' }}>
+            {i === 3 && <span className="dc-sep" aria-hidden />}
+            <button
+              type="button"
+              className="dc-tool"
+              aria-label={t.label}
+              title={t.label}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={t.run}
+            >
+              {t.node}
+            </button>
+          </span>
         ))}
+        <span className="dc-sep" aria-hidden />
         <button
           type="button"
           className="dc-tool"

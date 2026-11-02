@@ -949,3 +949,85 @@ button.pk-out-head {
     max-width: 100%;
   }
 }
+
+/* Set up the AI team, drawn as a page (design ai-team-process D) */
+.pk-page {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #1e2a22;
+}
+.pk-page-crumb {
+  padding: 16px 28px 0;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.pk-page-crumb span {
+  color: #9aa8a0;
+}
+.pk-page-crumb b {
+  color: #1e2a22;
+}
+.pk-page-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 28px 4px;
+}
+.pk-page-head h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+}
+.pk-page-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #e6f2ea;
+  color: #1f5a31;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.pk-page-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 28px 24px;
+}
+.pk-page-inner {
+  max-width: 1120px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pk-page-foot {
+  padding: 12px 28px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+}
+.pk-page-foot-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.pk-page .ai-stepper .ai-step-done .ai-step-n {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #fff;
+}
+.pk-two {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: start;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .pk-two {
+    grid-template-columns: 1fr;
+  }
+}

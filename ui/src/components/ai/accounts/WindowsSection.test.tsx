@@ -139,4 +139,16 @@ describe('WindowsSection', () => {
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/windows/a1', { moveUrgent: true }));
     await screen.findByText('Could not change the switch');
   });
+
+  it('sets the limit of every account from the one header control, and keeps a row of its own', async () => {
+    setup({ accounts: [acct(), acct({ key: 'a2', name: 'work', maxParallel: 3 })], room: [] });
+    expect((await screen.findByTestId('win-count')).textContent).toBe('2 Claude accounts');
+    const all = screen.getByTestId('win-limit-all') as HTMLInputElement;
+    expect(all.value).toBe('2');
+    fireEvent.change(all, { target: { value: '4' } });
+    fireEvent.blur(all);
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/windows/a1', { maxParallel: 4 }));
+    expect(http.patch).toHaveBeenCalledWith('/ai/windows/a2', { maxParallel: 4 });
+    expect(screen.getByLabelText('Runs at a time on work')).toBeTruthy();
+  });
 });

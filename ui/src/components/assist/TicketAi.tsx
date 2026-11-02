@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { assistApi, assistError, useAssistState, useCoverage, useDraft, useTicketDrafts } from '../../api/assist';
 import { extractError } from '../../api/extractError';
@@ -1074,6 +1074,7 @@ export function TicketAiMenu({
     () => [
       {
         label: 'Improve description',
+        icon: 'edit' as const,
         block: drafting?.reason,
         run: async () => {
           const d = await sd.start('description', { ticketId: ticket.id });
@@ -1082,15 +1083,23 @@ export function TicketAiMenu({
       },
       {
         label: 'Split with AI',
+        icon: 'branch' as const,
         block: splitting?.reason ?? (isChild ? 'A sub-ticket cannot be split again' : undefined),
         run: async () => {
           const d = await sd.start('split', { ticketId: ticket.id });
           if (d) setSplit(d.id);
         },
       },
-      { label: 'Suggest test cases', block: cases?.reason, run: async () => onOpenTestCases() },
+      {
+        label: 'Suggest test cases',
+        icon: 'checkCircle' as const,
+        block: cases?.reason,
+        run: async () => onOpenTestCases(),
+      },
       {
         label: 'Ask about this ticket',
+        icon: 'chat' as const,
+        divider: true,
         block: onToggleChat ? undefined : chat?.reason,
         hint: shortcutLabel(),
         run: async () => (onToggleChat ? onToggleChat(true) : ctx?.ask({ scope: 'ticket', ticketId: ticket.id })),
@@ -1103,13 +1112,15 @@ export function TicketAiMenu({
   if (!onToggleChat && (!st.data || st.data.boardAi.state === 'not_configured')) return null;
   if (onToggleChat && aiMembers.size === 0 && (!st.data || st.data.boardAi.state === 'not_configured')) return null;
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-flex', gap: 2 }} className="ai-root">
+    <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }} className="ai-root">
       {onToggleChat && (
         <button
           type="button"
           className="ai-btn ai-btn-sm"
           style={{
             height: 34,
+            borderTopRightRadius: 0,
+            borderBottomRightRadius: 0,
             borderColor: chatOpen ? '#6B4FE0' : undefined,
             color: chatOpen ? '#4B2FBF' : undefined,
             background: chatOpen ? '#F3F0FD' : undefined,
@@ -1125,7 +1136,13 @@ export function TicketAiMenu({
       <button
         type="button"
         className="ai-btn ai-btn-sm"
-        style={{ height: 34, borderColor: open ? '#2E6F40' : undefined, padding: onToggleChat ? '0 7px' : undefined }}
+        style={{
+          height: 34,
+          borderColor: open ? '#2E6F40' : undefined,
+          ...(onToggleChat
+            ? { padding: '0 7px', marginLeft: -1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
+            : {}),
+        }}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -1136,28 +1153,31 @@ export function TicketAiMenu({
           <LineIcon name="chevronDown" size={12} />
         ) : (
           <>
-            <SparkleIcon size={12} /> AI
+            <SparkleIcon size={12} /> AI <LineIcon name="chevronDown" size={12} />
           </>
         )}
       </button>
       {open && (
         <div className="as-menu" style={{ top: 40, left: 0 }} role="menu">
           {items.map((it) => (
-            <button
-              key={it.label}
-              type="button"
-              role="menuitem"
-              disabled={!!it.block}
-              title={it.block}
-              onClick={async () => {
-                setOpen(false);
-                setError(null);
-                await it.run();
-              }}
-            >
-              <span style={{ flex: 1 }}>{it.label}</span>
-              {'hint' in it && it.hint && <span className="as-kbd">{it.hint}</span>}
-            </button>
+            <Fragment key={it.label}>
+              {'divider' in it && it.divider && <div role="separator" className="as-menu-sep" />}
+              <button
+                type="button"
+                role="menuitem"
+                disabled={!!it.block}
+                title={it.block}
+                onClick={async () => {
+                  setOpen(false);
+                  setError(null);
+                  await it.run();
+                }}
+              >
+                <LineIcon name={it.icon} size={14} color="#5B6B60" />
+                <span style={{ flex: 1 }}>{it.label}</span>
+                {'hint' in it && it.hint && <span className="as-kbd">{it.hint}</span>}
+              </button>
+            </Fragment>
           ))}
         </div>
       )}

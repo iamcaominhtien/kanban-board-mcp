@@ -7,7 +7,7 @@ import { useToast } from '../Toast';
 import { useAiBoardState } from './aiUi';
 import { ACTION_LABEL, RESULT_STYLE, dateTime, usd } from './aiSafetyUi';
 import { AiAvatar } from './aiUi';
-import { PAUSE_COLOR, PauseGlyph, agoText, canResume, clockTime, pausedSummary } from './pausedUi';
+import { PAUSE_COLOR, PauseGlyph, agoText, canResume, clockTime, pausedByLine, pausedSummary } from './pausedUi';
 import type { ResumeInfo } from '../../api/aiSafety';
 
 /** Kill switch and containment (design/screens/ai-safety-cost.md, D1 to D5). */
@@ -62,16 +62,38 @@ export function PauseAllButton({
       {settings.safeMode && <SafeModeChip />}
       {settings.pausedAll ? (
         <span className="ai-pausebar" data-testid="ai-paused-bar">
-          <span
-            className={`ai-pausebar-label ${mayResume ? '' : 'ai-pausebar-solo'}`}
-            tabIndex={0}
-            title={pausedSummary(settings)}
-            aria-label={`AI paused${since ? ` since ${since}` : ''}. ${pausedSummary(settings)}`}
-            data-testid="ai-paused-label"
-          >
-            <PauseGlyph />
-            AI paused
-            {since && <span className="ai-pausebar-since">since {since}</span>}
+          {/* B1: hover or focus on the label shows the card (who, when, the counts, the reason) */}
+          <span className="ai-pausebar-wrap">
+            <span
+              className={`ai-pausebar-label ${mayResume ? '' : 'ai-pausebar-solo'}`}
+              tabIndex={0}
+              aria-label={`AI paused${since ? ` since ${since}` : ''}. ${pausedSummary(settings)}`}
+              aria-describedby="ai-paused-card"
+              data-testid="ai-paused-label"
+            >
+              <PauseGlyph />
+              AI paused
+              {since && <span className="ai-pausebar-since">since {since}</span>}
+            </span>
+            <span className="ai-pausebar-card" id="ai-paused-card" role="tooltip" data-testid="ai-paused-card">
+              <b>{pausedByLine(settings)}</b>
+              {(settings.pausedCancelled ?? 0) + (settings.pausedHeld ?? 0) > 0 && (
+                <span>
+                  {[
+                    settings.pausedCancelled
+                      ? `${settings.pausedCancelled} run${settings.pausedCancelled === 1 ? '' : 's'} cancelled`
+                      : '',
+                    settings.pausedHeld
+                      ? `${settings.pausedHeld} queued run${settings.pausedHeld === 1 ? '' : 's'} held`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              )}
+              {settings.pausedReason && <span className="ai-pausebar-reason">“{settings.pausedReason}”</span>}
+              <span className="ai-pausebar-note">Nothing new starts until an owner or admin resumes.</span>
+            </span>
           </span>
           {mayResume && (
             <button

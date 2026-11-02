@@ -707,3 +707,25 @@ textarea.input {
     width: 100% !important;
   }
 }
+
+/* A lane's key never wraps ("KAN-/23"), whatever the width (design D) */
+.laneHead .mono {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* The Story page's breadcrumb (design E: "Kanban Board › Board › KAN-301") */
+.crumb {
+  padding: 14px 24px 0;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.crumb span {
+  color: #9aa8a0;
+  margin: 0 2px;
+}
+.crumb b {
+  color: #1e2a22;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}

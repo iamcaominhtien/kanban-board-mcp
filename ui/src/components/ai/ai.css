@@ -1090,3 +1090,279 @@
   background: #eef1ef;
   color: #5b6b60;
 }
+
+/* Members page tabs: a segmented control (grey track, white active pill, amber counts; design ai-accounts B1) */
+.ai-tabs.ai-tabs-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  border: none;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+.ai-tabs-seg .ai-tab {
+  gap: 6px;
+  padding: 5px 11px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.ai-tabs-seg .ai-tab-active {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
+}
+.ai-tabs-seg .ai-tab-count,
+.ai-tabs-seg .ai-tab-active .ai-tab-count {
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: #7a5a06;
+}
+
+/* Add AI member: every step named, done steps filled with a white check and a green connector (design ai-members C3,
+   ai-accounts D1), a close button in the header, ticks and dividers on the detected CLI (C2a) */
+.ai-stepper .ai-step-done {
+  color: #2e6f40;
+}
+.ai-stepper .ai-step-done .ai-step-n {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #fff;
+}
+.ai-step-line-done {
+  background: #2e6f40;
+}
+.ai-modal-x {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+}
+.ai-kv.ai-kv-lines {
+  gap: 0 12px;
+}
+.ai-kv-lines dt,
+.ai-kv-lines dd {
+  padding: 8px 0;
+  border-bottom: 1px solid #eef3ef;
+}
+.ai-kv-lines dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ai-kv-lines .ai-kv-ok {
+  margin-left: auto;
+}
+.ai-input-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ai-input-icon > svg {
+  position: absolute;
+  left: 10px;
+  pointer-events: none;
+}
+.ai-input-icon > input {
+  width: 100%;
+  padding-left: 30px;
+}
+
+/* AI profile overview: Limits and Connection rows with dividers and a wider label column (design ai-members D1) */
+.ai-kv.ai-kv-rows {
+  grid-template-columns: minmax(150px, max-content) 1fr;
+  gap: 0 16px;
+}
+.ai-kv-rows dt,
+.ai-kv-rows dd {
+  padding: 7px 0;
+  border-top: 1px solid #eef3ef;
+}
+.ai-kv-rows dt:first-of-type,
+.ai-kv-rows dt:first-of-type + dd {
+  border-top: none;
+}
+
+/* A search field with a magnifier (Audit log ticket filter, design ai-safety-cost E1) */
+.ai-search-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 7px;
+  background: #fff;
+}
+.ai-search-field:focus-within {
+  border-color: #2e6f40;
+}
+.ai-search-field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+
+/* Permissions (design ai-safety-cost A1): an icon per action, per-mode tints, the ceiling as separate steps */
+.ai-matrix-ico {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #eef3ef;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ai-mode-seg .ai-seg-on {
+  border: 1px solid transparent;
+  font-weight: 700;
+}
+.ai-mode-seg .ai-seg-on.ai-mode-allowed {
+  background: #dceee1;
+  color: #2e6f40;
+  border-color: #bfdcc7;
+}
+.ai-mode-seg .ai-seg-on.ai-mode-approval {
+  background: #fdf3e3;
+  color: #b4571f;
+  border-color: #ebd3a4;
+}
+.ai-mode-seg .ai-seg-on.ai-mode-blocked {
+  background: #fbe9e5;
+  color: #b2331f;
+  border-color: #f0c8bf;
+}
+.ai-ceiling {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ai-ceiling button {
+  flex: 1;
+  min-width: 72px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 0;
+  border-radius: 7px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  color: #9aa8a0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ai-ceiling button.ai-ceiling-within {
+  background: #f1f8f3;
+  border-color: #bfdcc7;
+  color: #2e6f40;
+}
+.ai-ceiling button.ai-ceiling-on {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* A run the board tries again by itself (design ai-operations L) */
+.ai-retry-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 7px 12px;
+  border: 1px solid #ebd3a4;
+  border-radius: 8px;
+  background: #fdf5e6;
+  color: #8a5a12;
+  font-size: 12.5px;
+}
+
+/* Skills & plugins › Installed: the two notes as cards (design ai-team-process B) */
+.tl-callouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.tl-callout {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.tl-callout-green {
+  border: 1px solid #cfe3d6;
+  background: #f3f9f5;
+}
+.tl-callout-amber {
+  border: 1px solid #f0dba8;
+  background: #fffbef;
+}
+
+/* Settings › AI › Board AI: the reason for the fixed actions, said once above them (design ai-board-wave3 C) */
+.ai-tier-locked-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 14px;
+  border-bottom: 1px solid #eef3ef;
+  background: #fffbef;
+  color: #7a5a06;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ai-tier-locked-head svg {
+  margin-top: 2px;
+}
+
+/* "AI paused": hover or keyboard focus on the label shows the card (design ai-paused B1) */
+.ai-pausebar-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.ai-pausebar-card {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1300;
+  width: 280px;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.14);
+  color: #1e2a22;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+}
+.ai-pausebar-wrap:hover .ai-pausebar-card,
+.ai-pausebar-wrap:focus-within .ai-pausebar-card {
+  display: flex;
+}
+.ai-pausebar-reason {
+  color: #3a4a3e;
+}
+.ai-pausebar-note {
+  color: #5b6b60;
+}

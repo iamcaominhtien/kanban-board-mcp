@@ -411,6 +411,12 @@
   flex-shrink: 0;
 }
 
+.avatarNone {
+  background: none;
+  border: 1.4px dashed #c7d2cb;
+  box-sizing: border-box;
+}
+
 .iconBtn {
   width: 24px;
   height: 24px;

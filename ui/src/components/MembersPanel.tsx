@@ -53,7 +53,8 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_MEMBER_COLORS[0]);
   const [addError, setAddError] = useState<string | null>(null);
-  const [removeError, setRemoveError] = useState<string | null>(null);
+  // the blocked remove message sits under the row it belongs to (design: members-view 4)
+  const [removeError, setRemoveError] = useState<{ id: string; message: string } | null>(null);
 
   const addMemberMutation = useAddMember(projectId);
   const removeMemberMutation = useRemoveMember(projectId);
@@ -68,8 +69,11 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
       await addMemberMutation.mutateAsync({ name, color: newColor });
       setNewName('');
     } catch (err) {
-      // 409: names are unique across people and AI in a project, so @mentions never point at two members
-      setAddError(extractError(err) || 'Failed to add member. Please try again.');
+      // Any 4xx carries the server's sentence (409: names are unique across people and AI in a project; 422: "Enter a
+      // name."). Network errors and 5xx get the generic text.
+      const status = (err as AxiosError)?.response?.status;
+      const fromServer = status !== undefined && status >= 400 && status < 500 ? extractError(err) : '';
+      setAddError(fromServer || 'Failed to add member. Please try again.');
     }
   }
 
@@ -79,7 +83,10 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
       await removeMemberMutation.mutateAsync(memberId);
     } catch (err: unknown) {
       const detail = (err as AxiosError<{ detail: string }>)?.response?.data?.detail;
-      setRemoveError(detail ?? 'Failed to remove member. If assigned to open tickets, reassign first.');
+      setRemoveError({
+        id: memberId,
+        message: detail ?? 'Failed to remove member. If assigned to open tickets, reassign first.',
+      });
     }
   }
 
@@ -283,7 +290,7 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                   </select>
                   <button
                     type="button"
-                    className={styles.removeBtn}
+                    className={`${styles.removeBtn} ${removeError?.id === m.id ? styles.removeBtnBlocked : ''}`}
                     onClick={() => handleRemove(m.id)}
                     aria-label={`Remove ${m.name}`}
                   >
@@ -300,14 +307,17 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                     </svg>
                   </button>
                 </div>
+                {removeError?.id === m.id && (
+                  <div className={styles.rowError} role="alert" data-testid="member-remove-error">
+                    {removeError.message}
+                  </div>
+                )}
                 {idx < members.length - 1 && <div className={styles.rowDivider} />}
               </div>
             ))}
 
             {members.length === 0 && <div className={styles.emptyState}>No members yet.</div>}
           </div>
-
-          {removeError && <div className={styles.errorText}>{removeError}</div>}
 
           <div className={styles.sectionDivider} />
 

@@ -245,8 +245,10 @@ export const SLASH_ITEMS: SlashItem[] = [
   {
     id: 'diagram',
     group: 'Blocks',
-    label: 'Diagram',
-    desc: 'Boxes and arrows (draw.io)',
+    // DG-2: the design's name; "diagram" stays a keyword so "/dia" still finds it
+    label: 'New draw.io drawing',
+    desc: 'Boxes and arrows, edited in draw.io',
+    keywords: 'diagram boxes arrows flowchart',
     kbd: '/diagram',
     tile: { icon: 'i33' },
     run: (e, r, ctx) => {

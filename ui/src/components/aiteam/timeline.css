@@ -627,42 +627,74 @@
 .tl-days {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+/* Seven days as one list, a row per day, newest first (ai-team-timeline-cases.md, E5) */
+.tl-days-list {
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
 }
 .tl-day {
-  display: grid;
-  grid-template-columns: 130px 1fr 80px auto auto;
+  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #e3e8e5;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-bottom: 1px solid #eef3ef;
   background: #fff;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
+  color: #1e2a22;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
+.tl-day:last-child {
+  border-bottom: none;
+}
 .tl-day:hover {
-  border-color: #b7c9be;
+  background: #f6faf7;
 }
 .tl-day.quiet {
   cursor: default;
-  background: #fbfcfb;
-  padding: 6px 14px;
+}
+.tl-day.quiet:hover {
+  background: #fff;
+}
+.tl-day-date {
+  width: 92px;
+  flex-shrink: 0;
+}
+.tl-day-hours {
+  flex: 1;
   display: flex;
-  gap: 12px;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
+  min-width: 0;
 }
-.tl-day-bar {
-  height: 8px;
-  border-radius: 999px;
-  background: #eef3ef;
-  overflow: hidden;
-}
-.tl-day-bar > i {
-  display: block;
-  height: 100%;
+.tl-day-hours > i {
+  display: inline-block;
+  width: 5px;
   background: #2e6f40;
+  opacity: 0.6;
+  border-radius: 1px;
+}
+.tl-day-hours > .at-hint {
+  align-self: center;
+}
+.tl-day-runs {
+  width: 56px;
+  flex-shrink: 0;
+  color: #3a4a3e;
+}
+.tl-day-chips {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
 }
 .tl-day-chip {
   padding: 2px 9px;
@@ -791,4 +823,37 @@
     animation: none;
     opacity: 0.5;
   }
+}
+
+/* The range button's "Custom…" popover: under the button, aligned to its right edge (it sits at the toolbar's end) */
+.tl-menu.tl-custom {
+  left: auto;
+  right: 0;
+  min-width: 300px;
+  max-height: none;
+  padding: 6px 10px 10px;
+}
+.tl-custom-row {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+.tl-custom-row label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6b60;
+}
+.tl-custom-error {
+  font-size: 12px;
+  color: #a5321e;
+  padding-bottom: 6px;
+}
+.tl-custom-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }

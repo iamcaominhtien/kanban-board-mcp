@@ -286,7 +286,13 @@ export default function App() {
   const [resumeError, setResumeError] = useState<string | null>(null);
   const [lastReopenPayload, setLastReopenPayload] = useState<Parameters<typeof markers.reopen>[1] | null>(null);
   // Card dropped out of Done / Won't Do: the move waits for a confirm at the drop point (TicketReopen A3)
-  const [dropReopen, setDropReopen] = useState<{ ticket: Ticket; x: number; y: number; reason: string } | null>(null);
+  const [dropReopen, setDropReopen] = useState<{
+    ticket: Ticket;
+    x: number;
+    y: number;
+    anchored?: boolean;
+    reason: string;
+  } | null>(null);
   // Moving a pending ticket to Done: confirm first (TicketPending E2)
   const [closeConfirm, setCloseConfirm] = useState<{ ticketId: string; newStatus: Status } | null>(null);
   const lastPointer = useRef({ x: 400, y: 300 });
@@ -581,8 +587,9 @@ export default function App() {
   async function handleDragEnd(ticketId: string, newStatus: Status, confirmed = false) {
     const dragged = localTickets.find((t) => t.id === ticketId);
     if (dragged && (dragged.status === 'done' || dragged.status === 'wont_do')) {
-      // Not applied until confirmed: the card snaps back and a popover opens at the drop point
-      setDropReopen({ ticket: dragged, ...lastPointer.current, reason: '' });
+      // Not applied until confirmed: the card snaps back and a popover opens under the drop slot of the column it was
+      // dropped on (TicketReopen A3, board RO-3); at the drop point when that column cannot be found
+      setDropReopen({ ticket: dragged, ...dropSlotPoint(newStatus, lastPointer.current), reason: '' });
       return;
     }
 
@@ -648,9 +655,8 @@ export default function App() {
     } catch (err) {
       // Rollback local state on error
       setLocalTickets(tickets);
-      const errMsg = extractError(err);
-      setGlobalError(errMsg);
-      toast.error("Couldn't save changes", errMsg);
+      // One message for a failed move: the toast (Toast 1, comp-1 TS-3); the red banner is for errors with no toast
+      toast.error("Couldn't save changes", extractError(err));
     }
   }
 
@@ -671,9 +677,8 @@ export default function App() {
     } catch (err) {
       // Rollback local state on error
       setLocalTickets(tickets);
-      const errMsg = extractError(err);
-      setGlobalError(errMsg);
-      toast.error("Couldn't save changes", errMsg);
+      // One message for a failed move: the toast (Toast 1, comp-1 TS-3); the red banner is for errors with no toast
+      toast.error("Couldn't save changes", extractError(err));
     }
   }
 
@@ -849,6 +854,15 @@ export default function App() {
       />
     );
   }
+  // the AI paused banner (ai-2 AP-2): under the top bar. The board has its top bar inside, so it draws the banner
+  const pausedBanner = aiState.settings?.pausedAll ? (
+    <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
+  ) : null;
+  const boardShown =
+    !overlayPage &&
+    !(aiPage && currentProjectId && !noProjects) &&
+    !noProjects &&
+    !(activeBoard === 'idea' && !boardLoadState);
 
   return (
     <BoardProviders
@@ -949,20 +963,28 @@ export default function App() {
                   height: '100vh',
                   paddingRight: 'var(--as-dock-w, 0px)',
                   boxSizing: 'border-box',
+                  position: 'relative',
                 }}
               >
                 {globalError && (
                   <div
+                    role="alert"
                     style={{
-                      background: '#DC2626',
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      margin: '8px',
+                      // Rendered over the page, not in the layout flow, so it does not push the board down (Main Board 4)
+                      position: 'absolute',
+                      top: 8,
+                      left: 8,
+                      right: 'calc(8px + var(--as-dock-w, 0px))',
+                      zIndex: 1000,
+                      background: '#C4432A',
+                      color: '#FFFFFF',
+                      fontSize: 13,
+                      padding: '10px 14px',
+                      borderRadius: 8,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      gap: '8px',
+                      gap: 8,
                     }}
                   >
                     <span>{globalError}</span>
@@ -984,64 +1006,8 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {blockedDragPending && (
-                  <div
-                    style={{
-                      position: 'fixed',
-                      top: '16px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      zIndex: 1000,
-                      background: '#FEF3C7',
-                      border: '1.5px solid #F5C518',
-                      color: 'var(--color-dark)',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                    }}
-                  >
-                    <span>
-                      <LineIcon name="warning" size={14} /> This ticket is blocked. Move to In Progress anyway?
-                    </span>
-                    <button
-                      type="button"
-                      onClick={proceedBlockedDrag}
-                      style={{
-                        background: '#F5C518',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '6px 14px',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        color: 'var(--color-dark)',
-                      }}
-                    >
-                      Move Anyway
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBlockedDragPending(null)}
-                      style={{
-                        background: 'transparent',
-                        border: '1.5px solid #F5C518',
-                        borderRadius: '8px',
-                        padding: '6px 14px',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        color: 'var(--color-dark)',
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-
-                {aiState.settings?.pausedAll && (
-                  <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
-                )}
+                {/* the board draws the banner under its own top bar (ai-2 AP-2); other pages keep it here */}
+                {pausedBanner && !boardShown && pausedBanner}
                 <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   {overlayPage ??
                     (aiPage && currentProjectId && !noProjects ? (
@@ -1111,17 +1077,28 @@ export default function App() {
                           loadState={boardLoadState}
                           lanesOverride={lanesOverride}
                           statusSlot={loadingPill}
+                          boardNotice={
+                            blockedDragPending ? (
+                              <BlockedDragNotice
+                                onMoveAnyway={proceedBlockedDrag}
+                                onCancel={() => setBlockedDragPending(null)}
+                              />
+                            ) : null
+                          }
+                          topBanner={pausedBanner}
+                          headerActions={
+                            aiState.settings && currentProjectId ? (
+                              <PauseAllButton
+                                projectId={currentProjectId}
+                                settings={aiState.settings}
+                                members={aiOverview.data?.members ?? []}
+                              />
+                            ) : null
+                          }
                           headerExtra={
                             <>
                               <BoardHealthChip />
                               <KeepAwakeChip />
-                              {aiState.settings && currentProjectId ? (
-                                <PauseAllButton
-                                  projectId={currentProjectId}
-                                  settings={aiState.settings}
-                                  members={aiOverview.data?.members ?? []}
-                                />
-                              ) : null}
                               <AskAiButton />
                               <NotificationBellButton />
                             </>
@@ -1168,6 +1145,10 @@ export default function App() {
                               onDelete={handleDeleteTicket}
                               onClose={closeModal}
                               onOpenDocsPage={openDocsPage}
+                              onOpenSettings={() => {
+                                closeModal();
+                                setSettingsTarget({ page: 'storage', setting: 'workspace' });
+                              }}
                               allTickets={allAvailableTickets}
                               onOpenTicket={(t) => openTicketModal(t.id)}
                               members={members}
@@ -1202,6 +1183,7 @@ export default function App() {
                             ticket={dropReopen.ticket}
                             x={dropReopen.x}
                             y={dropReopen.y}
+                            anchored={dropReopen.anchored}
                             isSubmitting={markerBusy}
                             onCancel={() => setDropReopen(null)}
                             onMoreOptions={(reason) => {
@@ -1311,4 +1293,64 @@ export default function App() {
       </AssistProvider>
     </BoardProviders>
   );
+}
+
+/**
+ * "This ticket is blocked. Move to In Progress anyway?" — the card of Main Board 4: a 16 px line warning triangle,
+ * a 1.5 px #E8B93A border, radius 10, Move Anyway filled #E8B93A, Cancel outlined (board MB-5). It is shown over the
+ * board under the filter bar, so the header controls stay reachable.
+ */
+function BlockedDragNotice({ onMoveAnyway, onCancel }: Readonly<{ onMoveAnyway: () => void; onCancel: () => void }>) {
+  const btn: React.CSSProperties = {
+    padding: '6px 14px',
+    borderRadius: 8,
+    fontFamily: 'inherit',
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: '#1E2A22',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  };
+  return (
+    <div
+      role="alertdialog"
+      aria-label="Blocked ticket"
+      data-testid="blocked-drag-notice"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 16px',
+        borderRadius: 10,
+        background: '#FEF3C7',
+        border: '1.5px solid #E8B93A',
+        boxShadow: '0 4px 16px rgba(30,42,34,0.12)',
+      }}
+    >
+      <LineIcon name="warning" size={16} color="#B4791E" strokeWidth={2} />
+      <span style={{ fontSize: 13, color: '#1E2A22', flexGrow: 1 }}>
+        This ticket is blocked. Move to In Progress anyway?
+      </span>
+      <button type="button" onClick={onMoveAnyway} style={{ ...btn, border: 'none', background: '#E8B93A' }}>
+        Move Anyway
+      </button>
+      <button type="button" onClick={onCancel} style={{ ...btn, border: '1.5px solid #E8B93A', background: 'none' }}>
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+/** Where the reopen popover hangs: under the last card of the column `status` (its drop slot), else at `fallback`. */
+function dropSlotPoint(
+  status: Status,
+  fallback: { x: number; y: number },
+): { x: number; y: number; anchored?: boolean } {
+  const col = document.querySelector<HTMLElement>(`[data-column-id="${status}"]`);
+  if (!col) return fallback;
+  const cards = col.querySelectorAll<HTMLElement>('[data-ticket-id]');
+  const last = cards[cards.length - 1];
+  const colRect = col.getBoundingClientRect();
+  const y = last ? last.getBoundingClientRect().bottom + 8 : colRect.top + 40;
+  return { x: colRect.left + 6, y, anchored: true };
 }

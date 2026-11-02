@@ -5,6 +5,7 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import { NodeSelection } from '@tiptap/pm/state';
 import { CellSelection } from '@tiptap/pm/tables';
 import { Icon } from '../Icon';
+import { LineIcon } from '../../ui/LineIcon';
 
 interface Props {
   editor: Editor;
@@ -15,6 +16,8 @@ interface Props {
   onComment?: () => void;
   /** Board AI on the selection: Summarise, Rewrite, Ask AI… (design/screens/ai-board-assistant.md, A6). */
   onAi?: (action: 'summarise' | 'rewrite' | 'ask', text: string) => void;
+  /** Shows an "AI" item that swaps this bar for the AI selection bar (Improve, Shorten, Explain, Ask…). */
+  onAiBar?: () => void;
 }
 
 const SEP = <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.22)', margin: '0 4px' }} />;
@@ -77,8 +80,9 @@ function editorColumn(editor: Editor): Element | null {
  * @param props.ticketPrefix - Ticket key prefix used by the reference button.
  * @param props.onComment - Shows a Comment button that starts an inline comment on the selection.
  * @param props.onAi - Shows Summarise / Rewrite / Ask AI… for the selection.
+ * @param props.onAiBar - Shows an "AI" item that opens the AI selection bar in place of this one.
  */
-export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onComment, onAi }: Props) {
+export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onComment, onAi, onAiBar }: Props) {
   const st = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -342,6 +346,18 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
                     </span>
                   </Btn>
                 ))}
+              </>
+            )}
+            {onAiBar && (
+              <>
+                {SEP}
+                <Btn label="AI on the selection" wide onClick={onAiBar}>
+                  <LineIcon name="sparkle" size={14} />
+                  <span style={{ fontSize: 12 }} data-testid="bubble-ai-bar">
+                    AI
+                  </span>
+                  <Icon name="chevronDown" size={10} strokeWidth={2.3} />
+                </Btn>
               </>
             )}
             {onComment && (

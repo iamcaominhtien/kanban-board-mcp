@@ -91,6 +91,24 @@
   cursor: default;
 }
 
+.waveBadgeBtn {
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: box-shadow 0.12s ease;
+}
+
+/* a green ring on hover, the blue halo while its popover is open (Ticket Detail with Sub-tickets 7) */
+.waveBadgeBtn:hover {
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.18);
+}
+
+.waveBadgeOpen,
+.waveBadgeOpen:hover {
+  box-shadow: 0 0 0 3px rgba(47, 111, 176, 0.18);
+}
+
 .waveDone {
   background: #dceee1;
   color: #2e6f40;

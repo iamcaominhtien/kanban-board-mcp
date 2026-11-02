@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { extractError } from '../../api/extractError';
 import { useIdeaList, useMergeIdea, useMoveIdea, useSimilar, useTagSuggestions } from '../../api/ideas';
 import { useProjects } from '../../api/projects';
@@ -7,6 +7,8 @@ import { ARCHIVE_REASON_LABELS, STAGE_LABELS } from '../../types/idea';
 import { FooterNote, ModalShell, Spacer } from '../docs/docsShared';
 import { StagePill, dateIn } from './ideaShared';
 import { LineIcon } from '../ui/LineIcon';
+import { MenuSelect, type MenuOption } from '../ui/MenuSelect';
+import { IdeaIcon } from './ideaIcons';
 
 type Subject = Pick<Idea, 'id' | 'title' | 'projectId' | 'tags' | 'body' | 'description' | 'stage'>;
 
@@ -38,15 +40,57 @@ export function ProjectSelect({ value, onChange }: { value: string | null; onCha
   );
 }
 
+const NO_PROJECT = '__none';
+
+/** The project as a rounded pill with its colour dot ("● Kanban Board ⌄"), or "No project". */
+export function ProjectPill({
+  value,
+  onChange,
+  plain,
+}: {
+  value: string | null;
+  onChange: (id: string | null) => void;
+  /** Text with a chevron, no outline (the Details card of the idea page). */
+  plain?: boolean;
+}) {
+  const { data: projects = [] } = useProjects();
+  const options: MenuOption<string>[] = [
+    ...projects.map((p) => ({
+      value: p.id,
+      label: p.name,
+      icon: <span className="is-dot" style={{ background: p.color }} />,
+      hint: p.prefix,
+    })),
+    { value: NO_PROJECT, label: 'No project', icon: <IdeaIcon name="inbox" size={13} /> },
+  ];
+  const current = projects.find((p) => p.id === value);
+  return (
+    <MenuSelect
+      icon={current ? <span className="is-dot" style={{ background: current.color }} /> : undefined}
+      value={value ?? NO_PROJECT}
+      options={options}
+      onChange={(v) => onChange(v === NO_PROJECT ? null : v)}
+      label="Project"
+      variant="chip"
+      testId="project-pill"
+      menuWidth={240}
+      className={plain ? 'is-project-pill is-project-pill-plain' : 'is-project-pill'}
+    />
+  );
+}
+
 /** Tag editor: a row of chips with an input that adds on Enter or comma. */
 export function TagInput({
   tags,
   onChange,
   suggestions = [],
+  bare,
 }: {
   tags: string[];
   onChange: (tags: string[]) => void;
   suggestions?: string[];
+  /** Chips and "+ tag" on the line, without the field's box (Quick idea). */
+  bare?: boolean;
 }) {
   const [draft, setDraft] = useState('');
   const add = (raw: string) => {
@@ -56,7 +100,7 @@ export function TagInput({
   };
   return (
     <div>
-      <div className="is-tagbox">
+      <div className={`is-tagbox ${bare ? 'is-tagbox-bare' : ''}`}>
         {tags.map((t) => (
           <span key={t} className="is-tag">
             {t}{' '}
@@ -167,6 +211,13 @@ export function KeepDialog({ idea, onClose, onDone }: DialogProps) {
   );
 }
 
+/** "2026-11-30" → "Mon, 30 Nov 2026". */
+function longDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  if (!iso || Number.isNaN(d.getTime())) return 'Pick a date';
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 const PARK_CHOICES = [
   { label: 'Next week', days: 7 },
   { label: 'In a month', days: 30 },
@@ -177,6 +228,7 @@ const PARK_CHOICES = [
 export function ParkDialog({ idea, onClose, onDone }: DialogProps) {
   const move = useMoveIdea();
   const [date, setDate] = useState(dateIn(7));
+  const dateRef = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -231,15 +283,38 @@ export function ParkDialog({ idea, onClose, onDone }: DialogProps) {
                 {c.label}
               </button>
             ))}
+            <button
+              type="button"
+              className="is-choice"
+              aria-pressed={!PARK_CHOICES.some((c) => date === dateIn(c.days))}
+              data-testid="park-pick-date"
+              onClick={() => {
+                const input = dateRef.current;
+                if (!input) return;
+                input.focus();
+                try {
+                  input.showPicker?.();
+                } catch {
+                  /* the browser has no picker to show: the field has the focus */
+                }
+              }}
+            >
+              Pick a date
+            </button>
           </div>
-          <input
-            className="is-input"
-            type="date"
-            value={date}
-            min={dateIn(0)}
-            onChange={(e) => setDate(e.target.value)}
-            aria-label="Pick a date"
-          />
+          <label className="is-date-field">
+            <IdeaIcon name="calendar" size={14} color="#5B6B60" />
+            <span className="is-date-text">{longDate(date)}</span>
+            <input
+              ref={dateRef}
+              className="is-date-native"
+              type="date"
+              value={date}
+              min={dateIn(0)}
+              onChange={(e) => setDate(e.target.value)}
+              aria-label="Pick a date"
+            />
+          </label>
         </div>
         <div className="is-field">
           <span className="is-label">Note (optional)</span>
