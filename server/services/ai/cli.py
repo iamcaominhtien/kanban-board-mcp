@@ -84,8 +84,9 @@ def missing(binary: str, explicit: str | None = None) -> str:
         return f"“{binary}” was not found on this computer"
     try:
         p = paths.program(explicit)
-    except paths.PathRefused as exc:
-        why = str(exc)
+    except paths.PathRefused:
+        # a fixed sentence, not the exception's text: nothing but our own words goes back to the browser
+        why = "it is outside your home folder and the usual install folders"
     else:
         why = (
             "it is not a file"
