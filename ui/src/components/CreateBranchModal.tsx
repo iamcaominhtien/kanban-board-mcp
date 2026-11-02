@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useCreateBranch } from '../api/tickets';
+import { useCreateBranch, useDefaultBase } from '../api/tickets';
 import { useToast } from './Toast';
 import { extractError } from '../api/extractError';
 import styles from './CreateBranchModal.module.css';
@@ -63,7 +63,7 @@ export function CreateBranchModal({
   onClose,
   ticketId,
   branches = [],
-  initialBranchFrom = 'main',
+  initialBranchFrom,
   onSuccess,
   defaultWorktreeTemplate,
   defaultWorktreeEnabled = false,
@@ -71,7 +71,10 @@ export function CreateBranchModal({
   hasRepoLinked = true,
 }: CreateBranchModalProps) {
   const [branchName, setBranchName] = useState('');
-  const [branchFrom, setBranchFrom] = useState(initialBranchFrom);
+  // The repository's own default (main, else master…): a repo without main no longer gets 'main' as its base
+  const defaultBase = useDefaultBase(ticketId, isOpen).data ?? 'main';
+  const startFrom = initialBranchFrom || defaultBase;
+  const [branchFrom, setBranchFrom] = useState(startFrom);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [createWorktree, setCreateWorktree] = useState(Boolean(defaultWorktreeEnabled));
   const [customWorktreePath, setCustomWorktreePath] = useState('');
@@ -86,7 +89,7 @@ export function CreateBranchModal({
   useEffect(() => {
     if (isOpen) {
       setBranchName('');
-      setBranchFrom(initialBranchFrom || 'main');
+      setBranchFrom(startFrom);
       setIsDropdownOpen(false);
       setCreateWorktree(Boolean(defaultWorktreeEnabled));
       setCustomWorktreePath('');
@@ -95,7 +98,7 @@ export function CreateBranchModal({
         inputRef.current?.focus();
       }, 50);
     }
-  }, [isOpen, initialBranchFrom, defaultWorktreeEnabled]);
+  }, [isOpen, startFrom, defaultWorktreeEnabled]);
 
   // Handle ESC key
   useEffect(() => {
@@ -127,9 +130,9 @@ export function CreateBranchModal({
 
   if (!isOpen) return null;
 
-  // Deduplicate and ensure 'main' is listed
+  // Deduplicate and ensure the default base is listed
   const branchNamesSet = new Set<string>();
-  branchNamesSet.add('main');
+  branchNamesSet.add(defaultBase);
   branches.forEach((b) => {
     if (b.name) branchNamesSet.add(b.name);
   });
@@ -154,7 +157,7 @@ export function CreateBranchModal({
         ticketId,
         data: {
           name: trimmed,
-          branch_from: branchFrom || 'main',
+          branch_from: branchFrom || defaultBase,
           status: 'open',
           create_worktree: createWorktree,
           worktree_path: effectiveWorktreePath || null,

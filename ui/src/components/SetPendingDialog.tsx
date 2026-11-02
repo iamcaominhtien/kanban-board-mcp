@@ -51,7 +51,7 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
   onResumeClick,
   onRetry,
 }) => {
-  useEscape(isSubmitting ? () => {} : onClose);
+  useEscape(isSubmitting ? () => {} : onClose, isOpen);
 
   const isAlreadyPending = !!ticket.pending;
 

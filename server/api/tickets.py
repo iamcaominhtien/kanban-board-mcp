@@ -49,6 +49,7 @@ from services.tickets import (
     get_project_activities,
     get_ticket,
     link_block,
+    default_base_branch,
     list_branches,
     list_tickets,
     remove_ticket_link,
@@ -1099,6 +1100,15 @@ async def get_ticket_commit(ticket_id: str, rev: str, session: Session) -> dict:
     if detail is None:
         _404()
     return detail
+
+
+@router.get("/tickets/{ticket_id}/branches/base")
+async def get_ticket_default_base(ticket_id: str, session: Session) -> dict:
+    """The branch a new branch starts from by default (the repository's main, master or checked-out branch)."""
+    base = await default_base_branch(session, ticket_id)
+    if base is None:
+        _404()
+    return base
 
 
 @router.get("/tickets/{ticket_id}/branches")

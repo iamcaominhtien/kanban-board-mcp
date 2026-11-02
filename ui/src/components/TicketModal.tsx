@@ -438,6 +438,7 @@ function TicketModalInner({
   const [visible, setVisible] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const tagEscapedRef = useRef(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -727,7 +728,7 @@ function TicketModalInner({
     autoSaveField('tags', nextTags);
   }
 
-  function handleAddTagSubmit() {
+  function handleAddTagSubmit(keepOpen = false) {
     const trimmed = newTagText.trim().toLowerCase();
     if (trimmed && !tags.includes(trimmed)) {
       const nextTags = [...tags, trimmed];
@@ -735,7 +736,7 @@ function TicketModalInner({
       autoSaveField('tags', nextTags);
     }
     setNewTagText('');
-    setIsAddingTag(false);
+    if (!keepOpen) setIsAddingTag(false);
   }
 
   function handleCopyId() {
@@ -1826,6 +1827,7 @@ function TicketModalInner({
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleTitleBlur();
                                 if (e.key === 'Escape') {
+                                  e.preventDefault(); // used here: the ticket stays open (see the Esc handler)
                                   setTitle(ticket.title);
                                   setIsEditingTitle(false);
                                 }
@@ -1854,10 +1856,27 @@ function TicketModalInner({
                                 placeholder="Tag name…"
                                 value={newTagText}
                                 onChange={(e) => setNewTagText(e.target.value)}
-                                onBlur={handleAddTagSubmit}
+                                onBlur={() => {
+                                  // Esc closes without saving: the blur that follows must not add the typed text
+                                  if (tagEscapedRef.current) {
+                                    tagEscapedRef.current = false;
+                                    return;
+                                  }
+                                  handleAddTagSubmit();
+                                }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') handleAddTagSubmit();
-                                  if (e.key === 'Escape') setIsAddingTag(false);
+                                  if (e.key === ',') {
+                                    // a comma commits the tag and keeps the box open for the next one
+                                    e.preventDefault();
+                                    handleAddTagSubmit(true);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    e.preventDefault(); // used here: the ticket stays open (see the Esc handler)
+                                    tagEscapedRef.current = true;
+                                    setNewTagText('');
+                                    setIsAddingTag(false);
+                                  }
                                 }}
                               />
                             ) : (
@@ -3244,7 +3263,7 @@ function TicketModalInner({
             onClose={() => setIsCreateBranchModalOpen(false)}
             ticketId={ticket.id}
             branches={branchesList}
-            initialBranchFrom={activeBranch?.inRepo === false ? 'main' : activeBranchName || 'main'}
+            initialBranchFrom={activeBranch?.inRepo === false ? undefined : activeBranchName || undefined}
             defaultWorktreeTemplate={project?.worktreeTemplate}
             defaultWorktreeEnabled={project?.worktreeByDefault}
             projectPrefix={project?.prefix}

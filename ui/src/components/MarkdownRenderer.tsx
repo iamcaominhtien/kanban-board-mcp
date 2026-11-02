@@ -18,6 +18,7 @@ import { useDocsRefs } from './docs/DocsRefsContext';
 import { MentionPill } from './ai/MentionPill';
 import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../utils/docsMarkdown';
 import type { DocsRefRequest } from '../types/docs';
+import { splitAlignBlocks, stripAlignMarkers } from '../utils/markdownAlign';
 import styles from './MarkdownRenderer.module.css';
 
 const MARKDOWN_SCHEMA = {
@@ -172,6 +173,11 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
     () => (docs ? linkifyDocs(cleanedContent) : { markdown: cleanedContent, refs: NO_REFS }),
     [docs, cleanedContent],
   );
+  const segments = useMemo(
+    () =>
+      inline ? [{ align: null, markdown: stripAlignMarkers(linked.markdown) }] : splitAlignBlocks(linked.markdown),
+    [inline, linked.markdown],
+  );
   const resolved = useResolveRefs(docs?.projectId ?? '', linked.refs, true);
   const resolvedPages = new Map<string, NonNullable<typeof resolved.data>[number]>();
   const resolvedTickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
@@ -182,119 +188,135 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
     else resolvedTickets.set(ref.key, res);
   });
 
+  // One ReactMarkdown per aligned block: `::: center` / `::: right` blocks from the editor (utils/markdownAlign.ts)
+  const renderMarkdown = (source: string, key?: number) => (
+    <ReactMarkdown
+      key={key}
+      remarkPlugins={docs ? [remarkGfm, remarkDocs] : [remarkGfm]}
+      rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}
+      urlTransform={(url) =>
+        url.startsWith(REF_SCHEME) ||
+        url.startsWith(TICKET_SCHEME) ||
+        url.startsWith('member:') ||
+        url.startsWith(DIAGRAM_SCHEME) ||
+        url.startsWith(SKETCH_SCHEME) ||
+        url.startsWith(CANVAS_SCHEME)
+          ? url
+          : defaultUrlTransform(url)
+      }
+      components={{
+        ...(inline
+          ? { p: ({ children: inner }: { children?: React.ReactNode }) => <>{inner}</> }
+          : {
+              // a diagram or sketch is a block: it cannot live inside a <p>
+              p: ({ node, children: inner }) =>
+                hasDiagram(node) || hasSketch(node) || hasCanvas(node) ? <div>{inner}</div> : <p>{inner}</p>,
+            }),
+        blockquote: ({ node, children: inner, ...props }) => {
+          const kind = (node?.properties as { dataCallout?: string } | undefined)?.dataCallout;
+          if (!kind) return <blockquote {...props}>{inner}</blockquote>;
+          return (
+            <div className={`${styles.callout} ${styles[`callout_${kind}`] ?? ''}`} role="note">
+              <span className={styles.calloutIcon} aria-hidden="true">
+                {CALLOUT_ICONS[kind]}
+              </span>
+              <div className={styles.calloutBody}>{inner}</div>
+            </div>
+          );
+        },
+        img: ({ src, alt, ...props }) => {
+          const diagramId = diagramIdOf(src);
+          if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} small />;
+          const sketchId = sketchIdOf(src);
+          if (sketchId) return <SketchEmbed id={sketchId} label={alt ?? ''} small />;
+          const canvasRef = canvasRefOf(src);
+          if (canvasRef)
+            return (
+              <CanvasEmbed
+                id={canvasRef.id}
+                label={alt ?? ''}
+                boardId={canvasRef.boardId}
+                pageId={canvasRef.pageId}
+                small
+              />
+            );
+          return <MarkdownImage src={src} alt={alt} {...props} />;
+        },
+        a: ({ href, children, ...props }) => {
+          const diagramId = diagramIdOf(href);
+          if (diagramId) return <DiagramEmbed id={diagramId} label={String(children ?? '')} small />;
+          const sketchId = sketchIdOf(href);
+          if (sketchId) return <SketchEmbed id={sketchId} label={String(children ?? '')} small />;
+          const canvasRef = canvasRefOf(href);
+          if (canvasRef)
+            return <CanvasChip id={canvasRef.id} label={String(children ?? '')} boardId={canvasRef.boardId} />;
+          if (href?.startsWith('member:')) {
+            // A person is a round blue pill; an AI member a pill in its own colour with a hover card
+            return <MentionPill memberId={href.slice(7)}>{children}</MentionPill>;
+          }
+          if (docs && href?.startsWith(TICKET_SCHEME)) {
+            const key = href.slice(TICKET_SCHEME.length);
+            return (
+              <RefChip
+                kind="ticket"
+                label={key}
+                result={resolvedTickets.get(key)}
+                surface={ticketSurface ? 'ticket' : 'docs'}
+                onOpenTicket={docs.onOpenTicket}
+              />
+            );
+          }
+          if (docs && href?.startsWith(REF_SCHEME)) {
+            const ref = parseDocRef(href);
+            return (
+              <RefChip
+                kind="page"
+                label={String(children)}
+                result={ref ? resolvedPages.get(`${ref.title}#${ref.anchor ?? ''}`) : undefined}
+                projectId={docs.projectId}
+                pageTitle={ref?.title}
+                anchor={ref?.anchor ?? null}
+                surface={ticketSurface ? 'ticket' : 'docs'}
+                onPeek={ticketSurface ? refs?.peek : undefined}
+                onOpenInDocs={ticketSurface ? refs?.openInDocs : undefined}
+                onOpenPage={docs.onOpenPage}
+                onRestorePage={
+                  ticketSurface
+                    ? (id) => restorePage.mutate(id, { onSuccess: () => toast.success('Page restored') })
+                    : undefined
+                }
+              />
+            );
+          }
+          if (href && (href.startsWith('/uploads/') || href.includes('/uploads/'))) {
+            const fileName = typeof children === 'string' ? children : String(children || '');
+            return <FileAttachmentCard url={href} fileName={fileName} />;
+          }
+          return (
+            <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+              {children}
+            </a>
+          );
+        },
+      }}
+    >
+      {source}
+    </ReactMarkdown>
+  );
+
   return (
     <Wrapper className={styles.markdown} style={inline ? { display: 'inline' } : undefined} data-preview-scope>
-      <ReactMarkdown
-        remarkPlugins={docs ? [remarkGfm, remarkDocs] : [remarkGfm]}
-        rehypePlugins={[[rehypeSanitize, MARKDOWN_SCHEMA]]}
-        urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) ||
-          url.startsWith(TICKET_SCHEME) ||
-          url.startsWith('member:') ||
-          url.startsWith(DIAGRAM_SCHEME) ||
-          url.startsWith(SKETCH_SCHEME) ||
-          url.startsWith(CANVAS_SCHEME)
-            ? url
-            : defaultUrlTransform(url)
-        }
-        components={{
-          ...(inline
-            ? { p: ({ children: inner }: { children?: React.ReactNode }) => <>{inner}</> }
-            : {
-                // a diagram or sketch is a block: it cannot live inside a <p>
-                p: ({ node, children: inner }) =>
-                  hasDiagram(node) || hasSketch(node) || hasCanvas(node) ? <div>{inner}</div> : <p>{inner}</p>,
-              }),
-          blockquote: ({ node, children: inner, ...props }) => {
-            const kind = (node?.properties as { dataCallout?: string } | undefined)?.dataCallout;
-            if (!kind) return <blockquote {...props}>{inner}</blockquote>;
-            return (
-              <div className={`${styles.callout} ${styles[`callout_${kind}`] ?? ''}`} role="note">
-                <span className={styles.calloutIcon} aria-hidden="true">
-                  {CALLOUT_ICONS[kind]}
-                </span>
-                <div className={styles.calloutBody}>{inner}</div>
+      {segments.length === 1 && !segments[0].align
+        ? renderMarkdown(segments[0].markdown)
+        : segments.map((seg, i) =>
+            seg.align ? (
+              <div key={i} className={styles.aligned} style={{ textAlign: seg.align }}>
+                {renderMarkdown(seg.markdown)}
               </div>
-            );
-          },
-          img: ({ src, alt, ...props }) => {
-            const diagramId = diagramIdOf(src);
-            if (diagramId) return <DiagramEmbed id={diagramId} label={alt ?? ''} small />;
-            const sketchId = sketchIdOf(src);
-            if (sketchId) return <SketchEmbed id={sketchId} label={alt ?? ''} small />;
-            const canvasRef = canvasRefOf(src);
-            if (canvasRef)
-              return (
-                <CanvasEmbed
-                  id={canvasRef.id}
-                  label={alt ?? ''}
-                  boardId={canvasRef.boardId}
-                  pageId={canvasRef.pageId}
-                  small
-                />
-              );
-            return <MarkdownImage src={src} alt={alt} {...props} />;
-          },
-          a: ({ href, children, ...props }) => {
-            const diagramId = diagramIdOf(href);
-            if (diagramId) return <DiagramEmbed id={diagramId} label={String(children ?? '')} small />;
-            const sketchId = sketchIdOf(href);
-            if (sketchId) return <SketchEmbed id={sketchId} label={String(children ?? '')} small />;
-            const canvasRef = canvasRefOf(href);
-            if (canvasRef)
-              return <CanvasChip id={canvasRef.id} label={String(children ?? '')} boardId={canvasRef.boardId} />;
-            if (href?.startsWith('member:')) {
-              // A person is a round blue pill; an AI member a pill in its own colour with a hover card
-              return <MentionPill memberId={href.slice(7)}>{children}</MentionPill>;
-            }
-            if (docs && href?.startsWith(TICKET_SCHEME)) {
-              const key = href.slice(TICKET_SCHEME.length);
-              return (
-                <RefChip
-                  kind="ticket"
-                  label={key}
-                  result={resolvedTickets.get(key)}
-                  surface={ticketSurface ? 'ticket' : 'docs'}
-                  onOpenTicket={docs.onOpenTicket}
-                />
-              );
-            }
-            if (docs && href?.startsWith(REF_SCHEME)) {
-              const ref = parseDocRef(href);
-              return (
-                <RefChip
-                  kind="page"
-                  label={String(children)}
-                  result={ref ? resolvedPages.get(`${ref.title}#${ref.anchor ?? ''}`) : undefined}
-                  projectId={docs.projectId}
-                  pageTitle={ref?.title}
-                  anchor={ref?.anchor ?? null}
-                  surface={ticketSurface ? 'ticket' : 'docs'}
-                  onPeek={ticketSurface ? refs?.peek : undefined}
-                  onOpenInDocs={ticketSurface ? refs?.openInDocs : undefined}
-                  onOpenPage={docs.onOpenPage}
-                  onRestorePage={
-                    ticketSurface
-                      ? (id) => restorePage.mutate(id, { onSuccess: () => toast.success('Page restored') })
-                      : undefined
-                  }
-                />
-              );
-            }
-            if (href && (href.startsWith('/uploads/') || href.includes('/uploads/'))) {
-              const fileName = typeof children === 'string' ? children : String(children || '');
-              return <FileAttachmentCard url={href} fileName={fileName} />;
-            }
-            return (
-              <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
-                {children}
-              </a>
-            );
-          },
-        }}
-      >
-        {linked.markdown}
-      </ReactMarkdown>
+            ) : (
+              renderMarkdown(seg.markdown, i)
+            ),
+          )}
     </Wrapper>
   );
 }

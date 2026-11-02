@@ -85,23 +85,90 @@ function reopenMarks(ticket: Ticket): ReopenMark[] {
 
 // ─── Event helpers ────────────────────────────────────────────────────────────
 
-type EventCategory = 'created' | 'status_changed' | 'commented' | 'other';
+type EventCategory = 'created' | 'status_changed' | 'commented' | 'reopened' | 'pending' | 'other';
 
 function categorizeEvent(type: string): EventCategory {
   if (type === 'created') return 'created';
   if (type === 'commented') return 'commented';
   if (type.startsWith('changed:status')) return 'status_changed';
+  if (type === 'changed:reopen') return 'reopened';
+  if (type.startsWith('changed:pending')) return 'pending';
   return 'other';
 }
+
+const EVENT_STATUS_LABELS: Record<string, string> = {
+  backlog: 'Backlog',
+  todo: 'To Do',
+  'in-progress': 'In Progress',
+  in_progress: 'In Progress',
+  review: 'Review',
+  testing: 'Testing',
+  done: 'Done',
+  wont_do: "Won't Do",
+};
+
+const EVENT_NAMES: Record<string, string> = {
+  doc_ref_added: 'Linked a doc',
+  doc_ref_removed: 'Unlinked a doc',
+  reopen: 'Reopened',
+  pending_set: 'Marked pending',
+  pending_cleared: 'No longer pending',
+  pending_prompt: 'Pending reminder',
+};
 
 function friendlyEventType(type: string): string {
   if (type === 'created') return 'Created';
   if (type === 'commented') return 'Commented';
   if (type.startsWith('changed:')) {
-    const field = type.replace('changed:', '').replace(/_/g, ' ');
-    return `Changed ${field}`;
+    const field = type.replace('changed:', '');
+    return EVENT_NAMES[field] ?? `Changed ${field.replace(/_/g, ' ')}`;
   }
   return type;
+}
+
+/** Markdown and stored tokens as plain words: "@[Hoa](member:…)" is "@Hoa", "[[Data model]]" is "Data model". */
+function plainText(text: string, max = 140): string {
+  const t = text
+    .replace(/@\[([^\]]+)\]\(member:[^)]+\)/g, '@$1')
+    .replace(/\[\[([^\]|#]+)(?:#([^\]|]+))?(?:\|[^\]]+)?\]\]/g, (_m, page: string, sec?: string) =>
+      sec ? `${page} › ${sec}` : page,
+    )
+    .replace(/!?\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/(\*\*|__|`|~~)/g, '')
+    .replace(/^\s*(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+}
+
+/** A Python list as the server writes it ("['a', 'b']") as "a, b". */
+function listText(v: string): string {
+  const m = /^\[(.*)\]$/.exec(v.trim());
+  if (!m) return v;
+  const items = m[1].match(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g) ?? [];
+  return items.map((x) => x.slice(1, -1)).join(', ');
+}
+
+/** "todo → done" as "To Do → Done"; nothing at all for "None → None" (the server writes Python's None for empty). */
+function friendlyEventDetail(type: string, detail: string | null | undefined): string | null {
+  if (!detail || type === 'created') return null;
+  if (type === 'commented') return plainText(detail) || null;
+  const parts = detail.split(' → ');
+  if (parts.length !== 2) return plainText(detail);
+  const field = type.replace('changed:', '');
+  const show = (v: string) => {
+    const t = v.trim();
+    if (!t || t === 'None' || t === 'null' || t === 'undefined' || t === '[]') return '';
+    if (field === 'status' || field === 'reopen') return EVENT_STATUS_LABELS[t] ?? t;
+    if (t.startsWith('[') && t.endsWith(']')) return listText(t);
+    return plainText(t, 80);
+  };
+  const [from, to] = parts.map(show);
+  if (!from && !to) return null;
+  // a link added or removed names its page only
+  if (field === 'doc_ref_added') return to ? to.replace('#', ' › ') : null;
+  if (field === 'doc_ref_removed') return from ? from.replace('#', ' › ') : null;
+  return `${from || 'none'} → ${to || 'none'}`;
 }
 
 function groupEventsByDate(events: ActivityEvent[]): { date: string; events: ActivityEvent[] }[] {
@@ -138,6 +205,8 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
   const updateTicketMutation = useUpdateTicket();
   const [dragResize, setDragResize] = useState<DragResizeState | null>(null);
   const dragRef = useRef<DragResizeState | null>(null);
+  // The click that follows releasing a resize handle must not open the ticket (only the date changes)
+  const justResized = useRef(false);
   dragRef.current = dragResize;
 
   const today = useMemo(() => {
@@ -252,6 +321,10 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
         }
       }
       setDragResize(null);
+      justResized.current = true;
+      window.setTimeout(() => {
+        justResized.current = false;
+      }, 0);
     }
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -420,7 +493,9 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                       left: leftPx,
                       width: widthPx,
                     }}
-                    onClick={() => onCardClick(ticket)}
+                    onClick={() => {
+                      if (!justResized.current) onCardClick(ticket);
+                    }}
                     title={`${ticket.title}\n${formatShortDate(ticketStart)} → ${formatShortDate(ticketEnd)}`}
                   >
                     <span className={styles.ganttBarLabel}>{ticket.id}</span>
@@ -598,7 +673,11 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
                               ? '#2F6FB0'
                               : category === 'commented'
                                 ? '#6D5DD3'
-                                : '#9AA8A0',
+                                : category === 'reopened'
+                                  ? '#B4791E'
+                                  : category === 'pending'
+                                    ? '#5B6B80'
+                                    : '#9AA8A0',
                       }}
                     >
                       {category === 'created' && (
@@ -641,7 +720,7 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
                           <path d="M21 15A2 2 0 0 1 19 17H7L3 21V5A2 2 0 0 1 5 3H19A2 2 0 0 1 21 5Z" />
                         </svg>
                       )}
-                      {category === 'other' && (
+                      {(category === 'other' || category === 'reopened' || category === 'pending') && (
                         <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#FFFFFF' }} />
                       )}
                     </span>
@@ -664,8 +743,8 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
 
                     <div className={styles.eventActionDesc}>
                       {friendlyEventType(ev.eventType)}
-                      {ev.detail && ev.eventType !== 'created' && (
-                        <span className={styles.eventDetailDim}> — {ev.detail}</span>
+                      {friendlyEventDetail(ev.eventType, ev.detail) && (
+                        <span className={styles.eventDetailDim}> — {friendlyEventDetail(ev.eventType, ev.detail)}</span>
                       )}
                     </div>
                   </div>

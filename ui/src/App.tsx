@@ -937,7 +937,19 @@ export default function App() {
                 loadState={projectsPhase ? 'loading' : projectsError ? 'error' : noProjects ? 'empty' : undefined}
                 onRetryProjects={() => void projectsQuery.refetch()}
               />
-              <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh' }}>
+              {/* The Board AI dock sits on the right edge; the page leaves its width free so nothing hides under it */}
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100vh',
+                  paddingRight: 'var(--as-dock-w, 0px)',
+                  boxSizing: 'border-box',
+                }}
+              >
                 {globalError && (
                   <div
                     style={{

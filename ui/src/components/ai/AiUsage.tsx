@@ -279,7 +279,9 @@ function SpendChart({ d, showCap }: { d: UsageDashboard; showCap: boolean }) {
   const cap = showCap ? d.boardDailyCap : null;
   const max = useMemo(() => Math.max(...d.days.map((x) => x.costUsd), cap ?? 0, 0.5) * 1.1, [d.days, cap]);
   const metered = d.tiles.spend > 0 || d.series.length > 0;
-  const maxRuns = Math.max(...d.days.map((x) => x.runs), 1);
+  // the axis top is even, so its middle label is a whole number (1 run at most read "1, 1, 0"); the bars use it too
+  const busiest = Math.max(...d.days.map((x) => x.runs), 1);
+  const maxRuns = busiest % 2 ? busiest + 1 : busiest;
   const color = (id: string) =>
     SERIES[
       Math.max(

@@ -227,6 +227,22 @@ def test_the_server_tells_a_wrong_command_from_a_failing_project():
     assert repo_scan.classify(None, "", timed_out=True) == "timeout"
 
 
+def test_a_package_manager_with_no_package_json_is_a_wrong_command():
+    npm = (
+        "npm error code ENOENT\nnpm error syscall open\nnpm error path /r/package.json\nnpm error errno -2\n"
+        "npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/r/package.json'"
+    )
+    assert repo_scan.classify(254, npm) == "wrong"
+    assert repo_scan.classify(1, "error Couldn't find a package.json file in \"/r\"") == "wrong"
+    assert repo_scan.classify(1, " ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND  No package.json was found") == "wrong"
+    assert "package.json" in repo_scan._why_wrong(npm, 254)
+    # a test that fails because its own fixture is missing ran: the project fails, the command is right
+    assert (
+        repo_scan.classify(1, "FAIL a.test.ts\nError: ENOENT: no such file or directory, open 'fixtures/x.json'")
+        == "fails"
+    )
+
+
 async def test_every_command_gets_its_own_result(tmp_path):
     repo = _repo(tmp_path / "r")
     out = await repo_scan.try_commands(
@@ -293,10 +309,14 @@ async def test_the_ai_proposes_and_the_board_proves_each_command(
     tools = _tool(tmp_path / "tools", "mytool-xyz")
     monkeypatch.setattr(project_env, "_TOOL_DIRS", (str(tools),))
     seen = {}
+    # The fake AI waits until the test has seen the job running and the second ask refused: a job that finished
+    # first made the 409 check depend on timing
+    release = asyncio.Event()
 
     async def fake_ai(prompt, cwd, account, on_line):
         seen["prompt"], seen["cwd"] = prompt, cwd
         on_line("Read package.json")
+        await release.wait()
         return json.dumps(
             {
                 "commands": {
@@ -323,6 +343,7 @@ async def test_the_ai_proposes_and_the_board_proves_each_command(
     assert r.json()["job"]["state"] == "running"
     again = await c.post(f"/ai/scans/{row.id}/ai", json={})
     assert again.status_code == 409  # one job at a time
+    release.set()
     scan = await _until_done(c, row.id)
     assert scan["job"]["state"] == "done", scan["job"]
     assert "The person says: the app is at the root" in seen["prompt"]

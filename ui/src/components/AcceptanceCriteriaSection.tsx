@@ -161,7 +161,10 @@ export function AcceptanceCriteriaSection({
                       return;
                     }
                     if (e.key === 'Enter') handleSaveEdit(item.id);
-                    if (e.key === 'Escape') handleCancelEdit();
+                    if (e.key === 'Escape') {
+                      e.preventDefault(); // used here: the ticket stays open
+                      handleCancelEdit();
+                    }
                   }}
                 />
                 <TicketRefSuggester targetRef={editInputRef} />
@@ -310,7 +313,10 @@ export function AcceptanceCriteriaSection({
                   return;
                 }
                 if (e.key === 'Enter') handleSaveNew();
-                if (e.key === 'Escape') handleCancelNew();
+                if (e.key === 'Escape') {
+                  e.preventDefault(); // used here: the ticket stays open
+                  handleCancelNew();
+                }
               }}
             />
             <TicketRefSuggester targetRef={addInputRef} />

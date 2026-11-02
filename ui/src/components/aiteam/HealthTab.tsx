@@ -280,10 +280,13 @@ export function HealthTab({
   projectId,
   range,
   actions,
+  onWiden,
 }: {
   projectId: string;
   range: TeamRange;
   actions: HealthActions;
+  /** Widens the range to 30 days (the no-work state offers it). */
+  onWiden?: () => void;
 }) {
   const q = useTeamHealth(projectId, range);
   const dismiss = useDismissSuggestion(projectId);
@@ -310,16 +313,23 @@ export function HealthTab({
         </span>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <b style={{ fontSize: 18 }}>{STATE_TITLE[h.state]}</b>
+            <b style={{ fontSize: 18 }}>
+              {h.runs === 0 ? `No AI work between ${dayPart} and ${endPart}` : STATE_TITLE[h.state]}
+            </b>
             <span className="at-hint">
               {h.runs} runs on {h.tickets} tickets · {dayPart} to {endPart}
             </span>
           </div>
           <div style={{ fontSize: 13.5, lineHeight: 1.55, marginTop: 3 }}>
-            {summary(h)}
+            {h.runs === 0 ? 'Nothing ran in this range, so there is nothing to judge yet.' : summary(h)}
             {rest}
           </div>
         </div>
+        {h.runs === 0 && onWiden && range !== '30d' && (
+          <button type="button" className="st-btn st-btn-sm" onClick={onWiden} data-testid="health-widen">
+            Widen to 30 days
+          </button>
+        )}
         {h.canJudge && (
           <span className="at-chip" style={{ background: '#E6F2EA', color: '#1F5A31' }}>
             {h.counts.good} good · {h.counts.watch} watch · {h.counts.fix} fix
