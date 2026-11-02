@@ -35,6 +35,12 @@
 .embedSmall .stage img {
   max-height: 330px;
 }
+/* Inside text the picture is the card's own content: no second border and margin from the text's image style
+   (`.markdown img`), which drew a box inside the card (design B: one card, the drawing on white) */
+.embed .stage img {
+  border: 0;
+  margin: 0;
+}
 .toolbar {
   position: absolute;
   top: 10px;

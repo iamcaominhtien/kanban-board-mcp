@@ -8,6 +8,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.27.0] - 2026-11-02
+
+Canvas, draw.io and Sketch for any AI, on the board or outside it: which one fits, a guide for diagrams, and a way to see what it drew before handing it in (#267).
+
+### Added
+- **A draw.io guide for every AI**: which tool fits (a screen or page that is looked at → Canvas; boxes and arrows a team will edit → draw.io; a person's hand drawing → Sketch), which kind of diagram answers which question (flowchart, swimlanes, sequence, state machine, architecture, data model, a plan), layout on a grid of 10 with standard sizes, styles from one palette, labels, groups and lanes, how to change one shape without wrecking a person's layout, and how to look and hand in. It is the `drawio-diagrams` skill of the board's plugin in Claude Code runs and `docs_read(action='diagram_guide')` for any other agent: one text, a test checks both are the same.
+- **AIs read Sketches, they do not draw them**, written down as the `sketches` skill (and in `diagram_guide`): a Sketch is worth something because a person drew it while thinking; strokes drawn by code are a fake hand-drawn look nobody can edit by its parts, and a Diagram or a Canvas frame shows the same thing better. An AI reads a person's sketch and turns it into the right drawing; the one Sketch it makes is a screenshot for a person to mark on.
+- **`docs_read(action='picture')`: look at what you drew.** A PNG of a diagram, a canvas frame (at any width: 390 for the phone), a sketch, or a local `.drawio`, `.svg`, `.html` or frame folder before it is handed in, drawn by the desktop app's own Chromium (`--export-png`) or a Chrome / Chromium / Edge on the machine; no Playwright needed. Without any browser it says so and gives a wireframe. The answer carries `markdown`, a copy of the picture on the board, to put in a comment, so an outside agent can hand in a comment with a picture too. The page is served from a throwaway 127.0.0.1 server that only serves its own folder, and the hidden browser loads only that and public hosts (fonts, CDNs), never another port of the machine or the private network; an AI run may only look at files in its working folder.
+- **`docs_read(action='diagram')` reads a diagram as a model**: shapes (id, label, shape, box, style, the group it is in), links (from, to, label) and `problems` (a link to nothing, shapes on top of each other), without writing a file; `path` still writes the `.drawio` to edit.
+- The MCP instructions say which drawing to use (with "the sign-up flow and its screens" as both: the flow as a Diagram, the screens on a Canvas) and where the guides are; the PM, BA, Designer and Dev point to the draw.io guide (ready-made packs v10), and the Designer looks at its frames with `docs_read(picture)` instead of starting a web server.
+
+### Changed
+- A diagram whose page the editor stored compressed is written out as plain XML by `docs_read(diagram, path)`, so it can be edited as text. A path without an extension that does not exist yet is a folder (`…/out` was written as a file named `out`).
+- `diagram_create` and `diagram_save` say what will look broken in the saved file (`problems`, and how to fix them).
+- Canvas comments read over MCP carry the element they are pinned on (`at`, in the form `canvas_comment` takes) and when each was written.
+- A Sketch made from a picture alone (an agent's screenshot) has the picture on a locked layer and an empty **Marks** layer above it, chosen: a person's marks never change the picture, as with Draw on it.
+
+### Fixed
+- A diagram in a ticket or a comment drew a second bordered box inside its card (the text's picture style); it is one card again, the drawing on white (Diagrams design B).
+- A canvas in a ticket description was capped at 560 px, half the description; it is as wide as the text, like a diagram or a sketch (Canvas design G1).
+- The large view of a canvas names each board under its picture in the filmstrip, the current one in white (Canvas design H1); the pictures were unnamed.
+
 ## [3.26.2] - 2026-11-02
 
 ### Fixed

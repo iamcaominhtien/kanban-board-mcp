@@ -425,12 +425,17 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
             <button
               key={b.id}
               type="button"
-              className={`${styles.film} ${b.id === board?.id ? styles.filmOn : ''}`}
+              className={styles.filmItem}
               onClick={() => setCurrent(b.id)}
               title={`${i + 1} · ${b.name}`}
               aria-label={b.name}
+              aria-current={b.id === board?.id ? 'true' : undefined}
             >
-              <img src={boardThumbUrl(c.id, b)} alt="" loading="lazy" />
+              <span className={`${styles.film} ${b.id === board?.id ? styles.filmOn : ''}`}>
+                <img src={boardThumbUrl(c.id, b)} alt="" loading="lazy" />
+              </span>
+              {/* the board's name under its picture, as in the design (H1) */}
+              <span className={`${styles.filmName} ${b.id === board?.id ? styles.filmNameOn : ''}`}>{b.name}</span>
             </button>
           ))}
         </div>
