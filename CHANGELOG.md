@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [3.23.2] - 2026-11-02
 
-Settings drawn the way the design draws it (`design/screens/settings-structure.md`, `settings-pages.md`).
+Settings drawn the way the design draws it (#283, design `design/screens/settings-structure.md`, `settings-pages.md`).
 
 ### Fixed
 - **The Settings page did not follow its design.** The top bar now has a bordered *Back to board*, the *Settings* title and a search box with its icon and the `/` key; the list of pages has its tinted background, an icon for each page, *App settings · all projects* and a project picker drawn as a drop-down (colour dot, name, key), with a dot beside Updates when an update is ready.
