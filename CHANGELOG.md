@@ -8,7 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Changed
+- **Settings › AI is five groups, not ten loose sections** (`design/screens/settings-pages.md` I: no more than 5 sections a page). *Board AI* (the picker, what it may do by itself, standing orders), *Safety and limits*, *Running the team* (operations and Team on its own), *Members and workflows* (role packs, workflows, skills and plugins) and *Knowledge and code* (project knowledge, repositories). A menu, On this page, stays at the top and jumps to each. Safety and limits uses the same grouped rows as the rest, with the unit beside each number, and its hints now say what happens at a cap.
+
 ### Fixed
+- **Settings › AI › Repositories: a title is no longer squeezed into a narrow column** next to a wide select (*Hand over finished code by*). Its rows are the same grouped rows as everywhere else.
 - **Settings › AI › Operations looks like its design** (`design/screens/ai-operations.md` K, `ai-story-flow.md` L). The first card now has the same grouped rows as *Team on its own* (a heading and a line per group, a rule between rows) instead of loose rows, and a long option name in a select no longer widens the control and squeezes the row's title into a narrow column.
 
 ## [3.21.1] - 2026-11-02
