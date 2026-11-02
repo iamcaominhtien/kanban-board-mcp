@@ -100,7 +100,16 @@ def test_the_roles_know_which_drawing_to_use():
     for role in ("ba", "pm", "dev", "designer"):
         assert "draw.io Diagram" in personas[role], role
     # the Designer presents a design document and measures it against the guide's exemplar boards
-    for needle in ("design document", "exemplar boards", "Foundations board", "side by side", "spec per screen"):
+    for needle in (
+        "design document",
+        "exemplar boards",
+        "Foundations board",
+        "side by side",
+        "spec per screen",
+        "craft.md",
+        "three ways",
+        "template-like",
+    ):
         assert needle in personas["designer"], needle
     text = (
         instructions.INSTRUCTIONS

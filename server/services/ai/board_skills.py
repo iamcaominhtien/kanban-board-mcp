@@ -27,7 +27,8 @@ def _skill_files() -> dict[str, dict[str, bytes]]:
 
     return {
         "canvas-design": {
-            f"examples/{p.name}": p.read_bytes() for p in canvas_design.examples()
+            "craft.md": canvas_design.CRAFT.encode(),
+            **{f"examples/{p.name}": p.read_bytes() for p in canvas_design.examples()},
         }
     }
 

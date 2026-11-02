@@ -110,11 +110,15 @@ async def _ai_may_read(session, c) -> bool:
 
 async def design_guide() -> dict:
     """The whole canvas design guide: how to design frames that look like one considered product (in Claude Code it
-    is also the canvas-design skill), and the folder of its exemplar boards on this machine."""
+    is also the canvas-design skill), its craft page, and the folder of its exemplar boards on this machine."""
     from services import canvas_design
     from services.ai import board_skills
 
-    return {"guide": canvas_design.GUIDE, "examples": board_skills.examples_dir()}
+    return {
+        "guide": canvas_design.GUIDE,
+        "craft": canvas_design.CRAFT,
+        "examples": board_skills.examples_dir(),
+    }
 
 
 async def list_project_canvases(project_id: ProjectId) -> list[dict]:

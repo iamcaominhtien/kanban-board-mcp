@@ -32,11 +32,11 @@ context, a direction, foundations, then the boards, then a check. This one text 
 MCP agent are given (it is the `GUIDE` in `server/services/canvas_design.py`; the skill file in
 `.claude/skills/canvas-design/` is generated from it and a test fails if they differ).
 
-**The bar.** As the skill, this guide carries two exemplar boards in `examples/` beside it (outside Claude Code,
-docs_read(design_guide) gives their folder): `foundations.png` (a foundations board) and `states.png` (a feature board:
-what it decides, the states of one card side by side, a whole screen, the states of a panel), each with its `.html`.
-Look at both pictures before your first frame and match their structure and craft. Never copy their brand (the green,
-the fonts, the copy): your product has its own.
+**Beside this guide** (the skill's folder; outside Claude Code, docs_read(design_guide) gives `craft` and the examples' path): `craft.md`,
+how a design stops looking machine-made (read it before the first frame), and two exemplar boards in `examples/`,
+`foundations.png` and `states.png` (each with its `.html`). The exemplars are the bar for how a design is **presented**
+(a document, states side by side, captions). They are a work tool's UI: never take their look (green, pills, hairline
+cards, the fonts) for another product, which gets its own.
 
 ## 0. Context before anything
 
@@ -56,30 +56,27 @@ to reuse or break from, what may be added). Questions come from their material, 
 concrete options that differ on a named axis, your pick first marked "(Recommended)". Never re-ask a settled point. When
 nobody can answer (an Ask AI job, a headless run, "just make it"): decide, build, and state your assumptions in one line.
 
-## 2. Direction (settle it before building)
+## 2. Direction: character before pixels
 
-Name these and keep them for the whole canvas: **purpose and user** (what problem, for whom), **tone**, **the one thing**
-someone will remember, and **type, colour, space**.
+Name these and keep them for the whole canvas: **purpose and user**, **tone**, **the signature**, and **type, colour,
+space**.
 
-**Restraint for product UI, boldness for a stage.** Decide which one you are designing:
-
-- **An app or tool people use every day** (a tracker, a dashboard, settings, a feed): product-grade and calm. Quiet
-  neutrals tinted toward one brand colour, and that colour carries meaning (the main action, selected, done), never
-  decoration. Dense but airy: real content on the first screen, not one big shape in empty space. Hierarchy from size,
-  weight and colour; small uppercase section labels; hairline cards; a status as a pill with an icon and a word. No
-  hero art, decorative illustration or gradient ground inside the app. The memorable thing is a precise detail (the copy,
-  one data mark, one well-staged moment), not decoration.
-- **A landing page, a splash, a poster, a campaign**: be bold. A characterful display face over a plain body face, a
-  dominant colour with sharp accents, a composition with intent (an asymmetric hero, one element that breaks the grid, a
-  rhythm of big and small), a ground with depth (a soft mesh, a grain, one dramatic shadow) where the tone calls for it.
-
-Either way, timid and generic is not a direction. Do not converge on the same choices from one brief to the next. A cream
-ground, a serif display face and terracotta are a habit, not a direction: only when the brief asks. Inter, Roboto or the
-system face as the display face is the template look, unless the product already uses it.
-
-**When a direction is still open** and a person is waiting, make 2 to 4 low-fi frames that differ on an axis you can
-name ("Calm and dense" vs "Warm editorial"), not five shades of one look; keep their names. Give each its motivation and
-main tradeoff in your reply or one `canvas_comment`. Once they choose, the choice stays chosen.
+- **The signature** is an element only this product would have, which shapes its main screen and still reads at
+  thumbnail size: a water app whose screen fills like a glass, a day laid out as a timetable, a tally of drops you fill.
+  A 2 px tick on a progress bar is a detail, not a signature. If the name of the app could be swapped and nothing would
+  look wrong, there is no signature yet.
+- **Calm is not characterless.** An app used every day carries no decoration (no hero art, no gradient wash, no
+  ornament), and it still has a face: a type pairing chosen for this product, a colour that owns the screen, a
+  composition, the signature. A landing page, a splash or a poster can go further: a bold display face, a ground with
+  depth, a grid-breaking layout.
+- **Explore before you build.** For a new product or a new main screen, draw that screen three ways that differ on a
+  named axis (the signature, light or dark, density, the type), at full fidelity with the same real data, on a
+  "Directions" page. With a person to answer (`AskUserQuestion`, or `ai_run(ask)` in a board run), show them and let
+  them choose. Otherwise judge each at thumbnail size against the tells in `craft.md`, keep the strongest, and say why.
+  The rest of the canvas follows the chosen one; the choice stays chosen.
+- Do not converge on the same choices from one brief to the next. A cream ground, a serif display and terracotta, or a
+  white app of rounded cards with one blue, are habits, not directions. Inter, Roboto or the system face as the display
+  face is the template look, unless the product already uses it.
 
 ## 3. Content
 
@@ -97,11 +94,11 @@ One `tokens.css` copied into every frame (or one `:root` block), and nothing in 
 | Token | Rule of thumb |
 | --- | --- |
 | Neutrals | ink, muted, line, surface, background; tinted slightly toward the brand (never pure grey on pure white) |
-| Colour | in `oklch()`: one brand colour, at most two accents sharing its chroma and lightness, soft tints for success, warning, danger |
-| Spacing | 4, 8, 12, 16, 24, 32, 48 |
-| Radius | 8 (inputs), 12 (cards), 16 or 20 (sheets), 999 (pills) |
-| Type | 1 to 3 families (a mono face for keys and numbers is fine); sizes 12 to 34 named by use; weights 400, 600, 700; line height 1.4 text, 1.15 titles; `text-wrap: balance` on titles |
-| Elevation | two levels at most: a hairline for cards, a soft shadow for floating things |
+| Colour | in `oklch()`: one colour that owns the screen (a ground, a fill, the signature), at most two accents sharing its chroma and lightness; state colours used sparingly, on the thing they concern |
+| Spacing | 4, 8, 12, 16, 24, 32, 48, plus one large step for the signature |
+| Radius | one family chosen for the tone (sharp 2 to 6, soft 10 to 16, or round), not 8/12/16 by habit |
+| Type | 1 to 3 families with the product's language (Vietnamese needs its subset); a display face with character for numbers and titles, a plain body face; a real scale contrast (the hero number 3 to 5 times the body); line height 1.4 text, 1.1 display; `text-wrap: balance` on titles |
+| Elevation | group by space and alignment first, a hairline second; a container only for a real separate object |
 | Motion | a few staged moments, not micro-animation everywhere; honour `prefers-reduced-motion` |
 
 ## 5. Layout and hierarchy
@@ -155,9 +152,11 @@ asked for, or a change to one, stays a frame.)
 
 ## 8. Avoid
 
-Lorem ipsum, invented numbers, a gradient wash behind everything, one huge decorative shape on an app screen, low density
-dressed up as calm, containers with a rounded corner and a left accent border, emoji, shadows on everything, long centred
-text, text under 12 px, grey boxes in place of content, one-off pixel values, a frame per state, the same look as last time.
+The machine-made look (`craft.md` has each with what to do instead): every block a white rounded card on a tinted ground,
+an icon in a pale circle on every row, an alert as a tinted box with an icon, a bold title and a paragraph, a pill with
+an icon on every status, a row of equal buttons over four tab icons, a gradient wash, a left accent border, emoji. Also:
+lorem ipsum, invented numbers, low density dressed up as calm, text under 12 px, one-off pixel values, a frame per
+state, the same look as last time.
 
 ## 9. Changing an existing design
 
@@ -174,7 +173,9 @@ direction is different: then make the substantial changes. Follow the design's o
 4. Does each screen hold at the width it is for (390 for a phone panel, 1280 and 820 for a web view)? No short label
    broken over two lines, nothing cut off, the main action on the first phone screen in every state.
 5. States there, copy real, nothing added that nobody asked for? Does it match what was asked, and nothing else changed?
-6. Put it beside the exemplars: is it at that level of structure, density and finish? If not, it is not done.
+6. The thumbnail test: shrink the main screen to 120 px wide. Is the signature still there, and would it still look
+   right under another app's name? Count the tells from `craft.md`; fix each, then look again.
+7. Beside the exemplars: is the presentation at their level of structure and finish?
 
 ## 11. Hand it over
 
@@ -197,4 +198,74 @@ returned `markdown` line on its own line in that ticket or page (`manage_ticket`
   one-sentence note on the design decision; a person accepts or rejects.
 - Leave `canvas_comment`s for open questions, each pinned with `at` (a CSS selector, or `text=Add task`). Give your
   assumptions in one line.
+"""
+
+# How a design stops looking machine-made: the skill's craft.md, beside SKILL.md (and in docs_read(design_guide)).
+CRAFT = r"""# Craft: from machine-made to designed
+
+The design guide (`SKILL.md`) gives the process. This page is about the look: why a screen reads as made by an AI, and
+what a designer does instead. Read it before your first frame, and again when you judge your screenshots.
+
+## Why it looks machine-made
+
+A model reaches for the average of every app it has seen: a light tinted ground, white rounded cards, one blue, pills,
+icons in circles, a row of buttons, four tab icons. Each choice is reasonable; together they are a template, and a
+viewer recognises the template before reading a word. Beauty comes from decisions the average would not make, taken
+for reasons that belong to this product.
+
+## The tells, and what to do instead
+
+| Tell | Instead |
+| --- | --- |
+| Every block is a white rounded card on a tinted ground | Let most content sit on the ground, grouped by space and alignment. Use a container only for a real separate object (a sheet, a dialog, a draggable item). One surface change on a screen is often enough. |
+| An icon in a pale tinted circle at the start of every row | Drop the icon when the word says it, or use the icon alone at text size, in the text colour. Repetition is not structure. |
+| An alert as a tinted box with an icon, a bold title and a paragraph | Put the state where it happens: the number turns amber, the bar shows the gap, the row shows "not saved · Retry". A banner only for a state that concerns the whole screen, written as one line. |
+| A pill with an icon on every status | One state word, set in type (weight, colour, small caps) beside the thing. A pill only where it is a control or a filter. |
+| A row of equal buttons above four tab icons | One main action that looks like the main action (size, place, colour). Secondary actions are smaller or quieter, not the same box in another colour. |
+| A progress bar plus a percentage plus a sentence saying the same | Pick the one form that is the product's signature and make it big; drop the repeats. |
+| One brand blue on a near-white ground | Let a colour own the screen (a dark ground, a strong fill, the signature in colour) or commit to ink on paper with one sharp accent. |
+| Inter, Roboto or the system face everywhere, weights 400 to 600, sizes 14 to 24 | A display face with character for titles and numbers, a plain body face, and real contrast in scale: the hero number three to five times the body size, tight tracking at large sizes. |
+| Everything centred, everything the same width | A left edge everyone aligns to, one element that breaks it on purpose, a rhythm of big and small. |
+| Generous empty space at the bottom of every phone screen | Size the composition to the content, or give the space to the signature. Empty space is a decision, not leftover. |
+| Gradient wash, glassmorphism, drop shadow on every card, emoji, a left accent border | Leave them out. Depth, if the tone wants it, comes from one shadow or one layered element. |
+
+## Character, piece by piece
+
+**Type.** Pair a display face with a plain body face. Choose for the product's voice and its language: Vietnamese needs a
+family with the Vietnamese subset (for example Be Vietnam Pro, Bricolage Grotesque, Big Shoulders Display, Fraunces,
+Lexend, Baloo 2, Space Grotesk, Archivo, Plus Jakarta Sans, Montserrat, JetBrains Mono, Roboto Mono). Numbers are the
+heroes of most apps: give them the display face, tabular figures and size. Small uppercase labels with letter-spacing
+are one tool, not the default for every heading.
+
+**Colour.** Build the palette in `oklch()`. Neutrals lean toward the main hue (chroma 0.005 to 0.02). Decide what owns the
+screen: a ground, a fill, the signature. Accents share the main colour's chroma and lightness and change the hue.
+Colours that must be told apart differ in lightness. Use state colours on the thing they describe, never as five tinted
+boxes.
+
+**Composition.** Decide what the eye meets first, second and third, and make the sizes say so: one element clearly the
+largest. Align to a few edges. Let the signature take room: bleed to the edge, overlap a boundary, fill the screen if
+that is the point. Density is good when it is ordered; an app people check ten times a day wants the answer at once.
+
+**The signature.** Ask what this product is about in the physical world (water fills a glass; a day has hours; a
+reminder is a tap on the shoulder) and draw that, simply, as the main screen's structure. It must survive at thumbnail
+size and in every state: empty, on track, behind, done, offline, error.
+
+**Details.** One icon set, one stroke width, sized to the text beside it. Optical alignment of icons and numbers. Real
+copy with the product's voice; a state says what happened and what to do. Pressed and focus states drawn.
+
+## Explore, then build
+
+1. Draw the main screen three ways that differ on a named axis (the signature, light or dark, density, type), full
+   fidelity, the same real data, on a "Directions" page.
+2. Screenshot each at 390 px and look at it at thumbnail size beside the others.
+3. Score each against the tells above; check that the signature reads small and in two states (on track, behind).
+4. With a person to answer, show them and let them choose. Otherwise keep the strongest, say in one line why, and leave
+   the others on the Directions page.
+5. Build foundations, components and the screens from the chosen direction only.
+
+## The critique pass
+
+After the screens are built, take screenshots and, for each main screen, write down (for yourself) the three things
+that most look like a template. Fix those three, screenshot again, and repeat once. Stop when what remains is a choice
+you would defend, not a default you inherited.
 """

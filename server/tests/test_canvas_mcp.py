@@ -457,11 +457,26 @@ def test_the_design_guide_reaches_the_agent_and_the_ai_job():
         "States side by side",
         "Foundations first, at full depth",
         "Card title / 15 / 600 / lh 1.35",
-        "Restraint for product UI, boldness for a stage",
+        "## 2. Direction: character before pixels",
+        "**The signature**",
+        "**Explore before you build.**",
+        "The thumbnail test",
         "A spec per screen",
         "`examples/`",
     ):
         assert needle in canvas_design.GUIDE, needle
+    # how a design stops looking machine-made travels with the skill as craft.md, in the plugin and the repository
+    assert (skill_md.parent / "craft.md").read_text() == canvas_design.CRAFT
+    assert (skill.parent / "craft.md").read_text(
+        encoding="utf-8"
+    ) == canvas_design.CRAFT
+    for needle in (
+        "## The tells, and what to do instead",
+        "## Explore, then build",
+        "## The critique pass",
+    ):
+        assert needle in canvas_design.CRAFT, needle
+    assert "idea" not in canvas_design.CRAFT.lower()
     # the exemplar boards the guide points to travel with the skill, in the board's plugin and in the repository
     names = {p.name for p in canvas_design.examples()}
     assert names == {"foundations.html", "foundations.png", "states.html", "states.png"}
@@ -782,7 +797,7 @@ async def test_docs_read_design_guide_gives_the_whole_guide():
     from services import canvas_design
 
     got = await design_guide()
-    assert got["guide"] == canvas_design.GUIDE
+    assert got["guide"] == canvas_design.GUIDE and got["craft"] == canvas_design.CRAFT
     # an agent outside Claude Code finds the exemplar boards on this machine
     assert {p.name for p in Path(got["examples"]).iterdir()} >= {
         "foundations.png",

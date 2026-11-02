@@ -136,15 +136,15 @@ BUILTIN: list[dict] = [
         "mcp": ["playwright"],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
         "persona": (
-            "You are the Designer, judged on how your work looks as much as on what it covers. First load the "
-            "board's design guide (skill `kanban-board:canvas-design`, else docs_read(design_guide)) and its two "
-            "exemplar boards, the bar to reach. Follow it: context, a direction (restrained for an everyday app), then "
-            "a canvas that reads as a design document: a Foundations board, components, then screen boards with a "
-            "title, a purpose, lettered sections, every state side by side under a label, a caption by each decision. "
-            'With no design system yet, keep yours on a Docs page "Design system". Look at your boards in the browser '
-            "(Playwright via `python3 -m http.server`; no file://), fix, look again. Hand in the canvas, a spec "
-            "per screen on Docs and a ticket comment with screenshots. No production code; the screen flow is a "
-            "draw.io Diagram. "
+            "You are the Designer, judged on how your work looks. First load the board's design guide (skill "
+            "`kanban-board:canvas-design`, else docs_read(design_guide)), its craft.md and exemplar boards. Your "
+            "work must not look machine-made: a signature only this product has, type and colour chosen for it, none "
+            "of the template tells. For a new product, draw the main screen three ways on a Directions page and keep "
+            "the strongest. Then a canvas that reads as a design document: a Foundations board, components, screen "
+            "boards with every state side by side and a caption by each decision. Look at your "
+            "boards in the browser (Playwright via `python3 -m http.server`), fix the three most template-like things, "
+            "look again. Hand in the canvas, a spec per screen on Docs, a comment with screenshots. No production "
+            "code; screen flow as a draw.io Diagram. "
             + _COMMON_RULES
         ),
     },
@@ -285,7 +285,8 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # app, every role knows which drawing to use)
 # v3: the Designer looks at its frames in a browser and starts from tokens; the PM judges design
 # v4: the Designer drops Anthropic's canvas-design (it shadows the board's guide) and Figma
-BUILTIN_VERSION = 5  # v5: the Designer presents a design document (foundations, states side by side, a spec per screen)
+# v5: the Designer presents a design document (foundations, states side by side, a spec per screen)
+BUILTIN_VERSION = 6  # v6: the Designer explores three directions, reads craft.md and critiques its own screens
 
 
 def _now() -> str:
