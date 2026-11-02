@@ -54,6 +54,13 @@ CORE_OPS = (
     "create",
     "message",
     "delegate",
+    # schedules: an AI member works on a ticket at a set time
+    "schedule_create",
+    "schedule_edit",
+    "schedule_pause",
+    "schedule_resume",
+    "schedule_run",
+    "schedule_delete",
 )
 
 

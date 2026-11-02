@@ -9,7 +9,15 @@ from .. import common
 
 async def ai_schedules(
     action: Literal[
-        "list", "get", "create", "update", "pause", "resume", "delete", "run_now"
+        "list",
+        "get",
+        "create",
+        "update",
+        "preview",
+        "pause",
+        "resume",
+        "delete",
+        "run_now",
     ],
     project_id: Annotated[
         str | None, Field(description="list, create: the project UUID.")
@@ -23,11 +31,12 @@ async def ai_schedules(
     fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="create, update: member_id (an AI member), kind once|repeat, run_at 'YYYY-MM-DDTHH:MM' "
+            description="create, update, preview: member_id (an AI member), kind once|repeat, run_at 'YYYY-MM-DDTHH:MM' "
             "(once), days [0-6, Mon=0] and time 'HH:MM' (repeat), tz (IANA), ends never|after|on_date, ends_after, "
             "ends_on, window_end 'HH:MM', backup_member_id, checks {criteria, tests: {on, command, cwd}, summary, "
             "branch, ai_checks: [text]}, review {on, reviewer_id, fix_rounds}, limits {stop_after_min, retries, "
-            "max_cost}, catch_up run|skip|ask, catch_up_hours, instruction."
+            "max_cost}, catch_up run|skip|ask, catch_up_hours, notify [started|needs_input|failed|finished], "
+            "instruction."
         ),
     ] = None,
 ) -> dict | list:
@@ -38,9 +47,25 @@ async def ai_schedules(
     from services.ai import guard
     from services.ai import schedules as svc
 
-    if await guard.resolve() is not None:
-        raise ValueError("An AI run cannot make or change schedules; a person does.")
+    ctx = await guard.resolve()
+    if ctx is not None:
+        # the Board AI (a chat answer, not a run) reads schedules and changes them through its actions block
+        board_ai = ctx.run_id.startswith("chat_")
+        if not board_ai or action not in ("list", "get", "preview"):
+            raise ValueError(
+                "As the Board AI, list the change in your answer's actions block (schedule_create, schedule_edit, "
+                "schedule_pause, schedule_resume, schedule_run); the board makes it by risk tier, with an Undo, or asks "
+                "the person first."
+                if board_ai
+                else "An AI run cannot make or change schedules; a person does."
+            )
     by = svc_activity.current_actor() or "user"
+    unknown = sorted(set(fields or {}) - set(svc.FIELDS))
+    if unknown:
+        raise ValueError(
+            f"Unknown field{'s' if len(unknown) > 1 else ''} in fields: {', '.join(unknown)}. "
+            f"Use: {', '.join(svc.FIELDS)}."
+        )
     async with common.async_session() as session:
         if action == "list":
             if not project_id:
@@ -48,6 +73,19 @@ async def ai_schedules(
             return (await svc.list_for(session, project_id, ticket_id=ticket_id))[
                 "items"
             ]
+        if action == "preview":
+            if not project_id:
+                raise ValueError("preview needs project_id.")
+            return await svc.preview(
+                session,
+                project_id,
+                {
+                    **(fields or {}),
+                    "ticket_id": ticket_id or (fields or {}).get("ticket_id"),
+                },
+                by,
+                schedule_id,
+            )
         if action == "create":
             if not project_id:
                 raise ValueError("create needs project_id.")

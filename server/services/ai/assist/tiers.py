@@ -5,9 +5,9 @@ Three tiers, decided by one question — can the board put it back by itself?
 - **Just does it**: looking things up. Nothing changes, so there is nothing to undo.
 - **Does it, and keeps an Undo**: reversible and small — up to three tickets, in one project. Create or edit a ticket,
   move it (not to Done), assign it, comment, put it on a workflow or set its review depth, start or stop one run,
-  pause or resume one AI.
+  pause or resume one AI, make, change, pause, resume or run one schedule.
 - **Asks first**: hard to put back, or big — Done, more than three tickets or more than one project, deleting
-  anything, Pause all AI, permission/ceiling/bypass changes, budgets and accounts, merging, anything that posts
+  anything (a schedule too), Pause all AI, permission/ceiling/bypass changes, budgets and accounts, merging, anything that posts
   outside the board.
 
 A fixed set can never leave the ask-first tier, whatever a project setting says, and the server enforces it (this is
@@ -40,10 +40,17 @@ TIERS: dict[str, tuple[str, bool]] = {
         False,
     ),  # a new ticket (a piece of a split): Undo deletes it while nobody touched it
     "delegate": (UNDO, False),  # the PM coordinates the ticket (D24)
+    # schedules (design/screens/ai-schedules.md): everything but deleting is put back by one Undo
+    "schedule_create": (UNDO, False),
+    "schedule_edit": (UNDO, False),
+    "schedule_pause": (UNDO, False),
+    "schedule_resume": (UNDO, False),
+    "schedule_run": (UNDO, False),
     "message": (FREE, False),  # a message to the AI working on a ticket (D20)
     # locked in the last tier
     "done": (ASK, True),
     "delete": (ASK, True),
+    "schedule_delete": (ASK, True),
     "pause_all": (ASK, True),
     "permission": (ASK, True),
     "budget": (ASK, True),
@@ -105,15 +112,21 @@ def decide(
         for ch in changes
         if op_key(ch) in ("pause_member", "resume_member") and ch.get("member")
     }
-    if len(tickets) + len(members) > BULK_TICKETS:
-        what = (
-            f"{len(tickets)} tickets"
-            if not members
-            else f"{len(members)} AI members"
-            if not tickets
-            else f"{len(tickets)} tickets and {len(members)} AI members"
+    # a new schedule counts as its ticket; one that exists counts by its id
+    schedules = {ch.get("schedule") for ch in changes if ch.get("schedule")}
+    if len(tickets) + len(members) + len(schedules) > BULK_TICKETS:
+        parts = [
+            f"{n} {word}"
+            for n, word in (
+                (len(tickets), "tickets"),
+                (len(members), "AI members"),
+                (len(schedules), "schedules"),
+            )
+            if n
+        ]
+        reasons.append(
+            f"{' and '.join(parts)} at once is a bulk action, which asks first"
         )
-        reasons.append(f"{what} at once is a bulk action, which asks first")
     if project_ids and len(project_ids) > 1:
         reasons.append("Changes across more than one project ask first")
     act = not reasons and bool(changes)

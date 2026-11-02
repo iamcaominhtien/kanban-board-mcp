@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { AiMember } from '../../types/ai';
 import type { Schedule, ScheduleRun, SlotState } from '../../types/schedules';
 import '../ai/ai.css';
@@ -473,7 +473,7 @@ export function CheckChips({
   return (
     <>
       {chips.map((x) => (
-        <span key={x.key} className="sc-chip">
+        <span key={x.key} className="sc-pill">
           {x.icon}
           {x.text}
         </span>
@@ -504,4 +504,76 @@ export function zoneLabel(tz: string): string {
   } catch {
     return tz;
   }
+}
+
+/** "0230", "2:30", "230" → "02:30"; null when it is not a time of day. */
+export function normalizeTime(raw: string): string | null {
+  const digits = raw.replace(/[^0-9]/g, '');
+  const m =
+    /^(\d{1,2}):(\d{2})$/.exec(raw.trim()) ??
+    (digits.length >= 3 && digits.length <= 4 ? /^(\d{1,2})(\d{2})$/.exec(digits) : null);
+  if (!m) return /^\d{1,2}$/.test(raw.trim()) && +raw <= 23 ? `${raw.trim().padStart(2, '0')}:00` : null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return h <= 23 && min <= 59 ? `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}` : null;
+}
+
+/** A time of day in 24 h ("02:00"), the same whatever the browser's language: a native time input shows "02:00 AM" in
+ *  English, while the schedule and its summary speak 24 h. */
+export function TimeField({
+  value,
+  onChange,
+  testId,
+  width = 110,
+  label,
+  allowEmpty = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  testId?: string;
+  width?: number;
+  label: string;
+  allowEmpty?: boolean;
+}) {
+  const [text, setText] = useState(value);
+  const [bad, setBad] = useState(false);
+  useEffect(() => {
+    setText(value);
+    setBad(false);
+  }, [value]);
+  const commit = () => {
+    if (allowEmpty && !text.trim()) {
+      setBad(false);
+      if (value) onChange('');
+      return;
+    }
+    const t = normalizeTime(text);
+    if (t) {
+      setBad(false);
+      setText(t);
+      if (t !== value) onChange(t);
+    } else {
+      setBad(true);
+    }
+  };
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      placeholder="HH:MM"
+      maxLength={5}
+      className={`ai-input ${bad ? 'ai-input-error' : ''}`}
+      style={{ width }}
+      value={text}
+      aria-label={label}
+      aria-invalid={bad}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') commit();
+      }}
+      data-testid={testId}
+    />
+  );
 }

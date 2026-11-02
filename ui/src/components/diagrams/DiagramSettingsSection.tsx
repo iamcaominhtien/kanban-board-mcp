@@ -7,6 +7,8 @@ import {
   useDiagramSettings,
   type DiagramEditorMode,
 } from '../../api/diagrams';
+import { Field, SettingsCard } from '../settings/settingsUi';
+import ss from '../settings/SettingsPage.module.css';
 
 /** Settings → Diagrams: where the draw.io editor runs (admin setting; the one built into the app by default). */
 export function DiagramSettingsSection() {
@@ -28,82 +30,71 @@ export function DiagramSettingsSection() {
     try {
       const saved = await saveDiagramSettings({ mode, url });
       qc.setQueryData(diagramKeys.settings, saved);
-      setStatus({ ok: true, text: '✓ Saved' });
+      setStatus({ ok: true, text: 'Saved' });
     } catch (err) {
-      setStatus({ ok: false, text: `✗ ${diagramFailure(err).message}` });
+      setStatus({ ok: false, text: diagramFailure(err).message });
     }
   }
 
-  const radio = (value: DiagramEditorMode, title: string, text: string) => (
-    <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
-      <input
-        type="radio"
-        name="drawio-mode"
-        checked={mode === value}
-        onChange={() => setMode(value)}
-        style={{ marginTop: 3 }}
-      />
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>{title}</span>
-        <span style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>{text}</span>
-      </span>
-    </label>
-  );
+  const radio = (value: DiagramEditorMode, title: string, text: string) => {
+    const on = mode === value;
+    return (
+      <label className={`${ss.choice} ${on ? ss.choiceOn : ''}`}>
+        <input type="radio" name="drawio-mode" checked={on} onChange={() => setMode(value)} />
+        <span className={ss.choiceText}>
+          <span className={ss.settingName}>{title}</span>
+          <span className={ss.hint}>{text}</span>
+        </span>
+      </label>
+    );
+  };
+
+  // Nothing loaded (an error): saving stays possible, as before
+  const dirty = !q.data || mode !== q.data.mode || url !== q.data.url;
 
   return (
-    <div
-      data-testid="diagram-settings"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        padding: '12px 14px',
-        background: '#F8FAF8',
-        borderRadius: 8,
-        border: '1px solid #E3E8E5',
-      }}
+    <SettingsCard
+      title="Diagrams (draw.io)"
+      hint="The editor used to draw diagrams in tickets, comments and Docs."
+      setting="drawio"
+      status={status}
+      testId="diagram-settings"
     >
-      <span style={{ fontSize: 12.5, color: '#5B6B60', lineHeight: 1.5 }}>
-        Where the draw.io editor runs for diagrams in tickets, comments and Docs.
-      </span>
-      {q.data?.builtInAvailable &&
-        radio(
-          'built-in',
-          'Built into the app (default)',
-          `The draw.io editor${q.data.builtInVersion ? ` ${q.data.builtInVersion}` : ''} that comes with the app. Nothing to run, works offline, drawings stay on this computer.`,
+      <div className={ss.choices} role="radiogroup" aria-label="Where the draw.io editor runs">
+        {q.data?.builtInAvailable &&
+          radio(
+            'built-in',
+            'Built into the app (default)',
+            `The draw.io editor${q.data.builtInVersion ? ` ${q.data.builtInVersion}` : ''} that comes with the app. Nothing to run, works offline, drawings stay on this computer.`,
+          )}
+        {radio(
+          'self-hosted',
+          q.data?.builtInAvailable ? 'Self-hosted' : 'Self-hosted (default)',
+          'Drawings stay on your servers. You run the draw.io service (for example the jgraph/drawio image).',
         )}
-      {radio(
-        'self-hosted',
-        q.data?.builtInAvailable ? 'Self-hosted' : 'Self-hosted (default)',
-        'Drawings stay on your servers. You run the draw.io service (for example the jgraph/drawio image).',
-      )}
+        {radio(
+          'public',
+          'Public diagrams.net',
+          `Simpler, but the drawing is sent to ${q.data?.publicUrl ?? 'embed.diagrams.net'} while the editor is open.`,
+        )}
+      </div>
       {mode === 'self-hosted' && (
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder={q.data?.defaultSelfHostedUrl ?? 'http://localhost:8080'}
-          aria-label="Editor address"
-          style={{
-            height: 34,
-            border: '1px solid #DCE6DF',
-            borderRadius: 8,
-            padding: '0 10px',
-            font: 'inherit',
-            fontSize: 13,
-          }}
-        />
+        <Field label="Editor address" htmlFor="drawio-url" hint="Self-hosted keeps drawings on your servers.">
+          <input
+            id="drawio-url"
+            className={`${ss.input} ${ss.mono}`}
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={q.data?.defaultSelfHostedUrl ?? 'http://localhost:8080'}
+            aria-label="Editor address"
+          />
+        </Field>
       )}
-      {radio(
-        'public',
-        'Public diagrams.net',
-        `Simpler, but the drawing is sent to ${q.data?.publicUrl ?? 'embed.diagrams.net'} while the editor is open.`,
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button type="button" className="st-btn st-btn-primary" onClick={() => void save()}>
+      <div className={ss.row}>
+        <button type="button" className={`${ss.btn} ${ss.btnPrimary}`} disabled={!dirty} onClick={() => void save()}>
           Save
         </button>
-        {status && <span style={{ fontSize: 12.5, color: status.ok ? '#2E6F40' : '#C4432A' }}>{status.text}</span>}
       </div>
-    </div>
+    </SettingsCard>
   );
 }

@@ -416,6 +416,7 @@ async def to_dict(session, s: AiSchedule, *, last: AiScheduleRun | None = None) 
         "next_run_at": s.next_run_at,
         "next_in": in_words(nxt) if nxt else None,
         "when": when_label(s),
+        "offline_risk": await _offline_risk(session, s, profile),
         "ticket_changed": bool(
             ticket
             and s.ticket_seen_at
@@ -530,6 +531,21 @@ async def _slots_in_use(session, member_id: str) -> int:
     )
 
 
+async def _running_tickets(
+    session, member_id: str, states: list[str] | None = None
+) -> list[str]:
+    """The tickets an AI has runs on, in the given run states (default: working now)."""
+    rows = (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.member_id == member_id,
+                col(AiRun.state).in_(states or ["starting", "running"]),
+            )
+        )
+    ).all()
+    return [r.ticket_id for r in rows]
+
+
 def _resolve_dir(base: str | None, cwd: str | None) -> Path | None:
     cwd = (cwd or "").strip()
     if base:
@@ -607,10 +623,34 @@ async def assess(
             )
         elif ticket is not None:
             add("ok", f"You may assign this AI to {ticket.id}", "permission")
+        role_key = (loads(profile.config, {}) or {}).get("role")
+        if (
+            checks_of(s)["tests"].get("on")
+            and profile.provider == "claude-code"
+            and role_key not in ("dev", "reviewer", "qa")
+        ):
+            add(
+                "warn",
+                f"{member.name} has no Dev, QA or Reviewer role, so its CLI may refuse to run the tests itself. "
+                "The board runs them after it finishes and sends it back with what failed.",
+                "role",
+            )
         ok, why = await availability(session, s.member_id, s.project_id)
         busy = await _slots_in_use(session, s.member_id)
         free = max(0, profile.max_parallel - busy)
-        if ok:
+        if ok and free == 0:
+            # F "Slot busy": the run waits in the queue, but only so long
+            running = await _running_tickets(session, s.member_id)
+            ahead = len(await _running_tickets(session, s.member_id, ["queued"]))
+            add(
+                "warn",
+                f"{member.name} has no free slot. "
+                + (f"{', '.join(running[:2])} is running. " if running else "")
+                + f"This run queues at position #{ahead + 1} and starts when a slot frees. "
+                f"Max wait {BUSY_MAX_WAIT_MIN} min, then it is skipped.",
+                "runner",
+            )
+        elif ok:
             what = (
                 "Runner online now"
                 if profile.connection == "local"
@@ -724,7 +764,13 @@ async def assess(
             at = _once_at(s)
             if at is None:
                 add("error", "Pick the date and time.", "when")
-            elif at <= now + timedelta(minutes=1):
+            elif now < at <= now + timedelta(minutes=1):
+                add(
+                    "error",
+                    "That is less than a minute away. Pick a later time, or use Run now.",
+                    "when",
+                )
+            elif at <= now:
                 local = at.astimezone(zone(s.tz))
                 nxt = datetime.combine(
                     now.astimezone(zone(s.tz)).date(), local.timetz()
@@ -788,6 +834,16 @@ async def _overlaps(session, s: AiSchedule, now: datetime) -> list[dict]:
                 )
                 break
     return out[:3]
+
+
+async def _offline_risk(session, s: AiSchedule, profile) -> str | None:
+    """B1 "Runner often offline at 02:00" under the next run: a local runner that missed two of its last six slots."""
+    if s.state != "active" or profile is None or profile.connection != "local":
+        return None
+    if not await _offline_history(session, s):
+        return None
+    at = s.time if s.kind == "repeat" else (s.run_at or "")[11:16]
+    return f"Runner often offline at {at}" if at else "Runner is often offline"
 
 
 async def _offline_history(session, s: AiSchedule) -> list[dict]:
@@ -1096,8 +1152,13 @@ async def detail(session, schedule_id: str) -> dict:
     }
     out["runs"] = runs
     out["summary"] = await summary_text(session, s)
+    # a one-off whose time has come is being run (or waits for its AI): "that time has passed" is for the editor
     out["problems"] = (
-        [c for c in await assess(session, s, s.created_by) if c["level"] != "ok"]
+        [
+            c
+            for c in await assess(session, s, s.created_by)
+            if c["level"] != "ok" and not (s.kind == "once" and c["key"] == "when")
+        ]
         if s.state != "ended"
         else []
     )
@@ -1823,6 +1884,12 @@ async def _follow(srun_id: str, now: datetime) -> None:
     await _pass(srun_id, s, run, results, None)
 
 
+def _short(text: object, limit: int = 160) -> str:
+    """One line of an error, cut: a CLI's last stderr lines can be a whole traceback."""
+    one = " ".join(str(text).split())
+    return one if len(one) <= limit else one[: limit - 1].rstrip() + "…"
+
+
 def _met_line(results: list[dict]) -> str:
     crit = next((r for r in results if r["key"] == "criteria"), None)
     if crit and crit.get("count"):
@@ -2180,7 +2247,7 @@ async def _review_inner(srun_id: str) -> None:
             srun_id,
             s,
             "partly",
-            f"Checks passed, but the review failed: {exc}. A person decides.",
+            f"Checks passed, but the review failed: {_short(exc)}. A person decides.",
             results,
         )
     async with database.async_session() as session:
@@ -2400,6 +2467,7 @@ async def for_tickets(session, project_id: str) -> dict[str, dict]:
                 "at": s.next_run_at,
             }
         item["schedule_id"] = s.id
+        item["member_id"] = s.member_id
         cur = out.get(s.ticket_id)
         rank = {"missed": 0, "soon": 1, "planned": 2, "paused": 3}
         if (

@@ -1640,6 +1640,12 @@ TEAM_OPS = (
     "create",
     "message",
     "delegate",
+    "schedule_create",
+    "schedule_edit",
+    "schedule_pause",
+    "schedule_resume",
+    "schedule_run",
+    "schedule_delete",
 )
 
 DELEGATE_TASK = (
@@ -1648,6 +1654,143 @@ DELEGATE_TASK = (
     "tickets (parent {ticket}, status todo, no assignee: the board puts each on a workflow), give work to the right "
     "AI, or comment what is needed. You never edit code. End with a short report of what you did."
 )
+
+
+async def name_schedule_ops(session: AsyncSession, changes: list[dict]) -> None:
+    """The AI member of a proposed schedule by its own name (the checks only know lower-case ones)."""
+    for ch in changes:
+        mid = (ch.get("fields") or {}).get("member_id")
+        if str(ch.get("op", "")).startswith("schedule_") and mid:
+            member = await session.get(Member, mid)
+            if member is not None:
+                ch["member_name"] = member.name
+
+
+def _schedule_values(s, keys) -> dict:
+    """The saved values of a schedule's fields, as `schedules.update` takes them back (for Undo)."""
+    from services.ai import schedules as svc_schedules
+
+    out = {}
+    for k in keys:
+        v = getattr(s, k, None)
+        out[k] = loads(v, None) if k in svc_schedules.JSON_FIELDS else v
+    return out
+
+
+async def _apply_schedule_op(
+    session: AsyncSession, ch: dict, person: str, project_id: str | None
+) -> dict:
+    """The schedule actions the Board AI takes as the person: the schedule service checks everything (permission,
+    budget, the reviewer is another AI) and its message is what the person reads when it refuses."""
+    from services.ai import schedules as svc
+
+    op = ch["op"]
+    try:
+        if op == "schedule_create":
+            s = await svc.create(
+                session,
+                project_id or "",
+                {**ch["fields"], "ticket_id": ch["ticket"]},
+                person,
+            )
+            return {
+                "op": op,
+                "ticket": s.ticket_id,
+                "schedule": s.id,
+                "created": s.id,
+                "when": svc.when_label(s),
+            }
+        sid = ch["schedule"]
+        s = await svc.get_or_404(session, sid)
+        if op == "schedule_edit":
+            keys = list(ch["fields"])
+            before = _schedule_values(s, keys)
+            s = await svc.update(session, sid, ch["fields"], person)
+            return {
+                "op": op,
+                "ticket": s.ticket_id,
+                "schedule": sid,
+                "before": before,
+                "after": _schedule_values(s, keys),
+            }
+        if op in ("schedule_pause", "schedule_resume"):
+            was = s.state
+            s = await svc.set_paused(
+                session,
+                sid,
+                op == "schedule_pause",
+                person,
+                reason=f"Paused by {person} through the Board AI",
+            )
+            return {"op": op, "ticket": s.ticket_id, "schedule": sid, "was": was}
+        if op == "schedule_run":
+            srun = await svc.run_now(session, sid, person)
+            return {
+                "op": op,
+                "ticket": s.ticket_id,
+                "schedule": sid,
+                "slot": srun.id,
+                "run_ids": loads(srun.run_ids, []),
+            }
+        if op == "schedule_delete":
+            ticket_id = s.ticket_id
+            await svc.delete(session, sid, person)
+            return {"op": op, "ticket": ticket_id, "schedule": sid}
+    except svc.ScheduleError as exc:
+        # the same words the editor shows ("Enter the test command, or untick Tests pass.")
+        raise ValueError(str(exc)) from exc
+    raise ValueError(f"Unknown change {op!r}")
+
+
+async def _undo_schedule_op(session: AsyncSession, a: dict, person: str) -> str | None:
+    """Put a schedule action back; returns what could not be taken back (None when it was)."""
+    from services.ai import schedules as svc
+
+    op, sid = a["op"], a.get("schedule")
+    try:
+        if op == "schedule_delete":
+            return f"{a['ticket']}: a deleted schedule is not brought back"
+        s = await session.get(svc.AiSchedule, sid)
+        if s is None:
+            return f"{a['ticket']}: the schedule is gone"
+        if op == "schedule_create":
+            if s.runs_count:
+                await svc.set_paused(
+                    session, sid, True, person, reason=f"Undone by {person}"
+                )
+                return f"{a['ticket']}: the schedule had already run, so it is paused, not deleted"
+            await svc.delete(session, sid, person)
+            return None
+        if op == "schedule_edit":
+            if _schedule_values(s, a["after"]) != a["after"]:
+                return f"{a['ticket']}: the schedule was changed since"
+            await svc.update(session, sid, a["before"], person)
+            return None
+        if op in ("schedule_pause", "schedule_resume"):
+            if (s.state == "paused") != (op == "schedule_pause"):
+                return f"{a['ticket']}: the schedule was changed since"
+            if a.get("was") == "paused":
+                await svc.set_paused(session, sid, True, person)
+            else:
+                await svc.set_paused(session, sid, op == "schedule_resume", person)
+            return None
+        if op == "schedule_run":
+            from .. import runs as ai_runs
+
+            for rid in a.get("run_ids") or []:
+                run = await session.get(AiRun, rid)
+                if run is not None and run.state in (
+                    "queued",
+                    "starting",
+                    "running",
+                    "needs_input",
+                ):
+                    await ai_runs.cancel(rid, by=person, reason=f"Undone by {person}.")
+                    return f"{a['ticket']}: the run was stopped, but it had already started (what it spent is not taken back)"
+            return f"{a['ticket']}: the run had already ended, so it is not taken back"
+    except svc.ScheduleError as exc:
+        return f"{a['ticket']}: {exc}"
+    return None
 
 
 async def _apply_team_op(
@@ -1663,6 +1806,8 @@ async def _apply_team_op(
     if op not in TEAM_OPS:
         return None
     tid = ch.get("ticket")
+    if op.startswith("schedule_"):
+        return await _apply_schedule_op(session, ch, person, project_id)
     if op == "create":
         if (
             ch.get("workflow")
@@ -1767,6 +1912,8 @@ async def _undo_team_op(session: AsyncSession, a: dict, person: str) -> str | No
     from .. import runs as ai_runs
 
     op = a["op"]
+    if op.startswith("schedule_"):
+        return await _undo_schedule_op(session, a, person)
     if op == "create":
         t = await session.get(Ticket, a["created"])
         if t is None:

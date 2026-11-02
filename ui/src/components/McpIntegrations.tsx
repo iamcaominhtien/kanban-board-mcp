@@ -696,12 +696,14 @@ export function McpIntegrations() {
   }, [toast]);
 
   return (
-    <div className={styles.section}>
-      <div className={styles.headRow}>
-        <h3 className={styles.title}>MCP integrations</h3>
-        {toolCount !== null && <span className={styles.toolsChip}>kanban - {toolCount} tools</span>}
+    <section className={styles.section} data-setting="mcp" data-toc="MCP integrations">
+      <div className={styles.sectionHead}>
+        <h2 className={styles.title}>MCP integrations</h2>
+        <p className={styles.hint}>
+          Let AI coding tools use your boards through MCP. <span className={styles.toolsChip}>kanban</span>
+          {toolCount !== null && <> · {toolCount} tools.</>}
+        </p>
       </div>
-      <p className={styles.hint}>Let AI coding tools use your boards through MCP.</p>
 
       {probe.isLoading ? (
         <>
@@ -736,6 +738,6 @@ export function McpIntegrations() {
           </button>
         </div>
       )}
-    </div>
+    </section>
   );
 }
