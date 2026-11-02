@@ -463,6 +463,9 @@ def test_the_design_guide_reaches_the_agent_and_the_ai_job():
         "The thumbnail test",
         "A spec per screen",
         "`examples/`",
+        # the other skills are planned on the ticket, one item each, and opened when that item comes up
+        "**Plan, then open the other design skills.**",
+        "`ticket_items` item `sub_task`",
     ):
         assert needle in canvas_design.GUIDE, needle
     # how a design stops looking machine-made travels with the skill as craft.md, in the plugin and the repository

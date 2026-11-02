@@ -663,6 +663,10 @@ async def test_a_run_is_told_its_skills_by_exact_name_and_when_to_use_each(
     assert "shaders before a shader" in block  # the catalogue's "use"
     assert "gsap" not in block
     assert "Skill tool by the exact name" in block
+    # told the list alone, a live Designer planned a skill for each step and then opened none while it built: the
+    # plan goes on the ticket first, one item per skill, so opening it is a step it ticks off
+    assert "sub-tasks" in block and "its own item" in block
+    assert "why you dropped any you planned" in block
 
 
 def test_the_designers_skills_leave_out_what_hides_or_repeats_another():

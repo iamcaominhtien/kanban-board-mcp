@@ -1010,8 +1010,11 @@ async def skills_block(session, profile: AiMember) -> str:
     if not lines:
         return ""
     return (
-        "Skills installed for you. Before the work a skill covers, open it with the Skill tool by the exact name below "
-        "and follow it; where one disagrees with the board's own guide (`kanban-board:canvas-design`), the guide wins.\n"
+        "Skills installed for you. Plan first: before the first file, put your steps on the ticket as sub-tasks "
+        "(ticket_items item='sub_task', one call; in your first message if you may not edit the ticket), each skill below you will use as its own item right before the work "
+        "it serves. When you reach that item, open the skill with the Skill tool by the exact name below, follow it and "
+        "tick the item. Where one disagrees with the board's own guide (`kanban-board:canvas-design`), the guide wins. "
+        "Your report names the skills you opened and why you dropped any you planned.\n"
         + "\n".join(lines)
     )
 

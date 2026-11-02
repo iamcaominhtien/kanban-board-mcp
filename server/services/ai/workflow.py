@@ -654,8 +654,9 @@ def _instruction(
     if step.get("role") == "designer":
         parts.append(
             "First load the board's design guide, the `kanban-board:canvas-design` skill (without it: "
-            "docs_read(design_guide)), and follow it; another skill of the same name is not this guide. Open the other "
-            "skills your prompt lists at the step they serve, by their exact names; where they differ, the guide wins. "
+            "docs_read(design_guide)), and follow it; another skill of the same name is not this guide. Plan before the "
+            "first file, as the guide says: your steps as sub-tasks on the ticket, each skill your prompt lists that "
+            "you will use as its own item at the step it serves; open each by its exact name when you reach it. "
             "Before the first frame, read the guide's `craft.md` (beside the skill; docs_read(design_guide) gives it) "
             "and look at its two exemplar boards (`examples/foundations.png`, `examples/states.png`): the exemplars "
             "are the bar for how a design is presented, never a look to copy; craft.md is how it stops looking "

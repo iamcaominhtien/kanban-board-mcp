@@ -16,10 +16,14 @@ how a design stops looking machine-made (read it before the first frame), and tw
 (a document, states side by side, captions). They are a work tool's UI: never take their look (green, pills, hairline
 cards, the fonts) for another product, which gets its own.
 
-**Other design skills.** A board run's prompt lists the skills installed for you, each by its exact name and the work
-it covers (the type scale, motion, three.js, a chart, the critique pass...). Before that work, open the skill with the
-Skill tool by that name and follow it; where one disagrees with this guide, the guide wins. The canvas speaks the
-product's language: board titles, captions and notes are in the language of its copy.
+**Plan, then open the other design skills.** A board run's prompt lists the skills installed for you, each by its
+exact name and the work it covers (the type scale, motion, three.js, a chart, the critique pass...). Before the first
+file, put your plan on the ticket as sub-tasks (`ticket_items` item `sub_task`, all in one call): your steps in order,
+and each skill you will use as its own item right before the work it serves ("Open `dembrandt:modular-scale-typography`:
+type scale"). Work down that list: when you reach a skill's item, open it with the Skill tool by that name, follow it,
+tick the item. Where one disagrees with this guide, the guide wins. Your report names the skills you opened and why you
+dropped any you planned. The canvas speaks the product's language: board titles, captions and notes are in the
+language of its copy.
 
 ## 0. Context before anything
 
