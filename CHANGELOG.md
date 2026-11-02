@@ -8,6 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.23.2] - 2026-11-02
+
 Settings drawn the way the design draws it (`design/screens/settings-structure.md`, `settings-pages.md`).
 
 ### Fixed
