@@ -3,6 +3,8 @@
 An agent works on the ``.drawio`` file itself: export it to a local path, edit it with its own file tools, save it back.
 """
 
+from pathlib import Path
+
 import services.diagrams as svc_diagrams
 from pydantic import Field
 from typing import Annotated
@@ -58,23 +60,73 @@ async def list_project_diagrams(project_id: ProjectId) -> list[dict]:
 async def export_diagram(
     diagram_id: DiagramId,
     path: Annotated[
-        str,
+        str | None,
         Field(
-            description="Absolute path to write to; a folder gets '<name>.drawio' inside it."
+            description="Absolute path to write the .drawio file to; a folder gets '<name>.drawio' inside it. Omit to read the model only."
         ),
-    ],
+    ] = None,
     version: Annotated[
         int | None, Field(description="A saved version; default the latest.")
     ] = None,
 ) -> dict:
-    """Write a diagram's .drawio file to a local path. Returns {path, id, label, version, markdown}."""
+    """Read a diagram as a model (shapes, links, labels, boxes, styles, problems), and with `path` write its .drawio
+    file there to edit. Returns {id, label, version, markdown, model[, path]}."""
+    from services import diagram_model
+
     async with common.async_session() as session:
         try:
-            return await svc_diagrams.export_to_file(
-                session, diagram_id, path, version=version
+            d = await svc_diagrams.get_diagram(
+                session, diagram_id, version=version, include_source=True
             )
+            await _same_project(d.get("project_id"))
+            out = (
+                await svc_diagrams.export_to_file(
+                    session, diagram_id, path, version=version
+                )
+                if path
+                else {
+                    "id": d["id"],
+                    "label": d["label"],
+                    "version": d["version"],
+                    "markdown": f"[{d['label']}](diagram:{d['id']})",
+                }
+            )
+            try:
+                out["model"] = diagram_model.model(d["source"])
+            except svc_diagrams.DocsError as exc:
+                out["model"] = {"error": exc.message}
+            return out
         except svc_diagrams.DocsError as exc:
             raise _error(exc) from exc
+
+
+async def _same_project(project_id: str | None) -> None:
+    """An AI run may only read diagrams of the project it works in."""
+    from services.ai import guard
+
+    ctx = guard.current()
+    if ctx is not None and project_id and project_id != ctx.project_id:
+        raise ValueError(
+            "That diagram belongs to another project than this run works in, so it was left alone."
+        )
+
+
+def _problems(path: str) -> dict:
+    """What will look broken in the saved file (links to nothing, overlaps), as a hint after a save."""
+    from services import diagram_model
+
+    try:
+        found = diagram_model.problems(
+            diagram_model.Drawing(Path(path).read_text("utf-8"))
+        )
+    except (OSError, UnicodeDecodeError, svc_diagrams.DocsError):
+        return {}
+    if not found:
+        return {}
+    return {
+        "problems": found,
+        "fix": "Saved as it is. Fix these in the file and save again (docs_write diagram_save with the new version).",
+    }
 
 
 @notify_on_success
@@ -105,6 +157,7 @@ async def create_diagram_from_file(
         return {
             **{k: out[k] for k in ("id", "label", "version", "markdown")},
             **_preview_note(out),
+            **_problems(path),
         }
 
 
@@ -134,7 +187,11 @@ async def save_diagram_file(
             )
         except svc_diagrams.DocsError as exc:
             raise _error(exc) from exc
-        return {**{k: out[k] for k in ("id", "label", "version")}, **_preview_note(out)}
+        return {
+            **{k: out[k] for k in ("id", "label", "version")},
+            **_preview_note(out),
+            **_problems(path),
+        }
 
 
 @notify_on_success

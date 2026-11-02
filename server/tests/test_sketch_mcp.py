@@ -134,7 +134,9 @@ async def test_a_picture_alone_becomes_one_picture_layer(env, tmp_path):
         )
     )["id"]
     doc = (await c.get(f"/sketches/{sid}/source")).json()
-    assert [layer["kind"] for layer in doc["layers"]] == ["paper", "picture"]
+    # the picture is locked and a person's marks go on an empty layer above it (#267)
+    assert [layer["kind"] for layer in doc["layers"]] == ["paper", "picture", "layer"]
+    assert doc["layers"][1]["locked"] is True and doc["activeLayer"] == "l3"
     assert doc["layers"][1]["png"].startswith("data:image/png;base64,iVBOR")
     assert (doc["width"], doc["height"]) == (8, 6)
 

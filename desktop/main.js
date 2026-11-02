@@ -552,7 +552,7 @@ function launchBackend() {
     });
 }
 
-// `--export-svg`: a headless run the backend asks for to draw a diagram's picture with the editor itself (no window,
+// `--export-svg` / `--export-png`: a headless run the backend asks for to draw a diagram's picture with the editor itself, or a page an AI drew (no window,
 // no backend of its own). Every other start is the normal app.
 const exportArgs = parseExportArgs(process.argv);
 
