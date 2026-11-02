@@ -104,6 +104,8 @@ REMINDER_MINUTES = [15, *range(120, NEEDS_INPUT_HOLD_HOURS * 60, 120)]
 REMINDER_LEAD_MINUTES = 360
 AUTO_TRIP_CHECK_S = 30  # spend spike and denials (autotrip.py)
 STARTING_TIMEOUT_S = 30
+# Seconds a CLI may stay open after its final answer before the board stops it (and what it started in the background)
+RESULT_GRACE_S = 30
 WATCH_EVERY_S = 30  # a running CLI that printed nothing for this long is looked at (services/ai/watchdog.py)
 MAX_RATE_REQUEUES = 3  # times one run waits out a rate limit before it fails
 
@@ -2630,12 +2632,30 @@ async def _execute_cli_held(
     watch = RT.watch[run_id] = watchdog.RunWatch()
     checked_at = time.monotonic()
     quota_key = quota.key_for(profile, run)
+    # set when the CLI has given its final answer: from then on it should exit by itself
+    answered_at: float | None = None
+    lingered = False
     while True:
         if pending is None:
             pending = asyncio.ensure_future(lines.__anext__())
-        done, _ = await asyncio.wait(
-            {pending}, timeout=WATCH_EVERY_S if ready else start_s
-        )
+        wait_s = WATCH_EVERY_S if ready else start_s
+        if answered_at is not None:
+            wait_s = max(0.5, RESULT_GRACE_S - (time.monotonic() - answered_at))
+        done, _ = await asyncio.wait({pending}, timeout=wait_s)
+        if (
+            not done
+            and answered_at is not None
+            and (time.monotonic() - answered_at >= RESULT_GRACE_S)
+        ):
+            # The CLI answered but stays open: it waits for something it started in the background (a local web
+            # server to look at frames, a dev server) and would hold the run, its cost and the member forever
+            logger.info(
+                "Run %s: the CLI answered but did not exit; stopping it", run_id
+            )
+            lingered = True
+            pending.cancel()
+            proc.kill()
+            break
         if not done:
             if ready and not await _is_paused(run_id):
                 # Quiet is not a failure (a long build, the model thinking): notice, diagnose, then act (design C)
@@ -2701,6 +2721,8 @@ async def _execute_cli_held(
                 # a turn ended: with nothing more to say, close the input so the CLI exits (a message sent after this
                 # is kept on the run and, when the run ends without reading it, goes to the ticket's next run)
                 proc.end_input()
+            if not proc.live or not proc.input_open:
+                answered_at = time.monotonic()
         if parsed["steps"] or parsed["files"] or parsed["results"] or fields:
             if run_id in RT.cancelled:
                 proc.kill()
@@ -2722,6 +2744,8 @@ async def _execute_cli_held(
     if timed_out:
         proc.kill()
     code = await proc.wait()
+    if lingered:
+        code = 0  # it had answered: stopping what it left running is not a failure of the run
     await resources.MON.untrack(run_id)
     restart = RT.restart_requests.pop(run_id, None)
     if run_id in RT.cancelled:

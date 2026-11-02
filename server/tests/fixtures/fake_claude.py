@@ -514,6 +514,15 @@ emit(
         "session_id": session,
     }
 )
+if mode == "linger":
+    # it answered, but a server it started in the background keeps it open (a web server to look at its frames)
+    server = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(300)", "http.server"]
+    )
+    if os.environ.get("FAKE_CLAUDE_PIDFILE"):
+        with open(os.environ["FAKE_CLAUDE_PIDFILE"], "w") as fh:
+            fh.write(str(server.pid))
+    time.sleep(300)
 if live:
     for line in sys.stdin:  # messages a person sent while it worked, each one more turn
         try:
