@@ -130,6 +130,14 @@ async def test_get_ticket_returns_ticket():
     assert result["title"] == "Fetch me"
 
 
+async def test_get_ticket_points_an_outside_agent_to_the_shared_guides():
+    # issue #277: a live outside agent skipped the instructions' mention twice; it reads what a tool returns
+    project = await _seed_project(prefix="GETG")
+    ticket = await ops.create_ticket(project_id=project["id"], title="Guides")
+    result = await ops.get_ticket(ticket["id"])
+    assert "docs_read(action='guides')" in result["how_to_work"]
+
+
 async def test_get_ticket_lists_uploaded_files_with_absolute_paths():
     project = await _seed_project(prefix="GETF")
     ticket = await ops.create_ticket(

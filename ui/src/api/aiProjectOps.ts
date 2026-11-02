@@ -40,8 +40,18 @@ export interface ProjectOps {
   ownClaude?: boolean;
   /** Which roles load each of those plugins; a plugin not listed loads for every role. */
   ownClaudeRoles?: { plugin: string; roles: string[] }[];
+  /** The board's own skills switched off for the project or switched for one member; a skill not listed is on. */
+  boardSkills?: BoardSkillSwitch[];
   github?: { on?: boolean; pollMin?: number; auto?: boolean };
   [key: string]: unknown;
+}
+
+/** A board skill's switches: the project's (`on`) and each member's own (`membersOn`, `membersOff`). */
+export interface BoardSkillSwitch {
+  skill: string;
+  on?: boolean;
+  membersOn?: string[];
+  membersOff?: string[];
 }
 
 export const opsKeys = { project: (projectId: string) => ['ai', 'ops', projectId] as const };

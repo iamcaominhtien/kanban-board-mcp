@@ -27,6 +27,7 @@ DocsReadAction = Literal[
     "canvas",
     "design_guide",
     "permissions_guide",
+    "guides",
 ]
 
 DOCS_READ_OPS = {
@@ -46,6 +47,7 @@ DOCS_READ_OPS = {
     "canvas": Op(ops.read_canvas, ("canvas_id",), ("board_id", "path")),
     "design_guide": Op(ops.design_guide, ()),
     "permissions_guide": Op(ops.permissions_guide, ()),
+    "guides": Op(ops.shared_guides, ()),
 }
 
 
@@ -139,8 +141,9 @@ async def docs_read(
     - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.
     - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
     - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
-    - design_guide: {guide}, the canvas design guide; read it before designing.
-    - permissions_guide: {guide, you}: what you may do; read it when refused."""
+    - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.
+    - permissions_guide: {guide, you}: what you may do; read it when refused.
+    - guides: {name: text}: how to work a ticket, prove it, ask, brainstorm, write for users, make office files and decks."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 

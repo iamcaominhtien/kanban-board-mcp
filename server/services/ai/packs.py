@@ -17,10 +17,9 @@ from models import AiRolePack
 
 FORMAT = "kanban-role-pack/1"
 
-_COMMON_RULES = (
-    "Work only on what the ticket asks. Report with ai_run(action='report') before your final message. "
-    "Ask a person with ai_run(action='ask') when a decision is theirs."
-)
+# How every role works a ticket (stay in it, report the truth, ask, prove it) is in the board's rules and its shared
+# skills (services/shared_skills.py, issue #277): a persona only points to them
+_COMMON_RULES = "How to work a ticket, prove it and ask: the board's shared skills (`kanban-board:*`)."
 
 BUILTIN: list[dict] = [
     {
@@ -130,16 +129,29 @@ BUILTIN: list[dict] = [
         "writes": "canvas",
         "hands_in": "A mock-up for you to approve",
         "allow": ["Read", "Glob", "Grep"],
-        "plugins": ["design", "ui-ux-pro-max", "frontend-design", "canvas-design"],
-        "mcp": ["figma", "playwright"],
+        # not Anthropic's canvas-design (poster art as a PNG; its name hides the board's own guide), nor Figma (it signs
+        # in through a browser, which a run cannot do): both stay in the catalogue for a person to add
+        # only skills for work the guide does not teach (motion, charts) and checks run on drawn boards: rule sets
+        # that pick a palette, a type scale or a layout (taste-skill, dembrandt, ui-ux-pro-max...) pulled a live
+        # Designer to one flat hue and cost more, for no better result; they stay in the catalogue for a person
+        "plugins": [
+            "design",
+            "emil-design-eng",
+            "motion-design",
+            "tufte-data-viz",
+        ],
+        "mcp": ["playwright"],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
         "persona": (
-            "You are the Designer on this project, judged on how your work looks as much as on what it covers. Design "
-            "what the ticket asks as responsive HTML frames on a Canvas with real copy and every state, following the "
-            "canvas design guide: context, a clear visual direction, tokens, then screens. Use good references, real "
-            "fonts and icons. Look at your own frames in the browser (Playwright) at phone and desktop width and fix "
-            "what looks unbalanced or plain before you hand in, with screenshots. You do not write production code. "
-            "The flow between screens is a draw.io Diagram. " + _COMMON_RULES
+            "You are the Designer, judged on how your work looks. First load the board's design guide (skill "
+            "`kanban-board:canvas-design`, else docs_read(design_guide)), its craft.md and exemplar boards. Your "
+            "work must not look machine-made: a signature only this product has, type and colour chosen for it, none "
+            "of the template tells. For a new product, draw the main screen three ways on a Directions page and keep "
+            "the strongest. Then a canvas that reads as a design document: a Foundations board, components, screen "
+            "boards with every state side by side and a caption by each decision. Look at your "
+            "boards in the browser (Playwright via `python3 -m http.server`), fix the three most template-like things, "
+            "look again. Hand in the canvas, a spec per screen on Docs, a comment with screenshots. No production "
+            "code; screen flow as a draw.io Diagram. " + _COMMON_RULES
         ),
     },
     {
@@ -277,7 +289,13 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # The ready-made packs' version: raised when their persona or tools change, so a member made from an older one is
 # offered the update (v2: the Designer, BA and PM write the files of a canvas or a diagram, the User tester starts the
 # app, every role knows which drawing to use)
-BUILTIN_VERSION = 3  # v3: the Designer looks at its frames in a browser and starts from tokens; the PM judges design
+# v3: the Designer looks at its frames in a browser and starts from tokens; the PM judges design
+# v4: the Designer drops Anthropic's canvas-design (it shadows the board's guide) and Figma
+# v5: the Designer presents a design document (foundations, states side by side, a spec per screen)
+# v6: the Designer explores three directions, reads craft.md, critiques its own screens and gets taste-skill
+# v7: the Designer gets the niche design skills (polish, UI rules, motion, charts)
+# v8: the Designer keeps only motion, chart and checking skills; the guide sets the look
+BUILTIN_VERSION = 9  # v9: every persona points to the board's shared skills (issue #277) instead of repeating them
 
 
 def _now() -> str:

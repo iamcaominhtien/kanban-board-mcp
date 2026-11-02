@@ -1,0 +1,45 @@
+/* Lesson: a teacher's slides for a class. Exercise-book paper with its red margin line, a chalkboard green for the
+   lesson's own world, and a marigold highlighter that marks the one term to remember. Fraunces for a warm, bookish
+   voice; Lexend, made for reading, for everything students must read. */
+section.slide {
+  --ground: #FBF6EA; --ink: #1E2B24; --muted: #5E6A62; --accent: #2F6B4F; --rule: #E2D9C3; --rule-strong: #1E2B24;
+  --mark: #F6C34A;
+  --font-display: "Fraunces", Georgia, serif; --font-body: "Lexend", Calibri, sans-serif;
+  --display-weight: 700; --title-size: 46px; --display-tracking: -0.01em; --cover-size: 70px; --body-size: 22px;
+  font-family: var(--font-body);
+}
+/* the exercise book: a red margin line on every page but the board */
+section.slide:not(.l-cover):not(.l-quote)::before { content: ""; position: absolute; top: 0; bottom: 0; left: 56px;
+  width: 2px; background: #E07A6B; opacity: .55; }
+/* the chalkboard */
+section.slide.l-cover { --ground: #22402F; --ink: #F3EFE2; --muted: #B9C8BC; --accent: #F6C34A; }
+section.slide.l-cover::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26px; background: #8A5A35; }
+.l-cover .title { width: 720px; top: 200px; }
+.l-cover .lede { bottom: 80px; }
+.l-cover .art { width: 420px; }
+section.slide.l-quote { --ground: #22402F; --ink: #F3EFE2; --muted: #B9C8BC; --accent: #F6C34A; }
+section.slide.l-quote::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26px; background: #8A5A35; }
+.l-quote .title { font-weight: 500; font-style: italic; }
+.l-agenda .title { width: 440px; }
+.l-agenda li .n { font-family: var(--font-display); color: #C0503F; }
+.l-number .num { color: var(--accent); font-size: 200px; top: 120px; }
+.l-number .art { width: 470px; }
+.l-number .title { width: 700px; top: 380px; }
+.l-number .lede { width: 680px; top: 520px; }
+.l-chart .side .num { color: var(--accent); }
+.l-split .eyebrow { color: #C0503F; }
+.l-steps .step .when { color: #C0503F; }
+.l-steps .row { top: 300px; }
+.l-steps .step { border-top: 3px solid var(--accent); padding-top: 22px; }
+.l-steps .step h3 { font-size: 32px; }
+.l-steps .step p { font-size: 21px; }
+/* a chart title of two lines: the lede and the chart move down */
+.l-chart .lede { top: 190px; }
+.l-chart .chart { top: 250px; height: 410px; }
+.l-chart .side { top: 270px; }
+.l-compare .col { border-top: 4px solid #C0503F; }
+.l-compare .col.pick { border-top-color: var(--accent); }
+.l-compare .col .tag { color: #C0503F; }
+.l-compare .col.pick .tag { color: var(--accent); }
+.l-closing .asks b { color: #C0503F; }
+.l-closing .eyebrow { color: #C0503F; }

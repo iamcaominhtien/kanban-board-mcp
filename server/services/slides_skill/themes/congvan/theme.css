@@ -1,0 +1,59 @@
+/* Công văn: a report to a provincial People's Committee. White paper, deep navy text, one crimson used only for the
+   agency's rule and the figure that matters; a serif heading like a printed official document, centred cover, no
+   emblems or flags. */
+section.slide {
+  --ground: #FFFFFF; --ink: #1B2440; --muted: #555E70; --accent: #9E1B22; --rule: #D9DCE3; --rule-strong: #1B2440;
+  --font-display: "Noto Serif", Cambria, Georgia, serif; --font-body: "Be Vietnam Pro", Calibri, Arial, sans-serif;
+  --display-weight: 700; --title-size: 40px; --display-tracking: 0;
+  font-family: var(--font-body);
+}
+/* the agency rule: a crimson line under a navy hairline at the top of every slide */
+section.slide::before { content: ""; position: absolute; left: var(--pad); right: var(--pad); top: 46px; height: 0;
+  border-top: 3px solid var(--accent); }
+section.slide::after { content: ""; position: absolute; left: var(--pad); right: var(--pad); top: 53px; height: 0;
+  border-top: 1px solid var(--ink); opacity: .5; }
+.slide .eyebrow { color: var(--ink); letter-spacing: 0.1em; font-size: 14px; }
+.slide .title { text-wrap: balance; }
+.slide .footer { border-top: 1px solid var(--rule); padding-top: 10px; bottom: 24px; }
+
+/* cover: centred, like the head of an official report */
+section.slide.l-cover::before { top: 150px; left: 540px; right: 540px; }
+section.slide.l-cover::after { display: none; }
+.l-cover .eyebrow { left: 0; right: 0; width: auto; top: 70px; text-align: center; line-height: 1.6; }
+.l-cover .title { left: 140px; width: 1000px; top: 200px; text-align: center; font-size: 54px; line-height: 1.2; }
+.l-cover .lede { left: 190px; width: 900px; bottom: 120px; text-align: center; font-size: 22px; }
+.l-cover .art { left: 0; right: 0; width: auto; top: auto; bottom: 0; height: 90px; }
+
+.l-agenda .title { top: 100px; font-size: 40px; }
+.l-agenda ol { top: 100px; }
+.l-agenda li .n { font-family: var(--font-display); color: var(--accent); }
+.l-chart .title, .l-compare .title, .l-steps .title { top: 84px; }
+.l-chart .lede { top: 150px; }
+.l-number .num { font-size: 200px; top: 120px; color: var(--accent); }
+.l-number .title { top: 360px; font-size: 38px; width: 760px; }
+.l-number .lede { top: 480px; width: 720px; }
+.l-number .art { width: 380px; }
+.l-compare .col { border-top: 2px solid var(--ink); }
+.l-compare .col.pick { border-top: 4px solid var(--accent); }
+.l-compare .col h3 { font-size: 27px; }
+.l-compare .col .k b { font-size: 36px; }
+.l-steps .row { top: 240px; }
+.l-steps .step { border-top: 2px solid var(--ink); }
+.l-steps .step .when { color: var(--accent); }
+.l-steps .step h3 { font-size: 23px; }
+section.slide.l-quote { --ground: #F4F5F8; }
+.l-quote .mark { color: var(--accent); top: 90px; }
+.l-quote .title { font-size: 42px; top: 230px; width: 980px; font-weight: 400; font-style: italic; }
+.l-quote .who { top: 470px; }
+.l-closing .eyebrow { top: 110px; color: var(--accent); }
+.l-closing .title { font-size: 46px; top: 150px; width: 1000px; }
+.l-closing .asks { top: 360px; }
+.l-closing .asks div { border-left: 3px solid var(--accent); padding-left: 18px; }
+.l-closing .asks b { color: var(--ink); }
+.l-number .title { width: 820px; }
+.l-number .lede { top: 530px; }
+section.slide.l-split::before, section.slide.l-split::after { left: 680px; }
+.l-steps .row { top: 290px; }
+.l-steps .step h3 { font-size: 26px; }
+.l-steps .step p { font-size: 19px; }
+.l-cover .lede { bottom: 150px; }

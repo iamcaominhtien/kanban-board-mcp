@@ -25,6 +25,9 @@ DEFAULTS: dict = {
     # Which roles load each of those plugins (ai-story-flow Q2): [{plugin, roles}]; a plugin not listed loads for
     # every role. A list, not a dict keyed by plugin name: the UI camel-cases keys.
     "own_claude_roles": [],
+    # The board's own skills (services/ai/board_skills.py) switched off for every member or for one (issue #277):
+    # [{skill, on, members_on, members_off}]; a skill not listed is on for everyone. A list, as above.
+    "board_skills": [],
     # Phase 4 — worktrees and hand-over
     "worktrees": {
         "on": False,
