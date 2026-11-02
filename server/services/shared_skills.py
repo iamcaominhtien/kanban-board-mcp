@@ -322,6 +322,9 @@ CORE_RULES = [
     "person did something unless a tool showed it to you.",
     "Stop every server or watcher you started (kill its process) before your final message: a process left running "
     "keeps the run open.",
-    "Hand in proof a person can see: screenshots of what they will look at, the command and its real output, links.",
+    "Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output "
+    "pasted in a ``` block (\"2 passed\" in a sentence is a claim, not proof).",
+    "Before you hand in anything a person will read or use, look at it as that person would "
+    "(`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.",
     "Write in the project's language everywhere: copy, titles, labels, comments and the report.",
 ]  # then where the detail is, which depends on the member (context._core_rules)
