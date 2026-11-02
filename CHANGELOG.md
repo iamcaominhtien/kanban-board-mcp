@@ -8,6 +8,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.29.0] - 2026-11-03
+
+The Board AI manages the AI team: it advises what each AI could use and sets it up, by itself when the owner allows it.
+
+### Added
+- **The Board AI sets up the AI team.** In a project chat it can make an AI member from a role pack (so it gets that role's skill and tools), give an existing member a role, change its instructions, model or effort, bring it to its pack's latest version, install a plugin from the catalogue or a git URL, switch a plugin or one of the board's skills on or off (for the project or one member), add or remove an MCP server, a hook or a skill of a member's own. Each is one change in its answer, with Undo.
+- **It knows the team to advise from**: every member with its role, model, plugins, MCP servers, hooks and skills, the role packs, the catalogue and the board's skills are in its context, so "what should our Dev add to test the UI?" gets an answer from what exists.
+- **Settings › AI › Board AI › Manages the AI team**: with it on, these changes are made at once and keep an Undo, at any size (setting up a whole team is not a bulk action); off (the default), each asks first. Only the project owner can turn it on, over the screen and over the API, and the switch is audited.
+- An MCP server or a hook runs a command on this computer: its change says the command on the card and in the receipt, and the audit log keeps it as a warning.
+
 ## [3.28.0] - 2026-11-03
 
 Each AI role works like a good professional in that role, and the roles work together (#273). Measured with live sonnet runs, before and after, on the same small task per role.

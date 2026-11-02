@@ -172,6 +172,23 @@ async def patch_ops(project_id: str, body: dict, session: Session) -> dict:
     from services.ai import manager as ai_manager
 
     settings = await get_settings(session, project_id)
+    team = (
+        (body.get("board_ai") or {}) if isinstance(body.get("board_ai"), dict) else {}
+    )
+    if "manages_team" in team and bool(team["manages_team"]) != bool(
+        (svc_ops.get(settings).get("board_ai") or {}).get("manages_team")
+    ):
+        from services.ai import safety
+
+        # MCP servers and hooks run commands on this machine: only the owner hands that to the Board AI
+        if (
+            await safety.role_name(session, project_id, svc_activity.current_actor())
+            != "owner"
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Only the project owner can let the Board AI manage the AI team.",
+            )
     out = svc_ops.update(settings, ai_manager.stamp(body, svc_ops.get(settings)))
     if "manager" in body or "coordinator_id" in body:
         await ai_manager.sync_autopilot(session, settings, out)
