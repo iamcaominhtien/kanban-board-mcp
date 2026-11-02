@@ -165,7 +165,7 @@ Shots: detail [before](../../screenshots/269/detail/TicketReopen-detail-before.j
 
 | Section | Design | Code today | Gap | Fix |
 |---|---|---|---|---|
-| Consolidated attachments zone | "ATTACHMENTS · 4", gap 8; 76 px thumbs; file chip 12.5/600 + size 10.5; provenance 9.5 → 10 px; dashed 76 px add tile | same layout; a 36 px band above the label; "PDF" instead of the size in the dev app | spacing, size | **fixed**: one divider + 4 px, gap 8. listed: size in dev (Vite proxy, see Left open). kept code: provenance text is 10 px (no text under 10 px, wave 4 TT-3) |
+| Consolidated attachments zone | "ATTACHMENTS · 4", gap 8; 76 px thumbs; file chip 12.5/600 + size 10.5; provenance 9.5 → 10 px; dashed 76 px add tile | same layout; a 36 px band above the label; "PDF" instead of the size in the dev app | spacing, size | **fixed**: one divider + 4 px, gap 8. fixed: size in dev (the Vite proxy forwards `/upload-info`). kept code: provenance text is 10 px (no text under 10 px, wave 4 TT-3) |
 | Uploading state | pulsing thumb; chip with a 3 px progress bar | built (ATT-3, wave 3) | none | none: matches |
 
 Shots: zone [before](../../screenshots/269/detail/Attachments-zone-before.jpg) / [after](../../screenshots/269/detail/Attachments-zone-after.jpg)
