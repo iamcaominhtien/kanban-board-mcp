@@ -134,7 +134,7 @@ BUILTIN: list[dict] = [
         # in through a browser, which a run cannot do): both stay in the catalogue for a person to add
         # only skills for work the guide does not teach (motion, charts) and checks run on drawn boards: rule sets
         # that pick a palette, a type scale or a layout (taste-skill, dembrandt, ui-ux-pro-max...) pulled a live
-        # Designer to one flat hue and a generic dashboard, its worst run; they stay in the catalogue for a person
+        # Designer to one flat hue and cost more, for no better result; they stay in the catalogue for a person
         "plugins": [
             "design",
             "emil-design-eng",

@@ -40,8 +40,8 @@ cards, the fonts) for another product, which gets its own.
 
 **Other design skills never set the look.** A board run's prompt lists the skills installed for you, each by its exact
 name and the work it covers. Colour, type, layout and the signature come from this guide and craft.md, never from a
-skill's rule set: a palette derived by rule from one hue, a stock type scale and white cards on a tinted ground made a
-live run's worst design. Open a skill with the Skill tool only for a craft this guide does not teach (motion, 3D, a
+skill's rule set: a palette derived by rule from one hue, a stock type scale and white cards on a tinted ground left a
+live run flat, in one hue. Open a skill with the Skill tool only for a craft this guide does not teach (motion, 3D, a
 chart) when you reach that work, or to check boards you have drawn (critique, accessibility, the handoff spec). Where
 one disagrees with this guide, the guide wins. The canvas speaks the product's language: board titles, captions and notes are in the
 language of its copy.
