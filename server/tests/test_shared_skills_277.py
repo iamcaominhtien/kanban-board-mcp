@@ -16,6 +16,8 @@ SHARED = [
     "evidence-and-handover",
     "repo-and-machine",
     "asking-and-writing",
+    # how the roles work together (issue #273)
+    "working-together",
     # asked for by the owner in the brainstorm
     "brainstorming",
     "end-user-eyes",
@@ -34,7 +36,7 @@ def _block(member: AiMember, settings: AiProjectSettings, mode: str = "work") ->
 
 def test_the_four_skills_agreed_with_the_owner_are_board_skills_with_a_description_that_says_when():
     assert [n for n, _d, _b in shared_skills.SKILLS] == SHARED
-    names = [s["name"] for s in board_skills.catalog()]
+    names = [s["name"] for s in board_skills.catalog() if not s["role"]]
     assert names[:4] == [
         "canvas-design",
         "drawio-diagrams",
@@ -110,9 +112,9 @@ def test_a_skill_switched_off_for_the_project_or_a_member_is_left_out():
     ops = {"board_skills": [{"skill": "canvas-design", "members_off": ["dev"]}]}
     assert "canvas-design" not in board_skills.enabled_for(ops, "dev")
     assert "canvas-design" in board_skills.enabled_for(ops, "designer")
-    # nothing listed: every skill is on
+    # nothing listed: every skill is on (a role skill only for its role, issue #273)
     assert board_skills.enabled_for({}, "x") == [
-        s["name"] for s in board_skills.catalog()
+        s["name"] for s in board_skills.catalog() if not s["role"]
     ]
 
     settings = AiProjectSettings(
@@ -143,7 +145,7 @@ def test_a_run_gets_a_folder_with_only_the_skills_on_for_it():
 async def test_the_ui_lists_the_board_skills(env):
     r = await env["c"].get("/ai/board-skills")
     assert r.status_code == 200
-    assert [s["name"] for s in r.json()][4:] == SHARED
+    assert [s["name"] for s in r.json() if not s["role"]][4:] == SHARED
 
 
 def test_personas_and_step_texts_point_to_the_skills_instead_of_repeating_them():

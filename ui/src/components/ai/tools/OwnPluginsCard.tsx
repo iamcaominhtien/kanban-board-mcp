@@ -14,6 +14,8 @@ export const OWN_ROLE_COLUMNS: { label: string; roles: string[] }[] = [
   { label: 'Dev', roles: ['dev'] },
   { label: 'Tester', roles: ['qa', 'user_tester'] },
   { label: 'Reviewer', roles: ['reviewer'] },
+  // the four roles of issue #273, in one column so the grid stays narrow
+  { label: 'More roles', roles: ['tech_writer', 'devops', 'security', 'data_analyst'] },
 ];
 /** Every role a plugin that is not narrowed loads for, Triage included. */
 const ALL_ROLES = ['triage', ...OWN_ROLE_COLUMNS.flatMap((c) => c.roles)];

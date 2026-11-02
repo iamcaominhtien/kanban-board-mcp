@@ -129,7 +129,7 @@ def test_each_role_that_draws_is_pointed_at_the_right_tool():
     # live runs: a BA and a Dev that were only told a diagram "helps" drew none (#267)
     assert "you hand in a draw.io Diagram" in by_key["ba"]
     assert "carries a draw.io Diagram" in by_key["dev"]
-    assert packs.BUILTIN_VERSION == 10
+    assert packs.BUILTIN_VERSION >= 10  # 11 since issue #273 (a skill per role)
 
 
 # --- a diagram as a model ----------------------------------------------------------------------

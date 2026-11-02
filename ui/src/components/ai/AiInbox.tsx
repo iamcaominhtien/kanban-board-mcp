@@ -496,6 +496,10 @@ const ROLE_LABEL: Record<string, string> = {
   reviewer: 'Reviewer',
   qa: 'QA',
   user_tester: 'User tester',
+  tech_writer: 'Technical writer',
+  devops: 'DevOps',
+  security: 'Security reviewer',
+  data_analyst: 'Data analyst',
 };
 
 /** "Just this once", "For KAN-142", "For this project", "Always for every Dev". */

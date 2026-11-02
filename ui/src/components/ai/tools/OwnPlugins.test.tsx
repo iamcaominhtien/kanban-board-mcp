@@ -57,7 +57,24 @@ const box = (plugin: string, role: string) =>
 describe('withTick', () => {
   it('narrows a plugin on every role, and drops it from the list once every role is back', () => {
     const one = withTick([], 'sp', ['designer'], false);
-    expect(one).toEqual([{ plugin: 'sp', roles: ['triage', 'pm', 'ba', 'dev', 'qa', 'user_tester', 'reviewer'] }]);
+    expect(one).toEqual([
+      {
+        plugin: 'sp',
+        roles: [
+          'triage',
+          'pm',
+          'ba',
+          'dev',
+          'qa',
+          'user_tester',
+          'reviewer',
+          'tech_writer',
+          'devops',
+          'security',
+          'data_analyst',
+        ],
+      },
+    ]);
     expect(withTick(one, 'sp', ['designer'], true)).toEqual([]);
     expect(withTick([{ plugin: 'f', roles: ['dev'] }], 'f', ['qa', 'user_tester'], true)).toEqual([
       { plugin: 'f', roles: ['dev', 'qa', 'user_tester'] },
@@ -70,7 +87,7 @@ describe('OwnPluginsCard', () => {
     mount();
     await screen.findByTestId('own-plugins-grid');
     await waitFor(() => expect(box('superpowers', 'PM').disabled).toBe(false));
-    for (const r of ['PM', 'BA', 'Designer', 'Dev', 'Tester', 'Reviewer'])
+    for (const r of ['PM', 'BA', 'Designer', 'Dev', 'Tester', 'Reviewer', 'More roles'])
       expect(box('superpowers', r).checked).toBe(true);
     expect(box('frontend-design', 'Designer').checked).toBe(true);
     expect(box('frontend-design', 'Dev').checked).toBe(true);
@@ -95,7 +112,22 @@ describe('OwnPluginsCard', () => {
       expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/ops', {
         ownClaudeRoles: [
           { plugin: 'frontend-design', roles: ['designer', 'dev'] },
-          { plugin: 'superpowers', roles: ['triage', 'pm', 'ba', 'dev', 'qa', 'user_tester', 'reviewer'] },
+          {
+            plugin: 'superpowers',
+            roles: [
+              'triage',
+              'pm',
+              'ba',
+              'dev',
+              'qa',
+              'user_tester',
+              'reviewer',
+              'tech_writer',
+              'devops',
+              'security',
+              'data_analyst',
+            ],
+          },
         ],
       }),
     );

@@ -128,6 +128,25 @@ ROLE_TOOLS: dict[str, list[str]] = {
     "reviewer": READ + GIT_READ + ["Bash(npm ci:*)", "Bash(uv sync:*)"] + TESTS,
     "qa": READ + ["Write"] + MKDIR + GIT_READ + INSTALL + TESTS + START_APP + BROWSER,
     "user_tester": READ + ["Write"] + MKDIR + INSTALL[:3] + START_APP + SERVE + BROWSER,
+    # the four roles of issue #273
+    "tech_writer": READ
+    + WRITE
+    + MKDIR
+    + GIT_READ
+    + GIT_COMMIT
+    + INSTALL
+    + TESTS
+    + START_APP,
+    "devops": READ + WRITE + MKDIR + GIT_READ + GIT_COMMIT + INSTALL + TESTS,
+    "security": READ
+    + ["Write"]
+    + GIT_READ
+    + TESTS
+    + ["Bash(npm audit:*)", "Bash(pip-audit:*)"],
+    "data_analyst": READ
+    + WRITE
+    + MKDIR
+    + ["Bash(python3:*)", "Bash(python:*)", "Bash(uv run:*)"],
 }
 # What each role's defaults are, in words (Settings › AI › Safety, the permissions guide)
 ROLE_WORDS: dict[str, str] = {
@@ -139,6 +158,10 @@ ROLE_WORDS: dict[str, str] = {
     "reviewer": "reads the diff and runs the tests",
     "qa": "installs, runs the tests, starts the app, drives the browser, saves evidence",
     "user_tester": "installs, starts the app and drives the browser, saves screenshots",
+    "tech_writer": "edits docs, runs the commands it documents, commits on its branch",
+    "devops": "edits CI and build config, installs, runs the build and tests, commits on its branch",
+    "security": "reads the diff, writes and runs proof tests it does not commit, audits dependencies",
+    "data_analyst": "writes and runs analysis scripts with the machine's Python",
 }
 # Never added by a role, a preset or a remembered answer: these stay with a person every time
 NEVER = re.compile(
@@ -152,7 +175,7 @@ NEVER = re.compile(
 
 WEB_SEARCH = ("off", "roles", "on")
 # The roles that look things up as part of their job: references, a library's docs, an error message
-WEB_SEARCH_ROLES = ("pm", "ba", "designer", "dev")
+WEB_SEARCH_ROLES = ("pm", "ba", "designer", "dev", "devops", "security")
 BYPASS = ("never", "member", "always")
 
 PRESETS: dict[str, dict] = {

@@ -103,7 +103,8 @@ def _member_row(d: dict) -> dict:
     return {
         "id": d["id"],
         "name": d["name"],
-        # what to hand it: pm, ba, designer, dev, qa, user_tester, reviewer, triage (its role pack), or None
+        # what to hand it: pm, ba, designer, dev, qa, user_tester, reviewer, triage, tech_writer, devops, security,
+        # data_analyst (its role pack), or None
         "role": (d.get("config") or {}).get("role")
         or ((d.get("config") or {}).get("pack") or {}).get("key"),
         "provider": d["provider"],

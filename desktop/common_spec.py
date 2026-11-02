@@ -58,6 +58,8 @@ def get_base_analysis_args(entry_point, app_name):
         # the slides skill's guide.md, themes, scripts and examples, read when the shared skills are built at import
         # (services/slides_skill); without them both programs exit on start
         (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'slides_skill'), os.path.join('services', 'slides_skill')),
+        # the BA's document templates, which its role-ba skill and the Docs page templates read (services/ba_templates)
+        (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'ba_templates'), os.path.join('services', 'ba_templates')),
     ]
 
     hidden_imports = (

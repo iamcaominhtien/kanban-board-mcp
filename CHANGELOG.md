@@ -8,6 +8,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.28.0] - 2026-11-03
+
+Each AI role works like a good professional in that role, and the roles work together (#273). Measured with live sonnet runs, before and after, on the same small task per role.
+
+### Added
+- **A skill per role.** The board's own plugin has one skill for each ready-made role: `role-triage`, `role-pm` (plan a Story, split it by outcome, rule on a disagreement, when to ask a person), `role-ba` (criteria a tester can check, the edges, a spec page on Docs), `role-dev` (reproduce, a test that fails on an assertion, the same command green, small commits, what to log, the note for the reviewer), `role-reviewer` (what to look for and in what order, must-fix or suggestion, one point per comment, the verdict), `role-qa` (QA and QC: test cases from the criteria, every run with its proof, a failure anyone can repeat), `role-user-tester` (one real person, five seconds, the task, a mistake, the screenshots in the comment). The Designer's stays the canvas design guide. Only a member of that role gets its skill, its prompt says to open it first, and a project switches it off like any board skill. Agents outside Claude Code read the same text with `docs_read(action='role_guide', query=<role>)`.
+- **The BA picks its document like a developer picks an architecture**, from a table in its skill: criteria only for small clear work, a **bugfix spec** (current, expected, what must not change), a **feature spec** (stories by priority each testable on its own, Given/When/Then, edge cases, numbered requirements, `[NEEDS CLARIFICATION]`, measurable success criteria; required whenever design, build or test work from it), a **decision table**, a **use case**, an **example map**, a **one-pager**, a **data dictionary** and **quality requirements**, plus a checklist before handing in. Researched from BABOK, GitHub Spec Kit, Kiro, EARS, Cockburn, example mapping and Shape Up, and from studies of AI-written requirements (well-formed, but failing quality checks more often and running long). The templates ride beside the `role-ba` skill and are page templates in Docs › New page too.
+- **Four more ready-made roles**, each with a persona, a skill, its tools and limits: **Technical writer** (docs for one reader and one task, every step tried, committed on the ticket's branch), **DevOps** (CI and environments: pinned, least privilege, proven by running the commands; deploying or spending is a person's call), **Security reviewer** (follows untrusted input, proves each finding with a local test it does not commit, rates it, `VERDICT:` line; never changes the code) and **Data analyst** (exact definitions, the data looked at first, a script that reruns, the answer with numbers, one chart per finding and the caveats). The repository scan may propose them when a project calls for them.
+- **How the roles work together**: a shared skill, `working-together` (who does what, read the handoff first, never redo another role's work, ask the PM rather than guess, what to do when blocked or when you disagree), and a core rule in every run's prompt. A run's list of teammates now names each one's role, so it knows whom to ask.
+
+### Changed
+- Role packs are at version 11: every persona points to its role's skill.
+- A workflow step no longer says a decision goes to "the coordinator with ai_run(ask)" (that reaches the person): scope and priority go to the PM with an @mention, a person's call to `ai_run(ask)`.
+- Settings › AI: the role packs table lists twelve roles; the board's skills show which role a skill is for, and a member's page lists only its own role's skill. The role chips, the template editor and the own-plugins grid know the new roles.
+
+### Fixed
+- **A real red-then-green run was marked unproven** when the red run's output was piped or redirected (`pytest -q t.py 2>&1 | tail -16`) and the green one was not: the board now compares the test commands without the pipe and the redirections.
+
 ## [3.27.1] - 2026-11-03
 
 The desktop app opens again: 3.27.0 showed "Can't start the local server" on every start.

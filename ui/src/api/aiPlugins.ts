@@ -83,10 +83,12 @@ export function useOwnPlugins(projectId: string) {
   });
 }
 
-/** One of the board's own skills (the design guide, permissions, the shared skills for every role). */
+/** One of the board's own skills (the design guide, permissions, the shared skills, a role's own skill). */
 export interface BoardSkill {
   name: string;
   description: string;
+  /** The role a role skill is for (issue #273); null or absent: every role. */
+  role?: string | null;
 }
 
 /** The board's own skills; whether each is on lives in the project's ops (`boardSkills`). */

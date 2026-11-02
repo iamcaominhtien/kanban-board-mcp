@@ -340,6 +340,11 @@ _ROLE_NAMES = {
     "qa": "QA",
     "reviewer": "Reviewer",
     "user_tester": "User tester",
+    # the roles of issue #273: only when the repository calls for them (the light model picks them)
+    "tech_writer": "Technical writer",
+    "devops": "DevOps",
+    "security": "Security reviewer",
+    "data_analyst": "Data analyst",
 }
 
 
@@ -705,8 +710,10 @@ async def run_scan(
 REFINE_PROMPT = (
     "You help set up an AI team for a code repository. From these facts, choose the roles and plugins that fit. "
     'Reply with JSON only: {"roles": [role keys], "plugins": [plugin keys], "why": "one short sentence"}.\n'
-    "Roles you may use: triage, pm, ba, designer, dev, qa, reviewer, user_tester. Keep dev. "
-    "designer and user_tester only when the repository has a web UI.\n"
+    "Roles you may use: triage, pm, ba, designer, dev, qa, reviewer, user_tester, tech_writer, devops, security, "
+    "data_analyst. Keep dev. designer and user_tester only when the repository has a web UI; tech_writer when it is a "
+    "library, an API or has user docs; devops when it has CI, containers or deploy config; security when it handles "
+    "logins, payments or personal data; data_analyst when it is mostly data or notebooks.\n"
     "Plugins you may use (key: what for): "
 )
 

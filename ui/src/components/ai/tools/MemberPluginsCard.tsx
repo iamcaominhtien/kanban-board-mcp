@@ -77,7 +77,7 @@ export function MemberPluginsCard({ memberId, projectId }: { memberId: string; p
   return shell(
     <>
       <div className="ai-hint">{role ? `Role: ${roleName(role)}.` : 'This member has no role pack.'}</div>
-      <BoardSkillsRows projectId={projectId} memberId={memberId} />
+      <BoardSkillsRows projectId={projectId} memberId={memberId} role={role} />
       {list.length === 0 && <div className="ai-hint">No plugin is installed on this project.</div>}
       {list.map((p) => {
         const eff = effective(p, memberId, role);

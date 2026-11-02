@@ -1786,8 +1786,19 @@ async def _build_prompt_base(
         return await api_prompt.build(
             session, run, profile, member, config, resume_note=resume_note
         )
+    from . import packs, plugins as ai_plugins
+
+    # each teammate with its role, so a run knows whom to ask (the PM) and whom to hand on to (issue #273)
+    roles = {
+        p.id: ai_plugins.role_of(p)
+        for p in (
+            await session.exec(
+                select(AiMember).where(AiMember.project_id == run.project_id)
+            )
+        ).all()
+    }
     team = sorted(
-        m.name
+        m.name + (f" ({packs.role_name(roles[m.id])})" if roles.get(m.id) else "")
         for m in (
             await session.exec(
                 select(Member).where(
@@ -2384,9 +2395,13 @@ async def _execute_cli_held(
             plugin_dirs += await ai_plugins.dirs_for(session, profile)
             from . import board_skills
 
-            # the board's own skills (the canvas design guide), too long for the MCP instructions
+            # the board's own skills (the shared ones and this member's role skill), too long for the MCP instructions
             plugin_dirs.append(
-                board_skills.plugin_dir(board_skills.enabled_for(cfg_ops, profile.id))
+                board_skills.plugin_dir(
+                    board_skills.enabled_for(
+                        cfg_ops, profile.id, ai_plugins.role_of(profile)
+                    )
+                )
             )
             project_safe = (await get_settings(session, run.project_id)).safe_mode
             if cfg_ops.get("own_claude", True) and not (

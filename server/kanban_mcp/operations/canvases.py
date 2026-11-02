@@ -152,6 +152,39 @@ async def shared_guides() -> dict:
     return out
 
 
+async def role_guide(query: str | None = None) -> dict:
+    """One role's guide (in Claude Code it is that role's skill, issue #273): {role, skill, guide}; without `query`,
+    which roles have one: {roles: {role: what it covers}}."""
+    from services import role_skills
+
+    if not (query or "").strip():
+        return {
+            "roles": {r: desc for r, _n, desc, _b in role_skills.ROLE_SKILLS},
+            "designer": "docs_read(action='design_guide')",
+        }
+    role = query.strip().lower().replace(" ", "_").replace("-", "_")
+    if role == "designer":
+        return {
+            "role": "designer",
+            "skill": "canvas-design",
+            "guide": "The Designer's guide is the design guide: docs_read(action='design_guide').",
+        }
+    text = role_skills.guide(role)
+    if text is None:
+        raise ValueError(
+            f"No guide for the role {query!r}. Roles: "
+            + ", ".join(r for r, _n, _d, _b in role_skills.ROLE_SKILLS)
+            + ", designer."
+        )
+    out = {"role": role, "skill": role_skills.SKILL_OF_ROLE[role], "guide": text}
+    if out["skill"] in role_skills.extra_files():
+        from services.ai import board_skills
+
+        # the templates the guide refers to are files: say where they are on this machine
+        out["folder"] = board_skills.skill_dir(out["skill"])
+    return out
+
+
 async def permissions_guide() -> dict:
     """What an AI may do on the board, what needs a person and what to do when refused, and (inside a run) what the
     calling AI may do right now (in Claude Code it is also the board-permissions skill)."""
