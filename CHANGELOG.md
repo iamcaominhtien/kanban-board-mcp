@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.25.2] - 2026-11-02
+
+### Fixed
+- **A Bypass permissions run's first step no longer says "(web off)" when it may use the web.** The note was fixed text, so a run on a project with web search on showed "web off" and then made about twenty WebSearch calls. It is now read from the deny rules the CLI is given ("web search on, web fetch on", or "off" or "limited" where a rule stops it), and opencode's says what its config does with web fetch.
+
 ## [3.25.0] - 2026-11-02
 
 ### Added

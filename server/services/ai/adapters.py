@@ -534,11 +534,10 @@ class OpencodeAdapter(Adapter):
             args += ["--variant", spec.effort]
         args += _safe_flags(spec.extra_flags)
         args += ["--", spec.prompt]
-        config: dict = {
-            "permission": opencode_permissions(
-                spec.allowed, spec.denied, spec.read_only, spec.bypass
-            )
-        }
+        permission = opencode_permissions(
+            spec.allowed, spec.denied, spec.read_only, spec.bypass
+        )
+        config: dict = {"permission": permission}
         if spec.mcp_url:
             config["mcp"] = {
                 "kanban": {
@@ -555,7 +554,8 @@ class OpencodeAdapter(Adapter):
                 "opencode: a question, so file edits and commands are denied"
                 if spec.read_only
                 else (
-                    "Bypass permissions: opencode runs any command and edit except what a Deny rule stops (web off)"
+                    "Bypass permissions: opencode runs any command and edit except what a Deny rule stops "
+                    f"(web fetch {'off' if permission['webfetch'] == 'deny' else 'on'})"
                     if spec.bypass
                     else "opencode: tools are held to the Allow and Deny rules (everything else is denied)"
                 )

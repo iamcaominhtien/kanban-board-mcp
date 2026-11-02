@@ -1986,6 +1986,20 @@ def cli_tool_rules(
     return list(dict.fromkeys(allowed)), denied
 
 
+def bypass_web_note(denied: list[str]) -> str:
+    """The web part of a Bypass permissions run's first step, read from the deny rules the CLI is given: Bypass runs
+    every tool a deny rule does not stop, so a web tool is off only when a rule says so ("limited" for a rule on some
+    pages or queries)."""
+    stopped = {
+        d.split("(")[0]: d == d.split("(")[0] for d in denied if d.startswith("Web")
+    }
+
+    def state(tool: str) -> str:
+        return "on" if tool not in stopped else "off" if stopped[tool] else "limited"
+
+    return f"web search {state('WebSearch')}, web fetch {state('WebFetch')}"
+
+
 def mcp_config(
     config: dict, token: str, folder: str | None = None, config_dir: str | None = None
 ) -> dict:
@@ -2673,7 +2687,8 @@ async def _execute_cli_held(
                 [
                     {
                         "kind": "start",
-                        "text": "Bypass permissions: the CLI runs any tool except what a Deny rule stops (web off)",
+                        "text": "Bypass permissions: the CLI runs any tool except what a Deny rule stops "
+                        f"({bypass_web_note(denied)})",
                     }
                 ]
                 if bypass and not launch
