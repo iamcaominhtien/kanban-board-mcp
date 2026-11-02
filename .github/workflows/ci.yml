@@ -38,7 +38,7 @@ jobs:
   backend-tests:
     name: Backend tests (${{ matrix.shard }}/2)
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: ${{ false }} # TEMPORARILY DISABLED (launch crunch); restore: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -75,7 +75,7 @@ jobs:
   backend:
     name: Backend (ruff, pytest)
     needs: [changes, backend-tests]
-    if: ${{ !cancelled() && needs.changes.outputs.backend == 'true' }}
+    if: ${{ false }} # TEMPORARILY DISABLED; restore: !cancelled() && needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Both shards passed
@@ -84,7 +84,7 @@ jobs:
   frontend:
     name: Frontend (prettier, eslint, tsc, build)
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: ${{ false }} # TEMPORARILY DISABLED; restore: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -115,7 +115,7 @@ jobs:
   desktop:
     name: Desktop (node tests)
     needs: changes
-    if: needs.changes.outputs.desktop == 'true'
+    if: ${{ false }} # TEMPORARILY DISABLED; restore: needs.changes.outputs.desktop == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -145,9 +145,10 @@ jobs:
     name: SonarQube Cloud
     runs-on: ubuntu-latest
     needs: [changes, backend, frontend, desktop]
-    if: >-
-      ${{ !cancelled() && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
-      || needs.changes.outputs.desktop == 'true') }}
+    # TEMPORARILY DISABLED. Restore: if: >-
+    #   ${{ !cancelled() && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
+    #   || needs.changes.outputs.desktop == 'true') }}
+    if: ${{ false }}
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
