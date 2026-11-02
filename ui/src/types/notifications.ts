@@ -73,6 +73,8 @@ export interface NotificationRow {
   doneAt?: string | null;
   doneText: string | null;
   doneBy?: string | null;
+  /** The row is a reminder: it stayed unanswered for the time set in Settings and came back once more. */
+  reminded?: boolean;
   gone: boolean;
   goneReason: string | null;
   snoozed: boolean;
@@ -115,6 +117,8 @@ export interface NotificationFeed {
   quiet?: boolean;
   dnd?: boolean;
   sound?: boolean;
+  /** Which of the sounds the person picked (chime, drop, bell). */
+  soundName?: string;
 }
 
 export type NotificationFilter = 'all' | 'unread' | 'needs' | 'snoozed' | 'done' | 'cleared';
