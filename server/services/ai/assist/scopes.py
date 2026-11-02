@@ -61,6 +61,20 @@ CORE_OPS = (
     "schedule_resume",
     "schedule_run",
     "schedule_delete",
+    # setting up the AI team (team_config.py)
+    "ai_from_pack",
+    "ai_role",
+    "ai_edit",
+    "ai_pack_update",
+    "plugin_install",
+    "plugin_switch",
+    "board_skill",
+    "mcp_add",
+    "mcp_remove",
+    "hook_add",
+    "hook_remove",
+    "skill_add",
+    "skill_remove",
 )
 
 

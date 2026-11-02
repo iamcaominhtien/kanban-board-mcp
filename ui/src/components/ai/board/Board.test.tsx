@@ -62,6 +62,32 @@ describe('BoardAiSection', () => {
     expect(screen.queryByTestId('tier-undo-comment')).toBeNull();
   });
 
+  it('turns on the Board AI managing the AI team; its actions are listed there, not in the tiers', async () => {
+    const team = {
+      ...view,
+      managesTeam: false,
+      tiers: [...view.tiers, { op: 'hook_add', tier: 'ask', default: 'ask', locked: false, team: true }],
+    };
+    http.get.mockReturnValue(ok(team));
+    http.patch.mockReturnValue(ok({ ...team, managesTeam: true }));
+    render(wrap(<BoardAiSection projectId="p1" />));
+    expect((await screen.findByTestId('team-op-hook_add')).textContent).toBe(
+      'Add a hook to an AI member (runs a command)',
+    );
+    expect(screen.queryByTestId('tier-ask-hook_add')).toBeNull();
+    expect(screen.queryByTestId('tier-row-hook_add')).toBeNull();
+    expect(screen.queryByTestId('board-ai-team-warning')).toBeNull();
+    fireEvent.click(screen.getByTestId('board-ai-manages-team'));
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/board-ai', { managesTeam: true }));
+    await screen.findByTestId('board-ai-team-warning');
+  });
+
+  it('says a team change in the words the server gave it, with the command it runs', () => {
+    const label = 'Add a Stop hook to Dev: runs echo done';
+    expect(appliedWords({ op: 'hook_add', label })).toBe(label);
+    expect(proposedWords({ op: 'hook_add', ticket: '', label })).toBe(label);
+  });
+
   it('says why a change was refused', async () => {
     http.get.mockReturnValue(ok(view));
     http.patch.mockRejectedValue({ response: { data: { detail: 'Done stays in the last tier.' } } });
