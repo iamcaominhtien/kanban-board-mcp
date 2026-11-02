@@ -1055,3 +1055,35 @@ async def test_the_loop_starts_reconciles_and_stops(env):
     finally:
         await centre.stop()
     assert centre._task is None
+
+
+async def test_whoever_follows_a_ticket_hears_of_its_schedule_events(env):
+    c, pid, m, tid = await _setup(env)
+    # a schedule made by someone else tells only its own people ...
+    centre.enqueue(
+        "schedule",
+        project_id=pid,
+        names=["Hoa Mai"],
+        title=f"{tid} scheduled run passed",
+        ticket_id=tid,
+        follow_ticket=tid,
+    )
+    await centre.flush_pending()
+    assert (await _panel(c, "updates"))["items"] == []
+    # ... and the bell on the ticket adds whoever follows it (design: "runs and schedule events of this ticket")
+    r = await c.put(
+        "/notifications/follow",
+        json={"scope": "ticket", "scope_id": tid, "level": "follow"},
+    )
+    assert r.json()["level"] == "follow"
+    centre.enqueue(
+        "schedule_started",
+        project_id=pid,
+        names=["Hoa Mai"],
+        title=f"{tid} run started by schedule",
+        ticket_id=tid,
+        follow_ticket=tid,
+    )
+    await centre.flush_pending()
+    titles = [x["title"] for x in (await _panel(c, "updates"))["items"]]
+    assert titles == [f"{tid} run started by schedule"]

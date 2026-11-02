@@ -429,7 +429,10 @@ async def _claude_cli_run(
     spec = PROVIDERS.get(profile.provider) or {}
     path, _ = cli.find_cli(spec.get("binary") or "claude", profile.cli_path)
     if not path:
-        raise LlmError("runner", "The Claude Code CLI was not found on this computer.")
+        raise LlmError(
+            "runner",
+            cli.missing(spec.get("binary") or "claude", profile.cli_path) + ".",
+        )
     model = profile.model or spec.get("default_model")
     if chat_tools is not None:
         # the member's configured tools, built the way a run of the member builds them
