@@ -62,7 +62,7 @@ describe('DiagramEditor without a draw.io editor', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Use the public editor' }));
     await waitFor(() => expect(api.saveDiagramSettings).toHaveBeenCalledWith({ mode: 'public', url: '' }));
     await waitFor(() => expect(screen.queryByText('No draw.io editor is running')).toBeNull());
-    expect(screen.getByTitle('draw.io editor').getAttribute('src')).toContain('embed.diagrams.net');
+    expect(new URL(screen.getByTitle('draw.io editor').getAttribute('src') ?? '').host).toBe('embed.diagrams.net');
     Object.assign(api.settings, { mode: 'self-hosted', effectiveUrl: 'http://localhost:8080' });
   });
 

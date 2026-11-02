@@ -339,7 +339,7 @@ def shipped_editor(tmp_path, monkeypatch):
     """A draw.io editor shipped with the app (desktop/scripts/fetch-drawio.sh), as a tiny fake."""
     folder = tmp_path / "drawio"
     (folder / "js").mkdir(parents=True)
-    (folder / "index.html").write_text("<!doctype html><title>draw.io</title>")
+    (folder / "index.html").write_text("<!doctype html><title>Shipped editor</title>")
     (folder / "js" / "app.min.js").write_text("var App={};")
     (folder / "VERSION").write_text("32.6.9\n")
     (tmp_path / "secret.txt").write_text("not the editor's")
@@ -360,7 +360,7 @@ async def test_the_shipped_editor_is_served_and_is_the_default(c, pid, shipped_e
         "reachable": True,
     }
     page = await c.get("/drawio/?embed=1&proto=json")
-    assert page.status_code == 200 and "draw.io" in page.text
+    assert page.status_code == 200 and "<title>Shipped editor</title>" in page.text
     js = await c.get("/drawio/js/app.min.js")
     assert js.status_code == 200 and js.headers["content-type"].startswith(
         "text/javascript"
