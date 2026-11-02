@@ -366,10 +366,8 @@ async def post_member_from_pack(
 
 
 def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
-    """The pack's plugins on the project, in the background (a clone takes a while; the member works without them
-    until they land)."""
+    """The pack's plugins on the project, in the background (a clone takes a while); a run waits for them to land."""
     import database
-    from services.ai import manager as ai_manager
 
     async def go() -> None:
         async with database.async_session() as session:
@@ -379,7 +377,8 @@ def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
                 "Pack plugins not installed on %s: %s", project_id, out["failed"]
             )
 
-    ai_manager.later(go())
+    # remembered until it ends: a run of the new member waits for it (services/ai/plugins.settled)
+    svc_plugins.installing(project_id, go())
 
 
 @router.get("/ai/members/{member_id}/pack")

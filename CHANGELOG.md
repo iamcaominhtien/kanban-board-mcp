@@ -21,6 +21,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - The Designer pack (v4) no longer installs Anthropic's `canvas-design` skill (poster art as a PNG, whose name hid the board's own guide) or Figma (it signs in through a browser, which a run cannot do); both stay in the catalogue. Playwright is suggested for the Designer.
 
 ### Fixed
+- **The first run of a member made from a pack started without the pack's plugins.** They install in the background when the member is made, and the run listed its plugin folders before they landed, so a new Designer never had taste-skill or the other design skills. A run now waits for the project's installs still running (up to three minutes).
+- A plugin from a repository with no manifest (a bare `skills/` folder) is named after the repository (`make-interfaces-feel-better`, `emilkowalski-skills`); it was named after the board's staging folder, so a second one was refused as already installed.
 - A repository that is a single skill (one `SKILL.md` at its root) installs under the name in its `SKILL.md`; it was named after the folder it was cloned into, so two such skills clashed.
 - A plugin whose repository links one of its own files from another folder installs, with the file copied in place of the link (`ui-ux-pro-max`, the Designer's palettes and font pairings, never installed before). A link out of the repository, or a folder link into its own parents, is still refused.
 

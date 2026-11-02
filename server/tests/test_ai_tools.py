@@ -574,3 +574,39 @@ def test_a_plain_pip_library_gets_no_global_install_and_no_browser_plugins(tmp_p
         "pip install" not in s["prepare"]
     )  # it would install into the person's own Python
     assert not {"webapp-testing", "chrome-devtools", "playwright"} & set(s["plugins"])
+
+
+def test_a_repository_with_no_manifest_is_named_after_the_repository(tmp_path):
+    # a bare skills folder used to take the name of the board's staging folder ("built"), so a second one clashed
+    assert plugins.source_name(
+        "https://github.com/jakubkrehel/make-interfaces-feel-better"
+    ) == ("make-interfaces-feel-better")
+    assert (
+        plugins.source_name("https://github.com/emilkowalski/skills.git")
+        == "emilkowalski-skills"
+    )
+    bare = tmp_path / "checkout"
+    _skill(bare / "skills", "animate")
+    built = plugins.build(
+        bare, into=tmp_path / "built", name_hint="emilkowalski-skills"
+    )
+    assert (built["name"], built["skills"]) == ("emilkowalski-skills", ["animate"])
+
+
+async def test_a_run_waits_for_the_plugins_its_pack_is_still_installing():
+    import asyncio
+
+    landed = []
+
+    async def install():
+        await asyncio.sleep(0.2)
+        landed.append("taste-skill")
+
+    plugins.installing("p-settle", install())
+    # the first run of a member made a moment ago: it waits for the install before listing its plugin folders
+    assert await plugins.settled("p-settle") is True
+    assert landed == ["taste-skill"]
+    # an install that takes too long does not hold the run forever
+    plugins.installing("p-slow", asyncio.sleep(5))
+    assert await plugins.settled("p-slow", timeout=0.05) is False
+    assert await plugins.settled("p-none") is True

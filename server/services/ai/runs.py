@@ -2331,6 +2331,8 @@ async def _execute_cli_held(
         if profile.provider == "claude-code" and not (agy or adapter):
             from . import plugins as ai_plugins
 
+            # a member made from a pack a moment ago: its plugins may still be installing
+            await ai_plugins.settled(profile.project_id)
             plugin_dirs += await ai_plugins.dirs_for(session, profile)
             from . import board_skills
 

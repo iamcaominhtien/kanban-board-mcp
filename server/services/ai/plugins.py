@@ -17,6 +17,7 @@ Who gets it: the project default (on or off), the roles it is suggested for, and
 """
 
 import asyncio
+import logging
 import json
 import os
 import re
@@ -32,6 +33,8 @@ import database
 from models import AiMember, AiPlugin, AiSkillUse
 
 from .store import loads
+
+logger = logging.getLogger(__name__)
 
 # the most a plugin may copy into the board's cache (checked before anything is copied)
 MAX_PLUGIN_BYTES = 50 * 1024 * 1024
@@ -300,6 +303,46 @@ class PluginError(RuntimeError):
     """A plugin could not be read, installed or updated."""
 
 
+# Installs still running per project (a pack's plugins install in the background when a member is made from it): a run
+# waits for them before it lists its plugin folders, or the first run of a new member would start without them.
+_PENDING: dict[str, set[asyncio.Task]] = {}
+SETTLE_SECONDS = 180
+
+
+def installing(project_id: str, coro) -> None:
+    """Run an install in the background and remember it until it ends; its failure is logged, never raised."""
+
+    async def go() -> None:
+        try:
+            await coro
+        except Exception:  # noqa: BLE001 - a plugin that fails to install never breaks the member it came with
+            logger.exception("Installing plugins on %s failed", project_id)
+
+    try:
+        task = asyncio.get_running_loop().create_task(go())
+    except RuntimeError:  # no loop (a sync caller in a test): nothing to schedule
+        coro.close()
+        return
+    tasks = _PENDING.setdefault(project_id, set())
+    tasks.add(task)
+    task.add_done_callback(tasks.discard)
+
+
+async def settled(project_id: str, timeout: float = SETTLE_SECONDS) -> bool:
+    """Wait for the project's running installs (at most `timeout` seconds). False when some were still running."""
+    tasks = [t for t in _PENDING.get(project_id, set()) if not t.done()]
+    if not tasks:
+        return True
+    _done, still = await asyncio.wait(tasks, timeout=timeout)
+    if still:
+        logger.warning(
+            "A run on %s started while %d plugin installs were still running",
+            project_id,
+            len(still),
+        )
+    return not still
+
+
 def _now() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -358,6 +401,19 @@ def _manifest(folder: Path, name: str) -> dict:
         )
     except (OSError, ValueError):
         return {}
+
+
+def source_name(source: str) -> str:
+    """A plugin's name from where it came from, for a repository with no manifest: the repository's name, with its
+    owner when the name alone says nothing ("emilkowalski-skills")."""
+    parts = [p for p in re.split(r"[/:]", source.rstrip("/")) if p]
+    repo = re.sub(r"\.git$", "", parts[-1]) if parts else "plugin"
+    if (
+        repo.lower() in ("skills", "plugin", "plugins", "claude-skills", "agent-skills")
+        and len(parts) > 1
+    ):
+        repo = f"{parts[-2]}-{repo}"
+    return repo
 
 
 def _skill_name(folder: Path) -> str:
@@ -439,6 +495,7 @@ def build(
     plugin: str | None = None,
     skills: list[str] | None = None,
     into: Path,
+    name_hint: str | None = None,
 ) -> dict:
     """Make an installable plugin folder `into` from a checkout (see the layouts in the module doc).
 
@@ -542,7 +599,9 @@ def build(
             )
     name = (
         re.sub(
-            r"[^a-z0-9-]+", "-", (meta.get("name") or plugin or into.name).lower()
+            r"[^a-z0-9-]+",
+            "-",
+            (meta.get("name") or plugin or name_hint or into.name).lower(),
         ).strip("-")
         or "plugin"
     )
@@ -656,7 +715,12 @@ async def install(
         )
         staging_path = Path(tmp) / "built"
         info = await asyncio.to_thread(
-            build, checkout, plugin=plugin, skills=skills, into=staging_path
+            build,
+            checkout,
+            plugin=plugin,
+            skills=skills,
+            into=staging_path,
+            name_hint=source_name(source),
         )
         if info.get("choices"):
             raise PluginError("This is a marketplace: pick which plugin to install.")
