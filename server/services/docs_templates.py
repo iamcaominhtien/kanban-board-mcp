@@ -1,5 +1,7 @@
 """Static markdown starters for new Docs pages."""
 
+from services import ba_templates
+
 TEMPLATES: dict[str, dict[str, str]] = {
     "blank": {
         "name": "Blank",
@@ -47,4 +49,6 @@ TEMPLATES: dict[str, dict[str, str]] = {
             "## Rollout\n\n- [ ] Ship behind a flag\n- [ ] Announce\n"
         ),
     },
+    # the BA's documents (issue #273): the same files its skill carries
+    **ba_templates.docs_templates(),
 }

@@ -159,7 +159,13 @@ async def role_guide(query: str | None = None) -> dict:
             + ", ".join(r for r, _n, _d, _b in role_skills.ROLE_SKILLS)
             + ", designer."
         )
-    return {"role": role, "skill": role_skills.SKILL_OF_ROLE[role], "guide": text}
+    out = {"role": role, "skill": role_skills.SKILL_OF_ROLE[role], "guide": text}
+    if out["skill"] in role_skills.extra_files():
+        from services.ai import board_skills
+
+        # the templates the guide refers to are files: say where they are on this machine
+        out["folder"] = board_skills.skill_dir(out["skill"])
+    return out
 
 
 async def permissions_guide() -> dict:

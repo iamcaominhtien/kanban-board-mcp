@@ -55,6 +55,8 @@ def get_base_analysis_args(entry_point, app_name):
         (os.path.join(_WORKSPACE_ROOT, 'server', 'alembic.ini'), '.'),
         # the design guide's exemplar boards, which the board's canvas-design skill carries (services/canvas_design.py)
         (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'design_examples'), os.path.join('services', 'design_examples')),
+        # the BA's document templates, which its role-ba skill and the Docs page templates read (services/ba_templates)
+        (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'ba_templates'), os.path.join('services', 'ba_templates')),
     ]
 
     hidden_imports = (

@@ -96,7 +96,12 @@ def test_the_role_skills_carry_what_the_runs_before_them_missed():
 
 def test_the_examples_do_not_give_away_the_live_tasks():
     """The before/after runs use a water-intake app (Giọt): an example from it would teach the answer, not the craft."""
-    text = "\n".join(b for _r, _n, _d, b in role_skills.ROLE_SKILLS).lower()
+    from services import ba_templates
+
+    text = "\n".join(
+        [b for _r, _n, _d, b in role_skills.ROLE_SKILLS]
+        + [d.decode("utf-8") for d in ba_templates.files().values()]
+    ).lower()
     for word in (
         "giot",
         "giọt",
@@ -171,7 +176,10 @@ def test_an_outside_agent_reads_the_same_text_as_the_role_skill():
     root = Path(board_skills.plugin_dir())
     for role, name, _d, body in role_skills.ROLE_SKILLS:
         got = asyncio.run(ops.role_guide(role))
+        folder = got.pop("folder", None)
         assert got == {"role": role, "skill": name, "guide": body}
+        # a guide whose skill carries files (the BA's templates) says where they are on this machine
+        assert (folder is not None) == (name in role_skills.extra_files())
         skill = (root / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
         assert skill.startswith(f"---\nname: {name}\n") and skill.endswith(body)
     index = asyncio.run(ops.role_guide())
@@ -302,3 +310,72 @@ def test_a_red_run_piped_into_tail_still_counts_as_the_same_test_command():
     assert _test_command("pytest -q tests/a.py") != _test_command(
         "pytest -q tests/b.py"
     )
+
+
+def test_the_ba_picks_a_document_from_templates_it_carries():
+    """Researched with the owner: one kind of document per situation, as a developer picks an architecture."""
+    from services import ba_templates
+
+    guide = role_skills.guide("ba")
+    for key in ba_templates.DOCS:
+        assert f"`{key}.md`" in guide, key
+    assert (
+        "`templates/quality-checklist.md`" in guide
+        and "examples/feature-spec-example.md" in guide
+    )
+    # the rule that left two live BAs without a spec page is no longer a judgement call
+    assert (
+        "however simple its flow looks" in guide
+        and "more than about five criteria" not in guide
+    )
+    for needle in (
+        "When <event>",
+        "While <state>",
+        "If <unwanted condition>, then",
+        "[NEEDS CLARIFICATION",
+    ):
+        assert needle in guide, needle
+    # the files ride beside the skill
+    root = (
+        Path(board_skills.plugin_dir(["role-ba"])) / "skills" / "role-ba" / "templates"
+    )
+    for rel in ba_templates.files():
+        assert (root.parent / rel).is_file(), rel
+    feature = (root / "feature-spec.md").read_text(encoding="utf-8")
+    for needle in (
+        "on its own",
+        "Given",
+        "FR-001",
+        "Edge cases",
+        "Success criteria",
+        "NEEDS CLARIFICATION",
+    ):
+        assert needle.lower() in feature.lower(), needle
+    bug = (root / "bugfix-spec.md").read_text(encoding="utf-8")
+    assert "## Current behaviour" in bug and "## Unchanged behaviour" in bug
+
+
+async def test_a_person_starts_a_docs_page_from_the_bas_templates(env):
+    from services import ba_templates
+    from tests.test_ai import _project
+
+    c = env["c"]
+    tpls = {t["id"]: t for t in (await c.get("/docs/templates")).json()}
+    for key, (name, _desc) in ba_templates.DOCS.items():
+        assert tpls[key]["name"] == name and tpls[key]["markdown"] == ba_templates.text(
+            key
+        )
+    assert "quality-checklist" not in tpls  # a check for the BA, not a page
+    pid, _ = await _project(c)
+    r = await c.post(
+        f"/projects/{pid}/docs/pages",
+        json={"title": "Bugfix: x", "template": "bugfix-spec"},
+    )
+    assert r.status_code in (200, 201), r.text
+
+
+def test_the_desktop_app_bundles_the_templates():
+    spec = (
+        Path(__file__).resolve().parents[2] / "desktop" / "common_spec.py"
+    ).read_text(encoding="utf-8")
+    assert "'services', 'ba_templates'" in spec

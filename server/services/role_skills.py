@@ -110,9 +110,10 @@ has (access, an account, a contact). One question, options, your recommendation 
 BA = (
     "ba",
     "role-ba",
-    "How the BA works on this board: acceptance criteria a tester can check, the edge and error cases, and a spec page "
-    "on Docs when a feature has flows and states. Use at the start of every BA run, and whenever you write criteria or "
-    "a spec.",
+    "How the BA works on this board: acceptance criteria a tester can check, the edge and error cases, and which "
+    "document a piece of work needs (a feature spec, a bugfix spec, a decision table, a use case, an example map, a "
+    "one-pager), with a template for each and a checklist before handing in. Use at the start of every BA run, and "
+    "whenever you write criteria or a spec.",
     r"""# BA: criteria that can be checked, specs on Docs
 
 Your criteria are the contract: the Dev builds to them, QA tests them, the reviewer judges by them. A criterion nobody
@@ -130,6 +131,10 @@ an assumption about the product you did not check is not allowed, only assumptio
 - **The test**: could QA write a pass/fail test case from it without asking you? If not, rewrite it.
 - Given / When / Then helps when there is a starting state: "Given a cart of 3 items worth 480,000 đ, when I apply
   the code SALE10, then the total shows 432,000 đ and the code is listed under the total."
+- For a rule of the system, one of the five EARS sentence patterns keeps it checkable: "The system shall …"
+  (always), "When <event>, …" (a trigger), "While <state>, …" (a state), "Where <feature is on>, …" (an option),
+  "If <unwanted condition>, then …" (an error). A well-formed sentence can still say the wrong thing: check the
+  content too.
 - Write them in the project's language, as numbered items on the ticket (`ticket_items item='criterion'`,
   `items=[...]`): the board ticks them, the reviewer checks them one by one.
 
@@ -143,15 +148,40 @@ first time (empty state); it fails (offline, permission refused, the server erro
 zone, daylight saving); the language or format changes (Vietnamese text, `1.250.000 đ`). Each answer that matters is a
 criterion; each one you cannot answer is a question.
 
-## A spec on Docs
-When a feature has more than about five criteria, several screens, or states that are hard to follow in words, write
-a page "Spec: <feature>" (`docs_write create`) and link it from the ticket (`[[Spec: …]]`):
-- the goal and who it is for; in and out of scope;
-- the flow (a draw.io Diagram when it branches) and the states;
-- the rules (numbers, limits, permissions);
-- the acceptance criteria, numbered as on the ticket (the ticket stays the source the board checks);
-- the copy of messages and empty states, in the project's language;
-- assumptions, open questions (each with who decides), and decisions taken (with who took them).
+## Pick the document
+As a developer picks an architecture for the job, pick the document for the work. The templates are in the
+`templates/` folder beside this skill (outside Claude Code: `docs_read(action='role_guide', query='ba')` says where),
+and as page templates on Docs. Fill the template in the project's language; drop the sections that do not apply.
+
+| The work | Write | Template |
+|---|---|---|
+| Small and clear: one behaviour, one screen, no open question | Criteria on the ticket only, no page | none |
+| A bug | A bugfix spec: steps, current, expected, **what must not change** | `bugfix-spec.md` |
+| A feature with a flow, states or several stories, or one that a Designer, Dev or QA builds from after you | A feature spec | `feature-spec.md` (a filled one: `examples/feature-spec-example.md`) |
+| Several conditions decide one outcome (prices, permissions, eligibility) | A decision table, in the spec or on its own | `decision-table.md` |
+| A task in several steps or with several actors, with ways it can go wrong | A use case | `use-case.md` |
+| A story people understand differently, or with more than 3 or 4 rules | An example map, worked out with the PM or a person | `example-map.md` |
+| An idea nobody has decided to build yet | A one-pager for the person to decide | `one-pager.md` |
+| New or changed data (fields, an import, an export) | A data dictionary, in the spec or on its own | `data-dictionary.md` |
+| Speed, privacy, access, formats or limits matter | The quality requirements that apply | `nfr-checklist.md` |
+
+The rule is not a judgement call: a feature that the next steps (design, build, test) work from gets a feature spec,
+however simple its flow looks; only work that fits in a few criteria with nothing to decide stays on the ticket. The
+documents combine: when an outcome depends on **two or more conditions** (weekday or weekend, threshold reached, an
+exception the user can set), the spec carries a decision table for it, one row per combination, because rules in
+prose with exceptions are where the Dev and QA end up reading them differently. More than about 8 criteria or 4
+rules: propose the split (to the PM) in your report. Say in your report which documents you chose and why, in one
+line.
+
+A page is called "Spec: <feature>" (or "Bugfix: …", "Rules: …"), created with `docs_write create`, linked from the
+ticket (`[[Spec: …]]`) and linking the ticket back. The criteria stay numbered on the ticket too, with the same
+numbers as the page's requirements: the board checks the ticket. Open points are marked `[NEEDS CLARIFICATION: …]`
+with who decides, never guessed.
+
+## Before you hand in
+Go through `templates/quality-checklist.md` (one behaviour each, observable, concrete, testable without you, free of
+the solution, true to the product, no contradiction, small enough, short enough) and fix what fails. AI-written
+requirements tend to read well and still fail these checks, and to run long.
 
 ## Ask or assume
 Ask the PM (an @mention with options) when the scope or the priority is unclear, and a person (`ai_run(ask)`) when it
@@ -533,6 +563,13 @@ SKILL_OF_ROLE: dict[str, str] = {
 def skill_files() -> dict[str, str]:
     """Each role skill's SKILL.md: ``{name: text}``."""
     return {name: _header(name, desc) + body for _r, name, desc, body in ROLE_SKILLS}
+
+
+def extra_files() -> dict[str, dict[str, bytes]]:
+    """The files a role skill carries beside its SKILL.md: ``{skill: {relative path: bytes}}`` (the BA's templates)."""
+    from services import ba_templates
+
+    return {"role-ba": ba_templates.files()}
 
 
 def names() -> list[str]:

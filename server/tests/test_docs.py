@@ -361,6 +361,15 @@ async def test_by_slug_and_templates(c, pid):
         "meeting-notes",
         "decision-log",
         "technical-design",
+        # the BA's documents (issue #273)
+        "feature-spec",
+        "bugfix-spec",
+        "decision-table",
+        "use-case",
+        "example-map",
+        "one-pager",
+        "data-dictionary",
+        "nfr-checklist",
     }
 
 

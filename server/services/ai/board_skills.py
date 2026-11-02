@@ -90,7 +90,7 @@ def enabled_for(ops: dict, member_id: str | None, role: str | None = None) -> li
 
 def _skill_files() -> dict[str, dict[str, bytes]]:
     """The files a skill carries beside its SKILL.md: ``{skill: {relative path: bytes}}``."""
-    from services import canvas_design, shared_skills
+    from services import canvas_design, role_skills, shared_skills
 
     return {
         "canvas-design": {
@@ -99,6 +99,8 @@ def _skill_files() -> dict[str, dict[str, bytes]]:
         },
         # the slides skill's scripts, themes and examples (issue #277)
         **shared_skills.extra_files(),
+        # the BA's document templates (issue #273)
+        **role_skills.extra_files(),
     }
 
 
