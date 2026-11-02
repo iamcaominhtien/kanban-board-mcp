@@ -38,6 +38,12 @@ how a design stops looking machine-made (read it before the first frame), and tw
 (a document, states side by side, captions). They are a work tool's UI: never take their look (green, pills, hairline
 cards, the fonts) for another product, which gets its own.
 
+**Other design skills, at the step they serve**, when installed (load them by name; where one disagrees with this guide,
+the guide wins): `taste-skill` (its app-screen rules) while settling the direction; `ui-foundations` for the type scale,
+palette and states; `emil-design-eng` or `motion-design` before any motion; `tufte-data-viz` for a chart;
+`make-interfaces-feel-better` in the critique pass. The canvas speaks the product's language: board titles, captions and
+notes are in the language of its copy.
+
 ## 0. Context before anything
 
 Design is rooted in what exists. Before the first line of code, look for the product's own screens (other frames, a
@@ -128,8 +134,10 @@ One `tokens.css` copied into every frame (or one `:root` block), and nothing in 
 A canvas that designs a product or a feature is read like a document, not browsed like a gallery of screens. (One frame
 asked for, or a change to one, stays a frame.)
 
-- **Pages, in order**: Foundations, then Components, then one page per area of screens ("Screens · Today"), set with
-  `"page"` in `frame.json`. Each page opens with a title label over its boards.
+- **Pages, in order**: Directions (a new product), Wireframes (when asked), Foundations, Components, then one page per
+  area of screens ("Screens · Today"), set with `"page"` in `frame.json`. Each page opens with a title label.
+- **Wireframes** show structure before style: every screen in greys, real labels, no colour or type choices, side by
+  side in the order of the flow, with the steps between them; a caption names what each screen must answer.
 - **Every board is a spec board**: a wide page (1440 to 1800 px, `"fit": true`) that opens with a small uppercase eyebrow
   (`FOUNDATIONS`, `SCREEN · V1`), a title and one or two sentences on what it is for and what it decides. Then lettered
   sections (`a. Type scale, spacing, radii`, `c2. The six states of a reminder card`), each with a heading saying what
@@ -148,6 +156,8 @@ asked for, or a change to one, stays a frame.)
 - **Components** next: each repeated piece (a card, a row, a banner, a sheet) with its states and variants side by side.
 - **Screens** last, built only from those foundations and components: the screen in its main state, then a section of
   its states, then the web view at its own width.
+- **Motion and illustration**, when asked: inline SVG drawn for this product, and motion shown both running (a looping
+  demo or a Play button in the board) and as key frames side by side with their timing and easing (`craft.md`).
 - A clickable prototype is extra: only when asked, as a last page of phone-size frames joined by arrows (frames share
   `localStorage`, so one can carry data to the next).
 
@@ -253,6 +263,22 @@ structure. It must survive at thumbnail size and in every state: empty, on track
 
 **Details.** One icon set, one stroke width, sized to the text beside it. Optical alignment of icons and numbers. Real
 copy with the product's voice; a state says what happened and what to do. Pressed and focus states drawn.
+
+## Motion and SVG
+
+**Motion earns its place.** Animate what helps people understand a change: something arriving, a value moving toward a
+goal, an action confirmed, a state that changed. One staged moment per screen beats many small effects. Entrances ease
+out (`cubic-bezier(0.2, 0.8, 0.2, 1)` or a spring), exits are faster than entrances, UI moves in 150 to 300 ms and a
+signature moment in 400 to 900 ms. Animate `transform` and `opacity`, never layout. Nothing loops forever on a working
+screen. Everything honours `prefers-reduced-motion` with an instant or a cross-fade version.
+
+**SVG drawn for the product.** Illustration and the signature are inline SVG made for this product, in its palette and
+one stroke weight: simple geometric construction, a few shapes, no clip-art people or blobs. An SVG that moves uses
+CSS on its parts (`stroke-dashoffset` to draw a line, `transform` on groups) so it stays light and editable.
+
+**Show motion on a canvas.** A screenshot freezes it, so a motion section has two parts: the motion running (a short
+loop or a Play button), and the key frames side by side (start, middle, end) labelled with duration and easing, so a
+developer can build it without guessing.
 
 ## Explore, then build
 

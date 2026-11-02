@@ -136,6 +136,10 @@ BUILTIN: list[dict] = [
             "design",
             "taste-skill",
             "make-interfaces-feel-better",
+            "ui-foundations",
+            "emil-design-eng",
+            "motion-design",
+            "tufte-data-viz",
             "ui-ux-pro-max",
             "frontend-design",
         ],
@@ -292,7 +296,7 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # v4: the Designer drops Anthropic's canvas-design (it shadows the board's guide) and Figma
 # v5: the Designer presents a design document (foundations, states side by side, a spec per screen)
 # v6: the Designer explores three directions, reads craft.md, critiques its own screens and gets taste-skill
-BUILTIN_VERSION = 6
+BUILTIN_VERSION = 7  # v7: the Designer gets the niche design skills (polish, UI rules, motion, charts)
 
 
 def _now() -> str:

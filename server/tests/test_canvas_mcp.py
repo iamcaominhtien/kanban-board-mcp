@@ -473,6 +473,7 @@ def test_the_design_guide_reaches_the_agent_and_the_ai_job():
     for needle in (
         "## The tells, and what to do instead",
         "## Explore, then build",
+        "## Motion and SVG",
         "## The critique pass",
     ):
         assert needle in canvas_design.CRAFT, needle
@@ -490,7 +491,7 @@ def test_the_design_guide_reaches_the_agent_and_the_ai_job():
         and "`states.png`" in canvas_design.GUIDE
     )
     # a guide, not an essay
-    assert len(canvas_design.GUIDE) < 14_000
+    assert len(canvas_design.GUIDE) < 16_000
 
 
 async def test_an_agent_lays_out_a_flow_with_notes_arrows_labels_and_fit(env, tmp_path):

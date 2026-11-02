@@ -50,6 +50,22 @@ structure. It must survive at thumbnail size and in every state: empty, on track
 **Details.** One icon set, one stroke width, sized to the text beside it. Optical alignment of icons and numbers. Real
 copy with the product's voice; a state says what happened and what to do. Pressed and focus states drawn.
 
+## Motion and SVG
+
+**Motion earns its place.** Animate what helps people understand a change: something arriving, a value moving toward a
+goal, an action confirmed, a state that changed. One staged moment per screen beats many small effects. Entrances ease
+out (`cubic-bezier(0.2, 0.8, 0.2, 1)` or a spring), exits are faster than entrances, UI moves in 150 to 300 ms and a
+signature moment in 400 to 900 ms. Animate `transform` and `opacity`, never layout. Nothing loops forever on a working
+screen. Everything honours `prefers-reduced-motion` with an instant or a cross-fade version.
+
+**SVG drawn for the product.** Illustration and the signature are inline SVG made for this product, in its palette and
+one stroke weight: simple geometric construction, a few shapes, no clip-art people or blobs. An SVG that moves uses
+CSS on its parts (`stroke-dashoffset` to draw a line, `transform` on groups) so it stays light and editable.
+
+**Show motion on a canvas.** A screenshot freezes it, so a motion section has two parts: the motion running (a short
+loop or a Play button), and the key frames side by side (start, middle, end) labelled with duration and easing, so a
+developer can build it without guessing.
+
 ## Explore, then build
 
 1. Draw the main screen three ways that differ on a named axis (the signature, light or dark, density, type), full
