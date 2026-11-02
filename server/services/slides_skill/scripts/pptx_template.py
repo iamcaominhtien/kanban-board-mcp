@@ -22,7 +22,12 @@ removes the template's own slides (unless `"keep_template_slides": true`). The o
 - `layout`: a layout's name or index. `fill` keys: a placeholder's idx (as a string), its name, or its type
   (`title`, `subtitle`, `body`, `picture`...). A placeholder left out is removed, so no "Click to add text" is left.
 - `copy`: the number (from 1) of one of the template's own slides, duplicated with everything on it (its pictures,
-  charts, tables, decoration); `replace` keys are shape names from the inventory.
+  charts, tables, decoration); `replace` keys are shape names from the inventory, or "#id" where names repeat;
+  `remove` lists shapes to drop (a sample table where your chart goes).
+- `add` (any slide): what the template has no slot for, each with a `box` [x, y, w, h] in inches:
+  `{"chart": {"type": "bar", "categories": [...], "series": {"name": [...]}, "colors": ["accent1", ...],
+  "labels": [...]}, "box": [...]}`, `{"text": "..." or [...], "size": 14, "bold": true, "color": "dk2"}`,
+  `{"image": path}`, `{"table": [[...]]}`. Colours by the theme's names keep the template's palette.
 - A value is text, a list of paragraphs (a string, or `{"text", "level", "bold"}`), `{"image": path}` (fitted into the
   box, cropped to fill it), `{"chart": {...}}` (new data for the chart, its style kept) or `{"table": [[...], ...]}`.
 Replaced text keeps the look of the text it replaces (the first run's font, size, colour).
@@ -43,7 +48,14 @@ from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.opc.package import Part
 from pptx.oxml.ns import qn
 from pptx.parts.chart import ChartPart
-from pptx.util import Emu
+from pptx.dml.color import RGBColor
+from pptx.enum.chart import (
+    XL_CHART_TYPE,
+    XL_LABEL_POSITION,
+    XL_LEGEND_POSITION,
+    XL_TICK_LABEL_POSITION,
+)
+from pptx.util import Emu, Inches, Pt
 
 _A = "http://schemas.openxmlformats.org/drawingml/2006/main"
 _R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -112,6 +124,7 @@ def inventory(path: Path) -> dict:
         shapes = []
         for sh in s.shapes:
             item = {
+                "id": sh.shape_id,
                 "name": sh.name,
                 "kind": str(sh.shape_type).split(".")[-1].split(" ")[0].lower(),
                 **_box(sh),
@@ -344,6 +357,119 @@ def _drop_slide(prs, slide) -> None:
             ids.remove(sid)
 
 
+def _shape(slide, key: str, number):
+    """A shape of a copied slide by its name, or by its id as "#12" when names repeat (the inventory gives both)."""
+    shapes = list(slide.shapes)
+    if str(key).startswith("#"):
+        found = [sh for sh in shapes if sh.shape_id == int(str(key)[1:])]
+    else:
+        found = [sh for sh in shapes if sh.name == key]
+    if not found:
+        raise SystemExit(
+            f"Slide {number} has no shape {key!r}; it has: {[f'#{sh.shape_id} {sh.name}' for sh in shapes]}"
+        )
+    return found[0]
+
+
+def _theme_rgb(prs, value: str) -> RGBColor:
+    """A colour as hex ("1F3864") or as one of the theme's names ("accent2", "dk2"): use the template's own."""
+    v = value.lstrip("#")
+    named = _theme(prs).get("colors", {})
+    if v in named and len(str(named[v])) == 6:
+        v = named[v]
+    return RGBColor.from_string(v)
+
+
+def _add(prs, slide, item: dict) -> None:
+    """Something the template has no slot for, placed in its box (inches): a native chart, a text, a picture or a
+    table, in the template's fonts and colours (name them from the inventory's theme)."""
+    x, y, w, h = (Inches(v) for v in item["box"])
+    font = item.get("font") or _theme(prs).get("fonts", {}).get("body") or "Calibri"
+    if "chart" in item:
+        spec = item["chart"]
+        kind = {
+            "bar": XL_CHART_TYPE.COLUMN_CLUSTERED,
+            "hbar": XL_CHART_TYPE.BAR_CLUSTERED,
+            "stacked": XL_CHART_TYPE.COLUMN_STACKED,
+            "line": XL_CHART_TYPE.LINE_MARKERS,
+            "pie": XL_CHART_TYPE.PIE,
+            "doughnut": XL_CHART_TYPE.DOUGHNUT,
+        }[spec.get("type", "bar")]
+        data = CategoryChartData()
+        data.categories = spec["categories"]
+        for name, values in spec["series"].items():
+            data.add_series(name, values)
+        chart = slide.shapes.add_chart(kind, x, y, w, h, data).chart
+        chart.has_title = False
+        chart.has_legend = len(spec["series"]) > 1
+        if chart.has_legend:
+            chart.legend.include_in_layout = False
+            chart.legend.position = XL_LEGEND_POSITION.TOP
+        chart.font.name, chart.font.size = font, Pt(spec.get("size", 12))
+        if kind not in (XL_CHART_TYPE.PIE, XL_CHART_TYPE.DOUGHNUT):
+            chart.value_axis.has_major_gridlines = bool(spec.get("gridlines", False))
+            chart.value_axis.visible = bool(spec.get("value_axis", False))
+            chart.category_axis.tick_label_position = XL_TICK_LABEL_POSITION.LOW
+            if kind == XL_CHART_TYPE.BAR_CLUSTERED:
+                chart.category_axis.reverse_order = True
+        colors = spec.get("colors") or []
+        labels = spec.get("labels") or {}
+        for s_i, ser in enumerate(chart.plots[0].series):
+            one = len(chart.plots[0].series) == 1
+            for i in range(len(spec["categories"])):
+                col = (
+                    colors[i]
+                    if one and i < len(colors)
+                    else (colors[s_i] if not one and s_i < len(colors) else None)
+                )
+                pt = ser.points[i]
+                if col:
+                    pt.format.fill.solid()
+                    pt.format.fill.fore_color.rgb = _theme_rgb(prs, col)
+                    if kind == XL_CHART_TYPE.LINE_MARKERS:
+                        ser.format.line.color.rgb = _theme_rgb(prs, col)
+                # labels: a list for one series, or {series name: [...]}; written as the reader writes numbers
+                row = labels if isinstance(labels, list) else labels.get(ser.name, [])
+                if i < len(row) and row[i] is not None:
+                    dl = pt.data_label
+                    dl.text_frame.text = str(row[i])
+                    dl.text_frame.paragraphs[0].runs[0].font.size = Pt(
+                        spec.get("size", 12)
+                    )
+                    if kind in (
+                        XL_CHART_TYPE.COLUMN_CLUSTERED,
+                        XL_CHART_TYPE.BAR_CLUSTERED,
+                    ):
+                        dl.position = XL_LABEL_POSITION.OUTSIDE_END
+    elif "image" in item:
+        slide.shapes.add_picture(item["image"], x, y, w, h)
+    elif "table" in item:
+        rows = item["table"]
+        table = slide.shapes.add_table(len(rows), len(rows[0]), x, y, w, h).table
+        for r, row in enumerate(rows):
+            for c, value in enumerate(row):
+                cell = table.cell(r, c)
+                cell.text = str(value)
+                run = cell.text_frame.paragraphs[0].runs[0]
+                run.font.name, run.font.size = font, Pt(item.get("size", 11))
+    else:
+        tb = slide.shapes.add_textbox(x, y, w, h)
+        tf = tb.text_frame
+        tf.word_wrap = True
+        paras = item["text"] if isinstance(item["text"], list) else [item["text"]]
+        for i, line in enumerate(paras):
+            p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+            r = p.add_run()
+            r.text = line
+            r.font.name, r.font.size, r.font.bold = (
+                font,
+                Pt(item.get("size", 14)),
+                bool(item.get("bold")),
+            )
+            if item.get("color"):
+                r.font.color.rgb = _theme_rgb(prs, item["color"])
+
+
 def build(template: Path, outline: dict, out: Path) -> Path:
     """Write ``out``: the outline's slides in ``template``'s theme and layouts."""
     prs = Presentation(template)
@@ -351,15 +477,15 @@ def build(template: Path, outline: dict, out: Path) -> Path:
     for spec in outline["slides"]:
         if "copy" in spec:
             slide = _clone(prs, int(spec["copy"]))
-            names = {sh.name: sh for sh in slide.shapes}
-            for name, value in (spec.get("replace") or {}).items():
-                if name not in names:
-                    raise SystemExit(
-                        f"Slide {spec['copy']} has no shape {name!r}; it has: {list(names)}"
-                    )
-                _fill(slide, names[name], value)
+            for key in spec.get("remove") or []:
+                sh = _shape(slide, key, spec["copy"])
+                sh._element.getparent().remove(sh._element)
+            for key, value in (spec.get("replace") or {}).items():
+                _fill(slide, _shape(slide, key, spec["copy"]), value)
         else:
             slide = _from_layout(prs, spec)
+        for item in spec.get("add") or []:
+            _add(prs, slide, item)
         if spec.get("notes"):
             slide.notes_slide.notes_text_frame.text = spec["notes"]
     if not outline.get("keep_template_slides"):
