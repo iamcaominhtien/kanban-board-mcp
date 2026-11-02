@@ -56,7 +56,13 @@ def _fence(source: str, text: str) -> str:
 def _gh(args: list[str], cwd: str, timeout: float = 60) -> tuple[int, str]:
     try:
         out = subprocess.run(
-            ["gh", *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout
+            ["gh", *args],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return 1, str(exc)

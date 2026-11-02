@@ -468,7 +468,9 @@ def _try(folder: str, prepare: str, test: str) -> dict:
                     errors="replace",
                     timeout=TRIAL_TIMEOUT_S,
                 )
-                tail = ((res.stdout or "") + (res.stderr or "")).strip().splitlines()[-6:]
+                tail = (
+                    ((res.stdout or "") + (res.stderr or "")).strip().splitlines()[-6:]
+                )
                 out[name] = {
                     "command": cmd,
                     "ok": res.returncode == 0,
@@ -505,16 +507,22 @@ async def run_scan(
     *,
     trial: bool = True,
     refine: bool = False,
+    prepare: str | None = None,
+    test: str | None = None,
 ) -> AiRepoScan:
     """Scan, suggest and (by default) try the commands; nothing is created. `refine` asks a light model to improve
-    the role and plugin suggestions (it fails soft back to the code's)."""
+    the role and plugin suggestions (it fails soft back to the code's). `prepare` and `test` are the commands as the
+    person edited them: when given ("" for none), they are tried instead of the suggestion's."""
     found = await asyncio.to_thread(scan, folder)
     proposal = suggest(found)
     if refine:
         proposal = await refine_suggestion(session, project_id, found, proposal)
     tried = (
         await asyncio.to_thread(
-            _try, found["folder"], proposal["prepare"], proposal["commands"]["test"]
+            _try,
+            found["folder"],
+            proposal["prepare"] if prepare is None else prepare.strip(),
+            proposal["commands"]["test"] if test is None else test.strip(),
         )
         if trial
         else {}

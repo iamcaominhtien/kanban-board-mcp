@@ -548,6 +548,28 @@ def test_the_trial_runs_the_commands_in_a_scratch_worktree_and_shows_failures(tm
     assert len(worktrees) == 1  # the scratch worktree was removed
 
 
+async def test_try_again_tries_the_commands_the_person_edited(env, tmp_path):
+    """The wizard's "Try again" (and Next after an edit) sends the edited commands: those run, not the suggestion."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    _repo(tmp_path)
+    r = await c.post(
+        f"/projects/{pid}/ai/scan",
+        json={
+            "folder": str(tmp_path),
+            "trial": True,
+            "refine": False,
+            "prepare": "python3 -c \"print('mine')\"",
+            "test": "",
+        },
+    )
+    assert r.status_code == 201, r.text
+    trial = r.json()["trial"]
+    assert trial["prepare"]["command"] == "python3 -c \"print('mine')\""
+    assert trial["prepare"]["ok"] and trial["prepare"]["tail"] == ["mine"]
+    assert trial["test"] is None  # cleared by the person: nothing to try
+
+
 async def test_the_scan_creates_nothing_until_apply(env, tmp_path):
     c = env["c"]
     pid, _ = await _project(c)

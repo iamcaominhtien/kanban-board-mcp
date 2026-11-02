@@ -1204,7 +1204,9 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
                     errors="replace",
                     timeout=20 * 60,
                 )
-                tail = ((res.stdout or "") + (res.stderr or "")).strip().splitlines()[-15:]
+                tail = (
+                    ((res.stdout or "") + (res.stderr or "")).strip().splitlines()[-15:]
+                )
                 passed = res.returncode == 0
             except subprocess.TimeoutExpired:
                 tail, passed = ["Timed out after 20 minutes."], False
