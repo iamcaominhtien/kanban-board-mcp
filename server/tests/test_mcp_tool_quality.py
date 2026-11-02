@@ -202,11 +202,14 @@ async def test_the_tool_list_stays_compact():
     # them (a bare "object" made it send nulls), and takes an ignored ticket_id: about 300; the AI accounts actions of
     # ai_team a few hundred more; the canvas actions (docs_read canvases / canvas, docs_write canvas_comment /
     # canvas_propose, 3.17.0) add about 1,800 characters and no tool; `knowledge` (the knowledge base: index, search,
-    # read) and `board_wait` (wait for the board to move) add about 1,400 characters and two tools
-    assert default < 45_800, (
+    # read) and `board_wait` (wait for the board to move) add about 1,400 characters and two tools; ai_team's guide,
+    # workflow and Story actions (3.21.1, so an agent knows how to hand work to the team) about 900, and the notes on
+    # manage_ticket (an AI assignee is not started, intake takes a ticket, a Story) with list_tickets' type and parent
+    # filters about 500 more
+    assert default < 47_400, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 48_800, (
+    assert full < 50_400, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

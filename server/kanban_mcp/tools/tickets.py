@@ -109,13 +109,19 @@ async def manage_ticket(
         ),
     ] = None,
     type: Annotated[
-        TicketType | None, Field(description="Kind of work (default 'task').")
+        TicketType | None,
+        Field(
+            description="Kind of work (default 'task'). 'story' is a Draft the PM owns: to have it planned and run use "
+            "ai_team(give_story)."
+        ),
     ] = None,
     priority: Annotated[Priority | None, Field(description="Default 'medium'.")] = None,
     status: Annotated[
         Status | None,
         Field(
-            description="create: starting column (default 'backlog', not 'wont_do'). update: the move; 'done' is refused while the ticket's Done-requires guards are not met."
+            description="create: starting column (default 'backlog', not 'wont_do'); with the AI team's intake on, a "
+            "ticket created in its column (usually 'todo') is taken by the team. update: the move; 'done' is refused "
+            "while the ticket's Done-requires guards are not met."
         ),
     ] = None,
     estimate: Annotated[
@@ -141,7 +147,8 @@ async def manage_ticket(
     assignee: Annotated[
         str | None,
         Field(
-            description="Member id (UUID) of a member of the ticket's project; see get_projects(project_id)."
+            description="Member id (UUID) of a member of the ticket's project; see get_projects(project_id). An AI "
+            "member set here is not started: ai_team(ask, intent='work') assigns it and starts it."
         ),
     ] = None,
     repo_path: Annotated[

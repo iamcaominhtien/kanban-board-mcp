@@ -6,7 +6,8 @@ from .settings import ideas_enabled
 _INSTRUCTIONS_HEAD = """\
 Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> \
 manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> \
-ticket_items (test_case, criterion) -> manage_ticket(update, status='done').
+ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work \
+instead, see "AI team" below.
 
 Tools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the \
 parameters every action takes, and a wrong call is answered with what that action accepts.
@@ -50,12 +51,7 @@ so use `<meta name="viewport" content="width=device-width, initial-scale=1">`, f
 else docs_read(design_guide); follow it. \
 You never change an existing frame directly: docs_write(canvas_comment) comments under your own name and docs_write(canvas_propose) offers a changed HTML frame \
 from a folder; a person sees before and after and accepts or rejects. You never take the lock on a frame a person is editing.
-- AI team: ai_team looks at the board's AI members (members, member, usage, runs, run, approvals, docs_jobs, resources: RAM and CPU of the running AIs and the machine) and acts on them \
-(ask, cancel, restart (a run's CLI starts again in the same run), retry, answer, pause, resume, create_member, update_member). From outside an AI run, \
-an @mention in a comment does NOT wake an AI: use ai_team(action='ask', member_id, text, ticket_id) (intent 'work' to assign it the ticket). \
-Inside an AI run it is the other way round: ai_team allows only its read actions there, and an @mention of another AI in a comment you post \
-does wake it (one question, within the board's chain limits); to pass the work itself on, use ai_run(action='handoff'). Approvals are decided by a person \
-in the board, never over MCP (resources needs the member's Resource tools set to View; restart and cancel need Control).
+- AI team. Outside an AI run you act for the person: before you hand work over, read ai_team(action='guide'). ai_team(members) shows each AI's role (pm, ba, designer, dev, qa, user_tester, reviewer, triage) and state. Pick by what you want: an answer or a review, nothing changed: ai_team(ask, member_id, text, ticket_id) (it answers in a comment); one AI to do one ticket: the same with intent='work' (it takes the ticket; one work run per ticket); a heads-up, no run: intent='notify'; several roles on one ticket: ai_team(start_workflow, ticket_id, workflow); a goal bigger than one ticket: ai_team(give_story): the PM plans it and the board runs it. Do not chain asks and assignments yourself for that. An @mention you write in a comment does NOT wake an AI. Inside an AI run it is the other way round: ai_team allows only its reads there, an @mention of another AI in a comment you post does wake it (one question, within the board's chain limits), and ai_run(action='handoff') passes the work on. An AI's question to the person: ai_team(answer). Permission requests are decided by a person in the board, never over MCP (resources needs the member's Resource tools set to View; restart and cancel need Control).
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions

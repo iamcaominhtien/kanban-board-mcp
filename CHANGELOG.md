@@ -8,6 +8,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.21.1] - 2026-11-02
+
+### Changed
+- **An agent knows how to work with the AI team over MCP.** `ai_team(action='guide')` explains when to ask an AI (an answer in a comment, nothing changed), hand it one ticket (`intent='work'`), send a heads-up (`intent='notify'`), put a ticket on a workflow, or give a goal to the PM as a Story, and what to do while it runs. The server instructions carry the same choice in short, and `ai_team(members)` now says each AI's role.
+
+### Added
+- `ai_team` actions to hand work over as the board does: `workflows`, `workflow`, `start_workflow`; `stories`, `story`, `give_story`, `approve_plan`, `revise_plan`, `reject_plan`; `decisions` and `override` for what the PM decided in the person's place. Inside an AI run only the reads are allowed.
+- `list_tickets` filters by `type` (the Stories) and `parent_id` (a Story's tickets).
+
+### Fixed
+- The MCP tool docs say what an agent got wrong: setting an AI member as a ticket's assignee does not start it, an @mention in a comment does not wake an AI, a ticket created in the intake column is taken by the team, and a `story` ticket is planned and run through `ai_team(give_story)`. `board_wait` says to wait there after handing work to the team instead of polling.
+
 ## [3.21.0] - 2026-11-02
 
 Story, Flow by scope and Live commentary that follows it, plus the AI screens that ran without a design (`design/screens/ai-story-flow.md`).

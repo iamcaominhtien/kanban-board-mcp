@@ -406,7 +406,6 @@ async def docs_write(
     - canvas_create: path [, owner_kind (ticket|doc|idea), owner_id, title | canvas_id]. A new canvas, or frames added to canvas_id, from a folder: one sub-folder with an .html page per frame (name order); optional frame.json, canvas.json (see the design guide). Returns {id, markdown, boards}: put `markdown` on its own line in the text.
     - canvas_comment: canvas_id, body [, board_id, at, thread_id]. Comment under your own name: pin on an element (at) of a frame, the plane, or reply. You never resolve a person's thread.
     - canvas_propose: canvas_id, board_id, path [, note]. Offer a changed HTML frame from a folder (see docs_read(canvas)). Nothing changes until a person accepts; a frame being edited waits.
-    The preview of a saved diagram is drawn by the server (boxes, arrows, text) unless you pass an SVG export; a person who opens it in the editor sees the full drawing.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     given = params_of(locals())
     many = given.pop("items", None)

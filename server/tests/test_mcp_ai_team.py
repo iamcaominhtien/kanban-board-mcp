@@ -538,6 +538,109 @@ async def test_update_member_stays_inside_the_same_limits(env):
         )
 
 
+# --------------------------------------------------------------------------- handing work to the team
+
+
+async def test_the_guide_says_when_to_ask_hand_over_or_give_a_story():
+    guide = (await team(action="guide"))["guide"]
+    for words in (
+        "intent='work'",
+        "intent='notify'",
+        "start_workflow",
+        "give_story",
+        "does NOT wake",
+    ):
+        assert words in guide
+    from kanban_mcp import build_instructions
+
+    assert "ai_team(action='guide')" in build_instructions(True)
+
+
+async def test_members_say_their_role(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    r = await c.post(
+        f"/projects/{pid}/ai/packs/dev/member",
+        json={"name": "Dev Khoa", "working_dir": env["repo"]},
+    )
+    assert r.status_code == 201, r.text
+    rows = await team(action="members", project_id=pid)
+    assert [x["role"] for x in rows] == ["dev"]
+
+
+async def test_a_ticket_goes_on_a_workflow_over_mcp(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    keys = [w["key"] for w in await team(action="workflows", project_id=pid)]
+    assert {"quick_fix", "standard", "feature_ui", "docs", "chore", "research"} <= set(
+        keys
+    )
+    tid = await _ticket(c, pid)
+    assert (await team(action="workflow", ticket_id=tid))["workflow"] is None
+    out = await team(action="start_workflow", ticket_id=tid, workflow="quick_fix")
+    assert (
+        out["workflow"] == "quick_fix"
+        and [s["step"] for s in out["steps"]][0] == "Triage"
+    )
+    with pytest.raises(ToolError):
+        await team(
+            action="start_workflow", ticket_id=tid, workflow="quick_fix"
+        )  # already on one
+
+
+async def test_a_story_is_given_and_its_plan_decided_over_mcp(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    with pytest.raises(ToolError, match="fields.title"):
+        await team(action="give_story", project_id=pid, text="A weather app")
+    with pytest.raises(ToolError, match="Unknown field"):
+        await team(
+            action="give_story",
+            project_id=pid,
+            text="x",
+            fields={"title": "S", "owner": "me"},
+        )
+    out = await team(
+        action="give_story",
+        project_id=pid,
+        text="A web page where I see the weather of a city",
+        fields={
+            "title": "Weather app",
+            "criteria": ["Today", "Seven days"],
+            "hand": False,
+            "approve": "person",
+        },
+    )
+    assert out["state"] == "draft" and out["approve"] == "person"
+    assert [x["text"] for x in out["criteria"]] == ["Today", "Seven days"]
+    assert [x["id"] for x in await team(action="stories", project_id=pid)] == [
+        out["id"]
+    ]
+    # list_tickets finds the Stories, and a Story's tickets
+    kid = await _ticket(c, pid, title="Search a city", parent_id=out["id"])
+    await _ticket(c, pid, title="Other")
+    stories = await call({"project_id": pid, "type": "story"}, tool="list_tickets")
+    assert [t["id"] for t in stories["tickets"]] == [out["id"]]
+    kids = await call({"project_id": pid, "parent_id": out["id"]}, tool="list_tickets")
+    assert [t["id"] for t in kids["tickets"]] == [kid]
+    assert (await team(action="story", story_id=out["id"]))["goal"].startswith(
+        "A web page"
+    )
+    with pytest.raises(ToolError, match="No plan waits"):
+        await team(action="approve_plan", story_id=out["id"])
+    with pytest.raises(ToolError, match="needs text"):
+        await team(action="revise_plan", story_id=out["id"], text=" ")
+    # handing it over needs a PM
+    with pytest.raises(ToolError, match="no PM"):
+        await team(
+            action="give_story", project_id=pid, text="x", fields={"title": "Another"}
+        )
+    listed = await team(action="decisions", project_id=pid)
+    assert listed["items"] == [] and listed["totals"]["decided"] == 0
+    with pytest.raises(ToolError, match="not found"):
+        await team(action="override", decision_id="nope")
+
+
 # --------------------------------------------------------------------------- inside an AI run, argument checks
 
 
@@ -558,6 +661,10 @@ async def test_acts_are_refused_inside_an_ai_run_but_reads_work(env):
             ("resume", {"member_id": m["id"]}),
             ("create_member", {"project_id": pid, "fields": {"name": "Sneaky"}}),
             ("update_member", {"member_id": m["id"], "fields": {"name": "Mine"}}),
+            ("start_workflow", {"ticket_id": tid, "workflow": "quick_fix"}),
+            ("give_story", {"project_id": pid, "text": "x", "fields": {"title": "S"}}),
+            ("approve_plan", {"story_id": tid}),
+            ("override", {"decision_id": "nope"}),
         ):
             with pytest.raises(
                 ValueError, match="cannot start AIs or change AI members"
@@ -651,7 +758,8 @@ async def test_the_tool_is_small_and_marked_write():
     size = len(tool.description or "") + len(
         json.dumps(tool.inputSchema, separators=(",", ":"))
     )
-    assert size < 3_200 and tool.annotations.readOnlyHint is False
+    # 3.21.1: the guide, workflows and Stories (12 actions, 3 ids) add about 700 characters
+    assert size < 4_000 and tool.annotations.readOnlyHint is False
     assert tool.annotations.destructiveHint is not True
     assert set(tool.inputSchema["properties"]["action"]["enum"]) == set(AI_TEAM_OPS)
     assert ops.PROVIDERS_OK == ("claude-code", "antigravity", "mcp-client")

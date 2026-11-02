@@ -59,6 +59,14 @@ async def list_tickets(
             description="true: only tickets still marked Reopened; false: leave them out."
         ),
     ] = None,
+    type: Annotated[
+        TicketType | None,
+        Field(description="Only tickets of this type ('story': the Stories)."),
+    ] = None,
+    parent_id: Annotated[
+        str | None,
+        Field(description="Only the sub-tickets of this ticket (a Story's tickets)."),
+    ] = None,
     detail: Annotated[
         bool,
         Field(
@@ -89,6 +97,10 @@ async def list_tickets(
             pending=pending,
             reopened=reopened,
         )
+    if type:
+        tickets = [t for t in tickets if t.type == type]
+    if parent_id:
+        tickets = [t for t in tickets if t.parent_id == parent_id]
     page = tickets[offset : offset + limit]
     convert = _ticket_to_dict if detail else _ticket_summary
     return {
@@ -256,8 +268,8 @@ async def get_ticket(
     branches, relations (blocks / blocked_by / links), `workspace_path` if Workspace is on.
     `files`: uploads the ticket mentions, with absolute `path` to read.
     Sub-item ids (comment, test case, branch, ...) used by the other tools come from here.
-    `activity_log` holds the most recent changes (who changed what and when); `activity_total` is how many entries the
-    ticket has in all, so you can tell when more exist (widen with activity_limit or narrow with activity_since).
+    `activity_log`: the latest changes (who, what, when); `activity_total`: how many there are in all (activity_limit
+    and activity_since widen or narrow).
     view='comments': just the thread (oldest first), narrowed by comment_ids."""
     if view == "comments":
         if activity_limit is not None or activity_since is not None:
