@@ -2,6 +2,8 @@
 
 Reports: [ai-1.md](../ai-1.md) (without the `SCH-` rows), [ai-3.md](../ai-3.md), and two rows of [ai-2.md](../ai-2.md).
 Before (5174) and after (5173) screenshots: `/tmp/claude-0/-home-user-kanban-board-mcp/217c9eaa-a832-52d5-8a05-ade5a07b6b57/scratchpad/w3/ai/` (`<scenario>-before.jpg`, `<scenario>-after.jpg`, `<scenario>-both.jpg`; not in the repo).
+Screenshots exist for: dock (AB-5), history (AB-9), scope (AB-10), assistant/assistant2 (AB-16 to AB-21), settingsAi/settingsTiers2/settingsOps (AB-15, WV-1 to WV-3, OPS-7), members/inbox/audit (ACC-1, AM-3, SC-5), accounts (OPS-1, OPS-3), addStep1/addStep2 (AM-6, AM-8, AM-9, ACC-2), profile/perms/perms2 (AM-11, SC-2 to SC-4), config2 (PC-3), wfEditor (TP-8, TP-10), wizard (TP-6), settingsWf/settingsTools (TP-9, TP-2, TP-4).
+Not shot: both dev servers (5173 and 5174) stopped answering partway through. That leaves SF-2, SF-3, SF-4, AB-11 and TP-11 covered by unit tests only, and TL-7 and AP-4 unchecked in the browser because they need Pause all AI.
 No data was added or changed. No AI run, Run test, Test connection, Check (MCP), Read the repository, Pause all AI or Resume was pressed.
 Rules kept: no feature, `data-testid` or keyboard path removed, and the number of clicks for an existing action is unchanged. A first pass put Preview and Remove in a ⋯ menu on the AI profile, let Esc close the team wizard and moved "close the dock" off the history view. All three were reverted to the current behaviour, and only the look was kept.
 

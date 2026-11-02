@@ -642,7 +642,8 @@ function activityParts(entry: IdeaActivityEntry): { subject: string; from?: stri
   if (marked) return { subject: 'marked as', to: marked[1] };
   if (word && label.toLowerCase().startsWith(word.toLowerCase()))
     label = label.slice(word.length).replace(/^[:\s]+/, '');
-  else if (entry.kind === 'log') label = label.replace(/^Log entry\s*/, '');
+  else if (entry.kind === 'log')
+    label = label.replace(/^Log entry \((\w+)\):\s*/, (_m, k: string) => `${k[0].toUpperCase()}${k.slice(1)} · `);
   return { subject: label };
 }
 

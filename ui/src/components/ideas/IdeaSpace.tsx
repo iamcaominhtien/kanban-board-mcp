@@ -307,6 +307,27 @@ export function IdeaSpace({
     </button>
   );
 
+  // List / Stages / Matrix: in the Idea Space header, and in the Triage header too, so another view is one click away
+  const viewTabs = (
+    <div className="is-tabs" role="tablist" aria-label="View">
+      {(['list', 'stages', 'matrix'] as View[]).map((v) => (
+        <button
+          key={v}
+          type="button"
+          role="tab"
+          className="is-tab"
+          aria-selected={view === v && !triage}
+          onClick={() => {
+            setView(v);
+            setTriage(false);
+          }}
+        >
+          {v[0].toUpperCase() + v.slice(1)}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="is-root" data-testid="idea-space">
       {!triage && (
@@ -315,23 +336,7 @@ export function IdeaSpace({
             <BulbIcon size={20} /> Idea Space
           </h1>
           {switcher}
-          <div className="is-tabs" role="tablist" aria-label="View">
-            {(['list', 'stages', 'matrix'] as View[]).map((v) => (
-              <button
-                key={v}
-                type="button"
-                role="tab"
-                className="is-tab"
-                aria-selected={view === v && !triage}
-                onClick={() => {
-                  setView(v);
-                  setTriage(false);
-                }}
-              >
-                {v[0].toUpperCase() + v.slice(1)}
-              </button>
-            ))}
-          </div>
+          {viewTabs}
           <span className="is-grow" />
           <div className="is-search">
             <input
@@ -367,6 +372,7 @@ export function IdeaSpace({
             onBack={() => setTriage(false)}
             onOpenSettings={onOpenSettings}
             switcher={switcher}
+            views={viewTabs}
             actions={
               <>
                 {askButton}

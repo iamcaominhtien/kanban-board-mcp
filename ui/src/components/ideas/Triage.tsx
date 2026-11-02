@@ -28,6 +28,8 @@ interface Props {
   onOpenSettings?: () => void;
   /** The project switcher, drawn in the triage header after the title. */
   switcher?: ReactNode;
+  /** The List / Stages / Matrix tabs, so another view stays one click away. */
+  views?: ReactNode;
   /** Buttons of the Idea Space header that stay reachable in triage (Ask, New idea, notifications). */
   actions?: ReactNode;
 }
@@ -44,6 +46,7 @@ export function Triage({
   onBack,
   onOpenSettings,
   switcher,
+  views,
   actions,
 }: Props) {
   const toast = useToast();
@@ -126,6 +129,7 @@ export function Triage({
       </button>
       <h2 className="is-triage-h">Triage</h2>
       {switcher}
+      {views}
       <span className="is-muted is-triage-sub">Sort what came in. Aim for under two minutes.</span>
       <span className="is-grow" />
       <AdviceSwitch projectId={aiProject} />

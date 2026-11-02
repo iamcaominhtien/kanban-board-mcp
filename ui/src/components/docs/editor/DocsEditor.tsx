@@ -206,6 +206,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     [ai?.onSlash, ai?.docsAi],
   );
   const lastMd = useRef(markdown);
+  // No edit since the text was loaded: the editor's own Markdown of it may still differ from the stored text (it
+  // normalises spacing, tables, escapes), and that difference alone must not be saved as an edit (ideas IP-15)
+  const pristine = useRef(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const live = useRef<{
     onChange: Props['onChange'];
@@ -468,7 +471,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   const emit = useCallback(() => {
     const ed = editorRef.current;
-    if (!ed || ed.isDestroyed) return lastMd.current;
+    if (!ed || ed.isDestroyed || pristine.current) return lastMd.current;
     const md = compactMarkdown(cleanEditorMarkdown(ed.getMarkdown()));
     if (md !== lastMd.current) {
       lastMd.current = md;
@@ -562,7 +565,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         return true;
       },
     },
-    onUpdate: () => {
+    onUpdate: ({ transaction }) => {
+      // an update that changed nothing (no steps) is not an edit
+      if (transaction.docChanged) pristine.current = false;
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(emit, EMIT_MS);
     },
@@ -578,6 +583,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     if (!editor || editor.isDestroyed) return;
     if (markdown !== lastMd.current) {
       lastMd.current = markdown;
+      pristine.current = true;
       editor.commands.setContent(markdown, { contentType: 'markdown', emitUpdate: false });
     }
   }, [markdown, editor]);
