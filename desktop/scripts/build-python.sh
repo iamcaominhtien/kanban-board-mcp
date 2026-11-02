@@ -39,6 +39,32 @@ echo "--- Building kanban-server + kanban-mcp-stdio (one folder, shared _interna
     --noconfirm \
     "$DESKTOP_DIR/kanban-backend.spec"
 
+# Smoke test: the built server must start. A data file left out of the spec only shows here, never in a checkout
+# (3.27.0 shipped without the slides skill's folder and the app could not open).
+echo ""
+echo "--- Smoke test: starting the built kanban-server ---"
+SERVER_BIN="$OUTPUT_DIR/kanban-mcp-stdio/kanban-server"
+[[ -f "$SERVER_BIN.exe" ]] && SERVER_BIN="$SERVER_BIN.exe"
+SMOKE_DIR="$(mktemp -d)"
+KANBAN_DB_PATH="$SMOKE_DIR/smoke.db" "$SERVER_BIN" > "$SMOKE_DIR/server.log" 2>&1 &
+SERVER_PID=$!
+READY=false
+for _ in $(seq 1 60); do
+    if grep -q "^READY " "$SMOKE_DIR/server.log"; then READY=true; break; fi
+    kill -0 "$SERVER_PID" 2>/dev/null || break
+    sleep 1
+done
+kill "$SERVER_PID" 2>/dev/null || true
+wait "$SERVER_PID" 2>/dev/null || true
+if [[ "$READY" != true ]]; then
+    echo "ERROR: the built kanban-server did not start:"
+    cat "$SMOKE_DIR/server.log"
+    rm -rf "$SMOKE_DIR"
+    exit 1
+fi
+rm -rf "$SMOKE_DIR"
+echo "  ✓ kanban-server started (READY)"
+
 echo ""
 echo "=== Build complete ==="
 echo "Binaries in: $OUTPUT_DIR"
