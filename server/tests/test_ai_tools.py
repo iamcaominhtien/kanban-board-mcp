@@ -477,9 +477,10 @@ def test_the_scan_reads_the_repository_by_code_and_suggests_a_team(tmp_path):
     assert found["ci_commands"] == ["cd server && uv run pytest -q"]
     assert "CLAUDE.md" in found["agent_files"]
     s = repo_scan.suggest(found)
-    assert "cd ui && npm test -- --run" in s["commands"]["test"]
-    assert "cd server && uv run pytest -q" in s["commands"]["test"]
-    assert "cd ui && npm ci" in s["prepare"] and "cd server && uv sync" in s["prepare"]
+    assert "npm --prefix ui test -- --run" in s["commands"]["test"]
+    assert "uv --directory server run pytest -q" in s["commands"]["test"]
+    assert s["prepare"] == "npm --prefix ui ci && uv --directory server sync"
+    assert "cd " not in s["prepare"] + s["commands"]["test"] + s["commands"]["lint"]
     assert s["workflow_default"] == "feature_ui"
     assert [m["pack"] for m in s["team"]] == [
         "triage",
@@ -493,6 +494,45 @@ def test_the_scan_reads_the_repository_by_code_and_suggests_a_team(tmp_path):
     ]
     assert s["handover"] == "local"
     assert "playwright" in s["plugins"] and "design" in s["plugins"]
+
+
+def test_a_folder_git_does_not_track_is_not_suggested(tmp_path):
+    """A vendored checkout that git ignores is on the disk but not in a worktree: `cd vendor/x && npm ci` failed
+    there with "The system cannot find the path specified" (Windows)."""
+    _sample_repo(tmp_path)
+    (tmp_path / "vendor" / "tool").mkdir(parents=True)
+    (tmp_path / "vendor" / "tool" / "package.json").write_text(
+        json.dumps({"name": "tool", "scripts": {"test": "x"}})
+    )
+    (tmp_path / ".gitignore").write_text("vendor/\n")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "-c", "user.email=a@b", "-c", "user.name=a", "commit", "-qm", "x")
+    found = repo_scan.scan(str(tmp_path))
+    assert {p["path"] for p in found["packages"]} == {"ui", "server"}
+    assert "vendor" not in repo_scan.suggest(found)["prepare"]
+
+
+def test_a_package_folder_does_not_move_the_commands_after_it():
+    found = {
+        "packages": [
+            {"path": "vendor/my tool", "kind": "node", "scripts": {}},
+            {"path": ".", "kind": "python", "manager": "uv", "pytest": True},
+            {
+                "path": "lib",
+                "kind": "python",
+                "manager": "pip",
+                "pytest": True,
+                "ruff": True,
+            },
+        ],
+        "languages": ["node", "python"],
+        "ui": False,
+    }
+    s = repo_scan.suggest(found)
+    assert s["prepare"] == 'npm --prefix "vendor/my tool" ci && uv sync'
+    assert s["commands"]["test"] == "uv run pytest -q && pytest -q lib"
+    assert s["commands"]["lint"] == "ruff check lib"
 
 
 def test_the_trial_runs_the_commands_in_a_scratch_worktree_and_shows_failures(tmp_path):
