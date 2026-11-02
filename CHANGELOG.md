@@ -8,6 +8,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.29.0] - 2026-11-03
+
+Docs for every AI, and Docs in a window of its own (#268): an AI, on the board or outside it, works in Docs as a person does, and a person can move Docs out of the board into its own window and dock it back.
+
+### Added
+- **Docs in its own window.** "Open in its own window" (beside the page tree) moves the Docs space of the project into a separate window: only Docs, under a thin bar with the project's name and **Dock back** (Ctrl+Shift+D). The board's Docs tab says where Docs went, with "Show the window" and "Dock back here", and its tab carries a small window mark. A page opened from a ticket or a link while Docs is out opens in that window; a ticket opened from the window opens on the board. Docking back (from either window) closes the window and opens Docs in the board on the page it was showing; with no board left to go back to, the window becomes the board itself. In the desktop app the window is a real app window (the only second window the app opens; it may change the board like the main one); in a browser it is a pop-up.
+- **Edit a part of a page, not the page**: `docs_write(action='edit')` changes one section (by its heading) or one passage (`find`, exact and unique) and publishes it as a new version; several edits in one call (`items`) are one version, all or nothing. From an older `base_version` a section edit goes on only if that section still reads the same (a change elsewhere does not stop it); otherwise it is refused with the section as it is now. `docs_read(get, section=...)` reads one part of a long page. API-key AI members get the same as `edit_doc`.
+- **Upload a file over MCP**: `docs_write(action='upload')` stores a picture or any file the board keeps (by local path, or base64 for an agent whose files are elsewhere) and puts it on a page (at the end, in a section or after a passage) and/or posts it on a ticket. Key and secret files are refused.
+- **The Docs guide**, one text in two places: the `docs-pages` skill of the board's plugin for Claude Code runs and `docs_read(action='docs_guide')` for other agents: a page or a ticket comment, how pages are organised, read before you write, how to edit a part safely, **the Markdown the editor keeps** (headings, bold, `==highlight==`, code, links, `[[Page#Section]]`, ticket keys, lists, task lists, tables, code blocks, `> [!INFO]` / `[!WARNING]` / `[!SUCCESS]` callouts, pictures with a width, files, diagrams, math; `@Name` only in comments), pictures and files, comments on a passage, pages and tickets both ways. The MCP instructions point to it.
+- **Pages and tickets see each other**: `get_ticket` lists the ticket's pages under `docs` (and why each is tied), and a board AI run's prompt lists them with their ids, so the Dev on a ticket reads the BA's spec. The Docs AI reads the tickets a page links (status, description, open criteria) when it answers a thread on the page or a question about it.
+- **Work from a page**: `docs_write(action='tickets')` turns the open tasks of a page (or of a passage) into tickets, links them and puts each key on its line; `docs_write(action='assign')` and the page menu's **Give to an AI member…** give a page to an AI member to write or review, as a ticket linked to the page and assigned to it, whose run starts. **The page shows the AI at work on it**: who, running for how long, what it is doing now, and the ticket (`docs_read(get).work` for agents).
+- **Highlight** in the editor and the reading view, stored as `==text==`.
+
+### Changed
+- The 1:1 check of the nine Docs designs against the app: the tables are in `docs/ui-audit/docs-268/`, with before and after screenshots in `docs/screenshots/docs-268/`.
+
 ## [3.28.0] - 2026-11-03
 
 Each AI role works like a good professional in that role, and the roles work together (#273). Measured with live sonnet runs, before and after, on the same small task per role.

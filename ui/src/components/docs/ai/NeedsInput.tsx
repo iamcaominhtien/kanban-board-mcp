@@ -36,7 +36,7 @@ export function AiDraftChip({ source }: { source: DocsAiSource }) {
       </span>
       <span
         className="mc-chip"
-        style={{ background: '#F1ECFD', border: '1px solid #D9CCF7', color: '#5B3FBF', fontWeight: 600 }}
+        style={{ background: '#efe8fb', border: '1px solid #d9ccf3', color: '#5b3aa6', fontWeight: 600 }}
       >
         <AiSpark size={12} />
         {source.kind === 'accepted' ? 'AI text accepted' : 'Drafted with AI'}
@@ -70,13 +70,13 @@ export function AiDraftPanel({ source, markdown, onGoTo, onStripCitations }: Pan
         width: 260,
         flexShrink: 0,
         borderLeft: '1px solid #E3E8E5',
-        background: '#F8F5FE',
+        background: '#faf7ff',
         padding: '16px 16px 24px',
         overflowY: 'auto',
         boxSizing: 'border-box',
       }}
     >
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5B3FBF' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5b3aa6' }}>
         GAPS · {markers.length}
       </div>
       {markers.length === 0 ? (
@@ -130,7 +130,7 @@ export function AiDraftPanel({ source, markdown, onGoTo, onStripCitations }: Pan
       )}
       {sources.length > 0 && (
         <>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5B3FBF' }}>SOURCES</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5b3aa6' }}>SOURCES</div>
           <ol
             style={{
               listStyle: 'none',
@@ -149,9 +149,9 @@ export function AiDraftPanel({ source, markdown, onGoTo, onStripCitations }: Pan
                   aria-label={`Find [${s.n}] in the text`}
                   onClick={() => onGoTo(`[${s.n}]`)}
                   style={{
-                    border: '1px solid #D9CCF7',
-                    background: '#F1ECFD',
-                    color: '#5B3FBF',
+                    border: '1px solid #d9ccf3',
+                    background: '#efe8fb',
+                    color: '#5b3aa6',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}

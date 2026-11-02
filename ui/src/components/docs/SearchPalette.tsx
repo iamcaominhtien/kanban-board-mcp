@@ -649,27 +649,14 @@ export function SearchPalette({
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         {askAvailable && (
-          <div style={{ display: 'flex', gap: 4 }} role="tablist" aria-label="Search or Ask">
-            <button
-              type="button"
-              role="tab"
-              aria-selected
-              className="dk-tabs-btn dk-tabs-btn-on"
-              style={{ padding: '4px 11px' }}
-            >
+          <span className="ask-seg" role="tablist" aria-label="Search or Ask">
+            <button type="button" role="tab" aria-selected className="on">
               Search
             </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={false}
-              className="dk-tabs-btn"
-              style={{ padding: '4px 11px' }}
-              onClick={() => setTab('ask')}
-            >
+            <button type="button" role="tab" aria-selected={false} onClick={() => setTab('ask')}>
               Ask
             </button>
-          </div>
+          </span>
         )}
         {loading && <span className="mc-spin" />}
         {!loading && modeChip(mode, hasPhrase, hasExclude, parsed.excludes.length)}

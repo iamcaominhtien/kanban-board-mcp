@@ -18,7 +18,7 @@ export function PageAiFlags({ page }: { page: DocsPage }) {
   const err = set.error ? (docsAiError(set.error)?.detail ?? 'Could not save.') : null;
   return (
     <div data-testid="page-ai-flags" style={{ borderTop: '1px solid #EEF3EF', marginTop: 6, paddingTop: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#6B5BD2', letterSpacing: 0.4, marginBottom: 4 }}>AI</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#7c5cd6', letterSpacing: 0.4, marginBottom: 4 }}>AI</div>
       <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '4px 0', fontSize: 12.5 }}>
         <input
           type="checkbox"
