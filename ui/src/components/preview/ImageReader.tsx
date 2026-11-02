@@ -9,6 +9,34 @@ const MIN_SCALE = 0.05;
 const MAX_SCALE = 16;
 const STEP = 1.25;
 
+/** The icon of each background choice: moon, sun, checkerboard. */
+const BG_ICON: Record<'dark' | 'light' | 'checker', string> = {
+  dark: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
+  light:
+    'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4',
+  checker: 'M4 4h7v7H4zM13 13h7v7h-7zM13 4h7v7h-7zM4 13h7v7H4z',
+};
+
+/** A 16 px line icon of the image pill (the design's zoom, fit, rotate and background glyphs). */
+function PillIcon({ d, circle }: { d: string; circle?: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {circle && <circle cx="11" cy="11" r="6.5" />}
+      <path d={d} />
+    </svg>
+  );
+}
+
 interface View {
   /** Zoom factor; ignored while `fit` is true. */
   scale: number;
@@ -266,30 +294,42 @@ export function ImageReader({ item, onFacts, actions, onNavigate }: ReaderProps)
         )}
       </div>
 
+      {/* the design's dark pill over the stage (preview-viewer C); every control of the old bar is kept */}
       <div className={styles.imageToolbar} role="toolbar" aria-label="Image controls">
         <button type="button" onClick={() => zoomTo(scale / STEP)} aria-label="Zoom out" title="Zoom out (−)">
-          −
+          <PillIcon d="M16 16l4.5 4.5M8.5 11h5" circle />
         </button>
         <span className={styles.zoomLabel} aria-live="polite">
           {view.fit ? 'Fit' : `${percent}%`}
         </span>
         <button type="button" onClick={() => zoomTo(scale * STEP)} aria-label="Zoom in" title="Zoom in (+)">
-          +
+          <PillIcon d="M16 16l4.5 4.5M11 8.5v5M8.5 11h5" circle />
         </button>
         <span className={styles.toolbarSep} />
-        <button type="button" onClick={resetFit} data-active={view.fit || undefined} title="Fit to screen (0)">
-          Fit
+        <button
+          type="button"
+          onClick={resetFit}
+          data-active={view.fit || undefined}
+          aria-label="Fit"
+          title="Fit to screen (0)"
+        >
+          <PillIcon d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
         </button>
         <button type="button" onClick={() => zoomTo(1)} title="Actual size">
           100%
         </button>
         <button type="button" onClick={rotate} aria-label="Rotate" title="Rotate (R)">
-          ⟳
+          <PillIcon d="M20 11a8 8 0 1 0-2.3 6M20 4v7h-7" />
         </button>
-        <button type="button" onClick={copyImage} title="Copy image">
-          {copied ?? 'Copy'}
+        <button type="button" onClick={copyImage} aria-label={copied ?? 'Copy image'} title="Copy image">
+          {copied ? (
+            <span className={styles.pillText}>{copied}</span>
+          ) : (
+            <PillIcon d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2M10 8h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" />
+          )}
         </button>
-        <span className={styles.toolbarSep} />
+      </div>
+      <div className={`${styles.imageToolbar} ${styles.bgPill}`}>
         <span className={styles.bgWrap}>
           <button
             type="button"
@@ -298,7 +338,8 @@ export function ImageReader({ item, onFacts, actions, onNavigate }: ReaderProps)
             aria-haspopup="true"
             title="Background"
           >
-            Background
+            <span className={styles.pillText}>Background</span>
+            <PillIcon d={BG_ICON[bg]} />
           </button>
           {bgOpen && (
             <span className={styles.bgMenu} role="menu">
@@ -313,6 +354,7 @@ export function ImageReader({ item, onFacts, actions, onNavigate }: ReaderProps)
                     setBgOpen(false);
                   }}
                 >
+                  <PillIcon d={BG_ICON[b]} />
                   {b === 'checker' ? 'Checkerboard' : b === 'dark' ? 'Dark' : 'Light'}
                 </button>
               ))}

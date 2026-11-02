@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { assistApi, assistError, useAssistState, useChat } from '../../api/assist';
 import { extractError } from '../../api/extractError';
+import { LineIcon } from '../ui/LineIcon';
+import type { AssistState } from '../../types/assist';
 
 /** One member as the Board AI proposes it for the dialog's form (already checked by the server). */
 export interface AiFilled {
@@ -20,6 +22,17 @@ interface Props {
   /** The form as the person has it now; sent with every message so hand edits are kept. */
   form: Record<string, unknown>;
   onFill: (m: AiFilled) => void;
+}
+
+/** Why the fill-in cannot answer now: paused, offline or no Board AI (design ai-members C3: say who answers, or why not). */
+export function notReadyReason(board: AssistState['boardAi'] | undefined): string {
+  if (!board || board.state === 'not_configured') return 'Choose a Board AI (Members → Board AI) to get help here.';
+  const who = board.name ?? 'The Board AI';
+  const code = board.status?.code;
+  if (code === 'paused_all') return `${who} can’t help now: all AI is paused for this project.`;
+  if (code === 'paused') return `${who} can’t help now: it is paused.`;
+  const why = board.status?.label?.toLowerCase() ?? 'unavailable';
+  return `${who} can’t help now (${why}).${board.status?.detail ? ` ${board.status.detail}` : ''}`;
 }
 
 /**
@@ -86,12 +99,12 @@ export function AiFillPanel({ projectId, form, onFill }: Props) {
           aria-expanded={open}
           data-testid="ai-fill-toggle"
         >
-          ✦ Ask AI to fill this in
+          <LineIcon name="sparkle" size={13} /> Ask AI to fill this in
         </button>
         <span className="ai-hint">
           {ready
             ? `${board?.name ?? board?.fallback?.name} drafts the fields from your description. You review and create.`
-            : 'Choose a Board AI (Members → Board AI) to get help here.'}
+            : notReadyReason(board)}
         </span>
       </div>
       {open && ready && (

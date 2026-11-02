@@ -80,6 +80,7 @@ function textNodes(root: HTMLElement, skip: HTMLElement | null): Text[] {
     acceptNode(n) {
       const p = n.parentElement;
       if (!p || (skip && skip.contains(p))) return NodeFilter.FILTER_REJECT;
+      if (p.closest('.dk-cmt-badge')) return NodeFilter.FILTER_REJECT;
       const tag = p.tagName;
       if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
       return n.nodeValue ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
@@ -122,6 +123,24 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
   const [count, setCount] = useState(0);
   const [cur, setCur] = useState(0);
   const barRef = useRef<HTMLDivElement>(null);
+
+  // The bar takes room above the page instead of covering its header (Share, Edit, ···): while it is open, the
+  // space it sits in is marked, and the page view and the editor are pushed down by the bar's height (docs.css)
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    const host = bar?.parentElement;
+    if (!bar || !host) return;
+    const sync = () => host.style.setProperty('--dk-find-h', `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+    sync();
+    host.classList.add('dk-find-open');
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(sync);
+    ro?.observe(bar);
+    return () => {
+      ro?.disconnect();
+      host.classList.remove('dk-find-open');
+      host.style.removeProperty('--dk-find-h');
+    };
+  }, []);
   const inputRef = useRef<HTMLInputElement>(null);
   const ranges = useRef<Range[]>([]);
   const marksRef = useRef<HTMLElement[]>([]);

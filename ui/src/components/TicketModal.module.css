@@ -42,7 +42,9 @@
 }
 
 .panelVisible {
-  transform: translateY(0);
+  /* none, not translateY(0): any transform makes the panel the box that position: fixed popovers inside it
+     (mention and page suggesters, menus) are placed against, so they open off by the panel's offset */
+  transform: none;
 }
 
 .panelDetail {
@@ -80,7 +82,7 @@
   border-radius: 0 !important;
   border: none !important;
   box-shadow: none !important;
-  transform: translateY(0) !important;
+  transform: none !important;
 }
 
 .panelNew {
@@ -350,7 +352,7 @@
 
 .tabFadeSlide {
   animation: tabFadeSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  will-change: opacity;
 }
 
 @keyframes tabFadeSlideIn {
@@ -360,7 +362,7 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -1210,6 +1212,12 @@
     box-shadow 0.15s ease;
 }
 
+.ntInputPlain {
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
 .ntInput:focus {
   border-color: #2e6f40;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
@@ -1897,4 +1905,62 @@
   background: #f4f6f9;
   border-color: #b8c4d2;
   align-items: center;
+}
+
+/* While a file uploads: a pulsing placeholder thumbnail, or a thin bar under the file name (Attachments 2) */
+@keyframes attPulseBg {
+  0%,
+  100% {
+    background-color: #f6faf7;
+  }
+  50% {
+    background-color: #dce6df;
+  }
+}
+
+@keyframes attPulseIcon {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes attProgressSlide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.attPulseBox {
+  animation: attPulseBg 1.4s ease-in-out infinite;
+  cursor: default;
+}
+
+.attPulseIcon {
+  animation: attPulseIcon 1.4s ease-in-out infinite;
+}
+
+.attProgress {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: #dce6df;
+  overflow: hidden;
+  min-width: 110px;
+}
+
+.attProgress > span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: #2e6f40;
+  animation: attProgressSlide 1.2s ease-in-out infinite;
 }

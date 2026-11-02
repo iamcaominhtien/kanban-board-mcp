@@ -93,6 +93,58 @@ function Switch({
   );
 }
 
+const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
+
+/** "9:05" → "09:05"; null when the text is not a 24 h time. */
+function parseTime(text: string): string | null {
+  const m = TIME_RE.exec(text.trim());
+  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : null;
+}
+
+/** Moves a HH:MM time by a number of minutes, wrapping round the day. */
+function shiftTime(value: string, minutes: number): string {
+  const [h, m] = value.split(':').map(Number);
+  const total = (((h * 60 + m + minutes) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/**
+ * A 24 h time typed as text ("22:00"), as the design draws it: the browser's own time field shows 12 h and adds
+ * a second clock icon. A complete time saves at once; ↑ ↓ step the hour or the minutes (where the caret is), as
+ * the native field did; an unfinished value goes back to the saved one on blur.
+ */
+function TimeField({ value, label, onSave }: Readonly<{ value: string; label: string; onSave: (v: string) => void }>) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className={styles.time}
+      aria-label={label}
+      placeholder="HH:MM"
+      maxLength={5}
+      value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        const t = parseTime(e.target.value);
+        if (t) onSave(t);
+      }}
+      onBlur={() => setDraft(parseTime(draft) ?? value)}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+        const base = parseTime(draft) ?? value;
+        if (!TIME_RE.test(base)) return;
+        e.preventDefault();
+        const onHour = (e.currentTarget.selectionStart ?? 0) <= 2;
+        const next = shiftTime(base, (e.key === 'ArrowUp' ? 1 : -1) * (onHour ? 60 : 1));
+        setDraft(next);
+        onSave(next);
+      }}
+    />
+  );
+}
+
 function Setting({
   name,
   hint,
@@ -431,7 +483,13 @@ export function NotificationsSettings() {
             }
             control={
               inApp || browser !== 'unsupported' ? (
-                <Switch on={desktopOn} label="Desktop notifications" onChange={(v) => save({ desktopOn: v })} />
+                // a browser that blocks notifications cannot be asked to turn it on, but a saved "on" can still go off
+                <Switch
+                  on={desktopOn}
+                  disabled={!inApp && browser === 'denied' && !desktopOn}
+                  label="Desktop notifications"
+                  onChange={(v) => save({ desktopOn: v })}
+                />
               ) : undefined
             }
           />
@@ -444,19 +502,13 @@ export function NotificationsSettings() {
             <>
               <div className={styles.input}>
                 <ClockIcon />
-                <input
-                  type="time"
-                  aria-label="Quiet hours start"
+                <TimeField
+                  label="Quiet hours start"
                   value={s.quiet.start}
-                  onChange={(e) => e.target.value && save({ quiet: { start: e.target.value } })}
+                  onSave={(v) => save({ quiet: { start: v } })}
                 />
                 <span>&ndash;</span>
-                <input
-                  type="time"
-                  aria-label="Quiet hours end"
-                  value={s.quiet.end}
-                  onChange={(e) => e.target.value && save({ quiet: { end: e.target.value } })}
-                />
+                <TimeField label="Quiet hours end" value={s.quiet.end} onSave={(v) => save({ quiet: { end: v } })} />
               </div>
               <Switch on={s.quiet.on} label="Quiet hours" onChange={(v) => save({ quiet: { on: v } })} />
             </>
@@ -559,12 +611,7 @@ export function NotificationsSettings() {
           </div>
           <div className={styles.input}>
             <SunIcon />
-            <input
-              type="time"
-              aria-label="Day card time"
-              value={s.dayCard.time}
-              onChange={(e) => e.target.value && save({ dayCard: { time: e.target.value } })}
-            />
+            <TimeField label="Day card time" value={s.dayCard.time} onSave={(v) => save({ dayCard: { time: v } })} />
           </div>
         </div>
         <Setting

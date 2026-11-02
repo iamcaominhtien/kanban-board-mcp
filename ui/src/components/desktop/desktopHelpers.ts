@@ -97,7 +97,6 @@ export function releaseNotesFor(changelog: string, version: string): ReleaseNote
 
 /** The text a bug report starts with: what will be filled in, shown to the person before anything is opened. */
 export function reportIssueText(info: AppInfo): string {
-  const win = info.window && info.window.length === 2 ? `${info.window[0]} × ${info.window[1]}` : 'unknown';
   return [
     '**What happened**',
     '',
@@ -109,10 +108,18 @@ export function reportIssueText(info: AppInfo): string {
     '1. ',
     '',
     '**About my setup**',
-    `- App ${info.version} · Backend ${info.backendRunning ? 'running' : 'not running'}`,
-    `- ${info.osName} ${info.osVersion} (${info.arch}) · Electron ${info.electron}`,
-    `- Window ${win} · Language ${info.language}`,
+    ...reportIssueFacts(info).map((l) => `- ${l}`),
   ].join('\n');
+}
+
+/** The facts block of a bug report (the "About my setup" lines), shown in the Report an issue window. */
+export function reportIssueFacts(info: AppInfo): string[] {
+  const win = info.window && info.window.length === 2 ? `${info.window[0]} × ${info.window[1]}` : 'unknown';
+  return [
+    `App ${info.version} · Backend ${info.backendRunning ? 'running' : 'not running'}`,
+    `${info.osName} ${info.osVersion} (${info.arch}) · Electron ${info.electron}`,
+    `Window ${win} · Language ${info.language}`,
+  ];
 }
 
 /** The address of a new GitHub issue with the report text filled in. Opening it sends nothing by itself. */

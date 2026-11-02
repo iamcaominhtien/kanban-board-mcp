@@ -1,3 +1,4 @@
+import { LineIcon } from '../../ui/LineIcon';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { extractError } from '../../../api/extractError';
@@ -542,10 +543,10 @@ export function ConfigTab({
                 }}
               />
               <button type="button" className="ai-btn ai-btn-sm" onClick={() => fileRef.current?.click()}>
-                Import JSON
+                <LineIcon name="upload" size={13} /> Import JSON
               </button>
               <button type="button" className="ai-btn ai-btn-sm" onClick={() => void exportJson()}>
-                Export JSON
+                <LineIcon name="download" size={13} /> Export JSON
               </button>
               <button
                 type="button"
@@ -553,7 +554,7 @@ export function ConfigTab({
                 data-testid="reset-defaults"
                 onClick={() => setResetting(true)}
               >
-                Reset to defaults
+                <LineIcon name="undo" size={13} /> Reset to defaults
               </button>
               <button
                 type="button"

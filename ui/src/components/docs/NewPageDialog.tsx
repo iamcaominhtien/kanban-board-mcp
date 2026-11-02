@@ -14,6 +14,7 @@ import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { slugify } from '../../utils/docsMarkdown';
 import { Icon } from './Icon';
 import { createCanvasPage } from '../../api/canvases';
+import { LineIcon } from '../ui/LineIcon';
 
 interface Props {
   projectId: string;
@@ -67,7 +68,11 @@ function TemplatePreview({ markdown }: { markdown: string }) {
             {children}
           </div>
         ),
-        input: () => <span>☐ </span>,
+        input: () => (
+          <span>
+            <LineIcon name="square" size={12} />{' '}
+          </span>
+        ),
         code: ({ children }) => <span style={{ fontFamily: 'var(--font-mono)' }}>{children}</span>,
         pre: ({ children }) => <div style={{ ...previewText, fontFamily: 'var(--font-mono)' }}>{children}</div>,
         table: ({ children }) => (

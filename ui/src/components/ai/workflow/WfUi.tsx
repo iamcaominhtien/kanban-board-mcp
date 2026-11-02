@@ -32,33 +32,38 @@ export function StepChain({
 }) {
   const out: ReactNode[] = [];
   steps.forEach((s, i) => {
-    if (i > 0)
-      out.push(
-        <span key={`sep${i}`} className="wf-sep" aria-hidden="true">
+    // The "›" stays with the chip after it, so a line never ends on a dangling separator (design E)
+    const sep =
+      i > 0 ? (
+        <span className="wf-sep" aria-hidden="true">
           &rsaquo;
-        </span>,
-      );
+        </span>
+      ) : null;
     const text = stepChainLabel(s, names);
     const inner =
       s.kind === 'code' ? <i>{text}</i> : s.kind === 'person' && i < steps.length - 1 ? <b>{text}</b> : text;
     const cls = `wf-pill${s.kind === 'person' && i < steps.length - 1 ? ' wf-pill-you' : ''}${selected === i ? ' on' : ''}`;
+    const pill = onSelect ? (
+      <button
+        key={`${s.key}${i}`}
+        type="button"
+        className={cls}
+        aria-pressed={selected === i}
+        data-testid={`chain-step-${i}`}
+        onClick={() => onSelect(i)}
+      >
+        {inner}
+      </button>
+    ) : (
+      <span key={`${s.key}${i}`} className={cls} data-testid="chain-step">
+        {inner}
+      </span>
+    );
     out.push(
-      onSelect ? (
-        <button
-          key={`${s.key}${i}`}
-          type="button"
-          className={cls}
-          aria-pressed={selected === i}
-          data-testid={`chain-step-${i}`}
-          onClick={() => onSelect(i)}
-        >
-          {inner}
-        </button>
-      ) : (
-        <span key={`${s.key}${i}`} className={cls} data-testid="chain-step">
-          {inner}
-        </span>
-      ),
+      <span key={`${s.key}${i}`} className="wf-chain-item">
+        {sep}
+        {pill}
+      </span>,
     );
   });
   return <div className="wf-chain">{out}</div>;

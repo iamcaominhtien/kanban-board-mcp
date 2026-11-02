@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import { resolveOrigin } from './resolveOrigin';
 import type {
@@ -447,6 +447,12 @@ export async function listBranches(ticketId: string): Promise<TicketBranch[]> {
   return res.data;
 }
 
+/** The branch a new branch of this ticket starts from by default (main, else master, else the checked-out one). */
+export async function getDefaultBase(ticketId: string): Promise<string | null> {
+  const res = await client.get<{ base: string | null }>(`/tickets/${ticketId}/branches/base`);
+  return res.data.base;
+}
+
 /**
  * Add a branch to a ticket.
  * @param ticketId - Ticket the branch is recorded on.
@@ -665,7 +671,10 @@ export function useTickets(projectId: string, params?: { status?: string; priori
     // `q` changes on every search keystroke (debounced), which changes the
     // query key — keep showing the previous results while the new query
     // fetches instead of flashing a loading state / unmounting the board.
-    placeholderData: keepPreviousData,
+    // Only within the same project: another project's cards must never show under this one's name, and a project
+    // not loaded yet shows its loading skeleton.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[0] === 'tickets' && previousQuery.queryKey[1] === projectId ? previous : undefined,
   });
 }
 
@@ -1143,6 +1152,16 @@ export function useTicketBranches(ticketId: string) {
   });
 }
 
+/** Query the repository's default base branch for a ticket (null with no linked repository). */
+export function useDefaultBase(ticketId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['ticket_branch_base', ticketId],
+    queryFn: () => getDefaultBase(ticketId),
+    enabled: !!ticketId && enabled,
+    staleTime: 60_000,
+  });
+}
+
 /**
  * Query the commit graph of the ticket's repo.
  * @param ticketId - Ticket whose graph is loaded; disabled while empty.
@@ -1154,7 +1173,8 @@ export function useBranchGraph(ticketId: string, limit: number) {
     queryKey: ['ticket_branches', ticketId, 'graph', limit],
     queryFn: () => getBranchGraph(ticketId, limit),
     enabled: !!ticketId,
-    placeholderData: keepPreviousData,
+    // the previous graph while "Show more" loads, never another ticket's graph
+    placeholderData: (previous, previousQuery) => (previousQuery?.queryKey[1] === ticketId ? previous : undefined),
   });
 }
 

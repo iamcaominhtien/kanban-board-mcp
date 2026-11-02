@@ -5,6 +5,7 @@ import type { AiCustomTool, AiKv } from '../../../types/ai';
 import { configApi, useLibrary, type ToolCheck, type ToolTestResult } from './configApi';
 import { useCfg } from './configCtx';
 import { CfgCard, Chip, CodeEditor, Dialog, IssueText, newId, useDebounced } from './parts';
+import { LineIcon } from '../../ui/LineIcon';
 
 type Groups = ReturnType<typeof useCfg>['cfg']['toolGroups'];
 
@@ -206,7 +207,7 @@ function ToolDialog({
                 checked={!!h.secret}
                 onChange={(e) => setHeaders(headers.map((x, j) => (j === i ? { ...x, secret: e.target.checked } : x)))}
               />
-              🔒 Secret
+              <LineIcon name="lock" size={12} /> Secret
             </label>
             <button
               type="button"
@@ -214,7 +215,7 @@ function ToolDialog({
               aria-label="Remove header"
               onClick={() => setHeaders(headers.filter((_, j) => j !== i))}
             >
-              ✕
+              <LineIcon name="close" size={12} />
             </button>
           </div>
         ))}
@@ -363,7 +364,11 @@ export function ApiToolsCard() {
               <div className="cfg-row-main">
                 <div className="cfg-row-title">
                   <span className="ai-mono">{t.name || 'unnamed'}</span>
-                  {t.headers.some((h) => h.secret) && <Chip>🔒 Secret header</Chip>}
+                  {t.headers.some((h) => h.secret) && (
+                    <Chip>
+                      <LineIcon name="lock" size={12} /> Secret header
+                    </Chip>
+                  )}
                   {t.library && (
                     <Chip tone={behind ? 'warn' : 'lib'}>
                       Library · v{t.library.version}
@@ -392,7 +397,7 @@ export function ApiToolsCard() {
                 aria-label={`Remove ${t.name}`}
                 onClick={() => setCfg({ customTools: cfg.customTools.filter((x) => x.id !== t.id) })}
               >
-                ✕
+                <LineIcon name="close" size={12} />
               </button>
             </div>
             <IssueText issues={issues} path={`custom_tools.${i}.spec`} />

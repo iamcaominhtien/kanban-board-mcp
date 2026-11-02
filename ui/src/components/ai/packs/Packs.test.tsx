@@ -415,7 +415,7 @@ describe('team wizard', () => {
 
   it('names the four steps and reads files only in step 1', async () => {
     await toTeam();
-    expect(http.post).toHaveBeenCalledWith('/projects/p1/ai/scan', { folder: '/repo', trial: false });
+    expect(http.post).toHaveBeenCalledWith('/projects/p1/ai/scan', { folder: '/repo', trial: false, refine: false });
     const steps = screen.getByLabelText('Steps').textContent;
     for (const t of ['Read the repository', 'The team', 'Commands', 'Confirm']) expect(steps).toContain(t);
   });

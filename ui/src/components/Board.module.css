@@ -13,18 +13,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px 16px;
+  /* When the page is narrow (sidebar open, Board AI dock open) the controls go to a second row instead of being
+     pushed out of the window: New Ticket and the view tabs always stay reachable */
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .topBarRight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin-left: auto;
 }
 
 .viewSwitcher {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 2px;
   padding: 3px;
   border-radius: 8px;
@@ -62,6 +72,12 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   color: #1e2a22;
+  /* one line, as drawn; a long name ends in … (the full name is in its tooltip) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .newButton {
@@ -125,19 +141,13 @@
 .columns {
   display: flex;
   gap: 12px;
+  position: relative;
   flex: 1;
   min-height: 0;
   /* Scrolls sideways when the board is narrow (e.g. with the Board AI dock open) instead of squeezing cards */
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 2px;
-}
-
-/* The Board AI dock floats over the board: this room at the end lets the last columns scroll out from under it */
-.columns::after {
-  content: '';
-  flex: 0 0 var(--as-dock-w, 0px);
-  margin-left: -12px; /* cancels the gap before it, so there is no room (and no scrollbar) while the dock is shut */
 }
 
 @media (max-width: 860px) {
@@ -320,4 +330,21 @@
 .dragLabelPending {
   background: #5b6f86;
   color: #fff;
+}
+
+/* A notice over the board under the filter bar, out of the layout flow (Main Board 4, board MB-5) */
+.noticeAnchor {
+  position: relative;
+  height: 0;
+  margin-bottom: -16px;
+  z-index: 60;
+}
+
+.notice {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
 }

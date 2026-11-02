@@ -192,6 +192,8 @@ const codeStyle: CSSProperties = {
 
 interface Props {
   projectName: string;
+  /** The project's ticket key prefix, for the example key ("tickets like MOB-12"). */
+  ticketPrefix?: string;
   onCreate: (template?: string) => void;
   onImport?: () => void;
   onDropFiles?: (files: File[]) => void;
@@ -200,11 +202,12 @@ interface Props {
 /**
  * Empty space (A): eyebrow, headline, calls to action, template gallery and the import strip.
  * @param props.projectName - Space name used in the headline.
+ * @param props.ticketPrefix - Ticket key prefix of the project, used in the example key.
  * @param props.onCreate - Called to create a page, with a template id when one was chosen.
  * @param props.onImport - Called to open the import dialog.
  * @param props.onDropFiles - Called with files dropped on the import strip.
  */
-export function DocsHero({ projectName, onCreate, onImport, onDropFiles }: Props) {
+export function DocsHero({ projectName, ticketPrefix, onCreate, onImport, onDropFiles }: Props) {
   const filesRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
   const picked = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,8 +259,9 @@ export function DocsHero({ projectName, onCreate, onImport, onDropFiles }: Props
         </h1>
         <p style={{ margin: '12px 0 0', fontSize: 15, lineHeight: 1.65, color: '#5B6B60', maxWidth: 600 }}>
           One shared space for requirements, designs and decisions. Link pages to each other with{' '}
-          <code style={codeStyle}>[[Page#Section]]</code> and to tickets like <code style={codeStyle}>KAN-12</code>, and
-          they stay connected as the project changes.
+          <code style={codeStyle}>[[Page#Section]]</code> and to tickets like{' '}
+          <code style={codeStyle}>{`${ticketPrefix || 'KAN'}-12`}</code>, and they stay connected as the project
+          changes.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 22 }}>
           <button

@@ -9,6 +9,7 @@ import { displayStatus } from '../../utils/memberAccount';
 import { ChangeAccountDialog } from './accounts/AccountPicker';
 import { SignInWindow } from './accounts/SignInWindow';
 import { PROVIDERS, StatusLabel, fmtElapsed, inWords, money, secondsSince, shortDate, useNow, ago } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Where “Configuration” should put the cursor when a state's action sends the person there. */
 export type ConfigFocus = 'key' | 'budget' | 'model';
@@ -75,7 +76,7 @@ function InstallStepsDialog({
         <div className="ai-modal-foot">
           {detect?.guideUrl && (
             <a className="ai-link" href={detect.guideUrl} target="_blank" rel="noopener noreferrer">
-              Installation guide ↗
+              Installation guide <LineIcon name="external" size={12} />
             </a>
           )}
           <span style={{ flex: 1 }} />

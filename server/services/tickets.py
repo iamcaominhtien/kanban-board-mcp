@@ -1864,6 +1864,29 @@ async def list_branches(session: AsyncSession, ticket_id: str) -> list[dict] | N
     return branches
 
 
+async def default_base_branch(session: AsyncSession, ticket_id: str) -> dict | None:
+    """The branch a new branch of this ticket starts from by default, or None if the ticket is missing.
+
+    Returns:
+        {"base": name} with the repository's default base (main, else master, else the checked-out branch), or
+        {"base": None} when no repository is linked or it cannot be read.
+    """
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    repo_path = await _project_repo_path(session, ticket)
+    if not repo_path:
+        return {"base": None}
+
+    def _read() -> str | None:
+        try:
+            return git_repo.default_base_branch(git_repo.open_repo(repo_path))
+        except (git_repo.GitRepoError, GitCommandError, OSError, ValueError):
+            return None
+
+    return {"base": await asyncio.to_thread(_read)}
+
+
 async def _project_repo_path(session: AsyncSession, ticket: Ticket) -> str | None:
     """Effective repo for a ticket: its own override, else the project's."""
     if getattr(ticket, "repo_path", None):
@@ -1885,7 +1908,7 @@ def _sync_branches_with_git(repo_path: str, branches: list[dict]) -> list[dict]:
         if br.get("status") != "baseline":
             try:
                 info = git_repo.branch_info(
-                    repo, br["name"], br.get("branch_from") or "main"
+                    repo, br["name"], git_repo.resolve_base(repo, br.get("branch_from"))
                 )
             except (git_repo.GitRepoError, GitCommandError):
                 # Branch not in this repo (e.g. repo was changed): keep stored values
@@ -1958,12 +1981,13 @@ async def add_branch(
         )
     if repo_path:
         # Real git repo linked: create the branch there and use its true state.
-        def _create() -> git_repo.BranchInfo:
-            return git_repo.create_branch(
-                git_repo.open_repo(repo_path), name, branch_from
-            )
+        # "main" is the form's default; a repository whose default branch is master starts from master instead
+        def _create() -> tuple[git_repo.BranchInfo, str]:
+            repo = git_repo.open_repo(repo_path)
+            base = git_repo.resolve_base(repo, branch_from)
+            return git_repo.create_branch(repo, name, base), base
 
-        info = await asyncio.to_thread(_create)
+        info, branch_from = await asyncio.to_thread(_create)
         commit_hash = info.commit_hash
         ahead_count = info.ahead_count
         behind_count = info.behind_count

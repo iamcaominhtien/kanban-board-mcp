@@ -2,6 +2,7 @@ import { useTicketRuns } from '../../api/ai';
 import type { Ticket } from '../../types';
 import { ACTIVE_RUN_STATES, hhmm, useAiBoardState } from './aiUi';
 import './ticketWork.css';
+import { LineIcon } from '../ui/LineIcon';
 
 /** “moved by Claude Code · Backend” under the Status of a ticket whose last status change an AI made. */
 export function StatusMovedBy({ ticket }: { ticket: Ticket }) {
@@ -32,7 +33,9 @@ export function HoldChips({ ticket }: { ticket: Ticket }) {
       style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, alignItems: 'flex-start' }}
       data-testid="hold-chips"
     >
-      <span className="tw-hold">🔒 Held since {hhmm(holder.startedAt ?? holder.queuedAt)}</span>
+      <span className="tw-hold">
+        <LineIcon name="lock" size={12} /> Held since {hhmm(holder.startedAt ?? holder.queuedAt)}
+      </span>
       {holder.memberId !== ticket.assignee && (
         <span className="tw-hold" data-testid="held-by">
           Held by {holderName}
@@ -62,7 +65,7 @@ export function AiCompletedBadge({ ticket }: { ticket: Ticket }) {
       data-testid="ai-completed-badge"
       title={`Moved to Done by ${ticket.completedBy}`}
     >
-      ✓ AI-completed
+      <LineIcon name="check" size={12} /> AI-completed
     </span>
   );
 }

@@ -46,7 +46,7 @@ export const ReopenDialog: React.FC<ReopenDialogProps> = ({
   onViewTicket,
   initialReason = '',
 }) => {
-  useEscape(isSubmitting ? () => {} : onClose);
+  useEscape(isSubmitting ? () => {} : onClose, isOpen);
   const isConflict = !!error && /can be reopened/i.test(error);
 
   const effectiveParent = parentTicket ?? (allTickets ? allTickets.find((t) => t.id === ticket.parentId) : null);

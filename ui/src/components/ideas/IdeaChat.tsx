@@ -9,6 +9,7 @@ import type { Idea } from '../../types/idea';
 import { useAiBoardState } from '../ai/aiUi';
 import { DraftTag } from '../assist/assistUi';
 import { ScopedChat } from '../assist/ScopedChat';
+import { LineIcon } from '../ui/LineIcon';
 
 /** The kinds of draft an idea chat can propose. Moving, merging, archiving and promoting are not among them. */
 const IDEA_OPS = ['idea_assumption', 'idea_page_text'];
@@ -42,7 +43,10 @@ export function AskAiButton({
       onClick={onClick}
       data-testid="ask-ai-button"
     >
-      <span aria-hidden="true">💬</span> Ask AI
+      <span aria-hidden="true">
+        <LineIcon name="chat" size={13} />
+      </span>{' '}
+      Ask AI
     </button>
   );
 }
@@ -182,7 +186,9 @@ function IdeaDraftCard({ draft }: { draft: AssistDraft }) {
     const count = d.result.count ?? 0;
     return (
       <div className="as-tile" style={{ flexDirection: 'row', alignItems: 'center' }} data-testid="draft-result">
-        <span style={{ color: '#2E6F40', fontWeight: 700 }}>✓</span>
+        <span style={{ color: '#2E6F40', fontWeight: 700 }}>
+          <LineIcon name="check" size={14} />
+        </span>
         <span style={{ flex: 1, fontSize: 13 }}>
           {d.status === 'undone' ? (
             <>

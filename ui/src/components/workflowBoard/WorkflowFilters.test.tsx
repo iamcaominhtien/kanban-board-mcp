@@ -84,6 +84,14 @@ describe('WorkflowFilters', () => {
     expect(screen.getByTestId('workflow-filter-role').textContent).toContain('All');
   });
 
+  it('keeps Role, Workflow and Step directly on the bar, each showing its value, with no More filters control', () => {
+    setup({ ...NO_WORKFLOW_FILTER, role: 'dev', step: 'Build' });
+    expect(screen.queryByTestId('workflow-filter-more')).toBeNull();
+    expect(screen.getByTestId('workflow-filter-role').textContent).toContain('Dev');
+    expect(screen.getByTestId('workflow-filter-template').textContent).toContain('All');
+    expect(screen.getByTestId('workflow-filter-step').textContent).toContain('Build');
+  });
+
   it('hides the role and step menus when there is nothing to choose', () => {
     setup(NO_WORKFLOW_FILTER, { ...options, roles: [], steps: [] });
     expect(screen.queryByTestId('workflow-filter-role')).toBeNull();

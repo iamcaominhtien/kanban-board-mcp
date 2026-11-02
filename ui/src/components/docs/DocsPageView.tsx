@@ -18,8 +18,9 @@ import { FollowBell } from '../notifications-follow/FollowBell';
 import { CommentsPanel } from './comments/CommentsPanel';
 import { PageComments } from './comments/PageComments';
 import { ComposePopover, SelectionToolbar, type Pick } from './comments/SelectionComment';
+import { personOf } from './comments/people';
 import { useCommentsController } from './comments/useCommentsController';
-import { CommentBadges, useCommentHighlights } from './comments/useCommentHighlights';
+import { useCommentHighlights } from './comments/useCommentHighlights';
 import './comments/comments.css';
 import { avatarColors, pageFullTime } from './docsUi';
 import { Icon } from './Icon';
@@ -57,6 +58,13 @@ function initials(actor: string): string {
   if (actor === 'user' || actor === 'agent') return actorInitials(actor);
   const words = actorName(actor).split(/\s+/).filter(Boolean);
   return (words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? '?').slice(0, 2)).toUpperCase();
+}
+
+/** Short stable key for a Markdown string (djb2), so a change of content remounts the rendered page. */
+function contentKey(md: string): string {
+  let h = 5381;
+  for (let i = 0; i < md.length; i += 1) h = ((h << 5) + h + md.charCodeAt(i)) | 0;
+  return `${md.length}:${h >>> 0}`;
 }
 
 const crumb = { fontSize: 12.5, fontWeight: 500, color: '#5B6B60', whiteSpace: 'nowrap' } as const;
@@ -142,7 +150,7 @@ export function DocsPageView({
     [onBodyRef],
   );
 
-  const badges = useCommentHighlights({
+  useCommentHighlights({
     root: bodyEl,
     threads: inlineThreads,
     activeId: cc.activeId,
@@ -266,6 +274,7 @@ export function DocsPageView({
         position: 'relative',
         background: '#FFFFFF',
       }}
+      className="dk-find-push"
       data-testid="docs-page"
     >
       {offline && (
@@ -298,10 +307,27 @@ export function DocsPageView({
               <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
+              {/* The breadcrumb has its own row, as every Docs board draws it; the page actions sit beside the title
+                  below and wrap under it when the window is too narrow, so nothing is cut off */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <nav
                   aria-label="Breadcrumb"
-                  style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1, overflow: 'hidden' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    minWidth: 0,
+                    flex: '1 1 240px',
+                    overflow: 'hidden',
+                  }}
                 >
                   <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />
                   <span style={crumb}>{projectName}</span>
@@ -382,12 +408,151 @@ export function DocsPageView({
                     )}
                   </div>
                 )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+                  <h1
+                    data-testid="page-title"
+                    style={{
+                      margin: 0,
+                      fontSize: 32,
+                      fontWeight: 800,
+                      lineHeight: 1.15,
+                      color: '#1E2A22',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {page.title}
+                  </h1>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      flexWrap: 'wrap',
+                      marginTop: 10,
+                    }}
+                  >
+                    {published ? (
+                      <span
+                        className="mc-chip"
+                        style={{ background: '#DCEEE1', color: '#1F5A31' }}
+                        data-testid="status-badge"
+                      >
+                        <span className="mc-dot" style={{ background: '#2E6F40' }} />
+                        Published · v{page.version}
+                      </span>
+                    ) : (
+                      <span
+                        className="mc-chip"
+                        style={{ background: '#FCEFD9', color: '#7A4F08' }}
+                        data-testid="status-badge"
+                      >
+                        <span className="mc-dot" style={{ background: '#B4791E' }} />
+                        Draft
+                      </span>
+                    )}
+                    {showDraft && published && (
+                      <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
+                        <span className="mc-dot" style={{ background: '#2F6FB0' }} />
+                        Unpublished changes
+                      </span>
+                    )}
+                    {offline && (
+                      <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
+                        Offline copy
+                      </span>
+                    )}
+                    <div
+                      data-popover
+                      style={{
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 12.5,
+                        color: '#5B6B60',
+                      }}
+                    >
+                      <span
+                        title={actorName(who)}
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: '50%',
+                          ...av,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {initials(who)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setInfo((v) => !v)}
+                        aria-expanded={info}
+                        data-testid="page-info"
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          padding: 0,
+                          font: 'inherit',
+                          color: 'inherit',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
+                        <span
+                          onMouseEnter={() => setTimeTip(true)}
+                          onMouseLeave={() => setTimeTip(false)}
+                          title={absoluteTime(whenIso)}
+                          style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
+                        >
+                          {relativeTime(whenIso)}
+                        </span>
+                      </button>
+                      {timeTip && !info && (
+                        <div
+                          className="dk-tt"
+                          role="tooltip"
+                          style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
+                        >
+                          {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
+                        </div>
+                      )}
+                      {info && (
+                        <PageInfoPopover
+                          page={page}
+                          onClose={() => setInfo(false)}
+                          onOpenHistory={() => {
+                            setInfo(false);
+                            onAction('history');
+                          }}
+                          onOpenReferences={() =>
+                            scrollRef.current
+                              ?.querySelector('[data-testid="referenced-by"]')
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                          }
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
-                    flexShrink: 0,
+                    paddingTop: 2,
+                    flexWrap: 'wrap',
+                    justifyContent: 'flex-end',
+                    marginLeft: 'auto',
+                    maxWidth: '100%',
                   }}
                 >
                   {!offline && (
@@ -480,139 +645,6 @@ export function DocsPageView({
                   </div>
                 </div>
               </div>
-              <div>
-                <h1
-                  data-testid="page-title"
-                  style={{
-                    margin: 0,
-                    fontSize: 32,
-                    fontWeight: 800,
-                    lineHeight: 1.15,
-                    color: '#1E2A22',
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  {page.title}
-                </h1>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    flexWrap: 'wrap',
-                    marginTop: 10,
-                  }}
-                >
-                  {published ? (
-                    <span
-                      className="mc-chip"
-                      style={{ background: '#DCEEE1', color: '#1F5A31' }}
-                      data-testid="status-badge"
-                    >
-                      <span className="mc-dot" style={{ background: '#2E6F40' }} />
-                      Published · v{page.version}
-                    </span>
-                  ) : (
-                    <span
-                      className="mc-chip"
-                      style={{ background: '#FCEFD9', color: '#7A4F08' }}
-                      data-testid="status-badge"
-                    >
-                      <span className="mc-dot" style={{ background: '#B4791E' }} />
-                      Draft
-                    </span>
-                  )}
-                  {showDraft && published && (
-                    <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
-                      <span className="mc-dot" style={{ background: '#2F6FB0' }} />
-                      Unpublished changes
-                    </span>
-                  )}
-                  {offline && (
-                    <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
-                      Offline copy
-                    </span>
-                  )}
-                  <div
-                    data-popover
-                    style={{
-                      position: 'relative',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      fontSize: 12.5,
-                      color: '#5B6B60',
-                    }}
-                  >
-                    <span
-                      title={actorName(who)}
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: '50%',
-                        ...av,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {initials(who)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setInfo((v) => !v)}
-                      aria-expanded={info}
-                      data-testid="page-info"
-                      style={{
-                        border: 'none',
-                        background: 'none',
-                        padding: 0,
-                        font: 'inherit',
-                        color: 'inherit',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
-                      <span
-                        onMouseEnter={() => setTimeTip(true)}
-                        onMouseLeave={() => setTimeTip(false)}
-                        title={absoluteTime(whenIso)}
-                        style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
-                      >
-                        {relativeTime(whenIso)}
-                      </span>
-                    </button>
-                    {timeTip && !info && (
-                      <div
-                        className="dk-tt"
-                        role="tooltip"
-                        style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
-                      >
-                        {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
-                      </div>
-                    )}
-                    {info && (
-                      <PageInfoPopover
-                        page={page}
-                        onClose={() => setInfo(false)}
-                        onOpenHistory={() => {
-                          setInfo(false);
-                          onAction('history');
-                        }}
-                        onOpenReferences={() =>
-                          scrollRef.current
-                            ?.querySelector('[data-testid="referenced-by"]')
-                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                        }
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
             <div style={{ height: 1, background: '#E3E8E5', margin: '20px 0 4px' }} />
             {!offline && aiOn && (
@@ -622,7 +654,6 @@ export function DocsPageView({
               </div>
             )}
             <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
-              <CommentBadges badges={badges} activeId={cc.activeId} onSelect={cc.activate} />
               {!published && (
                 <div
                   style={{
@@ -653,6 +684,9 @@ export function DocsPageView({
                   data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
                 >
                   <DocsMarkdown
+                    // keyed by what it shows: the comment numbers are placed inline in this DOM
+                    // (useCommentHighlights), so new text gets fresh nodes instead of edits to split ones
+                    key={contentKey(translated ?? (published ? page.markdown : page.draft!.markdown))}
                     projectId={projectId}
                     projectName={projectName}
                     onOpenPage={onOpenPage}
@@ -732,6 +766,7 @@ export function DocsPageView({
           pick={compose}
           projectId={projectId}
           members={suggest}
+          me={commentsData ? personOf(commentsData.me, commentsData.members, commentsData.me) : undefined}
           onCancel={() => setCompose(null)}
           onSubmit={async (text) => {
             const t = await cc.actions.createThread.mutateAsync({ kind: 'inline', body: text, anchor: compose.anchor });

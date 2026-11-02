@@ -1,3 +1,4 @@
+import { LineIcon } from '../../ui/LineIcon';
 import { useMemo, useState } from 'react';
 import { useWorkflowMetrics, useWorkflowTemplates } from '../../../api/aiWorkflow';
 import type { WorkflowMetric, WorkflowTemplate } from '../../../types/aiWorkflow';
@@ -95,7 +96,7 @@ export function WorkflowsSection({ projectId }: { projectId: string }) {
                     aria-label={`Edit ${t.name}`}
                     onClick={() => setEdit(t)}
                   >
-                    Edit
+                    <LineIcon name="edit" size={13} /> Edit
                   </button>
                 </div>
               </div>

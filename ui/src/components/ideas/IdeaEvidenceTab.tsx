@@ -8,6 +8,7 @@ import { useAddEvidence, useDeleteEvidence, useIdeaEvidence } from '../../api/id
 import { uploadAnyFile } from '../../api/tickets';
 import type { EvidenceKind, Idea } from '../../types/idea';
 import { relativeTime } from '../../utils/relativeTime';
+import { IdeaIcon, type IdeaIconName } from './ideaIcons';
 
 type FormKind = Exclude<EvidenceKind, 'comment'>;
 const KIND_LABEL: Record<FormKind, string> = {
@@ -85,6 +86,7 @@ export function EvidenceForm({ assumptions, onAdd, ideaId, projectId, ideaTitle 
           {assumptions.map((a) => (
             <label key={a.id} className="is-check">
               <input
+                className="is-checkbox"
                 type="checkbox"
                 checked={chosen.includes(a.id)}
                 onChange={(e) => setChosen(e.target.checked ? [...chosen, a.id] : chosen.filter((x) => x !== a.id))}
@@ -220,77 +222,121 @@ function SketchThumb({
   );
 }
 
-/** Evidence tab: each piece once, with the assumptions it supports. */
+const KIND_ICONS: Record<EvidenceKind, IdeaIconName> = {
+  comment: 'comment',
+  file: 'attach',
+  link: 'link',
+  ticket: 'square',
+  sketch: 'brush',
+  diagram: 'frame',
+  note: 'page',
+};
+const KIND_NAMES: Record<EvidenceKind, string> = {
+  comment: 'Comment',
+  file: 'File',
+  link: 'Link',
+  ticket: 'Ticket',
+  sketch: 'Sketch',
+  diagram: 'Diagram',
+  note: 'Note',
+};
+
+/** The sketches and diagrams drawn in the page: they are evidence too, even before they support an assumption. */
+function pageDrawings(body: string): { kind: 'sketch' | 'diagram'; id: string; title: string }[] {
+  const out: { kind: 'sketch' | 'diagram'; id: string; title: string }[] = [];
+  for (const m of body.matchAll(/!?\[([^\]\n]*)\]\(sketch:(sk_[0-9a-f]{8})\)/g))
+    out.push({ kind: 'sketch', id: m[2], title: m[1] || 'Untitled sketch' });
+  for (const m of body.matchAll(/!\[([^\]\n]*)\]\(canvas:(cv_[0-9a-f]{8})[^)]*\)/g))
+    out.push({ kind: 'diagram', id: m[2], title: m[1] || 'Untitled diagram' });
+  return out;
+}
+
+/** Evidence tab: each piece once as a card, with the assumptions it supports; the page's drawings are listed too. */
 export function IdeaEvidenceTab({ idea, readOnly }: { idea: Idea; readOnly: boolean }) {
   const list = useIdeaEvidence(idea.id);
   const add = useAddEvidence();
   const remove = useDeleteEvidence();
   const items = list.data ?? [];
+  const inEvidence = new Set(items.map((e) => e.ref));
+  const drawings = pageDrawings(idea.body ?? '').filter((d) => ![...inEvidence].some((r) => r.includes(d.id)));
 
   return (
     <div data-testid="evidence-tab">
-      {items.length === 0 ? (
+      {items.length === 0 && drawings.length === 0 ? (
         <div className="is-empty">
           <h3>No evidence yet</h3>
           <div>Evidence is the proof for an assumption: a link, a file, a ticket, a note, a sketch or a diagram.</div>
         </div>
       ) : (
-        <table className="is-table">
-          <thead>
-            <tr>
-              <th>Evidence</th>
-              <th>Supports</th>
-              <th>Added</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((e) => (
-              <tr key={`${e.kind}:${e.ref}`}>
-                <td>
-                  <span className="is-tag">{e.kind}</span>{' '}
-                  {e.kind === 'link' ? (
-                    <a href={e.ref} target="_blank" rel="noreferrer noopener">
-                      {e.title || e.ref}
-                    </a>
-                  ) : e.kind === 'sketch' && SKETCH_LINE.test(e.ref) ? (
-                    <SketchThumb
-                      sketchId={SKETCH_LINE.exec(e.ref)![2]}
-                      title={e.title || SKETCH_LINE.exec(e.ref)![1]}
-                      ideaId={idea.id}
-                      projectId={idea.projectId ?? undefined}
-                      readOnly={readOnly}
-                    />
-                  ) : (
-                    <span>{e.title || e.ref}</span>
-                  )}
-                </td>
-                <td>
-                  {e.assumptions.map((a) => (
-                    <div key={a.id} className="is-muted">
-                      {a.text}
-                    </div>
-                  ))}
-                </td>
-                <td className="is-muted" style={{ whiteSpace: 'nowrap' }}>
-                  {e.createdBy ? `${e.createdBy === 'user' ? 'You' : e.createdBy} · ` : ''}
+        <div className="is-ev-list" role="list" aria-label="Evidence">
+          {items.map((e) => (
+            <div key={`${e.kind}:${e.ref}`} className="is-ev-item" role="listitem">
+              <span className="is-ev-icon">
+                <IdeaIcon name={KIND_ICONS[e.kind] ?? 'page'} size={16} />
+              </span>
+              <div className="is-grow is-ev-main">
+                {e.kind === 'link' ? (
+                  <a href={e.ref} target="_blank" rel="noreferrer noopener" className="is-ev-name is-ev-link">
+                    {e.title || e.ref}
+                  </a>
+                ) : e.kind === 'sketch' && SKETCH_LINE.test(e.ref) ? (
+                  <SketchThumb
+                    sketchId={SKETCH_LINE.exec(e.ref)![2]}
+                    title={e.title || SKETCH_LINE.exec(e.ref)![1]}
+                    ideaId={idea.id}
+                    projectId={idea.projectId ?? undefined}
+                    readOnly={readOnly}
+                  />
+                ) : (
+                  <span className="is-ev-name">{e.title || e.ref}</span>
+                )}
+                <span className="is-muted is-ev-meta">
+                  {KIND_NAMES[e.kind] ?? e.kind} · used by{' '}
+                  {e.assumptions.length === 1 ? '1 assumption' : `${e.assumptions.length} assumptions`} ·{' '}
+                  {e.createdBy ? `${e.createdBy === 'user' ? 'You' : e.createdBy}, ` : ''}
                   {relativeTime(e.createdAt)}
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      className="is-btn is-btn-ghost is-btn-sm"
-                      onClick={() => e.ids.forEach((id) => remove.mutate({ id: idea.id, evidenceId: id }))}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+                {e.assumptions.map((a) => (
+                  <span key={a.id} className="is-ev-supports">
+                    Supports: {a.text}
+                  </span>
+                ))}
+              </div>
+              {!readOnly && (
+                <button
+                  type="button"
+                  className="is-btn is-btn-ghost is-btn-sm"
+                  onClick={() => e.ids.forEach((id) => remove.mutate({ id: idea.id, evidenceId: id }))}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+          {drawings.map((d) => (
+            <div key={d.id} className="is-ev-item" role="listitem" data-testid={`page-drawing-${d.id}`}>
+              <span className="is-ev-icon">
+                <IdeaIcon name={d.kind === 'sketch' ? 'brush' : 'frame'} size={16} />
+              </span>
+              <div className="is-grow is-ev-main">
+                {d.kind === 'sketch' ? (
+                  <SketchThumb
+                    sketchId={d.id}
+                    title={d.title}
+                    ideaId={idea.id}
+                    projectId={idea.projectId ?? undefined}
+                    readOnly={readOnly}
+                  />
+                ) : (
+                  <span className="is-ev-name">{d.title}</span>
+                )}
+                <span className="is-muted is-ev-meta">
+                  {d.kind === 'sketch' ? 'Sketch' : 'Diagram'} · in the page · not used by an assumption yet
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
       {!readOnly &&
         (idea.assumptions.length === 0 ? (

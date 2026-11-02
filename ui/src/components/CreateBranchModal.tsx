@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useCreateBranch } from '../api/tickets';
+import { useCreateBranch, useDefaultBase } from '../api/tickets';
 import { useToast } from './Toast';
 import { extractError } from '../api/extractError';
 import styles from './CreateBranchModal.module.css';
+import { createPortal } from 'react-dom';
 
 interface BranchOption {
   id?: string;
@@ -21,6 +22,8 @@ interface CreateBranchModalProps {
   defaultWorktreeEnabled?: boolean;
   projectPrefix?: string;
   hasRepoLinked?: boolean;
+  /** The Create branch button: the form opens as a popover card under it (Branches 5, comp-2 BR-3). */
+  anchor?: DOMRect | null;
 }
 
 /**
@@ -63,15 +66,19 @@ export function CreateBranchModal({
   onClose,
   ticketId,
   branches = [],
-  initialBranchFrom = 'main',
+  initialBranchFrom,
   onSuccess,
   defaultWorktreeTemplate,
   defaultWorktreeEnabled = false,
   projectPrefix = '',
   hasRepoLinked = true,
+  anchor,
 }: CreateBranchModalProps) {
   const [branchName, setBranchName] = useState('');
-  const [branchFrom, setBranchFrom] = useState(initialBranchFrom);
+  // The repository's own default (main, else master…): a repo without main no longer gets 'main' as its base
+  const defaultBase = useDefaultBase(ticketId, isOpen).data ?? 'main';
+  const startFrom = initialBranchFrom || defaultBase;
+  const [branchFrom, setBranchFrom] = useState(startFrom);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [createWorktree, setCreateWorktree] = useState(Boolean(defaultWorktreeEnabled));
   const [customWorktreePath, setCustomWorktreePath] = useState('');
@@ -86,7 +93,7 @@ export function CreateBranchModal({
   useEffect(() => {
     if (isOpen) {
       setBranchName('');
-      setBranchFrom(initialBranchFrom || 'main');
+      setBranchFrom(startFrom);
       setIsDropdownOpen(false);
       setCreateWorktree(Boolean(defaultWorktreeEnabled));
       setCustomWorktreePath('');
@@ -95,7 +102,7 @@ export function CreateBranchModal({
         inputRef.current?.focus();
       }, 50);
     }
-  }, [isOpen, initialBranchFrom, defaultWorktreeEnabled]);
+  }, [isOpen, startFrom, defaultWorktreeEnabled]);
 
   // Handle ESC key
   useEffect(() => {
@@ -127,9 +134,9 @@ export function CreateBranchModal({
 
   if (!isOpen) return null;
 
-  // Deduplicate and ensure 'main' is listed
+  // Deduplicate and ensure the default base is listed
   const branchNamesSet = new Set<string>();
-  branchNamesSet.add('main');
+  branchNamesSet.add(defaultBase);
   branches.forEach((b) => {
     if (b.name) branchNamesSet.add(b.name);
   });
@@ -154,7 +161,7 @@ export function CreateBranchModal({
         ticketId,
         data: {
           name: trimmed,
-          branch_from: branchFrom || 'main',
+          branch_from: branchFrom || defaultBase,
           status: 'open',
           create_worktree: createWorktree,
           worktree_path: effectiveWorktreePath || null,
@@ -168,9 +175,10 @@ export function CreateBranchModal({
     }
   };
 
-  return (
+  // In the page body: inside the ticket panel a fixed card is placed off by the panel, and focusing it scrolls the panel
+  return createPortal(
     <div
-      className={styles.modalBackdrop}
+      className={`${styles.modalBackdrop} ${anchor ? styles.popoverBackdrop : ''}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -178,7 +186,15 @@ export function CreateBranchModal({
       }}
     >
       <form
-        className={styles.modalCard}
+        className={`${styles.modalCard} ${anchor ? styles.popoverCard : ''}`}
+        style={
+          anchor
+            ? {
+                top: Math.max(8, Math.min(anchor.bottom + 6, window.innerHeight - 420)),
+                left: Math.max(8, Math.min(anchor.right - 420, window.innerWidth - 428)),
+              }
+            : undefined
+        }
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -329,6 +345,7 @@ export function CreateBranchModal({
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

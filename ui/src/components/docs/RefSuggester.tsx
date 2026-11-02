@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { useDocsPage, useDocsTree } from '../../api/docs';
 import { useTickets } from '../../api/tickets';
 import type { DocsTreeNode } from '../../types/docs';
@@ -472,7 +473,8 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
         ? `Nothing matches “${state.query}”`
         : 'Nothing to show';
   const left = Math.max(8, Math.min(state.x, window.innerWidth - 338));
-  return (
+  // In the body: a transformed ancestor (the ticket modal) would make `position: fixed` relative to it
+  return createPortal(
     <div
       ref={boxRef}
       className="dk-menu docs-root"
@@ -645,7 +647,8 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
           </span>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

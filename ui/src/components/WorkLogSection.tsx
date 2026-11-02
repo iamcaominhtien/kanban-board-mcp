@@ -4,6 +4,7 @@ import { uploadAnyFile } from '../api/tickets';
 import { MarkdownEditor } from './MarkdownEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import styles from './WorkLogSection.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 const ROLES: WorkLogEntry['role'][] = ['PM', 'Developer', 'BA', 'Tester', 'Designer', 'Other'];
 
@@ -57,7 +58,9 @@ export function WorkLogSection({ entries, onAdd }: WorkLogSectionProps) {
         aria-expanded={isExpanded}
       >
         <span className={styles.sectionHeader}>{'Work Log (' + entries.length + ')'}</span>
-        <span className={styles.chevron + ' ' + (!isExpanded ? styles.chevronCollapsed : '')}>▼</span>
+        <span className={styles.chevron + ' ' + (!isExpanded ? styles.chevronCollapsed : '')}>
+          <LineIcon name="chevronDown" size={12} />
+        </span>
       </button>
 
       {isExpanded && (

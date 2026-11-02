@@ -3,6 +3,7 @@ import type { AiConfig } from '../../../types/ai';
 import { ago } from '../aiUi';
 import type { ConfigIssue, DiffRow, DocumentedItem } from './configApi';
 import './config.css';
+import { LineIcon } from '../../ui/LineIcon';
 
 /** The editable part of the Configuration tab that is not in `config`: connection fields of the member. */
 export interface MemberDraft {
@@ -70,6 +71,7 @@ export function ModeChip({
         : 'cfg-chip-none';
   return (
     <span className={`ai-chip ${cls}`} data-testid={`mode-${mode}`}>
+      {mode === 'synced' && <LineIcon name="refresh" size={11} />}
       {label ?? MODE_TEXT[mode]}
     </span>
   );
@@ -211,7 +213,10 @@ export function CodeEditor({
   testId,
   ariaLabel,
   insertRef,
+  header,
 }: {
+  /** A header bar drawn inside the editor's frame (file icon, file name, chip; design ai-provider-config B1). */
+  header?: ReactNode;
   value: string;
   onChange?: (v: string) => void;
   /** Filled with a function that inserts text at the cursor. */
@@ -248,8 +253,8 @@ export function CodeEditor({
     if (gut.current) gut.current.scrollTop = ta.current.scrollTop;
     if (hl.current) hl.current.scrollTop = ta.current.scrollTop;
   };
-  return (
-    <div className={`cfg-code ${bad.length ? 'cfg-code-err' : ''}`}>
+  const editor = (
+    <div className={`cfg-code ${header ? 'cfg-code-inner' : ''} ${bad.length ? 'cfg-code-err' : ''}`}>
       <div className="cfg-code-gutter" ref={gut} style={{ height: rows * 18 + 16 }} aria-hidden="true">
         {Array.from({ length: count }, (_, i) => (
           <div key={i} className={bad.includes(i + 1) ? 'cfg-ln-bad' : ''}>
@@ -279,6 +284,13 @@ export function CodeEditor({
           onChange={(e) => onChange?.(e.target.value)}
         />
       </div>
+    </div>
+  );
+  if (!header) return editor;
+  return (
+    <div className={`cfg-code-frame ${bad.length ? 'cfg-code-err' : ''}`}>
+      <div className="cfg-code-head">{header}</div>
+      {editor}
     </div>
   );
 }

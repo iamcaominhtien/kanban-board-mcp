@@ -37,6 +37,7 @@ import {
   whenWords,
   LoadError,
 } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 type Tab = 'overview' | 'configuration' | 'permissions' | 'usage' | 'activity';
 
@@ -100,7 +101,7 @@ export function AiProfile({
             )}
             {member.isBoardAi && (
               <span className="ai-chip" style={{ background: '#1E2A22', color: '#fff' }}>
-                ✦ Board AI
+                <LineIcon name="sparkle" size={13} /> Board AI
               </span>
             )}
           </div>
@@ -123,22 +124,22 @@ export function AiProfile({
           }}
           data-testid="ai-test-connection"
         >
-          {testing && <span className="ai-spin" />} Test connection
+          {testing ? <span className="ai-spin" /> : <LineIcon name="bolt" size={13} />} Test connection
         </button>
         {member.paused ? (
           <button type="button" className="ai-btn ai-btn-primary" onClick={() => resume.mutate(undefined)}>
-            Resume
+            <LineIcon name="play" size={12} /> Resume
           </button>
         ) : (
           <button type="button" className="ai-btn" onClick={() => setPauseDialog(true)}>
-            Pause
+            <LineIcon name="pause" size={13} /> Pause
           </button>
         )}
         <button type="button" className="ai-btn" onClick={() => setPreview(true)} data-testid="ai-preview-as">
-          Preview as this AI
+          <LineIcon name="eye" size={13} /> Preview as this AI
         </button>
         <button type="button" className="ai-btn ai-btn-danger-outline" onClick={() => setRemoving(true)}>
-          Remove…
+          <LineIcon name="trash" size={13} /> Remove…
         </button>
       </div>
       {member.paused && member.pausedReason && (
@@ -375,7 +376,7 @@ function Overview({
             ))}
           </Card>
           <Card title="Limits">
-            <dl className="ai-kv">
+            <dl className="ai-kv ai-kv-rows">
               <dt>Parallel runs</dt>
               <dd>
                 {member.slotsInUse} of {member.maxParallel} in use
@@ -408,7 +409,7 @@ function Overview({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card title="Connection">
-            <dl className="ai-kv">
+            <dl className="ai-kv ai-kv-rows">
               <dt>Type</dt>
               <dd>
                 {member.connection === 'local' ? 'Local runner' : member.connection === 'api_key' ? 'API key' : 'Inbox'}{' '}

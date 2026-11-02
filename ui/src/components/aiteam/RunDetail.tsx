@@ -22,6 +22,7 @@ import {
 } from './historyFormat';
 import { fmtTokens, fmtUsd } from './teamFormat';
 import './history.css';
+import { LineIcon } from '../ui/LineIcon';
 
 interface Props {
   runId: string;
@@ -435,7 +436,12 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
               <div className="hs-label">Acceptance criteria</div>
               {rec.report.criteria.map((c, i) => (
                 <div key={i} className="hs-prose">
-                  {c.met === true ? '✓' : c.met === false ? '✗' : '–'} {c.text}
+                  <LineIcon
+                    name={c.met === true ? 'check' : c.met === false ? 'close' : 'minus'}
+                    size={13}
+                    title={c.met === true ? 'Met' : c.met === false ? 'Not met' : 'Not checked'}
+                  />{' '}
+                  {c.text}
                   {c.evidence ? ` — ${c.evidence}` : ''}
                 </div>
               ))}

@@ -30,10 +30,12 @@ import {
   SparkleIcon,
   fmtElapsed,
   hhmm,
+  inWords,
   secondsSince,
   useAiBoardState,
   useNow,
 } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 // The run view, steps, history and the AI tab live in RunView.tsx
 export { RunSteps, RunView, RunHistory, TicketRunsTab } from './RunView';
@@ -472,7 +474,7 @@ function WaitingApprovalCard({ run }: { run: AiRun }) {
     <div className="as-tile as-tile-slate" data-testid="run-waiting-approval">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="ai-chip" style={{ background: '#EEF1F5', color: '#5B6B7A' }}>
-          ✋ Needs approval
+          <LineIcon name="hand" size={13} /> Needs approval
         </span>
         <span style={{ fontSize: 13, fontWeight: 600 }}>{w.summary}</span>
       </div>
@@ -575,7 +577,15 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
             }
             data-testid={run.paused ? 'card-resume' : 'card-pause'}
           >
-            {run.paused ? '▷ Resume' : '⏸ Pause run'}
+            {run.paused ? (
+              <>
+                <LineIcon name="play" size={12} /> Resume
+              </>
+            ) : (
+              <>
+                <LineIcon name="pause" size={12} /> Pause run
+              </>
+            )}
           </button>
         )}
         {run.state === 'queued' && !run.behindRunId && (
@@ -586,7 +596,7 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
             onClick={() => act(() => startNow.mutateAsync(undefined), "Can't start it now")}
             data-testid="card-start-now"
           >
-            ▷ Start now
+            <LineIcon name="play" size={12} /> Start now
           </button>
         )}
         <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
@@ -595,6 +605,7 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
         {run.state === 'running' && !run.paused && <div className="ai-progress" />}
       </div>
       <RestartNotice run={run} />
+      <RetryLine run={run} />
       {run.state === 'running' && <TroubleCard run={run} />}
       {run.state === 'running' && <RunResourcesStrip run={run} />}
       {run.state === 'running' && <TellBox run={run} />}
@@ -629,6 +640,48 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
+const CARDINAL = ['one', 'two', 'three', 'four', 'five', 'six'];
+
+/**
+ * A run the board will try again by itself (design ai-operations L): “Lost the connection. Trying again in 2 minutes —
+ * second of three.” with Stop trying, while the wait is still to come.
+ */
+export function RetryLine({ run }: { run: AiRun }) {
+  const toast = useToast();
+  const cancel = useAiMutation(() => aiApi.cancel(run.id, 'Stopped trying again'));
+  const last = run.retries?.[run.retries.length - 1];
+  if (run.state !== 'queued' || !run.retryAt || !last || new Date(run.retryAt).getTime() <= Date.now()) return null;
+  const what =
+    last.kind === 'network' ? 'Lost the connection' : last.label.charAt(0).toUpperCase() + last.label.slice(1);
+  const nth = ORDINAL[last.n - 1] ?? `try ${last.n}`;
+  const of = CARDINAL[last.of - 1] ?? String(last.of);
+  return (
+    <div className="ai-retry-line" data-testid="run-retry-line" title={last.detail}>
+      <LineIcon name="refresh" size={13} />
+      <span style={{ flex: 1 }}>
+        {what}. Trying again in {inWords(run.retryAt)} — {nth} of {of}.
+      </span>
+      <button
+        type="button"
+        className="ai-link"
+        style={{ color: '#8A5A12' }}
+        disabled={cancel.isPending}
+        onClick={async () => {
+          try {
+            await cancel.mutateAsync(undefined);
+          } catch (err) {
+            toast.error("Couldn't stop it", extractError(err));
+          }
+        }}
+        data-testid="run-retry-stop"
+      >
+        Stop trying
+      </button>
     </div>
   );
 }
@@ -689,7 +742,7 @@ function FailedCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ticket; on
         {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
         {canUndo && (
           <button type="button" className="ai-btn ai-btn-sm" onClick={() => setUndo(true)} data-testid="failed-undo">
-            ↶ Undo changes
+            <LineIcon name="undo" size={13} /> Undo changes
           </button>
         )}
         {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
@@ -737,7 +790,9 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   if (run && live && run.waitingApproval)
     return (
       <div className="ai-card-footer ai-card-footer-slate" data-testid="card-ai-approval">
-        <span style={{ fontWeight: 800 }}>✋</span>
+        <span style={{ fontWeight: 800 }}>
+          <LineIcon name="hand" size={14} />
+        </span>
         <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           Needs approval: {run.waitingApproval.summary}
         </span>
@@ -786,7 +841,9 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   if (run?.state === 'needs_input')
     return (
       <div className="ai-card-footer ai-card-footer-slate" data-testid="card-ai-question">
-        <span style={{ fontWeight: 800 }}>⏸</span>
+        <span style={{ fontWeight: 800 }}>
+          <LineIcon name="pause" size={14} />
+        </span>
         <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           Asks {run.question?.to}: {run.question?.text}
         </span>
@@ -833,7 +890,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   )
     return (
       <div className="ai-card-footer ai-card-footer-running" style={{ color: '#2E6F40', fontWeight: 600 }}>
-        ✓ AI-completed
+        <LineIcon name="check" size={12} /> AI-completed
       </div>
     );
   if (assignee && assignee.connection !== 'inbox' && !['done', 'wont_do', 'review', 'testing'].includes(ticket.status))
@@ -852,7 +909,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
             }
           }}
         >
-          Run ▷
+          Run <LineIcon name="play" size={12} />
         </button>
       </div>
     );

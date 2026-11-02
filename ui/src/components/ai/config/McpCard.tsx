@@ -6,6 +6,7 @@ import { configApi, useLibrary, type ProbeResult } from './configApi';
 import { adapterOf, useCfg } from './configCtx';
 import { CfgCard, Chip, Dialog, IssueText, TickRow, newId } from './parts';
 import { joinWords, splitWords } from './frontMatter';
+import { LineIcon } from '../../ui/LineIcon';
 
 const ENV_REF = /^\$\{[A-Za-z_][A-Za-z0-9_]*\}$/;
 
@@ -22,19 +23,29 @@ export function remoteUrlProblem(url: string): string | null {
 
 /** Status text of a probe: “Connected · 18 tools”, “Failed to start”, “Not checked”. */
 function ProbeChip({ r, documented, busy }: { r?: ProbeResult; documented?: boolean; busy?: boolean }) {
-  if (busy) return <Chip>Checking…</Chip>;
-  if (documented) return <Chip tone="warn">Not checked · Documented</Chip>;
-  if (!r) return <Chip>Not checked</Chip>;
+  // Drawn as a status dot and text (design B3), not a chip
+  if (busy) return <Status color="#9AA8A0">Checking…</Status>;
+  if (documented) return <Status color="#B4571F">Not checked · Documented</Status>;
+  if (!r) return <Status color="#C7D2CB">Not checked</Status>;
   if (r.ok)
     return (
-      <Chip tone="synced">
+      <Status color="#2E6F40">
         Connected · {r.tools} tool{r.tools === 1 ? '' : 's'}
-      </Chip>
+      </Status>
     );
   return (
-    <Chip tone="bad" title={r.error ?? ''}>
+    <Status color="#C4432A" title={r.error ?? ''}>
       Failed · {(r.error ?? '').slice(0, 48)}
-    </Chip>
+    </Status>
+  );
+}
+
+function Status({ color, title, children }: { color: string; title?: string; children: React.ReactNode }) {
+  return (
+    <span className="cfg-status" title={title} style={{ color: color === '#C7D2CB' ? '#5B6B60' : color }}>
+      <span className="cfg-status-dot" style={{ background: color }} />
+      {children}
+    </span>
   );
 }
 
@@ -94,7 +105,7 @@ function KvEditor({
                 checked={!!r.secret}
                 onChange={(e) => onChange(rows.map((x, j) => (j === i ? { ...x, secret: e.target.checked } : x)))}
               />
-              🔒 Secret
+              <LineIcon name="lock" size={12} /> Secret
             </label>
           )}
           <button
@@ -103,7 +114,7 @@ function KvEditor({
             aria-label={`Remove ${label}`}
             onClick={() => onChange(rows.filter((_, j) => j !== i))}
           >
-            ✕
+            <LineIcon name="close" size={12} />
           </button>
         </div>
       ))}
@@ -442,7 +453,7 @@ export function McpCard() {
                   aria-label={`Remove ${s.name}`}
                   onClick={() => setCfg({ remoteMcp: cfg.remoteMcp.filter((x) => x.id !== s.id) })}
                 >
-                  ✕
+                  <LineIcon name="close" size={12} />
                 </button>
               </div>
               <IssueText issues={issues} path={`remote_mcp.${i}`} prefix />
@@ -474,23 +485,25 @@ export function McpCard() {
       right={
         <>
           <button type="button" className="ai-btn ai-btn-sm" onClick={() => pickLibrary(['mcp_server'], true)}>
-            Attach from library
+            <LineIcon name="link" size={13} /> Attach from library
           </button>
           <button
             type="button"
-            className="ai-btn ai-btn-sm"
+            className="ai-btn ai-btn-sm ai-btn-primary"
             data-testid="add-server"
             onClick={() => setEditing(blankServer())}
           >
-            Add server
+            <LineIcon name="plus" size={13} /> Add server
           </button>
         </>
       }
     >
       <div className="cfg-row" data-testid="mcp-kanban-row">
+        <span className="cfg-tile" aria-hidden="true">
+          <LineIcon name="frame" size={14} />
+        </span>
         <div className="cfg-row-main">
           <div className="cfg-row-title">
-            <span aria-hidden="true">🔒</span>
             <span className="ai-mono">kanban</span>
             <ProbeChip r={probes.kanban} busy={busy === 'kanban'} />
             <Chip>Preattached</Chip>
@@ -506,6 +519,9 @@ export function McpCard() {
         >
           Check
         </button>
+        <span title="Locked: always present" style={{ color: '#9AA8A0', display: 'inline-flex' }}>
+          <LineIcon name="lock" size={14} title="Locked" />
+        </span>
       </div>
       {cfg.mcpServers.length === 0 && (
         <div className="ai-muted">No other servers. Add one, or attach one from the library.</div>
@@ -519,6 +535,9 @@ export function McpCard() {
         return (
           <div key={s.id}>
             <div className="cfg-row" data-testid={`server-${s.name}`}>
+              <span className="cfg-tile" aria-hidden="true">
+                <LineIcon name={s.type === 'http' ? 'link' : 'frame'} size={14} />
+              </span>
               <div className="cfg-row-main">
                 <div className="cfg-row-title">
                   <span className="ai-mono">{s.name || 'unnamed'}</span>
@@ -566,7 +585,7 @@ export function McpCard() {
                 aria-label={`Remove ${s.name}`}
                 onClick={() => setCfg({ mcpServers: cfg.mcpServers.filter((x) => x.id !== s.id) })}
               >
-                ✕
+                <LineIcon name="close" size={12} />
               </button>
             </div>
             <IssueText issues={issues} path={`mcp_servers.${i}`} prefix />

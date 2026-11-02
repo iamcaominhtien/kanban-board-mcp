@@ -483,9 +483,11 @@
 .dk-toc a {
   display: block;
 }
+/* The keyboard focus ring for buttons, links and the inputs that draw no box of their own. Text fields are left out:
+   they draw their own focus (border and halo), and a second ring inside them doubled it (design audit, comp-1). */
 button:focus-visible,
 a:focus-visible,
-input:focus-visible {
+input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color']):focus-visible {
   outline: 2px solid #2e6f40;
   outline-offset: 2px;
 }
@@ -554,6 +556,17 @@ input:focus-visible {
   line-height: 16px;
   color: #2e6f40;
   font-family: var(--font-body, inherit);
+}
+/* a callout or table is marked as a whole (on its own box or wrapper), never on the blocks inside it */
+.dk-md .dk-callout .dk-changed {
+  margin-top: 0;
+}
+.dk-md .dk-callout .dk-changed::before,
+.dk-md .dk-callout .dk-changed::after {
+  content: none;
+}
+.dk-md .dk-callout.dk-changed {
+  margin-top: 26px;
 }
 
 .dk-md .dk-proposed {
@@ -983,4 +996,11 @@ mark.docs-find-mark.docs-find-cur {
 }
 .dk-ai-draft-panel mark {
   background: #fef1d6;
+}
+
+/* Find in page (SR-1): the bar sits in its own band above the page, so the page header moves down instead of
+   being covered. --dk-find-h is the bar's height, set by FindInPage on the space it is open in. */
+.dk-find-open .dk-find-push {
+  padding-top: calc(var(--dk-find-h, 46px) + 20px);
+  transition: padding-top 0.12s ease;
 }

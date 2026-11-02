@@ -212,9 +212,12 @@ describe('RunDetail (full)', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Report' }));
     await screen.findByText('Fixed the badge');
     const rep = screen.getByTestId('hs-report').textContent ?? '';
-    expect(rep).toContain('✓ shows cost — screenshot');
-    expect(rep).toContain('✗ is accessible');
-    expect(rep).toContain('– maybe');
+    expect(rep).toContain('shows cost — screenshot');
+    expect(rep).toContain('is accessible');
+    expect(rep).toContain('maybe');
+    expect(screen.getByRole('img', { name: 'Met' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Not met' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Not checked' })).toBeTruthy();
     expect(rep).toContain('Tests: 1 failed, 20 passed');
   });
 

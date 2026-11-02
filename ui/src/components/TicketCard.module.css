@@ -15,13 +15,19 @@
     box-shadow 0.15s ease,
     transform 0.15s ease;
   user-select: none;
-  min-height: 140px;
+  /* no fixed minimum: a card fits its content, as drawn (a one-line title left a 45 px empty band, comp-1 TC-1) */
   container-type: inline-size;
 }
 
 .card:hover {
   border-color: #b9cbbf;
   box-shadow: 0 2px 8px rgba(30, 42, 34, 0.08);
+}
+
+/* The selected parent group: a green ring on the parent and every sub-ticket (Sub-task Grouping 1, comp-1 BG-1) */
+.cardGroupSelected {
+  outline: 1.6px solid #2e6f40;
+  outline-offset: 3px;
 }
 
 .cardParent {
@@ -61,8 +67,29 @@
 
 .cardDragging {
   border-color: #dce6df !important;
-  box-shadow: 0 12px 24px rgba(30, 42, 34, 0.18) !important;
-  transform: rotate(1deg);
+  /* Picked up: 0 -> 150 ms ease-out, scale 103 %, lift 4 px, shadow grows; dragging: 1.5deg tilt, 97 % opacity
+     (Drag & Drop 1, cardMotion; comp-1 DD-3) */
+  animation: cardPickUp 150ms ease-out forwards;
+}
+
+@keyframes cardPickUp {
+  from {
+    transform: translateY(0) scale(1) rotate(0deg);
+    box-shadow: 0 1px 2px rgba(30, 42, 34, 0.06);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-4px) scale(1.03) rotate(1.5deg);
+    box-shadow: 0 16px 30px rgba(30, 42, 34, 0.22);
+    opacity: 0.97;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardDragging {
+    animation: none;
+    box-shadow: 0 16px 30px rgba(30, 42, 34, 0.22);
+  }
 }
 
 .cardBlocked {
@@ -217,8 +244,8 @@
 }
 
 .typeLabel {
-  /* on a narrow card (indented sub-ticket) the label gives way rather than run into the ticket id */
-  flex-shrink: 1;
+  /* the type word stays readable next to a Reopened or Pending chip (board RO-1); the chips collapse first */
+  flex-shrink: 0;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -232,6 +259,16 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+  /* the ID sits flush right at rest; the "..." button only takes its room on hover, focus or with the menu open
+     (Ticket Card 1/2, comp-1 TC-2) */
+  margin-right: 0;
+  transition: margin-right 0.15s ease;
+}
+
+.card:hover .headerRight,
+.card:focus-within .headerRight,
+.cardMenuOpen .headerRight {
   margin-right: 28px;
 }
 
@@ -269,6 +306,13 @@
   cursor: pointer;
   color: #5b6b60;
   transition: all 0.15s ease;
+  opacity: 0;
+}
+
+.card:hover .menuButton,
+.card:focus-within .menuButton,
+.cardMenuOpen .menuButton {
+  opacity: 1;
 }
 
 .menuButton:hover {
@@ -464,6 +508,12 @@
 .estimate {
   font-size: 11px;
   color: #9aa8a0;
+}
+
+.acCount {
+  font-size: 11px;
+  color: #5b6b60;
+  white-space: nowrap;
 }
 
 .subtasksProgress {

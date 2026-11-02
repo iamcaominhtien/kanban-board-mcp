@@ -201,3 +201,8 @@
   margin-right: 6px;
   accent-color: #2e6f40;
 }
+
+/* A centred or right-aligned block from the editor's Align buttons (utils/markdownAlign.ts) */
+.aligned > :first-child {
+  margin-top: 0;
+}

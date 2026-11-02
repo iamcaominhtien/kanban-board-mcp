@@ -10,6 +10,19 @@
   animation: fadeIn 0.12s ease-out;
 }
 
+/* Anchored under the Create branch button: no dimming, the card hangs from the button (Branches 5) */
+.popoverBackdrop {
+  background: transparent;
+  backdrop-filter: none;
+  display: block;
+}
+
+.popoverCard {
+  position: fixed;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

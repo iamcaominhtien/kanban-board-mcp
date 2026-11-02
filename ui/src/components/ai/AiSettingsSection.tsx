@@ -1,3 +1,4 @@
+import { LineIcon } from '../ui/LineIcon';
 import { useState, type ReactNode } from 'react';
 import { PermissionsCard } from './AiPermissionsCards';
 import { aiApi, useAiOverview } from '../../api/ai';
@@ -7,7 +8,7 @@ import { BoardAiPicker } from './AiDialogs';
 import { AiAvatar, Toggle } from './aiUi';
 import { LibraryModal } from './config/LibraryView';
 import { OperationsCard } from './settings/OperationsCard';
-import { GroupHead, TeamRow } from './settings/settingsUi';
+import { GroupHead, NumberSetting, TeamRow } from './settings/settingsUi';
 import './settings/teamOwn.css';
 import { KnowledgeSection } from './knowledge/KnowledgeSection';
 import { RepositoriesSection } from './code/RepositoriesSection';
@@ -160,11 +161,82 @@ const ExternalIcon = (
   </svg>
 );
 
+/**
+ * What a run needs, together (design ai-operations K): how many runs at once on this project, beside the per-account
+ * limit that lives with the accounts.
+ */
+function RunsAtOnce({
+  projectId,
+  settings,
+  onManageAccounts,
+  onSaved,
+}: {
+  projectId: string;
+  settings: AiSettings;
+  onManageAccounts?: () => void;
+  onSaved: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <section className="to-sec" data-testid="ops-at-once">
+      <div className="to-group">
+        <GroupHead title="How many at once" hint="Runs past these limits wait in line; nothing is lost." />
+        <TeamRow
+          title="At once on this project"
+          hint={
+            <>
+              Runs of this project's AI members that may work at the same time.
+              {onManageAccounts && (
+                <>
+                  {' '}
+                  Each Claude account has its own limit too:{' '}
+                  <button type="button" className="ai-link" onClick={onManageAccounts}>
+                    AI accounts
+                  </button>
+                  .
+                </>
+              )}
+            </>
+          }
+        >
+          <NumberSetting
+            value={settings.boardMaxParallel}
+            min={1}
+            label="Runs at once on this project"
+            testId="ops-at-once-project"
+            onSave={async (n) => {
+              setError(null);
+              try {
+                await aiApi.updateSettings(projectId, { boardMaxParallel: n });
+                onSaved();
+              } catch (e) {
+                setError(extractError(e));
+              }
+            }}
+          />
+          <span className="ai-hint">at a time</span>
+        </TeamRow>
+      </div>
+      {error && <div className="ai-error-text">{error}</div>}
+    </section>
+  );
+}
+
+/** Statuses that read as trouble on the Board AI card (red dot). */
+const STATUS_BAD = new Set([
+  'key_invalid',
+  'not_logged_in',
+  'runner_missing',
+  'model_retired',
+  'over_budget',
+  'removed',
+]);
+
 /** A part of a group: a small heading over the section it names. */
 function Sub({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="ai-sub">
-      <div className="ai-sub-title">{title}</div>
+    <div className="ai-part">
+      <div className="ai-part-title">{title}</div>
       {children}
     </div>
   );
@@ -200,6 +272,12 @@ export function AiSettingsSection({
           hint="Answers board-wide requests: chat, ticket drafting and suggestions. Changing it never affects who is assigned to tickets."
           actions={
             <>
+              {onManage && (
+                <button type="button" className="ai-link" onClick={onManage} data-testid="manage-ai-members">
+                  Manage AI members
+                  <LineIcon name="chevronRight" size={13} />
+                </button>
+              )}
               <button
                 type="button"
                 className="st-btn st-btn-sm"
@@ -242,22 +320,30 @@ export function AiSettingsSection({
             </svg>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <b style={{ fontSize: 13, color: '#1E2A22' }}>{boardAi?.name ?? 'No Board AI chosen'}</b>
+            {/* H1: eyebrow "BOARD AI · ● status", then the name */}
+            <div className="ai-boardai-eyebrow">
+              <span>Board AI</span>
+              {boardAi && (
+                <span
+                  className="ai-boardai-status"
+                  style={{ color: STATUS_BAD.has(boardAi.status.code) ? '#C4432A' : '#2E6F40' }}
+                >
+                  <span className="ai-boardai-dot" />
+                  {boardAi.status.label}
+                </span>
+              )}
+            </div>
+            <b style={{ fontSize: 13.5, color: '#1E2A22' }}>{boardAi?.name ?? 'No Board AI chosen'}</b>
             <div className="ai-hint">
               {boardAi
-                ? `${boardAi.status.label} · answers the board chat, ticket drafting and suggestions`
+                ? 'Answers the board chat, ticket drafting and suggestions'
                 : 'Pick an AI member to answer the chatbot, ticket drafting and suggestions.'}
             </div>
           </div>
           <button type="button" className="st-btn st-btn-sm" disabled={!members.length} onClick={() => setPicker(true)}>
+            <LineIcon name="refresh" size={13} />
             {boardAi ? 'Change' : 'Choose'}
           </button>
-          {onManage && (
-            <button type="button" className="st-btn st-btn-sm" onClick={onManage}>
-              {ExternalIcon}
-              Manage AI members
-            </button>
-          )}
         </div>
         <Sub title="What the Board AI may do by itself">
           <BoardAiSection projectId={projectId} />
@@ -281,6 +367,14 @@ export function AiSettingsSection({
           title="Running the team"
           hint="When the board looks at a silent run, how work reaches the team, and how far it goes on its own."
         />
+        {overview.data && (
+          <RunsAtOnce
+            projectId={projectId}
+            settings={overview.data.settings}
+            onManageAccounts={onManageAccounts}
+            onSaved={() => void overview.refetch()}
+          />
+        )}
         <OperationsCard projectId={projectId} />
       </section>
 

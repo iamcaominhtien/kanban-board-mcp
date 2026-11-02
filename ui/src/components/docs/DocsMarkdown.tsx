@@ -367,8 +367,17 @@ export function DocsMarkdown({
         const kind = (node?.properties as { dataCallout?: string } | undefined)?.dataCallout;
         const pal = kind ? CALLOUTS[kind] : null;
         if (!pal) return <blockquote {...props}>{inner}</blockquote>;
+        // AC-2: an edited callout is marked as a whole, with the bar and "Changed in vN" outside its box (the marks
+        // of the paragraphs inside are hidden in docs.css), so they never cross its icon or border
+        const { className: markClass, ...mark } = changedProps(node);
+        const changed = markClass?.split(' ').includes('dk-changed');
         return (
-          <div className="dk-callout" role="note" style={{ background: pal.bg, border: `1px solid ${pal.border}` }}>
+          <div
+            className={changed ? 'dk-callout dk-changed' : 'dk-callout'}
+            {...(changed ? { 'data-changed-in': mark['data-changed-in'] } : {})}
+            role="note"
+            style={{ background: pal.bg, border: `1px solid ${pal.border}` }}
+          >
             <span style={{ color: pal.color, marginTop: 2, display: 'flex' }}>
               <Icon name={pal.icon} size={17} strokeWidth={1.9} />
             </span>

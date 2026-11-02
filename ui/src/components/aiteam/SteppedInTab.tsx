@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MenuSelect } from '../ui/MenuSelect';
 import type { SteppedFilters, SteppedIn, TeamRange, Touch, TouchMark } from '../../types/aiTeam';
 import { useTeamStepped } from '../../api/aiTeam';
 import { Icon, TicketChip } from './teamUi';
@@ -239,32 +240,24 @@ export function SteppedInTab({
         {opt('By rule', t.byRule, { mark: 'by_rule' })}
         {opt('Via MCP', t.viaMcp, { via: 'mcp' })}
         <span style={{ flex: 1 }} />
-        <select
-          className="at-select"
-          aria-label="AI"
+        <MenuSelect<string>
+          variant="chip"
+          label="AI"
+          prefix="AI:"
+          testId="stepped-ai-filter"
           value={filters.memberId ?? ''}
-          onChange={(e) => setFilters({ ...filters, memberId: e.target.value || undefined })}
-        >
-          <option value="">AI: all</option>
-          {d.perAi.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="at-select"
-          aria-label="Person"
+          options={[{ value: '', label: 'all' }, ...d.perAi.map((r) => ({ value: r.id, label: r.name }))]}
+          onChange={(v) => setFilters({ ...filters, memberId: v || undefined })}
+        />
+        <MenuSelect<string>
+          variant="chip"
+          label="Person"
+          prefix="Person:"
+          testId="stepped-person-filter"
           value={filters.person ?? ''}
-          onChange={(e) => setFilters({ ...filters, person: e.target.value || undefined })}
-        >
-          <option value="">Person: all</option>
-          {d.people.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
+          options={[{ value: '', label: 'all' }, ...d.people.map((p) => ({ value: p, label: p }))]}
+          onChange={(v) => setFilters({ ...filters, person: v || undefined })}
+        />
         <button
           type="button"
           className="st-btn st-btn-sm"

@@ -10,7 +10,8 @@ import type { DryRun, Schedule, ScheduleDraft, ScheduleErrorBody, ScheduleNotify
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
 import { currentPerson } from '../assist/assistUi';
-import { CheckLine, MemberSelect, TicketPicker } from './MemberSelect';
+import { CheckLine, MemberSelect, TicketPicker, ZoneSelect } from './MemberSelect';
+import { MenuSelect } from '../ui/MenuSelect';
 import { SCHEDULE_TEMPLATES } from './scheduleTemplates';
 import {
   BranchIcon,
@@ -28,6 +29,7 @@ import {
   zoneLabel,
 } from './schedulesUi';
 import { ascendingText, toggleNumber } from '../../utils/sorted';
+import { LineIcon } from '../ui/LineIcon';
 
 /** How the editor is opened: from the tab, from a ticket (locked to it) or to change a schedule. */
 export interface EditorOpts {
@@ -486,19 +488,7 @@ function EditorForm({
               {draft.kind === 'once' && errAt('when') && <div className="ai-error-text">{errAt('when')}</div>}
               {draft.kind === 'repeat' && errAt('when') && <div className="ai-error-text">{errAt('when')}</div>}
               <Field label="TIME ZONE">
-                <select
-                  className="ai-select"
-                  style={{ maxWidth: 300 }}
-                  value={draft.tz}
-                  onChange={(e) => set({ tz: e.target.value })}
-                  data-testid="tz"
-                >
-                  {zones.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.label}
-                    </option>
-                  ))}
-                </select>
+                <ZoneSelect zones={zones} value={draft.tz} onChange={(tz) => set({ tz })} testId="tz" />
               </Field>
               <div className="sc-row">
                 {draft.kind === 'repeat' && (
@@ -743,19 +733,14 @@ function EditorForm({
                     />
                   </Field>
                   <Field label="FIX ROUNDS">
-                    <select
-                      className="ai-select"
+                    <MenuSelect
+                      label="Fix rounds"
+                      testId="fix-rounds"
                       style={{ width: 90 }}
-                      value={draft.review.fixRounds}
-                      onChange={(e) => set({ review: { ...draft.review, fixRounds: Number(e.target.value) } })}
-                      data-testid="fix-rounds"
-                    >
-                      {[0, 1, 2, 3, 4, 5].map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </select>
+                      value={String(draft.review.fixRounds)}
+                      options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
+                      onChange={(v) => set({ review: { ...draft.review, fixRounds: Number(v) } })}
+                    />
                   </Field>
                 </div>
               )}
@@ -770,36 +755,29 @@ function EditorForm({
             <Section title="Limits" sub="Stops the run if reached." id="sec-limits">
               <div className="sc-row">
                 <Field label="STOP AFTER">
-                  <select
-                    className="ai-select"
-                    style={{ width: 120 }}
-                    value={draft.limits.stopAfterMin}
-                    onChange={(e) => set({ limits: { ...draft.limits, stopAfterMin: Number(e.target.value) } })}
-                    data-testid="stop-after"
-                  >
-                    {[...new Set([...STOP_AFTER, draft.limits.stopAfterMin])]
+                  <MenuSelect
+                    label="Stop after"
+                    testId="stop-after"
+                    style={{ width: 140 }}
+                    value={String(draft.limits.stopAfterMin)}
+                    options={[...new Set([...STOP_AFTER, draft.limits.stopAfterMin])]
                       .sort((a, b) => a - b)
-                      .map((n) => (
-                        <option key={n} value={n}>
-                          {n} min
-                        </option>
-                      ))}
-                  </select>
+                      .map((n) => ({ value: String(n), label: `${n} min` }))}
+                    onChange={(v) => set({ limits: { ...draft.limits, stopAfterMin: Number(v) } })}
+                  />
                 </Field>
                 <Field label="RETRY ON FAILURE">
-                  <select
-                    className="ai-select"
-                    style={{ width: 130 }}
-                    value={draft.limits.retries}
-                    onChange={(e) => set({ limits: { ...draft.limits, retries: Number(e.target.value) } })}
-                    data-testid="retries"
-                  >
-                    {[0, 1, 2, 3].map((n) => (
-                      <option key={n} value={n}>
-                        {n === 0 ? 'No retry' : `${n} time${n === 1 ? '' : 's'}`}
-                      </option>
-                    ))}
-                  </select>
+                  <MenuSelect
+                    label="Retry on failure"
+                    testId="retries"
+                    style={{ width: 140 }}
+                    value={String(draft.limits.retries)}
+                    options={[0, 1, 2, 3].map((n) => ({
+                      value: String(n),
+                      label: n === 0 ? 'No retry' : `${n} time${n === 1 ? '' : 's'}`,
+                    }))}
+                    onChange={(v) => set({ limits: { ...draft.limits, retries: Number(v) } })}
+                  />
                 </Field>
                 <Field label="MAX COST">
                   <input
@@ -894,7 +872,12 @@ function EditorForm({
                       }
                       data-testid={`notify-${o.key}`}
                     >
-                      {on && <span aria-hidden="true">✓</span>} {o.label}
+                      {on && (
+                        <span aria-hidden="true">
+                          <LineIcon name="check" size={12} />
+                        </span>
+                      )}{' '}
+                      {o.label}
                     </button>
                   );
                 })}

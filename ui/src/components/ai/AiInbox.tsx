@@ -1,3 +1,4 @@
+import { MenuSelect } from '../ui/MenuSelect';
 import { useEffect, useMemo, useState } from 'react';
 import { useAiMutation, useAiOverview } from '../../api/ai';
 import {
@@ -18,6 +19,7 @@ import { AiAvatar, ago, hhmm } from './aiUi';
 import { SignedOutBanners } from './accounts/SignedOutBanners';
 import './accounts/accountsMember.css';
 import { ChipChoice, Pill, RISK, RadioRow, RiskChip, SafetyCard, TrustChip, expiresIn, shown } from './aiSafetyUi';
+import { LineIcon, type LineIconName } from '../ui/LineIcon';
 
 type InboxTab = 'mentions' | 'questions' | 'approvals';
 
@@ -139,6 +141,7 @@ function ApprovalsTab({
   const [show, setShow] = useState<'pending' | 'decided' | 'all'>('pending');
   const [memberId, setMemberId] = useState('');
   const [risk, setRisk] = useState('');
+  const [sort, setSort] = useState<'expiry' | 'newest' | 'oldest'>('expiry');
   const [selected, setSelected] = useState<string[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [denyBulk, setDenyBulk] = useState<string | null>(null);
@@ -149,7 +152,13 @@ function ApprovalsTab({
     safetyApi.bulk(v.ids, v.approve, v.note),
   );
   const items = useMemo(() => list.data ?? [], [list.data]);
-  const pending = items.filter((a) => a.status === 'pending');
+  const pending = useMemo(() => {
+    const p = items.filter((a) => a.status === 'pending');
+    const t = (v: string | null) => (v ? new Date(v).getTime() : Number.POSITIVE_INFINITY);
+    if (sort === 'expiry') return [...p].sort((a, b) => t(a.expiresAt) - t(b.expiresAt));
+    const d = sort === 'newest' ? -1 : 1;
+    return [...p].sort((a, b) => d * (t(a.requestedAt) - t(b.requestedAt)));
+  }, [items, sort]);
   const decided = items.filter((a) => a.status !== 'pending');
   const filtered = !!(memberId || risk);
 
@@ -180,25 +189,47 @@ function ApprovalsTab({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="ai-approvals">
       <AlwaysAllowed projectId={projectId} />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select className="ai-select-sm" value={show} onChange={(e) => setShow(e.target.value as typeof show)}>
-          <option value="pending">Pending · {pending.length}</option>
-          <option value="decided">Decided or expired · {decided.length}</option>
-          <option value="all">All · {items.length}</option>
-        </select>
-        <select className="ai-select-sm" value={memberId} onChange={(e) => setMemberId(e.target.value)}>
-          <option value="">All agents</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-        <select className="ai-select-sm" value={risk} onChange={(e) => setRisk(e.target.value)}>
-          <option value="">Any risk</option>
-          <option value="low">Low risk</option>
-          <option value="medium">Medium risk</option>
-          <option value="high">High risk</option>
-        </select>
+        {/* B1: the filters are the design's dropdown chips */}
+        <MenuSelect
+          variant="chip"
+          label="Show"
+          value={show}
+          onChange={setShow}
+          testId="inbox-show"
+          options={[
+            { value: 'pending', label: `Pending · ${pending.length}` },
+            { value: 'decided', label: `Decided or expired · ${decided.length}` },
+            { value: 'all', label: `All · ${items.length}` },
+          ]}
+        />
+        <MenuSelect
+          variant="chip"
+          label="Agent"
+          value={memberId}
+          onChange={setMemberId}
+          testId="inbox-agent"
+          options={[
+            { value: '', label: 'All agents' },
+            ...members.map((m) => ({
+              value: m.id,
+              label: m.name,
+              icon: <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={18} />,
+            })),
+          ]}
+        />
+        <MenuSelect
+          variant="chip"
+          label="Risk"
+          value={risk}
+          onChange={setRisk}
+          testId="inbox-risk"
+          options={[
+            { value: '', label: 'Any risk' },
+            { value: 'low', label: 'Low risk' },
+            { value: 'medium', label: 'Medium risk' },
+            { value: 'high', label: 'High risk' },
+          ]}
+        />
         {filtered && (
           <button
             type="button"
@@ -211,8 +242,21 @@ function ApprovalsTab({
             Clear filters
           </button>
         )}
-        <span className="ai-muted" style={{ marginLeft: 'auto' }}>
-          Soonest to expire first
+        <span style={{ marginLeft: 'auto' }}>
+          <MenuSelect
+            variant="button"
+            label="Sort"
+            value={sort}
+            onChange={setSort}
+            icon={<LineIcon name="sort" size={13} />}
+            testId="inbox-sort"
+            menuWidth={220}
+            options={[
+              { value: 'expiry', label: 'Soonest to expire first' },
+              { value: 'newest', label: 'Newest first' },
+              { value: 'oldest', label: 'Oldest first' },
+            ]}
+          />
         </span>
       </div>
       {full.map((a) => (
@@ -374,9 +418,9 @@ function ApprovalRow({
   const m = members.find((x) => x.id === a.memberId);
   const diff = a.diff?.[0];
   const canTick = !decided && a.risk !== 'high' && a.canDecide !== false;
-  const status: Record<string, { bg: string; color: string; text: string }> = {
-    approved: { bg: '#F1F8F3', color: '#2E6F40', text: `✓ Approved · ${a.decidedBy ?? ''}` },
-    denied: { bg: '#FBEEEA', color: '#C4432A', text: `✕ Denied · ${a.decidedBy ?? ''}` },
+  const status: Record<string, { bg: string; color: string; text: string; icon?: LineIconName }> = {
+    approved: { bg: '#F1F8F3', color: '#2E6F40', text: `Approved · ${a.decidedBy ?? ''}`, icon: 'check' },
+    denied: { bg: '#FBEEEA', color: '#C4432A', text: `Denied · ${a.decidedBy ?? ''}`, icon: 'close' },
     expired: { bg: '#EEF1EE', color: '#5B6B60', text: 'Expired · no decision' },
     failed: { bg: '#FDF0E6', color: '#B4571F', text: 'Approved · not applied' },
     run_ended: { bg: '#EEF2F6', color: '#34455A', text: 'Run ended' },
@@ -425,6 +469,9 @@ function ApprovalRow({
       </div>
       {decided ? (
         <Pill bg={(status[a.status] ?? status.expired).bg} color={(status[a.status] ?? status.expired).color}>
+          {(status[a.status] ?? status.expired).icon && (
+            <LineIcon name={(status[a.status] ?? status.expired).icon!} size={12} />
+          )}{' '}
           {(status[a.status] ?? status.expired).text}
         </Pill>
       ) : (

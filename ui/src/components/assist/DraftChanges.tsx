@@ -5,6 +5,7 @@ import type { AssistDraft, DraftChange } from '../../types/assist';
 import { hhmm } from '../ai/aiUi';
 import { AppliedAs, DraftTag, STATUS_LABEL, TicketPill, currentPerson } from './assistUi';
 import { AsksFirst, DoneReceipt, proposedWords } from './DoneReceipt';
+import { LineIcon } from '../ui/LineIcon';
 
 const FIELD_LABEL: Record<string, string> = {
   status: 'Status',
@@ -115,7 +116,9 @@ export function DraftChanges({
       return <DoneReceipt draft={d} busy={busy} onUndo={() => void undo()} error={error} />;
     return (
       <div className="as-tile" style={{ flexDirection: 'row', alignItems: 'center' }} data-testid="draft-result">
-        <span style={{ color: '#2E6F40', fontWeight: 700 }}>✓</span>
+        <span style={{ color: '#2E6F40', fontWeight: 700 }}>
+          <LineIcon name="check" size={14} />
+        </span>
         <span style={{ flex: 1, fontSize: 13 }}>
           {d.status === 'undone' ? (
             <>
@@ -184,7 +187,10 @@ export function DraftChanges({
           <div className="sc-criteria-list">
             {items.map((t, i) => (
               <div key={i}>
-                <span aria-hidden="true">☐</span> {t}
+                <span aria-hidden="true">
+                  <LineIcon name="square" size={13} />
+                </span>{' '}
+                {t}
               </div>
             ))}
           </div>
@@ -202,7 +208,7 @@ export function DraftChanges({
               onClick={() => void apply(false)}
               data-testid="draft-apply"
             >
-              ✓ Add {word}
+              <LineIcon name="check" size={12} /> Add {word}
             </button>
             <button type="button" className="ai-btn ai-btn-sm" onClick={() => setEditing((v) => !v)}>
               {editing ? 'Done' : 'Edit'}
@@ -286,7 +292,9 @@ export function DraftChanges({
                     (ch.items ?? []).map((t, k) => (
                       <div key={k} className="as-diff-add">
                         <span>+</span>
-                        <span>{`☐ ${t}`}</span>
+                        <span>
+                          <LineIcon name="square" size={13} /> {t}
+                        </span>
                       </div>
                     ))
                   ) : (
@@ -342,7 +350,7 @@ export function DraftChanges({
               Apply {n} change{n !== 1 ? 's' : ''}
             </button>
             <span className="ai-chip" style={{ background: '#EEF1F5', color: '#5B6B7A' }}>
-              🔒 Viewer
+              <LineIcon name="lock" size={12} /> Viewer
             </span>
           </div>
           <div className="ai-hint">

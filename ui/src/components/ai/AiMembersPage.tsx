@@ -28,6 +28,7 @@ import {
   statusSub,
   useNow,
 } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 type Tab = 'humans' | 'ai' | 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety';
 
@@ -154,7 +155,7 @@ export function AiMembersPage({
                   }
                   data-testid="ai-draft-members"
                 >
-                  ✦ Draft with AI
+                  <LineIcon name="sparkle" size={13} /> Draft with AI
                 </button>
               )}
               <button
@@ -168,7 +169,7 @@ export function AiMembersPage({
               </button>
             </div>
             {webBuild && members.some((m) => m.connection === 'local') && tab === 'ai' && <WebBuildNotice />}
-            <div className="ai-tabs" role="tablist">
+            <div className="ai-tabs ai-tabs-seg" role="tablist">
               <TabBtn id="humans" tab={tab} setTab={setTab} label="Humans" count={humans.length} />
               <TabBtn id="ai" tab={tab} setTab={setTab} label="AI" count={members.length} />
               <TabBtn
@@ -240,7 +241,7 @@ export function AiMembersPage({
                       </span>
                       {!!overview.data?.summary.needAttention && (
                         <span style={{ color: '#B4571F', fontWeight: 600 }}>
-                          ⚠ {overview.data.summary.needAttention} need attention
+                          <LineIcon name="warning" size={13} /> {overview.data.summary.needAttention} need attention
                         </span>
                       )}
                       {!!overview.data?.pendingApprovals && (
@@ -380,10 +381,10 @@ function BoardAiCard({
         </div>
       </div>
       <button type="button" className="ai-btn" onClick={onChange}>
-        ⟳ Change
+        <LineIcon name="refresh" size={13} /> Change
       </button>
       {onSettings && (
-        <button type="button" className="ai-btn" onClick={onSettings} data-testid="assistant-settings">
+        <button type="button" className="ai-link" onClick={onSettings} data-testid="assistant-settings">
           Assistant settings
         </button>
       )}
@@ -446,7 +447,7 @@ function MemberTable({
                   <span style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap' }}>{m.name}</span>
                   {m.isBoardAi && (
                     <span className="ai-chip" style={{ background: '#1E2A22', color: '#fff', height: 20 }}>
-                      ✦ Board AI
+                      <LineIcon name="sparkle" size={13} /> Board AI
                     </span>
                   )}
                 </div>
@@ -529,6 +530,7 @@ function MemberTable({
                     onClick={() => onOpen(m.id, 'configuration')}
                     data-testid={`ai-edit-${m.name}`}
                   >
+                    <LineIcon name="edit" size={14} />
                     Edit
                   </button>
                   <button
@@ -539,6 +541,7 @@ function MemberTable({
                       pause.mutate(m);
                     }}
                   >
+                    <LineIcon name={m.paused ? 'play' : 'pause'} size={14} />
                     {m.paused ? 'Resume' : 'Pause'}
                   </button>
                   <button
@@ -555,6 +558,7 @@ function MemberTable({
                       }
                     }}
                   >
+                    <LineIcon name="bolt" size={14} />
                     Test connection
                   </button>
                   <div className="ai-divider" style={{ margin: '4px 0' }} />
@@ -566,6 +570,7 @@ function MemberTable({
                       onRemove(m);
                     }}
                   >
+                    <LineIcon name="trash" size={14} />
                     Remove…
                   </button>
                 </div>

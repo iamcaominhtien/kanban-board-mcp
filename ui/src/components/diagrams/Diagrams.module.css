@@ -546,3 +546,20 @@
     background-position: 200px 0;
   }
 }
+
+/* the "what to run" note for admins under the design's copy (docs DG-1) */
+.cardDetails {
+  margin-top: 10px;
+  font: 400 13px/1.55 var(--font-body);
+  color: #5b6b60;
+}
+.cardDetails summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #3f4b45;
+  margin-bottom: 4px;
+}
+.cardDetails code {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}

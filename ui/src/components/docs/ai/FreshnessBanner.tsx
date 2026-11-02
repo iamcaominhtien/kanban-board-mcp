@@ -15,6 +15,7 @@ import { useDocsRefs } from '../DocsRefsContext';
 import { Icon } from '../Icon';
 import '../docs.css';
 import { SuggestedEdits } from './SuggestedEdits';
+import { LineIcon } from '../../ui/LineIcon';
 
 const btn: CSSProperties = {
   font: 'inherit',
@@ -184,7 +185,7 @@ export function FreshnessBanner({
             padding: '3px 10px',
           }}
         >
-          ✦ {checkedLabel(check.checkedAt)}
+          <LineIcon name="sparkle" size={12} /> {checkedLabel(check.checkedAt)}
         </span>
       </div>
       <ul style={{ margin: '8px 0 10px 4px', paddingLeft: 16 }}>
@@ -205,7 +206,8 @@ export function FreshnessBanner({
           style={{ ...btn, background: '#6B5BD2', borderColor: '#6B5BD2', color: '#fff' }}
           data-testid="freshness-suggest"
         >
-          ✦ {suggest.isPending ? 'Writing suggested edits…' : proposalId ? 'Suggested edits' : 'Review suggested edits'}
+          <LineIcon name="sparkle" size={12} />{' '}
+          {suggest.isPending ? 'Writing suggested edits…' : proposalId ? 'Suggested edits' : 'Review suggested edits'}
         </button>
         <button
           type="button"

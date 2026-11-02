@@ -449,15 +449,21 @@ describe('the workflow table and the template editor', () => {
     expect((await within(ed).findByRole('alert')).textContent).toContain('needs a role');
   });
 
+  // "Who does it" is the design's own dropdown: open it and pick an option
+  const pickWho = (ed: HTMLElement, name: string) => {
+    fireEvent.click(within(ed).getByRole('button', { name: 'Who does it' }));
+    fireEvent.click(screen.getByRole('option', { name: new RegExp(`^${name}`) }));
+  };
+
   it('warns when a template stops for you more than twice', async () => {
     mount(<WorkflowsSection projectId="p1" />);
     fireEvent.click(await screen.findByRole('button', { name: 'Edit Quick fix' }));
     const ed = await screen.findByTestId('template-editor');
     fireEvent.click(within(ed).getByRole('button', { name: 'Add a step' }));
-    fireEvent.change(within(ed).getByLabelText('Who does it'), { target: { value: '@you' } });
+    pickWho(ed, 'You');
     expect(within(ed).queryByTestId('editor-warning')).toBeNull();
     fireEvent.click(within(ed).getByRole('button', { name: 'Add a step' }));
-    fireEvent.change(within(ed).getByLabelText('Who does it'), { target: { value: '@you' } });
+    pickWho(ed, 'You');
     expect(within(ed).getByTestId('editor-warning').textContent).toContain('more than twice');
   });
 });

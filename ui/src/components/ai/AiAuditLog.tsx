@@ -1,3 +1,4 @@
+import { MenuSelect } from '../ui/MenuSelect';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, useAiMutation, useAiOverview } from '../../api/ai';
@@ -27,6 +28,7 @@ import {
   snake,
   usd,
 } from './aiSafetyUi';
+import { LineIcon } from '../ui/LineIcon';
 
 const ACTIONS = [
   'change_status',
@@ -204,52 +206,52 @@ export function AuditView({
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select
-          className="ai-select-sm"
+        {/* E1: the filters are the design's dropdown chips; the ticket search has a magnifier */}
+        <MenuSelect
+          variant="chip"
+          label="Agent"
           value={memberId}
-          onChange={(e) => setMemberId(e.target.value)}
-          data-testid="audit-agent"
-        >
-          <option value="">All agents</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="ai-select-sm"
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-          data-testid="audit-action"
-        >
-          <option value="">Any action</option>
-          {ACTIONS.map((a) => (
-            <option key={a} value={a}>
-              {ACTION_LABEL[a] ?? a}
-            </option>
-          ))}
-        </select>
-        <input
-          className="ai-input"
-          style={{ width: 130, height: 34 }}
-          placeholder="KAN-…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          data-testid="audit-ticket"
+          onChange={setMemberId}
+          testId="audit-agent"
+          options={[
+            { value: '', label: 'All agents' },
+            ...members.map((m) => ({
+              value: m.id,
+              label: m.name,
+              icon: <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={18} />,
+            })),
+          ]}
         />
-        <select
-          className="ai-select-sm"
+        <MenuSelect
+          variant="chip"
+          label="Action"
+          value={action}
+          onChange={setAction}
+          testId="audit-action"
+          options={[
+            { value: '', label: 'Any action' },
+            ...ACTIONS.map((a) => ({ value: a, label: ACTION_LABEL[a] ?? a })),
+          ]}
+        />
+        <label className="ai-search-field" style={{ width: 150 }}>
+          <LineIcon name="search" size={14} color="#9AA8A0" />
+          <input
+            placeholder="KAN-…"
+            aria-label="Ticket"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            data-testid="audit-ticket"
+          />
+        </label>
+        <MenuSelect
+          variant="chip"
+          label="Date"
           value={date}
-          onChange={(e) => setDate(e.target.value as typeof date)}
-          data-testid="audit-date"
-        >
-          {DATES.map(([v, label]) => (
-            <option key={v} value={v}>
-              {label}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setDate(v as typeof date)}
+          icon={<LineIcon name="clock" size={13} />}
+          testId="audit-date"
+          options={DATES.map(([v, label]) => ({ value: v, label }))}
+        />
         <div className="ai-chips">
           {[
             ['', 'All'],
@@ -574,7 +576,7 @@ function AuditDrawer({
         <b style={{ flex: 1, fontSize: 15 }}>{ACTION_LABEL[e.action] ?? e.action}</b>
         <ResultChip result={e.result} reverted={!!e.revertedAt} />
         <button type="button" className="ai-icobtn" onClick={onClose} aria-label="Close">
-          ✕
+          <LineIcon name="close" size={14} />
         </button>
       </div>
       <div className="ai-muted">
@@ -597,7 +599,7 @@ function AuditDrawer({
       )}
       {!!e.redactions && (
         <Pill>
-          🛡 {e.redactions} secret{e.redactions === 1 ? '' : 's'} redacted
+          <LineIcon name="shield" size={13} /> {e.redactions} secret{e.redactions === 1 ? '' : 's'} redacted
         </Pill>
       )}
       {d.before && d.after && (

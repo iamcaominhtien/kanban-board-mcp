@@ -3,6 +3,7 @@ import type { AiMember } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { AiAvatar } from '../ai/aiUi';
 import { CheckCircleIcon, ChevronIcon, LockIcon } from './schedulesUi';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Click outside closes a popover. */
 function useOutside(open: boolean, onClose: () => void) {
@@ -92,7 +93,11 @@ export function MemberSelect({
             >
               <AiAvatar provider={m.provider} size={22} />
               <span className="sc-grow">{m.name}</span>
-              {m.id === value && <span style={{ color: '#2E6F40' }}>✓</span>}
+              {m.id === value && (
+                <span style={{ color: '#2E6F40' }}>
+                  <LineIcon name="check" size={14} />
+                </span>
+              )}
             </button>
           ))}
           {!members.length && (
@@ -100,6 +105,128 @@ export function MemberSelect({
               No AI members yet.
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Time zone picker with search (the design draws a custom dropdown; a native select lists hundreds of OS-styled
+ * entries). Arrow keys move, Enter picks, Esc closes.
+ */
+export function ZoneSelect({
+  zones,
+  value,
+  onChange,
+  testId,
+  maxWidth = 300,
+}: {
+  zones: { id: string; label: string }[];
+  value: string;
+  onChange: (id: string) => void;
+  testId?: string;
+  maxWidth?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [active, setActive] = useState(0);
+  const close = () => {
+    setOpen(false);
+    setQ('');
+  };
+  const ref = useOutside(open, close);
+  const listRef = useRef<HTMLDivElement>(null);
+  const current = zones.find((z) => z.id === value);
+  const needle = q.trim().toLowerCase().replace(/\s+/g, '_');
+  const list = needle ? zones.filter((z) => z.label.toLowerCase().replace(/\s+/g, '_').includes(needle)) : zones;
+  useEffect(() => {
+    if (!open) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView?.({ block: 'nearest' });
+  }, [open, active]);
+  const openList = () => {
+    setActive(
+      Math.max(
+        0,
+        zones.findIndex((z) => z.id === value),
+      ),
+    );
+    setOpen(true);
+  };
+  const pick = (id: string | undefined) => {
+    if (!id) return;
+    close();
+    if (id !== value) onChange(id);
+  };
+  return (
+    <div ref={ref} className="sc-pop-wrap" style={{ maxWidth }}>
+      <button
+        type="button"
+        className="sc-select sc-select-field"
+        onClick={() => (open ? close() : openList())}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Time zone"
+        data-testid={testId}
+      >
+        <span className="sc-select-text">{current?.label ?? value}</span>
+        <ChevronIcon size={14} />
+      </button>
+      {open && (
+        <div className="sc-pop">
+          <input
+            className="ai-input"
+            placeholder="Search a city or zone…"
+            aria-label="Search time zones"
+            value={q}
+            autoFocus
+            onChange={(e) => {
+              setQ(e.target.value);
+              setActive(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setActive((a) => Math.min(a + 1, list.length - 1));
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setActive((a) => Math.max(a - 1, 0));
+              } else if (e.key === 'Enter') {
+                e.preventDefault();
+                pick(list[active]?.id);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                close();
+              }
+            }}
+          />
+          <div ref={listRef} role="listbox" aria-label="Time zone" className="sc-pop-list">
+            {list.map((z, i) => (
+              <button
+                key={z.id}
+                type="button"
+                role="option"
+                aria-selected={z.id === value}
+                data-index={i}
+                className={`ai-mi ${i === active ? 'sc-mi-active' : ''}`}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => pick(z.id)}
+              >
+                <span className="sc-grow">{z.label}</span>
+                {z.id === value && (
+                  <span style={{ color: '#2E6F40' }}>
+                    <LineIcon name="check" size={14} />
+                  </span>
+                )}
+              </button>
+            ))}
+            {!list.length && (
+              <div className="ai-muted" style={{ padding: 10 }}>
+                No time zone matches.
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

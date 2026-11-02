@@ -15,7 +15,8 @@
   border-radius: 8px;
   border: 1px solid #e3e8e5;
   background: #ffffff;
-  width: 220px;
+  /* narrower than before so the filters and Group by keep one line at 1440 px (board MB-3) */
+  width: 170px;
   box-sizing: border-box;
   transition:
     border-color 0.15s ease,
@@ -154,18 +155,6 @@
   flex-shrink: 0;
   color: #2e6f40;
   margin-left: auto;
-}
-
-.miniAvatar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  font-size: 8px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 
 /* Group by: Story (ai-story-flow D) */

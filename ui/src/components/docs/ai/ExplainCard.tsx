@@ -4,6 +4,7 @@ import { moneyLabel, problemLine } from '../../../utils/pageAiRules';
 import { Icon } from '../Icon';
 import type { PageAiView } from './usePageAiView';
 import './pageAi.css';
+import { LineIcon } from '../../ui/LineIcon';
 
 /** "Explain": a small card by the selection with the answer, where it is from and what it cost (docs-ai E2). */
 export function ExplainCard({ view }: { view: PageAiView }) {
@@ -40,7 +41,10 @@ export function ExplainCard({ view }: { view: PageAiView }) {
       data-nocomment
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-        <span style={{ color: '#6b5bd2' }}>✦</span>Explain
+        <span style={{ color: '#6b5bd2' }}>
+          <LineIcon name="sparkle" size={13} />
+        </span>
+        Explain
         <span style={{ flex: 1 }} />
         <button
           type="button"

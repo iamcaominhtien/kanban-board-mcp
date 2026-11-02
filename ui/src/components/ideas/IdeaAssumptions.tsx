@@ -12,6 +12,9 @@ import type { AssumptionImpact, AssumptionState, Idea, IdeaAssumption } from '..
 import { useToast } from '../Toast';
 import { AiChip } from './ideaShared';
 import { EvidenceForm } from './IdeaEvidenceTab';
+import { LineIcon } from '../ui/LineIcon';
+import { useIdeaAiStatus } from '../../api/ideaAi';
+import { IdeaIcon, type IdeaIconName } from './ideaIcons';
 
 const IMPACTS: AssumptionImpact[] = ['low', 'medium', 'high'];
 const STATES: AssumptionState[] = ['untested', 'testing', 'validated', 'disproved'];
@@ -23,10 +26,47 @@ interface Props {
   onOpenTicket: (id: string) => void;
   /** Open the Evidence tab on this assumption. */
   focusId?: string | null;
+  /** Open Shape with AI to draft assumptions (shown while AI help is on). */
+  onSuggest?: () => void;
+}
+
+const KIND_ICONS: Record<string, IdeaIconName> = {
+  comment: 'comment',
+  file: 'attach',
+  link: 'link',
+  ticket: 'square',
+  sketch: 'brush',
+  diagram: 'frame',
+  note: 'page',
+};
+
+/** "We believe people…" with the lead-in in bold, as the design writes every assumption. */
+function Believe({ text }: { text: string }) {
+  const m = /^(we believe)(\b.*)$/is.exec(text);
+  return m ? (
+    <>
+      <b>{m[1]}</b>
+      {m[2]}
+    </>
+  ) : (
+    <>{text}</>
+  );
+}
+
+/** "Suggest with AI": opens Shape with AI; nothing is drawn while AI help is off for the idea's project. */
+function SuggestButton({ projectId, onClick }: { projectId: string | null; onClick?: () => void }) {
+  const status = useIdeaAiStatus(projectId).data;
+  if (!onClick || !status || status.state === 'off') return null;
+  return (
+    <button type="button" className="is-btn is-btn-sm is-btn-ai" onClick={onClick} data-testid="suggest-assumptions">
+      <IdeaIcon name="sparkle" size={13} />
+      Suggest with AI
+    </button>
+  );
 }
 
 /** "What must be true": each assumption says how bad it is if wrong, what proof exists and how it is being tested. */
-export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props) {
+export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId, onSuggest }: Props) {
   const toast = useToast();
   const add = useAddAssumption();
   const edit = useEditAssumption();
@@ -72,9 +112,14 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props
   return (
     <div data-testid="assumptions-tab">
       {idea.assumptions.length === 0 ? (
-        <div className="is-empty" data-testid="no-assumptions">
+        <div className="is-empty is-empty-dashed" data-testid="no-assumptions">
           <h3>No assumptions yet</h3>
           <div>Write what must be true for this to work. Readiness stays Not started until you do.</div>
+          {!readOnly && (
+            <div className="is-empty-actions">
+              <SuggestButton projectId={idea.projectId} onClick={onSuggest} />
+            </div>
+          )}
         </div>
       ) : (
         <table className="is-table">
@@ -117,7 +162,8 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props
                         />
                       ) : (
                         <span>
-                          {a.text} {a.ai && <AiChip title="Added from the AI chat. It is yours once you edit it." />}
+                          <Believe text={a.text} />{' '}
+                          {a.ai && <AiChip title="Added from the AI chat. It is yours once you edit it." />}
                         </span>
                       )}
                     </td>
@@ -183,6 +229,15 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props
                       )}
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="is-btn is-btn-ghost is-btn-sm"
+                        aria-expanded={open}
+                        aria-label={open ? 'Close the assumption' : 'Open the assumption'}
+                        onClick={() => setOpenId(open ? null : a.id)}
+                      >
+                        <LineIcon name={open ? 'chevronDown' : 'chevronRight'} size={14} />
+                      </button>
                       {!readOnly && (
                         <>
                           <button
@@ -202,7 +257,7 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props
                               del.mutate({ id: idea.id, assumptionId: a.id }, { onError: fail('Could not delete') })
                             }
                           >
-                            ×
+                            <LineIcon name="close" size={12} />
                           </button>
                         </>
                       )}
@@ -211,45 +266,121 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props
                   {open && (
                     <tr>
                       <td colSpan={5} className="is-detail">
-                        <div className="is-label">Evidence</div>
-                        {a.evidence.length === 0 && (
-                          <div className="is-muted">Nothing yet. Add a comment, link, ticket, file or note.</div>
-                        )}
-                        {a.evidence.map((e) => (
-                          <div key={e.id} className="is-evidence-line">
-                            <span className="is-tag">{e.kind}</span>
-                            <span>{e.title || e.ref}</span>
-                            {e.title && e.kind === 'link' && (
-                              <a href={e.ref} target="_blank" rel="noreferrer noopener" className="is-muted">
-                                {e.ref}
-                              </a>
+                        <div className="is-detail-grid">
+                          <div>
+                            <div className="is-label">Evidence</div>
+                            {a.evidence.length === 0 && (
+                              <div className="is-muted">Nothing yet. Add a comment, link, ticket, file or note.</div>
                             )}
-                            <span className="is-grow" />
+                            {a.evidence.map((e) => (
+                              <div key={e.id} className="is-ev-card">
+                                <IdeaIcon name={KIND_ICONS[e.kind] ?? 'page'} size={14} color="#5B6B60" />
+                                <span className="is-grow is-ev-title">
+                                  {e.title || e.ref}
+                                  {e.title && e.kind === 'link' && (
+                                    <>
+                                      {' '}
+                                      <a href={e.ref} target="_blank" rel="noreferrer noopener" className="is-ev-link">
+                                        {e.ref}
+                                      </a>
+                                    </>
+                                  )}
+                                </span>
+                                <span className="is-muted">{cap(e.kind)}</span>
+                                {!readOnly && (
+                                  <button
+                                    type="button"
+                                    className="is-btn is-btn-ghost is-btn-sm"
+                                    onClick={() => removeEvidence.mutate({ id: idea.id, evidenceId: e.id })}
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                            ))}
                             {!readOnly && (
-                              <button
-                                type="button"
-                                className="is-btn is-btn-ghost is-btn-sm"
-                                onClick={() => removeEvidence.mutate({ id: idea.id, evidenceId: e.id })}
-                              >
-                                Remove
-                              </button>
+                              <EvidenceForm
+                                ideaId={idea.id}
+                                projectId={idea.projectId ?? undefined}
+                                ideaTitle={idea.title}
+                                assumptions={[{ id: a.id, text: a.text }]}
+                                onAdd={async (v) => {
+                                  await evidence.mutateAsync({ id: idea.id, ...v });
+                                }}
+                              />
                             )}
                           </div>
-                        ))}
+                          <div>
+                            <div className="is-label">Test</div>
+                            {a.testTicketId ? (
+                              <>
+                                <div className="is-ev-card">
+                                  <button
+                                    type="button"
+                                    className="is-ticket-chip is-chip-btn"
+                                    onClick={() => onOpenTicket(a.testTicketId!)}
+                                  >
+                                    <span className="is-dot" style={{ background: '#E8B93A' }} />
+                                    {a.testTicketId}
+                                  </button>
+                                  <span className="is-grow">Tests this assumption</span>
+                                </div>
+                                <div className="is-muted" style={{ marginTop: 8 }}>
+                                  When {a.testTicketId} is Done, you are asked: validated or disproved?
+                                </div>
+                              </>
+                            ) : (
+                              <div className="is-muted">
+                                No test yet.{' '}
+                                {!readOnly && (
+                                  <button
+                                    type="button"
+                                    className="is-btn is-btn-sm"
+                                    onClick={() => createTest(a)}
+                                    disabled={test.isPending}
+                                  >
+                                    <IdeaIcon name="flask" size={13} />
+                                    Create test
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                         {!readOnly && (
-                          <EvidenceForm
-                            ideaId={idea.id}
-                            projectId={idea.projectId ?? undefined}
-                            ideaTitle={idea.title}
-                            assumptions={[{ id: a.id, text: a.text }]}
-                            onAdd={async (v) => {
-                              await evidence.mutateAsync({ id: idea.id, ...v });
-                            }}
-                          />
-                        )}
-                        {a.testTicketId && (
-                          <div className="is-muted" style={{ marginTop: 8 }}>
-                            When {a.testTicketId} is Done, you are asked: validated or disproved?
+                          <div className="is-detail-actions">
+                            {a.state !== 'validated' && (
+                              <button
+                                type="button"
+                                className="is-btn is-btn-sm"
+                                data-testid={`mark-validated-${a.id}`}
+                                onClick={() =>
+                                  edit.mutate(
+                                    { id: idea.id, assumptionId: a.id, status: 'validated' },
+                                    { onError: fail('Could not change the status') },
+                                  )
+                                }
+                              >
+                                <IdeaIcon name="check" size={13} />
+                                Mark validated
+                              </button>
+                            )}
+                            {a.state !== 'disproved' && (
+                              <button
+                                type="button"
+                                className="is-btn is-btn-sm"
+                                data-testid={`mark-disproved-${a.id}`}
+                                onClick={() =>
+                                  edit.mutate(
+                                    { id: idea.id, assumptionId: a.id, status: 'disproved' },
+                                    { onError: fail('Could not change the status') },
+                                  )
+                                }
+                              >
+                                <IdeaIcon name="close" size={13} />
+                                Mark disproved
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
@@ -290,8 +421,10 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props
             onClick={addOne}
             disabled={!text.trim() || add.isPending}
           >
+            <IdeaIcon name="plus" size={13} />
             Add an assumption
           </button>
+          {idea.assumptions.length > 0 && <SuggestButton projectId={idea.projectId} onClick={onSuggest} />}
         </div>
       )}
     </div>

@@ -16,6 +16,7 @@ import {
   estimateTokens,
   tok,
 } from './parts';
+import { LineIcon } from '../../ui/LineIcon';
 
 const VARS = ['ticket', 'project', 'docs', 'comments'];
 const PROMPT_BUDGET = 8000;
@@ -51,7 +52,7 @@ function SnippetChips() {
               })
             }
           >
-            ×
+            <LineIcon name="close" size={12} />
           </button>
         </Chip>
       ))}
@@ -95,13 +96,18 @@ function ClaudeInstructions() {
       </div>
       {scope === 'project' ? (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="ai-mono" style={{ fontSize: 12, fontWeight: 700 }}>
-              CLAUDE.md
-            </span>
-            <ModeChip mode="synced" />
-          </div>
           <CodeEditor
+            header={
+              <>
+                <LineIcon name="page" size={13} />
+                <span className="ai-mono" style={{ fontWeight: 500 }}>
+                  CLAUDE.md
+                </span>
+                <span style={{ marginLeft: 'auto' }}>
+                  <ModeChip mode="synced" />
+                </span>
+              </>
+            }
             testId="cfg-instructions-editor"
             ariaLabel="CLAUDE.md"
             path="instructions"

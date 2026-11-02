@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ROLES } from './pluginLogic';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -56,6 +57,12 @@ const wrap = (ui: React.ReactNode) => (
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
+// The role filter is the design's dropdown chip: open it and pick
+const pickRole = (name: string) => {
+  fireEvent.click(screen.getByRole('button', { name: 'Role' }));
+  fireEvent.click(screen.getByRole('option', { name }));
+};
+
 describe('CatalogueTab', () => {
   const catalogue = [
     entry(),
@@ -82,10 +89,10 @@ describe('CatalogueTab', () => {
     expect(await screen.findByTestId('cat-tdd')).toBeTruthy();
     expect(screen.getByText('MCP server')).toBeTruthy();
     expect(screen.getByText(/Suggested for Dev, QA · github.com\/x\/tdd/)).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'designer' } });
+    pickRole(ROLES.designer);
     expect(screen.queryByTestId('cat-tdd')).toBeNull();
     expect(screen.getByTestId('cat-figma')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'triage' } });
+    pickRole(ROLES.triage);
     expect(screen.getByText('Nothing is suggested for this role.')).toBeTruthy();
   });
 

@@ -7,6 +7,7 @@ import { previewKind, languageLabel } from './kinds';
 import { formatFileSize } from '../../utils/fileIcons';
 import type { ReaderProps } from './readerTypes';
 import styles from './PreviewViewer.module.css';
+import { LineIcon } from '../ui/LineIcon';
 
 const ARCHIVE_LIMIT = 64 * 1024 * 1024;
 
@@ -206,7 +207,10 @@ export default function ArchiveReader({ item, onFacts, actions }: ReaderProps) {
                         className={styles.entryBtn}
                         onClick={() => (r.dir ? setDir(r.path) : setOpen(r.path))}
                       >
-                        <span aria-hidden="true">{r.dir ? '📁' : '📄'}</span> {r.name}
+                        <span aria-hidden="true">
+                          {r.dir ? <LineIcon name="folder" size={14} /> : <LineIcon name="page" size={14} />}
+                        </span>{' '}
+                        {r.name}
                       </button>
                     </td>
                     <td>{r.dir ? '' : formatFileSize(r.size)}</td>

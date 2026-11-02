@@ -6,6 +6,7 @@ import { configApi } from './configApi';
 import { useCfg } from './configCtx';
 import { CfgCard, Chip, CodeEditor, Dialog, EmptyState, IssueText, newId } from './parts';
 import { agentTemplate, frontMatter } from './frontMatter';
+import { LineIcon } from '../../ui/LineIcon';
 
 const EVENTS = [
   'PreToolUse',
@@ -133,7 +134,7 @@ export function SubagentsCard() {
               aria-label={`Remove ${a.name}`}
               onClick={() => setCfg({ subagents: cfg.subagents.filter((x) => x.id !== a.id) })}
             >
-              ✕
+              <LineIcon name="close" size={12} />
             </button>
           </div>
           <IssueText issues={issues} path={`subagents.${i}`} prefix />
@@ -326,7 +327,7 @@ export function HooksCard() {
                     aria-label="Remove hook"
                     onClick={() => setCfg({ hooks: cfg.hooks.filter((x) => x.id !== h.id) })}
                   >
-                    ✕
+                    <LineIcon name="close" size={12} />
                   </button>
                 </td>
               </tr>

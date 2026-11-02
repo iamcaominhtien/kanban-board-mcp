@@ -5,7 +5,8 @@ import { safetyApi } from '../../../api/aiSafety';
 import { extractError } from '../../../api/extractError';
 import { useLiveFeed, type FeedScope, type LiveFeedItem } from '../../../api/aiLiveFeed';
 import type { LiveRun, NeedsItem } from '../../../types/aiTeam';
-import { AI_GLYPHS, GlyphIcon } from '../aiUi';
+import { AI_GLYPHS, GlyphIcon, useAiBoardState } from '../aiUi';
+import { clockTime } from '../pausedUi';
 import {
   clockOf,
   codeParts,
@@ -628,6 +629,10 @@ export function LiveFeed({
   const [detail, setDetail] = useState<FeedDetail>(readDetail);
   const [paused, setPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState<string | null>(null);
+  // All AI paused for the project (design ai-paused D4): nothing animates, and the column says why
+  const aiSettings = useAiBoardState().settings;
+  const allPaused = !!aiSettings?.pausedAll;
+  const allPausedSince = allPaused ? clockTime(aiSettings?.pausedAt) : '';
   const [filter, setFilter] = useState<FeedFilter>({ speaker: null, ticketId: null });
   const [atEdge, setAtEdge] = useState(true);
   const [seenId, setSeenId] = useState<string | null>(null);
@@ -845,9 +850,13 @@ export function LiveFeed({
     <aside className="lf-root" aria-label="Live commentary" data-testid="live-feed">
       <header className="lf-top">
         <div className="lf-top-row">
-          <span className={`lf-live${live && !paused ? '' : ' off'}`} title={live ? 'Live' : 'Reconnecting'}>
+          <span
+            className={`lf-live${live && !paused && !allPaused ? '' : ' off'}`}
+            title={allPaused ? 'All AI is paused' : live ? 'Live' : 'Reconnecting'}
+            data-testid="live-feed-badge"
+          >
             <span className="lf-live-dot" />
-            {paused ? 'PAUSED' : 'LIVE'}
+            {paused || allPaused ? 'PAUSED' : 'LIVE'}
           </span>
           <h2 className="lf-title">Live commentary</h2>
           <span style={{ flex: 1 }} />
@@ -998,6 +1007,8 @@ export function LiveFeed({
                 detail={detail}
                 now={now}
                 onEverything={() => chooseDetail('everything')}
+                allPaused={allPaused}
+                allPausedSince={allPausedSince}
               />
             )}
           </div>
@@ -1078,7 +1089,11 @@ function EmptyScope({
   detail,
   now,
   onEverything,
+  allPaused,
+  allPausedSince,
 }: {
+  allPaused?: boolean;
+  allPausedSince?: string;
   links?: FeedLinks;
   last: LiveFeedItem | null;
   anyLines: boolean;
@@ -1088,6 +1103,14 @@ function EmptyScope({
   onEverything: () => void;
 }) {
   const label = links?.scopeLabel;
+  if (allPaused && !working) {
+    return (
+      <span data-testid="live-feed-ai-paused">
+        <b className="lf-empty-t">AI is paused{allPausedSince ? ` since ${allPausedSince}` : ''}.</b> Nothing new starts
+        until an owner or admin resumes, so nothing shows up here until then.
+      </span>
+    );
+  }
   if (label?.kind === 'ticket' && !anyLines) {
     const waits = links?.waitsFor ?? [];
     return (

@@ -22,6 +22,7 @@ import {
 import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
 import '../docs.css';
+import { LineIcon } from '../../ui/LineIcon';
 
 type Kind = 'out_of_date' | 'missing' | 'broken' | 'overlaps';
 
@@ -285,7 +286,7 @@ function Lists({
                 <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   {onWritePage && (
                     <button type="button" style={accent} onClick={() => onWritePage(r.ticketId)}>
-                      ✦ Write a page
+                      <LineIcon name="sparkle" size={12} /> Write a page
                     </button>
                   )}
                   <AddToPage ticketId={r.ticketId} projectId={projectId} />

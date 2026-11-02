@@ -111,6 +111,26 @@ describe('NotificationsSettings', () => {
     await waitFor(() => expect(lastPatch()).toEqual({ sound: true }));
   });
 
+  it('shows times as 24 h text, steps them with the arrows and drops an unfinished one', async () => {
+    setup(base({ quiet: { on: true, start: '22:00', end: '08:00' } }));
+    const start = (await screen.findByLabelText('Quiet hours start')) as HTMLInputElement;
+    expect(start.type).toBe('text');
+    expect(start.value).toBe('22:00');
+    start.setSelectionRange(0, 0);
+    fireEvent.keyDown(start, { key: 'ArrowUp' });
+    await waitFor(() => expect(lastPatch()).toEqual({ quiet: { start: '23:00' } }));
+    start.setSelectionRange(4, 4);
+    fireEvent.keyDown(start, { key: 'ArrowDown' });
+    await waitFor(() => expect(lastPatch()).toEqual({ quiet: { start: '22:59' } }));
+    c.patch.mockClear();
+    fireEvent.change(start, { target: { value: '7:3' } });
+    expect(c.patch).not.toHaveBeenCalled();
+    fireEvent.blur(start);
+    expect(start.value).not.toBe('7:3');
+    fireEvent.change(start, { target: { value: '7:30' } });
+    await waitFor(() => expect(lastPatch()).toEqual({ quiet: { start: '07:30' } }));
+  });
+
   it('ignores an emptied time input', async () => {
     setup();
     const input = await screen.findByLabelText('Quiet hours start');
@@ -305,6 +325,20 @@ describe('NotificationsSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: 'send a test' }));
       await screen.findByText(/blocking notifications for this site\. Allow them in its site settings/);
       expect(made).toHaveLength(0);
+      // a saved "on" stays shown and can still be turned off
+      const sw = screen.getByLabelText('Desktop notifications');
+      expect(sw.getAttribute('aria-checked')).toBe('true');
+      expect((sw as HTMLButtonElement).disabled).toBe(false);
+      fireEvent.click(sw);
+      await waitFor(() => expect(lastPatch()).toEqual({ desktopOn: false }));
+    });
+
+    it('does not let a blocked browser be asked to turn desktop notifications on', async () => {
+      install('denied');
+      setup(base({ desktopOn: false }));
+      const sw = (await screen.findByLabelText('Desktop notifications')) as HTMLButtonElement;
+      expect(sw.getAttribute('aria-checked')).toBe('false');
+      expect(sw.disabled).toBe(true);
     });
 
     it('has a switch for the master setting', async () => {

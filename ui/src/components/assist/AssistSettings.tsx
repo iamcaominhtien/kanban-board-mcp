@@ -7,6 +7,7 @@ import { Toggle } from '../ai/aiUi';
 import { usd } from './assistUi';
 import './assist.css';
 import { SettingsCard } from '../settings/settingsUi';
+import { LineIcon } from '../ui/LineIcon';
 
 const LANGUAGES = ['English (US)', 'English (UK)', 'Tiếng Việt', 'Français', 'Deutsch', 'Español', '日本語'];
 const TONES = [
@@ -50,21 +51,22 @@ function FeaturesBlock({ projectId, s }: { projectId: string; s: AssistState }) 
                 borderTop: i ? '1px solid #EDF1EE' : 'none',
               }}
             >
+              {/* H1: name and description on one line, the cost, then the switch at the trailing edge */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>{f.label}</span>
+                <span style={{ fontSize: 11.5, color: '#5B6B60' }}>
+                  {f.key === 'health' ? `Daily insights at ${s.health.time}` : f.description}
+                </span>
+              </div>
+              <span className="ai-mono" style={{ fontSize: 11, color: f.on ? '#5B6B60' : '#9AA8A0' }}>
+                {f.costMonth > 0 ? usd(f.costMonth, 2) : '—'}
+              </span>
               <Toggle
                 on={f.on}
                 label={f.label}
                 testId={`feature-${f.key}`}
                 onChange={(v) => void save({ features: { [f.key as FeatureKey]: v } })}
               />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{f.label}</div>
-                <div className="ai-muted">
-                  {f.key === 'health' ? `Daily insights at ${s.health.time}` : f.description}
-                </div>
-              </div>
-              <span className="ai-mono" style={{ fontSize: 12, color: f.on ? '#1E2A22' : '#9AA8A0' }}>
-                {f.costMonth > 0 ? usd(f.costMonth, 2) : '—'}
-              </span>
             </div>
           ))}
         </div>
@@ -80,12 +82,13 @@ function FeaturesBlock({ projectId, s }: { projectId: string; s: AssistState }) 
         </label>
         <div className="ai-field">
           <span className="ai-label">Tone</span>
-          <div className="ai-seg">
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} role="group" aria-label="Tone">
             {TONES.map(([k, label]) => (
               <button
                 key={k}
                 type="button"
-                className={s.tone === k ? 'ai-seg-on' : ''}
+                aria-pressed={s.tone === k}
+                className={`as-opt ${s.tone === k ? 'as-opt-on' : ''}`}
                 onClick={() => void save({ tone: k })}
               >
                 {label}
@@ -145,11 +148,6 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
                 borderTop: i ? '1px solid #EDF1EE' : 'none',
               }}
             >
-              <Toggle
-                on={p.shared}
-                label={`Share ${p.name}`}
-                onChange={(v) => void save({ dataScope: [{ projectId: p.projectId, shared: v }] })}
-              />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
                 <div className="ai-muted">
@@ -160,6 +158,11 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
                     : 'Not shared with the Board AI'}
                 </div>
               </div>
+              <Toggle
+                on={p.shared}
+                label={`Share ${p.name}`}
+                onChange={(v) => void save({ dataScope: [{ projectId: p.projectId, shared: v }] })}
+              />
             </div>
           ))}
         </div>
@@ -169,13 +172,15 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, position: 'relative' }}>
           {s.excludedDocs.map((d) => (
             <span key={d.id} className="as-ctx-chip">
-              <span>🔒 {d.title}</span>
+              <span>
+                <LineIcon name="lock" size={13} /> {d.title}
+              </span>
               <button
                 type="button"
                 aria-label={`Include ${d.title} again`}
                 onClick={() => void save({ excludedDocs: excluded.filter((x) => x !== d.id) })}
               >
-                ✕
+                <LineIcon name="close" size={14} />
               </button>
             </span>
           ))}
@@ -195,7 +200,7 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
                       void save({ excludedDocs: [...excluded, n.id] });
                     }}
                   >
-                    📄 {n.title}
+                    <LineIcon name="page" size={13} /> {n.title}
                   </button>
                 ))}
               {!tree.data?.length && (
@@ -210,9 +215,20 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
           Excluded docs are private: never sent, never cited. Their owner can include one for a single chat.
         </div>
       </div>
-      <div>
-        <div className="as-label">What is sent to {provider}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 12.5 }}>
+      <div className="as-sent-card" data-testid="assist-sent">
+        <div className="as-label" style={{ margin: 0 }}>
+          What is sent to {provider}
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gridAutoFlow: 'column',
+            gridTemplateRows: 'repeat(3, auto)',
+            gap: '4px 18px',
+            fontSize: 12,
+          }}
+        >
           {(
             [
               ['Ticket titles and descriptions', true],
@@ -223,8 +239,18 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
               ['Docs marked private, unless included', false],
             ] as const
           ).map(([label, sent]) => (
-            <div key={label} style={{ color: sent ? '#1E2A22' : '#9AA8A0' }}>
-              {sent ? '✓' : '✕'} {label}
+            <div
+              key={label}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#1E2A22', lineHeight: 1.5 }}
+            >
+              <LineIcon
+                name={sent ? 'check' : 'close'}
+                size={13}
+                strokeWidth={2}
+                color={sent ? '#2E6F40' : '#C4432A'}
+                title={sent ? 'Sent' : 'Not sent'}
+              />
+              {label}
             </div>
           ))}
         </div>
@@ -240,29 +266,37 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
         <div className="as-label">Cost limits for the Board AI</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
           <label className="ai-field">
-            <span className="ai-label">Monthly cap ($)</span>
-            <input
-              className="ai-input"
-              type="number"
-              min={0}
-              step="1"
-              defaultValue={s.monthlyCap ?? ''}
-              placeholder="No cap"
-              onBlur={(e) => void save({ monthlyCap: num(e.target.value) })}
-              data-testid="assist-monthly-cap"
-            />
+            <span className="ai-label">Monthly cap</span>
+            <span className="as-money">
+              <span aria-hidden>$</span>
+              <input
+                className="ai-input"
+                aria-label="Monthly cap ($)"
+                type="number"
+                min={0}
+                step="1"
+                defaultValue={s.monthlyCap ?? ''}
+                placeholder="No cap"
+                onBlur={(e) => void save({ monthlyCap: num(e.target.value) })}
+                data-testid="assist-monthly-cap"
+              />
+            </span>
           </label>
           <label className="ai-field">
-            <span className="ai-label">Per request ($)</span>
-            <input
-              className="ai-input"
-              type="number"
-              min={0}
-              step="0.05"
-              defaultValue={s.perRequestCap ?? ''}
-              placeholder="No cap"
-              onBlur={(e) => void save({ perRequestCap: num(e.target.value) })}
-            />
+            <span className="ai-label">Per request</span>
+            <span className="as-money">
+              <span aria-hidden>$</span>
+              <input
+                className="ai-input"
+                aria-label="Per request ($)"
+                type="number"
+                min={0}
+                step="0.05"
+                defaultValue={s.perRequestCap ?? ''}
+                placeholder="No cap"
+                onBlur={(e) => void save({ perRequestCap: num(e.target.value) })}
+              />
+            </span>
           </label>
           <label className="ai-field">
             <span className="ai-label">Over the cap</span>
@@ -271,14 +305,32 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
               <option value="warn">Warn only</option>
             </select>
           </label>
-          <div className="ai-field">
-            <span className="ai-label">Used this month</span>
-            <span style={{ fontSize: 14, fontWeight: 700, paddingTop: 6 }}>
-              {usd(s.usedMonth, 2)}
-              {s.monthlyCap != null && <span className="ai-muted"> of {usd(s.monthlyCap, 2)}</span>}
-            </span>
-          </div>
         </div>
+        {/* H2: the month's use under the fields, with a bar when there is a cap */}
+        <div style={{ display: 'flex', marginTop: 10 }} data-testid="assist-used">
+          <span style={{ fontSize: 11.5, color: '#5B6B60', flex: 1 }}>Used this month</span>
+          <span className="ai-mono" style={{ fontSize: 11.5, fontWeight: 700 }}>
+            {usd(s.usedMonth, 2)}
+            {s.monthlyCap != null && ` of ${usd(s.monthlyCap, 2)}`}
+          </span>
+        </div>
+        {s.monthlyCap != null && s.monthlyCap > 0 && (
+          <div
+            className="as-usage-bar"
+            role="progressbar"
+            aria-label="Used this month"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(Math.min(1, s.usedMonth / s.monthlyCap) * 100)}
+          >
+            <div
+              style={{
+                width: `${Math.min(100, (s.usedMonth / s.monthlyCap) * 100)}%`,
+                background: s.usedMonth >= s.monthlyCap ? '#C4432A' : '#2E6F40',
+              }}
+            />
+          </div>
+        )}
         {!s.boardAi.metered && (
           <div className="ai-muted" style={{ marginTop: 4 }}>
             Caps apply to API-key Board AIs; a local runner uses its subscription and is not metered.
