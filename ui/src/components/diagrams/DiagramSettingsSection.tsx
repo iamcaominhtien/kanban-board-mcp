@@ -49,7 +49,8 @@ export function DiagramSettingsSection() {
     );
   };
 
-  const dirty = !!q.data && (mode !== q.data.mode || url !== q.data.url);
+  // Nothing loaded (an error): saving stays possible, as before
+  const dirty = !q.data || mode !== q.data.mode || url !== q.data.url;
 
   return (
     <SettingsCard

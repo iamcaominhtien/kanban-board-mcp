@@ -12,10 +12,10 @@ Settings drawn the way the design draws it (`design/screens/settings-structure.m
 
 ### Fixed
 - **The Settings page did not follow its design.** The top bar now has a bordered *Back to board*, the *Settings* title and a search box with its icon and the `/` key; the list of pages has its tinted background, an icon for each page, *App settings · all projects* and a project picker drawn as a drop-down (colour dot, name, key), with a dot beside Updates when an update is ready.
-- Every page has its title with a scope chip (*Project · Kanban Board* or *App*) and its sections as cards: a title, one line on what it does, and *Saved* or the error beside the title. A column *On this page* on the right lists the sections, follows the scroll and jumps to one (it replaces the row of buttons at the top of Settings › AI).
+- Every page has its title with a scope chip (*Project · Kanban Board* or *App*) and its sections as cards: a title, one line on what it does, and *Saved* or the error beside the title. A column *On this page* on the right lists the sections, follows the scroll and jumps to one; in a narrow window it becomes a row of pills above the sections (it replaces the row of buttons at the top of Settings › AI).
 - Search results show the page icon, where the setting lives and the typed word marked, with the result count and the ↑ ↓ Enter Esc hints; *No results* offers words to try.
 - Appearance picks the look with two cards (colour strips, the one in use marked) instead of a *Switch to B&W* button with an emoji. Storage & backup, Repositories, Docs, Integrations (MCP, Full control, Diagrams), Updates, Diagnostics, Board assistant and Idea Space use the same cards, switches, fields and pill options. A switch replaces the checkboxes in Docs AI and Idea Space.
-- Repositories saves each setting by itself like every other section (the *Save repo* and *Save worktree settings* buttons are gone; *Apply* appears when a path is edited).
+- Repositories saves each setting by itself like every other section (the *Save repo* and *Save worktree settings* buttons are gone; *Apply* appears when a path is edited, *Unlink* stays). The project picker works with the keyboard (arrows, Home, End, Esc).
 
 ## [3.23.1] - 2026-11-02
 

@@ -70,7 +70,7 @@ export function ProjectRepoRow({ project }: { project: Project }) {
               Apply
             </button>
           )}
-          {linked && !repoChanged && (
+          {linked && (
             <button
               type="button"
               className={styles.btn}

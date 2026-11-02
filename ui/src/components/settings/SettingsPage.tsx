@@ -175,6 +175,10 @@ export function SettingsPage({
       const el = contentRef.current?.querySelector<HTMLElement>(`[data-setting="${pendingSetting}"]`);
       if (!el) return;
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      window.setTimeout(() => {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+      }, 700);
       el.classList.remove(styles.flash);
       void el.offsetWidth;
       el.classList.add(styles.flash);
@@ -263,6 +267,54 @@ export function SettingsPage({
     box.addEventListener('scroll', onScroll, { passive: true });
     return () => box.removeEventListener('scroll', onScroll);
   }, [toc]);
+
+  function jumpTo(id: string) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    setTocActive(id);
+    // Parts of a page load while it scrolls and push the section down; land on it once they have
+    window.setTimeout(() => {
+      const box = contentRef.current;
+      if (!box) return;
+      const off = el.getBoundingClientRect().top - box.getBoundingClientRect().top;
+      if (Math.abs(off - 16) > 8) el.scrollIntoView({ block: 'start', behavior: 'instant' });
+    }, 700);
+  }
+
+  /** Arrow keys, Home and End move between the projects of the open menu; Esc closes it. */
+  function onPickerKey(e: React.KeyboardEvent) {
+    const items = Array.from(pickerRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
+    const at = items.indexOf(document.activeElement as HTMLButtonElement);
+    const focus = (i: number) => items[Math.max(0, Math.min(items.length - 1, i))]?.focus();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!pickerOpen) {
+        setPickerOpen(true);
+        return;
+      }
+      focus(at < 0 ? 0 : at + (e.key === 'ArrowDown' ? 1 : -1));
+    } else if (e.key === 'Home' && pickerOpen) {
+      e.preventDefault();
+      focus(0);
+    } else if (e.key === 'End' && pickerOpen) {
+      e.preventDefault();
+      focus(items.length - 1);
+    } else if (e.key === 'Escape' && pickerOpen) {
+      e.preventDefault();
+      e.stopPropagation();
+      setPickerOpen(false);
+      pickerRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    } else if (e.key === 'Tab' && pickerOpen) {
+      setPickerOpen(false);
+    }
+  }
+
+  // Opening the project menu puts the focus on the project in use
+  useEffect(() => {
+    if (pickerOpen)
+      pickerRef.current?.querySelector<HTMLButtonElement>('[role="option"][aria-selected="true"]')?.focus();
+  }, [pickerOpen]);
 
   function open(entry: SettingEntry) {
     go(entry.page, entry.id);
@@ -377,7 +429,7 @@ export function SettingsPage({
   };
 
   const projectPicker = (
-    <div className={styles.picker} ref={pickerRef}>
+    <div className={styles.picker} ref={pickerRef} onKeyDown={onPickerKey}>
       <button
         type="button"
         className={styles.pickerBtn}
@@ -554,6 +606,21 @@ export function SettingsPage({
                 </div>
                 <p className={styles.pageSummary}>{def.summary}</p>
               </div>
+              {toc.length > 1 && (
+                <nav className={styles.tocInline} aria-label="On this page (narrow window)">
+                  <span className={styles.tocInlineLabel}>On this page</span>
+                  {toc.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`${styles.pill} ${tocActive === t.id ? styles.pillOn : ''}`}
+                      onClick={() => jumpTo(t.id)}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </nav>
+              )}
               <div className={styles.sections}>{body}</div>
             </div>
             {toc.length > 1 && (
@@ -565,10 +632,7 @@ export function SettingsPage({
                     type="button"
                     className={`${styles.tocItem} ${tocActive === t.id ? styles.tocItemActive : ''}`}
                     aria-current={tocActive === t.id ? 'location' : undefined}
-                    onClick={() => {
-                      document.getElementById(t.id)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-                      setTocActive(t.id);
-                    }}
+                    onClick={() => jumpTo(t.id)}
                   >
                     {t.label}
                   </button>
