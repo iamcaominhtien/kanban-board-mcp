@@ -86,5 +86,8 @@ def explain(
     if perm in ("delete_tickets", "delete_docs") and (layer or "").startswith(
         "Role template"
     ):
-        switch = "Kept on purpose: deleting is never allowed outright; an owner may set it to Needs approval."
+        switch = (
+            "Blocked by default on purpose. The owner may set it to Needs approval, or lift the lock on this AI's "
+            "Permissions tab (with a warning)."
+        )
     return instead, switch

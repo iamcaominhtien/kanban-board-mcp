@@ -398,7 +398,7 @@ async def test_every_refusal_says_what_to_do_instead_and_what_to_switch_on(env):
     texts = " ".join(
         n["body"] for n in (feed.get("items") if isinstance(feed, dict) else feed)
     )
-    assert "Kept on purpose: deleting is never allowed outright" in texts
+    assert "Blocked by default on purpose. The owner may" in texts
 
 
 async def test_handing_a_ticket_over_from_a_run_with_ai_team_is_a_handoff(
@@ -542,4 +542,75 @@ def test_the_board_plugin_carries_the_guide_as_a_skill(tmp_path, monkeypatch):
     ).read_text()
     assert (
         root and text.startswith("---\nname: board-permissions") and "Instead:" in text
+    )
+
+
+# --------------------------------------------------------------------------- the owner may lift a lock
+
+
+def test_the_owner_may_set_any_mode_others_only_stricter():
+    from services.ai import permissions
+
+    assert permissions.validate_overrides(
+        "developer",
+        {"delete_tickets": "allowed", "change_assignee": "allowed"},
+        owner=True,
+    ) == {"delete_tickets": "allowed", "change_assignee": "allowed"}
+    with pytest.raises(ValueError, match="only the project owner"):
+        permissions.validate_overrides("custom", {"delete_tickets": "allowed"})
+    with pytest.raises(ValueError, match="Only the project owner can widen it"):
+        permissions.validate_overrides("developer", {"change_assignee": "allowed"})
+
+
+async def test_an_owner_who_lifts_the_delete_lock_lets_the_ai_delete_and_it_says_who(
+    env,
+):
+    from kanban_mcp.tools.tickets import manage_ticket
+
+    c = env["c"]
+    ctx, pid, an, m, tid = await _ctx(env)
+    await _people(c, pid)
+    r = await c.patch(
+        f"/ai/members/{m['id']}",
+        json={"permissions": {"delete_tickets": "allowed"}},
+        headers=ADMIN,
+    )
+    assert r.status_code == 422  # an admin cannot, even to ask the owner
+    r = await c.patch(
+        f"/ai/members/{m['id']}",
+        json={
+            "permissions": {"delete_tickets": "allowed", "change_assignee": "allowed"}
+        },
+        headers=OWNER,
+    )
+    assert r.status_code == 200, r.text
+    matrix = {
+        x["action"]: x
+        for x in (await c.get(f"/ai/members/{m['id']}/permissions")).json()["matrix"]
+    }
+    for action in ("delete_tickets", "change_assignee"):
+        row = matrix[action]
+        assert (
+            row["mode"] == "allowed"
+            and row["owner_enabled"]
+            and row["source_by"] == "Owen Lead"
+        )
+    other = await _ticket(c, pid, "Gone soon")
+    await c.patch(f"/tickets/{other}", json={"assignee": m["id"]})
+    tokens = guard.enter(ctx)
+    try:
+        await manage_ticket(action="delete", ticket_id=other)
+        await manage_ticket(action="update", ticket_id=tid, assignee=an)
+    finally:
+        guard.leave(tokens)
+    assert (await c.get(f"/tickets/{other}")).status_code == 404
+    # back to the template's mode: the lock holds again
+    r = await c.patch(f"/ai/members/{m['id']}", json={"permissions": {}}, headers=OWNER)
+    matrix = {
+        x["action"]: x
+        for x in (await c.get(f"/ai/members/{m['id']}/permissions")).json()["matrix"]
+    }
+    assert (
+        matrix["delete_tickets"]["mode"] == "blocked"
+        and not matrix["delete_tickets"]["owner_enabled"]
     )

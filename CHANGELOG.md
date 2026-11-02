@@ -22,6 +22,7 @@ AI permissions: fewer needless stops, the risky things still with a person (#275
 
 ### Changed
 - **Every refusal says why and what next.** The AI reads `Instead: …` (leave the ticket and say it is ready, propose the change in a comment, hand it over); the person's notice says what to switch on, or that it is kept on purpose. “Why was this blocked?” shows both.
+- **The owner may go past a lock or the role template, after a warning.** On an AI's Permissions tab the greyed modes keep their look and the 🔒 (Delete tickets and Delete docs past Needs approval, anything looser than the template), but for the project owner they are clickable: a dialog says what it risks (a deleted ticket is gone for good), asks to tick “I understand” for a lock, and records the change as Owner-enabled with the name and time. Admins and members still cannot (the design's A1 lock becomes the owner's decision, as the owner asked in #275).
 - Handing a ticket to a teammate from inside a run with `ai_team(action='ask', intent='work')` now goes through as `ai_run(action='handoff')`, with the same checks, instead of being refused.
 
 ### Fixed

@@ -79,7 +79,7 @@ def _verdict_board(action: str, code: str, reason: str) -> tuple[str, str]:
     if action in ("delete_tickets", "delete_docs"):
         return (
             "kept",
-            "Deleting stays with a person: at most Needs approval, decided each time.",
+            "Deleting stays with a person by default. The owner may set it to Needs approval, or lift the lock on the AI's Permissions tab (with a warning).",
         )
     if action == "manage_project":
         return ("kept", "Projects and members are managed by people only.")

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { aiApi, aiKeys, useAiMutation, useAiPermissions } from '../../api/ai';
 import { safetyApi } from '../../api/aiSafety';
 import { extractError } from '../../api/extractError';
-import type { AiMember, PermissionMode } from '../../types/ai';
+import type { AiMember, PermissionMode, PermissionRow } from '../../types/ai';
 import { useToast } from '../Toast';
 import { LoadError, Toggle, STATUS_NAMES, useAiBoardState } from './aiUi';
 import { MODE_LABEL, Pill, SafetyCard, dateTime } from './aiSafetyUi';
@@ -118,6 +118,12 @@ export function PreviewDialog({ member, onClose }: { member: AiMember; onClose: 
   );
 }
 
+/** What lifting a lock risks, per action (the owner's warning). */
+const WIDEN_RISK: Record<string, string> = {
+  delete_tickets: 'A deleted ticket is gone for good: its comments, history and links go with it.',
+  delete_docs: 'A page it deletes goes to the Recycle Bin, where it can be restored for 30 days.',
+};
+
 /** Permissions tab (A1, A3, A4): ceiling, the action matrix with where each mode comes from, template, tester, scope. */
 export function Permissions({ member }: { member: AiMember }) {
   const perms = useAiPermissions(member.id);
@@ -125,6 +131,8 @@ export function Permissions({ member }: { member: AiMember }) {
   const board = useAiBoardState();
   const [allowDone, setAllowDone] = useState<string | null>(null);
   const [wider, setWider] = useState(false);
+  // a mode past the template or a lock, waiting for the owner's "yes" in the warning dialog
+  const [widen, setWiden] = useState<{ row: PermissionRow; mode: PermissionMode; locked: boolean } | null>(null);
   const [ack, setAck] = useState(false);
   const save = useAiMutation((body: Record<string, unknown>) => aiApi.update(member.id, body));
   const decideM = useAiMutation((decision: 'confirm' | 'reject') => aiApi.decidePending(member.id, decision));
@@ -243,7 +251,7 @@ export function Permissions({ member }: { member: AiMember }) {
         </SafetyCard>
         <SafetyCard
           title="What it may do"
-          sub="Three modes per action. Greyed options are forbidden by the role template or a lock."
+          sub="Three modes per action. Past the role template or a lock (🔒) only the owner may go, after a warning."
           right={
             <button type="button" className="ai-btn ai-btn-sm" onClick={() => update({ permissions: {} })}>
               Reset to template
@@ -264,7 +272,6 @@ export function Permissions({ member }: { member: AiMember }) {
             <span>Where it comes from</span>
           </div>
           {data.matrix.map((row) => {
-            const ownerCanEnable = row.action === 'delete_tickets' && isOwner;
             return (
               <div key={row.action} className="ai-matrix-row" data-testid={`perm-${row.action}`}>
                 <div>
@@ -273,25 +280,32 @@ export function Permissions({ member }: { member: AiMember }) {
                 </div>
                 <div className="ai-seg">
                   {(['allowed', 'approval', 'blocked'] as PermissionMode[]).map((mode) => {
-                    const looser =
-                      member.template !== 'custom' &&
-                      RANK[mode] < RANK[row.templateMode] &&
-                      !(ownerCanEnable && mode === 'approval');
-                    const locked = row.lockedMin && RANK[mode] < RANK[row.lockedMin];
+                    const looser = member.template !== 'custom' && RANK[mode] < RANK[row.templateMode];
+                    const locked = !!row.lockedMin && RANK[mode] < RANK[row.lockedMin];
+                    // past the template or a lock: the owner may, after a warning; everyone else may not
+                    const widening = (looser || locked) && row.mode !== mode;
                     return (
                       <button
                         key={mode}
                         type="button"
-                        disabled={!!(looser || locked)}
+                        disabled={widening && !isOwner}
                         title={
-                          locked
-                            ? 'Locked: an AI may never be allowed this without approval'
-                            : looser
-                              ? 'The role template forbids this'
-                              : undefined
+                          widening
+                            ? isOwner
+                              ? locked
+                                ? 'Locked by default. You are the owner: you may lift it after a warning'
+                                : 'More than the role template gives. You are the owner: you may, after a warning'
+                              : locked
+                                ? 'Locked: only the project owner can allow this'
+                                : 'The role template forbids this; only the project owner can widen it'
+                            : undefined
                         }
-                        className={row.mode === mode ? 'ai-seg-on' : ''}
-                        onClick={() => void update({ permissions: { ...overrides, [row.action]: mode } })}
+                        className={`${row.mode === mode ? 'ai-seg-on' : ''} ${widening ? 'ai-seg-owner' : ''}`}
+                        onClick={() =>
+                          widening
+                            ? setWiden({ row, mode, locked })
+                            : void update({ permissions: { ...overrides, [row.action]: mode } })
+                        }
                         data-testid={`perm-${row.action}-${mode}`}
                       >
                         {locked ? '🔒 ' : ''}
@@ -647,6 +661,45 @@ export function Permissions({ member }: { member: AiMember }) {
             />
             I understand nobody reviews these tickets first
           </label>
+        </ConfirmDialog>
+      )}
+      {widen && (
+        <ConfirmDialog
+          title={`Let ${member.name} ${widen.row.label.toLowerCase()}${widen.mode === 'allowed' ? ' without asking' : ' with your approval'}?`}
+          ownerOnly={!isOwner}
+          onClose={() => {
+            setWiden(null);
+            setAck(false);
+          }}
+          confirmLabel={widen.locked ? 'Lift the lock' : 'Allow it'}
+          disabled={!isOwner || (widen.locked && !ack)}
+          onConfirm={async () => {
+            await update({ permissions: { ...overrides, [widen.row.action]: widen.mode } });
+            toast.success('Changed', `${widen.row.label}: ${MODE_LABEL[widen.mode]} for ${member.name}.`);
+            setWiden(null);
+            setAck(false);
+          }}
+        >
+          <div className="ai-hint" data-testid="widen-why">
+            {widen.locked
+              ? `${widen.row.label} is locked at ${MODE_LABEL[widen.row.lockedMin ?? 'approval']} for every AI. ${WIDEN_RISK[widen.row.action] ?? ''}`
+              : `The ${tplLabel ?? member.template} template sets this to ${MODE_LABEL[widen.row.templateMode]}. You are giving this AI more than its role.`}
+          </div>
+          <div className="ai-notice ai-notice-warn">
+            {widen.mode === 'allowed'
+              ? `${member.name} will ${widen.row.label.toLowerCase()} with nobody asked first, also when a text it reads tries to fool it.`
+              : `${member.name} will ask a person each time before it does this.`}
+          </div>
+          <div className="ai-muted">
+            Recorded as <b>Owner-enabled</b> with your name and the time, in the audit log. “Reset to template” puts it
+            back.
+          </div>
+          {widen.locked && (
+            <label style={{ display: 'flex', gap: 8, fontSize: 13, alignItems: 'center' }}>
+              <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} data-testid="widen-ack" />
+              I understand nobody checks before it does this
+            </label>
+          )}
         </ConfirmDialog>
       )}
       {wider && (
