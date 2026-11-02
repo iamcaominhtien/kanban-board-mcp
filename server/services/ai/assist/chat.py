@@ -1224,6 +1224,8 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         ]
         core = []
     changes, problems = prompts.check_changes(core, tickets_state, names)
+    async with database.async_session() as session:
+        await svc_drafts.name_schedule_ops(session, changes)
     problems.extend(refused)
     for ch in own:
         ok = provider.validate_change(ch, scope_info) if scope_info else None

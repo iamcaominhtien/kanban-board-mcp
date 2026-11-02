@@ -347,6 +347,31 @@ async def _belongs(session: AsyncSession, project_id: str, person: str) -> bool:
     return row is not None
 
 
+async def schedule_lines(
+    session: AsyncSession, project_id: str, ticket_id: str | None = None
+) -> list[str]:
+    """The schedules of the project (or of one ticket), one line each, with the id the Board AI changes them by."""
+    from ..schedules import list_for
+
+    out = []
+    for d in (await list_for(session, project_id, ticket_id=ticket_id))["items"]:
+        if d["state"] == "ended":
+            continue
+        last = d.get("last_run") or {}
+        bits = [
+            f"schedule {d['id']}: {d['ticket_id']}",
+            f"{d['when']} ({d['tz_label']})" if d["kind"] == "repeat" else d["when"],
+            d["member_name"] or "?",
+            "paused" if d["state"] == "paused" else f"next {d['next_in'] or '-'}",
+        ]
+        if d["review"]["on"]:
+            bits.append(f"reviewed by {d['review'].get('reviewer_name') or '?'}")
+        if last:
+            bits.append(f"last run {last.get('state')}")
+        out.append(" · ".join(bits))
+    return out
+
+
 async def _project_block(
     session: AsyncSession,
     ctx: Context,
@@ -418,6 +443,13 @@ async def _project_block(
         lines.append(t.id)
         ctx.tickets += 1
         ctx.items.append({"kind": "ticket", "id": t.id, "title": t.title})
+    scheds = await schedule_lines(session, project.id)
+    if scheds:
+        b.add(
+            "Schedules (an AI member works on a ticket at a set time; change them with schedule_* actions):\n"
+            + "\n".join(scheds[:40]),
+            label="schedules",
+        )
     since = datetime.now(UTC) - timedelta(days=ACTIVITY_DAYS)
     changes = []
     for t in [] if compact else tickets:
@@ -501,6 +533,8 @@ async def _ticket_full(
             f"  {s.id} {s.title} ({STATUS_LABELS.get(s.status, s.status)})"
             for s in subs
         ]
+    for line in await schedule_lines(session, t.project_id, t.id):
+        lines.append(line)
     lines.append("</ticket>")
     b.add("\n".join(lines), required=True)
     ctx.tickets += 1

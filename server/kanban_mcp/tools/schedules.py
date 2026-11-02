@@ -47,8 +47,18 @@ async def ai_schedules(
     from services.ai import guard
     from services.ai import schedules as svc
 
-    if await guard.resolve() is not None:
-        raise ValueError("An AI run cannot make or change schedules; a person does.")
+    ctx = await guard.resolve()
+    if ctx is not None:
+        # the Board AI (a chat answer, not a run) reads schedules and changes them through its actions block
+        board_ai = ctx.run_id.startswith("chat_")
+        if not board_ai or action not in ("list", "get", "preview"):
+            raise ValueError(
+                "As the Board AI, list the change in your answer's actions block (schedule_create, schedule_edit, "
+                "schedule_pause, schedule_resume, schedule_run); the board makes it by risk tier, with an Undo, or asks "
+                "the person first."
+                if board_ai
+                else "An AI run cannot make or change schedules; a person does."
+            )
     by = svc_activity.current_actor() or "user"
     unknown = sorted(set(fields or {}) - set(svc.FIELDS))
     if unknown:

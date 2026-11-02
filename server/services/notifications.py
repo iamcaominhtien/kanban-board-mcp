@@ -2068,6 +2068,17 @@ def _actions(r: Notification, gone: bool) -> list[dict]:
         return [{"id": "open_ai", "label": "Open AI Team"}]
     if k == "day_card":
         return [{"id": "open", "label": "Open"}]
+    if (
+        k == "schedule"
+        and r.count <= 1
+        and (_loads(r.data, {}) or {}).get("event") == "skipped"
+        and (_loads(r.data, {}) or {}).get("schedule_id")
+    ):
+        # design E4: a skipped slot offers to plan it again
+        return [
+            {"id": "reschedule", "label": "Reschedule"},
+            {"id": "open", "label": "Open"},
+        ]
     if r.count > 1:
         return [{"id": "expand", "label": f"Show all {r.count}"}]
     return [{"id": "open", "label": "Open"}]

@@ -531,3 +531,70 @@ async def test_a_one_off_whose_time_has_come_shows_no_past_time_error(env, fake)
         )
     ).json()
     assert any(x["key"] == "when" and x["level"] == "error" for x in p["checks"])
+
+
+async def test_a_busy_ai_says_where_the_run_will_queue(env, fake):
+    from models import AiRun
+
+    c, pid, dev, rev, tid = await _setup(env)
+    other = await _ticket(c, pid, title="Something else")
+    third = await _ticket(c, pid, title="And another")
+    async with env["maker"]() as session:
+        # the runner takes two at once: both slots are in use
+        for busy_on in (other, third):
+            session.add(
+                AiRun(
+                    project_id=pid,
+                    ticket_id=busy_on,
+                    member_id=dev["id"],
+                    member_name=dev["name"],
+                    state="running",
+                )
+            )
+        await session.commit()
+    run_at, _ = _soon(10)
+    p = (
+        await c.post(
+            f"/projects/{pid}/ai/schedules/preview",
+            json=_body(tid, dev["id"], run_at),
+            headers=H,
+        )
+    ).json()
+    warn = next(x["text"] for x in p["checks"] if x["key"] == "runner")
+    assert "no free slot" in warn and other in warn and "position #1" in warn, warn
+    assert "Max wait 30 min" in warn
+
+
+def test_a_skipped_slot_in_the_notification_centre_offers_to_reschedule():
+    import json
+
+    from models import Notification
+    from services.notifications import _actions
+
+    def row(**data):
+        return Notification(kind="schedule", count=1, data=json.dumps(data))
+
+    skipped = _actions(row(event="skipped", schedule_id="sch_1"), False)
+    assert [a["id"] for a in skipped] == ["reschedule", "open"]
+    assert [a["id"] for a in _actions(row(event="finished"), False)] == ["open"]
+
+
+async def test_tests_on_for_an_ai_without_a_role_that_runs_commands_say_so(env, fake):
+    c, pid, dev, rev, tid = await _setup(env)
+    run_at, _ = _soon(10)
+    p = (
+        await c.post(
+            f"/projects/{pid}/ai/schedules/preview",
+            json=_body(tid, dev["id"], run_at),
+            headers=H,
+        )
+    ).json()
+    warn = next(x for x in p["checks"] if x["key"] == "role")
+    assert warn["level"] == "warn" and "runs them after it finishes" in warn["text"]
+    no_tests = _body(
+        tid, dev["id"], run_at, checks={"criteria": False, "summary": True}
+    )
+    p = (
+        await c.post(f"/projects/{pid}/ai/schedules/preview", json=no_tests, headers=H)
+    ).json()
+    assert not [x for x in p["checks"] if x["key"] == "role"]

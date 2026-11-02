@@ -620,7 +620,7 @@ export function SchedulesTab({ projectId, tickets }: { projectId: string; ticket
                   key={s.id}
                   s={s}
                   criteria={ticketMap.get(s.ticketId)?.acceptanceCriteria?.length}
-                  risk={riskOf.get(s.id)}
+                  risk={riskOf.get(s.id) ?? s.offlineRisk ?? undefined}
                   onOpen={() => openDetail(s.id)}
                 />
               ))}

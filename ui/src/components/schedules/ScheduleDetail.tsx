@@ -74,7 +74,18 @@ function ResultLine({ r, reviewer }: { r: CheckResult; reviewer?: string | null 
 }
 
 /** A slot that waits for the runner or for a person: run it on another AI, skip it, or run it now (F). */
-function SlotActions({ run, ais, onDone }: { run: ScheduleRun; ais: AiMember[]; onDone: () => void }) {
+function SlotActions({
+  run,
+  ais,
+  backup,
+  onDone,
+}: {
+  run: ScheduleRun;
+  ais: AiMember[];
+  /** The schedule's backup AI (F: "Use backup AI"), when it has one other than the AI that was due. */
+  backup?: { id: string; name: string } | null;
+  onDone: () => void;
+}) {
   const toast = useToast();
   const [pick, setPick] = useState(false);
   const [member, setMember] = useState('');
@@ -101,6 +112,17 @@ function SlotActions({ run, ais, onDone }: { run: ScheduleRun; ais: AiMember[]; 
       >
         <PlayIcon size={12} /> Run now
       </button>
+      {backup && backup.id !== run.memberId && (
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm"
+          onClick={() => void go('use_member', backup.id)}
+          disabled={act.isPending}
+          data-testid="slot-backup"
+        >
+          Use backup AI · {backup.name}
+        </button>
+      )}
       {pick ? (
         <>
           <select
@@ -181,7 +203,16 @@ function SlotRow({
       </button>
       {open && (
         <div className="sc-slot-body">
-          {waiting && <SlotActions run={run} ais={ais} onDone={() => undefined} />}
+          {waiting && (
+            <SlotActions
+              run={run}
+              ais={ais}
+              backup={
+                detail.backupMemberId ? { id: detail.backupMemberId, name: detail.backupMemberName ?? 'backup' } : null
+              }
+              onDone={() => undefined}
+            />
+          )}
           <div className="sc-slot-cols">
             <div>
               <div className="ai-label ai-label-dark">DONE WHEN</div>
