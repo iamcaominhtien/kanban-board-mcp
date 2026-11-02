@@ -1,0 +1,106 @@
+/* The workflow picker (design/source/AiStoryFlow.dc.html, R1). */
+.wp-wrap {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fbfcfb;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+.wp-card {
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  border-radius: 11px;
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  font-family: inherit;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.wp-card:hover {
+  border-color: #c7d2cb;
+}
+.wp-card[aria-checked='true'] {
+  border: 1.5px solid #1b3a6b;
+  background: #f3f6fb;
+  padding: 10.5px 11.5px;
+}
+.wp-radio {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid #9aa8a0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.wp-card[aria-checked='true'] .wp-radio {
+  border-color: #1b3a6b;
+}
+.wp-card[aria-checked='true'] .wp-radio::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1b3a6b;
+}
+.wp-steps {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.wp-step {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.wp-step-code {
+  background: #fff;
+  color: #5b6b60;
+  border: 1px dashed #c7d2cb;
+  font-style: italic;
+}
+.wp-step-you {
+  background: #1e2a22;
+  color: #fff;
+}
+.wp-sep {
+  color: #9aa8a0;
+  font-size: 12px;
+}
+.wp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.wp-roles {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 11.5px;
+}

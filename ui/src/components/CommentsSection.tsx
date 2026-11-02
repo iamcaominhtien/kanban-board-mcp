@@ -30,6 +30,8 @@ import { Icon } from './docs/Icon';
 import type { SuggestMember } from './docs/RefSuggester';
 import { getAvatarColors } from './MemberAvatar';
 import { CommentAiFlag } from './ai/AiTicketSafety';
+import { AiTalkFold } from './ai/talk/AiTalkFold';
+import { talkRuns, type AiLookup, type TalkRun } from './ai/talk/aiTalk';
 import {
   UNDO_MS,
   exactTime,
@@ -222,6 +224,8 @@ export function CommentsSection({
   const [queue, setQueue] = useState<QueuedComment[]>(() => readJson<QueuedComment[]>(queueKey(ticketId), []));
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [expandedMiddle, setExpandedMiddle] = useState(false);
+  // Runs of comments only between AIs fold into one line; the ones shown are kept by their first comment's id
+  const [openTalks, setOpenTalks] = useState<Set<string>>(() => new Set());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>(() => {
     try {
       const saved = localStorage.getItem('kanban.comments.sortOrder');
@@ -245,6 +249,29 @@ export function CommentsSection({
 
   const aiRows = useAiSuggest();
   const aiAssignee = assigneeId && aiMembers.get(assigneeId)?.kind === 'ai' ? assigneeId : null;
+  // AI to AI is folded (ai-story-flow P): an AI's comment whose mentions are only AI members
+  const aiLookup = useMemo<AiLookup>(() => {
+    const aiIds = new Set<string>([
+      ...[...aiMembers.values()].filter((a) => a.kind === 'ai').map((a) => a.id),
+      ...members.filter((m) => m.kind === 'ai').map((m) => m.id),
+    ]);
+    const aiNames = new Set<string>(
+      [
+        ...[...aiMembers.values()].filter((a) => a.kind === 'ai').map((a) => a.name),
+        ...members.filter((m) => m.kind === 'ai').map((m) => m.name),
+      ].map((n) => n.toLowerCase()),
+    );
+    return {
+      isAiId: (id) => aiIds.has(id),
+      isAiAuthor: (author) => aiIds.has(author) || aiNames.has(author.toLowerCase()),
+      nameOf: (id) => aiMembers.get(id)?.name ?? members.find((m) => m.id === id)?.name ?? id,
+    };
+  }, [aiMembers, members]);
+  const talks = useMemo(() => {
+    const byComment = new Map<string, TalkRun>();
+    for (const r of talkRuns(comments, aiLookup)) for (const id of r.ids) byComment.set(id, r);
+    return byComment;
+  }, [comments, aiLookup]);
   const suggestMembers = useMemo<SuggestMember[]>(() => {
     const people = members.filter((m) => (m.kind ?? 'human') === 'human');
     const onTicket = new Map<string, string>();
@@ -398,6 +425,19 @@ export function CommentsSection({
     const hashId = window.location.hash.startsWith('#comment-') ? window.location.hash.slice(9) : null;
     const id = focusCommentId ?? hashId;
     if (!id) return;
+    const folded = talks.get(id);
+    if (folded && !openTalks.has(folded.ids[0])) {
+      // a comment inside a folded AI-to-AI run: show the run, then scroll to it once it is drawn
+      setOpenTalks((o) => new Set(o).add(folded.ids[0]));
+      setExpandedMiddle(true);
+      requestAnimationFrame(() =>
+        rootRef.current
+          ?.querySelector<HTMLElement>(`[data-comment-id="${CSS.escape(id)}"]`)
+          ?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+      );
+      onFocusHandled?.();
+      return;
+    }
     const el = rootRef.current?.querySelector<HTMLElement>(`[data-comment-id="${CSS.escape(id)}"]`);
     if (!el) {
       if (focusCommentId) toast.info('That comment was deleted');
@@ -722,6 +762,7 @@ export function CommentsSection({
 
   const rows: React.ReactNode[] = [];
   let shownDivider = false;
+  const drawnTalks = new Set<string>();
   visible.forEach((it, idx) => {
     if (it.kind === 'g') {
       rows.push(
@@ -759,6 +800,34 @@ export function CommentsSection({
       return;
     }
     const { c, i } = it;
+    const talk = talks.get(c.id);
+    if (talk) {
+      // the whole run is drawn once, where its first comment in this order would be
+      const key = talk.ids[0];
+      if (!drawnTalks.has(key)) {
+        drawnTalks.add(key);
+        rows.push(
+          <AiTalkFold
+            key={`talk-${key}`}
+            run={talk}
+            ticketId={ticketId}
+            ai={aiLookup}
+            runs={aiRuns}
+            open={openTalks.has(key)}
+            onOpenChange={(open) =>
+              setOpenTalks((o) => {
+                const next = new Set(o);
+                if (open) next.add(key);
+                else next.delete(key);
+                return next;
+              })
+            }
+            onJoin={(text) => onAdd(text, { intent: 'notify' })}
+          />,
+        );
+      }
+      return;
+    }
     const isCollapsed =
       collapseMiddle &&
       (sortOrder === 'newest' ? idx >= TAIL && idx < visible.length - 1 : idx > 0 && idx < visible.length - TAIL);
@@ -842,6 +911,11 @@ export function CommentsSection({
         >
           {isLoading ? '…' : comments.length}
         </span>
+        {talks.size > 0 && (
+          <span data-testid="comments-ai-folded" style={{ fontSize: 12, color: '#6B7A70' }}>
+            AI to AI is folded
+          </span>
+        )}
         <button
           type="button"
           data-testid="comments-sort-order"

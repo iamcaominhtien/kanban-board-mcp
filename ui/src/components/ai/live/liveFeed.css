@@ -664,6 +664,286 @@
 
 /* ----------------------------------------------------------------------------------------------- phone width */
 
+/* ------------------------------------------------------- following the scope (design/screens/ai-story-flow.md, K) */
+
+.lf-root {
+  --lf-scope: #1b3a6b;
+  --lf-scope-soft: #f3f6fb;
+  --lf-scope-line: #c9d6ea;
+  --lf-needs-bg: #fef6e1;
+  --lf-needs-line: #e8b93a;
+  --lf-needs-ink: #7a5a06;
+}
+[data-theme='dark'] .lf-root,
+.lf-root[data-theme='dark'] {
+  --lf-scope: #9fb8e6;
+  --lf-scope-soft: #18202c;
+  --lf-scope-line: #2c3a52;
+  --lf-needs-bg: #2e2712;
+  --lf-needs-line: #8a6a12;
+  --lf-needs-ink: #e8c46a;
+}
+
+.lf-scope {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--lf-scope-soft);
+  border: 1px solid var(--lf-scope-line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lf-scope);
+  min-width: 0;
+}
+.lf-scope span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lf-detail {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--lf-hair);
+}
+.lf-detail > button {
+  padding: 3px 9px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--lf-sec);
+  cursor: pointer;
+}
+.lf-detail > button.on {
+  background: var(--lf-surface);
+  color: var(--lf-text);
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
+}
+.lf-detail > button:focus-visible,
+.lf-fold:focus-visible,
+.lf-tell-btn:focus-visible,
+.lf-linkbtn:focus-visible {
+  outline: 2px solid var(--lf-accent);
+  outline-offset: 2px;
+}
+.lf-chip-n {
+  color: var(--lf-sec);
+  font-weight: 600;
+}
+
+/* Needs you, pinned above the lines */
+.lf-needs {
+  margin: 8px 8px 2px;
+  border: 1px solid var(--lf-needs-line);
+  border-radius: 11px;
+  background: var(--lf-needs-bg);
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-height: 40%;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.lf-needs-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--lf-needs-ink);
+}
+.lf-needs-h b {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.lf-needs-n {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #e8b93a;
+  color: #253d2c;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-grid;
+  place-items: center;
+}
+.lf-need {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.lf-need-t {
+  font-size: 12.5px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--lf-text);
+  overflow-wrap: anywhere;
+}
+.lf-need-sub {
+  font-size: 11px;
+  color: var(--lf-needs-ink);
+  margin: 1px 0 6px;
+}
+.lf-need-err {
+  font-size: 11px;
+  color: var(--lf-bad);
+  margin-bottom: 4px;
+}
+.lf-need-acts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* a line joined to the drawing: lit when its box, arrow or bar is hovered; a click opens the run */
+.lf-group.lf-lit {
+  background: var(--lf-scope-soft);
+  box-shadow: inset 0 0 0 1.5px var(--lf-scope);
+}
+.lf-line.lf-click {
+  cursor: pointer;
+}
+.lf-linkhint {
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--lf-scope);
+}
+
+/* dense commands folded into one line that opens */
+.lf-fold-wrap {
+  list-style: none;
+}
+.lf-fold {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  margin: 2px 0;
+  padding: 5px 8px;
+  border: 1px dashed var(--lf-border);
+  border-radius: 8px;
+  background: var(--lf-sunken);
+  font: inherit;
+  font-size: 12px;
+  color: var(--lf-body);
+  text-align: left;
+  cursor: pointer;
+}
+.lf-fold > svg {
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--lf-sec);
+}
+.lf-fold .lf-res {
+  font-weight: 400;
+  color: var(--lf-sec);
+}
+.lf-fold.lf-t-bad .lf-res {
+  color: var(--lf-bad);
+}
+.lf-fold-lines {
+  padding-left: 12px;
+}
+
+/* tell the AI that is working */
+.lf-tell {
+  margin-top: 6px;
+  border: 1px solid var(--lf-scope);
+  border-radius: 10px;
+  background: var(--lf-surface);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  box-shadow: 0 4px 14px rgba(27, 58, 107, 0.14);
+}
+.lf-tell.off {
+  border: 1px dashed var(--lf-border);
+  box-shadow: none;
+  background: var(--lf-sunken);
+  color: var(--lf-faint);
+  font-size: 11px;
+  padding: 5px 9px;
+}
+.lf-tell-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lf-scope);
+}
+.lf-tell textarea {
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--lf-text);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: vertical;
+  min-height: 36px;
+}
+.lf-tell-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lf-tell-foot > span {
+  flex: 1;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--lf-sec);
+}
+.lf-tell-btn {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--lf-scope-line);
+  border-radius: 7px;
+  background: var(--lf-scope-soft);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lf-scope);
+  cursor: pointer;
+}
+
+/* the empty states (K2) */
+.lf-empty-t {
+  display: block;
+  color: var(--lf-text);
+  margin-bottom: 4px;
+}
+.lf-linkbtn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--lf-scope);
+  cursor: pointer;
+}
+
+/* the folded rail keeps Needs you in amber, beside the unread count */
+.lf-rail-needs {
+  background: #e8b93a;
+  color: #253d2c;
+  margin-bottom: 4px;
+}
+
 @media (max-width: 860px) {
   .lf-split {
     flex-direction: column;

@@ -88,7 +88,7 @@ class Ticket(SQLModel, table=True):
     project_id: str = Field(foreign_key="project.id")
     title: str
     description: str = Field(default="")
-    type: str = Field(default="task")  # bug|feature|task|chore
+    type: str = Field(default="task")  # bug|feature|task|chore|story
     status: str = Field(default="backlog")  # backlog|todo|in-progress|done
     priority: str = Field(default="medium")  # low|medium|high|critical
     estimate: Optional[float] = Field(default=None)
@@ -1567,6 +1567,61 @@ class AiTicketStep(SQLModel, table=True):
     ended_at: Optional[str] = Field(default=None)
 
 
+class Story(SQLModel, table=True):
+    """A Story: a ticket of type story that the PM owns from the goal to Done (design/screens/ai-story-flow.md B).
+    Its children are the tickets whose parent is the Story; its plan says their order and what waits for what
+    (table)."""
+
+    __tablename__ = "story"
+
+    ticket_id: str = Field(primary_key=True, foreign_key="ticket.id")
+    project_id: str = Field(index=True)
+    state: str = Field(
+        default="draft", index=True
+    )  # draft | planning | in_progress | review | done | dropped
+    approve: str = Field(default="person")  # who approves the plan: person | pm
+    budget_tokens: int = Field(default=0)  # 0: no budget
+    pm_id: Optional[str] = Field(default=None)
+    plan: str = Field(
+        default="{}"
+    )  # JSON {version, by, at, waiting, approved_by, approved_at, note, items: [{ticket_id, after, covers}], changes}
+    paused: bool = Field(default=False)
+    review_note: Optional[str] = Field(default=None)
+    history: str = Field(default="[]")  # JSON [{at, state, by}]
+    meta: str = Field(default="{}")  # JSON: the PM run under way ({run_id, job})
+    created_by: Optional[str] = Field(default=None)
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    handed_at: Optional[str] = Field(default=None)
+    started_at: Optional[str] = Field(default=None)  # the plan was approved
+    closed_at: Optional[str] = Field(default=None)
+
+
+class AiDecision(SQLModel, table=True):
+    """A decision the PM took in a person's place (design/screens/ai-story-flow.md M1): what, why, on which ticket,
+    and whether it can still be overridden (table)."""
+
+    __tablename__ = "ai_decision"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    project_id: str = Field(index=True)
+    ticket_id: Optional[str] = Field(default=None, index=True)
+    story_id: Optional[str] = Field(default=None, index=True)
+    member_id: Optional[str] = Field(default=None)
+    kind: str  # approve_design | send_back | split | retry | answer | permission | approve_plan
+    title: str
+    why: str = Field(default="")
+    ref: str = Field(default="{}")  # JSON: step_id, run_id, approval_id, pieces
+    state: str = Field(default="in_effect")  # in_effect | overridden
+    overridden_by: Optional[str] = Field(default=None)
+    overridden_at: Optional[str] = Field(default=None)
+    override_note: Optional[str] = Field(default=None)
+    at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat(), index=True
+    )
+
+
 class AiStandingOrder(SQLModel, table=True):
     """A rule in a person's words, tried before it does anything (services/ai/orders.py) (table)."""
 
@@ -2441,7 +2496,7 @@ class TicketCreateBody(SQLModel):
 
     title: str
     description: str = ""
-    type: Literal["bug", "feature", "task", "chore"] = "task"
+    type: Literal["bug", "feature", "task", "chore", "story"] = "task"
     priority: Literal["low", "medium", "high", "critical"] = "medium"
     status: Literal[
         "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"
@@ -2459,7 +2514,7 @@ class TicketUpdate(SQLModel):
 
     title: Optional[str] = None
     description: Optional[str] = None
-    type: Optional[Literal["bug", "feature", "task", "chore"]] = None
+    type: Optional[Literal["bug", "feature", "task", "chore", "story"]] = None
     status: Optional[
         Literal[
             "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"

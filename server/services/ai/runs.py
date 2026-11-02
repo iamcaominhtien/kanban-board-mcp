@@ -1432,6 +1432,8 @@ async def move_status(run_id: str, target: str) -> bool:
         ticket = await session.get(Ticket, run.ticket_id) if run else None
         if run is None or ticket is None or ticket.status == target:
             return False
+        if ticket.type == "story":
+            return False  # a Story moves with its own state (services/stories.py), never with a run
         _, profile = await get_profile(session, run.member_id)
         if profile is None or check_status_move(profile, ticket.status, target):
             return False
@@ -2341,8 +2343,11 @@ async def _execute_cli_held(
                 # the person's own Claude Code plugins, as in their terminal (services/ai/own_claude.py)
                 from . import own_claude
 
+                role = (json.loads(profile.config or "{}") or {}).get("role")
                 plugin_dirs += [
-                    d for d in own_claude.plugin_dirs() if d not in plugin_dirs
+                    d
+                    for d in own_claude.for_role(role, cfg_ops.get("own_claude_roles"))
+                    if d not in plugin_dirs
                 ]
         if run_cfg and run_cfg.get("system"):
             system = f"{system}\n\nThis member's own instructions:\n{run_cfg['system']}"

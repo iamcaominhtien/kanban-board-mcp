@@ -69,6 +69,22 @@ def _approvals_do_not_wait(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _story_touches_are_fresh(monkeypatch):
+    """A Story's count of touches is cached for a while; a test reads what it just changed."""
+    from services import stories
+
+    monkeypatch.setattr(stories, "TOUCHES_TTL_S", 0)
+
+
+@pytest.fixture(autouse=True)
+def _feed_needs_you_is_fresh(monkeypatch):
+    """The live column's Needs you list is cached for a few seconds; a test reads what it just changed."""
+    from services.ai import live_feed
+
+    monkeypatch.setattr(live_feed, "NEEDS_TTL_S", 0)
+
+
+@pytest.fixture(autouse=True)
 def _claude_account_is_empty(monkeypatch, tmp_path_factory):
     """The MCP servers of the machine's own `~/.claude.json`, and the plugins of its `~/.claude`, must not leak into
     a test."""

@@ -63,6 +63,10 @@ interface Window {
     setAppState?: (state: { view: string }) => void;
     /** Versions and system facts, for About and Report an Issue. */
     getAppInfo?: () => Promise<AppInfo>;
+    /** Whether the computer is kept awake while an AI run is starting or running (View › Keep awake while AI runs). */
+    getKeepAwake?: () => Promise<boolean>;
+    /** Turn Keep awake while AI runs on or off; resolves to the new state. */
+    setKeepAwake?: (on: boolean) => Promise<boolean>;
     platform: string;
   };
 }

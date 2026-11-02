@@ -566,6 +566,8 @@ def member_body(
                 "key": pack["key"],
                 "version": pack.get("version") or BUILTIN_VERSION,
             },
+            # the instructions as the pack wrote them: an update can tell whether a person changed them since
+            "pack_persona": persona,
             **({"plays": plays} if plays else {}),
             **extra,
         },
@@ -593,7 +595,26 @@ _CONFIG_FROM_PACK = (
     "depth_models",
     "hands_in",
     "pack_plugins",
+    "pack_persona",
 )
+HISTORY_DAYS = 30  # a member can go back to the version it was updated from for this long (ai-story-flow Q1)
+_LABELS = {
+    "persona": "Instructions",
+    "template": "Template",
+    "ceiling": "Ceiling",
+    "permissions": "Permissions",
+    "max_parallel": "Runs at a time",
+    "max_runs_per_day": "Runs a day",
+    "description": "Description",
+    "permission_mode": "Permission mode",
+    "effort": "Effort",
+    "allow_rules": "Allow list",
+    "retry_model": "Model for a second attempt",
+    "depth_models": "Models per review depth",
+    "hands_in": "What it hands in",
+    "pack_plugins": "Plugins",
+    "mcp_servers": "MCP servers",
+}
 
 
 async def member_pack(session, member_id: str) -> dict | None:
@@ -614,12 +635,111 @@ async def member_pack(session, member_id: str) -> dict | None:
             "outdated": False,
         }
     latest = pack.get("version", 1)
+    history = _history(cfg)
     return {
         "key": made["key"],
         "name": pack.get("name"),
         "version": made.get("version", 1),
         "latest": latest,
         "outdated": latest > made.get("version", 1),
+        "edited": bool(cfg.get("pack_persona"))
+        and (profile.persona or "") != cfg.get("pack_persona"),
+        "history": [
+            {"version": h.get("version"), "at": h.get("at"), "by": h.get("by")}
+            for h in history
+        ],
+    }
+
+
+def _history(cfg: dict) -> list[dict]:
+    """The versions a member can go back to, newest first, younger than HISTORY_DAYS."""
+    from datetime import UTC, datetime, timedelta
+
+    floor = (datetime.now(UTC) - timedelta(days=HISTORY_DAYS)).isoformat()
+    return [
+        h
+        for h in cfg.get("pack_history") or []
+        if isinstance(h, dict) and (h.get("at") or "") >= floor
+    ]
+
+
+def _short(value) -> str:
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False) if value not in (None, "") else ""
+
+
+async def pack_diff(session, member_id: str) -> dict:
+    """What an update to the pack's latest version would change on the member (ai-story-flow Q1): each field with
+    its value now and after, and what stays the member's own."""
+    from models import AiMember, Member
+
+    profile = await session.get(AiMember, member_id)
+    member = await session.get(Member, member_id)
+    state = await member_pack(session, member_id)
+    if profile is None or member is None or state is None:
+        raise ValueError("This AI member was not made from a role pack.")
+    pack = await get_pack(session, profile.project_id, state["key"])
+    if pack is None:
+        raise ValueError(f"The pack {state['key']} is gone.")
+    cfg = json.loads(profile.config or "{}")
+    body = member_body(
+        pack,
+        name=member.name,
+        working_dir=profile.working_dir,
+        account_id=profile.account_id,
+        plays=cfg.get("plays"),
+    )
+    changes = []
+    for key in _FROM_PACK:
+        now = getattr(profile, key)
+        if key == "permissions":
+            now = json.loads(now or "{}") or None
+        after = body.get(key)
+        if _short(now) != _short(after):
+            changes.append(
+                {
+                    "field": key,
+                    "label": _LABELS.get(key, key),
+                    "before": _short(now),
+                    "after": _short(after),
+                }
+            )
+    fresh = body["config"]
+    for key in _CONFIG_FROM_PACK:
+        if key in ("pack", "pack_persona", "role"):
+            continue
+        if _short(cfg.get(key)) != _short(fresh.get(key)):
+            changes.append(
+                {
+                    "field": key,
+                    "label": _LABELS.get(key, key),
+                    "before": _short(cfg.get(key)),
+                    "after": _short(fresh.get(key)),
+                }
+            )
+    before_srv = sorted(srv.get("name", "") for srv in cfg.get("mcp_servers") or [])
+    after_srv = sorted(srv.get("name", "") for srv in fresh.get("mcp_servers") or [])
+    if before_srv != after_srv:
+        changes.append(
+            {
+                "field": "mcp_servers",
+                "label": _LABELS["mcp_servers"],
+                "before": ", ".join(before_srv),
+                "after": ", ".join(after_srv),
+            }
+        )
+    return {
+        **state,
+        "to": pack.get("version", 1),
+        "changes": changes,
+        "kept": [
+            "name",
+            "working folder",
+            "account",
+            "model",
+            "MCP servers you added yourself",
+        ],
     }
 
 
@@ -647,6 +767,15 @@ async def update_member(session, member_id: str, *, by: str) -> dict:
         account_id=profile.account_id,
         plays=cfg.get("plays"),
     )
+    # what it was, so the person can go back for HISTORY_DAYS (ai-story-flow Q1)
+    snapshot = {
+        "version": state["version"],
+        "at": _now(),
+        "by": by,
+        "fields": {k: getattr(profile, k) for k in _FROM_PACK},
+        "config": {k: v for k, v in cfg.items() if k != "pack_history"},
+    }
+    history = [snapshot, *_history(cfg)][:5]
     for key in _FROM_PACK:
         if key in body:
             value = body[key]
@@ -669,6 +798,7 @@ async def update_member(session, member_id: str, *, by: str) -> dict:
         for srv in cfg.get("mcp_servers") or []
         if srv.get("name") not in pack_servers and srv.get("name") not in catalogue
     ]
+    cfg["pack_history"] = history
     profile.config = json.dumps(cfg)
     session.add(profile)
     await session.commit()
@@ -684,6 +814,41 @@ async def update_member(session, member_id: str, *, by: str) -> dict:
             "from": state["version"],
             "to": pack.get("version", 1),
         },
+    )
+    return await member_pack(session, member_id)
+
+
+async def revert_member(session, member_id: str, *, by: str) -> dict:
+    """Go back to the version the member was last updated from (within HISTORY_DAYS)."""
+    from models import AiMember, Member
+
+    from . import audit
+
+    profile = await session.get(AiMember, member_id)
+    member = await session.get(Member, member_id)
+    if profile is None or member is None:
+        raise ValueError("AI member not found.")
+    cfg = json.loads(profile.config or "{}")
+    history = _history(cfg)
+    if not history:
+        raise ValueError("There is no earlier version to go back to.")
+    last, rest = history[0], history[1:]
+    for key, value in (last.get("fields") or {}).items():
+        if key in _FROM_PACK:
+            setattr(profile, key, value)
+    restored = dict(last.get("config") or {})
+    restored["pack_history"] = rest
+    profile.config = json.dumps(restored)
+    session.add(profile)
+    await session.commit()
+    await audit.record(
+        profile.project_id,
+        "member_pack_reverted",
+        "info",
+        member_id=member_id,
+        member_name=member.name,
+        on_behalf_of=by,
+        detail={"to": last.get("version")},
     )
     return await member_pack(session, member_id)
 

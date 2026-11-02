@@ -4,6 +4,7 @@ export type PackModel = 'haiku' | 'sonnet' | 'opus';
 export type PackWrites = 'nothing' | 'ticket' | 'worktree' | 'tests' | 'canvas';
 export type WorkflowKey = 'standard' | 'feature_ui' | 'quick_fix' | 'research' | 'docs' | 'chore';
 export type HandoverKind = 'local' | 'pr' | 'branch';
+export type PackPermissionMode = 'allowlist' | 'bypass';
 
 export interface Pack {
   /** "builtin:dev" for a ready-made one. */
@@ -26,6 +27,8 @@ export interface Pack {
   personas?: string[] | null;
   limits: { maxParallel: number; maxRunsPerDay: number };
   persona: string;
+  /** How a member made from the pack runs; unset: Bypass permissions, except Triage (the allow list). */
+  permissionMode?: PackPermissionMode | null;
   version: number;
   builtin: boolean;
   projectId?: string | null;
@@ -51,7 +54,7 @@ export type PackDraft = Pick<
   | 'limits'
   | 'persona'
 > &
-  Partial<Pick<Pack, 'depthModels' | 'personas' | 'glyph'>>;
+  Partial<Pick<Pack, 'depthModels' | 'personas' | 'glyph' | 'permissionMode'>>;
 
 export interface PackExport {
   format: 'kanban-role-pack/1';
@@ -158,4 +161,27 @@ export interface ApplyResult {
   plugins: string[];
   pluginFailures: { plugin: string; why: string }[];
   settings: unknown;
+}
+
+/** The pack an AI member was made from (GET /ai/members/{id}/pack), or null when it was not made from one. */
+export interface MemberPack {
+  key: string;
+  name?: string | null;
+  /** The version the member has. */
+  version: number;
+  /** The pack's newest version; null when the pack is gone. */
+  latest: number | null;
+  outdated: boolean;
+  /** A person changed the instructions the pack wrote. */
+  edited?: boolean;
+  /** The versions it can go back to, newest first (kept 30 days). */
+  history?: { version: number; at: string; by: string | null }[];
+}
+
+/** What an update to the pack's newest version changes on the member. */
+export interface MemberPackDiff extends MemberPack {
+  to: number;
+  changes: { field: string; label: string; before: string; after: string }[];
+  /** What stays the member's own. */
+  kept: string[];
 }

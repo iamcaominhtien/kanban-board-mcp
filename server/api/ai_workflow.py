@@ -225,26 +225,55 @@ class SkipBody(BaseModel):
 
 
 class TddBody(BaseModel):
-    """Accept without test-first evidence: this once, or turn the rule off for the project."""
+    """Accept without test-first evidence: this once (with why), or turn the rule off for the project."""
 
     rule_off: bool = False
+    reason: Optional[str] = None
+
+
+class EvidenceBody(BaseModel):
+    """Accept a testing step that finished with nothing to show, and why."""
+
+    reason: str
+
+
+class ResumeBody(BaseModel):
+    """Let a ticket stopped at its token cap go on: the same cap again, or a higher one for this ticket."""
+
+    cap: Optional[int] = None
 
 
 @router.post("/tickets/{ticket_id}/ai/tdd/accept")
 async def post_tdd_accept(ticket_id: str, body: TddBody, session: Session) -> dict:
     """Accept the work without test-first evidence just this once, or turn the rule off for the project."""
     try:
-        await svc_workflow.accept_tdd(ticket_id, by=_by(), rule_off=body.rule_off)
+        await svc_workflow.accept_tdd(
+            ticket_id, by=_by(), rule_off=body.rule_off, reason=body.reason
+        )
+    except svc_workflow.WorkflowError as exc:
+        _fail(exc, 409)
+    return await svc_workflow.view(session, ticket_id)
+
+
+@router.post("/tickets/{ticket_id}/ai/evidence/accept")
+async def post_evidence_accept(
+    ticket_id: str, body: EvidenceBody, session: Session
+) -> dict:
+    """Accept a testing step that finished with no evidence, with why (ai-story-flow N)."""
+    try:
+        await svc_workflow.accept_evidence(ticket_id, by=_by(), reason=body.reason)
     except svc_workflow.WorkflowError as exc:
         _fail(exc, 409)
     return await svc_workflow.view(session, ticket_id)
 
 
 @router.post("/tickets/{ticket_id}/ai/workflow/resume")
-async def post_resume(ticket_id: str, session: Session) -> dict:
-    """Let a workflow stopped at its token cap go on."""
+async def post_resume(
+    ticket_id: str, session: Session, body: Optional[ResumeBody] = None
+) -> dict:
+    """Let a workflow stopped at its token cap go on, with the same cap again or a higher one for this ticket."""
     try:
-        await svc_workflow.resume(ticket_id, by=_by())
+        await svc_workflow.resume(ticket_id, by=_by(), cap=body.cap if body else None)
     except svc_workflow.WorkflowError as exc:
         _fail(exc, 409)
     return await svc_workflow.view(session, ticket_id)

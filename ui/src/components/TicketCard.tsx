@@ -12,12 +12,15 @@ import styles from './TicketCard.module.css';
 import { createPortal } from 'react-dom';
 import { HoverTip } from './HoverTip';
 import { STATUS_NAMES } from '../hooks/useMarkerActions';
+import { Ico, StoryChildChip } from './story/storyUi';
+import { CardCapLine, WaitsFor, WaitsForStopped } from './ai/limits/CardLimits';
 
 const TYPE_LABELS: Record<IssueType, string> = {
   bug: 'Bug',
   feature: 'Feature',
   task: 'Task',
   chore: 'Chore',
+  story: 'Story',
 };
 
 function getDueDateDisplay(dueDate: string | null): { label: string; overdue: boolean } | null {
@@ -43,6 +46,8 @@ interface TicketCardProps {
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
   onDelete?: (ticket: Ticket) => void;
+  /** In a Story's lane the chip naming the Story is left out: the lane already says it. */
+  hideStoryChip?: boolean;
 }
 
 /**
@@ -60,6 +65,7 @@ export function TicketCard({
   onPending,
   onResume,
   onDelete,
+  hideStoryChip,
 }: TicketCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
@@ -104,6 +110,16 @@ export function TicketCard({
     !dismissPrompt &&
     (blockerTicket ? blockerTicket.status === 'wont_do' : !allTickets.some((t) => t.id === ticket.pendingTicketId));
   const pendingChildren = allTickets.filter((t) => t.parentId === ticket.id && t.pending);
+  // A child of a Story carries one small chip naming its Story, and says what it waits for (ai-story-flow C)
+  const parentTicket = ticket.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
+  const storyParent = parentTicket?.type === 'story' ? parentTicket : undefined;
+  const openWaits = storyParent
+    ? (ticket.blockedBy ?? []).filter((id) => {
+        const b = allTickets.find((t) => t.id === id);
+        return !b || (b.status !== 'done' && b.status !== 'wont_do');
+      })
+    : [];
+  const showParentChip = !!ticket.parentId && !(storyParent && hideStoryChip);
 
   const cardClasses = [
     styles.card,
@@ -498,9 +514,10 @@ export function TicketCard({
         <div className={styles.cardTitle}>{ticket.title}</div>
 
         {/* Parent chip & Tags row */}
-        {(ticket.parentId || visibleTags.length > 0) && (
+        {(showParentChip || visibleTags.length > 0) && (
           <div className={styles.tagsRow}>
-            {ticket.parentId && (
+            {storyParent && showParentChip && <StoryChildChip storyId={storyParent.id} title={storyParent.title} />}
+            {ticket.parentId && !storyParent && (
               <span className={styles.parentChip} title={`Sub-ticket of ${ticket.parentId}`}>
                 <svg
                   width="10"
@@ -523,6 +540,24 @@ export function TicketCard({
             ))}
             {overflowCount > 0 && <span className={styles.tagOverflow}>+{overflowCount}</span>}
           </div>
+        )}
+
+        {openWaits.length > 0 && !isClosed && (
+          <div className={styles.waitsLine} data-testid="card-waits-for">
+            <Ico name="clock" size={12} color="#5B6B60" width={2} />
+            <WaitsFor ids={openWaits} />
+          </div>
+        )}
+        {/* A ticket waiting for one that stopped at its token cap says so, with a click to it (ai-story-flow O) */}
+        {!storyParent && !isClosed && (
+          <WaitsForStopped
+            ids={[
+              ...(ticket.blockedBy ?? []),
+              ...(isPending && ticket.pendingReasonType === 'ticket' && ticket.pendingTicketId
+                ? [ticket.pendingTicketId]
+                : []),
+            ]}
+          />
         )}
 
         {/* Sub-tasks progress bar for parent tickets */}
@@ -663,6 +698,7 @@ export function TicketCard({
         )}
 
         {/* AI line: Run, running, queued, needs input, failed, summary ready (AI work on tickets, A4) */}
+        {!isDragging && <CardCapLine ticketId={ticket.id} />}
         {!isDragging && <WorkflowCardChip ticketId={ticket.id} />}
         {!isDragging && <CardAiFooter ticket={ticket} />}
 

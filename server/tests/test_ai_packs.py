@@ -180,6 +180,54 @@ async def test_a_member_made_from_an_older_pack_is_offered_the_update_and_keeps_
     assert any(srv["name"] == "mine" for srv in cfg["mcp_servers"])
 
 
+async def test_an_update_shows_what_changes_first_and_can_be_taken_back(env):
+    import json as _json
+
+    from models import AiMember
+    from tests.test_ai import _project
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    m = (
+        await c.post(
+            f"/projects/{pid}/ai/packs/designer/member",
+            json={"name": "Designer Duyen", "working_dir": env["repo"]},
+        )
+    ).json()
+    assert (await c.get(f"/ai/members/{m['id']}/pack")).json()["edited"] is False
+    async with env["maker"]() as s:
+        p = await s.get(AiMember, m["id"])
+        cfg = _json.loads(p.config)
+        cfg["pack"]["version"] = 1
+        cfg["allow_rules"] = ["Read"]
+        p.config, p.persona = _json.dumps(cfg), "my own words"
+        s.add(p)
+        await s.commit()
+    state = (await c.get(f"/ai/members/{m['id']}/pack")).json()
+    assert state["edited"] is True and state["history"] == []
+    diff = (await c.get(f"/ai/members/{m['id']}/pack/diff")).json()
+    fields = {x["field"]: x for x in diff["changes"]}
+    assert fields["persona"]["before"] == "my own words"
+    assert "allow_rules" in fields and diff["to"] == packs.BUILTIN_VERSION
+    assert "model" in " ".join(diff["kept"])
+    await c.post(f"/ai/members/{m['id']}/pack/update")
+    state = (await c.get(f"/ai/members/{m['id']}/pack")).json()
+    assert [h["version"] for h in state["history"]] == [1]
+    r = await c.post(f"/ai/members/{m['id']}/pack/revert")
+    assert r.status_code == 200, r.text
+    assert r.json()["version"] == 1 and r.json()["history"] == []
+    async with env["maker"]() as s:
+        p = await s.get(AiMember, m["id"])
+    assert p.persona == "my own words" and _json.loads(p.config)["allow_rules"] == [
+        "Read"
+    ]
+    assert (await c.post(f"/ai/members/{m['id']}/pack/revert")).status_code in (
+        400,
+        409,
+        422,
+    )
+
+
 async def test_the_owner_makes_pack_members_that_bypass_permissions_but_triage(env):
     import json as _json
 

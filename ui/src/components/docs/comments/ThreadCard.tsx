@@ -31,6 +31,54 @@ interface Props {
 
 const FOLD_AFTER = 4;
 
+/** Replies only between AIs (ai-story-flow P): an AI member's reply whose mentions are all AI members. */
+export function aiToAiReply(c: DocsCommentItem, members: DocsCommentsResult['members'], me: string): boolean {
+  if (c.ai?.kind) return false; // a note, an error or a proposal speaks to the person
+  if (!personOf(c.author, members, me).ai || c.mentions.length === 0) return false;
+  return c.mentions.every((m) => members.some((x) => x.id === m.id && x.kind === 'ai'));
+}
+
+/** Runs of two or more replies between AIs in a thread (never its first comment), as lists of comment ids. */
+export function aiReplyRuns(
+  comments: DocsCommentItem[],
+  members: DocsCommentsResult['members'],
+  me: string,
+): string[][] {
+  const runs: string[][] = [];
+  let cur: string[] = [];
+  for (const c of comments.slice(1)) {
+    if (aiToAiReply(c, members, me)) cur.push(c.id);
+    else {
+      if (cur.length > 1) runs.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length > 1) runs.push(cur);
+  return runs;
+}
+
+const TO_CHIP: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  height: 18,
+  padding: '0 7px',
+  borderRadius: 999,
+  background: '#F1F5F2',
+  color: '#3A4A3E',
+  fontSize: 10.5,
+  fontWeight: 700,
+  whiteSpace: 'nowrap',
+};
+const AI_RUN_FOLD: React.CSSProperties = {
+  alignSelf: 'stretch',
+  border: '1px dashed #C7D2CB',
+  borderRadius: 8,
+  padding: '6px 10px',
+  color: '#1E2A22',
+  fontSize: 12.5,
+  fontWeight: 700,
+};
+
 function Avatar({ p, size = 28 }: { p: CommentPerson; size?: number }) {
   return (
     <span
@@ -82,6 +130,8 @@ export function ThreadCard({
   const [editing, setEditing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  // runs of replies between AIs are folded into one line until shown (by the first reply's id)
+  const [shownAiRuns, setShownAiRuns] = useState<Set<string>>(() => new Set());
   const folded = !expanded && thread.comments.length > FOLD_AFTER;
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLElement>(null);
@@ -209,6 +259,11 @@ export function ThreadCard({
                 ✦ AI
               </span>
             )}
+            {aiToAiReply(c, members, me) && (
+              <span data-testid="comment-to" style={TO_CHIP}>
+                to {c.mentions.map((m) => m.name).join(' and ')}
+              </span>
+            )}
             <span title={absoluteTime(c.createdAt)}>{relativeTime(c.createdAt)}</span>
             {c.editedAt && (
               <span className="dc-edited" title={absoluteTime(c.editedAt)} data-testid="comment-edited">
@@ -334,6 +389,58 @@ export function ThreadCard({
 
   const list = thread.comments;
   const hidden = folded ? list.length - 1 : 0;
+  const aiRuns = folded ? [] : aiReplyRuns(list, members, me);
+  const runOf = new Map<string, string[]>();
+  for (const r of aiRuns) for (const id of r) runOf.set(id, r);
+
+  function renderList(items: DocsCommentItem[]) {
+    const out: React.ReactNode[] = [];
+    for (const c of items) {
+      const run = runOf.get(c.id);
+      if (!run) {
+        out.push(renderComment(c, c.id === list[0].id));
+        continue;
+      }
+      const key = run[0];
+      const shown = shownAiRuns.has(key);
+      if (c.id === key) {
+        const authors = [...new Set(run.map((id) => list.find((x) => x.id === id)?.author ?? ''))].filter(Boolean);
+        out.push(
+          <button
+            key={`ai-run-${key}`}
+            type="button"
+            className="dc-fold"
+            style={AI_RUN_FOLD}
+            aria-expanded={shown}
+            data-testid="ai-replies-fold"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShownAiRuns((o) => {
+                const next = new Set(o);
+                if (shown) next.delete(key);
+                else next.add(key);
+                return next;
+              });
+            }}
+          >
+            <span style={{ display: 'inline-flex' }} aria-hidden="true">
+              {authors.slice(0, 3).map((a, i) => (
+                <span key={a} style={{ marginLeft: i ? -6 : 0, display: 'inline-flex' }}>
+                  <Avatar p={personOf(a, members, me)} size={20} />
+                </span>
+              ))}
+            </span>
+            <span style={{ flex: 1, textAlign: 'left' }}>{run.length} replies between AIs</span>
+            <span style={{ display: 'inline-flex', transform: shown ? 'rotate(180deg)' : undefined }}>
+              <Icon name="chevronDown" size={12} strokeWidth={2.2} />
+            </span>
+          </button>,
+        );
+      }
+      if (shown) out.push(renderComment(c, false));
+    }
+    return out;
+  }
 
   return (
     <section
@@ -439,7 +546,7 @@ export function ThreadCard({
           {hidden === 1 ? 'reply' : 'replies'}
         </button>
       )}
-      {(folded ? list.slice(-1) : list).map((c) => renderComment(c, c.id === list[0].id))}
+      {folded ? list.slice(-1).map((c) => renderComment(c, c.id === list[0].id)) : renderList(list)}
       {working.map((w) => (
         <div key={w.name + w.kind} className="dc-comment dc-ai-thinking" data-testid="ai-thinking" aria-live="polite">
           <Avatar p={{ name: w.name, initials: '✦', bg: '#F1ECFB', color: '#6B4FBB', ai: true }} />

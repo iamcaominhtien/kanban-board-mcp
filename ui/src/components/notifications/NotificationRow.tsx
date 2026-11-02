@@ -12,6 +12,7 @@ import {
   groupActors,
   initialsOf,
   relTime,
+  rowActions,
   rowTime,
   snoozeChoices,
   snoozeText,
@@ -45,6 +46,7 @@ const ACTION_ICONS: Record<string, IconName> = {
   'trouble:tell_ai': 'bubble',
   'trouble:wait': 'clock',
   move_account: 'arrow',
+  'workflow:resume': 'play',
 };
 
 /** Actions that ask for a little more first: a note, another AI, an account. */
@@ -116,7 +118,7 @@ function rowFacts(
 ) {
   const open = row.needs && !row.done && !row.gone;
   const grouped = !row.needs && row.count > 1;
-  const actionsShown = row.gone ? row.actions.filter((a) => a.id === 'dismiss') : row.actions;
+  const actionsShown = row.gone ? row.actions.filter((a) => a.id === 'dismiss') : rowActions(row);
   return {
     visual: visualOf(row.kind),
     project: row.projectId ? projects?.get(row.projectId) : undefined,

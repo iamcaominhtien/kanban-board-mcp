@@ -26,6 +26,8 @@ const ops = vi.hoisted(() => ({
 }));
 const openRun = vi.hoisted(() => vi.fn());
 vi.mock('../../api/aiOps', () => ({ aiOpsApi: ops }));
+const wfApi = vi.hoisted(() => ({ resume: vi.fn() }));
+vi.mock('../../api/aiWorkflow', () => ({ workflowApi: wfApi }));
 vi.mock('../aiteam/runLink', () => ({ openRun }));
 vi.mock('../../api/ai', () => ({ aiApi: { answer: m.answer, retry: m.retry, cancel: vi.fn() } }));
 vi.mock('../../api/aiSafety', () => ({ safetyApi: { approve: m.approve, deny: m.deny } }));
@@ -122,6 +124,13 @@ describe('useNotificationActions', () => {
     expect(m.deny).toHaveBeenCalledWith('run_1');
     await act(row({ targetId: null }), 'deny');
     expect(m.deny).toHaveBeenCalledTimes(1);
+  });
+
+  it('resumes a ticket stopped at its token cap', async () => {
+    wfApi.resume.mockResolvedValue({});
+    const { act } = setup();
+    await act(row({ kind: 'workflow_blocked', ticketId: 'KAN-305', data: { flag: 'quota_cap' } }), 'workflow:resume');
+    expect(wfApi.resume).toHaveBeenCalledWith('KAN-305');
   });
 
   it('retries a run, only when the target is a run', async () => {

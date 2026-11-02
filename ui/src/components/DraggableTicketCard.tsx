@@ -14,6 +14,7 @@ interface DraggableTicketCardProps {
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
   onDelete?: (ticket: Ticket) => void;
+  hideStoryChip?: boolean;
 }
 
 /**
@@ -29,6 +30,7 @@ export function DraggableTicketCard({
   onPending,
   onResume,
   onDelete,
+  hideStoryChip,
 }: DraggableTicketCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,
@@ -82,6 +84,7 @@ export function DraggableTicketCard({
         onPending={onPending}
         onResume={onResume}
         onDelete={onDelete}
+        hideStoryChip={hideStoryChip}
       />
     </div>
   );

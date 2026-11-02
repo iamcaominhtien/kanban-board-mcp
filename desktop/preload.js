@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Starts the backend again after a startup failure (events are re-sent to the renderer).
   retryBackend: () => ipcRenderer.invoke('retry-backend'),
 
+  // Keep the computer awake while AI runs (View menu); the AI Team chip reads and switches it
+  getKeepAwake: () => ipcRenderer.invoke('keep-awake-get'),
+  setKeepAwake: (on) => ipcRenderer.invoke('keep-awake-set', Boolean(on)),
+
   // Opens a native folder picker; returns the selected path or null
   selectFolder: () => ipcRenderer.invoke('select-folder'),
 

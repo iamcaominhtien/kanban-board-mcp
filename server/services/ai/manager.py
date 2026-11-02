@@ -32,11 +32,13 @@ from models import (
     AiRun,
     AiTicketStep,
     AiTicketWorkflow,
+    Story,
     Ticket,
     TicketUpdate,
 )
+from services import stories
 
-from . import ops, workflow
+from . import decisions, ops, workflow
 from .store import get_settings
 
 logger = logging.getLogger(__name__)
@@ -141,8 +143,8 @@ async def take(ticket_id: str, *, force: bool = False, moved: bool = False) -> b
     ):  # one at a time: two events about the same ticket never attach it twice
         async with database.async_session() as session:
             ticket = await session.get(Ticket, ticket_id)
-            if ticket is None or ticket.assignee:
-                return False
+            if ticket is None or ticket.assignee or ticket.type == "story":
+                return False  # a Story is not built: its plan drives its children (services/stories.py)
             if await session.get(AiTicketWorkflow, ticket_id) is not None:
                 return False
             if not force and await _piece_of_split(session, ticket):
@@ -171,6 +173,8 @@ async def take(ticket_id: str, *, force: bool = False, moved: bool = False) -> b
 async def _piece_of_split(session, ticket: Ticket) -> bool:
     if not ticket.parent_id:
         return False
+    if await session.get(Story, ticket.parent_id) is not None:
+        return True  # a ticket of a Story starts when its plan says so (services/stories.py)
     parent = await session.get(AiTicketWorkflow, ticket.parent_id)
     return parent is not None and parent.stop_reason == "split"
 
@@ -570,6 +574,13 @@ async def _on_run_ended(run_id: str) -> None:
         run = await session.get(AiRun, run_id)
         if run is None:
             return
+        story = await session.get(Story, run.ticket_id)
+        if (
+            story is not None
+            and (stories.meta_of(story).get("job") or {}).get("run_id") == run_id
+        ):
+            await stories.after_run(session, story, run)
+            return
         wf = await session.get(AiTicketWorkflow, run.ticket_id)
         job = workflow.meta_of(wf).get("manager_run") if wf else None
         if not job or job.get("run_id") != run_id:
@@ -611,8 +622,17 @@ async def _on_run_ended(run_id: str) -> None:
             )
             return
         row.outcome = "retried_by_pm"
-        await _again(
-            session, row, f"The coordinator says: {m.group(2).strip()[:1500]}", None
+        why = m.group(2).strip()[:1500]
+        await _again(session, row, f"The coordinator says: {why}", None)
+        await decisions.record(
+            session,
+            wf.project_id,
+            kind="retry",
+            title=f"Tried “{row.label}” of {run.ticket_id} again",
+            ticket_id=run.ticket_id,
+            why=why,
+            member_id=run.member_id,
+            ref={"step_id": row.id, "run_id": run.id},
         )
     await workflow.advance(run.ticket_id)
 
@@ -636,8 +656,21 @@ async def _after_approve(
         await workflow._tell_person(session, ticket, row)
         return
     note = m.group(2).strip()[:1500] or None
-    await workflow.decide_person_step(
-        wf.ticket_id, approve=m.group(1).upper() == "APPROVE", note=note, by=by
+    approve = m.group(1).upper() == "APPROVE"
+    await workflow.decide_person_step(wf.ticket_id, approve=approve, note=note, by=by)
+    await decisions.record(
+        session,
+        wf.project_id,
+        kind="approve_design" if approve else "send_back",
+        title=(
+            f"Approved “{row.label}” of {wf.ticket_id}"
+            if approve
+            else f"Sent {wf.ticket_id} back from “{row.label}”"
+        ),
+        ticket_id=wf.ticket_id,
+        why=note or "",
+        member_id=run.member_id,
+        ref={"step_id": row.id, "run_id": run.id},
     )
 
 
@@ -660,20 +693,12 @@ async def _after_split(
         )
         await workflow.advance(wf.ticket_id)
         return
+    # the split ticket becomes a Story: its plan is the pieces in the order the PM made them (A, "a ticket the PM
+    # finds too big is promoted to a Story")
     workflow.set_meta(wf, split=[t.id for t in children])
-    wf.stop_detail = (
-        f"Split into {', '.join(t.id for t in children)}; it is done when they all are."
-    )
     session.add(wf)
     await session.commit()
-    ticket = await session.get(Ticket, wf.ticket_id)
-    if ticket is not None and ticket.status not in ("in-progress", "review", "done"):
-        from services import tickets as svc_tickets
-
-        await svc_tickets.update_ticket(
-            session, ticket.id, TicketUpdate(status="in-progress")
-        )
-    await _next_piece(session, [t.id for t in children])
+    await stories.promote_split(session, wf, children, run)
 
 
 async def _next_piece(session, pieces: list[str]) -> None:
@@ -694,10 +719,13 @@ async def _next_piece(session, pieces: list[str]) -> None:
 
 
 async def on_ticket_done(ticket_id: str) -> None:
-    """A ticket reached Done: when it is the last piece of a split ticket, the parent finishes too."""
+    """A ticket reached Done: its Story starts what waited for it; the last piece of a split ticket finishes it."""
     async with database.async_session() as session:
         ticket = await session.get(Ticket, ticket_id)
         if ticket is None or not ticket.parent_id:
+            return
+        if await session.get(Story, ticket.parent_id) is not None:
+            await stories.on_child_done(session, ticket.parent_id)
             return
         await _parent_check(session, ticket.parent_id)
 
@@ -762,6 +790,7 @@ async def tick() -> None:
             continue
         try:
             await sweep_intake(project_id, cfg)
+            await stories.tick(project_id)
             if (cfg.get("manager") or {}).get("on"):
                 await _repair(project_id)
                 async with database.async_session() as session:

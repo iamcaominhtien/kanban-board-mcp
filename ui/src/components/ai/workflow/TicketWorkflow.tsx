@@ -29,6 +29,8 @@ import {
   totalRounds,
 } from './wfFormat';
 import { RoleChip } from './WfUi';
+import { WorkflowPicker, triageChose } from './WorkflowPicker';
+import { CapStoppedCard } from '../limits/CapStoppedCard';
 import './workflow.css';
 
 function StepRow({
@@ -418,56 +420,6 @@ function PutOnWorkflow({ ticket, onDone }: { ticket: Ticket; onDone?: () => void
   );
 }
 
-function ChangeWorkflow({ ticket, onDone }: { ticket: Ticket; onDone: () => void }) {
-  const templates = useWorkflowTemplates(ticket.projectId);
-  const [key, setKey] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const change = useWorkflowMutation(ticket.id, async (k: string) => {
-    await workflowApi.detach(ticket.id);
-    return workflowApi.attach(ticket.id, k);
-  });
-  const chosen = key || templates.data?.[0]?.key || '';
-  return (
-    <div className="wf-line" data-testid="change-workflow">
-      <select
-        className="wf-input"
-        style={{ width: 'auto', minWidth: 180 }}
-        aria-label="Move to workflow"
-        value={chosen}
-        onChange={(e) => setKey(e.target.value)}
-      >
-        {(templates.data ?? []).map((t) => (
-          <option key={t.key} value={t.key}>
-            {t.name}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        className="ai-btn ai-btn-sm"
-        disabled={!chosen || change.isPending}
-        onClick={() => {
-          setError(null);
-          change.mutate(chosen, { onSuccess: onDone, onError: (e) => setError(extractError(e)) });
-        }}
-      >
-        Move it over
-      </button>
-      <button type="button" className="ai-btn ai-btn-sm" onClick={onDone}>
-        Cancel
-      </button>
-      <span className="wf-hint">
-        Starts again from the first step of the new workflow; the steps done so far are dropped.
-      </span>
-      {error && (
-        <div className="ai-error-text" role="alert" style={{ flexBasis: '100%' }}>
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** A ticket's workflow (design/screens/ai-team-process.md, F–I): the strip of steps, who holds it, review depth, the
  * design approval, an arbitration, the test-first evidence. */
 export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
@@ -502,6 +454,11 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
     <>
       <div className="wf-line">
         <b>{view.templateName}</b>
+        {triageChose(view) && (
+          <span className="wf-pill" data-testid="chosen-by-triage">
+            Chosen by Triage
+          </span>
+        )}
         <span className="wf-pill wf-pill-blue" data-testid="step-position">
           {view.state === 'done' ? 'done' : `step ${position} of ${view.steps.length}`}
         </span>
@@ -516,7 +473,14 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
           </button>
         )}
       </div>
-      {changing && <ChangeWorkflow ticket={ticket} onDone={() => setChanging(false)} />}
+      {changing && (
+        <WorkflowPicker
+          ticketId={ticket.id}
+          projectId={ticket.projectId}
+          view={view}
+          onDone={() => setChanging(false)}
+        />
+      )}
       <div className="wf-strip" data-testid="workflow-strip">
         {view.steps.map((s) => (
           <StepRow
@@ -552,7 +516,12 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
           ))}
         </div>
       )}
-      {view.state === 'stopped' && <StopCard view={view} ticketId={ticket.id} />}
+      {view.state === 'stopped' &&
+        (view.stopReason === 'quota_cap' ? (
+          <CapStoppedCard ticket={ticket} view={view} />
+        ) : (
+          <StopCard view={view} ticketId={ticket.id} />
+        ))}
       {approval && <DesignApproval step={approval} view={view} ticketId={ticket.id} />}
       {view.steps[last]?.state === 'waiting' && view.state === 'active' && !approval && (
         <div className="wf-hint" data-testid="last-step-hint">

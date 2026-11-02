@@ -609,6 +609,19 @@ async def decide(ctx, request: str, approve: bool, note: str | None) -> dict:
                 await session.commit()
         if approve:
             not_published = await _publish_accepted(a, cfg, ctx.member_name)
+    from . import decisions
+
+    async with database.async_session() as session:
+        await decisions.record(
+            session,
+            ctx.project_id,
+            kind="permission",
+            title=f"{'Approved' if approve else 'Denied'} a permission: {a.summary}",
+            ticket_id=a.ticket_id,
+            why=note or "",
+            member_id=ctx.member_id,
+            ref={"approval_id": request},
+        )
     await audit.record(
         ctx.project_id,
         "autopilot_decision",
@@ -732,6 +745,20 @@ async def answer(ctx, request: str, text: str) -> dict:
         raise AutopilotError(str(exc)) from exc
     finally:
         guard.leave(tokens)
+    from . import decisions
+
+    async with database.async_session() as session:
+        asker = await session.get(Member, target.member_id)
+        await decisions.record(
+            session,
+            ctx.project_id,
+            kind="answer",
+            title=f"Answered {asker.name if asker else 'an AI'}: {text.strip()[:120]}",
+            ticket_id=target.ticket_id,
+            why=text.strip()[:1500],
+            member_id=ctx.member_id,
+            ref={"question_run_id": request},
+        )
     await audit.record(
         ctx.project_id,
         "autopilot_decision",

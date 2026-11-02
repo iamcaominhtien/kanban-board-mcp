@@ -20,8 +20,9 @@ export interface ProjectOps {
   triageId?: string | null;
   /** New tickets in `status`, assigned to nobody, are taken by the team (`since`: when it was turned on). */
   intake?: { on?: boolean; status?: string; since?: string | null };
-  /** How far the team goes without a person: Done is a person's move, or the board's once everything passed. */
-  autonomy?: { done?: 'person' | 'after_review' };
+  /** How far the team goes without a person: Done is a person's move, or the board's once everything passed; the
+   * step that waits for a person before the last one (the design) is approved by a person or by the PM. */
+  autonomy?: { done?: 'person' | 'after_review'; approve?: 'person' | 'pm' };
   /** The coordinator runs the team: what it may decide before a person is asked. */
   manager?: { on?: boolean; graceMin?: number; maxRisk?: 'low' | 'medium' | 'high'; perHourLimit?: number };
   /** A Dev step hands in a failing test run and a passing one. */
@@ -31,6 +32,10 @@ export interface ProjectOps {
   /** A message reaches a running AI at its next turn (off: at its next board call). */
   liveMessages?: boolean;
   knowledgeShared?: boolean;
+  /** Claude Code runs load the person's own Claude Code plugins (ai-story-flow Q2). */
+  ownClaude?: boolean;
+  /** Which roles load each of those plugins; a plugin not listed loads for every role. */
+  ownClaudeRoles?: { plugin: string; roles: string[] }[];
   github?: { on?: boolean; pollMin?: number; auto?: boolean };
   [key: string]: unknown;
 }

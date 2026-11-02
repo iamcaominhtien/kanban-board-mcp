@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { aiApi, useAiMutation } from '../../api/ai';
+import type { CapNeed, CapStop } from '../../api/aiTeam';
+import { workflowApi } from '../../api/aiWorkflow';
 import { safetyApi } from '../../api/aiSafety';
 import { extractError } from '../../api/extractError';
 import type { CardMemory } from '../../types/aiResources';
@@ -7,7 +9,9 @@ import type { Handoff, NeedsItem, TeamCard, TeamNow, TeamRange } from '../../typ
 import { useToast } from '../Toast';
 import { Badge, ICONS, Icon, KIND_LOOK, Spark, STATE_ORDER, StateChip, TicketChip, stateLine } from './teamUi';
 import { AUTO_RESTARTS, LEVEL_COLOR, fmtMb, levelOf, limitPct } from './resourcesFormat';
-import { fmtAgo, fmtClock, fmtDuration, fmtUsd, usageText } from './teamFormat';
+import { fmtAgo, fmtClock, fmtDuration, fmtTokens, fmtUsd, usageText } from './teamFormat';
+import { openRun } from './runLink';
+import './decided.css';
 
 export interface NowActions {
   onOpenTicket: (ticketId: string) => void;
@@ -50,7 +54,19 @@ function Tickets({ ids, onOpen }: { ids: string[]; onOpen: (id: string) => void 
   );
 }
 
-function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
+/** A card's stop at its ticket's token cap (O), when the server sends it. */
+function capStopOf(card: TeamCard): CapStop | null {
+  return (card as TeamCard & { capStop?: CapStop | null }).capStop ?? null;
+}
+
+const CAP_ICON = (
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </>
+);
+
+function NeedCard({ item, actions }: { item: NeedsItem | CapNeed; actions: NowActions }) {
   const toast = useToast();
   const [always, setAlways] = useState(false);
   const decide = useAiMutation(async (v: { id: string; approve: boolean; always?: boolean }) => {
@@ -63,6 +79,7 @@ function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
   });
   const retry = useAiMutation((runId: string) => aiApi.retry(runId));
   const dismiss = useAiMutation((runId: string) => aiApi.dismissStop(runId));
+  const resume = useAiMutation((ticketId: string) => workflowApi.resume(ticketId));
   const wait = item.waitingS != null ? `waiting ${fmtDuration(item.waitingS)}` : '';
   const who = item.memberName ?? 'An AI';
   const open = actions.onOpenTicket;
@@ -76,6 +93,52 @@ function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
   let buttons: ReactNode;
   let choice: ReactNode = null;
   switch (item.kind) {
+    case 'quota_cap': {
+      title = `${item.ticketId} reached its token cap`;
+      body =
+        item.used != null && item.cap != null ? (
+          <>
+            {who} used {item.used.toLocaleString('en-US')} of {item.cap.toLocaleString('en-US')} tokens
+            {item.ticketTitle ? (
+              <>
+                {' '}
+                on <b>{item.ticketTitle}</b>
+              </>
+            ) : null}
+            . It stopped and kept its work.
+          </>
+        ) : (
+          <>{item.text || `${who} stopped at the token cap of ${item.ticketId} and kept its work.`}</>
+        );
+      icon = CAP_ICON;
+      const waits = item.waitedBy ?? [];
+      hint = [
+        wait,
+        waits.length ? `${waits.join(', ')} wait${waits.length === 1 ? 's' : ''} for it` : null,
+        item.storyId ? `Story ${item.storyId}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      buttons = (
+        <>
+          <button
+            type="button"
+            className="st-btn st-btn-primary st-btn-sm"
+            disabled={resume.isPending}
+            onClick={() =>
+              resume.mutate(item.ticketId, { onError: (e) => toast.error("Couldn't resume it", extractError(e)) })
+            }
+          >
+            <Icon>{ICONS.play}</Icon>
+            Resume
+          </button>
+          <button type="button" className="st-btn st-btn-sm" onClick={() => open(item.ticketId)}>
+            Open ticket
+          </button>
+        </>
+      );
+      break;
+    }
     case 'question':
       title = `${who} asks a question`;
       body = (
@@ -311,6 +374,8 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
   const queuedIds = [...new Set([...queued.map((r) => r.ticketId), ...card.assigned])].filter(
     (id) => id !== current?.ticketId,
   );
+  const cap = card.state === 'offline' ? null : capStopOf(card);
+  const resumeCap = useAiMutation((ticketId: string) => workflowApi.resume(ticketId));
 
   let body: ReactNode;
   if (card.state === 'offline') {
@@ -330,6 +395,37 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
         {last && (
           <div className="at-hint-sm">
             Last run {LAST_VERB[last.state]?.replace(/ on$/, '') ?? last.state} {fmtClock(last.endedAt)}
+          </div>
+        )}
+      </>
+    );
+  } else if (cap) {
+    const step = cap.step;
+    const stopped = cap.stoppedAt
+      ? fmtAgo(Math.max(0, Math.round((Date.now() - new Date(cap.stoppedAt).getTime()) / 1000)))
+      : '';
+    body = (
+      <>
+        <div>
+          On <TicketChip id={cap.ticketId} onOpen={open} /> {cap.ticketTitle && <b>{cap.ticketTitle}</b>}
+        </div>
+        <div>
+          {[
+            step
+              ? `${step.label ? `${step.label}, ` : ''}step ${step.n}${step.total ? ` of ${step.total}` : ''}`
+              : null,
+            stopped ? `stopped ${stopped}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </div>
+        <div className="cap-bar" />
+        <div className="at-hint-sm">
+          {fmtTokens(cap.used)} of {fmtTokens(cap.cap)} tokens for this ticket
+        </div>
+        {cap.next && (
+          <div className="at-hint">
+            Next in line: <TicketChip id={cap.next.ticketId} onOpen={open} /> (waits for {cap.next.waitsFor})
           </div>
         )}
       </>
@@ -461,7 +557,16 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
           <div className="at-card-name">{card.name}</div>
           <div className="at-hint-sm">{runnerText}</div>
         </div>
-        <StateChip state={card.state} project={!!card.pause?.project && !card.pause.own} />
+        {cap ? (
+          <span className="at-chip" style={{ background: '#FEF3D9', color: '#7A5A06' }} data-testid="stopped-at-cap">
+            <Icon color="#B8860B" size={11}>
+              {CAP_ICON}
+            </Icon>
+            Stopped at cap
+          </span>
+        ) : (
+          <StateChip state={card.state} project={!!card.pause?.project && !card.pause.own} />
+        )}
       </div>
       <div className="at-card-body">{body}</div>
       <div className="at-card-foot">
@@ -484,6 +589,30 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
         <Spark values={card.spark} color={stateLine(card.state)} />
       </div>
       <div className="at-actions">
+        {cap && (
+          <>
+            <button
+              type="button"
+              className="st-btn st-btn-primary st-btn-sm"
+              disabled={resumeCap.isPending}
+              onClick={() =>
+                resumeCap.mutate(cap.ticketId, {
+                  onError: (e) => toast.error("Couldn't resume it", extractError(e)),
+                })
+              }
+            >
+              <Icon>{ICONS.play}</Icon>
+              Resume
+            </button>
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              onClick={() => (cap.runId ? openRun(cap.runId) : open(cap.ticketId))}
+            >
+              Open run
+            </button>
+          </>
+        )}
         {card.state === 'offline' && (
           <button
             type="button"
@@ -498,7 +627,7 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
             Answer
           </button>
         )}
-        {current ? (
+        {cap ? null : current ? (
           <button type="button" className="st-btn st-btn-sm" onClick={() => open(current.ticketId)}>
             Open run
           </button>
@@ -510,7 +639,7 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
             </button>
           )
         )}
-        {current && card.state === 'working' && (
+        {!cap && current && card.state === 'working' && (
           <button
             type="button"
             className="st-btn st-btn-sm"
@@ -557,6 +686,7 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
   const t = data.totals;
   const label = RANGE_LABEL[range];
   const cap = t.dailyCap;
+  const capped = data.members.filter((c) => c.state !== 'offline' && capStopOf(c)).length;
   return (
     <>
       <div className="at-states">
@@ -572,11 +702,19 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
             </span>
           );
         })}
+        {capped > 0 && (
+          <span className="at-chip" style={{ background: '#FEF3D9', color: '#7A5A06' }} data-testid="capped-count">
+            <Icon color="#B8860B" size={11}>
+              {CAP_ICON}
+            </Icon>
+            Stopped at a limit {capped}
+          </span>
+        )}
         <span className="at-hint">{data.members.length} AI members</span>
       </div>
 
       {data.needsYou.length > 0 && (
-        <div>
+        <div id="at-needs-you">
           <div className="at-section-head">
             <b>Needs you · {data.needsYou.length}</b>
             <span className="at-hint">Oldest first. Each one is something an AI cannot continue without.</span>
@@ -584,7 +722,7 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
           <div className="at-needs">
             {data.needsYou.map((item) => (
               <NeedCard
-                key={`${item.kind}-${'approvalId' in item ? item.approvalId : 'proposalId' in item ? item.proposalId : 'runId' in item ? item.runId : item.memberId}`}
+                key={`${item.kind}-${'approvalId' in item ? item.approvalId : 'proposalId' in item ? item.proposalId : 'runId' in item ? item.runId : (item.ticketId ?? item.memberId)}`}
                 item={item}
                 actions={actions}
               />

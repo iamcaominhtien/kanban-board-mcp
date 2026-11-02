@@ -3,7 +3,18 @@ import type { LiveFeedItem } from '../../../api/aiLiveFeed';
 /** A line as the feed shows it: a command's result folded into the command's own line. */
 export interface FeedLine extends LiveFeedItem {
   result: { text: string; tone: LiveFeedItem['tone'] } | null;
+  /** A fold of dense commands (kind `fold`): the lines it stands for. */
+  folded?: FeedLine[];
 }
+
+/** Where a feed line came from: its AI and its ticket light up in the drawing, and the other way round. */
+export interface LitMark {
+  memberId: string | null;
+  ticketId: string | null;
+}
+
+/** Highlights (the default) or Everything (every command, read and edit: the feed of main). */
+export type FeedDetail = 'highlights' | 'everything';
 
 /** Consecutive lines of one AI on one ticket, shown like a chat: the name once, the lines under it. */
 export interface FeedGroup {
@@ -37,8 +48,11 @@ export function resultSuffix(text: string): string {
   return at >= 0 ? text.slice(at + 3) : text;
 }
 
-/** The lines to show: results folded into their command's line, then the filter. */
-export function toLines(items: LiveFeedItem[], filter: FeedFilter): FeedLine[] {
+/** A line Highlights keeps. An older server sends no flag: every line counts then. */
+export const isHighlight = (i: Pick<LiveFeedItem, 'highlight'>) => i.highlight !== false;
+
+/** The lines to show: results folded into their command's line, then the filter (and Highlights, when asked). */
+export function toLines(items: LiveFeedItem[], filter: FeedFilter, detail: FeedDetail = 'everything'): FeedLine[] {
   const byId = new Map<string, FeedLine>();
   const out: FeedLine[] = [];
   for (const i of items) {
@@ -54,8 +68,73 @@ export function toLines(items: LiveFeedItem[], filter: FeedFilter): FeedLine[] {
   return out.filter(
     (l) =>
       (filter.speaker == null || speakerOf(l) === filter.speaker) &&
-      (filter.ticketId == null || l.ticketId === filter.ticketId),
+      (filter.ticketId == null || l.ticketId === filter.ticketId) &&
+      (detail === 'everything' || isHighlight(l)),
   );
+}
+
+/** More than this many commands by one AI in a minute fold into one line (design K, 6). */
+export const FOLD_OVER = 5;
+export const FOLD_WINDOW_MS = 60_000;
+
+/** "Ran `npm test`" → "npm test". */
+const commandOf = (text: string) => text.replace(/^Ran\s+/, '').replace(/`/g, '');
+
+/**
+ * Dense events fold: more than five commands in a row by one AI on one ticket within a minute become one line that
+ * opens. Its summary counts what passed and failed, and names a single failure so folding never hides it.
+ */
+export function foldDense(lines: FeedLine[]): FeedLine[] {
+  const out: FeedLine[] = [];
+  let run: FeedLine[] = [];
+  const flush = () => {
+    if (run.length > FOLD_OVER) {
+      const first = run[0];
+      const last = run[run.length - 1];
+      const failed = run.filter((l) => (l.result?.tone ?? l.tone) === 'bad');
+      const passed = run.filter((l) => (l.result?.tone ?? l.tone) === 'good').length;
+      const mins = Math.max(1, Math.round((Date.parse(last.at) - Date.parse(first.at)) / 60_000));
+      const bits = [passed ? `${passed} passed` : '', failed.length ? `${failed.length} failed` : ''].filter(Boolean);
+      const named = failed.length === 1 ? `: ${commandOf(failed[0].text)}` : '';
+      out.push({
+        ...last,
+        id: `fold:${first.id}`,
+        at: last.at,
+        kind: 'fold',
+        text: `Ran ${run.length} commands in ${mins} min`,
+        tone: failed.length ? 'bad' : passed ? 'good' : 'info',
+        ref: null,
+        result: bits.length ? { text: `${bits.join(', ')}${named}`, tone: failed.length ? 'bad' : 'good' } : null,
+        folded: run,
+      });
+    } else out.push(...run);
+    run = [];
+  };
+  for (const l of lines) {
+    const head = run[0];
+    if (
+      l.kind === 'command' &&
+      head &&
+      speakerOf(head) === speakerOf(l) &&
+      head.ticketId === l.ticketId &&
+      Date.parse(l.at) - Date.parse(head.at) <= FOLD_WINDOW_MS
+    ) {
+      run.push(l);
+      continue;
+    }
+    flush();
+    if (l.kind === 'command') run = [l];
+    else out.push(l);
+  }
+  flush();
+  return out;
+}
+
+/** How many lines each AI has, for the counts on the chips ("Dev · 2"). */
+export function linesBySpeaker(lines: FeedLine[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const l of lines) out.set(speakerOf(l), (out.get(speakerOf(l)) ?? 0) + (l.folded?.length ?? 1));
+  return out;
 }
 
 /** Lines grouped like a chat. */

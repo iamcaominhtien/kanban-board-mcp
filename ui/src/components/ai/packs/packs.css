@@ -254,3 +254,156 @@
   margin: 0;
   min-width: 0;
 }
+
+/* A member's role pack (design/source/AiStoryFlow.dc.html, Q1). */
+.pk-member {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pk-member-box {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fbfcfb;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pk-member-done {
+  background: #f6faf7;
+  gap: 9px;
+}
+.pk-member-glyph {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1.5px solid;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.pk-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.pk-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pk-diff-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.pk-diff-line {
+  display: flex;
+  gap: 8px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.pk-diff-line b {
+  width: 10px;
+  flex: none;
+}
+.pk-diff-same {
+  background: #f6faf7;
+  color: #5b6b60;
+}
+.pk-diff-out {
+  background: #fdece8;
+  color: #a5321e;
+  text-decoration: line-through;
+}
+.pk-diff-out b {
+  text-decoration: none;
+}
+.pk-diff-in {
+  background: #e3f3e7;
+  color: #1f5a31;
+}
+.pk-kept {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.pk-kept-box {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  background: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.pk-warn {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: #fef3d9;
+  border: 1px solid #f0dba8;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #7a5a06;
+}
+.pk-warn svg {
+  margin-top: 2px;
+}
+.pk-danger {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #fdf3f0;
+  border: 1px solid #f0c4b8;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #7c2a18;
+}
+.pk-danger svg {
+  margin-top: 3px;
+}
+.pk-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pk-mode:disabled {
+  cursor: default;
+}
+.pk-mode-allow {
+  background: #e6f2ea;
+  color: #1f5a31;
+  border: 1px solid #bfdcc7;
+}
+.pk-mode-bypass {
+  background: #fdece8;
+  color: #a5321e;
+  border: 1px solid #f0c4b8;
+}

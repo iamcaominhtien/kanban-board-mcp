@@ -784,7 +784,11 @@ async def tokens_used(session, wf: AiTicketWorkflow) -> int:
 async def _over_cap(session, wf: AiTicketWorkflow, ticket: Ticket) -> bool:
     """D11: the ticket used the tokens a person allowed it: the workflow stops for them."""
     cap = int(
-        ops.get(await get_settings(session, wf.project_id)).get("ticket_token_cap") or 0
+        meta_of(wf).get(
+            "cap"
+        )  # a person raised it for this ticket (design O, Raise the cap to…)
+        or ops.get(await get_settings(session, wf.project_id)).get("ticket_token_cap")
+        or 0
     )
     if cap <= 0:
         return False
@@ -807,13 +811,22 @@ async def _over_cap(session, wf: AiTicketWorkflow, ticket: Ticket) -> bool:
     return True
 
 
-async def resume(ticket_id: str, *, by: str) -> None:
-    """A person lets a workflow stopped at its token cap go on: it gets the cap again from here."""
+async def resume(ticket_id: str, *, by: str, cap: int | None = None) -> None:
+    """A person lets a workflow stopped at its token cap go on: it gets the cap again from here, or the higher cap
+    they set for this ticket (`cap`, counted from the start of its workflow)."""
     async with database.async_session() as session:
         wf = await session.get(AiTicketWorkflow, ticket_id)
         if wf is None or wf.state != "stopped" or wf.stop_reason != "quota_cap":
             raise WorkflowError("The workflow did not stop at its token cap.")
-        set_meta(wf, cap_base=await tokens_used(session, wf))
+        if cap is not None:
+            used = await tokens_used(session, wf)
+            if cap <= used:
+                raise WorkflowError(
+                    f"It already used {used:,} tokens: set a cap above that."
+                )
+            set_meta(wf, cap=int(cap), cap_base=0)
+        else:
+            set_meta(wf, cap_base=await tokens_used(session, wf))
         wf.state, wf.stop_reason, wf.stop_detail = "active", None, None
         wf.updated_at = _now()
         session.add(wf)
@@ -1311,9 +1324,11 @@ async def _tdd_gate(ticket_id: str, evidence: dict) -> bool:
     return True
 
 
-async def accept_tdd(ticket_id: str, *, by: str, rule_off: bool = False) -> None:
+async def accept_tdd(
+    ticket_id: str, *, by: str, rule_off: bool = False, reason: str | None = None
+) -> None:
     """At the last step: accept the work without test-first evidence just this once, or turn the rule off for the
-    project (design I)."""
+    project (design I); who, when and why stay on the step (ai-story-flow N)."""
     async with database.async_session() as session:
         wf = await session.get(AiTicketWorkflow, ticket_id)
         if wf is None:
@@ -1322,14 +1337,48 @@ async def accept_tdd(ticket_id: str, *, by: str, rule_off: bool = False) -> None
         if dev is None or dev.outcome != "unproven":
             raise WorkflowError("Nothing waits for test-first evidence.")
         dev.outcome = "accepted"
+        why = (reason or "").strip()[:600]
         dev.note = (
-            (dev.note or "") + f"\n\nAccepted without test-first evidence by {by}."
+            (dev.note or "")
+            + f"\n\nAccepted without test-first evidence by {by}"
+            + (f": {why}" if why else ".")
         ).strip()
+        result = loads(dev.result, {}) if dev.result else {}
+        result = result if isinstance(result, dict) else {}
+        result["accepted"] = {"by": by, "at": _now(), "reason": why or None}
+        dev.result = json.dumps(result)
         session.add(dev)
         if rule_off:
             settings = await get_settings(session, wf.project_id)
             ops.update(settings, {"tdd": {"required": False}})
             session.add(settings)
+        await session.commit()
+
+
+async def accept_evidence(ticket_id: str, *, by: str, reason: str) -> None:
+    """A testing step finished with nothing to show (no_evidence): a person accepts it anyway, with why
+    (ai-story-flow N); the board may then move the ticket to Done."""
+    why = (reason or "").strip()[:600]
+    if not why:
+        raise WorkflowError("Say why it is accepted without evidence.")
+    async with database.async_session() as session:
+        rows = [
+            r
+            for r in await steps_of(session, ticket_id)
+            if r.role in EVIDENCE_ROLES and r.outcome == "no_evidence"
+        ]
+        if not rows:
+            raise WorkflowError("No testing step waits for evidence.")
+        row = rows[-1]
+        row.outcome = "accepted"
+        row.note = (
+            (row.note or "") + f"\n\nAccepted without evidence by {by}: {why}"
+        ).strip()
+        result = loads(row.result, {}) if row.result else {}
+        result = result if isinstance(result, dict) else {}
+        result["accepted"] = {"by": by, "at": _now(), "reason": why}
+        row.result = json.dumps(result)
+        session.add(row)
         await session.commit()
 
 

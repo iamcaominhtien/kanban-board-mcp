@@ -15,6 +15,9 @@ import { SchedulesTab } from './schedules/SchedulesTab';
 import { CalendarIcon } from './schedules/schedulesUi';
 import { useScheduleList } from '../api/schedules';
 import { TicketCard } from './TicketCard';
+import { StoryLanes, statusOfDropId } from './story/StoryLanes';
+import { GiveStoryDialog } from './story/GiveStoryDialog';
+import { readGroupByStory, writeGroupByStory } from './story/storyLinks';
 import styles from './Board.module.css';
 import loadingStyles from './AppLoading.module.css';
 
@@ -144,6 +147,13 @@ export function Board({
 }: BoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
+  // Group by Story (ai-story-flow D): off until someone turns it on, remembered per person
+  const [groupByStory, setGroupByStory] = useState(readGroupByStory);
+  const [givingStory, setGivingStory] = useState(false);
+  const toggleGroupByStory = (on: boolean) => {
+    setGroupByStory(on);
+    writeGroupByStory(on);
+  };
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
   const dragKind: 'reopen' | 'pending' | null = !activeTicket
     ? null
@@ -166,12 +176,14 @@ export function Board({
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    if (!over || !VALID_STATUSES.has(over.id as string)) {
+    // A lane cell of the board grouped by Story is `lane:<lane>:<status>`
+    const status = over ? statusOfDropId(String(over.id)) : '';
+    if (!over || !VALID_STATUSES.has(status)) {
       setActiveTicketId(null);
       return;
     }
     setActiveTicketId(null);
-    onDragEnd(active.id as string, over.id as Status);
+    onDragEnd(active.id as string, status as Status);
   }
 
   return (
@@ -291,6 +303,32 @@ export function Board({
                 )}
               </button>
             </div>
+            {projectId && hasAiTeam && (
+              <button
+                type="button"
+                className={styles.storyButton}
+                onClick={() => setGivingStory(true)}
+                disabled={!!loadState}
+                title="Hand a job to the PM: it plans it, splits it into tickets and runs them"
+                data-testid="give-story"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  style={{ display: 'block', flexShrink: 0 }}
+                >
+                  <path d="M6.5 3h11a1 1 0 0 1 1 1v17l-6.5-4.2L5.5 21V4a1 1 0 0 1 1-1z" />
+                </svg>
+                <span>Give a Story</span>
+              </button>
+            )}
             <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
               <svg
                 width="12"
@@ -344,6 +382,8 @@ export function Board({
               workflowOptions={workflowOptions}
               workflowFilter={workflowFilter}
               onWorkflowFilterChange={onWorkflowFilterChange}
+              groupByStory={viewMode === 'board' ? groupByStory : undefined}
+              onGroupByStoryChange={toggleGroupByStory}
             />
           )}
         </div>
@@ -399,6 +439,18 @@ export function Board({
           <ListView tickets={tickets} members={members} onCardClick={onCardClick} />
         ) : viewMode === 'timeline' ? (
           <TimelineView tickets={tickets} projectId={projectId ?? ''} onCardClick={onCardClick} />
+        ) : groupByStory ? (
+          <StoryLanes
+            columns={COLUMNS}
+            tickets={tickets}
+            allTickets={allTickets}
+            onCardClick={onCardClick}
+            memberMap={memberMap}
+            onReopen={onReopen}
+            onPending={onPending}
+            onResume={onResume}
+            onDelete={onDelete}
+          />
         ) : (
           <div className={styles.columns}>
             {COLUMNS.map((col) => {
@@ -435,6 +487,7 @@ export function Board({
           </div>
         ) : null}
       </DragOverlay>
+      {givingStory && projectId && <GiveStoryDialog projectId={projectId} onClose={() => setGivingStory(false)} />}
     </DndContext>
   );
 }

@@ -4,12 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LiveFeedItem } from '../../../api/aiLiveFeed';
 
-const http = vi.hoisted(() => ({ get: vi.fn() }));
+const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('../../../api/client', () => ({ client: http }));
 
 import { mergeFeed } from '../../../api/aiLiveFeed';
-import { LiveFeed, LiveFeedSplit } from './LiveFeed';
-import { codeParts, relTime, toGroups, toLines } from './liveFeedModel';
+import { LiveFeed, LiveFeedSplit, type FeedLinks } from './LiveFeed';
+import { codeParts, foldDense, relTime, toGroups, toLines } from './liveFeedModel';
+import type { NeedsItem } from '../../../types/aiTeam';
 
 const T0 = Date.parse('2026-11-02T10:00:00.000Z');
 const at = (s: number) => new Date(T0 + s * 1000).toISOString();
@@ -32,10 +33,10 @@ const item = (o: Partial<LiveFeedItem> = {}): LiveFeedItem => ({
   ...o,
 });
 
-let pages: { items: LiveFeedItem[]; cursor: string; working: string[] }[];
+let pages: { items: LiveFeedItem[]; cursor: string; working: string[]; needsYou?: NeedsItem[] }[];
 let calls: (Record<string, unknown> | undefined)[];
 
-function setup(props: { onOpenTicket?: (id: string) => void } = {}) {
+function setup(props: { onOpenTicket?: (id: string) => void; links?: FeedLinks } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
@@ -164,7 +165,7 @@ describe('LiveFeed', () => {
     expect(screen.getAllByText('Edited calc.py')).toHaveLength(1);
   });
 
-  it('filters by AI and by ticket', async () => {
+  it('filters by AI; the ticket box of main is gone (the scope says which ticket)', async () => {
     pages.push({
       items: [
         item({ id: 'a', text: 'Edited calc.py' }),
@@ -185,9 +186,8 @@ describe('LiveFeed', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rev Binh' }));
     expect(screen.queryByText('Edited calc.py')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'All' }));
-    fireEvent.change(screen.getByLabelText('Only one ticket'), { target: { value: 'KAN-1' } });
-    expect(screen.queryByText('Passed the review')).toBeNull();
     expect(screen.getByText('Edited calc.py')).toBeTruthy();
+    expect(screen.queryByLabelText('Only one ticket')).toBeNull();
   });
 
   it('pause holds the feed still and counts what came in; Jump to live shows it', async () => {
@@ -200,7 +200,7 @@ describe('LiveFeed', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2100);
     });
-    await waitFor(() => expect(screen.getByTestId('live-feed-jump').textContent).toContain('1 new · Jump to live'));
+    await waitFor(() => expect(screen.getByTestId('live-feed-jump').textContent).toContain('1 held · Resume'));
     expect(screen.queryByText('Ran the tests')).toBeNull();
     fireEvent.click(screen.getByTestId('live-feed-jump'));
     expect(screen.getByText('Ran the tests')).toBeTruthy();
@@ -258,5 +258,176 @@ describe('LiveFeed', () => {
     expect(screen.getByText('the map')).toBeTruthy();
     expect(screen.queryByTestId('live-feed')).toBeNull();
     expect(http.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('following the scope (design K, K2)', () => {
+  it('folds more than five commands by one AI in a minute into one line, naming the failure', () => {
+    const cmds = Array.from({ length: 7 }, (_, n) =>
+      item({ id: `c${n}`, at: at(n * 5), kind: 'command', text: n === 3 ? 'Ran `npm run lint`' : 'Ran `npm test`' }),
+    );
+    const results = cmds.map((c, n) =>
+      item({ id: `r${n}`, at: c.at, kind: 'result', ref: c.id, text: 'x — ok', tone: n === 3 ? 'bad' : 'good' }),
+    );
+    const lines = foldDense(
+      toLines(
+        [...cmds, ...results].sort((a, b) => (a.at < b.at ? -1 : 1)),
+        { speaker: null, ticketId: null },
+      ),
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0].text).toBe('Ran 7 commands in 1 min');
+    expect(lines[0].result).toEqual({ text: '6 passed, 1 failed: npm run lint', tone: 'bad' });
+    expect(lines[0].folded).toHaveLength(7);
+    // five stay as they are
+    expect(foldDense(toLines(cmds.slice(0, 5), { speaker: null, ticketId: null }))).toHaveLength(5);
+  });
+
+  it('Highlights is the default; Everything shows every command, read and edit', async () => {
+    pages.push({
+      items: [
+        item({ id: 'a', text: 'Read FavouriteList.tsx', highlight: false }),
+        item({ id: 'b', at: at(1), text: 'Finished the Build step', highlight: true, kind: 'finished' }),
+      ],
+      cursor: 'c1',
+      working: [],
+    });
+    setup();
+    await screen.findByText('Finished the Build step');
+    expect(screen.queryByText('Read FavouriteList.tsx')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Everything' }));
+    expect(screen.getByText('Read FavouriteList.tsx')).toBeTruthy();
+    expect(window.localStorage.getItem('kanban.ai.liveFeed.detail')).toBe('everything');
+  });
+
+  it('asks for the lines of the scope and names it on a line that is not a button', async () => {
+    pages.push({ items: [item({ id: 'a', highlight: true })], cursor: 'c1', working: [] });
+    setup({
+      links: {
+        scope: { story: 'KAN-301', ticket: null },
+        scopeLabel: { kind: 'story', id: 'KAN-301', title: 'Weather app' },
+      },
+    });
+    await screen.findByText('Edited calc.py');
+    expect(calls[0]).toEqual({ limit: 200, story: 'KAN-301' });
+    const line = screen.getByTestId('live-feed-scope');
+    expect(line.textContent).toBe('Story KAN-301 · Weather app');
+    expect(line.tagName).not.toBe('BUTTON');
+  });
+
+  it('pins Needs you on top with its answer button, and keeps the count on the folded rail', async () => {
+    const need = {
+      kind: 'question',
+      runId: 'r9',
+      options: [],
+      since: null,
+      waitingS: 360,
+      memberId: 'm3',
+      memberName: 'Designer Dao',
+      ticketId: 'KAN-303',
+      text: 'Which icon set for the weather conditions?',
+    } as NeedsItem;
+    pages.push({ items: [], cursor: 'c1', working: [], needsYou: [need] });
+    const open = vi.fn();
+    setup({ onOpenTicket: open, links: {} });
+    const box = await screen.findByTestId('live-feed-needs');
+    expect(box.textContent).toContain('Which icon set for the weather conditions?');
+    expect(box.textContent).toContain('Designer Dao · KAN-303 · waiting 6 min');
+    fireEvent.click(within(box).getByRole('button', { name: 'Answer' }));
+    expect(open).toHaveBeenCalledWith('KAN-303');
+    fireEvent.click(screen.getByRole('button', { name: 'Hide live commentary' }));
+    expect(screen.getByTestId('live-feed-rail-needs').textContent).toBe('1');
+  });
+
+  it('an empty ticket says what it waits for and offers its Story', async () => {
+    pages.push({ items: [], cursor: 'c1', working: [] });
+    const showStory = vi.fn();
+    setup({
+      links: {
+        scope: { story: 'KAN-301', ticket: 'KAN-306' },
+        scopeLabel: { kind: 'ticket', id: 'KAN-306', title: 'Offline states' },
+        waitsFor: ['KAN-305'],
+        onShowStory: showStory,
+      },
+    });
+    const empty = await screen.findByTestId('live-feed-empty-scope');
+    expect(empty.textContent).toContain('Nothing yet for KAN-306.');
+    expect(empty.textContent).toContain('It waits for KAN-305.');
+    fireEvent.click(screen.getByRole('button', { name: 'Show the Story instead' }));
+    expect(showStory).toHaveBeenCalled();
+  });
+
+  it('a quiet Story says nothing runs and what the last thing was', async () => {
+    pages.push({
+      items: [item({ id: 'a', highlight: false, text: 'Moved KAN-304 to Done' })],
+      cursor: 'c1',
+      working: [],
+    });
+    setup({ links: { scope: { story: 'KAN-301' }, scopeLabel: { kind: 'story', id: 'KAN-301', title: null } } });
+    const quiet = await screen.findByTestId('live-feed-quiet');
+    expect(quiet.textContent).toContain('Nothing is running in this Story.');
+    expect(quiet.textContent).toContain('The last thing was KAN-1: Moved KAN-304 to Done');
+  });
+
+  it('a hovered line lights the drawing, a click opens its run, and the running AI can be told', async () => {
+    pages.push({
+      items: [item({ id: 'run-1:s', highlight: true, runId: 'run-1', text: 'Started KAN-1' })],
+      cursor: 'c1',
+      working: ['m1'],
+    });
+    http.post.mockResolvedValue({ data: { delivered: 'input' } });
+    const hover = vi.fn();
+    const openRun = vi.fn();
+    setup({
+      links: {
+        liveRuns: [
+          {
+            runId: 'run-1',
+            memberId: 'm1',
+            memberName: 'Dev An',
+            ticketId: 'KAN-1',
+            ticketTitle: 'Fix add()',
+            state: 'working',
+            mode: 'work',
+            trigger: 'assign',
+            sender: '',
+            elapsedS: 30,
+            step: 'Build',
+          },
+        ],
+        onHoverLine: hover,
+        onOpenRun: openRun,
+      },
+    });
+    const text = await screen.findByText('Started KAN-1');
+    const group = text.closest('.lf-group') as HTMLElement;
+    fireEvent.mouseEnter(group);
+    expect(hover).toHaveBeenLastCalledWith({ memberId: 'm1', ticketId: 'KAN-1' });
+    fireEvent.click(text);
+    expect(openRun).toHaveBeenCalledWith('run-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Tell Dev An, who is working on KAN-1' }));
+    fireEvent.change(screen.getByLabelText('Tell Dev An'), { target: { value: 'Use the storage helper' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() =>
+      expect(http.post).toHaveBeenCalledWith('/ai/runs/run-1/tell', { text: 'Use the storage helper' }),
+    );
+    await screen.findByText('Sent. The AI reads it at its next turn.');
+    fireEvent.mouseLeave(group);
+    expect(hover).toHaveBeenLastCalledWith(null);
+  });
+
+  it('greys the reply box for an AI that is not running', async () => {
+    pages.push({ items: [item({ id: 'a', highlight: true })], cursor: 'c1', working: [] });
+    setup({ links: { liveRuns: [] } });
+    const text = await screen.findByText('Edited calc.py');
+    fireEvent.mouseEnter(text.closest('.lf-group') as HTMLElement);
+    expect(screen.getByTestId('live-feed-tell-off').textContent).toContain('Dev An is not running now');
+  });
+
+  it('lights the lines of the AI hovered in the drawing', async () => {
+    pages.push({ items: [item({ id: 'a', highlight: true })], cursor: 'c1', working: [] });
+    setup({ links: { lit: { memberId: 'm1', ticketId: null } } });
+    const text = await screen.findByText('Edited calc.py');
+    expect((text.closest('.lf-group') as HTMLElement).className).toContain('lf-lit');
   });
 });

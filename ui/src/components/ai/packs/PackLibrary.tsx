@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { packsApi, useDeletePack, usePacks } from '../../../api/aiPacks';
+import { useAiOverview } from '../../../api/ai';
+import { packsApi, useDeletePack, usePacks, useSavePack } from '../../../api/aiPacks';
+import { useAiMe } from '../../../api/aiSafety';
 import { extractError } from '../../../api/extractError';
-import type { Pack } from '../../../types/aiPacks';
+import type { Pack, PackPermissionMode } from '../../../types/aiPacks';
 import { CeilingChip, LoadError, STATUS_NAMES } from '../aiUi';
+import { roleOfConfig } from '../tools/MemberPluginsCard';
+import { ModeChip, PackBypassDialog, packBody, packMode } from './PackBypass';
 import { EditPackModal, ImportPackModal, MakeMemberModal } from './PackDialogs';
 import { WRITES_LABEL, downloadJson, limitsLabel, modelLabel, toolsLabel } from './packLabels';
 import './packs.css';
@@ -11,6 +15,12 @@ import './packs.css';
 export function PackLibrary({ projectId }: { projectId: string }) {
   const q = usePacks(projectId);
   const del = useDeletePack(projectId);
+  const saveMode = useSavePack(projectId);
+  const overview = useAiOverview(projectId);
+  const me = useAiMe(projectId);
+  // as on a member: only the project owner may turn on Bypass permissions
+  const isOwner = me.data?.role === 'owner';
+  const [bypassing, setBypassing] = useState<Pack | null>(null);
   const [sel, setSel] = useState<string | null>(null);
   const [edit, setEdit] = useState<Pack | null>(null);
   const [importing, setImporting] = useState(false);
@@ -23,6 +33,23 @@ export function PackLibrary({ projectId }: { projectId: string }) {
   if (q.error || !q.data) return <LoadError what="the role packs" error={q.error} onRetry={() => void q.refetch()} />;
   const packs = q.data;
   const open = packs.find((p) => p.key === sel) ?? null;
+  const aiMembers = (overview.data?.members ?? []).filter((m) => m.kind === 'ai');
+  const madeFrom = (key: string) => aiMembers.filter((m) => roleOfConfig(m.config) === key);
+
+  const setMode = (p: Pack, mode: PackPermissionMode) => {
+    setNote(null);
+    saveMode.mutate(
+      { key: p.key, body: packBody(p, mode) },
+      {
+        onSuccess: (saved) => {
+          setBypassing(null);
+          setNote(
+            `${p.name} is on ${mode === 'bypass' ? 'Bypass permissions' : 'the allow list'} from version ${saved.version}. Members made from it follow it after you update them.`,
+          );
+        },
+      },
+    );
+  };
 
   const doExport = async (p: Pack) => {
     setExportError(null);
@@ -44,11 +71,18 @@ export function PackLibrary({ projectId }: { projectId: string }) {
         </button>
       </div>
       <div className="ai-sub">
-        A pack is everything that makes an AI a role, in one object you can export, import and version.
+        A pack is everything that makes an AI a role, in one object you can export, import and version. It also decides
+        how a member made from it runs: ready-made packs start on <b>Bypass permissions</b>, except Triage, which only
+        reads and sorts.
       </div>
       {note && (
         <div className="ai-notice ai-notice-info" role="status">
           {note}
+        </div>
+      )}
+      {saveMode.error && !bypassing && (
+        <div className="ai-notice ai-notice-error" role="alert">
+          {extractError(saveMode.error)}
         </div>
       )}
       {packs.length === 0 ? (
@@ -88,6 +122,16 @@ export function PackLibrary({ projectId }: { projectId: string }) {
                 </dd>
                 <dt>Tools</dt>
                 <dd>{toolsLabel(p)}</dd>
+                <dt>Permission mode</dt>
+                <dd>
+                  <ModeChip
+                    pack={p}
+                    locked={!isOwner || saveMode.isPending}
+                    onClick={() => (packMode(p) === 'bypass' ? setMode(p, 'allowlist') : setBypassing(p))}
+                  />
+                </dd>
+                <dt>Members</dt>
+                <dd data-testid={`pack-members-${p.key}`}>{madeFrom(p.key).length}</dd>
               </dl>
             </div>
           ))}
@@ -179,6 +223,19 @@ export function PackLibrary({ projectId }: { projectId: string }) {
             setSel(p.key);
             setNote(`${p.name} saved as version ${p.version}.`);
           }}
+        />
+      )}
+      {bypassing && (
+        <PackBypassDialog
+          pack={bypassing}
+          members={madeFrom(bypassing.key)}
+          busy={saveMode.isPending}
+          error={saveMode.error}
+          onClose={() => {
+            setBypassing(null);
+            saveMode.reset();
+          }}
+          onConfirm={() => setMode(bypassing, 'bypass')}
         />
       )}
       {importing && (

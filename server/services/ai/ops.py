@@ -22,6 +22,9 @@ DEFAULTS: dict = {
     # Load the person's own Claude Code plugins (installed for their user in ~/.claude) in every Claude Code run, so an
     # AI on the board has what the same model has in their terminal (services/ai/own_claude.py)
     "own_claude": True,
+    # Which roles load each of those plugins (ai-story-flow Q2): [{plugin, roles}]; a plugin not listed loads for
+    # every role. A list, not a dict keyed by plugin name: the UI camel-cases keys.
+    "own_claude_roles": [],
     # Phase 4 — worktrees and hand-over
     "worktrees": {
         "on": False,

@@ -1,5 +1,6 @@
 """AI Team, Flow: the team map and the journey of one ticket (design/screens/ai-team.md, C and D)."""
 
+import dataclasses
 import statistics
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
@@ -9,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import AiMember, AiRun, Ticket
 
-from . import flow, health, pause_log
+from . import flow, health, pause_log, scope
 from .store import get_settings, loads, parse_iso
 from .team import RANGES, window_start
 
@@ -154,77 +155,21 @@ def skipped_between(
     return out
 
 
-async def team_map(
-    session: AsyncSession, project_id: str, range_key: str = "7d"
-) -> dict:
-    """Who passed work to whom in the range: a box per AI, an arrow per pair and kind, the totals above."""
-    if range_key not in RANGES:
-        range_key = "7d"
-    now = datetime.now(UTC)
-    a = window_start(range_key, now)
-    d = await health.load(session, project_id, a)
-    names = {m.id: m.name for m in d.ais.values()}
-    runs = [r for r in d.runs if (parse_iso(r.queued_at) or a) >= a]
-    evs = [e for e in d.events if (parse_iso(e["at"]) or a) >= a and e["to"] in names]
+EPOCH = datetime(2000, 1, 1, tzinfo=UTC)
+# Over this many arrows the map draws the ones that carry weight and folds the rest into one chip (H2)
+MAP_EDGES = 12
+# Arrows that are never folded: what goes back, the PM's plan
+_KEEP_KINDS = ("sent back", "returned", "plan")
 
-    live = await live_runs(session, project_id)
-    settings = await get_settings(session, project_id)
-    profiles = {
-        p.id: p
-        for p in (
-            await session.exec(
-                select(AiMember).where(col(AiMember.id).in_(list(d.ais) or [""]))
-            )
-        ).all()
-    }
-    order = usual_order(runs, list(d.ais))
-    nodes = []
-    for mid in order:
-        m = d.ais[mid]
-        mine = [r for r in runs if r.member_id == mid]
-        mine_live = next((x for x in live if x["member_id"] == mid), None)
-        held = len(
-            [
-                r
-                for r in d.runs
-                if r.member_id == mid and r.state == "queued" and r.mode == "work"
-            ]
-        )
-        # The map is history, so nothing on it is erased; while the project is paused each box says where its AI
-        # stands now (design/screens/ai-paused.md, D2)
-        profile = profiles.get(mid)
-        offline = (profile.health if profile else "") in (
-            "runner_missing",
-            "not_logged_in",
-            "key_invalid",
-            "model_retired",
-        )
-        tag = None
-        if settings.paused_all or (profile and profile.paused):
-            tag = (
-                "offline"
-                if offline
-                else "waiting"
-                if mine_live and mine_live.get("state") == "waiting_you"
-                else "paused"
-            )
-        durations = [s for r in mine if (s := flow._secs(r.started_at, r.ended_at))]
-        nodes.append(
-            {
-                "id": mid,
-                "name": m.name,
-                "color": m.color,
-                "tickets": len({r.ticket_id for r in mine}),
-                "avg_run_s": int(statistics.mean(durations)) if durations else None,
-                "asked": len([r for r in mine if loads(r.question, None)]),
-                # what this AI is doing right now (the busiest of its active runs), None when idle
-                "live": mine_live,
-                "live_count": len([x for x in live if x["member_id"] == mid]),
-                "pause_tag": tag,
-                "held": held if settings.paused_all else 0,
-            }
-        )
 
+def _edge_rows(
+    evs: list[dict],
+    names: dict[str, str],
+    order: list[str],
+    runs: list[AiRun],
+    live: list[dict],
+) -> list[dict]:
+    """One arrow per pair and kind for these hand-off events, with the mean wait and whether one is under way."""
     edges: dict[tuple[str, str, str], dict] = {}
     for e in evs:
         src, dst = _ends(e, names)
@@ -284,10 +229,10 @@ async def team_map(
 
     # the runs under way: the hand-off that started one of them is moving on the map
     live_ids = {x["run_id"] for x in live if x["trigger"] != "autopilot"}
-    edge_rows = []
+    rows = []
     for v in edges.values():
         kind, skipped = edge_kind(v)
-        edge_rows.append(
+        rows.append(
             {
                 "from": v["from"],
                 "to": v["to"],
@@ -311,14 +256,303 @@ async def team_map(
                 ),
             }
         )
+    return rows
+
+
+def _plan_edges(
+    pm: str, sc: scope.Scope, runs: list[AiRun], live: list[dict]
+) -> list[dict]:
+    """The Story's spoke: one arrow from the PM to each AI that held one of the Story's tickets. The board starts each
+    ticket from the PM's plan; the step rows still name the AI before as the sender, so the arrow is drawn from who
+    held which child, not from a recorded hand-off."""
+    kids = {c.id for c in sc.children}
+    held: dict[str, set[str]] = defaultdict(set)
+    first: dict[tuple[str, str], AiRun] = {}
+    for r in sorted(runs, key=lambda r: r.queued_at or ""):
+        if r.ticket_id not in kids or r.member_id == pm or r.trigger == "autopilot":
+            continue
+        held[r.member_id].add(r.ticket_id)
+        first.setdefault((r.ticket_id, r.member_id), r)
+    live_ids = {x["run_id"] for x in live}
+    out = []
+    for mid, tickets in held.items():
+        out.append(
+            {
+                "from": pm,
+                "to": mid,
+                "kind": "plan",
+                "skipped": [],
+                "via": None,
+                "count": len(tickets),
+                "wait_s": None,
+                "tickets": sorted(tickets)[:5],
+                # the AI is on its first run of a ticket of the plan: the plan just gave it the ticket
+                "live": any(
+                    first[(t, mid)].id in live_ids for t in tickets if (t, mid) in first
+                ),
+            }
+        )
+    return out
+
+
+def fold(edges: list[dict], limit: int = MAP_EDGES) -> tuple[list[dict], dict]:
+    """Past `limit` arrows, keep the ones that carry weight (what goes back, the plan, what moves now, then the
+    largest counts) and fold the rest: `{count: hand-offs folded, edges}`."""
+    if len(edges) <= limit:
+        return edges, {"count": 0, "edges": []}
+    must = [i for i, e in enumerate(edges) if e["live"] or e["kind"] in _KEEP_KINDS]
+    rest = sorted(
+        (i for i in range(len(edges)) if i not in must),
+        key=lambda i: (-edges[i]["count"], i),
+    )
+    keep = set(must) | set(rest[: max(limit - len(must), 0)])
+    kept = [e for i, e in enumerate(edges) if i in keep]
+    folded = [e for i, e in enumerate(edges) if i not in keep]
+    folded.sort(key=lambda e: -e["count"])
+    return kept, {"count": sum(e["count"] for e in folded), "edges": folded}
+
+
+async def _pm_of(
+    session: AsyncSession, project_id: str, sc: scope.Scope, names: dict[str, str]
+) -> str | None:
+    """Who runs the Story: its PM, else the AI the parent ticket is given to, else the project's coordinator."""
+    from . import workflow
+
+    for mid in (
+        sc.story_row.pm_id if sc.story_row else None,
+        sc.story.assignee if sc.story else None,
+    ):
+        if mid and mid in names:
+            return mid
+    pm = await workflow.coordinator(session, project_id)
+    return pm.id if pm is not None and pm.id in names else None
+
+
+def _clusters(
+    d: health.Data,
+    rows: dict,
+    runs: list[AiRun],
+    evs: list[dict],
+    names: dict[str, str],
+    order: list[str],
+    live: list[dict],
+    only: str | None = None,
+) -> list[dict]:
+    """Whose work it is (H): one cluster per Story with AI work in the range, the busiest first, then one for the
+    tickets that are in no Story. Each carries its share of every arrow."""
+    of = scope.story_of(d.tickets, rows)
+    by: dict[str | None, list[AiRun]] = defaultdict(list)
+    for r in runs:
+        by[of.get(r.ticket_id)].append(r)
+    if only is not None:
+        by = {only: by.get(only, [])}
+    out = []
+    for sid, mine in by.items():
+        ids = {r.ticket_id for r in mine}
+        share = [e for e in evs if e["ticket_id"] in ids]
+        edges = [
+            {"from": e["from"], "to": e["to"], "kind": e["kind"], "count": e["count"]}
+            for e in _edge_rows(share, names, order, runs, live)
+        ]
+        if sid is None:
+            title, state = scope.NOT_IN_STORY, None
+            kids = [d.tickets[t] for t in ids if t in d.tickets]
+        else:
+            t = d.tickets.get(sid)
+            row = rows.get(sid)
+            kids = [c for c in d.tickets.values() if c.parent_id == sid]
+            title, state = (t.title if t else ""), (row.state if row else None)
+        # counted as the Story card counts: Done of the tickets not dropped (Won't do)
+        kids = [c for c in kids if c.status != "wont_do"]
+        done = len([c for c in kids if c.status == "done"])
+        total = len(kids)
+        out.append(
+            {
+                "story_id": sid,
+                "title": title,
+                "state": state,
+                "done": done,
+                "total": total,
+                "tickets": len(ids),
+                "ticket_ids": sorted(ids),
+                "handoffs": len(share),
+                "edges": edges,
+                "runs": len(mine),
+                "last_at": max((r.queued_at or "" for r in mine), default=None),
+                "live": any(x["ticket_id"] in ids for x in live),
+            }
+        )
+    out.sort(
+        key=lambda c: (
+            c["story_id"] is None,
+            -c["runs"],
+            "".join(chr(255 - ord(ch)) for ch in (c["last_at"] or "")),
+        )
+    )
+    return out
+
+
+async def team_map(
+    session: AsyncSession,
+    project_id: str,
+    range_key: str | None = "7d",
+    *,
+    story: str | None = None,
+    ticket: str | None = None,
+) -> dict | None:
+    """Who passed work to whom in the range and the scope: a box per AI, an arrow per pair and kind, the totals above,
+    the Stories as clusters under the map. None when the Story or the ticket is not in the project.
+
+    A Story or a ticket with no range is shown over its whole life (range "all")."""
+    sc = await scope.resolve(session, project_id, story=story, ticket=ticket)
+    if sc is None:
+        return None
+    whole = range_key == "all" or (range_key is None and sc.level != "project")
+    if not whole and range_key not in RANGES:
+        range_key = "7d"
+    now = datetime.now(UTC)
+    if whole:
+        range_key = "all"
+        d = await health.load(session, project_id, EPOCH)
+        a = min(
+            (
+                at
+                for r in d.runs
+                if sc.has(r.ticket_id) and (at := parse_iso(r.queued_at))
+            ),
+            default=now,
+        )
+    else:
+        a = window_start(range_key, now)
+        d = await health.load(session, project_id, a)
+    names = {m.id: m.name for m in d.ais.values()}
+    runs = [
+        r for r in d.runs if sc.has(r.ticket_id) and (parse_iso(r.queued_at) or a) >= a
+    ]
+    evs = [
+        e
+        for e in d.events
+        if sc.has(e["ticket_id"])
+        and (parse_iso(e["at"]) or a) >= a
+        and e["to"] in names
+    ]
+
+    live = [x for x in await live_runs(session, project_id) if sc.has(x["ticket_id"])]
+    settings = await get_settings(session, project_id)
+    profiles = {
+        p.id: p
+        for p in (
+            await session.exec(
+                select(AiMember).where(col(AiMember.id).in_(list(d.ais) or [""]))
+            )
+        ).all()
+    }
+    pm = await _pm_of(session, project_id, sc, names) if sc.level == "story" else None
+    order = usual_order(runs, list(d.ais))
+    if sc.level != "project":
+        # one Story or one ticket: the AIs that took part, the PM first as the hub
+        involved = (
+            {r.member_id for r in runs}
+            | {x["member_id"] for x in live}
+            | {e["from"] for e in evs if e["from"] in names}
+            | {e["to"] for e in evs}
+            | ({pm} if pm else set())
+        )
+        order = sorted(
+            (m for m in order if m in involved), key=lambda m: (m != pm, order.index(m))
+        )
+    kids = {c.id for c in sc.children}
+    nodes = []
+    for mid in order:
+        m = d.ais[mid]
+        mine = [r for r in runs if r.member_id == mid]
+        mine_live = next((x for x in live if x["member_id"] == mid), None)
+        held = len(
+            [
+                r
+                for r in d.runs
+                if r.member_id == mid
+                and r.state == "queued"
+                and r.mode == "work"
+                and sc.has(r.ticket_id)
+            ]
+        )
+        # The map is history, so nothing on it is erased; while the project is paused each box says where its AI
+        # stands now (design/screens/ai-paused.md, D2)
+        profile = profiles.get(mid)
+        offline = (profile.health if profile else "") in (
+            "runner_missing",
+            "not_logged_in",
+            "key_invalid",
+            "model_retired",
+        )
+        tag = None
+        if settings.paused_all or (profile and profile.paused):
+            tag = (
+                "offline"
+                if offline
+                else "waiting"
+                if mine_live and mine_live.get("state") == "waiting_you"
+                else "paused"
+            )
+        durations = [s for r in mine if (s := flow._secs(r.started_at, r.ended_at))]
+        held_ids = sorted({r.ticket_id for r in mine})
+        if mid == pm:
+            held_ids = sorted(
+                set(held_ids) | kids
+            )  # the PM runs the Story: every ticket of it is in its box
+        nodes.append(
+            {
+                "id": mid,
+                "name": m.name,
+                "color": m.color,
+                # inside a Story the box lists its tickets (I); elsewhere it counts them
+                "tickets": held_ids if sc.level == "story" else len(held_ids),
+                "ticket_count": len(held_ids),
+                "live_ticket": mine_live["ticket_id"] if mine_live else None,
+                "hub": mid == pm,
+                "avg_run_s": int(statistics.mean(durations)) if durations else None,
+                "asked": len([r for r in mine if loads(r.question, None)]),
+                # what this AI is doing right now (the busiest of its active runs), None when idle
+                "live": mine_live,
+                "live_count": len([x for x in live if x["member_id"] == mid]),
+                "pause_tag": tag,
+                "held": held if settings.paused_all else 0,
+            }
+        )
+
+    edge_rows = _edge_rows(evs, names, order, runs, live)
+    if pm:
+        edge_rows = _plan_edges(pm, sc, runs, live) + edge_rows
+    edge_rows, folded = fold(edge_rows)
     kinds = Counter(e["kind"] for e in evs)
     sent = [e for e in evs if e["sent_back"]]
     by_target = Counter(names.get(e["to"], "AI") for e in sent)
-    measure = health.measure(d, a, now)
+    # the measures of the scope only: its runs, hand-offs and touches
+    ds = (
+        d
+        if sc.ids is None
+        else dataclasses.replace(
+            d,
+            runs=[r for r in d.runs if sc.has(r.ticket_id)],
+            events=[e for e in d.events if sc.has(e["ticket_id"])],
+            touches=[t for t in d.touches if sc.has(t["ticket_id"])],
+        )
+    )
+    measure = health.measure(ds, a, now)
     pp = flow.ping_pong(evs)
 
-    done = health.completed(d, a, now)
-    touches = [t for t in d.touches if (parse_iso(t["at"]) or a) >= a]
+    done = health.completed(ds, a, now)
+    rows = await scope.story_rows(session, project_id)
+    of = scope.story_of(d.tickets, rows)
+    clusters = (
+        _clusters(d, rows, runs, evs, names, order, live)
+        if sc.level == "project"
+        else _clusters(d, rows, runs, evs, names, order, live, sc.story.id)
+        if sc.level == "story" and sc.story is not None
+        else []
+    )
+    touches = [t for t in ds.touches if (parse_iso(t["at"]) or a) >= a]
     cost_by_ticket: dict[str, float] = defaultdict(float)
     for r in runs:
         cost_by_ticket[r.ticket_id] += (
@@ -347,6 +581,7 @@ async def team_map(
                 "id": tid,
                 "title": t.title if t else "",
                 "status": t.status if t else "",
+                "story_id": of.get(tid),
                 "elapsed_s": flow._secs(first, last),
                 "touches": len([x for x in touches if x["ticket_id"] == tid]),
                 "bounced": len([e for e in sent if e["ticket_id"] == tid]),
@@ -356,6 +591,7 @@ async def team_map(
             }
         )
     return {
+        "scope": sc.out(),
         "live": live[:12],
         "paused_all": settings.paused_all,
         "paused_at": settings.paused_at if settings.paused_all else None,
@@ -363,7 +599,13 @@ async def team_map(
         "since": a.isoformat(),
         "nodes": nodes,
         "edges": edge_rows,
-        "tickets": len({r.ticket_id for r in runs}),
+        "folded": folded,
+        "clusters": clusters,
+        # inside a Story its own ticket (the PM's planning and review) is not one of its tickets
+        "tickets": len(
+            {r.ticket_id for r in runs}
+            - ({sc.story.id} if sc.level == "story" and sc.story else set())
+        ),
         "stats": {
             "handoffs": len(evs),
             # lists, not dicts keyed by a name: the UI camel-cases keys, which would mangle "report back" and AI names
@@ -624,6 +866,18 @@ def _parent_block(
     }
 
 
+async def _ticket_scope(session: AsyncSession, ticket: Ticket) -> dict:
+    """What the One ticket scope adds (J): the steps of its workflow, as the ticket's own workflow strip reads them,
+    and the Story (or parent) it is in, for the crumb."""
+    from . import workflow
+
+    parent = await session.get(Ticket, ticket.parent_id) if ticket.parent_id else None
+    return {
+        "workflow": await workflow.view(session, ticket.id),
+        "story": {"id": parent.id, "title": parent.title} if parent else None,
+    }
+
+
 async def ticket_journey(
     session: AsyncSession, project_id: str, ticket_id: str
 ) -> dict | None:
@@ -641,10 +895,12 @@ async def ticket_journey(
     children = (
         await session.exec(select(Ticket).where(Ticket.parent_id == ticket_id))
     ).all()
+    extra = await _ticket_scope(session, ticket)
     if not runs and not children:
         return {
             "ticket": {"id": ticket.id, "title": ticket.title, "status": ticket.status},
             "empty": True,
+            **extra,
         }
     start = (
         parse_iso(runs[0].queued_at)
@@ -833,6 +1089,7 @@ async def ticket_journey(
                 ],
             },
         },
+        **extra,
         "docs": _docs_block(d, deliver["page_ids"]),
         "parent": _parent_block(d, ticket, list(children), names, now, done_ids)
         if children

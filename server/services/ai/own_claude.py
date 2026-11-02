@@ -26,6 +26,74 @@ def _load(path: Path) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def plugins(home: Path | None = None) -> list[dict]:
+    """Every plugin in the person's Claude Code folder, with whether a run loads it and why not (ai-story-flow Q2):
+    `{name, scope, skills, path, loaded, reason}`."""
+    home = home or claude_home()
+    installed = _load(home / "plugins" / "installed_plugins.json")
+    installed = (
+        installed.get("plugins", installed) if isinstance(installed, dict) else {}
+    )
+    enabled = _load(home / "settings.json").get("enabledPlugins") or {}
+    loaded = set(plugin_dirs(home))
+    out = []
+    for name, entries in installed.items():
+        if not isinstance(entries, list):
+            entries = [entries]
+        entries = [e for e in entries if isinstance(e, dict) and e.get("installPath")]
+        if not entries:
+            continue
+        mine = [e for e in entries if e.get("scope") == "user"]
+        pick = next(
+            (e for e in entries if e["installPath"] in loaded), (mine or entries)[0]
+        )
+        path = Path(pick["installPath"])
+        skills = (
+            len([p for p in (path / "skills").glob("*/SKILL.md")])
+            if path.is_dir()
+            else 0
+        )
+        reason = None
+        if pick["installPath"] not in loaded:
+            if enabled.get(name) is False:
+                reason = "Switched off in your Claude Code."
+            elif not mine:
+                reason = "Installed for another project only, and not switched on."
+            else:
+                reason = "Its folder is missing."
+        out.append(
+            {
+                "name": name,
+                "scope": pick.get("scope") or "user",
+                "skills": skills,
+                "path": pick["installPath"],
+                "loaded": reason is None,
+                "reason": reason,
+            }
+        )
+    return sorted(out, key=lambda p: (not p["loaded"], p["name"]))
+
+
+def for_role(
+    role: str | None, roles: list | None, home: Path | None = None
+) -> list[str]:
+    """The folders a member with `role` loads: every plugin that is on, less those narrowed to other roles."""
+    narrowed = {
+        r.get("plugin"): set(r.get("roles") or [])
+        for r in roles or []
+        if isinstance(r, dict) and r.get("plugin")
+    }
+    out = []
+    for p in plugins(home):
+        if not p["loaded"]:
+            continue
+        allowed = narrowed.get(p["name"])
+        if allowed is not None and (role or "") not in allowed:
+            continue
+        out.append(p["path"])
+    return out
+
+
 def plugin_dirs(home: Path | None = None) -> list[str]:
     """The folders of the person's plugins that are on: installed for the user and not switched off, or switched on
     by name. One folder per plugin (the user install first, else the newest that exists)."""

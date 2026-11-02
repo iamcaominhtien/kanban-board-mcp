@@ -12,9 +12,9 @@ from datetime import UTC, datetime, timedelta
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiMember, AiRun, DocsAiProposal, Ticket
+from models import AiDecision, AiMember, AiRun, DocsAiProposal, Ticket
 
-from . import autopilot, budget, flow_view, health, pause_log
+from . import autopilot, budget, flow_view, health, pause_log, scope
 from .store import get_settings, loads, parse_iso
 
 RANGES = ("hour", "today", "24h", "7d")
@@ -156,19 +156,51 @@ async def timeline(
     since: datetime | None = None,
     until: datetime | None = None,
     ticket_id: str | None = None,
-) -> dict:
-    """The sequence diagram's data for a window and a scope (the whole team, one ticket, or a parent and its
-    children)."""
-    if range_key not in RANGES:
+    story: str | None = None,
+) -> dict | None:
+    """The sequence diagram's data for a window and a scope (the whole team, one ticket, a parent and its children, or
+    a Story: one row per ticket, the PM first). Range "all" is the whole life of the scope. None when the Story is
+    not in the project."""
+    if range_key not in RANGES and range_key != "all":
         range_key = "today"
     now = datetime.now(UTC)
-    a, b = window(range_key, now, since, until)
+    sc = None
+    if story and not ticket_id:
+        sc = await scope.resolve(session, project_id, story=story)
+        if sc is None:
+            return None
     settings = await get_settings(session, project_id)
-    d = await health.load(session, project_id, a)
+    if range_key == "all" and since is None:
+        d = await health.load(session, project_id, flow_view.EPOCH)
+        ids = sc.ids if sc is not None else None
+        if ticket_id:
+            kids = (
+                await session.exec(
+                    select(Ticket.id).where(Ticket.parent_id == ticket_id)
+                )
+            ).all()
+            ids = {ticket_id, *kids}
+        a = min(
+            (
+                at
+                for r in d.runs
+                if (ids is None or r.ticket_id in ids)
+                and (at := parse_iso(r.queued_at))
+            ),
+            default=now - timedelta(hours=1),
+        )
+        b = until or now
+    else:
+        if range_key == "all":
+            range_key = "today"
+        a, b = window(range_key, now, since, until)
+        d = await health.load(session, project_id, a)
     names = {m.id: m.name for m in d.ais.values()}
 
     scope_ids: set[str] | None = None
-    if ticket_id:
+    if sc is not None:
+        scope_ids = set(sc.ids or ())
+    elif ticket_id:
         kids = (
             await session.exec(select(Ticket.id).where(Ticket.parent_id == ticket_id))
         ).all()
@@ -462,6 +494,13 @@ async def timeline(
         x["from"] for x in arrows if x["from"] in names
     }
     involved |= {x["to"] for x in arrows if x["to"] in names}
+    pm = (
+        await flow_view._pm_of(session, project_id, sc, names)
+        if sc is not None
+        else None
+    )
+    if pm:
+        involved.add(pm)
     order = flow_view.usual_order([r for r in d.runs if r.queued_at], list(d.ais))
     if scope_ids is not None:
         # one ticket: the lifelines in the order its AIs took it (a workflow's step order), then the rest
@@ -473,7 +512,7 @@ async def timeline(
             first.setdefault(r.member_id, r.queued_at or "")
         order = sorted(
             (m for m in order if m in involved),
-            key=lambda m: (m not in first, first.get(m, ""), order.index(m)),
+            key=lambda m: (m != pm, m not in first, first.get(m, ""), order.index(m)),
         )
     live = await flow_view.live_runs(session, project_id)
     profiles = {
@@ -572,13 +611,66 @@ async def timeline(
     last_end = max(
         (parse_iso(x["ended_at"]) for x in bars if x["ended_at"]), default=None
     )
+    # the PM's decisions taken for a person: the blue diamonds (I2)
+    decisions = [
+        {
+            "id": x.id,
+            "at": x.at,
+            "kind": x.kind,
+            "title": x.title,
+            "ticket_id": x.ticket_id,
+            "story_id": x.story_id,
+            "member_id": x.member_id,
+            "state": x.state,
+        }
+        for x in (
+            await session.exec(
+                select(AiDecision)
+                .where(
+                    AiDecision.project_id == project_id,
+                    col(AiDecision.at) >= a.isoformat(),
+                    col(AiDecision.at) <= b.isoformat(),
+                )
+                .order_by(col(AiDecision.at))
+            )
+        ).all()
+        if scope_ids is None
+        or x.ticket_id in scope_ids
+        or (x.story_id and x.story_id in scope_ids)
+    ]
+    # inside a Story: one row per ticket, the Story itself first (the PM plans, decides and closes on it)
+    rows = []
+    if sc is not None and sc.story is not None:
+        rows = [
+            {
+                "ticket_id": t.id,
+                "title": t.title,
+                "status": t.status,
+                "kind": "story" if t.id == sc.story.id else "ticket",
+                "member_id": pm if t.id == sc.story.id else t.assignee,
+                "blocked_by": [w for w in loads(t.blocked_by, []) if w in scope_ids]
+                if t.id != sc.story.id
+                else [],
+            }
+            for t in [sc.story, *sc.children]
+        ]
+    if sc is not None:
+        scope_out = {
+            "kind": "story",
+            "ticket_id": sc.story.id if sc.story else story,
+            "story_id": sc.story.id if sc.story else story,
+        }
+    else:
+        scope_out = {"kind": "ticket" if ticket_id else "team", "ticket_id": ticket_id}
     return {
         "range": range_key,
         "since": a.isoformat(),
         "until": b.isoformat(),
         "now": now.isoformat(),
         "following": b >= now - timedelta(seconds=5),
-        "scope": {"kind": "ticket" if ticket_id else "team", "ticket_id": ticket_id},
+        "scope": scope_out,
+        "rows": rows,
+        "decisions": decisions,
         "lifelines": lifelines,
         "bars": bars,
         "arrows": grouped,

@@ -96,6 +96,7 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   more: <path d="M5 12h.01M12 12h.01M19 12h.01" />,
+  play: <path d="M7 5l12 7-12 7z" />,
 };
 
 export type IconName = keyof typeof PATHS;
@@ -172,6 +173,9 @@ const VISUALS: Record<string, Visual> = {
   window_urgent: { icon: 'bolt', ...AMBER },
   window_wait: { icon: 'clock', ...BLUE },
   lesson: { icon: 'doc', ...GREEN },
+  story_plan: { icon: 'doc', ...AMBER },
+  story_blocked: { icon: 'clock', ...AMBER },
+  story_done: { icon: 'check', ...GREEN },
 };
 
 /** The icon of a kind. */
@@ -320,6 +324,21 @@ const OPEN_ORDER = [
   'reply',
   'change_permission',
 ];
+
+/** A ticket stopped at its token cap (`workflow_blocked`, flag quota_cap): Resume it from the row (ai-story-flow O). */
+export function isCapStop(row: NotificationRow): boolean {
+  return row.kind === 'workflow_blocked' && row.data?.flag === 'quota_cap' && !!row.ticketId;
+}
+
+/**
+ * The actions a row offers: the server's, plus the ones the board adds itself. A ticket stopped at its token cap gets
+ * Resume first and Open ticket, while it is still open; the row closes by itself once the ticket is resumed anywhere.
+ */
+export function rowActions(row: NotificationRow): NotificationRow['actions'] {
+  if (!isCapStop(row) || row.done || row.gone) return row.actions;
+  const rest = row.actions.filter((a) => a.id !== 'workflow:resume' && a.id !== 'open' && a.id !== 'open_ticket');
+  return [{ id: 'workflow:resume', label: 'Resume' }, { id: 'open_ticket', label: 'Open ticket' }, ...rest];
+}
 
 /** The action that opens the thing a row is about (Enter, a click on a desktop notice); null when there is none. */
 export function openActionOf(row: NotificationRow): string | null {

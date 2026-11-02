@@ -1,10 +1,25 @@
-import { useState } from 'react';
-import { useTeamFlow, useTicketJourney } from '../../api/aiTeam';
+import { useEffect, useState, type ReactNode } from 'react';
+import {
+  useFlowStories,
+  useFlowStory,
+  useTeamFlow,
+  useTicketJourney,
+  type FlowCluster,
+  type FlowStory,
+  type ScopedFlowMap,
+} from '../../api/aiTeam';
 import type { FlowEdge, FlowMap, Journey, JourneyPage, LiveRun, ParentRollup, TeamRange } from '../../types/aiTeam';
+import { pickTickets, scopeLevel, shareOf, storyOfTickets, type FlowScope, type FlowView } from './flowScope';
+import { openRun } from './runLink';
+import { FS_ICON, FsIcon, ScopeBar } from './ScopeBar';
+import { StoryClusters } from './StoryClusters';
+import { STORY_LEGEND, StoryMap, StoryStats, pmOf, type LitMark } from './StoryMap';
+import { StoryTimeline } from './StoryTimeline';
 import { fmtShort, fmtUsd } from './teamFormat';
 import { TicketChip } from './teamUi';
 import { TimelineTab } from './TimelineTab';
-import type { TimelineLink } from './timelineLink';
+import { buildFlowLink, type TimelineLink } from './timelineLink';
+import { CostCard, EvidenceCard, WorkflowStrip } from './WorkflowStrip';
 import { NODE_H, NODE_Y, arcReach, teamMapHeight } from './teamMapLayout';
 import { PAUSE_COLOR, clockTime } from '../ai/pausedUi';
 import { LiveFeedSplit } from '../ai/live/LiveFeed';
@@ -12,6 +27,8 @@ import { LiveFeedSplit } from '../ai/live/LiveFeed';
 export interface FlowActions {
   onOpenTicket: (ticketId: string) => void;
   onOpenDocsPage: (pageId: string) => void;
+  /** Open the Story page; without it the Story ticket opens. */
+  onOpenStory?: (storyId: string) => void;
 }
 
 const NODE_W = 130;
@@ -79,16 +96,32 @@ function LiveStrip({
 
 /** One box per AI in a row, an arrow per pair: straight to the next one, an arc above for a skip or a report back,
  *  an arc below for work sent back (design/screens/ai-team.md, C). Longer arcs rise higher so labels do not collide. */
-export function TeamMap({ map }: { map: FlowMap }) {
+export function TeamMap({
+  map,
+  share = null,
+  lit = null,
+  onHoverNode,
+}: {
+  map: FlowMap | ScopedFlowMap;
+  /** A Story cluster hovered under the map: its share of every arrow in dark blue, the rest dimmed (design H). */
+  share?: FlowCluster | null;
+  /** The AI a line of the feed came from: its box lights up. */
+  lit?: string | null;
+  onHoverNode?: (memberId: string | null) => void;
+}) {
   const nodes = map.nodes;
+  // with a cluster hovered: the arrows it has no part in fade, its part of the others is counted in dark blue
+  const part = (e: { from: string; to: string; kind: string }) => shareOf(share, e);
+  const dim = (e: { from: string; to: string; kind: string }) => (share ? (part(e) ? 1 : 0.35) : undefined);
   const width = Math.max(nodes.length * (NODE_W + NODE_GAP) + 20, 480);
   const x = (i: number) => 20 + i * (NODE_W + NODE_GAP);
   const cx = (i: number) => x(i) + NODE_W / 2;
   const idx = new Map(nodes.map((n, i) => [n.id, i]));
   const pos = (id: string) => idx.get(id) ?? -1;
   // an edge from an AI to itself is the Checks sending its work back: a loop under its box, drawn on its own
+  const edges = map.edges as FlowEdge[];
   const agg = (kind: FlowEdge['kind'], pred: (e: FlowEdge) => boolean) =>
-    map.edges.filter((e) => e.kind === kind && pos(e.from) >= 0 && pos(e.to) >= 0 && e.from !== e.to && pred(e));
+    edges.filter((e) => e.kind === kind && pos(e.from) >= 0 && pos(e.to) >= 0 && e.from !== e.to && pred(e));
   const adjacent = agg('flow', (e) => pos(e.to) - pos(e.from) === 1);
   const skips = agg('skip', () => true);
   const longForward = agg('flow', (e) => pos(e.to) - pos(e.from) > 1);
@@ -96,8 +129,8 @@ export function TeamMap({ map }: { map: FlowMap }) {
   const sent = agg('sent back', () => true);
   const returned = agg('returned', () => true);
   const reports = agg('report back', () => true);
-  const loops = map.edges.filter((e) => e.from === e.to && pos(e.from) >= 0);
-  const maxCount = Math.max(...map.edges.map((e) => e.count), 1);
+  const loops = edges.filter((e) => e.from === e.to && pos(e.from) >= 0);
+  const maxCount = Math.max(...edges.map((e) => e.count), 1);
   const w = (c: number) => (c / maxCount > 0.6 ? 3 : 2);
   const above = [
     ...skips.map((e) => ({
@@ -133,6 +166,7 @@ export function TeamMap({ map }: { map: FlowMap }) {
           ['ahy', '#9AA8A0'],
           ['ahp', '#7C5CD6'],
           ['ahb', '#8A6A12'],
+          ['ahn', '#1B3A6B'],
         ].map(([id, fill]) => (
           <marker
             key={id}
@@ -156,7 +190,7 @@ export function TeamMap({ map }: { map: FlowMap }) {
           const rise = arcReach(k);
           const top = NODE_Y - rise;
           return (
-            <g key={`u-${marker}-${e.from}-${e.to}`}>
+            <g key={`u-${marker}-${e.from}-${e.to}`} opacity={dim(e)}>
               <path
                 d={`M${a} ${NODE_Y} C${a} ${top - rise * 0.33} ${b} ${top - rise * 0.33} ${b} ${NODE_Y}`}
                 stroke={color}
@@ -173,7 +207,25 @@ export function TeamMap({ map }: { map: FlowMap }) {
           );
         })}
         {nodes.map((n, i) => (
-          <g key={n.id}>
+          <g
+            key={n.id}
+            onMouseEnter={onHoverNode ? () => onHoverNode(n.id) : undefined}
+            onMouseLeave={onHoverNode ? () => onHoverNode(null) : undefined}
+            data-testid={`map-node-${n.id}`}
+          >
+            {lit === n.id && (
+              <rect
+                x={x(i) - 5}
+                y={NODE_Y - 5}
+                width={NODE_W + 10}
+                height={NODE_H + 10}
+                rx="16"
+                fill="none"
+                stroke="#1B3A6B"
+                strokeWidth="2.6"
+                data-testid="map-node-lit"
+              />
+            )}
             {n.live && (
               <rect
                 className="at-ring"
@@ -280,18 +332,26 @@ export function TeamMap({ map }: { map: FlowMap }) {
         {adjacent.map((e) => {
           const a = pos(e.from);
           const mid = x(a) + NODE_W + NODE_GAP / 2;
+          const mine = part(e);
           return (
-            <g key={`a-${e.from}-${e.to}`}>
+            <g key={`a-${e.from}-${e.to}`} opacity={dim(e)} data-testid={`map-edge-${e.from}-${e.to}`}>
               <path
                 d={`M${x(a) + NODE_W} ${NODE_Y + 52} L${x(a) + NODE_W + NODE_GAP - 2} ${NODE_Y + 52}`}
-                stroke="#2E6F40"
+                stroke={mine ? '#1B3A6B' : '#2E6F40'}
                 strokeWidth={e.live ? w(e.count) + 1 : w(e.count)}
                 fill="none"
                 className={e.live ? 'at-live-edge' : undefined}
-                markerEnd="url(#ah)"
+                markerEnd={mine ? 'url(#ahn)' : 'url(#ah)'}
               />
-              <text x={mid} y={NODE_Y + 42} fontSize="11.5" fontWeight="700" fill="#1E2A22" textAnchor="middle">
-                {e.count}
+              <text
+                x={mid}
+                y={NODE_Y + 42}
+                fontSize={mine ? 10.5 : 11.5}
+                fontWeight={mine ? 800 : 700}
+                fill={mine ? '#1B3A6B' : '#1E2A22'}
+                textAnchor="middle"
+              >
+                {mine ? `${mine} of ${e.count}` : e.count}
               </text>
               <text x={mid} y={NODE_Y + 70} fontSize="10.5" fill="#5B6B60" textAnchor="middle">
                 {fmtShort(e.waitS)}
@@ -305,7 +365,7 @@ export function TeamMap({ map }: { map: FlowMap }) {
           const drop = arcReach(k);
           const low = bottom + drop;
           return (
-            <g key={`d-${marker}-${e.from}-${e.to}`}>
+            <g key={`d-${marker}-${e.from}-${e.to}`} opacity={dim(e)}>
               <path
                 d={`M${a} ${bottom} C${a} ${low + drop * 0.33} ${b} ${low + drop * 0.33} ${b} ${bottom}`}
                 stroke={color}
@@ -327,7 +387,7 @@ export function TeamMap({ map }: { map: FlowMap }) {
           const low = bottom + 26;
           const color = e.kind === 'sent back' ? '#C4432A' : '#8A6A12';
           return (
-            <g key={`l-${e.from}-${e.kind}`} data-testid={`map-loop-${e.from}`}>
+            <g key={`l-${e.from}-${e.kind}`} data-testid={`map-loop-${e.from}`} opacity={dim(e)}>
               <path
                 d={`M${c + 14} ${bottom} C${c + 4} ${low} ${c + 54} ${low} ${c + 44} ${bottom}`}
                 stroke={color}
@@ -360,7 +420,53 @@ function Stat({ label, value, hint, color }: { label: string; value: string | nu
   );
 }
 
-function MapView({ map, onPick }: { map: FlowMap; onPick: (ticketId: string) => void }) {
+/** The folded hand-offs of a busy map (design H2): a dashed chip that opens the list. */
+function FoldedChip({ folded, names }: { folded: NonNullable<ScopedFlowMap['folded']>; names: Map<string, string> }) {
+  const [open, setOpen] = useState(false);
+  if (!folded.count) return null;
+  return (
+    <div className="fs-folded">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} data-testid="map-folded">
+        + {folded.count} smaller hand-off{folded.count === 1 ? '' : 's'}
+      </button>
+      {open && (
+        <div className="fs-folded-list" role="list" data-testid="map-folded-list">
+          {folded.edges.map((e) => (
+            <div key={`${e.from}-${e.to}-${e.kind}`} role="listitem">
+              <b style={{ minWidth: 22 }}>{e.count}</b>
+              <span style={{ flex: 1 }}>
+                {names.get(e.from) ?? e.from} → {names.get(e.to) ?? e.to}
+              </span>
+              <span style={{ color: '#5B6B60' }}>{e.kind === 'flow' ? 'hand-off' : e.kind}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The whole project (design/screens/ai-team.md, C, and ai-story-flow.md, H): the map, its Story clusters, the stats. */
+function MapView({
+  map,
+  onPick,
+  stories = [],
+  share = null,
+  onShare,
+  onOpenStory,
+  lit = null,
+  onHoverNode,
+}: {
+  map: ScopedFlowMap;
+  onPick: (ticketId: string) => void;
+  stories?: FlowStory[];
+  share?: FlowCluster | null;
+  onShare?: (c: FlowCluster | null) => void;
+  onOpenStory?: (storyId: string) => void;
+  lit?: string | null;
+  onHoverNode?: (memberId: string | null) => void;
+}) {
+  const names = new Map(map.nodes.map((n) => [n.id, n.name]));
   const s = map.stats;
   const LABEL: Record<string, string> = {
     assigned: 'assigned',
@@ -377,14 +483,28 @@ function MapView({ map, onPick }: { map: FlowMap; onPick: (ticketId: string) => 
   return (
     <>
       <LiveStrip live={map.live ?? []} onPick={onPick} pausedAt={map.pausedAll ? (map.pausedAt ?? '') : undefined} />
-      <div className="at-hint">
-        {map.tickets} ticket{map.tickets === 1 ? '' : 's'} with AI work in this range · the number on an arrow is how
-        many hand-offs, the time under it the average wait before the next AI started
-      </div>
       {map.nodes.length < 2 ? (
         <div className="at-empty">Hand-offs between AIs need at least two AI members.</div>
       ) : (
-        <TeamMap map={map} />
+        <div className="fs-mapbox">
+          <TeamMap map={map} share={share} lit={lit} onHoverNode={onHoverNode} />
+          {share?.storyId && (
+            <div className="fs-against" data-testid="map-against">
+              <FsIcon d={FS_ICON.story} size={11} color="#1B3A6B" width={2.2} />
+              Showing {share.storyId} against the rest
+            </div>
+          )}
+          {map.folded && map.folded.count > 0 && <FoldedChip folded={map.folded} names={names} />}
+        </div>
+      )}
+      {(map.clusters?.length ?? 0) > 0 && onShare && onOpenStory && (
+        <StoryClusters
+          clusters={map.clusters!}
+          stories={stories}
+          hovered={share}
+          onHover={onShare}
+          onOpen={onOpenStory}
+        />
       )}
       <div className="at-tiles">
         <Stat label="Hand-offs" value={s.handoffs} hint={breakdown || 'none in this range'} />
@@ -948,129 +1068,80 @@ function ParentView({ parent, onOpen }: { parent: ParentRollup; onOpen: (id: str
   );
 }
 
-function OneTicket({
+/**
+ * The ticket scope (design/screens/ai-story-flow.md, J): the One ticket view of main without its ticket list (the
+ * picker replaces it), with the steps of the ticket's workflow on top, then the journey, the evidence and the cost.
+ */
+function TicketScope({
   projectId,
-  map,
   ticketId,
   setTicketId,
+  onOpenStory,
   actions,
-  onSeeSequence,
 }: {
   projectId: string;
-  map: FlowMap;
-  ticketId: string | null;
+  ticketId: string;
+  /** Another ticket (a child, a blocker): its own ticket scope. */
   setTicketId: (id: string) => void;
+  /** The Story the ticket is in: its Story scope. */
+  onOpenStory: (storyId: string) => void;
   actions: FlowActions;
-  onSeeSequence: (ticketId: string) => void;
 }) {
-  const [find, setFind] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const q = useTicketJourney(projectId, ticketId);
   const j = q.data;
-  const picks = map.picker.filter((p) => !find || `${p.id} ${p.title}`.toLowerCase().includes(find.toLowerCase()));
   const sel = j?.bars?.find((b) => b.runId === selected) ?? null;
   const st = j?.strip;
+  const wf = j?.workflow ?? null;
+  const tokens = (j?.bars ?? []).reduce((n, b) => n + (b.tokens ?? 0), 0);
   return (
-    <div
-      style={{ display: 'flex', border: '1px solid #E3E8E5', borderRadius: 12, overflow: 'hidden', background: '#fff' }}
-    >
-      <div style={{ width: 250, flexShrink: 0, borderRight: '1px solid #E3E8E5', background: '#FBFCFB' }}>
-        <div style={{ padding: 12 }}>
-          <input
-            className="at-select"
-            style={{ width: '100%', boxSizing: 'border-box' }}
-            placeholder="Find a ticket"
-            value={find}
-            onChange={(e) => setFind(e.target.value)}
-            aria-label="Find a ticket"
-          />
-        </div>
-        {picks.length === 0 && (
-          <div className="at-hint" style={{ padding: '0 12px 12px' }}>
-            No ticket had AI work in this range.
-          </div>
-        )}
-        {picks.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => {
-              setTicketId(p.id);
-              setSelected(null);
-            }}
-            style={{
-              display: 'block',
-              width: '100%',
-              textAlign: 'left',
-              padding: '10px 12px',
-              border: 'none',
-              borderBottom: '1px solid #EEF3EF',
-              background: ticketId === p.id ? '#F1F8F3' : 'transparent',
-              boxShadow: ticketId === p.id ? 'inset 3px 0 0 #2E6F40' : undefined,
-              font: 'inherit',
-              cursor: 'pointer',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="at-tchip" style={{ pointerEvents: 'none' }}>
-                <span className="at-dot" style={{ background: '#2E6F40' }} />
-                <span>{p.id}</span>
-              </span>
-              <span
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  flex: 1,
-                  minWidth: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {p.title}
-              </span>
-            </div>
-            {p.live?.[0] && (
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 11.5, fontWeight: 700 }}
-                data-testid={`pick-live-${p.id}`}
-              >
-                <span className={`at-live-dot ${p.live[0].state}`} />
-                <span style={{ color: LIVE_COLOR[p.live[0].state] }}>
-                  {p.live[0].memberName} {LIVE_WORD[p.live[0].state]} · {since(p.live[0].elapsedS)}
-                </span>
-              </div>
-            )}
-            <div className="at-hint-sm" style={{ marginTop: 3 }}>
-              {p.status}
-              {p.elapsedS ? ` · ${fmtShort(p.elapsedS)}` : ''}
-              {p.bounced ? <b style={{ color: '#A5321E' }}> · bounced {p.bounced} times</b> : null}
-              {` · ${p.touches} touch${p.touches === 1 ? '' : 'es'}`}
-              {p.costUsd ? ` · ${fmtUsd(p.costUsd)}` : ''}
-            </div>
-          </button>
-        ))}
-      </div>
-      <div style={{ padding: '16px 18px', flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {!ticketId ? (
-          <div className="at-hint">Pick a ticket to see its whole life.</div>
-        ) : !j ? (
+    <div data-testid="ticket-scope">
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {!j ? (
           <div className="at-hint">{q.isError ? "Couldn't load this ticket." : 'Loading the journey…'}</div>
-        ) : j.empty ? (
-          <div className="at-hint">No AI has worked on {j.ticket.id} yet.</div>
         ) : (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <TicketChip id={j.ticket.id} onOpen={actions.onOpenTicket} />
-              <b style={{ fontSize: 15, flex: 1 }}>{j.ticket.title}</b>
-              <button
-                type="button"
-                className="tl-btn"
-                onClick={() => onSeeSequence(j.ticket.id)}
-                data-testid="see-as-sequence"
-              >
-                See as sequence
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', gap: 7, alignItems: 'center', minWidth: 0 }}>
+                <FsIcon d={FS_ICON.ticket} size={16} color="#2F6FB0" width={2} />
+                <b style={{ fontSize: 15 }}>{j.ticket.title}</b>
+                <TicketChip id={j.ticket.id} onOpen={actions.onOpenTicket} />
+              </span>
+              <span style={{ flex: 1 }} />
+              {j.story && (
+                <button
+                  type="button"
+                  className="fs-chip"
+                  style={{
+                    background: '#E6ECF5',
+                    color: '#1B3A6B',
+                    border: 'none',
+                    cursor: 'pointer',
+                    font: 'inherit',
+                  }}
+                  onClick={() => onOpenStory(j.story!.id)}
+                  title={`The Story ${j.story.id}`}
+                  data-testid="ticket-story-chip"
+                >
+                  <FsIcon d={FS_ICON.story} size={11} color="#1B3A6B" width={2.2} />
+                  <span className="fs-code" style={{ fontSize: 10.5 }}>
+                    {j.story.id}
+                  </span>
+                  <span style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>
+                    {j.story.title}
+                  </span>
+                </button>
+              )}
+              {wf && (
+                <span className="fs-chip" style={{ background: '#F1F5F2', color: '#3A4A3E' }}>
+                  {wf.templateName}
+                </span>
+              )}
+              {wf?.reviewDepth && (
+                <span className="fs-chip" style={{ background: '#F1F5F2', color: '#3A4A3E' }}>
+                  {wf.reviewDepth[0].toUpperCase() + wf.reviewDepth.slice(1)} review
+                </span>
+              )}
               <span className="at-hint">
                 {j.start
                   ? new Date(j.start).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
@@ -1078,6 +1149,8 @@ function OneTicket({
                 {j.touches?.[0]?.mark === 'start' ? ` · started by ${j.touches[0].who}` : ''}
               </span>
             </div>
+            {wf && wf.steps.length > 0 && <WorkflowStrip view={wf} />}
+            {j.empty && <div className="at-hint">No AI has worked on {j.ticket.id} yet.</div>}
             <div className={`at-now${j.live?.length ? '' : ' idle'}`} data-testid="journey-now">
               <b>Now</b>
               {j.live?.length ? (
@@ -1151,7 +1224,7 @@ function OneTicket({
               </div>
             )}
             {j.parent && <ParentView parent={j.parent} onOpen={(id) => setTicketId(id)} />}
-            {!j.parent || (j.bars ?? []).length > 0 ? (
+            {!j.empty && (!j.parent || (j.bars ?? []).length > 0) ? (
               <Swimlanes j={j} selected={selected} onSelect={setSelected} />
             ) : null}
             <div className="at-hint" style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
@@ -1175,7 +1248,7 @@ function OneTicket({
                 </div>
                 {sel.summary && <div style={{ fontSize: 12.5 }}>{sel.summary}</div>}
                 <div className="at-actions" style={{ marginTop: 8 }}>
-                  <button type="button" className="st-btn st-btn-sm" onClick={() => actions.onOpenTicket(j.ticket.id)}>
+                  <button type="button" className="st-btn st-btn-sm" onClick={() => openRun(sel.runId)}>
                     Open the full run
                   </button>
                 </div>
@@ -1240,6 +1313,12 @@ function OneTicket({
                 <DeliverablePanel key={p.id} page={p} actions={actions} />
               ))}
             </div>
+            {!j.empty && (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <EvidenceCard view={wf} />
+                <CostCard usd={st?.costUsd ?? 0} tokens={tokens} runs={st?.runs ?? (j.bars ?? []).length} />
+              </div>
+            )}
             {(j.children ?? []).length > 0 && !j.parent && (
               <div>
                 <div className="at-label" style={{ marginBottom: 4 }}>
@@ -1264,102 +1343,228 @@ function OneTicket({
   );
 }
 
-/** Flow: how work moves between the AIs, as a map for the team and a journey for one ticket. */
+const RANGE_WORDS: Record<TeamRange, string> = { today: 'today', '7d': 'the last 7 days', '30d': 'the last 30 days' };
+
+/** What the line beside Team map / Timeline says at each level (design G). */
+export function scopeHint(
+  level: 'project' | 'story' | 'ticket',
+  view: FlowView,
+  range: TeamRange | null,
+  map: ScopedFlowMap | undefined,
+): string {
+  const when = range ? RANGE_WORDS[range] : null;
+  if (level === 'ticket')
+    return view === 'map'
+      ? 'the steps of this ticket’s workflow, the AI at each, and what came back'
+      : 'One ticket, from the first assignment to done';
+  if (level === 'story') {
+    const n = map?.tickets ?? 0;
+    return view === 'map'
+      ? `${n} ticket${n === 1 ? '' : 's'} in this Story · the PM is the hub, the arrow is an assignment`
+      : `rows are the Story’s tickets, the PM first · ${when ? when : 'the whole life of the Story'}`;
+  }
+  if (view === 'timeline') return 'every AI is a lifeline, time runs down · the range is set on the Timeline';
+  const n = map?.tickets ?? 0;
+  const k = (map?.clusters ?? []).filter((c) => c.storyId).length;
+  return `${n} ticket${n === 1 ? '' : 's'} with AI work in ${when ?? 'the range'}${k ? `, in ${k} Stor${k === 1 ? 'y' : 'ies'}` : ''} · the number on an arrow is how many hand-offs`;
+}
+
+/**
+ * Flow (design/screens/ai-story-flow.md, G to K): how work moves between the AIs, for the whole project, one Story or
+ * one ticket. The scope bar on top says which; Team map and Timeline draw it; Live commentary follows it.
+ */
 export function FlowTab({
   projectId,
+  projectName = 'Project',
   range,
-  focusTicket,
+  scope,
+  view,
+  onScope,
+  onView,
   actions,
   timelineLink = null,
 }: {
   projectId: string;
-  range: TeamRange;
-  focusTicket: string | null;
+  projectName?: string;
+  /** The picked range; null is the whole life of the Story or the ticket. */
+  range: TeamRange | null;
+  scope: FlowScope;
+  view: FlowView;
+  onScope: (s: FlowScope) => void;
+  onView: (v: FlowView) => void;
   actions: FlowActions;
   /** Open on the Timeline with this state (a link, or "Open in Timeline" on a ticket). */
   timelineLink?: TimelineLink | null;
 }) {
-  const [view, setView] = useState<'map' | 'timeline' | 'ticket'>(
-    timelineLink ? 'timeline' : focusTicket ? 'ticket' : 'map',
-  );
-  const [ticketId, setTicketId] = useState<string | null>(focusTicket);
-  const [scopeTicket, setScopeTicket] = useState<string | null>(timelineLink?.scope ?? null);
-  const q = useTeamFlow(projectId, range);
-  const map = q.data;
-  if (!map && view !== 'timeline')
-    return <div className="at-hint">{q.isError ? "Couldn't load the flow." : 'Drawing the team map…'}</div>;
-  return (
-    <LiveFeedSplit show={view !== 'ticket'} projectId={projectId} onOpenTicket={actions.onOpenTicket}>
-      <div className="at-seg" style={{ marginLeft: 0, alignSelf: 'flex-start' }} role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === 'map'}
-          className={view === 'map' ? 'on' : ''}
-          onClick={() => setView('map')}
-        >
-          Team map
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === 'timeline'}
-          className={view === 'timeline' ? 'on' : ''}
-          onClick={() => setView('timeline')}
-          data-testid="flow-timeline-tab"
-        >
-          Timeline
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === 'ticket'}
-          className={view === 'ticket' ? 'on' : ''}
-          onClick={() => {
-            setView('ticket');
-            if (!ticketId && map?.picker[0]) setTicketId(map.picker[0].id);
-          }}
-        >
-          One ticket
-        </button>
-      </div>
-      {view === 'timeline' ? (
-        <TimelineTab
-          key={scopeTicket ?? 'team'}
+  const level = scopeLevel(scope);
+  const [pickerWanted, setPickerWanted] = useState(false);
+  const [share, setShare] = useState<FlowCluster | null>(null);
+  const [hoverTicket, setHoverTicket] = useState<string | null>(null);
+  const [lit, setLit] = useState<LitMark | null>(null);
+  const stories = useFlowStories(projectId).data ?? [];
+  const projQ = useTeamFlow(projectId, range ?? '7d', {}, { enabled: level === 'project' || pickerWanted });
+  const storyQ = useTeamFlow(projectId, range, { story: scope.story }, { enabled: level === 'story' });
+  const journeyQ = useTicketJourney(projectId, scope.ticket);
+  const detail = useFlowStory(level === 'story' ? scope.story : null).data;
+  const journey = journeyQ.data;
+  const map = level === 'project' ? projQ.data : level === 'story' ? storyQ.data : undefined;
+  const mapQ = level === 'project' ? projQ : storyQ;
+  const storyRow = stories.find((x) => x.id === scope.story) ?? null;
+  const storyTitle =
+    storyRow?.title ?? storyQ.data?.scope?.story?.title ?? journey?.story?.title ?? detail?.title ?? null;
+  const storyOf = storyOfTickets(stories);
+  const tickets = pickTickets(projQ.data, storyOf);
+  const ticketTitle = journey?.ticket.title ?? tickets.find((t) => t.id === scope.ticket)?.title ?? null;
+
+  // a ticket picked without its Story (a link, the Right now strip): its crumb names the Story once it is known
+  const knownStory = journey?.story?.id ?? null;
+  useEffect(() => {
+    if (scope.ticket && !scope.story && knownStory) onScope({ story: knownStory, ticket: scope.ticket });
+  }, [scope.ticket, scope.story, knownStory, onScope]);
+
+  const toTicket = (id: string) =>
+    onScope({ story: (id === scope.ticket ? scope.story : null) ?? storyOf.get(id)?.id ?? scope.story, ticket: id });
+  const toStory = (id: string) => onScope({ story: id, ticket: null });
+  const openStoryPage = (id: string) => (actions.onOpenStory ?? actions.onOpenTicket)(id);
+  const hovered: FlowScope | null = share?.storyId
+    ? { story: share.storyId, ticket: null }
+    : hoverTicket
+      ? { story: scope.story, ticket: hoverTicket }
+      : null;
+
+  const liveRuns = (level === 'ticket' ? journey?.live : map?.live) ?? [];
+  const waitsFor =
+    level === 'ticket' && scope.ticket
+      ? (storyRow?.plan?.items.find((i) => i.ticketId === scope.ticket)?.after ?? [])
+      : [];
+  const feedScope =
+    level === 'ticket'
+      ? { kind: 'ticket' as const, id: scope.ticket!, title: ticketTitle }
+      : level === 'story'
+        ? { kind: 'story' as const, id: scope.story!, title: storyTitle }
+        : null;
+
+  const link = buildFlowLink(projectId, { story: scope.story, ticket: scope.ticket, view });
+  const pmId = map && level === 'story' ? pmOf(map, storyRow) : null;
+
+  let body: ReactNode;
+  if (view === 'timeline') {
+    body =
+      level === 'story' ? (
+        <StoryTimeline
           projectId={projectId}
-          scopeTicketId={scopeTicket}
-          initial={scopeTicket === (timelineLink?.scope ?? null) ? timelineLink : null}
+          storyId={scope.story!}
+          story={storyRow}
+          range={range}
+          lit={lit}
+          onHover={setLit}
+          onOpenTicket={toTicket}
+          onOpenRun={openRun}
+        />
+      ) : (
+        <TimelineTab
+          key={scope.ticket ?? 'team'}
+          projectId={projectId}
+          scopeTicketId={scope.ticket}
+          scopeBar
+          initial={(scope.ticket ?? null) === (timelineLink?.scope ?? null) ? timelineLink : null}
           actions={{
             onOpenTicket: actions.onOpenTicket,
             onOpenDocsPage: actions.onOpenDocsPage,
-            onSeeMap: () => setView('map'),
+            onSeeMap: () => onView('map'),
             onOpenStory: (id) => {
-              setTicketId(id);
-              setView('ticket');
+              toTicket(id);
+              onView('map');
             },
           }}
         />
-      ) : view === 'map' && map ? (
-        <MapView
+      );
+  } else if (level === 'ticket') {
+    body = (
+      <TicketScope
+        key={scope.ticket!}
+        projectId={projectId}
+        ticketId={scope.ticket!}
+        setTicketId={toTicket}
+        onOpenStory={toStory}
+        actions={actions}
+      />
+    );
+  } else if (!map) {
+    body = <div className="at-hint">{mapQ.isError ? "Couldn't load the flow." : 'Drawing the team map…'}</div>;
+  } else if (level === 'story') {
+    body = (
+      <>
+        <StoryMap
           map={map}
-          onPick={(id) => {
-            setTicketId(id);
-            setView('ticket');
-          }}
+          pmId={pmId}
+          story={storyRow}
+          decisions={detail?.decisions}
+          lit={lit}
+          onOpenTicket={toTicket}
+          onHoverTicket={setHoverTicket}
+          onHoverNode={(id) => setLit(id ? { memberId: id, ticketId: null } : null)}
         />
-      ) : map ? (
-        <OneTicket
-          projectId={projectId}
-          map={map}
-          ticketId={ticketId}
-          setTicketId={setTicketId}
-          actions={actions}
-          onSeeSequence={(id) => {
-            setScopeTicket(id);
-            setView('timeline');
-          }}
-        />
-      ) : null}
+        <StoryStats map={map} decisions={detail?.decisions} />
+        <div className="fs-legend">{STORY_LEGEND}</div>
+      </>
+    );
+  } else {
+    body = (
+      <MapView
+        map={map}
+        onPick={toTicket}
+        stories={stories}
+        share={share}
+        onShare={setShare}
+        onOpenStory={toStory}
+        lit={lit?.memberId ?? null}
+        onHoverNode={(id) => setLit(id ? { memberId: id, ticketId: null } : null)}
+      />
+    );
+  }
+
+  return (
+    <LiveFeedSplit
+      show
+      projectId={projectId}
+      onOpenTicket={actions.onOpenTicket}
+      feed={{
+        scope: { story: scope.story, ticket: scope.ticket },
+        scopeLabel: feedScope,
+        liveRuns,
+        lit,
+        onHoverLine: setLit,
+        onOpenRun: openRun,
+        onOpenDocsPage: actions.onOpenDocsPage,
+        onShowStory: level === 'ticket' && scope.story ? () => toStory(scope.story!) : undefined,
+        waitsFor,
+      }}
+    >
+      <ScopeBar
+        projectName={projectName}
+        scope={scope}
+        storyTitle={storyTitle}
+        ticketTitle={ticketTitle}
+        view={view}
+        onView={onView}
+        onScope={onScope}
+        hint={scopeHint(level, view, range, map)}
+        extra={
+          level === 'story' ? (
+            <button type="button" className="st-btn st-btn-sm" onClick={() => openStoryPage(scope.story!)}>
+              <FsIcon d={FS_ICON.story} />
+              Open the Story page
+            </button>
+          ) : null
+        }
+        stories={stories}
+        tickets={tickets}
+        onPickerOpen={() => setPickerWanted(true)}
+        link={link}
+        hovered={hovered}
+      />
+      {body}
     </LiveFeedSplit>
   );
 }
