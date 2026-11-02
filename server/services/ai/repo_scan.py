@@ -442,7 +442,10 @@ CHECKS = ("test", "lint", "build")
 _WRONG = re.compile(
     r"command not found|: not found|Missing script|is not recognized as an internal|Unknown command|"
     r"no such command|unrecognized subcommand|Failed to spawn|Couldn't find a script|Unknown script|"
-    r"No such file or directory: '?[\w./-]*'?$|error: unknown option",
+    r"No such file or directory: '?[\w./-]*'?$|error: unknown option|"
+    # the package manager found no package.json where it ran (npm exits 254): the command is not for this folder
+    r"Could not read package\.json|Couldn't find a package\.json file|ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND|"
+    r"No package\.json \(or package\.yaml, or package\.json5\) was found",
     re.I | re.M,
 )
 

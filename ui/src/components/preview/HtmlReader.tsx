@@ -13,7 +13,8 @@ const WIDTHS: Record<Width, string> = { desktop: '100%', tablet: '768px', phone:
 /**
  * HTML reader: the real page in an open frame, or the source.
  * The page is shown as written, like the file opened in a browser tab: scripts, forms, pop-ups, CDN links and fonts
- * all work. The server keeps serving HTML as plain text; the app reads that text and puts it in the frame.
+ * all work, in a sandboxed frame with its own origin (it cannot reach the app's storage or API). The server keeps
+ * serving HTML as plain text; the app reads that text and puts it in the frame.
  */
 export function HtmlReader({ item, onFacts, actions }: ReaderProps) {
   const [state, retry] = useFileData(item.src, HTML_LIMIT);
@@ -39,7 +40,7 @@ export function HtmlReader({ item, onFacts, actions }: ReaderProps) {
                 Source
               </button>
             </div>
-            <span className={styles.safeBadge} title="Runs like the file opened in a browser">
+            <span className={styles.safeBadge} title="Runs like the file opened in a browser, kept apart from the app">
               Live page
             </span>
             <span className={styles.readerBarSpacer} />
@@ -72,6 +73,10 @@ export function HtmlReader({ item, onFacts, actions }: ReaderProps) {
                 className={styles.htmlFrame}
                 style={{ width: WIDTHS[width] }}
                 srcDoc={source}
+                // Scripts, forms and pop-ups still run, but in a separate origin: without allow-same-origin the
+                // page cannot read the app's storage or call its API as the viewer (an uploaded file is not trusted)
+                sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads"
+                referrerPolicy="no-referrer"
               />
             </div>
           ) : (

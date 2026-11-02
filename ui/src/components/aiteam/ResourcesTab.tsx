@@ -73,9 +73,13 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
   // is within reach of the lines, and written under the chart when it is far above them
   const fitMb = Math.max(peak * 1.3, 512);
   const limitInView = limit > 0 && limit <= fitMb * 2.5;
-  const maxMb = limitInView ? Math.max(fitMb, limit) : fitMb;
+  const wantMb = limitInView ? Math.max(fitMb, limit) : fitMb;
+  // Round the axis up to four even steps, so every label is a round number (it read 0.0, 0.1, 0.3, 0.4, 0.5 GB)
+  const step =
+    [64, 128, 256, 512, 1024, 2048, 4096, 8192].find((s) => s * 4 >= wantMb) ?? Math.ceil(wantMb / 4096) * 1024;
+  const maxMb = step * 4;
   const live = snap.runs.filter((r) => r.live);
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * maxMb);
+  const ticks = [0, 1, 2, 3, 4].map((i) => i * step);
   return (
     <div className="rs-box">
       <div className="rs-boxhead">
@@ -101,7 +105,7 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
             <g key={t}>
               <line x1="52" x2={W + 56} y1={y + 4} y2={y + 4} stroke="#EEF3EF" />
               <text x="46" y={y + 8} textAnchor="end" fontSize="11" fill="#8A998F">
-                {t === 0 ? '0.0 GB' : `${(t / 1024).toFixed(1)} GB`}
+                {t === 0 ? '0' : maxMb < 2048 ? `${t} MB` : `${Number((t / 1024).toFixed(1))} GB`}
               </text>
             </g>
           );

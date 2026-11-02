@@ -313,6 +313,32 @@ def rename_branch(repo: Repo, old: str, new: str) -> None:
         ) from exc
 
 
+def default_base_branch(repo: Repo) -> str | None:
+    """The branch new work starts from: main, else master, else the checked-out branch, else the first local one.
+
+    Args:
+        repo: Repository to look in.
+    """
+    for name in ("main", "master"):
+        if branch_exists(repo, name):
+            return name
+    return current_branch(repo) or (repo.heads[0].name if repo.heads else None)
+
+
+def resolve_base(repo: Repo, base: str | None) -> str:
+    """`base` when the repository has it, else its default base: "main" asked of a repo whose default is master works.
+
+    Args:
+        repo: Repository to look in.
+        base: Branch or ref asked for; empty means the default.
+    """
+    if base and base != "main":
+        return base
+    if base and branch_exists(repo, base):
+        return base
+    return default_base_branch(repo) or base or "main"
+
+
 def current_branch(repo: Repo) -> str | None:
     """Name of the checked-out branch in the main working tree (None if detached)."""
     try:

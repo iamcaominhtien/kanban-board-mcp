@@ -83,7 +83,8 @@ const THREAD_COLLAPSE_OVER = 6;
 const TAIL = 4;
 
 const STYLE = `
-.cm-row:hover .cm-bar, .cm-row:focus-within .cm-bar { opacity: 1; }
+.cm-bar { opacity: 0; transition: opacity .12s; }
+.cm-row:hover .cm-bar, .cm-row:focus-within .cm-bar, .cm-bar.cm-bar-on { opacity: 1; }
 .cm-time { border-bottom: 1px dotted #9AA8A0; cursor: default; position: relative; }
 .cm-time .cm-tt { display: none; position: absolute; left: 0; bottom: calc(100% + 6px); background: #1E2A22; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 20; box-shadow: 0 4px 14px rgba(30,42,34,.28); }
 .cm-time:hover .cm-tt { display: block; }
@@ -693,13 +694,11 @@ export function CommentsSection({
           )}
         </div>
         <div
-          className="cm-bar"
+          className={`cm-bar${confirmId === c.id ? ' cm-bar-on' : ''}`}
           style={{
             position: 'absolute',
             right: 8,
             top: -14,
-            opacity: confirmId === c.id ? 1 : 0,
-            transition: 'opacity .12s',
             display: 'flex',
             gap: 2,
             background: '#FFFFFF',

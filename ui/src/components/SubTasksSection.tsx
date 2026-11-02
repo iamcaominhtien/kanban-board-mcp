@@ -121,7 +121,10 @@ export function SubTasksSection({ subTasks, onAdd, onToggle, onDelete }: SubTask
               onChange={(e) => setNewText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSave();
-                if (e.key === 'Escape') handleCancel();
+                if (e.key === 'Escape') {
+                  e.preventDefault(); // used here: the ticket stays open
+                  handleCancel();
+                }
               }}
             />
             <button type="button" className={styles.actionBtnCancel} onClick={handleCancel} aria-label="Cancel">

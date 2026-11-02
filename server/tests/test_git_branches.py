@@ -672,3 +672,69 @@ async def test_commit_detail_requires_linked_repo(client: httpx.AsyncClient):
         ).json()
         t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
         assert (await c.get(f"/tickets/{t['id']}/commits/abcdef1")).status_code == 400
+
+
+@pytest.fixture
+def master_repo_dir(tmp_path):
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-b", "master")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "Tester")
+    (tmp_path / "a.txt").write_text("a")
+    git("add", ".")
+    git("commit", "-m", "init")
+    return tmp_path
+
+
+async def test_branch_from_main_starts_from_master_when_repo_has_no_main(
+    client: httpx.AsyncClient, master_repo_dir
+):
+    async with client as c:
+        p = await _project_with_repo(c, master_repo_dir)
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+        base = await c.get(f"/tickets/{t['id']}/branches/base")
+        assert base.status_code == 200 and base.json() == {"base": "master"}
+
+        # The form's old default ("main") and no base at all both start from master
+        r = await c.post(
+            f"/tickets/{t['id']}/branches",
+            json={"name": "feature/x", "branch_from": "main"},
+        )
+        assert r.status_code == 201, r.text
+        assert r.json()["branches"][0]["branch_from"] == "master"
+        r = await c.post(f"/tickets/{t['id']}/branches", json={"name": "feature/y"})
+        assert r.status_code == 201, r.text
+
+        # A base that really does not exist is still refused
+        assert (
+            await c.post(
+                f"/tickets/{t['id']}/branches",
+                json={"name": "z", "branch_from": "nope"},
+            )
+        ).status_code == 400
+
+        listed = (await c.get(f"/tickets/{t['id']}/branches")).json()
+        assert {b["name"] for b in listed} == {"feature/x", "feature/y"}
+
+
+async def test_default_base_without_repo_and_for_missing_ticket(
+    client: httpx.AsyncClient,
+):
+    async with client as c:
+        p = (
+            await c.post(
+                "/projects", json={"name": "G", "prefix": "GIT", "color": "#123456"}
+            )
+        ).json()
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+        assert (await c.get(f"/tickets/{t['id']}/branches/base")).json() == {"base": None}
+        assert (await c.get("/tickets/NOPE-1/branches/base")).status_code == 404
+
+
+async def test_default_base_prefers_main(client: httpx.AsyncClient, repo_dir):
+    async with client as c:
+        p = await _project_with_repo(c, repo_dir)
+        t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
+        assert (await c.get(f"/tickets/{t['id']}/branches/base")).json() == {"base": "main"}

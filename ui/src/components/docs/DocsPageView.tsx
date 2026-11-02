@@ -298,10 +298,27 @@ export function DocsPageView({
               <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
+              {/* When the page actions do not fit beside the breadcrumb they move to their own row: the breadcrumb
+                  keeps at least 240 px instead of shrinking to nothing, and no action is cut off */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <nav
                   aria-label="Breadcrumb"
-                  style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1, overflow: 'hidden' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    minWidth: 0,
+                    flex: '1 1 240px',
+                    overflow: 'hidden',
+                  }}
                 >
                   <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />
                   <span style={crumb}>{projectName}</span>
@@ -388,6 +405,10 @@ export function DocsPageView({
                     alignItems: 'center',
                     gap: 8,
                     flexShrink: 0,
+                    flexWrap: 'wrap',
+                    justifyContent: 'flex-end',
+                    marginLeft: 'auto',
+                    maxWidth: '100%',
                   }}
                 >
                   {!offline && (

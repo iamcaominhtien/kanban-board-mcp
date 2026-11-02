@@ -235,7 +235,7 @@ export function AssistDock() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgCount, lastLen]);
 
-  // The dock floats over the board instead of pushing it: the board reads this width to leave room to scroll past it
+  // The page reads this width and leaves it free (App.tsx), so the board and its header shrink beside the dock
   const dockOpen = !!ctx?.open;
   useEffect(() => {
     if (!dockOpen) return undefined;

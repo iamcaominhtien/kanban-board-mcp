@@ -2,7 +2,7 @@
 
 .as-dock {
   width: 420px; /* the default; the panel sets its own width (components/PanelResizer.tsx) */
-  /* Floats over the board on the right edge instead of pushing it; the board scrolls sideways to get past it */
+  /* Fixed on the right edge, above the ticket modal; the page leaves --as-dock-w free beside it (App.tsx) */
   position: fixed;
   top: 0;
   right: 0;

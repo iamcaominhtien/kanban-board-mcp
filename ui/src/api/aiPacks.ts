@@ -40,9 +40,12 @@ export const packsApi = {
     (await client.post<PackImportResult>(`/projects/${projectId}/ai/packs/import`, body)).data,
   makeMember: async (projectId: string, key: string, body: MakeMemberBody) =>
     (await client.post<AiMember>(`/projects/${projectId}/ai/packs/${key}/member`, body)).data,
-  /** Reads files only (no AI, no command is run); the commands come in step 3. */
+  /**
+   * Reads files only (no AI, no command is run); the commands come in step 3. `refine: false`: the server's default
+   * would ask a light model to refine the suggestion, a quota call the step says it does not make (ai-repo-commands).
+   */
   scan: async (projectId: string, folder: string) =>
-    (await client.post<Scan>(`/projects/${projectId}/ai/scan`, { folder, trial: false })).data,
+    (await client.post<Scan>(`/projects/${projectId}/ai/scan`, { folder, trial: false, refine: false })).data,
   /** The project's latest scan that was not applied, from the last 24 hours (null: none). */
   latestScan: async (projectId: string) =>
     (await client.get<Scan | null>(`/projects/${projectId}/ai/scans/latest`)).data ?? null,
