@@ -199,7 +199,7 @@ CATALOGUE: list[dict] = [
             "threejs-textures",
         ],
         "ui": True,
-        "roles": ["dev"],
+        "roles": ["designer", "dev"],
         "what": "Current three.js, React Three Fiber and drei APIs (with WebGPU), each skill with the mistakes models still make. MIT.",
     },
     {
@@ -208,7 +208,7 @@ CATALOGUE: list[dict] = [
         "kind": "plugin",
         "source": "https://github.com/iart-ai/webgl-animation-skills",
         "ui": True,
-        "roles": ["dev"],
+        "roles": ["designer", "dev"],
         "what": "Particle systems, GLSL backgrounds and image transitions, three.js hero scenes with a scroll-linked camera. MIT.",
     },
     {
@@ -216,7 +216,7 @@ CATALOGUE: list[dict] = [
         "name": "Shader art",
         "kind": "plugin",
         "source": "https://github.com/gokayfem/shader-skills",
-        "roles": [],
+        "roles": ["designer"],
         "what": "GLSL shaders in the Shadertoy style (raymarching, noise, terrain, water, clouds) from a tested function library, with a local checker. MIT.",
     },
     {

@@ -62,9 +62,10 @@ screen. Everything honours `prefers-reduced-motion` with an instant or a cross-f
 one stroke weight: simple geometric construction, a few shapes, no clip-art people or blobs. An SVG that moves uses
 CSS on its parts (`stroke-dashoffset` to draw a line, `transform` on groups) so it stays light and editable.
 
-**Show motion on a canvas.** A screenshot freezes it, so a motion section has two parts: the motion running (a short
-loop or a Play button), and the key frames side by side (start, middle, end) labelled with duration and easing, so a
-developer can build it without guessing.
+**Show motion on a canvas.** A screenshot freezes it, so a motion section has two parts: the motion running, and the
+key frames side by side (start, middle, end) labelled with duration and easing, so a developer can build it without
+guessing. The running demo loops by itself with a pause between plays (a demo that plays once on load has ended
+before anyone scrolls to it), and its replay button is a bonus, not the only way to see it.
 
 ## Explore, then build
 
