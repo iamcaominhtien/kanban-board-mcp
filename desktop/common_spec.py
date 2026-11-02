@@ -55,6 +55,9 @@ def get_base_analysis_args(entry_point, app_name):
         (os.path.join(_WORKSPACE_ROOT, 'server', 'alembic.ini'), '.'),
         # the design guide's exemplar boards, which the board's canvas-design skill carries (services/canvas_design.py)
         (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'design_examples'), os.path.join('services', 'design_examples')),
+        # the slides skill's guide.md, themes, scripts and examples, read when the shared skills are built at import
+        # (services/slides_skill); without them both programs exit on start
+        (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'slides_skill'), os.path.join('services', 'slides_skill')),
     ]
 
     hidden_imports = (

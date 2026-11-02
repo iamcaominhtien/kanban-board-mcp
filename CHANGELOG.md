@@ -8,6 +8,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.27.1] - 2026-11-03
+
+The desktop app opens again: 3.27.0 showed "Can't start the local server" on every start.
+
+### Fixed
+- **The installed app could not start its server.** The build left out the `slides` skill's folder (its guide, themes, scripts and examples), which the server reads while it starts, so both programs (`kanban-server` and `kanban-mcp-stdio`) exited with `FileNotFoundError: …/services/slides_skill/guide.md`. A checkout never showed it. The folder is now part of the bundle (`desktop/common_spec.py`).
+
+### Added
+- A test that every data file under `server/services/` is in the desktop bundle, at the path the code reads it from.
+- The Python build (`desktop/scripts/build-python.sh`, run by `build-desktop.sh` and the release workflow) starts the built `kanban-server` and fails unless it reports READY, so a bundle that cannot start is never packaged or released.
+
 ## [3.27.0] - 2026-11-02
 
 Canvas, draw.io and Sketch for any AI, on the board or outside it: which one fits, a guide for diagrams, and a way to see what it drew before handing it in (#267).
