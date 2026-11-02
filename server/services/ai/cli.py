@@ -39,21 +39,25 @@ _SEARCH_DIRS = [
 
 
 def find_cli(binary: str, explicit: str | None = None) -> tuple[str | None, list[str]]:
-    """Path of the CLI: the configured one, then PATH, then the usual install folders.
+    """Path of the CLI: the configured one, or, when none is configured, PATH and then the usual install folders.
+
+    A path the person configured is the only one tried: if it is refused or cannot run, there is no CLI (and
+    `missing` says why), never another `claude` found on PATH that would spend the wrong account's quota.
 
     Returns:
         (path or None, the places that were checked)
     """
     checked: list[str] = []
-    if explicit:
+    if explicit and explicit.strip():
         try:
             p = paths.program(explicit)
         except paths.PathRefused:
             checked.append(explicit)
-        else:
-            checked.append(p)
-            if os.path.isfile(p) and os.access(p, os.X_OK):
-                return p, checked
+            return None, checked
+        checked.append(p)
+        if os.path.isfile(p) and os.access(p, os.X_OK):
+            return p, checked
+        return None, checked
     checked.append("PATH")
     found = shutil.which(binary)
     if found:
@@ -71,6 +75,29 @@ def find_cli(binary: str, explicit: str | None = None) -> tuple[str | None, list
             if cand.is_file() and os.access(cand, os.X_OK):
                 return str(cand), checked
     return None, checked
+
+
+def missing(binary: str, explicit: str | None = None) -> str:
+    """Why there is no CLI, in a sentence: the configured path and what is wrong with it, or just that it was not
+    found (see `find_cli`: a configured path is never replaced by another program)."""
+    if not (explicit and explicit.strip()):
+        return f"“{binary}” was not found on this computer"
+    try:
+        p = paths.program(explicit)
+    except paths.PathRefused:
+        # a fixed sentence, not the exception's text: nothing but our own words goes back to the browser
+        why = "it is outside your home folder and the usual install folders"
+    else:
+        why = (
+            "it is not a file"
+            if not os.path.isfile(p)
+            else "it cannot be run (not executable)"
+        )
+    return (
+        f"The CLI set for this AI, {explicit.strip()}, cannot be used: {why}. "
+        f"The board does not run another {binary} instead. Fix the path in the AI's settings, or clear it to use the "
+        f"one on this computer"
+    )
 
 
 def _popen_kwargs() -> dict:
@@ -193,6 +220,8 @@ async def detect(
             status = json.loads(out)
         except ValueError:
             status = {}
+        if not isinstance(status, dict):
+            status = {}  # a program that answers `auth status` with something else is not a signed-in CLI
         if status:
             info["logged_in"] = bool(status.get("loggedIn"))
             account = (

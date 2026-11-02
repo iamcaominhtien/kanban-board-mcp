@@ -234,6 +234,16 @@ async def test_scheduled_run_passes_checks_and_moves_to_review(env, fake):
 
         rows = (await session.exec(select(AiScheduleRun))).all()
     assert len(rows) == 1
+    # E4: "run started by schedule" is a row in the notification centre, with Open run, and the end is another
+    from services import notifications as centre
+
+    await centre.flush_pending()
+    rows = (await c.get("/notifications?limit=20", headers=H)).json()["items"]
+    started = next(r for r in rows if r["kind"] == "schedule_started")
+    assert started["title"] == "KAN-1 run started by schedule"
+    assert [a["id"] for a in started["actions"]] == ["open_run_log"]
+    assert started["target_kind"] == "run" and started["ticket_id"] == tid
+    assert any(r["kind"] == "schedule" for r in rows)
 
 
 async def test_review_sends_it_back_once_then_passes(env, fake):
