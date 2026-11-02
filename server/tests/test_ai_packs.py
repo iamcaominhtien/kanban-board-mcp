@@ -73,9 +73,20 @@ def test_a_designer_and_a_user_tester_get_playwright():
     # in the catalogue for a person to add
     from services.ai import plugins
 
-    for key in ("taste-skill", "ui-foundations", "ui-ux-pro-max", "make-interfaces-feel-better", "frontend-design"):
+    for key in (
+        "taste-skill",
+        "ui-foundations",
+        "ui-ux-pro-max",
+        "make-interfaces-feel-better",
+        "frontend-design",
+    ):
         assert key not in designer["pack_plugins"], key
-    assert designer["pack_plugins"] == ["design", "emil-design-eng", "motion-design", "tufte-data-viz"]
+    assert designer["pack_plugins"] == [
+        "design",
+        "emil-design-eng",
+        "motion-design",
+        "tufte-data-viz",
+    ]
     assert next(e for e in plugins.CATALOGUE if e["key"] == "impeccable")["roles"] == []
     tester = _body("user_tester")["config"]
     assert [s["name"] for s in tester["mcp_servers"]] == ["playwright"]

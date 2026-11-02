@@ -668,7 +668,7 @@ def _instruction(
             "screen three ways that differ on a named axis, with the same real data, on a Directions page; screenshot "
             "them, judge them against craft.md's tells at thumbnail size, keep the strongest and say why in one line "
             "(ask with ai_run(ask) only when the ticket says a person picks). 3) Tokens in one stylesheet every board "
-            "links. 4) The canvas as a design document, one page tab each (`\"page\"` in frame.json): a Foundations "
+            'links. 4) The canvas as a design document, one page tab each (`"page"` in frame.json): a Foundations '
             "board first, every value named by its use (`Card title / 15 / 600 / lh 1.35`, `16 side gutter`), base "
             "components with their states; then the components; then a board per screen or area. Every board opens "
             "with a title and one sentence on what it is for, then lettered sections with headings; the states of a "
