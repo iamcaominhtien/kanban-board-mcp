@@ -56,6 +56,7 @@ from . import (
     guard,
     failures,
     ops,
+    project_env,
     quota,
     resources,
     run_config,
@@ -2419,6 +2420,8 @@ async def _execute_cli_held(
                     allowed.append(f"mcp__{server}")
             denied = list(config.get("deny_rules") or [])
         settings = await get_settings(session, run.project_id)
+        # the project's extra PATH folders (Homebrew, nvm…): a member's shell sees what the wizard's trial saw
+        extra_path = project_env.extra(settings)
         safe = settings.safe_mode or profile.safe_mode
         if agy:
             allowed, denied, edits = antigravity_run_rules(
@@ -2601,7 +2604,7 @@ async def _execute_cli_held(
         note=resume_note,
         started_at=run.started_at,
     )
-    env = cli.child_env(compact_at)
+    env = project_env.with_path(cli.child_env(compact_at), extra_path)
     if worktree is not None and worktree.port:
         env["PORT"] = str(
             worktree.port

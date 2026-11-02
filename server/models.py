@@ -1467,6 +1467,10 @@ class AiRepoScan(SQLModel, table=True):
     found: str = Field(default="{}")
     suggested: str = Field(default="{}")
     trial: str = Field(default="{}")
+    # The AI or the board trying the commands (design/screens/ai-repo-commands.md, C): state, steps, log
+    job: str = Field(default="{}")
+    # What the AI proposed: commands with where each came from, extra PATH folders, notes
+    proposal: str = Field(default="{}")
     applied_at: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)
 
