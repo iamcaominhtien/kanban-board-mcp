@@ -527,7 +527,9 @@ export function DiagramEditor({ request, onClose }: Props) {
         )}
 
         <div className={styles.frameWrap}>
-          {base && phase !== 'missing' && !noEditorAt && (
+          {/* only once the drawing is loaded (attempt > 0): mounted before, the editor loaded twice, the second time
+              when the key changed, and the page stood still meanwhile */}
+          {base && attempt > 0 && phase !== 'missing' && !noEditorAt && (
             <iframe
               key={attempt}
               ref={frame}

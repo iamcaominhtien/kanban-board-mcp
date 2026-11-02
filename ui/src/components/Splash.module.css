@@ -177,3 +177,11 @@
   font-size: 11.5px;
   color: #5b6b60;
 }
+
+/* Local copy of index.css's keyframes: in a CSS module `spin` names a keyframes rule of this module, so without it
+   the animation pointed at nothing and stood still */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
