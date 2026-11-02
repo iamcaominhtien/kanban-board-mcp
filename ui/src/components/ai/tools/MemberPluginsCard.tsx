@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAiMember } from '../../../api/ai';
+import { useAiMember, useBasePrompt } from '../../../api/ai';
 import { aiPluginsApi, useCatalogue, usePluginMutation, usePlugins } from '../../../api/aiPlugins';
 import { extractError } from '../../../api/extractError';
 import { Toggle } from '../aiUi';
@@ -17,6 +17,7 @@ export function MemberPluginsCard({ memberId, projectId }: { memberId: string; p
   const member = useAiMember(memberId);
   const plugins = usePlugins(projectId);
   const catalogue = useCatalogue();
+  const base = useBasePrompt(memberId);
   const [error, setError] = useState<string | null>(null);
   const setM = usePluginMutation(projectId, (a: { id: string; on: boolean | null }) =>
     aiPluginsApi.setMember(a.id, memberId, a.on),
@@ -41,7 +42,18 @@ export function MemberPluginsCard({ memberId, projectId }: { memberId: string; p
       data-project={projectId}
       style={{ padding: 14, display: 'grid', gap: 8 }}
     >
-      <b style={{ fontSize: 13.5 }}>Skills and plugins</b>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+        <b style={{ fontSize: 13.5, flex: 1 }}>Skills and plugins</b>
+        {typeof base.data?.tokens === 'number' && (
+          <span
+            className="ai-hint"
+            data-testid="base-prompt"
+            title="What every run of this member carries before the ticket: the board's rules, the project's instructions and lessons, its own instructions and persona, and the skills its plugins list."
+          >
+            base prompt {base.data.tokens.toLocaleString('en-US')} tokens
+          </span>
+        )}
+      </div>
       {children}
     </div>
   );

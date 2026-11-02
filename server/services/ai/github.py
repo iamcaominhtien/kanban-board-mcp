@@ -381,6 +381,8 @@ async def back_to_dev(finding: dict) -> str | None:
         if row is None:
             return None
         red = loads(row.red, {}) or {}
+        if red.get("handled_at"):
+            return None  # already with the Dev (by itself, or a standing order got there first)
         check = {"name": red.get("check"), "detailsUrl": red.get("url")}
     log = await failure_log(row, check)
     async with database.async_session() as session:
@@ -466,6 +468,45 @@ def to_dict(row: AiWatchedPr) -> dict:
     }
 
 
+AUTO_PER_DAY = 3  # runs the board starts by itself on one pull request in a day (red CI and review comments)
+
+
+async def _act(project_id: str, changes: list[dict]) -> None:
+    """D21 with `github.auto`: red CI the change caused and review comments go to the ticket's Dev by themselves; red
+    CI that is red on the base too is not the change's, and waits for a person."""
+    if not changes:
+        return
+    async with database.async_session() as session:
+        cfg = ops.get(await get_settings(session, project_id)).get("github") or {}
+    if not cfg.get("auto", True):
+        return
+    for change in changes:
+        async with database.async_session() as session:
+            since = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+            tries = (
+                await session.exec(
+                    select(AiRun).where(
+                        AiRun.ticket_id == change["ticket_id"],
+                        col(AiRun.trigger).in_(["ci_red", "review_comments"]),
+                        col(AiRun.queued_at) >= since,
+                    )
+                )
+            ).all()
+        if len(tries) >= AUTO_PER_DAY:
+            continue  # the Dev went round this pull request enough today: the signal waits for a person
+        try:
+            if change["kind"] == "review_comments":
+                await comments_to_dev(change["ticket_id"])
+            elif change["kind"] == "ci_red" and change.get("blamed"):
+                await back_to_dev(change)
+        except Exception:  # noqa: BLE001 - one pull request never stops the others
+            logger.exception(
+                "Could not hand %s on %s to its Dev",
+                change["kind"],
+                change["ticket_id"],
+            )
+
+
 _LOOP: dict = {"task": None}
 
 
@@ -484,7 +525,7 @@ async def _loop() -> None:
                     ).all()
                 }
             for pid in projects:
-                await tick_project(pid)
+                await _act(pid, await tick_project(pid))
         except asyncio.CancelledError:
             raise
         except Exception:  # noqa: BLE001

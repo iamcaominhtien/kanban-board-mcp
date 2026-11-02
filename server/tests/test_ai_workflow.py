@@ -252,7 +252,10 @@ async def test_the_design_waits_for_the_person_who_approves_it(env, monkeypatch)
     r = await c.post(f"/tickets/{tid}/ai/workflow/decide", json={"approve": True})
     assert r.status_code == 200, r.text
     view = await _until(c, tid, _at_done)
-    assert [s["key"] for s in view["steps"] if s["state"] == "done"] == [
+    # the User tester went round once more for its evidence (the fake CLI shows none): each step once here
+    assert list(
+        dict.fromkeys(s["key"] for s in view["steps"] if s["state"] == "done")
+    ) == [
         "triage",
         "shape",
         "design",
@@ -304,12 +307,16 @@ async def test_templates_are_versioned_and_warn_past_two_stops(env):
         "quick_fix",
         "standard",
         "feature_ui",
+        "docs",
+        "chore",
         "research",
     ]
     assert {t["key"]: len(t["steps"]) for t in listed} == {
         "quick_fix": 5,
         "standard": 7,
         "feature_ui": 9,
+        "docs": 4,
+        "chore": 5,
         "research": 4,
     }
     body = {

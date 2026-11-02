@@ -20,7 +20,9 @@ export type NotificationKind =
   | 'run_cancelled'
   | 'budget_warning'
   | 'access_request'
-  | 'day_card';
+  | 'day_card'
+  /** A workflow step cannot start, or a ticket reached its token cap (target: the flag; `data.flag` says which). */
+  | 'workflow_blocked';
 
 /** One event inside a grouped row. */
 export interface NotificationItem {

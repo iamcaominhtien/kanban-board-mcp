@@ -136,6 +136,8 @@ describe('MemberPluginsCard', () => {
           ? Promise.reject({ response: { data: { detail: 'plugins down' } } })
           : Promise.resolve({ data: opts.plugins ?? [] });
       if (url === '/ai/catalogue') return Promise.resolve({ data: opts.catalogue ?? [] });
+      if (url.endsWith('/base-prompt'))
+        return Promise.resolve({ data: { memberId: 'm1', tokens: 3140, parts: {}, skills: [] } });
       if (url.startsWith('/ai/members/'))
         return Promise.resolve({ data: { id: 'm1', kind: 'ai', config: opts.cfg ?? { role: 'designer' } } });
       return Promise.reject(new Error(`unexpected GET ${url}`));
@@ -157,6 +159,12 @@ describe('MemberPluginsCard', () => {
     expect(screen.getByLabelText('Loading')).toBeTruthy();
     expect(await screen.findByText('No plugin is installed on this project.')).toBeTruthy();
     expect(await screen.findByText('Role: Designer.')).toBeTruthy();
+  });
+
+  it('shows the size of the base prompt next to the title', async () => {
+    setup();
+    renderIt();
+    expect((await screen.findByTestId('base-prompt')).textContent).toBe('base prompt 3,140 tokens');
   });
 
   it('says so when the member has no role pack', async () => {

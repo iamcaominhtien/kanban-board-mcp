@@ -80,6 +80,9 @@ export function stepStateLabel(
   const person = s.kind === 'person';
   switch (s.state) {
     case 'done':
+      // a Dev step with no test-first evidence is not plain done (design I)
+      if (s.outcome === 'unproven') return { text: 'not proven', tone: 'bad' };
+      if (s.outcome === 'accepted') return { text: 'accepted without proof', tone: 'done' };
       return { text: 'done', tone: 'done' };
     case 'active':
       return { text: 'working', tone: 'active' };
@@ -122,6 +125,28 @@ export const STOP_TEXT: Record<string, { title: string; chip: string; goes: stri
     chip: 'Straight to you',
     goes: 'The cap you turned on for this ticket was reached. It is a row in Needs you.',
     tone: 'red',
+  },
+  split: {
+    title: 'Split into pieces',
+    chip: 'Waiting for the pieces',
+    goes: 'The PM split it into smaller tickets. This one is done when they all are.',
+    tone: 'violet',
+  },
+};
+
+/** Why a step could not start (the `step_blocked` flag's `why`), and what the board does about it. */
+export const BLOCK_TEXT: Record<string, { title: string; goes: string }> = {
+  run: {
+    title: 'Its run was refused.',
+    goes: 'The board tries again by itself; skip the step to go on without it.',
+  },
+  no_folder: {
+    title: 'The Checks have no folder to run in.',
+    goes: 'The ticket has no worktree and no AI that worked on it has a working folder. The board tries again by itself once there is one.',
+  },
+  failed: {
+    title: 'The PM could not get this step through and passed it to you.',
+    goes: 'Send it back, skip it or take it over; the board does nothing more by itself.',
   },
 };
 

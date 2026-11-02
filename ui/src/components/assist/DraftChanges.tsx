@@ -4,7 +4,7 @@ import { extractError } from '../../api/extractError';
 import type { AssistDraft, DraftChange } from '../../types/assist';
 import { hhmm } from '../ai/aiUi';
 import { AppliedAs, DraftTag, STATUS_LABEL, TicketPill, currentPerson } from './assistUi';
-import { AsksFirst, DoneReceipt } from './DoneReceipt';
+import { AsksFirst, DoneReceipt, proposedWords } from './DoneReceipt';
 
 const FIELD_LABEL: Record<string, string> = {
   status: 'Status',
@@ -292,7 +292,7 @@ export function DraftChanges({
                   ) : (
                     <div className="as-diff-add">
                       <span>+</span>
-                      <span style={{ whiteSpace: 'pre-wrap' }}>{ch.text ?? ch.op}</span>
+                      <span style={{ whiteSpace: 'pre-wrap' }}>{proposedWords(ch) ?? ch.text ?? ch.op}</span>
                     </div>
                   )}
                 </div>

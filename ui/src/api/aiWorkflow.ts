@@ -50,6 +50,11 @@ export const workflowApi = {
   rule: async (ticketId: string, side: 'reviewer' | 'dev' | 'split', reason?: string) =>
     (await client.post<ArbitrationResult>(`/tickets/${ticketId}/ai/arbitration`, { side, reason })).data,
   tdd: async (ticketId: string) => (await client.get<TddEvidence>(`/tickets/${ticketId}/ai/tdd`)).data,
+  /** Take the Dev step without test-first evidence just this once, or (`ruleOff`) turn the rule off for the project. */
+  acceptTdd: async (ticketId: string, ruleOff = false) =>
+    (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/tdd/accept`, ruleOff ? { ruleOff: true } : {})).data,
+  /** Let a workflow stopped at its token cap go on. */
+  resume: async (ticketId: string) => (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/resume`)).data,
 };
 
 /** The templates of a project: the four ready-made, then its own. */

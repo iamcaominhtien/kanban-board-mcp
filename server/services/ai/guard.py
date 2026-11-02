@@ -219,7 +219,11 @@ def classify(tool: str, action: str, params: dict) -> list[str]:
     if tool == "ticket_branches":
         return ["create_branches"]
     if tool == "ticket_items":
-        item = action.split(".", 1)[0]
+        item, _, verb = action.partition(".")
+        if item in ("criterion", "sub_task") and verb == "toggle":
+            # ticking off a criterion or a step that was checked is verifying, as a test case's result is: a reviewer
+            # or a tester may, without changing what the ticket asks
+            return ["manage_test_cases"]
         return {
             "comment": ["comment"],
             # the AI's own notes on its work, which every run is asked to write: a comment, not a field edit

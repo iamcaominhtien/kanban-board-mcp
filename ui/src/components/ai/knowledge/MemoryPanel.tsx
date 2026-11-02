@@ -3,6 +3,7 @@ import { useAddLesson, useDeleteLesson, usePatchLesson } from '../../../api/aiKn
 import { extractError } from '../../../api/extractError';
 import type { Knowledge, Lesson } from '../../../types/aiKnowledge';
 import { shortDate } from '../aiUi';
+import { LessonsSettings } from './LessonsSettings';
 
 function Source({ lesson }: { lesson: Lesson }) {
   return lesson.sourceTicketId ? (
@@ -89,6 +90,7 @@ export function MemoryPanel({ projectId, data }: { projectId: string; data: Know
 
   return (
     <div data-testid="memory-panel" style={{ display: 'grid', gap: 10 }}>
+      <LessonsSettings projectId={projectId} />
       {proposed.map((l) => (
         <div
           key={l.id}

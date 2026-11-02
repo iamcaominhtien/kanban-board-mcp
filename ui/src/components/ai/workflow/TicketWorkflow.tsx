@@ -11,11 +11,13 @@ import {
 import { extractError } from '../../../api/extractError';
 import { useTicketFlags } from '../../../api/aiCode';
 import type { Ticket } from '../../../types';
+import type { TicketFlag } from '../../../types/aiCode';
 import type { ReviewDepth, ViewStep, WorkflowView } from '../../../types/aiWorkflow';
 import { openRun } from '../../aiteam/runLink';
 import { ArbitrationCard } from './ArbitrationCard';
 import { TddCard } from './TddCard';
 import {
+  BLOCK_TEXT,
   DEPTHS,
   DEPTH_MODEL,
   DEPTH_READS,
@@ -29,7 +31,20 @@ import {
 import { RoleChip } from './WfUi';
 import './workflow.css';
 
-function StepRow({ s, last, view, ticketId }: { s: ViewStep; last: boolean; view: WorkflowView; ticketId: string }) {
+function StepRow({
+  s,
+  last,
+  view,
+  ticketId,
+  blockedBy,
+}: {
+  s: ViewStep;
+  last: boolean;
+  view: WorkflowView;
+  ticketId: string;
+  /** The open `step_blocked` flag, when the step could not start for a reason other than a missing member. */
+  blockedBy?: TicketFlag;
+}) {
   const [skipError, setSkipError] = useState<string | null>(null);
   const skip = useWorkflowMutation(ticketId, (_: void) => workflowApi.skip(ticketId, s.id));
   const st = stepStateLabel(s, last);
@@ -74,7 +89,14 @@ function StepRow({ s, last, view, ticketId }: { s: ViewStep; last: boolean; view
             <i>By code &middot; tests, lint, build</i>
           </span>
         )}
-        {you && <span>You{s.endedAt && s.state === 'done' ? ` · ${ago(s.endedAt)}` : ''}</span>}
+        {you && s.outcome === 'board' && (
+          <span data-testid={`wf-by-board-${s.key}`}>
+            Moved to Done by the board{s.endedAt ? ` · ${ago(s.endedAt)}` : ''}
+          </span>
+        )}
+        {you && s.outcome !== 'board' && (
+          <span>You{s.endedAt && s.state === 'done' ? ` · ${ago(s.endedAt)}` : ''}</span>
+        )}
         {s.noteIn && (
           <div className="wf-note wf-quote" data-testid={`wf-note-in-${s.key}`}>
             Told: {s.noteIn}
@@ -94,10 +116,21 @@ function StepRow({ s, last, view, ticketId }: { s: ViewStep; last: boolean; view
             )}
           </div>
         ))}
+        {s.state === 'blocked' && blockedBy && (
+          <div className="wf-note" style={{ color: '#a5321e' }} data-testid={`wf-blocked-${s.key}`}>
+            <b>{BLOCK_TEXT[String(blockedBy.data?.why)]?.title ?? 'This step could not start.'}</b>{' '}
+            {BLOCK_TEXT[String(blockedBy.data?.why)]?.goes}
+            {s.kind === 'code' && s.note && <div>{s.note}</div>}
+          </div>
+        )}
         {s.state === 'blocked' && s.kind === 'ai' && (
           <div className="wf-note" style={{ color: '#a5321e' }}>
-            <b>No {roleName(s.role)} on this project.</b> Make one from the pack in Project settings › AI › Role packs,
-            or skip the step for this ticket.
+            {!blockedBy && (
+              <>
+                <b>No {roleName(s.role)} on this project.</b> Make one from the pack in Project settings › AI › Role
+                packs, or skip the step for this ticket.
+              </>
+            )}
             <div className="wf-actions" style={{ marginTop: 6 }}>
               <button
                 type="button"
@@ -250,8 +283,12 @@ function DesignApproval({ step, view, ticketId }: { step: ViewStep; view: Workfl
   );
 }
 
-function StopCard({ view }: { view: WorkflowView }) {
+function StopCard({ view, ticketId }: { view: WorkflowView; ticketId: string }) {
   const t = view.stopReason ? STOP_TEXT[view.stopReason] : null;
+  const { openTicket } = useAiBoardState();
+  const [error, setError] = useState<string | null>(null);
+  const resume = useWorkflowMutation(ticketId, (_: void) => workflowApi.resume(ticketId));
+  const pieces = view.stopReason === 'split' ? (view.split ?? []) : [];
   return (
     <div
       className={`wf-card ${t?.tone === 'violet' ? 'wf-card-violet' : 'wf-card-red'}`}
@@ -259,12 +296,48 @@ function StopCard({ view }: { view: WorkflowView }) {
       role="status"
     >
       <div className="wf-line">
-        <b>It stopped going round</b>
+        <b>{view.stopReason === 'split' ? 'It was split' : 'It stopped going round'}</b>
         <span className={`wf-pill wf-pill-red`}>{t?.title ?? 'Stopped'}</span>
         {t && <span className={`wf-pill ${t.tone === 'violet' ? 'wf-pill-violet' : 'wf-pill-you'}`}>{t.chip}</span>}
       </div>
-      <div className="wf-note">{view.stopDetail || t?.goes}</div>
-      {t && view.stopDetail && <div className="wf-hint">{t.goes}</div>}
+      {pieces.length > 0 ? (
+        <div className="wf-note" data-testid="split-pieces">
+          Split into{' '}
+          {pieces.map((k, i) => (
+            <span key={k}>
+              {i > 0 && (i === pieces.length - 1 ? ' and ' : ', ')}
+              <button type="button" className="ai-link" onClick={() => openTicket?.(k)}>
+                {k}
+              </button>
+            </span>
+          ))}
+          ; it is done when they all are.
+        </div>
+      ) : (
+        <div className="wf-note">{view.stopDetail || t?.goes}</div>
+      )}
+      {t && view.stopDetail && pieces.length === 0 && <div className="wf-hint">{t.goes}</div>}
+      {view.stopReason === 'quota_cap' && (
+        <div className="wf-actions">
+          <button
+            type="button"
+            className="ai-btn ai-btn-primary ai-btn-sm"
+            data-testid="resume-workflow"
+            disabled={resume.isPending}
+            onClick={() => {
+              setError(null);
+              resume.mutate(undefined, { onError: (e) => setError(extractError(e)) });
+            }}
+          >
+            Let it go on
+          </button>
+        </div>
+      )}
+      {error && (
+        <div className="ai-error-text" role="alert">
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -422,6 +495,7 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
   const approval = view.steps.find((s) => s.kind === 'person' && s.idx < last && s.state === 'waiting');
   const rounds = totalRounds(view.rounds);
   const did = view.steps.filter((s) => s.state === 'done' || s.state === 'active').filter((s) => s.kind !== 'code');
+  const blockFlag = flags.data?.find((f) => f.kind === 'step_blocked' && f.open);
   const arbitrationOpen = !!flags.data?.some((f) => f.kind === 'arbitration' && f.open);
 
   return wrap(
@@ -445,7 +519,14 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
       {changing && <ChangeWorkflow ticket={ticket} onDone={() => setChanging(false)} />}
       <div className="wf-strip" data-testid="workflow-strip">
         {view.steps.map((s) => (
-          <StepRow key={s.id} s={s} last={s.idx === last} view={view} ticketId={ticket.id} />
+          <StepRow
+            key={s.id}
+            s={s}
+            last={s.idx === last}
+            view={view}
+            ticketId={ticket.id}
+            blockedBy={s.state === 'blocked' ? blockFlag : undefined}
+          />
         ))}
       </div>
       {did.length > 0 && (
@@ -458,7 +539,11 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
                 title={s.kind === 'person' ? 'You' : roleName(s.role)}
               />
               <span style={{ fontSize: 12.5 }}>
-                {s.kind === 'person' ? 'You approved' : (s.memberName ?? roleName(s.role))}
+                {s.kind === 'person'
+                  ? s.outcome === 'board'
+                    ? 'Moved to Done by the board'
+                    : 'You approved'
+                  : (s.memberName ?? roleName(s.role))}
               </span>
               <span className="wf-hint">
                 {s.label} · {s.state === 'active' ? 'now' : s.endedAt ? ago(s.endedAt) : ''}
@@ -467,7 +552,7 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
           ))}
         </div>
       )}
-      {view.state === 'stopped' && <StopCard view={view} />}
+      {view.state === 'stopped' && <StopCard view={view} ticketId={ticket.id} />}
       {approval && <DesignApproval step={approval} view={view} ticketId={ticket.id} />}
       {view.steps[last]?.state === 'waiting' && view.state === 'active' && !approval && (
         <div className="wf-hint" data-testid="last-step-hint">

@@ -184,6 +184,12 @@ export interface DraftChange {
   text?: string;
   /** add_criteria: the criteria to add. */
   items?: string[];
+  /** create: a new ticket (it has no `ticket` yet). */
+  title?: string;
+  description?: string;
+  parent?: string | null;
+  criteria?: string[];
+  workflow?: string | null;
   /** Set when the change belongs to a scope's own kind (e.g. "idea"). */
   scope?: string;
   /** idea_assumption: how much the idea depends on it. */

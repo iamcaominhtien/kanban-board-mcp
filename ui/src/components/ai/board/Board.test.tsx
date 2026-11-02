@@ -10,7 +10,7 @@ vi.mock('../../../api/client', () => ({ client: http }));
 import { BoardAiSection } from './BoardAiSection';
 import { SignalCards } from './SignalCards';
 import { AiBoardContext, type AiBoardState } from '../aiUi';
-import { AsksFirst, DoneReceipt, appliedWords } from '../../assist/DoneReceipt';
+import { AsksFirst, DoneReceipt, appliedWords, proposedWords } from '../../assist/DoneReceipt';
 import type { AssistDraft } from '../../../types/assist';
 
 const emptyBoard: AiBoardState = { projectId: 'p1', members: new Map(), runsByTicket: new Map(), settings: null };
@@ -172,6 +172,41 @@ describe('DoneReceipt', () => {
     expect(t).toContain('1 of 2 went through.');
     expect(t).toContain('was refused: Done asks first.');
     expect(t).toContain('Undo puts it back.');
+  });
+
+  it('words the team changes before and after they are applied', () => {
+    const pending = (ch: Parameters<typeof proposedWords>[0]) => render(<div>{proposedWords(ch)}</div>).container;
+    expect(pending({ op: 'create', title: 'Fix the login', parent: 'KAN-1' } as never).textContent).toBe(
+      'New ticket “Fix the login” under KAN-1',
+    );
+    cleanup();
+    expect(pending({ op: 'message', ticket: 'KAN-1', text: 'use the cache' }).textContent).toBe(
+      'Tell the AI on KAN-1: use the cache',
+    );
+    cleanup();
+    expect(pending({ op: 'delegate', ticket: 'KAN-1', text: 'split it' }).textContent).toBe(
+      'The PM takes KAN-1: split it',
+    );
+    expect(proposedWords({ op: 'status', ticket: 'KAN-1' })).toBeNull();
+
+    const draft = {
+      status: 'applied',
+      result: {
+        count: 3,
+        applied: [
+          { op: 'create', ticket: 'KAN-9', created: 'KAN-9' },
+          { op: 'message', ticket: 'KAN-1', run_id: 'r1' },
+          { op: 'delegate', ticket: 'KAN-1', run_id: 'r2' },
+        ],
+      },
+    } as unknown as AssistDraft;
+    cleanup();
+    render(<DoneReceipt draft={draft} busy={false} onUndo={vi.fn()} />);
+    const rows = screen.getAllByTestId('done-row').map((r) => r.textContent);
+    expect(rows[0]).toContain('KAN-9');
+    expect(rows[0]).toContain('created as a new ticket');
+    expect(rows[1]).toContain('told the AI');
+    expect(rows[2]).toContain('handed to the PM');
   });
 
   it('names the ask-first card the way the design does', () => {

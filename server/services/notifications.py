@@ -81,6 +81,12 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
         True,
         False,
     ),
+    "workflow_blocked": (
+        "A workflow step cannot start, or a ticket reached its token cap",
+        True,
+        True,
+        False,
+    ),
     # For information: never interrupts.
     "ai_finished": ("An AI finished work", False, False, False),
     "schedule": ("A scheduled run finished or was skipped", False, False, False),
@@ -1124,6 +1130,16 @@ async def _why_closed_by_kind(session: AsyncSession, r: Notification) -> _Why:
         return await _why_window_closed(session, r.target_id)
     if r.kind in ("merge_conflict", "arbitration"):
         return await _why_flag_closed(session, r)
+    if r.target_kind == "flag" and r.target_id:
+        from models import AiTicketFlag
+
+        flag = await session.get(AiTicketFlag, r.target_id)
+        if flag is None or flag.resolved_at:
+            return (
+                (flag.resolution if flag else None) or "It was resolved.",
+                None,
+                False,
+            )
     if r.kind == "workflow_step" and r.target_id:
         from models import AiTicketStep
 

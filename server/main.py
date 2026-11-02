@@ -37,6 +37,8 @@ from api.ai_code import router as ai_code_router
 from api.ai_tools import router as ai_tools_router
 from api.ai_workflow import router as ai_workflow_router
 from api.ai_board import router as ai_board_router
+from api.ai_live_feed import router as ai_live_feed_router
+from api.ai_power import router as ai_power_router
 from api.ai_accounts import router as ai_accounts_router
 from api.ai_safety import router as ai_safety_router
 from api.ai_config import router as ai_config_router
@@ -62,6 +64,9 @@ from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
 from services.ai import orders as ai_orders
 from services.ai import github as ai_github
+from services.ai import evals as ai_evals
+from services.ai import manager as ai_manager
+from services.ai import repo_scan as ai_repo_scan
 from services.ai import workflow as ai_workflow
 from services import notifications as svc_notifications
 from services.ai import signin as ai_signin
@@ -91,6 +96,19 @@ mcp = FastMCP(
 )
 
 kanban_mcp.register(mcp)
+
+
+RESCAN_EVERY_S = 30 * 60
+
+
+async def _rescan_loop() -> None:
+    """Scan a project's repository again when its CI or packages changed (D19); a person still applies it."""
+    while True:
+        await asyncio.sleep(RESCAN_EVERY_S)
+        try:
+            await ai_repo_scan.sweep(database.async_session)
+        except Exception:  # noqa: BLE001 - a scan that fails waits for the next round
+            logger.exception("The repository rescan failed")
 
 
 @asynccontextmanager
@@ -124,11 +142,17 @@ async def lifespan(app: FastAPI):
         svc_notifications.start()
         ai_orders.start()
         ai_github.start()
+        ai_manager.start()
+        ai_evals.start()
+        rescans = asyncio.create_task(_rescan_loop())
         try:
             yield
         finally:
             await ai_orders.stop()
             await ai_github.stop()
+            await ai_manager.stop()
+            await ai_evals.stop()
+            rescans.cancel()
             # No CLI process outlives the board: cancel the AI runs and kill their process trees
             await svc_notifications.stop()
             await assist_health.stop_scheduler()
@@ -280,6 +304,8 @@ app.include_router(ai_code_router)
 app.include_router(ai_tools_router)
 app.include_router(ai_workflow_router)
 app.include_router(ai_board_router)
+app.include_router(ai_power_router)
+app.include_router(ai_live_feed_router)
 app.include_router(ai_router)
 app.include_router(ai_safety_router)
 app.include_router(ai_config_router)

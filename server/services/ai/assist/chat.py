@@ -743,6 +743,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         # A local Claude Code Board AI keeps one conversation per chat: the CLI remembers the earlier messages
         session_use = None
         page_scope = None
+        live_work = None
         if profile.connection == "local" and profile.provider == "claude-code":
             # a chat about a Docs page shares the AI member's one session on that page (Ask, threads, summaries...)
             session_id = c.session_id
@@ -766,6 +767,13 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 if not docs_sessions.is_busy(shared, profile.id):
                     page_scope = shared
                     session_id = await docs_sessions.lookup(shared, profile.id)
+                else:
+                    # its work run holds the conversation: this answer is told what that run is doing now
+                    from .. import runs as ai_runs
+
+                    live_work = await ai_runs.own_work_note(
+                        session, c.ticket_id, profile.id
+                    )
             from .. import accounts
 
             resume = bool(session_id) and cli.session_exists(
@@ -1003,6 +1011,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 if convo and with_history
                 else "",
                 turn_in.text if turn_in else "",
+                live_work or "",
                 "The person asks:\n" + ctxb.fence("question", question),
                 ("Your answer so far:\n" + partial[-3000:]) if partial else "",
             ]

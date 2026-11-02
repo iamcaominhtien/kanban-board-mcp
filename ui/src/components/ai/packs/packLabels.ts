@@ -44,6 +44,8 @@ export const WORKFLOW_ROLES: Record<WorkflowKey, string[]> = {
   standard: ['triage', 'ba', 'dev', 'qa', 'reviewer'],
   quick_fix: ['triage', 'dev', 'reviewer'],
   research: ['triage', 'dev', 'ba'],
+  docs: ['triage', 'ba', 'reviewer'],
+  chore: ['triage', 'dev', 'reviewer'],
 };
 
 export const WORKFLOW_NAME: Record<WorkflowKey, string> = {
@@ -51,6 +53,8 @@ export const WORKFLOW_NAME: Record<WorkflowKey, string> = {
   standard: 'Standard feature',
   quick_fix: 'Quick fix',
   research: 'Research',
+  docs: 'Docs',
+  chore: 'Chore',
 };
 
 /** The richest workflow whose roles are all in the team; null when even the smallest is not covered. */

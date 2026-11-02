@@ -206,6 +206,41 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
           </select>
         </Row>
         <div className="ai-divider" />
+        <div className="ai-hint">
+          The project&rsquo;s checks. The Checks step runs them in the ticket&rsquo;s folder, with no AI and no quota.
+          The scan can fill them in; here you can set them by hand.
+        </div>
+        <Row title="Test command" hint="Run by the Checks step of a workflow, and by the Dev before it hands in.">
+          <TextSetting
+            value={ops.data.commands?.test ?? ''}
+            placeholder="npm test"
+            label="Test command"
+            width={240}
+            testId="cmd-test"
+            onSave={(v) => void save({ commands: { test: v.trim() } })}
+          />
+        </Row>
+        <Row title="Lint command" hint="Run by the Checks step. Empty: no lint check.">
+          <TextSetting
+            value={ops.data.commands?.lint ?? ''}
+            placeholder="npm run lint"
+            label="Lint command"
+            width={240}
+            testId="cmd-lint"
+            onSave={(v) => void save({ commands: { lint: v.trim() } })}
+          />
+        </Row>
+        <Row title="Build command" hint="Run by the Checks step. Empty: no build check.">
+          <TextSetting
+            value={ops.data.commands?.build ?? ''}
+            placeholder="npm run build"
+            label="Build command"
+            width={240}
+            testId="cmd-build"
+            onSave={(v) => void save({ commands: { build: v.trim() } })}
+          />
+        </Row>
+        <div className="ai-divider" />
         <Row
           title="Load each member's configuration per run"
           hint={

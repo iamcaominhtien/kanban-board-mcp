@@ -95,9 +95,16 @@ the answer with ONE fenced block in exactly this form:
   {"op": "add_criteria", "ticket": "KAN-1", "items": ["a testable acceptance criterion", "another"]}
   {"op": "run", "ticket": "KAN-1", "member": "<exact AI member name>", "text": "what it should do"}
   {"op": "stop_run", "ticket": "KAN-1"}
-  {"op": "workflow", "ticket": "KAN-1", "to": "quick_fix|standard|feature_ui|research"}
+  {"op": "workflow", "ticket": "KAN-1", "to": "quick_fix|standard|feature_ui|research|docs|chore"}
   {"op": "depth", "ticket": "KAN-1", "to": "light|standard|deep"}
   {"op": "pause_member", "member": "<exact AI member name>"}  /  {"op": "resume_member", "member": "..."}
+  {"op": "create", "title": "a new ticket", "description": "what and why", "parent": "KAN-1 or null",
+   "criteria": ["testable criterion"], "workflow": "quick_fix|standard|feature_ui|research|docs|chore or null"}
+  {"op": "message", "ticket": "KAN-1", "text": "what to tell the AI working on it now"}
+  {"op": "delegate", "ticket": "KAN-1", "text": "what the PM should coordinate on it"}
+You manage the AI team for the person (you rank above the PM): to split work, create the pieces (parent = the ticket)
+and put each on a workflow; to steer an AI that is working, message it; hand long coordination of one ticket to the PM
+with delegate.
 Use add_criteria when asked for acceptance criteria: one short, testable sentence each, none that the ticket already
 has, at most 8.
 "suggestions" (optional, at most 2): follow-ups the person may want, each
@@ -257,11 +264,42 @@ def check_changes(
                 }
             )
             continue
+        if op == "create":
+            title = " ".join(str(ch.get("title") or "").split())[:200]
+            if not title:
+                problems.append("A new ticket needs a title")
+                continue
+            parent = by_lower.get(str(ch.get("parent") or "").strip().lower())
+            if ch.get("parent") and not parent:
+                problems.append(f"Unknown parent ticket {ch.get('parent')!r}")
+                continue
+            out.append(
+                {
+                    "op": "create",
+                    "title": title,
+                    "description": str(ch.get("description") or "")[:4000],
+                    "parent": parent,
+                    "criteria": [
+                        " ".join(str(x or "").split())[:500]
+                        for x in (ch.get("criteria") or [])[:8]
+                        if str(x or "").strip()
+                    ],
+                    "workflow": str(ch.get("workflow") or "").strip().lower() or None,
+                }
+            )
+            continue
         tid = by_lower.get(str(ch.get("ticket") or "").strip().lower())
         if not tid:
             problems.append(f"Unknown ticket {ch.get('ticket')!r}")
             continue
         cur = tickets[tid]
+        if op in ("message", "delegate"):
+            text = str(ch.get("text") or "").strip()
+            if not text:
+                problems.append(f"{tid}: what should it say?")
+                continue
+            out.append({"op": op, "ticket": tid, "text": text[:2000]})
+            continue
         if op == "run":
             mid = members.get(str(ch.get("member") or "").strip().lower())
             if not mid:

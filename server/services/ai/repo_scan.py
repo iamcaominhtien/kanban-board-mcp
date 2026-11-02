@@ -11,7 +11,9 @@
 """
 
 import asyncio
+import hashlib
 import json
+import logging
 import os
 import re
 import shutil
@@ -20,12 +22,34 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-from models import AiRepoScan
+from sqlmodel import col, select
+
+from models import AiAccount, AiPlugin, AiRepoScan
 
 from . import ops, packs, plugins, worktrees
 from .store import get_settings
 
+log = logging.getLogger(__name__)
+
 TRIAL_TIMEOUT_S = 10 * 60
+_FP_NAMES = (
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "pyproject.toml",
+    "uv.lock",
+    "poetry.lock",
+    "go.mod",
+    "Cargo.toml",
+    "Gemfile",
+    "pom.xml",
+    "build.gradle",
+    "Makefile",
+    "Dockerfile",
+    "CLAUDE.md",
+    "AGENTS.md",
+)
 _CI_HINT = re.compile(
     r"\b(test|pytest|vitest|jest|lint|ruff|eslint|tsc|build|typecheck|mypy|go test|cargo test)\b",
     re.I,
@@ -65,6 +89,30 @@ def _ci_commands(root: Path) -> list[str]:
                 lines = [first]
             out += [ln for ln in lines if ln and _CI_HINT.search(ln)]
     return list(dict.fromkeys(out))[:20]
+
+
+def fingerprint(root: Path) -> str:
+    """A hash of the files the scan reads (CI workflows, manifests, lockfiles): it changes when the repo's tooling does."""
+    h = hashlib.sha256()
+    files = sorted((root / ".github" / "workflows").glob("*.y*ml"))
+    for dirpath, dirs, names in os.walk(root):
+        dirs[:] = sorted(
+            d
+            for d in dirs
+            if d
+            not in (".git", "node_modules", ".venv", "dist", "build", "__pycache__")
+        )
+        files += [Path(dirpath) / n for n in sorted(names) if n in _FP_NAMES]
+        if len(files) > 200:
+            break
+    for f in files[:200]:
+        try:
+            data = f.read_bytes()
+        except OSError:
+            continue
+        h.update(str(f.relative_to(root)).encode() + b"\0")
+        h.update(hashlib.sha256(data).digest())
+    return h.hexdigest()
 
 
 def scan(folder: str) -> dict:
@@ -205,6 +253,7 @@ def scan(folder: str) -> dict:
         ]
         files += len(fs)
     found["files"] = files
+    found["fingerprint"] = fingerprint(root)
     return found
 
 
@@ -218,6 +267,23 @@ def _pkg_cmd(pkg: dict, script: str) -> str | None:
         watches = "vitest" in scripts["test"] and "run" not in scripts["test"].split()
         return f"{prefix}npm test" + (" -- --run" if watches else "")
     return f"{prefix}npm run {script}"
+
+
+_ROLE_NAMES = {
+    "triage": "Triage",
+    "pm": "PM",
+    "ba": "BA",
+    "designer": "Designer",
+    "dev": "Dev",
+    "qa": "QA",
+    "reviewer": "Reviewer",
+    "user_tester": "User tester",
+}
+
+
+def _wanted(entry: dict, found: dict) -> bool:
+    """A browser tool (`ui`) is only for a project with a UI."""
+    return bool(found.get("ui")) or not entry.get("ui")
 
 
 def suggest(found: dict) -> dict:
@@ -263,21 +329,11 @@ def suggest(found: dict) -> dict:
     if found["ui"]:
         roles[3:3] = ["designer"]
         roles.append("user_tester")
-    names = {
-        "triage": "Triage",
-        "pm": "PM",
-        "ba": "BA",
-        "designer": "Designer",
-        "dev": "Dev",
-        "qa": "QA",
-        "reviewer": "Reviewer",
-        "user_tester": "User tester",
-    }
-    team = [{"pack": r, "name": names[r]} for r in roles]
+    team = [{"pack": r, "name": _ROLE_NAMES[r]} for r in roles]
     suggested_plugins = [
         c["key"]
         for c in plugins.CATALOGUE
-        if set(c["roles"]) & set(roles) and (found["ui"] or not c.get("ui"))
+        if set(c["roles"]) & set(roles) and _wanted(c, found)
     ]
     handover = (
         "local"
@@ -381,11 +437,19 @@ def _try(folder: str, prepare: str, test: str) -> dict:
 
 
 async def run_scan(
-    session, project_id: str, folder: str, *, trial: bool = True
+    session,
+    project_id: str,
+    folder: str,
+    *,
+    trial: bool = True,
+    refine: bool = False,
 ) -> AiRepoScan:
-    """Scan, suggest and (by default) try the commands; nothing is created."""
+    """Scan, suggest and (by default) try the commands; nothing is created. `refine` asks a light model to improve
+    the role and plugin suggestions (it fails soft back to the code's)."""
     found = await asyncio.to_thread(scan, folder)
     proposal = suggest(found)
+    if refine:
+        proposal = await refine_suggestion(session, project_id, found, proposal)
     tried = (
         await asyncio.to_thread(
             _try, found["folder"], proposal["prepare"], proposal["commands"]["test"]
@@ -404,6 +468,162 @@ async def run_scan(
     await session.commit()
     await session.refresh(row)
     return row
+
+
+REFINE_PROMPT = (
+    "You help set up an AI team for a code repository. From these facts, choose the roles and plugins that fit. "
+    'Reply with JSON only: {"roles": [role keys], "plugins": [plugin keys], "why": "one short sentence"}.\n'
+    "Roles you may use: triage, pm, ba, designer, dev, qa, reviewer, user_tester. Keep dev. "
+    "designer and user_tester only when the repository has a web UI.\n"
+    "Plugins you may use (key: what for): "
+)
+
+
+async def _ask_light(prompt: str, account) -> str | None:
+    """One call of the light model (Haiku) on the project's Claude Code account; the seam the tests replace."""
+    from types import SimpleNamespace
+
+    from . import knowledge
+
+    return await knowledge._ask_light_model(
+        prompt, SimpleNamespace(cli_path=None), account
+    )
+
+
+async def _claude_account(session, account_id: str | None = None):
+    """A signed-in Claude Code account of the board (the chosen one first), or None."""
+    if account_id:
+        acct = await session.get(AiAccount, account_id)
+        if acct is not None and acct.cli == "claude":
+            return acct
+    return (
+        await session.exec(
+            select(AiAccount).where(
+                AiAccount.cli == "claude", AiAccount.status == "signed_in"
+            )
+        )
+    ).first()
+
+
+def _parse_refined(text: str | None) -> dict | None:
+    m = re.search(r"\{.*\}", text or "", re.S)
+    if not m:
+        return None
+    try:
+        data = json.loads(m.group(0))
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+async def refine_suggestion(
+    session,
+    project_id: str,
+    found: dict,
+    proposal: dict,
+    *,
+    account_id: str | None = None,
+) -> dict:
+    """Ask a light model to refine the suggested team and plugins from the scan's facts. Optional and soft: with no
+    Claude Code account, an error or an answer that makes no sense, the code's suggestion comes back unchanged."""
+    try:
+        account = await _claude_account(session, account_id)
+        if account is None:
+            return proposal
+        facts = {
+            k: found.get(k)
+            for k in (
+                "languages",
+                "frameworks",
+                "monorepo",
+                "ui",
+                "tests",
+                "agent_files",
+            )
+        }
+        catalogue = "; ".join(
+            f"{c['key']}: {c['what'][:60]}"
+            for c in plugins.CATALOGUE
+            if found.get("ui") or not c.get("ui")
+        )
+        answer = _parse_refined(
+            await _ask_light(
+                REFINE_PROMPT + catalogue + "\nFacts: " + json.dumps(facts), account
+            )
+        )
+        if answer is None:
+            return proposal
+        known = {t["pack"]: t["name"] for t in proposal["team"]}
+        roles = [
+            r
+            for r in answer.get("roles") or []
+            if isinstance(r, str)
+            and r in _ROLE_NAMES
+            and (found.get("ui") or r not in ("designer", "user_tester"))
+        ]
+        keys = [
+            k
+            for k in answer.get("plugins") or []
+            if isinstance(k, str)
+            and k in {c["key"] for c in plugins.CATALOGUE if _wanted(c, found)}
+        ]
+        out = dict(proposal)
+        if roles:
+            if "dev" not in roles:
+                roles.append("dev")
+            order = list(_ROLE_NAMES)
+            roles = sorted(dict.fromkeys(roles), key=order.index)
+            out["team"] = [
+                {"pack": r, "name": known.get(r) or _ROLE_NAMES[r]} for r in roles
+            ]
+        if keys:
+            out["plugins"] = list(dict.fromkeys(keys))
+        why = " ".join(str(answer.get("why") or "").split())[:300]
+        if why:
+            out["why"] = {**proposal.get("why", {}), "refined": why}
+        return out
+    except Exception:  # noqa: BLE001 - a light-model failure never breaks a scan
+        log.warning("repo scan: the light-model refinement failed", exc_info=True)
+        return proposal
+
+
+async def rescan_if_changed(session, project_id: str) -> bool:
+    """Scan again when the files the last scan read have changed. Never applies anything: the new scan waits for a
+    person. Returns whether it scanned."""
+    last = (
+        await session.exec(
+            select(AiRepoScan)
+            .where(AiRepoScan.project_id == project_id)
+            .order_by(col(AiRepoScan.created_at).desc())
+        )
+    ).first()
+    if last is None:
+        return False
+    root = Path(os.path.expanduser(last.folder))
+    if not root.is_dir():
+        return False
+    before = (json.loads(last.found or "{}")).get("fingerprint")
+    now = await asyncio.to_thread(fingerprint, root)
+    if now == before:
+        return False
+    await run_scan(session, project_id, last.folder, trial=False)
+    return True
+
+
+async def sweep(session_factory) -> list[str]:
+    """One pass over every project that has a scan: scan again where the repository changed. The caller runs it
+    now and then (main.py)."""
+    async with session_factory() as session:
+        ids = list((await session.exec(select(AiRepoScan.project_id).distinct())).all())
+    done: list[str] = []
+    for pid in ids:
+        try:
+            async with session_factory() as session:
+                if await rescan_if_changed(session, pid):
+                    done.append(pid)
+        except Exception:  # noqa: BLE001 - one project never stops the others
+            log.warning("repo scan: rescan of %s failed", pid, exc_info=True)
+    return done
 
 
 def to_dict(row: AiRepoScan) -> dict:
@@ -463,12 +683,31 @@ async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) 
             created.append({"id": member.id, "name": member.name, "pack": pack["key"]})
         except ValueError as exc:
             skipped.append({"name": item.get("name"), "why": str(exc)})
-    roles_of = {c["key"]: c for c in plugins.CATALOGUE}
-    installed, failed = [], []
-    for key in choice.get("plugins") or []:
-        entry = roles_of.get(key)
-        if entry is None or entry["kind"] != "plugin":
+    found = json.loads(row.found or "{}")
+    by_key = {c["key"]: c for c in plugins.CATALOGUE}
+    wanted = list(choice.get("plugins") or [])
+    for pack_key in (c["pack"] for c in created):
+        pack = await packs.get_pack(session, row.project_id, pack_key)
+        wanted += (pack or {}).get("plugins") or []
+        wanted += (pack or {}).get("mcp") or []
+    have = {
+        p.name
+        for p in (
+            await session.exec(
+                select(AiPlugin).where(AiPlugin.project_id == row.project_id)
+            )
+        ).all()
+    }
+    installed, failed, mcp = [], [], []
+    for key in dict.fromkeys(wanted):
+        entry = by_key.get(key)
+        if entry is None or not _wanted(entry, found):
             continue
+        if entry["kind"] == "mcp":  # carried on the members by member_body
+            mcp.append(entry["name"])
+            continue
+        if {key, entry["name"], entry.get("plugin")} & have:
+            continue  # once per project
         try:
             plug = await plugins.install(
                 session,
@@ -481,6 +720,7 @@ async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) 
                 by=by,
             )
             installed.append(plug.name)
+            have.add(plug.name)
         except plugins.PluginError as exc:
             failed.append({"plugin": key, "why": str(exc)})
     row.applied_at = datetime.now(UTC).isoformat()
@@ -490,6 +730,7 @@ async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) 
         "created": created,
         "skipped": skipped,
         "plugins": installed,
+        "mcp": mcp,
         "plugin_failures": failed,
         "settings": ops.get(settings),
     }

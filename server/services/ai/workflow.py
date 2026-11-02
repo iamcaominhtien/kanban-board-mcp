@@ -62,6 +62,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "kind": "ai",
                 "role": "dev",
                 "hands_in": "A branch with the fix, a failing test run and a passing one",
+                "tdd": True,
             },
             {"key": "checks", "label": "Checks", "kind": "code"},
             {
@@ -93,6 +94,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "kind": "ai",
                 "role": "dev",
                 "hands_in": "A branch with the change, a failing test run and a passing one, and a note of what the reviewer should look at",
+                "tdd": True,
             },
             {"key": "checks", "label": "Checks", "kind": "code"},
             {
@@ -100,7 +102,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Test",
                 "kind": "ai",
                 "role": "qa",
-                "hands_in": "What passed and what did not, with proof",
+                "hands_in": "Every test case run, passed or failed, each with its evidence: a screenshot or the command and its output",
             },
             {
                 "key": "review",
@@ -143,6 +145,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "kind": "ai",
                 "role": "dev",
                 "hands_in": "A branch with the change, a failing test run and a passing one, and a note of what the reviewer should look at",
+                "tdd": True,
             },
             {"key": "checks", "label": "Checks", "kind": "code"},
             {
@@ -150,7 +153,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Try it",
                 "kind": "ai",
                 "role": "user_tester",
-                "hands_in": "What it tried, and where it got stuck",
+                "hands_in": "What it tried and where it got stuck, with a screenshot of each screen it used and the browser console's errors",
             },
             {
                 "key": "review",
@@ -158,6 +161,53 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "kind": "ai",
                 "role": "reviewer",
                 "depth": "standard",
+            },
+            {"key": "done", "label": "Done", "kind": "person"},
+        ],
+    },
+    {
+        "key": "docs",
+        "name": "Docs",
+        "description": "A document to write, no code to change",
+        "steps": [
+            {"key": "triage", "label": "Triage", "kind": "ai", "role": "triage"},
+            {
+                "key": "write",
+                "label": "Write",
+                "kind": "ai",
+                "role": "ba",
+                "hands_in": "The Docs page that meets the acceptance criteria",
+            },
+            {
+                "key": "review",
+                "label": "Review",
+                "kind": "ai",
+                "role": "reviewer",
+                "depth": "light",
+            },
+            {"key": "done", "label": "Done", "kind": "person"},
+        ],
+    },
+    {
+        "key": "chore",
+        "name": "Chore",
+        "description": "A change with no behaviour to test: a version bump, a changelog, a config",
+        "steps": [
+            {"key": "triage", "label": "Triage", "kind": "ai", "role": "triage"},
+            {
+                "key": "do",
+                "label": "Do it",
+                "kind": "ai",
+                "role": "dev",
+                "hands_in": "A branch with the change and what was done",
+            },
+            {"key": "checks", "label": "Checks", "kind": "code"},
+            {
+                "key": "review",
+                "label": "Review",
+                "kind": "ai",
+                "role": "reviewer",
+                "depth": "light",
             },
             {"key": "done", "label": "Done", "kind": "person"},
         ],
@@ -228,6 +278,9 @@ def _step_defaults(step: dict) -> dict:
         "effort": step.get("effort"),
         "retry_model": step.get("retry_model"),
         "depth": step.get("depth"),
+        # hands in a failing test run and a passing one (design I)
+        "tdd": bool(step.get("tdd"))
+        or "failing test" in (step.get("hands_in") or "").lower(),
     }
     if out["kind"] == "ai" and not out["role"]:
         raise WorkflowError(f"The step {out['label']} needs a role.")
@@ -520,6 +573,10 @@ async def resolve_member(
     ]
     if not profiles:
         return None
+    if role == "triage":
+        # the project's chosen Triage takes new tickets when it can (D8)
+        chosen = ops.get(await get_settings(session, project_id)).get("triage_id")
+        profiles.sort(key=lambda p: p.id != chosen)
     done_here = {
         s.member_id
         for s in await steps_of(session, ticket_id)
@@ -550,7 +607,11 @@ def _instruction(
     wf: AiTicketWorkflow,
     previous_note: str | None,
     ticket: Ticket,
+    given: dict | None = None,
 ) -> str:
+    """What the step's AI is told; `given` holds what the step's `gives` asked for beyond the previous note."""
+    given = given or {}
+    gives = step.get("gives", [])
     parts = [
         f"You are doing the step “{step['label']}” of the workflow “{wf.template_name}” on {ticket.id}."
     ]
@@ -558,8 +619,17 @@ def _instruction(
         parts.append(
             f"What you must hand in: {step['hands_in']}. The step is not done until the board can see it."
         )
-    if previous_note and "previous_note" in step.get("gives", []):
+    if given.get("criteria") and "criteria" in gives:
+        parts.append(
+            "The acceptance criteria:\n"
+            + "\n".join(f"- {c}" for c in given["criteria"])
+        )
+    if given.get("design") and "design" in gives:
+        parts.append(f"The design, as the Designer handed it in:\n{given['design']}")
+    if previous_note and "previous_note" in gives:
         parts.append(f"The previous step's note:\n{previous_note}")
+    if given.get("transcript") and "transcript" in gives:
+        parts.append(f"What the previous step's AI did:\n{given['transcript']}")
     if row.note_in:
         parts.append(row.note_in)
     if step.get("role") == "reviewer":
@@ -574,19 +644,284 @@ def _instruction(
                 if depth == "standard"
                 else ""
             )
-            + ". End your final message with exactly one line: `VERDICT: PASS`, or `VERDICT: CHANGES` followed by what to change and why. "
+            + ". Review on the thing itself, one point per comment: a comment on the Docs page at the section you mean "
+            "(docs_write comment), on the canvas frame (docs_write canvas_comment), on the diagram's page, or a ticket "
+            "comment naming file:line for code. On a later round, check that each of your earlier comments was answered "
+            "or resolved before anything else. "
+            "End your final message with exactly one line: `VERDICT: PASS`, or `VERDICT: CHANGES` followed by what to change and why. "
             "Do not repeat an objection you already made once it was answered."
+        )
+    if step.get("role") == "designer":
+        parts.append(
+            "First load the `canvas-design` skill (without it: docs_read(design_guide)) and follow it. "
+            "Design in this order, as the canvas design guide says. 1) Context: the product's own screens and Docs; "
+            'when there is no design system yet, make one and keep it on a Docs page ("Design system") the next '
+            "tickets follow. 2) A visual direction in two sentences, from good references for this kind of product. "
+            "3) Tokens in one stylesheet every frame links: colour, type scale, spacing, radius, shadow; a real font. "
+            "4) The frames, every state, at phone and desktop width. 5) Look: open each frame with the browser "
+            "(Playwright) at 390 and 1280 wide, screenshot it, and fix what is unbalanced, cramped, misaligned or "
+            "plain. Hand in the canvas, the screenshots (in a ticket comment) and what you would still improve."
         )
     if step.get("role") == "triage":
         parts.append(
-            "Set the ticket's labels, then end your final message with `DEPTH: light`, `DEPTH: standard` or `DEPTH: deep` "
-            "(light: a small obvious change; deep: a migration, money, permissions, or anything marked risky), and, when "
-            "another workflow fits better, a line `WORKFLOW: quick_fix|standard|feature_ui|research`."
+            "Set the ticket's labels. Then decide, by these rules in order:\n"
+            "1. SPLIT when the ticket asks for more than one piece of work that can each be done and checked on its "
+            "own: several features, or several stages (define the product, design, build, write the docs, release). A "
+            "whole product or app is always split. Then the coordinator splits it and you pick no workflow.\n"
+            "2. feature_ui: anything a person will look at (a page, a screen, a component).\n"
+            "3. quick_fix: a bug with an obvious cause.\n"
+            "4. research: a question to answer, not a change.\n"
+            "5. docs: a Docs page to write (a product definition, a guide, a demo write-up), no file in the repository.\n"
+            "6. chore: a change in the repository with no behaviour to test (a README, a changelog, a version bump, a "
+            "release tag, a config).\n"
+            "7. standard: everything else.\n"
+            "End your final message with these lines, each on a line of its own: `DEPTH: light`, `DEPTH: standard` or "
+            "`DEPTH: deep` (light: a small obvious change; deep: a migration, money, permissions, or anything marked "
+            "risky); then either `SPLIT: ` and one sentence on why, or `WORKFLOW: quick_fix|standard|feature_ui|research|docs|chore`."
         )
+    parts.append(
+        "While you work, keep the ticket's work log (what you tried, found and decided), comment when the next step "
+        "or a person needs to know something (a decision, a risk, a question), and tick the checklist items and "
+        "criteria you finished. Do not move the ticket between columns: the board does that as the workflow moves."
+    )
+    parts.append(
+        "Show, do not tell: what you hand in carries its proof, in a ticket comment or a test case's evidence "
+        "(`![what it shows](path/to/shot.png)` from your folder, the command and its output in a ``` block, a link). "
+        "A change a person will see gets screenshots of it (e.g. `npx playwright screenshot http://localhost:$PORT shot.png`)."
+    )
+    parts.append(
+        "Work as a team: when you need something from a teammate (the BA for a criterion, the Designer for a state "
+        "that is not drawn, the Dev for how a part works), @mention them in a ticket comment with one clear question; "
+        "for a decision, ask the coordinator with ai_run(action='ask'). When you were sent back, answer every comment "
+        "left for you on the ticket, the Docs page or the canvas: fix it, reply in its thread, resolve it."
+    )
     parts.append(
         "When you are done, report and end; the board moves the ticket to the next step. Do not hand the ticket to another AI yourself."
     )
     return "\n\n".join(parts)
+
+
+def meta_of(wf: AiTicketWorkflow) -> dict:
+    """What the board decided along the way on this workflow (AiTicketWorkflow.meta)."""
+    return loads(wf.meta, {}) or {}
+
+
+def set_meta(wf: AiTicketWorkflow, **values) -> None:
+    """Keep `values` in the workflow's meta (the caller adds and commits)."""
+    wf.meta = json.dumps({**meta_of(wf), **values})
+
+
+# Why a step cannot start; each is a flag, and the board tries the step again on its own (manager.tick)
+BLOCKS = ("no_member", "step_blocked")
+
+
+async def _raise(
+    session, ticket: Ticket, kind: str, title: str, body: str, data: dict
+) -> None:
+    """Open the flag; a new one also asks a person in Needs you (it closes by itself with the flag)."""
+    from services import notifications as centre
+
+    fresh = not await flags.is_open(session, ticket.id, kind)
+    flag = await flags.open_flag(session, ticket.id, ticket.project_id, kind, data)
+    if not fresh:
+        return
+    await centre.emit(
+        "workflow_blocked",
+        project_id=ticket.project_id,
+        recipients=await centre.owners_and_admins(session, ticket.project_id),
+        title=f"{ticket.id}: {title}",
+        body=body,
+        target_kind="flag",
+        target_id=flag.id,
+        ticket_id=ticket.id,
+        data={"flag": kind, **data},
+        session=session,
+    )
+
+
+async def _block(
+    session,
+    ticket: Ticket,
+    row: AiTicketStep,
+    kind: str,
+    note: str,
+    data: dict,
+) -> None:
+    """The step cannot start: it waits, flagged, and starts by itself once the cause goes (a member is added or
+    resumed, the daily cap resets, the worktree is back)."""
+    row.state = "blocked"
+    row.note = note[:2000]
+    session.add(row)
+    await session.commit()
+    await _raise(
+        session,
+        ticket,
+        kind,
+        f"{row.label} cannot start",
+        f"{note} The board tries again by itself.",
+        {"step": row.label, **data},
+    )
+
+
+async def _unblocked(session, ticket_id: str, how: str) -> None:
+    for kind in BLOCKS:
+        await flags.resolve(session, ticket_id, kind, by="the board", how=how)
+
+
+async def tokens_used(session, wf: AiTicketWorkflow) -> int:
+    """Tokens the ticket's runs used since it started on this workflow."""
+    rows = (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.ticket_id == wf.ticket_id,
+                col(AiRun.queued_at) >= wf.created_at,
+            )
+        )
+    ).all()
+    return sum((r.tokens_in or 0) + (r.tokens_out or 0) for r in rows)
+
+
+async def _over_cap(session, wf: AiTicketWorkflow, ticket: Ticket) -> bool:
+    """D11: the ticket used the tokens a person allowed it: the workflow stops for them."""
+    cap = int(
+        ops.get(await get_settings(session, wf.project_id)).get("ticket_token_cap") or 0
+    )
+    if cap <= 0:
+        return False
+    used = await tokens_used(session, wf) - int(meta_of(wf).get("cap_base") or 0)
+    if used < cap:
+        return False
+    wf.state, wf.stop_reason = "stopped", "quota_cap"
+    wf.stop_detail = f"Used {used:,} tokens; the cap for one ticket is {cap:,}."
+    wf.updated_at = _now()
+    session.add(wf)
+    await session.commit()
+    await _raise(
+        session,
+        ticket,
+        "quota_cap",
+        "the ticket reached its token cap",
+        wf.stop_detail + " Let it go on, or stop it.",
+        {"used": used, "cap": cap},
+    )
+    return True
+
+
+async def resume(ticket_id: str, *, by: str) -> None:
+    """A person lets a workflow stopped at its token cap go on: it gets the cap again from here."""
+    async with database.async_session() as session:
+        wf = await session.get(AiTicketWorkflow, ticket_id)
+        if wf is None or wf.state != "stopped" or wf.stop_reason != "quota_cap":
+            raise WorkflowError("The workflow did not stop at its token cap.")
+        set_meta(wf, cap_base=await tokens_used(session, wf))
+        wf.state, wf.stop_reason, wf.stop_detail = "active", None, None
+        wf.updated_at = _now()
+        session.add(wf)
+        await session.commit()
+        await flags.resolve(
+            session, ticket_id, "quota_cap", by=by, how=f"{by} let it go on."
+        )
+    await advance(ticket_id)
+
+
+def _model_for(
+    step: dict, row: AiTicketStep, wf: AiTicketWorkflow, member: AiMember
+) -> tuple[str | None, str | None]:
+    """The step's model and effort: the template's; for a review, the depth's (the member's pack may set one per
+    depth), at high for a deep one; one level up on a second attempt at the same step (D17)."""
+    cfg = loads(member.config, {}) or {}
+    model, effort = step.get("model"), step.get("effort")
+    if row.role == "reviewer":
+        depth = wf.review_depth or step.get("depth") or "standard"
+        model = model or {**DEPTH_MODEL, **(cfg.get("depth_models") or {})}.get(depth)
+        if depth == "deep":
+            effort = effort or "high"
+    if row.attempt > 1:
+        retry = step.get("retry_model") or cfg.get("retry_model")
+        if retry:
+            model, effort = retry, "high"
+        elif row.role == "dev":
+            # Opus at high only on the second attempt at the same step, never on the first (pack Dev, C)
+            model, effort = "opus", "high"
+    return model, effort
+
+
+async def retry_blocked(project_id: str | None = None) -> int:
+    """Start again every step that waits on a cause that may have gone. Cheap: a blocked step that still cannot start
+    stays blocked and its flag is only refreshed."""
+    async with database.async_session() as session:
+        q = select(AiTicketStep).where(AiTicketStep.state == "blocked")
+        rows = (await session.exec(q)).all()
+        todo = []
+        for row in rows:
+            wf = await session.get(AiTicketWorkflow, row.ticket_id)
+            if (
+                wf is None
+                or wf.state != "active"
+                or row.seq < wf.seq_base
+                or (project_id and wf.project_id != project_id)
+            ):
+                continue
+            row.state = "pending"
+            session.add(row)
+            todo.append(row.ticket_id)
+        await session.commit()
+    for ticket_id in dict.fromkeys(todo):
+        await advance(ticket_id)
+    return len(todo)
+
+
+def _criteria(ticket: Ticket) -> list[str]:
+    out = []
+    for c in loads(ticket.acceptance_criteria, []) or []:
+        text = c.get("text") if isinstance(c, dict) else c
+        if text:
+            out.append(str(text))
+    return out
+
+
+async def _given(
+    session, ticket: Ticket, row: AiTicketStep, previous: AiTicketStep | None
+) -> dict:
+    """What a step may be given besides the previous note: the criteria, the Designer's hand-in (a person's approval
+    sits between it and the Build, so the previous note alone is only "Approved by …"), and what the previous
+    step's run did."""
+    rows = await steps_of(session, ticket.id)
+    design = next(
+        (
+            r.note
+            for r in reversed(rows)
+            if r.role == "designer" and r.state == "done" and r.seq < row.seq
+        ),
+        None,
+    )
+    transcript = None
+    if previous is not None and previous.run_id:
+        run = await session.get(AiRun, previous.run_id)
+        report = loads(run.report, {}) if run else {}
+        if report:
+            lines = [report.get("summary") or ""]
+            lines += [
+                f"- {c.get('text')}: {'met' if c.get('met') else 'not met'}"
+                + (f" ({c.get('evidence')})" if c.get("evidence") else "")
+                for c in report.get("criteria") or []
+                if isinstance(c, dict)
+            ]
+            if report.get("tests"):
+                lines.append(f"Tests: {json.dumps(report['tests'])[:600]}")
+            transcript = "\n".join(x for x in lines if x)[:3000]
+    return {"criteria": _criteria(ticket), "design": design, "transcript": transcript}
+
+
+def run_text(run: AiRun) -> str:
+    """What a run said at its end: its report's summary, its summary and its last message, each distinct text once
+    (the lines the board reads, `VERDICT:` and the like, may be in any of them)."""
+    report = loads(run.report, {}) or {}
+    return "\n".join(
+        dict.fromkeys(
+            x for x in (report.get("summary"), run.summary, report.get("final")) if x
+        )
+    )
 
 
 # ticket id -> [its lock, how many callers hold or wait for it]
@@ -615,9 +950,13 @@ async def _advance(ticket_id: str) -> None:
             return
         row = await current_step(session, ticket_id)
         if row is None:
-            wf.state = "done"
-            session.add(wf)
-            await session.commit()
+            await session.refresh(wf)
+            if (
+                wf.state == "active"
+            ):  # taken off its workflow meanwhile: it stays detached, not done
+                wf.state = "done"
+                session.add(wf)
+                await session.commit()
             return
         if row.state not in ("pending",):
             return
@@ -640,10 +979,20 @@ async def _advance(ticket_id: str) -> None:
         ).first()
         prev_note = previous.note if previous else None
         if row.kind == "person":
+            await _unblocked(session, ticket_id, f"{row.label} waits for a person.")
+            if row.key == "done" and await _done_by_board(session, wf, ticket, row):
+                return
             row.state = "waiting"
             row.started_at = _now()
             session.add(row)
             await session.commit()
+            cfg = ops.get(await get_settings(session, wf.project_id))
+            if row.key != "done" and (cfg.get("autonomy") or {}).get("approve") == "pm":
+                # the coordinator decides it as the person would (manager.approve)
+                from . import manager
+
+                manager.later(manager.approve(ticket_id, row.id))
+                return
             await _tell_person(session, ticket, row)
             if row.key == "done" and ticket.status not in ("review", "done"):
                 from services import tickets as svc_tickets
@@ -661,36 +1010,31 @@ async def _advance(ticket_id: str) -> None:
             return
         member = await resolve_member(session, wf.project_id, ticket_id, row.role)
         if member is None:
-            row.state = "blocked"
-            row.note = f"No member for the role {row.role} on this project."
-            session.add(row)
-            await session.commit()
-            await flags.open_flag(
+            await _block(
                 session,
-                ticket_id,
-                wf.project_id,
+                ticket,
+                row,
                 "no_member",
-                {"role": row.role, "step": row.label},
+                f"No member for the role {row.role} on this project.",
+                {"role": row.role},
             )
+            return
+        if await _over_cap(session, wf, ticket):
             return
         from . import runs
 
-        model, effort = step.get("model"), step.get("effort")
-        if row.role == "reviewer":
-            model = model or DEPTH_MODEL.get(
-                wf.review_depth or step.get("depth") or "standard"
-            )
-        if row.attempt > 1 and step.get("retry_model"):
-            model, effort = step["retry_model"], "high"
-        elif row.attempt > 1 and row.role == "dev":
-            # Opus at high only on the second attempt at the same step, never on the first (pack Dev, C)
-            model, effort = "opus", "high"
+        model, effort = _model_for(step, row, wf, member)
+        change = {}
         if ticket.assignee != member.id:
+            change["assignee"] = member.id
+        if ticket.status in ("backlog", "todo"):
+            change["status"] = (
+                "in-progress"  # an AI works on it now: the board shows it where it is
+            )
+        if change:
             from services import tickets as svc_tickets
 
-            await svc_tickets.update_ticket(
-                session, ticket.id, TicketUpdate(assignee=member.id)
-            )
+            await svc_tickets.update_ticket(session, ticket.id, TicketUpdate(**change))
         try:
             run = await runs.create_run(
                 session,
@@ -699,15 +1043,20 @@ async def _advance(ticket_id: str) -> None:
                 mode="work",
                 trigger="workflow",
                 started_by=wf.attached_by or "user",
-                instruction=_instruction(step, row, wf, prev_note, ticket),
+                instruction=_instruction(
+                    step,
+                    row,
+                    wf,
+                    prev_note,
+                    ticket,
+                    await _given(session, ticket, row, previous),
+                ),
                 model_override=model,
                 effort_override=effort,
+                wait_for_hold=True,  # another AI holding the ticket (a PM, a red-CI fix): the step waits its turn
             )
         except runs.RunError as exc:
-            row.state = "blocked"
-            row.note = str(exc)
-            session.add(row)
-            await session.commit()
+            await _block(session, ticket, row, "step_blocked", str(exc), {"why": "run"})
             return
         row.state = "active"
         row.member_id = member.id
@@ -715,6 +1064,7 @@ async def _advance(ticket_id: str) -> None:
         row.started_at = _now()
         session.add(row)
         await session.commit()
+        await _unblocked(session, ticket_id, f"{row.label} started.")
 
 
 _TASKS: set[asyncio.Task] = set()
@@ -807,17 +1157,21 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
                 row = await session.get(AiTicketStep, step_id)
                 if row is None or row.state != "active":
                     return
-                row.state = "blocked"
                 row.result = json.dumps(
                     {"checks": [], "no_commands": False, "no_folder": True}
                 )
-                row.note = (
+                await _block(
+                    session,
+                    await session.get(Ticket, ticket_id),
+                    row,
+                    "step_blocked",
                     "The check commands are set, but there is no folder to run them in: the ticket has no "
-                    "worktree and no AI member that worked on it has a working folder."
+                    "worktree and no AI member that worked on it has a working folder.",
+                    {"why": "no_folder"},
                 )
-                session.add(row)
-                await session.commit()
             return
+        async with database.async_session() as session:
+            await _unblocked(session, ticket_id, "The checks started.")
         results = []
         ok = True
         for name in ("lint", "build", "test"):
@@ -878,6 +1232,8 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
                 )
                 session.add(row)
                 await session.commit()
+        if ok and await _tdd_gate(ticket_id, evidence):
+            return
         if ok:
             await advance(ticket_id)
         else:
@@ -901,6 +1257,126 @@ async def _run_checks(ticket_id: str, step_id: str) -> None:
                     await session.commit()
         except Exception:  # noqa: BLE001
             logger.exception("Could not mark the checks of %s as failed", ticket_id)
+
+
+def _tdd_dev(rows: list[AiTicketStep], steps: list[dict]) -> AiTicketStep | None:
+    """The latest attempt of the step that must hand in a failing test run and a passing one."""
+    return next(
+        (
+            r
+            for r in reversed(rows)
+            if r.kind == "ai"
+            and r.state == "done"
+            and r.idx < len(steps)
+            and _step_defaults(steps[r.idx])["tdd"]
+        ),
+        None,
+    )
+
+
+async def _tdd_gate(ticket_id: str, evidence: dict) -> bool:
+    """Design I: no red run before the green one, the Dev step is not done. The choice waits at the last step with
+    everything else; when the PM runs the team the board first sends it back to the Dev once by itself. Returns
+    whether it sent the ticket back."""
+    async with database.async_session() as session:
+        wf = await session.get(AiTicketWorkflow, ticket_id)
+        cfg = ops.get(await get_settings(session, wf.project_id))
+        dev = _tdd_dev(await steps_of(session, ticket_id), _template_steps(wf))
+        if (
+            dev is None
+            or evidence.get("proven")
+            or not (cfg.get("tdd") or {}).get("required", True)
+            or dev.outcome == "accepted"
+        ):
+            return False
+        dev.outcome = "unproven"
+        session.add(dev)
+        sent = int(meta_of(wf).get("tdd_sent") or 0)
+        again = (cfg.get("manager") or {}).get("on") and sent < 1
+        if again:
+            set_meta(wf, tdd_sent=sent + 1)
+            session.add(wf)
+        await session.commit()
+    if not again:
+        return False
+    await send_back(
+        ticket_id,
+        to_role=dev.role,
+        note="There is no test-first evidence: "
+        + (evidence.get("why") or "no failing run of the test before the passing one.")
+        + " Write the test, run it and show it fail on an assertion, then make it pass with the same command.",
+        by="the board (test first)",
+        from_role="checks",
+    )
+    return True
+
+
+async def accept_tdd(ticket_id: str, *, by: str, rule_off: bool = False) -> None:
+    """At the last step: accept the work without test-first evidence just this once, or turn the rule off for the
+    project (design I)."""
+    async with database.async_session() as session:
+        wf = await session.get(AiTicketWorkflow, ticket_id)
+        if wf is None:
+            raise WorkflowError("The ticket has no workflow.")
+        dev = _tdd_dev(await steps_of(session, ticket_id), _template_steps(wf))
+        if dev is None or dev.outcome != "unproven":
+            raise WorkflowError("Nothing waits for test-first evidence.")
+        dev.outcome = "accepted"
+        dev.note = (
+            (dev.note or "") + f"\n\nAccepted without test-first evidence by {by}."
+        ).strip()
+        session.add(dev)
+        if rule_off:
+            settings = await get_settings(session, wf.project_id)
+            ops.update(settings, {"tdd": {"required": False}})
+            session.add(settings)
+        await session.commit()
+
+
+async def _done_by_board(
+    session, wf: AiTicketWorkflow, ticket: Ticket, row: AiTicketStep
+) -> bool:
+    """`autonomy.done = after_review`: the board moves the ticket to Done itself (which merges, D7) once the checks
+    passed, the test went red first and every review passed. Anything short of that waits for a person."""
+    cfg = ops.get(await get_settings(session, wf.project_id))
+    if (cfg.get("autonomy") or {}).get("done") != "after_review":
+        return False
+    latest: dict[int, AiTicketStep] = {}
+    for r in await steps_of(session, ticket.id):
+        if r.state != "superseded" and r.seq < row.seq:
+            latest[r.idx] = r
+    for r in latest.values():
+        if r.state not in ("done", "skipped"):
+            return False
+        if r.kind == "code" and r.outcome == "failed":
+            return False
+        if r.role == "reviewer" and r.outcome != "pass":
+            return False
+        if r.outcome in ("unproven", "no_evidence"):
+            return False
+    if not any(r.role == "reviewer" and r.state == "done" for r in latest.values()):
+        return False  # nobody reviewed it: a person does
+    from services import tickets as svc_tickets
+
+    from . import guard
+
+    # the person's own setting moves it, never the run whose end got here: the merge follows as for a person's move
+    tokens = guard.suspend()
+    try:
+        await svc_tickets.update_ticket(session, ticket.id, TicketUpdate(status="done"))
+    except ValueError as exc:  # Done refused (open criteria or test cases the project requires): a person decides
+        logger.info("The board could not move %s to Done: %s", ticket.id, exc)
+        return False
+    finally:
+        guard.leave(tokens)
+    await session.refresh(row)
+    row.state, row.outcome = "done", "board"
+    row.note = "Moved to Done by the board: the checks passed, the test went red first and the review passed."
+    row.started_at = row.started_at or _now()
+    row.ended_at = row.ended_at or _now()
+    session.add(row)
+    await session.commit()
+    return True
 
 
 async def send_back(
@@ -1154,11 +1630,7 @@ async def on_run_ended(run_id: str) -> None:
         # a step sent back, skipped or settled while its run went on: that run's end moves nothing
         if row is None or row.state != "active" or wf.state != "active":
             return
-        report = loads(run.report, {}) or {}
-        # the run's summary is often the report's own: each distinct text once
-        text = "\n".join(
-            dict.fromkeys(x for x in (report.get("summary"), run.summary) if x)
-        )
+        text = run_text(run)
         if run.state != "finished":
             diag = loads(run.diagnosis, {}) or {}
             row.state = "failed"
@@ -1180,6 +1652,13 @@ async def on_run_ended(run_id: str) -> None:
                 )
             else:
                 await session.commit()
+                if run.state in ("failed", "timed_out") and not (
+                    run.stop_code or ""
+                ).startswith("board_closed"):
+                    # a person's Stop, a pause or the board closing is not a failure the PM should retry
+                    from . import manager
+
+                    manager.later(manager.on_step_failed(run.ticket_id, row.id))
             return
         verdict = VERDICT.findall(text)
         row.state = "done"
@@ -1224,6 +1703,26 @@ async def on_run_ended(run_id: str) -> None:
                 wf.review_depth = m.group(1).lower()
                 wf.depth_by = "triage"
                 session.add(wf)
+            split = re.search(r"^\s*SPLIT:\s*(.+)$", text, re.IGNORECASE | re.MULTILINE)
+            settings = await get_settings(session, wf.project_id)
+            ticket = await session.get(Ticket, run.ticket_id)
+            if (
+                split
+                and (ops.get(settings).get("manager") or {}).get("on")
+                and not (
+                    ticket and ticket.parent_id
+                )  # a piece of a split is not split again
+            ):
+                # the coordinator splits it; the workflow waits until the pieces are done (manager.split)
+                wf.state, wf.stop_reason = "stopped", "split"
+                wf.stop_detail = split.group(1).strip()[:400]
+                session.add(wf)
+                session.add(row)
+                await session.commit()
+                from . import manager
+
+                manager.later(manager.split(run.ticket_id, wf.stop_detail))
+                return
         changes_asked = (
             row.role == "reviewer" and verdict and verdict[-1].upper() == "CHANGES"
         )
@@ -1242,7 +1741,49 @@ async def on_run_ended(run_id: str) -> None:
                 from_role="reviewer",
             )
             return
+        if row.role in EVIDENCE_ROLES and not await _has_evidence(
+            session, run.ticket_id, row.started_at
+        ):
+            key = f"evidence_{row.idx}"
+            if not meta_of(wf).get(key):
+                # testing with nothing to show is not done: once more, with the proof (design: show, do not tell)
+                set_meta(wf, **{key: 1})
+                session.add(wf)
+                await session.commit()
+                await send_back(
+                    run.ticket_id,
+                    to_role=row.role,
+                    note="There is no evidence on the ticket: give every test case you ran its proof (a screenshot or "
+                    "the command and its output), and put the screenshots of what you tried in a comment.",
+                    by="the board (evidence)",
+                    from_role="checks",
+                )
+                return
+            row.outcome = "no_evidence"
+            session.add(row)
+            await session.commit()
     await advance(run.ticket_id)
+
+
+EVIDENCE_ROLES = ("qa", "user_tester")
+_PROOF = ("![", "```", "http://", "https://")
+
+
+async def _has_evidence(session, ticket_id: str, since: str | None) -> bool:
+    """Whether the ticket carries proof made since the step began: a test case's evidence, or a comment with a
+    picture or a command's output."""
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return False
+    for tc in loads(ticket.test_cases, []) or []:
+        if any(p in str(tc.get("proof") or "") for p in _PROOF):
+            return True
+    for c in loads(ticket.comments, []) or []:
+        if (not since or (c.get("at") or "") >= since) and any(
+            p in str(c.get("text") or "") for p in _PROOF[:2]
+        ):
+            return True
+    return False
 
 
 async def decide_person_step(
@@ -1446,14 +1987,7 @@ async def on_arbitration_ended(run_id: str) -> None:
         wf = await session.get(AiTicketWorkflow, run.ticket_id) if run else None
         if run is None or wf is None or wf.arbitration_run_id != run_id:
             return
-        text = (
-            "\n".join(
-                x
-                for x in ((loads(run.report, {}) or {}).get("summary"), run.summary)
-                if x
-            )
-            or ""
-        )
+        text = run_text(run)
         found = VERDICT.findall(text)
         verdict = found[-1].upper() if found else "UNDECIDED"
         reason = (
@@ -1701,6 +2235,7 @@ async def view(session, ticket_id: str) -> dict | None:
         "depth_by": wf.depth_by,
         "depth_note": wf.depth_note,
         "rounds": json.loads(wf.rounds or "{}"),
+        "split": meta_of(wf).get("split") or [],
         "rulings": json.loads(wf.rulings or "[]"),
         "objections": json.loads(wf.objections or "[]"),
         "steps": [
@@ -1845,7 +2380,8 @@ async def skip_step(ticket_id: str, *, by: str, step_id: str | None = None) -> N
         # the skipped step's run is no longer wanted (its end finds the row skipped and moves nothing)
         await _cancel_runs(to_cancel, by=by, reason=f"The step was skipped by {by}.")
         how = f"{row.label} skipped"
-        await flags.resolve(session, ticket_id, "no_member", by=by, how=how)
+        for kind in BLOCKS:
+            await flags.resolve(session, ticket_id, kind, by=by, how=how)
         if was_stopped:
             # the stop is over: what it waited for no longer waits
             for kind in ("arbitration", "board_fault", "no_progress", "quota_cap"):

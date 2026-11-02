@@ -72,15 +72,19 @@ BUILTIN: list[dict] = [
             "Bash(git status:*)",
             "Bash(git diff:*)",
             "Bash(git log:*)",
+            # the files of a draw.io Diagram of a plan (no other shell)
+            "Write",
+            "Edit",
         ],
         "plugins": [],
-        "mcp": [],
+        "mcp": ["playwright"],  # to look at a design before deciding it
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
         "persona": (
             "You are the PM (coordinator) of this project. You get tickets ready (clarify, criteria, split), give work "
             "to the right AI, and when two AIs cannot agree you read both sides and rule: side with one, or split the "
             "ticket. You may propose a change to an acceptance criterion but never make one. You never edit code. The "
             "Board AI speaks for the people and outranks you; when you cannot decide, say so and it goes to a person. "
+            + "When you split or plan work, a draw.io Diagram of the pieces and what depends on what helps the person see it. "
             + _COMMON_RULES
         ),
     },
@@ -95,7 +99,14 @@ BUILTIN: list[dict] = [
         "ceiling": "todo",
         "writes": "ticket",
         "hands_in": "Acceptance criteria",
-        "allow": ["Read", "Glob", "Grep"],
+        "allow": [
+            "Read",
+            "Glob",
+            "Grep",
+            # the files of a draw.io Diagram or a Sketch, written before docs_write makes it (no shell)
+            "Write",
+            "Edit",
+        ],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -103,6 +114,7 @@ BUILTIN: list[dict] = [
             "You are the BA on this project. Turn the ticket's wish into acceptance criteria a tester can check: "
             "concrete, observable, one behaviour each, edge cases named. Read the code only to understand what exists; "
             "never change it. Ask a person when the wish is ambiguous instead of guessing. "
+            + "When a flow or the states of a feature are hard to follow in words, add a draw.io Diagram of it to the Docs page or ticket. "
             + _COMMON_RULES
         ),
     },
@@ -112,20 +124,22 @@ BUILTIN: list[dict] = [
         "glyph": "DS",
         "tagline": "Draws before anyone builds",
         "model": "opus",
-        "effort": "medium",
+        "effort": "high",
         "template": "developer",
         "ceiling": "todo",
         "writes": "canvas",
         "hands_in": "A mock-up for you to approve",
         "allow": ["Read", "Glob", "Grep"],
         "plugins": ["design", "ui-ux-pro-max", "frontend-design", "canvas-design"],
-        "mcp": ["figma"],
+        "mcp": ["figma", "playwright"],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
         "persona": (
-            "You are the Designer on this project. Before anyone builds, draw what the ticket asks on a canvas frame "
-            "(responsive, real copy, every state: empty, loading, error, many items) and hand it in for a person to "
-            "approve. Follow the project's design system. You do not write production code. "
-            + _COMMON_RULES
+            "You are the Designer on this project, judged on how your work looks as much as on what it covers. Design "
+            "what the ticket asks as responsive HTML frames on a Canvas with real copy and every state, following the "
+            "canvas design guide: context, a clear visual direction, tokens, then screens. Use good references, real "
+            "fonts and icons. Look at your own frames in the browser (Playwright) at phone and desktop width and fix "
+            "what looks unbalanced or plain before you hand in, with screenshots. You do not write production code. "
+            "The flow between screens is a draw.io Diagram. " + _COMMON_RULES
         ),
     },
     {
@@ -148,7 +162,9 @@ BUILTIN: list[dict] = [
             "You are Dev on this project. Write the failing test first and run it, then make the smallest change that "
             "makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file "
             "you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may "
-            "not change an acceptance criterion, only propose one. " + _COMMON_RULES
+            "not change an acceptance criterion, only propose one. When you change how the parts fit together (the "
+            "architecture, a data flow), update or add the draw.io Diagram that shows it in the docs. "
+            + _COMMON_RULES
         ),
     },
     {
@@ -222,7 +238,26 @@ BUILTIN: list[dict] = [
         "ceiling": "review",
         "writes": "nothing",
         "hands_in": "What it tried, and where it got stuck",
-        "allow": ["Read", "Glob", "Grep"],
+        "allow": [
+            "Read",
+            "Glob",
+            "Grep",
+            # start the app it tries (in the background) and drive it with the browser; no other shell
+            "Bash(npm ci:*)",
+            "Bash(npm install:*)",
+            "Bash(npm run dev:*)",
+            "Bash(npm run build:*)",
+            "Bash(npm run preview:*)",
+            "Bash(npm start:*)",
+            "Bash(npx vite:*)",
+            "Bash(uv run:*)",
+            "Bash(python3 -m http.server:*)",
+            "Bash(curl:*)",
+            "Bash(lsof:*)",
+            "Bash(kill:*)",
+            # screenshots and notes for a demo or a report
+            "Write",
+        ],
         "plugins": [],
         "mcp": ["playwright"],
         "personas": ["in a hurry", "first time here", "keyboard only", "on a phone"],
@@ -231,12 +266,18 @@ BUILTIN: list[dict] = [
             "You are a User tester. You play one kind of person ({plays}) using the real app in a browser through "
             "Playwright, on the port of the ticket's worktree, with a fresh browser profile. Try to do what the ticket "
             "is for, the way that person would; report what you tried, where you got stuck and what confused you, with "
-            "screenshots. You do not read or change the code. " + _COMMON_RULES
+            "screenshots. Start the app yourself in the background on that port (e.g. `npm run dev -- --port $PORT &`), "
+            "wait until it answers, and stop it when you are done. You do not read or change the code. "
+            + _COMMON_RULES
         ),
     },
 ]
 
 BUILTIN_KEYS = [p["key"] for p in BUILTIN]
+# The ready-made packs' version: raised when their persona or tools change, so a member made from an older one is
+# offered the update (v2: the Designer, BA and PM write the files of a canvas or a diagram, the User tester starts the
+# app, every role knows which drawing to use)
+BUILTIN_VERSION = 3  # v3: the Designer looks at its frames in a browser and starts from tokens; the PM judges design
 
 
 def _now() -> str:
@@ -281,7 +322,7 @@ async def list_packs(session, project_id: str) -> list[dict]:
             or {
                 **copy.deepcopy(p),
                 "id": f"builtin:{p['key']}",
-                "version": 1,
+                "version": BUILTIN_VERSION,
                 "builtin": True,
             }
         )
@@ -301,7 +342,7 @@ async def get_pack(session, project_id: str, key: str) -> dict | None:
         return to_dict(row)
     found = builtin(key)
     return (
-        {**found, "id": f"builtin:{key}", "version": 1, "builtin": True}
+        {**found, "id": f"builtin:{key}", "version": BUILTIN_VERSION, "builtin": True}
         if found
         else None
     )
@@ -317,6 +358,7 @@ _FIELDS = (
     "depth_models",
     "template",
     "permissions",
+    "permission_mode",
     "ceiling",
     "writes",
     "hands_in",
@@ -455,6 +497,8 @@ async def import_pack(session, project_id: str, data: dict, *, by: str) -> dict:
 
 _WRITES_CODE = ("worktree", "tests")
 _WRITE_TOOLS = ["Read", "Glob", "Grep", "Edit", "Write", "MultiEdit", "Bash"]
+# a canvas is made from a folder of HTML frames the Designer writes first (docs_write canvas_create): files, no shell
+_FILE_TOOLS = ["Edit", "Write", "MultiEdit"]
 
 
 def member_body(
@@ -476,6 +520,26 @@ def member_body(
     if pack.get("writes") in _WRITES_CODE:
         # A pack that changes code edits files and runs commands; the member's deny rules still apply
         allow += [t for t in _WRITE_TOOLS if t not in allow]
+    elif pack.get("writes") == "canvas":
+        allow += [t for t in _FILE_TOOLS if t not in allow]
+    from . import config_model as cm, plugins
+
+    catalogue = {c["key"]: c for c in plugins.CATALOGUE if c["kind"] == "mcp"}
+    extra: dict = {}
+    # the pack's MCP servers go on the member as they are (an unknown key is skipped)
+    servers = [
+        cm.normalize_server({**catalogue[k]["server"], "mode": "synced"})
+        for k in pack.get("mcp") or []
+        if k in catalogue
+    ]
+    if servers:
+        extra["mcp_servers"] = servers
+    for key in ("retry_model", "depth_models", "hands_in"):
+        if pack.get(key):
+            extra[key] = pack[key]
+    if pack.get("plugins"):
+        # marketplace plugins are installed per project by the apply step; the member only remembers which
+        extra["pack_plugins"] = list(pack["plugins"])
     body = {
         "name": name,
         "provider": "claude-code",
@@ -491,11 +555,184 @@ def member_body(
         "glyph": None,
         "description": pack.get("tagline"),
         "config": {
+            # the ready-made packs run with Bypass permissions (deny rules, the status ceiling and approvals still
+            # hold); Triage, which only reads and sorts, keeps the allow list
+            "permission_mode": pack.get("permission_mode")
+            or ("allowlist" if pack["key"] == "triage" else "bypass"),
             "effort": pack.get("effort"),
             "allow_rules": allow,
             "role": pack["key"],
-            "pack": {"key": pack["key"], "version": pack.get("version", 1)},
+            "pack": {
+                "key": pack["key"],
+                "version": pack.get("version") or BUILTIN_VERSION,
+            },
             **({"plays": plays} if plays else {}),
+            **extra,
         },
     }
     return {k: v for k, v in body.items() if v is not None}
+
+
+# what an update from the pack replaces on a member; its name, folder, account, model and paused state stay its own
+_FROM_PACK = (
+    "persona",
+    "template",
+    "ceiling",
+    "permissions",
+    "max_parallel",
+    "max_runs_per_day",
+    "description",
+)
+_CONFIG_FROM_PACK = (
+    "permission_mode",
+    "effort",
+    "allow_rules",
+    "role",
+    "pack",
+    "retry_model",
+    "depth_models",
+    "hands_in",
+    "pack_plugins",
+)
+
+
+async def member_pack(session, member_id: str) -> dict | None:
+    """Which pack a member was made from and whether a newer version of it is out, or None (not made from a pack)."""
+    from models import AiMember
+
+    profile = await session.get(AiMember, member_id)
+    cfg = json.loads(profile.config or "{}") if profile else {}
+    made = cfg.get("pack") or {}
+    if not made.get("key"):
+        return None
+    pack = await get_pack(session, profile.project_id, made["key"])
+    if pack is None:
+        return {
+            "key": made["key"],
+            "version": made.get("version", 1),
+            "latest": None,
+            "outdated": False,
+        }
+    latest = pack.get("version", 1)
+    return {
+        "key": made["key"],
+        "name": pack.get("name"),
+        "version": made.get("version", 1),
+        "latest": latest,
+        "outdated": latest > made.get("version", 1),
+    }
+
+
+async def update_member(session, member_id: str, *, by: str) -> dict:
+    """Bring a member made from a pack up to the pack's latest version: its persona, tools, MCP servers, ceiling and
+    permissions come from the pack; its name, folder, account and model stay as they are, and MCP servers a person
+    added stay too."""
+    from models import AiMember, Member
+
+    from . import audit
+
+    profile = await session.get(AiMember, member_id)
+    member = await session.get(Member, member_id)
+    state = await member_pack(session, member_id)
+    if profile is None or member is None or state is None:
+        raise ValueError("This AI member was not made from a role pack.")
+    pack = await get_pack(session, profile.project_id, state["key"])
+    if pack is None:
+        raise ValueError(f"The pack {state['key']} is gone.")
+    cfg = json.loads(profile.config or "{}")
+    body = member_body(
+        pack,
+        name=member.name,
+        working_dir=profile.working_dir,
+        account_id=profile.account_id,
+        plays=cfg.get("plays"),
+    )
+    for key in _FROM_PACK:
+        if key in body:
+            value = body[key]
+            setattr(profile, key, json.dumps(value) if key == "permissions" else value)
+    if "permissions" not in body:
+        profile.permissions = "{}"
+    fresh = body["config"]
+    for key in _CONFIG_FROM_PACK:
+        if key in fresh:
+            cfg[key] = fresh[key]
+        else:
+            cfg.pop(key, None)
+    pack_servers = {s["name"] for s in fresh.get("mcp_servers") or []}
+    catalogue = {
+        c["server"]["name"] for c in plugins_catalogue() if c.get("kind") == "mcp"
+    }
+    # the pack's servers as the pack has them; a server a person added (not one of the catalogue's) stays
+    cfg["mcp_servers"] = list(fresh.get("mcp_servers") or []) + [
+        srv
+        for srv in cfg.get("mcp_servers") or []
+        if srv.get("name") not in pack_servers and srv.get("name") not in catalogue
+    ]
+    profile.config = json.dumps(cfg)
+    session.add(profile)
+    await session.commit()
+    await audit.record(
+        profile.project_id,
+        "member_pack_updated",
+        "info",
+        member_id=member_id,
+        member_name=member.name,
+        on_behalf_of=by,
+        detail={
+            "pack": state["key"],
+            "from": state["version"],
+            "to": pack.get("version", 1),
+        },
+    )
+    return await member_pack(session, member_id)
+
+
+def plugins_catalogue() -> list[dict]:
+    """The catalogue of plugins and MCP servers (imported late: plugins imports packs)."""
+    from . import plugins
+
+    return plugins.CATALOGUE
+
+
+async def install_plugins(session, project_id: str, pack: dict, *, by: str) -> dict:
+    """The catalogue plugins a pack names, installed on the project once (a member made from the pack gets them by
+    its role). MCP servers ride on the member itself (member_body). Returns what was installed and what failed."""
+    from models import AiPlugin
+
+    from . import plugins
+
+    by_key = {c["key"]: c for c in plugins.CATALOGUE}
+    have = {
+        p.name
+        for p in (
+            await session.exec(
+                select(AiPlugin).where(AiPlugin.project_id == project_id)
+            )
+        ).all()
+    }
+    installed, failed = [], []
+    for key in pack.get("plugins") or []:
+        entry = by_key.get(key)
+        if (
+            entry is None
+            or entry["kind"] != "plugin"
+            or {key, entry["name"], entry.get("plugin")} & have
+        ):
+            continue
+        try:
+            plug = await plugins.install(
+                session,
+                project_id,
+                source_kind="marketplace",
+                source=entry["source"],
+                plugin=entry.get("plugin"),
+                skills=entry.get("skills"),
+                roles=entry["roles"],
+                by=by,
+            )
+            installed.append(plug.name)
+            have.add(plug.name)
+        except plugins.PluginError as exc:
+            failed.append({"plugin": key, "why": str(exc)})
+    return {"installed": installed, "failed": failed}

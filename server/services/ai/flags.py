@@ -16,6 +16,7 @@ KINDS = (
     "board_fault",
     "quota_cap",
     "no_member",
+    "step_blocked",  # a step could not start: its run was refused, or the Checks had no folder
 )
 
 

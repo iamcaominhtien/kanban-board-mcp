@@ -224,6 +224,32 @@ class SkipBody(BaseModel):
     step_id: Optional[str] = None
 
 
+class TddBody(BaseModel):
+    """Accept without test-first evidence: this once, or turn the rule off for the project."""
+
+    rule_off: bool = False
+
+
+@router.post("/tickets/{ticket_id}/ai/tdd/accept")
+async def post_tdd_accept(ticket_id: str, body: TddBody, session: Session) -> dict:
+    """Accept the work without test-first evidence just this once, or turn the rule off for the project."""
+    try:
+        await svc_workflow.accept_tdd(ticket_id, by=_by(), rule_off=body.rule_off)
+    except svc_workflow.WorkflowError as exc:
+        _fail(exc, 409)
+    return await svc_workflow.view(session, ticket_id)
+
+
+@router.post("/tickets/{ticket_id}/ai/workflow/resume")
+async def post_resume(ticket_id: str, session: Session) -> dict:
+    """Let a workflow stopped at its token cap go on."""
+    try:
+        await svc_workflow.resume(ticket_id, by=_by())
+    except svc_workflow.WorkflowError as exc:
+        _fail(exc, 409)
+    return await svc_workflow.view(session, ticket_id)
+
+
 @router.post("/tickets/{ticket_id}/ai/workflow/skip")
 async def post_skip(ticket_id: str, body: SkipBody, session: Session) -> dict:
     """Skip the step (no member for its role, or a person's choice) and go on."""

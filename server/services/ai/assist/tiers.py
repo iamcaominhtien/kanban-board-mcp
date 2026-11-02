@@ -35,6 +35,12 @@ TIERS: dict[str, tuple[str, bool]] = {
     "stop_run": (UNDO, False),
     "pause_member": (UNDO, False),
     "resume_member": (UNDO, False),
+    "create": (
+        UNDO,
+        False,
+    ),  # a new ticket (a piece of a split): Undo deletes it while nobody touched it
+    "delegate": (UNDO, False),  # the PM coordinates the ticket (D24)
+    "message": (FREE, False),  # a message to the AI working on a ticket (D20)
     # locked in the last tier
     "done": (ASK, True),
     "delete": (ASK, True),
@@ -90,6 +96,8 @@ def decide(
                 + (" (it cannot be moved out of this tier)" if key in LOCKED else "")
             )
     tickets = {ch.get("ticket") for ch in changes if ch.get("ticket")}
+    # each new ticket counts as one more ticket touched
+    tickets |= {("new", i) for i, ch in enumerate(changes) if ch.get("op") == "create"}
     # pausing or resuming AIs names members, not tickets: they count toward the same limit (else pausing every AI
     # one by one would be Pause all without asking)
     members = {

@@ -142,6 +142,33 @@ Lý do đưa lên đầu: Claude Code xoá transcript sau ~30 ngày, mỗi ngày
 - **8c. Đánh giá đội AI.** Project sandbox + repo mẫu cố định, 7 bộ bài, Haiku là chính, điểm theo thời gian.
 - Lệnh `wait` cho AI bên ngoài (đọc `/notifications/log`, chờ tới khi có sự kiện) có thể làm bất cứ lúc nào.
 
+### Giai đoạn 9 — Đội tự vận hành (D8, D11, D20, D21, D24; bổ sung sau khi đối chiếu D1–D26)
+
+Bản đầu của tài liệu này làm rơi phần nối các mảnh thành một đội tự chạy: ticket mới không ai nhận, PM chỉ phân xử, mọi thứ
+khác đi thẳng tới người. Giai đoạn này lấp chỗ đó (`services/ai/manager.py`, test `tests/test_ai_manager.py`).
+
+- **9a. Tự nhận việc (D8).** `ops.intake {on, status, since}`: ticket vào cột intake, không ai được giao, chưa có quy trình → gắn
+  `workflow_default`, Triage nhận (`triage_id` nếu chọn). Chỉ ticket tới sau khi bật (`since`); không có Triage thì bỏ qua bước đó.
+  Sự kiện tạo/đổi ticket + quét mỗi phút cho ticket bị lỡ.
+- **9b. PM quản lý (D24).** `ops.manager`: bước lỗi → board thử lại một lần → lần hai tới PM (`DECISION: RETRY|PERSON`), PM thử tối đa
+  hai lần rồi tới người; câu hỏi và xin quyền không ai nhận → PM làm delegate của Autopilot (trong mức rủi ro, giới hạn mỗi giờ);
+  Triage ghi `SPLIT:` → PM tách thành ticket con, mỗi con đi intake, ticket cha xong khi mọi con Done. Lỗi kỹ thuật của board vẫn tới người ngay.
+- **9c. Bước bị chặn tự chạy lại.** Thiếu member, run bị từ chối (tạm dừng, chạm giới hạn ngày), Checks không có thư mục: cờ + Needs you,
+  thử lại mỗi phút và ngay khi thêm hay mở lại member; cờ tự đóng khi bước chạy.
+- **9d. Mức tự quản.** `autonomy.done = after_review`: Checks qua, test đỏ trước, mọi review pass → board chuyển Done (merge như người làm).
+  Trần token mỗi ticket (`ticket_token_cap`, D11) → dừng cho người, *Let it go on*.
+- **9e. Test trước (thiết kế I).** Bước Dev không có run đỏ trước run xanh → `unproven`, không tính là xong; lựa chọn chờ ở bước cuối
+  (*Accept just this once* / *Turn the rule off*); bật PM thì board gửi lại Dev một lần.
+- **9f. Board AI quản lý (D20, D24).** Thêm `create` (tách việc), `message` (nhắn AI đang chạy), `delegate` (giao PM điều phối) vào khối hành động, theo mức rủi ro và có Undo.
+- **9g. GitHub tự xử lý (D21).** `github.auto`: CI đỏ do thay đổi và comment review tới Dev không cần lệnh thường trực.
+- **9i. Sau live test app thời tiết:** PM duyệt design (`autonomy.approve = pm`) như một design lead; tách theo tính năng,
+  các phần chạy lần lượt; quy trình Docs và Chore; bằng chứng bắt buộc (QA, User tester), review comment ngay trên sản phẩm;
+  pack v3 bypass (trừ Triage), mở web, plugin Claude Code của người dùng (`own_claude`), hướng dẫn thiết kế thành skill
+  `canvas-design` (Claude Code cắt MCP instructions ở 10.000 ký tự); cập nhật member theo pack; Live commentary; Flow đọc workflow.
+- **9h. Phần còn thiếu khác từ đợt đối chiếu:** pack mang MCP/plugin/model thử lại/model theo mức review vào member; bước được nhận
+  tiêu chí, bàn giao của Designer và báo cáo của run trước (`gives`); review Sâu ở effort high; quét repo lại khi CI/package đổi và
+  bước model nhẹ; evals đủ 7 bộ và chạy định kỳ; giữ máy thức khi AI chạy và kiểm tra run sau khi máy thức dậy; UI cho mọi setting mới.
+
 ## 4. Thứ tự, phụ thuộc và cách chạy
 
 ```

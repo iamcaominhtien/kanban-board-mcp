@@ -68,6 +68,7 @@ from . import mcp_sources
 from .mcp_sources import folder_servers
 from .context import (
     STATUS_LABELS,
+    _fence,
     RunContext,
     activity_block,
     delta_block,
@@ -1872,12 +1873,54 @@ async def _build_prompt_base(
             parts.append(activity)
     else:
         parts.append(f'<ticket id="{ticket.id}" trusted>Title: {ticket.title}</ticket>')
+    if run.mode == "ask":
+        live = await own_work_note(
+            session, run.ticket_id, run.member_id, exclude=run.id
+        )
+        if live:
+            parts.append(live)
     # A mention from another AI member (a chain hop) is data only, never instructions
     started_by_ai = run.started_by in names or bool(loads(run.chain, []))
     parts.append(
         instruction_block(ctx, run.instruction, person_trusted=not started_by_ai)
     )
     return system, "\n\n".join(parts), config
+
+
+async def own_work_note(
+    session, ticket_id: str, member_id: str, *, exclude: str | None = None
+) -> str | None:
+    """A question to a member while its work run on the same ticket holds their one conversation there (an ask run
+    or a ticket chat that cannot wait for it): the answer comes from another conversation, so it is told what that run
+    is doing now, to answer about the work as it really is."""
+    work = (
+        await session.exec(
+            select(AiRun)
+            .where(
+                AiRun.ticket_id == ticket_id,
+                AiRun.member_id == member_id,
+                AiRun.mode == "work",
+                col(AiRun.state).in_(["queued", "starting", "running", "needs_input"]),
+                AiRun.id != (exclude or ""),
+            )
+            .order_by(col(AiRun.queued_at).desc())
+        )
+    ).first()
+    if work is None:
+        return None
+    steps = [
+        f"- {st.get('at', '')} {st.get('kind', '')}: {(st.get('text') or '')[:200]}"
+        for st in loads(work.steps, [])[-15:]
+        if st.get("kind") not in ("system", "compact")
+    ]
+    return _fence(
+        "your work going on now",
+        f"You are also working on {ticket_id} right now, in run #{work.number} ({work.state}), a separate "
+        "conversation from this one. Answer about the work as it is going there. Its task:\n"
+        + redact((work.instruction or "")[:1500])
+        + "\n\nIts latest steps, oldest first:\n"
+        + ("\n".join(steps) or "(none yet)"),
+    )
 
 
 _WRITE_TOOLS = ["Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"]
@@ -2171,8 +2214,12 @@ async def _execute_cli_held(
         ticket_row = await session.get(Ticket, run.ticket_id)
         worktree = None
         if ticket_row is not None and not (agy or adapter):
+            from . import plugins as ai_plugins
+
             try:
-                if run.mode == "work":
+                # Triage and the PM sort and coordinate: they read the main checkout (or the ticket's worktree when
+                # one is there), never make one (plan: "Vai không gắn ticket ... đọc ở thư mục gốc")
+                if run.mode == "work" and ai_plugins.role_of(profile) not in READ_ROLES:
                     worktree = await worktrees.ensure(session, ticket_row, cwd)
                 else:
                     existing = await worktrees.for_ticket(session, run.ticket_id)
@@ -2283,6 +2330,20 @@ async def _execute_cli_held(
             from . import plugins as ai_plugins
 
             plugin_dirs += await ai_plugins.dirs_for(session, profile)
+            from . import board_skills
+
+            # the board's own skills (the canvas design guide), too long for the MCP instructions
+            plugin_dirs.append(board_skills.plugin_dir())
+            project_safe = (await get_settings(session, run.project_id)).safe_mode
+            if cfg_ops.get("own_claude", True) and not (
+                project_safe or profile.safe_mode
+            ):
+                # the person's own Claude Code plugins, as in their terminal (services/ai/own_claude.py)
+                from . import own_claude
+
+                plugin_dirs += [
+                    d for d in own_claude.plugin_dirs() if d not in plugin_dirs
+                ]
         if run_cfg and run_cfg.get("system"):
             system = f"{system}\n\nThis member's own instructions:\n{run_cfg['system']}"
         if worktree is not None:
@@ -2348,12 +2409,13 @@ async def _execute_cli_held(
             )
             edits = False
         # An owner's "Bypass permissions" (Claude Code and Antigravity): work runs only, never in safe mode. Deny
-        # rules and the board's own checks (status ceiling, approvals) still apply; the web stays off because its
-        # domain list needs the allow list the mode skips.
+        # rules and the board's own checks (status ceiling, approvals) still apply. The web is open as in a person's
+        # own Claude Code (references, docs, fonts): the blanket web denial the allow list adds is lifted, a deny
+        # rule the member was given for a site stays. What a page says is data, as everything an AI reads.
         # Antigravity's questions too: a denied command ends the whole run
         bypass = config.get("permission_mode") == "bypass" and not narrow and not safe
         if bypass:
-            denied += [d for d in _WEB_TOOLS if d not in denied]
+            denied = [d for d in denied if d not in _WEB_TOOLS]
         extra_flags = [
             f for f in (config.get("extra_flags") or []) if isinstance(f, str)
         ]
@@ -3366,6 +3428,13 @@ async def _finish(run_id: str, final_text: str) -> None:
         name = member.name if member else "AI member"
         report = loads(run.report, {})
         summary = (report.get("summary") or final_text or "").strip() or "Finished."
+        if report and final_text.strip() and final_text.strip() != summary:
+            # the AI's last message is kept beside its report: the lines a workflow reads (VERDICT:, DEPTH:,
+            # WORKFLOW:, SPLIT:, DECISION:) are often written there, not in the report
+            report["final"] = final_text.strip()[:4000]
+            run.report = json.dumps(report)
+            session.add(run)
+            await session.commit()
         duration = _duration(run)
         meta = {
             "run_id": run.id,
@@ -3425,7 +3494,7 @@ async def _finish(run_id: str, final_text: str) -> None:
     # A scheduled run moves to Review only when its "done when" checks pass (services/ai/schedules.py); a workflow step
     # never does: the workflow moves the ticket when it reaches its last step (services/ai/workflow.py)
     if (
-        trigger not in ("schedule", "workflow", "arbitration")
+        trigger not in ("schedule", "workflow", "arbitration", "manager")
         and profile
         and ceiling_rank(profile.ceiling) >= status_rank("review")
     ):
@@ -3691,7 +3760,7 @@ async def _end(
     if (
         run.mode == "work"
         and state == "finished"
-        and run.trigger not in ("workflow", "arbitration", "review")
+        and run.trigger not in ("workflow", "arbitration", "review", "manager")
     ):
         # an odd job with a reviewer: the reviewer looks at it now (D14)
         _after_odd_job(run.id)
@@ -3703,12 +3772,19 @@ async def _end(
     ):
         # the ticket's workflow moves on: next step, a send-back, or a stop (services/ai/workflow.py)
         _after_workflow_run(run.id, arbitration=run.trigger == "arbitration")
+    if run.trigger == "manager":
+        # the coordinator decided on a failed step or split a ticket (services/ai/manager.py)
+        from . import manager
+
+        manager.later(manager.on_run_ended(run.id))
     RT.wake.set()
     await _publish(force=True)
     return run
 
 
 _WORKFLOW_TASKS: set[asyncio.Task] = set()
+# roles that never change the code: their work runs read, never get a worktree of their own
+READ_ROLES = ("triage", "pm")
 
 
 def _after_odd_job(run_id: str) -> None:

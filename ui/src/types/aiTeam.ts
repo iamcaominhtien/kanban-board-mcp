@@ -287,9 +287,12 @@ export interface LiveRun {
 export interface FlowEdge {
   from: string;
   to: string;
-  kind: 'flow' | 'skip' | 'sent back' | 'report back';
-  /** Members a skip leaves out (usually between the two). */
+  /** `returned`: a workflow's first review round going back (normal, not counted as sent back). */
+  kind: 'flow' | 'skip' | 'sent back' | 'report back' | 'returned';
+  /** Members a skip leaves out (usually between the two), or a workflow's skipped steps. */
   skipped: string[];
+  /** `checks` on the loop from an AI to itself: the Checks sent its work back. */
+  via?: string | null;
   count: number;
   waitS: number | null;
   tickets: string[];
@@ -365,8 +368,20 @@ export interface Journey {
     endedReason: string | null;
     files: number;
     limitMin: number | null;
+    /** The workflow step this run did (null for an odd job). */
+    step?: string | null;
   }[];
-  arrows?: { runId: string; at: string; from: string; to: string; kind: string }[];
+  arrows?: {
+    runId: string;
+    at: string;
+    from: string;
+    to: string;
+    kind: string;
+    /** The workflow steps this hand-off went past (the kind is `skip`). */
+    skipped?: string[];
+    /** `checks` when the Checks sent the work back to the AI that did it. */
+    via?: string | null;
+  }[];
   touches?: {
     at: string;
     who: string;
@@ -521,6 +536,7 @@ export type ArrowKind =
   | 'report'
   | 'returned'
   | 'sent_back'
+  | 'skip'
   | 'ask'
   | 'answer'
   | 'perm'
@@ -542,6 +558,10 @@ export interface TimelineArrow {
   waitS: number | null;
   /** Times the same pair sent the work back (the ×N badge). */
   round: number;
+  /** The workflow steps a `skip` hand-off went past. */
+  skipped?: string[];
+  /** `checks` when the Checks sent the work back to the AI that did it (an arrow from a lifeline to itself). */
+  via?: string | null;
   label: string | null;
   /** Close events between the same two lifelines grouped into one. */
   count: number;

@@ -12,6 +12,7 @@ export function TddCard({ ticketId, view }: { ticketId: string; view: WorkflowVi
   const q = useTddEvidence(ticketId, !!dev);
   const [error, setError] = useState<string | null>(null);
   const send = useWorkflowMutation(ticketId, (note: string) => workflowApi.sendBack(ticketId, 'dev', note));
+  const accept = useWorkflowMutation(ticketId, (ruleOff: boolean) => workflowApi.acceptTdd(ticketId, ruleOff));
   if (!dev || !q.data) return null;
   const e = q.data;
   if (e.proven) {
@@ -64,6 +65,25 @@ export function TddCard({ ticketId, view }: { ticketId: string; view: WorkflowVi
       </div>
     );
   }
+  const unproven = dev.outcome === 'unproven';
+  // Taken without the evidence by a person: said once, in green, with no buttons left.
+  if (dev.outcome === 'accepted')
+    return (
+      <div className="wf-card wf-card-green" data-testid="tdd-card">
+        <div className="wf-line">
+          <b>No test-first evidence for {ticketId}</b>
+          <span className="wf-pill wf-pill-green" data-testid="tdd-accepted">
+            Accepted without it
+          </span>
+        </div>
+        <div className="wf-note" data-testid="tdd-why">
+          {e.why}
+        </div>
+        <div className="wf-note">
+          A person took the step without a red run and a green one. It is recorded on the ticket.
+        </div>
+      </div>
+    );
   // Not proven: only worth saying once the Dev step has had its turn.
   if (!['done', 'failed'].includes(dev.state) && !view.steps.some((s) => s.kind === 'code' && s.state !== 'pending'))
     return null;
@@ -77,10 +97,12 @@ export function TddCard({ ticketId, view }: { ticketId: string; view: WorkflowVi
         {e.why}
         {e.runsSeen > 0 ? ` (${e.runsSeen} run${e.runsSeen === 1 ? '' : 's'} looked at)` : ''}
       </div>
-      <div className="wf-note">
-        The step is <b>not marked done</b>. The pack says a red run and a green one, and prose is not either of them.
-        The choice below is not a stop of its own: it waits with everything else at the last step.
-      </div>
+      {unproven && (
+        <div className="wf-note">
+          The step is <b>not marked done</b>. The pack says a red run and a green one, and prose is not either of them.
+          The choice below is not a stop of its own: it waits with everything else at the last step.
+        </div>
+      )}
       <div className="wf-actions">
         <button
           type="button"
@@ -93,6 +115,40 @@ export function TddCard({ ticketId, view }: { ticketId: string; view: WorkflowVi
         >
           Send it back to {dev.memberName ?? 'Dev'}
         </button>
+        {unproven && (
+          <>
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm"
+              data-testid="tdd-accept"
+              disabled={accept.isPending}
+              onClick={() => {
+                setError(null);
+                accept.mutate(false, { onError: (x) => setError(extractError(x)) });
+              }}
+            >
+              Accept without it, just this once
+            </button>
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm"
+              data-testid="tdd-rule-off"
+              disabled={accept.isPending}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    'Turn the test-first rule off for this project? Every Dev step from now on is accepted without a red run.',
+                  )
+                )
+                  return;
+                setError(null);
+                accept.mutate(true, { onError: (x) => setError(extractError(x)) });
+              }}
+            >
+              Turn the rule off for this project
+            </button>
+          </>
+        )}
       </div>
       {error && (
         <div className="ai-error-text" role="alert">

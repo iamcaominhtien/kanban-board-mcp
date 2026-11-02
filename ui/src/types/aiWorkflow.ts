@@ -45,9 +45,11 @@ export interface WorkflowMetric {
 }
 
 export type WorkflowState = 'active' | 'stopped' | 'done' | 'detached';
-export type StopReason = 'no_progress' | 'board_fault' | 'quota_cap';
+export type StopReason = 'no_progress' | 'board_fault' | 'quota_cap' | 'split';
 export type StepState = 'pending' | 'active' | 'waiting' | 'blocked' | 'done' | 'failed' | 'skipped';
-export type StepOutcome = 'pass' | 'changes' | 'approved' | 'sent_back' | 'failed';
+/** `unproven`: a Dev step with no failing test run before the passing one; `accepted`: a person took it without;
+ * `board`: the Done step the board moved itself (autonomy.done = after_review). */
+export type StepOutcome = 'pass' | 'changes' | 'approved' | 'sent_back' | 'failed' | 'unproven' | 'accepted' | 'board';
 export type Verdict = 'reviewer' | 'dev' | 'split' | 'undecided';
 
 export interface CheckResult {
@@ -109,6 +111,8 @@ export interface WorkflowView {
   depthNote: string | null;
   /** Round counts per pair of roles. The keys are camel-cased on the way in, so only the values are used. */
   rounds: Record<string, number>;
+  /** The tickets a stopped-for-split workflow waits for. */
+  split: string[];
   rulings: Ruling[];
   objections: Objection[];
   steps: ViewStep[];

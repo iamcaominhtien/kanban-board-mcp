@@ -430,6 +430,18 @@ if mode == "rate_limit":
         }
     )
     sys.exit(1)
+fail_left = os.environ.get("FAKE_CLAUDE_FAIL_FILE")
+if (
+    fail_left
+    and os.path.exists(fail_left)
+    and os.environ.get("FAKE_CLAUDE_FAIL_STEP", "") in prompt_text
+):
+    # the step's run fails this many more times (the number in the file), then works
+    left = int(open(fail_left).read().strip() or 0)
+    if left > 0:
+        with open(fail_left, "w") as fh:
+            fh.write(str(left - 1))
+        mode = "fail"
 if mode == "fail":
     emit(
         {
@@ -459,14 +471,29 @@ if "Review depth:" in prompt_text and os.environ.get("FAKE_CLAUDE_REVIEW_FILE"):
     with open(path, "w") as fh:
         fh.write("\n".join(lines[1:]))
     final_text = f"Reviewed the change.\nVERDICT: {verdict}"
+elif "as the person would" in prompt_text and "You are the coordinator" in prompt_text:
+    final_text = f"Looked at the design.\nDECISION: {os.environ.get('FAKE_CLAUDE_APPROVAL', 'APPROVE every state is drawn')}"
+elif "failed twice" in prompt_text and "You are the coordinator" in prompt_text:
+    final_text = f"Looked at it.\nDECISION: {os.environ.get('FAKE_CLAUDE_DECISION', 'RETRY run the tests with -x first')}"
+elif "Split it by feature" in prompt_text:
+    # the test creates the pieces while the coordinator "works", then lets it end (FAKE_CLAUDE_SPLIT_GATE)
+    gate = os.environ.get("FAKE_CLAUDE_SPLIT_GATE")
+    end = time.time() + 20
+    while gate and time.time() < end and not os.path.exists(gate):
+        time.sleep(0.02)
+    final_text = f"Split it.\nSPLIT: {os.environ.get('FAKE_CLAUDE_SPLIT_KEYS', 'none')}"
 elif "You are the coordinator" in prompt_text:
     final_text = f"Read both sides.\nVERDICT: {os.environ.get('FAKE_CLAUDE_RULING', 'REVIEWER')}\nThe criterion asks for it."
 elif "DEPTH: light" in prompt_text and (
-    os.environ.get("FAKE_CLAUDE_DEPTH") or os.environ.get("FAKE_CLAUDE_WORKFLOW")
+    os.environ.get("FAKE_CLAUDE_DEPTH")
+    or os.environ.get("FAKE_CLAUDE_WORKFLOW")
+    or os.environ.get("FAKE_CLAUDE_SPLIT")
 ):
     final_text = f"Sorted it.\nDEPTH: {os.environ.get('FAKE_CLAUDE_DEPTH', 'standard')}"
     if os.environ.get("FAKE_CLAUDE_WORKFLOW"):
         final_text += f"\nWORKFLOW: {os.environ['FAKE_CLAUDE_WORKFLOW']}"
+    if os.environ.get("FAKE_CLAUDE_SPLIT"):
+        final_text += f"\nSPLIT: {os.environ['FAKE_CLAUDE_SPLIT']}"
 emit(
     {
         "type": "result",

@@ -353,6 +353,10 @@ async def create_ticket(
     session.add(ticket)
     await session.commit()
     await session.refresh(ticket)
+    # new work for the AI team: intake may put it on a workflow (services/ai/manager.py, D8)
+    from services.ai import manager as ai_manager
+
+    ai_manager.on_ticket(ticket.id)
     return ticket
 
 
@@ -589,6 +593,14 @@ async def update_ticket(
         from services.ai import workflow as ai_workflow
 
         await ai_workflow.on_ticket_done(ticket.id)
+        from services.ai import manager as ai_manager
+
+        ai_manager.later(ai_manager.on_ticket_done(ticket.id))
+    moved = bool(update_data.get("status")) and update_data["status"] != previous_status
+    if moved or ("assignee" in update_data and not ticket.assignee):
+        from services.ai import manager as ai_manager
+
+        ai_manager.on_ticket(ticket.id, moved=moved)
     if update_data.get("status") and update_data["status"] != previous_status:
         # hand the code over: Review pushes and opens the draft PR, Done merges, only when a person moved it (D7)
         from services.ai import guard as ai_guard

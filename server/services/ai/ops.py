@@ -19,6 +19,9 @@ DEFAULTS: dict = {
     # Start Claude Code with its input open (stream-json), so a message reaches a running AI at its next turn (D20,
     # spike S6). Off: a message rides on the AI's next board call.
     "live_messages": False,
+    # Load the person's own Claude Code plugins (installed for their user in ~/.claude) in every Claude Code run, so an
+    # AI on the board has what the same model has in their terminal (services/ai/own_claude.py)
+    "own_claude": True,
     # Phase 4 — worktrees and hand-over
     "worktrees": {
         "on": False,
@@ -36,12 +39,33 @@ DEFAULTS: dict = {
     # Phase 6 — workflows
     "workflow_default": "standard",  # a template key, or "" for none (hand work straight to one AI)
     "coordinator_id": None,  # the PM member that arbitrates (D12, D24)
-    "triage_id": None,
+    "triage_id": None,  # the Triage that takes new tickets; None: any member with the Triage role
+    # D8: a new ticket in this column, assigned to nobody, is put on `workflow_default` and Triage takes it. A ticket
+    # given straight to one AI stays an odd job; one given to a person is theirs.
+    "intake": {"on": False, "status": "todo"},
+    # How far the team goes without a person. done: "person" (D7: a person moves it to Done, which merges) or
+    # "after_review" (the board moves it to Done itself once Checks passed, the test went red first and the review
+    # said pass)
+    # approve: who decides a step that waits for a person before the last one (the design): "person" (D10) or "pm"
+    # (the coordinator looks at the hand-in, comments on it and approves or sends it back)
+    "autonomy": {"done": "person", "approve": "person"},
+    # D24: the coordinator (the PM) runs the team. A step that failed twice, an AI's question or permission request
+    # nobody picked up, and a ticket Triage says is several pieces of work go to it before they go to a person.
+    "manager": {
+        "on": False,
+        "grace_min": 0,  # minutes a question waits for a person before the PM takes it
+        "max_risk": "medium",
+        "per_hour_limit": 20,
+    },
+    # Design I: a Dev step hands in a failing test run and a passing one; without them it is not done
+    "tdd": {"required": True},
+    "ticket_token_cap": 0,  # tokens one ticket's workflow may use before it stops for a person (D11); 0: no cap
     # Phase 7 — the Board AI acts as the person by risk tier (D23); `tiers` lowers middle-tier actions to "free"
     "board_ai": {"acts": True, "tiers": {}},
     # Phase 8
     "knowledge_shared": False,  # also search the shared store
-    "github": {"on": False, "poll_min": 5},
+    # auto: red CI the PR's own change caused, and review comments on it, go to the ticket's Dev by themselves (D21)
+    "github": {"on": False, "poll_min": 5, "auto": True},
 }
 
 

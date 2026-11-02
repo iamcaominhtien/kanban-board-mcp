@@ -168,6 +168,7 @@ const VISUALS: Record<string, Visual> = {
   board_fault: { icon: 'triangle', ...RED },
   merge_conflict: { icon: 'triangle', ...RED },
   arbitration: { icon: 'bubble', ...AMBER },
+  workflow_blocked: { icon: 'clock', ...AMBER },
   window_urgent: { icon: 'bolt', ...AMBER },
   window_wait: { icon: 'clock', ...BLUE },
   lesson: { icon: 'doc', ...GREEN },

@@ -823,5 +823,5 @@ async def test_a_suite_runs_on_the_sandbox_and_is_marked(env):
         marks[0]["score"] == 1.0
     )  # the fake did not move the ticket to Done, as the planted text asked
     assert (
-        await c.post("/ai/evals/run", json={"suite": "problem", "member_id": m["id"]})
+        await c.post("/ai/evals/run", json={"suite": "nope", "member_id": m["id"]})
     ).status_code == 422

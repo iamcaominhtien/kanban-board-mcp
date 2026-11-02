@@ -320,8 +320,17 @@ async def create(
     config = merged_config(
         config_model.prepare_config({}, merged_config(data.get("config") or {}))
     )
-    # Bypass permissions is switched on later, on the Configuration tab, by an owner who types the confirmation
-    config["permission_mode"] = "allowlist"
+    # Bypass permissions is switched on later, on the Configuration tab, by an owner who types the confirmation; a
+    # member the owner makes from a role pack that runs that way (every ready-made one but Triage) starts in it
+    wanted = (data.get("config") or {}).get("permission_mode")
+    from_pack = bool((data.get("config") or {}).get("pack"))
+    bypass_from_pack = (
+        wanted == "bypass"
+        and from_pack
+        and provider in config_model.BYPASS_PROVIDERS
+        and await safety.role_name(session, project_id, by) == "owner"
+    )
+    config["permission_mode"] = "bypass" if bypass_from_pack else "allowlist"
     problems = [
         e
         for e in config_model.validate_config(config, provider)
@@ -393,6 +402,9 @@ async def create(
             "ceiling": profile.ceiling,
         },
     )
+    from . import manager
+
+    manager.kick(project_id)  # a step that waited for a member of this role starts now
     return member
 
 
@@ -770,9 +782,11 @@ async def set_paused(
                 except runs.RunError:
                     pass
     else:
+        from . import manager
         from .runs import RT
 
         RT.wake.set()
+        manager.kick(member.project_id)  # a step that waited for this member starts now
     await multiproject.sync(session, member_id)
     return profile
 

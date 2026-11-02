@@ -116,8 +116,12 @@ async def test_work_and_ask_runs_bypass_but_safe_mode_does_not(env, monkeypatch)
     work = _calls(record)[-1]
     assert _flag(work, "--permission-mode") == "bypassPermissions"
     denied = _flag(work, "--disallowedTools") or ""
-    # the Deny rules still stop things, and the web (its domain list needs the allow list) stays off
-    assert "Bash(rm -rf:*)" in denied and "WebFetch" in denied and "WebSearch" in denied
+    # the Deny rules still stop things; the web is open, as in a person's own Claude Code
+    assert (
+        "Bash(rm -rf:*)" in denied
+        and "WebFetch" not in denied
+        and "WebSearch" not in denied
+    )
     assert any("Bypass permissions" in s["text"] for s in run["steps"])
     # a question has the rights of work
     r = await c.post(

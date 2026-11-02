@@ -1,6 +1,7 @@
 """REST API of the AI team's tools (design/screens/ai-team-process.md B, C, D): skills and plugins installed from a
 source, the "Suggested for a role" catalogue, role packs, and the repository scan that gives a project a team."""
 
+import logging
 from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,6 +18,8 @@ from services.ai import plugins as svc_plugins
 from services.ai import repo_scan as svc_scan
 from services.ai.providers import merged_config
 from services.ai.store import loads
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ai"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -357,8 +360,45 @@ async def post_member_from_pack(
         )
     except ValueError as exc:
         _fail(exc)
+    _install_pack_plugins(project_id, pack, _by())
     profile = await session.get(AiMember, member.id)
     return await svc_members.describe(session, member, profile)
+
+
+def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
+    """The pack's plugins on the project, in the background (a clone takes a while; the member works without them
+    until they land)."""
+    import database
+    from services.ai import manager as ai_manager
+
+    async def go() -> None:
+        async with database.async_session() as session:
+            out = await svc_packs.install_plugins(session, project_id, pack, by=by)
+        if out["failed"]:
+            logger.warning(
+                "Pack plugins not installed on %s: %s", project_id, out["failed"]
+            )
+
+    ai_manager.later(go())
+
+
+@router.get("/ai/members/{member_id}/pack")
+async def get_member_pack(member_id: str, session: Session) -> dict | None:
+    """The pack a member was made from, and whether a newer version of it is out (None: not made from a pack)."""
+    if await session.get(AiMember, member_id) is None:
+        raise HTTPException(status_code=404, detail="AI member not found")
+    return await svc_packs.member_pack(session, member_id)
+
+
+@router.post("/ai/members/{member_id}/pack/update")
+async def post_member_pack_update(member_id: str, session: Session) -> dict:
+    """Bring a member up to its pack's latest version (its name, folder, account and model stay its own)."""
+    if await session.get(AiMember, member_id) is None:
+        raise HTTPException(status_code=404, detail="AI member not found")
+    try:
+        return await svc_packs.update_member(session, member_id, by=_by())
+    except ValueError as exc:
+        _fail(exc)
 
 
 # --------------------------------------------------------------------------- the repository scan
@@ -369,6 +409,8 @@ class ScanBody(BaseModel):
 
     folder: str
     trial: bool = True
+    # D19 step 2: a light model refines the code's suggestion (soft: without a Claude Code account it is skipped)
+    refine: bool = True
 
 
 @router.post("/projects/{project_id}/ai/scan", status_code=201)
@@ -377,7 +419,7 @@ async def post_scan(project_id: str, body: ScanBody, session: Session) -> dict:
     await _project(session, project_id)
     try:
         row = await svc_scan.run_scan(
-            session, project_id, body.folder, trial=body.trial
+            session, project_id, body.folder, trial=body.trial, refine=body.refine
         )
     except ValueError as exc:
         _fail(exc)

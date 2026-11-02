@@ -415,7 +415,16 @@ def test_the_design_guide_reaches_the_agent_and_the_ai_job():
     import kanban_mcp
     from services import canvas_design, canvas_proposals
 
-    assert canvas_design.GUIDE in kanban_mcp.build_instructions()
+    # Claude Code keeps only the first 10,000 characters of a server's instructions: the guide is not there, the
+    # instructions say where to load it, and every Claude Code run gets it whole as the canvas-design skill
+    instructions = kanban_mcp.build_instructions(True)
+    assert len(instructions) < 10_000
+    assert "canvas-design" in instructions and "design_guide" in instructions
+    assert canvas_design.GUIDE not in instructions
+    from services.ai import board_skills
+
+    skill_md = Path(board_skills.plugin_dir()) / "skills" / "canvas-design" / "SKILL.md"
+    assert skill_md.read_text() == canvas_design.SKILL_HEADER + canvas_design.GUIDE
     assert canvas_design.GUIDE in canvas_proposals.RULES
     # the skill file for Claude Code is this same text: one source
     skill = (
@@ -665,3 +674,10 @@ async def test_an_ai_run_cannot_read_or_write_private_places(
         path=str(home / ".config" / "y"),
     )
     assert ok["board"]["path"].endswith("y")
+
+
+async def test_docs_read_design_guide_gives_the_whole_guide():
+    from kanban_mcp.operations import design_guide
+    from services import canvas_design
+
+    assert (await design_guide())["guide"] == canvas_design.GUIDE

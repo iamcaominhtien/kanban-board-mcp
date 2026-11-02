@@ -128,6 +128,7 @@ const ARROW: Record<ArrowKind, { color: string; dash?: string; glyph: string; wo
   report: { color: '#9AA8A0', dash: '1.5 3', glyph: '↵', word: 'report back', label: '#3A4A3E' },
   returned: { color: '#8A6A12', dash: '5 3', glyph: '↵', word: 'returned (round 1)', label: '#8A6A12' },
   sent_back: { color: '#C4432A', dash: '5 3', glyph: '↵', word: 'sent back', label: '#A5321E' },
+  skip: { color: '#7C5CD6', glyph: '»', word: 'hand-off, a step skipped', label: '#5B3AA6' },
   ask: { color: '#B8860B', glyph: '?', word: 'asks you', label: '#7A5A06' },
   perm: { color: '#B8860B', glyph: 'lock', word: 'needs a permission', label: '#7A5A06' },
   answer: { color: '#1E2A22', glyph: '✓', word: 'answered', label: '#1E2A22' },
@@ -138,12 +139,13 @@ const ARROW: Record<ArrowKind, { color: string; dash?: string; glyph: string; wo
 };
 /** Work handed to a person is amber, like everything that waits for you (the design's "to human" arrow). */
 const TO_HUMAN = '#B8860B';
-const MOVES_WORK: ReadonlySet<ArrowKind> = new Set(['assign', 'mention', 'handoff', 'report', 'returned']);
+const MOVES_WORK: ReadonlySet<ArrowKind> = new Set(['assign', 'mention', 'handoff', 'skip', 'report', 'returned']);
 /** The Show menu's groups. */
 const HANDOFF_KINDS: ReadonlySet<ArrowKind> = new Set([
   'assign',
   'mention',
   'handoff',
+  'skip',
   'report',
   'returned',
   'sent_back',
@@ -634,6 +636,12 @@ export function TimelineBody(props: DrawProps) {
       a.from === 'you' || a.from === 'autopilot' ? null : own?.b.memberId === a.from ? own : barAt(barsOf(a.from), fy);
     const receiver =
       to === 'you' || to === 'autopilot' || to === 'docs' ? null : own?.b.memberId === to ? own : barAt(barsOf(to), ty);
+    if (a.from === to) {
+      // the Checks sent the work back to the AI that did it: a line down beside its lifeline, from one run to the next
+      const side = sender ?? receiver;
+      const x = side ? side.x + side.w + 12 : cx(to) + 18;
+      return { id: a.id, x1: x, y1: fy, x2: x, y2: ty };
+    }
     const { x1, x2 } = arrowEnds(cx(a.from), cx(to), sender ?? null, receiver ?? null);
     return { id: a.id, x1, y1: fy, x2, y2: ty };
   });
@@ -645,7 +653,7 @@ export function TimelineBody(props: DrawProps) {
     const d = shift.get(a.id) ?? 0;
     const recv = a.runId ? barById.get(a.runId)?.b : undefined;
     const underWay =
-      ['assign', 'mention', 'handoff'].includes(a.kind) &&
+      ['assign', 'mention', 'handoff', 'skip'].includes(a.kind) &&
       !!recv &&
       (recv.state === 'queued' || recv.state === 'starting') &&
       !pausedNow;
@@ -1723,8 +1731,15 @@ export function arrowLabel(
   const wait = a.waitS != null ? a.waitS / 60 : spanMs / 60000;
   const after = `after ${Math.max(Math.round(wait), 1)} min`;
   switch (a.kind) {
-    case 'sent_back':
-      return { text: a.round > 1 ? `sent back, ${ordinal(a.round)} time` : 'sent back', important: true };
+    case 'sent_back': {
+      const by = a.via === 'checks' ? ' by the checks' : '';
+      return { text: a.round > 1 ? `sent back${by}, ${ordinal(a.round)} time` : `sent back${by}`, important: true };
+    }
+    case 'skip':
+      return {
+        text: a.skipped?.length ? `skipped ${a.skipped.join(' and ')}` : 'a step skipped',
+        important: true,
+      };
     case 'returned':
       return { text: 'returned, round 1 (normal)', important: true };
     case 'ask':

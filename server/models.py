@@ -1509,7 +1509,7 @@ class AiTicketWorkflow(SQLModel, table=True):
     )  # active | stopped | done | detached
     stop_reason: Optional[str] = Field(
         default=None
-    )  # no_progress | board_fault | quota_cap
+    )  # no_progress | board_fault | quota_cap | split
     stop_detail: Optional[str] = Field(default=None)
     review_depth: Optional[str] = Field(default=None)  # light | standard | deep
     depth_by: Optional[str] = Field(default=None)  # triage | person
@@ -1523,6 +1523,8 @@ class AiTicketWorkflow(SQLModel, table=True):
     # The first step row of this workflow (rows before it belong to an earlier workflow of the ticket)
     seq_base: int = Field(default=0)
     attached_by: Optional[str] = Field(default=None)
+    # What the board decided along the way: {"cap_base": tokens, "tdd_sent": n, "split": [ids], "retried": [step ids]}
+    meta: str = Field(default="{}")
     created_at: str = Field(default_factory=_now_iso)
     updated_at: str = Field(default_factory=_now_iso)
 

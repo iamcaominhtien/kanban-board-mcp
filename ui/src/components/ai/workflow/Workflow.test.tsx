@@ -49,6 +49,7 @@ const view = (o: Partial<WorkflowView> = {}): WorkflowView => ({
   depthBy: 'triage',
   depthNote: null,
   rounds: {},
+  split: [],
   rulings: [],
   objections: [],
   steps: [
@@ -458,5 +459,114 @@ describe('the workflow table and the template editor', () => {
     fireEvent.click(within(ed).getByRole('button', { name: 'Add a step' }));
     fireEvent.change(within(ed).getByLabelText('Who does it'), { target: { value: '@you' } });
     expect(within(ed).getByTestId('editor-warning').textContent).toContain('more than twice');
+  });
+});
+
+describe('the team on its own', () => {
+  const unproven = () => {
+    wf = view();
+    wf.steps[1] = { ...wf.steps[1], state: 'done', outcome: 'unproven' };
+  };
+
+  it('offers to accept an unproven Dev step once, and says it is not done', async () => {
+    unproven();
+    mount(<TicketWorkflow ticket={ticket} />);
+    const card = await screen.findByTestId('tdd-card');
+    expect(card.textContent).toContain('not marked done');
+    expect(screen.getByTestId('wf-step-build').textContent).toContain('not proven');
+    fireEvent.click(within(card).getByRole('button', { name: 'Accept without it, just this once' }));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/tdd/accept', {}));
+  });
+
+  it('turns the rule off only after a confirmation', async () => {
+    unproven();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    mount(<TicketWorkflow ticket={ticket} />);
+    const button = await screen.findByRole('button', { name: 'Turn the rule off for this project' });
+    fireEvent.click(button);
+    expect(http.post).not.toHaveBeenCalled();
+    fireEvent.click(button);
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/tdd/accept', { ruleOff: true }));
+    confirm.mockRestore();
+  });
+
+  it('shows an accepted step as accepted, with no buttons and no "not marked done"', async () => {
+    wf = view();
+    wf.steps[1] = { ...wf.steps[1], state: 'done', outcome: 'accepted' };
+    mount(<TicketWorkflow ticket={ticket} />);
+    const card = await screen.findByTestId('tdd-card');
+    expect(screen.getByTestId('tdd-accepted').textContent).toBe('Accepted without it');
+    expect(card.textContent).not.toContain('not marked done');
+    expect(within(card).queryByRole('button', { name: 'Accept without it, just this once' })).toBeNull();
+    expect(screen.getByTestId('wf-step-build').textContent).toContain('accepted without proof');
+  });
+
+  it('keeps the accept buttons away when the Dev step was simply sent back', async () => {
+    wf = view();
+    wf.steps[1] = { ...wf.steps[1], state: 'done' };
+    mount(<TicketWorkflow ticket={ticket} />);
+    await screen.findByTestId('tdd-card');
+    expect(screen.queryByRole('button', { name: 'Accept without it, just this once' })).toBeNull();
+  });
+
+  it('lets a ticket stopped at its token cap go on', async () => {
+    wf = view({
+      state: 'stopped',
+      stopReason: 'quota_cap',
+      stopDetail: 'Used 210,000 tokens; the cap for one ticket is 200,000.',
+    });
+    mount(<TicketWorkflow ticket={ticket} />);
+    const card = await screen.findByTestId('stop-card');
+    expect(card.textContent).toContain('Used 210,000 tokens');
+    fireEvent.click(within(card).getByRole('button', { name: 'Let it go on' }));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow/resume'));
+  });
+
+  it('names the pieces a split ticket waits for', async () => {
+    wf = view({ state: 'stopped', stopReason: 'split', stopDetail: 'two pieces', split: ['KAN-2', 'KAN-3'] });
+    const open = vi.fn();
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <AiBoardContext.Provider
+          value={{
+            projectId: 'p1',
+            members: new Map([['m1', member]]),
+            runsByTicket: new Map(),
+            settings: null,
+            openTicket: open,
+          }}
+        >
+          <TicketWorkflow ticket={ticket} />
+        </AiBoardContext.Provider>
+      </QueryClientProvider>,
+    );
+    const pieces = await screen.findByTestId('split-pieces');
+    expect(pieces.textContent).toBe('Split into KAN-2 and KAN-3; it is done when they all are.');
+    expect(within(screen.getByTestId('stop-card')).queryByRole('button', { name: 'Let it go on' })).toBeNull();
+    fireEvent.click(within(pieces).getByRole('button', { name: 'KAN-3' }));
+    expect(open).toHaveBeenCalledWith('KAN-3');
+  });
+
+  it('says the board moved the ticket to Done', async () => {
+    wf = view({ state: 'done' });
+    wf.steps[4] = { ...wf.steps[4], state: 'done', outcome: 'board', endedAt: '2026-01-02T15:00:00Z' };
+    mount(<TicketWorkflow ticket={ticket} />);
+    expect((await screen.findByTestId('wf-by-board-done')).textContent).toContain('Moved to Done by the board');
+    expect(screen.getByTestId('who-held').textContent).toContain('Moved to Done by the board');
+  });
+
+  it.each([
+    ['run', 'Its run was refused.'],
+    ['no_folder', 'The Checks have no folder to run in.'],
+    ['failed', 'The PM could not get this step through and passed it to you.'],
+  ])('says why a step could not start (%s)', async (why, text) => {
+    wf = view();
+    wf.steps[1] = { ...wf.steps[1], state: 'blocked' };
+    flags = [{ id: 'f1', kind: 'step_blocked', data: { why }, open: true, createdAt: '2026-01-02T10:00:00Z' }];
+    mount(<TicketWorkflow ticket={ticket} />);
+    const note = await screen.findByTestId('wf-blocked-build');
+    expect(note.textContent).toContain(text);
+    expect(screen.getByTestId('wf-step-build').textContent).not.toContain('No Dev on this project');
   });
 });

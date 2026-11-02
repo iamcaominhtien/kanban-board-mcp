@@ -424,13 +424,42 @@ class EvalBody(BaseModel):
 
     suite: str
     member_id: str
+    model: Optional[str] = None  # haiku or sonnet; None: the member's own
 
 
 @router.post("/ai/evals/run")
 async def post_eval(body: EvalBody, session: Session) -> dict:
     """Start a suite on the sandbox project."""
     try:
-        return await svc_evals.start(session, body.suite, body.member_id, by=_by())
+        return await svc_evals.run_suite(
+            session, body.suite, body.member_id, by=_by(), model=body.model
+        )
+    except ValueError as exc:
+        _fail(exc)
+
+
+class EvalScheduleBody(BaseModel):
+    """Change the schedule: any of these."""
+
+    every_days: Optional[int] = None
+    suites: Optional[list[str]] = None
+    model: Optional[str] = None
+    member_id: Optional[str] = None
+
+
+@router.get("/ai/evals/schedule")
+async def get_eval_schedule(session: Session) -> dict:
+    """When the evals run by themselves (every_days 0: never)."""
+    return await svc_evals.get_schedule(session)
+
+
+@router.patch("/ai/evals/schedule")
+async def patch_eval_schedule(body: EvalScheduleBody, session: Session) -> dict:
+    """Change the schedule."""
+    try:
+        return await svc_evals.set_schedule(
+            session, body.model_dump(exclude_unset=True)
+        )
     except ValueError as exc:
         _fail(exc)
 

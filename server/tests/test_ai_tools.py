@@ -416,10 +416,11 @@ async def test_an_mcp_entry_of_the_catalogue_is_added_to_the_members_of_its_role
             json={"name": "Dev An", "working_dir": env["repo"]},
         )
     ).json()
+    # a member made from the User tester pack carries Playwright already (D16), so installing adds it to nobody new
     out = (
         await c.post(f"/projects/{pid}/ai/catalogue/playwright/install", json={})
     ).json()
-    assert out["mcp_added_to"] == [ut["id"]]
+    assert out["mcp_added_to"] == []
     from models import AiMember
 
     async with env["maker"]() as s:

@@ -65,6 +65,23 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 describe('RepositoriesSection settings', () => {
+  it('sets the Checks commands without the scan wizard', async () => {
+    setup({ ops: { commands: { test: 'npm test', lint: '', build: '' } } });
+    renderIt();
+    const test = (await screen.findByTestId('cmd-test')) as HTMLInputElement;
+    expect(test.value).toBe('npm test');
+    fireEvent.change(screen.getByTestId('cmd-lint'), { target: { value: ' npm run lint ' } });
+    fireEvent.blur(screen.getByTestId('cmd-lint'));
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { commands: { lint: 'npm run lint' } }),
+    );
+    fireEvent.change(screen.getByTestId('cmd-build'), { target: { value: 'npm run build' } });
+    fireEvent.blur(screen.getByTestId('cmd-build'));
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { commands: { build: 'npm run build' } }),
+    );
+  });
+
   it('shows a skeleton while loading, then the off note', async () => {
     setup({ ops: { worktrees: { on: false } } });
     renderIt();

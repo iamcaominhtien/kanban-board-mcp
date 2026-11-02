@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Notification, clipboard, ipcMain, dialog, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, Menu, Notification, clipboard, ipcMain, dialog, nativeImage, powerMonitor, powerSaveBlocker, shell } = require('electron');
 const os = require('os');
 const crypto = require('crypto');
 const path = require('path');
@@ -13,14 +13,17 @@ const {
   StartupProfiler,
   buildBackendLaunchSpec,
   buildExportCommand,
+  createPowerKeeper,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   openExternalSafely,
   openPathSafely,
   parseReadyPort,
+  readPreferences,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
   terminateBackendProcess,
+  writePreferences,
 } = require('./main-helpers');
 
 // Profiler records timestamps for each startup milestone.
@@ -39,6 +42,12 @@ let currentView = null;
 let notifier = null;
 // A notification clicked while no page was listening yet (the window had to be created): delivered when it is
 let pendingOpen = null;
+// "Keep awake while AI runs" (View menu), kept in a small JSON in the user data folder
+let preferences = null;
+const preferencesFile = () => path.join(app.getPath('userData'), 'preferences.json');
+const keepAwakeOn = () => (preferences || (preferences = readPreferences(preferencesFile()))).keepAwake !== false;
+// Polls the board while it is up and holds the computer awake while an AI runs; told when the computer wakes
+let powerKeeper = null;
 
 function startBackend() {
   profiler.mark('backend-spawn-start');
@@ -216,6 +225,7 @@ function refreshMenu() {
     backendRunning: Boolean(backendPort && backendProcess),
     windowOpen: Boolean(mainWindow && !mainWindow.isDestroyed()),
     currentView,
+    keepAwake: keepAwakeOn(),
     update: getUpdateState(),
     dispatch: handleMenuCommand,
   });
@@ -296,6 +306,11 @@ function handleMenuCommand(id, payload) {
       return undefined;
     case 'check-updates':
       return void checkForUpdatesFromMenu();
+    case 'keep-awake':
+      preferences = { ...(preferences || readPreferences(preferencesFile())), keepAwake: !keepAwakeOn() };
+      writePreferences(preferencesFile(), preferences);
+      if (powerKeeper) powerKeeper.tick(); // switching it off releases the computer at once
+      return void refreshMenu();
     default:
       return undefined;
   }
@@ -330,6 +345,19 @@ function openFromNotification(payload) {
   mainWindow.show();
   mainWindow.focus();
   if (payload) mainWindow.webContents.send('notifications:open', payload);
+}
+
+function ensurePowerKeeper() {
+  if (powerKeeper) return;
+  powerKeeper = createPowerKeeper({
+    powerSaveBlocker,
+    getPort: () => backendPort,
+    getApiSecret: () => apiSecret,
+    getKeepAwake: keepAwakeOn,
+  });
+  powerKeeper.start();
+  // After the computer slept the board looks at the runs it thinks are going and ends the ones whose CLI is gone
+  powerMonitor.on('resume', () => void powerKeeper.wake());
 }
 
 function ensureNotifier(port) {
@@ -463,6 +491,7 @@ function launchBackend() {
     .then((port) => {
       backendPort = port; // Set the global port immediately for any future lookups
       ensureNotifier(port);
+      ensurePowerKeeper();
 
       // VS Code MCP setup — one-time, packaged builds only
       const setupFlag = path.join(app.getPath('userData'), '.vscode-mcp-setup-done');
@@ -548,6 +577,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   if (notifier) notifier.stop();
+  if (powerKeeper) powerKeeper.stop();
   if (terminateBackendProcess(backendProcess)) {
     backendProcess = null;
   }

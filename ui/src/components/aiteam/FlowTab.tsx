@@ -7,6 +7,7 @@ import { TimelineTab } from './TimelineTab';
 import type { TimelineLink } from './timelineLink';
 import { NODE_H, NODE_Y, arcReach, teamMapHeight } from './teamMapLayout';
 import { PAUSE_COLOR, clockTime } from '../ai/pausedUi';
+import { LiveFeedSplit } from '../ai/live/LiveFeed';
 
 export interface FlowActions {
   onOpenTicket: (ticketId: string) => void;
@@ -78,21 +79,24 @@ function LiveStrip({
 
 /** One box per AI in a row, an arrow per pair: straight to the next one, an arc above for a skip or a report back,
  *  an arc below for work sent back (design/screens/ai-team.md, C). Longer arcs rise higher so labels do not collide. */
-function TeamMap({ map }: { map: FlowMap }) {
+export function TeamMap({ map }: { map: FlowMap }) {
   const nodes = map.nodes;
   const width = Math.max(nodes.length * (NODE_W + NODE_GAP) + 20, 480);
   const x = (i: number) => 20 + i * (NODE_W + NODE_GAP);
   const cx = (i: number) => x(i) + NODE_W / 2;
   const idx = new Map(nodes.map((n, i) => [n.id, i]));
   const pos = (id: string) => idx.get(id) ?? -1;
+  // an edge from an AI to itself is the Checks sending its work back: a loop under its box, drawn on its own
   const agg = (kind: FlowEdge['kind'], pred: (e: FlowEdge) => boolean) =>
-    map.edges.filter((e) => e.kind === kind && pos(e.from) >= 0 && pos(e.to) >= 0 && pred(e));
+    map.edges.filter((e) => e.kind === kind && pos(e.from) >= 0 && pos(e.to) >= 0 && e.from !== e.to && pred(e));
   const adjacent = agg('flow', (e) => pos(e.to) - pos(e.from) === 1);
   const skips = agg('skip', () => true);
   const longForward = agg('flow', (e) => pos(e.to) - pos(e.from) > 1);
   const backs = agg('flow', (e) => pos(e.to) < pos(e.from));
   const sent = agg('sent back', () => true);
+  const returned = agg('returned', () => true);
   const reports = agg('report back', () => true);
+  const loops = map.edges.filter((e) => e.from === e.to && pos(e.from) >= 0);
   const maxCount = Math.max(...map.edges.map((e) => e.count), 1);
   const w = (c: number) => (c / maxCount > 0.6 ? 3 : 2);
   const above = [
@@ -108,10 +112,12 @@ function TeamMap({ map }: { map: FlowMap }) {
   ].sort((a, b) => Math.abs(pos(a.e.to) - pos(a.e.from)) - Math.abs(pos(b.e.to) - pos(b.e.from)));
   const below = [
     ...backs.map((e) => ({ e, color: '#2E6F40', dash: undefined, marker: 'ah', label: `${e.count} hand-off back` })),
+    ...returned.map((e) => ({ e, color: '#8A6A12', dash: '5 4', marker: 'ahb', label: `${e.count} returned` })),
     ...sent.map((e) => ({ e, color: '#C4432A', dash: '5 4', marker: 'ahr', label: `${e.count} sent back` })),
   ].sort((a, b) => Math.abs(pos(a.e.to) - pos(a.e.from)) - Math.abs(pos(b.e.to) - pos(b.e.from)));
-  // as tall as the outermost arc and its label: with many hand-offs back the old fixed room cut the arcs off
-  const { top: M, height } = teamMapHeight(above.length, below.length);
+  // as tall as the outermost arc and its label: with many hand-offs back the old fixed room cut the arcs off; a loop
+  // under a box needs the room of the first arc
+  const { top: M, height } = teamMapHeight(above.length, Math.max(below.length, loops.length ? 1 : 0));
   const bottom = NODE_Y + NODE_H;
   return (
     <svg
@@ -126,6 +132,7 @@ function TeamMap({ map }: { map: FlowMap }) {
           ['ahr', '#C4432A'],
           ['ahy', '#9AA8A0'],
           ['ahp', '#7C5CD6'],
+          ['ahb', '#8A6A12'],
         ].map(([id, fill]) => (
           <marker
             key={id}
@@ -314,6 +321,28 @@ function TeamMap({ map }: { map: FlowMap }) {
             </g>
           );
         })}
+        {loops.map((e) => {
+          const c = cx(pos(e.from));
+          // a small loop to the right of the box's centre, its label beside it, clear of the arcs between boxes
+          const low = bottom + 26;
+          const color = e.kind === 'sent back' ? '#C4432A' : '#8A6A12';
+          return (
+            <g key={`l-${e.from}-${e.kind}`} data-testid={`map-loop-${e.from}`}>
+              <path
+                d={`M${c + 14} ${bottom} C${c + 4} ${low} ${c + 54} ${low} ${c + 44} ${bottom}`}
+                stroke={color}
+                strokeWidth={e.live ? 3 : 2}
+                fill="none"
+                strokeDasharray="5 4"
+                className={e.live ? 'at-live-edge' : undefined}
+                markerEnd={`url(#${e.kind === 'sent back' ? 'ahr' : 'ahb'})`}
+              />
+              <text x={c + 52} y={bottom + 20} fontSize="11.5" fontWeight="700" fill={color}>
+                {e.via === 'checks' ? `${e.count} back from checks` : `${e.count} back`}
+              </text>
+            </g>
+          );
+        })}
       </g>
     </svg>
   );
@@ -393,6 +422,12 @@ function MapView({ map, onPick }: { map: FlowMap; onPick: (ticketId: string) => 
           <b style={{ color: '#7C5CD6' }}>Purple</b> a step skipped.
         </span>
         <span>
+          <b style={{ color: '#8A6A12' }}>Brown dashed</b> returned in the first review round.
+        </span>
+        <span>
+          <b style={{ color: '#C4432A' }}>A loop under a box</b> the checks sent that AI&apos;s work back.
+        </span>
+        <span>
           <b style={{ color: '#5B6B60' }}>Grey dotted</b> report back, expected.
         </span>
         <span>
@@ -413,7 +448,15 @@ const ARROW_LOOK: Record<string, { stroke: string; dash?: string; marker: string
   returned: { stroke: '#8A6A12', dash: '5 4', marker: 'ahb' },
   'sent back': { stroke: '#C4432A', dash: '5 4', marker: 'ahr' },
   'report back': { stroke: '#9AA8A0', dash: '2 4', marker: 'ahy' },
+  skip: { stroke: '#7C5CD6', marker: 'ahp' },
 };
+
+/** What a journey arrow says on hover: its kind, the steps a workflow skipped, the Checks sending work back. */
+function arrowTitle(a: NonNullable<Journey['arrows']>[number]): string {
+  if (a.via === 'checks') return `${a.kind}: the checks failed the work`;
+  if (a.kind === 'skip') return `hand-off, skipped ${(a.skipped ?? []).join(' and ') || 'a step'}`;
+  return a.kind;
+}
 const LANE_H = 56;
 const LEFT = 92;
 const W = 1082;
@@ -433,7 +476,17 @@ function ticks(t0: number, t1: number): number[] {
   return out;
 }
 
-function Swimlanes({ j, selected, onSelect }: { j: Journey; selected: string | null; onSelect: (id: string) => void }) {
+/** One ticket's journey (design/screens/ai-team.md, D): a lane per AI and one for you, bars for runs, arrows for the
+ *  hand-offs (a skipped workflow step purple, a send-back dashed, the Checks' send-back a loop on the AI's own lane). */
+export function Swimlanes({
+  j,
+  selected,
+  onSelect,
+}: {
+  j: Journey;
+  selected: string | null;
+  onSelect: (id: string) => void;
+}) {
   const lanes = [
     { id: 'you', name: 'You', color: '#1E2A22' },
     ...(j.lanes ?? []).map((l) => ({ ...l, color: l.color ?? '#5B6B60' })),
@@ -470,6 +523,7 @@ function Swimlanes({ j, selected, onSelect }: { j: Journey; selected: string | n
             ['ahr', '#C4432A'],
             ['ahb', '#8A6A12'],
             ['ahy', '#9AA8A0'],
+            ['ahp', '#7C5CD6'],
           ].map(([id, fill]) => (
             <marker
               key={id}
@@ -516,16 +570,24 @@ function Swimlanes({ j, selected, onSelect }: { j: Journey; selected: string | n
           const x2 = px(target.start);
           const y2 = laneY(target.memberId) + 21;
           const look = ARROW_LOOK[a.kind] ?? { stroke: '#7B8A80', marker: 'ahg' };
+          // the Checks sending the work back to the same AI: a loop under its lane from one run to the next
+          const d =
+            lane === target.memberId
+              ? `M${x1} ${y1 + 13} C${x1 + 10} ${y1 + 26} ${x2 - 10} ${y2 + 26} ${x2 - 2} ${y2 + 13}`
+              : `M${x1} ${y1} C${x1 + 18} ${y1} ${x2 - 18} ${y2} ${x2 - 2} ${y2}`;
           return (
             <path
               key={`${a.runId}-${a.kind}`}
-              d={`M${x1} ${y1} C${x1 + 18} ${y1} ${x2 - 18} ${y2} ${x2 - 2} ${y2}`}
+              d={d}
               stroke={look.stroke}
               strokeWidth="1.6"
               fill="none"
               strokeDasharray={look.dash}
               markerEnd={`url(#${look.marker})`}
-            />
+              data-testid={`journey-arrow-${a.kind.replace(' ', '-')}`}
+            >
+              <title>{arrowTitle(a)}</title>
+            </path>
           );
         })}
         {(j.bars ?? []).map((b) => {
@@ -537,6 +599,7 @@ function Swimlanes({ j, selected, onSelect }: { j: Journey; selected: string | n
           const color = bad ? '#C4432A' : (lane?.color ?? '#5B6B60');
           return (
             <g key={b.runId} style={{ cursor: 'pointer' }} onClick={() => onSelect(b.runId)} data-testid="run-bar">
+              <title>{`${lane?.name ?? 'AI'} #${b.number}${b.step ? ` · ${b.step}` : ''}`}</title>
               <rect
                 x={x1}
                 y={y}
@@ -1095,7 +1158,8 @@ function OneTicket({
               <span>Hatched bar: waiting for you</span>
               <span>Red bar: failed</span>
               <span style={{ color: '#8A6A12' }}>Brown dashed arrow: returned in review round 1 (normal)</span>
-              <span style={{ color: '#C4432A' }}>Red dashed: sent back after round 1</span>
+              <span style={{ color: '#C4432A' }}>Red dashed: sent back after round 1, or by the checks</span>
+              <span style={{ color: '#7C5CD6' }}>Purple: a workflow step skipped</span>
               <span>Grey dotted: report back</span>
               <span>◆ start · by rule · needed · avoidable</span>
             </div>
@@ -1225,7 +1289,7 @@ export function FlowTab({
   if (!map && view !== 'timeline')
     return <div className="at-hint">{q.isError ? "Couldn't load the flow." : 'Drawing the team map…'}</div>;
   return (
-    <>
+    <LiveFeedSplit show={view !== 'ticket'} projectId={projectId} onOpenTicket={actions.onOpenTicket}>
       <div className="at-seg" style={{ marginLeft: 0, alignSelf: 'flex-start' }} role="tablist">
         <button
           type="button"
@@ -1296,6 +1360,6 @@ export function FlowTab({
           }}
         />
       ) : null}
-    </>
+    </LiveFeedSplit>
   );
 }

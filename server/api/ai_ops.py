@@ -169,8 +169,12 @@ async def get_ops(project_id: str, session: Session) -> dict:
 @router.patch("/projects/{project_id}/ai/ops")
 async def patch_ops(project_id: str, body: dict, session: Session) -> dict:
     """Change the project's AI team settings (only known keys are kept)."""
+    from services.ai import manager as ai_manager
+
     settings = await get_settings(session, project_id)
-    out = svc_ops.update(settings, body)
+    out = svc_ops.update(settings, ai_manager.stamp(body, svc_ops.get(settings)))
+    if "manager" in body or "coordinator_id" in body:
+        await ai_manager.sync_autopilot(session, settings, out)
     session.add(settings)
     await session.commit()
     return out

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { AssistDraft } from '../../types/assist';
+import type { AssistDraft, DraftChange } from '../../types/assist';
 import { STATUS_LABEL, TicketPill } from './assistUi';
 
 /** One change an answer made by itself, as the server records it: `{op, ticket, before, after}` and a few more. */
@@ -41,6 +41,12 @@ export function appliedWords(a: AppliedChange): string {
       return `put on the ${text(a.to)} workflow`;
     case 'depth':
       return a.after ? `review depth ${a.before ? 'changed' : 'set'} to ${cap(a.after)}` : 'review depth changed';
+    case 'create':
+      return 'created as a new ticket';
+    case 'message':
+      return 'told the AI that is working on it';
+    case 'delegate':
+      return 'handed to the PM';
     case 'run':
       return 'given to an AI to run';
     case 'stop_run':
@@ -51,6 +57,38 @@ export function appliedWords(a: AppliedChange): string {
       return 'AI member resumed';
     default:
       return a.op.replace(/_/g, ' ');
+  }
+}
+
+/** What a draft change of a team kind says before it is applied ("New ticket “title” under KAN-1"). */
+export function proposedWords(ch: DraftChange): ReactNode | null {
+  switch (ch.op) {
+    case 'create':
+      return (
+        <>
+          New ticket “{ch.title}”
+          {ch.parent ? (
+            <>
+              {' '}
+              under <TicketPill id={ch.parent} />
+            </>
+          ) : null}
+        </>
+      );
+    case 'message':
+      return (
+        <>
+          Tell the AI on <TicketPill id={ch.ticket} />: {ch.text}
+        </>
+      );
+    case 'delegate':
+      return (
+        <>
+          The PM takes <TicketPill id={ch.ticket} />: {ch.text}
+        </>
+      );
+    default:
+      return null;
   }
 }
 
@@ -116,9 +154,9 @@ export function DoneReceipt({
             ✓
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            {a.ticket ? (
+            {a.ticket || (a.op === 'create' && a.created) ? (
               <>
-                <TicketPill id={a.ticket} /> {appliedWords(a)}
+                <TicketPill id={String(a.op === 'create' ? (a.created ?? a.ticket) : a.ticket)} /> {appliedWords(a)}
               </>
             ) : (
               <span style={{ textTransform: 'none' }}>{cap(appliedWords(a))}</span>

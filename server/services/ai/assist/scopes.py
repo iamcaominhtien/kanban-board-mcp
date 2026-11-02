@@ -51,6 +51,9 @@ CORE_OPS = (
     "depth",
     "pause_member",
     "resume_member",
+    "create",
+    "message",
+    "delegate",
 )
 
 

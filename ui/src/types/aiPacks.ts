@@ -2,7 +2,7 @@
 
 export type PackModel = 'haiku' | 'sonnet' | 'opus';
 export type PackWrites = 'nothing' | 'ticket' | 'worktree' | 'tests' | 'canvas';
-export type WorkflowKey = 'standard' | 'feature_ui' | 'quick_fix' | 'research';
+export type WorkflowKey = 'standard' | 'feature_ui' | 'quick_fix' | 'research' | 'docs' | 'chore';
 export type HandoverKind = 'local' | 'pr' | 'branch';
 
 export interface Pack {
