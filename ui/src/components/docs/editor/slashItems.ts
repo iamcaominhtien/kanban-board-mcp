@@ -11,6 +11,8 @@ export interface SlashCtx {
   /** Set while the editor offers AI: picking a row runs it. `docs` is true when Docs AI is on for the project. */
   ai?: { run: (id: AiSlashId) => void; docs: boolean };
   pickImage: () => void;
+  /** Opens the file picker for any file (Excel, Word, PDF, zip…), inserted as a link to the stored file. */
+  pickFile?: () => void;
   newDiagram: () => void;
   newSketch: () => void;
   newCanvas: () => void;
@@ -201,6 +203,18 @@ export const SLASH_ITEMS: SlashItem[] = [
     run: (e, r, ctx) => {
       chain(e, r).run();
       ctx.pickImage();
+    },
+  },
+  {
+    id: 'file',
+    group: 'Blocks',
+    keywords: 'attach attachment upload excel xlsx word docx pdf zip',
+    label: 'File',
+    desc: 'Attach Excel, Word, PDF or any file',
+    tile: { icon: 'attach' },
+    run: (e, r, ctx) => {
+      chain(e, r).run();
+      ctx.pickFile?.();
     },
   },
   {
