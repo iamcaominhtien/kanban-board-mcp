@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793584728-77f0",
+  "canvas_version": "1793585400-3480",
   "exported": "2026-11-02",
   "files": {
     "AccountMenu.dc.html": {
@@ -645,12 +645,12 @@
       "h": 12020
     },
     "AiStoryFlow.dc.html": {
-      "bytes": 798990,
-      "sha256": "f69a18e4bc92c447ee6690bfa7563dc8428a704e9dfd267616fa11dad1d43ad3",
+      "bytes": 815161,
+      "sha256": "8609c84d26ee561448ca087b88b2363ece789ec4d6b22fa9aa7054be681c9ba4",
       "title": "Story, Flow by scope and Live commentary — a job the PM owns, one bar for Flow, the screens that ran without a design",
       "page": "screens_ai",
       "w": 1480,
-      "h": 34311
+      "h": 34360
     }
   }
 }
