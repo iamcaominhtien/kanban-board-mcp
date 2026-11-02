@@ -124,8 +124,13 @@ async def design_guide() -> dict:
 async def shared_guides() -> dict:
     """The board's shared guides for any role (in Claude Code they are its skills): {name: text} (issue #277)."""
     from services import shared_skills
+    from services.ai import board_skills
 
-    return shared_skills.guides()
+    out = shared_skills.guides()
+    for name in shared_skills.extra_files():
+        # the scripts and themes a guide refers to are files: say where they are on this machine
+        out[name] += f"\n\nThis guide's folder (scripts/, themes/, examples/): {board_skills.skill_dir(name)}\n"
+    return out
 
 
 async def permissions_guide() -> dict:

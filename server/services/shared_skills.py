@@ -244,10 +244,10 @@ renamed 'Sync pending' to 'Chưa gửi lên máy chủ'; the empty History now s
 
 OFFICE_FILES = (
     "office-files",
-    "How to make Excel, Word, PowerPoint and PDF files that work and look considered, and how to look at them before "
-    "handing in: real formulas, styles and layouts, content with a point, then rendering each sheet, page or slide to "
-    "an image to check it. Use whenever you create or change a .xlsx, .docx, .pptx or .pdf file.",
-    r"""# Office files: Excel, Word, PowerPoint, PDF
+    "How to make Excel, Word and PDF files that work and look considered, and how to look at any office file before "
+    "handing it in: real formulas and styles, then rendering each sheet, page or slide to an image to check it, on "
+    "whatever the machine has. Use whenever you create or change a .xlsx, .docx or .pdf file (decks: `slides`).",
+    r"""# Office files: Excel, Word, PDF (and looking at a deck)
 
 A file you hand in is opened by a person in Excel, Word or PowerPoint. It has to work there and read well there, and
 you have to have seen it, not assumed it.
@@ -282,6 +282,7 @@ see and render again. Use the first way the machine has (check with `command -v`
    `sudo apt install libreoffice`); installing software on the person's machine is their call. If they say no, hand in
    and say plainly that the file was not looked at.
 
+The `slides` skill's `scripts/render.py FILE --out DIR` does 1 to 3 in one command and says which way it used.
 A PDF becomes images with `pdftoppm -png -r 80 out/file.pdf out/page` (poppler) or, where poppler is missing, PyMuPDF
 (`pip install pymupdf`; `page.get_pixmap(dpi=80).save(...)`). In the report, say how you looked (LibreOffice,
 PowerPoint, Quick Look, an HTML approximation): only an image from LibreOffice or Office counts as "looked at in the
@@ -301,22 +302,22 @@ app". Never hand in a screenshot of something else.
   of contents work.
 - Tables with a header row, numbers right-aligned, page numbers, margins that leave room.
 
-## PowerPoint: a point, then a look
-Most bad decks fail on content before design.
-- **Story first.** Write the slide titles alone, in order: read together they must tell the whole argument. Each title
-  is a sentence that states the point ("Reminders tripled the glasses logged after 3 pm"), not a label ("Results").
-- **One idea per slide**, the evidence for it (a number, a chart, a picture), and little text. No walls of bullets,
-  no filler, no invented numbers: a missing fact is a visible placeholder.
-- **A look chosen for the subject**, not the default template: one or two typefaces, a small palette, generous
-  margins, the same grid on every slide, real images or drawn diagrams instead of clip-art. No gradients, no shadows on
-  everything, no stock icons in circles.
-- **Critique pass**: render the deck, look at the slides as thumbnails side by side, and fix the three slides that
-  look most like a template or say least.
+## PowerPoint
+A deck is its own craft: open the `slides` skill (the story, themes, the person's own template, pictures, and scripts
+that build and render a .pptx).
 
 ## Hand it in
 Attach the file and the rendered images (or the first pages) to the ticket or Docs page, and say what you checked.
 """,
 )
+
+def _slides() -> tuple[str, str, str]:
+    from services import slides_skill
+
+    return (slides_skill.NAME, slides_skill.DESCRIPTION, slides_skill.body())
+
+
+SLIDES = _slides()
 
 SKILLS: list[tuple[str, str, str]] = [
     WORKING_A_TICKET,
@@ -326,12 +327,20 @@ SKILLS: list[tuple[str, str, str]] = [
     BRAINSTORMING,
     END_USER_EYES,
     OFFICE_FILES,
+    SLIDES,
 ]
 
 
 def skill_files() -> dict[str, str]:
     """Each shared skill's SKILL.md: ``{name: text}``."""
     return {name: _header(name, desc) + body for name, desc, body in SKILLS}
+
+
+def extra_files() -> dict[str, dict[str, bytes]]:
+    """The files a shared skill carries beside its SKILL.md: ``{skill: {relative path: bytes}}``."""
+    from services import slides_skill
+
+    return {slides_skill.NAME: slides_skill.files()}
 
 
 def guides() -> dict[str, str]:

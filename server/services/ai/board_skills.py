@@ -72,13 +72,15 @@ def enabled_for(ops: dict, member_id: str | None) -> list[str]:
 
 def _skill_files() -> dict[str, dict[str, bytes]]:
     """The files a skill carries beside its SKILL.md: ``{skill: {relative path: bytes}}``."""
-    from services import canvas_design
+    from services import canvas_design, shared_skills
 
     return {
         "canvas-design": {
             "craft.md": canvas_design.CRAFT.encode(),
             **{f"examples/{p.name}": p.read_bytes() for p in canvas_design.examples()},
-        }
+        },
+        # the slides skill's scripts, themes and examples (issue #277)
+        **shared_skills.extra_files(),
     }
 
 
@@ -112,6 +114,12 @@ def plugin_dir(names: list[str] | None = None) -> str:
         for rel, data in files.items():
             _write(root / "skills" / name / rel, data)
     return str(root)
+
+
+def skill_dir(name: str) -> str:
+    """Where one of the board's skills is on this machine, with the files it carries (for an agent outside Claude
+    Code)."""
+    return str(Path(plugin_dir()) / "skills" / name)
 
 
 def examples_dir() -> str:

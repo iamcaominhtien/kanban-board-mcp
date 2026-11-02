@@ -20,6 +20,8 @@ SHARED = [
     "brainstorming",
     "end-user-eyes",
     "office-files",
+    # decks, asked for by the owner after the first office-files run (themes, templates, pictures)
+    "slides",
 ]
 
 
@@ -47,7 +49,11 @@ def test_an_outside_agent_reads_the_same_text_as_the_skill():
     root = Path(board_skills.plugin_dir())
     for name, text in guides.items():
         skill = (root / "skills" / name / "SKILL.md").read_text()
-        assert skill.startswith(f"---\nname: {name}\n") and skill.endswith(text)
+        body = shared_skills.guides()[name]
+        assert skill.startswith(f"---\nname: {name}\n") and skill.endswith(body)
+        assert text.startswith(body)
+    # a guide with files says where they are, so an outside agent can run its scripts
+    assert str(root / "skills" / "slides") in guides["slides"]
 
 
 def test_the_texts_carry_what_the_live_runs_got_wrong():
@@ -63,7 +69,14 @@ def test_the_texts_carry_what_the_live_runs_got_wrong():
         "Five seconds",
         "soffice --headless --convert-to pdf",
         "**Formulas, not typed results**",
-        "is a sentence that states the point",
+        "is a sentence that states",
+        # how to look at a file on any machine, and decks
+        "Quick Look",
+        "ai_run(action='ask')` whether to install LibreOffice",
+        "scripts/html_to_pptx.py",
+        "pptx_template.py inventory",
+        "only its subject has",
+        "licence",
     ):
         assert needle in text, needle
 
@@ -154,3 +167,24 @@ def test_an_outside_agent_is_told_where_the_guides_are():
     # and the core rules themselves, as a board run has them in its prompt
     for rule in shared_skills.CORE_RULES:
         assert rule in text
+
+
+def test_the_slides_skill_ships_its_scripts_and_themes():
+    from services import slides_skill
+
+    root = Path(board_skills.plugin_dir(["slides"])) / "skills" / "slides"
+    for rel in (
+        "scripts/html_to_pptx.py",
+        "scripts/pptx_template.py",
+        "scripts/render.py",
+        "themes/base.css",
+        "themes/ledger/sample.html",
+        "themes/ledger/sample.pptx",
+        "themes/ledger/preview.jpg",
+    ):
+        assert (root / rel).is_file(), rel
+    assert not list(root.rglob(".look")) and not list(root.rglob("__pycache__"))
+    # the themes table is made from the themes themselves
+    text = (root / "SKILL.md").read_text()
+    for t in slides_skill.themes():
+        assert f"`{t['key']}`" in text and t["fonts"]["office_body"] in text
