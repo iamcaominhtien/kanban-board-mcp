@@ -5,7 +5,8 @@ it reaches an AI as a skill instead, which Claude Code loads whole when the work
 skills work the same way). Today: `canvas-design`, the design guide for canvas frames (services/canvas_design.py),
 with `craft.md` and its exemplar boards in `examples/` (services/design_examples/): a skill can carry files, and a
 board to look at teaches the bar better than a paragraph; `drawio-diagrams` and `sketches`, how to draw a diagram,
-what to do with a person's Sketch and which tool fits (services/visual_guides.py, issue #267); `board-permissions`, what an AI may do and what to do
+what to do with a person's Sketch and which tool fits (services/visual_guides.py, issue #267); `docs-pages`, how to
+work in Docs (services/docs_guide.py, issue #268); `board-permissions`, what an AI may do and what to do
 when refused (services/permissions_guide.py); and the shared skills every role uses (services/shared_skills.py, issue
 #277): working a ticket, evidence and handing over, the repository and the machine, asking and writing, working
 together; and one skill per role (services/role_skills.py, issue #273), which only a member of that role gets.
@@ -27,6 +28,7 @@ NAME = "kanban-board"
 def _skills() -> dict[str, str]:
     from services import (
         canvas_design,
+        docs_guide,
         permissions_guide,
         role_skills,
         shared_skills,
@@ -40,6 +42,8 @@ def _skills() -> dict[str, str]:
         "sketches": visual_guides.SKETCH_HEADER + visual_guides.SKETCH,
         # what the AI may do, what needs a person, what to do when refused (issue #275)
         "board-permissions": permissions_guide.SKILL_HEADER + permissions_guide.GUIDE,
+        # how to work in Docs: pages vs comments, the Markdown kept, editing a part, files, comments, tickets (#268)
+        "docs-pages": docs_guide.SKILL_HEADER + docs_guide.GUIDE,
         # how any role works a ticket (issue #277)
         **shared_skills.skill_files(),
         # how each role does its own job (issue #273): only a member of that role gets its skill

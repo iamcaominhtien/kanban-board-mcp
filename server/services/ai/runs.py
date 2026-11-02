@@ -1896,6 +1896,9 @@ async def _build_prompt_base(
         activity = await _activity_for(session, run, names)
         if activity:
             parts.append(activity)
+        linked = await _linked_docs_block(session, ticket)
+        if linked:
+            parts.append(linked)
     else:
         parts.append(f'<ticket id="{ticket.id}" trusted>Title: {ticket.title}</ticket>')
     if run.mode == "ask":
@@ -1910,6 +1913,23 @@ async def _build_prompt_base(
         instruction_block(ctx, run.instruction, person_trusted=not started_by_ai)
     )
     return system, "\n\n".join(parts), config
+
+
+async def _linked_docs_block(session, ticket) -> str:
+    """The pages tied to the ticket, so a Dev reads the BA's spec on the page instead of guessing (#268)."""
+    from services import docs as svc_docs
+    from services.docs_ai import access as docs_ai_access
+
+    from .context import docs_block
+
+    try:
+        hidden = await docs_ai_access.hidden_page_ids(session, ticket.project_id)
+        return docs_block(
+            await svc_docs.linked_pages(session, ticket.id, hidden=hidden)
+        )
+    except Exception:  # noqa: BLE001 - extra context only
+        logger.warning("linked docs for %s failed", ticket.id, exc_info=True)
+        return ""
 
 
 async def own_work_note(

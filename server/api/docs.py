@@ -489,6 +489,42 @@ async def get_backlinks(page_id: str, session: Session) -> dict[str, Any]:
     return await svc.backlinks(session, page_id)
 
 
+@router.get("/docs/pages/{page_id}/work")
+async def get_page_work(page_id: str, session: Session) -> dict[str, Any]:
+    """The tickets tied to a page and what the AI on each is doing now (#268)."""
+    from services import docs_work
+
+    await svc.get_page(session, page_id)
+    return await docs_work.work_on_page(session, page_id)
+
+
+class AssignPageBody(BaseModel):
+    """Who gets the page, to write it or review it, and what is asked."""
+
+    member_id: str
+    kind: str = "review"
+    instruction: str | None = None
+
+
+@router.post("/docs/pages/{page_id}/assign", status_code=201)
+async def post_page_assign(
+    page_id: str, body: AssignPageBody, session: Session
+) -> dict[str, Any]:
+    """Give a page to an AI member to write or review: a linked ticket assigned to it, and its run (#268)."""
+    from fastapi import HTTPException
+
+    from services import docs_work
+
+    try:
+        out = await docs_work.assign_page(
+            session, page_id, body.member_id, body.kind, body.instruction
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    await board_events.publish("invalidate")
+    return out
+
+
 @router.get("/tickets/{ticket_id}/docs")
 async def get_ticket_docs(ticket_id: str, session: Session) -> list[dict[str, Any]]:
     """List the pages a ticket references or is linked to."""

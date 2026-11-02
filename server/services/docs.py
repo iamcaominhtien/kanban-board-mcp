@@ -1887,6 +1887,47 @@ async def docs_for_ticket(
     return out
 
 
+_ORIGIN_WORDS = {
+    "description": "the ticket's description links it",
+    "acceptance_criterion": "a criterion links it",
+    "test_case": "a test case links it",
+    "comment": "a comment links it",
+    "debug_note": "a work-log note links it",
+    "manual": "linked by hand",
+    "page": "the page mentions this ticket",
+    "canvas": "a canvas on the page is linked",
+}
+
+
+async def linked_pages(
+    session: AsyncSession, ticket_id: str, *, hidden: set[str] | None = None
+) -> list[dict[str, Any]]:
+    """The Docs pages tied to a ticket, one row per page, for an agent: {page_id, title, path, sections, why, version}.
+
+    `hidden`: page ids to leave out (pages hidden from AI). A page tied in several ways is one row with every reason."""
+    by_page: dict[str, dict[str, Any]] = {}
+    for r in await docs_for_ticket(session, ticket_id):
+        if hidden and r["page_id"] in hidden:
+            continue
+        row = by_page.setdefault(
+            r["page_id"],
+            {
+                "page_id": r["page_id"],
+                "title": r["title"],
+                "path": r["path"],
+                "sections": [],
+                "why": [],
+                "version": r["version"],
+            },
+        )
+        if r.get("section") and r["section"] not in row["sections"]:
+            row["sections"].append(r["section"])
+        why = _ORIGIN_WORDS.get(r["origin"], r["origin"])
+        if why not in row["why"]:
+            row["why"].append(why)
+    return list(by_page.values())
+
+
 async def _canvas_rows(session, ticket, pages, by_id, row, out) -> None:
     """A canvas shown in a ticket (inline or as a Docs page) is listed with the layers icon, as a referenced page is."""
     from models import Canvas

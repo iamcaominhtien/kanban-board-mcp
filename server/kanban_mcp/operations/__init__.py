@@ -63,6 +63,7 @@ from .docs import (
     delete_docs_comment,
     resolve_docs_comment,
     reopen_docs_comment,
+    upload_file,
 )
 from .diagrams import (
     list_project_diagrams,
@@ -82,6 +83,7 @@ from .pictures import picture
 from .canvases import (
     design_guide,
     diagram_guide,
+    docs_guide,
     permissions_guide,
     shared_guides,
     role_guide,
@@ -155,6 +157,7 @@ __all__ = [
     "save_sketch_files",
     "design_guide",
     "diagram_guide",
+    "docs_guide",
     "picture",
     "permissions_guide",
     "shared_guides",
@@ -188,6 +191,7 @@ __all__ = [
     "delete_docs_comment",
     "resolve_docs_comment",
     "reopen_docs_comment",
+    "upload_file",
     "list_idea_tickets",
     "create_idea_ticket",
     "get_idea_ticket",

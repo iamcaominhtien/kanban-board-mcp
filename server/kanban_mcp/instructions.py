@@ -25,9 +25,10 @@ _INSTRUCTIONS_IDEAS = """\
 """
 _INSTRUCTIONS_TAIL = """\
 - Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with \
-docs_write (create, update, move, ...). Send the `version` you read as base_version when updating; a stale one is rejected, \
-so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: \
-docs_read(comments) lists the threads, docs_write(comment, reply, resolve, ...) answers them.
+docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; \
+send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on \
+pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, \
+load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.
 - Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit \
 (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the \
 Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. "The sign-up flow and its screens" is both: \

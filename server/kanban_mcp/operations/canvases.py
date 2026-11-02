@@ -138,6 +138,13 @@ async def diagram_guide() -> dict:
     return visual_guides.diagram_guide()
 
 
+async def docs_guide() -> dict:
+    """How to work in Docs (in Claude Code it is the docs-pages skill; issue #268): {guide}."""
+    from services import docs_guide as guide
+
+    return guide.guide()
+
+
 async def shared_guides() -> dict:
     """The board's shared guides for any role (in Claude Code they are its skills): {name: text} (issue #277)."""
     from services import shared_skills
