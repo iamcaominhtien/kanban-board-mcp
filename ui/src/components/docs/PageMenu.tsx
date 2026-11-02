@@ -32,7 +32,7 @@ const GROUPS: Item[][] = [
     { action: 'history', label: 'Page history', icon: 'i39', kbd: 'H' },
     { action: 'export', label: 'Export as Markdown', icon: 'i43' },
   ],
-  [{ action: 'delete', label: 'Delete', icon: 'i12', kbd: 'Del', danger: true }],
+  [{ action: 'delete', label: 'Delete page', icon: 'i12', kbd: 'Del', danger: true }],
 ];
 
 /**

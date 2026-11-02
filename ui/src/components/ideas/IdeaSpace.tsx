@@ -351,7 +351,7 @@ export function IdeaSpace({
           </div>
           {askButton}
           <button type="button" className="is-btn" onClick={() => setTriage(true)} data-testid="inbox-button">
-            Inbox {inboxHere > 0 && <span className="is-count-pill">{inboxHere}</span>}
+            Inbox {inboxHere > 0 && <span className="is-count-pill is-count-pill-amber">{inboxHere}</span>}
           </button>
           {newIdeaButton}
           <NotificationBellButton />

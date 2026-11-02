@@ -184,6 +184,7 @@ export function AuditView({
           onClick={() => setShowRetention(!showRetention)}
           data-testid="audit-retention"
         >
+          <LineIcon name="clock" size={13} />
           Retention:{' '}
           {first.data?.retentionDays
             ? `${first.data.retentionDays === 365 ? '1 year' : `${first.data.retentionDays} days`}`
@@ -194,6 +195,7 @@ export function AuditView({
           href={`${resolveOrigin()}/projects/${projectId}/ai/audit/export?${exportQs}`}
           data-testid="audit-export"
         >
+          <LineIcon name="download" size={13} />
           Export{filtered ? ' filtered' : ''}
         </a>
       </div>
@@ -461,7 +463,9 @@ function EntryTable({
                   {m && <AiAvatar provider={m.provider} size={22} />}
                   <div>
                     <div style={{ fontWeight: 600 }}>{e.memberName || '—'}</div>
-                    {e.onBehalfOf && <div className="ai-muted">on behalf of {e.onBehalfOf}</div>}
+                    {e.onBehalfOf && e.onBehalfOf !== e.memberName && (
+                      <div className="ai-muted">on behalf of {e.onBehalfOf}</div>
+                    )}
                   </div>
                 </div>
               </td>

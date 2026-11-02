@@ -15,7 +15,7 @@
   padding: 0 12px;
   border-radius: 999px;
   background: #ffffff;
-  border: 1px solid #dce6df;
+  border: 1px solid var(--color-border);
   font-size: 12px;
   font-weight: 600;
   color: #3a4a3e;
@@ -45,7 +45,7 @@
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;
-  color: #2e6f40;
+  color: var(--color-forest);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -55,8 +55,8 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1.8px solid #dce6df;
-  border-top-color: #2e6f40;
+  border: 1.8px solid var(--color-border);
+  border-top-color: var(--color-forest);
   animation: spin 0.9s linear infinite;
 }
 
@@ -136,7 +136,7 @@
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .errorText {
@@ -144,7 +144,7 @@
   max-width: 400px;
   font-size: 13px;
   line-height: 1.5;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .btn {
@@ -156,7 +156,7 @@
   padding: 0 20px;
   border-radius: 8px;
   border: none;
-  background: #2e6f40;
+  background: var(--color-forest);
   color: #ffffff;
   font-family: inherit;
   font-size: 13px;
@@ -169,7 +169,7 @@
 }
 
 .btn:focus-visible {
-  outline: 2px solid #68ba7f;
+  outline: 2px solid var(--color-sage);
   outline-offset: 2px;
 }
 
@@ -187,7 +187,7 @@
   padding: 0 10px;
   border-radius: 999px;
   background: #f1f3f1;
-  border: 1px solid #dce6df;
+  border: 1px solid var(--color-border);
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   font-weight: 500;
@@ -223,13 +223,13 @@
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .firstRunText {
   margin: -6px 0 0;
   font-size: 13px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .field {
@@ -252,12 +252,12 @@
   background: #ffffff;
   font-family: inherit;
   font-size: 14px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .input:focus {
   outline: none;
-  border-color: #2e6f40;
+  border-color: var(--color-forest);
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.18);
 }
 
@@ -267,7 +267,7 @@
 
 .hint {
   font-size: 11.5px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .fieldError {
@@ -279,7 +279,7 @@
   height: 40px;
   border-radius: 8px;
   border: none;
-  background: #2e6f40;
+  background: var(--color-forest);
   color: #ffffff;
   font-family: inherit;
   font-size: 14px;

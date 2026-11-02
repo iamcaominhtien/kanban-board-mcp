@@ -11,7 +11,15 @@ import { AiFillPanel, type AiFilled } from './AiFillPanel';
 import { AccountPicker } from './accounts/AccountPicker';
 import { AccountNote } from './accounts/AccountBanner';
 import { GreyChip, NotReadyChip } from './accounts/AccountChip';
-import { accountReady, accountsFor, runsNotReady, typeChip, usesAccounts } from '../../utils/memberAccount';
+import {
+  CLI_OF_PROVIDER,
+  accountReady,
+  accountsFor,
+  runsNotReady,
+  typeChip,
+  usesAccounts,
+} from '../../utils/memberAccount';
+import { AccountBadge } from './accounts/AccountParts';
 import { LineIcon } from '../ui/LineIcon';
 
 interface MemberPreset {
@@ -1163,8 +1171,12 @@ function Group({
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700 }}>{title}</span>
-        <span className="ai-label">{tag}</span>
+        <span className="ai-label ai-label-dark" style={{ fontSize: 11 }}>
+          {title}
+        </span>
+        <span className="ai-label" style={{ fontWeight: 500 }}>
+          {tag}
+        </span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 8 }}>{children}</div>
     </div>
@@ -1198,14 +1210,65 @@ function TypeOption({
       style={wide ? { gridColumn: '1 / -1' } : undefined}
       data-testid={`ai-type-${p}`}
     >
-      <AiAvatar provider={p} size={30} />
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: chip ? 1 : undefined, textAlign: 'left' }}>
+      {CLI_OF_PROVIDER[p] ? (
+        <AccountBadge cli={CLI_OF_PROVIDER[p]!} label={PROVIDERS[p].label} size={30} />
+      ) : p === 'mcp-client' ? (
+        <span
+          aria-hidden="true"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            background: '#5B6B6024',
+            color: '#5B6B60',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M4 13l2.5-7h11L20 13M4 13v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5M4 13h4.5l1 2h5l1-2H20" />
+          </svg>
+        </span>
+      ) : (
+        <AiAvatar provider={p} size={30} />
+      )}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, textAlign: 'left' }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>{PROVIDERS[p].label}</span>
         <span className="ai-muted" style={{ fontSize: 11.5 }}>
           {sub ?? PROVIDERS[p].sub}
         </span>
       </span>
       {chip}
+      {active && (
+        <span
+          aria-hidden="true"
+          data-testid={`ai-type-check-${p}`}
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            background: '#2E6F40',
+            color: '#fff',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <LineIcon name="check" size={11} strokeWidth={2.6} />
+        </span>
+      )}
     </button>
   );
 }

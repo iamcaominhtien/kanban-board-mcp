@@ -138,7 +138,7 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
   const summary =
     total === 0
       ? '0 references'
-      : `${plural(total, 'reference')} from ${[pages.length ? plural(pages.length, 'page') : '', tickets.length ? plural(tickets.length, 'ticket') : ''].filter(Boolean).join(' and ')}`;
+      : `${plural(total, 'reference')} from ${[pages.length ? plural(pages.length, 'page') : '', tickets.length ? plural(new Set(tickets.map((t) => t.ticketId)).size, 'ticket') : ''].filter(Boolean).join(' and ')}`;
 
   return (
     <section

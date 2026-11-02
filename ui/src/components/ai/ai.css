@@ -515,6 +515,10 @@
   background: #f1f8f3;
   box-shadow: 0 0 0 1px #2e6f40 inset;
 }
+.ai-option-tint {
+  border-color: #f1f8f3;
+  box-shadow: none;
+}
 .ai-option:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -650,6 +654,7 @@
   background: #fff;
 }
 .ai-tile-v {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 22px;
   font-weight: 800;
   margin-top: 4px;
@@ -819,6 +824,7 @@
   color: #9aa8a0;
   padding: 8px 10px;
   border-bottom: 1px solid #e3e8e5;
+  background: #f6faf7;
 }
 .ai-table td {
   padding: 9px 10px;

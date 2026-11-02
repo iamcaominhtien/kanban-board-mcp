@@ -368,7 +368,9 @@ export function AssistDock() {
             />
             {b?.name ? (
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {b.name} · {b.state === 'ready' ? 'online' : (b.status?.label?.toLowerCase() ?? 'unavailable')}
+                {b.name}
+                {b.providerLabel ? ` (${b.providerLabel})` : ''} ·{' '}
+                {b.state === 'ready' ? 'online' : (b.status?.label?.toLowerCase() ?? 'unavailable')}
               </span>
             ) : standby ? (
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

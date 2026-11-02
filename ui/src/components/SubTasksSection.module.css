@@ -22,21 +22,21 @@
   flex-grow: 1;
   height: 4px;
   border-radius: 2px;
-  background: #dce6df;
+  background: var(--color-border);
   overflow: hidden;
   max-width: 120px;
 }
 
 .progressBarFill {
   height: 100%;
-  background: #2e6f40;
+  background: var(--color-forest);
   transition: width 0.2s ease;
 }
 
 .progressCount {
   font-size: 11px;
   font-weight: 600;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .cardContainer {
@@ -91,7 +91,7 @@
 }
 
 .checkBtn:hover .checkOpen {
-  border-color: #2e6f40;
+  border-color: var(--color-forest);
 }
 
 .text {
@@ -107,7 +107,7 @@
   flex-grow: 1;
   min-width: 0;
   font-size: 13px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   text-decoration: line-through;
   text-decoration-color: #c7d2cb;
   cursor: pointer;
@@ -160,8 +160,8 @@
 }
 
 .addDashedBtn:hover {
-  border-color: #2e6f40;
-  color: #2e6f40;
+  border-color: var(--color-forest);
+  color: var(--color-forest);
 }
 
 .inputBox {
@@ -169,7 +169,7 @@
   align-items: center;
   gap: 9px;
   padding: 5px 8px;
-  border: 1px solid #2e6f40;
+  border: 1px solid var(--color-forest);
   border-radius: 6px;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
   background: #ffffff;
@@ -181,7 +181,7 @@
   outline: none;
   font-family: inherit;
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   background: none;
 }
 
@@ -203,7 +203,7 @@
 
 .actionBtnCancel:hover {
   background: #eef3ef;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .actionBtnSave {
@@ -211,7 +211,7 @@
   height: 20px;
   border-radius: 5px;
   border: none;
-  background: #2e6f40;
+  background: var(--color-forest);
   display: flex;
   align-items: center;
   justify-content: center;

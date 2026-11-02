@@ -45,6 +45,7 @@ function VerdictChip({ v }: { v: Verdict | null }) {
 
 function summary(h: Health): string {
   if (!h.canJudge) {
+    if (h.runs === 0) return 'No runs in this range yet. The numbers show, the verdict waits for 10 runs.';
     return `Only ${h.runs} run${h.runs === 1 ? '' : 's'} in this range. The numbers show, the verdict waits for 10 runs.`;
   }
   const m = h.measures;
@@ -471,37 +472,41 @@ export function HealthTab({
           )}
         </div>
         <div className="at-box" style={{ width: 300, flexShrink: 0 }}>
-          <b style={{ fontSize: 13.5, display: 'block', marginBottom: 6 }}>
-            Why {h.notOkTotal} run{h.notOkTotal === 1 ? '' : 's'} did not finish OK
-          </b>
-          {h.notOk.length === 0 && <div className="at-hint">Every run in this range finished OK.</div>}
-          {h.notOk.map((x) => (
-            <button
-              key={x.label}
-              type="button"
-              className="at-barrow"
-              style={{
-                gridTemplateColumns: '130px 1fr 22px',
-                width: '100%',
-                background: 'none',
-                border: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                font: 'inherit',
-              }}
-              onClick={() => x.ticketIds[0] && actions.onOpenTicket(x.ticketIds[0])}
-              title="Open the first ticket behind this"
-            >
-              <span>{x.label}</span>
-              <div className="at-bar" style={{ height: 8 }}>
-                <i style={{ width: `${(x.count / maxNotOk) * 100}%`, background: '#C4432A' }} />
+          {h.runs > 0 && (
+            <>
+              <b style={{ fontSize: 13.5, display: 'block', marginBottom: 6 }}>
+                Why {h.notOkTotal} run{h.notOkTotal === 1 ? '' : 's'} did not finish OK
+              </b>
+              {h.notOk.length === 0 && <div className="at-hint">Every run in this range finished OK.</div>}
+              {h.notOk.map((x) => (
+                <button
+                  key={x.label}
+                  type="button"
+                  className="at-barrow"
+                  style={{
+                    gridTemplateColumns: '130px 1fr 22px',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    font: 'inherit',
+                  }}
+                  onClick={() => x.ticketIds[0] && actions.onOpenTicket(x.ticketIds[0])}
+                  title="Open the first ticket behind this"
+                >
+                  <span>{x.label}</span>
+                  <div className="at-bar" style={{ height: 8 }}>
+                    <i style={{ width: `${(x.count / maxNotOk) * 100}%`, background: '#C4432A' }} />
+                  </div>
+                  <b style={{ textAlign: 'right' }}>{x.count}</b>
+                </button>
+              ))}
+              <div className="at-hint-sm" style={{ marginTop: 8 }}>
+                Each bar opens a ticket behind it.
               </div>
-              <b style={{ textAlign: 'right' }}>{x.count}</b>
-            </button>
-          ))}
-          <div className="at-hint-sm" style={{ marginTop: 8 }}>
-            Each bar opens a ticket behind it.
-          </div>
+            </>
+          )}
           <div className="at-hint-sm" style={{ marginTop: 12, lineHeight: 1.5 }}>
             <b>Not enough to judge yet?</b>
             <br />

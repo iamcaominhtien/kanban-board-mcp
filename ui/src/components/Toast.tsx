@@ -134,12 +134,13 @@ function ToastCard({ toast, onClose }: Readonly<{ toast: ToastItem; onClose: (id
             <button
               key={a.label}
               type="button"
-              className={styles.actionButton}
+              className={`${styles.actionButton} ${a.label === 'Undo' ? styles.actionUndo : ''}`}
               onClick={() => {
                 a.onClick();
                 onClose(toast.id);
               }}
             >
+              {a.label === 'Undo' && <LineIcon name="undo" size={13} />}
               {a.label}
             </button>
           ),

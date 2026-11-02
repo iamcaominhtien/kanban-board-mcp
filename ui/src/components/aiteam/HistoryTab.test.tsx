@@ -83,6 +83,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/** Opens one of the filter dropdowns and picks an option by its words. */
+function pick(label: string, option: string) {
+  fireEvent.click(screen.getByLabelText(label));
+  fireEvent.click(screen.getByRole('option', { name: new RegExp(option) }));
+}
+
 describe('HistoryTab', () => {
   it('shows loading, then a run row that opens its detail', async () => {
     page = {
@@ -151,15 +157,16 @@ describe('HistoryTab', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /^Pinned/ }));
     await waitFor(() => expect(historyCalls().some((c) => c[1].params.pinned === true)).toBe(true));
-    fireEvent.change(screen.getByLabelText('Member'), { target: { value: 'm2' } });
+    pick('Member', 'Dev Binh');
     await waitFor(() => expect(historyCalls().some((c) => c[1].params.member_id === 'm2')).toBe(true));
     fireEvent.change(screen.getByLabelText('Ticket'), { target: { value: ' KAN-5 ' } });
     await waitFor(() => expect(historyCalls().some((c) => c[1].params.ticket_id === 'KAN-5')).toBe(true));
+    fireEvent.click(screen.getByLabelText('Skill'));
     await screen.findByText('tdd · 5');
     expect(screen.getByText('Explore (subagent) · 2')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Skill'), { target: { value: 'tdd' } });
+    fireEvent.click(screen.getByText('tdd · 5'));
     await waitFor(() => expect(historyCalls().some((c) => c[1].params.skill === 'tdd')).toBe(true));
-    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '0' } });
+    pick('Time', 'All time');
     await waitFor(() =>
       expect(historyCalls().some((c) => c[1].params.since === undefined && c[1].params.skill === 'tdd')).toBe(true),
     );

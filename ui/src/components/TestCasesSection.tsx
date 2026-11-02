@@ -720,29 +720,31 @@ export function TestCasesSection({
             </span>
           </div>
 
-          {!readOnly && aiActions}
           {!readOnly && (
-            <button
-              type="button"
-              className={styles.tcAddBtn}
-              title={`Adds to ${ticketId} itself — open a sub-ticket's own Test Cases panel to add one there`}
-              onClick={() => setShowAddForm(true)}
-              disabled={disabled || showAddForm}
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
+            <div className={styles.topActions}>
+              {aiActions}
+              <button
+                type="button"
+                className={styles.tcAddBtn}
+                title={`Adds to ${ticketId} itself — open a sub-ticket's own Test Cases panel to add one there`}
+                onClick={() => setShowAddForm(true)}
+                disabled={disabled || showAddForm}
               >
-                <path d="M12 5V19" />
-                <path d="M5 12H19" />
-              </svg>
-              Add test case
-            </button>
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                >
+                  <path d="M12 5V19" />
+                  <path d="M5 12H19" />
+                </svg>
+                Add test case
+              </button>
+            </div>
           )}
         </div>
       ) : (
@@ -750,28 +752,30 @@ export function TestCasesSection({
           <span className={styles.tcLabel}>
             {testCases.length} test cases · {ticketId}
           </span>
-          {!readOnly && aiActions}
           {!readOnly && (
-            <button
-              type="button"
-              className={styles.tcAddBtn}
-              onClick={() => setShowAddForm(true)}
-              disabled={disabled || showAddForm}
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
+            <div className={styles.topActions}>
+              {aiActions}
+              <button
+                type="button"
+                className={styles.tcAddBtn}
+                onClick={() => setShowAddForm(true)}
+                disabled={disabled || showAddForm}
               >
-                <path d="M12 5V19" />
-                <path d="M5 12H19" />
-              </svg>
-              Add test case
-            </button>
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                >
+                  <path d="M12 5V19" />
+                  <path d="M5 12H19" />
+                </svg>
+                Add test case
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -899,6 +903,8 @@ export function TestCasesSection({
       {hasChildren &&
         childTestCaseSources.map((child) => {
           if (rollupSource !== 'all' && rollupSource !== child.ticketId) return null;
+          // A child with no test cases at all is not listed (its count of 0 is already in the "Show" menu)
+          if (child.testCases.length === 0 && rollupSource === 'all') return null;
           const childFiltered = filterList(child.testCases);
           return (
             <div key={child.ticketId} className={styles.groupSection}>

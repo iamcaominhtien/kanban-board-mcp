@@ -92,7 +92,7 @@ describe('WindowsSection', () => {
     expect(card.textContent).toContain('KAN-9');
     expect(card.textContent).toContain('2 runs held until');
     const local = screen.getByTestId('window-local');
-    expect(local.textContent).toContain('This computer’s own login · Pro');
+    expect(local.textContent).toContain('Pro · signed in');
     expect(local.textContent).toContain('This computer');
     expect(local.textContent).toContain('Nothing running.');
   });

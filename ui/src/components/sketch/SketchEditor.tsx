@@ -539,6 +539,7 @@ export function SketchEditor({ request, onClose }: Props) {
               <input
                 className={styles.titleInput}
                 value={title}
+                style={{ width: `${Math.min(40, Math.max(8, title.length + 2))}ch` }}
                 aria-label="Name of the sketch"
                 maxLength={200}
                 onChange={(e) => {

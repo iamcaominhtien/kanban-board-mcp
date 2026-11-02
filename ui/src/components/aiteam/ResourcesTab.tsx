@@ -4,8 +4,18 @@ import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
 import { useRestartRun, useResourcesStream } from '../../api/aiResources';
 import type { ResourceRun, ResourceSnapshot } from '../../types/aiResources';
-import { LEVEL_COLOR, fmtGb, fmtMb, levelOf, limitPct, linePoints, verdictOf, type Verdict } from './resourcesFormat';
-import { Badge, TicketChip } from './teamUi';
+import {
+  LEVEL_COLOR,
+  fmtGb,
+  fmtGbOf,
+  fmtMb,
+  levelOf,
+  limitPct,
+  linePoints,
+  verdictOf,
+  type Verdict,
+} from './resourcesFormat';
+import { Badge, ICONS, Icon, TicketChip } from './teamUi';
 import './resources.css';
 
 interface Props {
@@ -158,6 +168,11 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
             }),
           )}
         </g>
+        {[1, 2, 3, 4].map((m) => (
+          <text key={m} x={52 + (W * (5 - m)) / 5} y={H + 20} textAnchor="middle" fontSize="11" fill="#8A998F">
+            {m}
+          </text>
+        ))}
         <text x="52" y={H + 20} fontSize="11" fill="#8A998F">
           5 min ago
         </text>
@@ -352,6 +367,11 @@ export function ResourcesTab({ projectId, onOpenTicket }: Props) {
         </div>
       )}
       <div className="rs-banner" style={{ background: look.bg, borderColor: look.border }}>
+        <span style={{ color: look.fg, display: 'inline-flex', paddingTop: 1 }}>
+          <Icon color={look.fg} size={16}>
+            {verdict.tone === 'ok' || verdict.tone === 'idle' ? ICONS.check : ICONS.info}
+          </Icon>
+        </span>
         <div>
           <b style={{ color: look.fg }}>{verdict.title}</b>
           <div className="at-hint" style={{ color: '#3A4A3E' }}>
@@ -362,7 +382,7 @@ export function ResourcesTab({ projectId, onOpenTicket }: Props) {
       <div className="at-tiles">
         <Tile
           label="Machine RAM"
-          value={`${fmtGb(machine.ramTotalMb - machine.ramFreeMb)} / ${fmtGb(machine.ramTotalMb)}`}
+          value={fmtGbOf(machine.ramTotalMb - machine.ramFreeMb, machine.ramTotalMb)}
           hint={`${fmtGb(machine.ramFreeMb)} free`}
           pct={usedPct}
           level={free < 10 ? 'bad' : levelOf(usedPct)}

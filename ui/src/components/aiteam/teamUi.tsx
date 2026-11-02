@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { PauseGlyph } from '../ai/pausedUi';
 import type { CardState, HandoffEnd } from '../../types/aiTeam';
 import './aiTeam.css';
 import '../docs/docs.css';
@@ -40,7 +41,11 @@ export function StateChip({
       : STATE_LOOK[state];
   return (
     <span className="at-chip" style={{ background: look.bg, color: look.fg }}>
-      <span className={`at-dot${look.live ? ' at-dot-live' : ''}`} style={{ background: look.dot }} />
+      {state === 'paused' && project ? (
+        <PauseGlyph size={11} color={look.fg} />
+      ) : (
+        <span className={`at-dot${look.live ? ' at-dot-live' : ''}`} style={{ background: look.dot }} />
+      )}
       {label ?? look.label}
       {count != null ? ` ${count}` : ''}
     </span>

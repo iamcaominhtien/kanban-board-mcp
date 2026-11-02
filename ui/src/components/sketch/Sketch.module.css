@@ -459,8 +459,8 @@
   text-transform: uppercase;
 }
 .swatches {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(7, max-content);
   gap: 7px;
   margin-top: 10px;
 }

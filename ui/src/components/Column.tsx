@@ -25,6 +25,8 @@ interface ColumnProps {
   onCardOpen?: (ticket: Ticket) => void;
   /** The selected parent and its sub-tickets, drawn with the green ring (Sub-task Grouping 1). */
   selectedGroup?: Set<string> | null;
+  /** A transient change of the lane count (a reopen): +1 in the target lane, −1 (was N) in the source lane. */
+  countDelta?: number;
 }
 
 /**
@@ -50,6 +52,7 @@ export function Column({
   dragKind = null,
   onCardOpen,
   selectedGroup,
+  countDelta,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const { runsByTicket } = useAiBoardState();
@@ -119,6 +122,17 @@ export function Column({
               >
                 {tickets.length - tickets.filter((t) => t.pending).length}
               </span>
+              {countDelta ? (
+                <span
+                  className={styles.countDelta}
+                  style={{ color: countDelta > 0 ? '#2E6F40' : '#B4791E' }}
+                  data-testid="column-count-delta"
+                >
+                  {countDelta > 0
+                    ? `+${countDelta}`
+                    : `−${-countDelta} (was ${tickets.length - tickets.filter((t) => t.pending).length - countDelta})`}
+                </span>
+              ) : null}
               {tickets.filter((t) => t.pending).length > 0 && (
                 <span
                   style={{
@@ -226,7 +240,8 @@ export function Column({
           <div
             className={`${styles.dropTargetGhost} ${dragKind === 'reopen' ? styles.dropTargetReopen : ''} ${dragKind === 'pending' ? styles.dropTargetPending : ''}`}
           >
-            {dragKind === 'reopen' ? 'Drop to reopen' : dragKind === 'pending' ? 'Drop - stays pending' : 'Drop here'}
+            {/* A plain move is just the slot, no text (the reopen and pending hints keep theirs) */}
+            {dragKind === 'reopen' ? 'Drop to reopen' : dragKind === 'pending' ? 'Drop - stays pending' : null}
           </div>
         )}
       </div>

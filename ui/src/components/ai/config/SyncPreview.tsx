@@ -162,12 +162,14 @@ export function SyncPreview() {
     queryFn: () => configApi.preview(member.id),
     enabled: !!status,
   });
-  const [open, setOpen] = useState<string | null>(null);
+  // untouched: the first file's diff is open (design B8); once clicked, what the person chose
+  const [picked, setOpen] = useState<string | null | undefined>(undefined);
   const [choices, setChoices] = useState<Record<string, 'keep' | 'overwrite'>>({});
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ path: string; message: string } | null>(null);
   const [restoring, setRestoring] = useState<{ path: string; backup: Backup } | null>(null);
   const p = q.data;
+  const open = picked === undefined ? (p?.files.find((f) => !f.error)?.path ?? null) : picked;
 
   async function write() {
     if (!p) return;

@@ -32,7 +32,7 @@ interface DebugSpaceSectionProps {
   disabled?: boolean;
 }
 
-const KINDS: DebugEntryKind[] = ['investigation', 'fix_attempt', 'root_cause', 'blocked', 'resolved'];
+const KINDS: DebugEntryKind[] = ['root_cause', 'investigation', 'fix_attempt', 'blocked', 'resolved'];
 
 const KIND_CONFIG: Record<DebugEntryKind, { label: string; dot: string; color: string; bg: string }> = {
   investigation: {
@@ -100,6 +100,15 @@ function getInitials(name?: string | null): string {
 
 const AUTHOR_KEY = 'kanban_debug_author';
 const ROLE_KEY = 'kanban_debug_role';
+
+/** The person using the app (the name the header shows), used to prefill the author of a new entry. */
+function currentActor(): string {
+  try {
+    return localStorage.getItem('kanbanActor') ?? '';
+  } catch {
+    return '';
+  }
+}
 
 function readStored(key: string): string {
   try {
@@ -585,7 +594,7 @@ export function DebugSpaceSection({
 
   const initialAdd: EntryFormValues = {
     kind: 'investigation',
-    author: readStored(AUTHOR_KEY),
+    author: readStored(AUTHOR_KEY) || currentActor(),
     role: ROLES.includes(readStored(ROLE_KEY)) ? readStored(ROLE_KEY) : 'Developer',
     note: '',
     linkedBranch: '',
@@ -663,7 +672,9 @@ export function DebugSpaceSection({
                 <span className={styles.dbgKindBadge} style={{ background: cfg.bg, color: cfg.color }}>
                   {cfg.label}
                 </span>
-                <span className={styles.pinText}>{pe.note.replace(/[#*`\n]/g, ' ')}</span>
+                <span className={styles.pinText}>
+                  <MarkdownRenderer inline>{pe.note.replace(/^#+\s*/gm, '').replace(/\n+/g, ' ')}</MarkdownRenderer>
+                </span>
                 <span className={styles.pinMeta}>
                   {pe.author} · {formatTimeAgo(pe.at)}
                 </span>

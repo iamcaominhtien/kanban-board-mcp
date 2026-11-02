@@ -3,6 +3,7 @@ import { RevertChangeDialog } from './ai/RevertChange';
 import { useMemo, useState } from 'react';
 import type { ActivityEntry, Member } from '../types';
 import { getAvatarColors } from './MemberAvatar';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import { countRefs, RefLine, useRefSegments, type Seg } from './ActivityRefs';
 import { useDocsRefs } from './docs/DocsRefsContext';
 import styles from './ActivitySection.module.css';
@@ -298,7 +299,7 @@ const FIELD_DISPLAY_NAMES: Record<string, string> = {
   comment: 'Comment',
   acceptance_criterion: 'Acceptance criterion',
   sub_task: 'Sub-task',
-  work_log: 'Work log',
+  work_log: 'Debug',
   test_case: 'Test case',
   test_case_status: 'Test case',
   blocks: 'Blocks',
@@ -1120,6 +1121,22 @@ export function ActivitySection({
       );
     }
 
+    if (field === 'work_log') {
+      // A debug note is Markdown ("**Root cause**: `onDragEnd`…"): draw it, do not print the marks
+      return (
+        <span
+          className={styles.acChip}
+          title={String(val)}
+          // a removed note reads as removed: grey and struck through, as before
+          style={isOldTitle ? { color: '#9AA8A0', textDecoration: 'line-through' } : undefined}
+        >
+          <MarkdownRenderer inline plain>
+            {String(val)}
+          </MarkdownRenderer>
+        </span>
+      );
+    }
+
     if (MONO_FIELDS.has(field)) {
       return (
         <span
@@ -1197,7 +1214,7 @@ export function ActivitySection({
       {/* Top Bar */}
       <div className={styles.topBar}>
         <span className={styles.acLabel}>
-          {counts.all} changes · {ticketId}
+          {counts.all} {counts.all === 1 ? 'change' : 'changes'} · {ticketId}
         </span>
         <div className={styles.filterList}>
           {(
@@ -1523,7 +1540,8 @@ export function ActivitySection({
           {revert && <RevertChangeDialog entry={revert} projectId={aiProjectId} onClose={() => setRevert(null)} />}
           {filteredEntries.length > visibleCount && (
             <button type="button" className={styles.acMore} onClick={() => setVisibleCount((prev) => prev + 20)}>
-              Show {filteredEntries.length - visibleCount} earlier changes
+              Show {filteredEntries.length - visibleCount} earlier{' '}
+              {filteredEntries.length - visibleCount === 1 ? 'change' : 'changes'}
             </button>
           )}
         </>

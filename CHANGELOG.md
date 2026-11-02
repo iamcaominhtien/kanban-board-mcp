@@ -33,6 +33,35 @@ Canvas, draw.io and Sketch for any AI, on the board or outside it: which one fit
 - A canvas in a ticket description was capped at 560 px, half the description; it is as wide as the text, like a diagram or a sketch (Canvas design G1).
 - The large view of a canvas names each board under its picture in the filmstrip, the current one in white (Canvas design H1); the pictures were unnamed.
 
+## [3.26.6] - 2026-11-02
+
+Wave 4, the last of the design audit's fixes: the Low findings, and the rows wave 3 left because they sat in another area's files (`docs/ui-audit/2026-11-design-audit/fixes/<area>.md`). As in wave 3, nothing is removed or takes more clicks, and an independent review against the previous release checked it.
+
+### Changed
+- **Board and ticket.**
+  - The board's columns can shrink to 176 px, so six columns fit at 1440 px.
+  - A ticket on a workflow shows its step strip on the Ticket view.
+  - A board card's step chip turns red with "blocked" when its AI step has no member.
+  - File cards show their size.
+  - File types have the design's tints and labels (CSV, Markdown, HTML, Audio, Video).
+  - The list's sort menu, test cases, debug space, workspace and activity got smaller polish.
+  - The CSS uses the design's colour tokens, with the same colours.
+- **AI screens and AI Team.**
+  - Members show avatars, and the role is a menu with the same three choices.
+  - The AI paused dialog shows the project, budget and safe-mode details.
+  - Account rows were polished.
+  - Run history filters are chips, and "Export this page" saves the runs on screen as CSV.
+  - Now, Flow, Health, Resources and Timeline were polished.
+- **Docs, Idea Space and app.**
+  - The page menu says "Delete page".
+  - A page hidden from AI offers "Show to AI" to editors and keeps the server's own explanation.
+  - In the search palette, an exact ticket key is listed first.
+  - Canvas, sketch, the idea list (project name and colour), MCP integrations (tool count chip), notifications and the splash screen were polished.
+  - Images with transparency open on the checkerboard.
+
+### Fixed
+- **A selection bar could show over a picture.** No AI selection bar can open while a sketch, image or diagram is selected in the editor (ideas IP-14).
+
 ## [3.26.5] - 2026-11-02
 
 Wave 3 of the design audit's fixes: the Critical, High and Medium findings screen by screen (`docs/ui-audit/2026-11-design-audit`; what was done for each finding is in `fixes/<area>.md`). No feature is removed and no action takes more clicks than before; where the design would have changed how something works, the look was matched and the behaviour kept.

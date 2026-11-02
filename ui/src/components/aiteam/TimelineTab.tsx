@@ -7,7 +7,7 @@ import { safetyApi } from '../../api/aiSafety';
 import { openRun } from './runLink';
 import type { Timeline, TimelineBar, TimelineLifeline, TimelineRange } from '../../types/aiTeam';
 import { useToast } from '../Toast';
-import { PAUSE_COLOR, PauseGlyph, clockTime } from '../ai/pausedUi';
+import { PAUSE_COLOR, clockTime } from '../ai/pausedUi';
 import { AUTO_RESTARTS, fmtMb } from './resourcesFormat';
 import { fmtShort } from './teamFormat';
 import { CalendarIcon, ICONS, Icon } from './teamUi';
@@ -51,6 +51,13 @@ const PRESETS: { id: Preset; label: string }[] = [
   { id: '24h', label: 'Last 24 h' },
   { id: '7d', label: '7 days' },
 ];
+
+const SLOW_WORDS: Record<Preset, string> = {
+  hour: 'the last hour',
+  today: 'today',
+  '24h': 'the last 24 hours',
+  '7d': 'the last 7 days',
+};
 
 /** How long a chosen range is, in ms. */
 function presetSpan(p: Preset, now: number): number {
@@ -244,6 +251,17 @@ export function TimelineTab({
     return () => clearInterval(t);
   }, [following]);
   const now = following ? Math.max(tick, dataNow) : dataNow;
+  // After 3 s without data the loading state says it is still reading (design I, Loading)
+  const [slow, setSlow] = useState(false);
+  const loaded = !!data;
+  useEffect(() => {
+    if (loaded) {
+      setSlow(false);
+      return;
+    }
+    const t = setTimeout(() => setSlow(true), 3000);
+    return () => clearTimeout(t);
+  }, [loaded]);
 
   const choose = (p: Preset) => {
     setPreset(p);
@@ -369,6 +387,11 @@ export function TimelineTab({
             <span key={i} className="tl-shim" />
           ))}
         </div>
+        {slow && !q.isError && (
+          <div className="at-hint" role="status" data-testid="tl-slow">
+            Still loading {day ? 'this day' : SLOW_WORDS[preset]}
+          </div>
+        )}
       </div>
     );
   }
@@ -395,13 +418,9 @@ export function TimelineTab({
   return (
     <div className="tl-root" data-testid="timeline-tab" ref={rootRef}>
       {paused && (
-        <div
-          className="at-now idle"
-          data-testid="tl-paused-chip"
-          style={{ borderColor: '#F0CDB0', background: '#FDF0E6' }}
-        >
-          <PauseGlyph size={12} color={PAUSE_COLOR} />
-          <b style={{ color: PAUSE_COLOR }}>No AI is running</b> · paused since {clockTime(data.pausedAt)}
+        <div className="at-now idle" data-testid="tl-paused-chip">
+          <b>Right now</b> <b style={{ color: PAUSE_COLOR }}>No AI is running</b> · paused since{' '}
+          {clockTime(data.pausedAt)}
         </div>
       )}
       {!paused && (
@@ -815,7 +834,7 @@ function EmptyRange({
         {data.lastEndedAt ? ` The last run ended at ${clock(ms(data.lastEndedAt) ?? 0)}.` : ''}
       </span>
       <span style={{ display: 'flex', gap: 8 }}>
-        <button type="button" className="tl-btn" onClick={onWiden}>
+        <button type="button" className="tl-btn primary" onClick={onWiden}>
           Widen to 7 days
         </button>
         {onMap && (

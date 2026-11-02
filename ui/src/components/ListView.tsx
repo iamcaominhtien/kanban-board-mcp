@@ -3,6 +3,7 @@ import { IdeaBulb } from './ideas/ideaLinks';
 import type { Member, Priority, Status, Ticket } from '../types';
 import styles from './ListView.module.css';
 import { MemberAvatar } from './MemberAvatar';
+import { LineIcon, type LineIconName } from './ui/LineIcon';
 
 type GroupBy = 'status' | 'priority' | 'tag';
 type SortBy = 'createdAt' | 'priority' | 'dueDate' | 'updatedAt' | 'mostReopened' | 'pendingFirst' | 'longestPending';
@@ -15,6 +16,12 @@ const SORT_LABELS: Record<SortBy, string> = {
   mostReopened: 'Most reopened',
   pendingFirst: 'Pending first',
   longestPending: 'Longest pending',
+};
+/** The three reopen and pause sorts carry their icon (reopen, pause, clock). */
+const SORT_ICONS: Partial<Record<SortBy, LineIconName>> = {
+  mostReopened: 'refresh',
+  pendingFirst: 'pause',
+  longestPending: 'clock',
 };
 const SORT_ORDER: SortBy[] = [
   'createdAt',
@@ -549,14 +556,14 @@ export function ListView({ tickets, members = [], onCardClick }: ListViewProps) 
         </div>
 
         <div className={styles.toolbarRight}>
-          <span className={styles.toolbarLabel}>Sort</span>
           <div className={styles.dropdownContainer}>
             <button
               type="button"
               className={`${styles.dropdownBtn} ${openDropdown === 'sort' ? styles.dropdownBtnActive : ''}`}
               onClick={() => setOpenDropdown(openDropdown === 'sort' ? null : 'sort')}
             >
-              {SORT_LABELS[sortBy]}
+              <LineIcon name="sort" size={13} />
+              <span className={styles.labelMuted}>Sort:</span> {SORT_LABELS[sortBy]}
               <svg
                 className={styles.chevronIcon}
                 width="9"
@@ -584,6 +591,7 @@ export function ListView({ tickets, members = [], onCardClick }: ListViewProps) 
                       setOpenDropdown(null);
                     }}
                   >
+                    {SORT_ICONS[o] && <LineIcon name={SORT_ICONS[o]!} size={14} />}
                     <span style={{ flexGrow: 1 }}>{SORT_LABELS[o]}</span>
                     {sortBy === o && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">

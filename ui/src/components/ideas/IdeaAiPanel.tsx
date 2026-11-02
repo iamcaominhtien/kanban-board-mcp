@@ -43,7 +43,7 @@ export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus
       </div>
       {onOpenSettings && (
         <button type="button" className="is-btn is-btn-sm" onClick={onOpenSettings}>
-          Open settings
+          {status.state === 'no_member' ? 'Open AI members' : 'Open settings'}
         </button>
       )}
     </div>

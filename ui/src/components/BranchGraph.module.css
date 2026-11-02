@@ -5,7 +5,7 @@
   flex-direction: column;
   gap: 12px;
   font-family: var(--font-body);
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 /* Segmented control — same look as the Graph / List tabs */
@@ -38,7 +38,7 @@
   background: #ffffff;
   box-shadow: 0 1px 2px rgba(30, 42, 34, 0.08);
   font-weight: 600;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 .meta {
   font-size: 12px;
@@ -56,8 +56,8 @@
   color: #9aa8a0;
 }
 .linkBtn:hover {
-  border-color: #2e6f40;
-  color: #2e6f40;
+  border-color: var(--color-forest);
+  color: var(--color-forest);
 }
 
 /* Branch legend: every branch created for the ticket */
@@ -90,7 +90,7 @@
   font-family: var(--font-mono);
   font-size: 12.5px;
   font-weight: 600;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   flex: 0 1 260px;
   min-width: 90px;
   overflow: hidden;
@@ -109,7 +109,7 @@
 .legendPath {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .badge {
@@ -121,12 +121,12 @@
   white-space: nowrap;
 }
 .badgeHead {
-  background: #1e2a22;
+  background: var(--color-text-pri);
   color: #ffffff;
 }
 .badgeWorktree {
   background: rgba(46, 111, 64, 0.08);
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 .badgeOpen {
   background: rgba(109, 93, 211, 0.14);
@@ -134,7 +134,7 @@
 }
 .badgeMerged {
   background: rgba(46, 111, 64, 0.12);
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 .badgeStale {
   background: rgba(196, 67, 42, 0.1);
@@ -177,7 +177,7 @@
   padding-left: 8px;
   padding-right: 14px;
   font-size: 12.5px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;
@@ -200,7 +200,7 @@
   flex-shrink: 0;
 }
 .author {
-  color: #5b6b60;
+  color: var(--color-text-sec);
   font-size: 12px;
   flex: 0 1 150px;
   min-width: 0;
@@ -236,12 +236,12 @@
   white-space: nowrap;
 }
 .chipHead {
-  background: #1e2a22;
+  background: var(--color-text-pri);
   color: #ffffff;
 }
 .chipBase {
   background: rgba(46, 111, 64, 0.12);
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 .chipTicket {
   background: rgba(109, 93, 211, 0.14);
@@ -249,7 +249,7 @@
 }
 .chipOther {
   background: #f6faf7;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   border-color: #e3e8e5;
   font-weight: 500;
 }
@@ -263,7 +263,7 @@
   border-radius: 8px;
   padding: 28px;
   text-align: center;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   font-size: 13px;
   line-height: 1.6;
   background: #ffffff;
@@ -282,10 +282,10 @@
 .rowSelected,
 .rowSelected:hover {
   background: #f1f8f3;
-  box-shadow: inset 3px 0 0 #2e6f40;
+  box-shadow: inset 3px 0 0 var(--color-forest);
 }
 .row:focus-visible {
-  outline: 2px solid #2e6f40;
+  outline: 2px solid var(--color-forest);
   outline-offset: -2px;
 }
 
@@ -308,7 +308,7 @@
   font-size: 15px;
   font-weight: 700;
   line-height: 1.4;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   overflow-wrap: anywhere;
 }
 .panelClose {
@@ -324,7 +324,7 @@
 }
 .panelClose:hover {
   background: #f6faf7;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 .panelMeta {
   display: flex;
@@ -333,16 +333,16 @@
   gap: 6px 14px;
   padding: 0 16px 12px;
   font-size: 12.5px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 .metaStrong {
-  color: #1e2a22;
+  color: var(--color-text-pri);
   font-weight: 600;
 }
 .metaMono {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 .copyBtn {
   border: 1px solid #e3e8e5;
@@ -352,16 +352,16 @@
   font-size: 11px;
   cursor: pointer;
   font-family: var(--font-body);
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 .copyBtn:hover {
-  border-color: #2e6f40;
-  color: #2e6f40;
+  border-color: var(--color-forest);
+  color: var(--color-forest);
 }
 .parentLink {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  color: #2e6f40;
+  color: var(--color-forest);
   background: none;
   border: none;
   padding: 0;
@@ -371,7 +371,7 @@
 .parentText {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 .panelChips {
   display: flex;
@@ -403,10 +403,10 @@
   padding: 10px 16px;
   font-size: 12px;
   font-weight: 600;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 .add {
-  color: #2e6f40;
+  color: var(--color-forest);
   font-family: var(--font-mono);
   font-size: 11.5px;
 }
@@ -444,7 +444,7 @@
 }
 .stA {
   background: rgba(46, 111, 64, 0.14);
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 .stM {
   background: rgba(47, 111, 176, 0.14);
@@ -462,7 +462,7 @@
 .filePath {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
