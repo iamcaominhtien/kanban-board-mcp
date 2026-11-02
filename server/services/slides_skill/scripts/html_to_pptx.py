@@ -13,7 +13,7 @@ What becomes what:
   the text, so it looks the same everywhere.
 - `data-pptx="picture"` on an element makes it a picture of its own (a person can move or swap it).
 - `data-pptx="chart"` with `data-chart='{"type": "bar", "categories": [...], "series": {"ml": [...]}, "colors":
-  [...], "labels": [...]}'` becomes a native chart a person can edit; draw nothing inside it.
+  [...], "labels": [...], "label_color": "#fff", "muted": "#888"}'` becomes a native chart a person can edit; draw nothing inside it.
 - `<video src="...mp4" poster="...png">` becomes a video that plays in PowerPoint.
 - `<aside class="notes">` becomes the speaker notes. `data-pptx="skip"` leaves an element out.
 
@@ -34,7 +34,7 @@ from pathlib import Path
 from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
-from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION
+from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_TICK_LABEL_POSITION
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Pt
 
@@ -268,7 +268,7 @@ def _chart(slide, c: dict) -> None:
     chart.has_legend = len(spec["series"]) > 1
     chart.font.name = spec.get("font", "Calibri")
     chart.font.size = Pt(spec.get("size", 14))
-    muted = RGBColor.from_string(spec.get("muted", "6B7280"))
+    muted = RGBColor.from_string(spec.get("muted", "6B7280").lstrip("#"))
     if kind not in (XL_CHART_TYPE.PIE, XL_CHART_TYPE.DOUGHNUT):
         va = chart.value_axis
         va.visible = spec.get("value_axis", False)
@@ -277,6 +277,8 @@ def _chart(slide, c: dict) -> None:
         ca.format.line.fill.background()
         ca.tick_labels.font.color.rgb = muted
         chart.plots[0].gap_width = spec.get("gap", 50)
+        # category names at the bottom edge, so a negative bar does not cover its name
+        ca.tick_label_position = XL_TICK_LABEL_POSITION.LOW
     colors = spec.get("colors") or []
     labels = spec.get("labels") or []
     series = chart.plots[0].series
@@ -314,6 +316,12 @@ def _chart(slide, c: dict) -> None:
                 run = dl.text_frame.paragraphs[0].runs[0]
                 run.font.size = Pt(spec.get("size", 14))
                 run.font.bold = bool(spec.get("bold_labels", True))
+                if spec.get(
+                    "label_color"
+                ):  # on a dark ground the default black label disappears
+                    run.font.color.rgb = RGBColor.from_string(
+                        spec["label_color"].lstrip("#")
+                    )
 
 
 def convert(

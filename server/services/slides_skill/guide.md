@@ -29,7 +29,9 @@ copy `themes/<key>/sample.html` next to your work, keep its `<style>` (base.css 
 your slides as `<section class="slide l-...">` with the layouts it shows. Change the theme where the subject asks for
 it; never ship a theme's sample words or pictures.
 
-The bar is the themes' samples and `examples/`: their structure and craft, not their look.
+The bar is the themes' samples and `examples/` (Giọt's monthly report, designed for the product rather than from a
+theme: a month as 31 drops, a day as a clock, a found photo, a diagram, a recorded animation; `build.py` makes it all
+from code): their structure and craft, not their look.
 
 **Type.** A 1280 x 720 slide: titles 40 to 60 px, a cover 64 to 84 px, text at least 18 px, labels and footers at least
 13 px. Two families at most, from the fonts below. Size and weight make the hierarchy, not colour and boxes.
@@ -77,9 +79,11 @@ A slide with a picture that carries the point beats a slide of text. Every pictu
   licence in the speaker notes or on a credits slide. No logos or people's photos the deck has no right to.
 - **Make**: diagrams, illustrations and icons drawn as SVG, in the deck's colours; HTML and CSS for anything richer;
   a flow as mermaid or draw.io, exported to SVG; icons from an open set (Lucide, Tabler), never clip-art.
-- **Motion**: an animation built in HTML (CSS, canvas, SVG) can be recorded with Playwright
-  (`browser.new_context(record_video_dir=...)`), cut with `ffmpeg -i in.webm -t 6 -an out.mp4`, and put on the slide
-  with `<video src="out.mp4" poster="frame.png">`; a short loop can also be a GIF (`<img data-pptx="picture">`).
+- **Motion**: build the animation in HTML (canvas, SVG, CSS) with a `drawAt(ms)` that draws one moment, take a
+  screenshot per frame (30 a second), and join them with `ffmpeg -framerate 30 -i %04d.png -c:v libx264 -pix_fmt
+  yuv420p out.mp4`: smooth on any machine. Put it on the slide as `<video src="out.mp4" poster="first-frame.png">`
+  (it plays in PowerPoint); a short loop can also be a GIF (`<img data-pptx="picture">`). `examples/giot-thang-10/`
+  does all of this.
 - Render pictures at twice their size on the slide, so they stay sharp on a projector.
 
 ## 5. Look at every slide before you hand in

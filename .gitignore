@@ -59,3 +59,5 @@ docs/guideline/guide/node_modules/
 
 # Slide themes: render scratch (services/slides_skill/themes/build.py)
 server/services/slides_skill/themes/*/.look/
+server/services/slides_skill/examples/*/.look/
+server/services/slides_skill/examples/*/deck-office-fonts.pptx
