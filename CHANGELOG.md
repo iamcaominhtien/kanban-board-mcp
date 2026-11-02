@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Fixed
+- **Settings › AI › Operations looks like its design** (`design/screens/ai-operations.md` K, `ai-story-flow.md` L). The first card now has the same grouped rows as *Team on its own* (a heading and a line per group, a rule between rows) instead of loose rows, and a long option name in a select no longer widens the control and squeezes the row's title into a narrow column.
+
 ## [3.21.1] - 2026-11-02
 
 ### Changed
