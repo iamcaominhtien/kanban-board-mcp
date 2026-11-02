@@ -85,7 +85,7 @@ describe('Permissions: the owner may go past a lock, after a warning', () => {
     wrap();
     const locked = screen.getByTestId('perm-delete_tickets-allowed') as HTMLButtonElement;
     expect(locked.disabled).toBe(false);
-    expect(locked.textContent).toContain('🔒');
+    expect(locked.querySelector('svg')).not.toBeNull();
     fireEvent.click(locked);
     expect(screen.getByRole('dialog').textContent).toContain('gone for good');
     const confirm = screen.getByTestId('confirm-owner') as HTMLButtonElement;
