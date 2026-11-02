@@ -120,6 +120,8 @@ export interface Schedule {
   runsCount: number;
   nextRunAt: string | null;
   nextIn: string | null;
+  /** "Runner often offline at 02:00": a local runner that missed its last slots. */
+  offlineRisk?: string | null;
   when: string;
   ticketChanged: boolean;
   lastRun: ScheduleRun | null;
@@ -220,6 +222,7 @@ export interface ScheduleCard {
   state: 'missed' | 'soon' | 'planned' | 'paused';
   label: string;
   at?: string;
+  memberId?: string;
 }
 
 /** A notification for the person (toast). */

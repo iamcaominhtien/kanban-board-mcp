@@ -448,3 +448,153 @@ async def test_a_slot_waiting_when_the_schedule_is_paused_does_not_start_later(
     d = (await c.get(f"/ai/schedules/{s['id']}")).json()
     assert d["runs"][0]["state"] == "skipped"
     assert d["runs"][0]["note"] == "Skipped: the schedule is paused."
+
+
+async def test_a_time_under_a_minute_away_is_too_soon_not_in_the_past(env, fake):
+    c, pid, dev, rev, tid = await _setup(env)
+    # the start of the next minute: always ahead of now, never more than a minute away
+    soon = (
+        (datetime.now(UTC) + timedelta(seconds=60))
+        .replace(second=0, microsecond=0)
+        .astimezone(ZoneInfo("Asia/Ho_Chi_Minh"))
+    )
+    p = (
+        await c.post(
+            f"/projects/{pid}/ai/schedules/preview",
+            json=_body(tid, dev["id"], soon.strftime("%Y-%m-%dT%H:%M")),
+            headers=H,
+        )
+    ).json()
+    texts = [x["text"] for x in p["checks"] if x["level"] == "error"]
+    assert any("less than a minute away" in t for t in texts), texts
+    assert not any("has passed" in t for t in texts)
+
+
+async def test_an_external_agent_previews_and_gets_told_about_unknown_fields(env, fake):
+    from kanban_mcp.tools.schedules import ai_schedules
+
+    c, pid, dev, rev, tid = await _setup(env)
+    run_at, _ = _soon(10)
+    fields = {
+        "member_id": dev["id"],
+        "kind": "once",
+        "run_at": run_at,
+        "tz": "Asia/Ho_Chi_Minh",
+        "checks": {"criteria": False, "summary": True},
+    }
+    out = await ai_schedules("preview", project_id=pid, ticket_id=tid, fields=fields)
+    assert out["next_runs"] and "Claude Code" in out["summary"]
+    assert not [x for x in out["checks"] if x["level"] == "error"]
+    # a preview saves nothing
+    assert await ai_schedules("list", project_id=pid) == []
+    # a mistyped field is named, with the ones that exist, instead of being dropped
+    with pytest.raises(ValueError) as exc:
+        await ai_schedules(
+            "create",
+            project_id=pid,
+            ticket_id=tid,
+            fields={**fields, "timezone": "Asia/Ho_Chi_Minh"},
+        )
+    assert "Unknown field in fields: timezone" in str(exc.value)
+    assert "member_id" in str(exc.value)
+    made = await ai_schedules("create", project_id=pid, ticket_id=tid, fields=fields)
+    assert (
+        made["ticket_id"] == tid
+        and len(await ai_schedules("list", project_id=pid)) == 1
+    )
+
+
+async def test_a_one_off_whose_time_has_come_shows_no_past_time_error(env, fake):
+    c, pid, dev, rev, tid = await _setup(env)
+    run_at, _ = _soon(5)
+    sid = (
+        await c.post(
+            f"/projects/{pid}/ai/schedules",
+            json=_body(tid, dev["id"], run_at),
+            headers=H,
+        )
+    ).json()["id"]
+    async with env["maker"]() as session:
+        s = await session.get(AiSchedule, sid)
+        past = datetime.now(UTC) - timedelta(minutes=30)
+        s.run_at = past.astimezone(ZoneInfo(s.tz)).strftime("%Y-%m-%dT%H:%M")
+        session.add(s)
+        await session.commit()
+    d = (await c.get(f"/ai/schedules/{sid}")).json()
+    assert not [p for p in d["problems"] if p["key"] == "when"], d["problems"]
+    # the editor still refuses it
+    p = (
+        await c.post(
+            f"/projects/{pid}/ai/schedules/preview",
+            json={"schedule_id": sid},
+            headers=H,
+        )
+    ).json()
+    assert any(x["key"] == "when" and x["level"] == "error" for x in p["checks"])
+
+
+async def test_a_busy_ai_says_where_the_run_will_queue(env, fake):
+    from models import AiRun
+
+    c, pid, dev, rev, tid = await _setup(env)
+    other = await _ticket(c, pid, title="Something else")
+    third = await _ticket(c, pid, title="And another")
+    async with env["maker"]() as session:
+        # the runner takes two at once: both slots are in use
+        for busy_on in (other, third):
+            session.add(
+                AiRun(
+                    project_id=pid,
+                    ticket_id=busy_on,
+                    member_id=dev["id"],
+                    member_name=dev["name"],
+                    state="running",
+                )
+            )
+        await session.commit()
+    run_at, _ = _soon(10)
+    p = (
+        await c.post(
+            f"/projects/{pid}/ai/schedules/preview",
+            json=_body(tid, dev["id"], run_at),
+            headers=H,
+        )
+    ).json()
+    warn = next(x["text"] for x in p["checks"] if x["key"] == "runner")
+    assert "no free slot" in warn and other in warn and "position #1" in warn, warn
+    assert "Max wait 30 min" in warn
+
+
+def test_a_skipped_slot_in_the_notification_centre_offers_to_reschedule():
+    import json
+
+    from models import Notification
+    from services.notifications import _actions
+
+    def row(**data):
+        return Notification(kind="schedule", count=1, data=json.dumps(data))
+
+    skipped = _actions(row(event="skipped", schedule_id="sch_1"), False)
+    assert [a["id"] for a in skipped] == ["reschedule", "open"]
+    assert [a["id"] for a in _actions(row(event="finished"), False)] == ["open"]
+
+
+async def test_tests_on_for_an_ai_without_a_role_that_runs_commands_say_so(env, fake):
+    c, pid, dev, rev, tid = await _setup(env)
+    run_at, _ = _soon(10)
+    p = (
+        await c.post(
+            f"/projects/{pid}/ai/schedules/preview",
+            json=_body(tid, dev["id"], run_at),
+            headers=H,
+        )
+    ).json()
+    warn = next(x for x in p["checks"] if x["key"] == "role")
+    assert warn["level"] == "warn" and "runs them after it finishes" in warn["text"]
+    no_tests = _body(
+        tid, dev["id"], run_at, checks={"criteria": False, "summary": True}
+    )
+    p = (
+        await c.post(f"/projects/{pid}/ai/schedules/preview", json=no_tests, headers=H)
+    ).json()
+    assert not [x for x in p["checks"] if x["key"] == "role"]

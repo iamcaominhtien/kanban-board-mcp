@@ -8,6 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.24.0] - 2026-11-02
+
+AI schedules checked end to end against their design (#271).
+
+### Added
+- **The Board AI manages schedules**, as the design says (it could not see them before). It reads them (they are in its context with their ids, and `ai_schedules` `list` / `get` / `preview` work for a Board AI answer), makes, changes, pauses, resumes and runs one with an Undo (`schedule_create`, `schedule_edit`, `schedule_pause`, `schedule_resume`, `schedule_run`), and asks first before deleting one (`schedule_delete`, locked in the ask-first tier). The board checks every change as it checks the editor's (permission, budget, the reviewer is another AI, a test command is entered) and the Board AI is told why when it refuses. Four schedules at once are a bulk action. Undo takes a new schedule away (or pauses it when it already ran), restores the changed fields, and flips a pause or resume; a run that started is stopped. An AI run of a ticket still cannot use `ai_schedules`.
+- **Start from a template** in New schedule: Nightly test run (every night at 02:00, runs your tests), Weekly dependency check (Monday 09:00, lists outdated or vulnerable packages, upgrades nothing) and Daily summary (weekdays 18:00, what moved on the board). One click fills the days, the time, the checks, the limits and the words for the AI; the ticket, the AI and the time zone stay as you chose. The test command of the nightly run is left for you: the board cannot know it.
+- **MCP `ai_schedules(action='preview')`**: the same fields as `create`, nothing saved; returns the plain-language summary, the next 5 runs and every error or warning, so an agent can fix a schedule before it creates it.
+- The schedule block on a ticket shows under the ticket's header in both views (it was only in the AI activity view, where nobody looked); one-offs that already ran stay out of it while something else is planned. A board card's chip carries the AI's avatar, as designed, and its text is cut with an ellipsis instead of clipped.
+
+- From the design's HTML: a busy AI says where the run will queue (“Claude Code · Backend has no free slot. KAN-142 is running. This run queues at position #1… Max wait 30 min”); a local runner that missed its last slots shows “Runner often offline at 02:00” under the next run; a slot waiting for its AI offers **Use backup AI**; a skipped run in the notification centre offers **Reschedule**; and “Tests pass” on an AI without a Dev, QA or Reviewer role warns that its CLI may refuse to run the tests (the board runs them after it finishes).
+
+### Fixed
+- **The Schedules tab's column titles were not over their columns** (and the week's day names did not line up): the table header used the class name `sc-head`, which the Ask AI chat also uses. Schedules classes `sc-head`, `sc-chip` and `sc-tile` are now `sc-thead`, `sc-pill` and `sc-stat`.
+- A schedule waiting for its AI (paused, over budget, runner away) showed a red "That time has passed" in its detail. A one-off whose time has come is being run; the message is for the editor only.
+- A one-off a few seconds ahead said "That time has passed. Next free time: tomorrow". It now says it is less than a minute away.
+- The time boxes (At, window end) followed the browser's language (`02:00 AM` in English, a 24 h schedule everywhere else). They are 24 h, typed as `0230`, `2:30` or `02:30`.
+- Selects in Schedules (filters, time zone, limits) use the design's chevron instead of each system's arrow.
+- A review that could not run copied the CLI's whole error into the notification; it is cut to one line.
+- MCP `ai_schedules` ignored a field it did not know (`timezone` for `tz`) and created the schedule with the default; it now names the unknown field and lists the ones that exist. `notify` is in the field list.
 ## [3.23.2] - 2026-11-02
 
 Settings drawn the way the design draws it (#283, design `design/screens/settings-structure.md`, `settings-pages.md`).

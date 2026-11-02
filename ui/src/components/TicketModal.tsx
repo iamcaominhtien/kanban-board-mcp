@@ -1753,6 +1753,8 @@ function TicketModalInner({
                       </div>
                     )}
                   </div>
+                  {/* The ticket's schedule sits under the header in both views (design E1), not inside the AI view */}
+                  <ScheduleTicketBlock ticket={ticket} />
                   {/* The AI's work on this ticket (summary, plan, run limit, who woke whom) has a view of its own: the
                       ticket and the AI take turns, each with the whole modal, so neither hides the other */}
                   {hasAiPane && (
@@ -1806,7 +1808,6 @@ function TicketModalInner({
                     )}
                     <TicketPlan ticket={ticket} />
                     <TicketSafetyBlocks ticketId={ticket.id} />
-                    <ScheduleTicketBlock ticket={ticket} />
                   </div>
                   <div
                     className={`${styles.detailBody} ${styles.tabFadeSlide}`}
