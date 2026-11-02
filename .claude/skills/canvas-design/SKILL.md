@@ -40,7 +40,8 @@ Name these and keep them for the whole canvas: **purpose and user**, **tone**, *
 space**.
 
 - **The signature** is an element only this product would have, which shapes its main screen and still reads at
-  thumbnail size: a water app whose screen fills like a glass, a day laid out as a timetable, a tally of drops you fill.
+  thumbnail size: a budget whose month is an envelope that empties, a transit app drawn as its own line map, a
+  habit tracker as a chain that gains a link a day. Find this product's own; never reuse an example from this guide.
   A 2 px tick on a progress bar is a detail, not a signature. If the name of the app could be swapped and nothing would
   look wrong, there is no signature yet.
 - **Calm is not characterless.** An app used every day carries no decoration (no hero art, no gradient wash, no

@@ -43,9 +43,9 @@ boxes.
 largest. Align to a few edges. Let the signature take room: bleed to the edge, overlap a boundary, fill the screen if
 that is the point. Density is good when it is ordered; an app people check ten times a day wants the answer at once.
 
-**The signature.** Ask what this product is about in the physical world (water fills a glass; a day has hours; a
-reminder is a tap on the shoulder) and draw that, simply, as the main screen's structure. It must survive at thumbnail
-size and in every state: empty, on track, behind, done, offline, error.
+**The signature.** Ask what this product is about in the physical world (money leaves an envelope; a train runs
+along a line; a habit is a chain you add a link to) and find this product's own, simply drawn, as the main screen's
+structure. It must survive at thumbnail size and in every state: empty, on track, behind, done, offline, error.
 
 **Details.** One icon set, one stroke width, sized to the text beside it. Optical alignment of icons and numbers. Real
 copy with the product's voice; a state says what happened and what to do. Pressed and focus states drawn.
