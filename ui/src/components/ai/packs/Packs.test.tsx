@@ -500,7 +500,7 @@ describe('team wizard', () => {
     it('typing yourself shows four rows: Not tried yet for a command, Empty for none', async () => {
       await toCommands();
       fireEvent.click(screen.getByRole('button', { name: 'Type the commands' }));
-      const result = await screen.findByTestId('cmd-result');
+      await screen.findByTestId('cmd-result');
       for (const n of ['prepare', 'test', 'lint', 'build'])
         expect(within(screen.getByTestId(`row-${n}`)).getByText('Empty')).toBeTruthy();
       fireEvent.change(screen.getByLabelText('Prepare command'), { target: { value: 'npm ci' } });
