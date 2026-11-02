@@ -653,14 +653,32 @@ def _instruction(
         )
     if step.get("role") == "designer":
         parts.append(
-            "First load the `canvas-design` skill (without it: docs_read(design_guide)) and follow it. "
-            "Design in this order, as the canvas design guide says. 1) Context: the product's own screens and Docs; "
+            "First load the board's design guide, the `kanban-board:canvas-design` skill (without it: "
+            "docs_read(design_guide)), and follow it; another skill of the same name is not this guide. Open the other "
+            "skills your prompt lists, by their exact names, when you reach the work they cover (motion, 3D, a chart) "
+            "or to check boards you have drawn; none of them sets the look, and where they differ the guide wins. "
+            "Before the first frame, read the guide's `craft.md` (beside the skill; docs_read(design_guide) gives it) "
+            "and look at its two exemplar boards (`examples/foundations.png`, `examples/states.png`): the exemplars "
+            "are the bar for how a design is presented, never a look to copy; craft.md is how it stops looking "
+            "machine-made. "
+            "Design in this order, as the guide says. 1) Context: the product's own screens and Docs; "
             'when there is no design system yet, make one and keep it on a Docs page ("Design system") the next '
-            "tickets follow. 2) A visual direction in two sentences, from good references for this kind of product. "
-            "3) Tokens in one stylesheet every frame links: colour, type scale, spacing, radius, shadow; a real font. "
-            "4) The frames, every state, at phone and desktop width. 5) Look: open each frame with the browser "
-            "(Playwright) at 390 and 1280 wide, screenshot it, and fix what is unbalanced, cramped, misaligned or "
-            "plain. Hand in the canvas, the screenshots (in a ticket comment) and what you would still improve."
+            "tickets follow. 2) Direction: name the signature (an element only this product has, which shapes the main "
+            "screen and reads at thumbnail size), the tone, the type and the colour. For a new product, draw the main "
+            "screen three ways that differ on a named axis, with the same real data, on a Directions page; screenshot "
+            "them, judge them against craft.md's tells at thumbnail size, keep the strongest and say why in one line "
+            "(ask with ai_run(ask) only when the ticket says a person picks). 3) Tokens in one stylesheet every board "
+            'links. 4) The canvas as a design document, one page tab each (`"page"` in frame.json): a Foundations '
+            "board first, every value named by its use (`Card title / 15 / 600 / lh 1.35`, `16 side gutter`), base "
+            "components with their states; then the components; then a board per screen or area. Every board opens "
+            "with a title and one sentence on what it is for, then lettered sections with headings; the states of a "
+            "thing sit side by side in one row, each under a label (never one frame per state), each phone screen a "
+            "390 px panel, and a short caption beside each decision. 5) Critique: serve the folder "
+            "(`python3 -m http.server 8765 --bind 127.0.0.1 &`; the browser does not open file://), screenshot each "
+            "board with the browser (Playwright), write down the three most template-like things on each main screen, "
+            "fix them, and look again. 6) Hand in the canvas, a spec per screen on Docs (purpose, a screenshot of "
+            "each state, tokens and components used, behaviour, the copy of every state, open questions), the "
+            "screenshots in a ticket comment, and what you would still improve."
         )
     if step.get("role") == "triage":
         parts.append(
@@ -685,9 +703,7 @@ def _instruction(
         "criteria you finished. Do not move the ticket between columns: the board does that as the workflow moves."
     )
     parts.append(
-        "Show, do not tell: what you hand in carries its proof, in a ticket comment or a test case's evidence "
-        "(`![what it shows](path/to/shot.png)` from your folder, the command and its output in a ``` block, a link). "
-        "A change a person will see gets screenshots of it (e.g. `npx playwright screenshot http://localhost:$PORT shot.png`)."
+        "Show, do not tell: hand in the proof a person can see (the board's `evidence-and-handover` skill says how)."
     )
     parts.append(
         "Work as a team: when you need something from a teammate (the BA for a criterion, the Designer for a state "

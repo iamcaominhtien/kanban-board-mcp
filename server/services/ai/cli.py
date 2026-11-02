@@ -649,6 +649,11 @@ class CliProcess:
             return False
         return True
 
+    @property
+    def input_open(self) -> bool:
+        """A live CLI whose input is still open (it waits for the next message)."""
+        return self._input_open
+
     def end_input(self) -> None:
         """Close a live CLI's input: it finishes the turn it is on and exits."""
         if self.live and self._input_open and self.proc and self.proc.stdin:
@@ -678,12 +683,22 @@ class CliProcess:
             yield raw.decode(errors="replace").rstrip("\n")
 
     async def wait(self) -> int:
-        """Exit code."""
+        """Exit code. What the CLI started and left running (a web server it looked at pages through, a dev server)
+        is stopped with it: the CLI leads its own process group, so whatever is still in that group is its leftover."""
         assert self.proc
         try:
             return await self.proc.wait()
         finally:
+            self._reap()
             self._cleanup()
+
+    def _reap(self) -> None:
+        if sys.platform == "win32" or not self.proc:
+            return
+        try:
+            os.killpg(self.proc.pid, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            pass  # nothing left over
 
     def kill(self) -> None:
         """Stop the CLI and its children."""

@@ -53,6 +53,10 @@ You never change an existing frame directly: docs_write(canvas_comment) comments
 from a folder; a person sees before and after and accepts or rejects. You never take the lock on a frame a person is editing.
 - AI team. Outside an AI run you act for the person: before you hand work over, read ai_team(action='guide'). ai_team(members) shows each AI's role (pm, ba, designer, dev, qa, user_tester, reviewer, triage) and state. Pick by what you want: an answer or a review, nothing changed: ai_team(ask, member_id, text, ticket_id) (it answers in a comment); one AI to do one ticket: the same with intent='work' (it takes the ticket; one work run per ticket); a heads-up, no run: intent='notify'; several roles on one ticket: ai_team(start_workflow, ticket_id, workflow); a goal bigger than one ticket: ai_team(give_story): the PM plans it and the board runs it. Do not chain asks and assignments yourself for that. An @mention you write in a comment does NOT wake an AI. Inside an AI run it is the other way round: ai_team allows only its reads there, an @mention of another AI in a comment you post does wake it (one question, within the board's chain limits), and ai_run(action='handoff') passes the work on. An AI's question to the person: ai_team(answer). Permission requests are decided by a person in the board, never over MCP (resources needs the member's Resource tools set to View; restart and cancel need Control).
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
+- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, brainstorm, check as the user would, office files).
+
+Working a ticket (the same rules every AI on the board follows)
+{core_rules}
 
 Conventions
 - Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it; docs_read(permissions_guide) says what you may do and what needs a person.
@@ -69,8 +73,13 @@ def build_instructions(include_ideas: bool | None = None) -> str:
     """The server instructions sent on connect (they only mention the Idea Space when its tools are exposed)."""
     if include_ideas is None:
         include_ideas = ideas_enabled()
+    from services import shared_skills
+
+    # an outside agent skipped a mention of the guides three times, even one in get_ticket's result: the few rules
+    # that matter most ride here, as they ride in every board run's prompt (issue #277)
     tail = _INSTRUCTIONS_TAIL.format(
         ideas_null="",
+        core_rules="\n".join(f"- {r}" for r in shared_skills.CORE_RULES),
     )
     # The canvas design guide is too long to ride here (Claude Code keeps the first 10,000 characters of a server's
     # instructions and drops the rest): it is the canvas-design skill in every Claude Code run, and docs_read

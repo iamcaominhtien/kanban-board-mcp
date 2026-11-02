@@ -1,0 +1,170 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Folio · Editorial tối giản</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"><style>/* The layouts every theme shares. A theme sets the variables and adds its own signature (themes/<key>/theme.css).
+   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint.
+   The variables live on section.slide: a theme that changes them for one layout writes `section.slide.l-cover`
+   (a plain `.l-cover` is less specific and loses). Use weights 400 to 800: lighter cuts are rarely installed. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: #7a7a7a; }
+body { font-family: var(--font-body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+aside.notes { display: none; }
+
+section.slide {
+  --pad: 88px;
+  width: 1280px; height: 720px; position: relative; overflow: hidden; margin: 0 auto 24px;
+  background: var(--ground); color: var(--ink); font-family: var(--font-body);
+  font-size: var(--body-size, 22px); line-height: 1.4;
+  font-feature-settings: "lnum", "tnum";
+}
+.slide .title { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: var(--title-size, 46px);
+  line-height: 1.08; letter-spacing: var(--display-tracking, -0.01em); text-wrap: balance; }
+.slide .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.slide .lede { font-size: 24px; line-height: 1.4; color: var(--muted); text-wrap: pretty; }
+.slide .muted { color: var(--muted); }
+.slide .num { font-family: var(--font-display); font-weight: var(--display-weight, 700); line-height: 0.95;
+  letter-spacing: -0.02em; color: var(--accent); }
+.slide .cap { font-size: 18px; color: var(--muted); line-height: 1.35; }
+.slide .footer { position: absolute; left: var(--pad); right: var(--pad); bottom: 30px; display: flex; justify-content: space-between;
+  font-size: 13px; letter-spacing: 0.06em; color: var(--muted); }
+
+/* Cover: the deck's point in one sentence */
+.l-cover .eyebrow { position: absolute; left: var(--pad); top: 72px; }
+.l-cover .title { position: absolute; left: var(--pad); top: 210px; width: 680px; font-size: var(--cover-size, 76px); line-height: 1.02; }
+.l-cover .lede { position: absolute; left: var(--pad); bottom: 96px; width: 640px; }
+.l-cover .art { position: absolute; right: 0; top: 0; bottom: 0; width: 460px; }
+
+/* Section break */
+.l-section .num { position: absolute; left: var(--pad); top: 150px; font-size: 180px; }
+.l-section .title { position: absolute; left: var(--pad); top: 380px; width: 900px; font-size: 60px; }
+.l-section .lede { position: absolute; left: var(--pad); top: 540px; width: 760px; }
+
+/* Agenda */
+.l-agenda .title { position: absolute; left: var(--pad); top: 80px; width: 420px; }
+.l-agenda ol { position: absolute; left: 600px; top: 84px; width: 590px; list-style: none; }
+.l-agenda li { display: flex; gap: 28px; align-items: baseline; padding: 20px 0; border-top: 1px solid var(--rule); }
+.l-agenda li .n { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 28px; color: var(--accent); width: 44px; }
+.l-agenda li .t { font-size: 26px; font-weight: 600; }
+.l-agenda li .d { display: block; font-size: 17px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+
+/* A big number and what it means */
+.l-number .num { position: absolute; left: var(--pad); top: 130px; font-size: 240px; }
+.l-number .title { position: absolute; left: var(--pad); top: 430px; width: 820px; font-size: 44px; }
+.l-number .lede { position: absolute; left: var(--pad); top: 560px; width: 760px; font-size: 21px; }
+.l-number .art { position: absolute; right: 0; top: 0; bottom: 0; width: 360px; }
+
+/* A chart and its point */
+.l-chart .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-chart .lede { position: absolute; left: var(--pad); top: 140px; width: 900px; font-size: 19px; }
+.l-chart .chart { position: absolute; left: calc(var(--pad) - 12px); top: 210px; width: 760px; height: 440px; }
+.l-chart .side { position: absolute; left: 900px; top: 236px; width: 300px; }
+.l-chart .side .num { font-size: 96px; }
+.l-chart .side .cap { margin-top: 10px; }
+.l-chart .side p { margin-top: 28px; font-size: 19px; line-height: 1.45; }
+
+/* A picture beside the text */
+.l-split .art { position: absolute; left: 0; top: 0; bottom: 0; width: 600px; }
+.l-split .eyebrow { position: absolute; left: 680px; top: 110px; }
+.l-split .title { position: absolute; left: 680px; top: 150px; width: 520px; }
+.l-split .body { position: absolute; left: 680px; top: 330px; width: 500px; font-size: 21px; line-height: 1.5; }
+.l-split .body p + p { margin-top: 14px; }
+
+/* Two options side by side */
+.l-compare .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-compare .cols { position: absolute; left: var(--pad); right: var(--pad); top: 210px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+.l-compare .col { padding-top: 22px; border-top: 4px solid var(--rule-strong, var(--ink)); }
+.l-compare .col.pick { border-top-color: var(--accent); }
+.l-compare .col h3 { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 30px; line-height: 1.15; }
+.l-compare .col .tag { font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.l-compare .col.pick .tag { color: var(--accent); }
+.l-compare .col p { margin-top: 14px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+.l-compare .col .k { margin-top: 22px; font-size: 19px; }
+.l-compare .col .k b { font-family: var(--font-display); font-size: 40px; display: block; color: var(--ink); }
+
+/* Steps or a timeline */
+.l-steps .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 300px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.l-steps .step { border-top: 2px solid var(--rule-strong, var(--ink)); padding-top: 18px; }
+.l-steps .step .when { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.l-steps .step h3 { margin-top: 12px; font-size: 30px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
+.l-steps .step p { margin-top: 12px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+
+/* A quote */
+.l-quote .mark { position: absolute; left: var(--pad); top: 70px; font-family: var(--font-display); font-size: 200px; line-height: 1; color: var(--accent); }
+.l-quote .title { position: absolute; left: var(--pad); top: 210px; width: 1000px; font-size: 52px; line-height: 1.15; }
+.l-quote .who { position: absolute; left: var(--pad); top: 520px; font-size: 20px; }
+.l-quote .who b { display: block; font-size: 22px; }
+
+/* Closing: what is asked of the room */
+.l-closing .eyebrow { position: absolute; left: var(--pad); top: 110px; }
+.l-closing .title { position: absolute; left: var(--pad); top: 150px; width: 820px; font-size: 64px; }
+.l-closing .asks { position: absolute; left: var(--pad); top: 420px; width: 1100px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.l-closing .asks div { font-size: 20px; line-height: 1.4; }
+.l-closing .asks b { display: block; font-size: 22px; margin-bottom: 6px; color: var(--accent); }
+
+/* Folio: a magazine's editorial deck. Bright white page, black type, a high-contrast soft serif set very large and
+   left to breathe; one ultramarine used like a magazine's spot ink, for pictures and the one word that matters.
+   Folio numbers and a thin column rule, never a box. */
+section.slide {
+  --ground: #FFFFFF; --ink: #111111; --muted: #6B6B6B; --accent: #2639C9; --rule: #E2E2E2; --rule-strong: #111111;
+  --font-display: "Fraunces", Georgia, Constantia, serif; --font-body: "Archivo", Arial, "Segoe UI", sans-serif;
+  --display-weight: 400; --title-size: 50px; --display-tracking: -0.025em; --body-size: 21px;
+  font-family: var(--font-body);
+}
+.slide .eyebrow { color: var(--ink); font-weight: 600; letter-spacing: 0.22em; font-size: 13px; }
+.slide .title { font-weight: 400; }
+.slide .title i { color: var(--accent); }
+.slide .num { font-weight: 400; color: var(--ink); }
+.slide .footer { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+/* the folio: a short black rule above the page number, bottom right */
+section.slide:not(.l-cover)::after { content: ""; position: absolute; right: var(--pad); bottom: 52px; width: 28px;
+  border-top: 2px solid var(--ink); }
+
+.l-cover .eyebrow { top: 64px; }
+.l-cover .title { top: 140px; width: 640px; font-size: 92px; line-height: 0.96; font-weight: 400; }
+.l-cover .lede { bottom: 80px; width: 520px; font-size: 20px; color: var(--ink); }
+.l-cover .art { width: 520px; }
+.l-agenda .title { font-size: 64px; line-height: 0.98; width: 440px; font-weight: 400; }
+.l-agenda li { border-top: 1px solid var(--ink); }
+.l-agenda li .n { font-family: var(--font-display); font-weight: 400; font-style: italic; color: var(--accent); font-size: 32px; }
+.l-agenda li .t { font-family: var(--font-display); font-weight: 400; font-size: 28px; }
+.l-number .num { font-size: 300px; top: 60px; left: 76px; letter-spacing: -0.05em; }
+.l-number .title { top: 430px; width: 620px; font-size: 40px; line-height: 1.12; }
+.l-number .lede { top: 560px; width: 560px; font-size: 18px; }
+.l-number .art { width: 460px; }
+.l-chart .title, .l-compare .title, .l-steps .title { top: 70px; width: 900px; }
+.l-chart .lede { top: 200px; left: 900px; width: 300px; font-size: 16px; }
+.l-chart .chart { top: 190px; width: 780px; }
+.l-chart .side { top: 300px; }
+.l-chart .side .num { font-size: 120px; color: var(--accent); }
+.l-split .art { width: 640px; }
+.l-split .eyebrow { left: 720px; top: 110px; }
+.l-split .title { left: 720px; top: 150px; width: 480px; font-size: 46px; line-height: 1.04; }
+.l-split .body { left: 720px; top: 380px; width: 460px; font-size: 19px; }
+.l-compare .col { border-top: 1px solid var(--ink); }
+.l-compare .col.pick { border-top: 1px solid var(--accent); }
+.l-compare .col h3 { font-weight: 400; font-size: 34px; line-height: 1.1; }
+.l-compare .col.pick h3 { color: var(--accent); }
+.l-compare .col .k b { font-family: var(--font-display); font-weight: 400; font-size: 56px; }
+.l-steps .row { top: 300px; }
+.l-steps .step { border-top: 1px solid var(--ink); }
+.l-steps .step .when { color: var(--accent); }
+.l-steps .step h3 { font-weight: 400; font-size: 30px; line-height: 1.1; }
+section.slide.l-quote { --ground: #2639C9; --ink: #FFFFFF; --muted: #C9CEF5; --accent: #FFFFFF; }
+section.slide.l-quote::after { border-top-color: #FFFFFF; }
+.l-quote .mark { font-weight: 400; font-size: 260px; top: 40px; }
+.l-quote .title { font-weight: 400; font-style: italic; font-size: 58px; line-height: 1.08; top: 230px; width: 1060px; }
+.l-quote .who { top: 520px; }
+.l-closing .title { font-weight: 400; font-size: 80px; line-height: 0.98; width: 980px; top: 150px; }
+.l-closing .asks { top: 470px; }
+.l-closing .asks div { border-top: 1px solid var(--ink); padding-top: 14px; font-size: 18px; }
+.l-closing .asks b { color: var(--ink); font-family: var(--font-display); font-weight: 400; font-size: 24px; }
+/* only the regular and bold weights of Fraunces go into a deck: a Light needs its own font installed on the reader's machine */
+.l-number .lede { top: 600px; }
+.l-number .title { width: 680px; }
+</style></head><body><section class="slide l-cover"><div class="eyebrow">Mùa · Họp biên tập · 11/2026</div><h1 class="title">Người đọc ở lại với những bài chậm</h1><p class="lede">Kế hoạch nội dung năm 2027 của tạp chí ẩm thực Mùa, dựa trên 14 tháng dữ liệu đọc.</p><div class="art"><svg width='520' height='720' viewBox='0 0 520 720'><rect width='520' height='720' fill='#2639C9'/><g fill='none' stroke='#FFFFFF' stroke-width='3'><ellipse cx='260' cy='430' rx='180' ry='48'/><path d='M80 430 q0 170 180 170 q180 0 180 -170'/><path d='M120 420 q40 -40 80 -10 t80 0 t80 -10' /><path d='M140 440 q40 -30 70 -6 t70 0 t70 -8'/><path d='M300 300 L380 160 M330 310 L430 190'/></g><g fill='#FFFFFF'><circle cx='200' cy='410' r='10'/><circle cx='310' cy='418' r='8'/><path d='M230 400 q20 -26 44 0 q-22 10 -44 0z'/></g><text x='40' y='90' font-family='Fraunces' font-style='italic' font-weight='400' font-size='30' fill='#FFFFFF'>Số 24</text></svg></div><aside class="notes"></aside></section>
+<section class="slide l-agenda"><h2 class="title">Bốn điều cho năm tới</h2><ol><li><span class="n">01</span><span class="t">Người đọc đang ở đâu<span class="d">14 tháng dữ liệu, ba bất ngờ</span></span></li><li><span class="n">02</span><span class="t">Bài dài thắng<span class="d">Thời gian đọc và quay lại</span></span></li><li><span class="n">03</span><span class="t">Hai hướng cho số đặc biệt<span class="d">Một vùng đất hay một nguyên liệu</span></span></li><li><span class="n">04</span><span class="t">Lịch xuất bản<span class="d">Bốn mùa, bốn số in</span></span></li></ol><div class="footer"><span>Tạp chí Mùa · Kế hoạch nội dung 2027</span><span>02</span></div></section>
+<section class="slide l-number"><div class="num">11'</div><h2 class="title">là thời gian đọc trung bình của một bài phóng sự dài, gấp bốn lần một bài danh sách</h2><p class="lede">Số liệu từ 2,3 triệu lượt đọc trên trang web của Mùa, 9/2025 đến 10/2026.</p><div class="art"><svg width='460' height='720' viewBox='0 0 460 720'><g fill='none' stroke='#111111' stroke-width='2'><circle cx='230' cy='300' r='140'/><path d='M230 300 V180' stroke-width='3'/><path d='M230 300 L330 250' stroke='#2639C9' stroke-width='6'/></g><path d='M230 160 A140 140 0 0 1 356 237 L230 300 Z' fill='#2639C9' opacity='.15'/><circle cx='230' cy='300' r='6' fill='#111111'/></svg></div><div class="footer"><span>Tạp chí Mùa · Kế hoạch nội dung 2027</span><span>03</span></div></section>
+<section class="slide l-chart"><h2 class="title">Bài càng dài, người đọc càng ở lâu và quay lại</h2><p class="lede">Phút đọc trung bình theo loại bài, 14 tháng.</p><div class="chart" data-pptx="chart" data-chart='{&quot;type&quot;: &quot;bar&quot;, &quot;categories&quot;: [&quot;Danh sách&quot;, &quot;Công thức&quot;, &quot;Phỏng vấn&quot;, &quot;Tiểu luận&quot;, &quot;Phóng sự dài&quot;], &quot;series&quot;: {&quot;Phút&quot;: [2.7, 4.1, 6.8, 8.9, 11.2]}, &quot;colors&quot;: [&quot;D8D8D8&quot;, &quot;D8D8D8&quot;, &quot;D8D8D8&quot;, &quot;D8D8D8&quot;, &quot;2639C9&quot;], &quot;labels&quot;: [&quot;2,7&quot;, &quot;4,1&quot;, &quot;6,8&quot;, &quot;8,9&quot;, &quot;11,2&quot;], &quot;size&quot;: 16, &quot;muted&quot;: &quot;6B6B6B&quot;, &quot;gap&quot;: 80, &quot;font&quot;: &quot;Archivo&quot;}'></div><div class="side"><div class="num">41%</div><div class="cap">người đọc phóng sự dài quay lại trong 7 ngày</div><p></p></div><div class="footer"><span>Tạp chí Mùa · Kế hoạch nội dung 2027</span><span>04</span></div></section>
+<section class="slide l-split"><div class="art"><svg width='640' height='720' viewBox='0 0 640 720'><rect width='640' height='720' fill='#EEF0FB'/><g fill='none' stroke='#2639C9' stroke-width='3'><path d='M120 470 h400'/><path d='M150 470 q0 120 170 120 q170 0 170 -120'/><path d='M190 450 q30 -50 60 0 q30 50 60 0 q30 -50 60 0 q30 50 60 0'/><path d='M190 420 q30 -50 60 0 q30 50 60 0 q30 -50 60 0 q30 50 60 0' opacity='.5'/><path d='M260 380 q-20 -80 20 -140 M320 370 q-10 -90 30 -150 M380 380 q0 -70 30 -120' stroke-dasharray='2 10' stroke-linecap='round'/></g><g fill='#2639C9'><rect x='210' y='454' width='40' height='14'/><rect x='300' y='452' width='46' height='16'/><rect x='390' y='456' width='38' height='12'/></g><text x='120' y='150' font-family='Fraunces' font-style='italic' font-weight='400' font-size='30' fill='#2639C9'>Hội An, 5 giờ sáng</text></svg></div><div class="eyebrow">Bài đọc nhiều nhất năm</div><h2 class="title">Một bát cao lầu, ba thế hệ, bốn trang</h2><div class="body"><p>Phóng sự của Lam Phương ở Hội An: 184.000 lượt đọc, thời gian đọc trung bình 14 phút.</p><p>Không có ảnh món ăn nào ở trên đầu bài. Người đọc đến vì câu chuyện, không vì công thức.</p></div><div class="footer"><span>Tạp chí Mùa · Kế hoạch nội dung 2027</span><span>05</span></div></section>
+<section class="slide l-compare"><h2 class="title">Số đặc biệt mùa xuân: một vùng đất, hay một nguyên liệu?</h2><div class="cols"><div class="col"><div class="tag">Hướng một</div><h3>Tây Bắc, từ chợ phiên đến bếp nhà</h3><p>Ảnh đẹp, quen với người đọc; ba tạp chí khác đã làm trong hai năm qua.</p><div class="k"><b>6</b>phóng sự, 4 phóng viên</div></div><div class="col pick"><div class="tag">Hướng hai · đề xuất</div><h3>Gạo: một hạt, mười hai bữa ăn</h3><p>Chưa ai làm; nối được bếp nhà, nông dân và nhà hàng trong một số.</p><div class="k"><b>12</b>bài, từ ruộng đến bàn</div></div></div><div class="footer"><span>Tạp chí Mùa · Kế hoạch nội dung 2027</span><span>06</span></div></section>
+<section class="slide l-steps"><h2 class="title">Bốn mùa, bốn số in</h2><div class="row"><div class="step"><div class="when">Xuân · tháng 2</div><h3>Gạo</h3><p>Số đặc biệt, 144 trang, kèm bản đồ ruộng.</p></div><div class="step"><div class="when">Hạ · tháng 5</div><h3>Chợ đêm</h3><p>Sáu thành phố, sáu người bán hàng.</p></div><div class="step"><div class="when">Thu · tháng 8</div><h3>Bếp của bà</h3><p>Công thức chép tay từ độc giả gửi về.</p></div><div class="step"><div class="when">Đông · tháng 11</div><h3>Mâm cỗ</h3><p>Những bữa ăn chỉ có một lần trong năm.</p></div></div><div class="footer"><span>Tạp chí Mùa · Kế hoạch nội dung 2027</span><span>07</span></div></section>
+<section class="slide l-quote"><div class="mark">“</div><h2 class="title">Tôi đọc Mùa như đọc thư của một người bạn đang đi xa.</h2><div class="who"><b>Chị Hồng Nhung</b>Độc giả từ số đầu tiên, Đà Lạt</div><div class="footer"><span>Tạp chí Mùa · Kế hoạch nội dung 2027</span><span>08</span></div></section>
+<section class="slide l-closing"><div class="eyebrow">Xin hội đồng quyết</div><h2 class="title">Chọn Gạo cho số mùa xuân, và giữ bài dài làm xương sống</h2><div class="asks"><div><b>Số đặc biệt</b>Duyệt chủ đề Gạo trước 30/11.</div><div><b>Phóng viên</b>Thêm một người cho mảng phóng sự dài.</div><div><b>Giấy in</b>Đổi sang giấy không tráng phủ cho bốn số in.</div></div><div class="footer"><span>Tạp chí Mùa · Kế hoạch nội dung 2027</span><span>09</span></div></section></body></html>

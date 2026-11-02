@@ -5,6 +5,7 @@ import { extractError } from '../../../api/extractError';
 import { Toggle } from '../aiUi';
 import { effective, followed, roleName } from './pluginLogic';
 import { isInstalled } from './CatalogueTab';
+import { BoardSkillsRows } from './BoardSkillsCard';
 
 /** The member's role pack key, wherever the config keeps it. */
 export function roleOfConfig(cfg: unknown): string | null {
@@ -76,6 +77,7 @@ export function MemberPluginsCard({ memberId, projectId }: { memberId: string; p
   return shell(
     <>
       <div className="ai-hint">{role ? `Role: ${roleName(role)}.` : 'This member has no role pack.'}</div>
+      <BoardSkillsRows projectId={projectId} memberId={memberId} />
       {list.length === 0 && <div className="ai-hint">No plugin is installed on this project.</div>}
       {list.map((p) => {
         const eff = effective(p, memberId, role);

@@ -1,0 +1,141 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Pitch · Gọi vốn startup</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"><style>/* The layouts every theme shares. A theme sets the variables and adds its own signature (themes/<key>/theme.css).
+   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint.
+   The variables live on section.slide: a theme that changes them for one layout writes `section.slide.l-cover`
+   (a plain `.l-cover` is less specific and loses). Use weights 400 to 800: lighter cuts are rarely installed. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: #7a7a7a; }
+body { font-family: var(--font-body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+aside.notes { display: none; }
+
+section.slide {
+  --pad: 88px;
+  width: 1280px; height: 720px; position: relative; overflow: hidden; margin: 0 auto 24px;
+  background: var(--ground); color: var(--ink); font-family: var(--font-body);
+  font-size: var(--body-size, 22px); line-height: 1.4;
+  font-feature-settings: "lnum", "tnum";
+}
+.slide .title { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: var(--title-size, 46px);
+  line-height: 1.08; letter-spacing: var(--display-tracking, -0.01em); text-wrap: balance; }
+.slide .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.slide .lede { font-size: 24px; line-height: 1.4; color: var(--muted); text-wrap: pretty; }
+.slide .muted { color: var(--muted); }
+.slide .num { font-family: var(--font-display); font-weight: var(--display-weight, 700); line-height: 0.95;
+  letter-spacing: -0.02em; color: var(--accent); }
+.slide .cap { font-size: 18px; color: var(--muted); line-height: 1.35; }
+.slide .footer { position: absolute; left: var(--pad); right: var(--pad); bottom: 30px; display: flex; justify-content: space-between;
+  font-size: 13px; letter-spacing: 0.06em; color: var(--muted); }
+
+/* Cover: the deck's point in one sentence */
+.l-cover .eyebrow { position: absolute; left: var(--pad); top: 72px; }
+.l-cover .title { position: absolute; left: var(--pad); top: 210px; width: 680px; font-size: var(--cover-size, 76px); line-height: 1.02; }
+.l-cover .lede { position: absolute; left: var(--pad); bottom: 96px; width: 640px; }
+.l-cover .art { position: absolute; right: 0; top: 0; bottom: 0; width: 460px; }
+
+/* Section break */
+.l-section .num { position: absolute; left: var(--pad); top: 150px; font-size: 180px; }
+.l-section .title { position: absolute; left: var(--pad); top: 380px; width: 900px; font-size: 60px; }
+.l-section .lede { position: absolute; left: var(--pad); top: 540px; width: 760px; }
+
+/* Agenda */
+.l-agenda .title { position: absolute; left: var(--pad); top: 80px; width: 420px; }
+.l-agenda ol { position: absolute; left: 600px; top: 84px; width: 590px; list-style: none; }
+.l-agenda li { display: flex; gap: 28px; align-items: baseline; padding: 20px 0; border-top: 1px solid var(--rule); }
+.l-agenda li .n { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 28px; color: var(--accent); width: 44px; }
+.l-agenda li .t { font-size: 26px; font-weight: 600; }
+.l-agenda li .d { display: block; font-size: 17px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+
+/* A big number and what it means */
+.l-number .num { position: absolute; left: var(--pad); top: 130px; font-size: 240px; }
+.l-number .title { position: absolute; left: var(--pad); top: 430px; width: 820px; font-size: 44px; }
+.l-number .lede { position: absolute; left: var(--pad); top: 560px; width: 760px; font-size: 21px; }
+.l-number .art { position: absolute; right: 0; top: 0; bottom: 0; width: 360px; }
+
+/* A chart and its point */
+.l-chart .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-chart .lede { position: absolute; left: var(--pad); top: 140px; width: 900px; font-size: 19px; }
+.l-chart .chart { position: absolute; left: calc(var(--pad) - 12px); top: 210px; width: 760px; height: 440px; }
+.l-chart .side { position: absolute; left: 900px; top: 236px; width: 300px; }
+.l-chart .side .num { font-size: 96px; }
+.l-chart .side .cap { margin-top: 10px; }
+.l-chart .side p { margin-top: 28px; font-size: 19px; line-height: 1.45; }
+
+/* A picture beside the text */
+.l-split .art { position: absolute; left: 0; top: 0; bottom: 0; width: 600px; }
+.l-split .eyebrow { position: absolute; left: 680px; top: 110px; }
+.l-split .title { position: absolute; left: 680px; top: 150px; width: 520px; }
+.l-split .body { position: absolute; left: 680px; top: 330px; width: 500px; font-size: 21px; line-height: 1.5; }
+.l-split .body p + p { margin-top: 14px; }
+
+/* Two options side by side */
+.l-compare .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-compare .cols { position: absolute; left: var(--pad); right: var(--pad); top: 210px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+.l-compare .col { padding-top: 22px; border-top: 4px solid var(--rule-strong, var(--ink)); }
+.l-compare .col.pick { border-top-color: var(--accent); }
+.l-compare .col h3 { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 30px; line-height: 1.15; }
+.l-compare .col .tag { font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.l-compare .col.pick .tag { color: var(--accent); }
+.l-compare .col p { margin-top: 14px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+.l-compare .col .k { margin-top: 22px; font-size: 19px; }
+.l-compare .col .k b { font-family: var(--font-display); font-size: 40px; display: block; color: var(--ink); }
+
+/* Steps or a timeline */
+.l-steps .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 300px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.l-steps .step { border-top: 2px solid var(--rule-strong, var(--ink)); padding-top: 18px; }
+.l-steps .step .when { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.l-steps .step h3 { margin-top: 12px; font-size: 30px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
+.l-steps .step p { margin-top: 12px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+
+/* A quote */
+.l-quote .mark { position: absolute; left: var(--pad); top: 70px; font-family: var(--font-display); font-size: 200px; line-height: 1; color: var(--accent); }
+.l-quote .title { position: absolute; left: var(--pad); top: 210px; width: 1000px; font-size: 52px; line-height: 1.15; }
+.l-quote .who { position: absolute; left: var(--pad); top: 520px; font-size: 20px; }
+.l-quote .who b { display: block; font-size: 22px; }
+
+/* Closing: what is asked of the room */
+.l-closing .eyebrow { position: absolute; left: var(--pad); top: 110px; }
+.l-closing .title { position: absolute; left: var(--pad); top: 150px; width: 820px; font-size: 64px; }
+.l-closing .asks { position: absolute; left: var(--pad); top: 420px; width: 1100px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.l-closing .asks div { font-size: 20px; line-height: 1.4; }
+.l-closing .asks b { display: block; font-size: 22px; margin-bottom: 6px; color: var(--accent); }
+
+/* Pitch: a seed round. Night ground, one electric lime for traction, a heavy grotesk set big and tight: the deck
+   of a team that ships. Lime means "our number"; everything else is white or grey. */
+section.slide {
+  --ground: #0D0F0C; --ink: #F4F5EF; --muted: #8C918A; --accent: #C8F135; --rule: #2A2E28; --rule-strong: #F4F5EF;
+  --font-display: "Bricolage Grotesque", "Arial", sans-serif; --font-body: "Inter", Calibri, Arial, sans-serif;
+  --display-weight: 800; --title-size: 46px; --display-tracking: -0.035em; --cover-size: 80px;
+  font-family: var(--font-body); /* base.css sets it on body, where the variables are not defined */
+}
+.slide .eyebrow { letter-spacing: 0.08em; }
+.l-cover .title { width: 640px; top: 190px; line-height: 0.98; }
+.l-cover .lede { color: var(--muted); }
+.l-cover .art { width: 520px; }
+.l-number .num { font-size: 260px; top: 80px; letter-spacing: -0.05em; }
+.l-number .title { top: 420px; width: 760px; color: var(--ink); }
+.l-number .lede { width: 700px; }
+.l-number .art { width: 360px; }
+.l-chart .side .num { font-size: 120px; letter-spacing: -0.04em; }
+section.slide.l-quote { --ground: #C8F135; --ink: #0D0F0C; --muted: #3B4232; --accent: #0D0F0C; }
+.l-quote .title { font-size: 58px; }
+section.slide.l-closing { --ground: #C8F135; --ink: #0D0F0C; --muted: #3B4232; --accent: #0D0F0C; }
+.l-closing .title { font-size: 76px; width: 960px; }
+.l-compare .col .k b { color: var(--accent); }
+.l-compare .col:not(.pick) .k b { color: var(--muted); }
+.l-split .art { width: 560px; }
+.l-split .eyebrow, .l-split .title, .l-split .body { left: 640px; }
+.l-split .title { width: 560px; }
+.l-agenda li { border-top-color: #2A2E28; }
+.l-steps .row { top: 300px; }
+.l-steps .step { border-top-width: 3px; padding-top: 22px; }
+.l-steps .step h3 { font-size: 30px; }
+.l-steps .step p { font-size: 20px; }
+</style></head><body><section class="slide l-cover"><div class="eyebrow">Chợ Sỉ · Vòng hạt giống</div><h1 class="title">Tiệm tạp hoá nhập hàng trong 2 phút, không cần gọi điện</h1><p class="lede">Gọi 2 triệu USD để phủ 12.000 tiệm ở TP.HCM trong 18 tháng.</p><div class="art"><svg width='520' height='720' viewBox='0 0 520 720'><g fill='none' stroke='#2A2E28' stroke-width='1'><line x1='40' y1='600' x2='500' y2='600'/><line x1='40' y1='480' x2='500' y2='480'/><line x1='40' y1='360' x2='500' y2='360'/><line x1='40' y1='240' x2='500' y2='240'/></g><polyline points='60,585 130,570 200,548 270,505 340,430 410,330 470,180' fill='none' stroke='#C8F135' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/><g fill='#0D0F0C' stroke='#C8F135' stroke-width='5'><circle cx='270' cy='505' r='10'/><circle cx='340' cy='430' r='10'/><circle cx='410' cy='330' r='10'/></g><circle cx='470' cy='180' r='18' fill='#C8F135'/><text x='440' y='190' text-anchor='end' font-family='Bricolage Grotesque' font-weight='800' font-size='40' fill='#C8F135'>3.400 tiệm</text><text x='440' y='218' text-anchor='end' font-family='Inter' font-size='14' letter-spacing='1.5' fill='#8C918A'>THÁNG 10/2026</text></svg></div><aside class="notes"></aside></section>
+<section class="slide l-agenda"><h2 class="title">Năm phút, bốn câu hỏi</h2><ol><li><span class="n">01</span><span class="t">Vấn đề<span class="d">Một tiệm tạp hoá mất 6 giờ mỗi tuần để nhập hàng</span></span></li><li><span class="n">02</span><span class="t">Cách làm<span class="d">Đặt sỉ trên điện thoại, giá công khai, giao sáng hôm sau</span></span></li><li><span class="n">03</span><span class="t">Tăng trưởng<span class="d">3.400 tiệm sau 14 tháng, 71% đặt lại mỗi tuần</span></span></li><li><span class="n">04</span><span class="t">Vòng gọi vốn<span class="d">2 triệu USD và 18 tháng tới làm gì</span></span></li></ol><div class="footer"><span>Chợ Sỉ · Gọi vốn hạt giống 2026</span><span>02</span></div></section>
+<section class="slide l-number"><div class="num">6 giờ</div><h2 class="title">mỗi tuần một chủ tiệm gọi điện, chờ xe và đối chiếu hoá đơn</h2><p class="lede">Khảo sát 420 tiệm ở Quận 8, Gò Vấp và Thủ Đức, tháng 6/2026. Giá sỉ mỗi nhà phân phối báo một kiểu.</p><div class="art"><svg width='360' height='720' viewBox='60 0 360 720'><g font-family='Inter' font-size='15' fill='#8C918A'><text x='60' y='170'>T2</text><text x='60' y='250'>T3</text><text x='60' y='330'>T4</text><text x='60' y='410'>T5</text><text x='60' y='490'>T6</text></g><g fill='#2A2E28'><rect x='110' y='152' width='250' height='24'/><rect x='110' y='232' width='250' height='24'/><rect x='110' y='312' width='250' height='24'/><rect x='110' y='392' width='250' height='24'/><rect x='110' y='472' width='250' height='24'/></g><g fill='#F4F5EF'><rect x='110' y='152' width='90' height='24'/><rect x='110' y='232' width='40' height='24'/><rect x='110' y='312' width='120' height='24'/><rect x='110' y='392' width='30' height='24'/><rect x='110' y='472' width='70' height='24'/></g><text x='110' y='560' font-family='Inter' font-size='15' fill='#8C918A'>Thời gian nhập hàng trong một tuần</text></svg></div><div class="footer"><span>Chợ Sỉ · Gọi vốn hạt giống 2026</span><span>03</span></div></section>
+<section class="slide l-chart"><h2 class="title">Giá trị đơn tăng gấp 5 lần trong 9 tháng</h2><p class="lede">Giá trị đơn mỗi tháng, tỷ đồng.</p><div class="chart" data-pptx="chart" data-chart='{&quot;type&quot;: &quot;bar&quot;, &quot;categories&quot;: [&quot;T2&quot;, &quot;T3&quot;, &quot;T4&quot;, &quot;T5&quot;, &quot;T6&quot;, &quot;T7&quot;, &quot;T8&quot;, &quot;T9&quot;, &quot;T10&quot;], &quot;series&quot;: {&quot;Giá trị đơn&quot;: [4.2, 5.1, 6.0, 7.8, 9.5, 11.9, 14.6, 17.8, 21.3]}, &quot;colors&quot;: [&quot;3A3F37&quot;, &quot;3A3F37&quot;, &quot;3A3F37&quot;, &quot;3A3F37&quot;, &quot;3A3F37&quot;, &quot;3A3F37&quot;, &quot;3A3F37&quot;, &quot;3A3F37&quot;, &quot;C8F135&quot;], &quot;labels&quot;: [&quot;4,2&quot;, &quot;5,1&quot;, &quot;6,0&quot;, &quot;7,8&quot;, &quot;9,5&quot;, &quot;11,9&quot;, &quot;14,6&quot;, &quot;17,8&quot;, &quot;21,3&quot;], &quot;size&quot;: 15, &quot;muted&quot;: &quot;8C918A&quot;, &quot;gap&quot;: 35, &quot;label_color&quot;: &quot;F4F5EF&quot;, &quot;font&quot;: &quot;Inter&quot;}'></div><div class="side"><div class="num">71%</div><div class="cap">tiệm đặt lại mỗi tuần</div><p>Biên lợi nhuận gộp 8,4%; chi phí có một tiệm mới 310.000 đồng.</p></div><div class="footer"><span>Chợ Sỉ · Gọi vốn hạt giống 2026</span><span>04</span></div></section>
+<section class="slide l-split"><div class="art"><svg width='560' height='720' viewBox='0 0 560 720'><rect width='560' height='720' fill='#171A15'/><g transform='translate(150 90)'><rect width='270' height='560' rx='38' fill='#0D0F0C' stroke='#3A3F37' stroke-width='3'/><rect x='18' y='22' width='234' height='516' rx='24' fill='#F4F5EF'/><text x='36' y='70' font-family='Bricolage Grotesque' font-weight='800' font-size='24' fill='#0D0F0C'>Mì gói, thùng 30</text><text x='36' y='94' font-family='Inter' font-size='12' fill='#6B7068'>46 nhà phân phối · giao 7:00 mai</text><g font-family='Inter' font-size='14' fill='#0D0F0C'><rect x='30' y='116' width='210' height='58' rx='10' fill='#C8F135'/><text x='44' y='140' font-weight='700'>Nhà PP Phú Lâm</text><text x='44' y='160' fill='#3B4232'>rẻ nhất</text><text x='228' y='150' text-anchor='end' font-weight='700'>98.500đ</text><line x1='36' y1='200' x2='234' y2='200' stroke='#DADDD3'/><text x='44' y='228'>Kho Bình Tây</text><text x='228' y='228' text-anchor='end'>101.000đ</text><line x1='36' y1='254' x2='234' y2='254' stroke='#DADDD3'/><text x='44' y='282'>Đại lý Hưng Phát</text><text x='228' y='282' text-anchor='end'>103.200đ</text></g><rect x='30' y='454' width='210' height='56' rx='28' fill='#0D0F0C'/><text x='135' y='489' text-anchor='middle' font-family='Inter' font-weight='700' font-size='16' fill='#C8F135'>Đặt 5 thùng</text></g></svg></div><div class="eyebrow">Sản phẩm</div><h2 class="title">Ba chạm: chọn hàng, xem giá, đặt</h2><div class="body"><p>Giá của 46 nhà phân phối trên một màn hình, rẻ nhất nằm trên cùng.</p><p>Xe của Chợ Sỉ giao trước 7 giờ sáng hôm sau; trả tiền khi nhận.</p></div><div class="footer"><span>Chợ Sỉ · Gọi vốn hạt giống 2026</span><span>05</span></div></section>
+<section class="slide l-compare"><h2 class="title">Chúng tôi rẻ hơn người đến trước vì không nuôi đội bán hàng</h2><div class="cols"><div class="col"><div class="tag">Cách cũ</div><h3>Nhân viên nhà phân phối ghé tiệm</h3><p>Mỗi người phục vụ 60 tiệm; chi phí bán hàng chiếm 6% giá trị đơn.</p><div class="k"><b>6%</b>chi phí bán hàng trên mỗi đơn</div></div><div class="col pick"><div class="tag">Chợ Sỉ</div><h3>Chủ tiệm tự đặt trên điện thoại</h3><p>Một người vận hành 900 tiệm; giá rẻ hơn trung bình 3,2%.</p><div class="k"><b>0,9%</b>chi phí bán hàng trên mỗi đơn</div></div></div><div class="footer"><span>Chợ Sỉ · Gọi vốn hạt giống 2026</span><span>06</span></div></section>
+<section class="slide l-steps"><h2 class="title">18 tháng tới: từ 3.400 lên 12.000 tiệm</h2><div class="row"><div class="step"><div class="when">Quý 1/2027</div><h3>Phủ kín 8 quận</h3><p>Thêm 2 kho trung chuyển ở Bình Tân và Thủ Đức.</p></div><div class="step"><div class="when">Quý 2/2027</div><h3>Trả sau 7 ngày</h3><p>Hạn mức cho tiệm đặt đều 12 tuần liền.</p></div><div class="step"><div class="when">Quý 3/2027</div><h3>Hàng tươi</h3><p>Trứng, rau, sữa: thêm 30% giá trị mỗi đơn.</p></div><div class="step"><div class="when">Quý 2/2028</div><h3>12.000 tiệm</h3><p>Hoà vốn theo từng kho, sẵn sàng vòng A.</p></div></div><div class="footer"><span>Chợ Sỉ · Gọi vốn hạt giống 2026</span><span>07</span></div></section>
+<section class="slide l-quote"><div class="mark">“</div><h2 class="title">Trước tôi mất cả buổi chiều thứ Hai để gọi hàng. Giờ tôi đặt lúc tối, sáng ra hàng đã ở cửa.</h2><div class="who"><b>Cô Sáu Hạnh</b>Tiệm tạp hoá Hạnh, Quận 8, dùng Chợ Sỉ từ tháng 2</div><div class="footer"><span>Chợ Sỉ · Gọi vốn hạt giống 2026</span><span>08</span></div></section>
+<section class="slide l-closing"><div class="eyebrow">Vòng hạt giống</div><h2 class="title">2 triệu USD, 18 tháng, 12.000 tiệm</h2><div class="asks"><div><b>55% · Kho và xe</b>2 kho trung chuyển, 40 xe giao sáng sớm.</div><div><b>30% · Sản phẩm</b>Trả sau, hàng tươi, đội 9 kỹ sư.</div><div><b>15% · Mở rộng</b>Đội thị trường cho 8 quận mới.</div></div><div class="footer"><span>Chợ Sỉ · Gọi vốn hạt giống 2026</span><span>09</span></div></section></body></html>

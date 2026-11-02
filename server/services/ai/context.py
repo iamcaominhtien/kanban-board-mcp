@@ -383,7 +383,8 @@ def rules_block(
             "role = your role, kind investigation|fix_attempt|root_cause|blocked|resolved) with what you looked at, what "
             "you decided and why, and what is left. The board records the facts (time, files, commands) itself.",
             "When you are done, call ai_run(action='report', summary=..., criteria=[{text, met, evidence}]) and end "
-            "with a short final message: it becomes the AI summary on the ticket.",
+            "with a short final message: it becomes the AI summary on the ticket. `evidence` is the proof itself, not "
+            "a sentence about it: the command and its real output in a ``` block, a screenshot, a link.",
             "A test case you set to pass or fail needs its proof in the same call (`proof`, Markdown): a screenshot as "
             "![what it shows](path/in/working/folder.png) (take it first), the command and its output in a ``` block. "
             "If it cannot be shown write 'Not provable: <why>'; never invent evidence, and leave a case you could not "
@@ -396,6 +397,7 @@ def rules_block(
             "run has it; a board refusal says what to do instead. docs_read(action='permissions_guide') says what "
             "you may do here.",
         ]
+        lines += _core_rules(member, settings)
         if can_review:
             lines.append(
                 "Do not move the ticket to Review yourself; the board moves it when you finish."
@@ -412,6 +414,32 @@ def rules_block(
         "</board>",
     ]
     return "\n".join(lines)
+
+
+def _core_rules(member, settings) -> list[str]:
+    """The shared skills' few rules that matter most (issue #277), and where their detail is for this member."""
+    from services import shared_skills
+    from services.ai import board_skills, ops
+
+    rules = list(shared_skills.CORE_RULES)
+    names = [n for n, _d, _b in shared_skills.SKILLS]
+    if getattr(member, "provider", "claude-code") == "claude-code":
+        on = set(
+            board_skills.enabled_for(ops.get(settings), getattr(member, "id", None))
+        )
+        names = [n for n in names if n in on]
+        if names:
+            listed = ", ".join(f"`{board_skills.NAME}:{n}`" for n in names)
+            rules.append(
+                f"The board's skills {listed} have the detail: open the one the work calls for."
+            )
+    else:
+        rules.append(
+            "docs_read(action='guides') has the detail (working a ticket, evidence and handover, the repository "
+            "and the machine, asking and writing, brainstorming, the end user's eyes, office files): read the one "
+            "the work calls for."
+        )
+    return rules
 
 
 def instruction_block(
