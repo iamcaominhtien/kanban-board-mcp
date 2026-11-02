@@ -553,14 +553,17 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             </div>
             {d.env.length > 0 && (
               <div className="ai-sub" data-testid="confirm-env">
-                Environment: PATH +{' '}
-                {d.env.map((e, i) => (
-                  <span key={e.path}>
-                    {i > 0 && ', '}
-                    <span className="ai-code">{e.path}</span>
-                  </span>
-                ))}
-                , for this project only
+                {/* one child: .ai-sub is a flex column, which would put each part on its own line */}
+                <span>
+                  Environment: PATH +{' '}
+                  {d.env.map((e, i) => (
+                    <span key={e.path}>
+                      {i > 0 && ', '}
+                      <span className="ai-code">{e.path}</span>
+                    </span>
+                  ))}
+                  , for this project only
+                </span>
               </div>
             )}
           </div>

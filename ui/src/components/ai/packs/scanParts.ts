@@ -38,8 +38,9 @@ export function proposalOf(scan: Scan | null | undefined): Proposal | null {
   return p && p.commands ? (p as Proposal) : null;
 }
 
-/** "42 s", "1 min 04 s". */
+/** "0.4 s", "42 s", "1 min 04 s". */
 export function fmtSeconds(s: number): string {
+  if (s > 0 && s < 1) return `${s.toFixed(1)} s`; // a fast command is not "0 s"
   const n = Math.max(0, Math.round(s));
   if (n < 60) return `${n} s`;
   return `${Math.floor(n / 60)} min ${String(n % 60).padStart(2, '0')} s`;
