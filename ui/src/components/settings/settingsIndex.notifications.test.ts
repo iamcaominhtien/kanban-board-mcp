@@ -17,6 +17,7 @@ describe('settings index: notifications', () => {
       'notif-quiet',
       'notif-dnd',
       'notif-sound',
+      'notif-remind',
       'notif-daycard',
       'notif-retention',
       'notif-muted',

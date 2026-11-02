@@ -43,6 +43,7 @@ async function backend() {
     eventsStatus: 200,
     feedBody: null,
     sound: true,
+    soundName: undefined,
   };
   b.server = http.createServer((req, res) => {
     const url = new URL(req.url, "http://x");
@@ -78,8 +79,14 @@ async function backend() {
     return res.end(
       JSON.stringify(
         first
-          ? { head: 10, sound: b.sound }
-          : { head: 11, items: b.items, resolved: b.resolved, sound: b.sound },
+          ? { head: 10, sound: b.sound, sound_name: b.soundName }
+          : {
+              head: 11,
+              items: b.items,
+              resolved: b.resolved,
+              sound: b.sound,
+              sound_name: b.soundName,
+            },
       ),
     );
   });
@@ -154,11 +161,18 @@ async function setup(
   const Notification = notification || fakeNotification();
   const badges = [];
   const opened = [];
+  const sounds = [];
+  const bounces = [];
   const nativeImage = { createFromBitmap: (buf, o) => ({ buf, o }) };
-  const h = { b, Notification, badges, opened, win, nativeImage };
+  const h = { b, Notification, badges, opened, win, nativeImage, sounds, bounces, playerUsable: true };
   const opts = {
     Notification,
-    app: { setBadgeCount: (n) => badges.push(n) },
+    app: {
+      setBadgeCount: (n) => badges.push(n),
+      dock: { bounce: (kind) => bounces.push(kind) },
+    },
+    // the person's sound is played by our own player, not by the OS notification
+    soundPlayer: { play: (name) => sounds.push(name), usable: () => h.playerUsable },
     nativeImage,
     platform,
     apiSecret,
@@ -206,7 +220,10 @@ test("darwin: first feed never notifies, SSE triggers a fetch and a notice with 
   assert.ok(feeds[feeds.length - 1].since !== null);
   const nt = h.Notification.all[0];
   assert.strictEqual(nt.shown, true);
-  assert.strictEqual(nt.opts.silent, false);
+  // a Needs you: our own sound plays and the OS's stays out; the dock bounces once
+  assert.strictEqual(nt.opts.silent, true);
+  assert.deepStrictEqual(h.sounds, ["chime"]);
+  assert.deepStrictEqual(h.bounces, ["informational"]);
   assert.deepStrictEqual(nt.opts.actions, [
     { type: "button", text: "Approve" },
   ]);
@@ -526,4 +543,78 @@ test("win32: a closed toast is still withdrawn when its row resolves; other plat
   h2.b.invalidate();
   await sleep(300);
   assert.strictEqual(n2.closed, false);
+});
+
+test("sound: the one the person picked plays for a Needs you, with the OS notice silent", async (t) => {
+  const h = await setup(t);
+  h.b.soundName = "bell";
+  await ready(h);
+  h.b.items = [row()];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  assert.deepStrictEqual(h.sounds, ["bell"]);
+  assert.strictEqual(h.Notification.all[0].opts.silent, true);
+});
+
+test("sound: never for information, however the sound is set", async (t) => {
+  const h = await setup(t);
+  await ready(h);
+  h.b.items = [row({ id: "i1", needs: false, kind: "ai_finished" })];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  assert.strictEqual(h.Notification.all[0].opts.silent, true);
+  assert.deepStrictEqual(h.sounds, []);
+  assert.deepStrictEqual(h.bounces, []);
+});
+
+test("sound: switched off means silent; the dock still bounces for a Needs you", async (t) => {
+  const h = await setup(t);
+  h.b.sound = false;
+  await ready(h);
+  h.b.items = [row()];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  assert.strictEqual(h.Notification.all[0].opts.silent, true);
+  assert.deepStrictEqual(h.sounds, []);
+  assert.deepStrictEqual(h.bounces, ["informational"]);
+});
+
+test("sound: when this computer has no player the OS's own sound stands in", async (t) => {
+  const h = await setup(t);
+  h.playerUsable = false;
+  await ready(h);
+  h.b.items = [row()];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  assert.strictEqual(h.Notification.all[0].opts.silent, false);
+  assert.deepStrictEqual(h.sounds, []);
+});
+
+test("a reminder says so, and sounds and bounces again; windows and linux have no dock", async (t) => {
+  const h = await setup(t);
+  await ready(h);
+  h.b.items = [row({ reminded: true, last_event_id: 14 })];
+  h.b.invalidate();
+  await waitFor(() => h.Notification.all.length === 1);
+  assert.strictEqual(h.Notification.all[0].opts.title, "Still waiting: Approve?");
+
+  const w = await setup(t, { platform: "win32" });
+  await ready(w);
+  w.b.items = [row()];
+  w.b.invalidate();
+  await waitFor(() => w.Notification.all.length === 1);
+  assert.deepStrictEqual(w.sounds, ["chime"]);
+  assert.deepStrictEqual(w.bounces, []);
+});
+
+test("the test notice plays the chosen sound too", async (t) => {
+  const h = await setup(t);
+  h.b.soundName = "drop";
+  await ready(h);
+  const p = h.n.test();
+  const nt = h.Notification.all[h.Notification.all.length - 1];
+  nt.emit("show");
+  assert.deepStrictEqual(await p, { ok: true });
+  assert.deepStrictEqual(h.sounds, ["drop"]);
+  assert.strictEqual(nt.opts.silent, true);
 });

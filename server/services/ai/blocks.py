@@ -45,7 +45,7 @@ _PROOF = re.compile(
 FIXED_PROOF = (
     "fixed",
     "The board now looks in the ticket's worktree first, then the member's folder, and accepts an absolute path "
-    "inside either (3.22.0).",
+    "inside either (3.23.0).",
 )
 
 
@@ -69,7 +69,7 @@ def _verdict_board(action: str, code: str, reason: str) -> tuple[str, str]:
         return (
             "fixed",
             "Handing a ticket to a teammate with ai_team(ask, intent='work') inside a run now goes through as "
-            "ai_run(handoff); the rest of ai_team stays a person's (3.22.0).",
+            "ai_run(handoff); the rest of ai_team stays a person's (3.23.0).",
         )
     if code == "scope":
         return (
@@ -118,7 +118,7 @@ def _verdict_rule(
     if rule in tool_rules.role_tools(role):
         return (
             "fixed",
-            f"Now part of what the {role} role may run without asking (3.22.0).",
+            f"Now part of what the {role} role may run without asking (3.23.0).",
         )
     if rule in granted:
         return ("fixed", "A person allowed it and the board remembers.")
@@ -322,7 +322,7 @@ async def collect(session, project_id: str, *, days: int = 30, limit: int = 60) 
                         if tool == "WebSearch"
                         else (
                             "setting",
-                            "Asked once from 3.22.0: the answer is kept for the ticket, project or role.",
+                            "Asked once from 3.23.0: the answer is kept for the ticket, project or role.",
                         ),
                         ref=ref,
                     )
@@ -343,7 +343,7 @@ async def collect(session, project_id: str, *, days: int = 30, limit: int = 60) 
                 found = _BOARD_CODE.search(text)
                 code = found.group(1) if found else None
                 if code is None and "An AI run cannot start AIs" in text:
-                    code = "ai_run_only"  # the message before 3.22.0 had no code
+                    code = "ai_run_only"  # the message before 3.23.0 had no code
                 # the guard's own refusals are in the audit log already (1.); these are an MCP tool's own checks
                 if code and code not in AUDITED_CODES:
                     add(

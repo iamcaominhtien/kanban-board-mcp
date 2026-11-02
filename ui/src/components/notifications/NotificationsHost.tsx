@@ -8,6 +8,10 @@ import { NotificationBell } from './NotificationBell';
 import { NotificationPanel, type PanelTab } from './NotificationPanel';
 import type { RowActionHandler } from './NotificationRow';
 import { currentActor, inElectron, openActionOf } from './notificationUi';
+import { unlockAudioOnFirstGesture } from '../../utils/notificationSound';
+import type { NoticeOpen } from './browserNotifier';
+import { useBrowserNotifier } from './useBrowserNotifier';
+import { useFaviconDot } from './useFaviconDot';
 import { useNotificationActions, type NavigateHandler } from './useNotificationActions';
 import { useNotificationToasts } from './useNotificationToasts';
 import { isTyping } from './useRowKeys';
@@ -155,8 +159,30 @@ export function NotificationsHost({
   const actionRef = useRef(onAction);
   actionRef.current = onAction;
 
-  useNotificationToasts(onAction, counts?.head);
+  // A click on a system notice (the browser's, or the desktop app's): the thing itself, or the list for a group
+  const openFromNotice = useCallback(
+    (open: NoticeOpen) => {
+      if ('group' in open && open.group) {
+        openPanel(open.needs ? 'needs' : 'updates');
+        return;
+      }
+      const row = open as NotificationRow & { action?: string };
+      if (row.action) {
+        void actionRef.current(row, row.action);
+        return;
+      }
+      const id = openActionOf(row);
+      if (id) void actionRef.current(row, id);
+      else openPanel(row.needs ? 'needs' : 'updates');
+    },
+    [openPanel],
+  );
+  const browserFeed = useBrowserNotifier(openFromNotice);
+  useNotificationToasts(onAction, counts?.head, browserFeed);
   useTabTitle(counts?.needs ?? 0);
+  useFaviconDot(counts?.needs ?? 0);
+  // the browser lets a page make sound only after the first click or key
+  useEffect(() => unlockAudioOnFirstGesture(), []);
 
   // N opens and closes the panel, Shift N opens the page
   useEffect(() => {
@@ -220,28 +246,21 @@ export function NotificationsHost({
     const off = bridge()?.onOpen?.((raw) => {
       if (!raw) return; // only focus
       if ('group' in raw && raw.group) {
-        openPanel(raw.needs ? 'needs' : 'updates');
+        openFromNotice(raw);
         return;
       }
-      const row = camelcaseKeys(raw as unknown as Record<string, unknown>, {
-        deep: true,
-      }) as unknown as NotificationRow & {
-        action?: string;
-      };
-      if (row.action) {
-        void actionRef.current(row, row.action);
-        return;
-      }
-      const id = openActionOf(row);
-      if (id) void actionRef.current(row, id);
-      else openPanel(row.needs ? 'needs' : 'updates');
+      openFromNotice(
+        camelcaseKeys(raw as unknown as Record<string, unknown>, { deep: true }) as unknown as NotificationRow & {
+          action?: string;
+        },
+      );
     });
     return () => {
       clearInterval(timer);
       off?.();
       offReady?.();
     };
-  }, [openPanel]);
+  }, [openFromNotice]);
 
   const ctx = useMemo<Ctx>(
     () => ({ panelOpen, togglePanel, onAction, focusRowId }),

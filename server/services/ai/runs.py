@@ -99,7 +99,8 @@ ACTIVE = ("queued", "starting", "running", "needs_input")
 ENDED = ("finished", "failed", "cancelled", "timed_out")
 MAX_QUEUED_PER_AGENT = 10
 NEEDS_INPUT_HOLD_HOURS = 24
-# Minutes after the question when a reminder is due: 15 min, then every 2 h; from 6 h the project's admins too
+# Minutes after the question when a reminder is due: 15 min (recorded; the notification of that first one is the
+# person's own "Remind me if unanswered" setting), then every 2 h; from 6 h the project's admins too
 REMINDER_MINUTES = [15, *range(120, NEEDS_INPUT_HOLD_HOURS * 60, 120)]
 REMINDER_LEAD_MINUTES = 360
 AUTO_TRIP_CHECK_S = 30  # spend spike and denials (autotrip.py)
@@ -964,8 +965,9 @@ async def _remind(session, run: AiRun, asked: datetime) -> None:
     run.question = json.dumps(q)
     session.add(run)
     await session.commit()
-    if not entry.get("lead"):
-        # 15 min and every 2 h: the question's row comes back to the top and toasts again (one more event on it)
+    if not entry.get("lead") and level > 1:
+        # every 2 h: the question's row comes back to the top and toasts again (one more event on it). The first
+        # reminder is the person's own "Remind me if unanswered" setting (notifications.remind_unanswered, #270)
         from services import notifications as centre
 
         await centre.on_run_question(run.id, reminder=True)
