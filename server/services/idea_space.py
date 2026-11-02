@@ -8,7 +8,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import (
@@ -222,6 +222,65 @@ async def counts(session: AsyncSession) -> dict[str, Any]:
     result["projects"] = list(projects.values())
     result["total_inbox"] = result["all"]["stages"]["inbox"]
     return result
+
+
+# What a decision on an Inbox idea is called in "You sorted 7 ideas this week: 3 kept, …" (ICT-9)
+_SORTED_AS = {"exploring": "kept", "parked": "parked", "archived": "archived"}
+SORTED_DAYS = 7
+
+
+def _sorted_as(idea: IdeaTicket, person: str | None, since: str) -> str | None:
+    """How this person last sorted this idea out of the Inbox since `since`: kept, parked, merged, archived, or
+    None (not sorted by them, or the move was undone). Read from the activity the moves already write."""
+    out: str | None = None
+    for e in _json(idea.activity_trail, []):
+        if not isinstance(e, dict) or (e.get("at") or "") < since:
+            continue
+        meta = e.get("meta") if isinstance(e.get("meta"), dict) else {}
+        kind = e.get("kind")
+        undo = bool(meta.get("undo")) or str(e.get("label") or "").endswith(" undone")
+        if kind == "stage" and undo and meta.get("to") == "inbox":
+            out = None
+        elif kind == "merge" and undo and meta.get("target"):
+            out = None
+        elif e.get("author") != person:
+            continue
+        elif kind == "stage" and not undo and meta.get("from") == "inbox":
+            out = _SORTED_AS.get(str(meta.get("to")))
+        elif kind == "merge" and meta.get("target") and meta.get("from") == "inbox":
+            out = "merged"
+    return out
+
+
+async def sorted_this_week(
+    session: AsyncSession,
+    person: str | None,
+    *,
+    scope: str = "project",
+    project_id: str | None = None,
+) -> dict[str, Any]:
+    """How many Inbox ideas this person sorted in the last 7 days, by decision (the empty Triage inbox, ICT-9).
+
+    Returns:
+        {total, kept, parked, merged, archived, days}
+    """
+    stmt = select(IdeaTicket)
+    if scope == "project":
+        stmt = stmt.where(IdeaTicket.project_id == project_id)
+    elif scope == "none":
+        stmt = stmt.where(col(IdeaTicket.project_id).is_(None))
+    since = (datetime.now(UTC) - timedelta(days=SORTED_DAYS)).isoformat()
+    out: dict[str, Any] = {
+        "kept": 0,
+        "parked": 0,
+        "merged": 0,
+        "archived": 0,
+    }
+    for idea in (await session.exec(stmt)).all():
+        how = _sorted_as(idea, person, since)
+        if how:
+            out[how] += 1
+    return {"total": sum(out.values()), **out, "days": SORTED_DAYS}
 
 
 # ── stage moves ────────────────────────────────────────────────────────────
@@ -641,7 +700,7 @@ async def merge(
         now,
         author,
         kind="merge",
-        meta={"target": target.id},
+        meta={"target": target.id, "from": undo["source_snapshot"]["stage"]},
     )
     await _save(session, source)
     await _close_advice(session, source.id, "merge")
@@ -693,7 +752,14 @@ async def undo_merge(
     source.merged_into_id = None
     source.merged_at = None
     source.stage_changed_at = now
-    add_trail(source, f"Merge into {target.id} undone", now, author, kind="merge")
+    add_trail(
+        source,
+        f"Merge into {target.id} undone",
+        now,
+        author,
+        kind="merge",
+        meta={"target": target.id, "undo": True},
+    )
     await _save(session, source)
     return await base._reload(session, target.id)
 
@@ -857,6 +923,7 @@ async def create_test_ticket(
     idea = await get_or_raise(session, idea_id)
     a = _assumption(idea, assumption_id)
     a.test_ticket_id = ticket.id
+    before = a.status
     if a.status == "untested":
         a.status = "testing"
     a.updated_at = _now()
@@ -867,7 +934,10 @@ async def create_test_ticket(
         _now(),
         author,
         kind="assumption",
-        meta={"assumption": a.id, "ticket": ticket.id},
+        meta={
+            **base.assumption_meta(a, ticket=ticket.id),
+            **({"from": before, "to": a.status} if before != a.status else {}),
+        },
     )
     return await _save(session, idea), ticket
 
@@ -891,6 +961,7 @@ async def resolve_assumption(
             _now(),
             author,
             kind="assumption",
+            meta=base.assumption_meta(a),
         )
         return await _save(session, idea)
     return await base.update_assumption_status(

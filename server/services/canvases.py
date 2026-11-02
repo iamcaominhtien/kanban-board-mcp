@@ -117,6 +117,13 @@ def refs_in(markdown: str) -> list[str]:
     return list(seen)
 
 
+def canvas_name(title: str | None, fallback: str = "Canvas") -> str:
+    """A new canvas's name as typed ("[docs] Login canvas"): only line breaks and runs of spaces are folded. The
+    brackets are dropped where the name becomes markdown alt text (`embed_line`), not in the name (CA-1)."""
+    text = " ".join((title or "").split())[: svc_sketches.MAX_TITLE]
+    return text or fallback
+
+
 def embed_line(canvas_id: str, title: str, board_id: str | None = None) -> str:
     """The markdown line that shows a canvas (or one board of it)."""
     name = re.sub(r"[\[\]\n\r]+", " ", title).strip() or "Canvas"
@@ -528,7 +535,7 @@ async def create_canvas(
     )  # noqa: SLF001
     _need_member(await svc_sketches.role_of(session, project))
     actor = activity.current_actor()
-    name = svc_sketches._title(title, "Canvas")  # noqa: SLF001
+    name = canvas_name(title, "Canvas")
     c = Canvas(
         project_id=project,
         owner_kind=owner_kind,

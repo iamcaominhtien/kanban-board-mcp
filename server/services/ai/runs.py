@@ -5073,6 +5073,8 @@ async def pause_all(
 ) -> dict:
     """Pause all AI in a project: nothing new starts, @mentions are not delivered, running runs stop or finish."""
     async with database.async_session() as session:
+        # the sentence names the person; `by` stays the key the banner and the toasts compare with
+        who = await safety.person_name(session, project_id, by)
         settings = await get_settings(session, project_id)
         settings.paused_all = True
         settings.paused_at = now_iso()
@@ -5143,9 +5145,10 @@ async def pause_all(
         project_id,
         "auto_trip",
         "AI is paused",
-        f"{by} paused all AI. {cancelled} run{'' if cancelled == 1 else 's'} cancelled, "
+        f"{who} paused all AI. {cancelled} run{'' if cancelled == 1 else 's'} cancelled, "
         f"{len(queued)} queued run{'' if len(queued) == 1 else 's'} held."
         + (f" Reason: {reason}." if reason else ""),
+        data={"paused_by": by, "paused_by_name": who},
     )
     await _publish(force=True)
     return {"cancelled": cancelled, "held": len(queued), "revoked_tokens": revoked}

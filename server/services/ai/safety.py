@@ -78,6 +78,25 @@ async def role_name(session: AsyncSession, project_id: str, person: str | None) 
     return mine.role if mine.role in ROLE_RANK else "member"
 
 
+async def person_name(session: AsyncSession, project_id: str, person: str | None) -> str:
+    """The name to write in a sentence about what a person did. The board's own user ("user") has no name of its
+    own: it is the project's owner, so its first admin's name is written when there is one (NT-1)."""
+    if person and person != "user":
+        return person
+    rows = (
+        await session.exec(
+            select(Member)
+            .where(
+                Member.project_id == project_id,
+                Member.kind == "human",
+                Member.role == "admin",
+            )
+            .order_by(col(Member.created_at))
+        )
+    ).all()
+    return rows[0].name if rows else (person or "user")
+
+
 def approvers_of(settings: AiProjectSettings) -> dict[str, str]:
     """Least role that may decide each risk level."""
     raw = loads(settings.approvers, {})
