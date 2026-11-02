@@ -34,6 +34,33 @@ def _read() -> str:
 SECRET = _read()
 
 
+# What an AI that reached for the REST API (curl, a browser on the board) should use instead: the 403 says so, or it
+# tries again another way (seen in a log: uploads by curl, Docs links checked in a browser)
+_INSTEAD = (
+    (
+        ("/uploads/", "/workspace/files"),
+        "To attach a picture or a file, write it as a path in your working folder inside the Markdown of the MCP "
+        "call: ![shot](qa/evidence/TC-1.png) or [sample](docs/sample.xlsx) in docs_write, a comment, a work log or a "
+        "test case proof; the board copies it. For the ticket's scratch folder, manage_ticket(action='workspace') "
+        "gives its path: write the file there with your own file tools.",
+    ),
+    (
+        ("/docs/resolve", "/docs/pages/"),
+        "To check the links of a Docs page use docs_read(action='check_links'); to read a page, "
+        "docs_read(action='get'). The board's window cannot be driven from a browser outside the app.",
+    ),
+)
+
+
+def refusal(path: str) -> str:
+    """The 403 text for a request without the secret, with the MCP tool an AI run should use instead."""
+    hint = next(
+        (text for parts, text in _INSTEAD if any(p in path for p in parts)),
+        "An AI run changes the board through the kanban MCP tools, not the REST API or a browser.",
+    )
+    return f"This request must come from the board's own window. {hint}"
+
+
 def allows(method: str, path: str, given: str | None) -> bool:
     """Whether a request may go on: no secret is set, it does not change anything, it is one of the unchecked
     endpoints, or it carries the secret."""

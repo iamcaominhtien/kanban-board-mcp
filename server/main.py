@@ -205,7 +205,7 @@ async def require_the_apps_secret(request: Request, call_next):
         request.method, request.url.path, request.headers.get(api_secret.HEADER)
     ):
         return JSONResponse(
-            {"detail": "This request must come from the board's own window."},
+            {"detail": api_secret.refusal(request.url.path)},
             status_code=403,
         )
     return await call_next(request)
