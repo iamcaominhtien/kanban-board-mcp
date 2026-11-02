@@ -383,7 +383,8 @@ def rules_block(
             "role = your role, kind investigation|fix_attempt|root_cause|blocked|resolved) with what you looked at, what "
             "you decided and why, and what is left. The board records the facts (time, files, commands) itself.",
             "When you are done, call ai_run(action='report', summary=..., criteria=[{text, met, evidence}]) and end "
-            "with a short final message: it becomes the AI summary on the ticket.",
+            "with a short final message: it becomes the AI summary on the ticket. `evidence` is the proof itself, not "
+            "a sentence about it: the command and its real output in a ``` block, a screenshot, a link.",
             "A test case you set to pass or fail needs its proof in the same call (`proof`, Markdown): a screenshot as "
             "![what it shows](path/in/working/folder.png) (take it first), the command and its output in a ``` block. "
             "If it cannot be shown write 'Not provable: <why>'; never invent evidence, and leave a case you could not "
