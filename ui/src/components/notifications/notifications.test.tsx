@@ -36,7 +36,13 @@ import { NotificationBell } from './NotificationBell';
 import { NotificationPanel } from './NotificationPanel';
 import { NotificationRow } from './NotificationRow';
 import { openActionOf } from './notificationUi';
-import { pausedByMe, toastAction, toastDetail, useNotificationToasts, withoutZeroCounts } from './useNotificationToasts';
+import {
+  pausedByMe,
+  toastAction,
+  toastDetail,
+  useNotificationToasts,
+  withoutZeroCounts,
+} from './useNotificationToasts';
 
 function row(over: Partial<Row>): Row {
   return {

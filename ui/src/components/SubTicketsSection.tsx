@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Member, Ticket } from '../types';
-import { useCreateTicket } from '../api/tickets';
+import { useCreateTicket, useUpdateTicket } from '../api/tickets';
+import { extractError } from '../api/extractError';
 import { TicketTypeIcon } from './icons';
 import { MemberAvatar } from './MemberAvatar';
 import styles from './SubTicketsSection.module.css';
@@ -9,7 +10,7 @@ import { LineIcon } from './ui/LineIcon';
 
 interface SubTicketRow {
   ticket: Ticket;
-  /** Execution wave: 1 + the deepest chain of sibling blockers. */
+  /** Execution wave: the wave pinned by hand, else 1 + the deepest chain of sibling blockers. */
   wave: number;
   /** First sibling that blocks this one and is not done yet. */
   openBlocker: Ticket | null;
@@ -18,7 +19,9 @@ interface SubTicketRow {
 /**
  * Orders sub-tickets by execution wave, derived from their `blockedBy` links to
  * each other: tickets with no sibling blockers are wave 1, everything else waits
- * one wave after its latest blocker. Ties keep their original order.
+ * one wave after its latest blocker. A wave pinned by hand (`wavePin`, TDP-1) is used
+ * as it is, and the tickets it blocks count from it (the server does the same:
+ * `server/services/ticket_waves.py`). Ties keep their original order.
  */
 function buildRows(children: Ticket[]): SubTicketRow[] {
   const byId = new Map(children.map((t) => [t.id, t]));
@@ -27,6 +30,10 @@ function buildRows(children: Ticket[]): SubTicketRow[] {
   function waveOf(ticket: Ticket, trail: Set<string>): number {
     const known = waves.get(ticket.id);
     if (known !== undefined) return known;
+    if (ticket.wavePin != null) {
+      waves.set(ticket.id, ticket.wavePin);
+      return ticket.wavePin;
+    }
     if (trail.has(ticket.id)) return 1; // circular blockers: stop descending
     trail.add(ticket.id);
     let wave = 1;
@@ -53,20 +60,34 @@ function buildRows(children: Ticket[]): SubTicketRow[] {
     .map(({ ticket, wave, openBlocker }) => ({ ticket, wave, openBlocker }));
 }
 
+/** The highest wave a sub-ticket can be pinned to (the server's limit). */
+const MAX_WAVE = 99;
+
 /**
  * The wave badge, a button that opens the wave popover (Ticket Detail with Sub-tickets 7, comp-2 TDP-1): label WAVE,
- * a − n + stepper and "Auto-set from Blocked by". The wave is always set from Blocked by (the server has no field
- * for a wave pinned by hand yet), so the popover shows it read-only: the stepper and the checkbox are disabled.
+ * a − n + stepper and "Auto-set from Blocked by". With the box checked (the default) the wave is computed from
+ * Blocked by; a step pins the sub-ticket to that wave (the box unchecks), unchecking pins it where it is, checking
+ * the box again drops the pin. Every change is saved at once.
  */
 function WaveBadge({
   ticketId,
   wave,
+  pinned,
   className,
 }: Readonly<{
   ticketId: string;
   wave: number;
+  /** The wave pinned by hand, or null when it is computed from Blocked by. */
+  pinned: number | null;
   className: string;
 }>) {
+  const update = useUpdateTicket();
+  const [error, setError] = useState<string | null>(null);
+  const save = (wavePin: number | null) => {
+    setError(null);
+    update.mutate({ ticketId, data: { wavePin } }, { onError: (e) => setError(extractError(e)) });
+  };
+  const busy = update.isPending;
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -108,10 +129,9 @@ function WaveBadge({
     borderRadius: 5,
     border: '1px solid #C7D2CB',
     background: '#FFFFFF',
-    cursor: 'default',
+    cursor: 'pointer',
     color: '#5B6B60',
     padding: 0,
-    opacity: 0.5,
   };
 
   return (
@@ -120,7 +140,7 @@ function WaveBadge({
         ref={btnRef}
         type="button"
         className={`${styles.waveBadge} ${styles.waveBadgeBtn} ${className} ${open ? styles.waveBadgeOpen : ''}`}
-        title={`Execution wave ${wave}`}
+        title={pinned != null ? `Execution wave ${wave}, pinned by hand` : `Execution wave ${wave}`}
         aria-label={`Execution wave ${wave} of ${ticketId}, change`}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -165,7 +185,13 @@ function WaveBadge({
               Wave
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button type="button" aria-label="Earlier wave" style={stepBtn} disabled>
+              <button
+                type="button"
+                aria-label="Earlier wave"
+                style={{ ...stepBtn, opacity: busy || wave <= 1 ? 0.5 : 1 }}
+                disabled={busy || wave <= 1}
+                onClick={() => save(wave - 1)}
+              >
                 <LineIcon name="minus" size={12} />
               </button>
               <span
@@ -181,7 +207,13 @@ function WaveBadge({
               >
                 {wave}
               </span>
-              <button type="button" aria-label="Later wave" style={stepBtn} disabled>
+              <button
+                type="button"
+                aria-label="Later wave"
+                style={{ ...stepBtn, opacity: busy || wave >= MAX_WAVE ? 0.5 : 1 }}
+                disabled={busy || wave >= MAX_WAVE}
+                onClick={() => save(wave + 1)}
+              >
                 <LineIcon name="plus" size={12} />
               </button>
             </div>
@@ -198,13 +230,18 @@ function WaveBadge({
             >
               <input
                 type="checkbox"
-                checked
-                readOnly
-                disabled
+                checked={pinned == null}
+                disabled={busy}
+                onChange={(e) => save(e.target.checked ? null : wave)}
                 style={{ accentColor: '#2E6F40', width: 13, height: 13, margin: 0 }}
               />
               Auto-set from Blocked by
             </label>
+            {error && (
+              <div role="alert" style={{ fontSize: 11, color: '#C4432A' }}>
+                {error}
+              </div>
+            )}
           </div>,
           document.body,
         )}
@@ -371,7 +408,12 @@ export function SubTicketsSection({
 
               return (
                 <div key={ticket.id} className={`${styles.row} ${isInProgress ? styles.rowActive : ''}`}>
-                  <WaveBadge ticketId={ticket.id} wave={wave} className={waveClass} />
+                  <WaveBadge
+                    ticketId={ticket.id}
+                    wave={wave}
+                    pinned={ticket.wavePin ?? null}
+                    className={waveClass}
+                  />
 
                   {isDone ? (
                     <svg className={styles.statusIconDone} viewBox="0 0 14 14" fill="none">

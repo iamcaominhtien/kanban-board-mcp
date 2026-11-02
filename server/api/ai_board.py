@@ -282,6 +282,8 @@ async def get_kb(project_id: str, session: Session) -> dict:
     return {
         "stores": await svc_kb.stores_for(session, project_id),
         "documents": await svc_kb.table_of_contents(session, project_id, person=_by()),
+        # the shared store as a list of its own, searched or not (the Shared tab, WV-7)
+        "shared_documents": await svc_kb.shared_store(session, person=_by()),
     }
 
 

@@ -689,6 +689,13 @@ def validate_config(cfg: dict, provider: str = "claude-code") -> list[dict]:
     rng("max_turns", "Max turns per run", 1, 200)
     rng("run_timeout_min", "Run timeout", 1, 240)
     rng("idle_timeout_min", "Idle timeout", 1, 120)
+    from .providers import CLI_LIMIT_KEYS
+
+    limits = cfg.get("cli_limits")
+    if limits is not None and (
+        not isinstance(limits, list) or any(k not in CLI_LIMIT_KEYS for k in limits)
+    ):
+        err("cli_limits", "Run limits: max_turns and run_timeout_min only.")
     rng("compact_at_pct", "Auto-compact at", 10, 95)
     try:
         tokens = int(cfg.get("compact_at_tokens") or 0)

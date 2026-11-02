@@ -51,6 +51,7 @@ from services.tickets import (
     link_block,
     default_base_branch,
     list_branches,
+    lane_counts,
     list_tickets,
     remove_ticket_link,
     toggle_acceptance_criterion,
@@ -244,6 +245,15 @@ async def get_tickets(
         reopened=reopened,
     )
     return [_read(t) for t in tickets]
+
+
+@router.get("/projects/{project_id}/tickets/counts")
+async def get_ticket_counts(project_id: str, session: Session) -> dict[str, Any]:
+    """The lane counts (tickets by status, without pending and Won't do ones), cheap enough to show while the
+    tickets load (AL-1)."""
+    counts = await lane_counts(session, project_id)
+    # a list, not a map: the status is a value ("in-progress"), never a key the UI would rename
+    return {"lanes": [{"status": k, "count": n} for k, n in sorted(counts.items())]}
 
 
 @router.post(

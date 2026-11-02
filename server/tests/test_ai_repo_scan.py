@@ -232,12 +232,49 @@ def test_a_package_manager_with_no_package_json_is_a_wrong_command():
         "npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/r/package.json'"
     )
     assert repo_scan.classify(254, npm) == "wrong"
-    assert repo_scan.classify(1, "error Couldn't find a package.json file in \"/r\"") == "wrong"
-    assert repo_scan.classify(1, " ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND  No package.json was found") == "wrong"
+    assert (
+        repo_scan.classify(1, 'error Couldn\'t find a package.json file in "/r"')
+        == "wrong"
+    )
+    assert (
+        repo_scan.classify(
+            1, " ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND  No package.json was found"
+        )
+        == "wrong"
+    )
     assert "package.json" in repo_scan._why_wrong(npm, 254)
     # a test that fails because its own fixture is missing ran: the project fails, the command is right
     assert (
-        repo_scan.classify(1, "FAIL a.test.ts\nError: ENOENT: no such file or directory, open 'fixtures/x.json'")
+        repo_scan.classify(
+            1,
+            "FAIL a.test.ts\nError: ENOENT: no such file or directory, open 'fixtures/x.json'",
+        )
+        == "fails"
+    )
+
+
+def test_a_missing_input_of_the_program_itself_is_a_wrong_command():
+    """RC-2: the script, the Makefile target or the test path the command names is not there."""
+    wrong = [
+        "npm ERR! enoent ENOENT: no such file or directory, open '/r/package.json'",
+        "python: can't open file '/r/manage.py': [Errno 2] No such file or directory",
+        "bash: ./scripts/ci.sh: No such file or directory",
+        "make: *** No rule to make target 'lint'.  Stop.",
+        "make: *** No targets specified and no makefile found.  Stop.",
+        "ERROR: file or directory not found: tests/",
+    ]
+    for out in wrong:
+        assert repo_scan.classify(2, out) == "wrong", out
+        assert repo_scan._why_wrong(out, 2) == out
+    # the project's own build missing a file it needs ran: the command is right
+    assert (
+        repo_scan.classify(
+            2, "make: *** No rule to make target 'a.o', needed by 'app'.  Stop."
+        )
+        == "fails"
+    )
+    assert (
+        repo_scan.classify(1, "sh: line 3: tool: No such file or directory\n1 failed")
         == "fails"
     )
 

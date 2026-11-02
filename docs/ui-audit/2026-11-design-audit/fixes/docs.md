@@ -26,7 +26,7 @@ Data added for the checks: the draft page **[docs] W3 editor check** (KAN, An Ng
 
 ## Docs — empty, loading and errors
 - EM-1 · Fixed — the example key uses the project prefix ("tickets like MOB-12" in Mobile App) (`docs/DocsHero.tsx`, `docs/DocsView.tsx`).
-- EM-2 · Skipped — Low (wave 4): the page has no admin name for the request; needs a server field.
+- EM-2 · Skipped — Low (wave 4): the page has no admin name for the request; needs a server field. — Already fixed: the access state already names the first admin with an avatar ("Admin: Hoa Mai gets the request") from `admins` of `/docs/access`, and keeps "The board owner gets the request" when the project has no admin; the audit project had none. Test added (wave 5, `docs/NoAccess.admin.test.tsx`).
 
 ## Docs — page actions and history
 - AC-1 · Fixed — a shared blank line no longer makes a new section "Changed": only unchanged text does, so "Example request" reads "Added" (`docs/DiffView.tsx`; test `DiffView.test.ts`).
@@ -56,7 +56,7 @@ Data added for the checks: the draft page **[docs] W3 editor check** (KAN, An Ng
 - AI-4 · Skipped — Low (wave 4): not done.
 
 ## Canvas
-- CA-1 · Skipped — server change (`server/services/canvases.py`, the canvas name drops the brackets).
+- CA-1 · Skipped — server change (`server/services/canvases.py`, the canvas name drops the brackets). — Fixed (wave 5): a new canvas keeps the page title as typed for its name (line breaks and runs of spaces folded); the brackets are dropped only in the markdown alt text, on the server (`embed_line`) and in the canvas block's "link"/"embed" text. Existing canvases keep their names (`server/services/canvases.py` `canvas_name`, `canvas/useCanvasBlocks.tsx`).
 - CA-2 · Fixed — one side panel at a time: opening History closes Boards / Comments, and opening either closes History (`canvas/CanvasEditor.tsx`).
 - CA-3 · Fixed (wave 4) — a selected board has a 2 px blue outline (`canvas/Canvas.module.css`).
 - CA-4 · Fixed (wave 4) — the "Empty frame" label is drawn in screen space at 14 px whatever the zoom (`canvas/CanvasEditor.tsx`, `BoardFrame.tsx` `hideEmptyLabel`).

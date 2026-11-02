@@ -7,6 +7,8 @@ import {
   useTagSuggestions,
   useUndoIdeaMove,
   useEditIdeaPage,
+  useSortedThisWeek,
+  sortedThisWeekLine,
 } from '../../api/ideas';
 import type { IdeaRow, IdeaScope } from '../../types/idea';
 import { relativeTime } from '../../utils/relativeTime';
@@ -120,6 +122,8 @@ export function Triage({
   }
 
   const total = sorted + ideas.length;
+  // the empty Inbox says what this person sorted in the last 7 days, from the activity the moves wrote (ICT-9)
+  const weekLine = sortedThisWeekLine(useSortedThisWeek(scope, projectId, !list.isLoading && ideas.length === 0).data);
   const aiProject = scope === 'project' ? (projectId ?? null) : null;
   const head = (
     <div className="is-triage-head">
@@ -166,7 +170,10 @@ export function Triage({
             </span>
             <h3>Inbox is empty</h3>
             <div>
-              {sorted > 0 ? `You sorted ${plural(sorted, 'idea')} in this pass.` : 'Nothing is waiting to be sorted.'}
+              {weekLine ??
+                (sorted > 0
+                  ? `You sorted ${plural(sorted, 'idea')} in this pass.`
+                  : 'Nothing is waiting to be sorted.')}
             </div>
             <div style={{ marginTop: 14, display: 'flex', gap: 8, justifyContent: 'center' }}>
               <button

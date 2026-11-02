@@ -590,12 +590,21 @@ function ValueChip({ value }: { value: string }) {
  * Splits an activity label into the subject and the before → after values it names, and marks text the server cut
  * ("… real cost at t" becomes "… real cost at t…").
  */
-function activityParts(entry: IdeaActivityEntry): { subject: string; from?: string; to?: string } {
+export function activityParts(entry: IdeaActivityEntry): { subject: string; from?: string; to?: string } {
   let label = entry.label;
   // the server keeps the first 60 characters of a quote or of an entry's text
   label = label.replace(/“([^”]{60})”/g, '“$1…”').replace(/^(Log entry \([a-z]+\): )(.{60})$/s, '$1$2…');
   const word = ACTIVITY_KINDS[entry.kind ?? '']?.word;
   const meta = entry.meta ?? {};
+  // newer assumption entries name their assumption (IP-8, IW-4): “They pay” Untested → Testing, added “They pay”
+  const text = typeof meta.assumptionText === 'string' ? meta.assumptionText.trim() : '';
+  const named = entry.kind === 'assumption' && text ? /^Assumption (marked as \w+|.+)$/.exec(entry.label) : null;
+  if (named) {
+    const quoted = `“${text.length > 60 ? `${text.slice(0, 60)}…` : text}”`;
+    if (named[1].startsWith('marked as') && typeof meta.to === 'string' && meta.to)
+      return { subject: quoted, from: typeof meta.from === 'string' ? meta.from || undefined : undefined, to: meta.to };
+    return { subject: `${named[1]} ${quoted}` };
+  }
   if (entry.kind !== 'page' && typeof meta.from === 'string' && typeof meta.to === 'string' && meta.to) {
     const subject = label
       .replace(/^[^:]*:\s*/, '')

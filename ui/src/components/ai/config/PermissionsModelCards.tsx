@@ -277,6 +277,58 @@ export function PermissionsCard() {
   );
 }
 
+/**
+ * A run limit of Claude Code (PC-5, design B7: "Max turns per run 40", "Run timeout 30 min"). A value applies to the
+ * member's runs only once it is listed in `cliLimits`, which typing one here does; an empty field takes it out again
+ * (no limit, as before). A member made before this field existed holds 40 and 30 that were never applied, so the field
+ * shows empty for it until a person types a value.
+ */
+function CliLimitField({
+  label,
+  unit,
+  limitKey,
+  field,
+  hint,
+}: Readonly<{
+  label: string;
+  unit?: string;
+  limitKey: 'max_turns' | 'run_timeout_min';
+  field: 'maxTurns' | 'runTimeoutMin';
+  hint: string;
+}>) {
+  const { cfg, setCfg, issues } = useCfg();
+  const on = (cfg.cliLimits ?? []).includes(limitKey);
+  const others = (cfg.cliLimits ?? []).filter((k) => k !== limitKey);
+  return (
+    <div className="ai-field">
+      <span className="ai-label ai-label-dark">{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <input
+          data-path={limitKey}
+          aria-label={label}
+          className={`ai-input ${hasError(issues, limitKey) ? 'ai-input-error' : ''}`}
+          type="number"
+          min={1}
+          placeholder="No limit"
+          value={on && Number.isFinite(cfg[field]) ? cfg[field] : ''}
+          onChange={(e) => {
+            const raw = e.target.value.trim();
+            if (!raw) setCfg({ cliLimits: others });
+            else setCfg({ [field]: Number(raw), cliLimits: [...others, limitKey] });
+          }}
+        />
+        {unit && (
+          <span className="ai-muted" style={{ whiteSpace: 'nowrap' }}>
+            {unit}
+          </span>
+        )}
+      </div>
+      <span className="ai-muted">{hint}</span>
+      <IssueText issues={issues} path={limitKey} />
+    </div>
+  );
+}
+
 /** Model, effort, working folder, limits and extra CLI flags (design B7). */
 export function ModelCard() {
   const { member, cfg, setCfg, draft, setDraft, issues, status } = useCfg();
@@ -479,6 +531,19 @@ export function ModelCard() {
           </span>
           <IssueText issues={issues} path="working_dir" />
         </div>
+        <CliLimitField
+          label="Max turns per run"
+          limitKey="max_turns"
+          field="maxTurns"
+          hint="1 to 200. Empty: no limit, the CLI decides when it is done."
+        />
+        <CliLimitField
+          label="Run timeout"
+          unit="min"
+          limitKey="run_timeout_min"
+          field="runTimeoutMin"
+          hint="1 to 240 minutes. Empty: no limit; you can always Stop a run."
+        />
         <NumField
           label="Auto-compact at"
           unit="% of context"

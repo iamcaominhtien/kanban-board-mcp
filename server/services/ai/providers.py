@@ -380,6 +380,24 @@ def kv_dict(value) -> dict:
     return {p["name"]: p["value"] for p in kv_pairs(value)}
 
 
+# The limits of a CLI run a person turns on for the member (PC-5): a key is listed in `config["cli_limits"]` once a
+# person saves it on the Configuration tab. `max_turns` and `run_timeout_min` were always stored (40 and 30 by
+# default) but never applied to a CLI run, so a stored value alone is not a limit: an existing member's runs stay
+# unlimited until a person sets one.
+CLI_LIMIT_KEYS = ("max_turns", "run_timeout_min")
+
+
+def cli_limit(config: dict, key: str) -> int | None:
+    """The limit `key` of a CLI run when a person set it (listed in `cli_limits`), else None: no limit."""
+    if key not in (config.get("cli_limits") or []):
+        return None
+    try:
+        value = int(config.get(key) or 0)
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
 def merged_config(raw: dict | None) -> dict:
     """A member's configuration with defaults filled in."""
     out = {**DEFAULT_CONFIG, **(raw or {})}

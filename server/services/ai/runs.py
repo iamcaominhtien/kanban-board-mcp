@@ -82,7 +82,7 @@ from .context import (
 )
 from .mentions import BOARD_AUTHOR
 from .permissions import ceiling_rank, check_status_move, status_rank
-from .providers import PROVIDERS, kv_dict, merged_config
+from .providers import PROVIDERS, cli_limit, kv_dict, merged_config
 from .secrets import redact
 from .store import (
     active_runs,
@@ -109,6 +109,9 @@ STARTING_TIMEOUT_S = 30
 # Seconds a CLI may stay open after its final answer before the board stops it (and what it started in the background)
 RESULT_GRACE_S = 30
 WATCH_EVERY_S = 30  # a running CLI that printed nothing for this long is looked at (services/ai/watchdog.py)
+RUN_TIMEOUT_UNIT_S = (
+    60  # seconds in a minute of a member's Run timeout (PC-5; tests shorten it)
+)
 MAX_RATE_REQUEUES = 3  # times one run waits out a rate limit before it fails
 
 
@@ -874,6 +877,15 @@ async def _housekeeping() -> None:
         async with database.async_session() as session:
             days = await centre.retention_days(session)
         await transcripts.prune(days)
+    if loop.time() - _LAST_HOUSEKEEPING.get("runs", -3600.0) >= 3600:
+        # Finished runs past the project's run history retention (OPS-7); none is set by default: nothing goes
+        _LAST_HOUSEKEEPING["runs"] = loop.time()
+        from . import run_retention
+
+        try:
+            await run_retention.sweep()
+        except Exception:  # noqa: BLE001 - housekeeping goes on; the next hour tries again
+            logger.exception("Could not sweep the run history")
 
 
 async def tick() -> None:
@@ -2580,7 +2592,8 @@ async def _execute_cli_held(
                 mcp_config=mcp,
                 allowed=allowed,
                 denied=denied,
-                max_turns=None,  # the CLI's own judgement; a person can Stop the run
+                # the CLI's own judgement unless a person set Max turns (PC-5); a person can Stop the run
+                max_turns=cli_limit(config, "max_turns"),
                 session_id=session_id,
                 resume=resume,
                 effort=run.effort_override or config.get("effort"),
@@ -2697,9 +2710,13 @@ async def _execute_cli_held(
         ],
         pid=pid,
     )
-    # A run on a person's own CLI has no time or turn limit: the CLI manages itself and a person can Stop it. Only a
-    # CLI that never starts is given up on.
+    # A run on a person's own CLI has no time or turn limit unless a person set one on the member (PC-5, `cli_limits`):
+    # the CLI manages itself and a person can Stop it. Otherwise only a CLI that never starts is given up on.
     start_s = STARTING_TIMEOUT_S * 4
+    limit_min = cli_limit(config, "run_timeout_min")
+    if limit_min and run.limit_min:
+        limit_min = run.limit_min  # Run again with more time
+    deadline = time.monotonic() + limit_min * RUN_TIMEOUT_UNIT_S if limit_min else None
     result: dict | None = None
     held_tokens: int | None = None  # what the conversation held at the last model call
     window_tokens: int | None = None
@@ -2721,7 +2738,19 @@ async def _execute_cli_held(
         wait_s = WATCH_EVERY_S if ready else start_s
         if answered_at is not None:
             wait_s = max(0.5, RESULT_GRACE_S - (time.monotonic() - answered_at))
+        if deadline is not None:
+            wait_s = max(0.5, min(wait_s, deadline - time.monotonic()))
         done, _ = await asyncio.wait({pending}, timeout=wait_s)
+        if (
+            deadline is not None
+            and answered_at is None
+            and time.monotonic() >= deadline
+            and not await _is_paused(run_id)
+        ):
+            # the member's Run timeout (PC-5): the run ends as timed out, and Run again may give it more time
+            timed_out = f"Reached the run timeout ({limit_min} min)."
+            pending.cancel()
+            break
         if (
             not done
             and answered_at is not None

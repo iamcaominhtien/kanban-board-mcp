@@ -9,6 +9,7 @@ daily cap of its own on top. Duplicate matching (`services/idea_similarity.py`) 
 turned off. Everything the model reads is limited to what the question needs and fenced as data.
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -43,6 +44,7 @@ UTC = timezone.utc
 DEFAULT_CAP = 1.0
 FEATURE_PREFIX = "idea_"
 ADVICE_ACTIONS = ("keep", "park", "merge", "archive")
+NOT_SURE = "none"  # advice the AI read and had no suggestion for (IAI-1)
 CONFIDENCES = ("high", "medium", "low")
 SHAPE_KINDS = ("problem", "assumptions", "tests", "effort", "exists", "ask")
 # What a typical answer costs, shown before asking (examples, not measured prices; the real cost is metered).
@@ -327,7 +329,8 @@ _ADVICE_FORMAT = """Answer with ONE JSON object and nothing else:
  "merge_into": "IDEA-n or null",   (only for merge, one of the similar ideas listed)
  "park_days": number or null,       (only for park)
  "archive_reason": "already_exists" | "too_big" | "not_now" | "wrong_direction" | "other" | null}
-If you are not sure, answer {"action": "none"}: saying nothing is better than guessing."""
+If you are not sure, answer {"action": "none", "reason": "why you are not sure, one line"}: saying nothing is better
+than guessing."""
 
 
 async def advise(
@@ -393,12 +396,15 @@ async def advise(
     confidence = str(data.get("confidence", "low")).lower()
     reason = str(data.get("reason", "")).strip()[:300]
     if action not in ADVICE_ACTIONS or confidence == "low" or not reason:
+        await _not_sure(session, idea, reason, meta, out.cost)
         return None
     target = None
     if action == "merge":
         target = str(data.get("merge_into") or "")
         if target not in {s["id"] for s in similar if s["kind"] == "idea"}:
-            return None  # a merge target the search did not offer is a guess
+            # a merge target the search did not offer is a guess
+            await _not_sure(session, idea, "", meta, out.cost)
+            return None
     archive_reason = data.get("archive_reason")
     if action == "archive" and archive_reason not in ARCHIVE_REASONS:
         archive_reason = "other"
@@ -436,10 +442,45 @@ async def advise(
     return advice
 
 
+async def _not_sure(
+    session: AsyncSession, idea: IdeaTicket, reason: str, meta: dict, cost: float
+) -> None:
+    """Remember that the AI read the idea and had no suggestion (IAI-1, "No suggestion: not sure"). It is kept as
+    advice with the action `none`, only while the idea has no open suggestion (a real one is never replaced by it), and
+    `advice_for` lists it only when asked to (`include_none`)."""
+    open_rows = (
+        await session.exec(
+            select(IdeaAdvice).where(
+                IdeaAdvice.idea_id == idea.id, IdeaAdvice.state == "open"
+            )
+        )
+    ).all()
+    if any(a.action != NOT_SURE for a in open_rows):
+        return
+    for (
+        old
+    ) in open_rows:  # the last time it was not sure either: this reading replaces it
+        old.state = "ignored"
+        session.add(old)
+    session.add(
+        IdeaAdvice(
+            idea_id=idea.id,
+            action=NOT_SURE,
+            reason=reason,
+            confidence="low",
+            idea_stamp=idea.updated_at,
+            member_id=meta.get("member_id"),
+            cost=cost,
+        )
+    )
+    await session.commit()
+
+
 async def advice_for(
-    session: AsyncSession, idea_ids: list[str]
+    session: AsyncSession, idea_ids: list[str], *, include_none: bool = False
 ) -> list[dict[str, Any]]:
-    """Open advice for ideas, each marked `stale` when the idea was edited after the AI read it."""
+    """Open advice for ideas, each marked `stale` when the idea was edited after the AI read it. With `include_none`
+    the ideas the AI read and had no suggestion for are listed too, with the action `none` (IAI-1)."""
     if not idea_ids:
         return []
     rows = (
@@ -449,6 +490,8 @@ async def advice_for(
             )
         )
     ).all()
+    if not include_none:
+        rows = [a for a in rows if a.action != NOT_SURE]
     out = []
     for a in rows:
         idea = await session.get(IdeaTicket, a.idea_id)
@@ -525,6 +568,46 @@ async def _repo_hint(session: AsyncSession, idea: IdeaTicket) -> str:
     return f"{len(files)} files in the repository; these look related:\n" + "\n".join(
         hits[:25] or ["(no file name matches)"]
     )
+
+
+# Shape requests a person can Stop (IP-16): the page names each request, and Stop cancels the call, which stops the
+# CLI or the provider request (`llm.complete` is cancellable); nothing is drafted and nothing is changed.
+SHAPE_TASKS: dict[str, asyncio.Task] = {}
+_STOPPED: set[str] = set()
+
+
+async def run_stoppable(request_id: str | None, coro) -> Any:
+    """Await a shape request; with a `request_id`, `stop_shape(request_id)` ends it with `IdeaAiError("stopped")`.
+    Without one it runs as before. A request cut off by the client going away is cancelled with it."""
+    if not request_id:
+        return await coro
+    if request_id in SHAPE_TASKS:
+        coro.close()
+        raise ValueError("This request is already running.")
+    task = asyncio.ensure_future(coro)
+    SHAPE_TASKS[request_id] = task
+    try:
+        return await task
+    except asyncio.CancelledError:
+        if request_id in _STOPPED:
+            raise IdeaAiError(
+                "stopped", "Stopped. Nothing was drafted or changed."
+            ) from None
+        task.cancel()
+        raise
+    finally:
+        SHAPE_TASKS.pop(request_id, None)
+        _STOPPED.discard(request_id)
+
+
+def stop_shape(request_id: str) -> bool:
+    """Stop a running shape request; False when it is not running (it finished or never started)."""
+    task = SHAPE_TASKS.get(request_id)
+    if task is None or task.done():
+        return False
+    _STOPPED.add(request_id)
+    task.cancel()
+    return True
 
 
 async def shape(
@@ -757,6 +840,7 @@ async def ask(
             ctx,
             "Question:\n" + ctxb.fence("question", question),
             "Answer in Markdown, short. Mention ideas by id (IDEA-n) so the board can link them. If the ideas do not say, say you do not know.",
+            _ASK_ACTIONS_FORMAT,
         ]
     )
     out, meta = await _call(
@@ -769,14 +853,77 @@ async def ask(
         max_tokens=900,
     )
     by_id = {i.id: i for i in chosen}
-    used = [i for i in dict.fromkeys(IDEA_REF.findall(out.text)) if i in by_id]
+    text, raw_actions = split_actions(out.text)
+    used = [i for i in dict.fromkeys(IDEA_REF.findall(text)) if i in by_id]
     return {
-        "answer": out.text.strip(),
+        "answer": text.strip(),
         "sources": [{"id": i, "title": by_id[i].title} for i in used],
+        "actions": _ask_actions(raw_actions, by_id),
         "ideas_read": len(chosen),
         "ai": True,
         **meta,
     }
+
+
+# The next steps an answer may offer (IAI-3): buttons under it. "Create test ticket" opens the create dialog filled
+# in; nothing is made until a person creates it there.
+ASK_ACTION_KINDS = ("create_test_ticket", "open_idea")
+_ASK_ACTIONS_FORMAT = (
+    "If a next step fits, end with ONE line that starts with ACTIONS: and a JSON list of at most 3 of these, else "
+    'leave it out: {"kind": "create_test_ticket", "idea_id": "IDEA-n", "assumption_id": "<id of an assumption of '
+    'that idea with no test>", "title": "a short ticket title"} or {"kind": "open_idea", "idea_id": "IDEA-n"}.'
+)
+_ACTIONS_LINE = re.compile(r"^[ \t]*ACTIONS:[ \t]*(.*)\Z", re.M | re.S)
+
+
+def split_actions(text: str) -> tuple[str, list]:
+    """The answer without its ACTIONS line, and the actions it listed. An answer with no such line (every answer
+    before IAI-3) has none; a line that is not valid JSON is dropped and gives none."""
+    m = _ACTIONS_LINE.search(text or "")
+    if not m:
+        return text or "", []
+    try:
+        value = json.loads(m.group(1).strip())
+    except ValueError:
+        value = []
+    return (text[: m.start()] + text[m.end() :]).rstrip(), (
+        value if isinstance(value, list) else []
+    )
+
+
+def _ask_actions(raw: list, by_id: dict[str, IdeaTicket]) -> list[dict[str, Any]]:
+    """The actions of an answer that name ideas (and assumptions) it read; anything else is dropped."""
+    out: list[dict[str, Any]] = []
+    seen: set[tuple] = set()
+    for a in raw:
+        if not isinstance(a, dict) or a.get("kind") not in ASK_ACTION_KINDS:
+            continue
+        idea = by_id.get(str(a.get("idea_id") or ""))
+        if idea is None:
+            continue
+        item: dict[str, Any] = {
+            "kind": a["kind"],
+            "idea_id": idea.id,
+            "idea_title": idea.title,
+        }
+        if a["kind"] == "create_test_ticket":
+            wanted = str(a.get("assumption_id") or "")
+            found = next((x for x in idea.assumption_records if x.id == wanted), None)
+            if found is None or found.test_ticket_id:
+                continue  # an assumption it made up, or one that already has its test
+            item["assumption_id"] = found.id
+            item["assumption_text"] = found.text
+            item["title"] = (
+                str(a.get("title") or "").strip()[:200] or f"Test: {found.text}"[:200]
+            )
+        key = (item["kind"], item["idea_id"], item.get("assumption_id"))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(item)
+        if len(out) >= 3:
+            break
+    return out
 
 
 # ── weekly grooming ────────────────────────────────────────────────────────

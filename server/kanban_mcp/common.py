@@ -210,6 +210,7 @@ def _ticket_summary(ticket: Ticket) -> dict:
         "start_date": ticket.start_date,
         "due_date": ticket.due_date,
         "blocked_by": _loads(ticket.blocked_by),
+        "wave_pin": ticket.wave_pin,
         "pending": bool(ticket.pending),
         "reopen_count": ticket.reopen_count or 0,
         "acceptance_criteria": {

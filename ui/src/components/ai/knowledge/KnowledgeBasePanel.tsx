@@ -45,11 +45,12 @@ export function KnowledgeBasePanel({ projectId }: { projectId: string }) {
 
   const docs = list.data.documents;
   const sharedOn = list.data.stores.includes('shared');
-  const count = (s: KbStore) => docs.filter((d) => d.store === s).length;
-  const shown = view === 'toc' ? docs : docs.filter((d) => d.store === view);
+  // the Shared tab lists the shared store even while this project does not search it (WV-7)
+  const sharedDocs = sharedOn ? docs.filter((d) => d.store === 'shared') : (list.data.sharedDocuments ?? []);
+  const shown = view === 'toc' ? docs : view === 'shared' ? sharedDocs : docs.filter((d) => d.store === view);
   const tabs: [View, string, number | null][] = [
-    ['project', 'This project', count('project')],
-    ...(sharedOn ? ([['shared', 'Shared', count('shared')]] as [View, string, number | null][]) : []),
+    ['project', 'This project', docs.filter((d) => d.store === 'project').length],
+    ['shared', 'Shared', sharedDocs.length],
     ['toc', 'Table of contents', null],
   ];
 
@@ -165,11 +166,19 @@ export function KnowledgeBasePanel({ projectId }: { projectId: string }) {
             </button>
           ))}
         </div>
+        {view === 'shared' && !sharedOn && (
+          <div className="ai-hint" data-testid="kb-shared-off" style={{ padding: '2px 4px' }}>
+            This project does not search the shared store, so its AIs cannot find these. “Search the shared store too”
+            turns it on.
+          </div>
+        )}
         {shown.length === 0 ? (
           <div className="ai-hint" data-testid="kb-empty" style={{ padding: '14px 4px' }}>
-            {docs.length === 0
-              ? 'Nothing here yet. Add a file and the AIs can look things up in it.'
-              : 'Nothing in this store yet.'}
+            {view === 'shared' && !sharedOn
+              ? 'Nothing in the shared store yet.'
+              : docs.length === 0
+                ? 'Nothing here yet. Add a file and the AIs can look things up in it.'
+                : 'Nothing in this store yet.'}
           </div>
         ) : view === 'toc' ? (
           <div style={{ overflowX: 'auto' }}>

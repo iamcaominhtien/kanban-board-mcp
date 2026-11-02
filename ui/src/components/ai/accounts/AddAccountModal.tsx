@@ -35,7 +35,7 @@ function CliCard({ card, selected, onPick }: { card: AccountCliCard; selected: b
         ) : (
           <>
             <span className={`sg-chip ${card.found ? '' : 'sg-chip-warn'}`}>
-              {card.found ? 'found' : 'not installed'}
+              {card.found ? (card.version ? `found · v${card.version}` : 'found') : 'not installed'}
             </span>
             {!card.runnable && <span className="sg-chip sg-chip-warn">Not ready</span>}
           </>
@@ -175,6 +175,16 @@ export function AddAccountModal({
   const [created, setCreated] = useState<AiAccount | null>(null);
 
   const card = cards.find((c) => c.cli === cli) ?? null;
+
+  // The server reads each CLI's version in the background (ACC-5): ask once more a little later, never in a loop
+  // (the effect runs again only when versionMissing changes, so a CLI that never answers is asked once)
+  const versionMissing = cards.some((c) => c.found && !c.version);
+  const refetchOverview = overview.refetch;
+  useEffect(() => {
+    if (!versionMissing) return;
+    const id = setTimeout(() => void refetchOverview(), 6000);
+    return () => clearTimeout(id);
+  }, [versionMissing, refetchOverview]);
 
   // Claude Code is chosen for the person unless something else is asked for or it is not there
   useEffect(() => {

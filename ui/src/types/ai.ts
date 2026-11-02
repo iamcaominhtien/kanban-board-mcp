@@ -119,6 +119,8 @@ export interface AiConfig {
   extraFlags: string[];
   maxTurns: number;
   runTimeoutMin: number;
+  /** The CLI run limits a person turned on (PC-5): `max_turns`, `run_timeout_min`. Absent or empty: no limit. */
+  cliLimits?: ('max_turns' | 'run_timeout_min')[];
   idleTimeoutMin: number;
   compactAtPct: number;
   compactAtTokens: number;

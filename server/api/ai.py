@@ -35,7 +35,7 @@ from services.ai import adapters
 from services.ai import approvals as svc_approvals
 from services.ai import audit as svc_audit
 from services.ai import members as svc_members
-from services.ai import autopilot, autotrip, budget, safety
+from services.ai import autopilot, autotrip, budget, run_retention, safety
 from services.ai import away as svc_away
 from services.ai import usage as svc_usage
 from services.ai import mentions as svc_mentions
@@ -109,6 +109,7 @@ def _settings_dict(s) -> dict:
         "approvers": safety.approvers_of(s),
         "delegates": safety.delegates_of(s),
         "audit_retention_days": s.audit_retention_days,
+        "run_retention_days": s.run_retention_days,
         "loop_cooldown_s": s.loop_cooldown_s,
         "no_repeat_chain": s.no_repeat_chain,
         "docs_edits_ask": s.docs_edits_ask,
@@ -906,6 +907,7 @@ class SettingsBody(BaseModel):
     approvers: Optional[dict[str, str]] = None
     delegates: Optional[list[dict[str, Any]]] = None
     audit_retention_days: Optional[int] = None  # 0 keeps entries forever
+    run_retention_days: Optional[int] = None  # OPS-7: 0 or null keeps runs forever
     loop_cooldown_s: Optional[int] = None
     no_repeat_chain: Optional[bool] = None
     docs_edits_ask: Optional[bool] = None
@@ -1051,6 +1053,13 @@ async def patch_settings(project_id: str, body: SettingsBody, session: Session) 
             if d and "/" not in d and " " not in d and d not in domains:
                 domains.append(d)
         data["allowed_domains"] = json.dumps(domains)
+    if "run_retention_days" in data:
+        if data["run_retention_days"] not in (0, None, *run_retention.CHOICES):
+            raise HTTPException(
+                status_code=422,
+                detail="Keep run history: 30, 90 or 180 days, 1 year or forever.",
+            )
+        data["run_retention_days"] = data["run_retention_days"] or None
     if "audit_retention_days" in data:
         if data["audit_retention_days"] not in (0, None, 30, 90, 365):
             raise HTTPException(
@@ -1084,6 +1093,30 @@ async def patch_settings(project_id: str, body: SettingsBody, session: Session) 
         await svc_audit.prune()
     await board_events.publish("invalidate")
     return _settings_dict(settings)
+
+
+@router.get("/projects/{project_id}/ai/history/retention")
+async def get_run_retention(
+    project_id: str, session: Session, days: Optional[int] = None
+) -> dict:
+    """ "Show what would go" (OPS-7): how many finished runs a retention of `days` (default: the saved one) would
+    remove now, the oldest of them, and how many old runs stay because a record points at them or they ended this
+    month. Nothing is removed here."""
+    await _project(session, project_id)
+    settings = await get_settings(session, project_id)
+    if days is not None and days not in (0, *run_retention.CHOICES):
+        raise HTTPException(status_code=422, detail="Days: 30, 90, 180 or 365.")
+    p = await run_retention.plan(
+        session, project_id, settings.run_retention_days if days is None else days
+    )
+    return {
+        "days": p["days"] or None,
+        "saved_days": settings.run_retention_days,
+        "would_remove": len(p["remove"]),
+        "oldest": p["oldest"],
+        "kept_linked": p["kept_linked"],
+        "kept_this_month": p["kept_month"],
+    }
 
 
 class AutopilotBody(BaseModel):

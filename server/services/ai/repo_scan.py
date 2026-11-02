@@ -445,7 +445,13 @@ _WRONG = re.compile(
     r"No such file or directory: '?[\w./-]*'?$|error: unknown option|"
     # the package manager found no package.json where it ran (npm exits 254): the command is not for this folder
     r"Could not read package\.json|Couldn't find a package\.json file|ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND|"
-    r"No package\.json \(or package\.yaml, or package\.json5\) was found",
+    r"No package\.json \(or package\.yaml, or package\.json5\) was found|"
+    r"ENOENT: no such file or directory, open '[^']*package\.json'|"
+    # the program's own input is not there (RC-2): the script given to python or the shell, the Makefile or its
+    # target, the test path given to pytest
+    r"can't open file '[^']*': \[Errno 2\]|^(?:ba|z|da)?sh: [^:\n]+: No such file or directory$|"
+    r"No rule to make target '[^']*'\.\s+Stop|No targets specified and no makefile found|"
+    r"ERROR: file or directory not found:",
     re.I | re.M,
 )
 

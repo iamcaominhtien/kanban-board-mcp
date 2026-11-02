@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useScopeState } from '../../api/assist';
 import { useDocsTree } from '../../api/docs';
 import {
@@ -10,7 +11,7 @@ import {
   useSetIdeaProject,
   useVote,
 } from '../../api/ideas';
-import { useIdeaAiStatus } from '../../api/ideaAi';
+import { keptKey, useIdeaAiStatus, type KeptTurn } from '../../api/ideaAi';
 import type { Project } from '../../types';
 import type { Idea, IdeaStage } from '../../types/idea';
 import { STAGE_LABELS } from '../../types/idea';
@@ -116,6 +117,7 @@ export function IdeaPage({
   // Shape with AI and Ask AI are both docked on the right: only one is open at a time
   const [askOpen, setAskOpen] = useState(false);
   const moves = useIdeaMoves({ onPromote });
+  const qc = useQueryClient();
 
   useEffect(() => {
     setTab(
@@ -123,9 +125,10 @@ export function IdeaPage({
         (t) => t === initialTab,
       ) ?? 'page',
     );
-    setShapeOpen(false);
+    // suggestions asked for when the idea was kept (ICT-5) wait in Shape with AI: it opens with them
+    setShapeOpen((qc.getQueryData<KeptTurn[]>(keptKey(ideaId)) ?? []).length > 0);
     setAskOpen(false);
-  }, [ideaId, initialTab]);
+  }, [ideaId, initialTab, qc]);
 
   if (isLoading) return <div className="is-empty">Loading the idea…</div>;
   if (isError || !idea) {

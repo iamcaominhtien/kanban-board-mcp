@@ -729,7 +729,9 @@ async def test_default_base_without_repo_and_for_missing_ticket(
             )
         ).json()
         t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
-        assert (await c.get(f"/tickets/{t['id']}/branches/base")).json() == {"base": None}
+        assert (await c.get(f"/tickets/{t['id']}/branches/base")).json() == {
+            "base": None
+        }
         assert (await c.get("/tickets/NOPE-1/branches/base")).status_code == 404
 
 
@@ -737,4 +739,6 @@ async def test_default_base_prefers_main(client: httpx.AsyncClient, repo_dir):
     async with client as c:
         p = await _project_with_repo(c, repo_dir)
         t = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "x"})).json()
-        assert (await c.get(f"/tickets/{t['id']}/branches/base")).json() == {"base": "main"}
+        assert (await c.get(f"/tickets/{t['id']}/branches/base")).json() == {
+            "base": "main"
+        }

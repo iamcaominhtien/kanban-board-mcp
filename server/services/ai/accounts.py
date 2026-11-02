@@ -154,7 +154,7 @@ _VERSION_RE = re.compile(r"\bv?(\d+\.\d+(?:\.\d+)?(?:[-+.][\w.]+)?)")
 
 
 def parse_version(out: str) -> str | None:
-    """"2.1.4 (Claude Code)" → "2.1.4"; None when the output names no version."""
+    """ "2.1.4 (Claude Code)" → "2.1.4"; None when the output names no version."""
     m = _VERSION_RE.search(out or "")
     return m.group(1)[:40] if m else None
 
