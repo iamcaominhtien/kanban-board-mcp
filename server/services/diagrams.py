@@ -627,6 +627,16 @@ async def get_settings(session: AsyncSession) -> dict[str, Any]:
     }
 
 
+async def editor_check(session: AsyncSession) -> dict[str, Any]:
+    """Whether the editor answers at its address. The public editor is not probed (the browser loads it from the
+    internet); a self-hosted one is asked with a short TCP connection."""
+    s = await get_settings(session)
+    if s["mode"] == "public":
+        return {"mode": "public", "url": s["effective_url"], "reachable": True}
+    ok = await diagram_export._reachable(s["effective_url"], timeout=1.5)
+    return {"mode": s["mode"], "url": s["effective_url"], "reachable": ok}
+
+
 async def set_settings(
     session: AsyncSession, *, mode: str, url: str | None
 ) -> dict[str, Any]:

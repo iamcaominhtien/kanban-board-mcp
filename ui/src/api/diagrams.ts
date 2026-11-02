@@ -173,6 +173,18 @@ export async function updateDiagram(
   return (await client.put<Diagram>(`/diagrams/${id}`, body)).data;
 }
 
+export interface DiagramEditorCheck {
+  mode: 'self-hosted' | 'public';
+  url: string;
+  /** False when nothing answers at a self-hosted address (the app ships no draw.io editor). */
+  reachable: boolean;
+}
+
+/** Ask the board whether the draw.io editor answers, before it is opened. */
+export async function checkDiagramEditor(): Promise<DiagramEditorCheck> {
+  return (await client.get<DiagramEditorCheck>('/diagrams/editor-check')).data;
+}
+
 /**
  * Save where the draw.io editor runs (admin only).
  * @param body - `self-hosted` with an address, or `public`.

@@ -72,6 +72,13 @@ async def get_diagram_settings(session: Session) -> dict[str, Any]:
     return await svc.get_settings(session)
 
 
+@router.get("/diagrams/editor-check")
+async def get_diagram_editor_check(session: Session) -> dict[str, Any]:
+    """Whether the self-hosted draw.io editor answers, asked before the editor opens: without one (the default
+    http://localhost:8080 that the app does not ship) it spun for 20 seconds before saying so."""
+    return await svc.editor_check(session)
+
+
 @router.put("/diagrams/settings")
 async def put_diagram_settings(
     body: DiagramSettingsBody, session: Session

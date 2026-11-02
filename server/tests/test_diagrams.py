@@ -300,3 +300,35 @@ async def test_docs_versions_pin_diagrams_and_restore_brings_them_back(c, pid):
 async def test_refs_in_finds_each_diagram_once():
     md = "[a](diagram:dg_0123abcd) ![b](diagram:dg_0123abcd) [c](diagram:dg_deadbeef) (diagram:zz)"
     assert svc.refs_in(md) == ["dg_0123abcd", "dg_deadbeef"]
+
+
+async def test_the_editor_check_says_when_no_self_hosted_editor_answers(c, pid):
+    """The default http://localhost:8080 is not shipped with the app: opening the editor spun for 20 s, then failed."""
+    import socket
+
+    with socket.socket() as free:  # a port nothing listens on
+        free.bind(("127.0.0.1", 0))
+        port = free.getsockname()[1]
+    await c.put(
+        "/diagrams/settings",
+        json={"mode": "self-hosted", "url": f"http://127.0.0.1:{port}"},
+    )
+    out = (await c.get("/diagrams/editor-check")).json()
+    assert out == {
+        "mode": "self-hosted",
+        "url": f"http://127.0.0.1:{port}",
+        "reachable": False,
+    }
+    with socket.socket() as up:
+        up.bind(("127.0.0.1", 0))
+        up.listen()
+        await c.put(
+            "/diagrams/settings",
+            json={
+                "mode": "self-hosted",
+                "url": f"http://127.0.0.1:{up.getsockname()[1]}",
+            },
+        )
+        assert (await c.get("/diagrams/editor-check")).json()["reachable"] is True
+    await c.put("/diagrams/settings", json={"mode": "public"})
+    assert (await c.get("/diagrams/editor-check")).json()["reachable"] is True

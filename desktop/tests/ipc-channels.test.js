@@ -66,3 +66,12 @@ test('a link opened in a new window goes to the browser, never to a second app w
   assert.match(handler[1], /openExternalSafely\(shell, url\)/);
   assert.match(handler[1], /return \{ action: 'deny' \}/);
 });
+
+// Settings › Diagrams offers the public draw.io editor; the window's policy blocked its frame, so "public" never opened.
+test('the window may frame the public draw.io editor, and nothing else on the internet', () => {
+  const frameSrc = read('main.js').match(/frame-src ([^;]*);/);
+  assert.ok(frameSrc, 'the policy has a frame-src');
+  const sources = frameSrc[1].split(/\s+/);
+  assert.ok(sources.includes('https://embed.diagrams.net'));
+  assert.ok(!sources.includes('https:') && !sources.includes('*'));
+});
