@@ -13,29 +13,6 @@ interface SubTicketRow {
   wave: number;
   /** First sibling that blocks this one and is not done yet. */
   openBlocker: Ticket | null;
-  /** The wave was pinned by hand (Auto-set from Blocked by unchecked). */
-  pinned: boolean;
-}
-
-/** Waves pinned by hand, per parent: { childId: wave }. Kept in this browser (the server has no field for it yet). */
-type WavePins = Record<string, number>;
-const pinsKey = (parentId: string) => `kanban.subticketWaves.${parentId}`;
-function readPins(parentId: string): WavePins {
-  try {
-    const raw = localStorage.getItem(pinsKey(parentId));
-    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
-    return parsed && typeof parsed === 'object' ? (parsed as WavePins) : {};
-  } catch {
-    return {};
-  }
-}
-function writePins(parentId: string, pins: WavePins) {
-  try {
-    if (Object.keys(pins).length === 0) localStorage.removeItem(pinsKey(parentId));
-    else localStorage.setItem(pinsKey(parentId), JSON.stringify(pins));
-  } catch {
-    // storage blocked: the pin lasts until the panel closes
-  }
 }
 
 /**
@@ -43,7 +20,7 @@ function writePins(parentId: string, pins: WavePins) {
  * each other: tickets with no sibling blockers are wave 1, everything else waits
  * one wave after its latest blocker. Ties keep their original order.
  */
-function buildRows(children: Ticket[], pins: WavePins = {}): SubTicketRow[] {
+function buildRows(children: Ticket[]): SubTicketRow[] {
   const byId = new Map(children.map((t) => [t.id, t]));
   const waves = new Map<string, number>();
 
@@ -66,36 +43,29 @@ function buildRows(children: Ticket[], pins: WavePins = {}): SubTicketRow[] {
     .map((ticket, index) => ({
       index,
       ticket,
-      wave: pins[ticket.id] ?? waveOf(ticket, new Set()),
-      pinned: pins[ticket.id] !== undefined,
+      wave: waveOf(ticket, new Set()),
       openBlocker:
         (ticket.blockedBy ?? [])
           .map((id) => byId.get(id))
           .find((blocker): blocker is Ticket => !!blocker && blocker.status !== 'done') ?? null,
     }))
     .sort((a, b) => a.wave - b.wave || a.index - b.index)
-    .map(({ ticket, wave, openBlocker, pinned }) => ({ ticket, wave, openBlocker, pinned }));
+    .map(({ ticket, wave, openBlocker }) => ({ ticket, wave, openBlocker }));
 }
 
 /**
  * The wave badge, a button that opens the wave popover (Ticket Detail with Sub-tickets 7, comp-2 TDP-1): label WAVE,
- * a − n + stepper and "Auto-set from Blocked by". Unchecking Auto-set pins the sub-ticket to the wave shown; the list
- * re-sorts by wave.
+ * a − n + stepper and "Auto-set from Blocked by". The wave is always set from Blocked by (the server has no field
+ * for a wave pinned by hand yet), so the popover shows it read-only: the stepper and the checkbox are disabled.
  */
 function WaveBadge({
   ticketId,
   wave,
-  autoWave,
-  pinned,
   className,
-  onPin,
 }: Readonly<{
   ticketId: string;
   wave: number;
-  autoWave: number;
-  pinned: boolean;
   className: string;
-  onPin: (wave: number | null) => void;
 }>) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -129,7 +99,6 @@ function WaveBadge({
     };
   }, [open]);
 
-  const step = (d: number) => onPin(Math.max(1, wave + d));
   const stepBtn: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -139,9 +108,10 @@ function WaveBadge({
     borderRadius: 5,
     border: '1px solid #C7D2CB',
     background: '#FFFFFF',
-    cursor: 'pointer',
+    cursor: 'default',
     color: '#5B6B60',
     padding: 0,
+    opacity: 0.5,
   };
 
   return (
@@ -150,7 +120,7 @@ function WaveBadge({
         ref={btnRef}
         type="button"
         className={`${styles.waveBadge} ${styles.waveBadgeBtn} ${className} ${open ? styles.waveBadgeOpen : ''}`}
-        title={`Execution wave ${wave}${pinned ? ' (set by hand)' : ''}`}
+        title={`Execution wave ${wave}`}
         aria-label={`Execution wave ${wave} of ${ticketId}, change`}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -195,13 +165,7 @@ function WaveBadge({
               Wave
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
-                type="button"
-                aria-label="Earlier wave"
-                style={stepBtn}
-                disabled={wave <= 1}
-                onClick={() => step(-1)}
-              >
+              <button type="button" aria-label="Earlier wave" style={stepBtn} disabled>
                 <LineIcon name="minus" size={12} />
               </button>
               <span
@@ -217,7 +181,7 @@ function WaveBadge({
               >
                 {wave}
               </span>
-              <button type="button" aria-label="Later wave" style={stepBtn} onClick={() => step(1)}>
+              <button type="button" aria-label="Later wave" style={stepBtn} disabled>
                 <LineIcon name="plus" size={12} />
               </button>
             </div>
@@ -230,13 +194,13 @@ function WaveBadge({
                 color: '#5B6B60',
                 paddingTop: 6,
                 borderTop: '1px solid #EEF3EF',
-                cursor: 'pointer',
               }}
             >
               <input
                 type="checkbox"
-                checked={!pinned}
-                onChange={(e) => onPin(e.target.checked ? null : autoWave)}
+                checked
+                readOnly
+                disabled
                 style={{ accentColor: '#2E6F40', width: 13, height: 13, margin: 0 }}
               />
               Auto-set from Blocked by
@@ -296,16 +260,7 @@ export function SubTicketsSection({
   const totalCount = childTickets.length;
   const progressPercent = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;
 
-  const [wavePins, setWavePins] = useState<WavePins>(() => readPins(currentTicketId));
-  const autoWaves = new Map(buildRows(childTickets).map((r) => [r.ticket.id, r.wave]));
-  const rows = buildRows(childTickets, wavePins);
-  function pinWave(childId: string, wave: number | null) {
-    const next = { ...wavePins };
-    if (wave === null) delete next[childId];
-    else next[childId] = wave;
-    setWavePins(next);
-    writePins(currentTicketId, next);
-  }
+  const rows = buildRows(childTickets);
   const childIds = new Set(childTickets.map((t) => t.id));
 
   // Eligible for linking: same project, not current, not already a child, has no parent, and has no children of its own
@@ -408,7 +363,7 @@ export function SubTicketsSection({
       {totalCount > 0 && (
         <>
           <div className={styles.cardContainer}>
-            {rows.map(({ ticket, wave, openBlocker, pinned }) => {
+            {rows.map(({ ticket, wave, openBlocker }) => {
               const isDone = ticket.status === 'done';
               const isInProgress = ticket.status === 'in-progress';
               const assignee = members.find((m) => m.id === ticket.assignee);
@@ -416,14 +371,7 @@ export function SubTicketsSection({
 
               return (
                 <div key={ticket.id} className={`${styles.row} ${isInProgress ? styles.rowActive : ''}`}>
-                  <WaveBadge
-                    ticketId={ticket.id}
-                    wave={wave}
-                    autoWave={autoWaves.get(ticket.id) ?? wave}
-                    pinned={pinned}
-                    className={waveClass}
-                    onPin={(w) => pinWave(ticket.id, w)}
-                  />
+                  <WaveBadge ticketId={ticket.id} wave={wave} className={waveClass} />
 
                   {isDone ? (
                     <svg className={styles.statusIconDone} viewBox="0 0 14 14" fill="none">

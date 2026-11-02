@@ -65,3 +65,29 @@ export const TIER_STYLE: Record<Tier, { border: string; bg: string; color: strin
 
 export const LOCKED_REASON =
   'Fixed in the last tier, per project and for ever: moving a ticket to Done · deleting anything · Pause all AI · a permission, ceiling or bypass change · a budget or account change · merging · anything that posts outside the board.';
+
+/**
+ * The cards' own short bullets (design ai-board-wave3 C). The first card's are what the Board AI may always just do
+ * (it only reads); actions lowered into it are listed after them.
+ */
+export const TIER_BULLETS: Record<Tier, string[]> = {
+  free: [
+    'Find a ticket, a page, a run, something in the knowledge base',
+    'Who is working on what, and how far along',
+    'Read a run, a transcript, the audit log, a schedule',
+    'What a Claude account has left',
+  ],
+  undo: [
+    'Create a ticket, change its fields, move it, assign it, comment',
+    'Put a workflow or a review depth on a ticket',
+    'Start a run, stop one run, pause or resume one member',
+    'Create a member, give it a pack or a skill, install a plugin',
+    'Create or edit a workflow template, a schedule, a Docs page',
+  ],
+  ask: [
+    'Move a ticket to Done; more than {n} tickets, or more than one project; delete anything',
+    'Pause all AI; change a permission, a ceiling or bypass; remove a member',
+    'Merge, open a pull request, push a branch',
+    'Budgets, accounts, settings — every change',
+  ],
+};

@@ -21,7 +21,7 @@ interface ColumnProps {
   onDelete?: (ticket: Ticket) => void;
   /** What the card being dragged carries: a closed ticket (reopen) or a pending one. */
   dragKind?: 'reopen' | 'pending' | null;
-  /** Enter on a card: open it (a click may select a parent group first). */
+  /** Enter on a card: open it. */
   onCardOpen?: (ticket: Ticket) => void;
   /** The selected parent and its sub-tickets, drawn with the green ring (Sub-task Grouping 1). */
   selectedGroup?: Set<string> | null;

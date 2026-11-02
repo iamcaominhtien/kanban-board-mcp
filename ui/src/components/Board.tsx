@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -190,8 +190,8 @@ export function Board({
         : null;
   const memberMap = new Map(members.map((m) => [m.id, m]));
 
-  // Sub-task Grouping 1 (comp-1 BG-1): a click on a parent selects its group (a ring on it and its sub-tickets, and
-  // connectors to them); a second click, or Enter, opens it. Esc or a click elsewhere clears the selection.
+  // Sub-task Grouping 1 (comp-1 BG-1): pointing at a parent (or focusing it) shows its group: a ring on it and its
+  // sub-tickets, and connectors to them. A click still opens the ticket at once, as it always did.
   const columnsRef = useRef<HTMLDivElement>(null);
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const childrenOf = useMemo(() => {
@@ -208,30 +208,18 @@ export function Board({
     [selectedParentId, childrenOf, tickets],
   );
   const selectedGroup = useMemo(
-    () => (selectedParentId ? new Set([selectedParentId, ...selectedChildIds]) : null),
+    () => (selectedParentId && selectedChildIds.length ? new Set([selectedParentId, ...selectedChildIds]) : null),
     [selectedParentId, selectedChildIds],
   );
-  useEffect(() => {
-    if (!selectedParentId) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedParentId(null);
-    };
-    const onDown = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement | null)?.closest?.('[data-ticket-id]')) setSelectedParentId(null);
-    };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onDown);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onDown);
-    };
-  }, [selectedParentId]);
+  /** The parent card under the pointer or the focus, if any (a story card is not a group). */
+  function showGroupFor(target: EventTarget | null) {
+    if (activeTicketId) return setSelectedParentId(null);
+    const id = (target as HTMLElement | null)?.closest?.('[data-ticket-id]')?.getAttribute('data-ticket-id') ?? null;
+    const t = id ? tickets.find((x) => x.id === id) : undefined;
+    const isParent = !!t && t.type !== 'story' && (childrenOf.get(t.id)?.length ?? 0) > 0;
+    setSelectedParentId(isParent ? t!.id : null);
+  }
   function handleBoardCardClick(t: Ticket) {
-    const isParent = t.type !== 'story' && (childrenOf.get(t.id)?.length ?? 0) > 0;
-    if (isParent && selectedParentId !== t.id) {
-      setSelectedParentId(t.id);
-      return;
-    }
     setSelectedParentId(null);
     onCardClick(t);
   }
@@ -538,8 +526,15 @@ export function Board({
             onDelete={onDelete}
           />
         ) : (
-          <div ref={columnsRef} className={styles.columns}>
-            {selectedParentId && (
+          <div
+            ref={columnsRef}
+            className={styles.columns}
+            onMouseOver={(e) => showGroupFor(e.target)}
+            onMouseLeave={() => setSelectedParentId(null)}
+            onFocus={(e) => showGroupFor(e.target)}
+            onBlur={() => setSelectedParentId(null)}
+          >
+            {selectedGroup && selectedParentId && (
               <ParentGroupLinks
                 containerRef={columnsRef}
                 parentId={selectedParentId}

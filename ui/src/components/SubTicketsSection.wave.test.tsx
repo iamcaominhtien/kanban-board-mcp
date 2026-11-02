@@ -5,10 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { Ticket } from '../types';
 import { SubTicketsSection } from './SubTicketsSection';
 
-afterEach(() => {
-  cleanup();
-  localStorage.clear();
-});
+afterEach(cleanup);
 
 const child = (id: string, blockedBy: string[] = []): Ticket =>
   ({
@@ -59,23 +56,18 @@ function mount(children: Ticket[]) {
 }
 
 describe('wave badge popover (Ticket Detail with Sub-tickets 7)', () => {
-  it('opens on a click, pins a wave with the stepper and re-sorts; Auto-set gives the computed wave back', () => {
+  it('opens on a click and shows the wave set from Blocked by, read-only (no server field for a pinned wave)', () => {
     mount([child('KAN-2'), child('KAN-3', ['KAN-2'])]);
     const badge = screen.getByTestId('wave-badge-KAN-3');
     expect(badge.textContent).toBe('2');
     fireEvent.click(badge);
+    expect(screen.getByTestId('wave-value').textContent).toBe('2');
     const auto = screen.getByRole('checkbox', { name: 'Auto-set from Blocked by' }) as HTMLInputElement;
     expect(auto.checked).toBe(true);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Earlier wave' }));
-    expect(screen.getByTestId('wave-badge-KAN-3').textContent).toBe('1');
-    expect((screen.getByRole('checkbox', { name: 'Auto-set from Blocked by' }) as HTMLInputElement).checked).toBe(
-      false,
-    );
-    expect(JSON.parse(localStorage.getItem('kanban.subticketWaves.KAN-1') ?? '{}')).toEqual({ 'KAN-3': 1 });
-
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Auto-set from Blocked by' }));
-    expect(screen.getByTestId('wave-badge-KAN-3').textContent).toBe('2');
-    expect(localStorage.getItem('kanban.subticketWaves.KAN-1')).toBeNull();
+    expect(auto.disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Earlier wave' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Later wave' }) as HTMLButtonElement).disabled).toBe(true);
+    // the order still follows Blocked by: KAN-2 (wave 1) before KAN-3 (wave 2)
+    expect(screen.getByTestId('wave-badge-KAN-2').textContent).toBe('1');
   });
 });
