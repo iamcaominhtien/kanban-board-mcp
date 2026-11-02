@@ -365,9 +365,18 @@ async def test_the_shipped_editor_is_served_and_is_the_default(c, pid, shipped_e
     assert js.status_code == 200 and js.headers["content-type"].startswith(
         "text/javascript"
     )
-    assert (await c.get("/drawio/../secret.txt")).status_code == 404
-    assert (await c.get("/drawio/%2e%2e/secret.txt")).status_code == 404
+    # nothing outside the editor's folder comes out (a normalised path may land on the UI's own fallback page)
+    for escape in ("/drawio/../secret.txt", "/drawio/%2e%2e/secret.txt"):
+        assert "not the editor's" not in (await c.get(escape)).text
     assert (await c.get("/drawio/missing.js")).status_code == 404
+    from fastapi import HTTPException
+
+    import main
+
+    with pytest.raises(
+        HTTPException
+    ):  # the handler itself refuses a path out of the folder
+        await main.serve_drawio("../secret.txt")
 
 
 async def test_a_chosen_editor_is_kept_and_built_in_needs_one(c, pid, shipped_editor):
