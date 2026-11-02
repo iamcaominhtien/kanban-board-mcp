@@ -8,6 +8,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.25.0] - 2026-11-02
+
+The rest of the schedules design (`AiSchedules.dc.html`, `Notifications.dc.html`) and a safety fix found while testing them (#271).
+
+### Added
+- **“Run started by schedule” is a line in the notification centre**, with Open run (it was only a toast). It is its own kind, `schedule_started` (“A scheduled run started”, for information, grouped as “N scheduled runs started”), so it can be switched off in Settings › Notifications on its own; the Schedules family on the notifications page lists it with the finished and skipped ones.
+- **Whoever follows a ticket (the bell) hears of its schedule events**, as the design says (“Comments, runs and schedule events of this ticket”), not only the schedule's creator and the people it names.
+- **Run menu › Queue for next free slot**: the run waits behind what the AI is doing and starts when it is free (`POST /tickets/{id}/ai/run` takes `queue: true`). It sits between Schedule a run… and View schedules, as designed.
+- **Edit budget** in a schedule's warning when its AI is over its budget: it opens AI Team › Usage for that AI.
+
+### Fixed
+- **A CLI path you set is never replaced by another program.** When the path was refused (outside your home folder or the usual install folders) or could not run, the board looked for a `claude` on PATH and used that one: a test member with a stand-in CLI spent real Claude quota. Now there is no CLI, the AI shows “runner missing”, and the reason names the path and what is wrong with it (“not executable”, “outside the folders the board allows”), and says to fix or clear it. With no path set, PATH is searched as before.
+- An AI that answered `auth status` with something that is not a JSON object made the connection test fail with a server error; it is now taken as “not signed in”.
+
 ## [3.24.0] - 2026-11-02
 
 AI schedules checked end to end against their design (#271).

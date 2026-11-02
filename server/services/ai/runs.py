@@ -2219,13 +2219,13 @@ async def _execute_cli_held(
         path, _ = cli.find_cli(binary, profile.cli_path)
         if not path:
             profile.health = "runner_missing"
-            profile.health_detail = f"“{binary}” was not found on this computer"
+            profile.health_detail = cli.missing(binary, profile.cli_path)
             session.add(profile)
             await session.commit()
             await _end(
                 run_id,
                 "failed",
-                f"No runner: the {binary} CLI was not found on this computer.",
+                f"No runner: {cli.missing(binary, profile.cli_path)}.",
             )
             return
         cwd = os.path.expanduser(profile.working_dir or "")
