@@ -106,6 +106,8 @@ REMINDER_MINUTES = [15, *range(120, NEEDS_INPUT_HOLD_HOURS * 60, 120)]
 REMINDER_LEAD_MINUTES = 360
 AUTO_TRIP_CHECK_S = 30  # spend spike and denials (autotrip.py)
 STARTING_TIMEOUT_S = 30
+# Seconds a CLI may stay open after its final answer before the board stops it (and what it started in the background)
+RESULT_GRACE_S = 30
 WATCH_EVERY_S = 30  # a running CLI that printed nothing for this long is looked at (services/ai/watchdog.py)
 MAX_RATE_REQUEUES = 3  # times one run waits out a rate limit before it fails
 
@@ -1749,6 +1751,13 @@ async def _build_prompt(
                     }
                 ],
             )
+    if profile.provider == "claude-code":
+        from . import plugins as ai_plugins
+
+        await ai_plugins.settled(profile.project_id)
+        skills = await ai_plugins.skills_block(session, profile)
+        if skills:
+            system += "\n\n" + skills
     if record is not None:
         record["system"] = digest(system)
     return system, prompt, config
@@ -1975,6 +1984,20 @@ def cli_tool_rules(
     else:
         denied += [d for d in ["WebSearch"] if d not in denied]
     return list(dict.fromkeys(allowed)), denied
+
+
+def bypass_web_note(denied: list[str]) -> str:
+    """The web part of a Bypass permissions run's first step, read from the deny rules the CLI is given: Bypass runs
+    every tool a deny rule does not stop, so a web tool is off only when a rule says so ("limited" for a rule on some
+    pages or queries)."""
+    stopped = {
+        d.split("(")[0]: d == d.split("(")[0] for d in denied if d.startswith("Web")
+    }
+
+    def state(tool: str) -> str:
+        return "on" if tool not in stopped else "off" if stopped[tool] else "limited"
+
+    return f"web search {state('WebSearch')}, web fetch {state('WebFetch')}"
 
 
 def mcp_config(
@@ -2219,13 +2242,13 @@ async def _execute_cli_held(
         path, _ = cli.find_cli(binary, profile.cli_path)
         if not path:
             profile.health = "runner_missing"
-            profile.health_detail = f"“{binary}” was not found on this computer"
+            profile.health_detail = cli.missing(binary, profile.cli_path)
             session.add(profile)
             await session.commit()
             await _end(
                 run_id,
                 "failed",
-                f"No runner: the {binary} CLI was not found on this computer.",
+                f"No runner: {cli.missing(binary, profile.cli_path)}.",
             )
             return
         cwd = os.path.expanduser(profile.working_dir or "")
@@ -2356,11 +2379,15 @@ async def _execute_cli_held(
         if profile.provider == "claude-code" and not (agy or adapter):
             from . import plugins as ai_plugins
 
+            # a member made from a pack a moment ago: its plugins may still be installing
+            await ai_plugins.settled(profile.project_id)
             plugin_dirs += await ai_plugins.dirs_for(session, profile)
             from . import board_skills
 
             # the board's own skills (the canvas design guide), too long for the MCP instructions
-            plugin_dirs.append(board_skills.plugin_dir())
+            plugin_dirs.append(
+                board_skills.plugin_dir(board_skills.enabled_for(cfg_ops, profile.id))
+            )
             project_safe = (await get_settings(session, run.project_id)).safe_mode
             if cfg_ops.get("own_claude", True) and not (
                 project_safe or profile.safe_mode
@@ -2660,7 +2687,8 @@ async def _execute_cli_held(
                 [
                     {
                         "kind": "start",
-                        "text": "Bypass permissions: the CLI runs any tool except what a Deny rule stops (web off)",
+                        "text": "Bypass permissions: the CLI runs any tool except what a Deny rule stops "
+                        f"({bypass_web_note(denied)})",
                     }
                 ]
                 if bypass and not launch
@@ -2684,12 +2712,30 @@ async def _execute_cli_held(
     watch = RT.watch[run_id] = watchdog.RunWatch()
     checked_at = time.monotonic()
     quota_key = quota.key_for(profile, run)
+    # set when the CLI has given its final answer: from then on it should exit by itself
+    answered_at: float | None = None
+    lingered = False
     while True:
         if pending is None:
             pending = asyncio.ensure_future(lines.__anext__())
-        done, _ = await asyncio.wait(
-            {pending}, timeout=WATCH_EVERY_S if ready else start_s
-        )
+        wait_s = WATCH_EVERY_S if ready else start_s
+        if answered_at is not None:
+            wait_s = max(0.5, RESULT_GRACE_S - (time.monotonic() - answered_at))
+        done, _ = await asyncio.wait({pending}, timeout=wait_s)
+        if (
+            not done
+            and answered_at is not None
+            and (time.monotonic() - answered_at >= RESULT_GRACE_S)
+        ):
+            # The CLI answered but stays open: it waits for something it started in the background (a local web
+            # server to look at frames, a dev server) and would hold the run, its cost and the member forever
+            logger.info(
+                "Run %s: the CLI answered but did not exit; stopping it", run_id
+            )
+            lingered = True
+            pending.cancel()
+            proc.kill()
+            break
         if not done:
             if ready and not await _is_paused(run_id):
                 # Quiet is not a failure (a long build, the model thinking): notice, diagnose, then act (design C)
@@ -2755,6 +2801,8 @@ async def _execute_cli_held(
                 # a turn ended: with nothing more to say, close the input so the CLI exits (a message sent after this
                 # is kept on the run and, when the run ends without reading it, goes to the ticket's next run)
                 proc.end_input()
+            if not proc.live or not proc.input_open:
+                answered_at = time.monotonic()
         if parsed["steps"] or parsed["files"] or parsed["results"] or fields:
             if run_id in RT.cancelled:
                 proc.kill()
@@ -2776,6 +2824,8 @@ async def _execute_cli_held(
     if timed_out:
         proc.kill()
     code = await proc.wait()
+    if lingered:
+        code = 0  # it had answered: stopping what it left running is not a failure of the run
     await resources.MON.untrack(run_id)
     restart = RT.restart_requests.pop(run_id, None)
     if run_id in RT.cancelled:

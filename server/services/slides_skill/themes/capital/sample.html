@@ -1,0 +1,148 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Capital · Tài chính, ngân hàng</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"><style>/* The layouts every theme shares. A theme sets the variables and adds its own signature (themes/<key>/theme.css).
+   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint.
+   The variables live on section.slide: a theme that changes them for one layout writes `section.slide.l-cover`
+   (a plain `.l-cover` is less specific and loses). Use weights 400 to 800: lighter cuts are rarely installed. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: #7a7a7a; }
+body { font-family: var(--font-body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+aside.notes { display: none; }
+
+section.slide {
+  --pad: 88px;
+  width: 1280px; height: 720px; position: relative; overflow: hidden; margin: 0 auto 24px;
+  background: var(--ground); color: var(--ink); font-family: var(--font-body);
+  font-size: var(--body-size, 22px); line-height: 1.4;
+  font-feature-settings: "lnum", "tnum";
+}
+.slide .title { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: var(--title-size, 46px);
+  line-height: 1.08; letter-spacing: var(--display-tracking, -0.01em); text-wrap: balance; }
+.slide .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.slide .lede { font-size: 24px; line-height: 1.4; color: var(--muted); text-wrap: pretty; }
+.slide .muted { color: var(--muted); }
+.slide .num { font-family: var(--font-display); font-weight: var(--display-weight, 700); line-height: 0.95;
+  letter-spacing: -0.02em; color: var(--accent); }
+.slide .cap { font-size: 18px; color: var(--muted); line-height: 1.35; }
+.slide .footer { position: absolute; left: var(--pad); right: var(--pad); bottom: 30px; display: flex; justify-content: space-between;
+  font-size: 13px; letter-spacing: 0.06em; color: var(--muted); }
+
+/* Cover: the deck's point in one sentence */
+.l-cover .eyebrow { position: absolute; left: var(--pad); top: 72px; }
+.l-cover .title { position: absolute; left: var(--pad); top: 210px; width: 680px; font-size: var(--cover-size, 76px); line-height: 1.02; }
+.l-cover .lede { position: absolute; left: var(--pad); bottom: 96px; width: 640px; }
+.l-cover .art { position: absolute; right: 0; top: 0; bottom: 0; width: 460px; }
+
+/* Section break */
+.l-section .num { position: absolute; left: var(--pad); top: 150px; font-size: 180px; }
+.l-section .title { position: absolute; left: var(--pad); top: 380px; width: 900px; font-size: 60px; }
+.l-section .lede { position: absolute; left: var(--pad); top: 540px; width: 760px; }
+
+/* Agenda */
+.l-agenda .title { position: absolute; left: var(--pad); top: 80px; width: 420px; }
+.l-agenda ol { position: absolute; left: 600px; top: 84px; width: 590px; list-style: none; }
+.l-agenda li { display: flex; gap: 28px; align-items: baseline; padding: 20px 0; border-top: 1px solid var(--rule); }
+.l-agenda li .n { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 28px; color: var(--accent); width: 44px; }
+.l-agenda li .t { font-size: 26px; font-weight: 600; }
+.l-agenda li .d { display: block; font-size: 17px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+
+/* A big number and what it means */
+.l-number .num { position: absolute; left: var(--pad); top: 130px; font-size: 240px; }
+.l-number .title { position: absolute; left: var(--pad); top: 430px; width: 820px; font-size: 44px; }
+.l-number .lede { position: absolute; left: var(--pad); top: 560px; width: 760px; font-size: 21px; }
+.l-number .art { position: absolute; right: 0; top: 0; bottom: 0; width: 360px; }
+
+/* A chart and its point */
+.l-chart .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-chart .lede { position: absolute; left: var(--pad); top: 140px; width: 900px; font-size: 19px; }
+.l-chart .chart { position: absolute; left: calc(var(--pad) - 12px); top: 210px; width: 760px; height: 440px; }
+.l-chart .side { position: absolute; left: 900px; top: 236px; width: 300px; }
+.l-chart .side .num { font-size: 96px; }
+.l-chart .side .cap { margin-top: 10px; }
+.l-chart .side p { margin-top: 28px; font-size: 19px; line-height: 1.45; }
+
+/* A picture beside the text */
+.l-split .art { position: absolute; left: 0; top: 0; bottom: 0; width: 600px; }
+.l-split .eyebrow { position: absolute; left: 680px; top: 110px; }
+.l-split .title { position: absolute; left: 680px; top: 150px; width: 520px; }
+.l-split .body { position: absolute; left: 680px; top: 330px; width: 500px; font-size: 21px; line-height: 1.5; }
+.l-split .body p + p { margin-top: 14px; }
+
+/* Two options side by side */
+.l-compare .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-compare .cols { position: absolute; left: var(--pad); right: var(--pad); top: 210px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+.l-compare .col { padding-top: 22px; border-top: 4px solid var(--rule-strong, var(--ink)); }
+.l-compare .col.pick { border-top-color: var(--accent); }
+.l-compare .col h3 { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 30px; line-height: 1.15; }
+.l-compare .col .tag { font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.l-compare .col.pick .tag { color: var(--accent); }
+.l-compare .col p { margin-top: 14px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+.l-compare .col .k { margin-top: 22px; font-size: 19px; }
+.l-compare .col .k b { font-family: var(--font-display); font-size: 40px; display: block; color: var(--ink); }
+
+/* Steps or a timeline */
+.l-steps .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 300px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.l-steps .step { border-top: 2px solid var(--rule-strong, var(--ink)); padding-top: 18px; }
+.l-steps .step .when { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.l-steps .step h3 { margin-top: 12px; font-size: 30px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
+.l-steps .step p { margin-top: 12px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+
+/* A quote */
+.l-quote .mark { position: absolute; left: var(--pad); top: 70px; font-family: var(--font-display); font-size: 200px; line-height: 1; color: var(--accent); }
+.l-quote .title { position: absolute; left: var(--pad); top: 210px; width: 1000px; font-size: 52px; line-height: 1.15; }
+.l-quote .who { position: absolute; left: var(--pad); top: 520px; font-size: 20px; }
+.l-quote .who b { display: block; font-size: 22px; }
+
+/* Closing: what is asked of the room */
+.l-closing .eyebrow { position: absolute; left: var(--pad); top: 110px; }
+.l-closing .title { position: absolute; left: var(--pad); top: 150px; width: 820px; font-size: 64px; }
+.l-closing .asks { position: absolute; left: var(--pad); top: 420px; width: 1100px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.l-closing .asks div { font-size: 20px; line-height: 1.4; }
+.l-closing .asks b { display: block; font-size: 22px; margin-bottom: 6px; color: var(--accent); }
+
+/* Capital: an investment fund's letter to its investors. Deep bottle green and ivory, brass for a gain, brick for a
+   loss; Playfair Display's high contrast for the voice of the firm, IBM Plex Sans with tabular figures for every
+   number. A hairline brass frame, like an engraved certificate, holds the cover and the closing. */
+section.slide {
+  --ground: #F8F6F0; --ink: #12261F; --muted: #5F6B64; --accent: #A8832E; --rule: #DED7C6; --rule-strong: #12261F;
+  --loss: #A4483A; --green: #12261F;
+  --font-display: "Playfair Display", Georgia, serif; --font-body: "IBM Plex Sans", Calibri, Arial, sans-serif;
+  --display-weight: 700; --title-size: 44px; --display-tracking: -0.005em; --cover-size: 68px;
+  font-family: var(--font-body);
+}
+section.slide.l-cover, section.slide.l-closing, section.slide.l-quote { --ground: #12261F; --ink: #F3EEDF; --muted: #A9B5AC; --accent: #D2AE5A; --rule: #2C4238; }
+section.slide.l-cover::before, section.slide.l-closing::before { content: ""; position: absolute; inset: 28px; border: 1px solid #D2AE5A; opacity: .55; }
+section.slide.l-cover::after, section.slide.l-closing::after { content: ""; position: absolute; inset: 34px; border: 1px solid #D2AE5A; opacity: .3; }
+/* a brass hairline under every content title */
+section.slide:not(.l-cover):not(.l-closing):not(.l-quote):not(.l-split)::before { content: ""; position: absolute; left: var(--pad); top: 52px; width: 64px; height: 3px; background: var(--accent); }
+.l-cover .title { width: 640px; top: 210px; font-weight: 700; }
+.l-cover .art { width: 480px; right: 34px; top: 34px; bottom: 34px; }
+.l-cover .lede { width: 600px; bottom: 90px; }
+.l-agenda .title { top: 84px; }
+.l-number .num { font-family: var(--font-display); font-size: 200px; top: 150px; color: var(--accent); }
+.l-number .art { width: 400px; }
+.l-number .title { width: 720px; font-family: var(--font-display); }
+.l-number .lede { width: 700px; }
+.l-chart .lede { top: 136px; }
+.l-chart .side .num { color: var(--accent); }
+.l-compare .col { border-top: 1px solid var(--ink); }
+.l-compare .col.pick { border-top: 3px solid var(--accent); }
+.l-steps .row { top: 310px; }
+.l-steps .step { border-top: 1px solid var(--ink); padding-top: 22px; }
+.l-steps .step .when { color: var(--accent); }
+.l-steps .step h3 { font-size: 28px; }
+.l-steps .step p { font-size: 20px; }
+.l-quote .title { font-style: italic; font-weight: 500; }
+.l-closing .eyebrow { top: 120px; }
+.l-closing .title { top: 160px; }
+/* numbers in the sans: Playfair's figures are old-style, and PowerPoint cannot switch them to lining */
+.slide .num, .l-compare .col .k b { font-family: var(--font-body); font-weight: 600; letter-spacing: -0.03em; }
+.l-number .num { font-family: var(--font-body); font-size: 190px; }
+</style></head><body><section class="slide l-cover"><div class="eyebrow">Quỹ Đầu tư Trường An</div><h1 class="title">Năm 2026: quỹ tăng 14,2%, hơn VN-Index 5,1 điểm</h1><p class="lede">Thư gửi nhà đầu tư, ngày 20/12/2026. Kết quả, danh mục và cách chúng tôi nhìn năm 2027.</p><div class="art"><svg width='480' height='652' viewBox='0 0 480 652'><g font-family='IBM Plex Sans' font-size='14' fill='#A9B5AC'><g stroke='#2C4238' stroke-width='1'><line x1='40' y1='520' x2='430' y2='520'/><line x1='40' y1='420' x2='430' y2='420'/><line x1='40' y1='320' x2='430' y2='320'/><line x1='40' y1='220' x2='430' y2='220'/></g><polyline points='40,500 95,480 150,488 205,450 260,430 315,405 370,380 420,372' fill='none' stroke='#A9B5AC' stroke-width='2.5'/><polyline points='40,500 95,470 150,460 205,410 260,360 315,330 370,270 420,240' fill='none' stroke='#D2AE5A' stroke-width='4'/><circle cx='420' cy='240' r='7' fill='#D2AE5A'/><text x='420' y='215' text-anchor='end' font-family='Playfair Display' font-size='30' font-weight='700' fill='#D2AE5A'>+14,2%</text><text x='420' y='398' text-anchor='end'>VN-Index +9,1%</text><text x='40' y='552'>T1</text><text x='420' y='552' text-anchor='end'>T12/2026</text></g></svg></div><aside class="notes"></aside></section>
+<section class="slide l-agenda"><h2 class="title">Thư năm nay gồm bốn phần</h2><ol><li><span class="n">01</span><span class="t">Kết quả 2026<span class="d">Hiệu suất quỹ so với thị trường</span></span></li><li><span class="n">02</span><span class="t">Danh mục<span class="d">Ngân hàng, tiêu dùng, hạ tầng, tiền mặt</span></span></li><li><span class="n">03</span><span class="t">Điều chúng tôi làm sai<span class="d">Khoản đầu tư bất động sản và bài học</span></span></li><li><span class="n">04</span><span class="t">Năm 2027<span class="d">Ba giả định và cách chúng tôi phân bổ</span></span></li></ol><div class="footer"><span>Quỹ Trường An · Thư nhà đầu tư 2026</span><span>02</span></div></section>
+<section class="slide l-number"><div class="num">14,2%</div><h2 class="title">lợi nhuận sau phí của quỹ năm 2026, so với 9,1% của VN-Index</h2><p class="lede">Giá trị tài sản ròng mỗi chứng chỉ quỹ: 18.640 đồng, từ 16.322 đồng đầu năm. Biến động 30 ngày lớn nhất: −6,8%.</p><div class="art"><svg width='400' height='720' viewBox='0 0 400 720'><g font-family='IBM Plex Sans' font-size='15' fill='#5F6B64'><line x1='40' y1='520' x2='360' y2='520' stroke='#12261F'/><rect x='80' y='300' width='90' height='220' fill='#A8832E'/><rect x='230' y='379' width='90' height='141' fill='#DED7C6'/><text x='125' y='285' text-anchor='middle' font-family='Playfair Display' font-weight='700' font-size='26' fill='#A8832E'>14,2%</text><text x='275' y='364' text-anchor='middle' font-family='Playfair Display' font-weight='700' font-size='26' fill='#5F6B64'>9,1%</text><text x='125' y='550' text-anchor='middle'>Quỹ</text><text x='275' y='550' text-anchor='middle'>VN-Index</text></g></svg></div><div class="footer"><span>Quỹ Trường An · Thư nhà đầu tư 2026</span><span>03</span></div></section>
+<section class="slide l-chart"><h2 class="title">Ngân hàng và tiêu dùng đóng góp 11 trong 14,2 điểm</h2><p class="lede">Đóng góp vào lợi nhuận quỹ năm 2026 theo nhóm ngành, điểm phần trăm.</p><div class="chart" data-pptx="chart" data-chart='{&quot;type&quot;: &quot;bar&quot;, &quot;categories&quot;: [&quot;Ngân hàng&quot;, &quot;Tiêu dùng&quot;, &quot;Hạ tầng&quot;, &quot;Công nghệ&quot;, &quot;Bất động sản&quot;], &quot;series&quot;: {&quot;Đóng góp&quot;: [6.4, 4.6, 2.1, 1.9, -0.8]}, &quot;colors&quot;: [&quot;A8832E&quot;, &quot;A8832E&quot;, &quot;C9BFA8&quot;, &quot;C9BFA8&quot;, &quot;A4483A&quot;], &quot;labels&quot;: [&quot;6,4&quot;, &quot;4,6&quot;, &quot;2,1&quot;, &quot;1,9&quot;, &quot;−0,8&quot;], &quot;size&quot;: 16, &quot;muted&quot;: &quot;5F6B64&quot;, &quot;font&quot;: &quot;IBM Plex Sans&quot;}'></div><div class="side"><div class="num">−0,8</div><div class="cap">điểm từ bất động sản</div><p>Khoản duy nhất làm quỹ lỗ; chúng tôi đã bán hết trong tháng 9. Lý do ở trang sau.</p></div><div class="footer"><span>Quỹ Trường An · Thư nhà đầu tư 2026</span><span>04</span></div></section>
+<section class="slide l-split"><div class="art"><svg width='600' height='720' viewBox='0 0 600 720'><rect width='600' height='720' fill='#EFEADD'/><g font-family='IBM Plex Sans' font-size='15' fill='#5F6B64'><text x='80' y='170' font-family='Playfair Display' font-size='22' font-weight='700' fill='#12261F'>Tỷ trọng danh mục, 31/12/2026</text><g transform='translate(80 210)'><rect width='440' height='56' fill='#12261F'/><rect x='0' width='167' height='56' fill='#12261F'/><rect x='167' width='119' height='56' fill='#A8832E'/><rect x='286' width='79' height='56' fill='#C9BFA8'/><rect x='365' width='53' height='56' fill='#DED7C6'/><rect x='418' width='22' height='56' fill='#F8F6F0' stroke='#12261F'/></g><g transform='translate(80 310)'><rect width='14' height='14' fill='#12261F'/><text x='26' y='13'>Ngân hàng 38%</text><rect y='34' width='14' height='14' fill='#A8832E'/><text x='26' y='47'>Tiêu dùng 27%</text><rect y='68' width='14' height='14' fill='#C9BFA8'/><text x='26' y='81'>Hạ tầng 18%</text><rect y='102' width='14' height='14' fill='#DED7C6'/><text x='26' y='115'>Công nghệ 12%</text><rect y='136' width='14' height='14' fill='#F8F6F0' stroke='#12261F'/><text x='26' y='149'>Tiền mặt 5%</text></g><text x='80' y='520' fill='#A4483A'>Bất động sản: 0% (đầu năm 6%)</text></g></svg></div><div class="eyebrow">Điều chúng tôi làm sai</div><h2 class="title">Chúng tôi đã tin vào tiến độ pháp lý của một dự án</h2><div class="body"><p>Mua vào tháng 3 khi chủ đầu tư cam kết có giấy phép trong quý 2; đến tháng 9 vẫn chưa có.</p><p>Từ nay, khoản đầu tư phụ thuộc giấy phép không vượt quá 3% tài sản quỹ.</p></div><div class="footer"><span>Quỹ Trường An · Thư nhà đầu tư 2026</span><span>05</span></div></section>
+<section class="slide l-compare"><h2 class="title">Năm 2027: chúng tôi chọn giữ phòng thủ, chưa tăng tỷ trọng cổ phiếu</h2><div class="cols"><div class="col"><div class="tag">Kịch bản tăng trưởng</div><h3>Lãi suất giảm thêm 1 điểm</h3><p>Thị trường có thể tăng 15–20%; quỹ sẽ tăng tỷ trọng cổ phiếu lên 95%.</p><div class="k"><b>25%</b>xác suất chúng tôi ước tính</div></div><div class="col pick"><div class="tag">Kịch bản cơ sở · đang theo</div><h3>Lãi suất đi ngang, tín dụng tăng 13%</h3><p>Giữ 5–8% tiền mặt, ưu tiên ngân hàng có nợ xấu dưới 1,5%.</p><div class="k"><b>60%</b>xác suất chúng tôi ước tính</div></div></div><div class="footer"><span>Quỹ Trường An · Thư nhà đầu tư 2026</span><span>06</span></div></section>
+<section class="slide l-steps"><h2 class="title">Lịch làm việc với nhà đầu tư năm 2027</h2><div class="row"><div class="step"><div class="when">Tháng 1</div><h3>Báo cáo kiểm toán</h3><p>Báo cáo tài chính năm 2026 do Deloitte kiểm toán.</p></div><div class="step"><div class="when">Tháng 4</div><h3>Đại hội nhà đầu tư</h3><p>Hà Nội và TP.HCM, kèm trực tuyến.</p></div><div class="step"><div class="when">Hằng quý</div><h3>Thư quý</h3><p>Kết quả, danh mục và mọi thay đổi trên 2%.</p></div><div class="step"><div class="when">Tháng 12</div><h3>Thư năm</h3><p>Như thư này: cả điều đúng lẫn điều sai.</p></div></div><div class="footer"><span>Quỹ Trường An · Thư nhà đầu tư 2026</span><span>07</span></div></section>
+<section class="slide l-quote"><div class="mark">“</div><h2 class="title">Chúng tôi không hứa đánh bại thị trường mỗi năm. Chúng tôi hứa nói thật với các anh chị về từng quyết định.</h2><div class="who"><b>Đỗ Hoàng Long</b>Giám đốc đầu tư, Quỹ Trường An</div><div class="footer"><span>Quỹ Trường An · Thư nhà đầu tư 2026</span><span>08</span></div></section>
+<section class="slide l-closing"><div class="eyebrow">Cảm ơn sự tin tưởng</div><h2 class="title">Mọi câu hỏi, xin gửi về Bộ phận Quan hệ nhà đầu tư</h2><div class="asks"><div><b>Email</b>ir@truongancapital.vn, trả lời trong 2 ngày làm việc.</div><div><b>Điện thoại</b>028 3822 1460, 8:30–17:00 các ngày thường.</div><div><b>Tài liệu</b>Báo cáo đầy đủ và bản cáo bạch trên trang nhà đầu tư.</div></div><div class="footer"><span>Quỹ Trường An · Thư nhà đầu tư 2026</span><span>09</span></div></section></body></html>

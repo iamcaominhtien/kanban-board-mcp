@@ -81,6 +81,7 @@ from .sketches import (
 from .canvases import (
     design_guide,
     permissions_guide,
+    shared_guides,
     list_project_canvases,
     read_canvas,
     create_canvas_from_files,
@@ -151,6 +152,7 @@ __all__ = [
     "save_sketch_files",
     "design_guide",
     "permissions_guide",
+    "shared_guides",
     "list_project_canvases",
     "read_canvas",
     "create_canvas_from_files",

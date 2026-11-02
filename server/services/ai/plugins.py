@@ -17,6 +17,7 @@ Who gets it: the project default (on or off), the roles it is suggested for, and
 """
 
 import asyncio
+import logging
 import json
 import os
 import re
@@ -33,6 +34,8 @@ from models import AiMember, AiPlugin, AiSkillUse
 
 from .store import loads
 
+logger = logging.getLogger(__name__)
+
 # the most a plugin may copy into the board's cache (checked before anything is copied)
 MAX_PLUGIN_BYTES = 50 * 1024 * 1024
 
@@ -44,8 +47,14 @@ CATALOGUE: list[dict] = [
         "kind": "plugin",
         "source": "https://github.com/anthropics/knowledge-work-plugins",
         "plugin": "design",
+        "skills": [
+            "design-critique",
+            "accessibility-review",
+            "design-handoff",
+        ],
         "roles": ["designer"],
         "what": "Anthropic's design plugin: design-handoff, design-critique, accessibility-review, ux-copy, design-system, user-research, research-synthesis.",
+        "use": "once your boards are drawn: design-critique on them, accessibility-review before you hand in, design-handoff for the spec of each screen",
     },
     {
         "key": "ui-ux-pro-max",
@@ -53,8 +62,182 @@ CATALOGUE: list[dict] = [
         "kind": "plugin",
         "source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
         "plugin": "ui-ux-pro-max",
+        "skills": ["ui-ux-pro-max"],
         "roles": ["designer"],
         "what": "UI/UX design intelligence: styles, palettes, font pairings, charts and stack guidelines.",
+        "use": "palettes and font pairings to look through while choosing the direction (ideas, not rules)",
+    },
+    {
+        "key": "taste-skill",
+        "name": "taste-skill",
+        "kind": "plugin",
+        "source": "https://github.com/Leonxlnx/taste-skill",
+        "plugin": "taste-skill",
+        "roles": ["designer"],
+        "what": "Art direction against the generic AI look (tasteskill): researched directions, a no-ornament house style, rules for app screens, and a look-and-fix loop on screenshots. MIT.",
+        "use": "while choosing the direction and again in the critique pass (its rules for app screens and pages)",
+    },
+    {
+        "key": "impeccable",
+        "name": "impeccable",
+        "kind": "plugin",
+        "source": "https://github.com/pbakaus/impeccable",
+        "plugin": "impeccable",
+        # strong design rules, but its hooks run a launcher on every edit and at the end of a run (it downloads a
+        # binary the first time), which an unattended run should not depend on: in the catalogue, suggested to no role
+        "roles": [],
+        "what": "Design fluency: modes per surface, a craft floor of banned patterns, critique, audit and polish commands. Apache-2.0. Its hooks run a downloaded helper on every edit.",
+        "use": "a critique, audit or polish pass",
+    },
+    # Niche frontend skills (vetted 2026-11: license, no hooks, nothing downloaded at run time; a subset where a repository
+    # also carries skills that need an API key, a browser download or an MCP engine)
+    {
+        "key": "make-interfaces-feel-better",
+        "name": "make-interfaces-feel-better",
+        "kind": "plugin",
+        "source": "https://github.com/jakubkrehel/make-interfaces-feel-better",
+        "ui": True,
+        "roles": ["designer", "dev"],
+        "what": "The finishing details: text wrapping, tabular numbers, optical alignment, nested radii, shadows, hit areas, icon states, restrained motion. MIT.",
+        "use": "in the critique pass, on every main screen",
+    },
+    {
+        "key": "emil-design-eng",
+        "name": "Emil Kowalski's design engineering",
+        "kind": "plugin",
+        "source": "https://github.com/emilkowalski/skills",
+        "skills": [
+            "emil-design-eng",
+            "animate",
+            "review-animations",
+            "improve-animations",
+            "find-animation-opportunities",
+            "animation-performance",
+            "animation-vocabulary",
+            "mobile-native",
+            "break-ui",
+        ],
+        "ui": True,
+        "roles": ["designer", "dev"],
+        "what": "Animation craft (whether to animate, easing, duration, interruption), animation reviews and performance, a web app that feels native on a phone. MIT.",
+        "use": "before you design any motion (animate, emil-design-eng) and to check it (review-animations, animation-performance)",
+    },
+    {
+        "key": "gsap",
+        "name": "GSAP",
+        "kind": "plugin",
+        "source": "https://github.com/greensock/gsap-skills",
+        "plugin": "gsap-skills",
+        "ui": True,
+        "roles": ["dev"],
+        "what": "GSAP's own skills: tweens, timelines, ScrollTrigger, Flip and Draggable, React cleanup with useGSAP, performance, reduced motion. MIT.",
+        "use": "when an animation is built with GSAP",
+    },
+    {
+        "key": "motion-design",
+        "name": "motion-design",
+        "kind": "plugin",
+        "source": "https://github.com/LottieFiles/motion-design-skill",
+        "ui": True,
+        "roles": ["designer"],
+        "what": "Motion principles for any stack: timing, easing, choreography, purpose (LottieFiles). MIT.",
+        "use": "before you design motion: timing, easing, choreography",
+    },
+    {
+        "key": "ui-foundations",
+        "name": "UI foundations (dembrandt)",
+        "kind": "plugin",
+        "source": "https://github.com/dembrandt/dembrandt-skills",
+        # eight of its 45: not the ones that need the dembrandt engine (an MCP server fetched with npx and a browser), and
+        # not the ones another skill or the board's guide already covers (motion, loading, gestalt, accessibility, forms)
+        "skills": [
+            "surface-separation",
+            "visual-emphasis-and-hierarchy",
+            "modular-scale-typography",
+            "algorithmic-color-palette",
+            "color-mode-and-theme",
+            "component-family-consistency",
+            "status-colors-and-errors",
+            "responsive-paradigms",
+        ],
+        "ui": True,
+        "roles": ["designer"],
+        "what": "Interface rules one by one: type scales, derived palettes, themes, button states, density, surfaces, hierarchy, forms, loading states, dense expert tools, WCAG. MIT.",
+        "use": "type scale (modular-scale-typography), palette and dark theme (algorithmic-color-palette, color-mode-and-theme), surfaces and hierarchy (surface-separation, visual-emphasis-and-hierarchy), the components board (component-family-consistency), states and errors (status-colors-and-errors), phone vs desktop (responsive-paradigms)",
+    },
+    {
+        "key": "web-quality",
+        "name": "Web quality",
+        "kind": "plugin",
+        "source": "https://github.com/addyosmani/web-quality-skills",
+        "skills": ["accessibility", "performance", "core-web-vitals", "best-practices"],
+        "ui": True,
+        "roles": ["dev", "qa"],
+        "what": "WCAG 2.2 audits from evidence, performance and Core Web Vitals, web best practices (Addy Osmani). MIT.",
+        "use": "accessibility and performance checks of a built page",
+    },
+    {
+        "key": "tufte-data-viz",
+        "name": "tufte-data-viz",
+        "kind": "plugin",
+        "source": "https://github.com/caylent/tufte-data-viz",
+        "roles": ["designer", "dev"],
+        "what": "Charts after Tufte: data-ink, direct labels, range frames, accessible and dark-mode ready; for Recharts, ECharts, Chart.js, D3 or SVG. MIT.",
+        "use": "before you draw any chart",
+    },
+    {
+        "key": "threejs",
+        "name": "three.js",
+        "kind": "plugin",
+        "source": "https://github.com/CloudAI-X/threejs-skills",
+        # not threejs-asset-pipeline, which runs an npx tool
+        "skills": [
+            "threejs-fundamentals",
+            "threejs-shaders",
+            "threejs-react-three-fiber",
+            "threejs-materials",
+            "threejs-postprocessing",
+            "threejs-performance",
+            "threejs-lighting",
+            "threejs-animation",
+            "threejs-geometry",
+            "threejs-interaction",
+            "threejs-loaders",
+            "threejs-textures",
+        ],
+        "ui": True,
+        "roles": ["designer", "dev"],
+        "what": "Current three.js, React Three Fiber and drei APIs (with WebGPU), each skill with the mistakes models still make. MIT.",
+        "use": "before you write three.js: fundamentals for the scene, materials and lighting for the look, shaders before a shader, performance before you hand in",
+    },
+    {
+        "key": "webgl-animation",
+        "name": "WebGL animation",
+        "kind": "plugin",
+        "source": "https://github.com/iart-ai/webgl-animation-skills",
+        "ui": True,
+        "skills": ["particle-system", "shader-glsl"],
+        "roles": ["designer", "dev"],
+        "what": "Particle systems, GLSL backgrounds and image transitions, three.js hero scenes with a scroll-linked camera. MIT.",
+        "use": "particles and GLSL backgrounds",
+    },
+    {
+        "key": "shader-art",
+        "name": "Shader art",
+        "kind": "plugin",
+        "source": "https://github.com/gokayfem/shader-skills",
+        "roles": ["designer"],
+        "what": "GLSL shaders in the Shadertoy style (raymarching, noise, terrain, water, clouds) from a tested function library, with a local checker. MIT.",
+        "use": "before you write a GLSL shader",
+    },
+    {
+        "key": "genart",
+        "name": "Generative art",
+        "kind": "plugin",
+        "source": "https://github.com/camilleroux/genart-skill",
+        "roles": [],
+        "what": "Seeded, reproducible generative art and creative coding, resolution-independent, with traits. MIT.",
+        "use": "generative or seeded art",
     },
     {
         "key": "frontend-design",
@@ -65,6 +248,7 @@ CATALOGUE: list[dict] = [
         "skills": ["frontend-design"],
         "roles": ["designer"],
         "what": "Distinctive, production-grade frontend interfaces (Anthropic skills).",
+        "use": "ideas for a distinctive frontend look (ideas, not rules)",
     },
     {
         "key": "canvas-design",
@@ -73,8 +257,10 @@ CATALOGUE: list[dict] = [
         "source": "https://github.com/anthropics/skills",
         "plugin": "example-skills",
         "skills": ["canvas-design"],
-        "roles": ["designer"],
-        "what": "Visual art and design on a canvas (Anthropic skills).",
+        # poster and art pieces as a PNG or PDF, not the board's canvas frames; its name hides the board's own
+        # canvas-design guide, so no role gets it by default
+        "roles": [],
+        "what": "Posters and visual art as a PNG or PDF (Anthropic skills); not for the board's canvas frames.",
     },
     {
         "key": "webapp-testing",
@@ -86,6 +272,7 @@ CATALOGUE: list[dict] = [
         "ui": True,  # a browser tool: only for a project with a UI
         "roles": ["designer", "user_tester", "qa"],
         "what": "Testing a local web app with Playwright (Anthropic skills).",
+        "use": "testing a running web app in the browser",
     },
     {
         "key": "figma",
@@ -120,7 +307,7 @@ CATALOGUE: list[dict] = [
             "args": ["-y", "@playwright/mcp@latest", "--isolated"],
         },
         "ui": True,  # a browser tool: only for a project with a UI
-        "roles": ["user_tester", "qa"],
+        "roles": ["designer", "user_tester", "qa"],
         "what": "A fresh browser per run, driven through the page's structure; can emulate a phone.",
     },
 ]
@@ -128,6 +315,46 @@ CATALOGUE: list[dict] = [
 
 class PluginError(RuntimeError):
     """A plugin could not be read, installed or updated."""
+
+
+# Installs still running per project (a pack's plugins install in the background when a member is made from it): a run
+# waits for them before it lists its plugin folders, or the first run of a new member would start without them.
+_PENDING: dict[str, set[asyncio.Task]] = {}
+SETTLE_SECONDS = 180
+
+
+def installing(project_id: str, coro) -> None:
+    """Run an install in the background and remember it until it ends; its failure is logged, never raised."""
+
+    async def go() -> None:
+        try:
+            await coro
+        except Exception:  # noqa: BLE001 - a plugin that fails to install never breaks the member it came with
+            logger.exception("Installing plugins on %s failed", project_id)
+
+    try:
+        task = asyncio.get_running_loop().create_task(go())
+    except RuntimeError:  # no loop (a sync caller in a test): nothing to schedule
+        coro.close()
+        return
+    tasks = _PENDING.setdefault(project_id, set())
+    tasks.add(task)
+    task.add_done_callback(tasks.discard)
+
+
+async def settled(project_id: str, timeout: float = SETTLE_SECONDS) -> bool:
+    """Wait for the project's running installs (at most `timeout` seconds). False when some were still running."""
+    tasks = [t for t in _PENDING.get(project_id, set()) if not t.done()]
+    if not tasks:
+        return True
+    _done, still = await asyncio.wait(tasks, timeout=timeout)
+    if still:
+        logger.warning(
+            "A run on %s started while %d plugin installs were still running",
+            project_id,
+            len(still),
+        )
+    return not still
 
 
 def _now() -> str:
@@ -192,6 +419,36 @@ def _manifest(folder: Path, name: str) -> dict:
         return {}
 
 
+def source_name(source: str) -> str:
+    """A plugin's name from where it came from, for a repository with no manifest: the repository's name, with its
+    owner when the name alone says nothing ("emilkowalski-skills")."""
+    parts = [p for p in re.split(r"[/:]", source.rstrip("/")) if p]
+    repo = re.sub(r"\.git$", "", parts[-1]) if parts else "plugin"
+    if (
+        repo.lower() in ("skills", "plugin", "plugins", "claude-skills", "agent-skills")
+        and len(parts) > 1
+    ):
+        repo = f"{parts[-2]}-{repo}"
+    return repo
+
+
+def _skill_name(folder: Path) -> str:
+    """The `name` in a skill's SKILL.md front matter (safe as a folder name), else the folder's own name."""
+    try:
+        head = (folder / "SKILL.md").read_text(encoding="utf-8")[:2000]
+    except OSError:
+        return folder.name
+    m = (
+        re.search(r"^name:\s*[\"']?([^\"'\n]+)", head, re.MULTILINE)
+        if head.startswith("---")
+        else None
+    )
+    name = (
+        re.sub(r"[^a-z0-9-]+", "-", m.group(1).strip().lower()).strip("-") if m else ""
+    )
+    return name or folder.name
+
+
 def _skill_dirs(folder: Path) -> list[Path]:
     out = []
     for skill_md in folder.rglob("SKILL.md"):
@@ -209,20 +466,30 @@ def _inside(checkout: Path, path: Path) -> bool:
     return path.resolve().is_relative_to(checkout.resolve())
 
 
-def _check_tree(src: Path) -> int:
-    """The bytes a copy of `src` takes. A link is refused: it could point anywhere on this machine (a key, a home
-    folder), and the copy would carry it into every AI's plugins."""
+def _check_link(checkout: Path, link: Path, shown: str) -> None:
+    """A link may stay: a repository that links one of its own files from another folder (ui-ux-pro-max does) is
+    copied with that file in place of the link. One that leaves the repository could point anywhere on this machine
+    (a key, a home folder) and is refused, and so is a folder link back into its own parents (the copy never ends)."""
+    target = link.resolve()
+    if not _inside(checkout, target):
+        raise PluginError(
+            f"{shown} is a link out of the repository; a plugin's files must be its own."
+        )
+    if target.is_dir() and link.parent.resolve().is_relative_to(target):
+        raise PluginError(f"{shown} is a link to a folder that holds it.")
+
+
+def _check_tree(src: Path, checkout: Path) -> int:
+    """The bytes a copy of `src` takes, with every link checked (_check_link)."""
     total = 0
     if src.is_symlink():
-        raise PluginError(f"{src.name} is a link; a plugin's files must be real files.")
-    for root, dirs, files in os.walk(src):
+        _check_link(checkout, src, src.name)
+    for root, dirs, files in os.walk(src, followlinks=True):
         dirs[:] = [d for d in dirs if d not in _IGNORED]
         for name in [*dirs, *files]:
             p = Path(root) / name
             if p.is_symlink():
-                raise PluginError(
-                    f"{p.relative_to(src)} is a link; a plugin's files must be real files."
-                )
+                _check_link(checkout, p, str(p.relative_to(src)))
         for name in files:
             total += (Path(root) / name).stat().st_size
     return total
@@ -232,7 +499,7 @@ def _copy(src: Path, dst: Path) -> None:
     shutil.copytree(
         src,
         dst,
-        symlinks=True,  # never follows a link (_check_tree refused them already)
+        symlinks=False,  # a link inside the repository becomes the file it points to (_check_tree checked them)
         ignore=shutil.ignore_patterns(*_IGNORED),
         dirs_exist_ok=True,
     )
@@ -244,6 +511,7 @@ def build(
     plugin: str | None = None,
     skills: list[str] | None = None,
     into: Path,
+    name_hint: str | None = None,
 ) -> dict:
     """Make an installable plugin folder `into` from a checkout (see the layouts in the module doc).
 
@@ -307,6 +575,8 @@ def build(
         picked_skills = _skill_dirs(checkout / "skills")
     elif (checkout / "SKILL.md").is_file():
         picked_skills = [checkout]
+        # a repository that is one skill: named by its SKILL.md, not by the folder it was cloned into
+        meta["name"] = _skill_name(checkout)
     else:
         raise PluginError("No plugin, marketplace or skill was found there.")
     if skills:
@@ -327,7 +597,7 @@ def build(
     for src_dir in sources:
         if not _inside(checkout, src_dir):
             raise PluginError("The marketplace points outside its own repository.")
-        total += _check_tree(src_dir)
+        total += _check_tree(src_dir, checkout)
         if total > MAX_PLUGIN_BYTES:
             raise PluginError(
                 f"The plugin is larger than {MAX_PLUGIN_BYTES // (1024 * 1024)} MB; the board does not copy it."
@@ -337,10 +607,17 @@ def build(
         _copy(source_dir, into)
     else:
         for skill in picked_skills or []:
-            _copy(skill, into / "skills" / skill.name)
+            _copy(
+                skill,
+                into
+                / "skills"
+                / (_skill_name(skill) if skill == checkout else skill.name),
+            )
     name = (
         re.sub(
-            r"[^a-z0-9-]+", "-", (meta.get("name") or plugin or into.name).lower()
+            r"[^a-z0-9-]+",
+            "-",
+            (meta.get("name") or plugin or name_hint or into.name).lower(),
         ).strip("-")
         or "plugin"
     )
@@ -454,7 +731,12 @@ async def install(
         )
         staging_path = Path(tmp) / "built"
         info = await asyncio.to_thread(
-            build, checkout, plugin=plugin, skills=skills, into=staging_path
+            build,
+            checkout,
+            plugin=plugin,
+            skills=skills,
+            into=staging_path,
+            name_hint=source_name(source),
         )
         if info.get("choices"):
             raise PluginError("This is a marketplace: pick which plugin to install.")
@@ -684,6 +966,57 @@ def on_for(row: AiPlugin, profile: AiMember) -> bool:
     if row.default_on:
         return True
     return role_of(profile) in (loads(row.roles, []) or [])
+
+
+def _norm_source(source: str) -> str:
+    return re.sub(r"\.git$", "", (source or "").strip().rstrip("/")).lower()
+
+
+def catalogue_entry_for(row: AiPlugin) -> dict | None:
+    """The catalogue entry a plugin was installed from: same source, same marketplace entry, its skills."""
+    have = set(loads(row.skills, []) or [])
+    for e in CATALOGUE:
+        if e.get("kind") != "plugin" or _norm_source(
+            e.get("source", "")
+        ) != _norm_source(row.source):
+            continue
+        if (e.get("plugin") or None) != (row.plugin or None) and e.get("plugin"):
+            continue
+        wanted = set(e.get("skills") or [])
+        if wanted and not wanted & have:
+            continue
+        return e
+    return None
+
+
+async def skills_block(session, profile: AiMember) -> str:
+    """The skills a member's run loads, by the exact name the Skill tool takes and with the work each one covers. A run
+    that is only handed plugin folders seldom opens one (a live Designer run had 12 and opened none of them)."""
+    rows = (
+        await session.exec(
+            select(AiPlugin).where(AiPlugin.project_id == profile.project_id)
+        )
+    ).all()
+    lines = []
+    for r in rows:
+        if not (r.path and Path(r.path).is_dir() and on_for(r, profile)):
+            continue
+        names = loads(r.skills, []) or []
+        if not names:
+            continue
+        entry = catalogue_entry_for(r)
+        listed = ", ".join(f"`{r.name}:{n}`" for n in names)
+        use = (entry or {}).get("use")
+        lines.append(f"- {listed}: {use}" if use else f"- {listed}")
+    if not lines:
+        return ""
+    return (
+        "Skills installed for you. When you reach the work a skill covers, open it with the Skill tool by the exact "
+        "name below. They teach a craft (motion, 3D, a chart) or check finished work; none of them sets a design's "
+        "look: colour, type, layout and the signature come from the board's own guide (`kanban-board:canvas-design`), "
+        "which wins wherever they disagree. Your report names the skills you opened.\n"
+        + "\n".join(lines)
+    )
 
 
 async def dirs_for(session, profile: AiMember) -> list[str]:

@@ -335,7 +335,8 @@ export const aiApi = {
     ticketId: string,
     body: { memberId: string; start: 'now' | 'queue' | 'none'; includeContext?: boolean; instruction?: string },
   ) => (await client.post<{ ticket: Ticket; run: AiRun | null }>(`/tickets/${ticketId}/ai/assign`, body)).data,
-  run: async (ticketId: string, body: { memberId?: string; instruction?: string } = {}) =>
+  /** `queue`: wait for the AI's current run to end instead of starting beside it (Run menu: Queue for next free slot). */
+  run: async (ticketId: string, body: { memberId?: string; instruction?: string; queue?: boolean } = {}) =>
     (await client.post<AiRun>(`/tickets/${ticketId}/ai/run`, body)).data,
   ask: async (ticketId: string, body: { memberId: string; question: string; source?: string; ref?: string }) =>
     (await client.post<AiRun>(`/tickets/${ticketId}/ai/ask`, body)).data,

@@ -53,6 +53,8 @@ def get_base_analysis_args(entry_point, app_name):
     alembic_data += [
         (os.path.join(_WORKSPACE_ROOT, 'server', 'alembic'), 'alembic'),
         (os.path.join(_WORKSPACE_ROOT, 'server', 'alembic.ini'), '.'),
+        # the design guide's exemplar boards, which the board's canvas-design skill carries (services/canvas_design.py)
+        (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'design_examples'), os.path.join('services', 'design_examples')),
     ]
 
     hidden_imports = (

@@ -196,11 +196,10 @@ async def post_test_run(body: TestRunBody, session: Session) -> dict:
 
     from services.ai import cli, paths
 
-    path, _ = cli.find_cli(
-        PROVIDERS.get(body.provider, {}).get("binary") or "claude", body.cli_path
-    )
+    binary = PROVIDERS.get(body.provider, {}).get("binary") or "claude"
+    path, _ = cli.find_cli(binary, body.cli_path)
     if not path:
-        return {"ok": False, "error": "The CLI was not found on this computer."}
+        return {"ok": False, "error": cli.missing(binary, body.cli_path) + "."}
     folder = None
     if (body.working_dir or "").strip():
         try:
@@ -1390,6 +1389,8 @@ class RunBody(BaseModel):
     member_id: Optional[str] = None
     instruction: str = ""
     include_context: bool = True
+    # "Queue for next free slot": wait for the AI's current run to end instead of starting beside it
+    queue: bool = False
 
 
 @router.post("/tickets/{ticket_id}/ai/run")
@@ -1412,6 +1413,7 @@ async def post_run(ticket_id: str, body: RunBody, session: Session) -> dict:
             started_by=_by(),
             instruction=body.instruction,
             include_context=body.include_context,
+            queue_after_current=body.queue,
         )
     except svc_runs.RunConflict as exc:
         _err(exc, 409)

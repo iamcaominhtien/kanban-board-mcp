@@ -62,11 +62,32 @@ def _body(key: str) -> dict:
     return packs.member_body(_pack(key), name="x", working_dir=None, account_id=None)
 
 
-def test_a_designer_gets_figma_and_a_user_tester_gets_playwright():
-    figma = _body("designer")["config"]["mcp_servers"]
-    # the Designer looks at its own frames in a browser too
-    assert [s["name"] for s in figma] == ["figma", "playwright"]
-    assert figma[0]["type"] == "http" and figma[0]["url"].startswith("https://")
+def test_a_designer_and_a_user_tester_get_playwright():
+    # the Designer looks at its own frames in a browser; Figma signs in through a browser, which a run cannot do
+    designer = _body("designer")["config"]
+    assert [s["name"] for s in designer["mcp_servers"]] == ["playwright"]
+    # Anthropic's canvas-design (poster art) would hide the board's own canvas-design guide
+    assert "canvas-design" not in designer["pack_plugins"]
+    # the Designer gets no skill that sets a palette, a type scale or a layout: a live run that followed them came
+    # out one flat hue and a generic dashboard. impeccable's hooks run a downloaded helper on every edit. Both stay
+    # in the catalogue for a person to add
+    from services.ai import plugins
+
+    for key in (
+        "taste-skill",
+        "ui-foundations",
+        "ui-ux-pro-max",
+        "make-interfaces-feel-better",
+        "frontend-design",
+    ):
+        assert key not in designer["pack_plugins"], key
+    assert designer["pack_plugins"] == [
+        "design",
+        "emil-design-eng",
+        "motion-design",
+        "tufte-data-viz",
+    ]
+    assert next(e for e in plugins.CATALOGUE if e["key"] == "impeccable")["roles"] == []
     tester = _body("user_tester")["config"]
     assert [s["name"] for s in tester["mcp_servers"]] == ["playwright"]
     assert tester["mcp_servers"][0]["command"] == "npx"
@@ -98,7 +119,18 @@ def test_the_roles_know_which_drawing_to_use():
     personas = {p["key"]: p["persona"] for p in packs.BUILTIN}
     for role in ("ba", "pm", "dev", "designer"):
         assert "draw.io Diagram" in personas[role], role
-    assert "HTML frames on a Canvas" in personas["designer"]
+    # the Designer presents a design document and measures it against the guide's exemplar boards
+    for needle in (
+        "design document",
+        "exemplar boards",
+        "Foundations board",
+        "side by side",
+        "spec per screen",
+        "craft.md",
+        "three ways",
+        "template-like",
+    ):
+        assert needle in personas["designer"], needle
     text = (
         instructions.INSTRUCTIONS
         if hasattr(instructions, "INSTRUCTIONS")
@@ -175,7 +207,7 @@ async def test_a_member_made_from_an_older_pack_is_offered_the_update_and_keeps_
     async with env["maker"]() as s:
         p = await s.get(AiMember, m["id"])
         cfg = _json.loads(p.config)
-    assert "Write" in cfg["allow_rules"] and "HTML frames on a Canvas" in p.persona
+    assert "Write" in cfg["allow_rules"] and "design document" in p.persona
     assert p.model == "haiku"  # the person's choice stays
     assert any(srv["name"] == "mine" for srv in cfg["mcp_servers"])
 

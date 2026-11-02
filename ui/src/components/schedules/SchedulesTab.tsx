@@ -119,7 +119,7 @@ function ListRow({ s, criteria, risk, onOpen }: { s: Schedule; criteria?: number
           </>
         )}
       </div>
-      <div className="sc-chips">
+      <div className="sc-pills">
         <CheckChips schedule={s} criteria={criteria} />
       </div>
       <div className="sc-inline" style={{ gap: 7 }}>
@@ -166,7 +166,7 @@ function ListRow({ s, criteria, risk, onOpen }: { s: Schedule; criteria?: number
 
 function ListHeader() {
   return (
-    <div className={`${GRID} sc-head`}>
+    <div className={`${GRID} sc-thead`}>
       <span>SCHEDULE</span>
       <span>AI</span>
       <span>NEXT RUN</span>
@@ -216,7 +216,7 @@ function HistoryTable({
     );
   return (
     <div className="ai-card sc-table" data-testid="history-table">
-      <div className="sc-hgrid sc-head">
+      <div className="sc-hgrid sc-thead">
         <span>TIME</span>
         <span>SCHEDULE</span>
         <span>AI</span>
@@ -359,7 +359,7 @@ function WeekView({
     );
   return (
     <div className="ai-card sc-week" data-testid="week-view">
-      <div className="sc-wgrid sc-head">
+      <div className="sc-wgrid sc-thead">
         <span>AI</span>
         {days.map((d) => {
           const today = d.toDateString() === todayKey;
@@ -620,7 +620,7 @@ export function SchedulesTab({ projectId, tickets }: { projectId: string; ticket
                   key={s.id}
                   s={s}
                   criteria={ticketMap.get(s.ticketId)?.acceptanceCriteria?.length}
-                  risk={riskOf.get(s.id)}
+                  risk={riskOf.get(s.id) ?? s.offlineRisk ?? undefined}
                   onOpen={() => openDetail(s.id)}
                 />
               ))}

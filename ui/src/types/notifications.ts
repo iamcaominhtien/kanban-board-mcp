@@ -14,6 +14,7 @@ export type NotificationKind =
   | 'offline'
   | 'ai_finished'
   | 'schedule'
+  | 'schedule_started'
   | 'page_published'
   | 'comment'
   | 'run_restarted'

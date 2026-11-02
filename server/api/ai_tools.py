@@ -57,6 +57,15 @@ async def get_catalogue() -> list[dict]:
 # --------------------------------------------------------------------------- plugins
 
 
+@router.get("/ai/board-skills")
+async def get_board_skills() -> list[dict]:
+    """The board's own skills (the canvas design guide, permissions, the shared skills of issue #277): [{name,
+    description}]. Whether each is on for a project or a member is in the project's ops (`board_skills`)."""
+    from services.ai import board_skills
+
+    return board_skills.catalog()
+
+
 @router.get("/projects/{project_id}/ai/plugins")
 async def get_plugins(project_id: str, session: Session) -> list[dict]:
     """The project's installed plugins, with their real use counted from the runs."""
@@ -366,10 +375,8 @@ async def post_member_from_pack(
 
 
 def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
-    """The pack's plugins on the project, in the background (a clone takes a while; the member works without them
-    until they land)."""
+    """The pack's plugins on the project, in the background (a clone takes a while); a run waits for them to land."""
     import database
-    from services.ai import manager as ai_manager
 
     async def go() -> None:
         async with database.async_session() as session:
@@ -379,7 +386,8 @@ def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
                 "Pack plugins not installed on %s: %s", project_id, out["failed"]
             )
 
-    ai_manager.later(go())
+    # remembered until it ends: a run of the new member waits for it (services/ai/plugins.settled)
+    svc_plugins.installing(project_id, go())
 
 
 @router.get("/ai/members/{member_id}/pack")

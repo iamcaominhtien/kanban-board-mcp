@@ -4,7 +4,7 @@ import { extractError } from '../../api/extractError';
 import { scheduleApi, useScheduleDetail, useScheduleMutation } from '../../api/schedules';
 import type { AiMember } from '../../types/ai';
 import type { CheckResult, ScheduleDetail as Detail, ScheduleRun } from '../../types/schedules';
-import { AiAvatar, SparkleIcon, money } from '../ai/aiUi';
+import { AiAvatar, SparkleIcon, money, useAiBoardState } from '../ai/aiUi';
 import { useToast } from '../Toast';
 import { TicketLine } from './MemberSelect';
 import {
@@ -40,9 +40,9 @@ const FILTERS = [
 
 function Tile({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="sc-tile">
+    <div className="sc-stat">
       <div className="ai-label">{label}</div>
-      <div className="sc-tile-v">{value}</div>
+      <div className="sc-stat-v">{value}</div>
       <div className="ai-hint">{sub}</div>
     </div>
   );
@@ -74,7 +74,18 @@ function ResultLine({ r, reviewer }: { r: CheckResult; reviewer?: string | null 
 }
 
 /** A slot that waits for the runner or for a person: run it on another AI, skip it, or run it now (F). */
-function SlotActions({ run, ais, onDone }: { run: ScheduleRun; ais: AiMember[]; onDone: () => void }) {
+function SlotActions({
+  run,
+  ais,
+  backup,
+  onDone,
+}: {
+  run: ScheduleRun;
+  ais: AiMember[];
+  /** The schedule's backup AI (F: "Use backup AI"), when it has one other than the AI that was due. */
+  backup?: { id: string; name: string } | null;
+  onDone: () => void;
+}) {
   const toast = useToast();
   const [pick, setPick] = useState(false);
   const [member, setMember] = useState('');
@@ -101,6 +112,17 @@ function SlotActions({ run, ais, onDone }: { run: ScheduleRun; ais: AiMember[]; 
       >
         <PlayIcon size={12} /> Run now
       </button>
+      {backup && backup.id !== run.memberId && (
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm"
+          onClick={() => void go('use_member', backup.id)}
+          disabled={act.isPending}
+          data-testid="slot-backup"
+        >
+          Use backup AI · {backup.name}
+        </button>
+      )}
       {pick ? (
         <>
           <select
@@ -181,7 +203,16 @@ function SlotRow({
       </button>
       {open && (
         <div className="sc-slot-body">
-          {waiting && <SlotActions run={run} ais={ais} onDone={() => undefined} />}
+          {waiting && (
+            <SlotActions
+              run={run}
+              ais={ais}
+              backup={
+                detail.backupMemberId ? { id: detail.backupMemberId, name: detail.backupMemberName ?? 'backup' } : null
+              }
+              onDone={() => undefined}
+            />
+          )}
           <div className="sc-slot-cols">
             <div>
               <div className="ai-label ai-label-dark">DONE WHEN</div>
@@ -274,6 +305,7 @@ export function ScheduleDetailLayer({
   const overview = useAiOverview(projectId);
   const ais = (overview.data?.members ?? []).filter(canStart);
   const ticketRuns = useTicketRuns(d?.ticketId);
+  const { openAiTab } = useAiBoardState();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
   const [openIds, setOpenIds] = useState<Set<string> | null>(null);
   const [menu, setMenu] = useState(false);
@@ -291,6 +323,9 @@ export function ScheduleDetailLayer({
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [onClose]);
+
+  // F "Over budget": the banner names the budget and offers to edit it
+  const overBudget = !!d?.problems.some((p) => p.level === 'warn' && p.text.includes('over its budget'));
 
   if (!d) {
     return (
@@ -491,11 +526,23 @@ export function ScheduleDetailLayer({
                   .map((p) => (
                     <div key={`${p.key}-${p.text}`}>{p.text}</div>
                   ))}
+                {overBudget && openAiTab && (
+                  <div className="sc-inline" style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="ai-btn ai-btn-sm"
+                      onClick={() => openAiTab('usage', { memberId: d.memberId })}
+                      data-testid="edit-budget"
+                    >
+                      Edit budget
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          <div className="sc-tiles">
+          <div className="sc-stats">
             <Tile
               label="NEXT RUN"
               value={

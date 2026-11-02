@@ -451,8 +451,50 @@ def test_the_design_guide_reaches_the_agent_and_the_ai_job():
         assert needle in canvas_design.GUIDE, needle
     # the board's own words about ideas are not in a guide every agent reads
     assert "idea" not in canvas_design.GUIDE.lower()
+    # how a design is presented: a document, foundations first, states side by side, restraint for an app
+    for needle in (
+        "## 7. The canvas is a design document",
+        "States side by side",
+        "Foundations first, at full depth",
+        "Card title / 15 / 600 / lh 1.35",
+        "## 2. Direction: character before pixels",
+        "**The signature**",
+        "**Explore before you build.**",
+        "The thumbnail test",
+        "A spec per screen",
+        "`examples/`",
+        # a live run made to open rule-set skills for its palette and type came out a flat, generic design
+        "**Other design skills never set the look.**",
+        "only for a craft this guide does not teach",
+    ):
+        assert needle in canvas_design.GUIDE, needle
+    # how a design stops looking machine-made travels with the skill as craft.md, in the plugin and the repository
+    assert (skill_md.parent / "craft.md").read_text() == canvas_design.CRAFT
+    assert (skill.parent / "craft.md").read_text(
+        encoding="utf-8"
+    ) == canvas_design.CRAFT
+    for needle in (
+        "## The tells, and what to do instead",
+        "## Explore, then build",
+        "## Motion and SVG",
+        "## The critique pass",
+    ):
+        assert needle in canvas_design.CRAFT, needle
+    assert "idea" not in canvas_design.CRAFT.lower()
+    # the exemplar boards the guide points to travel with the skill, in the board's plugin and in the repository
+    names = {p.name for p in canvas_design.examples()}
+    assert names == {"foundations.html", "foundations.png", "states.html", "states.png"}
+    for name in names:
+        assert (skill_md.parent / "examples" / name).read_bytes() == (
+            canvas_design.EXAMPLES / name
+        ).read_bytes()
+        assert (skill.parent / "examples" / name).is_file()
+    assert (
+        "`foundations.png`" in canvas_design.GUIDE
+        and "`states.png`" in canvas_design.GUIDE
+    )
     # a guide, not an essay
-    assert len(canvas_design.GUIDE) < 12_000
+    assert len(canvas_design.GUIDE) < 16_000
 
 
 async def test_an_agent_lays_out_a_flow_with_notes_arrows_labels_and_fit(env, tmp_path):
@@ -523,6 +565,84 @@ async def test_an_agent_lays_out_a_flow_with_notes_arrows_labels_and_fit(env, tm
             path=str(root),
         )
     assert await docs_read(action="canvases", project_id=pid) == before
+
+
+async def test_an_agent_lays_out_a_design_document_on_pages(env, tmp_path):
+    """Foundations, then components, then screens: frame.json names a page tab, canvas.json titles each page."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    tid = await _ticket(c, pid, "Water app")
+    root = tmp_path / "doc"
+    for folder, page in (
+        ("01-foundations", "Foundations"),
+        ("02-cards", "Components"),
+        ("10-today", "Screens · Today"),
+        ("11-today-web", "Screens · Today"),
+    ):
+        (root / folder).mkdir(parents=True)
+        (root / folder / "index.html").write_text(f"<h1>{folder}</h1>")
+        (root / folder / "frame.json").write_text(
+            json.dumps({"page": page, "fit": True})
+        )
+    (root / "canvas.json").write_text(
+        json.dumps(
+            {
+                "labels": [
+                    {"text": "Foundations", "page": "Foundations", "size": 48},
+                    {"text": "Today", "page": "Screens · Today", "size": 48},
+                ],
+                "notes": [{"text": "Rows go left to right", "near": "11-today-web"}],
+                "arrows": [{"from": "10-today", "to": "11-today-web"}],
+            }
+        )
+    )
+    out = await docs_write(
+        action="canvas_create",
+        owner_kind="ticket",
+        owner_id=tid,
+        title="Water app",
+        path=str(root),
+    )
+    assert out["pages"] == ["Foundations", "Components", "Screens · Today"]
+    doc = (await c.get(f"/canvases/{out['id']}")).json()["doc"]
+    # the new canvas's first page takes the first name: no empty "Page 1" left behind
+    assert [p["name"] for p in sorted(doc["pages"], key=lambda p: p["order"])] == out[
+        "pages"
+    ]
+    page_of = {p["name"]: p["id"] for p in doc["pages"]}
+    on = {b["name"]: b["page"] for b in doc["boards"]}
+    assert on == {
+        "foundations": page_of["Foundations"],
+        "cards": page_of["Components"],
+        "today": page_of["Screens · Today"],
+        "today-web": page_of["Screens · Today"],
+    }
+    # each page is laid out on its own: the first frame of every page starts at the left
+    first = {b["page"]: b for b in reversed(doc["boards"])}
+    assert all(b["x"] == 0 for b in first.values())
+    assert {lb["text"]: lb["page"] for lb in doc["labels"]} == {
+        "Foundations": page_of["Foundations"],
+        "Today": page_of["Screens · Today"],
+    }
+    assert (
+        doc["notes"][0]["page"]
+        == doc["arrows"][0]["page"]
+        == page_of["Screens · Today"]
+    )
+    # adding to the canvas reuses a page of the same name and adds the new one
+    more = tmp_path / "more"
+    for folder, page in (
+        ("20-history", "Screens · History"),
+        ("03-banner", "Components"),
+    ):
+        (more / folder).mkdir(parents=True)
+        (more / folder / "index.html").write_text(f"<h1>{folder}</h1>")
+        (more / folder / "frame.json").write_text(json.dumps({"page": page}))
+    await docs_write(action="canvas_create", canvas_id=out["id"], path=str(more))
+    doc = (await c.get(f"/canvases/{out['id']}")).json()["doc"]
+    assert len(doc["pages"]) == 4
+    on = {b["name"]: b["page"] for b in doc["boards"]}
+    assert on["banner"] == page_of["Components"]
 
 
 async def test_a_comment_pins_to_an_element_and_the_rest_is_kept_clean(env, tmp_path):
@@ -680,4 +800,10 @@ async def test_docs_read_design_guide_gives_the_whole_guide():
     from kanban_mcp.operations import design_guide
     from services import canvas_design
 
-    assert (await design_guide())["guide"] == canvas_design.GUIDE
+    got = await design_guide()
+    assert got["guide"] == canvas_design.GUIDE and got["craft"] == canvas_design.CRAFT
+    # an agent outside Claude Code finds the exemplar boards on this machine
+    assert {p.name for p in Path(got["examples"]).iterdir()} >= {
+        "foundations.png",
+        "states.png",
+    }

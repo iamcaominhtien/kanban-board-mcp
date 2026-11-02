@@ -121,10 +121,10 @@ function ScheduleBlock({ s }: { s: Schedule }) {
             : (s.pausedReason ?? 'Paused')}
         </div>
       )}
-      <div className="sc-chips">
+      <div className="sc-pills">
         <CheckChips schedule={s} aiLabel />
         {s.review.on && s.review.reviewerName && (
-          <span className="sc-chip">
+          <span className="sc-pill">
             <ReviewIcon size={12} />
             {s.review.reviewerName}
           </span>
@@ -150,7 +150,10 @@ function ScheduleBlock({ s }: { s: Schedule }) {
 export function ScheduleTicketBlock({ ticket }: { ticket: Ticket }) {
   const q = useScheduleList(ticket.projectId, ticket.id);
   const { viewForTicket } = useSchedules();
-  const items = (q.data?.items ?? []).filter((s) => s.state !== 'ended' || s.lastRun);
+  const all = (q.data?.items ?? []).filter((s) => s.state !== 'ended' || s.lastRun);
+  // A one-off that ran is history: it shows only when nothing else is planned for the ticket (All runs has the rest)
+  const live = all.filter((s) => s.state !== 'ended');
+  const items = live.length ? live : all.slice(0, 1);
   if (!items.length) return null;
   return (
     <div className="ai-root sc-blocks">
@@ -170,7 +173,9 @@ export function ScheduleTicketBlock({ ticket }: { ticket: Ticket }) {
 export function ScheduleCardChip({ ticket }: { ticket: Ticket }) {
   const cards = useScheduleCards(ticket.projectId);
   const { openDetail } = useSchedules();
+  const { members } = useAiBoardState();
   const card = cards.data?.get(ticket.id);
+  const ai = card?.memberId ? members.get(card.memberId) : undefined;
   if (!card) return null;
   const tone = card.state === 'missed' ? 'sc-cc-warn' : card.state === 'paused' ? 'sc-cc-grey' : 'sc-cc-slate';
   return (
@@ -183,13 +188,14 @@ export function ScheduleCardChip({ ticket }: { ticket: Ticket }) {
           openDetail(card.scheduleId);
         }}
         onPointerDown={(e) => e.stopPropagation()}
-        title="Open this schedule"
+        title={card.label}
         data-testid="card-schedule"
         data-state={card.state}
       >
         {card.state === 'paused' ? <PauseIcon size={11} /> : <ClockIcon size={11} />}
-        {card.label}
+        <span className="sc-card-chip-text">{card.label}</span>
       </button>
+      {ai && <AiAvatar provider={ai.provider} size={18} title={ai.name} />}
     </div>
   );
 }

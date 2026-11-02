@@ -187,3 +187,51 @@ async def test_an_ask_run_also_gets_the_folders_mcp_servers_and_the_tools_of_wor
     assert "mcp__ba-graph" in (_flag(asked, "--allowedTools") or "")
     denied = _flag(asked, "--disallowedTools") or ""
     assert "Edit" not in denied  # a question is held like work, not read-only
+
+
+async def _first_step_of_a_bypass_run(env, monkeypatch, web_search):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(env["tmp"] / "args.jsonl"))
+    pid, m = await _setup(c, env)
+    r = await c.put(
+        f"/projects/{pid}/ai/permissions",
+        json={"web_search": web_search},
+        headers=OWNER,
+    )
+    assert r.status_code == 200, r.text
+    r = await _mode(c, m["id"], "bypass", confirm_bypass=PHRASE)
+    assert r.status_code == 200, r.text
+    tid = await _ticket(c, pid)
+    await c.post(f"/tickets/{tid}/ai/run", json={"member_id": m["id"]})
+    run = await _wait(c, tid, ("finished", "failed"))
+    assert run["state"] == "finished", run
+    return next(s["text"] for s in run["steps"] if "Bypass permissions" in s["text"])
+
+
+async def test_a_bypass_run_with_web_search_on_does_not_say_the_web_is_off(
+    env, monkeypatch
+):
+    note = await _first_step_of_a_bypass_run(env, monkeypatch, "on")
+    assert "web off" not in note and "web search on" in note, note
+
+
+async def test_a_bypass_run_with_web_search_off_says_what_the_cli_is_given(
+    env, monkeypatch
+):
+    # Bypass lifts the blanket web denial (the web is open as in a person's own Claude Code), so the note says so
+    # whatever the project's switch is; it is read from the same deny rules the CLI is started with
+    note = await _first_step_of_a_bypass_run(env, monkeypatch, "off")
+    args = _calls(env["tmp"] / "args.jsonl")[-1]
+    assert "WebSearch" not in (_flag(args, "--disallowedTools") or "")
+    assert "web off" not in note and "web search on" in note, note
+
+
+def test_the_bypass_note_follows_the_deny_rules_the_cli_is_given():
+    from services.ai.runs import bypass_web_note
+
+    assert bypass_web_note(["Bash(rm -rf:*)"]) == "web search on, web fetch on"
+    assert (
+        bypass_web_note(["WebSearch", "WebFetch(domain:evil.test)"])
+        == "web search off, web fetch limited"
+    )
+    assert bypass_web_note(["WebFetch"]) == "web search on, web fetch off"

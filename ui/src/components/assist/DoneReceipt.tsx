@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { AssistDraft, DraftChange } from '../../types/assist';
+import { OP_WORDS } from '../ai/board/tierWords';
 import { STATUS_LABEL, TicketPill } from './assistUi';
 
 /** One change an answer made by itself, as the server records it: `{op, ticket, before, after}` and a few more. */
@@ -13,6 +14,40 @@ const trimTrailingStops = (s: string) => {
   return s.slice(0, end);
 };
 const text = (v: unknown) => (v == null || v === '' ? 'nothing' : String(v));
+
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/** A schedule change in a few words: "Mon–Fri at 02:00 (Asia/Ho_Chi_Minh), Claude Code · Backend". */
+function scheduleWords(ch: DraftChange): string {
+  const f = ch.fields ?? {};
+  const bits: string[] = [];
+  if (f.kind === 'once' && f.run_at) bits.push(`once, ${String(f.run_at).replace('T', ' ')}`);
+  else if (Array.isArray(f.days) && f.days.length) {
+    const days = (f.days as number[]).map((d) => DAYS[d] ?? '?');
+    bits.push(`${days.length === 7 ? 'every day' : days.join(', ')}${f.time ? ` at ${String(f.time)}` : ''}`);
+  } else if (f.time) bits.push(`at ${String(f.time)}`);
+  if (f.tz) bits.push(`(${String(f.tz)})`);
+  if (ch.memberName) bits.push(ch.memberName);
+  const review = f.review as { on?: boolean } | undefined;
+  if (review?.on) bits.push('with AI review');
+  return bits.join(' ') || 'settings changed';
+}
+
+/** The fields a schedule edit set, in a few words ("now at 17:30, AI review on"). */
+function changedWords(after: Record<string, unknown>): string {
+  const bits: string[] = [];
+  if (after.time) bits.push(`now at ${String(after.time)}`);
+  if (after.run_at) bits.push(`now on ${String(after.run_at).replace('T', ' ')}`);
+  if (Array.isArray(after.days)) bits.push(`on ${(after.days as number[]).map((d) => DAYS[d] ?? '?').join(', ')}`);
+  if (after.tz) bits.push(`time zone ${String(after.tz)}`);
+  const review = after.review as { on?: boolean } | undefined;
+  if (review) bits.push(review.on ? 'AI review on' : 'AI review off');
+  if (after.checks) bits.push('done-when checks changed');
+  if (after.limits) bits.push('limits changed');
+  if (after.catch_up) bits.push(`if it cannot run: ${String(after.catch_up)}`);
+  if (after.instruction !== undefined) bits.push('instruction changed');
+  return bits.join(', ') || 'settings changed';
+}
 
 /** What happened, in a sentence that follows the ticket key ("moved to In Progress"). */
 export function appliedWords(a: AppliedChange): string {
@@ -51,6 +86,18 @@ export function appliedWords(a: AppliedChange): string {
       return 'given to an AI to run';
     case 'stop_run':
       return 'run stopped';
+    case 'schedule_create':
+      return a.when ? `scheduled: ${text(a.when).replace(/^./, (c) => c.toLowerCase())}` : 'schedule made';
+    case 'schedule_edit':
+      return `schedule changed: ${changedWords((a.after ?? {}) as Record<string, unknown>)}`;
+    case 'schedule_pause':
+      return 'schedule paused';
+    case 'schedule_resume':
+      return 'schedule resumed';
+    case 'schedule_run':
+      return 'schedule run started';
+    case 'schedule_delete':
+      return 'schedule deleted';
     case 'pause_member':
       return 'AI member paused';
     case 'resume_member':
@@ -85,6 +132,27 @@ export function proposedWords(ch: DraftChange): ReactNode | null {
       return (
         <>
           The PM takes <TicketPill id={ch.ticket} />: {ch.text}
+        </>
+      );
+    case 'schedule_create':
+      return (
+        <>
+          New schedule on <TicketPill id={ch.ticket} />: {scheduleWords(ch)}
+        </>
+      );
+    case 'schedule_edit':
+      return (
+        <>
+          Change schedule {String(ch.schedule)}: {scheduleWords(ch)}
+        </>
+      );
+    case 'schedule_pause':
+    case 'schedule_resume':
+    case 'schedule_run':
+    case 'schedule_delete':
+      return (
+        <>
+          {OP_WORDS[ch.op]} {String(ch.schedule)}
         </>
       );
     default:

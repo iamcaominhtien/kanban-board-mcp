@@ -16,6 +16,7 @@ import { useNotificationActions, type NavigateHandler } from './useNotificationA
 import { useNotificationToasts } from './useNotificationToasts';
 import { isTyping } from './useRowKeys';
 import { useTabTitle } from './useTabTitle';
+import { useSchedules } from '../schedules/SchedulesContext';
 
 /** The event any part of the app (a toast's "+N more", a settings link) sends to open a notification surface. */
 export const NOTIFICATIONS_EVENT = 'kanban:notifications';
@@ -107,6 +108,9 @@ export function NotificationsHost({
   props.current = { onOpenTicket, onOpenDoc, onOpenAiTab, onOpenAiMember, onOpenPage, onOpenSettings };
   const assistRef = useRef(assist);
   assistRef.current = assist;
+  const schedules = useSchedules();
+  const schedulesRef = useRef(schedules);
+  schedulesRef.current = schedules;
 
   const openPanel = useCallback((t?: PanelTab) => {
     if (t) setTab(t);
@@ -147,6 +151,13 @@ export function NotificationsHost({
       case 'board_health':
         assistRef.current?.setHealthOpen(true);
         break;
+      case 'reschedule': {
+        // a skipped scheduled run: the schedule's editor, to plan it again
+        const scheduleId = row.data?.schedule_id;
+        if (typeof scheduleId === 'string') schedulesRef.current.openEditor({ scheduleId });
+        else if (ticket) p.onOpenTicket(ticket);
+        break;
+      }
       default:
         // open, reply
         if (row.kind === 'day_card') p.onOpenPage();

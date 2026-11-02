@@ -101,7 +101,22 @@ the answer with ONE fenced block in exactly this form:
   {"op": "create", "title": "a new ticket", "description": "what and why", "parent": "KAN-1 or null",
    "criteria": ["testable criterion"], "workflow": "quick_fix|standard|feature_ui|research|docs|chore or null"}
   {"op": "message", "ticket": "KAN-1", "text": "what to tell the AI working on it now"}
+  {"op": "schedule_create", "ticket": "KAN-1", "member": "<exact AI member name>", "kind": "once|repeat",
+   "run_at": "YYYY-MM-DDTHH:MM (once, in tz)", "days": [0,1,2,3,4], "time": "HH:MM (repeat; Mon=0)",
+   "tz": "<IANA zone, the person's>", "checks": {"criteria": true, "tests": {"on": true, "command": "npm test"},
+   "summary": true, "branch": false, "ai_checks": ["a point the reviewer judges"]},
+   "review": {"on": true, "reviewer": "<another AI member>", "fix_rounds": 2},
+   "limits": {"stop_after_min": 45, "retries": 1}, "catch_up": "run|skip|ask", "instruction": "extra words for the AI"}
+  {"op": "schedule_edit", "schedule": "sch_...", "<any field of schedule_create to change>": "..."}
+  {"op": "schedule_pause", "schedule": "sch_..."}  /  {"op": "schedule_resume", ...}  /  {"op": "schedule_run", ...}
+  {"op": "schedule_delete", "schedule": "sch_..."}  (still put it in the block: the board shows it as a draft and the
+   person presses Apply; do not ask "are you sure?" in words, and do not say it is deleted)
   {"op": "delegate", "ticket": "KAN-1", "text": "what the PM should coordinate on it"}
+Schedules (an AI member works on a ticket at a set time): the schedules of the project are listed in the context with
+their ids (a change you list in the block is made by the board, so say "I set it", never claim a change you did not
+list). A schedule never raises what the AI may do and never moves a ticket past Review; the reviewer must be a
+different AI than the one that works. Use the person's own words for the time and say it back in your answer. Do not
+invent a test command: ask when the person wants "tests" and the project's command is not in the context.
 You manage the AI team for the person (you rank above the PM): to split work, create the pieces (parent = the ticket)
 and put each on a workflow; to steer an AI that is working, message it; hand long coordination of one ticket to the PM
 with delegate.
@@ -231,6 +246,103 @@ def split_actions(text: str) -> tuple[str, dict]:
     return (text or "").strip(), {}
 
 
+SCHEDULE_FIELDS = (
+    "kind",
+    "run_at",
+    "days",
+    "time",
+    "tz",
+    "ends",
+    "ends_after",
+    "ends_on",
+    "window_end",
+    "checks",
+    "review",
+    "limits",
+    "catch_up",
+    "catch_up_hours",
+    "notify",
+    "notify_people",
+    "instruction",
+)
+_SCHEDULE_OPS = (
+    "schedule_create",
+    "schedule_edit",
+    "schedule_pause",
+    "schedule_resume",
+    "schedule_run",
+    "schedule_delete",
+)
+
+
+def _check_schedule_op(
+    ch: dict,
+    tickets_lower: dict[str, str],
+    members: dict[str, str],
+    names: dict[str, str],
+    problems: list[str],
+) -> dict | None:
+    """One schedule change of the Board AI: AI members are named, the rest is the schedule's own fields (the board
+    checks the values themselves when it makes the change, and says what is wrong)."""
+    op = ch.get("op")
+    if op not in _SCHEDULE_OPS:
+        problems.append(f"Unknown change {op!r}")
+        return None
+
+    def member(name: object, what: str) -> str | None:
+        mid = members.get(str(name or "").strip().lower())
+        if not mid:
+            problems.append(f"{what}: no AI member named {name!r}")
+        return mid
+
+    if op != "schedule_create":
+        sid = str(ch.get("schedule") or "").strip()
+        if not sid.startswith("sch_"):
+            problems.append(
+                f"{op}: which schedule? Use its id (sch_...) from the context"
+            )
+            return None
+        if op != "schedule_edit":
+            return {"op": op, "schedule": sid}
+    else:
+        tid = tickets_lower.get(str(ch.get("ticket") or "").strip().lower())
+        if not tid:
+            problems.append(f"Unknown ticket {ch.get('ticket')!r}")
+            return None
+        sid = ""
+    fields: dict = {k: ch[k] for k in SCHEDULE_FIELDS if k in ch}
+    if "member" in ch:
+        mid = member(ch["member"], "schedule")
+        if not mid:
+            return None
+        fields["member_id"] = mid
+    if "backup" in ch:
+        fields["backup_member_id"] = (
+            member(ch["backup"], "backup AI") if ch["backup"] else ""
+        )
+    review = fields.get("review")
+    if isinstance(review, dict) and review.get("reviewer"):
+        rid = member(review["reviewer"], "reviewer")
+        if not rid:
+            return None
+        review = {k: v for k, v in review.items() if k != "reviewer"}
+        fields["review"] = {**review, "reviewer_id": rid}
+    if op == "schedule_create":
+        if "member_id" not in fields:
+            problems.append("schedule_create: which AI member works on it?")
+            return None
+        return {
+            "op": op,
+            "ticket": tid,
+            "fields": fields,
+            "member_name": names.get(fields["member_id"], ch.get("member")),
+        }
+    if not fields:
+        problems.append("schedule_edit: what should change?")
+        return None
+    return {"op": op, "schedule": sid, "fields": fields}
+
+
 def check_changes(
     raw: list, tickets: dict[str, dict], members: dict[str, str]
 ) -> tuple[list[dict], list[str]]:
@@ -287,6 +399,11 @@ def check_changes(
                     "workflow": str(ch.get("workflow") or "").strip().lower() or None,
                 }
             )
+            continue
+        if isinstance(op, str) and op.startswith("schedule_"):
+            checked = _check_schedule_op(ch, by_lower, members, names, problems)
+            if checked:
+                out.append(checked)
             continue
         tid = by_lower.get(str(ch.get("ticket") or "").strip().lower())
         if not tid:

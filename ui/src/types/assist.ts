@@ -196,6 +196,10 @@ export interface DraftChange {
   impact?: 'low' | 'medium' | 'high';
   fromName?: string | null;
   toName?: string | null;
+  /** The schedule_* kinds: the schedule's id, the fields to set, and the AI member's name. */
+  schedule?: string;
+  fields?: Record<string, unknown>;
+  memberName?: string;
 }
 
 export interface SimilarTicket {

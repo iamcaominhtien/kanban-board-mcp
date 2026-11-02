@@ -5,6 +5,7 @@ import type { Plugin, PluginAction, PluginChanges, UpdateCheck } from '../../../
 import { ago, Toggle, useAiBoardState } from '../aiUi';
 import { ROLES, applyFilter, buildRows, countOf, mb, roleName, type Filter, type Row } from './pluginLogic';
 import type { SkillUsage } from '../../../types/aiPlugins';
+import { BoardSkillsCard } from './BoardSkillsCard';
 
 export const TAKES_EFFECT = 'Every change takes effect from the next run.';
 
@@ -237,6 +238,7 @@ export function InstalledTab({
   const shown = applyFilter(rows, filter);
   return (
     <div style={{ display: 'grid', gap: 10 }} data-testid="installed-tab">
+      <BoardSkillsCard projectId={projectId} />
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} role="group" aria-label="Filter">
         {FILTERS.map((f) => (
           <button

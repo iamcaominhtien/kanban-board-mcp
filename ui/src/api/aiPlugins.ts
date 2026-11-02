@@ -83,6 +83,21 @@ export function useOwnPlugins(projectId: string) {
   });
 }
 
+/** One of the board's own skills (the design guide, permissions, the shared skills for every role). */
+export interface BoardSkill {
+  name: string;
+  description: string;
+}
+
+/** The board's own skills; whether each is on lives in the project's ops (`boardSkills`). */
+export function useBoardSkills() {
+  return useQuery({
+    queryKey: ['ai', 'board-skills'] as const,
+    queryFn: async () => (await client.get<BoardSkill[]>('/ai/board-skills')).data,
+    staleTime: 5 * 60_000,
+  });
+}
+
 /** The "Suggested for a role" catalogue. */
 export function useCatalogue() {
   return useQuery({ queryKey: pluginKeys.catalogue, queryFn: aiPluginsApi.catalogue, staleTime: 5 * 60_000 });

@@ -1,0 +1,79 @@
+/* Giọt's own look: the app's water blue on a deep-water ink, a cool paper, one red for the problem. Be Vietnam Pro,
+   made for Vietnamese. Each slide places its parts itself: the deck has few slides and each one is composed. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: #6d7680; }
+body { font-family: "Be Vietnam Pro", "Segoe UI", Calibri, sans-serif; color: #0B2233; }
+aside.notes { display: none; }
+section.slide { width: 1280px; height: 720px; position: relative; overflow: hidden; margin: 0 auto 24px;
+  background: #F7FAFC; font-feature-settings: "lnum", "tnum"; }
+h1, h2 { font-weight: 800; letter-spacing: -0.025em; line-height: 1.04; text-wrap: balance; }
+h2 { position: absolute; left: 88px; top: 64px; width: 1000px; font-size: 44px; }
+.sub { position: absolute; left: 88px; top: 124px; width: 900px; font-size: 18px; color: #5B6B78; }
+.eyebrow { font-size: 15px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #2F7FD0; }
+.big { font-size: 112px; font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; color: #2F7FD0; }
+.big.problem { color: #E4572E; }
+.cap { margin-top: 10px; font-size: 18px; color: #5B6B78; }
+.side p { margin-top: 26px; font-size: 19px; line-height: 1.45; }
+.side p + p { margin-top: 14px; }
+.footer { position: absolute; left: 88px; right: 88px; bottom: 28px; display: flex; justify-content: space-between;
+  font-size: 13px; color: #8597A5; letter-spacing: 0.04em; }
+
+/* 1. Cover: deep water, the drop a third full (recorded from assets/wave.html) */
+section.slide.cover { background: #0B2233; color: #F7FAFC; }  /* solid: the video's own ground is this ink */
+.cover .brand { position: absolute; left: 88px; top: 64px; font-size: 34px; font-weight: 800; letter-spacing: -0.04em; color: #8EC3F0; }
+.cover .eyebrow { position: absolute; left: 88px; top: 210px; color: #8EC3F0; }
+.cover h1 { position: absolute; left: 88px; top: 250px; width: 640px; font-size: 64px; }
+.cover .lede { position: absolute; left: 88px; top: 560px; width: 620px; font-size: 21px; line-height: 1.45; color: #A9C1D3; }
+.cover video { position: absolute; right: 120px; top: 100px; width: 400px; height: 520px; }
+
+/* 2. The month as 31 drops */
+.cal { position: absolute; left: 76px; top: 176px; display: grid; grid-template-columns: repeat(7, 96px); column-gap: 8px; row-gap: 2px; }
+.cal .wd { text-align: center; font-size: 14px; font-weight: 700; letter-spacing: 0.08em; color: #8597A5; padding-bottom: 4px; }
+.cal .wd.we { color: #E4572E; }
+.cal .day { height: 84px; position: relative; display: flex; align-items: center; gap: 2px; }
+.cal .day svg { width: 46px; height: 58px; flex: none; }
+.cal .day .d { position: absolute; left: 50px; top: 18px; font-size: 13px; color: #8597A5; }
+.cal .day .ml { position: absolute; left: 50px; top: 36px; font-size: 15px; font-weight: 600; color: #5B6B78; }
+.cal .day.met .ml { color: #0B2233; font-weight: 800; }
+.month .side { position: absolute; left: 860px; top: 214px; width: 330px; }
+
+/* 3. The week: a native chart */
+.week .chart { position: absolute; left: 76px; top: 180px; width: 740px; height: 470px; }
+.week .side { position: absolute; left: 880px; top: 230px; width: 310px; }
+
+/* 4. The day as a clock */
+.clock .dial { position: absolute; left: 110px; top: 146px; }
+.clock .centre { position: absolute; left: 280px; top: 366px; width: 220px; text-align: center; }
+.clock .centre .big { font-size: 68px; }
+.clock .centre .cap { font-size: 15px; margin-top: 4px; }
+.clock .side { position: absolute; left: 760px; top: 290px; width: 420px; }
+.clock .side p { font-size: 22px; }
+.clock .side b { color: #2F7FD0; }
+
+/* 5. A found photo beside the proposal */
+.photo .pic { position: absolute; left: 0; top: 0; width: 600px; height: 720px; object-fit: cover; }
+.photo .eyebrow { position: absolute; left: 680px; top: 150px; }
+.photo h2 { left: 680px; top: 190px; width: 520px; }
+.photo .body { position: absolute; left: 680px; top: 300px; width: 500px; font-size: 21px; line-height: 1.5; color: #3E4F5C; }
+
+/* 6. How the reminder decides: a diagram in HTML (its words stay editable) */
+.flow .steps { position: absolute; left: 88px; top: 250px; width: 1104px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 52px; }
+.flow .node { border-top: 4px solid #0B2233; padding-top: 18px; height: 170px; }
+.flow .node.ask { border-top-color: #2F7FD0; }
+.flow .node.act { border-top-color: #2F7FD0; background: #DCEBF7; padding: 18px 20px 0; }
+.flow .when { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #2F7FD0; }
+.flow .what { margin-top: 10px; font-size: 27px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+.flow .arrows { position: absolute; left: 88px; top: 330px; }
+.flow .no { position: absolute; left: 456px; top: 470px; width: 340px; font-size: 18px; color: #5B6B78; border-left: 2px solid #C9D9E6; padding-left: 16px; }
+.flow .no b { display: block; color: #0B2233; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+
+/* 7. The plan */
+.plan .eyebrow { position: absolute; left: 88px; top: 64px; }
+.plan h2 { top: 98px; }
+.plan .cols { position: absolute; left: 88px; top: 270px; width: 1104px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+.plan .col { border-top: 4px solid #2F7FD0; padding-top: 20px; }
+.plan h3 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+.plan .col p { margin-top: 8px; font-size: 20px; color: #5B6B78; }
+.plan .k { margin-top: 26px; font-size: 17px; color: #5B6B78; }
+.plan .k b { display: block; font-size: 60px; font-weight: 800; letter-spacing: -0.03em; color: #0B2233; line-height: 1; margin-bottom: 6px; }
+.plan .foot { position: absolute; left: 88px; top: 610px; width: 1000px; font-size: 16px; color: #5B6B78; }

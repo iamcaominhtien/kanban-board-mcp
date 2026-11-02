@@ -354,6 +354,9 @@ def test_opencode_bypass_allows_everything_except_the_deny_rules():
     assert ask["edit"] == "deny" and ask["bash"]["*"] == "deny"
     launch = adapters.for_provider("opencode").launch(_spec(bypass=True))
     assert launch.notes[0].startswith("Bypass permissions")
+    # the note says what the config it writes does with the web
+    assert launch.notes[0].endswith("(web fetch off)")
+    assert "web off" not in launch.notes[0]
 
 
 def test_every_run_says_what_was_and_was_not_applied():

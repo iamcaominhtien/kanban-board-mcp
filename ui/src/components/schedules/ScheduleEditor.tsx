@@ -11,6 +11,7 @@ import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
 import { currentPerson } from '../assist/assistUi';
 import { CheckLine, MemberSelect, TicketPicker } from './MemberSelect';
+import { SCHEDULE_TEMPLATES } from './scheduleTemplates';
 import {
   BranchIcon,
   CalendarIcon,
@@ -22,6 +23,7 @@ import {
   FlaskIcon,
   PlusIcon,
   TargetIcon,
+  TimeField,
   canStart,
   zoneLabel,
 } from './schedulesUi';
@@ -394,6 +396,24 @@ function EditorForm({
 
         <div className="sc-editor-body">
           <div className="sc-form">
+            {!saved && (
+              <div className="sc-templates" data-testid="templates">
+                <span className="sc-templates-label">START FROM</span>
+                {SCHEDULE_TEMPLATES.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="sc-template"
+                    title={t.hint}
+                    onClick={() => set(t.patch)}
+                    data-testid={`template-${t.id}`}
+                  >
+                    {t.label}
+                    <span>{t.hint}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <Section title="Task" sub="What the AI works on." id="sec-task">
               <TicketPicker
                 tickets={tickets}
@@ -439,12 +459,12 @@ function EditorForm({
                   <Field label="AT">
                     <div className="sc-input-icon">
                       <ClockIcon size={14} />
-                      <input
-                        type="time"
-                        className="ai-input"
+                      <TimeField
                         value={draft.time}
-                        onChange={(e) => set({ time: e.target.value })}
-                        data-testid="time"
+                        onChange={(time) => set({ time })}
+                        testId="time"
+                        label="Time of day"
+                        width={140}
                       />
                     </div>
                   </Field>
@@ -523,13 +543,12 @@ function EditorForm({
                   <div className="sc-inline">
                     <span className="sc-win">{draft.kind === 'repeat' ? draft.time : draft.runAt.slice(11, 16)}</span>
                     <span className="ai-muted">to</span>
-                    <input
-                      type="time"
-                      className="ai-input"
-                      style={{ width: 110 }}
+                    <TimeField
                       value={draft.windowEnd}
-                      onChange={(e) => set({ windowEnd: e.target.value })}
-                      data-testid="window-end"
+                      onChange={(windowEnd) => set({ windowEnd })}
+                      testId="window-end"
+                      label="Allowed window ends at"
+                      allowEmpty
                     />
                     {draft.windowEnd && (
                       <button type="button" className="ai-link" onClick={() => set({ windowEnd: '' })}>

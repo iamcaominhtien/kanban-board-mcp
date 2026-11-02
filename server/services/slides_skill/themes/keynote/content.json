@@ -1,0 +1,155 @@
+{
+ "key": "keynote",
+ "label": "Keynote · Ra mắt sản phẩm",
+ "lang": "vi",
+ "for": "Sự kiện ra mắt, giới thiệu sản phẩm với báo chí và đại lý, demo day: một ý mỗi slide, chữ to, sản phẩm là nhân vật chính.",
+ "fonts": {
+  "display": "Manrope",
+  "body": "Manrope",
+  "office_display": "Segoe UI",
+  "office_body": "Segoe UI"
+ },
+ "deck": "Lumi S1 · Ra mắt 2026",
+ "cover": {
+  "eyebrow": "Lumi · Ra mắt 18/11/2026",
+  "title": "Ánh sáng biết bạn đang đọc",
+  "lede": "Lumi S1, đèn bàn tự đổi độ sáng và màu theo trang sách, màn hình và giờ trong ngày.",
+  "art": "<svg width='560' height='720' viewBox='0 0 560 720'><defs><radialGradient id='glow' cx='0.42' cy='0.66' r='0.5'><stop offset='0' stop-color='#FFB547' stop-opacity='.55'/><stop offset='1' stop-color='#FFB547' stop-opacity='0'/></radialGradient></defs><rect width='560' height='720' fill='url(#glow)'/><g fill='none' stroke-linecap='round'><path d='M150 640 h200' stroke='#3A3A3D' stroke-width='16'/><path d='M250 640 V330' stroke='#E8E6E1' stroke-width='12'/><path d='M250 330 L380 230' stroke='#E8E6E1' stroke-width='12'/></g><g transform='translate(380 230) rotate(28)'><rect x='-30' y='-14' width='170' height='28' rx='14' fill='#E8E6E1'/><rect x='-22' y='10' width='154' height='8' rx='4' fill='#FFB547'/></g><path d='M360 260 L250 560 L470 560 Z' fill='#FFB547' opacity='.14'/><circle cx='250' cy='330' r='14' fill='#0B0B0C' stroke='#E8E6E1' stroke-width='6'/></svg>"
+ },
+ "agenda": {
+  "title": "Hôm nay, ba điều",
+  "items": [
+   [
+    "Vì sao một chiếc đèn",
+    "Mắt mỏi không vì đọc nhiều, mà vì ánh sáng sai"
+   ],
+   [
+    "Lumi S1 làm gì",
+    "Cảm biến, tự chỉnh, im lặng"
+   ],
+   [
+    "Hai phiên bản",
+    "S1 và S1 Pro"
+   ],
+   [
+    "Giá và ngày bán",
+    "Đặt trước từ hôm nay"
+   ]
+  ]
+ },
+ "number": {
+  "num": "37%",
+  "title": "mắt bớt mỏi sau 2 giờ đọc, so với đèn bàn thường",
+  "lede": "Thử trên 120 sinh viên tại Đại học Hòa An, tháng 8/2026, theo thang đo mỏi mắt CVS-Q.",
+  "art": "<svg width='460' height='720' viewBox='0 0 460 720'><g transform='translate(230 330)' fill='none'><ellipse rx='150' ry='80' stroke='#3A3A3D' stroke-width='6'/><circle r='56' stroke='#E8E6E1' stroke-width='6'/><circle r='22' fill='#FFB547'/><path d='M-150 -120 L-110 -86 M0 -150 V-110 M150 -120 L110 -86' stroke='#FFB547' stroke-width='6' stroke-linecap='round'/></g></svg>"
+ },
+ "chart": {
+  "title": "Sau 2 giờ đọc, mắt dưới Lumi mỏi ít hơn hẳn",
+  "lede": "Điểm mỏi mắt CVS-Q sau 120 phút đọc, thấp hơn là tốt hơn; trung bình của 120 người.",
+  "chart": {
+   "type": "hbar",
+   "categories": [
+    "Lumi S1",
+    "Đèn bàn thường"
+   ],
+   "series": {
+    "Điểm": [
+     5.9,
+     9.4
+    ]
+   },
+   "colors": [
+    "FFB547",
+    "4A4946"
+   ],
+   "labels": [
+    "5,9",
+    "9,4"
+   ],
+   "size": 20,
+   "muted": "9A9893",
+   "gap": 45,
+   "label_color": "F5F2EA"
+  },
+  "num": "−3,5",
+  "cap": "điểm mỏi mắt sau 2 giờ",
+  "text": "Cùng 120 người, cùng một cuốn sách, hai buổi đọc cách nhau một tuần."
+ },
+ "split": {
+  "eyebrow": "Bên trong",
+  "title": "Một cảm biến nhìn trang sách, không nhìn bạn",
+  "body": [
+   "Cảm biến phổ màu đo ánh sáng phản chiếu từ trang giấy hoặc màn hình, 10 lần mỗi giây.",
+   "Không camera, không micro, không cần ứng dụng để dùng."
+  ],
+  "art": "<svg width='620' height='720' viewBox='0 0 620 720'><rect width='620' height='720' fill='#141415'/><g transform='translate(110 140)'><rect x='0' y='0' width='400' height='120' rx='60' fill='#E8E6E1'/><circle cx='300' cy='60' r='34' fill='#0B0B0C'/><circle cx='300' cy='60' r='14' fill='#FFB547'/><rect x='40' y='112' width='320' height='10' rx='5' fill='#FFB547'/><path d='M300 130 L180 470 L420 470 Z' fill='#FFB547' opacity='.12'/><g stroke='#FFB547' stroke-width='3' stroke-dasharray='6 8'><path d='M300 96 L240 460'/><path d='M300 96 L360 460'/></g><rect x='120' y='460' width='300' height='16' rx='3' fill='#F4F2EE'/><rect x='120' y='476' width='300' height='6' fill='#9A9893'/><text x='0' y='520' font-family='Manrope' font-size='18' font-weight='700' fill='#9A9893'>10 lần đo mỗi giây · 0 camera</text></g></svg>"
+ },
+ "compare": {
+  "title": "Hai phiên bản, cùng một ánh sáng",
+  "cols": [
+   {
+    "tag": "Lumi S1",
+    "h": "Cho bàn học",
+    "p": "Cảm biến trang sách, 3 chế độ, cắm điện.",
+    "k": "1.490.000 ₫",
+    "kl": "giá bán lẻ"
+   },
+   {
+    "tag": "Lumi S1 Pro",
+    "h": "Cho bàn làm việc",
+    "p": "Thêm cảm biến màn hình, pin 18 giờ, sạc USB-C, nhôm nguyên khối.",
+    "k": "2.290.000 ₫",
+    "kl": "giá bán lẻ",
+    "pick": true
+   }
+  ]
+ },
+ "steps": {
+  "title": "Từ hôm nay đến bàn của bạn",
+  "steps": [
+   {
+    "when": "18/11",
+    "h": "Đặt trước",
+    "p": "Trên lumi.vn, giảm 20% cho 5.000 đơn đầu."
+   },
+   {
+    "when": "02/12",
+    "h": "Trải nghiệm tại cửa hàng",
+    "p": "12 cửa hàng sách ở Hà Nội và TP.HCM."
+   },
+   {
+    "when": "09/12",
+    "h": "Giao hàng đợt đầu",
+    "p": "Miễn phí giao toàn quốc."
+   },
+   {
+    "when": "Quý 1/2027",
+    "h": "Lên kệ đại lý",
+    "p": "Siêu thị điện máy và nhà sách lớn."
+   }
+  ]
+ },
+ "quote": {
+  "text": "Lần đầu tôi quên mất mình đang ngồi dưới một cái đèn.",
+  "who": "Hoàng Nam",
+  "role": "Biên tập viên công nghệ, dùng thử 4 tuần"
+ },
+ "closing": {
+  "eyebrow": "Đặt trước từ hôm nay",
+  "title": "Lumi S1. Từ 1.490.000 ₫.",
+  "asks": [
+   [
+    "Đặt trước",
+    "lumi.vn, giảm 20% cho 5.000 đơn đầu."
+   ],
+   [
+    "Dùng thử",
+    "12 cửa hàng sách từ 02/12."
+   ],
+   [
+    "Báo chí",
+    "press@lumi.vn · ảnh và mẫu thử."
+   ]
+  ]
+ }
+}
