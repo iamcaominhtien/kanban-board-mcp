@@ -71,7 +71,11 @@ test('a link opened in a new window goes to the browser, never to a second app w
 test('the window may frame the public draw.io editor, and nothing else on the internet', () => {
   const frameSrc = read('main.js').match(/frame-src ([^;]*);/);
   assert.ok(frameSrc, 'the policy has a frame-src');
-  const sources = frameSrc[1].split(/\s+/);
-  assert.ok(sources.includes('https://embed.diagrams.net'));
-  assert.ok(!sources.includes('https:') && !sources.includes('*'));
+  // the exact list of sources, compared whole (not as substrings)
+  assert.deepEqual(frameSrc[1].trim().split(/\s+/), [
+    "'self'",
+    'http://127.0.0.1:*',
+    'http://localhost:*',
+    'https://embed.diagrams.net',
+  ]);
 });
