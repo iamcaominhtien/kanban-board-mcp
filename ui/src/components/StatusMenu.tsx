@@ -8,13 +8,14 @@ export interface StatusOption {
   dotColor: string;
 }
 
+/** Dot colours are the board's column accents, so one status is one colour everywhere (comp-1 SM-1). */
 export const STATUS_OPTIONS: StatusOption[] = [
-  { status: 'backlog', label: 'Backlog', dotColor: '#C7D2CB' },
-  { status: 'todo', label: 'To Do', dotColor: '#9AA8A0' },
-  { status: 'in-progress', label: 'In Progress', dotColor: '#2F6FB0' },
+  { status: 'backlog', label: 'Backlog', dotColor: '#9AA8A0' },
+  { status: 'todo', label: 'To Do', dotColor: '#2F6FB0' },
+  { status: 'in-progress', label: 'In Progress', dotColor: '#E2793D' },
   { status: 'review', label: 'Review', dotColor: '#6D5DD3' },
   { status: 'testing', label: 'Testing', dotColor: '#B4571F' },
-  { status: 'done', label: 'Done', dotColor: '#2E6F40' },
+  { status: 'done', label: 'Done', dotColor: '#68BA7F' },
   // divider before wont_do
   { status: 'wont_do', label: "Won't Do", dotColor: '#C4432A' },
 ];

@@ -18,6 +18,7 @@ import { DocsEditor, type DocsEditorHandle, type EditorMode } from './editor/Doc
 import { EditorErrorBoundary } from './editor/EditorErrorBoundary';
 import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorReplace';
 import { Icon } from './Icon';
+import { LineIcon } from '../ui/LineIcon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
 import { PublishDialog } from './PublishDialog';
 import { lineDiffCounts } from '../../utils/lineDiff';
@@ -528,6 +529,7 @@ export function DocsEditScreen({
                   gap: 6,
                 }}
               >
+                <LineIcon name={m === 'visual' ? 'eye' : 'page'} size={14} />
                 {m === 'visual' ? 'Visual' : 'Markdown'}
               </button>
             ))}
@@ -537,6 +539,7 @@ export function DocsEditScreen({
             className="st-btn st-btn-sm"
             aria-pressed={cc.open}
             data-testid="comments-button"
+            title={`${commentsData?.counts.all ?? 0} inline · ${commentsData?.counts.page ?? 0} on the page`}
             onClick={() => cc.setOpen((v) => !v)}
           >
             <Icon name="comment" size={13} strokeWidth={1.9} />

@@ -66,6 +66,8 @@ interface BoardProps {
   members?: Member[];
   activeAssignee?: string | 'all';
   onAssigneeChange?: (id: string | 'all') => void;
+  /** Lane count changes shown beside the count pill for a few seconds (a reopen: +1 / −1 was N). */
+  countDeltas?: Partial<Record<Status, number>>;
   /** 'projects': project list still loading (placeholders); 'tickets': real shell, skeleton cards. */
   loadState?: 'projects' | 'tickets';
   /** Replaces the lanes (e.g. the "couldn't load" panel). */
@@ -147,6 +149,7 @@ export function Board({
   activeAssignee = 'all',
   onAssigneeChange,
   loadState,
+  countDeltas,
   lanesOverride,
   statusSlot,
   boardNotice,
@@ -427,7 +430,7 @@ export function Board({
         {topBanner}
 
         <div
-          {...(loadState === 'projects'
+          {...(loadState === 'projects' || loadState === 'tickets'
             ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } }
             : {})}
         >
@@ -568,6 +571,7 @@ export function Board({
                   onResume={onResume}
                   onDelete={onDelete}
                   dragKind={dragKind}
+                  countDelta={countDeltas?.[col.id as Status]}
                 />
               );
             })}

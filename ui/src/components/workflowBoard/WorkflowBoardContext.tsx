@@ -30,12 +30,15 @@ export function WorkflowCardChip({ ticketId }: { ticketId: string }) {
   if (!row || !row.step) return null;
   const chip = roleChip(row.role);
   const waits = row.waitsForPerson;
+  // An AI step whose role has no member on the project cannot start: show it as blocked (design TP-12)
+  const blocked = !waits && (row.state === 'blocked' || (row.stepKind === 'ai' && !!row.role && !row.holderId));
   const title = [
     row.templateName,
     row.step,
     row.role ? roleName(row.role) : null,
     row.holderName ? `held by ${row.holderName}` : null,
     waits ? 'waits for you' : null,
+    blocked ? 'blocked: no member holds this role' : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -51,9 +54,9 @@ export function WorkflowCardChip({ ticketId }: { ticketId: string }) {
         maxWidth: '100%',
         padding: '2px 8px 2px 3px',
         borderRadius: 999,
-        border: `1px solid ${waits ? '#F0C77A' : '#E3E8E5'}`,
-        background: waits ? '#FFFAF0' : '#F6FAF7',
-        color: waits ? '#8A4B00' : '#3A4A3E',
+        border: `1px solid ${waits ? '#F0C77A' : blocked ? '#F2C4BA' : '#E3E8E5'}`,
+        background: waits ? '#FFFAF0' : blocked ? '#FBE7E4' : '#F6FAF7',
+        color: waits ? '#8A4B00' : blocked ? '#C4432A' : '#3A4A3E',
         fontSize: 11.5,
         fontWeight: 600,
         minWidth: 0,
@@ -67,7 +70,7 @@ export function WorkflowCardChip({ ticketId }: { ticketId: string }) {
             fontWeight: 700,
             padding: '1px 5px',
             borderRadius: 999,
-            background: waits ? 'rgba(199,119,0,0.18)' : 'rgba(46,111,64,0.14)',
+            background: waits ? 'rgba(199,119,0,0.18)' : blocked ? 'rgba(196,67,42,0.14)' : 'rgba(46,111,64,0.14)',
             flexShrink: 0,
           }}
         >
@@ -76,6 +79,7 @@ export function WorkflowCardChip({ ticketId }: { ticketId: string }) {
       )}
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.step}</span>
       {waits && <span style={{ flexShrink: 0 }}>· waits for you</span>}
+      {blocked && <span style={{ flexShrink: 0 }}>· blocked</span>}
     </div>
   );
 }

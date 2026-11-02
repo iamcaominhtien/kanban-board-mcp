@@ -122,10 +122,7 @@ function WindowCard({
         <AccountBadge cli="claude" label="Claude Code" />
         <div style={{ minWidth: 0 }}>
           <b>{account.email ?? account.name}</b>
-          <div className="acc-hint">
-            {account.key === 'local' ? 'This computer’s own login' : planLine(account)}
-            {account.key === 'local' && account.plan ? ` · ${account.plan}` : ''}
-          </div>
+          <div className="acc-hint">{planLine(account)}</div>
         </div>
       </div>
       <div className="win-bars">

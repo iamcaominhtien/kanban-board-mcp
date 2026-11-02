@@ -35,7 +35,7 @@
 }
 .pr-handle:hover::after,
 .pr-handle:focus-visible::after {
-  background: #2e6f40;
+  background: var(--color-forest);
 }
 .pr-handle:focus-visible {
   outline: none;

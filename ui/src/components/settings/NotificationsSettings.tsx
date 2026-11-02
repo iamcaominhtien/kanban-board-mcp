@@ -36,7 +36,6 @@ const desktopBridge = (): DesktopBridge | undefined =>
 /** What the fourth column says about a kind. */
 const KIND_NOTE: Record<string, string> = {
   run_stopped_memory: 'From Resources',
-  budget: 'Exists today',
   ai_finished: 'Grouped',
   page_published: 'Spaces you follow',
 };

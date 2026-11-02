@@ -131,6 +131,31 @@
 .is-seg-disproved {
   background: #c4432a;
 }
+.is-seg-untested {
+  background: #e3e8e5;
+}
+.is-legend {
+  display: flex;
+  gap: 16px;
+  padding: 10px 4px 0;
+  font-size: 12px;
+  color: var(--color-text-sec);
+}
+.is-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.is-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.is-count-pill-amber {
+  background: #fef6e7;
+  color: #7a5a06;
+}
 .is-readiness-n {
   font-size: 12px;
   color: var(--color-text-sec);

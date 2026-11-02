@@ -20,6 +20,8 @@ interface Props {
   onBroken?: (broken: boolean) => void;
   /** Changes to draw it again. */
   reloadKey?: number;
+  /** The caller draws the "Empty frame" label itself (at screen size, whatever the zoom). */
+  hideEmptyLabel?: boolean;
 }
 
 /**
@@ -45,6 +47,7 @@ export function BoardFrame({
   onLoaded,
   onBroken,
   reloadKey = 0,
+  hideEmptyLabel = false,
 }: Props) {
   const w = Math.max(1, board.w * scale);
   const h = Math.max(1, board.h * scale);
@@ -89,7 +92,7 @@ export function BoardFrame({
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: Math.max(9, 14 * scale), fontWeight: 700 }}>Empty frame</div>
+          {!hideEmptyLabel && <div style={{ fontSize: Math.max(9, 14 * scale), fontWeight: 700 }}>Empty frame</div>}
         </div>
       </div>
     );

@@ -71,7 +71,13 @@ export function AccountRow({
       <div>{account.cliLabel}</div>
       <div>
         <div>{who.primary}</div>
-        {who.secondary && <div className="acc-sub">{who.secondary}</div>}
+        {who.secondary ? (
+          <div className="acc-sub">{who.secondary}</div>
+        ) : account.status === 'signed_in' ? (
+          <div className="acc-sub" data-testid="acc-no-email">
+            email not reported
+          </div>
+        ) : null}
       </div>
       <div>
         <span className="ai-chip" style={{ background: status.bg, color: status.color }}>

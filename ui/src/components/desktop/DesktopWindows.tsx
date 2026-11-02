@@ -61,9 +61,9 @@ function Dialog({ title, hideTitle, subtitle, small, onClose, footer, children }
   );
 }
 
-function CloseButton({ onClose }: { onClose: () => void }) {
+function CloseButton({ onClose, primary }: { onClose: () => void; primary?: boolean }) {
   return (
-    <button type="button" className={styles.btn} onClick={onClose}>
+    <button type="button" className={`${styles.btn} ${primary ? styles.primary : ''}`} onClick={onClose}>
       Close
     </button>
   );
@@ -126,6 +126,14 @@ export function KeyboardShortcutsWindow({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** "2026-11-02" as "2 Nov 2026"; any other text stays as it is. */
+function releasedOn(date: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return date;
+  const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m[2]) - 1];
+  return mon ? `${Number(m[3])} ${mon} ${m[1]}` : date;
+}
+
 /** Help › What's New: the release notes of the version that is running, from CHANGELOG.md. */
 export function WhatsNewWindow({ onClose }: { onClose: () => void }) {
   const info = useAppInfo();
@@ -142,14 +150,15 @@ export function WhatsNewWindow({ onClose }: { onClose: () => void }) {
   return (
     <Dialog
       title={info ? `What’s new in ${info.version}` : 'What’s new'}
-      subtitle={notes?.date ? `Released ${notes.date}` : undefined}
+      subtitle={notes?.date ? `Released ${releasedOn(notes.date)}` : undefined}
       onClose={onClose}
       footer={
         <>
           <button type="button" className={styles.btn} onClick={open}>
+            <LineIcon name="external" size={13} />
             Full changelog
           </button>
-          <CloseButton onClose={onClose} />
+          <CloseButton onClose={onClose} primary />
         </>
       }
     >

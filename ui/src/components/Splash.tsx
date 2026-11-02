@@ -318,6 +318,9 @@ export function Splash({ status, errorMessage, onRetryBackend }: SplashProps) {
           )}
         </div>
       )}
+      {(view === 'unreachable' || view === 'failed') && (
+        <div className={styles.footer}>Work offline is not available yet.</div>
+      )}
     </div>,
     altEl,
   );

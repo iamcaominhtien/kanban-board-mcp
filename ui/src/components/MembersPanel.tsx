@@ -1,4 +1,5 @@
 import { displayStatus } from '../utils/memberAccount';
+import { MenuSelect } from './ui/MenuSelect';
 import { extractError } from '../api/extractError';
 import { useState } from 'react';
 import type { AxiosError } from 'axios';
@@ -179,7 +180,7 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                 </div>
                 <button
                   type="button"
-                  className="ai-btn ai-btn-sm"
+                  className="ai-link"
                   onClick={() => setPicker(true)}
                   data-testid="members-board-ai-change"
                 >
@@ -216,34 +217,25 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                 <ConnectionChip connection={m.connection} />
               </button>
             ))}
-            {aiMembers.length > 4 && (
-              <button
-                type="button"
-                className="ai-link"
-                style={{ alignSelf: 'flex-start' }}
-                onClick={() => onOpenAiPage?.()}
-                data-testid="members-more"
-              >
-                +{aiMembers.length - 4} more
-              </button>
-            )}
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm"
-                onClick={() => onOpenAiPage?.()}
-                data-testid="open-ai-page"
-              >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+              {aiMembers.length > 4 && (
+                <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="members-more">
+                  +{aiMembers.length - 4} more
+                </button>
+              )}
+              <span style={{ flex: 1 }} />
+              <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="open-ai-page">
                 Open AI members page →
               </button>
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm ai-btn-primary"
-                onClick={() => onOpenAiPage?.({ add: true })}
-              >
-                + Add AI member
-              </button>
             </div>
+            <button
+              type="button"
+              className="ai-btn ai-btn-primary"
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => onOpenAiPage?.({ add: true })}
+            >
+              + Add AI member
+            </button>
           </div>
         )}
 
@@ -262,32 +254,30 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
             {members.map((m, idx) => (
               <div key={m.id}>
                 <div className={styles.memberRow}>
-                  <div className={styles.avatar} style={{ background: m.color || '#2E6F40' }}>
+                  <div
+                    className={styles.avatar}
+                    style={{
+                      background: `${m.color || '#2E6F40'}22`,
+                      color: m.color || '#2E6F40',
+                      border: `1.5px solid ${m.color || '#2E6F40'}`,
+                    }}
+                  >
                     {memberInitials(m.name)}
                   </div>
                   <span className={styles.memberName}>{m.name}</span>
-                  <select
-                    aria-label={`Docs role of ${m.name}`}
-                    title="Docs comments: viewers read, members comment and resolve, admins can delete any comment"
-                    data-testid={`member-role-${m.name}`}
+                  <MenuSelect<'viewer' | 'member' | 'admin'>
+                    label={`Docs role of ${m.name}`}
+                    testId={`member-role-${m.name}`}
+                    variant="chip"
                     value={m.role ?? 'member'}
-                    onChange={(e) =>
-                      setRole.mutate({ memberId: m.id, role: e.target.value as 'viewer' | 'member' | 'admin' })
-                    }
-                    style={{
-                      font: 'inherit',
-                      fontSize: 12,
-                      border: '1px solid #dce6df',
-                      borderRadius: 6,
-                      padding: '2px 4px',
-                      background: '#fff',
-                      color: '#3a4a3e',
-                    }}
-                  >
-                    <option value="viewer">Viewer</option>
-                    <option value="member">Member</option>
-                    <option value="admin">Admin</option>
-                  </select>
+                    menuWidth={230}
+                    onChange={(role) => setRole.mutate({ memberId: m.id, role })}
+                    options={[
+                      { value: 'viewer', label: 'Viewer', hint: 'Reads docs comments' },
+                      { value: 'member', label: 'Member', hint: 'Comments and resolves' },
+                      { value: 'admin', label: 'Admin', hint: 'Can delete any comment' },
+                    ]}
+                  />
                   <button
                     type="button"
                     className={`${styles.removeBtn} ${removeError?.id === m.id ? styles.removeBtnBlocked : ''}`}

@@ -78,6 +78,13 @@ type Extra = Parameters<RowActionHandler>[2];
 type Fire = (id: string, extra?: Extra) => Promise<boolean>;
 type RowItem = Row['items'][number];
 
+/** Lower-case the first letter of a sentence part, unless it starts an acronym ("AI was resumed"). */
+function lowerFirst(text: string): string {
+  const second = text.charAt(1);
+  if (second && second !== second.toLowerCase()) return text;
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
 function Avatar({ name, small }: Readonly<{ name: string; small?: boolean }>) {
   const c = avatarColors(name);
   return (
@@ -655,7 +662,7 @@ export function NotificationRow({
           <div style={{ marginTop: 6 }}>
             <span className={`${styles.chip} ${styles.chipDone}`}>
               <span className={styles.dotSmall} style={{ background: '#2e6f40' }} />
-              Done — {row.doneText.charAt(0).toLowerCase() + row.doneText.slice(1)}
+              Done — {lowerFirst(row.doneText)}
             </span>
           </div>
         )}

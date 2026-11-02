@@ -362,6 +362,9 @@
     0 8px 20px rgba(27, 58, 107, 0.18);
   outline: none;
 }
+.fs-cl.quiet {
+  opacity: 0.65;
+}
 .fs-cl.faded {
   opacity: 0.45;
 }

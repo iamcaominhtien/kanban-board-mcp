@@ -30,7 +30,7 @@
   box-sizing: border-box;
   transform: translateY(16px);
   transition: transform 0.2s ease;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .panelVisible {

@@ -70,6 +70,7 @@ import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
 import { TicketWorkflow } from './ai/workflow/TicketWorkflow';
+import { useTicketWorkflow } from '../api/aiWorkflow';
 import { TimelineTab } from './aiteam/TimelineTab';
 import { openTimeline } from './aiteam/timelineLink';
 import { TicketSafetyBlocks } from './ai/AiTicketSafety';
@@ -307,6 +308,10 @@ function TicketModalInner({
   const assist = useAssist();
   // The AI chat docked in the ticket page (design/screens/ai-where-you-work.md, B); Ctrl+J opens and closes it
   const { members: aiMembers, settings: aiSettings } = useAiBoardState();
+  // A ticket on a workflow shows its step strip on the ticket itself; one that is not on a workflow keeps the
+  // "put it on a workflow" row in the AI activity view (TP-11). One instance either way.
+  const wfQuery = useTicketWorkflow(ticket?.id ?? '', aiMembers.size > 0);
+  const wfOnTicket = !!wfQuery.data && wfQuery.data.state !== 'detached';
   const [chatOpen, setChatOpen] = useState(false);
   const aiChatAvailable = aiSettings?.aiEnabled !== false && aiMembers.size > 0;
   const toggleChat = useCallback((open?: boolean) => setChatOpen((v) => open ?? !v), []);
@@ -1907,7 +1912,7 @@ function TicketModalInner({
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
                     <TicketAiPanel ticket={ticket} members={members} onOpenRun={() => setActiveTab('ai')} />
-                    <TicketWorkflow ticket={ticket} />
+                    {!wfOnTicket && <TicketWorkflow ticket={ticket} />}
                     <TicketHandover ticket={ticket} />
                     {mainView === 'ai' && ticket.projectId && (
                       <div data-testid="ticket-timeline">
@@ -1978,6 +1983,8 @@ function TicketModalInner({
                             <TagPicker projectTags={projectTags} currentTags={tags} onAdd={handleAddTag} />
                           </div>
                         </div>
+
+                        {wfOnTicket && <TicketWorkflow ticket={ticket} />}
 
                         {/* Description */}
                         <div

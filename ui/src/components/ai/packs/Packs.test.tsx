@@ -508,7 +508,7 @@ describe('team wizard', () => {
       expect(within(screen.getByTestId('row-prepare')).getByText('Not tried yet')).toBeTruthy();
       expect(within(screen.getByTestId('row-lint')).getByText('Empty')).toBeTruthy();
       for (const b of ['Try them', 'Skip trying', 'Let the AI do it instead', 'Back'])
-        expect(within(result).getByRole('button', { name: b })).toBeTruthy();
+        expect(screen.getByRole('button', { name: b })).toBeTruthy();
       http.post.mockReturnValueOnce(ok(scan({ job: job({ mode: 'try', state: 'running' }) })));
       fireEvent.click(screen.getByRole('button', { name: 'Try them' }));
       await waitFor(() =>

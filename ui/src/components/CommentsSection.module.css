@@ -73,7 +73,7 @@
 .authorName {
   font-size: 12.5px;
   font-weight: 600;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .timestamp {
@@ -123,7 +123,7 @@
 }
 
 .actionBtn:hover {
-  color: #1e2a22;
+  color: var(--color-text-pri);
   background: #eef3ef;
 }
 
@@ -153,7 +153,7 @@
 }
 
 .composerBox:focus-within {
-  border-color: #2e6f40;
+  border-color: var(--color-forest);
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.08);
 }
 
@@ -169,7 +169,7 @@
   background: transparent;
   padding: 8px 12px;
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
@@ -186,7 +186,7 @@
   background: transparent;
   padding: 8px 12px;
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   font-family: inherit;
   outline: none;
   resize: vertical;
@@ -211,7 +211,7 @@
 .btnCancel {
   background: none;
   border: none;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -225,7 +225,7 @@
 }
 
 .btnSubmit {
-  background: #2e6f40;
+  background: var(--color-forest);
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -257,10 +257,10 @@
   width: 100%;
   padding: 8px 10px;
   border-radius: 6px;
-  border: 1px solid #2e6f40;
+  border: 1px solid var(--color-forest);
   font-size: 13px;
   font-family: inherit;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   outline: none;
   resize: vertical;
   min-height: 60px;

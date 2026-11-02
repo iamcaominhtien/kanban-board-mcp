@@ -12,7 +12,9 @@ import { useResourcesSnapshot } from '../../api/aiResources';
 import { extractError } from '../../api/extractError';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import type { AiMember } from '../../types/ai';
+import { useProject } from '../../api/projects';
 import { useToast } from '../Toast';
+import { LineIcon } from '../ui/LineIcon';
 import { fitEstimate } from '../aiteam/resourcesFormat';
 import { AiAvatar, fmtElapsed } from './aiUi';
 import { ChipChoice, Pill, RadioRow, SafetyCard, compact, dateTime, usd } from './aiSafetyUi';
@@ -51,6 +53,7 @@ export function UsageView({ projectId, members }: { projectId: string; members: 
     range === 'custom' ? until : undefined,
   );
   const alerts = useBudgetAlerts(projectId);
+  const project = useProject(projectId);
   const [prices, setPrices] = useState(false);
   const [editing, setEditing] = useState<LimitRow | 'board' | null>(null);
   const d = dash.data;
@@ -77,6 +80,7 @@ export function UsageView({ projectId, members }: { projectId: string; members: 
         <div style={{ flex: 1, minWidth: 240 }}>
           <b style={{ fontSize: 16 }}>AI usage</b>
           <div className="ai-muted">
+            {project.data?.name ? `${project.data.name} · ` : ''}
             {niceDate(d.range.since)} – {niceDate(d.range.until)} · resets 00:00 local time
           </div>
         </div>
@@ -104,6 +108,7 @@ export function UsageView({ projectId, members }: { projectId: string; members: 
           href={`${resolveOrigin()}/projects/${projectId}/ai/usage/export?${q.toString()}`}
           data-testid="usage-export"
         >
+          <LineIcon name="download" size={13} />
           Export CSV
         </a>
       </div>

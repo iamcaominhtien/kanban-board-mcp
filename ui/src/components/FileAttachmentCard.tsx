@@ -1,4 +1,6 @@
-import { FileCategoryIcon, cleanDisplayFileName, getFileTypeMeta } from '../utils/fileIcons';
+import { useEffect, useState } from 'react';
+import { FileCategoryIcon, cleanDisplayFileName, formatFileSize, getFileTypeMeta } from '../utils/fileIcons';
+import { resolveOrigin } from '../api/resolveOrigin';
 import { uploadUrl } from '../api/tickets';
 import { galleryAround, previewAttrs, usePreview } from './preview/PreviewContext';
 import { previewKind } from './preview/kinds';
@@ -10,6 +12,33 @@ interface Props {
   fileSize?: number;
 }
 
+const sizeCache = new Map<string, number | null>();
+
+/** The size of a stored file linked from Markdown, asked of the server once (`/upload-info`); null while unknown. */
+function useUploadSize(url: string, known?: number): number | null {
+  const stored = url.includes('/uploads/') ? url.slice(url.indexOf('/uploads/') + '/uploads/'.length) : null;
+  const [size, setSize] = useState<number | null>(known ?? (stored ? (sizeCache.get(stored) ?? null) : null));
+  useEffect(() => {
+    if (known != null || !stored || sizeCache.has(stored)) return;
+    let live = true;
+    (async () => {
+      try {
+        const res = await fetch(`${resolveOrigin()}/upload-info/${stored}`);
+        const body = res.ok ? ((await res.json()) as { size?: number }) : null;
+        const n = typeof body?.size === 'number' ? body.size : null;
+        sizeCache.set(stored, n);
+        if (live) setSize(n);
+      } catch {
+        // size stays unknown; the card still works
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [known, stored]);
+  return known ?? size;
+}
+
 /** Card for an attached file: a real thumbnail for images, a click opens the viewer on it and the files around it. */
 export function FileAttachmentCard({ url, fileName: rawName, fileSize }: Props) {
   const preview = usePreview();
@@ -17,6 +46,7 @@ export function FileAttachmentCard({ url, fileName: rawName, fileSize }: Props) 
   const meta = getFileTypeMeta(displayFileName);
   const downloadHref = uploadUrl(url, displayFileName, true);
   const isImage = previewKind(displayFileName) === 'image';
+  const size = useUploadSize(url, fileSize);
 
   function open(el: HTMLElement) {
     const { items, index } = galleryAround(el);
@@ -51,6 +81,8 @@ export function FileAttachmentCard({ url, fileName: rawName, fileSize }: Props) 
       </span>
 
       <span className={styles.name}>{displayFileName}</span>
+
+      {size ? <span className={styles.size}>{formatFileSize(size)}</span> : null}
 
       <span
         className={styles.badge}

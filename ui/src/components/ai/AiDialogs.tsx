@@ -24,6 +24,14 @@ export function BoardAiPicker({
   const save = useAiMutation((id: string) => aiApi.updateSettings(projectId, { boardAiId: id }));
   const unreachable = (m: AiMember) =>
     ['key_invalid', 'not_logged_in', 'runner_missing'].includes(m.status.code) || m.connection === 'inbox';
+  // Esc closes it like the other dialogs
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
     <div className="ai-overlay" onClick={onClose}>
       <div className="ai-modal" style={{ width: 460 }} onClick={(e) => e.stopPropagation()}>
@@ -36,7 +44,7 @@ export function BoardAiPicker({
             <button
               key={m.id}
               type="button"
-              className={`ai-option ${pick === m.id ? 'ai-option-active' : ''}`}
+              className={`ai-option ${pick === m.id ? 'ai-option-active ai-option-tint' : ''}`}
               disabled={unreachable(m)}
               onClick={() => setPick(m.id)}
             >

@@ -117,17 +117,35 @@ export function matches(query: string, ...texts: (string | null | undefined)[]):
 }
 
 /**
- * The picker's rows (design G, 2): the Stories that run, first; with something typed, any Story that matches; then
- * the recent tickets (the live ones first).
+ * The picker's rows (design G, 2): the Stories that run, first, with the Drafts; with something typed, any Story that
+ * matches; then the recent tickets (the live ones first), and with something typed the tickets in a Story's plan.
  */
 export function pickerRows(query: string, stories: FlowStory[], tickets: PickTicket[], max = 8): PickRow[] {
   const q = query.trim();
   const order = (s: FlowStory) => (s.blocked || s.planWaiting ? 0 : s.state === 'in_progress' ? 1 : 2);
   const st = stories
-    .filter((s) => (q ? matches(q, s.id, s.title) : RUNNING.includes(s.state)))
+    .filter((s) => (q ? matches(q, s.id, s.title) : RUNNING.includes(s.state) || s.state === 'draft'))
     .sort((a, b) => Number(RUNNING.includes(b.state)) - Number(RUNNING.includes(a.state)) || order(a) - order(b))
     .slice(0, max);
-  const tk = tickets
+  // With something typed, the tickets in a Story's plan are found too, not only the recent ones (KAN-20 in KAN-19)
+  const known = new Set(tickets.map((t) => t.id));
+  const inPlans: PickTicket[] = q
+    ? stories.flatMap((s) =>
+        (s.plan?.items ?? [])
+          .filter((i) => !known.has(i.ticketId))
+          .map((i) => ({
+            id: i.ticketId,
+            title: i.title,
+            status: i.status,
+            storyId: s.id,
+            holder: null,
+            step: null,
+            completed: i.status === 'done',
+            live: false,
+          })),
+      )
+    : [];
+  const tk = [...tickets, ...inPlans]
     .filter((t) => matches(q, t.id, t.title))
     .sort((a, b) => Number(b.live) - Number(a.live))
     .slice(0, max);

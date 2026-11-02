@@ -689,6 +689,8 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
   const label = RANGE_LABEL[range];
   const cap = t.dailyCap;
   const capped = data.members.filter((c) => c.state !== 'offline' && capStopOf(c)).length;
+  const working = data.counts.working ?? 0;
+  const queued = data.counts.queued ?? 0;
   return (
     <>
       <div className="at-states">
@@ -713,6 +715,12 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
           </span>
         )}
         <span className="at-hint">{data.members.length} AI members</span>
+        {data.pausedAll && (
+          <span className="at-hint" data-testid="paused-legend">
+            <b style={{ color: '#B4571F' }}>Orange</b>: paused for the whole project.{' '}
+            <b style={{ color: '#5B6B60' }}>Grey</b>: paused on its own (budget, rate limit, or by a person).
+          </span>
+        )}
       </div>
 
       {data.needsYou.length > 0 && (
@@ -729,6 +737,25 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
                 actions={actions}
               />
             ))}
+          </div>
+        </div>
+      )}
+
+      {data.needsYou.length === 0 && (
+        <div id="at-needs-you" data-testid="needs-you-empty">
+          <div className="at-section-head">
+            <b>Needs you · 0</b>
+          </div>
+          <div className="at-hint">
+            Nothing is waiting on you.
+            {working + queued > 0
+              ? ` ${[
+                  working ? `${working} ${working === 1 ? 'AI is' : 'AIs are'} working` : '',
+                  queued ? `${queued} ${queued === 1 ? 'is' : 'are'} queued` : '',
+                ]
+                  .filter(Boolean)
+                  .join(', ')}.`
+              : ''}
           </div>
         </div>
       )}

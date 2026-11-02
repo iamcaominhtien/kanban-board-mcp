@@ -45,7 +45,7 @@
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   background: transparent;
   border: none;
   padding: 6px 14px;
@@ -57,21 +57,20 @@
 }
 
 .viewBtn:hover {
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .viewBtnActive {
   background: #ffffff;
-  color: #1e2a22;
-  font-weight: 700;
+  color: var(--color-text-pri);
+  font-weight: 600;
   box-shadow: 0 1px 3px rgba(30, 42, 34, 0.08);
 }
 
 .title {
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   /* one line, as drawn; a long name ends in … (the full name is in its tooltip) */
   white-space: nowrap;
   overflow: hidden;
@@ -81,7 +80,7 @@
 }
 
 .newButton {
-  background: #2e6f40;
+  background: var(--color-forest);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -140,7 +139,7 @@
 
 .columns {
   display: flex;
-  gap: 12px;
+  gap: 18px;
   position: relative;
   flex: 1;
   min-height: 0;
@@ -162,7 +161,7 @@
 .column {
   flex: 1 1 0;
   /* Never narrower than an equal share of the row, so the dock's room at the end scrolls instead of squeezing cards */
-  min-width: max(200px, calc((100% - (var(--cols, 6) - 1) * 12px) / var(--cols, 6)));
+  min-width: max(176px, calc((100% - (var(--cols, 6) - 1) * 18px) / var(--cols, 6)));
   height: 100%;
   min-height: 0;
   display: flex;
@@ -173,9 +172,8 @@
 }
 
 .columnDragOver {
-  background: #f6faf7;
-  outline: 2px dashed #2e6f40;
-  outline-offset: 4px;
+  /* Only the target slot marks the drop (no column outline): see .dropTargetGhost */
+  background: transparent;
 }
 
 .columnHeaderContainer {
@@ -194,7 +192,7 @@
 }
 
 /* A narrow column drops the word "pending" (the chip keeps its tooltip) so the label never wraps */
-@container (max-width: 235px) {
+@container (max-width: 180px) {
   .pendingWord {
     display: none;
   }
@@ -205,7 +203,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   flex-grow: 1;
   white-space: nowrap;
 }
@@ -219,6 +217,12 @@
   border-radius: 999px;
   min-width: 18px;
   text-align: center;
+}
+
+.countDelta {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .columnBar {
@@ -252,7 +256,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1px dashed #dce6df;
+  border: 1px dashed var(--color-border);
   border-radius: 8px;
   min-height: 120px;
   padding: 24px 16px;
@@ -281,7 +285,7 @@
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  color: #2e6f40;
+  color: var(--color-forest);
   box-sizing: border-box;
 }
 

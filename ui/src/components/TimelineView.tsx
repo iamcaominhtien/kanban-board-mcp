@@ -452,6 +452,9 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                 ticketStart.setDate(ticketStart.getDate() - 1);
               }
 
+              const origStart = ticketStart;
+              const origEnd = ticketEnd;
+
               // If currently resizing this ticket, adjust live date
               if (dragResize && dragResize.ticketId === ticket.id) {
                 if (dragResize.edge === 'start') {
@@ -483,12 +486,29 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                   : styles.ganttBarNormal;
 
               const isDraggingThis = dragResize?.ticketId === ticket.id;
+              // Where the bar started before this drag: drawn as a dashed outline (Timeline 3)
+              const ghostLeft = daysBetween(rangeStart, origStart < rangeStart ? rangeStart : origStart) * DAY_WIDTH;
+              const ghostWidth = Math.max(
+                Math.max(
+                  daysBetween(origStart < rangeStart ? rangeStart : origStart, origEnd > rangeEnd ? rangeEnd : origEnd),
+                  1,
+                ) * DAY_WIDTH,
+                MIN_BAR_PX,
+              );
 
               return (
                 <div key={ticket.id} className={styles.ganttBarRow} style={{ width: chartWidth }}>
+                  {isDraggingThis && (
+                    <span
+                      className={styles.ganttStartGhost}
+                      style={{ left: ghostLeft, width: ghostWidth }}
+                      aria-hidden="true"
+                      data-testid="gantt-start-ghost"
+                    />
+                  )}
                   <button
                     type="button"
-                    className={`${styles.ganttBar} ${barClass}`}
+                    className={`${styles.ganttBar} ${barClass} ${isDraggingThis ? styles.ganttBarDragging : ''}`}
                     style={{
                       left: leftPx,
                       width: widthPx,
@@ -498,7 +518,8 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                     }}
                     title={`${ticket.title}\n${formatShortDate(ticketStart)} → ${formatShortDate(ticketEnd)}`}
                   >
-                    <span className={styles.ganttBarLabel}>{ticket.id}</span>
+                    {/* A marker too narrow for the ID shows no label (the ID is in the tooltip) */}
+                    {widthPx >= 40 && <span className={styles.ganttBarLabel}>{ticket.id}</span>}
 
                     {/* Left Resize Handle */}
                     <div
@@ -656,7 +677,7 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
               const ticket = ticketMap.get(ev.ticketId);
               const category = categorizeEvent(ev.eventType);
               const time = new Date(ev.at).toLocaleTimeString('en-US', {
-                hour: '2-digit',
+                hour: 'numeric',
                 minute: '2-digit',
               });
 

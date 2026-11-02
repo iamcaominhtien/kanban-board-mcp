@@ -725,6 +725,28 @@ export function Composer({
           {!editing && mentioned.length > 0 && (
             <span data-testid="comment-ai-mentioned" className="tw-mentioned">
               <span style={{ color: '#2F6FB0', fontWeight: 700 }}>@</span> {mentioned.length} AI mentioned
+              {/* The picked AI as a purple pill (the box itself is plain text: "@Reviewer") */}
+              {mentioned.map((m) => (
+                <span
+                  key={m.id}
+                  data-testid="comment-ai-pill"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '1px 8px',
+                    borderRadius: 999,
+                    background: '#ECE9FA',
+                    color: '#6D5DD3',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    marginLeft: 2,
+                  }}
+                >
+                  <LineIcon name="sparkle" size={11} />
+                  {m.name}
+                </span>
+              ))}
             </span>
           )}
           {stored.length >= COUNTER_FROM && (
@@ -760,6 +782,7 @@ export function Composer({
               disabled={!canSend}
               onClick={() => send()}
             >
+              {!editing && <LineIcon name="send" size={13} />}
               {editing ? 'Save' : 'Comment'}
             </button>
           </span>

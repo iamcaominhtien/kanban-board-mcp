@@ -178,95 +178,108 @@ export function IdeaList({
   }
 
   return (
-    <table className="is-table" aria-label="Ideas">
-      <thead>
-        <tr>
-          <th>Idea</th>
-          {showProject && <th>Project</th>}
-          <th>Stage</th>
-          <th>Readiness (assumptions)</th>
-          <th>Demand</th>
-          <th>Ticket</th>
-          <th>Updated</th>
-        </tr>
-      </thead>
-      <tbody ref={bodyRef}>
-        {ideas.map((idea) => {
-          const project = idea.projectId ? projectName.get(idea.projectId) : null;
-          return (
-            <tr
-              key={idea.id}
-              className="is-row"
-              tabIndex={0}
-              aria-selected={selectedId === idea.id}
-              onClick={() => onOpen(idea.id)}
-              onFocus={() => onSelect(idea.id)}
-              data-testid={`idea-row-${idea.id}`}
-            >
-              <td>
-                <IdeaCell idea={idea} />
-              </td>
-              {showProject && (
-                <td onClick={(e) => assigning === idea.id && e.stopPropagation()}>
-                  {project ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span className="is-dot" style={{ background: project.color }} /> {project.prefix}
-                    </span>
-                  ) : assigning === idea.id ? (
-                    <ProjectSelect
-                      value={null}
-                      onChange={(id) => {
-                        setAssigning(null);
-                        if (id) setProject.mutate({ id: idea.id, projectId: id });
-                      }}
-                    />
-                  ) : (
+    <>
+      <table className="is-table" aria-label="Ideas">
+        <thead>
+          <tr>
+            <th>Idea</th>
+            {showProject && <th>Project</th>}
+            <th>Stage</th>
+            <th>Readiness (assumptions)</th>
+            <th>Demand</th>
+            <th>Ticket</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody ref={bodyRef}>
+          {ideas.map((idea) => {
+            const project = idea.projectId ? projectName.get(idea.projectId) : null;
+            return (
+              <tr
+                key={idea.id}
+                className="is-row"
+                tabIndex={0}
+                aria-selected={selectedId === idea.id}
+                onClick={() => onOpen(idea.id)}
+                onFocus={() => onSelect(idea.id)}
+                data-testid={`idea-row-${idea.id}`}
+              >
+                <td>
+                  <IdeaCell idea={idea} />
+                </td>
+                {showProject && (
+                  <td onClick={(e) => assigning === idea.id && e.stopPropagation()}>
+                    {project ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title={project.prefix}>
+                        <span className="is-dot" style={{ background: project.color }} /> {project.name}
+                      </span>
+                    ) : assigning === idea.id ? (
+                      <ProjectSelect
+                        value={null}
+                        onChange={(id) => {
+                          setAssigning(null);
+                          if (id) setProject.mutate({ id: idea.id, projectId: id });
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="is-btn is-btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigning(idea.id);
+                        }}
+                      >
+                        Assign
+                      </button>
+                    )}
+                  </td>
+                )}
+                <td>
+                  <StagePill stage={idea.stage} />
+                </td>
+                <td>
+                  <ReadinessBar idea={idea} />
+                </td>
+                <td>
+                  <Demand voters={idea.voters} />
+                </td>
+                <td>
+                  {idea.ticket ? (
                     <button
                       type="button"
-                      className="is-btn is-btn-sm"
+                      className="is-link is-mono"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setAssigning(idea.id);
+                        onOpenTicket(idea.ticket!.id);
                       }}
+                      title={`${idea.ticket.title} · ${idea.ticket.status}`}
                     >
-                      Assign
+                      {idea.ticket.id}
                     </button>
+                  ) : (
+                    <span className="is-muted">—</span>
                   )}
                 </td>
-              )}
-              <td>
-                <StagePill stage={idea.stage} />
-              </td>
-              <td>
-                <ReadinessBar idea={idea} />
-              </td>
-              <td>
-                <Demand voters={idea.voters} />
-              </td>
-              <td>
-                {idea.ticket ? (
-                  <button
-                    type="button"
-                    className="is-link is-mono"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenTicket(idea.ticket!.id);
-                    }}
-                    title={`${idea.ticket.title} · ${idea.ticket.status}`}
-                  >
-                    {idea.ticket.id}
-                  </button>
-                ) : (
-                  <span className="is-muted">—</span>
-                )}
-              </td>
-              <td className="is-muted" style={{ whiteSpace: 'nowrap' }}>
-                {relativeTime(idea.updatedAt)}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                <td className="is-muted" style={{ whiteSpace: 'nowrap' }}>
+                  {relativeTime(idea.updatedAt)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div className="is-legend" data-testid="idea-legend">
+        <span>
+          <i className="is-seg-validated" /> Validated
+        </span>
+        <span>
+          <i className="is-seg-disproved" /> Disproved
+        </span>
+        <span>
+          <i className="is-seg-untested" /> Still untested
+        </span>
+      </div>
+    </>
   );
 }
