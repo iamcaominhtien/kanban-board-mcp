@@ -14,6 +14,7 @@ import { extractError } from '../api/extractError';
 import { CreateBranchModal } from './CreateBranchModal';
 import { BranchGraph } from './BranchGraph';
 import styles from './BranchesSection.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 interface BranchesSectionProps {
   ticketId: string;
@@ -276,7 +277,9 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                   </div>
                   {br.worktreePath && (
                     <div className={styles.worktreeInfo} title={`Worktree: ${br.worktreePath}`}>
-                      <span className={styles.worktreeBadge}>🌳 worktree</span>
+                      <span className={styles.worktreeBadge}>
+                        <LineIcon name="branch" size={12} /> worktree
+                      </span>
                       <span className={styles.worktreePathMono}>{br.worktreePath}</span>
                     </div>
                   )}

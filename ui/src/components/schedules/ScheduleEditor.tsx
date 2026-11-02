@@ -28,6 +28,7 @@ import {
   zoneLabel,
 } from './schedulesUi';
 import { ascendingText, toggleNumber } from '../../utils/sorted';
+import { LineIcon } from '../ui/LineIcon';
 
 /** How the editor is opened: from the tab, from a ticket (locked to it) or to change a schedule. */
 export interface EditorOpts {
@@ -894,7 +895,12 @@ function EditorForm({
                       }
                       data-testid={`notify-${o.key}`}
                     >
-                      {on && <span aria-hidden="true">✓</span>} {o.label}
+                      {on && (
+                        <span aria-hidden="true">
+                          <LineIcon name="check" size={12} />
+                        </span>
+                      )}{' '}
+                      {o.label}
                     </button>
                   );
                 })}

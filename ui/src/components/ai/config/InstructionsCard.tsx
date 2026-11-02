@@ -16,6 +16,7 @@ import {
   estimateTokens,
   tok,
 } from './parts';
+import { LineIcon } from '../../ui/LineIcon';
 
 const VARS = ['ticket', 'project', 'docs', 'comments'];
 const PROMPT_BUDGET = 8000;
@@ -51,7 +52,7 @@ function SnippetChips() {
               })
             }
           >
-            ×
+            <LineIcon name="close" size={12} />
           </button>
         </Chip>
       ))}

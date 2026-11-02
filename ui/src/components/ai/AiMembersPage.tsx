@@ -28,6 +28,7 @@ import {
   statusSub,
   useNow,
 } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 type Tab = 'humans' | 'ai' | 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety';
 
@@ -154,7 +155,7 @@ export function AiMembersPage({
                   }
                   data-testid="ai-draft-members"
                 >
-                  ✦ Draft with AI
+                  <LineIcon name="sparkle" size={13} /> Draft with AI
                 </button>
               )}
               <button
@@ -240,7 +241,7 @@ export function AiMembersPage({
                       </span>
                       {!!overview.data?.summary.needAttention && (
                         <span style={{ color: '#B4571F', fontWeight: 600 }}>
-                          ⚠ {overview.data.summary.needAttention} need attention
+                          <LineIcon name="warning" size={13} /> {overview.data.summary.needAttention} need attention
                         </span>
                       )}
                       {!!overview.data?.pendingApprovals && (
@@ -380,7 +381,7 @@ function BoardAiCard({
         </div>
       </div>
       <button type="button" className="ai-btn" onClick={onChange}>
-        ⟳ Change
+        <LineIcon name="refresh" size={13} /> Change
       </button>
       {onSettings && (
         <button type="button" className="ai-btn" onClick={onSettings} data-testid="assistant-settings">
@@ -446,7 +447,7 @@ function MemberTable({
                   <span style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap' }}>{m.name}</span>
                   {m.isBoardAi && (
                     <span className="ai-chip" style={{ background: '#1E2A22', color: '#fff', height: 20 }}>
-                      ✦ Board AI
+                      <LineIcon name="sparkle" size={13} /> Board AI
                     </span>
                   )}
                 </div>

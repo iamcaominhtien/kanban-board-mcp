@@ -175,3 +175,59 @@ body {
 html[data-theme='bw'] {
   filter: grayscale(100%) contrast(1.05);
 }
+
+/* ── Dropdowns (design audit, wave 2) ────────────────────────────────────────────────────────────────────────────
+   Every <select> keeps the browser's own behaviour (keyboard, type-ahead, the list, screen readers) but is drawn the
+   way the design draws a dropdown: a 1 px #C7D2CB box, 8 px corners, 13 px text and the design's chevron, in place
+   of the operating system's grey control. Base values sit in :where() (no weight), so a component's own class still
+   sets its size; the chevron is !important because those classes use the `background` shorthand, which would
+   clear it. */
+:where(select:not([multiple]):not([size])) {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  background-color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+}
+
+select:not([multiple]):not([size]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6B60' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 9px center !important;
+  background-size: 14px 14px !important;
+  padding-right: 30px !important;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+select:not([multiple]):not([size]):hover:not(:disabled) {
+  border-color: #9fb3a6;
+}
+
+select:not([multiple]):not([size]):focus-visible {
+  outline: none;
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.14);
+}
+
+select:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Date and time fields: the same box as the other fields (their picker stays the browser's) */
+:where(input[type='date'], input[type='time'], input[type='datetime-local']) {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+}

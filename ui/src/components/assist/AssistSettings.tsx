@@ -7,6 +7,7 @@ import { Toggle } from '../ai/aiUi';
 import { usd } from './assistUi';
 import './assist.css';
 import { SettingsCard } from '../settings/settingsUi';
+import { LineIcon } from '../ui/LineIcon';
 
 const LANGUAGES = ['English (US)', 'English (UK)', 'Tiếng Việt', 'Français', 'Deutsch', 'Español', '日本語'];
 const TONES = [
@@ -169,13 +170,15 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, position: 'relative' }}>
           {s.excludedDocs.map((d) => (
             <span key={d.id} className="as-ctx-chip">
-              <span>🔒 {d.title}</span>
+              <span>
+                <LineIcon name="lock" size={13} /> {d.title}
+              </span>
               <button
                 type="button"
                 aria-label={`Include ${d.title} again`}
                 onClick={() => void save({ excludedDocs: excluded.filter((x) => x !== d.id) })}
               >
-                ✕
+                <LineIcon name="close" size={14} />
               </button>
             </span>
           ))}
@@ -195,7 +198,7 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
                       void save({ excludedDocs: [...excluded, n.id] });
                     }}
                   >
-                    📄 {n.title}
+                    <LineIcon name="page" size={13} /> {n.title}
                   </button>
                 ))}
               {!tree.data?.length && (
@@ -224,7 +227,7 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
             ] as const
           ).map(([label, sent]) => (
             <div key={label} style={{ color: sent ? '#1E2A22' : '#9AA8A0' }}>
-              {sent ? '✓' : '✕'} {label}
+              <LineIcon name={sent ? 'check' : 'close'} size={12} /> {label}
             </div>
           ))}
         </div>

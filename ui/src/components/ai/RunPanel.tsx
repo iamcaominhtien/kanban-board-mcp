@@ -34,6 +34,7 @@ import {
   useAiBoardState,
   useNow,
 } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 // The run view, steps, history and the AI tab live in RunView.tsx
 export { RunSteps, RunView, RunHistory, TicketRunsTab } from './RunView';
@@ -472,7 +473,7 @@ function WaitingApprovalCard({ run }: { run: AiRun }) {
     <div className="as-tile as-tile-slate" data-testid="run-waiting-approval">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="ai-chip" style={{ background: '#EEF1F5', color: '#5B6B7A' }}>
-          ✋ Needs approval
+          <LineIcon name="hand" size={13} /> Needs approval
         </span>
         <span style={{ fontSize: 13, fontWeight: 600 }}>{w.summary}</span>
       </div>
@@ -575,7 +576,15 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
             }
             data-testid={run.paused ? 'card-resume' : 'card-pause'}
           >
-            {run.paused ? '▷ Resume' : '⏸ Pause run'}
+            {run.paused ? (
+              <>
+                <LineIcon name="play" size={12} /> Resume
+              </>
+            ) : (
+              <>
+                <LineIcon name="pause" size={12} /> Pause run
+              </>
+            )}
           </button>
         )}
         {run.state === 'queued' && !run.behindRunId && (
@@ -586,7 +595,7 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
             onClick={() => act(() => startNow.mutateAsync(undefined), "Can't start it now")}
             data-testid="card-start-now"
           >
-            ▷ Start now
+            <LineIcon name="play" size={12} /> Start now
           </button>
         )}
         <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
@@ -689,7 +698,7 @@ function FailedCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ticket; on
         {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
         {canUndo && (
           <button type="button" className="ai-btn ai-btn-sm" onClick={() => setUndo(true)} data-testid="failed-undo">
-            ↶ Undo changes
+            <LineIcon name="undo" size={13} /> Undo changes
           </button>
         )}
         {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
@@ -737,7 +746,9 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   if (run && live && run.waitingApproval)
     return (
       <div className="ai-card-footer ai-card-footer-slate" data-testid="card-ai-approval">
-        <span style={{ fontWeight: 800 }}>✋</span>
+        <span style={{ fontWeight: 800 }}>
+          <LineIcon name="hand" size={14} />
+        </span>
         <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           Needs approval: {run.waitingApproval.summary}
         </span>
@@ -786,7 +797,9 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   if (run?.state === 'needs_input')
     return (
       <div className="ai-card-footer ai-card-footer-slate" data-testid="card-ai-question">
-        <span style={{ fontWeight: 800 }}>⏸</span>
+        <span style={{ fontWeight: 800 }}>
+          <LineIcon name="pause" size={14} />
+        </span>
         <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           Asks {run.question?.to}: {run.question?.text}
         </span>
@@ -833,7 +846,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   )
     return (
       <div className="ai-card-footer ai-card-footer-running" style={{ color: '#2E6F40', fontWeight: 600 }}>
-        ✓ AI-completed
+        <LineIcon name="check" size={12} /> AI-completed
       </div>
     );
   if (assignee && assignee.connection !== 'inbox' && !['done', 'wont_do', 'review', 'testing'].includes(ticket.status))
@@ -852,7 +865,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
             }
           }}
         >
-          Run ▷
+          Run <LineIcon name="play" size={12} />
         </button>
       </div>
     );

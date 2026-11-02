@@ -13,6 +13,7 @@ import type { AiSlashId } from '../docs/editor/slashItems';
 import { CheckThisPage } from '../docs/ai/CheckThisPage';
 import { DrawDiagram } from '../docs/ai/DrawDiagram';
 import './assist.css';
+import { LineIcon } from '../ui/LineIcon';
 
 export interface DocsAiEditor {
   getEditor: () => Editor | null;
@@ -167,7 +168,8 @@ function DraftBlock({ d, ed, onDone }: { d: AssistDraft; ed: DocsAiEditor; onDon
             <span style={{ textDecoration: 'underline dotted #2E6F40', textUnderlineOffset: 3 }}>“{l.phrase}”</span>→
             <span className="as-ctx-chip">
               <span>
-                {l.kind === 'ticket' ? `🗋 ${l.target}` : `📄 ${l.target}${l.anchor ? ` › # ${l.anchor}` : ''}`}
+                <LineIcon name="page" size={13} />{' '}
+                {l.kind === 'ticket' ? l.target : `${l.target}${l.anchor ? ` › # ${l.anchor}` : ''}`}
               </span>
             </span>
             <span style={{ flex: 1 }} />

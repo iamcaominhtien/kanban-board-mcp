@@ -163,8 +163,8 @@ const ExternalIcon = (
 /** A part of a group: a small heading over the section it names. */
 function Sub({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="ai-sub">
-      <div className="ai-sub-title">{title}</div>
+    <div className="ai-part">
+      <div className="ai-part-title">{title}</div>
       {children}
     </div>
   );

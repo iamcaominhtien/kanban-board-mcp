@@ -24,6 +24,7 @@ import {
 import { usePreview } from './preview/PreviewContext';
 import type { PreviewItem } from './preview/types';
 import styles from './WorkspaceSection.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 /** An idea keeps its folder under its own key; its retention is "while open, then 30 days", 30 days or forever. */
 export interface IdeaRetentionControl {
@@ -272,7 +273,7 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
         <div className={`${styles.notice} ${notice.kind === 'error' ? styles.noticeError : ''}`} role="alert">
           {notice.text}
           <button type="button" className={styles.noticeClose} onClick={() => setNotice(null)} aria-label="Dismiss">
-            ×
+            <LineIcon name="close" size={14} />
           </button>
         </div>
       )}
@@ -359,7 +360,7 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
                   onClick={() => setSelectedDir('')}
                   title="Back to the folder root"
                 >
-                  in /{selectedDir} ×
+                  in /{selectedDir} <LineIcon name="close" size={12} />
                 </button>
               )}
             </span>

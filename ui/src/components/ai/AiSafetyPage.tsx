@@ -8,6 +8,7 @@ import { AiAvatar, Toggle } from './aiUi';
 import { ChipChoice, Pill, RadioRow, SafetyCard, TrustChip } from './aiSafetyUi';
 import { AutopilotCard } from './AutopilotCard';
 import { BlocksCard, PermissionsCard, RememberedCard } from './AiPermissionsCards';
+import { LineIcon } from '../ui/LineIcon';
 
 const TRUST_ROWS: { source: string; trust: 'trusted' | 'data_only' | 'untrusted'; how: string }[] = [
   {
@@ -272,7 +273,7 @@ function SafeModeCard({ s, save }: { s: AiSettings; save: (b: Record<string, unk
       <div className="ai-chips">
         {['Read', 'Comment'].map((c) => (
           <Pill key={c} bg="#F1F8F3" color="#2E6F40">
-            ✓ {c}
+            <LineIcon name="check" size={12} /> {c}
           </Pill>
         ))}
         {['Edit', 'Status', 'Create', 'Run tools'].map((c) => (
@@ -378,14 +379,20 @@ function LinksCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknow
           <div className="ai-label ai-label-dark">Links and attachments</div>
           <div style={{ fontSize: 12.5, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
             <span>
-              <span style={{ color: '#C4432A' }}>✕</span> Links in untrusted text are never opened on their own
+              <span style={{ color: '#C4432A' }}>
+                <LineIcon name="close" size={12} />
+              </span>{' '}
+              Links in untrusted text are never opened on their own
             </span>
             <span>
-              ✋ A local runner may fetch a web page only from an allowed domain (outside Bypass); anything else is
-              refused and asked once (a run cannot wait for you mid-call)
+              <LineIcon name="hand" size={13} /> A local runner may fetch a web page only from an allowed domain
+              (outside Bypass); anything else is refused and asked once (a run cannot wait for you mid-call)
             </span>
             <span>
-              <span style={{ color: '#C4432A' }}>✕</span> Attachments: file name and extracted text only; never executed
+              <span style={{ color: '#C4432A' }}>
+                <LineIcon name="close" size={12} />
+              </span>{' '}
+              Attachments: file name and extracted text only; never executed
             </span>
           </div>
           <div className="ai-chips" style={{ marginTop: 8 }} data-testid="allowed-domains">
@@ -398,7 +405,7 @@ function LinksCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknow
                   aria-label={`Remove ${d}`}
                   onClick={() => void save({ allowedDomains: s.allowedDomains.filter((x) => x !== d) })}
                 >
-                  ✕
+                  <LineIcon name="close" size={12} />
                 </button>
               </span>
             ))}
@@ -429,8 +436,8 @@ function LinksCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknow
           <div className="ai-label ai-label-dark">Runner sandbox and secrets</div>
           <div style={{ fontSize: 12.5, display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
             <span>
-              📁 Runners start in their working folder; the board refuses paths outside it. The CLI itself may still
-              read elsewhere if its own settings allow.
+              <LineIcon name="folder" size={13} /> Runners start in their working folder; the board refuses paths
+              outside it. The CLI itself may still read elsewhere if its own settings allow.
             </span>
             <span>
               🔑 <b>Secrets never go into prompts.</b> Keys, tokens, marked env values and{' '}
@@ -846,7 +853,7 @@ function RolesCard({ role, onOpenAudit }: { role?: string; onOpenAudit: () => vo
               <td>{a}</td>
               {cells.map((c, i) => (
                 <td key={i} style={{ color: c === true ? '#2E6F40' : '#5B6B60' }}>
-                  {c === true ? '✓' : c === false ? '—' : c}
+                  {c === true ? <LineIcon name="check" size={12} /> : c === false ? '—' : c}
                 </td>
               ))}
             </tr>

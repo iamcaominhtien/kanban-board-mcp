@@ -11,6 +11,7 @@ import {
   statesLegend,
 } from '../../../utils/docsProposalRules';
 import { Icon } from '../Icon';
+import { LineIcon } from '../../ui/LineIcon';
 
 const btn: CSSProperties = {
   display: 'inline-flex',
@@ -146,7 +147,9 @@ export function ProposalReview({
       <header style={{ padding: '16px 18px 10px', borderBottom: '1px solid #EEF0EE' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h2 style={{ margin: 0, fontSize: 16, flex: 1 }}>Proposed changes · {p.changes.length}</h2>
-          <span style={chip('#F1ECFB', '#6B4FBB')}>✦ {p.memberName ?? 'AI'}</span>
+          <span style={chip('#F1ECFB', '#6B4FBB')}>
+            <LineIcon name="sparkle" size={11} /> {p.memberName ?? 'AI'}
+          </span>
           <button type="button" aria-label="Close" onClick={onClose} style={{ ...btn, padding: '0 8px', border: 0 }}>
             <Icon name="close" size={15} strokeWidth={1.9} />
           </button>

@@ -14,6 +14,7 @@ import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import { useToast } from '../Toast';
 import { AiChip } from './ideaShared';
+import { LineIcon } from '../ui/LineIcon';
 
 const money = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
 
@@ -355,7 +356,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
         <span style={{ flex: 1 }} />
         <PanelMaxButton panel={panel} className="is-btn is-btn-ghost is-btn-sm" />
         <button type="button" className="is-btn is-btn-ghost is-btn-sm" onClick={onClose} aria-label="Close">
-          ×
+          <LineIcon name="close" size={14} />
         </button>
       </header>
       {status && !open && <AiUnavailable status={status} onOpenSettings={onOpenSettings} />}
@@ -477,7 +478,10 @@ export function ShapeButton({
   if (!status || status.state === 'off') return null;
   return (
     <button type="button" className="is-btn" aria-pressed={active} onClick={onClick} data-testid="shape-button">
-      <span aria-hidden="true">✦</span> Shape with AI
+      <span aria-hidden="true">
+        <LineIcon name="sparkle" size={12} />
+      </span>{' '}
+      Shape with AI
     </button>
   );
 }

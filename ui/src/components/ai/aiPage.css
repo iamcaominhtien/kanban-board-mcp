@@ -78,7 +78,7 @@
   border-radius: 10px;
   background: #fbfcfb;
 }
-.ai-sub + .ai-sub {
+.ai-part + .ai-part {
   padding-top: 14px;
   border-top: 1px solid #eef3ef;
 }
@@ -88,17 +88,24 @@
   font-weight: 700;
   color: #1e2a22;
 }
-.ai-sub {
+.ai-part {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.ai-sub-title {
+.ai-part-title {
   font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #1e2a22;
+}
+/* A hint line in the AI screens (role packs, Set up the AI team): small and grey, as drawn. It was unstyled (16 px body
+   text, a bold word broken onto its own line by the Settings parts that shared the name, ai-3 TP-1). */
+.ai-sub {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5b6b60;
 }
 /* Standing orders is drawn as a page of its own; inside a group it is a part, so its heading is a small one. */
 .ai-group .so-h1 {

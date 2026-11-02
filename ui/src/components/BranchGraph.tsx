@@ -3,6 +3,7 @@ import { useBranchGraph, useCommitDetail, useTicketBranches } from '../api/ticke
 import { extractError } from '../api/extractError';
 import type { BranchStatus, GraphCommit, GraphRef, TicketBranch } from '../types';
 import styles from './BranchGraph.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 const ROW_H = 30;
 const LANE_W = 18;
@@ -141,7 +142,8 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
     const wt = branchByName.get(r.name)?.worktreePath;
     return (
       <span key={`b-${r.name}`} className={`${styles.chip} ${cls}`} title={wt ? `${r.name}\nWorktree: ${wt}` : r.name}>
-        {wt ? '🌳 ' : ''}
+        {wt ? <LineIcon name="branch" size={12} /> : null}
+        {wt ? ' ' : ''}
         {r.name}
       </span>
     );
@@ -220,7 +222,7 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
                 )}
                 {b.worktreePath && (
                   <span className={`${styles.badge} ${styles.badgeWorktree}`} title={b.worktreePath}>
-                    🌳 worktree
+                    <LineIcon name="branch" size={12} /> worktree
                   </span>
                 )}
                 {b.inRepo === false && (
@@ -376,7 +378,7 @@ function CommitPanel({
         <div className={styles.panelHead}>
           <div className={styles.error}>Couldn't load this commit: {extractError(error)}</div>
           <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close commit details">
-            ×
+            <LineIcon name="close" size={14} />
           </button>
         </div>
       )}
@@ -385,7 +387,7 @@ function CommitPanel({
           <div className={styles.panelHead}>
             <div className={styles.panelSubject}>{data.subject}</div>
             <button type="button" className={styles.panelClose} onClick={onClose} aria-label="Close commit details">
-              ×
+              <LineIcon name="close" size={14} />
             </button>
           </div>
 

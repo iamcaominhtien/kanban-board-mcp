@@ -11,6 +11,7 @@ import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 import { ContextMeter } from './ContextMeter';
+import { LineIcon } from '../ui/LineIcon';
 
 const SCOPES: { key: AssistScope; label: string; reads: string; size: string }[] = [
   { key: 'ticket', label: 'This ticket', reads: 'Comments, sub-tickets, linked docs', size: '~4k tokens' },
@@ -356,7 +357,7 @@ export function AssistDock() {
         </button>
         <PanelMaxButton panel={panel} />
         <button type="button" className="ai-icobtn" title="Close" aria-label="Close Board AI" onClick={ctx.close}>
-          ✕
+          <LineIcon name="close" size={14} />
         </button>
       </div>
       {view === 'history' ? (
@@ -420,21 +421,29 @@ export function AssistDock() {
             )}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <span className="as-ctx-chip">
-                <span>🗀 {scope === 'all' ? 'All projects' : ctx.projectName}</span>
+                <span>
+                  <LineIcon name="folder" size={13} /> {scope === 'all' ? 'All projects' : ctx.projectName}
+                </span>
               </span>
               {scope === 'ticket' && ctx.ticketId && (
                 <span className="as-ctx-chip">
-                  <span>🗋 {ctx.ticketId}</span>
+                  <span>
+                    <LineIcon name="page" size={13} /> {ctx.ticketId}
+                  </span>
                 </span>
               )}
               {scope === 'project' && (
                 <span className="as-ctx-chip" title="The board's active filters are sent with the question">
-                  <span>⚙ {filterLabel}</span>
+                  <span>
+                    <LineIcon name="settings" size={13} /> {filterLabel}
+                  </span>
                 </span>
               )}
               {scope === 'doc' ? (
                 <span className="as-ctx-chip">
-                  <span>📄 This page</span>
+                  <span>
+                    <LineIcon name="page" size={13} /> This page
+                  </span>
                 </span>
               ) : (
                 <span className="as-ctx-chip" style={{ position: 'relative' }}>
@@ -444,11 +453,12 @@ export function AssistDock() {
                     onClick={() => setDocPicker((v) => !v)}
                     data-testid="assist-doc-chip"
                   >
-                    📄 {docChip ? (tree.data?.find((n) => n.id === docChip)?.title ?? 'Doc') : 'No doc selected'}
+                    <LineIcon name="page" size={13} />{' '}
+                    {docChip ? (tree.data?.find((n) => n.id === docChip)?.title ?? 'Doc') : 'No doc selected'}
                   </button>
                   {docChip && (
                     <button type="button" aria-label="Remove doc" onClick={() => setDocChip(null)}>
-                      ✕
+                      <LineIcon name="close" size={14} />
                     </button>
                   )}
                   {docPicker && (
@@ -467,7 +477,7 @@ export function AssistDock() {
                             setDocPicker(false);
                           }}
                         >
-                          📄 {n.title}
+                          <LineIcon name="page" size={13} /> {n.title}
                         </button>
                       ))}
                     </div>
@@ -583,7 +593,7 @@ export function AssistDock() {
                         style={{ justifyContent: 'flex-start' }}
                         onClick={() => void send(s)}
                       >
-                        💬 {s}
+                        <LineIcon name="chat" size={13} /> {s}
                       </button>
                     ))}
                   </>
@@ -649,7 +659,7 @@ export function AssistDock() {
                   aria-label="Send"
                   onClick={() => void send(text)}
                 >
-                  ➤
+                  <LineIcon name="send" size={16} />
                 </button>
               </div>
             )}
@@ -659,7 +669,7 @@ export function AssistDock() {
               </div>
             )}
             <div className="as-foot">
-              🛡{' '}
+              <LineIcon name="shield" size={13} />{' '}
               {scope === 'doc'
                 ? 'Only this page and linked tickets are sent.'
                 : 'AI proposes · you apply. Answers can be wrong.'}

@@ -1,12 +1,14 @@
+import type { ReactNode } from 'react';
+import { LineIcon } from '../../ui/LineIcon';
 /** Icons of the step kinds the board writes itself (skills, helpers, trouble, retries, windows, messages). */
-const KINDS: Record<string, { glyph: string; color: string; label: string }> = {
-  skill: { glyph: '✦', color: '#5B3AA6', label: 'Skill' },
+const KINDS: Record<string, { glyph: ReactNode; color: string; label: string }> = {
+  skill: { glyph: <LineIcon name="sparkle" size={13} />, color: '#5B3AA6', label: 'Skill' },
   subagent: { glyph: '⑂', color: '#5B3AA6', label: 'Helper' },
   trouble: { glyph: '!', color: '#B8860B', label: 'Trouble' },
-  retry: { glyph: '↻', color: '#B8860B', label: 'Retry' },
+  retry: { glyph: <LineIcon name="refresh" size={13} />, color: '#B8860B', label: 'Retry' },
   window: { glyph: '◔', color: '#B8860B', label: 'Window' },
-  held: { glyph: '⏸', color: '#B8860B', label: 'Held' },
-  message: { glyph: '➤', color: '#2F6FB0', label: 'Message' },
+  held: { glyph: <LineIcon name="pause" size={13} />, color: '#B8860B', label: 'Held' },
+  message: { glyph: <LineIcon name="send" size={13} />, color: '#2F6FB0', label: 'Message' },
   fresh_session: { glyph: '✱', color: '#2F6FB0', label: 'Fresh conversation' },
 };
 

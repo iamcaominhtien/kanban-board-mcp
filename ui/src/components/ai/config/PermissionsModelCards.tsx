@@ -6,6 +6,7 @@ import { configApi } from './configApi';
 import { adapterOf, useCfg } from './configCtx';
 import { BYPASS_PHRASE, CfgCard, Chip, IssueText, NumField, hasError } from './parts';
 import { joinWords, splitWords } from './frontMatter';
+import { LineIcon } from '../../ui/LineIcon';
 
 const REJECTED = [
   '--dangerously-skip-permissions',
@@ -80,7 +81,7 @@ function RuleList({
                 style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
                 onClick={() => onChange(rules.filter((x) => x !== r))}
               >
-                ×
+                <LineIcon name="close" size={12} />
               </button>
             </span>
           );

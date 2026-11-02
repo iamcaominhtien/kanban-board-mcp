@@ -22,6 +22,7 @@ import { useAiBoardState } from '../aiUi';
 import { wordDiff } from './diff';
 import type { EditorAdapter, EditorCapture } from './types';
 import './editorAi.css';
+import { LineIcon } from '../../ui/LineIcon';
 
 /** Options of `useEditorAi`. */
 export interface UseEditorAiOptions {
@@ -88,14 +89,14 @@ type Phase =
   | { name: 'conflict'; draft: AssistDraft; action: EditorAction; req: EditorRequest; cap: EditorCapture | null }
   | { name: 'notice'; notice: Notice; cap: EditorCapture | null };
 
-const ICONS: Record<string, string> = {
-  ask: '✦',
-  continue: '✎',
+const ICONS: Record<string, ReactNode> = {
+  ask: <LineIcon name="sparkle" size={14} />,
+  continue: <LineIcon name="edit" size={14} />,
   summarise: '☰',
-  criteria: '✓',
+  criteria: <LineIcon name="check" size={14} />,
   diagram: '◇',
   translate: '#',
-  improve: '✦',
+  improve: <LineIcon name="sparkle" size={14} />,
   split: '⑂',
   more_criteria: '＋',
 };
@@ -195,7 +196,7 @@ function Tile({
   testId,
 }: {
   tone: 'blue' | 'amber' | 'red';
-  title: string;
+  title: ReactNode;
   children?: ReactNode;
   testId?: string;
 }) {
@@ -587,7 +588,7 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
               onClick={() => chooseMenu(i)}
               data-testid={`ea-menu-${m.action}`}
             >
-              <span className="ea-menu-ico">{ICONS[m.action] ?? '✦'}</span>
+              <span className="ea-menu-ico">{ICONS[m.action] ?? <LineIcon name="sparkle" size={14} />}</span>
               <span className="ea-menu-text">
                 <b>{m.label}</b>
                 <span>{m.hint}</span>
@@ -627,7 +628,9 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
           {partial && <div className="ea-draft-text ea-add-text">{partial}</div>}
         </div>
         <div className="ea-pill">
-          <span className="ea-pill-title">✦ Drafting…</span>
+          <span className="ea-pill-title">
+            <LineIcon name="sparkle" size={13} /> Drafting…
+          </span>
           <button
             type="button"
             className="ea-pill-btn"
@@ -693,7 +696,8 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
         {review && res && res.kind !== 'list' && res.kind !== 'diagram' && (
           <div className="ea-pill" data-testid="ea-pill">
             <span className="ea-pill-title">
-              ✦ {labelOf(phase.action, st.data?.menu, st.data?.bar)} · {dollars(phase.draft.cost, metered)}
+              <LineIcon name="sparkle" size={13} /> {labelOf(phase.action, st.data?.menu, st.data?.bar)} ·{' '}
+              {dollars(phase.draft.cost, metered)}
             </span>
             {res.kind === 'answer' ? (
               <>
@@ -795,7 +799,15 @@ function NoticeTile({
   switch (notice.code) {
     case 'not_configured':
       return (
-        <Tile tone="blue" title="✦ Choose an AI to use these helpers" testId="ea-no-member">
+        <Tile
+          tone="blue"
+          title={
+            <>
+              <LineIcon name="sparkle" size={13} /> Choose an AI to use these helpers
+            </>
+          }
+          testId="ea-no-member"
+        >
           <div className="ai-hint">
             The AI button, @ picker and /ai appear when an AI member that can read this project exists.
           </div>
@@ -806,7 +818,15 @@ function NoticeTile({
       );
     case 'over_budget':
       return (
-        <Tile tone="amber" title="⚠ AI is paused until tomorrow" testId="ea-over-budget">
+        <Tile
+          tone="amber"
+          title={
+            <>
+              <LineIcon name="warning" size={13} /> AI is paused until tomorrow
+            </>
+          }
+          testId="ea-over-budget"
+        >
           <div className="ai-hint">
             The daily cap was reached. Ask-only answers and drafts stop; reading the thread still works.
           </div>
@@ -817,7 +837,15 @@ function NoticeTile({
       );
     case 'viewer':
       return (
-        <Tile tone="blue" title="🔒 You can read, not ask" testId="ea-viewer">
+        <Tile
+          tone="blue"
+          title={
+            <>
+              <LineIcon name="lock" size={13} /> You can read, not ask
+            </>
+          }
+          testId="ea-viewer"
+        >
           <div className="ai-hint">Only members can ask the AI. You can still read answers posted on this ticket.</div>
           <button type="button" className="ai-link" style={{ alignSelf: 'flex-start' }} onClick={onClose}>
             Close
@@ -888,7 +916,8 @@ function DraftCard({
             data-testid="ea-add-criteria"
             onClick={() => onAccept(chosen)}
           >
-            ✓ Add {chosen.length === items.length && items.length === 2 ? 'both' : chosen.length}
+            <LineIcon name="check" size={13} /> Add{' '}
+            {chosen.length === items.length && items.length === 2 ? 'both' : chosen.length}
           </button>
           <button type="button" className="ai-btn ai-btn-sm" onClick={onDiscard}>
             Dismiss
@@ -1028,7 +1057,9 @@ function PromptBox({
   return (
     <div className="ea-prompt" data-testid="ea-prompt-box">
       <div className="ea-prompt-row">
-        <span className="ea-prompt-spark">✦</span>
+        <span className="ea-prompt-spark">
+          <LineIcon name="sparkle" size={13} />
+        </span>
         {translate ? (
           <input
             autoFocus
@@ -1081,7 +1112,7 @@ function PromptBox({
             onClick={() => setWithTicket((v) => !v)}
             data-testid="ea-chip-ticket"
           >
-            ▭ This ticket
+            <LineIcon name="frame" size={13} /> This ticket
           </button>
         )}
         {hasPage && (
@@ -1092,7 +1123,7 @@ function PromptBox({
             onClick={() => setWithPage((v) => !v)}
             data-testid="ea-chip-page"
           >
-            ▭ This page
+            <LineIcon name="frame" size={13} /> This page
           </button>
         )}
         {hasSel && (
@@ -1212,7 +1243,11 @@ export function EditorAiSelectionBar({ ai, adapter }: { ai: EditorAi; adapter: E
             data-testid={`ea-bar-${b.action}`}
             onClick={() => ai.run(b.action)}
           >
-            {b.action === 'ask' ? '✦ ' : ''}
+            {b.action === 'ask' ? (
+              <>
+                <LineIcon name="sparkle" size={13} />{' '}
+              </>
+            ) : null}
             {b.label}
           </button>
         ))}

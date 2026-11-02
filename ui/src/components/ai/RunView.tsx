@@ -24,6 +24,7 @@ import {
   useNow,
 } from './aiUi';
 import './ticketWork.css';
+import { LineIcon } from '../ui/LineIcon';
 
 function stepIcon(step: RunStep, last: boolean, live: boolean) {
   if (last && live) return <span className="ai-spin" />;
@@ -36,11 +37,15 @@ function stepIcon(step: RunStep, last: boolean, live: boolean) {
   if (step.kind === 'paused' || step.kind === 'resumed')
     return (
       <span style={{ color: '#5B6B60', fontWeight: 800, width: 13, textAlign: 'center' }}>
-        {step.kind === 'paused' ? '⏸' : '▷'}
+        {step.kind === 'paused' ? <LineIcon name="pause" size={13} /> : <LineIcon name="play" size={13} />}
       </span>
     );
   if (step.kind === 'command' && step.exitCode != null && step.exitCode !== 0)
-    return <span style={{ color: '#C4432A', fontWeight: 800, width: 13, textAlign: 'center' }}>✕</span>;
+    return (
+      <span style={{ color: '#C4432A', fontWeight: 800, width: 13, textAlign: 'center' }}>
+        <LineIcon name="close" size={13} />
+      </span>
+    );
   return (
     <svg
       width="13"
@@ -363,7 +368,15 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
               )
             }
           >
-            {run.paused ? '▷ Resume' : '⏸ Pause'}
+            {run.paused ? (
+              <>
+                <LineIcon name="play" size={12} /> Resume
+              </>
+            ) : (
+              <>
+                <LineIcon name="pause" size={12} /> Pause
+              </>
+            )}
           </button>
         )}
         {run.state === 'queued' && !waitingForHold && (
@@ -374,7 +387,7 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
             data-testid="run-start-now"
             onClick={() => act(() => startNow.mutateAsync(undefined), "Can't start it now")}
           >
-            ▷ Start now
+            <LineIcon name="play" size={12} /> Start now
           </button>
         )}
         {live && (
@@ -385,7 +398,7 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
             disabled={cancel.isPending}
             data-testid="run-cancel"
           >
-            ◻ Cancel run
+            <LineIcon name="square" size={13} /> Cancel run
           </button>
         )}
         {!live && run.mode === 'work' && (
@@ -405,14 +418,14 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
             {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
             {canUndo && (
               <button type="button" className="ai-btn ai-btn-sm" data-testid="run-undo" onClick={() => setUndo(true)}>
-                ↶ Undo changes
+                <LineIcon name="undo" size={13} /> Undo changes
               </button>
             )}
           </>
         )}
         {run.sessionId && ai?.connection === 'local' && (
           <button type="button" className="ai-btn ai-btn-sm" onClick={() => setTerminal(!terminal)}>
-            ▭ Open in terminal
+            <LineIcon name="frame" size={13} /> Open in terminal
           </button>
         )}
       </div>
@@ -578,7 +591,20 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
                           : { background: '#FBEEEA', color: '#C4432A' }
                     }
                   >
-                    {last ? '● now' : c.exitCode != null ? `${c.exitCode === 0 ? '✓ ' : ''}exit ${c.exitCode}` : '—'}
+                    {last ? (
+                      '● now'
+                    ) : c.exitCode != null ? (
+                      <>
+                        {c.exitCode === 0 && (
+                          <>
+                            <LineIcon name="check" size={12} />{' '}
+                          </>
+                        )}
+                        exit {c.exitCode}
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </span>
                   <span
                     className="ai-mono"
@@ -623,7 +649,8 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
         </div>
       </div>
       <div className="ai-muted">
-        🛡 Secrets, tokens and key-like strings are masked before the log is stored or shown.
+        <LineIcon name="shield" size={13} /> Secrets, tokens and key-like strings are masked before the log is stored or
+        shown.
       </div>
       {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
     </div>

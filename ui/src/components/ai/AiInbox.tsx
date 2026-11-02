@@ -18,6 +18,7 @@ import { AiAvatar, ago, hhmm } from './aiUi';
 import { SignedOutBanners } from './accounts/SignedOutBanners';
 import './accounts/accountsMember.css';
 import { ChipChoice, Pill, RISK, RadioRow, RiskChip, SafetyCard, TrustChip, expiresIn, shown } from './aiSafetyUi';
+import { LineIcon, type LineIconName } from '../ui/LineIcon';
 
 type InboxTab = 'mentions' | 'questions' | 'approvals';
 
@@ -374,9 +375,9 @@ function ApprovalRow({
   const m = members.find((x) => x.id === a.memberId);
   const diff = a.diff?.[0];
   const canTick = !decided && a.risk !== 'high' && a.canDecide !== false;
-  const status: Record<string, { bg: string; color: string; text: string }> = {
-    approved: { bg: '#F1F8F3', color: '#2E6F40', text: `✓ Approved · ${a.decidedBy ?? ''}` },
-    denied: { bg: '#FBEEEA', color: '#C4432A', text: `✕ Denied · ${a.decidedBy ?? ''}` },
+  const status: Record<string, { bg: string; color: string; text: string; icon?: LineIconName }> = {
+    approved: { bg: '#F1F8F3', color: '#2E6F40', text: `Approved · ${a.decidedBy ?? ''}`, icon: 'check' },
+    denied: { bg: '#FBEEEA', color: '#C4432A', text: `Denied · ${a.decidedBy ?? ''}`, icon: 'close' },
     expired: { bg: '#EEF1EE', color: '#5B6B60', text: 'Expired · no decision' },
     failed: { bg: '#FDF0E6', color: '#B4571F', text: 'Approved · not applied' },
     run_ended: { bg: '#EEF2F6', color: '#34455A', text: 'Run ended' },
@@ -425,6 +426,9 @@ function ApprovalRow({
       </div>
       {decided ? (
         <Pill bg={(status[a.status] ?? status.expired).bg} color={(status[a.status] ?? status.expired).color}>
+          {(status[a.status] ?? status.expired).icon && (
+            <LineIcon name={(status[a.status] ?? status.expired).icon!} size={12} />
+          )}{' '}
           {(status[a.status] ?? status.expired).text}
         </Pill>
       ) : (

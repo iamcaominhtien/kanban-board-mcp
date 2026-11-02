@@ -3,6 +3,7 @@ import { usePageJob, type SummaryResult } from '../../../api/docsAiPage';
 import { moneyLabel, problemLine } from '../../../utils/pageAiRules';
 import type { PageAiView } from './usePageAiView';
 import './pageAi.css';
+import { LineIcon } from '../../ui/LineIcon';
 
 /**
  * "Summarise": a dashed block above the page, marked as AI and not part of it (docs-ai E1). It is view state: Hide
@@ -19,7 +20,9 @@ export function SummaryBlock({ view }: { view: PageAiView }) {
     <div className="pai-summary" data-testid="page-summary" role="region" aria-label="Summary by AI">
       <div className="pai-head">
         <b>SUMMARY</b>
-        <span className="pai-tag">✦ AI</span>
+        <span className="pai-tag">
+          <LineIcon name="sparkle" size={11} /> AI
+        </span>
         <span>
           {s.of === 'selection' ? 'of the selection · ' : ''}not part of the page
           {result ? ` · ${moneyLabel(result.cost, result.metered)}` : ''}

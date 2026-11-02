@@ -11,6 +11,7 @@ import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 import './scopedChat.css';
 import { ContextMeter } from './ContextMeter';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Props of the chat panel. The panel is generic over what the chat is about; see `ChatScope`. */
 export interface ScopedChatProps {
@@ -116,7 +117,7 @@ function Who({ state, onPick }: { state: ScopeState | undefined; onPick: (id: st
               onClick={() => setOpen((v) => !v)}
               data-testid="chat-member-change"
             >
-              ▾
+              <LineIcon name="chevronDown" size={12} />
             </button>
           )}
         </div>
@@ -141,7 +142,11 @@ function Who({ state, onPick }: { state: ScopeState | undefined; onPick: (id: st
                   {m.name}
                   <span className="ai-muted"> · {m.status}</span>
                 </span>
-                {m.id === state?.memberId && <span style={{ color: '#2E6F40' }}>✓</span>}
+                {m.id === state?.memberId && (
+                  <span style={{ color: '#2E6F40' }}>
+                    <LineIcon name="check" size={14} />
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -171,7 +176,9 @@ function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?:
   if (a.code === 'over_budget')
     return (
       <div className="sc-tile sc-tile-amber" data-testid="chat-over-budget">
-        <div className="sc-tile-title">⚠ {a.daily ? 'AI is paused until tomorrow' : 'AI is paused'}</div>
+        <div className="sc-tile-title">
+          <LineIcon name="warning" size={14} /> {a.daily ? 'AI is paused until tomorrow' : 'AI is paused'}
+        </div>
         <div className="ai-hint">
           {a.daily
             ? 'The daily cap was reached. Ask-only answers and drafts stop; reading the thread still works.'
@@ -185,7 +192,9 @@ function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?:
   if (a.code === 'viewer')
     return (
       <div className="sc-tile sc-tile-blue" data-testid="chat-viewer">
-        <div className="sc-tile-title">🔒 You can read, not ask</div>
+        <div className="sc-tile-title">
+          <LineIcon name="lock" size={14} /> You can read, not ask
+        </div>
         <div className="ai-hint">
           Only members can ask the AI. You can still read answers posted on this {state.scope.kind}.
         </div>
@@ -193,7 +202,9 @@ function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?:
     );
   return (
     <div className="sc-tile sc-tile-amber" data-testid="chat-unavailable">
-      <div className="sc-tile-title">⚠ The AI cannot answer now</div>
+      <div className="sc-tile-title">
+        <LineIcon name="warning" size={14} /> The AI cannot answer now
+      </div>
       <div className="ai-hint">{a.message ?? 'Try again in a moment.'}</div>
       <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onMembers}>
         Open AI members
@@ -392,7 +403,7 @@ export function ScopedChat({
         </button>
         <PanelMaxButton panel={size} />
         <button type="button" className="ai-icobtn" aria-label="Close" title="Close" onClick={onClose}>
-          ✕
+          <LineIcon name="close" size={14} />
         </button>
       </div>
 
@@ -437,7 +448,7 @@ export function ScopedChat({
                     style={{ justifyContent: 'flex-start' }}
                     onClick={() => void send(p.request, { draft: p.draft, mode: 'ask' })}
                   >
-                    {p.draft ? '✎' : '💬'} {p.label}
+                    <LineIcon name={p.draft ? 'edit' : 'chat'} size={13} /> {p.label}
                   </button>
                 ))}
               </div>
@@ -533,7 +544,7 @@ export function ScopedChat({
                     onClick={() => void send(text)}
                   >
                     {mode === 'work' ? (
-                      '▶'
+                      <LineIcon name="play" size={14} />
                     ) : (
                       <svg
                         width="15"

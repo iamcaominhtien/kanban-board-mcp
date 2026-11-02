@@ -197,6 +197,15 @@
   padding: 0;
 }
 
+/* A select inside the field box: the box is the control, so the select draws no box of its own (the app-wide
+   dropdown look, index.css, keeps only its chevron here) */
+.input select {
+  min-height: 0;
+  box-shadow: none;
+  padding-right: 22px !important;
+  background-position: right 0 center !important;
+}
+
 .days {
   display: flex;
   gap: 4px;

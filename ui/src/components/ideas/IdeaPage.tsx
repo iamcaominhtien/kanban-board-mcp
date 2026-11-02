@@ -27,6 +27,7 @@ import { ProjectSelect } from './TriageDialogs';
 import { useIdeaMoves } from './useIdeaMoves';
 import { AiRailCard, ShapeButton, ShapePanel } from './IdeaAiPanel';
 import { AskAiButton, AskAiShortcut, IdeaChat } from './IdeaChat';
+import { LineIcon } from '../ui/LineIcon';
 
 type Tab = 'page' | 'assumptions' | 'evidence' | 'comments' | 'log' | 'workspace' | 'activity';
 
@@ -171,7 +172,7 @@ export function IdeaPage({
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="More actions"
           >
-            ⋯
+            <LineIcon name="more" size={16} />
           </button>
           {menuOpen && (
             <div
@@ -271,7 +272,13 @@ export function IdeaPage({
               onClick={() => vote.mutate({ id: idea.id, on: !voted })}
               data-testid="vote"
             >
-              {voted ? '✓ You want this' : 'I want this'}
+              {voted ? (
+                <>
+                  <LineIcon name="check" size={13} /> You want this
+                </>
+              ) : (
+                'I want this'
+              )}
             </button>
             <Demand voters={idea.voters} max={4} />
             {idea.voters.length > 0 && <span>{plural(idea.voters.length, 'person wants', 'people want')} this</span>}

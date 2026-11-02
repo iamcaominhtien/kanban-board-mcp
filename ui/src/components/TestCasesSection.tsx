@@ -12,6 +12,7 @@ import { usePeopleAndAiSuggest } from './ai/useMentionList';
 import type { SuggestMember } from './docs/RefSuggester';
 import { hasProof, isUnprovable } from '../utils/proofRules';
 import styles from './TestCasesSection.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 interface ChildTestCaseSource {
   ticketId: string;
@@ -433,7 +434,7 @@ function TestCaseRowItem({
                           })
                         }
                       >
-                        ×
+                        <LineIcon name="close" size={12} />
                       </button>
                     )}
                   </div>

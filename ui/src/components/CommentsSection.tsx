@@ -43,6 +43,7 @@ import {
   type Person,
   type QueuedComment,
 } from './comments/commentUtils';
+import { LineIcon } from './ui/LineIcon';
 
 interface CommentsSectionProps {
   ticketId: string;
@@ -747,7 +748,7 @@ export function CommentsSection({
                 requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
               }}
             >
-              ↩ Reply
+              <LineIcon name="reply" size={12} /> Reply
             </button>
           )}
           <button type="button" data-testid="comment-copy-link" style={barBtn()} onClick={() => copyLink(c)}>
@@ -946,7 +947,9 @@ export function CommentsSection({
           }}
           title={`Currently ${sortOrder === 'newest' ? 'newest first' : 'oldest first'}. Click to toggle.`}
         >
-          <span style={{ fontSize: 13, lineHeight: 1 }}>⇅</span>
+          <span style={{ fontSize: 13, lineHeight: 1 }}>
+            <LineIcon name="sort" size={13} />
+          </span>
           <span>{sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}</span>
         </button>
       </div>

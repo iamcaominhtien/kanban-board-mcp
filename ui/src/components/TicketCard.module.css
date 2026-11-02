@@ -15,7 +15,7 @@
     box-shadow 0.15s ease,
     transform 0.15s ease;
   user-select: none;
-  min-height: 140px;
+  /* no fixed minimum: a card fits its content, as drawn (a one-line title left a 45 px empty band, comp-1 TC-1) */
   container-type: inline-size;
 }
 

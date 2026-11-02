@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { LineIcon, type LineIconName } from './ui/LineIcon';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
@@ -53,7 +54,12 @@ export interface DocsRenderOptions {
 }
 
 const NO_REFS: DocsRefRequest[] = [];
-const CALLOUT_ICONS: Record<string, string> = { info: 'ℹ', warning: '⚠', danger: '⛔', tip: '💡' };
+const CALLOUT_ICONS: Record<string, LineIconName> = {
+  info: 'info',
+  warning: 'warning',
+  danger: 'blocked',
+  tip: 'bulb',
+};
 
 interface MarkdownRendererProps {
   children: string;
@@ -218,7 +224,7 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
           return (
             <div className={`${styles.callout} ${styles[`callout_${kind}`] ?? ''}`} role="note">
               <span className={styles.calloutIcon} aria-hidden="true">
-                {CALLOUT_ICONS[kind]}
+                {CALLOUT_ICONS[kind] && <LineIcon name={CALLOUT_ICONS[kind]} size={16} />}
               </span>
               <div className={styles.calloutBody}>{inner}</div>
             </div>

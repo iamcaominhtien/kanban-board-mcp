@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { AssistDraft, DraftChange } from '../../types/assist';
 import { OP_WORDS } from '../ai/board/tierWords';
 import { STATUS_LABEL, TicketPill } from './assistUi';
+import { LineIcon } from '../ui/LineIcon';
 
 /** One change an answer made by itself, as the server records it: `{op, ticket, before, after}` and a few more. */
 export type AppliedChange = { op: string; ticket?: string; [k: string]: unknown };
@@ -193,7 +194,7 @@ export function DoneReceipt({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         <span aria-hidden="true" style={{ color: '#1F5A31', fontWeight: 700 }}>
-          ✓
+          <LineIcon name="check" size={13} />
         </span>
         <b style={{ fontSize: 12.5, color: '#1F5A31', flex: 1 }}>
           {undone ? `Undone — ${draft.result.undo?.undone ?? n} put back` : `Done — ${n} change${n === 1 ? '' : 's'}`}
@@ -219,7 +220,7 @@ export function DoneReceipt({
           }}
         >
           <span style={{ flex: 'none', marginTop: 2, color: '#1F5A31' }} aria-hidden="true">
-            ✓
+            <LineIcon name="check" size={13} />
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             {a.ticket || (a.op === 'create' && a.created) ? (

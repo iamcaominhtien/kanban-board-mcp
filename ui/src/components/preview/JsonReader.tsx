@@ -5,6 +5,7 @@ import { decodeText, looksLikeText, useFileData } from './useFileData';
 import { formatFileSize } from '../../utils/fileIcons';
 import type { ReaderProps } from './readerTypes';
 import styles from './PreviewViewer.module.css';
+import { LineIcon } from '../ui/LineIcon';
 
 type Mode = 'formatted' | 'tree' | 'raw';
 
@@ -34,7 +35,9 @@ function Node({ name, value, depth, open }: { name?: string; value: unknown; dep
         aria-expanded={expanded}
         onClick={() => setExpanded((e) => !e)}
       >
-        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
+        <span aria-hidden="true">
+          {expanded ? <LineIcon name="chevronDown" size={12} /> : <LineIcon name="chevronRight" size={12} />}
+        </span>
         {label}
         <span className={styles.jsonMeta}>
           {isArr ? '[' : '{'} {entries.length}{' '}

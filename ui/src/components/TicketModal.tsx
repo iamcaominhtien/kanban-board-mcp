@@ -97,6 +97,7 @@ import { useOnline } from '../hooks/useOnline';
 import { SetPendingDialog } from './SetPendingDialog';
 import { ResumeDialog } from './ResumeDialog';
 import styles from './TicketModal.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
 
@@ -2800,7 +2801,7 @@ function TicketModalInner({
                                           className={styles.branchWorktreePill}
                                           title={`Worktree: ${b.worktreePath}`}
                                         >
-                                          🌳
+                                          <LineIcon name="branch" size={12} />
                                         </span>
                                       )}
                                       {isActive ? (
