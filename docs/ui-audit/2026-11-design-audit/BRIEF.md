@@ -86,6 +86,26 @@ Images: [design A1](../../../design/images/…) · [now A1](shots/<part>/<file>.
 - Keep a short **Patterns** list at the end of the file: problems seen across several artboards (for example
   "emoji used as icons in 6 places").
 
+## Demo video (required)
+
+Record one demo video of your part: a walk through the screens you audited in the running app, showing the
+problems you found. One scene per finding cluster, captions in **Vietnamese** (the reader is Vietnamese), short
+(one line, two at most), naming the problem and its finding id, for example
+`AB-1 · Mở dock Ask AI: tên project bị xuống 2 dòng, mất nút New Ticket`. Aim for 1–3 minutes.
+
+- **Captions never cover the UI.** Use the shared helpers, which put them in a dark band under the recording:
+  - record with `/tmp/claude-0/-home-user-kanban-board-mcp/217c9eaa-a832-52d5-8a05-ade5a07b6b57/scratchpad/audit/tools/recorder.cjs`
+    (`const { page, cap, click, moveTo, wait, finish } = await rec.start(__dirname)`; call `cap('…')` at the start
+    of each scene, `await finish()` at the end; it writes `raw.webm` and `captions.json` in your folder and shows
+    a cursor dot);
+  - then `python3 -I /tmp/claude-0/-home-user-kanban-board-mcp/217c9eaa-a832-52d5-8a05-ade5a07b6b57/scratchpad/audit/tools/make_video.py <your folder> "<Part name>" <out.mp4>`.
+- Save it as `/tmp/claude-0/-home-user-kanban-board-mcp/217c9eaa-a832-52d5-8a05-ade5a07b6b57/scratchpad/audit/videos/<your-part>.mp4`
+  (not in the repo: videos are too large to commit).
+- Before you report, pull a few frames (`ffmpeg -ss <t> -i … -frames:v 1 f.png`) and look at them: the scene must
+  show what its caption says, and no caption may sit over the app. Give each scene enough time to read (3–5 s).
+- Same rules as the audit: never start a real AI run, only add data.
+- Link the video path at the top of your Markdown file.
+
 ## Report back
 
 A short message: the file path, counts by severity, the five worst findings in one line each, and anything you
