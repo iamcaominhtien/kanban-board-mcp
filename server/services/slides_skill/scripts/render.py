@@ -222,7 +222,13 @@ def main() -> int:
     result: dict = {"way": way, "pages": [str(p) for p in pages]}
     if pages:
         other = render(a.compare, a.out / "compare", a.dpi)[1] if a.compare else None
-        result["sheet"] = str(sheet(pages, a.out / "sheet.png", compare=other))
+        try:
+            result["sheet"] = str(sheet(pages, a.out / "sheet.png", compare=other))
+        except ImportError:  # the pages are there; only the sheet needs Pillow
+            result["sheet"] = None
+            result["note"] = (
+                "pip install pillow for sheet.png; open the pages one by one meanwhile"
+            )
     print(json.dumps(result))
     return 0 if pages else 2
 

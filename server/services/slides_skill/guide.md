@@ -20,6 +20,9 @@ Chrome or Edge; else `playwright install chromium`).
   besides the title. Detail goes in the speaker notes (`<aside class="notes">`).
 - A cover that says the point, and a last slide that says what is asked of the room (a decision, a next step).
 - No invented facts or numbers. A fact you do not have is a visible placeholder, and your report lists it.
+- A comparison compares like with like: the same period, the same unit and currency (growth in dong beside growth
+  in dollars is not a comparison: convert, or use each one's constant-currency figure), the same scope. Say on the
+  slide what was converted and how, and put the sources on a slide of their own.
 - Vary the slides by what each one says: a big number, a chart, a picture beside text, two options, steps, a quote.
   Ten slides of "title and bullets" is the template look.
 
@@ -68,7 +71,10 @@ theme names its pair).
 3. `python scripts/pptx_template.py build template.pptx outline.json -o deck.pptx`, then
    `python scripts/render.py deck.pptx --out look/ --compare template.pptx` and compare each slide with its source.
 4. Do as the template does: its fonts, colours, title style, density and picture style. Do not add colours, fonts or
-   decoration it does not have; text that does not fit is shortened, not shrunk below the template's sizes.
+   decoration it does not have; text that does not fit is shortened, not shrunk below the template's sizes. A
+   picture on a copied slide that belongs to the template's own subject (a shield on a security deck's cover) is
+   swapped for one about yours, or removed: the look stays, the old topic goes. What the template has no slot for (a
+   chart, a table) goes in with `add`, in its theme colours by name.
 A template that is only a PDF or pictures: rebuild its look in HTML (colours picked from it, the nearest fonts, the same
 grid) and say in your report that it is a rebuild.
 
