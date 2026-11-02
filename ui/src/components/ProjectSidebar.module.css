@@ -122,12 +122,12 @@
 }
 
 .projectItemActive {
-  background: #2e6f40;
+  background: var(--color-forest);
   color: #ffffff;
 }
 
 .projectItemActive:hover {
-  background: #2e6f40;
+  background: var(--color-forest);
 }
 
 .projectDot {
@@ -166,7 +166,7 @@
 
 .prefixBadge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   color: #8fa396;
   background: rgba(255, 255, 255, 0.06);
@@ -313,7 +313,7 @@
 }
 
 .formInput:focus {
-  border-color: #68ba7f;
+  border-color: var(--color-sage);
 }
 
 .formError {
@@ -354,7 +354,7 @@
 
 .submitBtn {
   flex: 1;
-  background: #2e6f40;
+  background: var(--color-forest);
   border: none;
   border-radius: 6px;
   padding: 5px 10px;
@@ -406,7 +406,7 @@
 }
 
 .ideaCardActive .ideaIcon {
-  color: #68ba7f;
+  color: var(--color-sage);
 }
 
 .ideaCard:hover .ideaIcon {
@@ -459,7 +459,7 @@
 }
 
 .toggleTrackActive {
-  background: #2e6f40;
+  background: var(--color-forest);
 }
 
 .toggleKnob {
@@ -657,7 +657,7 @@
 
 .memberPill {
   background: #dceee1;
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 
 .sidebarIconActive {

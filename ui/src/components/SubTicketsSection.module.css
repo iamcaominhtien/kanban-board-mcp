@@ -22,21 +22,21 @@
   flex-grow: 1;
   height: 4px;
   border-radius: 2px;
-  background: #dce6df;
+  background: var(--color-border);
   overflow: hidden;
   max-width: 120px;
 }
 
 .progressBarFill {
   height: 100%;
-  background: #2e6f40;
+  background: var(--color-forest);
   transition: width 0.2s ease;
 }
 
 .progressCount {
   font-size: 11px;
   font-weight: 600;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .empty {
@@ -111,7 +111,7 @@
 
 .waveDone {
   background: #dceee1;
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 
 .waveReady {
@@ -178,7 +178,7 @@
 
 .ticketTitleDone {
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   text-decoration: line-through;
   text-decoration-color: #c7d2cb;
   cursor: pointer;
@@ -186,14 +186,14 @@
 
 .ticketTitleInProgress {
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   font-weight: 500;
   cursor: pointer;
 }
 
 .ticketTitleOpen {
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   cursor: pointer;
 }
 
@@ -258,13 +258,13 @@
 }
 
 .addDashedBtn:hover {
-  border-color: #2e6f40;
-  color: #2e6f40;
+  border-color: var(--color-forest);
+  color: var(--color-forest);
 }
 
 /* Expanded Form Box */
 .expandedBox {
-  border: 1px solid #2e6f40;
+  border: 1px solid var(--color-forest);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
@@ -294,7 +294,7 @@
 
 .tabActive {
   background: #f1f8f3;
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 
 .inputRow {
@@ -310,7 +310,7 @@
   outline: none;
   font-family: inherit;
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   background: none;
 }
 
@@ -332,7 +332,7 @@
 
 .actionBtnCancel:hover {
   background: #eef3ef;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .actionBtnCreate {
@@ -340,7 +340,7 @@
   height: 22px;
   border-radius: 5px;
   border: none;
-  background: #2e6f40;
+  background: var(--color-forest);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -373,7 +373,7 @@
   outline: none;
   font-family: inherit;
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   background: none;
 }
 
@@ -405,10 +405,28 @@
   background: #f6faf7;
 }
 
+/* Status before the type icon: filled = in progress, outline = anything else (design) */
+.resultDot,
+.resultDotFilled {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.resultDot {
+  border: 1.4px solid #9aa8a0;
+}
+
+.resultDotFilled {
+  background: #2f6fb0;
+}
+
 .resultTitle {
   flex-grow: 1;
   font-size: 12.5px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

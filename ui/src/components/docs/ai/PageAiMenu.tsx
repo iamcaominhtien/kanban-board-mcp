@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { assistApi, assistError } from '../../../api/assist';
-import { useDocsAiState } from '../../../api/docsAi';
+import { useTickets } from '../../../api/tickets';
+import { useDocsAiState, useSetPageAiFlags } from '../../../api/docsAi';
 import { freshnessUnavailable, useCheckFreshness } from '../../../api/docsAiPage';
 import { extractError } from '../../../api/extractError';
 import type { DocsPage } from '../../../types/docs';
@@ -59,6 +60,12 @@ export function PageAiMenu({
   const [tickets, setTickets] = useState(false);
   const [other, setOther] = useState('');
   const box = useRef<HTMLDivElement>(null);
+  const flags = useSetPageAiFlags(page.projectId, page.id);
+  const projectTickets = useTickets(projectId);
+  const knownTickets = useMemo(
+    () => (projectTickets.data ? new Set(projectTickets.data.map((t) => t.id)) : undefined),
+    [projectTickets.data],
+  );
   const gate = aiGate(state.data, { hidden: !!page.aiHidden });
   const menu = pageMenu(gate, canEdit);
 
@@ -84,6 +91,10 @@ export function PageAiMenu({
   if (menu.kind === 'none') return null;
   const published = page.version > 0;
   const markdown = published ? page.markdown : (page.draft?.markdown ?? page.markdown);
+  // AI-3: a ticket key that does not exist is not read, so it is not counted
+  const resolvedText = knownTickets
+    ? markdown.replace(/\b[A-Z][A-Z0-9]{1,5}-\d+\b/g, (k) => (knownTickets.has(k) ? k : ''))
+    : markdown;
   const noFresh = fresh.isError && freshnessUnavailable(fresh.error);
 
   const run = (id: string) => {
@@ -142,8 +153,23 @@ export function PageAiMenu({
             <div style={{ display: 'flex', gap: 10, padding: '10px 10px 12px', alignItems: 'flex-start' }}>
               <Icon name="lock" size={16} strokeWidth={1.9} style={{ color: '#6b5bd2', marginTop: 2 }} />
               <div>
-                <div className="pai-row-title">Hidden from AI</div>
-                <div className="pai-row-hint">{menu.text}</div>
+                <div className="pai-row-title">This page is hidden from AI</div>
+                {/* the server's own words (who hid it, why) when it sends them; the design copy otherwise */}
+                <div className="pai-row-hint">
+                  {menu.text || 'Ask, summaries and AI runs skip it. People can still read and edit it.'}
+                </div>
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="st-btn st-btn-sm"
+                    style={{ marginTop: 8 }}
+                    disabled={flags.isPending}
+                    data-testid="ai-show-to-ai"
+                    onClick={() => flags.mutate({ hidden: false })}
+                  >
+                    Show to AI
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -182,7 +208,9 @@ export function PageAiMenu({
                     <Icon name={r.icon} size={16} strokeWidth={1.9} className="pai-row-ico" />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <div className="pai-row-title">{r.title}</div>
-                      <div className="pai-row-hint">{off ?? (r.id === 'check' ? freshnessHint(markdown) : r.hint)}</div>
+                      <div className="pai-row-hint">
+                        {off ?? (r.id === 'check' ? freshnessHint(resolvedText) : r.hint)}
+                      </div>
                     </span>
                     {r.shortcut && (
                       <span style={{ display: 'flex', gap: 3 }}>
@@ -253,7 +281,7 @@ export function PageAiMenu({
               <div className="pai-rule" />
               <div className="pai-reads" data-testid="ai-reads">
                 <span>Reads</span>
-                {readsChips(markdown).map((c) => (
+                {readsChips(resolvedText).map((c) => (
                   <span key={c} className="pai-chip">
                     {c}
                   </span>

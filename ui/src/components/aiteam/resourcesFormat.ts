@@ -24,6 +24,11 @@ export function fmtGb(mb: number): string {
   return Number.isInteger(Math.round(gb * 10) / 10) ? `${Math.round(gb)} GB` : `${gb.toFixed(1)} GB`;
 }
 
+/** "2.0 / 15.7 GB": one decimal on both, the unit once. */
+export function fmtGbOf(usedMb: number, totalMb: number): string {
+  return `${(usedMb / 1024).toFixed(1)} / ${(totalMb / 1024).toFixed(1)} GB`;
+}
+
 /** The share of the limit a run's CLI is using (0 when there is no limit). */
 export function limitPct(rssMb: number | null, limitMb: number): number {
   return rssMb != null && limitMb > 0 ? Math.round((rssMb / limitMb) * 100) : 0;

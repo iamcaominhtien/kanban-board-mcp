@@ -139,7 +139,8 @@ export function SketchEmbed({ id, label, small, readOnly, onReplace, onChanged }
         </span>
         <span className={styles.embedName}>{s.title}</span>
         <span className={styles.embedWhen}>
-          {s.version > 1 ? 'Edited' : 'Added'} by {actorName(s.updatedBy)} · {relativeTime(s.updatedAt)}
+          {s.width} × {s.height} · {s.version > 1 ? 'Edited' : 'Added'} by {actorName(s.updatedBy)} ·{' '}
+          {relativeTime(s.updatedAt)}
         </span>
       </figcaption>
     </figure>

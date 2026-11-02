@@ -389,7 +389,10 @@ export function SearchPalette({
       return out;
     }
     if (mode === 'ticket') {
-      const tickets = ticketQ.data?.tickets ?? data.tickets;
+      const allTickets = ticketQ.data?.tickets ?? data.tickets;
+      // SR-2: a ticket key finds that ticket first; the longer keys that start with it stay listed under it
+      const isExact = (t: { ticketId: string }) => t.ticketId.toLowerCase() === dTrim.toLowerCase();
+      const tickets = [...allTickets.filter(isExact), ...allTickets.filter((t) => !isExact(t))];
       if (tickets.length) {
         out.push({
           title: `Ticket · ${tickets.length}`,
@@ -996,7 +999,9 @@ export function SearchPalette({
                   <span className="mc-dot" style={{ background: '#2F6FB0' }} />
                   {statusLabel(r.status)}
                 </span>
-                <span style={{ color: '#9AA8A0' }}>· mentioned in {data?.pages.length ?? 0} pages</span>
+                <span style={{ color: '#9AA8A0' }}>
+                  · mentioned in {data?.pages.length ?? 0} {(data?.pages.length ?? 0) === 1 ? 'page' : 'pages'}
+                </span>
               </div>
             </div>
             <span style={{ display: 'flex', color: '#2E6F40', marginTop: 2 }}>
@@ -1527,7 +1532,14 @@ export function SearchPalette({
     );
   })();
 
-  // footer
+  // footer. SR-3: the same count as the "Show all N results" row (pages plus tickets) so the two never disagree
+  const footerCount = data
+    ? showOffline || mode === 'headings'
+      ? flat.length
+      : scope === 'space' && mode === 'plain'
+        ? data.total + (data.tickets?.length ?? 0)
+        : data.total
+    : 0;
   const countText = data
     ? mode === 'ticket'
       ? null
@@ -1537,7 +1549,7 @@ export function SearchPalette({
           ? `${flat.length} ${flat.length === 1 ? 'match' : 'matches'} · ${data.tookMs} ms`
           : hasExclude
             ? `${data.total} shown · ${data.tookMs} ms`
-            : `${showOffline || mode === 'headings' ? flat.length : data.total} ${(showOffline || mode === 'headings' ? flat.length : data.total) === 1 ? 'result' : 'results'} · ${data.tookMs} ms`
+            : `${footerCount} ${footerCount === 1 ? 'result' : 'results'} · ${data.tookMs} ms`
     : null;
   const footer = (() => {
     const wrap = (left: ReactNode, right?: ReactNode) => (

@@ -31,6 +31,7 @@ import { buildExtensions } from './extensions';
 import { anchorFromState, commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
 import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
 import { tiptapAdapter } from '../../ai/editor/adapters';
+import { NodeSelection } from '@tiptap/pm/state';
 import { EditorAiSelectionBar, useEditorAi } from '../../ai/editor/useEditorAi';
 import { createSuggest } from './extensions/suggest';
 import { useDiagramStarter } from '../../diagrams/useDiagramStarter';
@@ -345,7 +346,15 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   uploadFileRef.current = uploadFile;
 
   // AI in the text: /ai (a slash item), Ctrl+J, the selection bar. The hook is told how to read and write this editor.
-  const aiAdapter = useMemo(() => tiptapAdapter(() => editorRef.current), []);
+  // IP-14: a picked sketch/image/diagram (a node selection) has no text: the AI selection bar never offers actions there
+  const aiAdapter = useMemo(() => {
+    const base = tiptapAdapter(() => editorRef.current);
+    return {
+      ...base,
+      capture: (mode: Parameters<typeof base.capture>[0]) =>
+        mode === 'selection' && editorRef.current?.state.selection instanceof NodeSelection ? null : base.capture(mode),
+    };
+  }, []);
   const aiSurface = inlineAi?.surface ?? 'doc';
   const textAi = useEditorAi({
     surface: aiSurface,

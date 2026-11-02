@@ -1558,6 +1558,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       reloadKey={reloadKey}
                       interactive={tryId === b.id}
                       onLoaded={bumpFrames}
+                      hideEmptyLabel
                     />
                   </div>
                 </div>
@@ -1716,6 +1717,11 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                         {Math.round(b.w)} x {Math.round(b.h)}
                       </span>
                     </div>
+                    {(b.kind === 'empty' || (b.kind === 'html' && !b.content)) && (
+                      <div className={styles.emptyLabel} data-testid="board-empty-label">
+                        Empty frame
+                      </div>
+                    )}
                     {side === 'boards' && (
                       <span className={styles.orderBadge} data-testid="canvas-order-badge">
                         {ordered.findIndex((o) => o.id === b.id) + 1}

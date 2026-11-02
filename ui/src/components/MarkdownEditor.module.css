@@ -63,7 +63,7 @@
 .editContainer {
   display: flex;
   flex-direction: column;
-  border: 1px solid #2e6f40;
+  border: 1px solid var(--color-forest);
   border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
@@ -115,12 +115,12 @@
 }
 
 .tab:hover:not(.tabActive) {
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .tabActive {
   background: #ffffff;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   box-shadow: 0 1px 2px rgba(30, 42, 34, 0.08);
 }
 
@@ -140,7 +140,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   transition:
     background 0.12s,
     color 0.12s;
@@ -150,12 +150,12 @@
 
 .toolbarBtn:hover:not(:disabled) {
   background: #eaf0ec;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .toolbarBtnActive {
   background: #eaf0ec;
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 
 .toolbarBtn:disabled {
@@ -166,7 +166,7 @@
 .divider {
   width: 1px;
   height: 16px;
-  background: #dce6df;
+  background: var(--color-border);
   margin: 0 4px;
 }
 
@@ -205,13 +205,13 @@
   padding: 6px 14px;
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--color-forest, #2e6f40);
+  color: var(--color-forest, var(--color-forest));
   background: #f1f8f3;
   border-bottom: 1px solid #d7e8dc;
 }
 
 :global(.dark) .uploadStatus {
-  color: var(--color-sage, #68ba7f);
+  color: var(--color-sage, var(--color-sage));
   background: rgba(46, 111, 64, 0.15);
   border-bottom-color: rgba(46, 111, 64, 0.25);
 }
@@ -220,7 +220,7 @@
   width: 13px;
   height: 13px;
   border: 2px solid rgba(46, 111, 64, 0.25);
-  border-top-color: var(--color-forest, #2e6f40);
+  border-top-color: var(--color-forest, var(--color-forest));
   border-radius: 50%;
   animation: uploadSpin 0.7s linear infinite;
   flex-shrink: 0;
@@ -252,7 +252,7 @@
   min-height: 180px;
   box-sizing: border-box;
   outline: none;
-  caret-color: #2e6f40;
+  caret-color: var(--color-forest);
   font-family:
     'Plus Jakarta Sans',
     system-ui,
@@ -279,14 +279,14 @@
 .wysiwygArea h1 {
   font-size: 20px;
   font-weight: 700;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   margin: 0 0 6px;
 }
 
 .wysiwygArea h2 {
   font-size: 17px;
   font-weight: 700;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   margin: 12px 0 4px;
 }
 
@@ -297,7 +297,7 @@
 .wysiwygArea h3 {
   font-size: 14.5px;
   font-weight: 700;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   margin: 10px 0 2px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -331,7 +331,7 @@
   background: #f6faf7;
   padding: 1px 5px;
   border-radius: 3px;
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 
 .wysiwygArea pre {
@@ -353,7 +353,7 @@
 
 .wysiwygArea mark {
   background: rgba(232, 185, 58, 0.35);
-  color: #1e2a22;
+  color: var(--color-text-pri);
   padding: 0 2px;
   border-radius: 2px;
 }
@@ -361,13 +361,13 @@
 .wysiwygArea blockquote {
   margin: 0 0 12px;
   padding: 2px 14px;
-  border-left: 2.5px solid #dce6df;
-  color: #5b6b60;
+  border-left: 2.5px solid var(--color-border);
+  color: var(--color-text-sec);
   font-style: italic;
 }
 
 .wysiwygArea a {
-  color: #2e6f40;
+  color: var(--color-forest);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -411,7 +411,7 @@
   outline: none;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12.5px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   background: none;
   padding: 2px 0;
 }
@@ -435,7 +435,7 @@
 
 .popoverTextDisplay {
   font-size: 12.5px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   padding: 5px 7px;
   background: #f6faf7;
   border-radius: 5px;
@@ -462,14 +462,14 @@
 }
 
 .popoverCancelBtn:hover {
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .popoverApplyBtn {
   font-size: 11.5px;
   font-weight: 600;
   color: #ffffff;
-  background: #2e6f40;
+  background: var(--color-forest);
   border: none;
   border-radius: 5px;
   padding: 4px 10px;
@@ -516,7 +516,7 @@
 
 .wysiwygArea li[data-task] > input[type='checkbox'] {
   margin-right: 6px;
-  accent-color: #2e6f40;
+  accent-color: var(--color-forest);
   cursor: pointer;
 }
 
@@ -543,7 +543,7 @@
 .resizerBorder {
   position: absolute;
   inset: 0;
-  border: 2px solid var(--color-forest, #2e6f40);
+  border: 2px solid var(--color-forest, var(--color-forest));
   border-radius: 6px;
   pointer-events: none;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
@@ -559,7 +559,7 @@
   gap: 4px;
   padding: 3px 6px;
   background: #ffffff;
-  border: 1px solid var(--color-border, #dce6df);
+  border: 1px solid var(--color-border, var(--color-border));
   border-radius: 8px;
   box-shadow: 0 4px 14px rgba(30, 42, 34, 0.16);
   pointer-events: auto;
@@ -577,21 +577,21 @@
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-forest, #2e6f40);
+  color: var(--color-forest, var(--color-forest));
   background: #f1f8f3;
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 :global(.dark) .resizerDimBadge {
-  color: var(--color-sage, #68ba7f);
+  color: var(--color-sage, var(--color-sage));
   background: rgba(46, 111, 64, 0.2);
 }
 
 .resizerDivider {
   width: 1px;
   height: 14px;
-  background: var(--color-border, #dce6df);
+  background: var(--color-border, var(--color-border));
   margin: 0 2px;
 }
 
@@ -615,7 +615,7 @@
 
 .resizerBtn:hover {
   background: #f1f8f3;
-  color: var(--color-forest, #2e6f40);
+  color: var(--color-forest, var(--color-forest));
 }
 
 :global(.dark) .resizerBtn {
@@ -649,7 +649,7 @@
   width: 10px;
   height: 10px;
   background: #ffffff;
-  border: 2px solid var(--color-forest, #2e6f40);
+  border: 2px solid var(--color-forest, var(--color-forest));
   border-radius: 2px;
   box-shadow: 0 1px 3px rgba(30, 42, 34, 0.25);
   pointer-events: auto;
@@ -660,7 +660,7 @@
 }
 
 .resizeHandle:hover {
-  background: var(--color-forest, #2e6f40);
+  background: var(--color-forest, var(--color-forest));
   transform: scale(1.2);
 }
 

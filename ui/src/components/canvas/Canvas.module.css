@@ -542,6 +542,20 @@ input.title:focus {
   position: absolute;
   box-sizing: border-box;
 }
+.boardSel {
+  outline: 2px solid var(--cv-blue);
+  outline-offset: -1px;
+  border-radius: 4px;
+}
+.emptyLabel {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 700 14px var(--font-body);
+  color: #9aa8a0;
+  pointer-events: none;
+}
 .boardLabel {
   position: absolute;
   left: 0;

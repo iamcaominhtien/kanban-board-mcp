@@ -213,12 +213,12 @@
   }
 }
 .pk-cards {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
 }
 .pk-card {
-  width: 330px;
+  min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
   flex: none;
@@ -769,9 +769,35 @@ button.pk-out-head {
   font-weight: 400;
   color: #1e2a22;
 }
+.pk-choice-opt {
+  position: relative;
+}
 .pk-choice-opt input {
-  margin: 2px 0 0;
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+.pk-choice-opt:focus-within {
+  outline: 2px solid #9cc9a8;
+  outline-offset: 1px;
+}
+.pk-choice-chk {
+  order: 2;
   flex: none;
+  margin-left: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pk-choice-opt > span:not(.pk-choice-chk) {
+  order: 1;
+  flex: 1;
 }
 .pk-choice-on {
   border: 2px solid #2e6f40;

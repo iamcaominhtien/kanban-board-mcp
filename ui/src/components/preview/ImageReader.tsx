@@ -63,6 +63,23 @@ async function toPng(blob: Blob): Promise<Blob> {
   );
 }
 
+/** True when a sample of the picture has a pixel that is not fully opaque (false when it cannot be read). */
+function hasAlpha(img: HTMLImageElement): boolean {
+  try {
+    const c = document.createElement('canvas');
+    c.width = 48;
+    c.height = 48;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return false;
+    ctx.drawImage(img, 0, 0, 48, 48);
+    const d = ctx.getImageData(0, 0, 48, 48).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 /** Image reader: fit, zoom to the pointer, pan, rotate, copy, a map when zoomed, and a background choice. */
 export function ImageReader({ item, onFacts, actions, onNavigate }: ReaderProps) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -71,6 +88,7 @@ export function ImageReader({ item, onFacts, actions, onNavigate }: ReaderProps)
   const [view, setView] = useState<View>({ scale: 1, fit: true, tx: 0, ty: 0, rot: 0 });
   const [bg, setBg] = useState<Background>('dark');
   const [bgOpen, setBgOpen] = useState(false);
+  const bgChosen = useRef(false);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -81,6 +99,7 @@ export function ImageReader({ item, onFacts, actions, onNavigate }: ReaderProps)
   useEffect(() => {
     setNatural(null);
     setFailed(false);
+    bgChosen.current = false;
     setView({ scale: 1, fit: true, tx: 0, ty: 0, rot: 0 });
   }, [item.src]);
 
@@ -267,6 +286,8 @@ export function ImageReader({ item, onFacts, actions, onNavigate }: ReaderProps)
             const h = img.naturalHeight || 300;
             setNatural({ w, h });
             onFacts({ Dimensions: `${img.naturalWidth || '?'} × ${img.naturalHeight || '?'}` });
+            // PT-6: a picture with transparent pixels opens on the checkerboard, unless a background was chosen
+            if (!bgChosen.current && hasAlpha(img)) setBg('checker');
           }}
           onError={() => setFailed(true)}
         />
@@ -350,6 +371,7 @@ export function ImageReader({ item, onFacts, actions, onNavigate }: ReaderProps)
                   role="menuitemradio"
                   aria-checked={bg === b}
                   onClick={() => {
+                    bgChosen.current = true;
                     setBg(b);
                     setBgOpen(false);
                   }}

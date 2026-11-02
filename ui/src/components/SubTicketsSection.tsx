@@ -586,6 +586,11 @@ export function SubTicketsSection({
                         className={styles.resultItem}
                         onClick={() => handleLink(item.id)}
                       >
+                        <span
+                          className={item.status === 'in-progress' ? styles.resultDotFilled : styles.resultDot}
+                          title={item.status}
+                          aria-hidden="true"
+                        />
                         <TicketTypeIcon type={item.type} size={14} />
                         <span className={styles.resultTitle}>{item.title}</span>
                         <span className={styles.resultId}>{item.id}</span>

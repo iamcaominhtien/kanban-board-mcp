@@ -171,6 +171,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
   const windows = useAiWindows();
   const latest = useLatestScan(projectId);
   const [step, setStep] = useState(1);
+  const [footSlot, setFootSlot] = useState<HTMLElement | null>(null);
   const [folder, setFolder] = useState('');
   const [scanId, setScanId] = useState<string | null>(null);
   const scanQ = useScanPoll(scanId);
@@ -345,6 +346,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
               Back
             </button>
           )}
+          {step === 3 && <span ref={setFootSlot} style={{ display: 'contents' }} data-testid="wizard-foot-actions" />}
           <span className="pk-grow" style={{ flex: 1 }} />
           <button className="ai-btn" onClick={onClose}>
             I will do it myself
@@ -578,6 +580,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             onBack={() => setStep(2)}
             onContinue={() => setStep(4)}
             onRecheck={() => void scanQ.refetch()}
+            footSlot={footSlot}
           />
         </div>
       )}
@@ -590,7 +593,21 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             <div className="pk-team-row" style={{ flexWrap: 'wrap' }}>
               {d.team.map((m, i) => (
                 <span key={i} className="ai-chip" style={{ background: '#dceee1', color: '#2e6f40' }}>
-                  {glyph(m.pack)} {m.name}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      background: '#2e6f40',
+                      color: '#fff',
+                      borderRadius: 4,
+                      padding: '1px 5px',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      marginRight: 6,
+                    }}
+                  >
+                    {glyph(m.pack)}
+                  </span>
+                  {m.name}
                   {m.plays ? ` · ${m.plays}` : ''}
                 </span>
               ))}

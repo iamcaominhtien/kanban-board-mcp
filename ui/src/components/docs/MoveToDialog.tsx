@@ -143,15 +143,21 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
   const flat = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return nodes
-      .filter((n) => n.title.toLowerCase().includes(q) || pathOf(n.id).toLowerCase().includes(q))
-      .sort(byPosition)
-      .map((n) => ({
-        id: n.id,
-        title: n.title,
-        path: n.parentId ? pathOf(n.id) : 'Top level',
-        reason: reasonFor(n.id),
-      }));
+    return (
+      nodes
+        .filter((n) => n.title.toLowerCase().includes(q) || pathOf(n.id).toLowerCase().includes(q))
+        // title matches first, then the pages that only match by path
+        .sort(
+          (a, b) =>
+            Number(b.title.toLowerCase().includes(q)) - Number(a.title.toLowerCase().includes(q)) || byPosition(a, b),
+        )
+        .map((n) => ({
+          id: n.id,
+          title: n.title,
+          path: n.parentId ? pathOf(n.id) : 'Top level',
+          reason: reasonFor(n.id),
+        }))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, query, descendants, page.id]);
 

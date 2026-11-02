@@ -1217,7 +1217,7 @@ export function MarkdownEditor({
                   type="button"
                   className={styles.toolbarBtn}
                   aria-label="Attach File"
-                  title="Đính kèm tệp tin (Excel, Word, PowerPoint, PDF, JSON, TXT, Zip...)"
+                  title="Attach file (Excel, Word, PowerPoint, PDF, JSON, TXT, Zip...)"
                   disabled={isUploading}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1362,7 +1362,7 @@ export function MarkdownEditor({
                   type="button"
                   className={styles.toolbarBtn}
                   aria-label="Image"
-                  title="Chèn ảnh"
+                  title="Insert image"
                   disabled={isUploading}
                   onMouseDown={(e) => {
                     e.preventDefault();

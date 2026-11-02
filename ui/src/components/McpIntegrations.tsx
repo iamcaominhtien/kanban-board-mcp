@@ -623,11 +623,12 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
                   <CodeBlock text={manual} kind={manualKind} copyLabel={copyText} />
                 </>
               )}
-              {status?.storedIn && (
+              {(status?.storedIn || (def.id === 'claude-code' && scope === 'project')) && (
                 <>
                   <p className={styles.label}>Stored in</p>
                   <p className={styles.text}>
-                    <span className={styles.code}>{status.storedIn}</span> {SCOPE_NOTE[scope]}
+                    <span className={styles.code}>{status?.storedIn ?? '.mcp.json in the project root'}</span>
+                    {def.id === 'claude-code' && scope === 'user' ? ' (top level)' : ''} {SCOPE_NOTE[scope]}
                   </p>
                 </>
               )}
@@ -698,20 +699,30 @@ export function McpIntegrations() {
   return (
     <section className={styles.section} data-setting="mcp" data-toc="MCP integrations">
       <div className={styles.sectionHead}>
-        <h2 className={styles.title}>MCP integrations</h2>
-        <p className={styles.hint}>
-          Let AI coding tools use your boards through MCP. <span className={styles.toolsChip}>kanban</span>
-          {toolCount !== null && <> · {toolCount} tools.</>}
-        </p>
+        <div className={styles.headRow}>
+          <h2 className={styles.title}>MCP integrations</h2>
+          <span className={styles.toolsChip}>kanban{toolCount !== null && <> · {toolCount} tools</>}</span>
+        </div>
+        <p className={styles.hint}>Let AI coding tools use your boards through MCP.</p>
       </div>
 
       {probe.isLoading ? (
         <>
-          <div className={styles.skel} aria-hidden="true" />
-          <div className={styles.skel} aria-hidden="true" />
-          <p className={styles.hint} role="status">
+          <p className={styles.hint} role="status" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className={`${styles.spin} ${styles.spinDark}`} aria-hidden="true" />
             Checking which tools are installed…
           </p>
+          {[0, 1].map((i) => (
+            <div key={i} className={styles.skelRow} aria-hidden="true">
+              <span className={styles.skel} style={{ width: 40, height: 40, borderRadius: 10 }} />
+              <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span className={styles.skel} style={{ height: 12, width: '30%', borderRadius: 6 }} />
+                <span className={styles.skel} style={{ height: 10, width: '55%', borderRadius: 6 }} />
+              </span>
+              <span className={styles.skel} style={{ height: 22, width: 64, borderRadius: 999 }} />
+              <span className={styles.skel} style={{ height: 30, width: 84, borderRadius: 8 }} />
+            </div>
+          ))}
         </>
       ) : (
         CLIENTS.map((def) => (

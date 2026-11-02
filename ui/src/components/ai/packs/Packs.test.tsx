@@ -500,7 +500,7 @@ describe('team wizard', () => {
     it('typing yourself shows four rows: Not tried yet for a command, Empty for none', async () => {
       await toCommands();
       fireEvent.click(screen.getByRole('button', { name: 'Type the commands' }));
-      const result = await screen.findByTestId('cmd-result');
+      await screen.findByTestId('cmd-result');
       for (const n of ['prepare', 'test', 'lint', 'build'])
         expect(within(screen.getByTestId(`row-${n}`)).getByText('Empty')).toBeTruthy();
       fireEvent.change(screen.getByLabelText('Prepare command'), { target: { value: 'npm ci' } });
@@ -508,7 +508,7 @@ describe('team wizard', () => {
       expect(within(screen.getByTestId('row-prepare')).getByText('Not tried yet')).toBeTruthy();
       expect(within(screen.getByTestId('row-lint')).getByText('Empty')).toBeTruthy();
       for (const b of ['Try them', 'Skip trying', 'Let the AI do it instead', 'Back'])
-        expect(within(result).getByRole('button', { name: b })).toBeTruthy();
+        expect(screen.getByRole('button', { name: b })).toBeTruthy();
       http.post.mockReturnValueOnce(ok(scan({ job: job({ mode: 'try', state: 'running' }) })));
       fireEvent.click(screen.getByRole('button', { name: 'Try them' }));
       await waitFor(() =>

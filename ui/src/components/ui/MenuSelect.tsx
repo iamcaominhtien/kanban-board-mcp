@@ -214,7 +214,7 @@ export function MenuSelect<T extends string>({
           >
             {options.map((o, i) => (
               <div
-                key={o.value}
+                key={`${i}:${o.value}`}
                 role="option"
                 aria-selected={o.value === value}
                 aria-disabled={o.disabled || undefined}

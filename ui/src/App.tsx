@@ -284,6 +284,8 @@ export default function App() {
   const [reopenError, setReopenError] = useState<string | null>(null);
   const [pendingError, setPendingError] = useState<string | null>(null);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  // After a reopen, the lane counts show +1 / −1 (was N) until the Undo toast closes (Ticket Reopen C1)
+  const [reopenDelta, setReopenDelta] = useState<{ id: string; from: Status; to: Status } | null>(null);
   const [lastReopenPayload, setLastReopenPayload] = useState<Parameters<typeof markers.reopen>[1] | null>(null);
   // Card dropped out of Done / Won't Do: the move waits for a confirm at the drop point (TicketReopen A3)
   const [dropReopen, setDropReopen] = useState<{
@@ -363,6 +365,20 @@ export default function App() {
       );
     });
 
+  useEffect(() => {
+    if (!reopenDelta) return;
+    const timer = window.setTimeout(() => setReopenDelta(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [reopenDelta]);
+
+  /** Lane count changes of a reopen in the last 8 s, while the ticket is out of the lane it came from (Undo clears it). */
+  const countDeltas = useMemo<Partial<Record<Status, number>>>(() => {
+    if (!reopenDelta) return {};
+    const t = localTickets.find((x) => x.id === reopenDelta.id);
+    if (!t || t.status === reopenDelta.from) return {};
+    return { [reopenDelta.from]: -1, [t.status]: 1 };
+  }, [reopenDelta, localTickets]);
+
   async function handleConfirmReopen(payload: Parameters<typeof markers.reopen>[1]) {
     const target = reopenTargetTicket ?? dropReopen?.ticket;
     if (!target) return;
@@ -371,6 +387,7 @@ export default function App() {
     setLastReopenPayload(payload);
     try {
       await markers.reopen(target, payload);
+      setReopenDelta({ id: target.id, from: target.status, to: 'todo' });
       setReopenTargetTicket(null);
       setDropReopen(null);
     } catch (err) {
@@ -1074,6 +1091,7 @@ export default function App() {
                           members={members}
                           activeAssignee={activeAssignee}
                           onAssigneeChange={setActiveAssignee}
+                          countDeltas={countDeltas}
                           loadState={boardLoadState}
                           lanesOverride={lanesOverride}
                           statusSlot={loadingPill}

@@ -15,7 +15,7 @@
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 600;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease;
@@ -28,7 +28,7 @@
 }
 
 .triggerOpen {
-  border-color: #2e6f40 !important;
+  border-color: var(--color-forest) !important;
   background: #ffffff !important;
   outline: none;
 }
@@ -111,7 +111,7 @@
 
 .itemActive {
   background: #f1f8f3;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   font-weight: 600;
 }
 

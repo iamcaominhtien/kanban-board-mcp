@@ -140,7 +140,7 @@
 .input:focus,
 .select:focus,
 .textarea:focus {
-  border-color: var(--color-orange);
+  border-color: var(--color-inprogress);
 }
 
 .textarea {

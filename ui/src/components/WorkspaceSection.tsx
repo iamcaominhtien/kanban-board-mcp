@@ -24,6 +24,7 @@ import {
 } from '../utils/workspaceTree';
 import { usePreview } from './preview/PreviewContext';
 import type { PreviewItem } from './preview/types';
+import { getFileTypeMeta } from '../utils/fileIcons';
 import styles from './WorkspaceSection.module.css';
 import { LineIcon } from './ui/LineIcon';
 
@@ -74,6 +75,17 @@ const REFRESH = ['M4 4V10H10', 'M4 10L8 6.5A8 8 0 1 1 4 14'];
 const UPLOAD = ['M12 16V5', 'M7 9L12 4L17 9', 'M5 20H19'];
 const FOLDER_PLUS = [FOLDER, 'M12 10V16', 'M9 13H15'];
 
+/** `/root/kanban-workspace/KAN-1` as `~/kanban-workspace/KAN-1` (the title and Copy keep the real path). */
+function tildePath(path: string): string {
+  return path.replace(/^\/(?:root|home\/[^/]+|Users\/[^/]+)(?=\/|$)/, '~');
+}
+
+/** "3 files" for a folder row. */
+function folderCount(files: WorkspaceFile[], dir: string): string {
+  const n = files.filter((f) => !f.isDir && f.name.startsWith(`${dir}/`)).length;
+  return `${n} ${n === 1 ? 'file' : 'files'}`;
+}
+
 function FileIcon({ entry }: { entry: WorkspaceFile }) {
   if (entry.isDir) {
     return (
@@ -82,16 +94,18 @@ function FileIcon({ entry }: { entry: WorkspaceFile }) {
       </span>
     );
   }
+  // A tint per type, from the design: image orange, video purple, JSON blue, log grey
+  const meta = getFileTypeMeta(entry.name);
   if (previewKind(entry.name) === 'image' && /\.(png|jpe?g|gif|webp)$/i.test(entry.name)) {
     return (
-      <span className={styles.tcFileIcon} style={{ background: '#FBE9E1' }}>
-        <Icon d={['M3 5H21V19H3Z', 'M21 15L16 10L5 19']} color="#B4571F" size={14} />
+      <span className={styles.tcFileIcon} style={{ background: meta.bgColor }}>
+        <Icon d={['M3 5H21V19H3Z', 'M21 15L16 10L5 19']} color={meta.color} size={14} />
       </span>
     );
   }
   return (
-    <span className={styles.tcFileIcon} style={{ background: '#E1EEFB' }}>
-      <Icon d={FILE} color="#2F6FB0" size={14} />
+    <span className={styles.tcFileIcon} style={{ background: meta.bgColor }}>
+      <Icon d={FILE} color={meta.color} size={14} />
     </span>
   );
 }
@@ -240,7 +254,7 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
         <div className={styles.wsPathBar}>
           <Icon d={FOLDER} color="#9AA8A0" size={12} />
           <span className={styles.pathText} title={displayPath}>
-            {displayPath}
+            {tildePath(displayPath)}
           </span>
           <button
             type="button"
@@ -428,8 +442,14 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
 
           <div className={styles.tableContainer}>
             {rows.length === 0 ? (
-              <div className={styles.emptyState}>
-                No files yet. Drop files here, use Upload, or let an agent write into <code>{displayPath}</code>.
+              <div className={`${styles.emptyState} ${styles.emptyDashed}`}>
+                <span className={styles.emptyFolderIcon} aria-hidden="true">
+                  <LineIcon name="folder" size={20} />
+                </span>
+                <div>No files yet. The folder exists, nothing has been written to it yet.</div>
+                <div className={styles.emptyHint}>
+                  Drop files here, use Upload, or let an agent write into <code>{tildePath(displayPath)}</code>.
+                </div>
               </div>
             ) : (
               rows.map((file) => (
@@ -480,7 +500,9 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
                       </span>
                     </button>
                   )}
-                  <span className={styles.fileSize}>{file.isDir ? '' : formatBytes(file.size)}</span>
+                  <span className={styles.fileSize}>
+                    {file.isDir ? folderCount(files, file.name) : formatBytes(file.size)}
+                  </span>
                   <span className={styles.fileTime}>{formatTimeAgo(file.modifiedAt)}</span>
                   <span className={styles.rowActions}>
                     {!file.isDir && (
