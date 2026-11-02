@@ -1,0 +1,237 @@
+/* Team on its own (design/source/AiStoryFlow.dc.html, L). */
+.to-sec {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.to-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.to-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.to-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #5b6b60;
+}
+.to-state-on {
+  color: #2e6f40;
+}
+.to-state-warn {
+  color: #7a5a06;
+}
+.to-means {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.to-means-col {
+  flex: 1 1 260px;
+  min-width: 0;
+  border-radius: 10px;
+  padding: 11px 14px;
+}
+.to-means-own {
+  border: 1px solid #cfe5d6;
+  background: #f4faf6;
+}
+.to-means-you {
+  border: 1px solid #f0dba8;
+  background: #fffbef;
+}
+.to-means ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #1e2a22;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.to-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.to-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.to-group-h {
+  padding-top: 4px;
+}
+.to-group-h .to-h {
+  color: #1e2a22;
+  font-size: 11.5px;
+}
+.to-rule {
+  height: 1px;
+  background: #e3e8e5;
+}
+.to-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding-top: 14px;
+  border-top: 1px solid #eef3ef;
+}
+.to-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.to-row-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.to-row-ctl {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.to-opts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.to-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.to-opt[aria-pressed='true'] {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #1e2a22;
+}
+.to-opt:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.to-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+.to-seg button {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.to-seg button[aria-pressed='true'] {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
+}
+.to-seg button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.to-box {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.to-box-plain {
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
+  color: #3a4a3e;
+}
+.to-box-warn {
+  background: #fef6e7;
+  border: 1px solid #f0dba8;
+  color: #7a5a06;
+}
+.to-box svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.to-tiers {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  padding: 4px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.to-tier {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 10px 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.to-tier + .to-tier {
+  border-top: 1px solid #eef3ef;
+}
+.to-tier-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 21px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.to-check {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.to-check input {
+  margin: 2px 0 0;
+  accent-color: #2e6f40;
+}
+.to-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  background: #f6faf7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #2e6f40;
+}

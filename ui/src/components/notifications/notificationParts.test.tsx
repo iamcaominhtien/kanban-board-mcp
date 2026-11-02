@@ -16,6 +16,7 @@ import {
   inElectron,
   openActionOf,
   relTime,
+  rowActions,
   rowTime,
   snoozeChoices,
   snoozeText,
@@ -106,6 +107,19 @@ describe('notificationUi helpers', () => {
     expect(openActionOf(row({ ticketId: 'K-1' }))).toBe('open_ticket');
     expect(openActionOf(row({ kind: 'day_card' }))).toBe('open');
     expect(openActionOf(row())).toBeNull();
+  });
+
+  it('adds Resume to a ticket stopped at its token cap, while it is open', () => {
+    const cap = row({
+      kind: 'workflow_blocked',
+      ticketId: 'KAN-305',
+      data: { flag: 'quota_cap', used: 412380, cap: 400000 },
+      actions: [{ id: 'open', label: 'Open' }],
+    });
+    expect(rowActions(cap).map((a) => a.id)).toEqual(['workflow:resume', 'open_ticket']);
+    expect(rowActions(cap)[0].label).toBe('Resume');
+    expect(rowActions({ ...cap, done: true })).toBe(cap.actions);
+    expect(rowActions({ ...cap, data: { flag: 'no_member' } })).toBe(cap.actions);
   });
 
   it('gives each kind an icon and a fallback', () => {

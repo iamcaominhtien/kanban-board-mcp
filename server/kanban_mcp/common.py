@@ -86,7 +86,7 @@ MemberId = Annotated[
     str, Field(description="Member id (UUID) from get_projects(project_id).")
 ]
 
-TicketType = Literal["bug", "feature", "task", "chore"]
+TicketType = Literal["bug", "feature", "task", "chore", "story"]
 Priority = Literal["low", "medium", "high", "critical"]
 Status = Literal[
     "backlog", "todo", "in-progress", "review", "testing", "done", "wont_do"

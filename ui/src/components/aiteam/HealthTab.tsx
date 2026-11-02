@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { WorkflowMetrics } from './WorkflowMetrics';
 import { MarksPanel } from './MarksPanel';
+import { StoryAutonomy } from './StoryAutonomy';
 import { useQueryClient } from '@tanstack/react-query';
 import { aiApi, aiKeys } from '../../api/ai';
 import { extractError } from '../../api/extractError';
@@ -15,6 +16,10 @@ export interface HealthActions {
   onOpenMember: (memberId: string) => void;
   onOpenDocsPage: (pageId: string) => void;
   onOpenFlow: (ticketId: string) => void;
+  /** Autonomy by Story: open You stepped in. */
+  onOpenStepped?: () => void;
+  /** Open a Story's page; without it the Story's ticket opens. */
+  onOpenStory?: (storyId: string) => void;
 }
 
 const V: Record<Verdict, { bg: string; fg: string; label: string; line: string }> = {
@@ -366,6 +371,15 @@ export function HealthTab({
           hint={`${m.cost.perTicket != null ? `${fmtUsd(m.cost.perTicket)} per ticket on priced runs. ` : ''}${m.cost.tokensOnly ? `${m.cost.tokensOnly} runs report tokens only. ` : ''}${m.cost.cap ? `${Math.round((m.cost.capShare ?? 0) * 100)}% of the ${fmtUsd(m.cost.cap)} cap` : 'No monthly cap set'}`}
         />
       </div>
+
+      {h.stories && (
+        <StoryAutonomy
+          projectId={projectId}
+          stories={h.stories}
+          onOpenStepped={() => actions.onOpenStepped?.()}
+          onOpenStory={(id) => (actions.onOpenStory ? actions.onOpenStory(id) : actions.onOpenTicket(id))}
+        />
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
         <b style={{ fontSize: 14, flex: 1 }}>Each AI</b>

@@ -50,11 +50,26 @@ export const workflowApi = {
   rule: async (ticketId: string, side: 'reviewer' | 'dev' | 'split', reason?: string) =>
     (await client.post<ArbitrationResult>(`/tickets/${ticketId}/ai/arbitration`, { side, reason })).data,
   tdd: async (ticketId: string) => (await client.get<TddEvidence>(`/tickets/${ticketId}/ai/tdd`)).data,
-  /** Take the Dev step without test-first evidence just this once, or (`ruleOff`) turn the rule off for the project. */
-  acceptTdd: async (ticketId: string, ruleOff = false) =>
-    (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/tdd/accept`, ruleOff ? { ruleOff: true } : {})).data,
-  /** Let a workflow stopped at its token cap go on. */
-  resume: async (ticketId: string) => (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/resume`)).data,
+  /** Take the Dev step without test-first evidence just this once (with why), or (`ruleOff`) turn the rule off for the
+   * project. */
+  acceptTdd: async (ticketId: string, ruleOff = false, reason?: string) =>
+    (
+      await client.post<WorkflowView>(`/tickets/${ticketId}/ai/tdd/accept`, {
+        ...(ruleOff ? { ruleOff: true } : {}),
+        ...(reason ? { reason } : {}),
+      })
+    ).data,
+  /** Accept a testing step that finished with nothing to show (outcome `no_evidence`); the reason is required. */
+  acceptEvidence: async (ticketId: string, reason: string) =>
+    (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/evidence/accept`, { reason })).data,
+  /** Let a workflow stopped at its token cap go on: the same cap again from now, or (`cap`) a higher one for this
+   * ticket, counted from the start of its workflow. */
+  resume: async (ticketId: string, cap?: number) =>
+    (
+      await (cap !== undefined
+        ? client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/resume`, { cap })
+        : client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/resume`))
+    ).data,
 };
 
 /** The templates of a project: the four ready-made, then its own. */
@@ -125,6 +140,7 @@ export function useWorkflowMutation<T, V>(ticketId: string, fn: (v: V) => Promis
       void qc.invalidateQueries({ queryKey: workflowKeys.tdd(ticketId) });
       void qc.invalidateQueries({ queryKey: ['ai', 'ticket-flags'] });
       void qc.invalidateQueries({ queryKey: ['ai', 'ticket-runs', ticketId] });
+      void qc.invalidateQueries({ queryKey: ['ai', 'workflow-board'] });
     },
   });
 }

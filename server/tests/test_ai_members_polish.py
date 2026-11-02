@@ -389,8 +389,10 @@ def test_a_plan_limit_message_is_a_wait_until_its_reset_not_a_failure():
     assert (
         cli.reset_wait("resets 9am (Not/AZone)", now) is not None
     )  # an unknown zone is this computer's own
-    # it is a rate limit, waited for as long as the board allows
-    assert cli.rate_limit_wait(msg) == cli.RATE_WAIT_MAX
+    # it is a rate limit, waited for as long as the board allows (a reset days from now, whatever day the test runs)
+    later = datetime.now(UTC) + timedelta(days=10)
+    far = f"You've hit your weekly limit · resets {later:%b} {later.day} at 4pm (Asia/Saigon)"
+    assert cli.rate_limit_wait(far) == cli.RATE_WAIT_MAX
     assert (
         cli.rate_limit_wait("RESOURCE_EXHAUSTED: Quota exceeded")
         == cli.RATE_WAIT_DEFAULT

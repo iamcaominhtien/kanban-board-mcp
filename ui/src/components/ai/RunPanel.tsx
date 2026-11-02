@@ -21,6 +21,7 @@ import { ChangeAccountDialog } from './accounts/AccountPicker';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
 import { TellBox } from './trouble/TellBox';
 import { TroubleCard } from './trouble/TroubleCard';
+import { EvidenceBlock } from './evidence/EvidenceBlock';
 import './accounts/accountsMember.css';
 import {
   ACTIVE_RUN_STATES,
@@ -338,6 +339,8 @@ export function TicketAiPanel({
       {latest?.state === 'finished' && ['review', 'testing'].includes(ticket.status) && (
         <SummaryCard run={latest} ticket={ticket} onOpenRun={onOpenRun} />
       )}
+      {/* Evidence: the gate, Dev's tests and diff, the Tester's pictures and logs (ai-story-flow N) */}
+      <EvidenceBlock ticket={ticket} />
       {asks.map((r) => (
         <div key={r.id} className="ai-notice ai-notice-info" style={{ alignItems: 'center' }}>
           <span className="ai-spin" />

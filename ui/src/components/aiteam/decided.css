@@ -1,0 +1,388 @@
+/* Decided for you, the token cap on Now and Autonomy by Story (design/screens/ai-story-flow.md M1, O, R3).
+   Values copied from design/source/AiStoryFlow.dc.html. */
+
+.dy-read {
+  flex: 1.4;
+  min-width: 260px;
+  border: 1px solid #cfe5d6;
+  border-radius: 12px;
+  background: #f4faf6;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.dy-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dy-story-select {
+  width: 160px;
+  min-height: 32px;
+  font-size: 13px;
+}
+.dy-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid #d3ddd7;
+  background: #fff;
+  color: #3a4a3e;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dy-kind > span {
+  opacity: 0.7;
+  font-weight: 500;
+}
+.dy-kind.on {
+  background: #1e2a22;
+  border-color: #1e2a22;
+  color: #fff;
+}
+.dy-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.dy-switch {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  background: #c7d2cb;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dy-switch > i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.25);
+  transition: left 0.15s;
+}
+.dy-switch.on {
+  background: #2e6f40;
+}
+.dy-switch.on > i {
+  left: 14px;
+}
+
+.dy-table {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #fff;
+}
+.dy-row {
+  display: grid;
+  grid-template-columns: 62px minmax(260px, 1fr) 150px 250px 96px;
+  gap: 14px;
+  align-items: start;
+  padding: 11px 16px;
+  border-bottom: 1px solid #eef3ef;
+  min-width: 860px;
+}
+.dy-row.head {
+  padding: 9px 16px;
+  background: #fbfcfb;
+  font-size: 11px;
+}
+.dy-row.on {
+  background: #f3f6fb;
+  box-shadow: inset 0 0 0 1.5px #1b3a6b;
+}
+.dy-table > div:last-child > .dy-row:last-child {
+  border-bottom: none;
+}
+.dy-day {
+  padding: 7px 16px;
+  background: #fbfcfb;
+  border-bottom: 1px solid #eef3ef;
+  font-size: 11px;
+  min-width: 860px;
+}
+.dy-when {
+  font-size: 12px;
+  color: #5b6b60;
+  padding-top: 2px;
+}
+.dy-what {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.dy-why {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #3a4a3e;
+  margin-top: 5px;
+}
+.dy-story {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.dy-story-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1b3a6b;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.dy-story-link > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dy-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #3a4a3e;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.dy-mono:hover,
+.dy-story-link:hover {
+  text-decoration: underline;
+}
+.dy-result-hint {
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.dy-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #5b6b60;
+  flex-wrap: wrap;
+}
+
+.dy-empty {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 24px;
+  text-align: center;
+}
+.dy-empty-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f1f5f2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Override this decision? */
+.dy-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.dy-dialog {
+  width: 520px;
+  max-width: 100%;
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(30, 42, 34, 0.18);
+  box-sizing: border-box;
+  overflow: hidden;
+  color: #1e2a22;
+}
+.dy-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eef3ef;
+}
+.dy-x {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.dy-x:hover {
+  background: #f1f5f2;
+}
+.dy-dialog-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dy-quote {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
+}
+.dy-happens {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.dy-happens > div {
+  display: flex;
+  gap: 8px;
+}
+.dy-input {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #d3ddd7;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  box-sizing: border-box;
+}
+.dy-input:focus {
+  outline: none;
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.15);
+}
+.dy-error {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #a5321e;
+  background: #fdf3f0;
+  border: 1px solid #f0c4b8;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.dy-dialog-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid #eef3ef;
+  background: #fbfcfb;
+}
+
+/* Autonomy by Story (Health, R3) */
+.as-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.as-new {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e3f3e7;
+  color: #1f5a31;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.as-row {
+  display: grid;
+  grid-template-columns: 272px 100px 120px 1fr 20px;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 16px;
+  border-bottom: 1px solid #eef3ef;
+  min-width: 760px;
+}
+.as-row.head {
+  padding: 8px 16px;
+  background: #f6faf7;
+  font-size: 11px;
+}
+.as-row.click {
+  cursor: pointer;
+}
+.as-row.click:hover,
+.as-row.open {
+  background: #fbfcfb;
+}
+.as-story-ico {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #e6ecf5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.as-reason {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 16px 7px 52px;
+  font-size: 12.5px;
+  min-width: 760px;
+  box-sizing: border-box;
+}
+.as-reasons {
+  border-bottom: 1px solid #eef3ef;
+  padding: 2px 0 6px;
+}
+
+/* Stopped at cap (Now, O) */
+.cap-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #e8b93a;
+}

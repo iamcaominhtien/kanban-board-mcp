@@ -16,7 +16,28 @@ export const pluginKeys = {
   catalogue: ['ai', 'catalogue'] as const,
   list: (projectId: string) => ['ai', 'plugins', projectId] as const,
   usage: (projectId: string) => ['ai', 'skills-usage', projectId] as const,
+  own: (projectId: string) => ['ai', 'own-plugins', projectId] as const,
 };
+
+/** One of the person's own Claude Code plugins (read from their Claude Code folder; nothing there is changed). */
+export interface OwnPlugin {
+  name: string;
+  scope: string;
+  skills: number;
+  path: string;
+  /** A Claude Code run loads it (installed for the user and not switched off). */
+  loaded: boolean;
+  /** Why it is not loaded. */
+  reason: string | null;
+  /** The roles it is narrowed to; null: every role. */
+  roles: string[] | null;
+}
+
+/** The switch (`own_claude`) and the plugins. */
+export interface OwnPlugins {
+  on: boolean;
+  plugins: OwnPlugin[];
+}
 
 export interface InstallBody extends SourceBody {
   roles: string[];
@@ -49,7 +70,18 @@ export const aiPluginsApi = {
   remove: async (id: string) => {
     await client.delete(`/ai/plugins/${id}`);
   },
+  own: async (projectId: string) => (await client.get<OwnPlugins>(`/projects/${projectId}/ai/own-plugins`)).data,
 };
+
+/** The person's own Claude Code plugins, whether a run loads each, and which roles each is narrowed to. */
+export function useOwnPlugins(projectId: string) {
+  return useQuery({
+    queryKey: pluginKeys.own(projectId),
+    queryFn: () => aiPluginsApi.own(projectId),
+    enabled: !!projectId,
+    retry: false,
+  });
+}
 
 /** The "Suggested for a role" catalogue. */
 export function useCatalogue() {

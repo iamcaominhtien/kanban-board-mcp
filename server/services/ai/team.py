@@ -232,6 +232,98 @@ def _handoffs(
     return out[:limit]
 
 
+async def cap_stops(
+    session: AsyncSession, project_id: str, names: dict[str, str]
+) -> list[dict]:
+    """Tickets whose workflow stopped at their token cap (ai-story-flow O): who held them, used and cap, the step,
+    and the tickets that wait for them."""
+    import json as _json
+
+    from models import AiTicketWorkflow, Ticket
+
+    from . import ops, workflow
+
+    rows = (
+        await session.exec(
+            select(AiTicketWorkflow).where(
+                AiTicketWorkflow.project_id == project_id,
+                AiTicketWorkflow.state == "stopped",
+                AiTicketWorkflow.stop_reason == "quota_cap",
+            )
+        )
+    ).all()
+    if not rows:
+        return []
+    cfg_cap = int(
+        ops.get(await get_settings(session, project_id)).get("ticket_token_cap") or 0
+    )
+    open_tickets = (
+        await session.exec(
+            select(Ticket).where(
+                Ticket.project_id == project_id,
+                col(Ticket.status).not_in(("done", "wont_do")),
+            )
+        )
+    ).all()
+    out = []
+    for wf in rows:
+        meta = workflow.meta_of(wf)
+        used = await workflow.tokens_used(session, wf) - int(meta.get("cap_base") or 0)
+        cap = int(meta.get("cap") or cfg_cap or 0)
+        steps = await workflow.steps_of(session, wf.ticket_id)
+        row = await workflow.current_step(session, wf.ticket_id)
+        held = row.member_id if row is not None and row.member_id else None
+        if held is None:
+            held = next((r.member_id for r in reversed(steps) if r.member_id), None)
+        ticket = await session.get(Ticket, wf.ticket_id)
+        story_id = None
+        if ticket is not None and ticket.parent_id:
+            parent = await session.get(Ticket, ticket.parent_id)
+            story_id = (
+                parent.id if parent is not None and parent.type == "story" else None
+            )
+        waited_by = [
+            t.id
+            for t in open_tickets
+            if wf.ticket_id in (loads(t.blocked_by, []) or [])
+        ]
+        last_run = (
+            await session.exec(
+                select(AiRun)
+                .where(AiRun.ticket_id == wf.ticket_id)
+                .order_by(col(AiRun.queued_at).desc())
+                .limit(1)
+            )
+        ).first()
+        total = len(_json.loads(wf.steps or "[]") or []) or len({r.idx for r in steps})
+        out.append(
+            {
+                "ticket_id": wf.ticket_id,
+                "ticket_title": ticket.title if ticket else None,
+                "member_id": held,
+                "member_name": names.get(held or ""),
+                "used": used,
+                "cap": cap,
+                "waited_by": waited_by,
+                "story_id": story_id,
+                "since": wf.updated_at,
+                "step": (
+                    {"n": row.idx + 1, "total": total, "label": row.label}
+                    if row is not None
+                    else None
+                ),
+                "run_id": (row.run_id if row is not None and row.run_id else None)
+                or (last_run.id if last_run else None),
+                "next": (
+                    {"ticket_id": waited_by[0], "waits_for": wf.ticket_id}
+                    if waited_by
+                    else None
+                ),
+            }
+        )
+    return out
+
+
 async def needs_you(
     session: AsyncSession,
     project_id: str,
@@ -244,6 +336,17 @@ async def needs_you(
     approval, a member that is offline, a Docs change waiting for a decision."""
     items: list[dict] = []
     names = {m["id"]: m["name"] for m in members}
+    for c in await cap_stops(session, project_id, names):
+        items.append(
+            {
+                "kind": "quota_cap",
+                **c,
+                "text": f"{c['member_name'] or 'The AI'} used {c['used']:,} of {c['cap']:,} tokens on "
+                f"{c['ticket_title'] or c['ticket_id']}. It stopped and kept its work.",
+                "blocks": c["ticket_id"],
+                "tickets_waiting": c["waited_by"],
+            }
+        )
     for r in active:
         q = _question_of(r) if r.state == "needs_input" else None
         if q is None:
@@ -639,6 +742,27 @@ async def now_view(
 
     total["touches"] = len(await svc_touches.collect(session, project_id, since))
     items = await needs_you(session, project_id, members, active, tickets, now)
+    # a member that stopped at a ticket's token cap says so on its card (ai-story-flow O)
+    stops = {
+        i["member_id"]: i
+        for i in items
+        if i["kind"] == "quota_cap" and i.get("member_id")
+    }
+    for c in cards:
+        stop = stops.get(c.get("id"))
+        if stop is not None:
+            c["cap_stop"] = {
+                k: stop.get(k)
+                for k in (
+                    "ticket_id",
+                    "ticket_title",
+                    "used",
+                    "cap",
+                    "step",
+                    "run_id",
+                    "next",
+                )
+            } | {"stopped_at": stop.get("since")}
     from . import autopilot as svc_autopilot
 
     cfg = svc_autopilot.config(settings)

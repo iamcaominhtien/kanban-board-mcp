@@ -38,6 +38,7 @@ from api.ai_tools import router as ai_tools_router
 from api.ai_workflow import router as ai_workflow_router
 from api.ai_board import router as ai_board_router
 from api.ai_live_feed import router as ai_live_feed_router
+from api.stories import router as stories_router
 from api.ai_power import router as ai_power_router
 from api.ai_accounts import router as ai_accounts_router
 from api.ai_safety import router as ai_safety_router
@@ -306,6 +307,7 @@ app.include_router(ai_workflow_router)
 app.include_router(ai_board_router)
 app.include_router(ai_power_router)
 app.include_router(ai_live_feed_router)
+app.include_router(stories_router)
 app.include_router(ai_router)
 app.include_router(ai_safety_router)
 app.include_router(ai_config_router)

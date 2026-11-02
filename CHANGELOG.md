@@ -8,6 +8,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.21.0] - 2026-11-02
+
+Story, Flow by scope and Live commentary that follows it, plus the AI screens that ran without a design (`design/screens/ai-story-flow.md`).
+
+### Added
+- **Story**: a fifth ticket type the PM owns from the goal to Done. Give a Story to the PM with a goal, the criteria that say it is done, who approves the plan (pre-selected from the project) and a token budget. The PM writes the plan (its tickets, what waits for what, which criterion each covers); you approve it, change it, tell the PM what to change, or reject it, or the PM approves its own. The tickets run as soon as what they wait for is done; when the last one is done the PM checks every criterion and closes the Story or adds one more ticket. A Story moves with its own state (Draft, Planning, In progress, Review, Done, dropped) and is never dragged; Blocked says what it waits for. A ticket Triage finds too big becomes a Story when the PM splits it, and "Make this a Story" turns a ticket with children into one.
+- **Story on the board**: the Story card (progress, the plan that waits for you, Blocked, times you stepped in), a chip naming the Story on its tickets, and Group by Story (lanes in the six columns, remembered per person). The Story page: goal and criteria, the plan, what the PM decided for you with Override, tokens and money, autonomy.
+- **Decided for you**: every decision the PM took in your place (approved or sent back a design, split a ticket, retried a step, approved its own plan, answered a question, decided a permission) is recorded, with Override while nothing was built on it and the reason when it can no longer be undone. A new AI Team tab lists them with filters.
+- **Flow by scope**: one scope bar (whole project, one Story, one ticket) over the Team map, the Timeline and Live commentary, with a picker, a breadcrumb and a link to copy. The project map groups the work by Story; a Story puts the PM at the centre with a timeline per ticket; a ticket shows its workflow's steps.
+- **Live commentary follows the scope**: Highlights or Everything, dense commands folded, Needs you pinned, a line lit on the drawing, and a reply box to an AI that is working.
+- **While you were away** on Now, **Autonomy by Story** in Health, a ticket stopped at its token cap on Now and on its card with Resume and **Raise the cap**.
+- **Evidence** on a ticket: one block with the gate, Dev's red and green runs and the Tester's pictures and logs; a testing step with no evidence can be accepted with a reason, and accepting work without test-first evidence asks why.
+- **AIs talking to each other** fold into one line in ticket comments and Docs threads, with Join in.
+- **Team on its own** grouped by what it decides, with who approves the design, the risk tiers explained, a confirmation before the PM decides for you, and a state for a project with no PM.
+- **Packs and plugins**: see what a pack update changes, update and go back (30 days); choose which roles load each of your own Claude Code plugins; Bypass permissions per pack, with the warning.
+- **Workflow picker** with each workflow's steps and the roles a project lacks, and a **Keep awake** chip that shows when the computer is held awake and switches it.
+
+### Fixed
+- Two runs starting together no longer fail creating the project's Docs AI settings.
+- The Bypass warning says the web is open in bypass, as it is since 3.20.0.
+
 ## [3.20.0] - 2026-11-02
 
 The AI team on Claude Code, all nine phases of `docs/specs/ai-claude-code-implementation.md` (designs `design/screens/ai-operations.md`, `ai-team-process.md`, `ai-board-wave3.md`).

@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import type { Column as ColumnType, Member, Ticket } from '../types';
 import { DraggableTicketCard } from './DraggableTicketCard';
+import { StoryCard } from './story/StoryCard';
 import styles from './Board.module.css';
 import { useAiBoardState } from './ai/aiUi';
 import loading from './AppLoading.module.css';
@@ -50,7 +51,8 @@ export function Column({
     return r && (r.state === 'running' || r.state === 'starting');
   }).length;
 
-  const columnTicketIds = new Set(tickets.map((t) => t.id));
+  // A Story's children are not tucked under it: they carry a chip naming the Story instead (ai-story-flow C)
+  const columnTicketIds = new Set(tickets.filter((t) => t.type !== 'story').map((t) => t.id));
 
   // Sort by createdAt descending (newest first) before applying hierarchy
   const sorted = [...tickets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -67,6 +69,7 @@ export function Column({
     ordered.push(ticket);
     placed.add(ticket.id);
     // Place direct children immediately after
+    if (ticket.type === 'story') continue;
     for (const child of sorted) {
       if (child.parentId === ticket.id && !placed.has(child.id)) {
         ordered.push(child);
@@ -161,6 +164,10 @@ export function Column({
           </div>
         )}
         {ordered.map((ticket) => {
+          // A Story is never dragged: it moves with its state
+          if (ticket.type === 'story') {
+            return <StoryCard key={ticket.id} ticket={ticket} allTickets={allTickets} onOpen={onCardClick} />;
+          }
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
           const childTicketsForThis = (allTickets ?? tickets).filter((t) => t.parentId === ticket.id);
           const subtaskStats =

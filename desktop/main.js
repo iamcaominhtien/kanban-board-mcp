@@ -307,14 +307,23 @@ function handleMenuCommand(id, payload) {
     case 'check-updates':
       return void checkForUpdatesFromMenu();
     case 'keep-awake':
-      preferences = { ...(preferences || readPreferences(preferencesFile())), keepAwake: !keepAwakeOn() };
-      writePreferences(preferencesFile(), preferences);
-      if (powerKeeper) powerKeeper.tick(); // switching it off releases the computer at once
-      return void refreshMenu();
+      return void setKeepAwake(!keepAwakeOn());
     default:
       return undefined;
   }
 }
+
+// View › Keep awake while AI runs, and the chip in the page that mirrors it (design ai-story-flow R2)
+function setKeepAwake(on) {
+  preferences = { ...(preferences || readPreferences(preferencesFile())), keepAwake: Boolean(on) };
+  writePreferences(preferencesFile(), preferences);
+  if (powerKeeper) powerKeeper.tick(); // switching it off releases the computer at once
+  refreshMenu();
+  return keepAwakeOn();
+}
+
+ipcMain.handle('keep-awake-get', () => keepAwakeOn());
+ipcMain.handle('keep-awake-set', (_event, on) => setKeepAwake(on));
 
 // IPC: the page reports which view is on screen (for the check mark in View)
 ipcMain.on('app-state', (_event, state) => {

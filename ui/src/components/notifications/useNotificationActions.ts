@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { aiApi } from '../../api/ai';
 import { safetyApi } from '../../api/aiSafety';
 import { aiOpsApi, type TroubleAction } from '../../api/aiOps';
+import { workflowApi } from '../../api/aiWorkflow';
 import { extractError } from '../../api/extractError';
 import { notificationKeys, notificationsApi } from '../../api/notifications';
 import type { DayCardData, NotificationRow } from '../../types/notifications';
@@ -142,6 +143,10 @@ const HANDLERS = new Map<string, ActionHandler>(
     'arbitration:reviewer': arbitrate('reviewer'),
     'arbitration:dev': arbitrate('dev'),
     'arbitration:split': arbitrate('split'),
+    // a ticket stopped at its token cap goes on with the same cap, counted from now (ai-story-flow O)
+    'workflow:resume': withRefresh(async (c) => {
+      if (c.row.ticketId) await workflowApi.resume(c.row.ticketId);
+    }),
     open_run_log(c) {
       const id = runIdOf(c);
       if (!id) {

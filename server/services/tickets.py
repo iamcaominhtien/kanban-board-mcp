@@ -350,7 +350,19 @@ async def create_ticket(
         assignee=assignee,
         activity_log=_dumps([act.entry("created", None, None, ref=title)]),
     )
+    if type == "story" and parent_id:
+        raise ValueError(
+            "A Story holds tickets, never Stories: it cannot have a parent."
+        )
     session.add(ticket)
+    if (
+        type == "story"
+    ):  # every Story ticket has its Story, a Draft until it is handed to the PM
+        from models import Story
+
+        session.add(
+            Story(ticket_id=ticket.id, project_id=project_id, created_by=created_by)
+        )
     await session.commit()
     await session.refresh(ticket)
     # new work for the AI team: intake may put it on a workflow (services/ai/manager.py, D8)
@@ -425,6 +437,25 @@ async def update_ticket(
 
     update_data = data.model_dump(exclude_unset=True)
 
+    if ticket.type == "story" and update_data.get("status") not in (
+        None,
+        ticket.status,
+    ):
+        from models import Story
+
+        if await session.get(Story, ticket_id) is not None:
+            raise ValueError(
+                "A Story moves with its own state: hand it to the PM, approve its plan, or pause, drop or reopen it."
+            )
+    if (
+        update_data.get("type") == "story"
+        and ticket.type != "story"
+        or (ticket.type == "story" and update_data.get("type") not in (None, "story"))
+    ):
+        raise ValueError(
+            "Make a ticket a Story with Make this a Story, which hands it to the PM; a Story stays a Story."
+        )
+
     if "title" in update_data:
         update_data["title"] = _clean_title(update_data["title"])
     if "estimate" in update_data:
@@ -452,7 +483,11 @@ async def update_ticket(
         raise ValueError("wont_do_reason is required when status is wont_do")
 
     if update_data.get("status") == "wont_do" and ticket.parent_id is not None:
-        raise ValueError("Child tickets cannot be set to wont_do")
+        parent = await session.get(Ticket, ticket.parent_id)
+        if (
+            parent is None or parent.type != "story"
+        ):  # a Story's plan drops a ticket it no longer needs
+            raise ValueError("Child tickets cannot be set to wont_do")
 
     # When transitioning to "done", enforce block guards
     if update_data.get("status") == "done":

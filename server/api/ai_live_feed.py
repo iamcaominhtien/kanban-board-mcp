@@ -19,9 +19,17 @@ async def get_live_feed(
     session: Session,
     after: Optional[str] = None,
     limit: Annotated[int, Query(ge=1, le=svc_live_feed.MAX_LIMIT)] = 200,
+    story: Optional[str] = None,
+    ticket: Optional[str] = None,
 ) -> dict:
     """The lines after `after` (the cursor of the last answer), oldest first, and the cursor to send next time. Without
-    a cursor: the last `limit` lines of the last few hours."""
+    a cursor: the last `limit` lines of the last few hours. `story` or `ticket` narrow it to that scope; `needs_you`
+    is what waits for a person in it."""
     if await session.get(Project, project_id) is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    return await svc_live_feed.feed(session, project_id, after=after, limit=limit)
+    out = await svc_live_feed.feed(
+        session, project_id, after=after, limit=limit, story=story, ticket=ticket
+    )
+    if out is None:
+        raise HTTPException(status_code=404, detail="Story or ticket not found")
+    return out

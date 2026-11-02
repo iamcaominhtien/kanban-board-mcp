@@ -21,6 +21,7 @@ import { InstructionsCard } from './InstructionsCard';
 import { LibraryPicker } from './LibraryView';
 import { McpCard } from './McpCard';
 import { ModelCard, PermissionsCard } from './PermissionsModelCards';
+import { MemberPackCard } from '../packs/MemberPackCard';
 import { BYPASS_PHRASE, CfgCard, Chip, Dialog, ModeChip, SkeletonCard, useDebounced, type MemberDraft } from './parts';
 import { SkillsCard } from './SkillsCard';
 import { SyncPreview } from './SyncPreview';
@@ -566,6 +567,9 @@ export function ConfigTab({
             </>
           )}
         </div>
+        {kind !== 'inbox' && (
+          <MemberPackCard memberId={member.id} memberName={member.name} projectId={member.projectId} />
+        )}
         {kind !== 'inbox' && <ConfigMigrationOffer memberId={member.id} projectId={member.projectId} />}
         {kind !== 'inbox' && <MemberPluginsCard memberId={member.id} projectId={member.projectId} />}
         {matrix && <MatrixPanel provider={member.provider} />}

@@ -87,6 +87,8 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
         True,
         False,
     ),
+    "story_plan": ("A Story's plan waits for you", True, True, False),
+    "story_blocked": ("A Story cannot go on without you", True, True, False),
     # For information: never interrupts.
     "ai_finished": ("An AI finished work", False, False, False),
     "schedule": ("A scheduled run finished or was skipped", False, False, False),
@@ -99,6 +101,7 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
     "day_card": ("The day in one card", False, False, False),
     "window_wait": ("Runs wait for the next usage window", False, False, False),
     "lesson": ("An AI proposed a lesson for the project", False, False, False),
+    "story_done": ("A Story is done", False, False, False),
 }
 
 # The order of the Settings table (L)

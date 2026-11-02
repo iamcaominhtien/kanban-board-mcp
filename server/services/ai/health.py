@@ -591,6 +591,69 @@ def _suggestions(
     return out
 
 
+_MARK_WORD = {"needed": "Needed", "avoidable": "Avoidable"}
+
+
+def by_story(d: Data, rows: dict, a: datetime, b: datetime) -> list[dict]:
+    """Autonomy by Story (design/screens/ai-story-flow.md R3): how many times a person stepped in on each Story in
+    [a, b), with a reason for each touch that counts. A step the project asks for (an approval, Done) is By rule and
+    not counted against the Story. Drafts and dropped Stories, and Stories closed before the range, are left out
+    unless a person touched them in it; the busiest first."""
+    from . import scope
+
+    of = scope.story_of(d.tickets, rows)
+    touches = [t for t in d.touches if _in(t["at"], a, b) and t["ticket_id"] in of]
+    out = []
+    for sid in {s for s in of.values()}:
+        t = d.tickets.get(sid)
+        if t is None:
+            continue
+        row = rows.get(sid)
+        state = row.state if row else None
+        mine = [x for x in touches if of[x["ticket_id"]] == sid]
+        closed = parse_iso(row.closed_at) if row else None
+        idle = state in ("draft", "dropped") or (
+            state == "done" and closed is not None and closed < a
+        )
+        if idle and not mine:
+            continue
+        kids = [
+            c
+            for c in d.tickets.values()
+            if c.parent_id == sid and c.status != "wont_do"
+        ]
+        marks = Counter(x["mark"] for x in mine)
+        out.append(
+            {
+                "id": sid,
+                "title": t.title,
+                "state": state,
+                "tickets_done": len([c for c in kids if c.status == "done"]),
+                "tickets_total": len(kids),
+                "touches": {
+                    "needed": marks["needed"],
+                    "avoidable": marks["avoidable"],
+                    "by_rule": marks["by_rule"],
+                },
+                "reasons": [
+                    f"{_MARK_WORD[x['mark']]}: {x['what']}"
+                    + (f" on {x['ticket_id']}" if x["ticket_id"] != sid else "")
+                    + (f". {x['why']}" if x.get("why") else "")
+                    for x in sorted(mine, key=lambda x: x["at"] or "")
+                    if x["mark"] in _MARK_WORD
+                ][:10],
+            }
+        )
+    out.sort(
+        key=lambda s: (
+            -(s["touches"]["needed"] + s["touches"]["avoidable"]),
+            s["state"] in ("done", "dropped"),
+            s["title"],
+        )
+    )
+    return out
+
+
 async def load(session: AsyncSession, project_id: str, since: datetime) -> Data:
     """Read what the measures need, from `since` (the start of the previous range) on, and the older runs of the
     tickets involved (rounds are counted from a ticket's first run)."""
@@ -881,6 +944,10 @@ async def health(session: AsyncSession, project_id: str, range_key: str = "7d") 
             }
         )
 
+    from . import scope
+
+    stories = by_story(d, await scope.story_rows(session, project_id), a, now)
+
     counts = Counter(v["verdict"] for v in measures.values() if v["verdict"])
     state = (
         "unknown"
@@ -915,6 +982,7 @@ async def health(session: AsyncSession, project_id: str, range_key: str = "7d") 
         "suggestions": suggestions,
         "not_ok": not_ok,
         "not_ok_total": sum(x["count"] for x in not_ok),
+        "stories": stories,
     }
 
 

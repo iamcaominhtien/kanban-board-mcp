@@ -22,7 +22,13 @@ export type NotificationKind =
   | 'access_request'
   | 'day_card'
   /** A workflow step cannot start, or a ticket reached its token cap (target: the flag; `data.flag` says which). */
-  | 'workflow_blocked';
+  | 'workflow_blocked'
+  /** A Story's plan waits for the person to approve it (target: the Story ticket). */
+  | 'story_plan'
+  /** A Story cannot go on without the person: an approval, a question, its budget (target: the Story ticket). */
+  | 'story_blocked'
+  /** A Story is done: the PM checked its criteria and closed it. */
+  | 'story_done';
 
 /** One event inside a grouped row. */
 export interface NotificationItem {

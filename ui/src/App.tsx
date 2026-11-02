@@ -52,6 +52,7 @@ import type { AiRun } from './types/ai';
 import { AssistProvider, useAssist, useAssistShortcut } from './components/assist/AssistContext';
 import { AssistDock } from './components/assist/AssistDock';
 import { AskAiButton, BoardHealthChip } from './components/assist/AssistEntry';
+import { KeepAwakeChip } from './components/ai/power/KeepAwakeChip';
 import { BoardHealthPanel, BoardHealthToast, InsightChipsProvider } from './components/assist/BoardHealth';
 import { useAssistState, useInsightChips } from './api/assist';
 import {
@@ -1097,6 +1098,7 @@ export default function App() {
                           headerExtra={
                             <>
                               <BoardHealthChip />
+                              <KeepAwakeChip />
                               {aiState.settings && currentProjectId ? (
                                 <PauseAllButton
                                   projectId={currentProjectId}

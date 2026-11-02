@@ -79,6 +79,8 @@ import { BranchesSection } from './BranchesSection';
 import { CreateBranchModal } from './CreateBranchModal';
 import { useProject } from '../api/projects';
 import { SubTicketsSection } from './SubTicketsSection';
+import { StoryPage } from './story/StoryPage';
+import { useMakeStory } from '../api/stories';
 import { SubTasksSection } from './SubTasksSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
@@ -102,6 +104,7 @@ const TYPE_CONFIG: Record<IssueType, { label: string }> = {
   feature: { label: 'Feature' },
   task: { label: 'Task' },
   chore: { label: 'Chore' },
+  story: { label: 'Story' },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -345,6 +348,7 @@ function TicketModalInner({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const toast = useToast();
+  const makeStoryMutation = useMakeStory(ticket?.projectId ?? '');
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
   const updateCommentMutation = useUpdateComment();
@@ -1062,6 +1066,10 @@ function TicketModalInner({
                   <option value="bug">Bug</option>
                   <option value="feature">Feature</option>
                   <option value="chore">Chore</option>
+                  {/* A Story is made by giving it to the PM (the board's Give a Story, or Make this a Story) */}
+                  <option value="story" disabled={ticket.type !== 'story'}>
+                    Story
+                  </option>
                 </select>
               </div>
 
@@ -2159,6 +2167,17 @@ function TicketModalInner({
                               data: { parentId: null },
                             });
                           }}
+                          onMakeStory={
+                            ticket.type !== 'story' && parentTicket?.type !== 'story'
+                              ? () =>
+                                  makeStoryMutation.mutate(ticket.id, {
+                                    onSuccess: () =>
+                                      toast.success('Now a Story', `${ticket.id} waits in Backlog for the PM.`),
+                                    onError: (err) => toast.error("Couldn't make it a Story", extractError(err)),
+                                  })
+                              : undefined
+                          }
+                          makingStory={makeStoryMutation.isPending}
                         />
 
                         {/* Acceptance Criteria */}
@@ -3322,7 +3341,20 @@ export function TicketModal(props: TicketModalProps) {
   const updateTicket = useUpdateTicket();
   const latestTicket = useRef(ticket);
   latestTicket.current = ticket; // a drawing can take minutes: add it to the description as it is by then
+  // A Story opens as the Story page (ai-story-flow E); its menu can still show it as a ticket
+  const [storyAsTicket, setStoryAsTicket] = useState(false);
   if (!ticket) return <TicketModalInner {...props} />;
+  if (ticket.type === 'story' && !storyAsTicket) {
+    return (
+      <StoryPage
+        ticket={ticket}
+        allTickets={allTickets}
+        onClose={props.onClose}
+        onOpenTicket={onOpenTicket}
+        onOpenAsTicket={() => setStoryAsTicket(true)}
+      />
+    );
+  }
   // "Draw on it" in the file viewer saves the drawing to this ticket and adds it to the description, as an attachment is
   const sketchOwner = {
     ownerKind: 'ticket' as const,

@@ -420,3 +420,114 @@ async def test_a_run_of_the_fake_cli_shows_up_as_lines(env):
     assert any(t.startswith(("Finished", "Failed")) for t in texts)
     assert all(i["member_id"] == m["id"] for i in items)
     assert len(items) > 3
+
+
+# ---------------------------------------------------------------------------------------- the scope and Highlights
+
+
+async def test_the_feed_follows_the_scope_and_marks_highlights(env):
+    from models import AiDecision
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"], name="Dev AI")
+    story = await _ticket(c, pid, title="Weather app", status="backlog", type="story")
+    a = await _ticket(c, pid, title="Search", status="backlog", parent_id=story)
+    other = await _ticket(c, pid, title="Elsewhere", status="backlog")
+    now = datetime.now(UTC).replace(microsecond=0)
+    t0 = now - timedelta(minutes=10)
+    steps = [
+        {"at": _hms(t0 + timedelta(seconds=1)), "kind": "edit", "text": "Edited a.ts"},
+        {
+            "at": _hms(t0 + timedelta(seconds=2)),
+            "kind": "command",
+            "text": "Ran gh pr create --draft",
+        },
+    ]
+    await _add(
+        env,
+        AiRun(
+            project_id=pid,
+            ticket_id=a,
+            member_id=m["id"],
+            state="finished",
+            trigger="assign",
+            queued_at=t0.isoformat(),
+            started_at=t0.isoformat(),
+            ended_at=(t0 + timedelta(seconds=20)).isoformat(),
+            summary="Built the search",
+            steps=json.dumps(steps),
+        ),
+        AiRun(
+            id="asks",
+            project_id=pid,
+            ticket_id=other,
+            member_id=m["id"],
+            state="needs_input",
+            trigger="assign",
+            queued_at=(t0 + timedelta(seconds=30)).isoformat(),
+            started_at=(t0 + timedelta(seconds=31)).isoformat(),
+            steps=json.dumps(
+                [
+                    {
+                        "at": _hms(t0 + timedelta(seconds=32)),
+                        "kind": "question",
+                        "text": "Asked An: Which file?",
+                    }
+                ]
+            ),
+            question=json.dumps(
+                {
+                    "text": "Which file?",
+                    "asked_at": (t0 + timedelta(seconds=32)).isoformat(),
+                }
+            ),
+        ),
+        AiDecision(
+            project_id=pid,
+            ticket_id=a,
+            story_id=story,
+            member_id=m["id"],
+            kind="approve_design",
+            title=f"Approved the design of {a}",
+            at=(t0 + timedelta(seconds=40)).isoformat(),
+        ),
+    )
+
+    everything = await _feed(c, pid)
+    assert everything["scope"]["level"] == "project"
+    assert {i["ticket_id"] for i in everything["items"]} == {a, other}
+    # the question waits for a person, wherever the scope is the project
+    assert [(n["kind"], n["ticket_id"]) for n in everything["needs_you"]] == [
+        ("question", other)
+    ]
+
+    r = await c.get(f"/projects/{pid}/ai/live-feed", params={"story": story})
+    assert r.status_code == 200, r.text
+    scoped = r.json()
+    assert scoped["scope"]["story"]["id"] == story
+    lines = [(i["text"], i["highlight"]) for i in scoped["items"]]
+    assert lines == [
+        ("Queued", False),
+        ("Started work", False),
+        ("Edited a.ts", False),
+        ("Ran `gh pr create --draft`", True),  # a pull request opened
+        ("Finished: Built the search", True),
+        (f"Approved the design of {a}", True),  # the PM decided for you
+    ]
+    assert {i["story_id"] for i in scoped["items"]} == {story}
+    assert scoped["items"][0]["run_id"]
+    assert scoped["items"][-1]["kind"] == "pm_decision"
+    assert scoped["needs_you"] == [] and scoped["working"] == []
+
+    by_ticket = (
+        await c.get(f"/projects/{pid}/ai/live-feed", params={"ticket": other})
+    ).json()
+    assert {i["ticket_id"] for i in by_ticket["items"]} == {other}
+    assert [n["ticket_id"] for n in by_ticket["needs_you"]] == [other]
+    asks = next(i for i in by_ticket["items"] if i["text"].startswith("Asks"))
+    assert asks["highlight"] is True  # what needs you
+    assert by_ticket["working"] == [m["id"]]
+
+    r = await c.get(f"/projects/{pid}/ai/live-feed", params={"story": "NOPE-1"})
+    assert r.status_code == 404

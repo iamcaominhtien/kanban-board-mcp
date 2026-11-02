@@ -1,6 +1,7 @@
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type Status = 'backlog' | 'todo' | 'in-progress' | 'review' | 'testing' | 'done' | 'wont_do';
-export type IssueType = 'bug' | 'feature' | 'task' | 'chore';
+/** `story`: a job handed to the PM, which owns its child tickets (design/screens/ai-story-flow.md A). */
+export type IssueType = 'bug' | 'feature' | 'task' | 'chore' | 'story';
 export type RelationType = 'relates_to' | 'causes' | 'caused_by' | 'duplicates' | 'duplicated_by';
 
 export interface TicketLink {

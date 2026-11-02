@@ -475,7 +475,16 @@ describe('the team on its own', () => {
     expect(card.textContent).toContain('not marked done');
     expect(screen.getByTestId('wf-step-build').textContent).toContain('not proven');
     fireEvent.click(within(card).getByRole('button', { name: 'Accept without it, just this once' }));
-    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/tdd/accept', {}));
+    // the reason is required: nothing is sent until one is written
+    const form = await within(card).findByTestId('tdd-reason');
+    const ok = within(form).getByRole('button', { name: 'Accept just this once' });
+    expect(ok).toHaveProperty('disabled', true);
+    expect(http.post).not.toHaveBeenCalled();
+    fireEvent.change(within(form).getByRole('textbox'), { target: { value: 'Copy change only.' } });
+    fireEvent.click(ok);
+    await waitFor(() =>
+      expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/tdd/accept', { reason: 'Copy change only.' }),
+    );
   });
 
   it('turns the rule off only after a confirmation', async () => {
@@ -492,13 +501,48 @@ describe('the team on its own', () => {
 
   it('shows an accepted step as accepted, with no buttons and no "not marked done"', async () => {
     wf = view();
-    wf.steps[1] = { ...wf.steps[1], state: 'done', outcome: 'accepted' };
+    wf.steps[1] = {
+      ...wf.steps[1],
+      state: 'done',
+      outcome: 'accepted',
+      result: { accepted: { by: 'Minh Tran', at: '2026-01-02T14:02:00Z', reason: 'Copy change only.' } },
+    };
     mount(<TicketWorkflow ticket={ticket} />);
     const card = await screen.findByTestId('tdd-card');
-    expect(screen.getByTestId('tdd-accepted').textContent).toBe('Accepted without it');
+    expect(screen.getByTestId('tdd-accepted').textContent).toBe('Accepted without tests');
+    // who, when and why, on the card
+    expect(screen.getByTestId('tdd-why').textContent).toContain('Minh Tran accepted it at');
+    expect(screen.getByTestId('accepted-reason').textContent).toBe('“Copy change only.”');
     expect(card.textContent).not.toContain('not marked done');
     expect(within(card).queryByRole('button', { name: 'Accept without it, just this once' })).toBeNull();
     expect(screen.getByTestId('wf-step-build').textContent).toContain('accepted without proof');
+  });
+
+  it('reads who and why from the step note when the result has none', async () => {
+    wf = view();
+    wf.steps[1] = {
+      ...wf.steps[1],
+      state: 'done',
+      outcome: 'accepted',
+      note: 'Done.\n\nAccepted without test-first evidence by An Nguyen: Docs only.',
+    };
+    mount(<TicketWorkflow ticket={ticket} />);
+    expect((await screen.findByTestId('tdd-why')).textContent).toContain('An Nguyen accepted it');
+    expect(screen.getByTestId('accepted-reason').textContent).toBe('“Docs only.”');
+  });
+
+  it('says quietly that test first is off, with no red card', async () => {
+    const base = http.get.getMockImplementation()!;
+    http.get.mockImplementation((url: string) =>
+      url === '/projects/p1/ai/ops' ? ok({ tdd: { required: false } }) : base(url),
+    );
+    wf = view();
+    wf.steps[1] = { ...wf.steps[1], state: 'done' };
+    mount(<TicketWorkflow ticket={ticket} />);
+    expect((await screen.findByTestId('tdd-off')).textContent).toBe('Not required');
+    const card = screen.getByTestId('tdd-card');
+    expect(card.textContent).toContain('Test first is off for this project');
+    expect(within(card).queryByRole('button')).toBeNull();
   });
 
   it('keeps the accept buttons away when the Dev step was simply sent back', async () => {
@@ -516,9 +560,9 @@ describe('the team on its own', () => {
       stopDetail: 'Used 210,000 tokens; the cap for one ticket is 200,000.',
     });
     mount(<TicketWorkflow ticket={ticket} />);
-    const card = await screen.findByTestId('stop-card');
-    expect(card.textContent).toContain('Used 210,000 tokens');
-    fireEvent.click(within(card).getByRole('button', { name: 'Let it go on' }));
+    const card = await screen.findByTestId('cap-stopped-card');
+    expect(card.textContent).toContain('210,000');
+    fireEvent.click(within(card).getByTestId('cap-resume'));
     await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow/resume'));
   });
 

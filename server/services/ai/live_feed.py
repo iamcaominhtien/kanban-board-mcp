@@ -20,8 +20,16 @@ from datetime import UTC, datetime, time, timedelta
 from sqlmodel import col, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiMember, AiRun, AiTicketStep, AiTicketWorkflow, Member, Ticket
+from models import (
+    AiDecision,
+    AiMember,
+    AiRun,
+    AiTicketStep,
+    AiTicketWorkflow,
+    Member,
+)
 
+from . import scope
 from .packs import BUILTIN
 from .secrets import redact
 from .store import loads, parse_iso
@@ -62,6 +70,24 @@ SKIP_KINDS = {
     "answer",
 }
 ROLE_LABEL = {p["key"]: p["name"] for p in BUILTIN}
+# The lines Highlights keeps (design/screens/ai-story-flow.md K): a step or a run finished, work sent back, a PM
+# decision, a pull request opened, anything that needs a person. Commands, reads and edits are Everything only.
+HIGHLIGHT_KINDS = {
+    "finished",
+    "failed",
+    "blocked",
+    "sent_back",
+    "review",
+    "tdd",
+    "done",
+    "decision",
+    "pm_decision",
+    "split",
+    "waiting",
+    "question",
+    "pull_request",
+}
+_PR_CREATE = re.compile(r"\bgh\s+pr\s+create\b")
 
 
 @dataclass
@@ -77,8 +103,12 @@ class Item:
     text: str
     tone: str = "info"
     ref: str | None = None
+    highlight: bool = False
+    run_id: str | None = None
 
-    def out(self, ticket_titles: dict[str, str]) -> dict:
+    def out(
+        self, ticket_titles: dict[str, str], stories: dict[str, str] | None = None
+    ) -> dict:
         """The line as the API hands it out."""
         return {
             "id": self.id,
@@ -92,6 +122,9 @@ class Item:
             "text": self.text,
             "tone": self.tone,
             "ref": self.ref,
+            "highlight": self.highlight or self.kind in HIGHLIGHT_KINDS,
+            "story_id": (stories or {}).get(self.ticket_id or ""),
+            "run_id": self.run_id,
         }
 
 
@@ -331,6 +364,9 @@ def run_items(run: AiRun, speaker: dict) -> list[Item]:
                         kind,
                         text,
                         tone,
+                        # opening a pull request is a highlight, the other commands are not
+                        highlight=kind == "command"
+                        and bool(_PR_CREATE.search(str(s.get("text") or ""))),
                     )
                 )
                 last_text = text
@@ -398,6 +434,8 @@ def run_items(run: AiRun, speaker: dict) -> list[Item]:
                 "warn",
                 10**6,
             )
+    for i in items:
+        i.run_id = run.id
     return items
 
 
@@ -423,6 +461,9 @@ def step_row_items(row: AiTicketStep, speaker: dict, wf_order: int) -> list[Item
                 kind,
                 _clip(text),
                 tone,
+                # a step that ended (handed in, checks passed or failed) or stopped; its start is Everything only
+                highlight=suffix in ("e", "b"),
+                run_id=row.run_id,
             )
         )
 
@@ -579,6 +620,32 @@ def workflow_items(
     return items
 
 
+def decision_items(rows: list[AiDecision], speakers: dict[str, dict]) -> list[Item]:
+    """What the PM decided in a person's place: one line each, said by the PM."""
+    items = []
+    for x in rows:
+        at = parse_iso(x.at)
+        if at is None:
+            continue
+        who = speakers.get(x.member_id or "") or {
+            **_unknown(x.member_id),
+            "member_name": "PM",
+        }
+        items.append(
+            Item(
+                f"dec:{x.id}",
+                _ms(at),
+                (f"dec:{x.id}", 0),
+                who,
+                x.ticket_id or x.story_id,
+                "pm_decision",
+                _clip(x.title + (" (overridden)" if x.state == "overridden" else "")),
+                "info",
+            )
+        )
+    return items
+
+
 # ---------------------------------------------------------------------------------------------------------- cursor
 
 
@@ -658,9 +725,16 @@ async def feed(
     after: str | None = None,
     limit: int = 200,
     now: datetime | None = None,
-) -> dict:
-    """`{items, cursor, working}`: the lines after the cursor (or the last `WINDOW_H` hours' last `limit` lines),
-    oldest first; `working` is the AIs that have a run going right now."""
+    story: str | None = None,
+    ticket: str | None = None,
+) -> dict | None:
+    """`{items, cursor, working, needs_you, scope}`: the lines after the cursor (or the last `WINDOW_H` hours' last
+    `limit` lines) in the scope (the project, one Story or one ticket), oldest first; `working` is the AIs that have a
+    run going right now on it, `needs_you` the rows of the Now tab's Needs you list that belong to it. None when the
+    Story or the ticket is not in the project."""
+    sc = await scope.resolve(session, project_id, story=story, ticket=ticket)
+    if sc is None:
+        return None
     now = now or datetime.now(UTC)
     limit = max(1, min(int(limit or 200), MAX_LIMIT))
     cur = decode_cursor(after)
@@ -673,19 +747,18 @@ async def feed(
     floor_s = floor.isoformat()
 
     speakers = await _speakers(session, project_id)
-    runs = (
-        await session.exec(
-            select(AiRun).where(
-                AiRun.project_id == project_id,
-                or_(
-                    col(AiRun.state).in_(ACTIVE),
-                    col(AiRun.queued_at) >= floor_s,
-                    col(AiRun.ended_at) >= floor_s,
-                    col(AiRun.last_output_at) >= floor_s,
-                ),
-            )
-        )
-    ).all()
+    q = select(AiRun).where(
+        AiRun.project_id == project_id,
+        or_(
+            col(AiRun.state).in_(ACTIVE),
+            col(AiRun.queued_at) >= floor_s,
+            col(AiRun.ended_at) >= floor_s,
+            col(AiRun.last_output_at) >= floor_s,
+        ),
+    )
+    if sc.ids is not None:
+        q = q.where(col(AiRun.ticket_id).in_(list(sc.ids)))
+    runs = (await session.exec(q)).all()
     items: list[Item] = []
     for r in runs:
         items += run_items(r, speakers.get(r.member_id) or _unknown(r.member_id))
@@ -732,8 +805,21 @@ async def feed(
             )
             items += step_row_items(row, who, row.seq)
         items += workflow_items(wf, mine, speakers)
+    items += decision_items(
+        list(
+            (
+                await session.exec(
+                    select(AiDecision).where(
+                        AiDecision.project_id == project_id,
+                        col(AiDecision.at) >= floor_s,
+                    )
+                )
+            ).all()
+        ),
+        speakers,
+    )
 
-    items = [i for i in items if i.at >= _ms(floor)]
+    items = [i for i in items if i.at >= _ms(floor) and sc.has(i.ticket_id)]
     items.sort(key=lambda i: (i.at, i.order, i.id))
 
     if cur is None:
@@ -750,21 +836,69 @@ async def feed(
         window = new_t - timedelta(seconds=GRACE_S)
         new_seen = {_h(i.id) for i in items if i.at >= window and _h(i.id) in known}
 
-    tickets = {i.ticket_id for i in out if i.ticket_id}
-    titles = {}
-    if tickets:
-        titles = {
-            tk.id: tk.title
-            for tk in (
-                await session.exec(
-                    select(Ticket).where(col(Ticket.id).in_(list(tickets)))
-                )
-            ).all()
-        }
+    stories, titles = await scope.index(session, project_id)
     working = sorted({r.member_id for r in runs if r.state in WORKING})
     return {
-        "items": [i.out(titles) for i in out],
+        "items": [i.out(titles, stories) for i in out],
         "cursor": encode_cursor(new_t, list(new_seen)),
         "working": working,
         "more": cur is not None and len(fresh) > limit,
+        "scope": sc.out(),
+        "needs_you": await needs_you_in(session, project_id, sc, stories, titles, now),
     }
+
+
+async def needs_you_in(
+    session: AsyncSession,
+    project_id: str,
+    sc: scope.Scope,
+    stories: dict[str, str],
+    titles: dict[str, str],
+    now: datetime,
+) -> list[dict]:
+    """The Now tab's Needs you rows (team.needs_you) that belong to the scope, pinned on top of the column (K)."""
+    from types import SimpleNamespace
+
+    from . import members as svc_members
+    from . import team
+
+    # the column polls every 2 s: the list is worked out at most once per NEEDS_TTL_S for the same project and tickets
+    key = (project_id, hash(tuple(sorted(titles.items()))))
+    cached = _NEEDS_CACHE.get(key)
+    if cached and (now - cached[0]).total_seconds() < NEEDS_TTL_S:
+        return _in_scope(cached[1], sc, stories)
+    members = await svc_members.list_members(session, project_id)
+    active = list(
+        (
+            await session.exec(
+                select(AiRun).where(
+                    AiRun.project_id == project_id, col(AiRun.state).in_(ACTIVE)
+                )
+            )
+        ).all()
+    )
+    # needs_you reads only the titles of the tickets
+    tickets = {tid: SimpleNamespace(title=t) for tid, t in titles.items()}
+    rows = await team.needs_you(session, project_id, members, active, tickets, now)  # type: ignore[arg-type]
+    if len(_NEEDS_CACHE) > 64:
+        _NEEDS_CACHE.clear()
+    _NEEDS_CACHE[key] = (now, rows)
+    return _in_scope(rows, sc, stories)
+
+
+NEEDS_TTL_S = 5
+_NEEDS_CACHE: dict[tuple, tuple[datetime, list[dict]]] = {}
+
+
+def _in_scope(rows: list[dict], sc: scope.Scope, stories: dict[str, str]) -> list[dict]:
+    out = []
+    for row in rows:
+        keys = {
+            row.get("ticket_id"),
+            row.get("blocks"),
+            *(row.get("tickets_waiting") or []),
+        }
+        if sc.ids is not None and not (keys & sc.ids):
+            continue
+        out.append({**row, "story_id": stories.get(row.get("ticket_id") or "")})
+    return out

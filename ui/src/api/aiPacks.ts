@@ -6,6 +6,8 @@ import type {
   ApplyResult,
   CatalogueEntry,
   MakeMemberBody,
+  MemberPack,
+  MemberPackDiff,
   Pack,
   PackDraft,
   PackExport,
@@ -17,6 +19,8 @@ import type { AiMember } from '../types/ai';
 export const packKeys = {
   all: (projectId: string) => ['ai', 'packs', projectId] as const,
   catalogue: ['ai', 'catalogue'] as const,
+  member: (memberId: string) => ['ai', 'member-pack', memberId] as const,
+  diff: (memberId: string) => ['ai', 'member-pack-diff', memberId] as const,
 };
 
 export const packsApi = {
@@ -36,6 +40,10 @@ export const packsApi = {
     (await client.post<Scan>(`/projects/${projectId}/ai/scan`, { folder, trial: true })).data,
   apply: async (scanId: string, body: ApplyBody) =>
     (await client.post<ApplyResult>(`/ai/scans/${scanId}/apply`, body)).data,
+  memberPack: async (memberId: string) => (await client.get<MemberPack | null>(`/ai/members/${memberId}/pack`)).data,
+  memberDiff: async (memberId: string) => (await client.get<MemberPackDiff>(`/ai/members/${memberId}/pack/diff`)).data,
+  updateMember: async (memberId: string) => (await client.post<MemberPack>(`/ai/members/${memberId}/pack/update`)).data,
+  revertMember: async (memberId: string) => (await client.post<MemberPack>(`/ai/members/${memberId}/pack/revert`)).data,
 };
 
 /** The ready-made packs first, then the project's own. */
@@ -101,6 +109,39 @@ export function useApplyScan(projectId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: aiKeys.all });
       void qc.invalidateQueries({ queryKey: packKeys.all(projectId) });
+    },
+  });
+}
+
+/** The pack a member was made from and whether a newer version is out (null: not made from a pack). */
+export function useMemberPack(memberId: string) {
+  return useQuery({
+    queryKey: packKeys.member(memberId),
+    queryFn: () => packsApi.memberPack(memberId),
+    enabled: !!memberId,
+  });
+}
+
+/** What updating the member to its pack's newest version would change. */
+export function useMemberPackDiff(memberId: string, enabled = true) {
+  return useQuery({
+    queryKey: packKeys.diff(memberId),
+    queryFn: () => packsApi.memberDiff(memberId),
+    enabled: !!memberId && enabled,
+    retry: false,
+  });
+}
+
+/** Update the member to its pack's newest version, or (`revert`) go back to the version it had. */
+export function useMemberPackChange(memberId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (action: 'update' | 'revert') =>
+      action === 'update' ? packsApi.updateMember(memberId) : packsApi.revertMember(memberId),
+    onSuccess: (data) => {
+      qc.setQueryData(packKeys.member(memberId), data);
+      // the member's instructions, tools and permissions changed: everything that shows it reloads
+      void qc.invalidateQueries({ queryKey: aiKeys.all, predicate: (q) => q.queryKey[1] !== 'member-pack' });
     },
   });
 }

@@ -475,6 +475,15 @@ elif "as the person would" in prompt_text and "You are the coordinator" in promp
     final_text = f"Looked at the design.\nDECISION: {os.environ.get('FAKE_CLAUDE_APPROVAL', 'APPROVE every state is drawn')}"
 elif "failed twice" in prompt_text and "You are the coordinator" in prompt_text:
     final_text = f"Looked at it.\nDECISION: {os.environ.get('FAKE_CLAUDE_DECISION', 'RETRY run the tests with -x first')}"
+elif "you own Story" in prompt_text:
+    # the PM plans a Story: the test creates the children while it "works", then lets it end (FAKE_CLAUDE_PLAN_GATE)
+    gate = os.environ.get("FAKE_CLAUDE_PLAN_GATE")
+    end = time.time() + 20
+    while gate and time.time() < end and not os.path.exists(gate):
+        time.sleep(0.02)
+    final_text = "Planned it.\n" + os.environ.get("FAKE_CLAUDE_PLAN", "")
+elif "every ticket of Story" in prompt_text:
+    final_text = f"Checked every criterion.\n{os.environ.get('FAKE_CLAUDE_STORY_REVIEW', 'REVIEW: PASS')}"
 elif "Split it by feature" in prompt_text:
     # the test creates the pieces while the coordinator "works", then lets it end (FAKE_CLAUDE_SPLIT_GATE)
     gate = os.environ.get("FAKE_CLAUDE_SPLIT_GATE")

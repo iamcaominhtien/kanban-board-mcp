@@ -34,7 +34,7 @@ export interface TimelineActions {
   onOpenDocsPage: (pageId: string) => void;
   /** Back to the team map. */
   onSeeMap?: () => void;
-  /** Open a ticket's story (One ticket). */
+  /** Open a ticket's flow (the ticket scope of Flow). */
   onOpenStory?: (ticketId: string) => void;
 }
 
@@ -83,12 +83,14 @@ function readRange(projectId: string): Preset {
  * @param props.actions - Open a ticket or a Docs page; go back to the team map.
  * @param props.scopeTicketId - Draw only this ticket (and its children): the ticket modal's AI activity tab.
  * @param props.compactChrome - Hide the controls that only make sense for the whole team (the modal uses it).
+ * @param props.scopeBar - Flow's scope bar says what is drawn and copies the link: no scope menu, scope head or link.
  */
 export function TimelineTab({
   projectId,
   actions,
   scopeTicketId = null,
   compactChrome = false,
+  scopeBar = false,
   initial = null,
 }: {
   projectId: string;
@@ -97,6 +99,7 @@ export function TimelineTab({
   initial?: TimelineLink | null;
   scopeTicketId?: string | null;
   compactChrome?: boolean;
+  scopeBar?: boolean;
 }) {
   const [preset, setPreset] = useState<Preset>(() => initial?.range ?? readRange(projectId));
   const [day, setDay] = useState<{ since: string; until: string } | null>(
@@ -317,7 +320,7 @@ export function TimelineTab({
       )}
 
       <div className="tl-toolbar">
-        {!compactChrome && (
+        {!compactChrome && !scopeBar && (
           <div className="tl-menuwrap">
             <button
               type="button"
@@ -438,6 +441,7 @@ export function TimelineTab({
         <button
           type="button"
           className="tl-btn"
+          hidden={scopeBar}
           data-testid="tl-copy-link"
           onClick={() => {
             const url = buildTimelineLink(projectId, {
@@ -516,7 +520,7 @@ export function TimelineTab({
         <EmptyRange data={data} lifelines={lifelines} onWiden={() => choose('7d')} onMap={actions.onSeeMap} />
       ) : (
         <div className="tl-stage">
-          {scope && (
+          {scope && !scopeBar && (
             <div className="tl-scope-head" data-testid="tl-scope-head">
               <span className="tl-tchip">
                 <i />
@@ -527,7 +531,7 @@ export function TimelineTab({
               <span style={{ flex: 1 }} />
               {actions.onOpenStory && (
                 <button type="button" className="tl-btn" onClick={() => actions.onOpenStory?.(scope)}>
-                  See as One ticket
+                  Open ticket flow
                 </button>
               )}
             </div>
@@ -1439,7 +1443,7 @@ function Inspector({
         )}
         {f.ticketId && actions.onOpenStory && (
           <button type="button" className="tl-btn" onClick={() => actions.onOpenStory?.(f.ticketId as string)}>
-            Open ticket story
+            Open ticket flow
           </button>
         )}
         {f.pageId && (

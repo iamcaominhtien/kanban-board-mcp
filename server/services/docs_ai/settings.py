@@ -7,6 +7,7 @@ switch: when it is off, Docs AI is off everywhere.
 import json
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -27,7 +28,12 @@ async def get(session: AsyncSession, project_id: str) -> DocsAiSettings:
     if row is None:
         row = DocsAiSettings(project_id=project_id)
         session.add(row)
-        await session.commit()
+        try:
+            await session.commit()
+        except IntegrityError:
+            # two runs that start together raced to create it: use the row the other one wrote
+            await session.rollback()
+            return await session.get(DocsAiSettings, project_id)
         await session.refresh(row)
     return row
 

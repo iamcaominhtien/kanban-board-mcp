@@ -195,6 +195,30 @@ export function ChoreIcon({ size = 'sm', simplified, className, style, ...props 
   );
 }
 
+/** Story type icon: a bookmark (design/source/AiStoryFlow.dc.html, C). */
+export function StoryIcon({ size = 'sm', className, style, ...props }: IconProps) {
+  const isSm = size === 'sm' || size === 15;
+  const dimension = typeof size === 'number' ? size : isSm ? 15 : 24;
+  return (
+    <svg
+      width={dimension}
+      height={dimension}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#1B3A6B"
+      strokeWidth={isSm ? 2 : 1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ flexShrink: 0, ...style }}
+      aria-label="Story"
+      {...props}
+    >
+      <path d="M6.5 3h11a1 1 0 0 1 1 1v17l-6.5-4.2L5.5 21V4a1 1 0 0 1 1-1z" />
+    </svg>
+  );
+}
+
 /** Icon for a ticket type. */
 export function TicketTypeIcon({ type, size = 'sm', ...props }: { type: IssueType } & IconProps) {
   switch (type) {
@@ -206,6 +230,8 @@ export function TicketTypeIcon({ type, size = 'sm', ...props }: { type: IssueTyp
       return <TaskIcon size={size} {...props} />;
     case 'chore':
       return <ChoreIcon size={size} {...props} />;
+    case 'story':
+      return <StoryIcon size={size} {...props} />;
     default:
       return <TaskIcon size={size} {...props} />;
   }

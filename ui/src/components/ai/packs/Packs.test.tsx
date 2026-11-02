@@ -242,6 +242,78 @@ describe('pack library', () => {
   });
 });
 
+describe('permission mode per pack', () => {
+  const overview = {
+    members: [
+      { id: 'm1', name: 'Reviewer Binh', kind: 'ai', config: { role: 'reviewer', permissionMode: 'allowlist' } },
+      { id: 'm2', name: 'Dev Khoa', kind: 'ai', config: { role: 'dev', permissionMode: 'bypass' } },
+      { id: 'm3', name: 'Dev Lan', kind: 'ai', config: { pack: { key: 'dev' } } },
+    ],
+    settings: {},
+    summary: {},
+  };
+  const withReviewer = PACKS.map((p) => (p.key === 'reviewer' ? { ...p, permissionMode: 'allowlist' } : p));
+
+  it('shows each pack’s mode, Triage on the allow list, and how many members were made from it', async () => {
+    route({ '/projects/p1/ai/overview': overview, '/projects/p1/ai/packs': withReviewer });
+    mount();
+    expect((await screen.findByTestId('pack-mode-triage')).textContent).toBe('Allow list only');
+    expect(screen.getByTestId('pack-mode-dev').textContent).toBe('Bypass permissions');
+    expect(screen.getByTestId('pack-mode-reviewer').textContent).toBe('Allow list only');
+    await waitFor(() => expect(screen.getByTestId('pack-members-dev').textContent).toBe('2'));
+    expect(screen.getByTestId('pack-members-reviewer').textContent).toBe('1');
+    expect(screen.getByTestId('pack-members-pm').textContent).toBe('0');
+  });
+
+  it('lets only the owner turn Bypass on', async () => {
+    route({ '/projects/p1/ai/me': { role: 'member' }, '/projects/p1/ai/packs': withReviewer });
+    mount();
+    const chip = (await screen.findByTestId('pack-mode-reviewer')) as HTMLButtonElement;
+    await waitFor(() => expect(chip.title).toBe('Only the project owner can turn on Bypass permissions.'));
+    expect(chip.disabled).toBe(true);
+  });
+
+  it('turns Bypass on for a pack after the warning and the typed phrase', async () => {
+    route({
+      '/projects/p1/ai/me': { role: 'owner' },
+      '/projects/p1/ai/overview': overview,
+      '/projects/p1/ai/packs': withReviewer,
+    });
+    http.put.mockReturnValue(ok({ ...withReviewer[5], version: 2, permissionMode: 'bypass' }));
+    mount();
+    const chip = (await screen.findByTestId('pack-mode-reviewer')) as HTMLButtonElement;
+    await waitFor(() => expect(chip.disabled).toBe(false));
+    fireEvent.click(chip);
+    const dlg = await screen.findByTestId('pack-bypass');
+    expect(dlg.getAttribute('aria-label')).toBe('Turn on Bypass permissions for the Reviewer pack');
+    expect(within(dlg).getByTestId('pack-bypass-warning').textContent).toContain(
+      'Bypass permissions runs shell commands and edits files on this computer without asking.',
+    );
+    await waitFor(() => expect(dlg.textContent).toContain('Reviewer Binh is on the allow list now'));
+    const on = within(dlg).getByTestId('pack-bypass-on') as HTMLButtonElement;
+    fireEvent.change(within(dlg).getByTestId('pack-bypass-confirm'), { target: { value: 'bypass perm' } });
+    expect(on.disabled).toBe(true);
+    fireEvent.change(within(dlg).getByTestId('pack-bypass-confirm'), { target: { value: 'Bypass permissions' } });
+    fireEvent.click(on);
+    await waitFor(() => expect(http.put).toHaveBeenCalled());
+    const [url, body] = http.put.mock.calls[0];
+    expect(url).toBe('/projects/p1/ai/packs/reviewer');
+    expect(body).toMatchObject({ name: 'Reviewer', permissionMode: 'bypass', limits: { maxParallel: 1 } });
+    expect(await screen.findByText(/Reviewer is on Bypass permissions from version 2/)).toBeTruthy();
+    expect(screen.queryByTestId('pack-bypass')).toBeNull();
+  });
+
+  it('puts a pack back on the allow list without the warning', async () => {
+    route({ '/projects/p1/ai/me': { role: 'owner' } });
+    http.put.mockReturnValue(ok({ ...PACKS[4], version: 2, permissionMode: 'allowlist' }));
+    mount();
+    fireEvent.click(await screen.findByTestId('pack-mode-dev'));
+    await waitFor(() => expect(http.put).toHaveBeenCalled());
+    expect(http.put.mock.calls[0][1]).toMatchObject({ permissionMode: 'allowlist' });
+    expect(screen.queryByTestId('pack-bypass')).toBeNull();
+  });
+});
+
 describe('team wizard', () => {
   async function toReview() {
     http.post.mockReturnValueOnce(ok(scan()));

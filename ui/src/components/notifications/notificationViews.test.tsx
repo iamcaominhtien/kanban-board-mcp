@@ -88,6 +88,26 @@ afterEach(() => {
 });
 
 describe('NotificationRow branches', () => {
+  it('offers Resume first on a ticket stopped at its token cap', () => {
+    const onAction = vi.fn().mockResolvedValue(true);
+    render(
+      <NotificationRow
+        row={row({
+          kind: 'workflow_blocked',
+          ticketId: 'KAN-305',
+          data: { flag: 'quota_cap' },
+          actions: [{ id: 'open', label: 'Open' }],
+        })}
+        onAction={onAction}
+      />,
+    );
+    const resume = screen.getByRole('button', { name: 'Resume' });
+    expect(resume.className).toMatch(/btnPrimary/);
+    expect(screen.getByRole('button', { name: 'Open ticket' })).toBeTruthy();
+    click(resume);
+    expect(onAction.mock.calls[0][1]).toBe('workflow:resume');
+  });
+
   it('answers with options and free text, and can cancel', async () => {
     const onAction = vi.fn().mockResolvedValueOnce(false); // the first answer fails: the box stays
     render(<NotificationRow row={row({ data: { options: ['Yes', 'No', 3] } })} onAction={onAction} />);

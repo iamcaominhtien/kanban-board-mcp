@@ -40,6 +40,19 @@ async def _wf(c, tid, timeout=20.0):
     return None
 
 
+async def _story(c, sid, pred, timeout=30.0):
+    deadline = asyncio.get_running_loop().time() + timeout
+    view = None
+    while asyncio.get_running_loop().time() < deadline:
+        r = await c.get(f"/stories/{sid}")
+        if r.status_code == 200:
+            view = r.json()
+            if pred(view):
+                return view
+        await asyncio.sleep(0.1)
+    raise AssertionError(f"The Story never got there: {view}")
+
+
 # --------------------------------------------------------------------------- intake
 
 
@@ -147,11 +160,32 @@ async def test_a_ticket_stops_at_its_token_cap_and_goes_on_when_a_person_lets_it
     view = await _until(c, tid, lambda v: v["state"] == "stopped")
     assert view["stop_reason"] == "quota_cap"
     assert "cap for one ticket is 200" in view["stop_detail"]
+    # Now says so: a Needs you row and the card of the AI that held it (ai-story-flow O)
+    now = (await c.get(f"/projects/{pid}/ai/team/now")).json()
+    cap = next(i for i in now["needs_you"] if i["kind"] == "quota_cap")
+    assert cap["ticket_id"] == tid and cap["cap"] == 200 and cap["used"] >= 200
+    held = next(m for m in now["members"] if m["id"] == cap["member_id"])
+    assert held["cap_stop"]["ticket_id"] == tid
     r = await c.post(f"/tickets/{tid}/ai/workflow/resume")
     assert r.status_code == 200, r.text
     await _until(c, tid, _at_done)
     again = await c.post(f"/tickets/{tid}/ai/workflow/resume")
     assert again.status_code == 409
+
+
+async def test_a_person_raises_the_cap_of_one_ticket(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    await _team(c, pid, env["repo"], roles=("triage", "dev", "reviewer"))
+    await _ops(c, pid, ticket_token_cap=200)  # the fake CLI uses 120 a run
+    tid = await _ticket(c, pid)
+    await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
+    await _until(c, tid, lambda v: v["state"] == "stopped")
+    low = await c.post(f"/tickets/{tid}/ai/workflow/resume", json={"cap": 100})
+    assert low.status_code == 409 and "above" in low.text
+    r = await c.post(f"/tickets/{tid}/ai/workflow/resume", json={"cap": 100000})
+    assert r.status_code == 200, r.text
+    await _until(c, tid, _at_done)  # the raised cap holds for the rest of its workflow
 
 
 # --------------------------------------------------------------------------- test first (design I)
@@ -385,8 +419,17 @@ async def test_triage_says_split_the_pm_splits_and_the_parent_ends_with_its_piec
     for k in kids:
         assert (await c.get(f"/tickets/{k}/ai/workflow")).json() is None
     gate.write_text("go")
-    view = await _until(c, parent, lambda v: v["split"] == kids)
-    assert "Split into" in view["stop_detail"]
+    # the split ticket is a Story now: its plan is the pieces, one after another, approved by the PM
+    story = await _story(c, parent, lambda v: v["state"] == "in_progress")
+    assert [i["ticket_id"] for i in story["plan"]["items"]] == kids
+    assert story["plan"]["items"][1]["after"] == [kids[0]]
+    assert (await c.get(f"/tickets/{parent}")).json()["type"] == "story"
+    split = (await c.get(f"/projects/{pid}/ai/decisions?kind=split")).json()["items"]
+    assert (
+        split
+        and split[0]["ticket_id"] == parent
+        and split[0]["member"]["id"] == team["pm"]
+    )
     # one after another: the second waits until the first is Done
     first = await _wf(c, kids[0])
     assert first is not None
@@ -394,7 +437,8 @@ async def test_triage_says_split_the_pm_splits_and_the_parent_ends_with_its_piec
         assert (await c.get(f"/tickets/{kids[1]}/ai/workflow")).json() is None
     for kid in kids:
         await _until(c, kid, lambda v: v["state"] == "done", timeout=90)
-    await _until(c, parent, lambda v: v["state"] == "done", timeout=30)
+    # the last piece Done: the PM checks the Story's criteria and closes it
+    await _story(c, parent, lambda v: v["state"] == "done", timeout=60)
     assert (await c.get(f"/tickets/{parent}")).json()["status"] == "done"
 
 
@@ -553,6 +597,68 @@ async def test_the_pm_approves_the_design_when_the_person_hands_it_over(env):
             )
         ).all()
     assert [r.trigger for r in pm_runs] == ["manager"]
+    # it is a decision the PM took for the person, and Build has started on it: it can no longer be overridden
+    rows = (await c.get(f"/projects/{pid}/ai/decisions")).json()["items"]
+    mine = [d for d in rows if d["ticket_id"] == tid and d["kind"] == "approve_design"]
+    assert mine and mine[0]["member"]["id"] == team["pm"]
+    await _until(
+        c,
+        tid,
+        lambda v: any(
+            s["key"] == "build" and s["state"] in ("active", "done") for s in v["steps"]
+        ),
+    )
+    d = next(
+        x
+        for x in (await c.get(f"/projects/{pid}/ai/decisions")).json()["items"]
+        if x["id"] == mine[0]["id"]
+    )
+    if not d["can_override"]:
+        assert "has started" in d["why_not"]
+        r = await c.post(f"/ai/decisions/{d['id']}/override", json={})
+        assert r.status_code == 409
+    await c.delete(f"/tickets/{tid}/ai/workflow")
+
+
+async def test_overriding_the_pms_approval_gives_the_step_back_to_the_person(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    # no Dev: Build cannot start, so nothing is built on the PM's approval and it can be overridden
+    await _team(c, pid, env["repo"], roles=("triage", "ba", "designer", "pm"))
+    await _ops(c, pid, autonomy={"approve": "pm"}, tdd={"required": False})
+    tid = await _ticket(c, pid)
+    await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "feature_ui"})
+    await _until(
+        c,
+        tid,
+        lambda v: any(
+            s["key"] == "approve_design" and s["outcome"] == "approved"
+            for s in v["steps"]
+        ),
+        timeout=90,
+    )
+    out = (await c.get(f"/projects/{pid}/ai/decisions?kind=approve_design")).json()
+    d = out["items"][0]
+    assert d["can_override"] and out["totals"]["overridable"] >= 1
+    r = await c.post(
+        f"/ai/decisions/{d['id']}/override", json={"note": "I want to see it first"}
+    )
+    assert r.status_code == 200, r.text
+    assert (
+        r.json()["state"] == "overridden"
+        and "I want to see it first" in r.json()["result"]
+    )
+    view = await _until(
+        c,
+        tid,
+        lambda v: any(
+            s["key"] == "approve_design" and s["state"] == "waiting" for s in v["steps"]
+        ),
+    )
+    build = [s for s in view["steps"] if s["key"] == "build"][-1]
+    assert build["state"] == "pending"
+    again = await c.post(f"/ai/decisions/{d['id']}/override", json={})
+    assert again.status_code == 409
     await c.delete(f"/tickets/{tid}/ai/workflow")
 
 
@@ -586,3 +692,17 @@ async def test_testing_with_no_evidence_goes_back_once_then_is_marked(env):
     tests = [s for s in view["steps"] if s["key"] == "test"]
     assert len(tests) == 2 and "no evidence" in tests[1]["note_in"]
     assert tests[1]["outcome"] == "no_evidence"
+    # a person accepts it anyway, and says why (ai-story-flow N)
+    r = await c.post(f"/tickets/{tid}/ai/evidence/accept", json={"reason": " "})
+    assert r.status_code == 409
+    r = await c.post(
+        f"/tickets/{tid}/ai/evidence/accept", json={"reason": "I tried it myself"}
+    )
+    assert r.status_code == 200, r.text
+    tests = [s for s in r.json()["steps"] if s["key"] == "test"]
+    assert (
+        tests[-1]["outcome"] == "accepted" and "I tried it myself" in tests[-1]["note"]
+    )
+    assert (
+        await c.post(f"/tickets/{tid}/ai/evidence/accept", json={"reason": "x"})
+    ).status_code == 409

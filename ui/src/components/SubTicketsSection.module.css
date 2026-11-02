@@ -402,3 +402,30 @@
   color: #9aa8a0;
   flex-shrink: 0;
 }
+
+/* Make this a Story (ai-story-flow B) */
+.makeStoryBtn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid #c9d6ea;
+  background: #f3f6fb;
+  color: #1b3a6b;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.makeStoryBtn:hover {
+  background: #e6ecf5;
+}
+
+.makeStoryBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

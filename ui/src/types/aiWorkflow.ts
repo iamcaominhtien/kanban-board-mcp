@@ -47,9 +47,18 @@ export interface WorkflowMetric {
 export type WorkflowState = 'active' | 'stopped' | 'done' | 'detached';
 export type StopReason = 'no_progress' | 'board_fault' | 'quota_cap' | 'split';
 export type StepState = 'pending' | 'active' | 'waiting' | 'blocked' | 'done' | 'failed' | 'skipped';
-/** `unproven`: a Dev step with no failing test run before the passing one; `accepted`: a person took it without;
- * `board`: the Done step the board moved itself (autonomy.done = after_review). */
-export type StepOutcome = 'pass' | 'changes' | 'approved' | 'sent_back' | 'failed' | 'unproven' | 'accepted' | 'board';
+/** `unproven`: a Dev step with no failing test run before the passing one; `no_evidence`: a testing step that handed
+ * in no proof (twice); `accepted`: a person took either without; `board`: the Done step the board moved itself
+ * (autonomy.done = after_review). */
+export type StepOutcome =
+  'pass' | 'changes' | 'approved' | 'sent_back' | 'failed' | 'unproven' | 'no_evidence' | 'accepted' | 'board';
+
+/** Who took a step without its evidence, when, and why (ai-story-flow N). */
+export interface StepAccepted {
+  by: string;
+  at: string;
+  reason: string | null;
+}
 export type Verdict = 'reviewer' | 'dev' | 'split' | 'undecided';
 
 export interface CheckResult {
@@ -77,7 +86,7 @@ export interface ViewStep {
   /** What it was told: a send-back, a ruling. */
   noteIn: string | null;
   outcome: StepOutcome | null;
-  result: { checks?: CheckResult[]; tdd?: unknown; noCommands?: boolean } | null;
+  result: { checks?: CheckResult[]; tdd?: unknown; noCommands?: boolean; accepted?: StepAccepted } | null;
   startedAt: string | null;
   endedAt: string | null;
 }

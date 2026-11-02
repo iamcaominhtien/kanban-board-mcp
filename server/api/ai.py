@@ -36,6 +36,7 @@ from services.ai import approvals as svc_approvals
 from services.ai import audit as svc_audit
 from services.ai import members as svc_members
 from services.ai import autopilot, autotrip, budget, safety
+from services.ai import away as svc_away
 from services.ai import usage as svc_usage
 from services.ai import mentions as svc_mentions
 from services.ai import permissions as perms
@@ -788,11 +789,19 @@ async def post_team_health_dismiss(
 async def get_team_flow(
     project_id: str,
     session: Session,
-    range: Literal["today", "7d", "30d"] = "7d",
+    range: Optional[Literal["today", "7d", "30d", "all"]] = None,
+    story: Optional[str] = None,
+    ticket: Optional[str] = None,
 ) -> dict:
-    """The AI Team view, Flow tab: who passed work to whom, by kind, with how long the next AI waited."""
+    """The AI Team view, Flow tab: who passed work to whom, by kind, with how long the next AI waited, for the whole
+    project (7 days by default), one Story or one ticket (their whole life unless a range is given)."""
     await _project(session, project_id)
-    return await svc_flow.team_map(session, project_id, range)
+    out = await svc_flow.team_map(
+        session, project_id, range, story=story, ticket=ticket
+    )
+    if out is None:
+        raise HTTPException(status_code=404, detail="Story or ticket not found")
+    return out
 
 
 def _parse_when(value: Optional[str]):
@@ -811,18 +820,41 @@ def _parse_when(value: Optional[str]):
 async def get_team_timeline(
     project_id: str,
     session: Session,
-    range: Literal["hour", "today", "24h", "7d"] = "today",
+    range: Optional[Literal["hour", "today", "24h", "7d", "all"]] = None,
     since: Optional[str] = None,
     until: Optional[str] = None,
     ticket_id: Optional[str] = None,
+    story: Optional[str] = None,
 ) -> dict:
     """The AI Team view, Flow tab, Timeline: a sequence diagram of the team (lifelines, runs, hand-offs, questions,
-    approvals, Autopilot decisions and pauses) for a window and a scope."""
+    approvals, Autopilot decisions and pauses) for a window and a scope. A Story is one row per ticket, the PM first,
+    over its whole life unless a range is given."""
     await _project(session, project_id)
     a, b = _parse_when(since), _parse_when(until)
-    return await svc_timeline.timeline(
-        session, project_id, range_key=range, since=a, until=b, ticket_id=ticket_id
+    out = await svc_timeline.timeline(
+        session,
+        project_id,
+        range_key=range or ("all" if story else "today"),
+        since=a,
+        until=b,
+        ticket_id=ticket_id,
+        story=story,
     )
+    if out is None:
+        raise HTTPException(status_code=404, detail="Story not found")
+    return out
+
+
+@router.get("/projects/{project_id}/ai/away")
+async def get_away(project_id: str, session: Session, since: str) -> dict:
+    """While you were away: what the team did since `since` (ISO), counted from what the board keeps."""
+    await _project(session, project_id)
+    at = _parse_when(
+        since.replace(" ", "+")
+    )  # a "+" left unencoded in the query reads as a space
+    if at is None:
+        raise HTTPException(status_code=422, detail="Not a time: use ISO 8601.")
+    return await svc_away.away(session, project_id, at)
 
 
 @router.get("/projects/{project_id}/ai/team/flow/{ticket_id}")

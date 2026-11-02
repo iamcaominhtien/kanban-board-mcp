@@ -1,0 +1,793 @@
+/* Flow by scope (design/screens/ai-story-flow.md, G to J): the scope bar, the picker, the Story clusters, the Story map
+   and its Timeline, and the workflow strip of one ticket. Colours as in design/source/AiStoryFlow.dc.html. */
+
+/* ------------------------------------------------------------------------------------------------- the scope bar */
+
+.fs-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fs-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fbfcfb;
+  min-width: 0;
+}
+.fs-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+}
+.fs-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5b6b60;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fs-crumb:hover {
+  background: #eef3ef;
+  color: #1e2a22;
+}
+.fs-crumb.on {
+  font-weight: 700;
+  color: #1e2a22;
+  cursor: default;
+}
+.fs-crumb-t {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.fs-crumb:not(.on) .fs-crumb-t {
+  max-width: 180px;
+}
+.fs-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+.fs-crumb.on .fs-code {
+  font-weight: 700;
+}
+.fs-kbd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #dce6df;
+  background: #f6faf7;
+  color: #5b6b60;
+  white-space: nowrap;
+}
+.fs-go {
+  gap: 7px;
+  white-space: nowrap;
+}
+.fs-go.on {
+  border-color: #1b3a6b;
+  background: #e6ecf5;
+}
+/* with the feed open the bar is narrow: the buttons keep their icon and key, the words go (design H) */
+@container fsbar (max-width: 760px) {
+  .fs-go-t {
+    display: none;
+  }
+}
+.fs-wrap {
+  container: fsbar / inline-size;
+}
+.fs-row2 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.fs-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #5b6b60;
+  min-width: 0;
+}
+.fs-pickwrap {
+  position: relative;
+}
+.fs-picker {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 30;
+  width: min(520px, 86vw);
+  border: 1px solid #d3ddd7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(30, 42, 34, 0.2);
+  overflow: hidden;
+  text-align: left;
+}
+.fs-pick-in {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef3ef;
+}
+.fs-pick-in input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font: inherit;
+  font-size: 13px;
+  background: none;
+  color: #1e2a22;
+}
+.fs-pick-hint {
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.fs-pick-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.fs-pick-h {
+  padding: 9px 12px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.fs-pick-empty {
+  padding: 14px 12px;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.fs-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: #1e2a22;
+}
+.fs-pick-row.on {
+  background: #e6ecf5;
+}
+.fs-pick-ico {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #e6ecf5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.fs-pick-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: #5b6b60;
+  width: 64px;
+  flex-shrink: 0;
+}
+.fs-pick-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fs-pick-title {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fs-pick-sub {
+  font-size: 11.5px;
+  color: #5b6b60;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fs-pick-foot {
+  padding: 8px 12px;
+  border-top: 1px solid #eef3ef;
+  background: #fbfcfb;
+  display: flex;
+  gap: 12px;
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.fs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.fs-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+
+/* -------------------------------------------------------------------------------------- the map's frame and chip */
+
+.fs-mapbox {
+  position: relative;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  padding: 6px 4px 0;
+  background: #fff;
+}
+.fs-against {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #e6ecf5;
+  color: #1b3a6b;
+  font-size: 11px;
+  font-weight: 700;
+}
+.fs-folded {
+  position: relative;
+  margin: 0 0 10px 8px;
+}
+.fs-folded > button {
+  height: 22px;
+  padding: 0 14px;
+  border: 1px dashed #9aa8a0;
+  border-radius: 11px;
+  background: #fff;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.fs-folded-list {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  min-width: 260px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #d3ddd7;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+  padding: 6px 0;
+}
+.fs-folded-list div {
+  display: flex;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: #3a4a3e;
+}
+
+/* ---------------------------------------------------------------------------------------------- the clusters */
+
+.fs-clhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fs-seg-sm {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+.fs-seg-sm > button {
+  padding: 3px 9px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.fs-seg-sm > button.on {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
+}
+.fs-clgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+.fs-cl {
+  min-width: 0;
+  border: 1px solid #c9d6ea;
+  border-radius: 10px;
+  background: #f3f6fb;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  font: inherit;
+  text-align: left;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.fs-cl:hover,
+.fs-cl:focus-visible,
+.fs-cl.lit {
+  box-shadow:
+    0 0 0 2px #1b3a6b,
+    0 8px 20px rgba(27, 58, 107, 0.18);
+  outline: none;
+}
+.fs-cl.faded {
+  opacity: 0.45;
+}
+.fs-cl.loose {
+  border: 1px dashed #c7d2cb;
+  background: #fff;
+  cursor: default;
+}
+.fs-cl-t {
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-cl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.fs-cl-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #5b6b60;
+}
+.fs-bar6 {
+  width: 70px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e3e8e5;
+  overflow: hidden;
+  display: flex;
+  flex-shrink: 0;
+}
+.fs-bar6 > i {
+  display: block;
+  height: 100%;
+}
+.fs-clfold {
+  border: 1px dashed #9aa8a0;
+  border-radius: 10px;
+  padding: 9px 11px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font: inherit;
+  font-size: 12px;
+  color: #3a4a3e;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* ------------------------------------------------------------------------------------- the Story map (design I) */
+
+.fs-smap {
+  position: relative;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  padding: 8px;
+  background: #fff;
+  overflow-x: auto;
+}
+.fs-smap-in {
+  position: relative;
+}
+.fs-node {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.6px solid;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  font-size: 10.5px;
+  color: #3a4a3e;
+}
+.fs-node.live {
+  box-shadow: 0 0 0 4px rgba(46, 111, 64, 0.35);
+}
+.fs-node.lit {
+  box-shadow: 0 0 0 3px #1b3a6b;
+}
+.fs-node-h {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  gap: 6px;
+}
+.fs-node-h b {
+  font-size: 12px;
+  font-weight: 800;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-node-h span {
+  font-size: 10px;
+  color: #5b6b60;
+}
+.fs-node-t {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 5px;
+  padding: 4px 10px;
+}
+.fs-node-t button {
+  border: none;
+  background: none;
+  padding: 0 2px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 10.5px;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+.fs-node-t button:hover {
+  background: #eef3ef;
+  color: #1e2a22;
+}
+.fs-node-t button.live {
+  box-shadow: inset 0 0 0 1.5px #2e6f40;
+  font-weight: 700;
+  color: #1f5a31;
+}
+.fs-pm {
+  border-width: 2.2px;
+  border-radius: 14px;
+}
+.fs-pm .fs-node-h {
+  height: 34px;
+  padding: 0 14px;
+}
+.fs-pm .fs-node-h b {
+  font-size: 14px;
+}
+.fs-pm-body {
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: #5b6b60;
+}
+.fs-pm-body b {
+  font-size: 12px;
+  color: #1e2a22;
+}
+
+/* ------------------------------------------------------------------------------------------------- stat tiles */
+
+.fs-tiles {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fs-tile {
+  width: 168px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.fs-tile-n {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1e2a22;
+  line-height: 1.1;
+}
+.fs-tile-hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #5b6b60;
+}
+.fs-legend {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #5b6b60;
+}
+
+/* ------------------------------------------------------------------------------ the Timeline inside a Story (I2) */
+
+.fs-stl {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.fs-stl-head {
+  display: flex;
+  border-bottom: 1px solid #eef3ef;
+  background: #fbfcfb;
+}
+.fs-stl-left {
+  width: 190px;
+  flex: none;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+.fs-stl-left b {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fs-stl-axis {
+  flex: 1;
+  position: relative;
+  height: 30px;
+}
+.fs-stl-axis span {
+  position: absolute;
+  top: 8px;
+  font-size: 10.5px;
+  color: #5b6b60;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.fs-stl-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #eef3ef;
+  min-height: 46px;
+}
+.fs-stl-row:last-child {
+  border-bottom: none;
+}
+.fs-stl-row.lit {
+  background: #f3f6fb;
+}
+.fs-stl-lane {
+  flex: 1;
+  position: relative;
+  height: 46px;
+  border-left: 1px solid #eef3ef;
+}
+.fs-stl-bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 5px;
+  border: 1.5px solid;
+  font-size: 9.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+  min-width: 4px;
+  cursor: pointer;
+  font-style: normal;
+}
+.fs-stl-bar.lit {
+  box-shadow: 0 0 0 2px #1b3a6b;
+}
+.fs-stl-wait {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 5px;
+  background: repeating-linear-gradient(45deg, #fdefc4, #fdefc4 4px, #fbe29a 4px, #fbe29a 8px);
+  border: 1.5px solid #e8b93a;
+  box-sizing: border-box;
+  min-width: 3px;
+}
+.fs-stl-dia {
+  position: absolute;
+  top: 15px;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  transform: rotate(45deg);
+  border-radius: 3px;
+}
+.fs-stl-now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #1e2a22;
+  pointer-events: none;
+}
+.fs-stl-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 11.5px;
+  color: #5b6b60;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------------------------ the workflow strip of a ticket (J) */
+
+.fs-wf {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fbfcfb;
+  padding: 12px;
+  overflow-x: auto;
+}
+.fs-wf-steps {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.fs-wf-step {
+  width: 76px;
+  flex: none;
+  border: 1.6px solid #c7d2cb;
+  border-radius: 10px;
+  background: #f6f8f7;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  color: #7b8a81;
+}
+.fs-wf-step.done {
+  border-color: #2e6f40;
+  background: #e6f2ea;
+  color: #1f5a31;
+}
+.fs-wf-step.active {
+  border-color: #2e6f40;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.28);
+  color: #1f5a31;
+}
+.fs-wf-step.waiting {
+  border-color: #e8b93a;
+  background: #fef6e1;
+  color: #7a5a06;
+}
+.fs-wf-step.bad {
+  border-color: #c4432a;
+  background: #fdece8;
+  color: #a5321e;
+}
+.fs-wf-step.skipped {
+  border-style: dashed;
+  opacity: 0.6;
+}
+.fs-wf-n {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.fs-wf-n span {
+  font-size: 9.5px;
+  font-weight: 800;
+}
+.fs-wf-n b {
+  font-size: 11px;
+  line-height: 1.15;
+}
+.fs-wf-who {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #5b6b60;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.fs-wf-sub {
+  font-size: 9.5px;
+  color: #5b6b60;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.fs-glyph {
+  border-radius: 4px;
+  border: 1.5px solid;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  letter-spacing: 0.02em;
+}
+.fs-card {
+  flex: 1;
+  min-width: 240px;
+  max-width: 340px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.fs-card-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-bottom: 1px solid #eef3ef;
+}
+.fs-card-b {
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.fs-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  width: max-content;
+}

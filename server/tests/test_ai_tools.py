@@ -301,7 +301,10 @@ async def test_a_member_of_the_role_gets_the_plugin_in_its_run_and_can_switch_it
     )
     await _wait(c, t2, ("finished",))
     args = [json.loads(x) for x in record.read_text().splitlines()][-1]
-    assert "--plugin-dir" not in args  # not its role, and no default
+    dirs = " ".join(args[i + 1] for i, a in enumerate(args) if a == "--plugin-dir")
+    assert (
+        plug["id"] not in dirs
+    )  # not its role, and no default (the board's own skills always load)
     await c.put(f"/ai/plugins/{plug['id']}/members/{dev['id']}", json={"on": False})
     t3 = await _ticket(c, pid, "three")
     await c.post(
@@ -309,7 +312,8 @@ async def test_a_member_of_the_role_gets_the_plugin_in_its_run_and_can_switch_it
     )
     await _wait(c, t3, ("finished",))
     args = [json.loads(x) for x in record.read_text().splitlines()][-1]
-    assert "--plugin-dir" not in args
+    dirs = " ".join(args[i + 1] for i, a in enumerate(args) if a == "--plugin-dir")
+    assert plug["id"] not in dirs
 
 
 # --------------------------------------------------------------------------- role packs

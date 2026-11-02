@@ -401,6 +401,48 @@ async def post_member_pack_update(member_id: str, session: Session) -> dict:
         _fail(exc)
 
 
+@router.get("/ai/members/{member_id}/pack/diff")
+async def get_member_pack_diff(member_id: str, session: Session) -> dict:
+    """What an update to the pack's latest version would change on the member (ai-story-flow Q1)."""
+    if await session.get(AiMember, member_id) is None:
+        raise HTTPException(status_code=404, detail="AI member not found")
+    try:
+        return await svc_packs.pack_diff(session, member_id)
+    except ValueError as exc:
+        _fail(exc)
+
+
+@router.post("/ai/members/{member_id}/pack/revert")
+async def post_member_pack_revert(member_id: str, session: Session) -> dict:
+    """Go back to the version the member was last updated from (kept 30 days)."""
+    if await session.get(AiMember, member_id) is None:
+        raise HTTPException(status_code=404, detail="AI member not found")
+    try:
+        return await svc_packs.revert_member(session, member_id, by=_by())
+    except ValueError as exc:
+        _fail(exc)
+
+
+@router.get("/projects/{project_id}/ai/own-plugins")
+async def get_own_plugins(project_id: str, session: Session) -> dict:
+    """The person's own Claude Code plugins, whether a run loads each, and which roles it is narrowed to (Q2).
+    Read from their Claude Code folder; nothing there is changed."""
+    from services.ai import ops as svc_ops
+    from services.ai import own_claude
+    from services.ai.store import get_settings
+
+    cfg = svc_ops.get(await get_settings(session, project_id))
+    roles = {
+        r.get("plugin"): r.get("roles") or []
+        for r in cfg.get("own_claude_roles") or []
+        if isinstance(r, dict)
+    }
+    return {
+        "on": bool(cfg.get("own_claude", True)),
+        "plugins": [{**p, "roles": roles.get(p["name"])} for p in own_claude.plugins()],
+    }
+
+
 # --------------------------------------------------------------------------- the repository scan
 
 
