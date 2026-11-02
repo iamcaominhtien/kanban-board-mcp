@@ -38,6 +38,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -82,7 +83,9 @@ def _theme(prs) -> dict:
             colors = {}
             scheme = root.find(f".//{{{_A}}}clrScheme")
             for el in scheme if scheme is not None else []:
-                v = el[0].get("val") or el[0].get("lastClr")
+                v = el[0].get("lastClr") or el[0].get(
+                    "val"
+                )  # a system colour (windowText) has its hex in lastClr
                 colors[etree.QName(el).localname] = v
             fonts = {}
             for kind in ("majorFont", "minorFont"):
@@ -186,7 +189,7 @@ def _set_text(shape, value) -> None:
     for p in list(txbody.findall(qn("a:p"))):
         txbody.remove(p)
     for item in paras:
-        item = {"text": item} if isinstance(item, str) else item
+        item = item if isinstance(item, dict) else {"text": str(item)}
         p = etree.SubElement(txbody, qn("a:p"))
         if ppr is not None:
             p.append(copy.deepcopy(ppr))
@@ -214,9 +217,10 @@ def _set_image(slide, shape, path: str) -> None:
     """Put a picture into ``shape``'s box, cropped to fill it (a picture placeholder takes it directly)."""
     from PIL import Image
 
-    if shape.is_placeholder and _ph_type(shape) == "picture":
-        pic = shape.insert_picture(path)
-        return pic
+    if hasattr(
+        shape, "insert_picture"
+    ):  # an empty picture placeholder takes it directly
+        return shape.insert_picture(path)
     x, y, w, h = shape.left, shape.top, shape.width, shape.height
     iw, ih = Image.open(path).size
     pic = slide.shapes.add_picture(path, x, y, w, h)
@@ -316,16 +320,21 @@ def _clone(prs, number: int):
     for el in src.shapes._spTree:
         if el.tag in (qn("p:nvGrpSpPr"), qn("p:grpSpPr")):
             continue
-        new = copy.deepcopy(el)
-        for node in new.iter():
-            for attr, val in list(node.attrib.items()):
-                if attr.startswith(f"{{{_R}}}") and val in rid_map:
-                    node.set(attr, rid_map[val])
-        tree.append(new)
+        tree.append(_remap(copy.deepcopy(el), rid_map))
     bg = src._element.find(qn("p:cSld")).find(qn("p:bg"))
-    if bg is not None:
-        dst._element.find(qn("p:cSld")).insert(0, copy.deepcopy(bg))
+    if bg is not None:  # a picture background refers to its image by rId too
+        dst._element.find(qn("p:cSld")).insert(0, _remap(copy.deepcopy(bg), rid_map))
     return dst
+
+
+def _remap(element, rid_map: dict):
+    """``element`` with every relationship id rewritten through ``rid_map`` in one pass (rewriting pair by pair would
+    turn an old id into a new one that another old id then maps over)."""
+    for node in element.iter():
+        for attr, val in list(node.attrib.items()):
+            if attr.startswith(f"{{{_R}}}") and val in rid_map:
+                node.set(attr, rid_map[val])
+    return element
 
 
 def _copy_chart(prs, part):
@@ -336,16 +345,19 @@ def _copy_chart(prs, part):
         package,
         part.blob,
     )
+    rid_map = {}
     for rid, rel in part.rels.items():
+        if rel.is_external:
+            rid_map[rid] = new.relate_to(rel.target_ref, rel.reltype, is_external=True)
+            continue
         target = rel.target_part
-        clone = Part(package.next_partname("/ppt/embeddings/Microsoft_Excel_Worksheet%d.xlsx"), target.content_type,
-                     package, target.blob) if "package" in rel.reltype else target  # fmt: skip
-        new_rid = new.relate_to(clone, rel.reltype)
-        if new_rid != rid:
-            for node in new._element.iter():
-                for attr, val in list(node.attrib.items()):
-                    if attr.startswith(f"{{{_R}}}") and val == rid:
-                        node.set(attr, new_rid)
+        # its own copy of the data, style and colours, so editing one chart never changes the other
+        template = re.sub(r"\d*(\.\w+)$", r"%d\1", str(target.partname))
+        clone = Part(
+            package.next_partname(template), target.content_type, package, target.blob
+        )
+        rid_map[rid] = new.relate_to(clone, rel.reltype)
+    _remap(new._element, rid_map)
     return new
 
 
@@ -373,11 +385,21 @@ def _shape(slide, key: str, number):
 
 def _theme_rgb(prs, value: str) -> RGBColor:
     """A colour as hex ("1F3864") or as one of the theme's names ("accent2", "dk2"): use the template's own."""
-    v = value.lstrip("#")
+    v = _hex(value)
     named = _theme(prs).get("colors", {})
     if v in named and len(str(named[v])) == 6:
         v = named[v]
     return RGBColor.from_string(v)
+
+
+def _hex(value: str) -> str:
+    """ "#fff" or "1F3864" as six hex digits (a theme name passes through)."""
+    v = str(value).lstrip("#")
+    return (
+        "".join(ch * 2 for ch in v)
+        if len(v) == 3 and all(c in "0123456789abcdefABCDEF" for c in v)
+        else v
+    )
 
 
 def _add(prs, slide, item: dict) -> None:
@@ -433,9 +455,8 @@ def _add(prs, slide, item: dict) -> None:
                 if i < len(row) and row[i] is not None:
                     dl = pt.data_label
                     dl.text_frame.text = str(row[i])
-                    dl.text_frame.paragraphs[0].runs[0].font.size = Pt(
-                        spec.get("size", 12)
-                    )
+                    for run in dl.text_frame.paragraphs[0].runs:  # "" has no run
+                        run.font.size = Pt(spec.get("size", 12))
                     if kind in (
                         XL_CHART_TYPE.COLUMN_CLUSTERED,
                         XL_CHART_TYPE.BAR_CLUSTERED,
@@ -445,13 +466,14 @@ def _add(prs, slide, item: dict) -> None:
         slide.shapes.add_picture(item["image"], x, y, w, h)
     elif "table" in item:
         rows = item["table"]
-        table = slide.shapes.add_table(len(rows), len(rows[0]), x, y, w, h).table
+        cols = max(len(r) for r in rows)
+        table = slide.shapes.add_table(len(rows), cols, x, y, w, h).table
         for r, row in enumerate(rows):
             for c, value in enumerate(row):
                 cell = table.cell(r, c)
                 cell.text = str(value)
-                run = cell.text_frame.paragraphs[0].runs[0]
-                run.font.name, run.font.size = font, Pt(item.get("size", 11))
+                for run in cell.text_frame.paragraphs[0].runs:  # an empty cell has none
+                    run.font.name, run.font.size = font, Pt(item.get("size", 11))
     else:
         tb = slide.shapes.add_textbox(x, y, w, h)
         tf = tb.text_frame
@@ -506,10 +528,16 @@ def main() -> None:
     b.add_argument("outline", type=Path)
     b.add_argument("-o", "--out", type=Path, default=Path("deck.pptx"))
     a = ap.parse_args()
+    if hasattr(
+        sys.stdout, "reconfigure"
+    ):  # a Windows console is cp1252: Vietnamese names would not print
+        sys.stdout.reconfigure(encoding="utf-8")
     if a.cmd == "inventory":
         print(json.dumps(inventory(a.template), ensure_ascii=False, indent=1))
     else:
-        print(build(a.template, json.loads(a.outline.read_text()), a.out))
+        print(
+            build(a.template, json.loads(a.outline.read_text(encoding="utf-8")), a.out)
+        )
 
 
 if __name__ == "__main__":

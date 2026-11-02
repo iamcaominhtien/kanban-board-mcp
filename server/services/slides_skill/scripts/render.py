@@ -52,11 +52,11 @@ def _pdf_to_pngs(pdf: Path, out: Path, dpi: int) -> list[Path]:
             ["pdftoppm", "-png", "-r", str(dpi), str(pdf), str(out / "page")],
             check=True,
         )
-        pages = sorted(out.glob("page-*.png"))
-        # pdftoppm pads to the page count's width: make it two digits always
+        # pdftoppm pads to the page count's width (page-1 or page-01): number them by value, two digits at least
+        pages = sorted(out.glob("page-*.png"), key=lambda q: int(q.stem.split("-")[-1]))
         for i, p in enumerate(pages, 1):
-            p.rename(out / f"page-{i:02d}.png")
-        return sorted(out.glob("page-*.png"))
+            p.replace(out / f"page-{i:02d}.png")
+        return sorted(out.glob("page-*.png"), key=lambda q: int(q.stem.split("-")[-1]))
     import fitz  # PyMuPDF
 
     doc = fitz.open(pdf)
@@ -105,7 +105,11 @@ def _via_office(src: Path, tmp: Path) -> Path | None:
     ext = src.suffix.lower()
     try:
         if platform.system() == "Windows" and ext in _PS:
-            cmd = _PS[ext].format(src=str(src.resolve()), pdf=str(pdf.resolve()))
+            # PowerShell single-quoted strings: a quote in a path is written twice
+            cmd = _PS[ext].format(
+                src=str(src.resolve()).replace("'", "''"),
+                pdf=str(pdf.resolve()).replace("'", "''"),
+            )
             subprocess.run(
                 ["powershell", "-NoProfile", "-Command", cmd],
                 check=True,
@@ -136,7 +140,9 @@ def _via_quicklook(src: Path, out: Path) -> list[Path]:
         capture_output=True,
         timeout=60,
     )
-    made = sorted(out.glob(src.name + "*.png"))
+    made = sorted(
+        p for p in out.iterdir() if p.name.startswith(src.name) and p.suffix == ".png"
+    )
     if not made:
         return []
     page = out / "page-01.png"
@@ -218,6 +224,8 @@ def main() -> int:
         help="another file (the template) to put beside each page",
     )
     a = ap.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     way, pages = render(a.file, a.out, a.dpi)
     result: dict = {"way": way, "pages": [str(p) for p in pages]}
     if pages:

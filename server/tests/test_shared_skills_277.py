@@ -188,3 +188,34 @@ def test_the_slides_skill_ships_its_scripts_and_themes():
     text = (root / "SKILL.md").read_text()
     for t in slides_skill.themes():
         assert f"`{t['key']}`" in text and t["fonts"]["office_body"] in text
+
+
+def test_the_slides_files_are_read_as_utf8_whatever_the_machine_locale():
+    """A Windows machine reads text as cp1252 by default: the Vietnamese themes would not decode and the board server
+    would fail to start (shared_skills builds the slides text at import)."""
+    import re
+
+    root = Path(__file__).resolve().parents[1] / "services" / "slides_skill"
+    for p in root.rglob("*.py"):
+        for line in p.read_text(encoding="utf-8").splitlines():
+            if re.search(r"\.(read_text|write_text)\(", line):
+                assert re.search(r"encoding=[\"']utf-8", line), (
+                    f"{p.relative_to(root)}: {line.strip()}"
+                )
+
+
+def test_a_file_an_earlier_version_shipped_is_removed_from_the_plugin(
+    tmp_path, monkeypatch
+):
+    import database
+
+    monkeypatch.setattr(database, "get_db_path", lambda: tmp_path / "kanban.db")
+    root = Path(board_skills.plugin_dir())
+    stale = root / "skills" / "slides" / "scripts" / "old_name.py"
+    stale.write_text("print('stale')", encoding="utf-8")
+    (root / "skills" / "gone-skill").mkdir()
+    (root / "skills" / "gone-skill" / "SKILL.md").write_text("x", encoding="utf-8")
+    again = Path(board_skills.plugin_dir())
+    assert again == root
+    assert not stale.exists() and not (root / "skills" / "gone-skill").exists()
+    assert (root / "skills" / "slides" / "scripts" / "render.py").is_file()

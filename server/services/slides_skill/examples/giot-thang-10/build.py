@@ -138,7 +138,7 @@ def page() -> str:
         "muted": MUTED[1:],
         "gap": 40,
     }
-    css = (HERE / "deck.css").read_text()
+    css = (HERE / "deck.css").read_text(encoding="utf-8")
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Giọt · Tháng 10</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
 <style>{css}</style></head><body>
@@ -255,7 +255,7 @@ def _browser() -> str | None:
 
 def main() -> None:
     """Build everything, in order."""
-    (HERE / "deck.html").write_text(page())
+    (HERE / "deck.html").write_text(page(), encoding="utf-8")
     record_wave()
     sys.path.insert(0, str(SCRIPTS))
     import html_to_pptx

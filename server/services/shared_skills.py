@@ -311,6 +311,7 @@ Attach the file and the rendered images (or the first pages) to the ticket or Do
 """,
 )
 
+
 def _slides() -> tuple[str, str, str]:
     from services import slides_skill
 
