@@ -124,6 +124,44 @@ async def test_an_ai_proof_with_a_picture_is_stored_with_the_copy(
     assert "/uploads/" in proof and "qa/evidence" not in proof and "34 passed" in proof
 
 
+async def test_a_run_in_the_tickets_worktree_attaches_from_the_worktree(
+    env, folder, tmp_path
+):
+    """A run works in its ticket's worktree (`repo.worktrees/KAN-1`, beside the member's folder): the paths it writes
+    are from there, by a relative path or its absolute one."""
+    from models import AiWorktree
+
+    c = env["c"]
+    ctx, pid, _, member, tid = await _ctx(env)
+    main = tmp_path / "main"
+    main.mkdir()
+    await c.patch(f"/ai/members/{member['id']}", json={"working_dir": str(main)})
+    async with env["maker"]() as s:
+        s.add(
+            AiWorktree(
+                ticket_id=tid,
+                project_id=pid,
+                repo=str(main),
+                path=str(folder),
+                branch=f"ai/{tid}",
+            )
+        )
+        await s.commit()
+    shot = folder / "qa" / "evidence" / "TC-1.png"
+    out = await _as(
+        ctx,
+        ticket_items,
+        ticket_id=tid,
+        item="test_case",
+        action="add",
+        title="Login works",
+        status="pass",
+        proof=f"![login](qa/evidence/TC-1.png) ![again]({shot})",
+    )
+    proof = out["test_cases"][0]["proof"]
+    assert proof.count("/uploads/") == 2 and "qa/evidence" not in proof
+
+
 async def test_a_picture_that_was_never_taken_is_refused_with_what_to_do(env, folder):
     c = env["c"]
     ctx, pid, _, member, tid = await _ctx(env)
