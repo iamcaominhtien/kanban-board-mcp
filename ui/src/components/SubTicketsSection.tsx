@@ -604,7 +604,7 @@ export function SubTicketsSection({
           <div className={styles.helperText}>
             {activeTab === 'new'
               ? 'Enter to create and add another · Esc to cancel'
-              : 'Already-linked tickets are filtered out'}
+              : "Already-linked tickets and the ticket's own parent are filtered out of results."}
           </div>
         </div>
       ) : (

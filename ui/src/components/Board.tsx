@@ -182,6 +182,8 @@ export function Board({
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   // The lifted card keeps the footprint of the card it was picked from (Drag & Drop 1, comp-1 DD-1)
   const [activeWidth, setActiveWidth] = useState<number | null>(null);
+  // The target slot takes the lifted card's height, as the source ghost does (Drag & Drop 2)
+  const [activeHeight, setActiveHeight] = useState<number | null>(null);
   // Group by Story (ai-story-flow D): off until someone turns it on, remembered per person
   const [groupByStory, setGroupByStory] = useState(readGroupByStory);
   const [givingStory, setGivingStory] = useState(false);
@@ -247,6 +249,7 @@ export function Board({
     setSelectedParentId(null);
     setActiveTicketId(event.active.id as string);
     setActiveWidth(event.active.rect.current.initial?.width ?? null);
+    setActiveHeight(event.active.rect.current.initial?.height ?? null);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -521,7 +524,7 @@ export function Board({
         ) : viewMode === 'list' ? (
           <ListView tickets={tickets} members={members} onCardClick={onCardClick} />
         ) : viewMode === 'timeline' ? (
-          <TimelineView tickets={tickets} projectId={projectId ?? ''} onCardClick={onCardClick} />
+          <TimelineView tickets={tickets} projectId={projectId ?? ''} onCardClick={onCardClick} members={members} />
         ) : groupByStory ? (
           <StoryLanes
             columns={COLUMNS}
@@ -568,6 +571,7 @@ export function Board({
                   onResume={onResume}
                   onDelete={onDelete}
                   dragKind={dragKind}
+                  dropSlotHeight={activeHeight}
                   countDelta={countDeltas?.[col.id as Status]}
                 />
               );

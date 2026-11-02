@@ -27,6 +27,8 @@ interface ColumnProps {
   selectedGroup?: Set<string> | null;
   /** A transient change of the lane count (a reopen): +1 in the target lane, −1 (was N) in the source lane. */
   countDelta?: number;
+  /** Height of the card being dragged: the target slot takes it (Drag & Drop 2, target ghost). */
+  dropSlotHeight?: number | null;
 }
 
 /**
@@ -53,6 +55,7 @@ export function Column({
   onCardOpen,
   selectedGroup,
   countDelta,
+  dropSlotHeight,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const { runsByTicket } = useAiBoardState();
@@ -239,6 +242,7 @@ export function Column({
         {isOver && (
           <div
             className={`${styles.dropTargetGhost} ${dragKind === 'reopen' ? styles.dropTargetReopen : ''} ${dragKind === 'pending' ? styles.dropTargetPending : ''}`}
+            style={dropSlotHeight ? { minHeight: dropSlotHeight } : undefined}
           >
             {/* A plain move is just the slot, no text (the reopen and pending hints keep theirs) */}
             {dragKind === 'reopen' ? 'Drop to reopen' : dragKind === 'pending' ? 'Drop - stays pending' : null}

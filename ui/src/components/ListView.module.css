@@ -229,7 +229,8 @@
   padding: 18px 24px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  /* 10 px between groups (List View 1) */
+  gap: 10px;
   box-sizing: border-box;
 }
 
@@ -392,7 +393,8 @@
 }
 
 .rowTitleDone {
-  color: var(--color-text-sec);
+  /* a Done row keeps its dark title; only the key is struck (List View 1, Done group) */
+  color: var(--color-text-pri);
 }
 
 .rowDue {

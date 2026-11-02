@@ -235,7 +235,8 @@ export function CommentsSection({
     } catch {
       // ignore
     }
-    return 'newest';
+    // Oldest first with the composer at the end (TicketComments A, comp-2 TD-4 / board CM-1); the toggle is kept
+    return 'oldest';
   });
 
   const me = useMemo<Person>(
@@ -872,8 +873,8 @@ export function CommentsSection({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
-        paddingTop: 14,
+        gap: 10,
+        paddingTop: 4, // the one divider and 4 px, as every section of the ticket (TicketDetail › Main column)
         paddingBottom: 28,
         borderTop: '1px solid #EEF3EF',
       }}

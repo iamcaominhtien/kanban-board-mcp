@@ -122,10 +122,11 @@ function Row({
             style={{
               fontSize: 11.5,
               fontWeight: 600,
-              color: '#5B6B60',
+              // "Mentioned in …" (and From docs) chips are blue, only "Manual link" is grey (TicketDocRefs F, board DR-4)
+              color: origin === 'manual' ? '#5B6B60' : '#1F5A8E',
               padding: '2px 8px',
               borderRadius: 999,
-              background: origin === 'page' ? '#E8F1FB' : '#F1F3F1',
+              background: origin === 'manual' ? '#F1F3F1' : '#E8F1FB',
               whiteSpace: 'nowrap',
             }}
           >

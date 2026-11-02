@@ -206,7 +206,7 @@ export function TagPicker({
                       {row.create ? (
                         <>
                           <LineIcon name="plus" size={11} color="#9AA8A0" strokeWidth={2} />
-                          Create &ldquo;{row.tag}&rdquo;
+                          Create &quot;{row.tag}&quot;
                         </>
                       ) : (
                         <>

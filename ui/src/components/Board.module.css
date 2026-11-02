@@ -84,7 +84,8 @@
   color: #ffffff;
   border: none;
   border-radius: 8px;
-  padding: 8px 16px;
+  /* 8/14, flat (Main Board 1, top bar) */
+  padding: 8px 14px;
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
@@ -94,7 +95,6 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.1);
   transition:
     opacity 0.15s ease,
     background 0.15s ease;
@@ -166,7 +166,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  /* header to cards: 12 px plus the body's 8 px top padding (Main Board 1) */
+  gap: 12px;
   border-radius: 10px;
   transition: background-color 0.15s ease;
 }
@@ -239,7 +240,8 @@
   gap: 10px;
   flex: 1;
   min-height: 0;
-  padding: 6px 6px 14px 6px;
+  /* 8 px on top as drawn (it is also the room for a blocked card's floating lock); 6 px sides for the group ring */
+  padding: 8px 6px 14px 6px;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
 }

@@ -21,7 +21,9 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  /* rows sit 26 px apart, as the design's 16 px rows with an 8 px gap (TicketDetail, AddAC › Idle); each row keeps
+     its 4 px padding for the hover tint */
+  gap: 0;
 }
 
 .row {
@@ -98,6 +100,9 @@
   align-items: center;
   gap: 2px;
   margin-left: auto;
+  /* the 24 px buttons overlap the row padding, so a hidden pair does not make every row 32 px tall */
+  margin-top: -3px;
+  margin-bottom: -3px;
   opacity: 0;
   transition: opacity 0.15s ease;
 }

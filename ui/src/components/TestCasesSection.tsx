@@ -264,11 +264,14 @@ function TestCaseRowItem({
         </div>
 
         {/* Time / Status meta */}
-        <span className={styles.timeMeta}>
+        {/* A pending case shows no time at rest, as drawn (Test Cases 1); when it was added stays in the tooltip */}
+        <span
+          className={styles.timeMeta}
+          title={tc.status === 'pending' && tc.createdAt ? `Added ${formatTimeAgo(tc.createdAt)}` : undefined}
+        >
           {tc.status === 'pass' && (tc.updatedAt ? `passed ${formatTimeAgo(tc.updatedAt)}` : 'passed')}
           {tc.status === 'fail' && (tc.updatedAt ? `failed ${formatTimeAgo(tc.updatedAt)}` : 'failed')}
           {tc.status === 'running' && (tc.startedAt ? `started ${formatTimeAgo(tc.startedAt)}` : 'running')}
-          {tc.status === 'pending' && (tc.createdAt ? formatTimeAgo(tc.createdAt) : '')}
         </span>
 
         {/* Assignee Avatar */}
@@ -872,7 +875,7 @@ export function TestCasesSection({
         <div className={styles.groupSection}>
           {hasChildren && (
             <div className={styles.groupHeader}>
-              <span>{ticketId} — this ticket</span>
+              <span className={styles.groupKey}>{ticketId} — this ticket</span>
             </div>
           )}
           <div className={styles.groupTable}>
@@ -909,7 +912,7 @@ export function TestCasesSection({
           return (
             <div key={child.ticketId} className={styles.groupSection}>
               <div className={styles.groupHeader}>
-                <span>{child.ticketId}</span>
+                <span className={styles.groupKey}>{child.ticketId}</span>
                 <span style={{ color: '#C7D2CB' }}>·</span>
                 <span>{child.ticketTitle} — read-only here</span>
               </div>
