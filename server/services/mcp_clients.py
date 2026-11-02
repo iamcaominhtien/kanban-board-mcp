@@ -221,6 +221,8 @@ def _run_claude(args: list[str], cwd: Path | None) -> subprocess.CompletedProces
             cwd=str(cwd or Path.home()),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=_CLI_TIMEOUT,
         )
     except subprocess.TimeoutExpired as exc:

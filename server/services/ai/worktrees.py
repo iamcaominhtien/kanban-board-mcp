@@ -66,6 +66,8 @@ def _identity_env(cwd: str) -> dict[str, str]:
                 cwd=cwd,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=20,
             )
             _HAS_IDENTITY[cwd] = bool(out.stdout.strip())
@@ -84,6 +86,8 @@ def _git(
         cwd=cwd,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=timeout,
         env={
             **os.environ,
@@ -255,6 +259,8 @@ async def ensure(
                 cwd=path,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=PREPARE_TIMEOUT_S,
                 env={**os.environ, "PORT": str(port)},
             )
@@ -402,6 +408,8 @@ async def guess_route(repo: str) -> str:
                 ["gh", "auth", "status"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=20,
                 cwd=repo,
             )
@@ -475,6 +483,8 @@ async def on_review(ticket_id: str) -> dict | None:
             cwd=row.path,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=120,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
