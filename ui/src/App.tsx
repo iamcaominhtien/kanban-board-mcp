@@ -72,6 +72,7 @@ import {
 import type { WorkflowBoardRow, WorkflowFilterState } from './types/aiWorkflowBoard';
 import { SchedulesProvider } from './components/schedules/SchedulesContext';
 import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
+import { LineIcon } from './components/ui/LineIcon';
 
 const EMPTY_PROJECTS: Project[] = [];
 const EMPTY_TICKETS: Ticket[] = [];
@@ -968,6 +969,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setGlobalError(null)}
+                      aria-label="Dismiss"
                       style={{
                         background: 'none',
                         border: 'none',
@@ -978,7 +980,7 @@ export default function App() {
                         padding: '0 4px',
                       }}
                     >
-                      ×
+                      <LineIcon name="close" size={14} />
                     </button>
                   </div>
                 )}
@@ -1001,7 +1003,9 @@ export default function App() {
                       boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
                     }}
                   >
-                    <span>⚠️ This ticket is blocked. Move to In Progress anyway?</span>
+                    <span>
+                      <LineIcon name="warning" size={14} /> This ticket is blocked. Move to In Progress anyway?
+                    </span>
                     <button
                       type="button"
                       onClick={proceedBlockedDrag}

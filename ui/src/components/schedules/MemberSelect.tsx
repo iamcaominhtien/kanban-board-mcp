@@ -3,6 +3,7 @@ import type { AiMember } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { AiAvatar } from '../ai/aiUi';
 import { CheckCircleIcon, ChevronIcon, LockIcon } from './schedulesUi';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Click outside closes a popover. */
 function useOutside(open: boolean, onClose: () => void) {
@@ -92,7 +93,11 @@ export function MemberSelect({
             >
               <AiAvatar provider={m.provider} size={22} />
               <span className="sc-grow">{m.name}</span>
-              {m.id === value && <span style={{ color: '#2E6F40' }}>✓</span>}
+              {m.id === value && (
+                <span style={{ color: '#2E6F40' }}>
+                  <LineIcon name="check" size={14} />
+                </span>
+              )}
             </button>
           ))}
           {!members.length && (

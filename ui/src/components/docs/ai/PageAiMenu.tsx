@@ -20,6 +20,7 @@ import { CreateTicketsDialog } from './CreateTicketsDialog';
 import type { PageAiView } from './usePageAiView';
 import { requestAiOnEdit } from './editIntent';
 import './pageAi.css';
+import { LineIcon } from '../../ui/LineIcon';
 
 /**
  * The AI button in the page header, beside Comments and Share (docs-ai B). Shown only when Docs AI is on for the
@@ -127,7 +128,11 @@ export function PageAiMenu({
         data-testid="page-ai-menu"
         onClick={() => setOpen((v) => !v)}
       >
-        {menu.kind === 'hidden' ? <Icon name="lock" size={14} strokeWidth={1.9} /> : <span aria-hidden>✦</span>}
+        {menu.kind === 'hidden' ? (
+          <Icon name="lock" size={14} strokeWidth={1.9} />
+        ) : (
+          <LineIcon name="sparkle" size={14} />
+        )}
         AI
         <Icon name="chevronDown" size={11} strokeWidth={2.3} />
       </button>

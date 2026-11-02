@@ -8,6 +8,7 @@ import { useAssist } from './AssistContext';
 import { DraftTag, featureBlock, STATUS_LABEL } from './assistUi';
 import { DraftFailed, DraftLoading, PartialNotice, useStartDraft } from './TicketAi';
 import './assist.css';
+import { LineIcon } from '../ui/LineIcon';
 
 type FieldKey = 'title' | 'description' | 'type' | 'priority' | 'labels' | 'estimate' | 'criteria' | 'assignee';
 type FieldState = 'pending' | 'accepted' | 'rejected';
@@ -71,11 +72,11 @@ function FieldCard({
         ) : state === 'accepted' ? (
           <>
             <span className="ai-chip" style={{ background: '#EAF5ED', color: '#2E6F40', border: '1px solid #BFDCC7' }}>
-              ✓ Accepted
+              <LineIcon name="check" size={12} /> Accepted
             </span>
             {onEdit && (
               <button type="button" className="as-sq" aria-label={`Edit ${LABEL[k]}`} onClick={onEdit}>
-                ✎
+                <LineIcon name="edit" size={13} />
               </button>
             )}
           </>
@@ -87,7 +88,7 @@ function FieldCard({
               aria-label={`Accept ${LABEL[k]}`}
               onClick={() => setState('accepted')}
             >
-              ✓
+              <LineIcon name="check" size={14} />
             </button>
             <button
               type="button"
@@ -95,7 +96,7 @@ function FieldCard({
               aria-label={`Reject ${LABEL[k]}`}
               onClick={() => setState('rejected')}
             >
-              ✕
+              <LineIcon name="close" size={13} />
             </button>
             {onEdit && (
               <button
@@ -104,7 +105,7 @@ function FieldCard({
                 aria-label={`Edit ${LABEL[k]}`}
                 onClick={onEdit}
               >
-                ✎
+                <LineIcon name="edit" size={13} />
               </button>
             )}
           </>
@@ -233,13 +234,16 @@ export function DraftWithAi({
           <b style={{ fontSize: 13.5 }}>Draft with AI</b>
           {st.data?.boardAi.name && (
             <span className="ai-chip" style={{ background: '#1E2A22', color: '#fff', height: 20 }}>
-              ✦ {st.data.boardAi.name}
+              <LineIcon name="sparkle" size={12} /> {st.data.boardAi.name}
             </span>
           )}
           <span style={{ flex: 1 }} />
           {open && valueOf<string>('type') && (
             <span className="as-ctx-chip">
-              <span>🗋 Template: {String(valueOf<string>('type')).replace(/^\w/, (c) => c.toUpperCase())}</span>
+              <span>
+                <LineIcon name="page" size={13} /> Template:{' '}
+                {String(valueOf<string>('type')).replace(/^\w/, (c) => c.toUpperCase())}
+              </span>
             </span>
           )}
         </div>
@@ -269,12 +273,14 @@ export function DraftWithAi({
             title={block?.reason}
             data-testid="draft-button"
           >
-            ↗ Draft
+            <LineIcon name="external" size={13} /> Draft
           </button>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <span className="as-ctx-chip" style={{ maxWidth: 'none' }}>
-            <span>🔍 {d?.payload.reads ?? 'Reads labels, members, similar tickets'}</span>
+            <span>
+              <LineIcon name="search" size={13} /> {d?.payload.reads ?? 'Reads labels, members, similar tickets'}
+            </span>
           </span>
           <span className="as-cost">{metered ? '~$0.01 est.' : 'Not metered'}</span>
           {block && <span className="ai-muted">{block.reason}</span>}
@@ -294,7 +300,7 @@ export function DraftWithAi({
       {open && similar.length > 0 && !dupOk && (
         <div className="as-tile as-tile-warn" data-testid="similar-tickets">
           <div className="as-tile-title" style={{ color: '#B4541A' }}>
-            ⚠ Similar tickets found
+            <LineIcon name="warning" size={13} /> Similar tickets found
           </div>
           {similar.map((t) => (
             <div
@@ -340,7 +346,7 @@ export function DraftWithAi({
             <DraftTag />
             <span style={{ flex: 1 }} />
             <button type="button" className="ai-link" onClick={() => void draft()}>
-              Regenerate ↻
+              Regenerate <LineIcon name="refresh" size={13} />
             </button>
             <button type="button" className="ai-btn ai-btn-sm" onClick={acceptAll} data-testid="draft-accept-all">
               Accept all {nAccept + (suggestions.length ? 1 : 0)}
@@ -419,7 +425,7 @@ export function DraftWithAi({
                             aria-label={`Remove ${l}`}
                             onClick={() => setEdits({ ...edits, labels: labels.filter((x) => x !== l) })}
                           >
-                            ✕
+                            <LineIcon name="close" size={13} />
                           </button>
                         )}
                       </span>
@@ -459,7 +465,9 @@ export function DraftWithAi({
                         />
                       ) : (
                         <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13 }}>
-                          <span>☐</span>
+                          <span>
+                            <LineIcon name="square" size={13} />
+                          </span>
                           {c}
                         </div>
                       ),

@@ -17,6 +17,7 @@ import { Triage } from './Triage';
 import { useIdeaMoves } from './useIdeaMoves';
 import './ideas.css';
 import { ascendingText } from '../../utils/sorted';
+import { LineIcon } from '../ui/LineIcon';
 
 type View = 'list' | 'stages' | 'matrix';
 interface ScopeState {
@@ -94,7 +95,10 @@ function Switcher({
         data-testid="idea-switcher"
       >
         {value.scope === 'project' && project && <span className="is-dot" style={{ background: project.color }} />}
-        {label} <span aria-hidden="true">▾</span>
+        {label}{' '}
+        <span aria-hidden="true">
+          <LineIcon name="chevronDown" size={12} />
+        </span>
       </button>
       {open && (
         <div className="is-switch-menu" role="menu">
@@ -325,7 +329,10 @@ export function IdeaSpace({
             onClick={() => setAskOpen(!askOpen)}
             data-testid="ask-button"
           >
-            <span aria-hidden="true">✦</span> Ask
+            <span aria-hidden="true">
+              <LineIcon name="sparkle" size={12} />
+            </span>{' '}
+            Ask
           </button>
         )}
         <button type="button" className="is-btn" onClick={() => setTriage(true)} data-testid="inbox-button">

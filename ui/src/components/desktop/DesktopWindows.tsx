@@ -15,6 +15,7 @@ import {
   type ReleaseNotes,
 } from './desktopHelpers';
 import styles from './DesktopWindows.module.css';
+import { LineIcon } from '../ui/LineIcon';
 
 const isMac = () => window.electronAPI?.platform === 'darwin';
 
@@ -47,7 +48,7 @@ function Dialog({ title, subtitle, small, onClose, footer, children }: DialogPro
         <div className={styles.head}>
           <h2 className={styles.title}>{title}</h2>
           <button type="button" className={styles.x} aria-label="Close" onClick={onClose}>
-            ×
+            <LineIcon name="close" size={14} />
           </button>
         </div>
         {subtitle && <p className={styles.sub}>{subtitle}</p>}

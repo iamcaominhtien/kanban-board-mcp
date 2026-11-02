@@ -17,6 +17,7 @@ import { useToast } from '../Toast';
 import { AiUnavailable } from './IdeaAiPanel';
 import { AiChip } from './ideaShared';
 import type { Decision } from './useIdeaMoves';
+import { LineIcon } from '../ui/LineIcon';
 
 const money = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
 const VERB: Record<IdeaAdvice['action'], string> = { keep: 'Keep', park: 'Park', merge: 'Merge', archive: 'Archive' };
@@ -202,7 +203,7 @@ export function AskPanel({
         {status?.member && <span className="is-muted">{status.member}</span>}
         <span style={{ flex: 1 }} />
         <button type="button" className="is-btn is-btn-ghost is-btn-sm" onClick={onClose} aria-label="Close">
-          ×
+          <LineIcon name="close" size={14} />
         </button>
       </header>
       {status && status.state !== 'on' && <AiUnavailable status={status} onOpenSettings={onOpenSettings} />}

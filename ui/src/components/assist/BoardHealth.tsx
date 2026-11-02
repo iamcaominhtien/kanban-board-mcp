@@ -9,6 +9,7 @@ import { BoardAiAvatar, DraftTag, TicketPill, usd } from './assistUi';
 import { DraftChanges } from './DraftChanges';
 import './assist.css';
 import { toggleNumber } from '../../utils/sorted';
+import { LineIcon } from '../ui/LineIcon';
 
 const KIND: Record<Insight['kind'], { label: string; bg: string; color: string }> = {
   stuck: { label: 'Stuck', bg: '#FFF1E2', color: '#B4541A' },
@@ -53,7 +54,7 @@ function SnoozeMenu({ onPick }: { onPick: (hours: number) => void }) {
   return (
     <span style={{ position: 'relative' }}>
       <button type="button" className="ai-btn ai-btn-sm" aria-label="Snooze" onClick={() => setOpen((v) => !v)}>
-        🕒 ▾
+        <LineIcon name="clock" size={13} /> <LineIcon name="chevronDown" size={12} />
       </button>
       {open && (
         <div className="as-menu" style={{ right: 0, top: 34 }}>
@@ -145,7 +146,7 @@ function InsightRow({ ins, draftId, onChanged }: { ins: Insight; draftId: string
                   onClick={() => void run(() => assistApi.insight(ins.id, 'act'))}
                   data-testid="insight-act"
                 >
-                  ✎ {String(ins.data.action ?? 'Draft')}
+                  <LineIcon name="edit" size={13} /> {String(ins.data.action ?? 'Draft')}
                 </button>
               )}
               <SnoozeMenu onPick={(h) => void run(() => assistApi.insight(ins.id, 'snooze', h))} />
@@ -157,7 +158,7 @@ function InsightRow({ ins, draftId, onChanged }: { ins: Insight; draftId: string
                 disabled={busy}
                 onClick={() => void run(() => assistApi.insight(ins.id, 'dismiss'))}
               >
-                ✕
+                <LineIcon name="close" size={14} />
               </button>
             </>
           )}
@@ -390,10 +391,10 @@ export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
             aria-label="Schedule and noise controls"
             onClick={() => setSettings((v) => !v)}
           >
-            ⚙
+            <LineIcon name="settings" size={14} />
           </button>
           <button type="button" className="ai-icobtn" aria-label="Close" onClick={onClose}>
-            ✕
+            <LineIcon name="close" size={14} />
           </button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -405,7 +406,7 @@ export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontWeight: 700 }}>
-                  ✦ Standup summary ·{' '}
+                  <LineIcon name="sparkle" size={13} /> Standup summary ·{' '}
                   {new Date(p.digest.day).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                 </span>
                 {p.digest.text && <DraftTag>AI summary</DraftTag>}
@@ -511,7 +512,9 @@ export function BoardHealthToast() {
       data-testid="health-toast"
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <span style={{ color: '#2E6F40', fontWeight: 800 }}>✓</span>
+        <span style={{ color: '#2E6F40', fontWeight: 800 }}>
+          <LineIcon name="check" size={14} />
+        </span>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700 }}>Board health is ready</div>
           <div className="ai-hint">
@@ -519,7 +522,7 @@ export function BoardHealthToast() {
           </div>
         </div>
         <button type="button" className="ai-icobtn" aria-label="Close" onClick={done}>
-          ✕
+          <LineIcon name="close" size={14} />
         </button>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
@@ -574,7 +577,7 @@ export function CardInsightChip({ ticketId }: { ticketId: string }) {
           ctx?.setHealthOpen(true);
         }}
       >
-        ✦ {chip.label}
+        <LineIcon name="sparkle" size={13} /> {chip.label}
       </button>
     </div>
   );

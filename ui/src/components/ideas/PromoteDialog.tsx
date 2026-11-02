@@ -7,6 +7,7 @@ import type { Idea } from '../../types/idea';
 import { FooterNote, ModalShell, Spacer, plural } from '../docs/docsShared';
 import { useToast } from '../Toast';
 import { ProjectSelect } from './TriageDialogs';
+import { LineIcon } from '../ui/LineIcon';
 
 type Subject = Pick<Idea, 'id' | 'title' | 'projectId' | 'stage'>;
 
@@ -216,7 +217,9 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
                 disabled={prepare.isPending}
                 data-testid="draft-with-ai"
               >
-                <span aria-hidden="true">✦</span>{' '}
+                <span aria-hidden="true">
+                  <LineIcon name="sparkle" size={12} />
+                </span>{' '}
                 {prepare.isPending ? 'Drafting…' : `Draft with AI · about $${aiStatus.hints.ticket.toFixed(2)}`}
               </button>
               {aiNote && <span className="is-muted">{aiNote}</span>}
@@ -276,7 +279,7 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
                     aria-label="Remove"
                     onClick={() => setSubs(subs.length > 1 ? subs.filter((_, k) => k !== i) : [''])}
                   >
-                    ×
+                    <LineIcon name="close" size={12} />
                   </button>
                 </div>
               ))}
@@ -334,7 +337,7 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
               <span className="is-label">Still to check (becomes the ticket’s checklist)</span>
               {p.draft.checklist.map((c) => (
                 <div key={c.assumptionId} className="is-muted">
-                  ☐ {c.text}
+                  <LineIcon name="square" size={13} /> {c.text}
                   {c.testTicketId ? ` (test ${c.testTicketId})` : ''}
                 </div>
               ))}

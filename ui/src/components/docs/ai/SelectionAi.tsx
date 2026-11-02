@@ -2,6 +2,7 @@ import { selectionOk } from '../../../utils/pageAiRules';
 import { useAssist } from '../../assist/AssistContext';
 import type { Pick } from '../comments/SelectionComment';
 import type { PageAiView } from './usePageAiView';
+import { LineIcon } from '../../ui/LineIcon';
 
 /**
  * AI buttons of the selection bar in the reader: Explain, Summarise and Ask… (docs-ai E2). Mounted inside the
@@ -61,7 +62,7 @@ export function SelectionAi({
             }),
           )}
         >
-          ✦ Ask…
+          <LineIcon name="sparkle" size={12} /> Ask…
         </button>
       )}
     </>

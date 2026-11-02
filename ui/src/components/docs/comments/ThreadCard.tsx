@@ -9,6 +9,7 @@ import { useThreadAiActions, type useCommentActions } from '../../../api/docsCom
 import type { SuggestMember } from '../RefSuggester';
 import { aiCostLabel, aiReplyKind, canSuggestEdit, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
 import { REVIEW_PROPOSAL_EVENT } from '../../../utils/docsProposalRules';
+import { LineIcon } from '../../ui/LineIcon';
 
 type Actions = ReturnType<typeof useCommentActions>;
 
@@ -256,7 +257,7 @@ export function ThreadCard({
             <b>{p.name}</b>
             {(c.ai || p.ai) && (
               <span className="dc-ai-badge" data-testid="ai-badge">
-                ✦ AI
+                <LineIcon name="sparkle" size={11} /> AI
               </span>
             )}
             {aiToAiReply(c, members, me) && (
@@ -524,7 +525,7 @@ export function ThreadCard({
             void run(ai.summarise.mutateAsync(thread.id));
           }}
         >
-          ✦{' '}
+          <LineIcon name="sparkle" size={12} />{' '}
           {(thread.aiJobs ?? []).some((j) => j.kind === 'thread_summary')
             ? 'Summarising…'
             : thread.aiSummary
@@ -553,7 +554,9 @@ export function ThreadCard({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="dc-meta">
               <b>{w.name}</b>
-              <span className="dc-ai-badge">✦ AI</span>
+              <span className="dc-ai-badge">
+                <LineIcon name="sparkle" size={11} /> AI
+              </span>
             </div>
             <div className="dc-ai-dots">
               {w.kind === 'suggest_edit' ? 'Writing a suggested edit' : (w.step ?? 'Reading the page and the thread')}

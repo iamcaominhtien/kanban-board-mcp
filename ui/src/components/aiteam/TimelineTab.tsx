@@ -28,6 +28,7 @@ import { buildAxis, clock, lengthText, type AxisMode } from './timelineLayout';
 import { TimelineStrip } from './TimelineStrip';
 import { buildTimelineLink, type TimelineLink } from './timelineLink';
 import './timeline.css';
+import { LineIcon } from '../ui/LineIcon';
 
 export interface TimelineActions {
   onOpenTicket: (ticketId: string) => void;
@@ -490,7 +491,8 @@ export function TimelineTab({
           </span>
         ) : following ? (
           <button type="button" className="tl-follow back" onClick={toBottom} data-testid="tl-scrolled-back">
-            Scrolled back{missed ? `: ${missed} new event${missed === 1 ? '' : 's'}` : ''} ↓
+            Scrolled back{missed ? `: ${missed} new event${missed === 1 ? '' : 's'}` : ''}{' '}
+            <LineIcon name="chevronDown" size={12} />
           </button>
         ) : null}
       </div>
