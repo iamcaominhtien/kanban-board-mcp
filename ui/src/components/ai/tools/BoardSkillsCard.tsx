@@ -4,12 +4,22 @@ import { usePatchProjectOps, useProjectOps } from '../../../api/aiProjectOps';
 import { extractError } from '../../../api/extractError';
 import { Toggle } from '../aiUi';
 import { boardSkillOn, boardSkillOwn, withBoardSkill } from './boardSkillLogic';
+import { roleName } from './pluginLogic';
 
 /**
- * The board's own skills (the canvas design guide, permissions, the shared skills every role uses), each with a switch:
- * for the whole project, or, with `memberId`, for one member over the project's default (issue #277).
+ * The board's own skills (the canvas design guide, permissions, the shared skills every role uses, one skill per role),
+ * each with a switch: for the whole project, or, with `memberId`, for one member over the project's default (issues
+ * #277, #273). On a member's page only its own role's skill is listed (`role`): the others never load for it.
  */
-export function BoardSkillsRows({ projectId, memberId }: { projectId: string; memberId?: string }) {
+export function BoardSkillsRows({
+  projectId,
+  memberId,
+  role,
+}: {
+  projectId: string;
+  memberId?: string;
+  role?: string | null;
+}) {
   const skills = useBoardSkills();
   const ops = useProjectOps(projectId);
   const patch = usePatchProjectOps(projectId);
@@ -24,7 +34,8 @@ export function BoardSkillsRows({ projectId, memberId }: { projectId: string; me
       </div>
     );
   const list = ops.data.boardSkills;
-  const all = Array.isArray(skills.data) ? skills.data : [];
+  const every = Array.isArray(skills.data) ? skills.data : [];
+  const all = memberId ? every.filter((s) => !s.role || s.role === role) : every;
   const set = async (skill: string, on: boolean | null) => {
     setError(null);
     try {
@@ -47,7 +58,7 @@ export function BoardSkillsRows({ projectId, memberId }: { projectId: string; me
           >
             <Toggle label={s.name} on={on} disabled={patch.isPending} onChange={(v) => void set(s.name, v)} />
             <b style={{ fontSize: 13 }}>{s.name}</b>
-            <span className="ai-chip">Skill</span>
+            <span className="ai-chip">{s.role ? `${roleName(s.role)} skill` : 'Skill'}</span>
             <span
               className="ai-hint"
               style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
@@ -57,7 +68,9 @@ export function BoardSkillsRows({ projectId, memberId }: { projectId: string; me
                 ? `${boardSkillOn(list, s.name) ? 'On for every member' : 'Off for this project'}.${
                     own ? ` Switched ${on ? 'on' : 'off'} here.` : ''
                   }`
-                : `Board library · on for ${on ? 'every member' : 'nobody'} · ${s.description}`}
+                : `Board library · on for ${
+                    on ? (s.role ? `every ${roleName(s.role)}` : 'every member') : 'nobody'
+                  } · ${s.description}`}
             </span>
             {own && (
               <button className="ai-link" onClick={() => void set(s.name, null)}>
@@ -86,8 +99,8 @@ export function BoardSkillsCard({ projectId }: { projectId: string }) {
     >
       <b style={{ fontSize: 13.5 }}>The board's own skills</b>
       <div className="ai-hint">
-        Every Claude Code member gets these, whatever its role. Switch one off for the project here, or for one member
-        on its page.
+        Every Claude Code member gets the shared ones; a role's own skill goes only to the members of that role. Switch
+        one off for the project here, or for one member on its page.
       </div>
       <BoardSkillsRows projectId={projectId} />
     </div>

@@ -181,7 +181,7 @@ CATALOGUE: list[dict] = [
         "name": "tufte-data-viz",
         "kind": "plugin",
         "source": "https://github.com/caylent/tufte-data-viz",
-        "roles": ["designer", "dev"],
+        "roles": ["designer", "dev", "data_analyst"],
         "what": "Charts after Tufte: data-ink, direct labels, range frames, accessible and dark-mode ready; for Recharts, ECharts, Chart.js, D3 or SVG. MIT.",
         "use": "before you draw any chart",
     },

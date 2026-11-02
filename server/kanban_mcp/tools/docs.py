@@ -28,6 +28,7 @@ DocsReadAction = Literal[
     "design_guide",
     "permissions_guide",
     "guides",
+    "role_guide",
 ]
 
 DOCS_READ_OPS = {
@@ -48,6 +49,7 @@ DOCS_READ_OPS = {
     "design_guide": Op(ops.design_guide, ()),
     "permissions_guide": Op(ops.permissions_guide, ()),
     "guides": Op(ops.shared_guides, ()),
+    "role_guide": Op(ops.role_guide, (), ("query",)),
 }
 
 
@@ -65,7 +67,7 @@ async def docs_read(
     query: Annotated[
         str | None,
         Field(
-            description='search: words are AND-ed; "a b" is a phrase; -word excludes; a ticket key finds pages that mention it.'
+            description='search: words are AND-ed; "a b" is a phrase; -word excludes; a ticket key finds pages that mention it. role_guide: a role.'
         ),
     ] = None,
     scope: Annotated[
@@ -143,7 +145,8 @@ async def docs_read(
     - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
     - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.
     - permissions_guide: {guide, you}: what you may do; read it when refused.
-    - guides: {name: text}: how to work a ticket, prove it, ask, brainstorm, write for users, make office files and decks."""
+    - guides: {name: text}: how to work a ticket, prove it, ask, work as a team, brainstorm, write for users, make office files and decks.
+    - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 

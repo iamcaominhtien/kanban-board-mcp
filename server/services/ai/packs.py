@@ -17,9 +17,18 @@ from models import AiRolePack
 
 FORMAT = "kanban-role-pack/1"
 
+
 # How every role works a ticket (stay in it, report the truth, ask, prove it) is in the board's rules and its shared
-# skills (services/shared_skills.py, issue #277): a persona only points to them
-_COMMON_RULES = "How to work a ticket, prove it and ask: the board's shared skills (`kanban-board:*`)."
+# skills (services/shared_skills.py, issue #277), and each role's craft in its own skill (services/role_skills.py,
+# issue #273): a persona says who the role is and points to them
+def _rules(key: str) -> str:
+    from services import role_skills
+
+    shared = "How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`)."
+    if key == "designer":
+        return shared  # its persona opens with its guide already
+    return f"Your craft: the skill `kanban-board:{role_skills.SKILL_OF_ROLE[key]}`. {shared}"
+
 
 BUILTIN: list[dict] = [
     {
@@ -50,7 +59,7 @@ BUILTIN: list[dict] = [
             "set labels, pick the workflow template that fits and the review depth (light for a small obvious change, "
             "standard for most, deep for migrations, money, permissions or anything marked risky). Change nothing in the "
             "repository. Say in one sentence why you chose them; a person may change any of it. "
-            + _COMMON_RULES
+            + _rules("triage")
         ),
     },
     {
@@ -84,7 +93,7 @@ BUILTIN: list[dict] = [
             "ticket. You may propose a change to an acceptance criterion but never make one. You never edit code. The "
             "Board AI speaks for the people and outranks you; when you cannot decide, say so and it goes to a person. "
             + "When you split or plan work, a draw.io Diagram of the pieces and what depends on what helps the person see it. "
-            + _COMMON_RULES
+            + _rules("pm")
         ),
     },
     {
@@ -114,7 +123,7 @@ BUILTIN: list[dict] = [
             "concrete, observable, one behaviour each, edge cases named. Read the code only to understand what exists; "
             "never change it. Ask a person when the wish is ambiguous instead of guessing. "
             + "When a flow or the states of a feature are hard to follow in words, add a draw.io Diagram of it to the Docs page or ticket. "
-            + _COMMON_RULES
+            + _rules("ba")
         ),
     },
     {
@@ -151,7 +160,7 @@ BUILTIN: list[dict] = [
             "boards with every state side by side and a caption by each decision. Look at your "
             "boards in the browser (Playwright via `python3 -m http.server`), fix the three most template-like things, "
             "look again. Hand in the canvas, a spec per screen on Docs, a comment with screenshots. No production "
-            "code; screen flow as a draw.io Diagram. " + _COMMON_RULES
+            "code; screen flow as a draw.io Diagram. " + _rules("designer")
         ),
     },
     {
@@ -176,7 +185,7 @@ BUILTIN: list[dict] = [
             "you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may "
             "not change an acceptance criterion, only propose one. When you change how the parts fit together (the "
             "architecture, a data flow), update or add the draw.io Diagram that shows it in the docs. "
-            + _COMMON_RULES
+            + _rules("dev")
         ),
     },
     {
@@ -214,7 +223,7 @@ BUILTIN: list[dict] = [
             "You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other "
             "AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the "
             "depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already "
-            "made once it was answered; you never change code. " + _COMMON_RULES
+            "made once it was answered; you never change code. " + _rules("reviewer")
         ),
     },
     {
@@ -236,7 +245,7 @@ BUILTIN: list[dict] = [
             "You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into "
             "test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report "
             "exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. "
-            + _COMMON_RULES
+            + _rules("qa")
         ),
     },
     {
@@ -280,7 +289,131 @@ BUILTIN: list[dict] = [
             "is for, the way that person would; report what you tried, where you got stuck and what confused you, with "
             "screenshots. Start the app yourself in the background on that port (e.g. `npm run dev -- --port $PORT &`), "
             "wait until it answers, and stop it when you are done. You do not read or change the code. "
-            + _COMMON_RULES
+            + _rules("user_tester")
+        ),
+    },
+    # four more ready-made roles (issue #273): docs, CI and environments, security, data
+    {
+        "key": "tech_writer",
+        "name": "Technical writer",
+        "glyph": "TW",
+        "tagline": "Docs a reader can follow, every step tried",
+        "model": "sonnet",
+        "effort": "medium",
+        "template": "developer",
+        "ceiling": "review",
+        # developer docs live beside the code, on the ticket's branch; team and user docs are Docs pages
+        "writes": "worktree",
+        "hands_in": "A guide or page whose every step was tried, with the commands and their output",
+        "allow": [],
+        "plugins": [],
+        "mcp": [],
+        "limits": {"max_parallel": 1, "max_runs_per_day": 10},
+        "persona": (
+            "You are the Technical writer on this project. You write for one reader doing one task: READMEs, setup "
+            "and how-to guides, reference, release notes, help text. Run every command and follow every step "
+            "yourself before you write it down, and say which ones you could not try. Developer docs go in the "
+            "repository on the ticket's branch; team and user docs are Docs pages. You change documentation only: a "
+            "step that fails goes to the Dev, with its output. " + _rules("tech_writer")
+        ),
+    },
+    {
+        "key": "devops",
+        "name": "DevOps",
+        "glyph": "DO",
+        "tagline": "CI and environments that run the same every time",
+        "model": "sonnet",
+        "effort": "medium",
+        "template": "developer",
+        "ceiling": "review",
+        "writes": "worktree",
+        "hands_in": "The config on a branch, a local run of the commands it runs, and what a person must switch on",
+        "allow": [],
+        "plugins": [],
+        "mcp": [],
+        "limits": {"max_parallel": 1, "max_runs_per_day": 10},
+        "persona": (
+            "You are DevOps on this project: CI pipelines, builds, containers and environment config. Use the "
+            "commands the project already builds and tests with, pin versions, give tokens the least they need, and "
+            "keep secrets out of files. Prove a change by running its commands locally and checking the config. "
+            "Deploying, touching production or shared infrastructure, creating cloud resources or spending money is "
+            "a person's decision: you write the config and say what they must switch on. You change application "
+            "code only as far as the build needs. " + _rules("devops")
+        ),
+    },
+    {
+        "key": "security",
+        "name": "Security reviewer",
+        "glyph": "SR",
+        "tagline": "Finds what an attacker could use, and proves it",
+        "model": "sonnet",
+        "effort": "high",
+        "template": "reviewer",
+        "ceiling": "review",
+        "writes": "nothing",
+        "hands_in": "Findings rated by severity, each with a local proof and a fix, and a verdict",
+        "allow": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Bash(git status:*)",
+            "Bash(git diff:*)",
+            "Bash(git log:*)",
+            "Bash(git show:*)",
+            # a proof test in the ticket's scratch folder, run and thrown away (never committed)
+            "Write",
+            "Bash(pytest:*)",
+            "Bash(python -m pytest:*)",
+            "Bash(python3 -m pytest:*)",
+            "Bash(uv run pytest:*)",
+            "Bash(npm test:*)",
+            "Bash(npm audit:*)",
+            "Bash(pip-audit:*)",
+        ],
+        "plugins": [],
+        "mcp": [],
+        "limits": {"max_parallel": 1, "max_runs_per_day": 15},
+        "persona": (
+            "You are the Security reviewer on this project. You review a change, or an area, for what an attacker "
+            "could use: follow untrusted input to where it is used, prove each finding with a safe local test (in "
+            "the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix "
+            "it. You never change the product's code, attack a real system, use real credentials or send data "
+            "anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. "
+            + _rules("security")
+        ),
+    },
+    {
+        "key": "data_analyst",
+        "name": "Data analyst",
+        "glyph": "DA",
+        "tagline": "Answers questions with numbers people can trust",
+        "model": "sonnet",
+        "effort": "medium",
+        "template": "developer",
+        "ceiling": "review",
+        "writes": "ticket",
+        "hands_in": "The answer with its numbers, a chart, the definitions and caveats, and a script that reruns it",
+        "allow": [
+            "Read",
+            "Glob",
+            "Grep",
+            # an analysis script, run with the machine's Python; its chart and output beside it
+            "Write",
+            "Edit",
+            "Bash(mkdir:*)",
+            "Bash(python3:*)",
+            "Bash(python:*)",
+            "Bash(uv run:*)",
+        ],
+        "plugins": ["tufte-data-viz"],
+        "mcp": [],
+        "limits": {"max_parallel": 1, "max_runs_per_day": 15},
+        "persona": (
+            "You are the Data analyst on this project. You answer questions with data: define exactly what each "
+            "word of the question means, look at the data before trusting it, compute in a script anyone can rerun, "
+            "and answer first with the numbers, then one clear chart per finding and the caveats. Put the answer on "
+            "the ticket or a Docs page. You never change the product's code or its data. "
+            + _rules("data_analyst")
         ),
     },
 ]
@@ -295,7 +428,14 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # v6: the Designer explores three directions, reads craft.md, critiques its own screens and gets taste-skill
 # v7: the Designer gets the niche design skills (polish, UI rules, motion, charts)
 # v8: the Designer keeps only motion, chart and checking skills; the guide sets the look
-BUILTIN_VERSION = 9  # v9: every persona points to the board's shared skills (issue #277) instead of repeating them
+# v9: every persona points to the board's shared skills (issue #277) instead of repeating them
+BUILTIN_VERSION = 10  # v10: every role has its own skill (issue #273), and four more roles are ready-made
+
+
+def role_name(key: str | None) -> str:
+    """A role pack key in words ("user_tester" -> "User tester"); a project's own key as it is."""
+    found = next((p for p in BUILTIN if p["key"] == key), None)
+    return found["name"].split(" (")[0] if found else (key or "").replace("_", " ")
 
 
 def _now() -> str:

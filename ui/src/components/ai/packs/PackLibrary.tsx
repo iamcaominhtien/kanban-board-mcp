@@ -11,7 +11,10 @@ import { EditPackModal, ImportPackModal, MakeMemberModal } from './PackDialogs';
 import { WRITES_LABEL, downloadJson, limitsLabel, modelLabel, toolsLabel } from './packLabels';
 import './packs.css';
 
-/** Role packs: the table of eight ready-made roles and the project's own, and one pack's detail. */
+/**
+ * Role packs: the table of twelve ready-made roles (the design has eight; issue #273 added four) and the project's own,
+ * and one pack's detail.
+ */
 export function PackLibrary({ projectId }: { projectId: string }) {
   const q = usePacks(projectId);
   const del = useDeletePack(projectId);
@@ -64,7 +67,7 @@ export function PackLibrary({ projectId }: { projectId: string }) {
   return (
     <div className="pk-wrap" data-testid="pack-library">
       <div className="pk-head">
-        <h3>Role packs: eight AIs you do not have to invent</h3>
+        <h3>Role packs: twelve AIs you do not have to invent</h3>
         <span className="pk-grow" />
         <button className="ai-btn ai-btn-sm" onClick={() => setImporting(true)}>
           Import

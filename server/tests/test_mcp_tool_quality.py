@@ -206,11 +206,11 @@ async def test_the_tool_list_stays_compact():
     # workflow and Story actions (3.21.1, so an agent knows how to hand work to the team) about 900, and the notes on
     # manage_ticket (an AI assignee is not started, intake takes a ticket, a Story) with list_tickets' type and parent
     # filters about 500 more; docs_read's permissions_guide (what an AI may do, issue #275) about 100, and its guides (the
-    # board's shared skills for any role, issue #277) about 120
-    assert default < 47_800, (
+    # board's shared skills for any role, issue #277) about 120; its role_guide (one guide per role, issue #273) about 150
+    assert default < 47_950, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 50_600, (
+    assert full < 50_800, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

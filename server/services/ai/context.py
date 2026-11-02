@@ -351,7 +351,11 @@ def rules_block(
         "Use the `kanban` MCP tools (get_ticket, manage_ticket, ticket_items, ai_run, …) to read and update tickets.",
         "Several test cases, Docs comments, replies or resolves at once: one call with `items=[...]` (ticket_items, "
         "docs_write), not one call each.",
-        *([f"Teammate AIs (exact names): {', '.join(team)}."] if team else []),
+        *(
+            [f"Teammate AIs (exact name, then role): {', '.join(team)}."]
+            if team
+            else []
+        ),
         f"Status ceiling: you may move tickets up to {STATUS_LABELS.get(ceiling, ceiling)}. A person decides Done.",
         f"Allowed: {', '.join(allowed) or 'nothing'}.",
     ]
@@ -418,15 +422,25 @@ def rules_block(
 
 def _core_rules(member, settings) -> list[str]:
     """The shared skills' few rules that matter most (issue #277), and where their detail is for this member."""
-    from services import shared_skills
-    from services.ai import board_skills, ops
+    from services import role_skills, shared_skills
+    from services.ai import board_skills, ops, plugins
 
     rules = list(shared_skills.CORE_RULES)
     names = [n for n, _d, _b in shared_skills.SKILLS]
+    role = plugins.role_of(member) if getattr(member, "config", None) else None
+    own = role_skills.SKILL_OF_ROLE.get(role or "")
     if getattr(member, "provider", "claude-code") == "claude-code":
         on = set(
-            board_skills.enabled_for(ops.get(settings), getattr(member, "id", None))
+            board_skills.enabled_for(
+                ops.get(settings), getattr(member, "id", None), role
+            )
         )
+        if own in on and own != "canvas-design":
+            # the Designer's step already opens with its guide; every other role starts from its craft (issue #273)
+            rules.append(
+                f"Open your role's skill `{board_skills.NAME}:{own}` before you start: it is how this role does its "
+                "job here."
+            )
         names = [n for n in names if n in on]
         if names:
             listed = ", ".join(f"`{board_skills.NAME}:{n}`" for n in names)
@@ -434,10 +448,14 @@ def _core_rules(member, settings) -> list[str]:
                 f"The board's skills {listed} have the detail: open the one the work calls for."
             )
     else:
+        if own and own != "canvas-design":
+            rules.append(
+                f"Read your role's guide before you start: docs_read(action='role_guide', query='{role}')."
+            )
         rules.append(
             "docs_read(action='guides') has the detail (working a ticket, evidence and handover, the repository "
-            "and the machine, asking and writing, brainstorming, the end user's eyes, office files): read the one "
-            "the work calls for."
+            "and the machine, asking and writing, working together, brainstorming, the end user's eyes, office "
+            "files): read the one the work calls for."
         )
     return rules
 
