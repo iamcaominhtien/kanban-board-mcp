@@ -30,6 +30,8 @@ dist-desktop/
 
 # Python binary build output
 dist-python/
+# the draw.io editor the desktop app ships (desktop/scripts/fetch-drawio.sh)
+dist-drawio/
 desktop/build/*
 !desktop/build/README.md
 !desktop/build/entitlements.mac.plist

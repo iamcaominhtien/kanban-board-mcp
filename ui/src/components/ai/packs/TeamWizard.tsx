@@ -89,14 +89,27 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
   const roleName = (key: string) => packList.find((p) => p.key === key)?.name ?? key;
   const glyph = (key: string) => packList.find((p) => p.key === key)?.glyph ?? key.slice(0, 2).toUpperCase();
 
+  // "Try again" and Next after an edit try the commands as the person typed them, not the scan's suggestion
   const runScan = (keepDraft: boolean) =>
-    scanM.mutate(folder.trim(), {
-      onSuccess: (s) => {
-        setScan(s);
-        if (!keepDraft || !draft) setDraft(toDraft(s.suggested));
-        setStep(keepDraft ? 3 : 2);
+    scanM.mutate(
+      {
+        folder: folder.trim(),
+        tryCommands: keepDraft && draft ? { prepare: draft.prepare, test: draft.test } : undefined,
       },
-    });
+      {
+        onSuccess: (s) => {
+          setScan(s);
+          if (!keepDraft || !draft) setDraft(toDraft(s.suggested));
+          setStep(keepDraft ? 3 : 2);
+        },
+      },
+    );
+  // The commands on screen differ from the ones the last trial ran: Next tries them first
+  const edited =
+    !!scan &&
+    !!draft &&
+    (draft.prepare.trim() !== (scan.trial.prepare?.command ?? '') ||
+      draft.test.trim() !== (scan.trial.test?.command ?? ''));
 
   const changeTeam = (team: SuggestedMember[]) => {
     if (!draft) return;
@@ -201,8 +214,12 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             </button>
           )}
           {step === 2 && (
-            <button className="ai-btn ai-btn-primary" onClick={() => setStep(3)}>
-              Next: try the commands
+            <button
+              className="ai-btn ai-btn-primary"
+              disabled={scanM.isPending}
+              onClick={() => (edited ? runScan(true) : setStep(3))}
+            >
+              {scanM.isPending ? 'Trying…' : 'Next: try the commands'}
             </button>
           )}
           {step === 3 && (

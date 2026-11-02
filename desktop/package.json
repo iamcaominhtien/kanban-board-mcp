@@ -45,6 +45,10 @@
           "**/*",
           "!**/*.map"
         ]
+      },
+      {
+        "from": "../dist-drawio",
+        "to": "drawio"
       }
     ],
     "mac": {

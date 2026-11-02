@@ -300,6 +300,10 @@ async def test_leaving_the_synced_folder_removes_only_what_the_board_wrote(env, 
 
 def test_names_and_paths():
     assert worktrees.slug("Fix the CSV export, please!") == "fix-the-csv-export-please"
+    # Vietnamese titles keep their letters (was "b-t-i-li-u-h-c")
+    assert worktrees.slug("Bất tài liệu học") == "bat-tai-lieu-hoc"
+    assert worktrees.slug("Đặt lịch hẹn") == "dat-lich-hen"
+    assert worktrees.slug("!!!") == "work"
     assert worktrees.path_for("/code/kanban", "KAN-1") == "/code/kanban.worktrees/KAN-1"
     assert run_config.plugin_name("Dev An (TDD)") == "kanban-dev-an-tdd"
 

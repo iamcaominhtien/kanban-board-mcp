@@ -84,6 +84,8 @@ function buildBackendLaunchSpec({
           PYTHONUNBUFFERED: '1',       // force unbuffered stdout so READY signal is not held in Python's internal buffer
           PYTHONDONTWRITEBYTECODE: '1', // minor: skip .pyc writes in packaged binary
           KANBAN_UI_DIST: path.join(resourcesPath, 'ui', 'dist'),
+          // the draw.io editor shipped with the app (desktop/scripts/fetch-drawio.sh), served at /drawio
+          KANBAN_DRAWIO_DIR: path.join(resourcesPath, 'drawio'),
         },
         stdio,
         cwd: resourcesPath,            // explicit CWD so binary doesn't inherit Electron's CWD

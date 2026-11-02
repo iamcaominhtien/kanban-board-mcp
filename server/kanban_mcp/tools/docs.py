@@ -140,7 +140,7 @@ async def docs_read(
     - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
     - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
     - design_guide: {guide}, the canvas design guide; read it before designing.
-    - permissions_guide: {guide, you}: what you may do, what needs a person, what to do when refused; read it when refused."""
+    - permissions_guide: {guide, you}: what you may do; read it when refused."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 
@@ -257,7 +257,7 @@ async def docs_write(
     markdown: Annotated[
         str | None,
         Field(
-            description="create: initial body. update: the FULL new Markdown body (not a patch). In an AI run, a picture may be named by its path in your working folder (![TC-1](qa/evidence/TC-1.png); the file must exist): the board keeps a copy and rewrites it to /uploads/…."
+            description="create: initial body. update: the FULL new Markdown body (not a patch). In an AI run, a picture may be named by its path in your working folder (![TC-1](qa/evidence/TC-1.png); the file must exist): the board keeps a copy and rewrites it to /uploads/…. So is [a document](a/b.xlsx)."
         ),
     ] = None,
     parent_id: Annotated[

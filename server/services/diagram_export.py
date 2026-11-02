@@ -23,6 +23,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import urllib.parse
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,11 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 EXPORT_TIMEOUT = 60.0
+PROBE_TIMEOUT = 3.0
+# An editor that is not running (the self-hosted default, http://localhost:8080, on a computer that never started one)
+# is said once in this many seconds, not on every save
+UNREACHABLE_LOG_EVERY = 600.0
+_unreachable_said: dict[str, float] = {}
 EXPORT_CMD_ENV = "KANBAN_EXPORT_CMD"
 CHROME_ENV = "KANBAN_CHROME_PATH"
 SWITCH_ENV = "KANBAN_DIAGRAM_EXPORT"  # "off" turns it off, "public" also allows the public editor
@@ -313,9 +319,65 @@ async def _export_with_command(
             raise RuntimeError("the export command timed out") from None
         if proc.returncode != 0 or not out.is_file():
             raise RuntimeError(
-                f"the export command failed ({proc.returncode}): {err.decode('utf-8', 'ignore')[-300:]}"
+                f"the export command failed ({proc.returncode}): {_why(err)}"
             )
         return out.read_text(encoding="utf-8")
+
+
+def _why(stderr: bytes, limit: int = 300) -> str:
+    """What the export command said went wrong: its own ``export-svg failed:`` line when there is one, else its last
+    lines whole (Electron and Chromium write warnings before it; cutting the text by characters left
+    "tion failed: -2")."""
+    lines = [
+        line.strip()
+        for line in stderr.decode("utf-8", "replace").splitlines()
+        if line.strip()
+    ]
+    own = [line for line in lines if line.startswith("export-svg failed:")]
+    if own:
+        return own[-1].removeprefix("export-svg failed:").strip()[:limit]
+    kept: list[str] = []
+    for line in reversed(lines):
+        if kept and sum(len(k) + 3 for k in kept) + len(line) > limit:
+            break
+        kept.insert(0, line if len(line) <= limit else "…" + line[-limit:])
+    return " | ".join(kept) or "no output"
+
+
+async def _reachable(editor: str, timeout: float = PROBE_TIMEOUT) -> bool:
+    """Whether something answers at the editor's host and port, checked before a hidden browser is started for it."""
+    parts = urllib.parse.urlsplit(editor)
+    if not parts.hostname:
+        return False
+    try:
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+    except ValueError:
+        return False
+    try:
+        _, writer = await asyncio.wait_for(
+            asyncio.open_connection(parts.hostname, port), timeout
+        )
+    except (OSError, asyncio.TimeoutError):
+        return False
+    writer.close()
+    try:
+        await writer.wait_closed()
+    except OSError:
+        pass
+    return True
+
+
+def _say_unreachable(editor: str) -> None:
+    now = time.monotonic()
+    last = _unreachable_said.get(editor)
+    if last is not None and now - last < UNREACHABLE_LOG_EVERY:
+        return
+    _unreachable_said[editor] = now
+    logger.info(
+        "exact diagram previews skipped: no draw.io editor answers at %s, so the plain preview is used. Start a "
+        "self-hosted draw.io there, or choose the editor in Settings > Diagrams (draw.io).",
+        editor,
+    )
 
 
 def _command() -> list[str] | None:
@@ -347,11 +409,16 @@ async def export_svg(
     editor = editor_url.rstrip("/")
     try:
         command = _command()
+        chrome = None if command else find_chrome()
+        if not (command or chrome):
+            return None
+        # No hidden browser for an editor that is not running: it could only fail, a minute and a process later
+        if not await _reachable(editor):
+            _say_unreachable(editor)
+            return None
         if command:
             return await _export_with_command(command, source, editor, timeout)
-        chrome = find_chrome()
-        if chrome:
-            return await _export_with_chrome(chrome, source, editor, timeout)
+        return await _export_with_chrome(chrome, source, editor, timeout)
     except Exception as e:  # never let a preview failure fail a save
         logger.warning("exact diagram preview failed: %s", e)
     return None

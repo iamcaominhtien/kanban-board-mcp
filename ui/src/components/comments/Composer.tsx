@@ -164,12 +164,20 @@ export function Composer({
   }, []);
 
   // the draft is kept per ticket on this device while typing
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Text already sent: the box stays open while the comment is posted, and a save still waiting must not put
+  // that text back as the draft (it came back the next time the box was opened)
+  const sentText = useRef<string | null>(null);
   useEffect(() => {
     if (editing) return;
+    if (sentText.current !== null && text === sentText.current) return;
+    sentText.current = null;
     const t = setTimeout(() => {
+      draftTimer.current = null;
       writeJson(draftKey(ticketId), text.trim() ? text : null);
       setSaved(!!text.trim());
     }, 400);
+    draftTimer.current = t;
     return () => clearTimeout(t);
   }, [text, ticketId, editing]);
 
@@ -278,8 +286,14 @@ export function Composer({
     const chosen: SendOpts | undefined =
       !editing && mentioned.length > 0 && !how?.askMemberId ? { intent, ...how } : how;
     const opts = replyTo || chosen ? { ...chosen, replyTo } : undefined;
+    if (!editing) {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+      draftTimer.current = null;
+      sentText.current = text;
+      writeJson(draftKey(ticketId), null);
+      setSaved(false);
+    }
     onSubmit([stored.trim(), extra].filter(Boolean).join('\n\n'), opts);
-    if (!editing) writeJson(draftKey(ticketId), null);
   }
   /** Ctrl+Shift+Enter: ask. With a mention it means “Ask” for it; without, the Ask button's AI gets the text. */
   function ask() {

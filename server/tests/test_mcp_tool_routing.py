@@ -184,6 +184,27 @@ async def test_get_ticket_can_return_just_the_comments():
 # --------------------------------------------------------------------------- ticket_items
 
 
+async def test_a_work_log_note_without_an_action_is_added_and_with_an_id_updated():
+    """AIs leave `action` out of a work_log note; it used to be refused ("action: Field required")."""
+    p = await _project()
+    i = (await _ticket(p))["id"]
+    after = await call(
+        "ticket_items",
+        ticket_id=i,
+        item="work_log",
+        author="PM",
+        role="PM",
+        note="Checked the links on the Overview page.",
+        log_kind="investigation",
+    )
+    entry = after["work_log"][0]
+    assert entry["note"] == "Checked the links on the Overview page."
+    after = await call(
+        "ticket_items", ticket_id=i, item="work_log", item_id=entry["id"], note="Fixed."
+    )
+    assert [e["note"] for e in after["work_log"]] == ["Fixed."]
+
+
 async def test_comments_work_log_criteria_sub_tasks_and_test_cases():
     p = await _project()
     t = await _ticket(p)

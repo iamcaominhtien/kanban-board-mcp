@@ -47,12 +47,38 @@ async def run_folder() -> list[str] | None:
         member = await session.get(AiMember, ctx.member_id)
         if ctx.ticket_id:
             tree = await worktrees.for_ticket(session, ctx.ticket_id)
-            if tree is not None and tree.path and os.path.isdir(tree.path):
+            if (
+                tree is not None
+                and tree.state in ("active", "conflict", "kept")
+                and tree.path
+                and os.path.isdir(tree.path)
+            ):
                 folders.append(tree.path)
     main = os.path.expanduser(member.working_dir or "") if member else ""
     if main:
         folders.append(main)
     return folders or None
+
+
+async def attach_from_run(
+    markdown: str | None, current: str | None = None
+) -> str | None:
+    """`markdown` written by an AI run with the pictures, and the documents it links (an Excel sheet, a PDF), named by
+    a path in its working folder copied into the board, as on a Docs page (services/proofs.py). A person's text, and
+    what `current` (the text being replaced) already named, stay as written."""
+    if not markdown or "](" not in markdown:
+        return markdown
+    folder = await run_folder()
+    if folder is None:
+        return markdown
+    import services.proofs as svc_proofs
+
+    return svc_proofs.localize(
+        markdown,
+        folder,
+        pictures_only=True,
+        keep=svc_proofs.targets(current) if current else frozenset(),
+    )
 
 
 # ---------------------------------------------------------------------------

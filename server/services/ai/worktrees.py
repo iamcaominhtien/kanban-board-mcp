@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import re
+import unicodedata
 import shutil
 import subprocess
 from urllib.parse import urlparse
@@ -66,6 +67,8 @@ def _identity_env(cwd: str) -> dict[str, str]:
                 cwd=cwd,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=20,
             )
             _HAS_IDENTITY[cwd] = bool(out.stdout.strip())
@@ -84,6 +87,8 @@ def _git(
         cwd=cwd,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=timeout,
         env={
             **os.environ,
@@ -132,8 +137,12 @@ def repo_root(folder: str | None) -> str | None:
 
 
 def slug(title: str, limit: int = 32) -> str:
-    """A branch-safe slug of a ticket title."""
-    s = re.sub(r"[^a-z0-9]+", "-", (title or "").lower()).strip("-")
+    """A branch-safe slug of a ticket title; accents are dropped, not the letters ("Tài liệu học" -> tai-lieu-hoc)."""
+    plain = unicodedata.normalize(
+        "NFKD", (title or "").replace("đ", "d").replace("Đ", "D")
+    )
+    plain = "".join(ch for ch in plain if not unicodedata.combining(ch))
+    s = re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-")
     return (s[:limit].rstrip("-")) or "work"
 
 
@@ -255,6 +264,8 @@ async def ensure(
                 cwd=path,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=PREPARE_TIMEOUT_S,
                 env={**os.environ, "PORT": str(port)},
             )
@@ -402,6 +413,8 @@ async def guess_route(repo: str) -> str:
                 ["gh", "auth", "status"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=20,
                 cwd=repo,
             )
@@ -475,6 +488,8 @@ async def on_review(ticket_id: str) -> dict | None:
             cwd=row.path,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=120,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
