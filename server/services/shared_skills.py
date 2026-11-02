@@ -268,7 +268,8 @@ how to install them (LibreOffice; poppler-utils). Never hand in a screenshot of 
 ## Excel
 - **Formulas, not typed results**: `=SUM(B2:B31)`, so the sheet still works when a number changes. Recalculate it
   before you look (LibreOffice recalculates on conversion) and check no cell shows `#REF!`, `#VALUE!` or `#DIV/0!`.
-- Numbers as numbers with a format (thousands separator, decimals, dates, %), never as text.
+- Numbers as numbers with a format (thousands separator, decimals, dates, %), never as text, in the reader's
+  format: for a Vietnamese reader `1.250` and `3,5` and `02/11/2026`, on the sheet, on chart axes and in the slides alike.
 - A header row that is bold and frozen, columns wide enough for their content, one table per sheet, sheet names that
   say what is in them. Inputs, calculations and outputs kept apart, inputs marked.
 - A chart only when it answers a question; its title says the answer.
