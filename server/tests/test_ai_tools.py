@@ -386,6 +386,47 @@ async def test_eight_ready_made_packs_and_a_project_copy_with_versions(env):
     assert (await c.get(f"/projects/{pid}/ai/packs/dev")).json()["builtin"] is True
 
 
+async def test_the_edit_dialog_saves_a_pack_without_personas(env):
+    """The UI sends every field it shows, `personas: null` for a pack that has none (all but the User tester)."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    pm = (await c.get(f"/projects/{pid}/ai/packs/pm")).json()
+    assert not pm.get("personas")
+    body = {
+        k: pm.get(k)
+        for k in (
+            "name",
+            "tagline",
+            "model",
+            "effort",
+            "template",
+            "ceiling",
+            "writes",
+            "hands_in",
+            "persona",
+            "allow",
+            "plugins",
+            "mcp",
+            "limits",
+            "glyph",
+        )
+    }
+    r = await c.put(
+        f"/projects/{pid}/ai/packs/pm",
+        json={
+            **body,
+            "tagline": "Plans the work",
+            "retry_model": None,
+            "depth_models": pm.get("depth_models"),
+            "personas": None,
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["tagline"] == "Plans the work" and r.json()["version"] == 1
+    bad = await c.put(f"/projects/{pid}/ai/packs/pm", json={**body, "allow": "Bash"})
+    assert bad.status_code == 422 and "allow must be a list" in bad.text
+
+
 async def test_a_pack_exports_to_one_file_and_imports_saying_what_is_missing(env):
     c = env["c"]
     pid, _ = await _project(c)
@@ -498,9 +539,10 @@ def test_the_scan_reads_the_repository_by_code_and_suggests_a_team(tmp_path):
     assert found["ci_commands"] == ["cd server && uv run pytest -q"]
     assert "CLAUDE.md" in found["agent_files"]
     s = repo_scan.suggest(found)
-    assert "cd ui && npm test -- --run" in s["commands"]["test"]
-    assert "cd server && uv run pytest -q" in s["commands"]["test"]
-    assert "cd ui && npm ci" in s["prepare"] and "cd server && uv sync" in s["prepare"]
+    assert "npm --prefix ui test -- --run" in s["commands"]["test"]
+    assert "uv --directory server run pytest -q" in s["commands"]["test"]
+    assert s["prepare"] == "npm --prefix ui ci && uv --directory server sync"
+    assert "cd " not in s["prepare"] + s["commands"]["test"] + s["commands"]["lint"]
     assert s["workflow_default"] == "feature_ui"
     assert [m["pack"] for m in s["team"]] == [
         "triage",
@@ -516,6 +558,45 @@ def test_the_scan_reads_the_repository_by_code_and_suggests_a_team(tmp_path):
     assert "playwright" in s["plugins"] and "design" in s["plugins"]
 
 
+def test_a_folder_git_does_not_track_is_not_suggested(tmp_path):
+    """A vendored checkout that git ignores is on the disk but not in a worktree: `cd vendor/x && npm ci` failed
+    there with "The system cannot find the path specified" (Windows)."""
+    _sample_repo(tmp_path)
+    (tmp_path / "vendor" / "tool").mkdir(parents=True)
+    (tmp_path / "vendor" / "tool" / "package.json").write_text(
+        json.dumps({"name": "tool", "scripts": {"test": "x"}})
+    )
+    (tmp_path / ".gitignore").write_text("vendor/\n")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "-c", "user.email=a@b", "-c", "user.name=a", "commit", "-qm", "x")
+    found = repo_scan.scan(str(tmp_path))
+    assert {p["path"] for p in found["packages"]} == {"ui", "server"}
+    assert "vendor" not in repo_scan.suggest(found)["prepare"]
+
+
+def test_a_package_folder_does_not_move_the_commands_after_it():
+    found = {
+        "packages": [
+            {"path": "vendor/my tool", "kind": "node", "scripts": {}},
+            {"path": ".", "kind": "python", "manager": "uv", "pytest": True},
+            {
+                "path": "lib",
+                "kind": "python",
+                "manager": "pip",
+                "pytest": True,
+                "ruff": True,
+            },
+        ],
+        "languages": ["node", "python"],
+        "ui": False,
+    }
+    s = repo_scan.suggest(found)
+    assert s["prepare"] == 'npm --prefix "vendor/my tool" ci && uv sync'
+    assert s["commands"]["test"] == "uv run pytest -q && pytest -q lib"
+    assert s["commands"]["lint"] == "ruff check lib"
+
+
 def test_the_trial_runs_the_commands_in_a_scratch_worktree_and_shows_failures(tmp_path):
     _skill(tmp_path / "skills", "x")
     _repo(tmp_path)
@@ -527,6 +608,28 @@ def test_the_trial_runs_the_commands_in_a_scratch_worktree_and_shows_failures(tm
     assert bad["test"] is None  # nothing runs after a failing step
     worktrees = _git(tmp_path, "worktree", "list").stdout.strip().splitlines()
     assert len(worktrees) == 1  # the scratch worktree was removed
+
+
+async def test_try_again_tries_the_commands_the_person_edited(env, tmp_path):
+    """The wizard's "Try again" (and Next after an edit) sends the edited commands: those run, not the suggestion."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    _repo(tmp_path)
+    r = await c.post(
+        f"/projects/{pid}/ai/scan",
+        json={
+            "folder": str(tmp_path),
+            "trial": True,
+            "refine": False,
+            "prepare": "python3 -c \"print('mine')\"",
+            "test": "",
+        },
+    )
+    assert r.status_code == 201, r.text
+    trial = r.json()["trial"]
+    assert trial["prepare"]["command"] == "python3 -c \"print('mine')\""
+    assert trial["prepare"]["ok"] and trial["prepare"]["tail"] == ["mine"]
+    assert trial["test"] is None  # cleared by the person: nothing to try
 
 
 async def test_the_scan_creates_nothing_until_apply(env, tmp_path):

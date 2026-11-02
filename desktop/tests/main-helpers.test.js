@@ -39,6 +39,23 @@ test('buildBackendLaunchSpec uses packaged binary and user data db path', () => 
     'C:/Users/test/AppData/Roaming/Kanban Board/uploads'
   );
   assert.deepEqual(spec.options.stdio, ['ignore', 'pipe', 'pipe']);
+  // the draw.io editor shipped with the app, which the server serves at /drawio
+  assert.equal(spec.options.env.KANBAN_DRAWIO_DIR, path.join('C:/Kanban/resources', 'drawio'));
+});
+
+// Diagrams spun and failed: the default editor was a self-hosted one nobody ran. The app ships the editor now.
+test('the installer ships the draw.io editor that the build fetches', () => {
+  const pkg = require('../package.json');
+  const shipped = pkg.build.extraResources.find((r) => r.to === 'drawio');
+  assert.ok(shipped, 'extraResources has the draw.io editor');
+  assert.equal(shipped.from, '../dist-drawio');
+  const fs = require('fs');
+  const script = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'fetch-drawio.sh'), 'utf8');
+  assert.match(script, /DRAWIO_VERSION="\d+\.\d+\.\d+"/);
+  assert.match(script, /DRAWIO_COMMIT="[0-9a-f]{40}"/);
+  assert.match(script, /cp LICENSE "\$OUT\/LICENSE"/);
+  const build = fs.readFileSync(path.join(__dirname, '..', '..', 'build-desktop.sh'), 'utf8');
+  assert.match(build, /fetch-drawio\.sh/);
 });
 
 test('buildBackendLaunchSpec uses configured data_folder uploads if config exists', (t) => {

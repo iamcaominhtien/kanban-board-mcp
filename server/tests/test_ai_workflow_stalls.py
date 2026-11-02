@@ -7,6 +7,7 @@ The steps are driven by calling the workflow's own entry points on rows set up b
 
 import asyncio
 import json
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -131,6 +132,26 @@ async def test_the_checks_fail_visibly_when_they_cannot_run(env, moved, monkeypa
     checks = (await _rows(env, tid))["checks"]
     assert checks.state == "failed"
     assert "could not run" in checks.note and "disk is full" in checks.note
+
+
+async def test_checks_survive_output_that_is_not_utf8(env, moved):
+    """On Windows a test command can print bytes the console code page cannot decode (a cp1252 reader thread
+    used to die on 0x90 and the step failed with "unsupported operand ... NoneType"): the check still ends with
+    its real result and its output."""
+    pid, tid, team = await _attached(env)
+    script = "import sys; sys.stdout.buffer.write(bytes([0x90, 0xff]) + b' boom'); sys.exit(1)"
+    await env["c"].patch(
+        f"/projects/{pid}/ai/ops",
+        json={"commands": {"test": f'"{sys.executable}" -c "{script}"'}},
+    )
+    rows = await _rows(env, tid)
+    await _set(env, AiTicketStep, rows["triage"].id, member_id=team["dev"])
+    await _set(env, AiTicketStep, rows["checks"].id, state="active")
+    await workflow._run_checks(tid, rows["checks"].id)
+    async with env["maker"]() as s:
+        checks = await s.get(AiTicketStep, rows["checks"].id)
+    assert checks.state == "done" and checks.outcome == "failed"
+    assert "boom" in checks.note
 
 
 async def test_checks_a_restart_cut_off_run_again(env, monkeypatch):

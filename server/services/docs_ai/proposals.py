@@ -623,7 +623,11 @@ def _status_of(changes: list[dict[str, Any]]) -> str:
 async def _reviewer_draft(
     session: AsyncSession, page: DocsPage, reviewer: str
 ) -> DocsDraft:
-    """The reviewer's draft of the page, started from the published text when there is none."""
+    """The reviewer's draft of the page, started from the published text when there is none.
+
+    A draft left from an earlier version with nothing of the reviewer's in it (opening the editor autosaves one) is
+    started again from the published text: the proposal was made against that text, and the old draft refused every
+    change in it ("your draft no longer has the text", 409 on each try)."""
     draft = (
         await session.exec(
             select(DocsDraft).where(
@@ -631,6 +635,12 @@ async def _reviewer_draft(
             )
         )
     ).first()
+    if draft is not None and draft.base_version != page.version:
+        base = await version_text(session, page, draft.base_version)
+        if base is not None and base.strip() == (draft.markdown or "").strip():
+            draft.markdown = await _published(session, page)
+            draft.title = page.title
+            draft.base_version = page.version
     if draft is None:
         draft = DocsDraft(
             page_id=page.id,
@@ -641,6 +651,24 @@ async def _reviewer_draft(
             saves=0,
         )
     return draft
+
+
+async def _behind(session: AsyncSession, page: DocsPage, reviewer: str) -> str | None:
+    """What to do when the reviewer's own draft is from an earlier version and holds their edits (the changes were
+    made against the published text, so they do not fit it), or None when it is not."""
+    draft = (
+        await session.exec(
+            select(DocsDraft).where(
+                DocsDraft.page_id == page.id, DocsDraft.author == reviewer
+            )
+        )
+    ).first()
+    if draft is None or draft.base_version == page.version:
+        return None
+    return (
+        f"Your unpublished draft of this page is from v{draft.base_version} and the page is at v{page.version} now, "
+        "so these changes do not fit it. Publish or discard your draft, then accept."
+    )
 
 
 def _mark_ai(draft: DocsDraft, p: DocsAiProposal) -> None:
@@ -818,26 +846,33 @@ async def _decide(
         ok, stale = await _accept_into_draft(
             session, p, page, by, [c for c in picked if not c.get("stale")]
         )
+        behind = await _behind(session, page, by)
         if numbers is not None and stale:
-            by_n[stale[0]]["stale"] = True
-            p.changes = json.dumps(changes)
-            session.add(p)
-            await session.commit()
+            if behind is None:
+                by_n[stale[0]]["stale"] = True
+                p.changes = json.dumps(changes)
+                session.add(p)
+                await session.commit()
             raise DocsAiError(
                 "stale",
-                "Needs a new look: your draft no longer has the text this change replaces.",
+                behind
+                or "Needs a new look: your draft no longer has the text this change replaces.",
             )
         for n in ok:
             by_n[n].update({"status": "accepted", **stamp})
-        for n in stale:
-            by_n[n]["stale"] = True
+        if (
+            behind is None
+        ):  # stale against the page itself, not only against an old draft of the reviewer's
+            for n in stale:
+                by_n[n]["stale"] = True
         if not ok:
             p.changes = json.dumps(changes)
             session.add(p)
             await session.commit()
             raise DocsAiError(
                 "stale",
-                "Needs a new look: none of these changes match the page any more. Reject them instead.",
+                behind
+                or "Needs a new look: none of these changes match the page any more. Reject them instead.",
             )
     else:
         for c in picked:

@@ -52,15 +52,59 @@ export function headingAnchors(markdown: string): DocsHeading[] {
 export const REF_SCHEME = 'docref:';
 export const TICKET_SCHEME = 'dockey:';
 
+/** Marks a `docref:` written from a Markdown link, which may name the page by slug or id as well as by title. */
+const LINK_MARK = '?link';
+
+/**
+ * The page a Markdown link points at when it stays inside the space: `[Overview](tong-quan)`,
+ * `[Spec](/docs/spec#fields)`, `[API](./api.md)`. Null for web and mail links, other schemes, `#section`
+ * links and uploads. The last path segment is the page (its slug, title or id), `.md` dropped.
+ */
+export function internalPageLink(href: string): { title: string; anchor: string | null } | null {
+  const url = href.trim();
+  if (!url || url.startsWith('#') || url.startsWith('//') || url.includes('/uploads/')) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url)) return null;
+  const hash = url.indexOf('#');
+  const path = (hash < 0 ? url : url.slice(0, hash)).split('?')[0];
+  const segment = path
+    .split('/')
+    .filter((s) => s && s !== '.' && s !== '..')
+    .pop();
+  if (!segment) return null;
+  const decode = (s: string) => {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  };
+  const title = decode(segment)
+    .replace(/\.(md|markdown)$/i, '')
+    .trim();
+  const anchor = hash < 0 ? '' : decode(url.slice(hash + 1)).trim();
+  return title ? { title, anchor: anchor || null } : null;
+}
+
+/** The key a page reference's resolve result is kept under (a Markdown link and a [[Title]] resolve apart). */
+export function pageRefKey(ref: { title: string; anchor?: string | null; bySlug?: boolean }): string {
+  return `${ref.bySlug ? 'link:' : ''}${ref.title}#${ref.anchor ?? ''}`;
+}
+
 /**
  * Turn [[Page#Section|label]] and ticket keys into markdown links with the docref:/dockey: schemes
  * (code spans and fences are left alone) and list the references so they can be resolved in one call.
+ * With `pageLinks`, a Markdown link that points inside the space (`[Overview](tong-quan)`, see
+ * {@link internalPageLink}) becomes a page reference too, resolved by slug, title or id: in the desktop app such a
+ * link would otherwise open nothing.
  */
-export function linkifyDocs(markdown: string): { markdown: string; refs: DocsRefRequest[] } {
+export function linkifyDocs(
+  markdown: string,
+  { pageLinks = false }: { pageLinks?: boolean } = {},
+): { markdown: string; refs: DocsRefRequest[] } {
   const refs: DocsRefRequest[] = [];
   const seen = new Set<string>();
   const add = (r: DocsRefRequest) => {
-    const key = r.kind === 'page' ? `p:${r.title}#${r.anchor ?? ''}` : `t:${r.key}`;
+    const key = r.kind === 'page' ? `p:${pageRefKey(r)}` : `t:${r.key}`;
     if (!seen.has(key)) {
       seen.add(key);
       refs.push(r);
@@ -76,8 +120,16 @@ export function linkifyDocs(markdown: string): { markdown: string; refs: DocsRef
     // split on inline code and existing links so only plain prose is rewritten
     return line
       .split(/(`[^`\n]*`|\[[^\]]*\]\([^)]*\))/g)
-      .map((part, i) => {
-        if (i % 2 === 1) return part;
+      .map((part, i, parts) => {
+        if (i % 2 === 1) {
+          // an existing Markdown link (not an image) to a page of the space
+          const m = pageLinks && !parts[i - 1]?.endsWith('!') ? part.match(/^\[([^\]]*)\]\(([^)]*)\)$/) : null;
+          const target = m ? internalPageLink(m[2].trim().split(/\s+/)[0] ?? '') : null;
+          if (!m || !target) return part;
+          add({ kind: 'page', title: target.title, anchor: target.anchor, bySlug: true });
+          const text = m[1] || (target.anchor ? `${target.title} › ${target.anchor}` : target.title);
+          return `[${text}](${REF_SCHEME}${encodeURIComponent(`${target.title}#${target.anchor ?? ''}`)}${LINK_MARK})`;
+        }
         let out = part.replace(REF_RE, (_m, title: string, anchor?: string, label?: string) => {
           add({ kind: 'page', title: title.trim(), anchor: anchor?.trim() || null });
           const text = (label || (anchor ? `${title} › ${anchor}` : title)).replace(/[[\]]/g, '');
@@ -95,11 +147,13 @@ export function linkifyDocs(markdown: string): { markdown: string; refs: DocsRef
   return { markdown: lines.join('\n'), refs };
 }
 
-/** Parse a `docref:` href into page title and anchor, or null. */
-export function parseDocRef(href: string): { title: string; anchor: string | null } | null {
+/** Parse a `docref:` href into page title and anchor (and whether a Markdown link wrote it), or null. */
+export function parseDocRef(href: string): { title: string; anchor: string | null; bySlug: boolean } | null {
   if (!href.startsWith(REF_SCHEME)) return null;
-  const [title, anchor] = decodeURIComponent(href.slice(REF_SCHEME.length)).split('#');
-  return { title, anchor: anchor || null };
+  const bySlug = href.endsWith(LINK_MARK);
+  const body = href.slice(REF_SCHEME.length, bySlug ? -LINK_MARK.length : undefined);
+  const [title, anchor] = decodeURIComponent(body).split('#');
+  return { title, anchor: anchor || null, bySlug };
 }
 
 // ── remark plugin: callouts (> [!WARNING]) and heading anchors ──

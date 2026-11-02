@@ -351,20 +351,49 @@ describe('team wizard', () => {
     expect((screen.getByRole('button', { name: 'Remove Triage' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('keeps edits through the steps, shows a failing trial, and creates only on Create', async () => {
+  it('without an edit, Next shows the trial the scan already ran', async () => {
     await toReview();
-    fireEvent.change(screen.getByLabelText('Test command'), { target: { value: 'npm run t' } });
     fireEvent.click(screen.getByRole('button', { name: 'Next: try the commands' }));
     const failing = await screen.findByTestId('trial-test');
     expect(failing.textContent).toContain('failed (exit 1)');
     expect(failing.textContent).toContain('FAIL src/a.test.ts');
-    expect(failing.textContent).toContain('You changed this command');
+    expect(http.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps edits through the steps, tries the edited commands, and creates only on Create', async () => {
+    await toReview();
+    fireEvent.change(screen.getByLabelText('Prepare command'), { target: { value: 'npm --prefix ui ci' } });
+    fireEvent.change(screen.getByLabelText('Test command'), { target: { value: 'npm run t' } });
+    // the edited commands are what gets tried, not the scan's suggestion
+    http.post.mockReturnValueOnce(
+      ok(
+        scan({
+          trial: {
+            prepare: { command: 'npm --prefix ui ci', ok: true, exitCode: 0, seconds: 3, tail: [] },
+            test: { command: 'npm run t', ok: false, exitCode: 1, seconds: 2, tail: ['FAIL src/b.test.ts'] },
+          },
+        }),
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next: try the commands' }));
+    const failing = await screen.findByTestId('trial-test');
+    expect(http.post).toHaveBeenLastCalledWith('/projects/p1/ai/scan', {
+      folder: '/repo',
+      trial: true,
+      prepare: 'npm --prefix ui ci',
+      test: 'npm run t',
+      refine: false,
+    });
+    expect(failing.textContent).toContain('npm run t');
+    expect(failing.textContent).toContain('FAIL src/b.test.ts');
+    expect(failing.textContent).not.toContain('You changed this command');
+    expect(screen.getByTestId('trial-prepare').textContent).toContain('passed');
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect((screen.getByLabelText('Test command') as HTMLInputElement).value).toBe('npm run t');
-    fireEvent.click(screen.getByRole('button', { name: 'Next: try the commands' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next: try the commands' })); // unchanged since: no new trial
     fireEvent.click(screen.getByRole('button', { name: 'Next: confirm' }));
-    await screen.findByTestId('wizard-step-4');
-    expect(http.post).toHaveBeenCalledTimes(1); // only the scan so far
+    expect((await screen.findByTestId('wizard-step-4')).textContent).toContain('prepare: npm --prefix ui ci');
+    expect(http.post).toHaveBeenCalledTimes(2); // the scan and the trial of the edits so far
 
     http.post.mockReturnValueOnce(
       ok({
@@ -378,16 +407,16 @@ describe('team wizard', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Create the team' }));
     const res = await screen.findByTestId('apply-result');
-    expect(http.post.mock.calls[1][0]).toBe('/ai/scans/s1/apply');
-    expect(http.post.mock.calls[1][1]).toMatchObject({
+    expect(http.post.mock.calls[2][0]).toBe('/ai/scans/s1/apply');
+    expect(http.post.mock.calls[2][1]).toMatchObject({
       commands: { test: 'npm run t', lint: 'npm run lint', build: null },
-      prepare: 'npm ci',
+      prepare: 'npm --prefix ui ci',
       basePort: 3100,
       workflowDefault: 'feature_ui',
       handover: 'pr',
       accountId: null,
     });
-    expect(http.post.mock.calls[1][1].team).toHaveLength(7);
+    expect(http.post.mock.calls[2][1].team).toHaveLength(7);
     expect(res.textContent).toContain('Skipped QA: already exists');
     expect(res.textContent).toContain('design could not be attached');
   });

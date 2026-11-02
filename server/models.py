@@ -872,7 +872,7 @@ class DiagramSettings(SQLModel, table=True):
     __tablename__ = "diagram_settings"
 
     id: int = Field(default=1, primary_key=True)
-    mode: str = Field(default="self-hosted")  # self-hosted | public
+    mode: str = Field(default="self-hosted")  # built-in | self-hosted | public
     url: str = Field(
         default=""
     )  # self-hosted editor address, e.g. http://localhost:8080

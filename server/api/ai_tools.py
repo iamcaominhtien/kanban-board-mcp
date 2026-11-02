@@ -453,6 +453,9 @@ class ScanBody(BaseModel):
     trial: bool = True
     # D19 step 2: a light model refines the code's suggestion (soft: without a Claude Code account it is skipped)
     refine: bool = True
+    # The commands as the person edited them ("Try again" in the wizard): tried instead of the suggestion's
+    prepare: str | None = None
+    test: str | None = None
 
 
 @router.post("/projects/{project_id}/ai/scan", status_code=201)
@@ -461,7 +464,13 @@ async def post_scan(project_id: str, body: ScanBody, session: Session) -> dict:
     await _project(session, project_id)
     try:
         row = await svc_scan.run_scan(
-            session, project_id, body.folder, trial=body.trial, refine=body.refine
+            session,
+            project_id,
+            body.folder,
+            trial=body.trial,
+            refine=body.refine,
+            prepare=body.prepare,
+            test=body.test,
         )
     except ValueError as exc:
         _fail(exc)

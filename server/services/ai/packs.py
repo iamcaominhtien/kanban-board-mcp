@@ -396,7 +396,11 @@ def clean(body: dict) -> dict:
     ):
         raise ValueError("The effort is low, medium, high, xhigh or max.")
     for key in ("allow", "plugins", "mcp", "personas"):
-        if key in out and not isinstance(out[key], list):
+        if key in out and out[key] is None:
+            # the edit dialog sends `personas: null` for every pack without personas (all but the User tester):
+            # nothing to change, not a bad value (it refused every save of the PM pack with a 422)
+            del out[key]
+        elif key in out and not isinstance(out[key], list):
             raise ValueError(f"{key} must be a list.")
     return out
 

@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { diagramFailure, diagramKeys, saveDiagramSettings, useDiagramSettings } from '../../api/diagrams';
+import {
+  diagramFailure,
+  diagramKeys,
+  saveDiagramSettings,
+  useDiagramSettings,
+  type DiagramEditorMode,
+} from '../../api/diagrams';
 
-/** Settings → Diagrams: where the draw.io editor runs (admin setting, default self-hosted). */
+/** Settings → Diagrams: where the draw.io editor runs (admin setting; the one built into the app by default). */
 export function DiagramSettingsSection() {
   const q = useDiagramSettings();
   const qc = useQueryClient();
-  const [mode, setMode] = useState<'self-hosted' | 'public'>('self-hosted');
+  const [mode, setMode] = useState<DiagramEditorMode>('self-hosted');
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -28,7 +34,7 @@ export function DiagramSettingsSection() {
     }
   }
 
-  const radio = (value: 'self-hosted' | 'public', title: string, text: string) => (
+  const radio = (value: DiagramEditorMode, title: string, text: string) => (
     <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
       <input
         type="radio"
@@ -60,9 +66,15 @@ export function DiagramSettingsSection() {
       <span style={{ fontSize: 12.5, color: '#5B6B60', lineHeight: 1.5 }}>
         Where the draw.io editor runs for diagrams in tickets, comments and Docs.
       </span>
+      {q.data?.builtInAvailable &&
+        radio(
+          'built-in',
+          'Built into the app (default)',
+          `The draw.io editor${q.data.builtInVersion ? ` ${q.data.builtInVersion}` : ''} that comes with the app. Nothing to run, works offline, drawings stay on this computer.`,
+        )}
       {radio(
         'self-hosted',
-        'Self-hosted (default)',
+        q.data?.builtInAvailable ? 'Self-hosted' : 'Self-hosted (default)',
         'Drawings stay on your servers. You run the draw.io service (for example the jgraph/drawio image).',
       )}
       {mode === 'self-hosted' && (

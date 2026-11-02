@@ -32,7 +32,9 @@ async def add_comment(
     ],
 ) -> dict:
     """Post a comment on a ticket: progress reports, findings, questions for the humans. Returns the updated ticket
-    (the new comment is last in `comments`)."""
+    (the new comment is last in `comments`). In an AI run a picture or a document (an Excel sheet, a PDF) named by
+    its path in your working folder is attached: ![shot](qa/evidence/TC-1.png), [sample](ba_work/sample.xlsx)."""
+    text = await common.attach_from_run(text)
     return await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.add_comment(s, ticket_id, text=text, author=author),
@@ -48,6 +50,7 @@ async def update_comment(
     ],
 ) -> dict:
     """Edit the text of an existing comment. Returns the updated ticket."""
+    text = await common.attach_from_run(text)
     return await _edit_ticket(
         ticket_id,
         lambda s, cid: svc_tickets.update_comment(s, ticket_id, cid, text),

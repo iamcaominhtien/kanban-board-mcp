@@ -664,3 +664,13 @@
   background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
 }
+
+/* Local copy of index.css's keyframes (in a CSS module the name is this module's own; without it nothing moved) */
+@keyframes shimmer {
+  from {
+    background-position: -200px 0;
+  }
+  to {
+    background-position: 200px 0;
+  }
+}

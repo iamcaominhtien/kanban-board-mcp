@@ -305,3 +305,21 @@
     animation: none;
   }
 }
+
+/* Local copy of index.css's keyframes (in a CSS module the name is this module's own; without it nothing moved) */
+@keyframes shimmer {
+  from {
+    background-position: -200px 0;
+  }
+  to {
+    background-position: 200px 0;
+  }
+}
+
+/* Local copy of index.css's keyframes: in a CSS module `spin` names a keyframes rule of this module, so without it
+   the animation pointed at nothing and stood still */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

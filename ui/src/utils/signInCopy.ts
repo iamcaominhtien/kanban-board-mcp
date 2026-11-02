@@ -33,6 +33,7 @@ export type SignInView =
   /** The terminal could not start; the person may use their own terminal instead. */
   | 'no_terminal'
   | 'fallback'
+  | 'console'
   | 'fallback_signed';
 
 /** A sentence with bold parts, so the component needs no markup in strings. */
@@ -187,7 +188,8 @@ export function currentStep(cli: AccountCli, view: SignInView): number {
     case 'rejected':
     case 'timed_out':
     case 'fallback':
-      return cli === 'agy' && view !== 'fallback' ? 2 : 1;
+    case 'console':
+      return cli === 'agy' && view !== 'fallback' && view !== 'console' ? 2 : 1;
     default:
       return last; // trust_folder, confirming, done, duplicate, fallback_signed
   }
@@ -379,6 +381,16 @@ export function statusLine(
         title: 'Waiting for you to sign in in your own terminal',
         body: [
           'Run the command below in any terminal on this computer and finish the sign-in there. This window asks the CLI every few seconds and updates by itself.',
+        ],
+      };
+    case 'console':
+      return {
+        tone: 'blue',
+        title: 'Finish signing in in the window that opened',
+        body: [
+          'A window running ',
+          { b: cmd },
+          ' opened on this computer for this account. Finish the sign-in there; this window asks the CLI every few seconds and updates by itself. No window? Run the command below in PowerShell.',
         ],
       };
     case 'fallback_signed':

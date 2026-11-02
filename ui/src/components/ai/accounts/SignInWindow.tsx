@@ -20,7 +20,7 @@ import { TerminalPane, type TerminalHandle } from './TerminalPane';
 import '../ai.css';
 import './signIn.css';
 
-type Mode = 'terminal' | 'no_terminal' | 'fallback' | 'busy';
+type Mode = 'terminal' | 'no_terminal' | 'fallback' | 'console' | 'busy';
 
 /** What the window reports when it closes. */
 export interface SignInClose {
@@ -105,6 +105,7 @@ export function SignInWindow({
     if (mode === 'busy') return 'busy';
     if (mode === 'no_terminal') return 'no_terminal';
     if (mode === 'fallback') return fallbackSigned ? 'fallback_signed' : 'fallback';
+    if (mode === 'console') return fallbackSigned ? 'fallback_signed' : 'console';
     return signInView({
       cli: account.cli,
       state,
@@ -131,7 +132,11 @@ export function SignInWindow({
       setStartedAt(Date.now());
       try {
         const r = await accountsApi.startSignIn(account.id, size.cols, size.rows);
-        if (r.mode === 'fallback') {
+        if (r.mode === 'console') {
+          // Windows: the login runs in a console window of its own; this window asks the CLI until it is signed in
+          setCommand(r.command);
+          setMode('console');
+        } else if (r.mode === 'fallback') {
           setCommand(r.command);
           setProblem(r.reason);
           setMode(overview.data?.terminal === false ? 'fallback' : 'no_terminal');
@@ -196,7 +201,7 @@ export function SignInWindow({
   }, [account.id, refresh]);
 
   useEffect(() => {
-    if (mode !== 'fallback' || fallbackSigned) return;
+    if ((mode !== 'fallback' && mode !== 'console') || fallbackSigned) return;
     const id = setInterval(() => void poll(), 3000);
     return () => clearInterval(id);
   }, [mode, fallbackSigned, poll]);
@@ -207,8 +212,9 @@ export function SignInWindow({
     setWorking(true);
     try {
       if (result === 'signed_in') {
-        if (mode === 'terminal') await accountsApi.finishSignIn(account.id).catch(() => undefined);
-      } else if (mode === 'terminal') {
+        if (mode === 'terminal' || mode === 'console')
+          await accountsApi.finishSignIn(account.id).catch(() => undefined);
+      } else if (mode === 'terminal' || mode === 'console') {
         await accountsApi.cancelSignIn(account.id).catch(() => undefined);
       }
       await refresh();
@@ -222,7 +228,7 @@ export function SignInWindow({
 
   function requestClose() {
     if (signedView) void close('signed_in');
-    else if (mode === 'terminal' && closingNeedsConfirm(view)) setConfirmStop(true);
+    else if ((mode === 'terminal' || mode === 'console') && closingNeedsConfirm(view)) setConfirmStop(true);
     else void close('closed');
   }
 
@@ -330,6 +336,11 @@ export function SignInWindow({
         ];
       case 'fallback':
         return btn('Check now', () => void poll(), { icon: 'refresh' });
+      case 'console':
+        return [
+          btn('Check now', () => void poll(), { icon: 'refresh' }),
+          btn('Open the window again', () => void restart(), { icon: 'refresh' }),
+        ];
       default:
         return null;
     }
@@ -374,10 +385,10 @@ export function SignInWindow({
             title={line.title}
             body={line.body}
             actions={actions}
-            spinning={view === 'starting' || view === 'confirming' || view === 'fallback'}
+            spinning={view === 'starting' || view === 'confirming' || view === 'fallback' || view === 'console'}
           />
           {view === 'no_terminal' && problem && <div className="sg-reason">{problem}</div>}
-          {mode === 'fallback' && (
+          {(mode === 'fallback' || mode === 'console') && (
             <>
               <div className="sg-cmd-row">
                 <span data-testid="sign-in-command">{command}</span>
@@ -422,7 +433,7 @@ export function SignInWindow({
           <span className="sg-grow" />
           {signedView ? (
             done
-          ) : view === 'fallback' ? (
+          ) : view === 'fallback' || view === 'console' ? (
             <button type="button" className="ai-btn ai-btn-sm ai-btn-primary" disabled style={{ opacity: 0.5 }}>
               Done
             </button>

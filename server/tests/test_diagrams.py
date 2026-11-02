@@ -300,3 +300,103 @@ async def test_docs_versions_pin_diagrams_and_restore_brings_them_back(c, pid):
 async def test_refs_in_finds_each_diagram_once():
     md = "[a](diagram:dg_0123abcd) ![b](diagram:dg_0123abcd) [c](diagram:dg_deadbeef) (diagram:zz)"
     assert svc.refs_in(md) == ["dg_0123abcd", "dg_deadbeef"]
+
+
+async def test_the_editor_check_says_when_no_self_hosted_editor_answers(c, pid):
+    """The default http://localhost:8080 is not shipped with the app: opening the editor spun for 20 s, then failed."""
+    import socket
+
+    with socket.socket() as free:  # a port nothing listens on
+        free.bind(("127.0.0.1", 0))
+        port = free.getsockname()[1]
+    await c.put(
+        "/diagrams/settings",
+        json={"mode": "self-hosted", "url": f"http://127.0.0.1:{port}"},
+    )
+    out = (await c.get("/diagrams/editor-check")).json()
+    assert out == {
+        "mode": "self-hosted",
+        "url": f"http://127.0.0.1:{port}",
+        "reachable": False,
+    }
+    with socket.socket() as up:
+        up.bind(("127.0.0.1", 0))
+        up.listen()
+        await c.put(
+            "/diagrams/settings",
+            json={
+                "mode": "self-hosted",
+                "url": f"http://127.0.0.1:{up.getsockname()[1]}",
+            },
+        )
+        assert (await c.get("/diagrams/editor-check")).json()["reachable"] is True
+    await c.put("/diagrams/settings", json={"mode": "public"})
+    assert (await c.get("/diagrams/editor-check")).json()["reachable"] is True
+
+
+@pytest.fixture
+def shipped_editor(tmp_path, monkeypatch):
+    """A draw.io editor shipped with the app (desktop/scripts/fetch-drawio.sh), as a tiny fake."""
+    folder = tmp_path / "drawio"
+    (folder / "js").mkdir(parents=True)
+    (folder / "index.html").write_text("<!doctype html><title>Shipped editor</title>")
+    (folder / "js" / "app.min.js").write_text("var App={};")
+    (folder / "VERSION").write_text("32.6.9\n")
+    (tmp_path / "secret.txt").write_text("not the editor's")
+    monkeypatch.setenv("KANBAN_DRAWIO_DIR", str(folder))
+    return folder
+
+
+async def test_the_shipped_editor_is_served_and_is_the_default(c, pid, shipped_editor):
+    """Edit spun and failed: the default editor was a self-hosted one at localhost:8080 that nobody ran."""
+    s = (await c.get("/diagrams/settings")).json()
+    assert s["mode"] == "built-in" and s["built_in_available"] is True
+    assert s["effective_url"] == "http://test/drawio"
+    assert s["built_in_version"] == "32.6.9"
+    assert s["sends_drawings_to_third_party"] is False
+    assert (await c.get("/diagrams/editor-check")).json() == {
+        "mode": "built-in",
+        "url": "http://test/drawio",
+        "reachable": True,
+    }
+    page = await c.get("/drawio/?embed=1&proto=json")
+    assert page.status_code == 200 and "<title>Shipped editor</title>" in page.text
+    js = await c.get("/drawio/js/app.min.js")
+    assert js.status_code == 200 and js.headers["content-type"].startswith(
+        "text/javascript"
+    )
+    # nothing outside the editor's folder comes out (a normalised path may land on the UI's own fallback page)
+    for escape in ("/drawio/../secret.txt", "/drawio/%2e%2e/secret.txt"):
+        assert "not the editor's" not in (await c.get(escape)).text
+    assert (await c.get("/drawio/missing.js")).status_code == 404
+    from fastapi import HTTPException
+
+    import main
+
+    with pytest.raises(
+        HTTPException
+    ):  # the handler itself refuses a path out of the folder
+        await main.serve_drawio("../secret.txt")
+
+
+async def test_a_chosen_editor_is_kept_and_built_in_needs_one(c, pid, shipped_editor):
+    r = await c.put(
+        "/diagrams/settings",
+        json={"mode": "self-hosted", "url": "https://draw.corp/"},
+    )
+    assert r.json()["mode"] == "self-hosted"
+    assert r.json()["effective_url"] == "https://draw.corp"
+    r = await c.put("/diagrams/settings", json={"mode": "built-in"})
+    assert r.json()["mode"] == "built-in"
+    assert r.json()["effective_url"] == "http://test/drawio"
+    # a self-hosted setting left at its default address means the built-in one
+    r = await c.put("/diagrams/settings", json={"mode": "self-hosted", "url": ""})
+    assert r.json()["mode"] == "built-in"
+
+
+async def test_without_a_shipped_editor_built_in_is_refused(c, pid):
+    s = (await c.get("/diagrams/settings")).json()
+    assert s["mode"] == "self-hosted" and s["built_in_available"] is False
+    assert (await c.get("/drawio/")).status_code == 404
+    r = await c.put("/diagrams/settings", json={"mode": "built-in"})
+    assert r.status_code == 422 and "no built-in" in r.text.lower()
