@@ -9,7 +9,7 @@ import {
   useTicketGrants,
 } from '../../api/aiSafety';
 import { extractError } from '../../api/extractError';
-import type { AiApproval, AiMember } from '../../types/ai';
+import type { AiApproval, AiMember, ApprovalScope } from '../../types/ai';
 import type { Member } from '../../types';
 import { useToast } from '../Toast';
 import { requestOpenDoc } from '../../utils/openDoc';
@@ -440,6 +440,36 @@ function ApprovalRow({
   );
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  triage: 'Triage',
+  pm: 'PM',
+  ba: 'BA',
+  designer: 'Designer',
+  dev: 'Dev',
+  reviewer: 'Reviewer',
+  qa: 'QA',
+  user_tester: 'User tester',
+};
+
+/** "Just this once", "For KAN-142", "For this project", "Always for every Dev". */
+function scopeLabel(s: ApprovalScope, a: AiApproval): string {
+  if (s === 'once') return 'Just this once';
+  if (s === 'ticket') return `For ${a.ticketId ?? 'this ticket'}`;
+  if (s === 'project') return 'For this project';
+  return `Always for every ${ROLE_LABEL[a.role ?? ''] ?? a.role ?? 'member of its role'}`;
+}
+
+/** What an answer for that scope covers, in a line. */
+function scopeHint(s: ApprovalScope, a: AiApproval): string {
+  const what = a.action === 'use_tool' ? 'this tool' : 'this action';
+  if (s === 'once') return 'Only this request. The next one asks again.';
+  if (s === 'ticket')
+    return `${what[0].toUpperCase()}${what.slice(1)} on ${a.ticketId ?? 'the ticket'} until it reaches Done. Listed on the ticket and can be revoked.`;
+  if (s === 'project')
+    return `${what[0].toUpperCase()}${what.slice(1)} by ${a.memberName ?? 'this AI'} on any ticket or page of the project, until revoked (Safety › Remembered answers).`;
+  return `Every AI with the ${ROLE_LABEL[a.role ?? ''] ?? a.role} role in this project, until revoked. Only the owner can give this.`;
+}
+
 /** Approval card (B2, B3, B6): the diff, the AI’s reason, what triggered it, and the decision. */
 export function ApprovalCard({
   approval: a,
@@ -454,18 +484,40 @@ export function ApprovalCard({
   const [note, setNote] = useState('');
   const [stopRun, setStopRun] = useState(false);
   const toast = useToast();
-  const approve = useAiMutation((v: { remember?: boolean; always?: boolean; acceptUpdated?: boolean }) =>
-    safetyApi.approve(a.id, v),
-  );
+  type Decision = {
+    remember?: boolean;
+    always?: boolean;
+    acceptUpdated?: boolean;
+    scope?: ApprovalScope;
+    goOn?: boolean;
+  };
+  const approve = useAiMutation((v: Decision) => safetyApi.approve(a.id, v));
   const deny = useAiMutation(() => safetyApi.deny(a.id, note, stopRun));
   const stale = a.stale;
   const [always, setAlways] = useState(false);
+  const tool = a.action === 'use_tool';
+  const scopes = a.scopes ?? [];
+  const [scope, setScope] = useState<ApprovalScope>(tool ? (scopes[0] ?? 'ticket') : 'once');
+  const [goOn, setGoOn] = useState(true);
   const lead = a.ticketId ? `${a.ticketId}${a.targetTitle ? ` · ${a.targetTitle}` : ''}` : '';
-  const decide = async (v: { remember?: boolean; always?: boolean; acceptUpdated?: boolean }) => {
+  const decide = async (v: Decision) => {
     try {
       const r = await approve.mutateAsync(v);
       if (r.error) toast.error('Approved, but it could not be applied', r.error);
-      else toast.success('Approved', 'The board applied the change on behalf of the AI.');
+      else if (tool)
+        toast.success(
+          'Allowed',
+          r.continuedRunId
+            ? `${r.rule ?? 'It'} is kept, and the AI carries on where it stopped.`
+            : `${r.rule ?? 'It'} is kept for the next runs.`,
+        );
+      else
+        toast.success(
+          'Approved',
+          v.scope && v.scope !== 'once'
+            ? 'The board applied the change, and will not ask again for this.'
+            : 'The board applied the change on behalf of the AI.',
+        );
       onDone?.();
     } catch (err) {
       toast.error("Couldn't approve", extractError(err));
@@ -555,7 +607,7 @@ export function ApprovalCard({
       <div style={{ fontSize: 12.5 }}>
         <span className="ai-label">Asked by</span> <b>{a.memberName}</b> on behalf of {a.onBehalfOf ?? '—'}
       </div>
-      {a.reason && (
+      {a.reason && !tool && (
         <div>
           <span className="ai-label">Its reason</span>
           <div className="ai-reason">“{a.reason}”</div>
@@ -573,7 +625,45 @@ export function ApprovalCard({
           {a.canDecide === false && (
             <div className="ai-notice ai-notice-slate">{a.cannotReason || 'You can’t decide this request.'}</div>
           )}
-          {a.status === 'pending' && a.alwaysAllowed && !stale && (
+          {tool && (
+            <div
+              className="ai-notice ai-notice-slate"
+              style={{ flexDirection: 'column', alignItems: 'stretch', gap: 4 }}
+            >
+              <span>
+                The CLI refused it: no rule allows <span className="ai-mono">{a.toolCall ?? a.toolRule}</span>, and a
+                run cannot ask in the middle of a call.
+              </span>
+              <span>
+                Allowing it adds{' '}
+                <b className="ai-mono" data-testid="approval-rule">
+                  {a.toolRule}
+                </b>{' '}
+                to the AI’s rules.
+              </span>
+            </div>
+          )}
+          {a.status === 'pending' && !stale && scopes.length > 1 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }} data-testid="approval-scopes">
+              <span className="ai-label ai-label-dark">{tool ? 'Allow it' : 'Remember'}</span>
+              <ChipChoice
+                value={scope}
+                onChange={setScope}
+                disabled={a.canDecide === false}
+                options={scopes.map((x) => [x, scopeLabel(x, a)] as const)}
+              />
+              <span className="ai-muted" data-testid="approval-scope-hint">
+                {scopeHint(scope, a)}
+              </span>
+            </div>
+          )}
+          {a.status === 'pending' && tool && a.run && (
+            <label style={{ display: 'flex', gap: 8, fontSize: 12.5, alignItems: 'center' }}>
+              <input type="checkbox" checked={goOn} onChange={(e) => setGoOn(e.target.checked)} /> Let run #
+              {a.run.number} carry on where it stopped
+            </label>
+          )}
+          {a.status === 'pending' && a.alwaysAllowed && !stale && !scopes.length && (
             <label
               style={{
                 display: 'flex',
@@ -601,10 +691,20 @@ export function ApprovalCard({
                   type="button"
                   className="ai-btn ai-btn-sm ai-btn-primary"
                   disabled={approve.isPending || a.canDecide === false || !!stale}
-                  onClick={() => void decide(always ? { always: true } : {})}
+                  onClick={() =>
+                    void decide(scopes.length ? { scope, ...(tool ? { goOn } : {}) } : always ? { always: true } : {})
+                  }
                   data-testid="approval-approve"
                 >
-                  {always ? 'Approve, don’t ask again' : 'Approve once'}
+                  {tool
+                    ? 'Allow & remember'
+                    : scopes.length
+                      ? scope === 'once'
+                        ? 'Approve once'
+                        : 'Approve & remember'
+                      : always
+                        ? 'Approve, don’t ask again'
+                        : 'Approve once'}
                 </button>
                 {stale && (
                   <button
@@ -617,7 +717,7 @@ export function ApprovalCard({
                     Approve updated change
                   </button>
                 )}
-                {a.rememberAllowed && !stale && (
+                {a.rememberAllowed && !stale && !scopes.length && (
                   <button
                     type="button"
                     className="ai-btn ai-btn-sm"
@@ -639,13 +739,13 @@ export function ApprovalCard({
               Deny…
             </button>
           </div>
-          {a.alwaysAllowed && a.status === 'pending' && (
+          {a.alwaysAllowed && a.status === 'pending' && !scopes.length && (
             <div className="ai-muted">
               “Don’t ask again” covers every Docs edit by this AI, on any page, and also stops its page proposals. It is
               listed under “Always allowed” above and can be revoked there.
             </div>
           )}
-          {a.rememberAllowed && a.status === 'pending' && (
+          {a.rememberAllowed && a.status === 'pending' && !scopes.length && (
             <div className="ai-muted">
               Remember covers this action on this ticket only, until it reaches Done. It is listed on the ticket and can
               be revoked. Decided by: {a.onBehalfOf ?? 'the assigner'} (assigner), the project owner, or a delegate.
@@ -899,8 +999,15 @@ function AlwaysAllowed({ projectId }: { projectId: string }) {
       {items.map((g) => (
         <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ flex: 1 }}>
-            <b>{g.memberName ?? 'An AI'}</b> may {ACTION_WORDS[g.action] ?? g.action} without asking · allowed by{' '}
-            {g.createdBy}
+            <b>{g.role ? `Every ${ROLE_LABEL[g.role] ?? g.role}` : (g.memberName ?? 'An AI')}</b> may{' '}
+            {g.kind === 'tool' ? (
+              <>
+                run <span className="ai-mono">{g.action}</span>
+              </>
+            ) : (
+              (ACTION_WORDS[g.action] ?? g.action.replace(/_/g, ' '))
+            )}{' '}
+            without asking · allowed by {g.createdBy}
           </span>
           <button
             type="button"

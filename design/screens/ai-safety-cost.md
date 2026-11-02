@@ -8,6 +8,8 @@
 
 > **Extended by [Board AI & beyond](ai-board-wave3.md)** (wave 3 of `docs/specs/ai-claude-code-plan.md`) — red CI and review comments on a pull request the board opened go back to the AI that wrote the code (section J), and H1's channel grid is now In app and Desktop only (D26).
 
+> **Extended by issue #275** (3.22.0, no design of its own) — A1's last row ("Run commands and tools via the runner") is no longer only the CLI's: each role gets the tools its job needs, a project picks a preset (Careful, Normal, Trusted) and a web search switch, a tool the CLI refused is asked once and remembered (B2 gains "this project" and "every AI with the role" beside "this ticket"), every refusal says what to do instead (I2), and AI Team › Safety lists what stopped the AIs. The cards follow this screen's SafetyCard, RadioRow and chip styles.
+
 Eyebrow "Screen — v1". The single home for what AI members may do, who approves it, what it may spend, how to stop it, and how to see and undo what it did. By default an AI moves tickets **only up to Review**; a person decides Done. API agents are metered; local runners are **Not metered** (subscription). Every action is recorded as “AI name, on behalf of person” and can be reverted. Desktop only. Project: Kanban Board (KAN); members An Nguyen (owner), Hoa Mai, Tuan Vo, Linh Pham.
 
 Source: [AiSafetyCost.dc.html](../source/AiSafetyCost.dc.html) › header ("Screen — v1", "AI safety & cost" and the intro)

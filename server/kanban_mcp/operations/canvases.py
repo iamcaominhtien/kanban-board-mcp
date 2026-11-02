@@ -116,6 +116,14 @@ async def design_guide() -> dict:
     return {"guide": canvas_design.GUIDE}
 
 
+async def permissions_guide() -> dict:
+    """What an AI may do on the board, what needs a person and what to do when refused, and (inside a run) what the
+    calling AI may do right now (in Claude Code it is also the board-permissions skill)."""
+    from services import permissions_guide as guide
+
+    return await guide.for_caller()
+
+
 async def list_project_canvases(project_id: ProjectId) -> list[dict]:
     """List a project's canvases: [{id, title, owner_kind, owner_id, page_id, version, rev, boards, updated_by, updated_at, markdown}]."""
     from models import Canvas

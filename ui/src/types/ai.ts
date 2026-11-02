@@ -491,7 +491,15 @@ export interface AiApproval {
   rememberAllowed?: boolean;
   /** "Always allow" is offered (a Docs edit that is not high risk). */
   alwaysAllowed?: boolean;
+  /** How far an answer may reach (issue #275): once, this ticket, this project, every AI with the role. */
+  scopes?: ApprovalScope[];
+  /** A tool the CLI refused (`use_tool`): the allow rule it asks for and the call in words. */
+  toolRule?: string | null;
+  toolCall?: string | null;
+  role?: string | null;
 }
+
+export type ApprovalScope = 'once' | 'ticket' | 'project' | 'role';
 
 export interface AiAuditEntry {
   id: string;

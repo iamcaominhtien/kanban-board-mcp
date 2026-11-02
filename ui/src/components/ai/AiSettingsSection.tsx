@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { PermissionsCard } from './AiPermissionsCards';
 import { aiApi, useAiOverview } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AiSettings } from '../../types/ai';
@@ -280,9 +281,10 @@ export function AiSettingsSection({
         <GroupTitle
           id="ai-safety-h"
           title="Safety and limits"
-          hint="Safe mode, the board-wide caps and how long an approval waits."
+          hint="Safe mode, how much the AIs do on their own, the board-wide caps and how long an approval waits."
         />
         {overview.data && <AiSafetySettings projectId={projectId} settings={overview.data.settings} />}
+        <PermissionsCard projectId={projectId} />
       </section>
 
       <section className="ai-group" id="ai-operations" aria-labelledby="ai-operations-h">

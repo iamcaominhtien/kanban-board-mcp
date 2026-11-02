@@ -33,17 +33,26 @@ def async_session():
     return database.async_session()
 
 
-async def run_folder() -> str | None:
-    """The working folder of the AI run making this call (None for a person or another client)."""
-    from services.ai import guard
+async def run_folder() -> list[str] | None:
+    """The working folders of the AI run making this call, the one it works in first (None for a person or another
+    client): the ticket's worktree when the board made one, then the member's own folder. A run in a worktree saves
+    its screenshots there, so looking only in the member's folder refused files that were where they should be."""
+    from services.ai import guard, worktrees
 
     ctx = await guard.resolve()
     if ctx is None:
         return None
+    folders: list[str] = []
     async with async_session() as session:
         member = await session.get(AiMember, ctx.member_id)
-    folder = os.path.expanduser(member.working_dir or "") if member else ""
-    return folder or None
+        if ctx.ticket_id:
+            tree = await worktrees.for_ticket(session, ctx.ticket_id)
+            if tree is not None and tree.path and os.path.isdir(tree.path):
+                folders.append(tree.path)
+    main = os.path.expanduser(member.working_dir or "") if member else ""
+    if main:
+        folders.append(main)
+    return folders or None
 
 
 # ---------------------------------------------------------------------------

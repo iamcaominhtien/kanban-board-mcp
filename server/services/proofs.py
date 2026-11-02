@@ -81,25 +81,51 @@ def never_copied(rel: Path) -> bool:
     )
 
 
-def ingest_file(raw: str, folder: str) -> str:
-    """Copy a file from `folder` into the uploads folder and return its `/uploads/…` url.
+def _folders(folder: str | list[str]) -> list[Path]:
+    """The run's folders, first first (its worktree, then the member's main checkout), each once."""
+    raw = [folder] if isinstance(folder, str) else list(folder)
+    out: list[Path] = []
+    for f in raw:
+        if f:
+            p = Path(os.path.realpath(os.path.expanduser(f)))
+            if p not in out:
+                out.append(p)
+    return out
+
+
+def ingest_file(raw: str, folder: str | list[str]) -> str:
+    """Copy a file from `folder` into the uploads folder and return its `/uploads/…` url. `folder` may be several
+    folders (a run's worktree and the member's main checkout): a relative path is looked up in each, in order, and an
+    absolute one may be inside any of them.
 
     Raises ProofError when the file is outside the folder, missing, too big, of a type the board does not store or one
     that must never be copied (keys, `.env`, `.git`)."""
-    base = Path(os.path.realpath(os.path.expanduser(folder)))
+    bases = _folders(folder)
     given = Path(os.path.expanduser(raw.strip()))
-    path = Path(os.path.realpath(given if given.is_absolute() else base / given))
-    try:
-        rel = path.relative_to(base)
-    except ValueError:
+    where = " or ".join(str(b) for b in bases) or "(none)"
+    found: tuple[Path, Path] | None = None
+    inside = False
+    for base in bases:
+        path = Path(os.path.realpath(given if given.is_absolute() else base / given))
+        try:
+            rel = path.relative_to(base)
+        except ValueError:
+            continue
+        inside = True
+        if path.is_file():
+            found = (path, rel)
+            break
+    if not inside:
         raise ProofError(
-            f"{raw}: the file is outside the working folder, so it was not attached."
-        ) from None
-    if not path.is_file():
-        raise ProofError(
-            f"{raw}: no such file in the working folder (write the path from the folder root, "
-            "e.g. qa/evidence/TC-1.png). Take the screenshot first, then write the proof."
+            f"{raw}: the file is outside the working folder ({where}), so it was not attached. "
+            "Save it inside that folder (e.g. qa/evidence/) and name it by its path from there."
         )
+    if found is None:
+        raise ProofError(
+            f"{raw}: no such file in the working folder ({where}). Write the path from the folder root, "
+            "e.g. qa/evidence/TC-1.png. Take the screenshot first, then write the proof."
+        )
+    path, rel = found
     suffix = path.suffix.lower()
     if never_copied(rel):
         raise ProofError(f"{raw}: this kind of file is never attached.")
@@ -131,7 +157,7 @@ def targets(markdown: str | None) -> set[str]:
 
 def localize(
     markdown: str | None,
-    folder: str | None,
+    folder: str | list[str] | None,
     *,
     pictures_only: bool = False,
     keep: set[str] | frozenset[str] = frozenset(),

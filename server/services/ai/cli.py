@@ -884,6 +884,18 @@ def parse_stream_line(line: str, cwd: str) -> dict:
             # Claude Code names the failure: "usage_limit_reached" (the window), and the HTTP status behind it
             "api_error": ev.get("api_error"),
             "api_status": ev.get("api_error_status"),
+            # the tool calls the CLI's rules refused in this run (it had nobody to ask): the board asks a person
+            # once and remembers the answer (services/ai/tool_asks.py)
+            "denials": [
+                {
+                    "tool": str(d.get("tool_name") or ""),
+                    "input": d.get("tool_input")
+                    if isinstance(d.get("tool_input"), dict)
+                    else {},
+                }
+                for d in (ev.get("permission_denials") or [])
+                if isinstance(d, dict) and d.get("tool_name")
+            ],
         }
         out["session_id"] = ev.get("session_id")
         windows = [

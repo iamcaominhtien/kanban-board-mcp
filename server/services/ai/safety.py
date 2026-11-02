@@ -176,12 +176,14 @@ async def add_grant(
     amount: float = 0.0,
     day: str | None = None,
     source_approval_id: str | None = None,
+    role: str | None = None,
 ) -> AiGrant:
     """Store a grant and return it."""
     g = AiGrant(
         project_id=project_id,
         kind=kind,
-        member_id=member_id,
+        member_id=None if role else member_id,
+        role=role,
         ticket_id=ticket_id,
         action=action,
         amount=amount,
@@ -195,35 +197,95 @@ async def add_grant(
     return g
 
 
-async def remembered(
-    session: AsyncSession, member_id: str, ticket_id: str | None, actions: list[str]
+async def _role_of(session: AsyncSession, member_id: str | None) -> str | None:
+    from models import AiMember
+
+    from .plugins import role_of
+
+    profile = await session.get(AiMember, member_id) if member_id else None
+    return role_of(profile) if profile is not None else None
+
+
+async def _standing(
+    session: AsyncSession,
+    kind: str,
+    *,
+    project_id: str | None,
+    member_id: str,
+    ticket_id: str | None,
+    role: str | None,
 ) -> list[AiGrant]:
-    """Active remembered approvals covering every one of `actions` on the ticket (empty when one is missing). A
-    grant ends when its ticket reaches Done or it is revoked."""
-    if not actions:
-        return []
+    """The grants of `kind` that cover this member on this ticket: for the ticket (until it is Done), for the project
+    (no ticket) or for every member with its role in the project. Revoked ones never count."""
     from models import Ticket
 
     ticket = await session.get(Ticket, ticket_id) if ticket_id else None
     on_ticket = ticket is not None and ticket.status not in ("done", "wont_do")
-    # A grant made with "Always allow" belongs to no ticket and ends only when it is revoked
     rows = (
         await session.exec(
             select(AiGrant).where(
-                AiGrant.kind == "approval",
-                AiGrant.member_id == member_id,
+                AiGrant.kind == kind,
                 col(AiGrant.revoked_at).is_(None),
             )
         )
     ).all()
-    rows = [
-        g
-        for g in rows
-        if g.ticket_id is None or (on_ticket and g.ticket_id == ticket_id)
-    ]
+    out = []
+    for g in rows:
+        if g.role:
+            if not role or g.role != role:
+                continue
+            if project_id and g.project_id != project_id:
+                continue
+        elif g.member_id != member_id:
+            continue
+        # A grant made with "Always allow" or "for this project" belongs to no ticket and ends only when revoked
+        if g.ticket_id is not None and not (on_ticket and g.ticket_id == ticket_id):
+            continue
+        out.append(g)
+    return out
+
+
+async def remembered(
+    session: AsyncSession, member_id: str, ticket_id: str | None, actions: list[str]
+) -> list[AiGrant]:
+    """Active remembered approvals covering every one of `actions` on the ticket (empty when one is missing). A
+    grant for a ticket ends when it reaches Done; one for the project or the role ends when it is revoked."""
+    if not actions:
+        return []
+    from models import AiMember
+
+    profile = await session.get(AiMember, member_id)
+    rows = await _standing(
+        session,
+        "approval",
+        project_id=profile.project_id if profile is not None else None,
+        member_id=member_id,
+        ticket_id=ticket_id,
+        role=await _role_of(session, member_id),
+    )
     found = [g for a in actions for g in rows if g.action == a][: len(actions)]
     covered = {g.action for g in found}
     return found if all(a in covered for a in actions) else []
+
+
+async def granted_rules(
+    session: AsyncSession,
+    *,
+    project_id: str,
+    member_id: str,
+    ticket_id: str | None,
+    role: str | None,
+) -> list[str]:
+    """The CLI allow rules people allowed once and asked to keep, for a run of this member on this ticket."""
+    rows = await _standing(
+        session,
+        "tool",
+        project_id=project_id,
+        member_id=member_id,
+        ticket_id=ticket_id,
+        role=role,
+    )
+    return list(dict.fromkeys(g.action for g in rows if g.action))
 
 
 async def limited_runs_today(session: AsyncSession, ticket_id: str) -> list:

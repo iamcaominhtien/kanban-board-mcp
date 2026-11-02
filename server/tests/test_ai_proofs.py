@@ -258,3 +258,54 @@ async def test_a_page_a_person_writes_over_mcp_keeps_its_paths_as_written(env):
     )
     md = (await c.get(f"/docs/pages/{out['id']}")).json()["markdown"]
     assert md == "![x](qa/evidence/TC-1.png)"
+
+
+async def test_a_screenshot_saved_in_the_tickets_worktree_is_found(
+    env, folder, tmp_path
+):
+    """From a real day's log: a QA run in the ticket's worktree saved qa/evidence/TC-6.png there, and the board looked
+    only in the member's main folder ("no such file"), then refused the absolute path ("outside the working folder")."""
+    import database
+    from models import AiWorktree
+
+    c = env["c"]
+    ctx, pid, _, member, tid = await _ctx(env)
+    await c.patch(f"/ai/members/{member['id']}", json={"working_dir": str(folder)})
+    tree = tmp_path / "work.worktrees" / tid
+    (tree / "qa" / "evidence").mkdir(parents=True)
+    (tree / "qa" / "evidence" / "TC-6.png").write_bytes(b"\x89PNG six")
+    async with database.async_session() as session:
+        session.add(
+            AiWorktree(
+                ticket_id=tid,
+                project_id=pid,
+                repo=str(folder),
+                path=str(tree),
+                branch=f"ai/{tid}",
+            )
+        )
+        await session.commit()
+    for ref in ("qa/evidence/TC-6.png", str(tree / "qa" / "evidence" / "TC-6.png")):
+        out = await _as(
+            ctx,
+            ticket_items,
+            ticket_id=tid,
+            item="test_case",
+            action="add",
+            title=f"Six {ref[-8:]}",
+            status="pass",
+            proof=f"![six]({ref})",
+        )
+        assert "/uploads/" in out["test_cases"][-1]["proof"]
+    # the member's main folder still counts (a file the AI saved there before the worktree was made)
+    out = await _as(
+        ctx,
+        ticket_items,
+        ticket_id=tid,
+        item="test_case",
+        action="add",
+        title="One",
+        status="pass",
+        proof="![one](qa/evidence/TC-1.png)",
+    )
+    assert "/uploads/" in out["test_cases"][-1]["proof"]

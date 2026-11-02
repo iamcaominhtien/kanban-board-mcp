@@ -7,6 +7,7 @@ import { useToast } from '../Toast';
 import { AiAvatar, Toggle } from './aiUi';
 import { ChipChoice, Pill, RadioRow, SafetyCard, TrustChip } from './aiSafetyUi';
 import { AutopilotCard } from './AutopilotCard';
+import { BlocksCard, PermissionsCard, RememberedCard } from './AiPermissionsCards';
 
 const TRUST_ROWS: { source: string; trust: 'trusted' | 'data_only' | 'untrusted'; how: string }[] = [
   {
@@ -83,7 +84,8 @@ function Stepper({
   );
 }
 
-/** Safety tab: first-time checklist, safe mode, trust, links and sandbox, keys, loops, notifications, defaults, roles. */
+/** Safety tab: first-time checklist, how much the AIs do on their own, what stopped them, remembered answers, safe
+ * mode, trust, links and sandbox, keys, loops, notifications, defaults, roles. */
 export function SafetyView({
   projectId,
   members,
@@ -116,6 +118,9 @@ export function SafetyView({
         </div>
       </div>
       <Checklist projectId={projectId} />
+      <PermissionsCard projectId={projectId} />
+      <BlocksCard projectId={projectId} />
+      <RememberedCard projectId={projectId} />
       <SafeModeCard s={s} save={save} />
       <AutopilotCard projectId={projectId} members={members} isOwner={me.data?.role === 'owner'} />
       <AutoTripCard s={s} save={save} />
@@ -376,8 +381,8 @@ function LinksCard({ s, save }: { s: AiSettings; save: (b: Record<string, unknow
               <span style={{ color: '#C4432A' }}>✕</span> Links in untrusted text are never opened on their own
             </span>
             <span>
-              ✋ A local runner may fetch a web page only from an allowed domain; anything else is refused (a run cannot
-              wait for you mid-call)
+              ✋ A local runner may fetch a web page only from an allowed domain (outside Bypass); anything else is
+              refused and asked once (a run cannot wait for you mid-call)
             </span>
             <span>
               <span style={{ color: '#C4432A' }}>✕</span> Attachments: file name and extracted text only; never executed
