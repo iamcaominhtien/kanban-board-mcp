@@ -68,6 +68,12 @@ def test_a_designer_and_a_user_tester_get_playwright():
     assert [s["name"] for s in designer["mcp_servers"]] == ["playwright"]
     # Anthropic's canvas-design (poster art) would hide the board's own canvas-design guide
     assert "canvas-design" not in designer["pack_plugins"]
+    # taste-skill (against the generic AI look) comes with the Designer; impeccable's hooks run a downloaded helper on
+    # every edit, so it stays in the catalogue for a person to add
+    from services.ai import plugins
+
+    assert "taste-skill" in designer["pack_plugins"]
+    assert next(e for e in plugins.CATALOGUE if e["key"] == "impeccable")["roles"] == []
     tester = _body("user_tester")["config"]
     assert [s["name"] for s in tester["mcp_servers"]] == ["playwright"]
     assert tester["mcp_servers"][0]["command"] == "npx"

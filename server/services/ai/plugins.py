@@ -57,6 +57,26 @@ CATALOGUE: list[dict] = [
         "what": "UI/UX design intelligence: styles, palettes, font pairings, charts and stack guidelines.",
     },
     {
+        "key": "taste-skill",
+        "name": "taste-skill",
+        "kind": "plugin",
+        "source": "https://github.com/Leonxlnx/taste-skill",
+        "plugin": "taste-skill",
+        "roles": ["designer"],
+        "what": "Art direction against the generic AI look (tasteskill): researched directions, a no-ornament house style, rules for app screens, and a look-and-fix loop on screenshots. MIT.",
+    },
+    {
+        "key": "impeccable",
+        "name": "impeccable",
+        "kind": "plugin",
+        "source": "https://github.com/pbakaus/impeccable",
+        "plugin": "impeccable",
+        # strong design rules, but its hooks run a launcher on every edit and at the end of a run (it downloads a
+        # binary the first time), which an unattended run should not depend on: in the catalogue, suggested to no role
+        "roles": [],
+        "what": "Design fluency: modes per surface, a craft floor of banned patterns, critique, audit and polish commands. Apache-2.0. Its hooks run a downloaded helper on every edit.",
+    },
+    {
         "key": "frontend-design",
         "name": "frontend-design",
         "kind": "plugin",

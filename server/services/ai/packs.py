@@ -132,7 +132,7 @@ BUILTIN: list[dict] = [
         "allow": ["Read", "Glob", "Grep"],
         # not Anthropic's canvas-design (poster art as a PNG; its name hides the board's own guide), nor Figma (it signs
         # in through a browser, which a run cannot do): both stay in the catalogue for a person to add
-        "plugins": ["design", "ui-ux-pro-max", "frontend-design"],
+        "plugins": ["design", "taste-skill", "ui-ux-pro-max", "frontend-design"],
         "mcp": ["playwright"],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
         "persona": (
@@ -144,8 +144,7 @@ BUILTIN: list[dict] = [
             "boards with every state side by side and a caption by each decision. Look at your "
             "boards in the browser (Playwright via `python3 -m http.server`), fix the three most template-like things, "
             "look again. Hand in the canvas, a spec per screen on Docs, a comment with screenshots. No production "
-            "code; screen flow as a draw.io Diagram. "
-            + _COMMON_RULES
+            "code; screen flow as a draw.io Diagram. " + _COMMON_RULES
         ),
     },
     {
@@ -286,7 +285,8 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # v3: the Designer looks at its frames in a browser and starts from tokens; the PM judges design
 # v4: the Designer drops Anthropic's canvas-design (it shadows the board's guide) and Figma
 # v5: the Designer presents a design document (foundations, states side by side, a spec per screen)
-BUILTIN_VERSION = 6  # v6: the Designer explores three directions, reads craft.md and critiques its own screens
+# v6: the Designer explores three directions, reads craft.md, critiques its own screens and gets taste-skill
+BUILTIN_VERSION = 6
 
 
 def _now() -> str:
