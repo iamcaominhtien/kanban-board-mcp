@@ -6,6 +6,7 @@ import type { AssistState, FeatureKey } from '../../types/assist';
 import { Toggle } from '../ai/aiUi';
 import { usd } from './assistUi';
 import './assist.css';
+import { SettingsCard } from '../settings/settingsUi';
 
 const LANGUAGES = ['English (US)', 'English (UK)', 'Tiếng Việt', 'Français', 'Deutsch', 'Español', '日本語'];
 const TONES = [
@@ -309,15 +310,20 @@ export function AssistSettings({ projectId, onOpenAudit }: { projectId: string; 
   if (!st.data) return <div className="as-skel" style={{ height: 120 }} />;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} data-testid="assist-settings">
-      <FeaturesBlock key={`f-${st.data.styleGuide.length}`} projectId={projectId} s={st.data} />
-      <div className="ai-divider" />
-      <div style={{ fontSize: 13, fontWeight: 700 }}>AI · data and limits</div>
-      <DataBlock
-        key={`d-${st.data.monthlyCap}-${st.data.perRequestCap}`}
-        projectId={projectId}
-        s={st.data}
-        onOpenAudit={onOpenAudit}
-      />
+      <SettingsCard
+        title="Features"
+        hint="What the board assistant does in this project, its language and tone, and what each feature cost this month."
+      >
+        <FeaturesBlock key={`f-${st.data.styleGuide.length}`} projectId={projectId} s={st.data} />
+      </SettingsCard>
+      <SettingsCard title="Data and limits" hint="What the Board AI may read, and how much it may spend.">
+        <DataBlock
+          key={`d-${st.data.monthlyCap}-${st.data.perRequestCap}`}
+          projectId={projectId}
+          s={st.data}
+          onOpenAudit={onOpenAudit}
+        />
+      </SettingsCard>
     </div>
   );
 }

@@ -129,25 +129,36 @@ function AiSafetySettings({ projectId, settings }: { projectId: string; settings
   );
 }
 
-const GROUPS = [
-  ['ai-board', 'Board AI'],
-  ['ai-safety', 'Safety and limits'],
-  ['ai-operations', 'Running the team'],
-  ['ai-members', 'Members and workflows'],
-  ['ai-knowledge', 'Knowledge and code'],
-] as const;
-
 /** The title of one of the five groups of the page, with what it decides. */
-function GroupTitle({ id, title, hint }: { id: string; title: string; hint: string }) {
+function GroupTitle({ id, title, hint, actions }: { id: string; title: string; hint: string; actions?: ReactNode }) {
   return (
-    <div>
-      <h2 className="ai-group-title" id={id}>
-        {title}
-      </h2>
-      <div className="ai-hint">{hint}</div>
+    <div className="ai-group-head">
+      <div>
+        <h2 className="ai-group-title" id={id}>
+          {title}
+        </h2>
+        <div className="ai-group-hint">{hint}</div>
+      </div>
+      {actions && <div className="ai-group-actions">{actions}</div>}
     </div>
   );
 }
+
+const ExternalIcon = (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </svg>
+);
 
 /** A part of a group: a small heading over the section it names. */
 function Sub({ title, children }: { title: string; children: ReactNode }) {
@@ -182,94 +193,71 @@ export function AiSettingsSection({
       data-testid="settings-ai"
       data-setting="board-ai"
     >
-      <nav className="ai-page-nav" aria-label="On this page">
-        <span className="ai-page-nav-l">On this page</span>
-        {GROUPS.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      <section className="ai-group" id="ai-board" aria-labelledby="ai-board-h">
+      <section className="ai-group" id="ai-board" aria-labelledby="ai-board-h" data-toc="Board AI">
         <GroupTitle
           id="ai-board-h"
           title="Board AI"
-          hint="Who answers board-wide requests, and what it may do by itself."
+          hint="Answers board-wide requests: chat, ticket drafting and suggestions. Changing it never affects who is assigned to tickets."
+          actions={
+            <>
+              <button
+                type="button"
+                className="st-btn st-btn-sm"
+                data-testid="open-library"
+                onClick={() => setLibrary(true)}
+              >
+                Library
+              </button>
+              {onManageAccounts && (
+                <button
+                  type="button"
+                  className="st-btn st-btn-sm"
+                  onClick={onManageAccounts}
+                  data-testid="manage-ai-accounts"
+                >
+                  {ExternalIcon}
+                  Manage AI accounts
+                </button>
+              )}
+            </>
+          }
         />
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ flex: 1 }} />
-          <button
-            type="button"
-            className="ai-link"
-            data-testid="open-library"
-            onClick={() => setLibrary(true)}
-            style={{ marginRight: 12 }}
-          >
-            Library
-          </button>
-          {onManageAccounts && (
-            <button
-              type="button"
-              className="ai-link"
-              onClick={onManageAccounts}
-              style={{ marginRight: 12 }}
-              data-testid="manage-ai-accounts"
+        <div className="ai-boardai">
+          {boardAi ? (
+            <AiAvatar provider={boardAi.provider} color={boardAi.color} glyph={boardAi.glyph} size={32} />
+          ) : (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#6D5DD3"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              style={{ flexShrink: 0 }}
             >
-              Manage AI accounts
-            </button>
+              <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+            </svg>
           )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <b style={{ fontSize: 13, color: '#1E2A22' }}>{boardAi?.name ?? 'No Board AI chosen'}</b>
+            <div className="ai-hint">
+              {boardAi
+                ? `${boardAi.status.label} · answers the board chat, ticket drafting and suggestions`
+                : 'Pick an AI member to answer the chatbot, ticket drafting and suggestions.'}
+            </div>
+          </div>
+          <button type="button" className="st-btn st-btn-sm" disabled={!members.length} onClick={() => setPicker(true)}>
+            {boardAi ? 'Change' : 'Choose'}
+          </button>
           {onManage && (
-            <button type="button" className="ai-link" onClick={onManage}>
+            <button type="button" className="st-btn st-btn-sm" onClick={onManage}>
+              {ExternalIcon}
               Manage AI members
             </button>
           )}
-        </div>
-        <div
-          className="ai-card"
-          style={{
-            padding: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            background: '#F1F8F3',
-            borderColor: '#BFDCC7',
-          }}
-        >
-          {boardAi && <AiAvatar provider={boardAi.provider} color={boardAi.color} glyph={boardAi.glyph} size={32} />}
-          <div style={{ flex: 1 }}>
-            <div className="ai-label" style={{ color: '#2E6F40', display: 'flex', alignItems: 'center', gap: 6 }}>
-              Board AI
-              {boardAi && (
-                <span
-                  className="ai-chip"
-                  style={{
-                    height: 18,
-                    background: '#EAF5ED',
-                    color: '#2E6F40',
-                    textTransform: 'none',
-                    letterSpacing: 0,
-                  }}
-                >
-                  {boardAi.status.label}
-                </span>
-              )}
-            </div>
-            <div className="ai-hint">
-              Used for the chatbot, ticket drafting, suggestions and board management. Currently{' '}
-              <b style={{ color: '#1E2A22' }}>{boardAi?.name ?? 'not chosen'}</b>.
-            </div>
-          </div>
-          <button type="button" className="ai-btn ai-btn-sm" disabled={!members.length} onClick={() => setPicker(true)}>
-            Change
-          </button>
-        </div>
-        <div className="ai-muted">
-          Changing it never affects who is assigned to tickets; it only picks which AI answers board-wide requests.
         </div>
         <Sub title="What the Board AI may do by itself">
           <BoardAiSection projectId={projectId} />
@@ -277,7 +265,7 @@ export function AiSettingsSection({
         <StandingOrdersSection projectId={projectId} />
       </section>
 
-      <section className="ai-group" id="ai-safety" aria-labelledby="ai-safety-h">
+      <section className="ai-group" id="ai-safety" aria-labelledby="ai-safety-h" data-toc="Safety and limits">
         <GroupTitle
           id="ai-safety-h"
           title="Safety and limits"
@@ -287,7 +275,7 @@ export function AiSettingsSection({
         <PermissionsCard projectId={projectId} />
       </section>
 
-      <section className="ai-group" id="ai-operations" aria-labelledby="ai-operations-h">
+      <section className="ai-group" id="ai-operations" aria-labelledby="ai-operations-h" data-toc="Running the team">
         <GroupTitle
           id="ai-operations-h"
           title="Running the team"
@@ -296,7 +284,7 @@ export function AiSettingsSection({
         <OperationsCard projectId={projectId} />
       </section>
 
-      <section className="ai-group" id="ai-members" aria-labelledby="ai-members-h">
+      <section className="ai-group" id="ai-members" aria-labelledby="ai-members-h" data-toc="Members and workflows">
         <GroupTitle
           id="ai-members-h"
           title="Members and workflows"
@@ -313,7 +301,7 @@ export function AiSettingsSection({
         </Sub>
       </section>
 
-      <section className="ai-group" id="ai-knowledge" aria-labelledby="ai-knowledge-h">
+      <section className="ai-group" id="ai-knowledge" aria-labelledby="ai-knowledge-h" data-toc="Knowledge and code">
         <GroupTitle
           id="ai-knowledge-h"
           title="Knowledge and code"
