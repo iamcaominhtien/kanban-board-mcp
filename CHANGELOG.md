@@ -8,6 +8,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.26.1] - 2026-11-02
+
+### Fixed
+- **The board server did not start on Windows** since 3.25.0: the slides skill's themes and guide were read in the machine's default encoding (cp1252 on Windows), which cannot decode their Vietnamese, while the shared skills were being built at start-up. Every file of the skill is now read and written as UTF-8, and a test checks it.
+- **A copied template slide could open as a broken file in PowerPoint**: a chart's relationships were renumbered one by one, so its data could point at its style part, and its style and colours stayed shared with the original; a picture background kept the original's relationship id. Charts now get their own data, style and colours, renumbered in one pass, and backgrounds are renumbered too.
+- `html_to_pptx.py`: a video or poster in a folder with a space (or on a Windows drive) was not found; three-digit colours (`#fff`) and empty chart labels crashed; previews moved across drives failed.
+- `pptx_template.py`: a theme's system colours (`windowText`) showed instead of their hex and crashed when used; an empty table cell or label, a row longer than the first, a number as text, or a picture already in a placeholder crashed; the inventory now prints Vietnamese on a Windows console.
+- `render.py`: page files from a deck of 10 or more slides could not be renamed on Windows and sorted wrongly past 99; a file name with `[` or a path with a quote broke Quick Look and PowerShell.
+- The board's plugin folder kept files an earlier version shipped and this one does not; they are removed when the folder is written.
+
 ## [3.26.0] - 2026-11-02
 
 The rest of the schedules design (`AiSchedules.dc.html`, `Notifications.dc.html`) and a safety fix found while testing them (#271).

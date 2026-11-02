@@ -110,7 +110,7 @@ def slides(c: dict) -> list[str]:
 
 def page(theme: Path) -> str:
     """The sample deck of ``theme`` as one HTML file."""
-    c = json.loads((theme / "content.json").read_text())
+    c = json.loads((theme / "content.json").read_text(encoding="utf-8"))
     fams = {c["fonts"]["display"], c["fonts"]["body"]}
     q = "&".join(
         "family="
@@ -121,7 +121,7 @@ def page(theme: Path) -> str:
     return (
         f'<!doctype html><html lang="{c.get("lang", "vi")}"><head><meta charset="utf-8"><title>{_e(c["label"])}</title>'
         f'<link rel="stylesheet" href="https://fonts.googleapis.com/css2?{q}&display=swap">'
-        f"<style>{(HERE / 'base.css').read_text()}\n{(theme / 'theme.css').read_text()}</style></head><body>"
+        f"<style>{(HERE / 'base.css').read_text(encoding='utf-8')}\n{(theme / 'theme.css').read_text(encoding='utf-8')}</style></head><body>"
         + "\n".join(slides(c))
         + "</body></html>"
     )
@@ -132,7 +132,7 @@ def build(theme: Path, browser: str | None = None) -> None:
     import html_to_pptx
     import render
 
-    (theme / "sample.html").write_text(page(theme))
+    (theme / "sample.html").write_text(page(theme), encoding="utf-8")
     pptx = theme / "sample.pptx"
     html_to_pptx.convert(theme / "sample.html", pptx, browser)
     way, pages = render.render(pptx, theme / ".look")

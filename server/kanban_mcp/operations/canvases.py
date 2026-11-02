@@ -129,7 +129,9 @@ async def shared_guides() -> dict:
     out = shared_skills.guides()
     for name in shared_skills.extra_files():
         # the scripts and themes a guide refers to are files: say where they are on this machine
-        out[name] += f"\n\nThis guide's folder (scripts/, themes/, examples/): {board_skills.skill_dir(name)}\n"
+        out[name] += (
+            f"\n\nThis guide's folder (scripts/, themes/, examples/): {board_skills.skill_dir(name)}\n"
+        )
     return out
 
 
