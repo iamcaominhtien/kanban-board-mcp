@@ -126,6 +126,9 @@ def test_each_role_that_draws_is_pointed_at_the_right_tool():
         assert "drawio-diagrams" in by_key[role], role
     assert "docs_read(picture)" in by_key["designer"]
     assert "never one you draw" in by_key["ba"]
+    # live runs: a BA and a Dev that were only told a diagram "helps" drew none (#267)
+    assert "you hand in a draw.io Diagram" in by_key["ba"]
+    assert "carries a draw.io Diagram" in by_key["dev"]
     assert packs.BUILTIN_VERSION == 10
 
 
@@ -287,3 +290,91 @@ async def test_with_a_browser_a_frame_and_a_diagram_are_drawn_for_real(
     drawn = await docs_read(action="picture", diagram_id=dg["id"])
     assert drawn["drawn_by"] == "browser" and drawn["width"] > 300
     assert diagram_model.model(FLOW)["problems"] == []
+
+
+def _pixel(png: bytes, x: int, y: int) -> tuple[int, ...]:
+    """One pixel of an 8-bit RGB or RGBA PNG (enough to tell where a shape was drawn)."""
+    w = int.from_bytes(png[16:20], "big")
+    bpp = {2: 3, 6: 4}[png[25]]
+    data, i = b"", 8
+    while i < len(png):
+        n = int.from_bytes(png[i : i + 4], "big")
+        if png[i + 4 : i + 8] == b"IDAT":
+            data += png[i + 8 : i + 8 + n]
+        i += 12 + n
+    raw, stride = zlib.decompress(data), w * bpp
+    prev = bytearray(stride)
+    for r in range(y + 1):
+        start = r * (stride + 1)
+        kind, line = raw[start], bytearray(raw[start + 1 : start + 1 + stride])
+        for k in range(stride):
+            a = line[k - bpp] if k >= bpp else 0
+            b = prev[k]
+            c = prev[k - bpp] if k >= bpp else 0
+            if kind == 1:
+                line[k] = (line[k] + a) & 255
+            elif kind == 2:
+                line[k] = (line[k] + b) & 255
+            elif kind == 3:
+                line[k] = (line[k] + (a + b) // 2) & 255
+            elif kind == 4:
+                pa, pb, pc = abs(b - c), abs(a - c), abs(a + b - 2 * c)
+                pick = a if pa <= pb and pa <= pc else b if pb <= pc else c
+                line[k] = (line[k] + pick) & 255
+        prev = line
+    return tuple(prev[x * bpp : x * bpp + 3])
+
+
+NARROW = """<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="a" value="" style="rounded=0;html=1;fillColor=#ff0000;strokeColor=#ff0000;" vertex="1" parent="1">
+<mxGeometry x="40" y="40" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="b" value="" style="rounded=0;html=1;" vertex="1" parent="1">
+<mxGeometry x="40" y="200" width="160" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel>"""
+
+
+@pytest.mark.skipif(
+    diagram_export.find_chrome() is None, reason="no Chrome or Chromium here"
+)
+async def test_a_narrow_diagram_is_drawn_at_its_own_size_not_as_a_zoomed_phone_page(
+    env, tmp_path, monkeypatch
+):
+    # a live Dev run looked at a 480 px wide diagram and saw only its top left corner, twice as large (#267)
+    monkeypatch.delenv(diagram_export.EXPORT_CMD_ENV, raising=False)
+    f = tmp_path / "narrow.drawio"
+    f.write_text(NARROW)
+    pic = await docs_read(action="picture", path=str(f))
+    assert pic["drawn_by"] == "browser"
+    png = Path(pic["path"]).read_bytes()
+    assert (pic["width"], pic["height"]) == screenshots._svg_size(
+        diagram_model.render_svg(NARROW)
+    )
+    red = _pixel(
+        png, 100, 50
+    )  # inside the red box (it starts at 20, 20 in the picture)
+    assert red[0] > 200 and red[1] < 80, red
+    # between the two boxes: white at scale 1, red when the page was zoomed
+    assert min(_pixel(png, 190, 150)) > 220
+
+
+def test_the_plain_preview_draws_a_links_bends_and_orthogonal_elbows():
+    looped = FLOW.replace(
+        '<mxCell id="e1" edge="1" source="form" target="valid" parent="1"><mxGeometry relative="1" as="geometry"/>',
+        '<mxCell id="e1" edge="1" source="valid" target="form" parent="1" style="edgeStyle=orthogonalEdgeStyle;">'
+        '<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="260" y="220"/>'
+        '<mxPoint x="260" y="70"/></Array></mxGeometry>',
+    )
+    assert looped != FLOW
+    svg = diagram_model.render_svg(looped)
+    first = svg.split('<polyline points="', 1)[1].split('"', 1)[0].split()
+    # out of the decision, around through x = 260 (240 in the picture, whose left edge is page x 20), into the form
+    assert len(first) >= 4
+    assert {round(float(p.split(",")[0])) for p in first[1:-1]} == {240}
+    # an orthogonal link without bends is an elbow between facing sides, not a diagonal
+    elbow = FLOW.replace(
+        'value="yes" edge="1"',
+        'value="yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1"',
+    )
+    points = diagram_model.render_svg(elbow).split('<polyline points="')[2]
+    pts = [tuple(map(float, p.split(","))) for p in points.split('"', 1)[0].split()]
+    assert all(a[0] == b[0] or a[1] == b[1] for a, b in zip(pts, pts[1:]))

@@ -339,7 +339,7 @@ async def _board_png(
             ext = Path(content["entry"]).suffix
             Path(tmp, f"picture{ext}").write_bytes(data)
             Path(tmp, "index.html").write_text(
-                f"<!doctype html><style>body{{margin:0}}img{{display:block;width:100%}}</style><img src='picture{ext}'>",
+                f"<!doctype html><meta name='viewport' content='width=device-width, initial-scale=1'><style>body{{margin:0}}img{{display:block;width:100%}}</style><img src='picture{ext}'>",
                 encoding="utf-8",
             )
             png, by, note = await _frame_png(Path(tmp), "index.html", int(board["w"]))

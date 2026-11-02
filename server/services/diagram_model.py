@@ -419,6 +419,64 @@ def _wrap(text: str, width: float, size: float) -> list[str]:
     return lines
 
 
+Box = tuple[float, float, float, float]
+Point = tuple[float, float]
+
+
+def waypoints(cell: ET.Element) -> list[Point]:
+    """The bends a person or an agent gave a link: ``<mxGeometry><Array as="points"><mxPoint x y/>``."""
+    g = next((c for c in cell if _local(c.tag) == "mxGeometry"), None)
+    arr = (
+        next(
+            (c for c in g if _local(c.tag) == "Array" and c.get("as") == "points"),
+            None,
+        )
+        if g is not None
+        else None
+    )
+    out: list[Point] = []
+    for p in arr if arr is not None else []:
+        try:
+            out.append((float(p.get("x") or 0), float(p.get("y") or 0)))
+        except ValueError:
+            continue
+    return out
+
+
+def route(a: Box, b: Box, bends: list[Point], orthogonal: bool, clip) -> list[Point]:
+    """The points a link is drawn through: its own bends, else for an orthogonal link an elbow between the facing
+    sides (as the editor draws it), else a straight line between the edges of the two shapes."""
+    ca = (a[0] + a[2] / 2, a[1] + a[3] / 2)
+    cb = (b[0] + b[2] / 2, b[1] + b[3] / 2)
+    if bends:
+        path = [clip(a, bends[0]), *bends, clip(b, bends[-1])]
+        if not orthogonal:
+            return path
+        out = [path[0]]
+        for p in path[1:]:
+            q = out[-1]
+            if abs(p[0] - q[0]) > 0.5 and abs(p[1] - q[1]) > 0.5:
+                out.append((p[0], q[1]))
+            out.append(p)
+        return out
+    if not orthogonal:
+        return [clip(a, cb), clip(b, ca)]
+    dx, dy = cb[0] - ca[0], cb[1] - ca[1]
+    if abs(dy) >= abs(dx):
+        s = (ca[0], a[1] + a[3] if dy > 0 else a[1])
+        e = (cb[0], b[1] if dy > 0 else b[1] + b[3])
+        if abs(s[0] - e[0]) < 0.5:
+            return [s, e]
+        mid = (s[1] + e[1]) / 2
+        return [s, (s[0], mid), (e[0], mid), e]
+    s = (a[0] + a[2] if dx > 0 else a[0], ca[1])
+    e = (b[0] if dx > 0 else b[0] + b[2], cb[1])
+    if abs(s[1] - e[1]) < 0.5:
+        return [s, e]
+    mid = (s[0] + e[0]) / 2
+    return [s, (mid, s[1]), (mid, e[1]), e]
+
+
 def render_svg(source: str) -> str:
     """A basic SVG of the first page: shapes, connectors with arrows, and labels."""
     d = Drawing(source)
@@ -454,6 +512,17 @@ def render_svg(source: str) -> str:
         ys = [b[1] for b in boxes.values()]
         xe = [b[0] + b[2] for b in boxes.values()]
         ye = [b[1] + b[3] for b in boxes.values()]
+    # a link's own bends (waypoints) count too, so a loop drawn around the outside is not cut off
+    bends = {
+        e.get("id") or "": waypoints(d._cell(e))
+        for e in d.elements()
+        if d._cell(e).get("edge") == "1"
+    }
+    for pts in bends.values():
+        xs += [p[0] for p in pts]
+        ys += [p[1] for p in pts]
+        xe += [p[0] for p in pts]
+        ye += [p[1] for p in pts]
     pad = 20.0
     ox, oy = min(xs) - pad, min(ys) - pad
     width, height = max(xe) - min(xs) + 2 * pad, max(ye) - min(ys) + 2 * pad
@@ -478,15 +547,28 @@ def render_svg(source: str) -> str:
         a, b = boxes.get(c.get("source") or ""), boxes.get(c.get("target") or "")
         if not a or not b:
             continue
-        ca, cb = (a[0] + a[2] / 2, a[1] + a[3] / 2), (b[0] + b[2] / 2, b[1] + b[3] / 2)
-        p, q = edge_point(a, cb), edge_point(b, ca)
-        color = style_get(c.get("style") or "", "strokeColor") or "#333333"
+        style = c.get("style") or ""
+        path = route(
+            a,
+            b,
+            bends.get(e.get("id") or "", []),
+            style_get(style, "edgeStyle") == "orthogonalEdgeStyle",
+            edge_point,
+        )
+        color = style_get(style, "strokeColor") or "#333333"
+        pts = " ".join(f"{x - ox:.1f},{y - oy:.1f}" for x, y in path)
         edge_parts.append(
-            f'<line x1="{p[0] - ox:.1f}" y1="{p[1] - oy:.1f}" x2="{q[0] - ox:.1f}" y2="{q[1] - oy:.1f}" '
-            f'stroke="{_esc(color)}" stroke-width="1.5" marker-end="url(#arrow)"/>'
+            f'<polyline points="{pts}" fill="none" stroke="{_esc(color)}" stroke-width="1.5" '
+            'marker-end="url(#arrow)"/>'
         )
         label = d.label_of(e)
         if label:
+            # on the middle of the longest segment, where draw.io puts it too
+            seg = max(
+                zip(path, path[1:]),
+                key=lambda s: abs(s[1][0] - s[0][0]) + abs(s[1][1] - s[0][1]),
+            )
+            p, q = seg
             mx, my = (p[0] + q[0]) / 2 - ox, (p[1] + q[1]) / 2 - oy
             edge_parts.append(
                 f'<text x="{mx:.1f}" y="{my - 4:.1f}" text-anchor="middle" font-size="11" fill="#333333" '

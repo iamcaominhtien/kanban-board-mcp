@@ -145,7 +145,8 @@ person and the next AI find them, and links stay readable.
 
 (`STEP`, `DECISION`, `ARROW` stand for the style strings of section 3.) In a `value`, a line break is `&lt;br&gt;`
 and `&`, `<`, `"` are escaped as in any XML attribute. Every link has a `source` and a `target` that are ids of shapes
-on the same page.
+on the same page. A loop back goes around the outside through bends you give it, on the grid, in page coordinates:
+`<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="540" y="180"/></Array></mxGeometry>`.
 
 ## 7. Changing an existing diagram
 

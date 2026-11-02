@@ -318,8 +318,11 @@ async def svg_png(svg: str, width: int | None = None) -> bytes | None:
         w, h = _svg_size(svg)
         if width:
             h, w = int(h * width / max(w, 1)), width
+        # the viewport line matters: a drawing under 500 px is drawn as a phone would, and without it a phone lays the
+        # page out 980 px wide, so a live run saw only the top left corner of its diagram, twice as large (#267)
         page = (
-            "<!doctype html><meta charset='utf-8'><style>html,body{margin:0;background:#fff}"
+            "<!doctype html><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>"
+            "<style>html,body{margin:0;background:#fff}"
             "img{display:block;width:100%;height:auto}</style>"
             "<img src='drawing.svg' alt=''>"
         )
