@@ -6,6 +6,7 @@ import { useToast } from '../Toast';
 import { RememberedApprovals } from './AiInbox';
 import { Pill, TrustChip } from './aiSafetyUi';
 import { useAiBoardState } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Prompt-injection flag under a comment (F4): the chip, the “Why” popover. */
 export function CommentAiFlag({ ticketId, commentId }: { ticketId: string; commentId: string }) {
@@ -22,7 +23,7 @@ export function CommentAiFlag({ ticketId, commentId }: { ticketId: string; comme
     >
       {looksLike && (
         <Pill bg="#FDF5E6" color="#8A5A12">
-          ⚠ Looks like instructions: treated as plain text
+          <LineIcon name="warning" size={13} /> Looks like instructions: treated as plain text
         </Pill>
       )}
       {!looksLike && flag.trust === 'untrusted' && (

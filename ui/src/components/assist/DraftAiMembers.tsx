@@ -5,6 +5,7 @@ import type { AssistDraft, ProposedMember } from '../../types/assist';
 import { hhmm } from '../ai/aiUi';
 import { DraftTag } from './assistUi';
 import { ascending } from '../../utils/sorted';
+import { LineIcon } from '../ui/LineIcon';
 
 const TEMPLATES: { id: ProposedMember['template']; label: string; hint: string }[] = [
   { id: 'developer', label: 'Developer', hint: 'Works on tickets and may change code' },
@@ -61,7 +62,9 @@ export function DraftAiMembers({ draftId, initial }: { draftId: string; initial?
     return (
       <div className="as-tile" data-testid="draft-result" style={{ gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#2E6F40', fontWeight: 700 }}>✓</span>
+          <span style={{ color: '#2E6F40', fontWeight: 700 }}>
+            <LineIcon name="check" size={14} />
+          </span>
           <span style={{ flex: 1, fontSize: 13 }}>
             {d.status === 'undone' ? (
               <>Undone · the members this draft created were removed.</>

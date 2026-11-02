@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/react';
 import { useEditorState } from '@tiptap/react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Icon } from '../Icon';
+import { LineIcon } from '../../ui/LineIcon';
 
 interface Props {
   editor: Editor | null;
@@ -214,7 +215,7 @@ export function EditorToolbar({
             cursor: 'pointer',
           }}
         >
-          ✦ Ask AI
+          <LineIcon name="sparkle" size={12} /> Ask AI
         </button>
       )}
       <Btn label="Undo" off={!s.canUndo} onClick={() => c().undo().run()}>

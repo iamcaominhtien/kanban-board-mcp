@@ -14,6 +14,7 @@ import {
 } from './configApi';
 import { useCfg } from './configCtx';
 import { CfgCard, Chip, CopyButton, DiffView, Dialog } from './parts';
+import { LineIcon } from '../../ui/LineIcon';
 
 function when(iso: string | null): string {
   if (!iso) return 'earlier';
@@ -302,7 +303,13 @@ export function SyncPreview() {
               <span className="ai-mono ai-muted">
                 +{f.added} −{f.removed}
               </span>
-              <span aria-hidden="true">{open === f.path ? '▾' : '▸'}</span>
+              <span aria-hidden="true">
+                {open === f.path ? (
+                  <LineIcon name="chevronDown" size={13} />
+                ) : (
+                  <LineIcon name="chevronRight" size={13} />
+                )}
+              </span>
             </button>
             {f.error && <div className="ai-error-text">{f.error}</div>}
             {open === f.path && !f.error && (

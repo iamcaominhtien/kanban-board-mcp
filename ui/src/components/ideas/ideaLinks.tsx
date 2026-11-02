@@ -3,6 +3,7 @@ import { useIdeaForTicket } from '../../api/ideas';
 import { plural } from '../docs/docsShared';
 import { BulbIcon } from './ideaShared';
 import './ideas.css';
+import { LineIcon } from '../ui/LineIcon';
 
 interface IdeaLinks {
   /** Open the idea's page in the Idea Space, optionally on a tab (page, assumptions, evidence, comments, log, workspace, activity). */
@@ -138,7 +139,9 @@ export function StartedAsIdea({
           <div className="is-label">To check before closing</div>
           {idea.open.map((a) => (
             <div key={a.id} className="is-check-item">
-              <span aria-hidden="true">☐</span>
+              <span aria-hidden="true">
+                <LineIcon name="square" size={13} />
+              </span>
               <span>
                 {a.text}
                 {a.testTicketId ? (

@@ -5,6 +5,7 @@ import { StoryCard } from './story/StoryCard';
 import styles from './Board.module.css';
 import { useAiBoardState } from './ai/aiUi';
 import loading from './AppLoading.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 interface ColumnProps {
   column: ColumnType;
@@ -158,7 +159,7 @@ export function Column({
         {skeletonCards === undefined && ordered.length === 0 && !isOver && (
           <div className={styles.emptyState}>
             <span className={styles.emptyIcon} aria-hidden="true">
-              ◻
+              <LineIcon name="square" size={20} />
             </span>
             <span className={styles.emptyText}>No tickets</span>
           </div>

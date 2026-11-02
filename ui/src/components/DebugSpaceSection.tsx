@@ -8,6 +8,7 @@ import { useAiBoardState } from './ai/aiUi';
 import { textareaAdapter } from './ai/editor/adapters';
 import { EditorAiSelectionBar, useEditorAi } from './ai/editor/useEditorAi';
 import styles from './DebugSpaceSection.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 export interface DebugTestCaseOption {
   code: string;
@@ -374,7 +375,7 @@ function EntryForm({
                   )
                 }
               >
-                ×
+                <LineIcon name="close" size={12} />
               </button>
             </span>
           ))}

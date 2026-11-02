@@ -43,6 +43,7 @@ import {
   type Person,
   type QueuedComment,
 } from './comments/commentUtils';
+import { LineIcon } from './ui/LineIcon';
 
 interface CommentsSectionProps {
   ticketId: string;
@@ -83,7 +84,8 @@ const THREAD_COLLAPSE_OVER = 6;
 const TAIL = 4;
 
 const STYLE = `
-.cm-row:hover .cm-bar, .cm-row:focus-within .cm-bar { opacity: 1; }
+.cm-bar { opacity: 0; transition: opacity .12s; }
+.cm-row:hover .cm-bar, .cm-row:focus-within .cm-bar, .cm-bar.cm-bar-on { opacity: 1; }
 .cm-time { border-bottom: 1px dotted #9AA8A0; cursor: default; position: relative; }
 .cm-time .cm-tt { display: none; position: absolute; left: 0; bottom: calc(100% + 6px); background: #1E2A22; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 20; box-shadow: 0 4px 14px rgba(30,42,34,.28); }
 .cm-time:hover .cm-tt { display: block; }
@@ -693,13 +695,11 @@ export function CommentsSection({
           )}
         </div>
         <div
-          className="cm-bar"
+          className={`cm-bar${confirmId === c.id ? ' cm-bar-on' : ''}`}
           style={{
             position: 'absolute',
             right: 8,
             top: -14,
-            opacity: confirmId === c.id ? 1 : 0,
-            transition: 'opacity .12s',
             display: 'flex',
             gap: 2,
             background: '#FFFFFF',
@@ -748,7 +748,7 @@ export function CommentsSection({
                 requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
               }}
             >
-              ↩ Reply
+              <LineIcon name="reply" size={12} /> Reply
             </button>
           )}
           <button type="button" data-testid="comment-copy-link" style={barBtn()} onClick={() => copyLink(c)}>
@@ -947,7 +947,9 @@ export function CommentsSection({
           }}
           title={`Currently ${sortOrder === 'newest' ? 'newest first' : 'oldest first'}. Click to toggle.`}
         >
-          <span style={{ fontSize: 13, lineHeight: 1 }}>⇅</span>
+          <span style={{ fontSize: 13, lineHeight: 1 }}>
+            <LineIcon name="sort" size={13} />
+          </span>
           <span>{sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}</span>
         </button>
       </div>

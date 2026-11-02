@@ -4,6 +4,7 @@ import { extractError } from '../../../api/extractError';
 import type { Tier, TierRow } from '../../../types/aiBoard';
 import { LoadError, Toggle } from '../aiUi';
 import { LOCKED_REASON, OP_WORDS, TIER_STYLE, TIER_WORDS } from './tierWords';
+import { LineIcon } from '../../ui/LineIcon';
 
 const ORDER: Tier[] = ['free', 'undo', 'ask'];
 
@@ -105,7 +106,7 @@ export function BoardAiSection({ projectId }: { projectId: string }) {
               </div>
               {locked ? (
                 <span className="ai-chip" style={{ background: '#FFFBEF', color: '#7A5A06' }}>
-                  🔒 Asks first
+                  <LineIcon name="lock" size={12} /> Asks first
                 </span>
               ) : lowerable(r) || lowered ? (
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>

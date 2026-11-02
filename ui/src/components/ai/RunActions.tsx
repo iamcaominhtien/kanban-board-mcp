@@ -9,6 +9,7 @@ import { currentPerson } from '../assist/assistUi';
 import { FloatMenu } from './ComposerAi';
 import { STATUS_NAMES, hhmm, useAiBoardState } from './aiUi';
 import './ticketWork.css';
+import { LineIcon } from '../ui/LineIcon';
 
 /** A small popover anchored under its button; closes on an outside click or Escape. */
 function usePopover() {
@@ -72,7 +73,7 @@ export function TakeOverButton({
         data-testid="take-over"
         onClick={() => setOpen(!open)}
       >
-        ✋ {label}
+        <LineIcon name="hand" size={13} /> {label}
       </button>
       {open && (
         <FloatMenu anchor={btn.current} onClose={() => setOpen(false)} width={300}>
@@ -93,7 +94,11 @@ export function TakeOverButton({
                   <MemberAvatar member={p} size={22} />
                   {p.name}
                   {p.name === me && <span className="ai-muted"> you</span>}
-                  {chosen === p.id && <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>✓</span>}
+                  {chosen === p.id && (
+                    <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>
+                      <LineIcon name="check" size={13} />
+                    </span>
+                  )}
                 </button>
               ))}
               {people.length === 0 && <span className="ai-muted">No people in this project.</span>}
@@ -152,7 +157,7 @@ export function RaiseLimitButton({ run }: { run: AiRun }) {
         data-testid="raise-limit"
         onClick={() => setOpen(!open)}
       >
-        ⏱ Raise limit
+        <LineIcon name="clock" size={13} /> Raise limit
       </button>
       {open && (
         <FloatMenu anchor={btn.current} onClose={() => setOpen(false)} width={260}>
@@ -259,7 +264,7 @@ export function UndoRunDialog({ run, onClose }: { run: AiRun; onClose: () => voi
             </div>
           </div>
           <button type="button" className="ai-icobtn" aria-label="Close" onClick={onClose}>
-            ✕
+            <LineIcon name="close" size={14} />
           </button>
         </div>
         <div className="ai-modal-body" style={{ gap: 0 }}>
@@ -359,7 +364,7 @@ export function UndoRunDialog({ run, onClose }: { run: AiRun; onClose: () => voi
               }
             }}
           >
-            ↶ Undo {doneCount} of {total}
+            <LineIcon name="undo" size={13} /> Undo {doneCount} of {total}
           </button>
         </div>
       </div>

@@ -1,12 +1,20 @@
 import { useState } from 'react';
 import type { TicketBranch, BranchStatus } from '../types';
-import { useTicketBranches, useUpdateBranch, useDeleteBranch, useCheckoutBranch, useTicket } from '../api/tickets';
+import {
+  useTicketBranches,
+  useUpdateBranch,
+  useDeleteBranch,
+  useCheckoutBranch,
+  useTicket,
+  useDefaultBase,
+} from '../api/tickets';
 import { useProject } from '../api/projects';
 import { useToast } from './Toast';
 import { extractError } from '../api/extractError';
 import { CreateBranchModal } from './CreateBranchModal';
 import { BranchGraph } from './BranchGraph';
 import styles from './BranchesSection.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 interface BranchesSectionProps {
   ticketId: string;
@@ -61,6 +69,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: branches = [], isLoading } = useTicketBranches(ticketId);
+  const baseName = useDefaultBase(ticketId).data ?? 'main';
   const { data: ticket } = useTicket(ticketId);
   const { data: project } = useProject(ticket?.projectId ?? '');
   const updateBranchMutation = useUpdateBranch();
@@ -176,7 +185,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
       : [
           {
             id: 'baseline-main',
-            name: 'main',
+            name: baseName,
             status: 'baseline',
             branchFrom: '',
             createdAt: new Date().toISOString(),
@@ -261,14 +270,16 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                       'baseline'
                     ) : (
                       <>
-                        from <span className={styles.metaMono}>{br.branchFrom || 'main'}</span>
+                        from <span className={styles.metaMono}>{br.branchFrom || baseName}</span>
                         {br.aheadCount !== undefined && ` · ${br.aheadCount} ahead, ${br.behindCount ?? 0} behind`}
                       </>
                     )}
                   </div>
                   {br.worktreePath && (
                     <div className={styles.worktreeInfo} title={`Worktree: ${br.worktreePath}`}>
-                      <span className={styles.worktreeBadge}>🌳 worktree</span>
+                      <span className={styles.worktreeBadge}>
+                        <LineIcon name="branch" size={12} /> worktree
+                      </span>
                       <span className={styles.worktreePathMono}>{br.worktreePath}</span>
                     </div>
                   )}
@@ -562,7 +573,6 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
         onClose={() => setIsCreateModalOpen(false)}
         ticketId={ticketId}
         branches={allBranches}
-        initialBranchFrom="main"
         defaultWorktreeTemplate={project?.worktreeTemplate}
         defaultWorktreeEnabled={project?.worktreeByDefault}
         projectPrefix={project?.prefix}

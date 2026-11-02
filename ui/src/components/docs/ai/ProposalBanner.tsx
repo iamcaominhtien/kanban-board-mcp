@@ -6,6 +6,7 @@ import { aiGate } from '../../../utils/docsAiRules';
 import { bannerMeta, memberLabel, REVIEW_PROPOSAL_EVENT, takePendingReview } from '../../../utils/docsProposalRules';
 import { Icon } from '../Icon';
 import { ProposalReview } from './ProposalReview';
+import { LineIcon } from '../../ui/LineIcon';
 
 /**
  * "Docs Writer (Gemini) proposed 3 changes to this page, for KAN-31 · asked by Hoa Mai · expires in 6 days" with
@@ -68,7 +69,7 @@ export function ProposalBanner({ projectId, page, canEdit }: { projectId: string
               flex: 'none',
             }}
           >
-            ✦
+            <LineIcon name="sparkle" size={14} />
           </span>
           <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, lineHeight: 1.45, color: '#2A2340' }}>
             <div>

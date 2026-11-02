@@ -25,6 +25,41 @@ Each AI role works like a good professional in that role, and the roles work tog
 ### Fixed
 - **A real red-then-green run was marked unproven** when the red run's output was piped or redirected (`pytest -q t.py 2>&1 | tail -16`) and the green one was not: the board now compares the test commands without the pipe and the redirections.
 
+## [3.26.4] - 2026-11-02
+
+Wave 2 of the design audit's fixes: the same problem fixed everywhere at once (`docs/ui-audit/2026-11-design-audit/SUMMARY.md`, "What goes wrong most often").
+
+### Fixed
+- **Dropdowns look like the design's.** Every dropdown in the app (about 130, from the AI screens to Settings and Idea Space) is drawn with the design's box, corners, text size, chevron and green focus halo instead of the operating system's grey control. They stay real dropdowns: the keyboard, type-ahead and screen readers work as before. Date and time fields get the same box.
+- **Line icons instead of characters and emoji.** About 280 glyphs used as icons (✦ ✕ ✓ 🔒 ⚠ ▾ ↻ ✎ 📄 💬 ⚙ ➤ 🛡 …) are the design's line icons, in the Ask AI dock, the AI screens, AI Team, Schedules, the ticket, Docs and Idea Space. Icon-only buttons keep or gain a spoken name. Keyboard hints (⌘ ⇧ ↵), arrows written as words and × as "times" stay as they are.
+- **One focus ring.** Text fields no longer get a second ring inside their own focus border; buttons, links, checkboxes and radios keep the keyboard ring (comp-1).
+- **Ticket cards fit their content** instead of a 140 px minimum that left an empty band under a one-line title (comp-1 TC-1).
+- **Hint lines in the AI screens** (role packs, Set up the AI team) are small grey text instead of body text with a bold word broken onto its own line (ai-3 TP-1).
+
+## [3.26.3] - 2026-11-02
+
+A full design audit, and the first wave of fixes: what was broken or behaved wrongly (`docs/ui-audit/2026-11-design-audit`, 375 findings across 81 artboards; finding ids in brackets).
+
+### Added
+- **The design audit.** One report per area (AI, components, board, Idea Space, Docs, app), each finding with the design and the app side by side, the code that draws it and a fix, and a summary with the plan (`docs/ui-audit/2026-11-design-audit/SUMMARY.md`).
+
+### Fixed
+- **The Ask AI dock covered the board.** The page now leaves the dock's width free: the board, its header and New Ticket shrink beside it (AB-1). The board header wraps instead of pushing New Ticket and the view tabs out of the window, and the project name stays on one line (AB-2).
+- **Popovers inside a ticket opened in the wrong place.** The ticket panel kept a transform after its opening animation, so the `@` and `[[` suggesters (and other menus) opened off by the panel's offset, often off-screen (CM-3).
+- **The comment action bar (Edit, Delete, Copy link) never showed** on hover (CM-2).
+- **Esc in a ticket.** Esc saved the tag being typed, did not cancel a new criterion and did not close the ticket: three closed dialogs kept listening for Esc. Esc now cancels the field and keeps the ticket open; a comma adds a tag (TG-3, AC-1).
+- **New branch from `main` in a repository whose default is `master`** failed with "Branch 'main' does not exist"; a new branch starts from the repository's default branch (BR-2).
+- **Centred and right-aligned text showed `::: center`** once saved; it now renders aligned (DM-1).
+- **"Read the repository" in Set up the AI team called an AI** although it says no quota is spent; it reads files only (RC-7). A command run where there is no `package.json` is "command is wrong", not "the repo's own lint fails" (RC-2).
+- **Switching projects showed the previous project's cards** under the new name; it shows the loading skeleton (LD-1).
+- **Timeline:** resizing a bar opened the ticket (TV-2); the event list showed raw values such as `todo → done` and `None → None` (TV-4).
+- **Charts:** the usage axis read "1, 1, 0" and the RAM axis skipped 0.2 GB (SC-7, RS-2).
+- **AI Team:** Flow › Timeline showed two Copy link buttons and two range pickers (TL-1, AT-2); Health said "Only 0 runs" instead of "No AI work between …" with Widen to 30 days (RV-1).
+- **Docs:** Ctrl+K in the editor opened the search over the link field (ED-3); at 1100 px the breadcrumb vanished and the page menu was cut off (DP-2).
+
+### Security
+- **An uploaded HTML file ran with the app's origin** in its preview and could read the app's storage or call its API as the viewer. It now runs in a sandboxed frame of its own origin; its scripts, forms and pop-ups still work (PT-1).
+
 ## [3.26.2] - 2026-11-02
 
 ### Fixed

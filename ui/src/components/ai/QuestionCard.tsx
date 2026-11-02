@@ -9,6 +9,7 @@ import { currentPerson } from '../assist/assistUi';
 import { FloatMenu } from './ComposerAi';
 import { AiAvatar, RunStateChip, fmtElapsed, hhmm, secondsSince, useAiBoardState, useNow } from './aiUi';
 import './ticketWork.css';
+import { LineIcon } from '../ui/LineIcon';
 
 const laterKey = (runId: string) => `kanban.ai.answerLater.${runId}`;
 
@@ -145,7 +146,7 @@ export function QuestionCard({ run }: { run: AiRun }) {
           }}
           data-testid="ai-answer-send"
         >
-          ▷ Answer and resume
+          <LineIcon name="play" size={12} /> Answer and resume
         </button>
         <button type="button" className="ai-btn" onClick={() => setLater(true)} data-testid="ai-answer-later">
           Answer later
@@ -189,7 +190,7 @@ function AskSomeoneElse({ run }: { run: AiRun }) {
         onClick={() => setOpen(!open)}
         data-testid="ai-ask-someone-else"
       >
-        ⌄ Ask someone else
+        <LineIcon name="chevronDown" size={13} /> Ask someone else
       </button>
       {open && (
         <FloatMenu anchor={btn.current} onClose={() => setOpen(false)} width={260}>

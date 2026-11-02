@@ -12,6 +12,7 @@ import type { AssumptionImpact, AssumptionState, Idea, IdeaAssumption } from '..
 import { useToast } from '../Toast';
 import { AiChip } from './ideaShared';
 import { EvidenceForm } from './IdeaEvidenceTab';
+import { LineIcon } from '../ui/LineIcon';
 
 const IMPACTS: AssumptionImpact[] = ['low', 'medium', 'high'];
 const STATES: AssumptionState[] = ['untested', 'testing', 'validated', 'disproved'];
@@ -202,7 +203,7 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId }: Props
                               del.mutate({ id: idea.id, assumptionId: a.id }, { onError: fail('Could not delete') })
                             }
                           >
-                            ×
+                            <LineIcon name="close" size={12} />
                           </button>
                         </>
                       )}

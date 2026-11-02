@@ -42,7 +42,9 @@
 }
 
 .panelVisible {
-  transform: translateY(0);
+  /* none, not translateY(0): any transform makes the panel the box that position: fixed popovers inside it
+     (mention and page suggesters, menus) are placed against, so they open off by the panel's offset */
+  transform: none;
 }
 
 .panelDetail {
@@ -80,7 +82,7 @@
   border-radius: 0 !important;
   border: none !important;
   box-shadow: none !important;
-  transform: translateY(0) !important;
+  transform: none !important;
 }
 
 .panelNew {
@@ -350,7 +352,7 @@
 
 .tabFadeSlide {
   animation: tabFadeSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  will-change: opacity;
 }
 
 @keyframes tabFadeSlideIn {
@@ -360,7 +362,7 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 

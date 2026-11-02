@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { assistApi, assistError, useAssistState, useChat } from '../../api/assist';
 import { extractError } from '../../api/extractError';
+import { LineIcon } from '../ui/LineIcon';
 
 /** One member as the Board AI proposes it for the dialog's form (already checked by the server). */
 export interface AiFilled {
@@ -86,7 +87,7 @@ export function AiFillPanel({ projectId, form, onFill }: Props) {
           aria-expanded={open}
           data-testid="ai-fill-toggle"
         >
-          ✦ Ask AI to fill this in
+          <LineIcon name="sparkle" size={13} /> Ask AI to fill this in
         </button>
         <span className="ai-hint">
           {ready

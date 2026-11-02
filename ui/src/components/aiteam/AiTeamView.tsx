@@ -220,7 +220,8 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
         <span style={{ flex: 1 }} />
         <select
           className="at-range"
-          hidden={tab === 'resources' || tab === 'history'}
+          // Flow › Timeline has its own range in its toolbar: a second one here disagreed with it
+          hidden={tab === 'resources' || tab === 'history' || (tab === 'flow' && flowView === 'timeline')}
           value={life ? 'life' : range}
           onChange={(e) => {
             if (e.target.value === 'life') {
@@ -265,6 +266,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
         <HealthTab
           projectId={projectId}
           range={range}
+          onWiden={() => setRange('30d')}
           actions={{
             onOpenTicket,
             onOpenMember,

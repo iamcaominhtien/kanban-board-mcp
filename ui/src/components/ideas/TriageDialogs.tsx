@@ -6,6 +6,7 @@ import type { ArchiveReason, Idea } from '../../types/idea';
 import { ARCHIVE_REASON_LABELS, STAGE_LABELS } from '../../types/idea';
 import { FooterNote, ModalShell, Spacer } from '../docs/docsShared';
 import { StagePill, dateIn } from './ideaShared';
+import { LineIcon } from '../ui/LineIcon';
 
 type Subject = Pick<Idea, 'id' | 'title' | 'projectId' | 'tags' | 'body' | 'description' | 'stage'>;
 
@@ -65,7 +66,7 @@ export function TagInput({
               className="is-x"
               onClick={() => onChange(tags.filter((x) => x !== t))}
             >
-              ×
+              <LineIcon name="close" size={12} />
             </button>
           </span>
         ))}

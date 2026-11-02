@@ -85,6 +85,9 @@ export function useDocsSearchHotkey(onOpen: () => void) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+        // inside the editor (or a field that already used the key) Ctrl+K inserts a link, not the search
+        if (e.defaultPrevented || (e.target as HTMLElement | null)?.closest?.('.ProseMirror, [contenteditable="true"]'))
+          return;
         e.preventDefault();
         ref.current();
       }

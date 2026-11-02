@@ -12,6 +12,7 @@ import { AccountPicker } from './accounts/AccountPicker';
 import { AccountNote } from './accounts/AccountBanner';
 import { GreyChip, NotReadyChip } from './accounts/AccountChip';
 import { accountReady, accountsFor, runsNotReady, typeChip, usesAccounts } from '../../utils/memberAccount';
+import { LineIcon } from '../ui/LineIcon';
 
 interface MemberPreset {
   id: string;
@@ -408,7 +409,7 @@ export function AddAiMemberModal({
                   <span
                     className={`ai-step ${step === i + 1 ? 'ai-step-active' : ''} ${step > i + 1 ? 'ai-step-done' : ''}`}
                   >
-                    <span className="ai-step-n">{step > i + 1 ? '✓' : i + 1}</span>
+                    <span className="ai-step-n">{step > i + 1 ? <LineIcon name="check" size={12} /> : i + 1}</span>
                     {step === i + 1 && t}
                   </span>
                   {i < titles.length - 1 && <span className="ai-step-line" />}
@@ -643,7 +644,7 @@ export function AddAiMemberModal({
                         onClick={() => openLink(detect.guideUrl!)}
                         data-testid="install-guide"
                       >
-                        Installation guide ↗
+                        Installation guide <LineIcon name="external" size={12} />
                       </button>
                     )}
                   </div>

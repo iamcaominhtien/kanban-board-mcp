@@ -9,6 +9,7 @@ import { AiAvatar, RunStateChip, fmtElapsed, money, secondsSince, useAiBoardStat
 import { useAiTicket } from './AiTicketContext';
 import './ticketWork.css';
 import { ContextMeter } from '../assist/ContextMeter';
+import { LineIcon } from '../ui/LineIcon';
 
 const IC = {
   fill: 'none',
@@ -185,7 +186,11 @@ export function AskPlaceholder({ run }: { run: AiRun }) {
   } else if (run.state === 'finished' && run.mode === 'work') {
     state = 'review';
     label = 'REVIEW';
-    lead = <span style={{ color: '#2E6F40', fontWeight: 700 }}>✓</span>;
+    lead = (
+      <span style={{ color: '#2E6F40', fontWeight: 700 }}>
+        <LineIcon name="check" size={13} />
+      </span>
+    );
     body = <>{name} finished. The ticket is ready for your review.</>;
     action = (
       <button type="button" className="ai-btn ai-btn-sm" onClick={() => openRun(run.id)} data-testid="ask-review">
@@ -230,7 +235,8 @@ export function AskPlaceholder({ run }: { run: AiRun }) {
                   className="ai-chip"
                   style={{ background: '#F6FAF7', border: '1px solid #E3E8E5', color: '#5B6B60' }}
                 >
-                  ⚡ <span className="ai-mono">{Math.max(1, Math.round(all.length / 4))} tokens</span>
+                  <LineIcon name="bolt" size={12} />{' '}
+                  <span className="ai-mono">{Math.max(1, Math.round(all.length / 4))} tokens</span>
                 </span>
                 <span className="ai-muted">Streaming…</span>
               </div>
@@ -326,14 +332,14 @@ export function AnswerFooter({
                 }
               }}
             >
-              ↻ Regenerate
+              <LineIcon name="refresh" size={13} /> Regenerate
             </button>
             <button type="button" className="tw-act" data-testid="answer-edit" onClick={() => setEdit(!edit)}>
-              ✎ Edit and re-run
+              <LineIcon name="edit" size={13} /> Edit and re-run
             </button>
             {onReply && (
               <button type="button" className="tw-act" data-testid="answer-reply" onClick={onReply}>
-                ↩ Reply
+                <LineIcon name="reply" size={13} /> Reply
               </button>
             )}
           </span>
@@ -506,7 +512,13 @@ export function AskErrorCard({ comment, run, onDismiss }: { comment: Comment; ru
             }
           }}
         >
-          {run && didNotStart(run) ? 'Try again' : '↻ Retry'}
+          {run && didNotStart(run) ? (
+            'Try again'
+          ) : (
+            <>
+              <LineIcon name="refresh" size={13} /> Retry
+            </>
+          )}
         </button>
         <button type="button" className="ai-link" onClick={() => openRun(meta.runId)}>
           Open run log
@@ -534,8 +546,14 @@ export function AnswerTransitions({ run }: { run?: AiRun }) {
         </span>
         <RunStateChip state={run.state === 'needs_input' ? 'starting' : run.state} />
       </div>
-      <div className="tw-tick">✓ Pending cleared by the answer</div>
-      {live && <div className="tw-tick">✓ Hold kept by {run.memberName}</div>}
+      <div className="tw-tick">
+        <LineIcon name="check" size={12} /> Pending cleared by the answer
+      </div>
+      {live && (
+        <div className="tw-tick">
+          <LineIcon name="check" size={12} /> Hold kept by {run.memberName}
+        </div>
+      )}
     </div>
   );
 }

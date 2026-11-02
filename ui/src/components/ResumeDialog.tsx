@@ -38,7 +38,7 @@ export const ResumeDialog: React.FC<ResumeDialogProps> = ({
   onConfirm,
   onRetry,
 }) => {
-  useEscape(isSubmitting ? () => {} : onClose);
+  useEscape(isSubmitting ? () => {} : onClose, isOpen);
 
   const [reason, setReason] = useState('');
   const [addComment, setAddComment] = useState(true);

@@ -31,6 +31,7 @@ import {
   fmtSlot,
   zoneLabel,
 } from './schedulesUi';
+import { LineIcon } from '../ui/LineIcon';
 
 type View = 'list' | 'week';
 type Tab = 'upcoming' | 'paused' | 'history';
@@ -89,7 +90,7 @@ function ListRow({ s, criteria, risk, onOpen }: { s: Schedule; criteria?: number
           <span className="sc-ttitle sc-strong">{s.ticketTitle}</span>
         </div>
         <div className="ai-muted sc-when">
-          {s.kind === 'repeat' ? '↻' : '▫'} {s.when}
+          <LineIcon name={s.kind === 'repeat' ? 'refresh' : 'square'} size={12} /> {s.when}
         </div>
       </div>
       <div className="sc-inline" style={{ gap: 8, minWidth: 0 }}>

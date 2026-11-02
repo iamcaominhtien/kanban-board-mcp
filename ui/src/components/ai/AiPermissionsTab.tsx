@@ -8,6 +8,7 @@ import { useToast } from '../Toast';
 import { LoadError, Toggle, STATUS_NAMES, useAiBoardState } from './aiUi';
 import { MODE_LABEL, Pill, SafetyCard, dateTime } from './aiSafetyUi';
 import { ProjectsPicker } from './ProjectsPicker';
+import { LineIcon } from '../ui/LineIcon';
 
 const CEILING_STEPS = ['none', 'backlog', 'todo', 'in-progress', 'review', 'testing', 'done'];
 const RANK: Record<PermissionMode, number> = { allowed: 0, approval: 1, blocked: 2 };
@@ -91,7 +92,11 @@ export function PreviewDialog({ member, onClose }: { member: AiMember; onClose: 
                       bg={s.allowed ? '#F1F8F3' : '#F1F3F2'}
                       color={s.allowed ? '#2E6F40' : '#9AA8A0'}
                     >
-                      {s.allowed ? '' : '🔒 '}
+                      {s.allowed ? null : (
+                        <>
+                          <LineIcon name="lock" size={12} />{' '}
+                        </>
+                      )}
                       {s.label}
                     </Pill>
                   ))}
@@ -226,7 +231,7 @@ export function Permissions({ member }: { member: AiMember }) {
           sub="May move tickets up to. A person decides everything beyond it."
           right={
             <Pill bg="#FDF5E6" color="#8A5A12">
-              ⚠ Done needs an extra confirmation
+              <LineIcon name="warning" size={13} /> Done needs an extra confirmation
             </Pill>
           }
         >
@@ -238,8 +243,16 @@ export function Permissions({ member }: { member: AiMember }) {
                 className={member.ceiling === c ? 'ai-seg-on' : i < ceilingRank ? 'ai-seg-within' : ''}
                 onClick={() => (c === 'testing' || c === 'done' ? setAllowDone(c) : void update({ ceiling: c }))}
               >
-                {member.ceiling === c && '✓ '}
-                {(c === 'testing' || c === 'done') && member.ceiling !== c && '🔒 '}
+                {member.ceiling === c && (
+                  <>
+                    <LineIcon name="check" size={12} />{' '}
+                  </>
+                )}
+                {(c === 'testing' || c === 'done') && member.ceiling !== c && (
+                  <>
+                    <LineIcon name="lock" size={12} />{' '}
+                  </>
+                )}
                 {STATUS_NAMES[c]}
               </button>
             ))}
@@ -308,7 +321,11 @@ export function Permissions({ member }: { member: AiMember }) {
                         }
                         data-testid={`perm-${row.action}-${mode}`}
                       >
-                        {locked ? '🔒 ' : ''}
+                        {locked ? (
+                          <>
+                            <LineIcon name="lock" size={12} />{' '}
+                          </>
+                        ) : null}
                         {MODE_LABEL[mode]}
                       </button>
                     );
@@ -402,7 +419,7 @@ export function Permissions({ member }: { member: AiMember }) {
                   'Cancelling the process',
                 ].map((t) => (
                   <div key={t} style={{ color: '#2E6F40', padding: '3px 0' }}>
-                    ✓ <span style={{ color: '#1E2A22' }}>{t}</span>
+                    <LineIcon name="check" size={12} /> <span style={{ color: '#1E2A22' }}>{t}</span>
                   </div>
                 ))}
               </div>
@@ -415,7 +432,7 @@ export function Permissions({ member }: { member: AiMember }) {
                   'Other MCP servers in the CLI',
                 ].map((t) => (
                   <div key={t} style={{ color: '#C4432A', padding: '3px 0' }}>
-                    ✕ <span style={{ color: '#1E2A22' }}>{t}</span>
+                    <LineIcon name="close" size={12} /> <span style={{ color: '#1E2A22' }}>{t}</span>
                   </div>
                 ))}
               </div>
@@ -538,7 +555,7 @@ export function Permissions({ member }: { member: AiMember }) {
               </div>
               {verdict.checks.map((c, i) => (
                 <div key={i} className="ai-checkrow" style={{ color: c.ok ? '#2E6F40' : '#C4432A' }}>
-                  <span>{c.ok ? '✓' : '✕'}</span>
+                  <span>{c.ok ? <LineIcon name="check" size={12} /> : <LineIcon name="close" size={12} />}</span>
                   <span style={{ color: '#1E2A22' }}>
                     <b>{c.label}</b>
                     <span className="ai-muted"> · {c.note ?? MODE_LABEL[c.mode] ?? c.mode}</span>

@@ -200,7 +200,9 @@ export function Board({
               />
             </h1>
           ) : (
-            <h1 className={styles.title}>{projectName}</h1>
+            <h1 className={styles.title} title={projectName}>
+              {projectName}
+            </h1>
           )}
           <div className={styles.topBarRight}>
             {headerExtra}

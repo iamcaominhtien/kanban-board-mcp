@@ -19,6 +19,7 @@ import { EditorAiSelectionBar, useEditorAi } from '../ai/editor/useEditorAi';
 import { textareaAdapter } from '../ai/editor/adapters';
 import { mentionRefs, toFriendly, toStored } from '../../utils/mentionText';
 import { COUNTER_FROM, MAX_COMMENT_CHARS, draftKey, readJson, writeJson, type Person } from './commentUtils';
+import { LineIcon } from '../ui/LineIcon';
 
 interface Chip {
   id: string;
@@ -488,7 +489,7 @@ export function Composer({
 
         {replyTo && !editing && (
           <div className="tw-reply-strip" data-testid="comment-replying">
-            ↩ Replying to <b>{replyLabel ?? 'an AI'}</b> · it will answer again
+            <LineIcon name="reply" size={12} /> Replying to <b>{replyLabel ?? 'an AI'}</b> · it will answer again
           </div>
         )}
         {tab === 'preview' && (
@@ -664,8 +665,12 @@ export function Composer({
             }}
           >
             Context sent
-            <span className="tw-ctx">✓ {criteriaCount} criteria</span>
-            <span className="tw-ctx">▭ {commentCount} comments</span>
+            <span className="tw-ctx">
+              <LineIcon name="check" size={12} /> {criteriaCount} criteria
+            </span>
+            <span className="tw-ctx">
+              <LineIcon name="frame" size={12} /> {commentCount} comments
+            </span>
           </div>
         )}
         <div

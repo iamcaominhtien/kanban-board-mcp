@@ -104,9 +104,14 @@ export function plural(n: number, one: string, many?: string): string {
   return `${n} ${n === 1 ? one : (many ?? `${one}s`)}`;
 }
 
-/** Call `onEscape` on Escape and stop the event from propagating. */
-export function useEscape(onEscape: () => void) {
+/**
+ * Call `onEscape` on Escape and stop the event from propagating.
+ * @param onEscape - What Esc does.
+ * @param enabled - Listen only while true: a dialog that stays mounted while closed must not swallow every Esc.
+ */
+export function useEscape(onEscape: () => void, enabled = true) {
   useEffect(() => {
+    if (!enabled) return undefined;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       // the sketch and diagram editors sit over the dialog and take Esc themselves
@@ -117,7 +122,7 @@ export function useEscape(onEscape: () => void) {
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [onEscape]);
+  }, [onEscape, enabled]);
 }
 
 /** Round close button for dialogs and panels. */

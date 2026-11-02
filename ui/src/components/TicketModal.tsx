@@ -27,6 +27,7 @@ import {
   useUpdateTestCase,
   useDeleteTestCase,
   useTicketBranches,
+  useDefaultBase,
   useWorkspaceSettings,
   uploadUrl,
 } from '../api/tickets';
@@ -96,6 +97,7 @@ import { useOnline } from '../hooks/useOnline';
 import { SetPendingDialog } from './SetPendingDialog';
 import { ResumeDialog } from './ResumeDialog';
 import styles from './TicketModal.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
 
@@ -374,6 +376,8 @@ function TicketModalInner({
   const removeTicketLinkMutation = useRemoveTicketLink(ticket?.projectId ?? '');
 
   const { data: ticketBranches = [] } = useTicketBranches(ticket?.id ?? '');
+  // the repository's own default branch (main, else master…), shown as the baseline instead of a hard-coded main
+  const baseName = useDefaultBase(ticket?.id ?? '').data ?? 'main';
   const { data: project } = useProject(ticket?.projectId ?? '');
   const [repoPathDraft, setRepoPathDraft] = useState('');
   const [isEditingRepo, setIsEditingRepo] = useState(false);
@@ -438,6 +442,7 @@ function TicketModalInner({
   const [visible, setVisible] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const tagEscapedRef = useRef(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -727,7 +732,7 @@ function TicketModalInner({
     autoSaveField('tags', nextTags);
   }
 
-  function handleAddTagSubmit() {
+  function handleAddTagSubmit(keepOpen = false) {
     const trimmed = newTagText.trim().toLowerCase();
     if (trimmed && !tags.includes(trimmed)) {
       const nextTags = [...tags, trimmed];
@@ -735,7 +740,7 @@ function TicketModalInner({
       autoSaveField('tags', nextTags);
     }
     setNewTagText('');
-    setIsAddingTag(false);
+    if (!keepOpen) setIsAddingTag(false);
   }
 
   function handleCopyId() {
@@ -1004,11 +1009,11 @@ function TicketModalInner({
     ticketBranches.length > 0 ? ticketBranches : ticket?.branches && ticket.branches.length > 0 ? ticket.branches : [];
 
   const branchesList: TicketBranch[] = [
-    ...(!rawBranches.some((b) => b.name === 'main' || b.status === 'baseline')
+    ...(!rawBranches.some((b) => b.name === baseName || b.status === 'baseline')
       ? [
           {
             id: 'baseline-main',
-            name: 'main',
+            name: baseName,
             status: 'baseline' as const,
             branchFrom: '',
             createdAt: new Date().toISOString(),
@@ -1022,11 +1027,11 @@ function TicketModalInner({
   // Use the live list (git-refreshed) rather than ticket.branches, whose counts are stale
   const defaultBranch = branchesList.find((b) => b.status !== 'baseline') || branchesList[0];
   const activeBranch = branchesList.find((b) => b.name === selectedBranchName) || defaultBranch;
-  const activeBranchName = activeBranch?.name ?? 'main';
+  const activeBranchName = activeBranch?.name ?? baseName;
   const activeBranchSubtext = activeBranch
     ? activeBranch.status === 'baseline'
       ? 'baseline'
-      : `from ${activeBranch.branchFrom || 'main'}${
+      : `from ${activeBranch.branchFrom || baseName}${
           activeBranch.aheadCount !== undefined
             ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
             : ''
@@ -1827,6 +1832,7 @@ function TicketModalInner({
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleTitleBlur();
                                 if (e.key === 'Escape') {
+                                  e.preventDefault(); // used here: the ticket stays open (see the Esc handler)
                                   setTitle(ticket.title);
                                   setIsEditingTitle(false);
                                 }
@@ -1855,10 +1861,27 @@ function TicketModalInner({
                                 placeholder="Tag name…"
                                 value={newTagText}
                                 onChange={(e) => setNewTagText(e.target.value)}
-                                onBlur={handleAddTagSubmit}
+                                onBlur={() => {
+                                  // Esc closes without saving: the blur that follows must not add the typed text
+                                  if (tagEscapedRef.current) {
+                                    tagEscapedRef.current = false;
+                                    return;
+                                  }
+                                  handleAddTagSubmit();
+                                }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') handleAddTagSubmit();
-                                  if (e.key === 'Escape') setIsAddingTag(false);
+                                  if (e.key === ',') {
+                                    // a comma commits the tag and keeps the box open for the next one
+                                    e.preventDefault();
+                                    handleAddTagSubmit(true);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    e.preventDefault(); // used here: the ticket stays open (see the Esc handler)
+                                    tagEscapedRef.current = true;
+                                    setNewTagText('');
+                                    setIsAddingTag(false);
+                                  }
                                 }}
                               />
                             ) : (
@@ -2778,7 +2801,7 @@ function TicketModalInner({
                                           className={styles.branchWorktreePill}
                                           title={`Worktree: ${b.worktreePath}`}
                                         >
-                                          🌳
+                                          <LineIcon name="branch" size={12} />
                                         </span>
                                       )}
                                       {isActive ? (
@@ -3245,7 +3268,7 @@ function TicketModalInner({
             onClose={() => setIsCreateBranchModalOpen(false)}
             ticketId={ticket.id}
             branches={branchesList}
-            initialBranchFrom={activeBranch?.inRepo === false ? 'main' : activeBranchName || 'main'}
+            initialBranchFrom={activeBranch?.inRepo === false ? undefined : activeBranchName || undefined}
             defaultWorktreeTemplate={project?.worktreeTemplate}
             defaultWorktreeEnabled={project?.worktreeByDefault}
             projectPrefix={project?.prefix}

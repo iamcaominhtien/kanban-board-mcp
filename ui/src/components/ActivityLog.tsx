@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ActivityEntry } from '../types';
 import styles from './ActivityLog.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 interface ActivityLogProps {
   entries: ActivityEntry[];
@@ -26,7 +27,9 @@ export function ActivityLog({ entries }: ActivityLogProps) {
     <div className={styles.section}>
       <button type="button" className={styles.header} onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
         <span className={styles.headerLabel}>Activity ({entries.length})</span>
-        <span className={`${styles.chevron} ${!expanded ? styles.chevronCollapsed : ''}`}>▼</span>
+        <span className={`${styles.chevron} ${!expanded ? styles.chevronCollapsed : ''}`}>
+          <LineIcon name="chevronDown" size={12} />
+        </span>
       </button>
 
       {expanded && (
@@ -36,7 +39,9 @@ export function ActivityLog({ entries }: ActivityLogProps) {
           ) : (
             [...entries].reverse().map((entry, i) => (
               <div key={`${entry.at}-${i}`} className={styles.entry}>
-                <span className={styles.icon}>🕐</span>
+                <span className={styles.icon}>
+                  <LineIcon name="clock" size={14} />
+                </span>
                 <span className={styles.action}>
                   {entry.field}: {entry.from ?? '–'} → {entry.to ?? '–'}
                 </span>

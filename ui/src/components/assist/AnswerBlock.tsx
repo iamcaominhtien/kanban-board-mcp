@@ -8,6 +8,7 @@ import { useAssist } from './AssistContext';
 import { BoardAiAvatar, CostChip, TicketPill, usd } from './assistUi';
 import { DraftChanges } from './DraftChanges';
 import { DraftAiMembers } from './DraftAiMembers';
+import { LineIcon } from '../ui/LineIcon';
 
 const SLOW_AFTER_S = 30;
 
@@ -313,7 +314,7 @@ export function AnswerBlock({
             {panel.onPostComment &&
               (ctxInfo.posted ? (
                 <span className="ai-muted" data-testid="answer-posted">
-                  ✓ Posted as a comment
+                  <LineIcon name="check" size={12} /> Posted as a comment
                 </span>
               ) : (
                 <button
@@ -333,7 +334,7 @@ export function AnswerBlock({
                     }
                   }}
                 >
-                  💬 Post as comment
+                  <LineIcon name="chat" size={13} /> Post as comment
                 </button>
               ))}
             <button
@@ -345,7 +346,7 @@ export function AnswerBlock({
                 setCopied(true);
               }}
             >
-              ⧉ {copied ? 'Copied' : 'Copy'}
+              <LineIcon name="copy" size={13} /> {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
         )}
@@ -360,7 +361,7 @@ export function AnswerBlock({
                   className="as-action"
                   onClick={() => onSend(a.request, { draft: true })}
                 >
-                  ✎ {a.label}
+                  <LineIcon name="edit" size={13} /> {a.label}
                 </button>
               ))}
             </div>
@@ -445,7 +446,10 @@ export function AnswerBlock({
               style={{ cursor: 'pointer', maxWidth: 'none' }}
               onClick={() => setShowSources((v) => !v)}
             >
-              <span>🔗 {ctxInfo.label ?? 'Based on the board'}</span> ▾
+              <span>
+                <LineIcon name="link" size={13} /> {ctxInfo.label ?? 'Based on the board'}
+              </span>{' '}
+              <LineIcon name="chevronDown" size={12} />
             </button>
             <span className="ai-muted">answered {hhmm(msg.finishedAt ?? msg.createdAt)}</span>
           </div>
@@ -471,7 +475,9 @@ export function AnswerBlock({
                     onClick={() => ctx?.onOpenDoc(it.id)}
                     style={{ cursor: 'pointer' }}
                   >
-                    <span>📄 {it.title}</span>
+                    <span>
+                      <LineIcon name="page" size={13} /> {it.title}
+                    </span>
                   </button>
                 ),
               )}
@@ -487,10 +493,10 @@ export function AnswerBlock({
                 aria-label="Copy answer"
                 onClick={() => void navigator.clipboard?.writeText(msg.text)}
               >
-                ⧉
+                <LineIcon name="copy" size={14} />
               </button>
               <button type="button" title="Regenerate" aria-label="Regenerate" onClick={() => void retry()}>
-                ↻
+                <LineIcon name="refresh" size={14} />
               </button>
               <button
                 type="button"

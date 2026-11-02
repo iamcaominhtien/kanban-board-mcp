@@ -8,6 +8,7 @@ import { SparkleIcon, secondsSince, useAiBoardState } from '../ai/aiUi';
 import { shortcutLabel, useAssist } from './AssistContext';
 import { AppliedAs, BoardAiAvatar, CostChip, DraftTag, currentPerson, featureBlock } from './assistUi';
 import './assist.css';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Start a draft and remember its id; errors come back with their code. */
 export function useStartDraft(projectId: string) {
@@ -189,7 +190,13 @@ function HunkView({ h, on, toggle }: { h: Hunk; on: boolean; toggle: () => void 
         style={on ? { borderColor: '#2E6F40', background: '#EAF5ED' } : undefined}
         onClick={toggle}
       >
-        {on ? '✓ Accept' : 'Accept'}
+        {on ? (
+          <>
+            <LineIcon name="check" size={12} /> Accept
+          </>
+        ) : (
+          'Accept'
+        )}
       </button>
     </div>
   );
@@ -247,7 +254,7 @@ export function ImproveDescription({
           </button>
         </div>
         <button type="button" className="ai-icobtn" aria-label="Close" onClick={onClose}>
-          ✕
+          <LineIcon name="close" size={14} />
         </button>
       </div>
       <div
@@ -466,7 +473,7 @@ export function SplitWithAi({ ticket, draftId, onClose }: { ticket: Ticket; draf
           </span>
         )}
         <button type="button" className="ai-icobtn" aria-label="Close" onClick={onClose}>
-          ✕
+          <LineIcon name="close" size={14} />
         </button>
       </div>
       <div
@@ -493,7 +500,7 @@ export function SplitWithAi({ ticket, draftId, onClose }: { ticket: Ticket; draf
           <div className="as-tile">
             <div className="as-tile-title">
               <span className="ai-chip" style={{ background: '#EAF5ED', color: '#2E6F40' }}>
-                ✦ AI created {d.result.count} sub-tickets
+                <LineIcon name="sparkle" size={12} /> AI created {d.result.count} sub-tickets
               </span>
             </div>
             <div className="ai-hint">
@@ -727,7 +734,7 @@ export function SplitBadge({ ticketId }: { ticketId: string }) {
         style={{ background: '#EAF5ED', color: '#2E6F40' }}
         title={`Accepted by ${d.appliedBy}`}
       >
-        ✦ AI created {d.result.count} sub-tickets
+        <LineIcon name="sparkle" size={12} /> AI created {d.result.count} sub-tickets
       </span>
       <span className="ai-muted">Accepted by {d.appliedBy}; blocked-by links are Relations.</span>
       <button type="button" className="ai-link" onClick={() => void assistApi.undo(d.id).then(() => drafts.refetch())}>
@@ -1126,7 +1133,7 @@ export function TicketAiMenu({
         data-testid="ticket-ai-menu"
       >
         {onToggleChat ? (
-          '▾'
+          <LineIcon name="chevronDown" size={12} />
         ) : (
           <>
             <SparkleIcon size={12} /> AI

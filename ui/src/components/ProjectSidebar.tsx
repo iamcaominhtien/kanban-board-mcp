@@ -4,6 +4,7 @@ import { AppLogo } from './icons';
 import { useAppCommand } from '../utils/appCommands';
 import styles from './ProjectSidebar.module.css';
 import { extractError } from '../api/extractError';
+import { LineIcon } from './ui/LineIcon';
 
 interface ProjectSidebarProps {
   projects: Project[];
@@ -172,7 +173,7 @@ export function ProjectSidebar({
                         onClick={(e) => handleDelete(e, project.id, project.name)}
                         aria-label={`Delete ${project.name}`}
                       >
-                        ×
+                        <LineIcon name="close" size={14} />
                       </button>
                     )}
                   </div>

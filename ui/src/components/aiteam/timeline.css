@@ -18,6 +18,9 @@
   background: #e3e8e5;
   margin: 0 4px;
 }
+.tl-btn[hidden] {
+  display: none;
+}
 .tl-btn {
   display: inline-flex;
   align-items: center;

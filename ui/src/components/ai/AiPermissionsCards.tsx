@@ -6,6 +6,7 @@ import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
 import { Toggle } from './aiUi';
 import { ACTION_LABEL, ChipChoice, Pill, RadioRow, SafetyCard, dateTime } from './aiSafetyUi';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Issue #275: how much the AIs do on their own (presets, web search, what each role may run), and what stopped them. */
 
@@ -179,7 +180,7 @@ export function PermissionsCard({ projectId }: { projectId: string }) {
                       {r.tools.length} rules
                     </div>
                   </td>
-                  <td>{r.webSearch ? '✓' : '—'}</td>
+                  <td>{r.webSearch ? <LineIcon name="check" size={13} /> : '—'}</td>
                 </tr>
               ))}
             </tbody>

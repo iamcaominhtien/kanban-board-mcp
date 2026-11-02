@@ -7,6 +7,7 @@ import { useCfg } from './configCtx';
 import { CfgCard, Chip, CodeEditor, DiffView, Dialog, EmptyState, IssueText, TickRow, newId } from './parts';
 import { frontMatter, skillTemplate } from './frontMatter';
 import { useQuery } from '@tanstack/react-query';
+import { LineIcon } from '../../ui/LineIcon';
 
 const MAX_FOLDER = 2 * 1024 * 1024;
 const SCRIPT = /\.(sh|bash|zsh|py|js|mjs|ts|rb|pl|ps1|bat)$/i;
@@ -469,7 +470,7 @@ export function SkillsCard() {
                   aria-label={`Remove ${s.name}`}
                   onClick={() => setCfg({ skills: cfg.skills.filter((x) => x.id !== s.id) })}
                 >
-                  ✕
+                  <LineIcon name="close" size={12} />
                 </button>
               </div>
               <IssueText issues={issues} path={`skills.${i}`} prefix />

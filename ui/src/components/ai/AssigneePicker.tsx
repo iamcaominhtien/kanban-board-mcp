@@ -10,6 +10,7 @@ import { useSchedules } from '../schedules/SchedulesContext';
 import { currentPerson } from '../assist/assistUi';
 import { ASSIGN_AI_EVENT } from './AiTicketContext';
 import { ACTIVE_RUN_STATES, AiAvatar, StatusLabel, useAiBoardState } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Why an AI member cannot take work now (the picker greys it out), or a note on how it will start. */
 function aiNote(m: AiMember): { disabled: boolean; note: string; tag?: string; grey?: boolean } {
@@ -169,7 +170,11 @@ export function AssigneePicker({
                     you
                   </span>
                 )}
-                {m.id === value && <span style={{ marginLeft: m.name === me ? 8 : 'auto', color: '#2E6F40' }}>✓</span>}
+                {m.id === value && (
+                  <span style={{ marginLeft: m.name === me ? 8 : 'auto', color: '#2E6F40' }}>
+                    <LineIcon name="check" size={13} />
+                  </span>
+                )}
               </button>
             ))}
             {ais.length > 0 && (
@@ -208,7 +213,11 @@ export function AssigneePicker({
                       {n.tag}
                     </span>
                   )}
-                  {m.id === value && <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>✓</span>}
+                  {m.id === value && (
+                    <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>
+                      <LineIcon name="check" size={13} />
+                    </span>
+                  )}
                 </button>
               );
             })}

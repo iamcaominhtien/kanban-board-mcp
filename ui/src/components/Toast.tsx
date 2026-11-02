@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './Toast.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
@@ -337,12 +338,16 @@ export function useToast(): ToastContextValue {
 
 export interface InlineBannerProps {
   message: string;
-  icon?: string;
+  icon?: React.ReactNode;
   className?: string;
 }
 
 /** Inline confirmation banner. */
-export const InlineBanner: React.FC<InlineBannerProps> = ({ message, icon = '✓', className }) => {
+export const InlineBanner: React.FC<InlineBannerProps> = ({
+  message,
+  icon = <LineIcon name="check" size={14} />,
+  className,
+}) => {
   return (
     <div className={`${styles.inlineBanner} ${className ?? ''}`}>
       <span className={styles.bannerIcon}>{icon}</span>

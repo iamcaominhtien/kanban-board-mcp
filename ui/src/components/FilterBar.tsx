@@ -5,6 +5,7 @@ import styles from './FilterBar.module.css';
 import type { WorkflowFilterState } from '../types/aiWorkflowBoard';
 import type { WorkflowFilterOptions } from './workflowBoard/workflowFilter';
 import { WorkflowFilters } from './workflowBoard/WorkflowFilters';
+import { LineIcon } from './ui/LineIcon';
 
 interface FilterBarProps {
   searchQuery: string;
@@ -571,7 +572,7 @@ export function FilterBar({
           )}
           {filterReopened && (
             <span aria-label="Clear" style={{ fontSize: 13, lineHeight: 1, marginLeft: 2 }}>
-              ×
+              <LineIcon name="close" size={13} />
             </span>
           )}
         </button>
@@ -633,7 +634,7 @@ export function FilterBar({
           )}
           {filterPending && (
             <span aria-label="Clear" style={{ fontSize: 13, lineHeight: 1, marginLeft: 2 }}>
-              ×
+              <LineIcon name="close" size={13} />
             </span>
           )}
         </button>
