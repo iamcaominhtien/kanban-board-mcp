@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793629226-4378",
+  "canvas_version": "1793629561-993f",
   "exported": "2026-11-02",
   "files": {
     "AccountMenu.dc.html": {
@@ -653,12 +653,12 @@
       "h": 34506
     },
     "AiRepoCommands.dc.html": {
-      "bytes": 189426,
-      "sha256": "6d33c971017c7b52331b26913eaacf8bd7085d806a47ecb65ea8ec6a22a1e7e6",
+      "bytes": 195211,
+      "sha256": "f6502d5a6c533ab968f55460b0bcc4fe5d431be3829752a3bea702d34cff31b7",
       "title": "AI sets up the commands",
       "page": "screens_ai",
       "w": 1480,
-      "h": 9847
+      "h": 10231
     }
   }
 }
