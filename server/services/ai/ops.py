@@ -69,6 +69,15 @@ DEFAULTS: dict = {
     "knowledge_shared": False,  # also search the shared store
     # auto: red CI the PR's own change caused, and review comments on it, go to the ticket's Dev by themselves (D21)
     "github": {"on": False, "poll_min": 5, "auto": True},
+    # Issue #275 — what a CLI run may do without stopping (services/ai/tool_rules.py). preset: careful | normal |
+    # trusted | custom; bypass: never | member (each member's own choice) | always; web_search: off | roles | on;
+    # ask_cli: a tool the CLI refused becomes a request a person answers once ("this ticket / project / role")
+    "permissions": {
+        "preset": "normal",
+        "bypass": "member",
+        "web_search": "roles",
+        "ask_cli": True,
+    },
 }
 
 

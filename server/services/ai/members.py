@@ -40,9 +40,9 @@ from .permissions import (
     APPROVAL,
     BLOCKED,
     CEILINGS,
-    OWNER_ENABLEABLE,
     TEMPLATES,
     effective,
+    owner_widened,
     validate_overrides,
 )
 from .providers import DEFAULT_LOOK, PROVIDERS, capabilities, merged_config
@@ -277,12 +277,10 @@ async def create(
         data.get("permissions") or {},
         owner=role == "owner",
     )
-    owner_meta: dict = {}
-    if (
-        overrides.get("delete_tickets") == APPROVAL
-        and TEMPLATES[data.get("template") or "developer"]["delete_tickets"] == BLOCKED
-    ):
-        owner_meta["delete_tickets"] = {"by": by, "at": now_iso(), "mode": APPROVAL}
+    owner_meta: dict = {
+        action: {"by": by, "at": now_iso(), "mode": overrides[action]}
+        for action in owner_widened(data.get("template") or "developer", overrides)
+    }
     if (
         ws["delete_mode"] == "approval"
         and overrides.get("delete_tickets") is None
@@ -550,13 +548,13 @@ async def update(
             old_raw.get("_owner") if isinstance(old_raw.get("_owner"), dict) else {}
         )
         owner_meta = {}
-        for action in OWNER_ENABLEABLE:
-            if clean.get(action) == APPROVAL and TEMPLATES[template][action] == BLOCKED:
-                owner_meta[action] = (
-                    prev_owner.get(action)
-                    if isinstance(prev_owner.get(action), dict)
-                    else {"by": by, "at": now_iso(), "mode": APPROVAL}
-                )
+        for action in owner_widened(template, clean):
+            prev = prev_owner.get(action)
+            owner_meta[action] = (
+                prev
+                if isinstance(prev, dict) and prev.get("mode") == clean[action]
+                else {"by": by, "at": now_iso(), "mode": clean[action]}
+            )
         stored = {**clean, **({"_owner": owner_meta} if owner_meta else {})}
         after = SimpleNamespace(
             **{

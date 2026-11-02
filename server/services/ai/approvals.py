@@ -56,6 +56,10 @@ TRIGGERS = {
 }
 
 
+USE_TOOL = "use_tool"  # a tool call the CLI's rules refused, asked once (services/ai/tool_asks.py)
+# How far a person's answer may reach (issue #275): once, this ticket (until Done), this project (this AI, any
+# ticket), every AI member with the role in the project
+SCOPES = ("once", "ticket", "project", "role")
 PROPOSAL_TOOL = "docs_proposal"  # an AI member's page edit, reviewed as a Docs AI proposal (services/docs_ai/proposals)
 
 
@@ -282,7 +286,39 @@ async def enrich(
             and bool(a.ticket_id)
             and a.action not in (RAISE_CAP, RUN_CONTROL)
         )
+        d["scopes"] = await _scopes_of(session, a)
+        if a.action == USE_TOOL:
+            params = loads(a.payload, {}).get("params") or {}
+            d["tool_rule"] = params.get("rule")
+            d["tool_call"] = params.get("call")
+            d["role"] = params.get("role")
+        else:
+            from .plugins import role_of
+
+            asker = await session.get(AiMember, a.member_id)
+            d["role"] = role_of(asker) if asker is not None else None
         out.append(d)
+    return out
+
+
+async def _scopes_of(session: AsyncSession, a: AiApproval) -> list[str]:
+    """How far an answer to this request may reach. High risk is decided once each time (a delete); a cap raise, a
+    run control and a Docs proposal are one-off by nature."""
+    if a.action == USE_TOOL:
+        from . import tool_asks
+
+        return tool_asks.scopes_for(a)
+    if a.risk == "high" or a.action in (RAISE_CAP, RUN_CONTROL) or is_proposal(a):
+        return ["once"]
+    out = ["once"]
+    if a.ticket_id:
+        out.append("ticket")
+    out.append("project")
+    from .plugins import role_of
+
+    profile = await session.get(AiMember, a.member_id)
+    if profile is not None and role_of(profile):
+        out.append("role")
     return out
 
 
@@ -333,8 +369,9 @@ async def mark_run_ended(run_id: str) -> int:
                 )
             )
         ).all()
-        # a proposal outlives its run: a person can still accept it into a draft
-        rows = [a for a in rows if not is_proposal(a)]
+        # a proposal outlives its run: a person can still accept it into a draft; so does a tool the CLI refused
+        # (the answer is for the next runs, services/ai/tool_asks.py)
+        rows = [a for a in rows if not is_proposal(a) and a.action != USE_TOOL]
         for a in rows:
             a.status = "run_ended"
             a.decision_note = "The run ended before anyone decided"
@@ -516,8 +553,14 @@ async def decide(
     enforce_roles: bool = True,
     delegate: bool = False,
     via: str | None = None,
+    scope: str | None = None,
+    go_on: bool = True,
 ) -> dict:
     """Approve once (the board applies the action now) or deny with a reason (sent to the run's ticket).
+
+    `scope` keeps the answer (issue #275): "ticket" (as `remember`), "project" (this AI on any ticket, as `always`),
+    "role" (every AI with its role in the project; the owner's to give). A tool the CLI refused (`use_tool`) is kept
+    for the scope and, with `go_on`, the run goes on where it stopped.
 
     `delegate` is for Autopilot only: the project's delegate AI decides on the owner's behalf (services/ai/autopilot.py
     checks everything first), which is the one case an AI member decides a request. `via` names that path.
@@ -553,9 +596,33 @@ async def decide(
             )
             if not ok:
                 raise ApprovalForbidden(why)
+        if scope is None:
+            # the old flags: "Always allow" was only ever for Docs edits; `remember` is this ticket
+            scope = (
+                "project"
+                if always and always_allowed(a)
+                else ("ticket" if remember else "once")
+            )
+        if scope not in SCOPES:
+            raise ApprovalError(
+                "Remember: once, this ticket, this project or this role."
+            )
+        if approve and scope != "once":
+            offered = await _scopes_of(session, a)
+            if scope not in offered:
+                raise ApprovalError(
+                    "This request can only be approved once."
+                    if offered == ["once"]
+                    else f"This request can be remembered for: {', '.join(x for x in offered if x != 'once')}."
+                )
+            if scope == "role" and not delegate:
+                if await safety.role_name(session, a.project_id, by) != "owner":
+                    raise ApprovalForbidden(
+                        "Only the project owner can allow something for every AI with this role."
+                    )
         if is_proposal(a):
             proposal = True
-        elif approve and not accept_updated:
+        elif approve and not accept_updated and a.action != USE_TOOL:
             ticket = await session.get(Ticket, a.ticket_id) if a.ticket_id else None
             stale = await _stale_of(session, a, ticket, {})
             if stale:
@@ -572,8 +639,14 @@ async def decide(
         session.add(a)
         await session.commit()
         await session.refresh(a)
-        if approve and always and always_allowed(a):
-            # "Always allow": every later edit of this kind by this AI goes through, on any ticket or page
+        if a.action == USE_TOOL:
+            pass  # kept below by tool_asks.apply, with the rule it allows
+        elif approve and scope in ("project", "role"):
+            # "Always allow" / for the project: every later action of this kind by this AI (or by every AI with its
+            # role) goes through, on any ticket or page
+            from .plugins import role_of
+
+            asker = await session.get(AiMember, a.member_id)
             await safety.add_grant(
                 session,
                 project_id=a.project_id,
@@ -582,8 +655,9 @@ async def decide(
                 action=a.action,
                 created_by=by,
                 source_approval_id=a.id,
+                role=role_of(asker) if scope == "role" and asker is not None else None,
             )
-        elif approve and remember and a.risk != "high" and a.ticket_id:
+        elif approve and scope == "ticket" and a.risk != "high" and a.ticket_id:
             await safety.add_grant(
                 session,
                 project_id=a.project_id,
@@ -595,6 +669,25 @@ async def decide(
                 source_approval_id=a.id,
             )
     error = None
+    if approve and a.action == USE_TOOL:
+        from . import tool_asks
+
+        kept = await tool_asks.apply(a, by, scope, go_on=go_on)
+        await audit.record(
+            a.project_id,
+            USE_TOOL,
+            "approved",
+            member_id=a.member_id,
+            member_name=name,
+            on_behalf_of=by,
+            run_id=a.run_id,
+            target=a.ticket_id,
+            detail={"approval_id": a.id, **kept},
+        )
+        await board_events.publish(board_events.INVALIDATE)
+        async with database.async_session() as session:
+            row = await session.get(AiApproval, approval_id)
+            return {**to_dict(row, name), "error": None, **kept}
     if approve:
         try:
             await _apply(a, name, by)
@@ -875,12 +968,13 @@ async def request_cap_raise(
 
 
 async def always_grants(session: AsyncSession, project_id: str) -> list[dict]:
-    """ "Always allow" decisions of a project (not tied to a ticket), listed so they can be revoked."""
+    """Standing answers of a project (not tied to a ticket): "Always allow", "for this project" and "for this role",
+    for board actions and for the CLI's tools, listed so they can be revoked."""
     rows = (
         await session.exec(
             select(AiGrant).where(
                 AiGrant.project_id == project_id,
-                AiGrant.kind == "approval",
+                col(AiGrant.kind).in_(["approval", "tool"]),
                 col(AiGrant.ticket_id).is_(None),
                 col(AiGrant.revoked_at).is_(None),
             )
@@ -890,13 +984,15 @@ async def always_grants(session: AsyncSession, project_id: str) -> list[dict]:
     return [
         {
             "id": g.id,
+            "kind": g.kind,
             "member_id": g.member_id,
             "member_name": names.get(g.member_id or ""),
+            "role": g.role,
             "action": g.action,
             "created_by": g.created_by,
             "created_at": g.created_at,
         }
-        for g in rows
+        for g in sorted(rows, key=lambda g: g.created_at, reverse=True)
     ]
 
 
@@ -905,7 +1001,7 @@ async def grants_for_ticket(session: AsyncSession, ticket_id: str) -> list[dict]
     rows = (
         await session.exec(
             select(AiGrant).where(
-                AiGrant.kind == "approval",
+                col(AiGrant.kind).in_(["approval", "tool"]),
                 AiGrant.ticket_id == ticket_id,
                 col(AiGrant.revoked_at).is_(None),
             )
@@ -917,6 +1013,7 @@ async def grants_for_ticket(session: AsyncSession, ticket_id: str) -> list[dict]
             "id": g.id,
             "member_id": g.member_id,
             "member_name": names.get(g.member_id or ""),
+            "kind": g.kind,
             "action": g.action,
             "created_by": g.created_by,
             "created_at": g.created_at,

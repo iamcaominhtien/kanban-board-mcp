@@ -189,7 +189,7 @@ async def delete_grant(grant_id: str, session: Session) -> dict:
     g = await session.get(AiGrant, grant_id)
     if g is None or g.revoked_at:
         raise HTTPException(status_code=404, detail="Grant not found")
-    if g.kind != "approval":
+    if g.kind not in ("approval", "tool"):
         raise HTTPException(
             status_code=409, detail="Only remembered approvals can be revoked here."
         )
@@ -509,6 +509,128 @@ async def get_preview(member_id: str, session: Session) -> dict:
         ),
         "domains": loads(settings.allowed_domains, []),
     }
+
+
+# ---------------------------------------------------------------------------
+# How much the AIs may do on their own (issue #275): presets, web search, what each role needs
+# ---------------------------------------------------------------------------
+
+
+async def _permissions_view(session, project_id: str) -> dict:
+    from services.ai import tool_rules
+
+    settings = await get_settings(session, project_id)
+    sw = tool_rules.settings_of(settings)
+    me = _by()
+    role = await safety.role_name(session, project_id, me)
+    return {
+        **sw,
+        "preset": tool_rules.preset_matching(sw, settings.docs_edits_ask),
+        "docs_ask": bool(settings.docs_edits_ask),
+        "presets": [
+            {"key": k, "label": p["label"], "line": p["line"], **p["values"]}
+            for k, p in tool_rules.PRESETS.items()
+        ],
+        "roles": [
+            {
+                "role": r,
+                "words": tool_rules.ROLE_WORDS.get(r, ""),
+                "tools": rules,
+                "web_search": tool_rules.web_search_for(r, sw["web_search"]),
+            }
+            for r, rules in tool_rules.ROLE_TOOLS.items()
+        ],
+        "web_search_roles": list(tool_rules.WEB_SEARCH_ROLES),
+        "can_edit": safety.ROLE_RANK[role] >= 2,
+        "can_trust": role == "owner",
+    }
+
+
+class PermissionsBody(BaseModel):
+    """A preset, or one switch."""
+
+    preset: Optional[str] = None
+    bypass: Optional[str] = None
+    web_search: Optional[str] = None
+    ask_cli: Optional[bool] = None
+    docs_ask: Optional[bool] = None
+
+
+@router.get("/projects/{project_id}/ai/permissions")
+async def get_permissions(project_id: str, session: Session) -> dict:
+    """The project's preset and switches, what each role may run without asking, and who may change them."""
+    await _project(session, project_id)
+    return await _permissions_view(session, project_id)
+
+
+@router.put("/projects/{project_id}/ai/permissions")
+async def put_permissions(
+    project_id: str, body: PermissionsBody, session: Session
+) -> dict:
+    """Choose a preset (it sets every switch) or change one switch. Owners and admins; what opens more (Trusted,
+    Bypass for every run, web search for every role) is the owner's. Audited."""
+    from services.ai import ops as svc_ops
+    from services.ai import tool_rules
+
+    await _project(session, project_id)
+    by = await _need_admin(session, project_id, "change what the AIs may do")
+    settings = await get_settings(session, project_id)
+    before = {
+        **tool_rules.settings_of(settings),
+        "docs_ask": bool(settings.docs_edits_ask),
+    }
+    patch: dict = {}
+    docs_ask = body.docs_ask
+    if body.preset is not None:
+        if body.preset not in tool_rules.PRESETS:
+            raise HTTPException(
+                status_code=422, detail="Preset: Careful, Normal or Trusted."
+            )
+        values = tool_rules.PRESETS[body.preset]["values"]
+        patch.update(bypass=values["bypass"], web_search=values["web_search"])
+        docs_ask = values["docs_ask"]
+    if body.bypass is not None:
+        if body.bypass not in tool_rules.BYPASS:
+            raise HTTPException(
+                status_code=422, detail="Bypass: never, member or always."
+            )
+        patch["bypass"] = body.bypass
+    if body.web_search is not None:
+        if body.web_search not in tool_rules.WEB_SEARCH:
+            raise HTTPException(status_code=422, detail="Web search: off, roles or on.")
+        patch["web_search"] = body.web_search
+    if body.ask_cli is not None:
+        patch["ask_cli"] = bool(body.ask_cli)
+    wider = patch.get("bypass") == "always" and before["bypass"] != "always"
+    wider = wider or (patch.get("web_search") == "on" and before["web_search"] != "on")
+    if wider and await safety.role_name(session, project_id, by) != "owner":
+        raise HTTPException(
+            status_code=403,
+            detail="Only the project owner can run every AI in Bypass or open web search to every role.",
+        )
+    merged = {**before, **patch}
+    merged.pop("docs_ask", None)
+    if docs_ask is not None:
+        settings.docs_edits_ask = bool(docs_ask)
+    merged["preset"] = tool_rules.preset_matching(merged, settings.docs_edits_ask)
+    svc_ops.update(settings, {"permissions": merged})
+    session.add(settings)
+    await session.commit()
+    after = {**merged, "docs_ask": bool(settings.docs_edits_ask)}
+    await svc_audit.record(
+        project_id,
+        "permissions_updated",
+        "info",
+        member_name=by,
+        on_behalf_of=by,
+        detail={
+            "changes": {
+                k: [before.get(k), after[k]] for k in after if before.get(k) != after[k]
+            }
+        },
+    )
+    await board_events.publish(board_events.INVALIDATE)
+    return await _permissions_view(session, project_id)
 
 
 class DefaultsBody(BaseModel):
@@ -967,6 +1089,9 @@ async def get_why_blocked(entry_id: str, session: Session) -> dict:
         "blocked_by": blocked_by,
         "who_can_change": who,
         "reason": d.get("reason"),
+        # issue #275: what the AI was told to do instead, and what a person switches on
+        "instead": d.get("instead"),
+        "switch": d.get("switch"),
         "layers": [
             {"layer": layer["layer"], "mode": layer["mode"]} for layer in layers
         ],
@@ -1017,3 +1142,13 @@ async def post_ask_access(entry_id: str, session: Session) -> dict:
         detail={"entry_id": e.id, "blocked_by": why["blocked_by"]},
     )
     return {"sent": True, "to": why["owner"]}
+
+
+@router.get("/projects/{project_id}/ai/blocks")
+async def get_blocks(project_id: str, session: Session, days: int = 30) -> dict:
+    """What stopped the AIs (issue #275): refused actions, denied tools, permission questions and "I cannot", grouped,
+    with the role, what it was trying to do and what the board does about it now."""
+    from services.ai import blocks
+
+    await _project(session, project_id)
+    return await blocks.collect(session, project_id, days=max(1, min(days, 365)))

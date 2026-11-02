@@ -3,8 +3,9 @@
 Claude Code keeps only the first 10,000 characters of an MCP server's instructions, so a long guide cannot ride there:
 it reaches an AI as a skill instead, which Claude Code loads whole when the work calls for it (the person's own design
 skills work the same way). Today: `canvas-design`, the design guide for canvas frames (services/canvas_design.py),
-with its exemplar boards in `examples/` (services/design_examples/): a skill can carry files, and a board to look at
-teaches the bar better than a paragraph.
+with `craft.md` and its exemplar boards in `examples/` (services/design_examples/): a skill can carry files, and a
+board to look at teaches the bar better than a paragraph; and `board-permissions`, what an AI may do and what to do
+when refused (services/permissions_guide.py).
 """
 
 import json
@@ -16,9 +17,13 @@ NAME = "kanban-board"
 
 
 def _skills() -> dict[str, str]:
-    from services import canvas_design
+    from services import canvas_design, permissions_guide
 
-    return {"canvas-design": canvas_design.SKILL_HEADER + canvas_design.GUIDE}
+    return {
+        "canvas-design": canvas_design.SKILL_HEADER + canvas_design.GUIDE,
+        # what the AI may do, what needs a person, what to do when refused (issue #275)
+        "board-permissions": permissions_guide.SKILL_HEADER + permissions_guide.GUIDE,
+    }
 
 
 def _skill_files() -> dict[str, dict[str, bytes]]:

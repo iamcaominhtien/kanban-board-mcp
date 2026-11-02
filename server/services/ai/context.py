@@ -391,6 +391,10 @@ def rules_block(
             "Shell commands run only when the whole command matches an allowed rule: run each one on its own "
             "(for example `python3 -m pytest -q`), without `;`, `&&`, pipes, `echo` or `cd` (you already are in the "
             "working folder). If one is refused, try the plain form once before reporting it.",
+            "When a tool or command is refused, do not look for a way around it: carry on with what you may do and "
+            "name what was refused in your report. The board asks a person once and remembers the answer, so the next "
+            "run has it; a board refusal says what to do instead. docs_read(action='permissions_guide') says what "
+            "you may do here.",
         ]
         if can_review:
             lines.append(

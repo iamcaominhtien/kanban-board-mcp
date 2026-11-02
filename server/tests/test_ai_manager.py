@@ -637,7 +637,12 @@ async def test_overriding_the_pms_approval_gives_the_step_back_to_the_person(env
         ),
         timeout=90,
     )
-    out = (await c.get(f"/projects/{pid}/ai/decisions?kind=approve_design")).json()
+    # the step shows approved a moment before the decision is recorded (both in the PM's after-step)
+    for _ in range(50):
+        out = (await c.get(f"/projects/{pid}/ai/decisions?kind=approve_design")).json()
+        if out["items"]:
+            break
+        await asyncio.sleep(0.1)
     d = out["items"][0]
     assert d["can_override"] and out["totals"]["overridable"] >= 1
     r = await c.post(

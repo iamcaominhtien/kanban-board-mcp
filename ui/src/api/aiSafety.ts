@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { client } from './client';
 import { aiKeys } from './ai';
-import type { AiApproval, AiAuditEntry, AiAutopilot, AiSettings, PermissionMode } from '../types/ai';
+import type { AiApproval, AiAuditEntry, AiAutopilot, AiSettings, ApprovalScope, PermissionMode } from '../types/ai';
 
 /** Safety and cost endpoints (design/screens/ai-safety-cost.md): hooks, plain calls and their types. */
 
@@ -28,6 +28,52 @@ export interface Inbox {
   }[];
   approvals: number;
   me: Me;
+}
+
+/** How much the AIs may do on their own (issue #275): the preset, its switches and what each role may run. */
+export type PresetKey = 'careful' | 'normal' | 'trusted';
+export interface AiPermissions {
+  preset: PresetKey | 'custom';
+  bypass: 'never' | 'member' | 'always';
+  webSearch: 'off' | 'roles' | 'on';
+  askCli: boolean;
+  docsAsk: boolean;
+  presets: {
+    key: PresetKey;
+    label: string;
+    line: string;
+    bypass: string;
+    webSearch: string;
+    docsAsk: boolean;
+  }[];
+  roles: { role: string; words: string; tools: string[]; webSearch: boolean }[];
+  webSearchRoles: string[];
+  canEdit: boolean;
+  canTrust: boolean;
+}
+
+/** What stopped the AIs: refusals, denied tools, questions and "I cannot", grouped. */
+export interface BlockGroup {
+  key: string;
+  kind: 'board' | 'cli' | 'said';
+  title: string;
+  count: number;
+  roles: string[];
+  members: string[];
+  firstAt: string;
+  lastAt: string;
+  example: string;
+  trying: string;
+  verdict: 'fixed' | 'kept' | 'setting' | 'open';
+  verdictText: string;
+  refs: { runId?: string | null; target?: string | null; approvalId?: string | null }[];
+}
+export interface BlocksReport {
+  since: string;
+  days: number;
+  total: number;
+  byVerdict: Partial<Record<BlockGroup['verdict'], number>>;
+  groups: BlockGroup[];
 }
 
 export interface Backlog {
@@ -277,6 +323,9 @@ export interface WhyBlocked {
   whoCanChange: string;
   reason: string | null;
   owner: string | null;
+  /** What the AI was told to do instead, and what a person switches on (issue #275). */
+  instead?: string | null;
+  switch?: string | null;
 }
 
 export interface AuditPage {
@@ -379,7 +428,8 @@ export function useTicketGrants(ticketId: string | undefined) {
   });
 }
 
-/** What the project's AIs may do without asking, from "Always allow" decisions (revocable). */
+/** What the project's AIs may do without asking: "Always allow", "for this project" and "for this role" answers, for
+ * board actions (`approval`) and the CLI's tools (`tool`, the action is the allow rule). Revocable. */
 export function useAlwaysGrants(projectId: string) {
   return useQuery({
     queryKey: ['ai', 'grants', 'always', projectId],
@@ -388,14 +438,35 @@ export function useAlwaysGrants(projectId: string) {
         await client.get<
           {
             id: string;
-            memberId: string;
+            kind?: 'approval' | 'tool';
+            memberId: string | null;
             memberName: string | null;
+            role?: string | null;
             action: string;
             createdBy: string;
             createdAt: string;
           }[]
         >(`/projects/${projectId}/ai/grants`)
       ).data,
+    enabled: !!projectId,
+  });
+}
+
+/** The project's preset and switches (issue #275). */
+export function useAiPermissions(projectId: string) {
+  return useQuery({
+    queryKey: ['ai', 'permissions', projectId],
+    queryFn: async () => (await client.get<AiPermissions>(`/projects/${projectId}/ai/permissions`)).data,
+    enabled: !!projectId,
+  });
+}
+
+/** What stopped the AIs in the last `days` days. */
+export function useAiBlocks(projectId: string, days = 30) {
+  return useQuery({
+    queryKey: ['ai', 'blocks', projectId, days],
+    queryFn: async () =>
+      (await client.get<BlocksReport>(`/projects/${projectId}/ai/blocks`, { params: { days } })).data,
     enabled: !!projectId,
   });
 }
@@ -540,8 +611,25 @@ export function auditExportQuery(f: AuditFilters, format: 'csv' | 'json'): strin
 export const safetyApi = {
   approve: async (
     id: string,
-    body: { note?: string; remember?: boolean; always?: boolean; acceptUpdated?: boolean } = {},
-  ) => (await client.post<AiApproval & { error?: string }>(`/ai/approvals/${id}/approve`, body)).data,
+    body: {
+      note?: string;
+      remember?: boolean;
+      always?: boolean;
+      acceptUpdated?: boolean;
+      scope?: ApprovalScope;
+      goOn?: boolean;
+    } = {},
+  ) =>
+    (
+      await client.post<AiApproval & { error?: string; rule?: string; continuedRunId?: string | null }>(
+        `/ai/approvals/${id}/approve`,
+        body,
+      )
+    ).data,
+  savePermissions: async (
+    projectId: string,
+    body: { preset?: string; bypass?: string; webSearch?: string; askCli?: boolean; docsAsk?: boolean },
+  ) => (await client.put<AiPermissions>(`/projects/${projectId}/ai/permissions`, body)).data,
   deny: async (id: string, note?: string, stopRun = false) =>
     (await client.post<AiApproval>(`/ai/approvals/${id}/deny`, { note, stopRun })).data,
   bulk: async (ids: string[], approve: boolean, note?: string) =>

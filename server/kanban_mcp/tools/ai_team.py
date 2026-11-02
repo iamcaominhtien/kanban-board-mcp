@@ -203,11 +203,26 @@ async def ai_team(
         raise ValueError(
             f"Unknown action '{action}'. Valid actions: {', '.join(valid)}."
         )
+    if (
+        action == "ask"
+        and intent == "work"
+        and ctx is not None
+        and ticket_id
+        and member_id
+    ):
+        # Issue #275, from a real day's log: a run that hands a ticket to a teammate this way was refused, though it
+        # may do exactly that with ai_run(handoff). It goes the same way, with the same checks (an assignment)
+        from services.ai import runs as ai_runs
+
+        return await ai_runs.record_handoff(ctx, member_id, ticket_id, text or "")
     if action not in READS and ctx is not None:
         # inside an AI run only a member with the Resource tools set to Control may restart or stop runs
         if action not in RUN_CONTROL or await ops._resource_level() != "control":
             raise ValueError(
-                "An AI run cannot start AIs or change AI members or runs; a person does."
+                "BLOCKED (ai_run_only): an AI run cannot start AIs or change AI members or runs; a person does. "
+                "Instead: hand a ticket to a teammate with ai_run(action='handoff', member=<name>, ticket=<key>, "
+                "instruction=...), ask a person with ai_run(action='ask'), or name in your report who should do "
+                "what next."
             )
     op = AI_TEAM_OPS.get(action)
     if (

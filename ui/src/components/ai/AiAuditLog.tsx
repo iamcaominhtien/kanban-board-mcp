@@ -723,6 +723,18 @@ function WhyBlockedCard({ entryId }: { entryId: string }) {
         <span>{w.blockedBy}</span>
         <span className="ai-label">Who can change</span>
         <span>{w.whoCanChange}</span>
+        {w.switch && (
+          <>
+            <span className="ai-label">To allow it</span>
+            <span data-testid="why-switch">{w.switch}</span>
+          </>
+        )}
+        {w.instead && (
+          <>
+            <span className="ai-label">AI was told</span>
+            <span className="ai-muted">{w.instead}</span>
+          </>
+        )}
       </div>
       <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <button

@@ -576,6 +576,14 @@
   color: #b8c3bc;
   cursor: not-allowed;
 }
+/* past the role template or a lock: looks as greyed as before, but the owner may click it (a warning comes first) */
+.ai-seg .ai-seg-owner:not(:disabled):not(.ai-seg-on) {
+  color: #b8c3bc;
+}
+.ai-seg .ai-seg-owner:not(:disabled):not(.ai-seg-on):hover {
+  color: #8a5a12;
+  background: #fdf5e6;
+}
 .ai-toggle {
   position: relative;
   width: 34px;

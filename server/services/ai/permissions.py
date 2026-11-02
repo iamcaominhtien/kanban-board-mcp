@@ -164,7 +164,7 @@ def overrides_of(member) -> dict[str, str]:
 
 
 def owner_enabled_of(member) -> dict[str, dict]:
-    """Actions an owner loosened past the template (only Delete tickets, and only to 'approval'), with who and
+    """Actions the owner set looser than the template or past a lock (with a warning in the board), with who and
     when. Stored beside the overrides under `_owner`."""
     raw = _raw(member).get("_owner")
     if not isinstance(raw, dict):
@@ -172,15 +172,30 @@ def owner_enabled_of(member) -> dict[str, dict]:
     return {
         k: v
         for k, v in raw.items()
-        if k in OWNER_ENABLEABLE and isinstance(v, dict) and (v.get("mode") == APPROVAL)
+        if k in ACTIONS and isinstance(v, dict) and v.get("mode") in MODES
     }
+
+
+def owner_widened(template: str, overrides: dict[str, str]) -> list[str]:
+    """The overrides only an owner may set: looser than the template, or below a lock."""
+    base = TEMPLATES.get(template, TEMPLATES["developer"])
+    out = []
+    for action, mode in overrides.items():
+        if action not in ACTIONS or mode not in MODES:
+            continue
+        lock = LOCKS.get(action)
+        looser = template != "custom" and _RANK[mode] < _RANK[base[action]]
+        if looser or (lock and _RANK[mode] < _RANK[lock]):
+            out.append(action)
+    return out
 
 
 def validate_overrides(
     template: str, overrides: dict[str, str], *, owner: bool = False
 ) -> dict[str, str]:
-    """Check an override set: modes must exist and, except for Custom, only make the template stricter.
-    An owner may set Delete tickets to 'approval' on any template (never to 'allowed').
+    """Check an override set: modes must exist and, except for Custom, only make the template stricter. The project
+    owner may set any mode, past the template and past a lock (the board warns first and records who and when);
+    `manage_project` stays forbidden to every AI.
 
     Raises:
         ValueError: With a message the UI shows as is.
@@ -196,23 +211,20 @@ def validate_overrides(
             raise ValueError(f"Unknown action '{action}'.")
         if mode not in MODES:
             raise ValueError(f"Mode must be one of {', '.join(MODES)}.")
+        if owner:
+            if mode != base[action]:
+                out[action] = mode
+            continue
         lock = LOCKS.get(action)
         if lock and _RANK[mode] < _RANK[lock]:
             raise ValueError(
-                f"{ACTIONS[action][0]} can be at most '{lock}' for an AI member."
+                f"{ACTIONS[action][0]} can be at most '{lock}' for an AI member; only the project owner can "
+                "allow it outright."
             )
-        if (
-            owner
-            and action in OWNER_ENABLEABLE
-            and mode == APPROVAL
-            and base[action] == BLOCKED
-        ):
-            out[action] = mode
-            continue
         if template != "custom" and _RANK[mode] < _RANK[base[action]]:
             raise ValueError(
                 f"Overrides can only make the template stricter: {ACTIONS[action][0]} is "
-                f"'{base[action]}' in {template}. Switch to Custom (owner) to widen it."
+                f"'{base[action]}' in {template}. Only the project owner can widen it."
             )
         if mode != base[action]:
             out[action] = mode
@@ -238,7 +250,8 @@ def effective(member, action: str, settings=None) -> Decision:
         )
     template = member.template if member.template in TEMPLATES else "developer"
     own = overrides_of(member).get(action)
-    owner_set = action in owner_enabled_of(member) and own == APPROVAL
+    owner_rec = owner_enabled_of(member).get(action)
+    owner_set = owner_rec is not None and own == owner_rec["mode"]
     delegate = full_rights_member(settings) if settings is not None else None
     if delegate and delegate == getattr(member, "id", None):
         # Autopilot, full rights: the delegate acts as the owner would; only the hard locks and the switches below stay
@@ -246,11 +259,11 @@ def effective(member, action: str, settings=None) -> Decision:
         own = None
     else:
         layers = [
-            {
+            {"layer": f"Owner-enabled · {owner_rec.get('by') or 'owner'}", "mode": own}
+            if owner_set
+            else {
                 "layer": f"Role template · {template}",
-                "mode": APPROVAL
-                if owner_set
-                else TEMPLATES[template].get(action, BLOCKED),
+                "mode": TEMPLATES[template].get(action, BLOCKED),
             }
         ]
     if own:
@@ -276,8 +289,8 @@ def effective(member, action: str, settings=None) -> Decision:
         if _RANK[layer["mode"]] > _RANK[mode]:
             mode, decider = layer["mode"], layer
     lock = LOCKS.get(action)
-    if lock and _RANK[mode] < _RANK[lock]:
-        mode = lock
+    if lock and _RANK[mode] < _RANK[lock] and not owner_set:
+        mode = lock  # an owner who lifted the lock (with the warning) decided otherwise
     reason = (
         f"{ACTIONS.get(action, (action,))[0]} is '{mode}' ({decider['layer']})."
         if mode != ALLOWED
@@ -294,7 +307,8 @@ def matrix(member, settings=None) -> list[dict]:
     rows = []
     for action, (label, description, risk) in ACTIONS.items():
         d = effective(member, action, settings)
-        owner_set = enabled.get(action) if own.get(action) == APPROVAL else None
+        rec = enabled.get(action)
+        owner_set = rec if rec is not None and own.get(action) == rec["mode"] else None
         if owner_set:
             source = "Owner-enabled"
         elif own.get(action):
