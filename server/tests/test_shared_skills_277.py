@@ -5,12 +5,11 @@ import asyncio
 import json
 from pathlib import Path
 
-from fastapi.testclient import TestClient
-
 from models import AiMember, AiProjectSettings
 from services import shared_skills
 from services.ai import board_skills
 from services.ai.context import RunContext, rules_block
+from tests.test_ai import env  # noqa: F401
 
 SHARED = [
     "working-a-ticket",
@@ -112,10 +111,7 @@ def test_a_run_gets_a_folder_with_only_the_skills_on_for_it():
     )
 
 
-def test_the_ui_lists_the_board_skills():
-    import main
-
-    with TestClient(main.app) as c:
-        r = c.get("/ai/board-skills")
+async def test_the_ui_lists_the_board_skills(env):
+    r = await env["c"].get("/ai/board-skills")
     assert r.status_code == 200
     assert [s["name"] for s in r.json()][2:] == SHARED
