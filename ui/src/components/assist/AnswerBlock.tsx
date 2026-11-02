@@ -171,7 +171,7 @@ export function AnswerBlock({
   } else if (msg.state === 'error') {
     body = (
       <div className="as-tile as-tile-error" data-testid="answer-error">
-        <div className="as-tile-title">Couldn't get an answer</div>
+        <div className="as-tile-title">Couldn’t get an answer</div>
         <div className="ai-hint">
           {msg.error.message ?? 'The provider returned an error.'} Nothing was changed and nothing was charged. Your
           message is kept.
