@@ -394,3 +394,55 @@ def test_the_plain_preview_draws_a_links_bends_and_orthogonal_elbows():
     points = diagram_model.render_svg(elbow).split('<polyline points="')[2]
     pts = [tuple(map(float, p.split(","))) for p in points.split('"', 1)[0].split()]
     assert all(a[0] == b[0] or a[1] == b[1] for a, b in zip(pts, pts[1:]))
+
+
+def _cells(*boxes: tuple[str, int, int, int, int]) -> str:
+    cells = "".join(
+        f'<mxCell id="{i}" value="{i}" style="rounded=1;" vertex="1" parent="1">'
+        f'<mxGeometry x="{x}" y="{y}" width="{w}" height="{h}" as="geometry"/></mxCell>'
+        for i, x, y, w, h in boxes
+    )
+    return (
+        '<mxfile><diagram name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>'
+        + cells
+        + "</root></mxGraphModel></diagram></mxfile>"
+    )
+
+
+def test_a_chip_a_tab_or_a_frame_behind_steps_is_not_taken_for_an_overlap():
+    # as Flow draws them: a number chip on a step's corner, a lane frame behind its steps with its name tab, an icon
+    # on a disc; only two shapes of about the same size that partly cover each other look broken
+    drawn = _cells(
+        ("node-load", 284, 164, 140, 100),
+        ("badge-load", 278, 154, 22, 20),
+        ("frame-lane", 0, 0, 900, 300),
+        ("tab-lane", 0, 0, 120, 300),
+        ("disc", 500, 120, 56, 56),
+        ("icon", 512, 132, 32, 32),
+        ("node-next", 600, 164, 140, 100),
+    )
+    assert diagram_model.problems(diagram_model.Drawing(drawn)) == []
+    clash = _cells(("a", 0, 0, 140, 100), ("b", 60, 40, 140, 100))
+    assert diagram_model.problems(diagram_model.Drawing(clash)) == [
+        "Shapes 'a' and 'b' overlap: move one so they are at least 40 px apart."
+    ]
+    same = _cells(("a", 0, 0, 140, 100), ("b", 0, 0, 140, 100))
+    assert len(diagram_model.problems(diagram_model.Drawing(same))) == 1
+
+
+def test_flow_is_suggested_and_the_draw_io_guide_says_how_its_files_reach_the_board():
+    from services.ai import plugins
+
+    flow = next(c for c in plugins.CATALOGUE if c["key"] == "flow")
+    assert flow["source"] == "https://github.com/iamcaominhtien/flow"
+    assert flow["plugin"] == "flow" and not flow.get("ui")
+    assert set(flow["roles"]) == {"pm", "ba", "designer", "dev"}
+    guide = visual_guides.DRAWIO
+    for needle in (
+        "**With Flow.**",
+        "flow.py build",
+        "flow:author",
+        "flow:edit-drawio",
+        "node-<id>",
+    ):
+        assert needle in guide

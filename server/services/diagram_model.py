@@ -251,6 +251,22 @@ def model(source: str, limit: int = MODEL_CELLS) -> dict[str, Any]:
     return out
 
 
+def _on_purpose(a: dict[str, float], b: dict[str, float]) -> bool:
+    """Two overlapping shapes that were put there on purpose: a small one on a large one (a step's number chip, a
+    lane's name tab, an icon on a card) or one drawn wholly inside a larger one (a lane or pool frame behind its steps,
+    a sequence fragment). Only shapes of about the same size that partly cover each other look broken."""
+    small, big = sorted((a, b), key=lambda g: g["w"] * g["h"])
+    if small["w"] * small["h"] * 4 <= big["w"] * big["h"]:
+        return True
+    inside = (
+        big["x"] <= small["x"]
+        and big["y"] <= small["y"]
+        and small["x"] + small["w"] <= big["x"] + big["w"]
+        and small["y"] + small["h"] <= big["y"] + big["h"]
+    )
+    return inside and small["w"] * small["h"] < big["w"] * big["h"]
+
+
 def problems(d: "Drawing") -> list[str]:
     """What will look broken once drawn: links to nothing, repeated ids, shapes on top of each other."""
     out: list[str] = []
@@ -295,6 +311,7 @@ def problems(d: "Drawing") -> list[str]:
                 and b["x"] < a["x"] + a["w"]
                 and a["y"] < b["y"] + b["h"]
                 and b["y"] < a["y"] + a["h"]
+                and not _on_purpose(a, b)
             ):
                 overlaps += 1
                 if overlaps <= 5:

@@ -148,6 +148,14 @@ and `&`, `<`, `"` are escaped as in any XML attribute. Every link has a `source`
 on the same page. A loop back goes around the outside through bends you give it, on the grid, in page coordinates:
 `<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="540" y="180"/></Array></mxGeometry>`.
 
+**With Flow.** When the Flow skills are open to you (`flow:flowchart`, `flow:sequence`, `flow:er`, `flow:bpmn` and the
+other `flow:*`; the board suggests the plugin, github.com/iamcaominhtien/flow), a diagram of a kind it knows is laid
+out by it instead of by hand: write its JSON spec, run its `flow.py build`, read its check and fix the spec until the
+errors are gone. It writes a `.drawio` in one design (its own palette and sizes, in place of section 3's) and an
+`.html` page whose main path moves. Then go on with section 8 on the `.drawio` and hand it in as section 9 says; the
+`.html` may go on the ticket as an attachment. A large or dense diagram goes through `flow:author`. Its ids are
+`node-<id>` and `edge-<id>`; a later change follows section 7, or `flow:edit-drawio`.
+
 ## 7. Changing an existing diagram
 
 People moved those boxes by hand. A change keeps their work:
