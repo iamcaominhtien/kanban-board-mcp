@@ -190,6 +190,19 @@ function EntryForm({
   const { projectId } = useAiBoardState();
   const noteAdapter = useMemo(() => textareaAdapter(() => noteRef.current), []);
   const noteAi = useEditorAi({ surface: 'debug_note', projectId, ticketId, adapter: noteAdapter });
+  /** Wraps the selection of the note (or a placeholder word) in Markdown, and keeps it selected. */
+  const wrapNote = (before: string, after: string, placeholder: string) => {
+    const el = noteRef.current;
+    const text = v.note;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const picked = text.slice(start, end) || placeholder;
+    set('note', text.slice(0, start) + before + picked + after + text.slice(end));
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(start + before.length, start + before.length + picked.length);
+    });
+  };
   const set = <K extends keyof EntryFormValues>(key: K, value: EntryFormValues[K]) =>
     setV((prev) => ({ ...prev, [key]: value }));
 
@@ -287,6 +300,63 @@ function EntryForm({
       )}
 
       <div className={styles.noteInputBox}>
+        {/* The compact Markdown toolbar of the Log entry form (Debug Space 2, comp-2 DS-3) */}
+        <div className={styles.noteToolbar} role="toolbar" aria-label="Formatting">
+          <button
+            type="button"
+            className={styles.noteToolBtn}
+            aria-label="Bold"
+            title="Bold"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapNote('**', '**', 'bold text')}
+          >
+            <span style={{ fontSize: 12, fontWeight: 800 }}>B</span>
+          </button>
+          <button
+            type="button"
+            className={styles.noteToolBtn}
+            aria-label="Italic"
+            title="Italic"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapNote('_', '_', 'italic text')}
+          >
+            <span style={{ fontSize: 12, fontStyle: 'italic', fontWeight: 600 }}>i</span>
+          </button>
+          <button
+            type="button"
+            className={styles.noteToolBtn}
+            aria-label="Code"
+            title="Code"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapNote('`', '`', 'code')}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M8 6L2 12L8 18" />
+              <path d="M16 6L22 12L16 18" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={styles.noteToolBtn}
+            aria-label="Link"
+            title="Link"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapNote('[', '](https://)', 'link text')}
+          >
+            <LineIcon name="link" size={12} />
+          </button>
+          <span style={{ flexGrow: 1 }} />
+          <span className={styles.noteToolLabel}>Markdown</span>
+        </div>
         <textarea
           ref={noteRef}
           className={styles.noteTextarea}
@@ -302,7 +372,7 @@ function EntryForm({
               e.stopPropagation();
             }
           }}
-          placeholder="Write what you found, tried, or ran into… (Markdown supported)"
+          placeholder="Write what you found, tried, or ran into…"
           aria-label="Note"
           required
         />

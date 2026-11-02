@@ -3,6 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Member, Ticket } from '../types';
 import { TicketCard } from './TicketCard';
+import cardStyles from './TicketCard.module.css';
 
 interface DraggableTicketCardProps {
   ticket: Ticket;
@@ -15,6 +16,10 @@ interface DraggableTicketCardProps {
   onResume?: (ticket: Ticket) => void;
   onDelete?: (ticket: Ticket) => void;
   hideStoryChip?: boolean;
+  /** Enter on the focused card opens it (defaults to onCardClick). */
+  onCardOpen?: (ticket: Ticket) => void;
+  /** Part of the selected parent group: the green ring (Sub-task Grouping 1). */
+  groupSelected?: boolean;
 }
 
 /**
@@ -31,8 +36,10 @@ export function DraggableTicketCard({
   onResume,
   onDelete,
   hideStoryChip,
+  onCardOpen,
+  groupSelected,
 }: DraggableTicketCardProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, isDragging, active } = useDraggable({
     id: ticket.id,
   });
 
@@ -45,11 +52,15 @@ export function DraggableTicketCard({
   }, [isDragging]);
 
   if (isDragging) {
+    // The source ghost keeps the card's slot, so the cards below do not jump on pick-up (comp-1 DD-2)
+    const slotHeight = active?.rect.current.initial?.height;
     return (
       <div
         ref={setNodeRef}
+        data-testid="drag-source-ghost"
         style={{
-          minHeight: 118,
+          height: slotHeight ?? undefined,
+          minHeight: slotHeight ? undefined : 90,
           borderRadius: 8,
           border: '1.5px dashed #C7D2CB',
           boxSizing: 'border-box',
@@ -74,8 +85,21 @@ export function DraggableTicketCard({
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={handleClick}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && e.target === e.currentTarget) {
+          e.preventDefault();
+          (onCardOpen ?? onCardClick)?.(ticket);
+        }
+      }}
+    >
       <TicketCard
+        className={groupSelected ? cardStyles.cardGroupSelected : undefined}
         ticket={ticket}
         allTickets={allTickets}
         memberMap={memberMap}

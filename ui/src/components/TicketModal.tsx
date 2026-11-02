@@ -29,8 +29,10 @@ import {
   useTicketBranches,
   useDefaultBase,
   useWorkspaceSettings,
+  useTicketWorkspace,
   uploadUrl,
 } from '../api/tickets';
+import { formatBytes } from '../utils/workspaceTree';
 import { extractError } from '../api/extractError';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { ActivitySection } from './ActivitySection';
@@ -63,7 +65,7 @@ import {
   type AiTicketActions,
 } from './ai/AiTicketContext';
 import { aiApi } from '../api/ai';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
@@ -86,6 +88,9 @@ import { SubTasksSection } from './SubTasksSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu } from './StatusMenu';
 import { TagPill } from './TagPill';
+import { TagPicker } from './TagPicker';
+import { MemberAvatar } from './MemberAvatar';
+import { MenuSelect } from './ui/MenuSelect';
 import { useToast } from './Toast';
 import { Icon } from './docs/Icon';
 import { FollowBell } from './notifications-follow/FollowBell';
@@ -100,6 +105,26 @@ import styles from './TicketModal.module.css';
 import { LineIcon } from './ui/LineIcon';
 
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
+
+/** The priority dot colours used everywhere else (New Ticket 1). */
+const PRIORITY_DOT: Record<Priority, string> = {
+  low: '#9BB3A4',
+  medium: '#E8B93A',
+  high: '#E2793D',
+  critical: '#D64545',
+};
+
+/** "ui, dnd, ui" -> ["ui", "dnd"]: the tags typed in the New Ticket field. */
+function parseTagList(text: string): string[] {
+  return Array.from(
+    new Set(
+      text
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+}
 
 const TYPE_CONFIG: Record<IssueType, { label: string }> = {
   bug: { label: 'Bug' },
@@ -200,6 +225,7 @@ type TicketModalProps =
       allTickets?: Ticket[];
       onOpenTicket?: (t: Ticket) => void;
       onOpenDocsPage?: (pageId: string) => void;
+      onOpenSettings?: () => void;
       members?: Member[];
     }
   | {
@@ -211,6 +237,8 @@ type TicketModalProps =
       allTickets?: Ticket[];
       onOpenTicket?: (t: Ticket) => void;
       onOpenDocsPage?: (pageId: string) => void;
+      /** Opens Settings on the workspace (the Workspace tab when the workspace is off). */
+      onOpenSettings?: () => void;
       members?: Member[];
     };
 
@@ -223,6 +251,7 @@ function TicketModalInner({
   allTickets = [],
   onOpenTicket,
   onOpenDocsPage,
+  onOpenSettings,
   members = [],
 }: TicketModalProps) {
   const localMode = initialMode;
@@ -297,6 +326,12 @@ function TicketModalInner({
   const mentionIntent = useMentionIntent(ticket?.id ?? '');
   const { data: workspaceSettings } = useWorkspaceSettings();
   const workspaceEnabled = workspaceSettings?.enabled !== false;
+  // Header tooltip "Workspace — 6 files · 12.4 MB" (comp-2 WS-2), from the same query the Workspace tab reads
+  const { data: wsInfo } = useTicketWorkspace(workspaceEnabled && ticket ? ticket.id : '');
+  const wsTooltip =
+    wsInfo?.exists && wsInfo.fileCount > 0
+      ? `Workspace — ${wsInfo.fileCount} ${wsInfo.fileCount === 1 ? 'file' : 'files'} · ${formatBytes(wsInfo.totalBytes)}`
+      : 'Workspace';
 
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -305,8 +340,8 @@ function TicketModalInner({
   const [status, setStatus] = useState<Status>(ticket?.status ?? 'backlog');
   const [priority, setPriority] = useState<Priority>(ticket?.priority ?? 'medium');
   const [tags, setTags] = useState<string[]>(ticket?.tags ?? []);
-  const [isAddingTag, setIsAddingTag] = useState(false);
-  const [newTagText, setNewTagText] = useState('');
+  // New Ticket: the Tags field as typed ("ui, dnd"); `tags` is what it parses to
+  const [tagsText, setTagsText] = useState('');
   const [type, setType] = useState<IssueType>(ticket?.type ?? 'task');
   const [dueDate, setDueDate] = useState<string | null>(ticket?.dueDate ?? null);
   const [startDate, setStartDate] = useState<string | null>(ticket?.startDate ?? null);
@@ -442,19 +477,11 @@ function TicketModalInner({
   const [visible, setVisible] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const tagEscapedRef = useRef(false);
-  const tagInputRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
   }, []);
-
-  useEffect(() => {
-    if (isAddingTag) {
-      tagInputRef.current?.focus();
-    }
-  }, [isAddingTag]);
 
   // Copy server state into the local form state (also used to roll back a rejected edit)
   function applyTicket(ticket: Ticket) {
@@ -732,15 +759,12 @@ function TicketModalInner({
     autoSaveField('tags', nextTags);
   }
 
-  function handleAddTagSubmit(keepOpen = false) {
-    const trimmed = newTagText.trim().toLowerCase();
-    if (trimmed && !tags.includes(trimmed)) {
-      const nextTags = [...tags, trimmed];
-      setTags(nextTags);
-      autoSaveField('tags', nextTags);
-    }
-    setNewTagText('');
-    if (!keepOpen) setIsAddingTag(false);
+  function handleAddTag(tag: string) {
+    const trimmed = tag.trim().toLowerCase();
+    if (!trimmed || tags.includes(trimmed)) return;
+    const nextTags = [...tags, trimmed];
+    setTags(nextTags);
+    if (ticket) autoSaveField('tags', nextTags);
   }
 
   function handleCopyId() {
@@ -779,6 +803,22 @@ function TicketModalInner({
 
   const assigneeMember = members.find((m) => m.id === assignee);
   const childTickets = ticket ? allTickets.filter((t) => t.parentId === ticket.id) : [];
+  const childEstimates = childTickets.map((t) => t.estimate).filter((e): e is number => e != null);
+  const rolledUpEstimate = childEstimates.length > 0 ? childEstimates.reduce((a, b) => a + b, 0) : null;
+  // Files on their way up from the description: the Attachments zone shows them while they upload (comp-2 ATT-3)
+  const [uploadingFiles, setUploadingFiles] = useState<{ id: number; name: string; image: boolean }[]>([]);
+  const uploadSeq = useRef(0);
+  const trackedUpload = useCallback(async (file: File) => {
+    const id = ++uploadSeq.current;
+    setUploadingFiles((prev) => [...prev, { id, name: file.name, image: file.type.startsWith('image/') }]);
+    try {
+      return await uploadAnyFile(file);
+    } finally {
+      setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
+    }
+  }, []);
+  // Every tag used in the project, for the tag picker's suggestions
+  const projectTags = useMemo(() => Array.from(new Set(allTickets.flatMap((t) => t.tags ?? []))), [allTickets]);
   const parentTicket = ticket?.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
   const pendingBlockerTicket = ticket?.pendingTicketId
     ? allTickets.find((t) => t.id === ticket.pendingTicketId)
@@ -912,26 +952,37 @@ function TicketModalInner({
 
                   <div className={styles.ntField}>
                     <span className={styles.ntLabel}>Description</span>
+                    {/* The boxed editor with its compact toolbar shows at rest (New Ticket 1, comp-2 NT-4) */}
                     <MarkdownEditor
                       value={description}
                       onChange={setDescription}
+                      startInEditMode
+                      focusOnMount={false}
+                      disableClickOutside
+                      compact
                       onUploadFile={uploadAnyFile}
                       onUploadImage={uploadAnyFile}
                     />
                   </div>
 
-                  <div style={{ display: 'flex', gap: 20 }}>
+                  {/* Priority dot chips Low…Critical on their own line, Assignee dropdown on the right (comp-2 NT-1, NT-3) */}
+                  <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
                     <div className={styles.ntField} style={{ flex: 1 }}>
                       <span className={styles.ntLabel}>Priority</span>
-                      <div className={styles.priorityChips}>
-                        {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
+                      <div className={styles.priorityChips} role="radiogroup" aria-label="Priority">
+                        {(['low', 'medium', 'high', 'critical'] as Priority[]).map((p) => (
                           <button
                             key={p}
                             type="button"
+                            role="radio"
+                            aria-checked={priority === p}
                             className={`${styles.ntPriorityChip} ${priority === p ? styles.ntPriorityChipActive : ''}`}
                             onClick={() => setPriority(p)}
                           >
-                            <PriorityMark priority={p} width={14} height={12} />
+                            <span
+                              aria-hidden="true"
+                              style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORITY_DOT[p] }}
+                            />
                             <span style={{ textTransform: 'capitalize' }}>{p}</span>
                           </button>
                         ))}
@@ -939,45 +990,115 @@ function TicketModalInner({
                     </div>
 
                     <div className={styles.ntField}>
-                      <span className={styles.ntLabel}>Estimate</span>
-                      <div className={styles.estimateRow}>
-                        {ESTIMATE_NUMBERS.map((sp) => (
-                          <button
-                            key={sp}
-                            type="button"
-                            className={`${styles.ntEstBtn} ${estimate === sp ? styles.ntEstBtnActive : ''}`}
-                            onClick={() => setEstimate(estimate === sp ? null : sp)}
-                          >
-                            {sp}
-                          </button>
-                        ))}
-                      </div>
+                      <span className={styles.ntLabel}>Assignee</span>
+                      <MenuSelect<string>
+                        variant="button"
+                        label="Assignee"
+                        testId="new-ticket-assignee"
+                        value={assignee ?? ''}
+                        onChange={(v) => setAssignee(v || null)}
+                        menuWidth={220}
+                        options={[
+                          {
+                            value: '',
+                            label: 'Unassigned',
+                            icon: (
+                              <span
+                                style={{
+                                  display: 'block',
+                                  width: 15,
+                                  height: 15,
+                                  borderRadius: '50%',
+                                  border: '1.4px dashed #C7D2CB',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
+                            ),
+                          },
+                          ...members.map((m) => ({
+                            value: m.id,
+                            label: m.name,
+                            icon: <MemberAvatar member={m} size={18} />,
+                          })),
+                        ]}
+                      />
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 20 }}>
-                    <div className={styles.ntField} style={{ flex: 1 }}>
-                      <span className={styles.ntLabel}>Assignee</span>
-                      <select
-                        className={styles.ntInput}
-                        value={assignee ?? ''}
-                        onChange={(e) => setAssignee(e.target.value || null)}
+                  <div className={styles.ntField}>
+                    <span className={styles.ntLabel}>Estimate</span>
+                    <div className={styles.estimateRow}>
+                      {/* "—" is no estimate (comp-2 NT-5) */}
+                      <button
+                        type="button"
+                        aria-label="No estimate"
+                        className={`${styles.ntEstBtn} ${estimate === null ? styles.ntEstBtnActive : ''}`}
+                        onClick={() => setEstimate(null)}
                       >
-                        <option value="">Unassigned</option>
-                        {members.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
+                        —
+                      </button>
+                      {ESTIMATE_NUMBERS.map((sp) => (
+                        <button
+                          key={sp}
+                          type="button"
+                          className={`${styles.ntEstBtn} ${estimate === sp ? styles.ntEstBtnActive : ''}`}
+                          onClick={() => setEstimate(estimate === sp ? null : sp)}
+                        >
+                          {sp}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tags with a pill preview, and Start date beside Due date (New Ticket 1, comp-2 NT-2) */}
+                  <div className={styles.ntField}>
+                    <label className={styles.ntLabel} htmlFor="new-ticket-tags">
+                      Tags
+                    </label>
+                    <input
+                      id="new-ticket-tags"
+                      className={`${styles.ntInput} ${styles.ntInputPlain}`}
+                      placeholder="frontend, bug, phase-2…"
+                      value={tagsText}
+                      onChange={(e) => {
+                        setTagsText(e.target.value);
+                        setTags(parseTagList(e.target.value));
+                      }}
+                    />
+                    {tags.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        {tags.map((t) => (
+                          <TagPill key={t} tag={t} size="small" />
                         ))}
-                      </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div className={styles.ntField} style={{ flex: 1 }}>
+                      <label className={styles.ntLabel} htmlFor="new-ticket-start">
+                        Start Date
+                      </label>
+                      <input
+                        id="new-ticket-start"
+                        type="date"
+                        className={`${styles.ntInput} ${styles.ntInputPlain}`}
+                        value={startDate ?? ''}
+                        max={dueDate ?? undefined}
+                        onChange={(e) => setStartDate(e.target.value || null)}
+                      />
                     </div>
 
                     <div className={styles.ntField} style={{ flex: 1 }}>
-                      <span className={styles.ntLabel}>Due Date</span>
+                      <label className={styles.ntLabel} htmlFor="new-ticket-due">
+                        Due Date
+                      </label>
                       <input
+                        id="new-ticket-due"
                         type="date"
-                        className={styles.ntInput}
+                        className={`${styles.ntInput} ${styles.ntInputPlain}`}
                         value={dueDate ?? ''}
+                        min={startDate ?? undefined}
                         onChange={(e) => setDueDate(e.target.value || null)}
                       />
                     </div>
@@ -1242,28 +1363,27 @@ function TicketModalInner({
                 <span className={styles.viewTooltip}>{wlTooltip}</span>
               </button>
 
-              {workspaceEnabled && (
-                <button
-                  type="button"
-                  className={`${styles.viewBtn} ${activeTab === 'workspace' ? styles.viewBtnActive : ''}`}
-                  onClick={() => setActiveTab(activeTab === 'workspace' ? 'main' : 'workspace')}
-                  aria-label="Workspace"
+              {/* The Workspace tab stays when the workspace is off: it then says how to turn it on (comp-2 WS-3) */}
+              <button
+                type="button"
+                className={`${styles.viewBtn} ${activeTab === 'workspace' ? styles.viewBtnActive : ''}`}
+                onClick={() => setActiveTab(activeTab === 'workspace' ? 'main' : 'workspace')}
+                aria-label="Workspace"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z" />
-                  </svg>
-                  <span className={styles.viewTooltip}>Workspace</span>
-                </button>
-              )}
+                  <path d="M3 7C3 5.9 3.9 5 5 5H9.2L11.2 7.5H19C20.1 7.5 21 8.4 21 9.5V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7Z" />
+                </svg>
+                <span className={styles.viewTooltip}>{workspaceEnabled ? wsTooltip : 'Workspace — not set up'}</span>
+              </button>
 
               <button
                 type="button"
@@ -1850,48 +1970,12 @@ function TicketModalInner({
                           )}
 
                           <div className={styles.tagsRow}>
+                            {/* Removable pills 12/600 lowercase (Tags 2, comp-1 TG-1); "+ Add tag" opens the picker
+                                popover with the project's tags and a Create row (Tags 4, comp-1 TG-2) */}
                             {tags.map((tag) => (
-                              <TagPill key={tag} tag={tag} onRemove={() => handleRemoveTag(tag)} />
+                              <TagPill key={tag} tag={tag} size="large" onRemove={() => handleRemoveTag(tag)} />
                             ))}
-
-                            {isAddingTag ? (
-                              <input
-                                ref={tagInputRef}
-                                className={styles.tagInput}
-                                placeholder="Tag name…"
-                                value={newTagText}
-                                onChange={(e) => setNewTagText(e.target.value)}
-                                onBlur={() => {
-                                  // Esc closes without saving: the blur that follows must not add the typed text
-                                  if (tagEscapedRef.current) {
-                                    tagEscapedRef.current = false;
-                                    return;
-                                  }
-                                  handleAddTagSubmit();
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleAddTagSubmit();
-                                  if (e.key === ',') {
-                                    // a comma commits the tag and keeps the box open for the next one
-                                    e.preventDefault();
-                                    handleAddTagSubmit(true);
-                                  }
-                                  if (e.key === 'Escape') {
-                                    e.preventDefault(); // used here: the ticket stays open (see the Esc handler)
-                                    tagEscapedRef.current = true;
-                                    setNewTagText('');
-                                    setIsAddingTag(false);
-                                  }
-                                }}
-                              />
-                            ) : (
-                              <button type="button" className={styles.tagAddBtn} onClick={() => setIsAddingTag(true)}>
-                                <svg width="9" height="9" viewBox="0 0 12 12">
-                                  <path d="M6 2V10M2 6H10" stroke="#9AA8A0" strokeWidth="1.6" strokeLinecap="round" />
-                                </svg>
-                                Add tag
-                              </button>
-                            )}
+                            <TagPicker projectTags={projectTags} currentTags={tags} onAdd={handleAddTag} />
                           </div>
                         </div>
 
@@ -1908,8 +1992,8 @@ function TicketModalInner({
                               scheduleDescriptionSave(nextDesc);
                             }}
                             onBlur={() => flushDescRef.current()}
-                            onUploadFile={uploadAnyFile}
-                            onUploadImage={uploadAnyFile}
+                            onUploadFile={trackedUpload}
+                            onUploadImage={trackedUpload}
                             docsProjectId={ticket.projectId}
                             mentionMembers={mentionList}
                             diagramProjectId={ticket.projectId}
@@ -2320,7 +2404,7 @@ function TicketModalInner({
                             scanText(c.text || '', `in comment · ${c.author || 'user'}`);
                           });
 
-                          if (allAttachments.length === 0) return null;
+                          if (allAttachments.length === 0 && uploadingFiles.length === 0) return null;
 
                           // Next and previous in the viewer walk through the ticket's attachments
                           const attItems = allAttachments.map((att) =>
@@ -2368,7 +2452,11 @@ function TicketModalInner({
                                             {att.name}
                                           </span>
                                           <span className={styles.attFileSize}>
-                                            {att.size ? formatFileSize(att.size) : meta.badge}
+                                            {att.size ? (
+                                              formatFileSize(att.size)
+                                            ) : (
+                                              <UploadSize src={att.src} fallback={meta.badge} />
+                                            )}
                                           </span>
                                         </div>
                                         <a
@@ -2398,6 +2486,53 @@ function TicketModalInner({
                                     </div>
                                   );
                                 })}
+                                {uploadingFiles.map((f) =>
+                                  f.image ? (
+                                    <div key={`up-${f.id}`} className={styles.attThumbBox} data-testid="att-uploading">
+                                      <div
+                                        className={`${styles.attThumb} ${styles.attPulseBox}`}
+                                        title={`Uploading ${f.name}`}
+                                      >
+                                        <svg
+                                          className={styles.attPulseIcon}
+                                          width="26"
+                                          height="26"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="#5B6B60"
+                                          strokeWidth="1.8"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          aria-hidden="true"
+                                        >
+                                          <rect x="3" y="4" width="18" height="16" rx="2" />
+                                          <circle cx="8.5" cy="9.5" r="1.5" />
+                                          <path d="M21 15L16 10L5 21" />
+                                        </svg>
+                                      </div>
+                                      <span className={styles.attMetaText}>Uploading…</span>
+                                    </div>
+                                  ) : (
+                                    <div key={`up-${f.id}`} className={styles.attThumbBox} data-testid="att-uploading">
+                                      <div className={styles.attFileChip} title={`Uploading ${f.name}`}>
+                                        <div className={styles.attFileIcon} style={{ backgroundColor: '#F6FAF7' }}>
+                                          <LineIcon name="page" size={14} color="#9AA8A0" />
+                                        </div>
+                                        <div className={styles.attFileInfo}>
+                                          <span className={styles.attFileName}>{f.name}</span>
+                                          <span
+                                            className={styles.attProgress}
+                                            role="progressbar"
+                                            aria-label={`Uploading ${f.name}`}
+                                          >
+                                            <span />
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <span className={styles.attMetaText}>Uploading…</span>
+                                    </div>
+                                  ),
+                                )}
 
                                 {/* Dashed Add Attachment tile matching design */}
                                 <button
@@ -3066,8 +3201,20 @@ function TicketModalInner({
                       <div className={styles.sidebarRow}>
                         <span className={styles.sidebarLabel}>Estimate</span>
                         <div className={styles.sidebarItemInteractive} title="Click to change estimate">
-                          <span style={estimate === null ? { color: '#9AA8A0' } : undefined}>
-                            {estimate !== null ? `${estimate} pt` : '–'}
+                          {/* A parent with no estimate of its own shows the sum of its sub-tickets' (comp-2 TDP-2) */}
+                          <span
+                            style={estimate === null && rolledUpEstimate === null ? { color: '#9AA8A0' } : undefined}
+                            data-testid="sidebar-estimate"
+                          >
+                            {estimate !== null ? (
+                              `${estimate} pt`
+                            ) : rolledUpEstimate !== null ? (
+                              <>
+                                {rolledUpEstimate} pt <span style={{ color: '#9AA8A0' }}>(rolled up)</span>
+                              </>
+                            ) : (
+                              '–'
+                            )}
                           </span>
                           <select
                             className={styles.sidebarSelect}
@@ -3236,7 +3383,12 @@ function TicketModalInner({
                       onOpenTestCase={() => setActiveTab('test_cases')}
                     />
                   )}
-                  {activeTab === 'workspace' && workspaceEnabled && <WorkspaceSection ticketId={ticket.id} />}
+                  {activeTab === 'workspace' &&
+                    (workspaceEnabled ? (
+                      <WorkspaceSection ticketId={ticket.id} />
+                    ) : (
+                      <WorkspaceNotSetUp onOpenSettings={onOpenSettings} />
+                    ))}
                   {activeTab === 'branches' && <BranchesSection ticketId={ticket.id} />}
                   {activeTab === 'ai' && <TicketRunsTab ticket={ticket} runId={aiRunId} />}
                   {activeTab === 'activity' && (
@@ -3422,5 +3574,80 @@ export function TicketModal(props: TicketModalProps) {
         </TicketDocsHost>
       </CanvasOwnerContext.Provider>
     </SketchOwnerContext.Provider>
+  );
+}
+
+/** The size of a stored file, asked of the server (`/upload-info`), for a file linked from Markdown (comp-2 ATT-1). */
+function UploadSize({ src, fallback }: Readonly<{ src: string; fallback: string }>) {
+  const stored = src.includes('/uploads/') ? src.slice(src.indexOf('/uploads/') + '/uploads/'.length) : null;
+  const { data } = useQuery({
+    queryKey: ['upload-info', stored],
+    queryFn: async () => {
+      const res = await fetch(`${resolveOrigin()}/upload-info/${stored}`);
+      if (!res.ok) return null;
+      const body = (await res.json()) as { size?: number };
+      return typeof body.size === 'number' ? body.size : null;
+    },
+    enabled: !!stored,
+    staleTime: Infinity,
+  });
+  return <>{data ? formatFileSize(data) : fallback}</>;
+}
+
+/** The Workspace tab while the workspace is off in Settings (Workspace 2, comp-2 WS-3). */
+function WorkspaceNotSetUp({ onOpenSettings }: Readonly<{ onOpenSettings?: () => void }>) {
+  return (
+    <div
+      data-testid="workspace-not-set-up"
+      style={{
+        border: '1px solid #E3E8E5',
+        borderRadius: 12,
+        padding: '40px 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 14,
+        textAlign: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 14,
+          background: '#F6FAF7',
+          border: '1px solid #E3E8E5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <LineIcon name="folder" size={24} color="#9AA8A0" />
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>Workspace isn&apos;t set up yet</div>
+      <div style={{ fontSize: 12.5, color: '#5B6B60', lineHeight: 1.5, maxWidth: 440 }}>
+        Turn it on in Settings and point it at a folder on this machine — every task then gets its own subfolder there
+        automatically, this panel just shows what&apos;s in it.
+      </div>
+      {onOpenSettings && (
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          style={{
+            border: 'none',
+            borderRadius: 7,
+            background: '#2E6F40',
+            color: '#FFFFFF',
+            padding: '7px 14px',
+            fontFamily: 'inherit',
+            fontSize: 12.5,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Open Settings
+        </button>
+      )}
+    </div>
   );
 }

@@ -235,7 +235,8 @@ export function CommentsSection({
     } catch {
       // ignore
     }
-    return 'newest';
+    // Oldest first, the composer at the end of the thread (ticket-comments A, B; board CM-1)
+    return 'oldest';
   });
 
   const me = useMemo<Person>(

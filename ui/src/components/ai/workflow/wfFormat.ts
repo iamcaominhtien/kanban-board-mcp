@@ -29,10 +29,22 @@ export function roleLook(role: string | null) {
 /** Capitalise the first letter. */
 export const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
-/** A role's display name: the pack's own name when known, else its key in words. */
+/** The ready-made roles' names, as the packs write them (never "Ba", "Qa": design ai-team-process E, F). */
+const ROLE_NAMES: Record<string, string> = {
+  triage: 'Triage',
+  pm: 'PM',
+  ba: 'BA',
+  designer: 'Designer',
+  dev: 'Dev',
+  qa: 'QA',
+  user_tester: 'User tester',
+  reviewer: 'Reviewer',
+};
+
+/** A role's display name: the pack's own name when known, else the ready-made name, else its key in words. */
 export function roleName(role: string | null, names?: Record<string, string>): string {
   if (!role) return '';
-  return names?.[role] ?? cap(role.replace(/_/g, ' '));
+  return names?.[role] ?? ROLE_NAMES[role] ?? cap(role.replace(/_/g, ' '));
 }
 
 export const DEPTHS: ReviewDepth[] = ['light', 'standard', 'deep'];
@@ -48,7 +60,8 @@ export function stepChainLabel(s: WorkflowStep, names?: Record<string, string>):
   if (s.kind !== 'ai') return s.label;
   if (s.role === 'reviewer' && s.depth) return `${s.label} (${cap(s.depth)})`;
   if (s.role === 'triage') return s.label;
-  const r = roleName(s.role, names);
+  // "Dev (TDD)" inside the brackets reads "Build (Dev, TDD)", never "Build (Dev (TDD))"
+  const r = roleName(s.role, names).replace(/\s*\(([^)]*)\)\s*$/, ', $1');
   return r && r.toLowerCase() !== s.label.toLowerCase() ? `${s.label} (${r})` : s.label;
 }
 

@@ -21,6 +21,10 @@ interface ColumnProps {
   onDelete?: (ticket: Ticket) => void;
   /** What the card being dragged carries: a closed ticket (reopen) or a pending one. */
   dragKind?: 'reopen' | 'pending' | null;
+  /** Enter on a card: open it (a click may select a parent group first). */
+  onCardOpen?: (ticket: Ticket) => void;
+  /** The selected parent and its sub-tickets, drawn with the green ring (Sub-task Grouping 1). */
+  selectedGroup?: Set<string> | null;
 }
 
 /**
@@ -44,6 +48,8 @@ export function Column({
   onResume,
   onDelete,
   dragKind = null,
+  onCardOpen,
+  selectedGroup,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const { runsByTicket } = useAiBoardState();
@@ -84,7 +90,11 @@ export function Column({
   }
 
   return (
-    <div ref={setNodeRef} className={`${styles.column} ${isOver ? styles.columnDragOver : ''}`}>
+    <div
+      ref={setNodeRef}
+      data-column-id={column.id}
+      className={`${styles.column} ${isOver ? styles.columnDragOver : ''}`}
+    >
       <div className={styles.columnHeaderContainer}>
         <div className={styles.columnHeaderTop}>
           <span className={styles.columnLabel}>{column.label}</span>
@@ -146,7 +156,7 @@ export function Column({
         <div className={styles.columnBar} style={{ backgroundColor: column.accentColor }} />
       </div>
 
-      <div className={styles.columnBody} aria-hidden={skeletonCards !== undefined ? true : undefined}>
+      <div className={styles.columnBody} data-column-body aria-hidden={skeletonCards !== undefined ? true : undefined}>
         {skeletonCards !== undefined &&
           Array.from({ length: skeletonCards }).map((_, i) => (
             <div key={i} className={loading.skelCard} style={{ opacity: i > 0 ? 0.75 : 1 }}>
@@ -185,6 +195,8 @@ export function Column({
                 ticket={ticket}
                 allTickets={allTickets}
                 onCardClick={onCardClick}
+                onCardOpen={onCardOpen}
+                groupSelected={selectedGroup?.has(ticket.id)}
                 memberMap={memberMap}
                 subtaskStats={subtaskStats}
                 onReopen={onReopen}
@@ -199,6 +211,8 @@ export function Column({
               ticket={ticket}
               allTickets={allTickets}
               onCardClick={onCardClick}
+              onCardOpen={onCardOpen}
+              groupSelected={selectedGroup?.has(ticket.id)}
               memberMap={memberMap}
               subtaskStats={subtaskStats}
               onReopen={onReopen}

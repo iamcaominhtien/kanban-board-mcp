@@ -13,10 +13,11 @@ import './assist.css';
 import { ContextMeter } from './ContextMeter';
 import { LineIcon } from '../ui/LineIcon';
 
-const SCOPES: { key: AssistScope; label: string; reads: string; size: string }[] = [
+/** `size` is said in the description; `warn` is the one cost that is drawn as an orange chip (design B8). */
+const SCOPES: { key: AssistScope; label: string; reads: string; size: string; warn?: boolean }[] = [
   { key: 'ticket', label: 'This ticket', reads: 'Comments, sub-tickets, linked docs', size: '~4k tokens' },
   { key: 'project', label: 'This project', reads: 'Filtered tickets and attached docs', size: '~20k tokens' },
-  { key: 'all', label: 'All projects', reads: 'Only projects you belong to · slower', size: '~5× cost' },
+  { key: 'all', label: 'All projects', reads: 'Only projects you belong to · slower', size: '~5× cost', warn: true },
 ];
 
 const SUGGESTIONS = ['Who’s blocked this week?', 'What changed since Monday?', 'What should I pick up next?'];
@@ -71,7 +72,19 @@ function scopeLabel(c: Chat): string {
   return 'This project';
 }
 
-function History({ projectId, onOpen, onNew }: { projectId: string; onOpen: (id: string) => void; onNew: () => void }) {
+function History({
+  projectId,
+  provider,
+  onOpen,
+  onNew,
+  onClose,
+}: {
+  projectId: string;
+  provider?: AssistState['boardAi']['provider'];
+  onOpen: (id: string) => void;
+  onNew: () => void;
+  onClose: () => void;
+}) {
   const [q, setQ] = useState('');
   const list = useChats(projectId, q);
   const chats = list.data?.chats ?? [];
@@ -83,65 +96,85 @@ function History({ projectId, onOpen, onNew }: { projectId: string; onOpen: (id:
     ['Earlier', chats.filter((c) => ![today, yesterday].includes(new Date(c.updatedAt).toDateString()))],
   ];
   return (
-    <div className="as-body" data-testid="assist-history">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>Chat history</div>
-          <div className="ai-muted">Only visible to you</div>
+    <div className="as-history" data-testid="assist-history">
+      {/* B3: the history replaces the dock header */}
+      <div className="as-head">
+        <BoardAiAvatar provider={provider} size={28} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="as-head-title" style={{ fontSize: 13.5 }}>
+            Chat history
+          </div>
+          <div className="as-head-sub">
+            <span className="as-dot" style={{ width: 6, height: 6 }} />
+            Only visible to you
+          </div>
         </div>
         <button type="button" className="ai-btn ai-btn-primary ai-btn-sm" onClick={onNew}>
-          + New chat
+          <LineIcon name="plus" size={13} /> New chat
+        </button>
+        <button
+          type="button"
+          className="ai-icobtn"
+          title="Back to the chat"
+          aria-label="Close chat history"
+          onClick={onClose}
+        >
+          <LineIcon name="close" size={14} />
         </button>
       </div>
-      <input
-        className="ai-input"
-        placeholder="Search chats…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        aria-label="Search chats"
-      />
-      {list.isLoading && <div className="as-skel" style={{ height: 40 }} />}
-      {!list.isLoading && !chats.length && <div className="ai-muted">No chats yet.</div>}
-      {groups.map(([label, rows]) =>
-        rows.length ? (
-          <div key={label}>
-            <div className="as-label">{label}</div>
-            {rows.map((c) => (
-              <div
-                key={c.id}
-                className="as-history-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => onOpen(c.id)}
-                onKeyDown={(e) => e.key === 'Enter' && onOpen(c.id)}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {c.title}
+      <div className="as-body">
+        <label className="as-search">
+          <input
+            placeholder="Search chats…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Search chats"
+          />
+          <LineIcon name="search" size={14} color="#9AA8A0" />
+        </label>
+        {list.isLoading && <div className="as-skel" style={{ height: 40 }} />}
+        {!list.isLoading && !chats.length && <div className="ai-muted">No chats yet.</div>}
+        {groups.map(([label, rows]) =>
+          rows.length ? (
+            <div key={label}>
+              <div className="as-label">{label}</div>
+              {rows.map((c) => (
+                <div
+                  key={c.id}
+                  className="as-history-row"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onOpen(c.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && onOpen(c.id)}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {c.title}
+                    </div>
+                    <div className="ai-muted">
+                      {scopeLabel(c)} · {dayOrTime(c.updatedAt)}
+                    </div>
                   </div>
-                  <div className="ai-muted">
-                    {scopeLabel(c)} · {dayOrTime(c.updatedAt)}
-                  </div>
+                  <span className="as-cost">{usd(c.cost)}</span>
                 </div>
-                <span className="as-cost">{usd(c.cost)}</span>
-              </div>
-            ))}
-          </div>
-        ) : null,
-      )}
-      <div className="ai-muted" style={{ marginTop: 'auto' }}>
-        Chats are private to you. Kept {list.data?.keepDays ?? 30} days, then deleted. A chat that applied changes keeps
-        only a log line in Activity.
+              ))}
+            </div>
+          ) : null,
+        )}
+        <div className="ai-muted" style={{ marginTop: 'auto' }}>
+          Chats are private to you. Kept {list.data?.keepDays ?? 30} days, then deleted. A chat that applied changes
+          keeps only a log line in Activity.
+        </div>
       </div>
-      <div className="ai-muted">
+      <div className="as-history-foot" data-testid="assist-history-foot">
         {list.data?.count ?? 0} chats · {usd(list.data?.monthCost ?? 0)} this month
       </div>
     </div>
@@ -313,7 +346,7 @@ export function AssistDock() {
       aria-label="Board AI"
     >
       <PanelResizer panel={panel} label="Resize Board AI" />
-      <div className="as-head">
+      <div className="as-head" hidden={view === 'history'}>
         <BoardAiAvatar provider={b?.provider} size={34} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="as-head-title">Board AI</div>
@@ -341,7 +374,7 @@ export function AssistDock() {
           aria-label="Chat history"
           onClick={() => setView(view === 'history' ? 'chat' : 'history')}
         >
-          ⟲
+          <LineIcon name="clock" size={15} />
         </button>
         <button
           type="button"
@@ -353,7 +386,7 @@ export function AssistDock() {
             setView('chat');
           }}
         >
-          +
+          <LineIcon name="plus" size={15} />
         </button>
         <PanelMaxButton panel={panel} />
         <button type="button" className="ai-icobtn" title="Close" aria-label="Close Board AI" onClick={ctx.close}>
@@ -363,6 +396,8 @@ export function AssistDock() {
       {view === 'history' ? (
         <History
           projectId={projectId}
+          provider={b?.provider}
+          onClose={() => setView('chat')}
           onOpen={(id) => {
             ctx.setChatId(id);
             setView('chat');
@@ -492,7 +527,7 @@ export function AssistDock() {
                 aria-label="What the Board AI may read"
                 onClick={() => setScopeHelp((v) => !v)}
               >
-                ⓘ
+                <LineIcon name="info" size={14} />
               </button>
             </div>
             {scopeHelp && (
@@ -500,31 +535,35 @@ export function AssistDock() {
                 <div className="as-label" style={{ marginTop: 2 }}>
                   Scope · what the Board AI may read
                 </div>
-                {SCOPES.map((s) => (
-                  <button
-                    key={s.key}
-                    type="button"
-                    className="as-history-row"
-                    style={{
-                      width: '100%',
-                      border: 'none',
-                      background: scope === s.key ? '#F1F8F3' : 'none',
-                      textAlign: 'left',
-                      fontFamily: 'inherit',
-                    }}
-                    disabled={s.key === 'ticket' && !ctx.ticketId}
-                    onClick={() => {
-                      setScopeHelp(false);
-                      void switchScope(s.key);
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13 }}>{s.label}</div>
-                      <div className="ai-muted">{s.reads}</div>
-                    </div>
-                    <span className="as-cost">{s.size}</span>
-                  </button>
-                ))}
+                <div role="radiogroup" aria-label="Scope" style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {SCOPES.map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      role="radio"
+                      aria-checked={scope === s.key}
+                      className={`as-radio-row ${scope === s.key ? 'as-radio-on' : ''}`}
+                      disabled={s.key === 'ticket' && !ctx.ticketId}
+                      onClick={() => {
+                        setScopeHelp(false);
+                        void switchScope(s.key);
+                      }}
+                    >
+                      <span className="as-radio" aria-hidden />
+                      <span style={{ flex: 1 }}>
+                        <span style={{ display: 'block', fontWeight: 700, fontSize: 12.5 }}>{s.label}</span>
+                        <span style={{ display: 'block', fontSize: 11, color: '#5B6B60' }}>
+                          {s.warn ? s.reads : `${s.reads} · ${s.size}`}
+                        </span>
+                      </span>
+                      {s.warn && (
+                        <span className="ai-chip" style={{ background: '#FDF3E3', color: '#B4571F' }}>
+                          {s.size}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -580,23 +619,20 @@ export function AssistDock() {
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <div className="as-label">Try asking</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="as-label" style={{ margin: 0, fontSize: 10, letterSpacing: '0.08em' }}>
+                      Try asking
+                    </div>
                     {(scope === 'ticket'
                       ? ['Summarise this ticket', 'What is left to do here?', 'Who should review this?']
                       : SUGGESTIONS
                     ).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        className="as-action"
-                        style={{ justifyContent: 'flex-start' }}
-                        onClick={() => void send(s)}
-                      >
-                        <LineIcon name="chat" size={13} /> {s}
+                      <button key={s} type="button" className="as-suggest" onClick={() => void send(s)}>
+                        <LineIcon name="chat" size={12} color="#2E6F40" strokeWidth={2} />
+                        {s}
                       </button>
                     ))}
-                  </>
+                  </div>
                 )}
               </div>
             )}

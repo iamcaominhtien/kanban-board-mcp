@@ -1,6 +1,14 @@
-import { useState, type ReactNode } from 'react';
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  defaultDropAnimationSideEffects,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, DropAnimation } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import type { Column as ColumnType, IssueType, Member, Priority, Status, Ticket } from '../types';
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
@@ -15,6 +23,7 @@ import { SchedulesTab } from './schedules/SchedulesTab';
 import { CalendarIcon } from './schedules/schedulesUi';
 import { useScheduleList } from '../api/schedules';
 import { TicketCard } from './TicketCard';
+import { ParentGroupLinks } from './ParentGroupLinks';
 import { StoryLanes, statusOfDropId } from './story/StoryLanes';
 import { GiveStoryDialog } from './story/GiveStoryDialog';
 import { readGroupByStory, writeGroupByStory } from './story/storyLinks';
@@ -63,6 +72,8 @@ interface BoardProps {
   lanesOverride?: ReactNode;
   /** Content of the reserved status row at the top right (the loading pill). */
   statusSlot?: ReactNode;
+  /** A notice shown over the board under the filter bar (the blocked-drag confirmation, Main Board 4). */
+  boardNotice?: ReactNode;
   /** Extra controls at the left of the view switcher (e.g. “Pause all AI”). */
   headerExtra?: ReactNode;
   filterReopened?: boolean;
@@ -89,6 +100,18 @@ interface BoardProps {
 }
 
 const SKELETON_COUNTS = [2, 2, 1, 1, 1, 1];
+
+/** Drop: a small overshoot (105 %), then the card eases to rest in 220 ms (Drag & Drop 1, "Dropped"). */
+const DROP_ANIMATION: DropAnimation = {
+  duration: 220,
+  easing: 'cubic-bezier(.4,0,.2,1)',
+  keyframes: ({ transform: { initial, final } }) => [
+    { transform: CSS.Transform.toString(initial) },
+    { transform: CSS.Transform.toString({ ...final, scaleX: 1.05, scaleY: 1.05 }), offset: 0.55 },
+    { transform: CSS.Transform.toString(final) },
+  ],
+  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.75' } } }),
+};
 
 const VALID_STATUSES = new Set<string>(['backlog', 'todo', 'in-progress', 'review', 'testing', 'done']);
 
@@ -122,6 +145,7 @@ export function Board({
   loadState,
   lanesOverride,
   statusSlot,
+  boardNotice,
   headerExtra,
   filterReopened,
   onFilterReopenedChange,
@@ -147,6 +171,8 @@ export function Board({
 }: BoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
+  // The lifted card keeps the footprint of the card it was picked from (Drag & Drop 1, comp-1 DD-1)
+  const [activeWidth, setActiveWidth] = useState<number | null>(null);
   // Group by Story (ai-story-flow D): off until someone turns it on, remembered per person
   const [groupByStory, setGroupByStory] = useState(readGroupByStory);
   const [givingStory, setGivingStory] = useState(false);
@@ -163,6 +189,56 @@ export function Board({
         ? 'pending'
         : null;
   const memberMap = new Map(members.map((m) => [m.id, m]));
+
+  // Sub-task Grouping 1 (comp-1 BG-1): a click on a parent selects its group (a ring on it and its sub-tickets, and
+  // connectors to them); a second click, or Enter, opens it. Esc or a click elsewhere clears the selection.
+  const columnsRef = useRef<HTMLDivElement>(null);
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+  const childrenOf = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const t of allTickets) {
+      if (!t.parentId) continue;
+      map.set(t.parentId, [...(map.get(t.parentId) ?? []), t.id]);
+    }
+    return map;
+  }, [allTickets]);
+  const selectedChildIds = useMemo(
+    () =>
+      selectedParentId ? (childrenOf.get(selectedParentId) ?? []).filter((id) => tickets.some((t) => t.id === id)) : [],
+    [selectedParentId, childrenOf, tickets],
+  );
+  const selectedGroup = useMemo(
+    () => (selectedParentId ? new Set([selectedParentId, ...selectedChildIds]) : null),
+    [selectedParentId, selectedChildIds],
+  );
+  useEffect(() => {
+    if (!selectedParentId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedParentId(null);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement | null)?.closest?.('[data-ticket-id]')) setSelectedParentId(null);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onDown);
+    };
+  }, [selectedParentId]);
+  function handleBoardCardClick(t: Ticket) {
+    const isParent = t.type !== 'story' && (childrenOf.get(t.id)?.length ?? 0) > 0;
+    if (isParent && selectedParentId !== t.id) {
+      setSelectedParentId(t.id);
+      return;
+    }
+    setSelectedParentId(null);
+    onCardClick(t);
+  }
+  function handleBoardCardOpen(t: Ticket) {
+    setSelectedParentId(null);
+    onCardClick(t);
+  }
   // Schedules that will run in the next 24 hours (badge on the tab)
   const { data: scheduleList } = useScheduleList(projectId ?? '');
   // The AI Team view exists for a project with AI members; its badge counts what waits for a person
@@ -171,7 +247,9 @@ export function Board({
   const waitingForYou = teamNow.data?.needsYou.length ?? 0;
 
   function handleDragStart(event: DragStartEvent) {
+    setSelectedParentId(null);
     setActiveTicketId(event.active.id as string);
+    setActiveWidth(event.active.rect.current.initial?.width ?? null);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -390,6 +468,12 @@ export function Board({
           )}
         </div>
 
+        {boardNotice && (
+          <div className={styles.noticeAnchor}>
+            <div className={styles.notice}>{boardNotice}</div>
+          </div>
+        )}
+
         {viewMode === 'docs' && projectId && !loadState ? (
           <DocsSpace
             projectId={projectId}
@@ -454,7 +538,15 @@ export function Board({
             onDelete={onDelete}
           />
         ) : (
-          <div className={styles.columns}>
+          <div ref={columnsRef} className={styles.columns}>
+            {selectedParentId && (
+              <ParentGroupLinks
+                containerRef={columnsRef}
+                parentId={selectedParentId}
+                childIds={selectedChildIds}
+                version={tickets}
+              />
+            )}
             {COLUMNS.map((col) => {
               const colTickets = tickets.filter((t) => t.status === col.id);
               return (
@@ -463,7 +555,9 @@ export function Board({
                   column={col}
                   tickets={colTickets}
                   allTickets={allTickets}
-                  onCardClick={onCardClick}
+                  onCardClick={handleBoardCardClick}
+                  onCardOpen={handleBoardCardOpen}
+                  selectedGroup={selectedGroup}
                   memberMap={memberMap}
                   onReopen={onReopen}
                   onPending={onPending}
@@ -477,9 +571,9 @@ export function Board({
         )}
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={DROP_ANIMATION}>
         {activeTicket ? (
-          <div style={{ pointerEvents: 'none', width: 280, position: 'relative' }}>
+          <div style={{ pointerEvents: 'none', width: activeWidth ?? 188, position: 'relative' }}>
             {dragKind && (
               <span className={dragKind === 'reopen' ? styles.dragLabelReopen : styles.dragLabelPending}>
                 {dragKind === 'reopen' ? 'Reopen' : 'Still pending'}

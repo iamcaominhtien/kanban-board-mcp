@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Member, Ticket } from '../types';
 import { useCreateTicket } from '../api/tickets';
 import { TicketTypeIcon } from './icons';
 import { MemberAvatar } from './MemberAvatar';
 import styles from './SubTicketsSection.module.css';
+import { LineIcon } from './ui/LineIcon';
 
 interface SubTicketRow {
   ticket: Ticket;
@@ -11,6 +13,29 @@ interface SubTicketRow {
   wave: number;
   /** First sibling that blocks this one and is not done yet. */
   openBlocker: Ticket | null;
+  /** The wave was pinned by hand (Auto-set from Blocked by unchecked). */
+  pinned: boolean;
+}
+
+/** Waves pinned by hand, per parent: { childId: wave }. Kept in this browser (the server has no field for it yet). */
+type WavePins = Record<string, number>;
+const pinsKey = (parentId: string) => `kanban.subticketWaves.${parentId}`;
+function readPins(parentId: string): WavePins {
+  try {
+    const raw = localStorage.getItem(pinsKey(parentId));
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    return parsed && typeof parsed === 'object' ? (parsed as WavePins) : {};
+  } catch {
+    return {};
+  }
+}
+function writePins(parentId: string, pins: WavePins) {
+  try {
+    if (Object.keys(pins).length === 0) localStorage.removeItem(pinsKey(parentId));
+    else localStorage.setItem(pinsKey(parentId), JSON.stringify(pins));
+  } catch {
+    // storage blocked: the pin lasts until the panel closes
+  }
 }
 
 /**
@@ -18,7 +43,7 @@ interface SubTicketRow {
  * each other: tickets with no sibling blockers are wave 1, everything else waits
  * one wave after its latest blocker. Ties keep their original order.
  */
-function buildRows(children: Ticket[]): SubTicketRow[] {
+function buildRows(children: Ticket[], pins: WavePins = {}): SubTicketRow[] {
   const byId = new Map(children.map((t) => [t.id, t]));
   const waves = new Map<string, number>();
 
@@ -41,14 +66,186 @@ function buildRows(children: Ticket[]): SubTicketRow[] {
     .map((ticket, index) => ({
       index,
       ticket,
-      wave: waveOf(ticket, new Set()),
+      wave: pins[ticket.id] ?? waveOf(ticket, new Set()),
+      pinned: pins[ticket.id] !== undefined,
       openBlocker:
         (ticket.blockedBy ?? [])
           .map((id) => byId.get(id))
           .find((blocker): blocker is Ticket => !!blocker && blocker.status !== 'done') ?? null,
     }))
     .sort((a, b) => a.wave - b.wave || a.index - b.index)
-    .map(({ ticket, wave, openBlocker }) => ({ ticket, wave, openBlocker }));
+    .map(({ ticket, wave, openBlocker, pinned }) => ({ ticket, wave, openBlocker, pinned }));
+}
+
+/**
+ * The wave badge, a button that opens the wave popover (Ticket Detail with Sub-tickets 7, comp-2 TDP-1): label WAVE,
+ * a − n + stepper and "Auto-set from Blocked by". Unchecking Auto-set pins the sub-ticket to the wave shown; the list
+ * re-sorts by wave.
+ */
+function WaveBadge({
+  ticketId,
+  wave,
+  autoWave,
+  pinned,
+  className,
+  onPin,
+}: Readonly<{
+  ticketId: string;
+  wave: number;
+  autoWave: number;
+  pinned: boolean;
+  className: string;
+  onPin: (wave: number | null) => void;
+}>) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setPos({ left: Math.max(8, Math.min(r.left, window.innerWidth - 198)), top: r.bottom + 8 });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!popRef.current?.contains(t) && !btnRef.current?.contains(t)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault(); // the ticket stays open
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
+
+  const step = (d: number) => onPin(Math.max(1, wave + d));
+  const stepBtn: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    border: '1px solid #C7D2CB',
+    background: '#FFFFFF',
+    cursor: 'pointer',
+    color: '#5B6B60',
+    padding: 0,
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className={`${styles.waveBadge} ${styles.waveBadgeBtn} ${className} ${open ? styles.waveBadgeOpen : ''}`}
+        title={`Execution wave ${wave}${pinned ? ' (set by hand)' : ''}`}
+        aria-label={`Execution wave ${wave} of ${ticketId}, change`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        data-testid={`wave-badge-${ticketId}`}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {wave}
+      </button>
+      {open &&
+        createPortal(
+          <div
+            ref={popRef}
+            role="dialog"
+            aria-label={`Wave of ${ticketId}`}
+            data-testid="wave-popover"
+            style={{
+              position: 'fixed',
+              left: pos?.left ?? -9999,
+              top: pos?.top ?? 0,
+              zIndex: 2000,
+              width: 190,
+              boxSizing: 'border-box',
+              border: '1px solid #E3E8E5',
+              borderRadius: 8,
+              background: '#FFFFFF',
+              boxShadow: '0 12px 28px rgba(30,42,34,0.16)',
+              padding: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#9AA8A0',
+              }}
+            >
+              Wave
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                aria-label="Earlier wave"
+                style={stepBtn}
+                disabled={wave <= 1}
+                onClick={() => step(-1)}
+              >
+                <LineIcon name="minus" size={12} />
+              </button>
+              <span
+                data-testid="wave-value"
+                style={{
+                  flexGrow: 1,
+                  textAlign: 'center',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#1E2A22',
+                }}
+              >
+                {wave}
+              </span>
+              <button type="button" aria-label="Later wave" style={stepBtn} onClick={() => step(1)}>
+                <LineIcon name="plus" size={12} />
+              </button>
+            </div>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 11,
+                color: '#5B6B60',
+                paddingTop: 6,
+                borderTop: '1px solid #EEF3EF',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!pinned}
+                onChange={(e) => onPin(e.target.checked ? null : autoWave)}
+                style={{ accentColor: '#2E6F40', width: 13, height: 13, margin: 0 }}
+              />
+              Auto-set from Blocked by
+            </label>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
 }
 
 interface SubTicketsSectionProps {
@@ -99,7 +296,16 @@ export function SubTicketsSection({
   const totalCount = childTickets.length;
   const progressPercent = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;
 
-  const rows = buildRows(childTickets);
+  const [wavePins, setWavePins] = useState<WavePins>(() => readPins(currentTicketId));
+  const autoWaves = new Map(buildRows(childTickets).map((r) => [r.ticket.id, r.wave]));
+  const rows = buildRows(childTickets, wavePins);
+  function pinWave(childId: string, wave: number | null) {
+    const next = { ...wavePins };
+    if (wave === null) delete next[childId];
+    else next[childId] = wave;
+    setWavePins(next);
+    writePins(currentTicketId, next);
+  }
   const childIds = new Set(childTickets.map((t) => t.id));
 
   // Eligible for linking: same project, not current, not already a child, has no parent, and has no children of its own
@@ -202,7 +408,7 @@ export function SubTicketsSection({
       {totalCount > 0 && (
         <>
           <div className={styles.cardContainer}>
-            {rows.map(({ ticket, wave, openBlocker }) => {
+            {rows.map(({ ticket, wave, openBlocker, pinned }) => {
               const isDone = ticket.status === 'done';
               const isInProgress = ticket.status === 'in-progress';
               const assignee = members.find((m) => m.id === ticket.assignee);
@@ -210,9 +416,14 @@ export function SubTicketsSection({
 
               return (
                 <div key={ticket.id} className={`${styles.row} ${isInProgress ? styles.rowActive : ''}`}>
-                  <span className={`${styles.waveBadge} ${waveClass}`} title={`Execution wave ${wave}`}>
-                    {wave}
-                  </span>
+                  <WaveBadge
+                    ticketId={ticket.id}
+                    wave={wave}
+                    autoWave={autoWaves.get(ticket.id) ?? wave}
+                    pinned={pinned}
+                    className={waveClass}
+                    onPin={(w) => pinWave(ticket.id, w)}
+                  />
 
                   {isDone ? (
                     <svg className={styles.statusIconDone} viewBox="0 0 14 14" fill="none">

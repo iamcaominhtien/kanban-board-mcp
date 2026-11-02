@@ -6,6 +6,8 @@ import type { WorkflowFilterState } from '../types/aiWorkflowBoard';
 import type { WorkflowFilterOptions } from './workflowBoard/workflowFilter';
 import { WorkflowFilters } from './workflowBoard/WorkflowFilters';
 import { LineIcon } from './ui/LineIcon';
+import { TicketTypeIcon } from './icons';
+import { MemberAvatar } from './MemberAvatar';
 
 interface FilterBarProps {
   searchQuery: string;
@@ -58,14 +60,6 @@ const PRIORITY_OPTIONS: { value: Priority | 'all'; label: string }[] = [
   { value: 'low', label: 'Low' },
 ];
 
-function getMemberInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-}
-
 /**
  * FilterBar strictly matching TicketReopen.dc.html (E1) and TicketPending.dc.html (F1).
  */
@@ -100,6 +94,7 @@ export function FilterBar({
   onGroupByStoryChange,
 }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<'type' | 'priority' | 'assignee' | null>(null);
+  const selectedMember = members.find((m) => m.id === activeAssignee);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   // Desktop menu: Edit › Find in Board
@@ -300,6 +295,7 @@ export function FilterBar({
               aria-expanded={openDropdown === 'type'}
             >
               <span className={styles.labelMuted}>Type:</span>{' '}
+              {activeType !== 'all' && <TicketTypeIcon type={activeType} size={14} />}
               {TYPE_OPTIONS.find((t) => t.value === activeType)?.label ?? 'All'}
               <svg
                 className={`${styles.chevronIcon} ${openDropdown === 'type' ? styles.chevronRotated : ''}`}
@@ -331,6 +327,8 @@ export function FilterBar({
                         setOpenDropdown(null);
                       }}
                     >
+                      {/* icon + label per row (Main Board 2, board MB-4) */}
+                      {opt.value !== 'all' && <TicketTypeIcon type={opt.value} size={15} />}
                       <span className={styles.itemLabel}>{opt.label}</span>
                       {isSelected && (
                         <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
@@ -419,6 +417,7 @@ export function FilterBar({
             aria-expanded={openDropdown === 'assignee'}
           >
             <span className={styles.labelMuted}>Assignee:</span>{' '}
+            {selectedMember && <MemberAvatar member={selectedMember} size={18} />}
             {activeAssignee === 'all'
               ? 'All'
               : activeAssignee === 'unassigned'
@@ -496,9 +495,7 @@ export function FilterBar({
                       setOpenDropdown(null);
                     }}
                   >
-                    <div className={styles.miniAvatar} style={{ background: m.color || '#2E6F40', color: '#FFFFFF' }}>
-                      {getMemberInitials(m.name)}
-                    </div>
+                    <MemberAvatar member={m} size={20} />
                     <span className={styles.itemLabel}>{m.name}</span>
                     {isSelected && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">

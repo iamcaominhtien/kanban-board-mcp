@@ -7,6 +7,8 @@ interface ReopenDropPopoverProps {
   /** Where the card was dropped (viewport coordinates). */
   x: number;
   y: number;
+  /** x, y are the top-left corner of the drop slot (the popover hangs under it) rather than the pointer. */
+  anchored?: boolean;
   isSubmitting?: boolean;
   onCancel: () => void;
   onMoreOptions: (reason: string) => void;
@@ -21,6 +23,7 @@ export const ReopenDropPopover: React.FC<ReopenDropPopoverProps> = ({
   ticket,
   x,
   y,
+  anchored = false,
   isSubmitting = false,
   onCancel,
   onMoreOptions,
@@ -37,8 +40,8 @@ export const ReopenDropPopover: React.FC<ReopenDropPopoverProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [onCancel]);
 
-  const left = Math.min(Math.max(x - 150, 12), window.innerWidth - 312);
-  const top = Math.min(Math.max(y - 20, 12), window.innerHeight - 190);
+  const left = Math.min(Math.max(anchored ? x : x - 150, 12), window.innerWidth - 312);
+  const top = Math.min(Math.max(anchored ? y : y - 20, 12), window.innerHeight - 200);
   const btn: React.CSSProperties = {
     padding: '6px 12px',
     borderRadius: 8,
@@ -76,10 +79,40 @@ export const ReopenDropPopover: React.FC<ReopenDropPopoverProps> = ({
           gap: 10,
         }}
       >
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>Reopen {ticket.id}?</div>
-          <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>
-            {STATUS_NAMES[ticket.status] ?? ticket.status} to To Do, marked Reopened
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* the 32 px amber reopen tile (TicketReopen A3) */}
+          <span
+            aria-hidden="true"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: '#FFF1D6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#C77700"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>Reopen {ticket.id}?</div>
+            <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>
+              {STATUS_NAMES[ticket.status] ?? ticket.status} to To Do, marked Reopened
+            </div>
           </div>
         </div>
         <input

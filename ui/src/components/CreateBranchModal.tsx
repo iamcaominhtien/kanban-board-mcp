@@ -3,6 +3,7 @@ import { useCreateBranch, useDefaultBase } from '../api/tickets';
 import { useToast } from './Toast';
 import { extractError } from '../api/extractError';
 import styles from './CreateBranchModal.module.css';
+import { createPortal } from 'react-dom';
 
 interface BranchOption {
   id?: string;
@@ -21,6 +22,8 @@ interface CreateBranchModalProps {
   defaultWorktreeEnabled?: boolean;
   projectPrefix?: string;
   hasRepoLinked?: boolean;
+  /** The Create branch button: the form opens as a popover card under it (Branches 5, comp-2 BR-3). */
+  anchor?: DOMRect | null;
 }
 
 /**
@@ -69,6 +72,7 @@ export function CreateBranchModal({
   defaultWorktreeEnabled = false,
   projectPrefix = '',
   hasRepoLinked = true,
+  anchor,
 }: CreateBranchModalProps) {
   const [branchName, setBranchName] = useState('');
   // The repository's own default (main, else master…): a repo without main no longer gets 'main' as its base
@@ -171,9 +175,10 @@ export function CreateBranchModal({
     }
   };
 
-  return (
+  // In the page body: inside the ticket panel a fixed card is placed off by the panel, and focusing it scrolls the panel
+  return createPortal(
     <div
-      className={styles.modalBackdrop}
+      className={`${styles.modalBackdrop} ${anchor ? styles.popoverBackdrop : ''}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -181,7 +186,15 @@ export function CreateBranchModal({
       }}
     >
       <form
-        className={styles.modalCard}
+        className={`${styles.modalCard} ${anchor ? styles.popoverCard : ''}`}
+        style={
+          anchor
+            ? {
+                top: Math.max(8, Math.min(anchor.bottom + 6, window.innerHeight - 420)),
+                left: Math.max(8, Math.min(anchor.right - 420, window.innerWidth - 428)),
+              }
+            : undefined
+        }
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -332,6 +345,7 @@ export function CreateBranchModal({
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

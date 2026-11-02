@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useProject } from '../../../api/projects';
 import { useAiWindows } from '../../../api/aiWindows';
 import {
   packKeys,
@@ -40,6 +41,85 @@ import { Ico } from './wizardIcons';
 import './packs.css';
 
 const STEPS = ['Read the repository', 'The team', 'Commands', 'Confirm'];
+
+const Check = () => (
+  <svg
+    width="11"
+    height="11"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+
+/**
+ * The wizard as a page (design ai-team-process D): breadcrumb, title with the project chip, "Nothing is created until
+ * the last step" on the right, then the steps at one fixed width. It covers the window like a page; Esc and
+ * "I will do it myself" leave it.
+ */
+function WizardPage({
+  projectId,
+  onClose,
+  children,
+  foot,
+}: {
+  projectId: string;
+  onClose: () => void;
+  children: ReactNode;
+  foot: ReactNode;
+}) {
+  const project = useProject(projectId);
+  const name = project.data?.name ?? 'This project';
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      // a dialog opened from the wizard keeps its own Esc
+      if (document.querySelectorAll('[role="dialog"]').length > 1) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="pk-page" role="dialog" aria-modal="true" aria-label="Set up the AI team">
+      <div className="pk-page-crumb">
+        {name} <span>/</span> Project settings <span>/</span> AI <span>/</span> <b>Set up the AI team</b>
+      </div>
+      <div className="pk-page-head">
+        <h1>Set up the AI team</h1>
+        <span className="pk-page-chip">{name}</span>
+        <span style={{ flex: 1 }} />
+        <span className="ai-hint">Nothing is created until the last step</span>
+        <button type="button" className="ai-icobtn" aria-label="Close" title="Close" onClick={onClose}>
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      <div className="pk-page-body">
+        <div className="pk-page-inner">{children}</div>
+      </div>
+      <div className="pk-page-foot">
+        <div className="pk-page-inner pk-page-foot-row">{foot}</div>
+      </div>
+    </div>
+  );
+}
 
 const HANDOVER: Record<HandoverKind, string> = {
   pr: 'Opening a pull request',
@@ -199,10 +279,10 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
             className={`ai-step${step === i + 1 ? ' ai-step-active' : ''}${step > i + 1 ? ' ai-step-done' : ''}`}
             aria-current={step === i + 1 ? 'step' : undefined}
           >
-            <span className="ai-step-n">{i + 1}</span>
+            <span className="ai-step-n">{step > i + 1 ? <Check /> : i + 1}</span>
             {s}
           </span>
-          {i < STEPS.length - 1 && <span className="ai-step-line" />}
+          {i < STEPS.length - 1 && <span className={`ai-step-line${step > i + 1 ? ' ai-step-line-done' : ''}`} />}
         </span>
       ))}
     </div>
@@ -250,9 +330,8 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
     setDraft((x) => (x && kinds ? names.reduce((acc, n) => withChoice(acc, n, kinds[n], false), x) : x));
 
   return (
-    <Dialog
-      title="Set up the AI team"
-      wide={step === 3}
+    <WizardPage
+      projectId={projectId}
       onClose={onClose}
       foot={
         <>
@@ -328,169 +407,172 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
       )}
 
       {step === 2 && scan && d && (
-        <div className="pk-form" data-testid="wizard-step-2">
-          <div className="pk-box">
+        <div className="pk-form pk-two" data-testid="wizard-step-2">
+          {/* D, step 2: what the board read on the left, what it suggests on the right */}
+          <div className="pk-box pk-two-left">
             <div className="pk-box-title">What the board read</div>
             <FoundList scan={scan} />
             <div className="ai-sub">All of it read from files. No quota spent.</div>
           </div>
-          <div className="pk-box-title">What it suggests — change anything</div>
+          <div className="pk-form pk-two-right">
+            <div className="pk-box-title">What it suggests — change anything</div>
 
-          <div className="pk-box" data-testid="team-box">
-            <div className="pk-box-title">The team</div>
-            {scan.suggested.why.team && <div className="ai-sub">{scan.suggested.why.team}</div>}
-            {d.team.map((m, i) => (
-              <div className="pk-team-row" key={`${m.pack}-${i}`}>
-                <span className="pk-glyph" aria-hidden="true">
-                  {glyph(m.pack)}
-                </span>
-                <input
-                  className="ai-input"
-                  aria-label={`Name of ${roleName(m.pack)}`}
-                  value={m.name}
-                  onChange={(e) =>
-                    setD(
-                      'team',
-                      d.team.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)),
-                    )
-                  }
-                />
-                {m.pack === 'user_tester' && (
+            <div className="pk-box" data-testid="team-box">
+              <div className="pk-box-title">The team</div>
+              {scan.suggested.why.team && <div className="ai-sub">{scan.suggested.why.team}</div>}
+              {d.team.map((m, i) => (
+                <div className="pk-team-row" key={`${m.pack}-${i}`}>
+                  <span className="pk-glyph" aria-hidden="true">
+                    {glyph(m.pack)}
+                  </span>
                   <input
                     className="ai-input"
-                    aria-label="Plays"
-                    placeholder="Plays: first time here"
-                    value={m.plays ?? ''}
+                    aria-label={`Name of ${roleName(m.pack)}`}
+                    value={m.name}
                     onChange={(e) =>
                       setD(
                         'team',
-                        d.team.map((x, j) => (j === i ? { ...x, plays: e.target.value } : x)),
+                        d.team.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)),
                       )
                     }
                   />
-                )}
-                <button
-                  className="ai-btn ai-btn-sm"
-                  disabled={m.pack === 'triage'}
-                  title={m.pack === 'triage' ? 'Triage is always in: it puts a workflow on a new ticket' : undefined}
-                  aria-label={`Remove ${m.name}`}
-                  onClick={() => changeTeam(d.team.filter((_, j) => j !== i))}
+                  {m.pack === 'user_tester' && (
+                    <input
+                      className="ai-input"
+                      aria-label="Plays"
+                      placeholder="Plays: first time here"
+                      value={m.plays ?? ''}
+                      onChange={(e) =>
+                        setD(
+                          'team',
+                          d.team.map((x, j) => (j === i ? { ...x, plays: e.target.value } : x)),
+                        )
+                      }
+                    />
+                  )}
+                  <button
+                    className="ai-btn ai-btn-sm"
+                    disabled={m.pack === 'triage'}
+                    title={m.pack === 'triage' ? 'Triage is always in: it puts a workflow on a new ticket' : undefined}
+                    aria-label={`Remove ${m.name}`}
+                    onClick={() => changeTeam(d.team.filter((_, j) => j !== i))}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              {missingRoles.length > 0 && (
+                <select
+                  className="ai-select"
+                  aria-label="Add a role"
+                  value=""
+                  onChange={(e) => {
+                    const p = packList.find((x) => x.key === e.target.value);
+                    if (p) changeTeam([...d.team, { pack: p.key, name: p.name }]);
+                  }}
                 >
-                  Remove
-                </button>
+                  <option value="">Add a role…</option>
+                  {missingRoles.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <div className="ai-sub">
+                The team always covers every role the suggested workflow needs. Removing a role changes the workflow
+                too, and the screen says which steps would go.
               </div>
-            ))}
-            {missingRoles.length > 0 && (
+              {workflowNote && (
+                <div className="ai-notice ai-notice-warn" role="status" data-testid="workflow-note">
+                  {workflowNote}
+                </div>
+              )}
+            </div>
+
+            <label>
+              Default workflow{' '}
               <select
                 className="ai-select"
-                aria-label="Add a role"
-                value=""
+                value={d.workflow}
                 onChange={(e) => {
-                  const p = packList.find((x) => x.key === e.target.value);
-                  if (p) changeTeam([...d.team, { pack: p.key, name: p.name }]);
+                  const w = e.target.value as WorkflowKey;
+                  const roles = d.team.map((m) => m.pack);
+                  const add = WORKFLOW_ROLES[w].filter((r) => !roles.includes(r));
+                  const extra = add.flatMap((r) => {
+                    const p = packList.find((x) => x.key === r);
+                    return p ? [{ pack: r, name: p.name }] : [];
+                  });
+                  setDraft({ ...d, workflow: w, team: [...d.team, ...extra] });
+                  setWorkflowNote(
+                    extra.length
+                      ? `${extra.map((x) => x.name).join(', ')} added: ${WORKFLOW_NAME[w]} has steps for them.`
+                      : null,
+                  );
                 }}
               >
-                <option value="">Add a role…</option>
-                {missingRoles.map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.name}
+                {(Object.keys(WORKFLOW_NAME) as WorkflowKey[]).map((w) => (
+                  <option key={w} value={w}>
+                    {WORKFLOW_NAME[w]}
                   </option>
                 ))}
               </select>
-            )}
-            <div className="ai-sub">
-              The team always covers every role the suggested workflow needs. Removing a role changes the workflow too,
-              and the screen says which steps would go.
+            </label>
+
+            <div className="pk-box">
+              <div className="pk-box-title">Hand over by</div>
+              {scan.suggested.why.handover && <div className="ai-sub">{scan.suggested.why.handover}</div>}
+              <select
+                className="ai-select"
+                aria-label="Hand over by"
+                value={d.handover}
+                onChange={(e) => setD('handover', e.target.value as HandoverKind)}
+              >
+                {(Object.keys(HANDOVER) as HandoverKind[]).map((h) => (
+                  <option key={h} value={h}>
+                    {HANDOVER[h]}
+                  </option>
+                ))}
+              </select>
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center', flexDirection: 'row' }}>
+                <input type="checkbox" checked={d.worktrees} onChange={(e) => setD('worktrees', e.target.checked)} />A
+                worktree for each ticket
+              </label>
+              <label>
+                Ports: first port for worktrees{' '}
+                <input
+                  className="ai-input"
+                  type="number"
+                  value={d.basePort}
+                  onChange={(e) => setD('basePort', e.target.value)}
+                />
+              </label>
             </div>
-            {workflowNote && (
-              <div className="ai-notice ai-notice-warn" role="status" data-testid="workflow-note">
-                {workflowNote}
-              </div>
-            )}
-          </div>
 
-          <label>
-            Default workflow{' '}
-            <select
-              className="ai-select"
-              value={d.workflow}
-              onChange={(e) => {
-                const w = e.target.value as WorkflowKey;
-                const roles = d.team.map((m) => m.pack);
-                const add = WORKFLOW_ROLES[w].filter((r) => !roles.includes(r));
-                const extra = add.flatMap((r) => {
-                  const p = packList.find((x) => x.key === r);
-                  return p ? [{ pack: r, name: p.name }] : [];
-                });
-                setDraft({ ...d, workflow: w, team: [...d.team, ...extra] });
-                setWorkflowNote(
-                  extra.length
-                    ? `${extra.map((x) => x.name).join(', ')} added: ${WORKFLOW_NAME[w]} has steps for them.`
-                    : null,
+            <div className="pk-box" data-testid="plugins-box">
+              <div className="pk-box-title">Plugins</div>
+              <div className="ai-sub">Suggested for the roles chosen above.</div>
+              {d.plugins.length === 0 && <div className="ai-muted">None suggested.</div>}
+              {d.plugins.map((k) => {
+                const entry = catalogue.data?.find((c) => c.key === k);
+                return (
+                  <label key={k} style={{ display: 'flex', gap: 6, alignItems: 'center', flexDirection: 'row' }}>
+                    <input
+                      type="checkbox"
+                      checked
+                      onChange={() =>
+                        setD(
+                          'plugins',
+                          d.plugins.filter((x) => x !== k),
+                        )
+                      }
+                    />
+                    {entry?.name ?? k}
+                    {entry?.what && <span className="ai-muted"> — {entry.what}</span>}
+                  </label>
                 );
-              }}
-            >
-              {(Object.keys(WORKFLOW_NAME) as WorkflowKey[]).map((w) => (
-                <option key={w} value={w}>
-                  {WORKFLOW_NAME[w]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="pk-box">
-            <div className="pk-box-title">Hand over by</div>
-            {scan.suggested.why.handover && <div className="ai-sub">{scan.suggested.why.handover}</div>}
-            <select
-              className="ai-select"
-              aria-label="Hand over by"
-              value={d.handover}
-              onChange={(e) => setD('handover', e.target.value as HandoverKind)}
-            >
-              {(Object.keys(HANDOVER) as HandoverKind[]).map((h) => (
-                <option key={h} value={h}>
-                  {HANDOVER[h]}
-                </option>
-              ))}
-            </select>
-            <label style={{ display: 'flex', gap: 6, alignItems: 'center', flexDirection: 'row' }}>
-              <input type="checkbox" checked={d.worktrees} onChange={(e) => setD('worktrees', e.target.checked)} />A
-              worktree for each ticket
-            </label>
-            <label>
-              Ports: first port for worktrees{' '}
-              <input
-                className="ai-input"
-                type="number"
-                value={d.basePort}
-                onChange={(e) => setD('basePort', e.target.value)}
-              />
-            </label>
-          </div>
-
-          <div className="pk-box" data-testid="plugins-box">
-            <div className="pk-box-title">Plugins</div>
-            <div className="ai-sub">Suggested for the roles chosen above.</div>
-            {d.plugins.length === 0 && <div className="ai-muted">None suggested.</div>}
-            {d.plugins.map((k) => {
-              const entry = catalogue.data?.find((c) => c.key === k);
-              return (
-                <label key={k} style={{ display: 'flex', gap: 6, alignItems: 'center', flexDirection: 'row' }}>
-                  <input
-                    type="checkbox"
-                    checked
-                    onChange={() =>
-                      setD(
-                        'plugins',
-                        d.plugins.filter((x) => x !== k),
-                      )
-                    }
-                  />
-                  {entry?.name ?? k}
-                  {entry?.what && <span className="ai-muted"> — {entry.what}</span>}
-                </label>
-              );
-            })}
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -642,7 +724,7 @@ export function TeamWizard({ projectId, onClose }: { projectId: string; onClose:
           )}
         </div>
       )}
-    </Dialog>
+    </WizardPage>
   );
 }
 

@@ -6,6 +6,7 @@ import type { Gives, WorkflowStep, WorkflowTemplate } from '../../../types/aiWor
 import { DEPTHS, cap, roleName, stepsSummary } from './wfFormat';
 import { StepChain } from './WfUi';
 import './workflow.css';
+import { MenuSelect } from '../../ui/MenuSelect';
 
 const GIVES: { key: Gives; label: string }[] = [
   { key: 'ticket', label: 'The ticket' },
@@ -82,11 +83,19 @@ export function TemplateEditor({
   const [saved, setSaved] = useState<WorkflowTemplate | null>(null);
 
   const roleOptions = useMemo(() => {
-    const fromPacks = (packs.data ?? []).map((p) => ({ key: p.key, name: p.name }));
+    const fromPacks = (packs.data ?? []).map((p) => ({
+      key: p.key,
+      name: p.name,
+      hint: p.tagline as string | undefined,
+    }));
     const keys = new Set(fromPacks.map((p) => p.key));
     return [
       ...fromPacks,
-      ...DEFAULT_ROLES.filter((r) => !keys.has(r)).map((r) => ({ key: r, name: cap(r.replace(/_/g, ' ')) })),
+      ...DEFAULT_ROLES.filter((r) => !keys.has(r)).map((r) => ({
+        key: r,
+        name: roleName(r),
+        hint: undefined as string | undefined,
+      })),
     ];
   }, [packs.data]);
   const names = useMemo(() => Object.fromEntries(roleOptions.map((r) => [r.key, r.name])), [roleOptions]);
@@ -245,28 +254,26 @@ export function TemplateEditor({
                   aria-label="Step name"
                 />
               </label>
-              <label className="wf-field">
+              <div className="wf-field">
                 <span className="wf-label">Who does it</span>
-                <select
-                  className="wf-input"
-                  aria-label="Who does it"
+                {/* E: the design's own dropdown, each role with a second line */}
+                <MenuSelect
+                  label="Who does it"
+                  testId="wf-who"
                   value={step.kind === 'code' ? '@code' : step.kind === 'person' ? '@you' : (step.role ?? '')}
-                  onChange={(e) => who(sel, e.target.value)}
-                >
-                  {step.kind === 'ai' && !step.role && <option value="">Pick a role</option>}
-                  {roleOptions.map((r) => (
-                    <option key={r.key} value={r.key}>
-                      The {r.name} role
-                    </option>
-                  ))}
-                  <option value="@code">Code, no AI (the project’s checks)</option>
-                  <option value="@you">You (the step waits for you)</option>
-                </select>
+                  onChange={(v) => who(sel, v)}
+                  placeholder="Pick a role"
+                  options={[
+                    ...roleOptions.map((r) => ({ value: r.key, label: `The ${r.name} role`, hint: r.hint })),
+                    { value: '@code', label: 'Code, no AI', hint: 'The project’s checks' },
+                    { value: '@you', label: 'You', hint: 'The step waits for you' },
+                  ]}
+                />
                 <span className="wf-hint">
                   A role, not a person. Whichever member holds that role on the project picks it up.
                   {step.kind === 'ai' && step.role ? ` (${roleName(step.role, names)})` : ''}
                 </span>
-              </label>
+              </div>
               {step.kind === 'ai' && (
                 <>
                   <label className="wf-field">
@@ -308,52 +315,37 @@ export function TemplateEditor({
                     </span>
                   </div>
                   <div className="wf-line">
-                    <label className="wf-field" style={{ flex: 1 }}>
+                    <div className="wf-field" style={{ flex: 1 }}>
                       <span className="wf-label">Model</span>
-                      <select
-                        className="wf-input"
-                        aria-label="Model"
+                      <MenuSelect
+                        label="Model"
+                        testId="wf-model"
                         value={step.model ?? ''}
-                        onChange={(e) => patch(sel, { model: e.target.value || null })}
-                      >
-                        {MODELS.map((m) => (
-                          <option key={m} value={m}>
-                            {m ? cap(m) : 'The role’s own'}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="wf-field" style={{ flex: 1 }}>
+                        onChange={(v) => patch(sel, { model: v || null })}
+                        options={MODELS.map((m) => ({ value: m, label: m ? cap(m) : 'The role’s own' }))}
+                      />
+                    </div>
+                    <div className="wf-field" style={{ flex: 1 }}>
                       <span className="wf-label">Effort</span>
-                      <select
-                        className="wf-input"
-                        aria-label="Effort"
+                      <MenuSelect
+                        label="Effort"
+                        testId="wf-effort"
                         value={step.effort ?? ''}
-                        onChange={(e) => patch(sel, { effort: e.target.value || null })}
-                      >
-                        {EFFORTS.map((m) => (
-                          <option key={m} value={m}>
-                            {m ? cap(m) : 'The role’s own'}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                        onChange={(v) => patch(sel, { effort: v || null })}
+                        options={EFFORTS.map((m) => ({ value: m, label: m ? cap(m) : 'The role’s own' }))}
+                      />
+                    </div>
                     {step.role === 'reviewer' && (
-                      <label className="wf-field" style={{ flex: 1 }}>
+                      <div className="wf-field" style={{ flex: 1 }}>
                         <span className="wf-label">Review depth</span>
-                        <select
-                          className="wf-input"
-                          aria-label="Review depth"
+                        <MenuSelect
+                          label="Review depth"
+                          testId="wf-depth"
                           value={step.depth ?? 'standard'}
-                          onChange={(e) => patch(sel, { depth: e.target.value as WorkflowStep['depth'] })}
-                        >
-                          {DEPTHS.map((d) => (
-                            <option key={d} value={d}>
-                              {cap(d)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                          onChange={(v) => patch(sel, { depth: v as WorkflowStep['depth'] })}
+                          options={DEPTHS.map((d) => ({ value: d as string, label: cap(d as string) }))}
+                        />
+                      </div>
                     )}
                   </div>
                   <label

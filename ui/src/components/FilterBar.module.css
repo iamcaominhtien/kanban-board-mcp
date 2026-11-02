@@ -15,7 +15,8 @@
   border-radius: 8px;
   border: 1px solid #e3e8e5;
   background: #ffffff;
-  width: 220px;
+  /* narrower than before so the filters and Group by keep one line at 1440 px (board MB-3) */
+  width: 170px;
   box-sizing: border-box;
   transition:
     border-color 0.15s ease,
@@ -156,16 +157,32 @@
   margin-left: auto;
 }
 
-.miniAvatar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  font-size: 8px;
+/* "More filters": Role, Workflow and Step in one dropdown so the bar keeps one line (board MB-3) */
+.moreCount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
   font-weight: 700;
+  color: #ffffff;
+  background: #2e6f40;
+  padding: 0 6px;
+  border-radius: 999px;
+  line-height: 16px;
+}
+
+.morePanel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 230px;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(30, 42, 34, 0.14);
+  padding: 8px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 100;
 }
 
 /* Group by: Story (ai-story-flow D) */

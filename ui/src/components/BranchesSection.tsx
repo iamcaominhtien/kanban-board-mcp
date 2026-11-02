@@ -12,6 +12,7 @@ import { useProject } from '../api/projects';
 import { useToast } from './Toast';
 import { extractError } from '../api/extractError';
 import { CreateBranchModal } from './CreateBranchModal';
+import { createPortal } from 'react-dom';
 import { BranchGraph } from './BranchGraph';
 import styles from './BranchesSection.module.css';
 import { LineIcon } from './ui/LineIcon';
@@ -67,6 +68,14 @@ function formatDate(iso?: string): string {
 export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionProps) {
   const [activeTab, setActiveTab] = useState<'graph' | 'list'>('graph');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // The Create branch button the form hangs from (Branches 5)
+  const [createAnchor, setCreateAnchor] = useState<DOMRect | null>(null);
+  const openCreate = (e: React.MouseEvent<HTMLElement>) => {
+    setCreateAnchor(e.currentTarget.getBoundingClientRect());
+    setIsCreateModalOpen(true);
+  };
+  // The row menu (Checkout, Rename) that is open, by branch id (Branches 4: one action per row, the rest in a menu)
+  const [rowMenu, setRowMenu] = useState<{ id: string; top: number; left: number } | null>(null);
 
   const { data: branches = [], isLoading } = useTicketBranches(ticketId);
   const baseName = useDefaultBase(ticketId).data ?? 'main';
@@ -178,22 +187,24 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
     return <div className={styles.emptyState}>Loading branches...</div>;
   }
 
-  // Ensure default main/baseline is present in list if empty
-  const allBranches: TicketBranch[] =
-    branches.length > 0
-      ? branches
+  // The list starts with the baseline ("● main · baseline"), then the ticket's branches (Branches 4, comp-2 BR-4)
+  const allBranches: TicketBranch[] = [
+    ...(branches.some((b) => b.status === 'baseline' || b.name === baseName)
+      ? []
       : [
           {
             id: 'baseline-main',
             name: baseName,
-            status: 'baseline',
+            status: 'baseline' as const,
             branchFrom: '',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             aheadCount: 0,
             behindCount: 0,
           },
-        ];
+        ]),
+    ...branches,
+  ];
 
   return (
     <div className={styles.container}>
@@ -217,7 +228,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
         </div>
 
         {!readOnly && (
-          <button type="button" className={styles.brAddBtn} onClick={() => setIsCreateModalOpen(true)}>
+          <button type="button" className={styles.brAddBtn} onClick={openCreate}>
             <svg
               width="11"
               height="11"
@@ -294,30 +305,79 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                 </span>
 
                 <span className={styles.actionCol}>
-                  {!readOnly && hasRepo && br.inRepo && !br.isCurrent && br.status !== 'baseline' && (
-                    <button
-                      type="button"
-                      className={styles.actionBtn}
-                      onClick={() => handleCheckout(br)}
-                      disabled={checkoutMutation.isPending}
-                      title="Check out this branch in the repository"
-                    >
-                      Checkout
-                    </button>
-                  )}
                   {!readOnly && br.status !== 'baseline' && (
                     <button
                       type="button"
                       className={styles.actionBtn}
-                      onClick={() => {
-                        setRenameTarget(br);
-                        setRenameDraft(br.name);
+                      aria-label={`More actions for ${br.name}`}
+                      aria-haspopup="menu"
+                      aria-expanded={rowMenu?.id === br.id}
+                      title="More actions"
+                      data-testid={`branch-menu-${br.name}`}
+                      onClick={(e) => {
+                        const r = e.currentTarget.getBoundingClientRect();
+                        setRowMenu(
+                          rowMenu?.id === br.id
+                            ? null
+                            : {
+                                id: br.id,
+                                top: r.bottom + 4,
+                                left: Math.max(8, Math.min(r.right - 180, window.innerWidth - 188)),
+                              },
+                        );
                       }}
-                      title="Rename branch"
                     >
-                      Rename
+                      <LineIcon name="more" size={14} />
                     </button>
                   )}
+                  {rowMenu?.id === br.id &&
+                    createPortal(
+                      <>
+                        <div className={styles.rowMenuBackdrop} onMouseDown={() => setRowMenu(null)} />
+                        <div
+                          role="menu"
+                          aria-label={`Actions for ${br.name}`}
+                          className={styles.rowMenu}
+                          style={{ top: rowMenu.top, left: rowMenu.left }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              e.preventDefault();
+                              setRowMenu(null);
+                            }
+                          }}
+                        >
+                          {hasRepo && br.inRepo && !br.isCurrent && (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className={styles.rowMenuItem}
+                              onClick={() => {
+                                setRowMenu(null);
+                                handleCheckout(br);
+                              }}
+                              disabled={checkoutMutation.isPending}
+                              title="Check out this branch in the repository"
+                            >
+                              Checkout
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className={styles.rowMenuItem}
+                            onClick={() => {
+                              setRowMenu(null);
+                              setRenameTarget(br);
+                              setRenameDraft(br.name);
+                            }}
+                            title="Rename branch"
+                          >
+                            Rename
+                          </button>
+                        </div>
+                      </>,
+                      document.body,
+                    )}
                   {!readOnly && br.status === 'open' && (
                     <button
                       type="button"
@@ -365,29 +425,6 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
             );
           })}
         </div>
-      )}
-
-      {activeTab === 'list' && !readOnly && (
-        <button
-          type="button"
-          className={styles.brAddBtn}
-          onClick={() => setIsCreateModalOpen(true)}
-          style={{ alignSelf: 'flex-start' }}
-        >
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d="M12 5V19" />
-            <path d="M5 12H19" />
-          </svg>
-          Create branch
-        </button>
       )}
 
       {/* Confirmation Dialog for branch actions with worktree */}
@@ -570,6 +607,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
 
       <CreateBranchModal
         isOpen={isCreateModalOpen}
+        anchor={createAnchor}
         onClose={() => setIsCreateModalOpen(false)}
         ticketId={ticketId}
         branches={allBranches}

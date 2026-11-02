@@ -117,3 +117,35 @@
 .ai-page-nav {
   margin-bottom: 18px;
 }
+
+/* Settings › AI: the Board AI card is tinted, with an eyebrow and a status dot (design ai-board-assistant H1) */
+.ai-boardai {
+  padding: 10px 14px;
+  border-color: #bfdcc7;
+  background: #f1f8f3;
+}
+.ai-boardai-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #2e6f40;
+}
+.ai-boardai-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ai-boardai-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}

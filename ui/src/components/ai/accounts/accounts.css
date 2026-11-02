@@ -360,9 +360,9 @@
 }
 .win-card {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(240px, 1.3fr) minmax(160px, 1fr) minmax(190px, 0.9fr);
+  grid-template-columns: minmax(200px, 1.1fr) minmax(240px, 1.3fr) 90px minmax(150px, 1fr) minmax(170px, 0.8fr);
   gap: 16px;
-  align-items: start;
+  align-items: center;
   padding: 13px 16px;
   border: 1px solid #e3e8e5;
   border-radius: 11px;
@@ -484,4 +484,47 @@
   .win-actions {
     align-items: flex-start;
   }
+}
+
+/* Design E: one header (count chip, the one limit control), a CC tile and a MEMBERS column per row */
+.win-head-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.win-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+.win-count {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #e6f2ea;
+  color: #1f5a31;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.win-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.win-members {
+  font-size: 12.5px;
+}
+.win-member {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #e6f2ea;
+  color: #1f5a31;
+  font-size: 11px;
+  font-weight: 700;
 }

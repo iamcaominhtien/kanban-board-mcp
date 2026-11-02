@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { client } from '../../api/client';
 import { aiApi, aiKeys, useAiAudit, useAiMutation, useAiUsage, useRunnerInfo } from '../../api/ai';
@@ -69,6 +69,21 @@ export function AiProfile({
   const [focus, setFocus] = useState<ConfigFocus | undefined>(undefined);
   const [testing, setTesting] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [more, setMore] = useState(false);
+  const moreRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!more) return undefined;
+    const onDown = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMore(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMore(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [more]);
   const [pauseDialog, setPauseDialog] = useState(false);
   const [removing, setRemoving] = useState(false);
   const toast = useToast();
@@ -124,23 +139,60 @@ export function AiProfile({
           }}
           data-testid="ai-test-connection"
         >
-          {testing && <span className="ai-spin" />} Test connection
+          {testing ? <span className="ai-spin" /> : <LineIcon name="bolt" size={13} />} Test connection
         </button>
         {member.paused ? (
           <button type="button" className="ai-btn ai-btn-primary" onClick={() => resume.mutate(undefined)}>
-            Resume
+            <LineIcon name="play" size={12} /> Resume
           </button>
         ) : (
           <button type="button" className="ai-btn" onClick={() => setPauseDialog(true)}>
-            Pause
+            <LineIcon name="pause" size={13} /> Pause
           </button>
         )}
-        <button type="button" className="ai-btn" onClick={() => setPreview(true)} data-testid="ai-preview-as">
-          Preview as this AI
-        </button>
-        <button type="button" className="ai-btn ai-btn-danger-outline" onClick={() => setRemoving(true)}>
-          Remove…
-        </button>
+        {/* D1: the less used actions sit in a ⋯ menu */}
+        <div ref={moreRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            className="ai-btn"
+            style={{ padding: '0 9px' }}
+            aria-label="More actions"
+            aria-haspopup="menu"
+            aria-expanded={more}
+            onClick={() => setMore((v) => !v)}
+            data-testid="ai-profile-more"
+          >
+            <LineIcon name="more" size={15} />
+          </button>
+          {more && (
+            <div className="ai-menu" role="menu" style={{ right: 0, top: 38, minWidth: 200 }}>
+              <button
+                type="button"
+                role="menuitem"
+                className="ai-mi"
+                onClick={() => {
+                  setMore(false);
+                  setPreview(true);
+                }}
+                data-testid="ai-preview-as"
+              >
+                <LineIcon name="eye" size={14} /> Preview as this AI
+              </button>
+              <div className="ai-divider" style={{ margin: '4px 0' }} />
+              <button
+                type="button"
+                role="menuitem"
+                className="ai-mi ai-mi-danger"
+                onClick={() => {
+                  setMore(false);
+                  setRemoving(true);
+                }}
+              >
+                <LineIcon name="trash" size={14} /> Remove…
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       {member.paused && member.pausedReason && (
         <div className="ai-notice ai-notice-slate" style={{ marginTop: 12 }}>
@@ -376,7 +428,7 @@ function Overview({
             ))}
           </Card>
           <Card title="Limits">
-            <dl className="ai-kv">
+            <dl className="ai-kv ai-kv-rows">
               <dt>Parallel runs</dt>
               <dd>
                 {member.slotsInUse} of {member.maxParallel} in use
@@ -409,7 +461,7 @@ function Overview({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card title="Connection">
-            <dl className="ai-kv">
+            <dl className="ai-kv ai-kv-rows">
               <dt>Type</dt>
               <dd>
                 {member.connection === 'local' ? 'Local runner' : member.connection === 'api_key' ? 'API key' : 'Inbox'}{' '}
