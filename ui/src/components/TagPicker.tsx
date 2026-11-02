@@ -21,7 +21,7 @@ export function TagPicker({
 }>) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [active, setActive] = useState(0);
+  const [picked, setPicked] = useState<number | null>(null);
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
@@ -42,7 +42,12 @@ export function TagPicker({
     ...(canCreate ? [{ tag: typed, create: true }] : []),
   ];
 
-  useEffect(() => setActive(0), [typed]);
+  // the highlighted row: the exact match if there is one, else the "Create" row, else the first row
+  const exact = rows.findIndex((r) => r.tag === typed);
+  const createAt = rows.findIndex((r) => r.create);
+  const active = picked ?? (typed ? (exact >= 0 ? exact : createAt >= 0 ? createAt : 0) : 0);
+
+  useEffect(() => setPicked(null), [typed]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -55,11 +60,16 @@ export function TagPicker({
     if (!open) return;
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (!popRef.current?.contains(t) && !btnRef.current?.contains(t)) close(false);
+      if (!popRef.current?.contains(t) && !btnRef.current?.contains(t)) {
+        // an outside click adds what is typed (as the inline input's blur did)
+        if (typed) attach(typed, true);
+        close(false);
+      }
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, typed, currentTags, onAdd]);
 
   function close(focusButton = true) {
     setOpen(false);
@@ -138,10 +148,10 @@ export function TagPicker({
                   close();
                 } else if (e.key === 'ArrowDown') {
                   e.preventDefault();
-                  setActive((a) => Math.min(a + 1, rows.length - 1));
+                  setPicked(Math.min(active + 1, rows.length - 1));
                 } else if (e.key === 'ArrowUp') {
                   e.preventDefault();
-                  setActive((a) => Math.max(a - 1, 0));
+                  setPicked(Math.max(active - 1, 0));
                 } else if (e.key === 'Enter') {
                   e.preventDefault();
                   const row = rows[active];
@@ -175,7 +185,7 @@ export function TagPicker({
                       type="button"
                       role="option"
                       aria-selected={i === active}
-                      onMouseEnter={() => setActive(i)}
+                      onMouseEnter={() => setPicked(i)}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => attach(row.tag)}
                       style={{

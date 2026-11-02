@@ -23,6 +23,8 @@ describe('MenuSelect', () => {
     const { trigger } = setup();
     expect(trigger.textContent).toContain('Last 7 days');
     expect(trigger.getAttribute('aria-haspopup')).toBe('listbox');
+    // a screen reader hears the chosen value after the name
+    expect(document.getElementById(trigger.getAttribute('aria-describedby')!)?.textContent).toBe('Last 7 days');
     fireEvent.click(trigger);
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
     const selected = screen.getByRole('option', { selected: true });

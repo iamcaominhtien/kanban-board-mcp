@@ -649,6 +649,7 @@ function ClickToEdit({
       aria-label={`${label}: ${value || placeholder}. Change`}
       disabled={disabled}
       onClick={() => setEditing(true)}
+      onFocus={() => setEditing(true)}
     >
       {display ?? <span className="is-muted">{placeholder}</span>}
     </button>

@@ -167,56 +167,6 @@ function KindChip({ kind }: { kind: LogKind }) {
   );
 }
 
-/** The ⋯ menu of a log entry: Pin or Unpin, and Delete. */
-function EntryMenu({ pinned, onPin, onDelete }: { pinned: boolean; onPin: () => void; onDelete: () => void }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="is-switch">
-      <button
-        type="button"
-        className="is-icon-btn"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="Entry actions"
-        onClick={() => setOpen(!open)}
-      >
-        <LineIcon name="more" size={15} />
-      </button>
-      {open && (
-        <div
-          className="is-switch-menu"
-          role="menu"
-          style={{ right: 0, left: 'auto', minWidth: 140 }}
-          onMouseLeave={() => setOpen(false)}
-        >
-          <button
-            type="button"
-            role="menuitem"
-            className="is-switch-item"
-            onClick={() => {
-              setOpen(false);
-              onPin();
-            }}
-          >
-            {pinned ? 'Unpin' : 'Pin'}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="is-switch-item"
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-          >
-            Delete
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** The research log: what was found, tried and decided, as a timeline. */
 export function IdeaLog({ idea, readOnly, closed }: { idea: Idea; readOnly: boolean; closed: boolean }) {
   const toast = useToast();
@@ -489,14 +439,29 @@ export function IdeaLog({ idea, readOnly, closed }: { idea: Idea; readOnly: bool
                 {e.ai && <AiChip />}
                 <span className="is-muted">{relativeTime(e.createdAt)}</span>
                 {canWrite && (
-                  <EntryMenu
-                    pinned={e.pinned}
-                    onPin={() => edit.mutate({ id: idea.id, entryId: e.id, pinned: !e.pinned })}
-                    onDelete={() =>
-                      window.confirm('Delete this entry? It stays in Activity as “entry deleted”.') &&
-                      del.mutate({ id: idea.id, entryId: e.id })
-                    }
-                  />
+                  <>
+                    <button
+                      type="button"
+                      className="is-icon-btn"
+                      aria-label={e.pinned ? 'Unpin' : 'Pin'}
+                      title={e.pinned ? 'Unpin' : 'Pin'}
+                      onClick={() => edit.mutate({ id: idea.id, entryId: e.id, pinned: !e.pinned })}
+                    >
+                      <IdeaIcon name="pin" size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="is-icon-btn"
+                      aria-label="Delete"
+                      title="Delete"
+                      onClick={() =>
+                        window.confirm('Delete this entry? It stays in Activity as “entry deleted”.') &&
+                        del.mutate({ id: idea.id, entryId: e.id })
+                      }
+                    >
+                      <LineIcon name="trash" size={15} />
+                    </button>
+                  </>
                 )}
               </div>
               <div className="is-log-body">

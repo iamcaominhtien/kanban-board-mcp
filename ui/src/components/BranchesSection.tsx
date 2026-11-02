@@ -12,7 +12,6 @@ import { useProject } from '../api/projects';
 import { useToast } from './Toast';
 import { extractError } from '../api/extractError';
 import { CreateBranchModal } from './CreateBranchModal';
-import { createPortal } from 'react-dom';
 import { BranchGraph } from './BranchGraph';
 import styles from './BranchesSection.module.css';
 import { LineIcon } from './ui/LineIcon';
@@ -74,8 +73,6 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
     setCreateAnchor(e.currentTarget.getBoundingClientRect());
     setIsCreateModalOpen(true);
   };
-  // The row menu (Checkout, Rename) that is open, by branch id (Branches 4: one action per row, the rest in a menu)
-  const [rowMenu, setRowMenu] = useState<{ id: string; top: number; left: number } | null>(null);
 
   const { data: branches = [], isLoading } = useTicketBranches(ticketId);
   const baseName = useDefaultBase(ticketId).data ?? 'main';
@@ -305,79 +302,30 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                 </span>
 
                 <span className={styles.actionCol}>
+                  {!readOnly && hasRepo && br.inRepo && !br.isCurrent && br.status !== 'baseline' && (
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => handleCheckout(br)}
+                      disabled={checkoutMutation.isPending}
+                      title="Check out this branch in the repository"
+                    >
+                      Checkout
+                    </button>
+                  )}
                   {!readOnly && br.status !== 'baseline' && (
                     <button
                       type="button"
                       className={styles.actionBtn}
-                      aria-label={`More actions for ${br.name}`}
-                      aria-haspopup="menu"
-                      aria-expanded={rowMenu?.id === br.id}
-                      title="More actions"
-                      data-testid={`branch-menu-${br.name}`}
-                      onClick={(e) => {
-                        const r = e.currentTarget.getBoundingClientRect();
-                        setRowMenu(
-                          rowMenu?.id === br.id
-                            ? null
-                            : {
-                                id: br.id,
-                                top: r.bottom + 4,
-                                left: Math.max(8, Math.min(r.right - 180, window.innerWidth - 188)),
-                              },
-                        );
+                      onClick={() => {
+                        setRenameTarget(br);
+                        setRenameDraft(br.name);
                       }}
+                      title="Rename branch"
                     >
-                      <LineIcon name="more" size={14} />
+                      Rename
                     </button>
                   )}
-                  {rowMenu?.id === br.id &&
-                    createPortal(
-                      <>
-                        <div className={styles.rowMenuBackdrop} onMouseDown={() => setRowMenu(null)} />
-                        <div
-                          role="menu"
-                          aria-label={`Actions for ${br.name}`}
-                          className={styles.rowMenu}
-                          style={{ top: rowMenu.top, left: rowMenu.left }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Escape') {
-                              e.preventDefault();
-                              setRowMenu(null);
-                            }
-                          }}
-                        >
-                          {hasRepo && br.inRepo && !br.isCurrent && (
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className={styles.rowMenuItem}
-                              onClick={() => {
-                                setRowMenu(null);
-                                handleCheckout(br);
-                              }}
-                              disabled={checkoutMutation.isPending}
-                              title="Check out this branch in the repository"
-                            >
-                              Checkout
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className={styles.rowMenuItem}
-                            onClick={() => {
-                              setRowMenu(null);
-                              setRenameTarget(br);
-                              setRenameDraft(br.name);
-                            }}
-                            title="Rename branch"
-                          >
-                            Rename
-                          </button>
-                        </div>
-                      </>,
-                      document.body,
-                    )}
                   {!readOnly && br.status === 'open' && (
                     <button
                       type="button"

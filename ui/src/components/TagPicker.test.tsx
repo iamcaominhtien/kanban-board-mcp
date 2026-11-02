@@ -48,4 +48,37 @@ describe('TagPicker (Tags 4)', () => {
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('tag-picker')).toBeNull();
   });
+
+  it('Enter adds the typed text, not the first tag that merely contains it', () => {
+    const { onAdd, input } = setup(['x']);
+    fireEvent.change(input, { target: { value: 'perf' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onAdd).toHaveBeenCalledWith('perf');
+    cleanup();
+    const b = setup(['x']);
+    fireEvent.change(b.input, { target: { value: 'per' } });
+    expect(screen.getByRole('option', { name: /Create .per./ }).getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(b.input, { key: 'Enter' });
+    expect(b.onAdd).toHaveBeenCalledWith('per');
+  });
+
+  it('the exact match is highlighted case-insensitively; arrows move the highlight and Enter picks it', () => {
+    const { onAdd, input } = setup(['x']);
+    fireEvent.change(input, { target: { value: 'PER' } });
+    fireEvent.keyDown(input, { key: 'ArrowUp' });
+    expect(screen.getByRole('option', { name: /^perf/ }).getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onAdd).toHaveBeenCalledWith('perf');
+  });
+
+  it('a click outside with typed text adds it; with nothing typed it adds nothing', () => {
+    const { onAdd, input } = setup();
+    fireEvent.change(input, { target: { value: 'half' } });
+    fireEvent.mouseDown(document.body);
+    expect(onAdd).toHaveBeenCalledWith('half');
+    expect(screen.queryByTestId('tag-picker')).toBeNull();
+    fireEvent.click(screen.getByTestId('tag-add'));
+    fireEvent.mouseDown(document.body);
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
 });

@@ -64,6 +64,7 @@ export function MenuSelect<T extends string>({
   const listRef = useRef<HTMLDivElement>(null);
   const typed = useRef({ text: '', at: 0 });
   const listId = useId();
+  const valueId = useId();
   const current = options.find((o) => o.value === value);
 
   const enabledIndex = (from: number, step: 1 | -1) => {
@@ -186,6 +187,8 @@ export function MenuSelect<T extends string>({
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-label={label}
+        // the label names the control; the chosen value is read after it, as a native select's would be
+        aria-describedby={valueId}
         disabled={disabled}
         data-testid={testId}
         onClick={() => (open ? close() : openMenu())}
@@ -193,7 +196,7 @@ export function MenuSelect<T extends string>({
       >
         {icon && <span className={styles.icon}>{icon}</span>}
         {prefix && <span className={styles.prefix}>{prefix}</span>}
-        <span className={styles.value}>
+        <span id={valueId} className={styles.value}>
           {current ? current.label : <span className={styles.placeholder}>{placeholder}</span>}
         </span>
         <LineIcon name="chevronDown" size={14} color="#5B6B60" style={{ marginLeft: 'auto' }} />

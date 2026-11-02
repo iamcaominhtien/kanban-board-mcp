@@ -3,7 +3,7 @@ import { useBoardAi, useUpdateBoardAi } from '../../../api/aiBoard';
 import { extractError } from '../../../api/extractError';
 import type { Tier, TierRow } from '../../../types/aiBoard';
 import { LoadError, Toggle } from '../aiUi';
-import { LOCKED_REASON, OP_WORDS, TIER_BULLETS, TIER_STYLE, TIER_WORDS } from './tierWords';
+import { LOCKED_REASON, OP_WORDS, TIER_STYLE, TIER_WORDS } from './tierWords';
 import { MenuSelect } from '../../ui/MenuSelect';
 import { LineIcon } from '../../ui/LineIcon';
 
@@ -67,19 +67,15 @@ export function BoardAiSection({ projectId }: { projectId: string }) {
             >
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{TIER_WORDS[tier]}</div>
               <div style={{ fontSize: 12.5, lineHeight: 1.6 }}>{s.blurb.replace('{n}', String(view.bulkTickets))}</div>
+              {tier === 'free' && rows('free').length === 0 && (
+                <div className="ai-hint">Looking things up always happens at once.</div>
+              )}
               <ul style={{ margin: 0, paddingLeft: 17, fontSize: 12, lineHeight: 1.55, color: '#3A4A3E' }}>
-                {TIER_BULLETS[tier].map((b) => (
-                  <li key={b} style={{ margin: '0 0 5px' }}>
-                    {b.replace('{n}', String(view.bulkTickets))}
+                {rows(tier).map((r) => (
+                  <li key={r.op} style={{ margin: '0 0 5px' }} data-testid={`tier-${tier}-${r.op}`}>
+                    {OP_WORDS[r.op] ?? r.op}
                   </li>
                 ))}
-                {/* actions lowered into the first tier, after its fixed read-only bullets */}
-                {tier === 'free' &&
-                  rows('free').map((r) => (
-                    <li key={r.op} style={{ margin: '0 0 5px' }} data-testid={`tier-free-${r.op}`}>
-                      {OP_WORDS[r.op] ?? r.op}
-                    </li>
-                  ))}
               </ul>
               {tier === 'ask' && (
                 <div style={{ fontSize: 12, color: '#3A4A3E' }}>
