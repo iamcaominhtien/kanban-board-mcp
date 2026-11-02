@@ -80,6 +80,15 @@ def _ai_skips(root: Path, file: Path) -> bool:
     )
 
 
+def _at(anchor: dict | None) -> str | None:
+    """A comment's pin as `docs_write(canvas_comment, at=...)` takes it: a CSS selector or 'text=...'."""
+    if not anchor:
+        return None
+    if anchor.get("sel"):
+        return str(anchor["sel"])
+    return f"text={anchor['text']}" if anchor.get("text") else None
+
+
 async def _not_in_safe_mode(session) -> None:
     """Writing files to a folder is a write: an AI run in safe mode only reads."""
     from services.ai import guard
@@ -119,6 +128,14 @@ async def design_guide() -> dict:
         "craft": canvas_design.CRAFT,
         "examples": board_skills.examples_dir(),
     }
+
+
+async def diagram_guide() -> dict:
+    """How to draw and edit a draw.io diagram, and what an AI does with a Sketch (in Claude Code these are the
+    drawio-diagrams and sketches skills; issue #267): {guide, sketches}."""
+    from services import visual_guides
+
+    return visual_guides.diagram_guide()
 
 
 async def shared_guides() -> dict:
@@ -253,8 +270,14 @@ async def read_canvas(
                         "board_id": t["board_id"],
                         "status": t["status"],
                         "number": t["number"],
+                        # the element the person pinned it on, so the agent knows what they point at (#267)
+                        **({"at": _at(t["anchor"])} if _at(t["anchor"]) else {}),
                         "comments": [
-                            {"author": c["author"], "body": c["body"]}
+                            {
+                                "author": c["author"],
+                                "body": c["body"],
+                                "when": c["created_at"],
+                            }
                             for c in t["comments"]
                         ],
                     }

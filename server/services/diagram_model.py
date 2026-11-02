@@ -188,6 +188,211 @@ def plain(label: str) -> str:
     return html.unescape(text).strip()
 
 
+# --- the drawing as a model, for an agent (issue #267) -----------------------------------------
+
+MODEL_CELLS = 300
+
+
+def _is_container(style: str) -> bool:
+    keys = {p.partition("=")[0] for p in style.split(";") if p}
+    return (
+        "swimlane" in keys
+        or style_get(style, "container") == "1"
+        or "group" in keys
+        or (style_get(style, "shape") or "").startswith("table")
+    )
+
+
+def model(source: str, limit: int = MODEL_CELLS) -> dict[str, Any]:
+    """The first page as the agent reads it: shapes and links with their ids, labels, boxes and styles.
+
+    Returns:
+        ``{page, pages, shapes: [{id, label, shape, x, y, w, h, style, in?, container?}], links: [{id, label, from,
+        to, style}], problems, truncated?}``. A shape's ``x, y`` are relative to the shape it is ``in`` (a group, a
+        container or a lane), else to the page.
+    """
+    d = Drawing(source)
+    layers = {"0", "1", d._default_parent()}
+    shapes: list[dict[str, Any]] = []
+    links: list[dict[str, Any]] = []
+    for el in d.elements():
+        cell = d._cell(el)
+        style = cell.get("style") or ""
+        item: dict[str, Any] = {"id": el.get("id") or "", "label": d.label_of(el)}
+        if cell.get("edge") == "1":
+            item |= {
+                "from": cell.get("source"),
+                "to": cell.get("target"),
+                "style": style,
+            }
+            links.append(item)
+            continue
+        g = d.geometry(el) or {"x": 0.0, "y": 0.0, "w": DEFAULT_W, "h": DEFAULT_H}
+        item |= {"shape": shape_of(style), **{k: round(v, 1) for k, v in g.items()}}
+        item["style"] = style
+        parent = cell.get("parent")
+        if parent and parent not in layers:
+            item["in"] = parent
+        if _is_container(style):
+            item["container"] = True
+        shapes.append(item)
+    out: dict[str, Any] = {
+        "page": (d._page.get("name") if d._page is not None else None) or "Page-1",
+        "pages": d.pages,
+        "shapes": shapes[:limit],
+        "links": links[:limit],
+        "problems": problems(d),
+    }
+    if len(shapes) > limit or len(links) > limit:
+        out["truncated"] = (
+            f"{len(shapes)} shapes and {len(links)} links; the first {limit} of each are listed. "
+            "The .drawio file has them all."
+        )
+    return out
+
+
+def problems(d: "Drawing") -> list[str]:
+    """What will look broken once drawn: links to nothing, repeated ids, shapes on top of each other."""
+    out: list[str] = []
+    ids = [el.get("id") for el in d.container if el.get("id")]
+    seen: set[str] = set()
+    for i in ids:
+        if i in seen:
+            out.append(
+                f"The id {i!r} is used twice: give each shape and link its own id."
+            )
+        seen.add(i or "")
+    boxes: list[tuple[str, str, dict[str, float], bool]] = []
+    for el in d.elements():
+        cell = d._cell(el)
+        if cell.get("edge") == "1":
+            for end in ("source", "target"):
+                ref = cell.get(end)
+                if ref and ref not in seen:
+                    out.append(
+                        f"Link {el.get('id')!r} points at {ref!r}, which is not a shape: use the id of a shape "
+                        "on this page (or drop the attribute and give the link sourcePoint / targetPoint)."
+                    )
+            continue
+        g = d.geometry(el)
+        if g:
+            style = cell.get("style") or ""
+            boxes.append(
+                (
+                    el.get("id") or "",
+                    cell.get("parent") or "",
+                    g,
+                    _is_container(style) or "text" in style.split(";"),
+                )
+            )
+    overlaps = 0
+    for i, (a_id, a_parent, a, a_skip) in enumerate(boxes):
+        for b_id, b_parent, b, b_skip in boxes[i + 1 :]:
+            if a_parent != b_parent or a_skip or b_skip:
+                continue
+            if (
+                a["x"] < b["x"] + b["w"]
+                and b["x"] < a["x"] + a["w"]
+                and a["y"] < b["y"] + b["h"]
+                and b["y"] < a["y"] + a["h"]
+            ):
+                overlaps += 1
+                if overlaps <= 5:
+                    out.append(
+                        f"Shapes {a_id!r} and {b_id!r} overlap: move one so they are at least 40 px apart."
+                    )
+    if overlaps > 5:
+        out.append(f"... and {overlaps - 5} more overlapping pairs.")
+    return out
+
+
+def uncompressed(source: str) -> str:
+    """``source`` with every compressed page written out as plain XML (draw.io reads both), so an agent can edit it
+    with its own file tools; unchanged when no page is compressed."""
+    try:
+        root = _parse(source)
+    except DocsError:
+        return source
+    if _local(root.tag) != "mxfile":
+        return source
+    changed = False
+    for page in root:
+        if _local(page.tag) != "diagram" or any(
+            _local(c.tag) == "mxGraphModel" for c in page
+        ):
+            continue
+        data = (page.text or "").strip()
+        if not data:
+            continue
+        try:
+            inner = _inflate(data)
+        except DocsError:
+            continue
+        page.text = None
+        page.append(inner)
+        changed = True
+    if not changed:
+        return source
+    return ET.tostring(root, encoding="unicode")
+
+
+def wireframe_png(source: str, max_side: int = 1600) -> bytes:
+    """A picture of the first page made without a browser: shapes as outlined boxes, links as lines, no text."""
+    from services import canvas_png
+
+    d = Drawing(source)
+    layers = {"0", "1", d._default_parent()}
+    boxes: dict[str, tuple[float, float, float, float]] = {}
+
+    def absolute(el: ET.Element, depth: int = 0) -> tuple[float, float, float, float]:
+        g = d.geometry(el) or {"x": 0.0, "y": 0.0, "w": DEFAULT_W, "h": DEFAULT_H}
+        x, y = g["x"], g["y"]
+        parent = d._cell(el).get("parent")
+        if parent not in layers and depth < 20:
+            pe = d.find(parent or "")
+            if pe is not None:
+                px, py, _, _ = absolute(pe, depth + 1)
+                x, y = x + px, y + py
+        return x, y, g["w"], g["h"]
+
+    for el in d.elements():
+        if d._cell(el).get("vertex") == "1":
+            boxes[el.get("id") or ""] = absolute(el)
+    if not boxes:
+        return canvas_png.Raster(200, 100).png()
+    pad = 20
+    left = min(b[0] for b in boxes.values()) - pad
+    top = min(b[1] for b in boxes.values()) - pad
+    width = max(b[0] + b[2] for b in boxes.values()) + pad - left
+    height = max(b[1] + b[3] for b in boxes.values()) + pad - top
+    scale = min(1.0, max_side / max(width, height, 1))
+    r = canvas_png.Raster(int(width * scale) + 1, int(height * scale) + 1)
+    ink, line = (51, 51, 51), (120, 120, 120)
+
+    def to_px(x: float, y: float) -> tuple[float, float]:
+        return (x - left) * scale, (y - top) * scale
+
+    for el in d.elements():
+        cell = d._cell(el)
+        if cell.get("edge") != "1":
+            continue
+        a, b = boxes.get(cell.get("source") or ""), boxes.get(cell.get("target") or "")
+        if a and b:
+            r.line(
+                *to_px(a[0] + a[2] / 2, a[1] + a[3] / 2),
+                *to_px(b[0] + b[2] / 2, b[1] + b[3] / 2),
+                line,
+            )
+    for el_id, (x, y, w, h) in boxes.items():
+        el = d.find(el_id)
+        style = (d._cell(el).get("style") or "") if el is not None else ""
+        px, py = to_px(x, y)
+        if not _is_container(style):
+            r.rect(px, py, w * scale, h * scale, (255, 255, 255))
+        r.frame(px, py, w * scale, h * scale, ink, 2 if not _is_container(style) else 1)
+    return r.png()
+
+
 # --- editing entry points --------------------------------------------------------------------
 
 

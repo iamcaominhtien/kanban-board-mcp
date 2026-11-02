@@ -73,7 +73,8 @@ People and the next AI judge your work by what they can see on the ticket, not b
 - **Code**: the command you ran and its real output in a ``` block (the test run, the build), and the branch or PR
   link. A failing run first and a passing one after, when you fixed a bug.
 - **Docs, diagrams, canvases**: the embed line (`![Name](canvas:cv_…)`, `[Name](diagram:dg_…)`, `[[Page]]`) so it opens
-  from the ticket.
+  from the ticket, and a picture of it: `docs_read(action='picture')` draws a PNG of a diagram or a frame, to look at
+  before you hand in, and returns the `markdown` line that shows it in a comment.
 - **Never invent evidence.** A screenshot of something else, output you did not get, or a "should work" is worse than
   saying it could not be shown.
 
