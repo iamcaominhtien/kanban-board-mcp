@@ -490,14 +490,16 @@ async def test_unanswered_questions_are_reminded_at_15_min_then_every_2_hours(
     q = await asked_ago(16)
     assert [r["level"] for r in q["reminders"]] == [1]
     assert "lead" not in q["reminders"][0]
-    # each reminder is one more event on the question's notification: its row comes back and toasts again
-    assert await question_events() == asked + 1
+    # the first reminder (15 min) is recorded on the question but is notified by the person's own "Remind me if
+    # unanswered" setting (notifications.remind_unanswered, tests/test_notifications_remind.py), not by the run
+    assert await question_events() == asked
     q = await asked_ago(17)  # nothing new is due
     assert [r["level"] for r in q["reminders"]] == [1]
-    assert await question_events() == asked + 1
+    assert await question_events() == asked
     q = await asked_ago(125)
     assert [r["level"] for r in q["reminders"]] == [1, 2]
-    assert await question_events() == asked + 2
+    # from the second on, each reminder is one more event on the question's notification: its row comes back
+    assert await question_events() == asked + 1
     q = await asked_ago(7 * 60)
     assert q["reminders"][-1]["level"] == 4  # 15 min, 2 h, 4 h, 6 h
     assert q["reminders"][-1]["lead"] == [lead["name"]]
