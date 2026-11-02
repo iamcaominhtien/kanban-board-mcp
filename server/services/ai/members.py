@@ -1123,7 +1123,10 @@ async def test_connection(
             result = {
                 "ok": False,
                 "health": "runner_missing",
-                "message": f"“{PROVIDERS[profile.provider]['binary']}” was not found on this computer.",
+                "message": cli.missing(
+                    PROVIDERS[profile.provider]["binary"], profile.cli_path
+                )
+                + ".",
                 **info,
             }
         elif info.get("logged_in") is False:
@@ -1277,9 +1280,7 @@ async def health_check() -> int:
                         )
                     else:
                         profile.health = "runner_missing"
-                        profile.health_detail = (
-                            f"“{binary}” was not found on this computer"
-                        )
+                        profile.health_detail = cli.missing(binary, profile.cli_path)
                     profile.checked_at = now.isoformat()
                     session.add(profile)
                     if profile.health != before:
@@ -1306,7 +1307,7 @@ async def health_check() -> int:
                 )
             if not info.get("found"):
                 profile.health = "runner_missing"
-                profile.health_detail = f"“{binary}” was not found on this computer"
+                profile.health_detail = cli.missing(binary, profile.cli_path)
             elif info.get("logged_in") is False:
                 profile.health = "not_logged_in"
                 profile.health_detail = "The CLI is installed but not signed in. Run it in a terminal and sign in."

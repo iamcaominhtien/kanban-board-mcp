@@ -105,15 +105,32 @@ def plugin_dir(names: list[str] | None = None) -> str:
             }
         ).encode(),
     )
+    keep = set()
     for name, text in _skills().items():
         if name in picked:
+            keep.add(root / "skills" / name / "SKILL.md")
             _write(root / "skills" / name / "SKILL.md", text.encode())
     for name, files in _skill_files().items():
         if name not in picked:
             continue
         for rel, data in files.items():
+            keep.add(root / "skills" / name / rel)
             _write(root / "skills" / name / rel, data)
+    _prune(root / "skills", keep)
     return str(root)
+
+
+def _prune(folder: Path, keep: set[Path]) -> None:
+    """Remove what an earlier version wrote and this one no longer ships (a renamed script, a dropped theme), so a
+    run never finds a stale file beside the current ones. Files a run left in the folder (its .look/ renders) go too:
+    the folder is the board's, not a place to work in."""
+    if not folder.is_dir():
+        return
+    for p in sorted(folder.rglob("*"), key=lambda q: len(q.parts), reverse=True):
+        if p.is_file() and p not in keep:
+            p.unlink(missing_ok=True)
+        elif p.is_dir() and not any(p.iterdir()):
+            p.rmdir()
 
 
 def skill_dir(name: str) -> str:

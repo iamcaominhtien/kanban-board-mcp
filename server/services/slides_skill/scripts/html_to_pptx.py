@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -131,6 +132,25 @@ def _rgb(css: str) -> tuple[RGBColor, float]:
         return RGBColor(0, 0, 0), 1.0
     r, g, b = (int(float(v)) for v in m.groups()[:3])
     return RGBColor(r, g, b), float(m.group(4)) if m.group(4) else 1.0
+
+
+def _hex(value: str) -> str:
+    """ "#fff" or "#1F3864" as the six hex digits python-pptx wants."""
+    v = str(value).lstrip("#")
+    return "".join(ch * 2 for ch in v) if len(v) == 3 else v
+
+
+def _local(url: str | None) -> Path | None:
+    """A file:// URL from the page as a path on this machine (spaces as %20, a Windows drive); None for http."""
+    from urllib.parse import unquote, urlparse
+    from urllib.request import url2pathname
+
+    if not url:
+        return None
+    u = urlparse(url)
+    if u.scheme == "file":
+        return Path(url2pathname(unquote(u.path)))
+    return None if u.scheme else Path(url)
 
 
 def _emu(px: float) -> Emu:
@@ -270,11 +290,11 @@ def _chart(slide, c: dict) -> None:
     chart.has_legend = len(spec["series"]) > 1
     ink = spec.get("label_color") or spec.get("ink")
     if chart.has_legend and ink:
-        chart.legend.font.color.rgb = RGBColor.from_string(ink.lstrip("#"))
+        chart.legend.font.color.rgb = RGBColor.from_string(_hex(ink))
         chart.legend.include_in_layout = False
     chart.font.name = spec.get("font", "Calibri")
     chart.font.size = Pt(spec.get("size", 14))
-    muted = RGBColor.from_string(spec.get("muted", "6B7280").lstrip("#"))
+    muted = RGBColor.from_string(_hex(spec.get("muted", "6B7280")))
     if kind not in (XL_CHART_TYPE.PIE, XL_CHART_TYPE.DOUGHNUT):
         va = chart.value_axis
         va.visible = spec.get("value_axis", False)
@@ -300,9 +320,9 @@ def _chart(slide, c: dict) -> None:
             )
             if col:
                 pt.format.fill.solid()
-                pt.format.fill.fore_color.rgb = RGBColor.from_string(col.lstrip("#"))
+                pt.format.fill.fore_color.rgb = RGBColor.from_string(_hex(col))
                 if kind == XL_CHART_TYPE.LINE_MARKERS:
-                    ser.format.line.color.rgb = RGBColor.from_string(col.lstrip("#"))
+                    ser.format.line.color.rgb = RGBColor.from_string(_hex(col))
             if len(series) == 1 and i < len(labels) and labels[i] is not None:
                 dl = pt.data_label
                 dl.position = (
@@ -321,15 +341,13 @@ def _chart(slide, c: dict) -> None:
                 dl.text_frame.text = str(
                     labels[i]
                 )  # written as the reader writes numbers, whatever the locale
-                run = dl.text_frame.paragraphs[0].runs[0]
-                run.font.size = Pt(spec.get("size", 14))
-                run.font.bold = bool(spec.get("bold_labels", True))
-                if spec.get(
-                    "label_color"
-                ):  # on a dark ground the default black label disappears
-                    run.font.color.rgb = RGBColor.from_string(
-                        spec["label_color"].lstrip("#")
-                    )
+                for run in dl.text_frame.paragraphs[
+                    0
+                ].runs:  # an empty label "" has none
+                    run.font.size = Pt(spec.get("size", 14))
+                    run.font.bold = bool(spec.get("bold_labels", True))
+                    if ink:  # on a dark ground the default black label disappears
+                        run.font.color.rgb = RGBColor.from_string(_hex(ink))
 
 
 def convert(
@@ -393,13 +411,13 @@ def convert(
                 for c in found["charts"]:
                     _chart(s, c)
                 for v in found["videos"]:
-                    poster = (
-                        Path(v["poster"].replace("file://", ""))
-                        if v["poster"]
-                        else None
-                    )
+                    video, poster = _local(v["src"]), _local(v["poster"])
+                    if video is None or not video.exists():
+                        raise SystemExit(
+                            f"Slide {n}: the video {v['src']} must be a file next to the deck"
+                        )
                     s.shapes.add_movie(
-                        v["src"].replace("file://", ""),
+                        str(video),
                         _emu(v["x"]),
                         _emu(v["y"]),
                         _emu(v["w"]),
@@ -446,7 +464,9 @@ def main() -> None:
     if a.previews:
         a.previews.mkdir(parents=True, exist_ok=True)
         for p in previews:
-            p.replace(a.previews / p.name)
+            shutil.move(
+                str(p), str(a.previews / p.name)
+            )  # Path.replace fails across drives
     print(json.dumps({"pptx": str(a.out), "slides": len(previews)}))
 
 

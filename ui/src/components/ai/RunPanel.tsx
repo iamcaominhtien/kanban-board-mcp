@@ -6,7 +6,7 @@ import type { Member, Ticket } from '../../types';
 import { useToast } from '../Toast';
 import { useScheduleList } from '../../api/schedules';
 import { useSchedules } from '../schedules/SchedulesContext';
-import { CalendarIcon, ChevronIcon, ListIcon, PlayIcon } from '../schedules/schedulesUi';
+import { CalendarIcon, ChevronIcon, ClockIcon, ListIcon, PlayIcon } from '../schedules/schedulesUi';
 import { ApprovalCard } from './AiSafetyViews';
 import { ASSIGN_AI_EVENT, fireAiEvent } from './AiTicketContext';
 import { QuestionCard } from './QuestionCard';
@@ -55,6 +55,7 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
   const assignee = ticket.assignee ? members.get(ticket.assignee) : undefined;
   const canRun = !!assignee && assignee.connection !== 'inbox' && !(run && ACTIVE_RUN_STATES.includes(run.state));
   const runMut = useAiMutation(() => aiApi.run(ticket.id));
+  const queueMut = useAiMutation(() => aiApi.run(ticket.id, { queue: true }));
   const count = schedules.data?.items.length ?? 0;
   useEffect(() => {
     if (!menu) return undefined;
@@ -180,6 +181,26 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
           >
             <CalendarIcon size={14} /> Schedule a run…
           </button>
+          {canRun && (
+            <button
+              type="button"
+              role="menuitem"
+              className="ai-mi"
+              data-testid="menu-queue"
+              title="Waits until the AI has finished what it is doing, then starts"
+              onClick={async () => {
+                setMenu(false);
+                try {
+                  await queueMut.mutateAsync(undefined);
+                  toast.success('Queued', `${assignee?.name} starts when it has a free slot`);
+                } catch (err) {
+                  toast.error("Couldn't queue the run", extractError(err));
+                }
+              }}
+            >
+              <ClockIcon size={14} /> Queue for next free slot
+            </button>
+          )}
           <div className="sc-menu-sep" />
           <button
             type="button"

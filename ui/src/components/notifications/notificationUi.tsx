@@ -164,6 +164,7 @@ const VISUALS: Record<string, Visual> = {
   budget_warning: { icon: 'bolt', ...AMBER },
   ai_finished: { icon: 'check', ...GREEN },
   schedule: { icon: 'calendar', ...GREEN },
+  schedule_started: { icon: 'calendar', ...GREEN },
   day_card: { icon: 'sun', ...AMBER },
   run_stuck: { icon: 'clock', ...AMBER },
   board_fault: { icon: 'triangle', ...RED },

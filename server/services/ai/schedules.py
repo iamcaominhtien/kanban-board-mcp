@@ -1278,6 +1278,26 @@ def _notify(s: AiSchedule, event: str, text: str, **extra) -> None:
     feed. A run that needs input or fails is told by the run itself; a slot that ends is told here."""
     if event not in loads(s.notify, list(NOTIFY_EVENTS)):
         return
+    if event == "started":
+        from services import notifications as centre
+
+        # design E4 "KAN-151 run started by schedule · Open run": a line for information, grouped when several start
+        centre.enqueue(
+            "schedule_started",
+            project_id=s.project_id,
+            names=[s.created_by, *loads(s.notify_people, [])],
+            title=text,
+            target_kind="run",
+            target_id=extra.get("run_id"),
+            ticket_id=s.ticket_id,
+            follow_ticket=s.ticket_id,
+            member_id=s.member_id,
+            data={
+                "schedule_id": s.id,
+                "event": "started",
+                "action": extra.get("action"),
+            },
+        )
     if event not in ("started", "needs_input"):
         from services import notifications as centre
 
@@ -1292,6 +1312,7 @@ def _notify(s: AiSchedule, event: str, text: str, **extra) -> None:
             target_kind="schedule_run" if extra.get("srun_id") else "run",
             target_id=extra.get("srun_id") or extra.get("run_id"),
             ticket_id=s.ticket_id,
+            follow_ticket=s.ticket_id,
             member_id=s.member_id,
             data={
                 "schedule_id": s.id,

@@ -39,7 +39,7 @@ def themes() -> list[dict]:
     """Each theme's key, label, who it is for and its fonts, from its content.json."""
     out = []
     for p in sorted((HERE / "themes").glob("*/content.json")):
-        c = json.loads(p.read_text())
+        c = json.loads(p.read_text(encoding="utf-8"))
         out.append(
             {
                 "key": p.parent.name,
@@ -60,7 +60,11 @@ def body() -> str:
             f"| `{t['key']}` {t['label']} | {t['for']} | {f['display']} + {f['body']}; "
             f"{f.get('office_display', '')} + {f.get('office_body', '')} |"
         )
-    return (HERE / "guide.md").read_text().replace("{THEMES}", "\n".join(rows))
+    return (
+        (HERE / "guide.md")
+        .read_text(encoding="utf-8")
+        .replace("{THEMES}", "\n".join(rows))
+    )
 
 
 def files() -> dict[str, bytes]:

@@ -8,10 +8,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.25.2] - 2026-11-02
+## [3.26.2] - 2026-11-02
 
 ### Fixed
 - **A Bypass permissions run's first step no longer says "(web off)" when it may use the web.** The note was fixed text, so a run on a project with web search on showed "web off" and then made about twenty WebSearch calls. It is now read from the deny rules the CLI is given ("web search on, web fetch on", or "off" or "limited" where a rule stops it), and opencode's says what its config does with web fetch.
+
+## [3.26.1] - 2026-11-02
+
+### Fixed
+- **The board server did not start on Windows** since 3.25.0: the slides skill's themes and guide were read in the machine's default encoding (cp1252 on Windows), which cannot decode their Vietnamese, while the shared skills were being built at start-up. Every file of the skill is now read and written as UTF-8, and a test checks it.
+- **A copied template slide could open as a broken file in PowerPoint**: a chart's relationships were renumbered one by one, so its data could point at its style part, and its style and colours stayed shared with the original; a picture background kept the original's relationship id. Charts now get their own data, style and colours, renumbered in one pass, and backgrounds are renumbered too.
+- `html_to_pptx.py`: a video or poster in a folder with a space (or on a Windows drive) was not found; three-digit colours (`#fff`) and empty chart labels crashed; previews moved across drives failed.
+- `pptx_template.py`: a theme's system colours (`windowText`) showed instead of their hex and crashed when used; an empty table cell or label, a row longer than the first, a number as text, or a picture already in a placeholder crashed; the inventory now prints Vietnamese on a Windows console.
+- `render.py`: page files from a deck of 10 or more slides could not be renamed on Windows and sorted wrongly past 99; a file name with `[` or a path with a quote broke Quick Look and PowerShell.
+- The board's plugin folder kept files an earlier version shipped and this one does not; they are removed when the folder is written.
+
+## [3.26.0] - 2026-11-02
+
+The rest of the schedules design (`AiSchedules.dc.html`, `Notifications.dc.html`) and a safety fix found while testing them (#271).
+
+### Added
+- **“Run started by schedule” is a line in the notification centre**, with Open run (it was only a toast). It is its own kind, `schedule_started` (“A scheduled run started”, for information, grouped as “N scheduled runs started”), so it can be switched off in Settings › Notifications on its own; the Schedules family on the notifications page lists it with the finished and skipped ones.
+- **Whoever follows a ticket (the bell) hears of its schedule events**, as the design says (“Comments, runs and schedule events of this ticket”), not only the schedule's creator and the people it names.
+- **Run menu › Queue for next free slot**: the run waits behind what the AI is doing and starts when it is free (`POST /tickets/{id}/ai/run` takes `queue: true`). It sits between Schedule a run… and View schedules, as designed.
+- **Edit budget** in a schedule's warning when its AI is over its budget: it opens AI Team › Usage for that AI.
+
+### Fixed
+- **A CLI path you set is never replaced by another program.** When the path was refused (outside your home folder or the usual install folders) or could not run, the board looked for a `claude` on PATH and used that one: a test member with a stand-in CLI spent real Claude quota. Now there is no CLI, the AI shows “runner missing”, and the reason names the path and what is wrong with it (“not executable”, “outside the folders the board allows”), and says to fix or clear it. With no path set, PATH is searched as before.
+- An AI that answered `auth status` with something that is not a JSON object made the connection test fail with a server error; it is now taken as “not signed in”.
 
 ## [3.25.0] - 2026-11-02
 

@@ -92,6 +92,7 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
     # For information: never interrupts.
     "ai_finished": ("An AI finished work", False, False, False),
     "schedule": ("A scheduled run finished or was skipped", False, False, False),
+    "schedule_started": ("A scheduled run started", False, False, False),
     "page_published": ("A page was published", False, False, False),
     "comment": ("A new comment in a thread you follow", False, False, False),
     "run_restarted": ("A run was restarted for memory", False, False, False),
@@ -1004,6 +1005,17 @@ async def _prepare_pending(item: dict, names: list[str] | None) -> None:
     async with database.async_session() as s:
         if names is not None:
             item["recipients"] = await recipient_keys(s, item.get("project_id"), names)
+        # the bell on a ticket brings "comments, runs and schedule events of this ticket" (design, Notifications)
+        watched = item.pop("follow_ticket", None)
+        if watched:
+            item["recipients"] = list(
+                dict.fromkeys(
+                    [
+                        *(item.get("recipients") or []),
+                        *await followers(s, "ticket", watched),
+                    ]
+                )
+            )
         if item.get("target_kind") == "schedule_run" and item.get("target_id"):
             await _point_at_last_run(s, item)
 
@@ -1025,6 +1037,7 @@ async def _point_at_last_run(session: AsyncSession, item: dict) -> None:
 _GROUP_TITLES = {
     "ai_finished": "{n} AI finished work",
     "schedule": "{n} scheduled runs ended",
+    "schedule_started": "{n} scheduled runs started",
     "page_published": "{n} pages were published",
     "comment": "{n} new comments in threads you follow",
     "run_cancelled": "{n} runs were cancelled",
@@ -2068,6 +2081,8 @@ def _actions(r: Notification, gone: bool) -> list[dict]:
         return [{"id": "open_ai", "label": "Open AI Team"}]
     if k == "day_card":
         return [{"id": "open", "label": "Open"}]
+    if k == "schedule_started" and r.count <= 1:
+        return [{"id": "open_run_log", "label": "Open run"}]
     if (
         k == "schedule"
         and r.count <= 1
@@ -2282,7 +2297,7 @@ def _where_family(stmt, family: str | None):
             col(Notification.member_id).is_(None), col(Notification.kind) != "day_card"
         )
     if family == "schedules":
-        return stmt.where(Notification.kind == "schedule")
+        return stmt.where(col(Notification.kind).in_(["schedule", "schedule_started"]))
     if family == "info":
         return stmt.where(Notification.needs == False)  # noqa: E712
     return stmt
