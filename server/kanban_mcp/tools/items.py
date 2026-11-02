@@ -119,7 +119,7 @@ async def ticket_items(
     text: Annotated[
         str | None,
         Field(
-            description="comment: Markdown, max 50,000 chars. criterion: one checkable condition, max 1,000 chars (e.g. 'Login fails with a clear message on a wrong password'). sub_task: one small step, max 500 chars."
+            description="comment: Markdown, max 50,000 chars; @Name mentions a member, but only ai_team(ask) wakes an AI. criterion: one checkable condition, max 1,000 chars (e.g. 'Login fails with a clear message on a wrong password'). sub_task: one small step, max 500 chars."
         ),
     ] = None,
     author: Annotated[
@@ -201,7 +201,7 @@ async def ticket_items(
     """Work on the lists inside a ticket. Pick `item`, then `action`; each combination takes only the parameters shown.
     Returns the updated ticket (without its activity log); new sub-item ids are in its lists.
     - comment: add (text, author): progress reports, findings, questions for the humans | update (item_id, text) | delete (item_id; hidden everywhere) | restore (item_id; brings a deleted one back).
-    - work_log, the ticket's debug journal (Debug Space tab): keep a running record of what you investigated, tried and found so humans and later sessions can follow. add (author, role, note [, log_kind, pinned, linked_branch, linked_test_case]) | update (item_id [, note, log_kind, pinned, linked_branch, linked_test_case]; to record a fix add a new 'resolved' entry rather than editing an old one) | delete (item_id, permanent).
+    - work_log, the ticket's debug journal (Debug Space tab): what you investigated, tried and found, for humans and later sessions. add (author, role, note [, log_kind, pinned, linked_branch, linked_test_case]) | update (item_id [, note, log_kind, pinned, linked_branch, linked_test_case]; to record a fix add a new 'resolved' entry rather than editing an old one) | delete (item_id, permanent).
     - criterion, acceptance criteria (the ticket's definition of done): add (text) | toggle (item_id; flips done/not done, see `acceptance_criteria[].done` in the result) | delete (item_id).
     - sub_task, small checklist steps inside the ticket (not tickets; for real child tickets use manage_ticket with parent_id): add (text) | toggle (item_id) | delete (item_id).
     - test_case: add (title [, status, description, expected_result, notes, proof, assignee]) gets a code 'TC-<n>' | update (item_id [, same fields + title]; typically status and proof after running it) | delete (item_id). With the ticket's 'Done requires: all test cases passed' guard on, it cannot move to 'done' until every test case is 'pass'."""

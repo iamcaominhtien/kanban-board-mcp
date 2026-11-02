@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal
 from pydantic import Field
 
 from ..operations import ai_team as ops
+from ..operations import ai_work as work
 from .routing import Op, dispatch, params_of
 
 AI_TEAM_OPS: dict[str, Op] = {
@@ -37,6 +38,18 @@ AI_TEAM_OPS: dict[str, Op] = {
     "api": Op(ops.api, ("path",), ("fields",), {"fields": "body"}),
     "accounts": Op(ops.accounts, (), ("project_id",)),
     "assign_account": Op(ops.assign_account, ("member_id", "account_id")),
+    "guide": Op(work.guide, ()),
+    "workflows": Op(work.workflows, ("project_id",)),
+    "workflow": Op(work.workflow, ("ticket_id",)),
+    "start_workflow": Op(work.start_workflow, ("ticket_id", "workflow")),
+    "stories": Op(work.stories, ("project_id",)),
+    "story": Op(work.story, ("story_id",)),
+    "give_story": Op(work.give_story, ("project_id", "text"), ("fields",)),
+    "approve_plan": Op(work.approve_plan, ("story_id",)),
+    "revise_plan": Op(work.revise_plan, ("story_id", "text")),
+    "reject_plan": Op(work.reject_plan, ("story_id",), ("text",)),
+    "decisions": Op(work.decisions, ("project_id",), ("story_id", "limit")),
+    "override": Op(work.override, ("decision_id",), ("text",)),
 }
 READS = {
     "members",
@@ -48,6 +61,12 @@ READS = {
     "docs_jobs",
     "resources",
     "accounts",
+    "guide",
+    "workflows",
+    "workflow",
+    "stories",
+    "story",
+    "decisions",
 }
 # Allowed inside an AI run when its member's "Resource tools" setting is Control (checked in the operation)
 RUN_CONTROL = {"restart", "cancel"}
@@ -78,6 +97,18 @@ async def ai_team(
         "api",
         "accounts",
         "assign_account",
+        "guide",
+        "workflows",
+        "workflow",
+        "start_workflow",
+        "stories",
+        "story",
+        "give_story",
+        "approve_plan",
+        "revise_plan",
+        "reject_plan",
+        "decisions",
+        "override",
     ],
     project_id: Annotated[
         str | None,
@@ -95,7 +126,16 @@ async def ai_team(
         str | None,
         Field(description="assign_account: id, or none."),
     ] = None,
-    ticket_id: Annotated[str | None, Field(description="ask, runs: IAM-12.")] = None,
+    ticket_id: Annotated[
+        str | None, Field(description="ask, runs, workflow, start_workflow: IAM-12.")
+    ] = None,
+    story_id: Annotated[
+        str | None, Field(description="story, *_plan, decisions: the Story's key.")
+    ] = None,
+    workflow: Annotated[
+        str | None, Field(description="start_workflow: a key from workflows.")
+    ] = None,
+    decision_id: Annotated[str | None, Field(description="override.")] = None,
     page_id: Annotated[str | None, Field(description="Docs: ask, docs_jobs.")] = None,
     thread_id: Annotated[str | None, Field(description="ask in Docs.")] = None,
     run_id: Annotated[
@@ -103,12 +143,16 @@ async def ai_team(
     ] = None,
     text: Annotated[
         str | None,
-        Field(description="ask, answer: message; cancel, pause: reason."),
+        Field(
+            description="ask, answer: message; give_story: the goal; revise_plan: what to change; cancel, pause, "
+            "reject_plan, override: why."
+        ),
     ] = None,
     intent: Annotated[
         Literal["ask", "work", "notify"] | None,
         Field(
-            description="ask: ask (default), work (assign + work), notify (comment)."
+            description="ask: ask (default: answers in a comment, changes nothing), work (assigns the ticket and "
+            "does it), notify (comment only, nothing runs)."
         ),
     ] = None,
     range: Annotated[
@@ -134,14 +178,18 @@ async def ai_team(
         Field(
             description="create/update_member: name, description, persona, template developer|reviewer|read_only, "
             "ceiling none..review, max_parallel, max_runs_per_day, model; create: provider claude-code|antigravity|"
-            "mcp-client; update: daily_budget, monthly_cap, tokens_per_day, cap_per_run. api: JSON body."
+            "mcp-client; update: daily_budget, monthly_cap, tokens_per_day, cap_per_run. give_story: title, criteria "
+            "(list), approve person|pm, budget_tokens, hand. api: JSON body."
         ),
     ] = None,
 ) -> dict | list:
-    """AI team: read members, runs, usage, approvals, resources, accounts (separate logins; only a person signs in);
-    ask wakes an AI (an @mention via MCP does not); cancel, restart, retry, answer runs; assign_account; pause, resume,
-    create_member, update_member (no keys, folders, Bypass, ceiling past Review; approvals: in the board). With "Full
-    control over MCP" on in Settings: endpoints lists and api calls AI endpoints as the person. Not in AI runs."""
+    """AI team. Read guide first: when to ask, hand over work, use a workflow or give a Story to the PM. Reads: members
+    (with role), runs, usage, approvals, docs_jobs, resources, accounts, workflows, workflow, stories, story,
+    decisions. Hand work:
+    ask (wakes an AI; an @mention via MCP does not), start_workflow, give_story, approve/revise/reject_plan, override.
+    Runs: cancel, restart, retry, answer. Members: pause, resume, create_member, update_member, assign_account (no
+    keys, folders, Bypass, ceiling past Review; approvals are a person's, in the board). With "Full control over MCP":
+    endpoints, api. Inside an AI run: reads only."""
     from services.ai import guard
 
     ctx = await guard.resolve()

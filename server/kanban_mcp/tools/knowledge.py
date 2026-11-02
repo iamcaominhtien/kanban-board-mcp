@@ -65,7 +65,8 @@ async def board_wait(
     project_id: Annotated[str | None, Field(description="Only this project.")] = None,
 ) -> dict:
     """Wait for the board to move: the events after `since` once there are any, or none after `timeout_s`. For work
-    from outside the board, instead of sleeping in a loop."""
+    from outside the board, instead of sleeping in a loop: after handing work to the AI team, wait here, then read
+    ai_team(runs) or the ticket."""
     from services import notifications as centre
 
     from services import activity as svc_activity
