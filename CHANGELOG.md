@@ -8,18 +8,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.21.3] - 2026-11-02
+
 ### Added
 - **The draw.io editor comes with the desktop app.** Diagrams open with nothing to run and work offline: the board serves draw.io 32.6.9 (Apache 2.0, pinned and trimmed by `desktop/scripts/fetch-drawio.sh`) at `/drawio`, with every feature that needs an internet service off. Settings › Diagrams has *Built into the app* as the default; a self-hosted setting left at the old default address uses it too. The installer grows by about 21 MB (65 MB installed).
 - Docs: attach Excel, Word, PDF or any file to a page (toolbar button, `/file`, drop or paste); it shows as a file card.
 - An AI run attaches pictures and documents (Excel, PDF, logs) named by a path in its working folder to Docs pages, comments and work logs.
 
 ### Fixed
-- Diagrams: Edit spun for 20 seconds and failed when no draw.io editor ran at the address; it now says so at once and offers another editor. The public editor was blocked by the window's policy and could never open. Download .drawio works in the desktop app.
+- Diagrams: Edit spun for 20 seconds and failed when no draw.io editor ran at the address; it now says so at once and offers another editor. The editor loaded twice on opening (the page stood still meanwhile), and loading spinners in the Diagrams, splash, app-loading and sidebar screens did not spin (their CSS modules had no keyframes). The public editor was blocked by the window's policy and could never open. Download .drawio works in the desktop app.
 - An AI run in a ticket's worktree could not attach its screenshots ("no such file" / "outside the working folder").
 - Windows: Checks crashed on command output the console code page could not decode; AI account sign-in had no terminal (it opens a console window now).
 - Set up the AI team: suggested commands no longer go into folders git does not track or `cd` the commands after them; Next and Try again try the commands as edited.
 - A sent comment came back as the draft; links in Docs pages did nothing (web links now open in the browser, page links by slug resolve); saving the PM pack failed with 422; accepting a Docs AI proposal failed with 409 when the reviewer had an old draft.
 - Vietnamese ticket titles make readable branch names; `ticket_items` without `action` adds (or updates with `item_id`); a 403 for a request outside the board's window names the MCP tool to use.
+
+## [3.21.2] - 2026-11-02
+
+### Changed
+- **Settings › AI is five groups, not ten loose sections** (`design/screens/settings-pages.md` I: no more than 5 sections a page). *Board AI* (the picker, what it may do by itself, standing orders), *Safety and limits*, *Running the team* (operations and Team on its own), *Members and workflows* (role packs, workflows, skills and plugins) and *Knowledge and code* (project knowledge, repositories). A menu, On this page, stays at the top and jumps to each. Safety and limits uses the same grouped rows as the rest, with the unit beside each number, and its hints now say what happens at a cap.
+
+### Fixed
+- **Settings › AI › Repositories: a title is no longer squeezed into a narrow column** next to a wide select (*Hand over finished code by*). Its rows are the same grouped rows as everywhere else.
+- **Settings › AI › Operations looks like its design** (`design/screens/ai-operations.md` K, `ai-story-flow.md` L). The first card now has the same grouped rows as *Team on its own* (a heading and a line per group, a rule between rows) instead of loose rows, and a long option name in a select no longer widens the control and squeezes the row's title into a narrow column.
 
 ## [3.21.1] - 2026-11-02
 

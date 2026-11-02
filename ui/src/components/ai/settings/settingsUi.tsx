@@ -1,18 +1,5 @@
 import { useState, type ReactNode } from 'react';
 
-/** One setting row: title and hint on the left, the control on the right. */
-export function SettingRow({ title, hint, children }: { title: string; hint?: ReactNode; children?: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>{title}</div>
-        {hint && <div className="ai-hint">{hint}</div>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 /** A whole number that saves on blur / Enter, only when it changed and is at least `min`. */
 export function NumberSetting({
   value,
@@ -154,5 +141,14 @@ export function Ico({
     >
       {PATHS[name]}
     </svg>
+  );
+}
+
+/** One setting row: title and hint on the left, the control on the right (the same row as {@link TeamRow}). */
+export function SettingRow({ title, hint, children }: { title: string; hint?: ReactNode; children?: ReactNode }) {
+  return (
+    <TeamRow title={title} hint={hint}>
+      {children}
+    </TeamRow>
   );
 }
