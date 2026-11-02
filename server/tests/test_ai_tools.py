@@ -134,6 +134,12 @@ def test_a_bare_skills_folder_and_a_single_skill(tmp_path):
     single.mkdir()
     (single / "SKILL.md").write_text("---\nname: single\ndescription: s\n---\nx")
     assert plugins.build(single, into=tmp_path / "o2")["skills"] == ["single"]
+    # a repository that is one skill is cloned into a folder called "checkout": it keeps the name in its SKILL.md
+    one = tmp_path / "checkout"
+    one.mkdir()
+    (one / "SKILL.md").write_text("---\nname: tufte-data-viz\ndescription: d\n---\nx")
+    built = plugins.build(one, into=tmp_path / "built")
+    assert (built["name"], built["skills"]) == ("tufte-data-viz", ["tufte-data-viz"])
     empty = tmp_path / "empty"
     empty.mkdir()
     with pytest.raises(plugins.PluginError, match="No plugin"):
@@ -439,7 +445,7 @@ async def test_a_pack_exports_to_one_file_and_imports_saying_what_is_missing(env
     ).json()["id"]
     got = (await c.post(f"/projects/{pid2}/ai/packs/import", json=out)).json()
     assert got["pack"]["key"] == "designer"
-    assert set(got["missing"]) >= {"design", "ui-ux-pro-max"}
+    assert set(got["missing"]) >= {"design", "motion-design"}
     assert (
         await c.post(f"/projects/{pid2}/ai/packs/import", json={"x": 1})
     ).status_code == 422
@@ -671,3 +677,106 @@ def test_a_plain_pip_library_gets_no_global_install_and_no_browser_plugins(tmp_p
         "pip install" not in s["prepare"]
     )  # it would install into the person's own Python
     assert not {"webapp-testing", "chrome-devtools", "playwright"} & set(s["plugins"])
+
+
+def test_a_repository_with_no_manifest_is_named_after_the_repository(tmp_path):
+    # a bare skills folder used to take the name of the board's staging folder ("built"), so a second one clashed
+    assert plugins.source_name(
+        "https://github.com/jakubkrehel/make-interfaces-feel-better"
+    ) == ("make-interfaces-feel-better")
+    assert (
+        plugins.source_name("https://github.com/emilkowalski/skills.git")
+        == "emilkowalski-skills"
+    )
+    bare = tmp_path / "checkout"
+    _skill(bare / "skills", "animate")
+    built = plugins.build(
+        bare, into=tmp_path / "built", name_hint="emilkowalski-skills"
+    )
+    assert (built["name"], built["skills"]) == ("emilkowalski-skills", ["animate"])
+
+
+async def test_a_run_waits_for_the_plugins_its_pack_is_still_installing():
+    import asyncio
+
+    landed = []
+
+    async def install():
+        await asyncio.sleep(0.2)
+        landed.append("taste-skill")
+
+    plugins.installing("p-settle", install())
+    # the first run of a member made a moment ago: it waits for the install before listing its plugin folders
+    assert await plugins.settled("p-settle") is True
+    assert landed == ["taste-skill"]
+    # an install that takes too long does not hold the run forever
+    plugins.installing("p-slow", asyncio.sleep(5))
+    assert await plugins.settled("p-slow", timeout=0.05) is False
+    assert await plugins.settled("p-none") is True
+
+
+async def test_a_run_is_told_its_skills_by_exact_name_and_when_to_use_each(
+    env, tmp_path
+):
+    # a live Designer run had twelve plugins loaded and opened none of them: the prompt now names each skill and its use
+    import json as _json
+
+    from models import AiMember, AiPlugin
+    from tests.test_ai import _project
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    m = (
+        await c.post(
+            f"/projects/{pid}/ai/packs/designer/member",
+            json={"name": "Designer", "working_dir": env["repo"]},
+        )
+    ).json()
+    folder = tmp_path / "threejs"
+    folder.mkdir()
+    async with env["maker"]() as s:
+        s.add(
+            AiPlugin(
+                project_id=pid,
+                name="threejs-skills",
+                source="https://github.com/CloudAI-X/threejs-skills.git",
+                skills=_json.dumps(["threejs-shaders", "threejs-performance"]),
+                roles=_json.dumps(["designer", "dev"]),
+                path=str(folder),
+            )
+        )
+        s.add(  # installed, but for another role: not listed
+            AiPlugin(
+                project_id=pid,
+                name="gsap-skills",
+                source="https://github.com/greensock/gsap-skills",
+                plugin="gsap-skills",
+                skills=_json.dumps(["gsap-core"]),
+                roles=_json.dumps(["dev"]),
+                path=str(folder),
+            )
+        )
+        await s.commit()
+        member = await s.get(AiMember, m["id"])
+        block = await plugins.skills_block(s, member)
+    assert (
+        "`threejs-skills:threejs-shaders`" in block
+        and "`threejs-skills:threejs-performance`" in block
+    )
+    assert "shaders before a shader" in block  # the catalogue's "use"
+    assert "gsap" not in block
+    assert "Skill tool by the exact name" in block
+    # a run made to plan and open every skill took its palette and type from their rules: the skills teach a craft
+    # or check work, the guide sets the look
+    assert "none of them sets a design's look" in block
+
+
+def test_the_designers_skills_leave_out_what_hides_or_repeats_another():
+    by_key = {e["key"]: e for e in plugins.CATALOGUE}
+    # ui-ux-pro-max's ui-styling teaches shadcn + Tailwind (the template look) and its "design" calls outside APIs
+    assert by_key["ui-ux-pro-max"]["skills"] == ["ui-ux-pro-max"]
+    # webgl-animation's threejs-animation has the name of three.js's own
+    assert "threejs-animation" not in by_key["webgl-animation"]["skills"]
+    assert len(by_key["ui-foundations"]["skills"]) == 8
+    for key in packs.builtin("designer")["plugins"]:
+        assert by_key[key].get("use"), key
