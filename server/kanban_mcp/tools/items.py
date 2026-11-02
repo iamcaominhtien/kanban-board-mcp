@@ -120,7 +120,7 @@ async def ticket_items(
     text: Annotated[
         str | None,
         Field(
-            description="comment: Markdown, max 50,000 chars; @Name mentions a member, but only ai_team(ask) wakes an AI. criterion: one checkable condition, max 1,000 chars (e.g. 'Login fails with a clear message on a wrong password'). sub_task: one small step, max 500 chars."
+            description="comment: Markdown, max 50,000 chars; ![a](x.png)/[b](x.xlsx) by working-folder path attach (also work_log); @Name mentions a member, but only ai_team(ask) wakes an AI. criterion: one checkable condition, max 1,000 chars (e.g. 'Login fails with a clear message on a wrong password'). sub_task: one small step, max 500 chars."
         ),
     ] = None,
     author: Annotated[

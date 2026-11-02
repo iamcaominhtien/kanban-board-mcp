@@ -60,6 +60,27 @@ async def run_folder() -> str | None:
     return folder or None
 
 
+async def attach_from_run(
+    markdown: str | None, current: str | None = None
+) -> str | None:
+    """`markdown` written by an AI run with the pictures, and the documents it links (an Excel sheet, a PDF), named by
+    a path in its working folder copied into the board, as on a Docs page (services/proofs.py). A person's text, and
+    what `current` (the text being replaced) already named, stay as written."""
+    if not markdown or "](" not in markdown:
+        return markdown
+    folder = await run_folder()
+    if folder is None:
+        return markdown
+    import services.proofs as svc_proofs
+
+    return svc_proofs.localize(
+        markdown,
+        folder,
+        pictures_only=True,
+        keep=svc_proofs.targets(current) if current else frozenset(),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Shared parameter types (the descriptions are what the AI reads in the schema)
 # ---------------------------------------------------------------------------
