@@ -71,7 +71,7 @@ button and `/projects/{id}/docs/follow` keep working on top of it.
 
 One JSON row per recipient: `events` ({kind: {inapp, desktop}}), `desktop_on` (the master Desktop notifications
 switch: off writes every row with `desktop = false`, each kind keeps its own choice), `quiet` ({on, start, end}),
-`dnd`, `sound`,
+`dnd`, `sound` (on by default) and `sound_name` (`chime`, `drop` or `bell`), `remind_after_min` (0 = never, default 15),
 `day_card` ({on, time, days}). The row `*` holds the app-wide `retention_days` and `pruned_through` (the newest
 event id retention deleted). The per-project `AiProjectSettings.notify` switches were dropped; an explicit desktop
 choice of the board's own user is carried over by the migration. `AiProjectSettings.digest` and
@@ -148,8 +148,10 @@ The person who caused an information event is not told about it.
   The row keeps counting while the window is open, comes back to the top and is unread again: "8 AI finished work",
   with "Rin, Dev Gem, Dev An, QA Quy and 1 more · AGT-13 to AGT-20". Above 20 the title says **20+**.
 - Needs you rows group only when they are the same request: a question asked again, and the failures of one ticket
-  (Retry answers them all). A question's **reminders** (15 min, then every 2 h unanswered) are one more event on its
-  row but not one more item: the row comes back to the top, unread, and toasts again, still one question.
+  (Retry answers them all). A **reminder** is one more event on a row but not one more item: the row comes back to the
+  top, unread, and notifies again, still one request. Every Needs you row that stays open and unread for the person's
+  `remind_after_min` after its newest event is reminded once (`remind_unanswered`, in the loop every 30 s; not in
+  quiet hours; the row remembers `reminded_at` until a new event arrives). A question then repeats every 2 h as before.
 - A group is read as a whole.
 
 ## Delivery
@@ -184,14 +186,14 @@ All under `/notifications`, as the person of the request (`X-Actor`, or the boar
 | `GET /notifications?view=panel&tab=needs\|updates` | The bell panel: 30 days, no quiet, cleared or snoozed rows. Needs you: open rows oldest first, then today's done rows. Updates: newest activity first, with `day_card` (the latest card) beside the rows. |
 | `GET /notifications?view=page&filter=all\|unread\|needs\|snoozed\|done\|cleared&q=&project_id=&kind=&family=ai\|people\|schedules\|info&days=` | All notifications, every project, everything still kept. |
 | `GET /notifications/counts` | `needs` (the red number), `updates_unread` (the blue dot), `snoozed`, `unread`, `head`, `oldest_needs_at`. |
-| `GET /notifications/feed?since=N` | Rows new or merged since log id N and rows closed since (`resolved`), plus `quiet` (in quiet hours now), `dnd`, `sound`. Without `since`: only `head`. `cursor_too_old` when N was pruned. |
+| `GET /notifications/feed?since=N` | Rows new or merged since log id N and rows closed since (`resolved`), plus `quiet` (in quiet hours now), `dnd`, `sound`, `sound_name`. Without `since`: only `head`. `cursor_too_old` when N was pruned. |
 | `GET /notifications/log?since=N&project_id=` | The raw log, oldest first (for the planned `wait` tool and `kanban wait`). The board's own user reads every event; anyone else reads the events told to them (an AI member as `X-Actor: ai:<id>`, or by its name with `project_id`) and every event of the projects they own or administer. |
 | `POST /notifications/read` | `{ids}` or `{all: true, tab}`; with `all` and any of the page's filters (`filter`, `q`, `project_id`, `kind`, `family`, `days`, as in `view=page`) only the rows that page lists are read (422 for an unknown `filter`). Reading is not resolving. |
 | `POST /notifications/opened` | `{target_kind, target_id}`: the person opened a ticket, page or run; its rows are read. |
 | `POST /notifications/{id}/dismiss` | Resolves the thing for every recipient ("Dismissed by you"); a mention only for the caller. 409 for a kind that closes only when the work is done. |
 | `POST /notifications/{id}/snooze` | `{until}` (ISO), or `{until: null}` to bring it back. |
 | `POST /notifications/{id}/clear` | `{on}`; 409 for an open Needs you row. `POST /notifications/clear-read` clears every read update. |
-| `GET/PATCH /notifications/settings` | The event table (`inapp_locked` for Needs you), `desktop_on`, `quiet`, `dnd`, `sound`, `day_card`, `retention_days` (`retention_editable`: whether the caller may change it; 403 otherwise), `muted`. |
+| `GET/PATCH /notifications/settings` | The event table (`inapp_locked` for Needs you), `desktop_on`, `quiet`, `dnd`, `sound`, `sound_name`, `remind_after_min`, `day_card`, `retention_days` (`retention_editable`: whether the caller may change it; 403 otherwise), `muted`. |
 | `GET/PUT /notifications/follow`, `DELETE /notifications/follow/{id}` | The bell on a ticket, page, space; mutes from a row; the Muted list. |
 | `GET /notifications/day-card` (`?preview=true`), `POST /notifications/day-card` | The latest card; today so far; write it now. |
 

@@ -108,6 +108,16 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
 NEEDS_KINDS = [k for k, v in KINDS.items() if v[1]]
 INFO_KINDS = [k for k, v in KINDS.items() if not v[1]]
 
+# The sounds a person can pick (the desktop app and the browser play the same three, see
+# desktop/sounds.js and ui/src/utils/notificationSound.ts)
+SOUND_NAMES = ("chime", "drop", "bell")
+# What "Remind me if unanswered" offers, in minutes (0 = off)
+REMIND_CHOICES = (0, 5, 10, 15, 30, 60)
+REMIND_MAX_MIN = 24 * 60
+REMIND_EVERY_S = (
+    30  # how often the loop looks for Needs you rows that waited long enough
+)
+
 GROUP_WINDOW = timedelta(minutes=10)
 GROUP_NAMES_MAX = 20  # above this a grouped row says "20+"
 GROUP_ITEMS_KEPT = 50
@@ -118,7 +128,11 @@ DEFAULT_PREFS: dict[str, Any] = {
     "quiet": {"on": True, "start": "22:00", "end": "08:00"},
     "desktop_on": True,  # the master switch: no OS notification at all when off
     "dnd": True,
-    "sound": False,
+    # A short sound for Needs you events (never for information): on by default, a choice of a few (#270)
+    "sound": True,
+    "sound_name": "chime",
+    # Minutes a Needs you row may stay unanswered before it notifies once more; 0 = never remind
+    "remind_after_min": 15,
     "day_card": {"on": True, "time": "18:00", "days": [0, 1, 2, 3, 4]},
 }
 
@@ -399,11 +413,30 @@ async def settings_for(session: AsyncSession, recipient: str) -> dict[str, Any]:
         "desktop_on": bool(prefs.get("desktop_on", True)),
         "dnd": bool(prefs["dnd"]),
         "sound": bool(prefs["sound"]),
+        "sound_name": _sound_name(prefs),
+        "remind_after_min": _remind_after(prefs),
         "day_card": prefs["day_card"],
         "retention_days": await retention_days(session),
         "retention_editable": await may_manage(session, recipient),
         "muted": await muted_list(session, recipient),
     }
+
+
+def _sound_name(prefs: dict) -> str:
+    """The sound the person picked; an unknown name falls back to the first."""
+    name = prefs.get("sound_name")
+    return name if name in SOUND_NAMES else SOUND_NAMES[0]
+
+
+def _remind_after(prefs: dict) -> int:
+    """Minutes before an unanswered Needs you row reminds once; 0 when reminders are off."""
+    try:
+        minutes = int(prefs.get("remind_after_min", DEFAULT_PREFS["remind_after_min"]))
+    except (TypeError, ValueError):
+        return DEFAULT_PREFS["remind_after_min"]
+    return (
+        minutes if 0 <= minutes <= REMIND_MAX_MIN else DEFAULT_PREFS["remind_after_min"]
+    )
 
 
 def _apply_event_choices(mine: dict, events: list[dict]) -> None:
@@ -466,6 +499,15 @@ async def update_settings(
     for k in ("dnd", "sound", "desktop_on"):
         if k in body and body[k] is not None:
             mine[k] = bool(body[k])
+    if body.get("sound_name") is not None:
+        if body["sound_name"] not in SOUND_NAMES:
+            raise ValueError(f"Pick a sound: {', '.join(SOUND_NAMES)}.")
+        mine["sound_name"] = body["sound_name"]
+    if body.get("remind_after_min") is not None:
+        minutes = int(body["remind_after_min"])
+        if not 0 <= minutes <= REMIND_MAX_MIN:
+            raise ValueError("Remind after 1 to 1440 minutes, or 0 for never.")
+        mine["remind_after_min"] = minutes
     if isinstance(body.get("day_card"), dict):
         _apply_day_card(mine, body["day_card"])
     row.prefs = json.dumps(mine)
@@ -901,9 +943,16 @@ def _merge_into(
     row.last_event_id = ev.id
     row.read_at = None
     row.updated_at = now.isoformat()
+    kept = _loads(row.data, {})
     if data.get("reminder"):
         row.snoozed_until = None
+        # remembered, so the "unanswered for N minutes" reminder comes once per request (#270)
+        row.data = json.dumps({**kept, "reminded_at": now.isoformat()})
         return
+    if "reminded_at" in kept:
+        # a new event is a new request for attention: it may remind again if it too stays unanswered
+        kept.pop("reminded_at")
+        row.data = json.dumps(kept)
     items = _loads(row.items, [])
     items.append(item)
     row.items = json.dumps(items[-GROUP_ITEMS_KEPT:])
@@ -2082,6 +2131,7 @@ def to_dict(r: Notification, me: str, names: dict[str, str] | None = None) -> di
         "created_at": r.created_at,
         "updated_at": r.updated_at,
         "actions": _actions(r, gone),
+        "reminded": bool(data.get("reminded_at")),
         "dismissable": (not r.done_at)
         and (gone or KINDS.get(r.kind, ("", False, False, False))[3]),
     }
@@ -2414,6 +2464,7 @@ async def feed(session: AsyncSession, me: str, since: int | None) -> dict:
         "quiet": in_quiet_hours(prefs),
         "dnd": bool(prefs.get("dnd")),
         "sound": bool(prefs.get("sound")),
+        "sound_name": _sound_name(prefs),
     }
 
 
@@ -3052,6 +3103,63 @@ async def prune(now: datetime | None = None) -> int:
 _task: asyncio.Task | None = None
 
 
+async def remind_unanswered(now: datetime | None = None) -> int:
+    """Do not let it slip (#270): a Needs you row still open and unread `remind_after_min` minutes after its newest
+    event notifies once more. The reminder is one more event on the same row (it comes back unread and does not
+    count as a new item), so the panel, a toast, the browser notifier and the desktop notifier all see it the way
+    they see any other change. Once per request: the row remembers `reminded_at` until a new event arrives.
+    Not during quiet hours (it waits for them to end), not for a snoozed, closed, cleared or unreachable row, and
+    never for an AI recipient. Returns how many reminders were sent."""
+    now = now or datetime.now(UTC)
+    sent = 0
+    async with database.async_session() as session:
+        rows = (
+            await session.exec(
+                select(Notification).where(
+                    Notification.needs == True,  # noqa: E712
+                    col(Notification.done_at).is_(None),
+                    col(Notification.cleared_at).is_(None),
+                    col(Notification.read_at).is_(None),
+                )
+            )
+        ).all()
+        prefs_of: dict[str, dict] = {}
+        for r in rows:
+            if r.recipient.startswith("ai:") or not (r.inapp or r.desktop):
+                continue
+            if r.snoozed_until and (_parse(r.snoozed_until) or now) > now:
+                continue
+            data = _loads(r.data, {})
+            if data.get("reminded_at") or data.get("gone"):
+                continue
+            if r.recipient not in prefs_of:
+                prefs_of[r.recipient] = await get_prefs(session, r.recipient)
+            prefs = prefs_of[r.recipient]
+            minutes = _remind_after(prefs)
+            last = _parse(r.updated_at)
+            if minutes <= 0 or last is None or now - last < timedelta(minutes=minutes):
+                continue
+            if in_quiet_hours(prefs, now):
+                continue
+            await emit(
+                r.kind,
+                project_id=r.project_id,
+                recipients=[r.recipient],
+                title=r.title,
+                body=r.body,
+                target_kind=r.target_kind,
+                target_id=r.target_id,
+                ticket_id=r.ticket_id,
+                page_id=r.page_id,
+                member_id=r.member_id,
+                actor=r.actor,
+                data={"reminder": True},
+                session=session,
+            )
+            sent += 1
+    return sent
+
+
 async def wake_snoozed(now: datetime | None = None) -> int | None:
     """A snooze that ran out brings its row back: one event per target, the row points at it and is unread again, so
     the panel, the count, a toast and the desktop notifier all see it come back (design C, "brings it back in 1
@@ -3175,6 +3283,7 @@ RECONCILE_EVERY_S = 15.0
 async def _loop() -> None:
     last_full = 0.0
     last_hour = -1.0
+    last_remind = -REMIND_EVERY_S
     loop = asyncio.get_running_loop()
     dirty = _dirty or asyncio.Event()
     try:
@@ -3193,6 +3302,9 @@ async def _loop() -> None:
                 last_full = t
                 await reconcile()
                 await wake_snoozed()
+            if t - last_remind >= REMIND_EVERY_S:
+                last_remind = t
+                await remind_unanswered()
             if t - last_hour >= 60:
                 last_hour = t
                 await write_day_cards()

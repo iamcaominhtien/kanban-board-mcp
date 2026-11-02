@@ -36,6 +36,10 @@ export interface NotificationSettings {
   desktopOn: boolean;
   dnd: boolean;
   sound: boolean;
+  /** Which sound a Needs you event makes: chime, drop or bell. */
+  soundName: string;
+  /** Minutes a Needs you may stay unanswered before it reminds once; 0 = never. */
+  remindAfterMin: number;
   dayCard: { on: boolean; time: string; days: number[] };
   retentionDays: number;
   /** Retention deletes everyone's history: only the board's own user or a project owner or admin may change it. */
@@ -50,6 +54,8 @@ export interface NotificationSettingsPatch {
   desktopOn?: boolean;
   dnd?: boolean;
   sound?: boolean;
+  soundName?: string;
+  remindAfterMin?: number;
   dayCard?: Partial<NotificationSettings['dayCard']>;
   retentionDays?: number;
 }

@@ -27,6 +27,8 @@ function base(over: Record<string, unknown> = {}) {
     desktopOn: true,
     dnd: false,
     sound: false,
+    soundName: 'chime',
+    remindAfterMin: 15,
     dayCard: { on: true, time: '18:00', days: [0, 1, 2, 3, 4] },
     retentionDays: 90,
     muted: [],
@@ -230,10 +232,87 @@ describe('NotificationsSettings', () => {
     await waitFor(() => expect(c.delete).toHaveBeenCalledWith('/notifications/follow/m1'));
   });
 
-  it('explains the web version without the desktop app', async () => {
+  it('says a browser without notifications can only show the count in the tab title', async () => {
     setup();
-    await screen.findByText(/In the web version the tab title shows the count/);
+    await screen.findByText(/This browser cannot show system notifications/);
     expect(screen.queryByLabelText('Desktop notifications')).toBeNull();
+  });
+
+  it('saves the sound that was picked and the time of the reminder', async () => {
+    setup(base({ sound: true }));
+    fireEvent.change(await screen.findByLabelText('Which sound'), { target: { value: 'bell' } });
+    await waitFor(() => expect(lastPatch()).toEqual({ soundName: 'bell' }));
+    fireEvent.change(screen.getByLabelText('Remind me if unanswered'), { target: { value: '30' } });
+    await waitFor(() => expect(lastPatch()).toEqual({ remindAfterMin: 30 }));
+    fireEvent.change(screen.getByLabelText('Remind me if unanswered'), { target: { value: '0' } });
+    await waitFor(() => expect(lastPatch()).toEqual({ remindAfterMin: 0 }));
+  });
+
+  it('keeps the sound choice off while the sound is off', async () => {
+    setup(base({ sound: false }));
+    const pick = (await screen.findByLabelText('Which sound')) as HTMLSelectElement;
+    expect(pick.disabled).toBe(true);
+  });
+
+  describe('browser', () => {
+    type FakeNotification = {
+      permission: NotificationPermission;
+      requestPermission: ReturnType<typeof vi.fn>;
+    };
+    const made: unknown[][] = [];
+    function install(permission: NotificationPermission, after: NotificationPermission = permission) {
+      const Fake = vi.fn(function (this: unknown, ...args: unknown[]) {
+        made.push(args);
+      }) as unknown as FakeNotification & (new (...a: unknown[]) => unknown);
+      Fake.permission = permission;
+      Fake.requestPermission = vi.fn(async () => {
+        Fake.permission = after;
+        return after;
+      });
+      vi.stubGlobal('Notification', Fake);
+      return Fake;
+    }
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      made.length = 0;
+    });
+
+    it('asks the browser only from the button, never on its own', async () => {
+      const fake = install('default', 'granted');
+      setup();
+      const allow = await screen.findByRole('button', { name: 'Allow in this browser' });
+      expect(fake.requestPermission).not.toHaveBeenCalled();
+      fireEvent.click(allow);
+      await screen.findByText(/Allowed in this browser/);
+      expect(fake.requestPermission).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends a test notification once it is allowed', async () => {
+      install('granted');
+      setup(base({ sound: false }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Send a test' }));
+      await screen.findByText(/Sent\. Look for it on your screen/);
+      expect(made).toHaveLength(1);
+      expect(made[0][0]).toBe('Kanban Board — Test notification');
+      // sound off: the system's own sound is not let in either
+      expect(made[0][1]).toMatchObject({ silent: true });
+    });
+
+    it('explains a blocked browser and how to allow it again', async () => {
+      install('denied');
+      setup();
+      await screen.findByText(/The browser is blocking notifications for this site/);
+      fireEvent.click(screen.getByRole('button', { name: 'send a test' }));
+      await screen.findByText(/blocking notifications for this site\. Allow them in its site settings/);
+      expect(made).toHaveLength(0);
+    });
+
+    it('has a switch for the master setting', async () => {
+      install('granted');
+      setup();
+      fireEvent.click(await screen.findByLabelText('Desktop notifications'));
+      await waitFor(() => expect(lastPatch()).toEqual({ desktopOn: false }));
+    });
   });
 
   describe('desktop app', () => {
