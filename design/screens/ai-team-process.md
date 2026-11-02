@@ -52,6 +52,8 @@ Source: [AiTeamProcess.dc.html](../source/AiTeamProcess.dc.html) › block "C. R
 
 Adding an AI today is one five-step dialog, one member at a time, and nothing knows anything about the repository. A project with no team should be able to get a working one in about three minutes, with every value visible and changeable.
 
+> Update (3.23.0): steps 2 and 3 of this wizard (the commands and "Try the commands") are redrawn in [ai-repo-commands.md](ai-repo-commands.md): an AI reads the repository, tries each command and shows the proof and the environment it needed.
+
 Source: [AiTeamProcess.dc.html](../source/AiTeamProcess.dc.html) › block "D. Giving a new project a team"
 
 ![D. Giving a new project a team: Adding an AI today is one five-step dialog, one member at a time, and nothing knows anything about the repository. A project with no team should be able to get a working one in about three minutes, with every value visible and changeable.](../images/ai-team-process/08-d-giving-a-new-project-a-team.png)

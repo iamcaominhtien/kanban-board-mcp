@@ -482,18 +482,95 @@ async def post_scan(project_id: str, body: ScanBody, session: Session) -> dict:
         )
     except ValueError as exc:
         _fail(exc)
-    return svc_scan.to_dict(row)
+    return await svc_scan.to_api(session, row)
 
 
 @router.get("/ai/scans/{scan_id}")
 async def get_scan(scan_id: str, session: Session) -> dict:
-    """A scan."""
+    """A scan (the wizard polls it while the AI or the board tries the commands)."""
     from models import AiRepoScan
 
     row = await session.get(AiRepoScan, scan_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Scan not found")
-    return svc_scan.to_dict(row)
+    return await svc_scan.to_api(session, row)
+
+
+@router.get("/projects/{project_id}/ai/scans/latest")
+async def get_latest_scan(project_id: str, session: Session) -> dict | None:
+    """The newest scan not applied yet (last 24 h), so the wizard picks up a setup that kept running."""
+    await _project(session, project_id)
+    row = await svc_scan.latest(session, project_id)
+    return await svc_scan.to_api(session, row) if row is not None else None
+
+
+class AiJobBody(BaseModel):
+    """Let the AI set up the commands (design/screens/ai-repo-commands.md, C)."""
+
+    hint: str = ""
+    # the rows as they are on screen, and those the AI must leave alone (they work, or the person typed them)
+    commands: dict[str, str | None] | None = None
+    keep: list[str] = []
+    env_path: list[str] | None = None
+
+
+class TryBody(BaseModel):
+    """The board runs the commands as the person has them, the way a ticket will."""
+
+    commands: dict[str, str | None]
+    env_path: list[str] = []
+    only: list[str] | None = (
+        None  # which of test, lint, build (prepare runs first when it is set)
+    )
+
+
+async def _scan_job(session, scan_id: str, **kw) -> dict:
+    try:
+        row = await svc_scan.start_job(session, scan_id, **kw)
+    except LookupError as exc:
+        _fail(exc, 404)
+    except svc_scan.JobRunning as exc:
+        _fail(exc, 409)
+    except ValueError as exc:
+        _fail(exc)
+    return await svc_scan.to_api(session, row)
+
+
+@router.post("/ai/scans/{scan_id}/ai")
+async def post_scan_ai(scan_id: str, body: AiJobBody, session: Session) -> dict:
+    """Start the AI: it reads the repository and proposes; the board then runs each command itself."""
+    return await _scan_job(
+        session,
+        scan_id,
+        mode="ai",
+        hint=body.hint,
+        commands=body.commands,
+        keep=body.keep,
+        env_path=body.env_path,
+    )
+
+
+@router.post("/ai/scans/{scan_id}/try")
+async def post_scan_try(scan_id: str, body: TryBody, session: Session) -> dict:
+    """Run the commands once in a scratch worktree, as a ticket runs them. Returns at once; poll the scan."""
+    return await _scan_job(
+        session,
+        scan_id,
+        mode="try",
+        commands=body.commands,
+        env_path=body.env_path,
+        only=body.only,
+    )
+
+
+@router.post("/ai/scans/{scan_id}/cancel")
+async def post_scan_cancel(scan_id: str, session: Session) -> dict:
+    """Stop the AI or the trial."""
+    try:
+        row = await svc_scan.cancel_job(session, scan_id)
+    except LookupError as exc:
+        _fail(exc, 404)
+    return await svc_scan.to_api(session, row)
 
 
 @router.post("/ai/scans/{scan_id}/apply")

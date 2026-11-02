@@ -221,6 +221,40 @@ async def test_failing_checks_send_it_back_to_the_dev_before_any_review(
     await c.delete(f"/tickets/{tid}/ai/workflow")
 
 
+async def test_a_check_that_is_off_stays_out_and_the_project_path_is_used(
+    env, tmp_path
+):
+    """A command saved but not a check (the repo's own tests already fail) does not send the ticket back, and the
+    checks run with the project's extra PATH folders in front (design/screens/ai-repo-commands.md, D3/D5)."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    (tools / "lint-xyz").write_text("#!/bin/sh\necho linted\n")
+    (tools / "lint-xyz").chmod(0o755)
+    await c.patch(
+        f"/projects/{pid}/ai/ops",
+        json={
+            "commands": {"test": "exit 1", "lint": "lint-xyz"},
+            "checks_off": ["test"],
+            "env_path": [str(tools)],
+        },
+    )
+    await _team(c, pid, env["repo"], roles=("triage", "dev", "reviewer"))
+    tid = await _ticket(c, pid)
+    await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
+    view = await _until(
+        c,
+        tid,
+        lambda v: any(s["key"] == "checks" and s["result"] for s in v["steps"]),
+    )
+    checks = next(s for s in view["steps"] if s["key"] == "checks" and s["result"])
+    assert checks["outcome"] != "failed"
+    assert [r["name"] for r in checks["result"]["checks"]] == ["lint"]
+    assert checks["result"]["checks"][0]["ok"] is True
+    await c.delete(f"/tickets/{tid}/ai/workflow")
+
+
 async def test_the_design_waits_for_the_person_who_approves_it(env, monkeypatch):
     c = env["c"]
     pid, _ = await _project(c)

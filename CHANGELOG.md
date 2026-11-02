@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.23.1] - 2026-11-02
+## [3.24.0] - 2026-11-02
 
 ### Added
 - **Shared skills for every AI role** (#277, agreed with the owner from what live runs got wrong: a report that claimed what nobody did, a server left running so the run never ended, a hand-in without screenshots, a choice made without asking, English labels on a Vietnamese canvas). The board's plugin gains four skills: `working-a-ticket` (read the project first, plan, stay in your role, review your own work, report only what is true), `evidence-and-handover` (proof a person can see, a handoff note, a closing comment), `repo-and-machine` (git, stop what you started, ports, write only in your folder) and `asking-and-writing` (when to ask and how, when to decide and say so, the project's language everywhere), and three the owner asked for in the brainstorm: `brainstorming` (work out with a person what to build, in rounds, approaches with their trade-offs, the agreed list written down), `end-user-eyes` (the first-time, five-second and one-real-task tests, the user's words, the machine-made look) and `office-files` (Excel with real formulas, Word with real styles, decks with a point and a look, each rendered to images with LibreOffice and looked at before it is handed in; written here, since Anthropic's document skills may not be copied). Their most important rules are in every work run's prompt; agents outside Claude Code read the same text through `docs_read(guides)`, which the MCP instructions now point to. Every persona (packs v9) and the workflow's step text point to the skills instead of repeating them.
@@ -33,6 +33,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - A plugin from a repository with no manifest (a bare `skills/` folder) is named after the repository (`make-interfaces-feel-better`, `emilkowalski-skills`); it was named after the board's staging folder, so a second one was refused as already installed.
 - A repository that is a single skill (one `SKILL.md` at its root) installs under the name in its `SKILL.md`; it was named after the folder it was cloned into, so two such skills clashed.
 - A plugin whose repository links one of its own files from another folder installs, with the file copied in place of the link (`ui-ux-pro-max`, the Designer's palettes and font pairings, never installed before). A link out of the repository, or a folder link into its own parents, is still refused.
+
+## [3.23.1] - 2026-11-02
+
+Set up the AI team: the AI sets up the project's commands, and the board proves them (#282, design `design/screens/ai-repo-commands.md`).
+
+### Added
+- **The AI sets up the commands.** Step 3 of Set up the AI team (now *Commands*) lets Claude Code read the repository in a temporary copy (Read, Glob and Grep only) and propose the prepare, test, lint and build commands, each with where it came from and a note. You watch its steps and a live log, and can cancel; it stops by itself after 10 minutes and keeps going if the window closes (the wizard picks it up again). *Type them myself* stays one click away, and is the way when Claude Code is missing or not signed in.
+- **The board proves every command.** Each one runs once in a scratch worktree the way a ticket runs it, and gets its own row: works, *command is wrong* (the shell could not run it), *the repo's own tests fail* (the command is right), or not run and why. Run one row or all again, or *Ask the AI to fix* with a sentence.
+- **An environment per project.** Extra folders in front of the PATH (Homebrew, nvm…) for everything the project runs: the wizard's trial, a ticket's prepare, the workflow checks, a schedule's test check and the AI members' own runs. The AI's step finds a program the app's PATH lacks (`npm` in `/opt/homebrew/bin`) and adds its folder. Editable in the wizard and in Settings › AI.
+- **A command saved but not a check yet.** A test, lint or build command that fails in the repository itself can stay saved without being a check, so it does not send every ticket back to Dev. The wizard suggests it, Confirm says what a failing check would cost, and Settings › AI has *Use as a check* per command.
+
+### Fixed
+- **`npm: command not found` (exit 127) when the app was opened from the Dock**, in the wizard's trial and on tickets: commands ran with the app's short PATH, which has no Homebrew or nvm.
+- The trial stopped at the first failure and then said *Test: not tried (no command)*; every command now has its own result and a reason when it did not run.
+- A tooling folder (`.github/skills/…/scripts`, `.claude/…`) no longer lands in the suggested prepare command.
+- A folder the AI members cannot work in (outside the home folder and `KANBAN_AI_ROOTS`) is refused when the wizard reads it, with what to do, instead of every member being skipped at Create.
 
 ## [3.23.0] - 2026-11-02
 

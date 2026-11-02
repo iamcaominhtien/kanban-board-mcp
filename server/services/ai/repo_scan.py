@@ -19,14 +19,17 @@ import re
 import shutil
 import subprocess
 import tempfile
-from datetime import UTC, datetime
+import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlmodel import col, select
 
+import database
+
 from models import AiAccount, AiPlugin, AiRepoScan
 
-from . import ops, packs, plugins, worktrees
+from . import accounts, cli, ops, packs, paths, plugins, project_env, worktrees
 from .store import get_settings
 
 log = logging.getLogger(__name__)
@@ -140,6 +143,12 @@ def _in_worktree(path: Path, root: Path, committed: set[str] | None) -> bool:
     return committed is None or path.relative_to(root).as_posix() in committed
 
 
+def _hidden(path: Path, root: Path) -> bool:
+    """A manifest under a hidden folder (``.github/skills/…/scripts``, ``.claude/worktrees/…``, ``.venv``) is tooling,
+    not the application: its install step does not belong in the project's prepare command."""
+    return any(part.startswith(".") for part in path.relative_to(root).parts[:-1])
+
+
 def scan(folder: str) -> dict:
     """What the repository is, read by code (nothing runs, nothing is sent anywhere)."""
     root = Path(os.path.expanduser(folder))
@@ -157,7 +166,7 @@ def scan(folder: str) -> dict:
         p
         for p in root.rglob("package.json")
         if "node_modules" not in p.parts
-        and ".git" not in p.parts
+        and not _hidden(p, root)
         and _in_worktree(p, root, committed)
     ][:12]
     for pkg in pkg_files:
@@ -195,9 +204,7 @@ def scan(folder: str) -> dict:
     for py in [
         p
         for p in root.rglob("pyproject.toml")
-        if ".git" not in p.parts
-        and ".venv" not in p.parts
-        and _in_worktree(p, root, committed)
+        if not _hidden(p, root) and _in_worktree(p, root, committed)
     ][:8]:
         text = _read(py)
         rel = py.parent.relative_to(root).as_posix()
@@ -428,76 +435,211 @@ def suggest(found: dict) -> dict:
     }
 
 
-def _try(folder: str, prepare: str, test: str) -> dict:
-    """Run the prepare and test commands once in a scratch worktree (or a copy), and remove it afterwards."""
-    out: dict = {"prepare": None, "test": None}
-    root = Path(folder)
-    scratch = Path(tempfile.mkdtemp(prefix="kanban-scan-"))
-    made_worktree = False
-    try:
-        if (root / ".git").exists():
+COMMANDS = ("prepare", "test", "lint", "build")
+CHECKS = ("test", "lint", "build")
+# The shell could not run the command at all: a program that is not there, a script that does not exist, bad
+# arguments. Anything else that exits non-zero ran, and the project failed (the two kinds of red, design D4).
+_WRONG = re.compile(
+    r"command not found|: not found|Missing script|is not recognized as an internal|Unknown command|"
+    r"no such command|unrecognized subcommand|Failed to spawn|Couldn't find a script|Unknown script|"
+    r"No such file or directory: '?[\w./-]*'?$|error: unknown option",
+    re.I | re.M,
+)
+
+
+def classify(exit_code: int | None, output: str, timed_out: bool = False) -> str:
+    """works | wrong | fails | timeout: the server decides from the exit code and the output, never the AI."""
+    if timed_out:
+        return "timeout"
+    if exit_code == 0:
+        return "works"
+    if exit_code in (126, 127) or _WRONG.search(output or ""):
+        return "wrong"
+    return "fails"
+
+
+def _why_wrong(output: str, exit_code: int | None) -> str:
+    m = _WRONG.search(output or "")
+    if m:
+        line = next(
+            (ln for ln in (output or "").splitlines() if m.group(0) in ln), m.group(0)
+        )
+        return line.strip()[:200]
+    return f"The shell could not run it (exit {exit_code})."
+
+
+class _Scratch:
+    """A scratch worktree of the repository's HEAD (or a copy when it is not a git repository), removed afterwards."""
+
+    def __init__(self, folder: str):
+        self.root = Path(folder)
+        self.tmp = Path(tempfile.mkdtemp(prefix="kanban-trial-"))
+        self.work = self.tmp / "wt"
+        self.made_worktree = False
+
+    def __enter__(self) -> Path:
+        if (self.root / ".git").exists():
             res = subprocess.run(
-                ["git", "worktree", "add", "--detach", str(scratch / "wt"), "HEAD"],
-                cwd=root,
+                ["git", "worktree", "add", "--detach", str(self.work), "HEAD"],
+                cwd=self.root,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
                 errors="replace",
                 timeout=60,
             )
-            made_worktree = res.returncode == 0
-        work = scratch / "wt"
-        if not made_worktree:
+            self.made_worktree = res.returncode == 0
+        if not self.made_worktree:
             shutil.copytree(
-                root,
-                work,
+                self.root,
+                self.work,
                 ignore=shutil.ignore_patterns(".git", "node_modules", ".venv"),
             )
-        for name, cmd in (("prepare", prepare), ("test", test)):
-            if not cmd:
-                continue
-            started = datetime.now(UTC)
-            try:
-                res = subprocess.run(
-                    cmd,
-                    shell=True,
-                    cwd=work,
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    timeout=TRIAL_TIMEOUT_S,
-                )
-                tail = (
-                    ((res.stdout or "") + (res.stderr or "")).strip().splitlines()[-6:]
-                )
-                out[name] = {
-                    "command": cmd,
-                    "ok": res.returncode == 0,
-                    "exit_code": res.returncode,
-                    "seconds": int((datetime.now(UTC) - started).total_seconds()),
-                    "tail": tail,
-                }
-            except subprocess.TimeoutExpired:
-                out[name] = {
-                    "command": cmd,
-                    "ok": False,
-                    "exit_code": None,
-                    "seconds": TRIAL_TIMEOUT_S,
-                    "tail": ["Timed out."],
-                }
-            if not out[name]["ok"]:
-                break
-    finally:
-        if made_worktree:
+        return self.work
+
+    def __exit__(self, *exc) -> None:
+        if self.made_worktree:
             subprocess.run(
-                ["git", "worktree", "remove", "--force", str(scratch / "wt")],
-                cwd=root,
+                ["git", "worktree", "remove", "--force", str(self.work)],
+                cwd=self.root,
                 capture_output=True,
                 timeout=60,
             )
-        shutil.rmtree(scratch, ignore_errors=True)
+            subprocess.run(
+                ["git", "worktree", "prune"],
+                cwd=self.root,
+                capture_output=True,
+                timeout=60,
+            )
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+
+async def _run_one(
+    cmd: str, cwd: Path, env: dict, on_line=None, timeout: float = TRIAL_TIMEOUT_S
+) -> dict:
+    """Run one shell line the way a ticket does (``/bin/sh``, the project's environment), in its own process group so
+    a cancel stops it and everything it started."""
+    started = datetime.now(UTC)
+    proc = await asyncio.create_subprocess_shell(
+        cmd,
+        cwd=str(cwd),
+        env=env,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+        stdin=asyncio.subprocess.DEVNULL,
+        **cli._popen_kwargs(),
+    )
+    lines: list[str] = []
+
+    async def read() -> None:
+        assert proc.stdout is not None
+        async for raw in proc.stdout:
+            line = raw.decode("utf-8", errors="replace").rstrip()
+            lines.append(line)
+            if len(lines) > 2000:
+                del lines[:1000]
+            if on_line is not None:
+                on_line(line)
+
+    timed_out = False
+    try:
+        await asyncio.wait_for(asyncio.gather(read(), proc.wait()), timeout)
+    except asyncio.TimeoutError:
+        timed_out = True
+        cli.kill_tree(proc.pid)
+        await proc.wait()
+    except asyncio.CancelledError:
+        cli.kill_tree(proc.pid)
+        raise
+    output = "\n".join(lines)
+    code = None if timed_out else proc.returncode
+    status = classify(code, "\n".join(lines[-40:]), timed_out)
+    return {
+        "command": cmd,
+        "status": status,
+        "ok": status == "works",
+        "exit_code": code,
+        "seconds": round((datetime.now(UTC) - started).total_seconds(), 1),
+        "tail": [ln for ln in lines if ln.strip()][-12:]
+        or (["Timed out."] if timed_out else []),
+        "reason": (
+            f"Timed out after {int(timeout // 60)} minutes."
+            if timed_out
+            else (_why_wrong(output[-4000:], code) if status == "wrong" else None)
+        ),
+    }
+
+
+async def try_commands(
+    folder: str,
+    commands: dict,
+    extra_path: list[str] | None = None,
+    *,
+    only: list[str] | None = None,
+    on_event=None,
+) -> dict:
+    """Run the commands once in a scratch worktree, the way a ticket runs them: prepare first (when set), then test,
+    lint and build, each on its own (one failing does not hide the next). Every command gets a result with a status;
+    one that did not run says why. ``on_event(kind, name, data)`` reports progress: ("start", name, cmd),
+    ("line", name, text), ("done", name, result)."""
+    env = project_env.with_path(None, extra_path)
+    out: dict = {n: None for n in COMMANDS}
+    wanted = [n for n in CHECKS if only is None or n in only]
+
+    def emit(kind: str, name: str, data) -> None:
+        if on_event is not None:
+            on_event(kind, name, data)
+
+    def not_run(name: str, reason: str) -> dict:
+        return {
+            "command": (commands.get(name) or "").strip(),
+            "status": "not_run",
+            "ok": False,
+            "exit_code": None,
+            "seconds": 0,
+            "tail": [],
+            "reason": reason,
+        }
+
+    scratch = _Scratch(folder)
+    work = await asyncio.to_thread(scratch.__enter__)
+    try:
+        prepare = (commands.get("prepare") or "").strip()
+        prepared = True
+        if prepare:
+            emit("start", "prepare", prepare)
+            out["prepare"] = await _run_one(
+                prepare, work, env, lambda ln: emit("line", "prepare", ln)
+            )
+            emit("done", "prepare", out["prepare"])
+            prepared = out["prepare"]["ok"]
+        for name in CHECKS:
+            cmd = (commands.get(name) or "").strip()
+            if name not in wanted:
+                continue
+            if not cmd:
+                out[name] = (
+                    None  # no command: nothing to try (the wizard shows it as empty)
+                )
+            elif not prepared:
+                out[name] = not_run(name, "prepare failed first")
+            else:
+                emit("start", name, cmd)
+                out[name] = await _run_one(
+                    cmd, work, env, lambda ln, n=name: emit("line", n, ln)
+                )
+            emit("done", name, out[name])
+    finally:
+        await asyncio.to_thread(scratch.__exit__, None, None, None)
     return out
+
+
+def _try(folder: str, prepare: str, test: str) -> dict:
+    """The prepare and test commands tried once (the scan's own trial); see ``try_commands``."""
+    out = asyncio.run(
+        try_commands(folder, {"prepare": prepare, "test": test}, only=["test"])
+    )
+    return {"prepare": out["prepare"], "test": out["test"]}
 
 
 async def run_scan(
@@ -512,21 +654,38 @@ async def run_scan(
 ) -> AiRepoScan:
     """Scan, suggest and (by default) try the commands; nothing is created. `refine` asks a light model to improve
     the role and plugin suggestions (it fails soft back to the code's). `prepare` and `test` are the commands as the
-    person edited them: when given ("" for none), they are tried instead of the suggestion's."""
+    person edited them: when given ("" for none), they are tried instead of the suggestion's.
+
+    Raises:
+        ValueError: No such folder, or one the AI members could not work in (outside the home folder and
+            KANBAN_AI_ROOTS): said at step 1, not after the whole wizard when Create skips every member.
+    """
+    try:
+        # the real, absolute path, checked to sit inside the places people keep their work: everything below reads
+        # and runs in this one, never in the text the request carried
+        folder = paths.folder(folder)
+    except paths.PathRefused as exc:
+        raise ValueError(
+            f"The AI team can only work in a folder inside your home folder, or one listed in {paths.ROOTS_ENV}. "
+            f"Move the repository there, or add its parent folder to {paths.ROOTS_ENV}: {folder.strip()}"
+        ) from exc
     found = await asyncio.to_thread(scan, folder)
     proposal = suggest(found)
     if refine:
         proposal = await refine_suggestion(session, project_id, found, proposal)
-    tried = (
-        await asyncio.to_thread(
-            _try,
+    tried = {}
+    if trial:
+        settings = await get_settings(session, project_id)
+        tried = await try_commands(
             found["folder"],
-            proposal["prepare"] if prepare is None else prepare.strip(),
-            proposal["commands"]["test"] if test is None else test.strip(),
+            {
+                "prepare": proposal["prepare"] if prepare is None else prepare.strip(),
+                "test": proposal["commands"]["test"] if test is None else test.strip(),
+            },
+            project_env.extra(settings),
+            only=["test"],
         )
-        if trial
-        else {}
-    )
+        tried = {"prepare": tried["prepare"], "test": tried["test"]}
     row = AiRepoScan(
         project_id=project_id,
         folder=found["folder"],
@@ -657,6 +816,670 @@ async def refine_suggestion(
         return proposal
 
 
+# --------------------------------------------------------------------------- the AI sets up the commands (design C/D)
+
+JOB_LIMIT_S = 10 * 60
+LOG_KEEP = 400
+_TASKS: dict[str, asyncio.Task] = {}
+_AI_STATUS: dict = {}
+_STEP_LABEL = {
+    "prepare": "Prepare",
+    "test": "Test",
+    "lint": "Lint",
+    "build": "Build",
+}
+
+
+class JobRunning(Exception):
+    """A job already runs for this scan."""
+
+
+async def ai_status(session, force: bool = False) -> dict:
+    """Whether the AI can set up the commands: Claude Code found and signed in (the board's signed-in account, else
+    this computer's own login). Cached for 15 s, since the wizard polls."""
+    account = await _claude_account(session)
+    key = account.id if account is not None else "local"
+    cached = _AI_STATUS.get(key)
+    if not force and cached and time.monotonic() - cached[0] < 15:
+        return cached[1]
+    env = accounts.env_for(account, cli.child_env(None)) if account else None
+    try:
+        info = await cli.detect("claude-code", "claude", None, env)
+    except Exception:  # noqa: BLE001 - a detection failure is "not available", never a broken wizard
+        info = {"found": False}
+    if not info.get("found"):
+        value = {
+            "available": False,
+            "why": "Claude Code is not installed on this computer (the claude command was not found).",
+        }
+    elif info.get("logged_in") is False:
+        value = {
+            "available": False,
+            "why": "Claude Code is not signed in on this computer. The AI needs it to read the repository.",
+        }
+    else:
+        value = {"available": True, "why": None}
+    _AI_STATUS[key] = (time.monotonic(), value)
+    return value
+
+
+def running(scan_id: str) -> bool:
+    """Whether a job runs for this scan in this process."""
+    task = _TASKS.get(scan_id)
+    return task is not None and not task.done()
+
+
+class _Job:
+    """The job's state as the wizard reads it (``AiRepoScan.job``), saved now and then while it runs."""
+
+    def __init__(self, scan_id: str, mode: str, hint: str, trial: dict, proposal: dict):
+        self.scan_id = scan_id
+        self.doc: dict = {
+            "mode": mode,
+            "state": "running",
+            "started_at": datetime.now(UTC).isoformat(),
+            "ended_at": None,
+            "hint": hint,
+            "steps": [],
+            "log": [],
+            "error": None,
+        }
+        self.trial = trial
+        self.proposal = proposal
+        self._t0 = time.monotonic()
+        self._saved = 0.0
+
+    def at(self) -> int:
+        return int(time.monotonic() - self._t0)
+
+    def step(
+        self, key: str, label: str, detail: str = "", state: str = "waiting"
+    ) -> None:
+        for s in self.doc["steps"]:
+            if s["key"] == key:
+                s.update(label=label, detail=detail, state=state)
+                return
+        self.doc["steps"].append(
+            {"key": key, "label": label, "detail": detail, "state": state, "at_s": None}
+        )
+
+    def mark(self, key: str, state: str, **kw) -> None:
+        for s in self.doc["steps"]:
+            if s["key"] == key:
+                s["state"] = state
+                if state in ("done", "failed"):
+                    s["at_s"] = self.at()
+                s.update(kw)
+
+    def line(self, text: str) -> None:
+        self.doc["log"].append(text[:500])
+        if len(self.doc["log"]) > LOG_KEEP:
+            del self.doc["log"][: len(self.doc["log"]) - LOG_KEEP]
+
+    def finish(self, state: str, error: str | None = None) -> None:
+        self.doc["state"] = state
+        self.doc["error"] = error
+        self.doc["ended_at"] = datetime.now(UTC).isoformat()
+        for s in self.doc["steps"]:
+            if s["state"] == "running":
+                s["state"] = "failed"
+            elif s["state"] == "waiting":
+                s["state"] = "skipped"
+        for name, res in list(self.trial.items()):
+            if res and res.get("status") in ("running", "waiting"):
+                self.trial[name] = {
+                    **res,
+                    "status": "not_run",
+                    "ok": False,
+                    "reason": {
+                        "timeout": "The AI stopped after 10 minutes.",
+                        "cancelled": "Cancelled.",
+                    }.get(state, error or "It did not run."),
+                }
+
+    async def save(self, force: bool = False) -> None:
+        now = time.monotonic()
+        if not force and now - self._saved < 0.5:
+            return
+        self._saved = now
+        async with database.async_session() as session:
+            row = await session.get(AiRepoScan, self.scan_id)
+            if row is None:
+                return
+            row.job = json.dumps(self.doc)
+            row.trial = json.dumps(self.trial)
+            row.proposal = json.dumps(self.proposal)
+            session.add(row)
+            await session.commit()
+
+
+AI_PROMPT = """You set up the commands an AI team runs for this repository. You are in a temporary copy of it. Read
+what you need (the CI workflows, the package manifests and their scripts, a Makefile, the README, CLAUDE.md or
+AGENTS.md); do not guess. You cannot run anything: the board runs your commands itself afterwards.
+
+Find four shell commands. Each runs from the repository root with /bin/sh:
+- prepare: installs what a fresh checkout needs before work starts, for the application(s) only (not for tooling
+  folders such as .github/ or .claude/).
+- test: runs the tests once (never in watch mode).
+- lint: the lint or static check the project uses (CI's when there is CI).
+- build: builds the application.
+Prefer what CI really runs. Stay at the root: `npm --prefix <dir> …`, `uv --directory <dir> …` or `(cd <dir> && …)`,
+never a bare `cd dir && …` chain. Leave a command "" when the repository has none: never invent one.
+
+What the board's scan (by code) found:
+{facts}
+{extra}
+Reply with JSON only, no prose around it:
+{{"commands": {{"prepare": {{"command": "", "source": "where it came from, e.g. ci.yml · job ui, or ui/package.json › scripts.test", "note": "one short sentence only when the person needs to know something, else empty"}}, "test": {{…}}, "lint": {{…}}, "build": {{…}}}}, "notes": "one short sentence: which folders are the application and which are tooling"}}
+"""
+
+
+def _ai_prompt(found: dict, hint: str, keep: dict, last: dict) -> str:
+    facts = {
+        k: found.get(k)
+        for k in (
+            "languages",
+            "frameworks",
+            "packages",
+            "ci_commands",
+            "makefile_targets",
+            "agent_files",
+            "monorepo",
+            "ui",
+        )
+    }
+    extra = ""
+    if hint.strip():
+        extra += f"\nThe person says: {hint.strip()[:1000]}\n"
+    if keep:
+        extra += (
+            "\nThese commands are settled (they work, or the person typed them): return them unchanged.\n"
+            + "\n".join(f"- {k}: {v}" for k, v in keep.items())
+            + "\n"
+        )
+    wrong = {
+        k: r
+        for k, r in (last or {}).items()
+        if r and r.get("status") in ("wrong", "fails", "timeout") and k not in keep
+    }
+    if wrong:
+        extra += "\nThe last run, by the board:\n" + "\n".join(
+            f"- {k}: `{r.get('command')}` → {r.get('status')} (exit {r.get('exit_code')}): "
+            + " | ".join((r.get("tail") or [])[-4:])[:400]
+            for k, r in wrong.items()
+        )
+        extra += (
+            "\n'wrong' means the shell could not run it (a missing program or script): fix the command. 'fails' means "
+            "it ran and the project's own tests or checks failed: keep the command unless it is the wrong one.\n"
+        )
+    return AI_PROMPT.format(facts=json.dumps(facts, indent=1)[:12000], extra=extra)
+
+
+def _describe_tool(name: str, data: dict, cwd: str) -> str:
+    def rel(p: str) -> str:
+        p = str(p or "")
+        return p[len(cwd) :].lstrip("/") if cwd and p.startswith(cwd) else p
+
+    if name == "Read":
+        return f"Read {rel(data.get('file_path'))}"
+    if name == "Glob":
+        return f"Looked for {data.get('pattern')}"
+    if name == "Grep":
+        return f"Searched for {data.get('pattern')}"
+    if name == "LS":
+        return f"Listed {rel(data.get('path')) or '.'}"
+    return name
+
+
+async def _ask_ai(prompt: str, cwd: str, account, on_line) -> str | None:
+    """One Claude Code run that may only read (Read, Glob, Grep) in ``cwd``; returns its final text. ``on_line`` gets
+    what it does ("Read .github/workflows/ci.yml"). The seam the tests replace."""
+    path, _ = cli.find_cli("claude", None)
+    if not path:
+        raise RuntimeError("Claude Code is not installed on this computer.")
+    env = cli.child_env(None)
+    if account is not None:
+        env = accounts.env_for(account, env)
+    proc = await asyncio.create_subprocess_exec(
+        path,
+        "-p",
+        prompt,
+        "--model",
+        "sonnet",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--permission-mode",
+        "dontAsk",
+        "--allowedTools",
+        "Read,Glob,Grep,LS",
+        "--disallowedTools",
+        "Bash,Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Task",
+        "--strict-mcp-config",
+        "--mcp-config",
+        '{"mcpServers": {}}',
+        cwd=cwd,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        limit=16 * 1024 * 1024,
+        **cli._popen_kwargs(),
+    )
+    result: str | None = None
+    try:
+        assert proc.stdout is not None
+        async for raw in proc.stdout:
+            try:
+                event = json.loads(raw)
+            except ValueError:
+                continue
+            if event.get("type") == "assistant":
+                for part in (event.get("message") or {}).get("content") or []:
+                    if part.get("type") == "tool_use":
+                        on_line(
+                            _describe_tool(
+                                part.get("name"), part.get("input") or {}, cwd
+                            )
+                        )
+            elif event.get("type") == "result":
+                if event.get("is_error"):
+                    raise RuntimeError(
+                        str(event.get("result") or "The AI run failed.")[:300]
+                    )
+                result = event.get("result")
+        await proc.wait()
+    except asyncio.CancelledError:
+        cli.kill_tree(proc.pid)
+        raise
+    if result is None and proc.returncode:
+        err = (await proc.stderr.read()).decode(errors="replace") if proc.stderr else ""
+        raise RuntimeError(
+            (err.strip().splitlines() or ["The AI run failed."])[-1][:300]
+        )
+    return result
+
+
+def _parse_proposal(text: str | None) -> dict | None:
+    data = _parse_refined(text)
+    if not data or not isinstance(data.get("commands"), dict):
+        return None
+    out: dict = {}
+    for name in COMMANDS:
+        item = data["commands"].get(name)
+        if isinstance(item, str):
+            item = {"command": item}
+        if not isinstance(item, dict):
+            item = {}
+        out[name] = {
+            "command": " ".join(str(item.get("command") or "").split())[:1000],
+            "source": str(item.get("source") or "")[:200],
+            "note": str(item.get("note") or "")[:300],
+        }
+    return {"commands": out, "notes": str(data.get("notes") or "")[:300]}
+
+
+def _code_proposal(suggested: dict) -> dict:
+    """The scan's own suggestion in the proposal's shape (when the AI's answer cannot be read)."""
+    cmds = dict(suggested.get("commands") or {})
+    cmds["prepare"] = suggested.get("prepare") or ""
+    return {
+        "commands": {
+            n: {
+                "command": cmds.get(n) or "",
+                "source": "the board's scan" if cmds.get(n) else "",
+                "note": "",
+            }
+            for n in COMMANDS
+        },
+        "notes": "",
+    }
+
+
+async def start_job(
+    session,
+    scan_id: str,
+    *,
+    mode: str,
+    hint: str = "",
+    commands: dict | None = None,
+    keep: list[str] | None = None,
+    env_path: list[str] | None = None,
+    only: list[str] | None = None,
+) -> AiRepoScan:
+    """Start the AI (``mode="ai"``: it proposes, then the board runs each command) or the board alone (``"try"``) on a
+    scan. Returns at once; the wizard polls the scan."""
+    row = await session.get(AiRepoScan, scan_id)
+    if row is None:
+        raise LookupError("Scan not found.")
+    if running(scan_id):
+        raise JobRunning("The commands are already being set up.")
+    if mode == "ai":
+        status = await ai_status(session, force=True)
+        if not status["available"]:
+            raise ValueError(status["why"])
+    commands = {n: str((commands or {}).get(n) or "").strip() for n in COMMANDS}
+    env_path = [str(p).strip() for p in (env_path or []) if str(p or "").strip()]
+    previous = json.loads(row.trial or "{}")
+    proposal = json.loads(row.proposal or "{}")
+    if mode == "ai":
+        trial: dict = {n: None for n in COMMANDS}
+    else:
+        trial = {n: previous.get(n) for n in COMMANDS}
+    job = _Job(scan_id, mode, hint, trial, proposal)
+    row.job = json.dumps(job.doc)
+    session.add(row)
+    await session.commit()
+    task = asyncio.create_task(
+        _run_job(
+            job,
+            row.folder,
+            row.project_id,
+            commands,
+            keep or [],
+            env_path,
+            only,
+            previous,
+        )
+    )
+    _TASKS[scan_id] = task
+    await session.refresh(row)
+    return row
+
+
+async def cancel_job(session, scan_id: str) -> AiRepoScan:
+    """Stop the scan's job: the running command and everything it started is killed, the scratch copy removed."""
+    row = await session.get(AiRepoScan, scan_id)
+    if row is None:
+        raise LookupError("Scan not found.")
+    task = _TASKS.get(scan_id)
+    if task is not None and not task.done():
+        task.cancel()
+        try:
+            await task
+        except (asyncio.CancelledError, Exception):  # noqa: BLE001 - its own handler saved its state
+            pass
+    await session.refresh(row)
+    return row
+
+
+async def _run_job(
+    job: _Job,
+    folder: str,
+    project_id: str,
+    commands: dict,
+    keep: list[str],
+    env_path: list[str],
+    only: list[str] | None,
+    previous: dict,
+) -> None:
+    async def saver() -> None:
+        # the wizard polls: the state is written twice a second while it runs
+        while True:
+            await asyncio.sleep(0.5)
+            await job.save(force=True)
+
+    keeper = asyncio.create_task(saver())
+    try:
+        await asyncio.wait_for(
+            _job_body(
+                job, folder, project_id, commands, keep, env_path, only, previous
+            ),
+            JOB_LIMIT_S,
+        )
+        job.finish("done")
+    except asyncio.TimeoutError:
+        job.line("Stopped after 10 minutes.")
+        job.finish("timeout", "The AI stopped after 10 minutes.")
+    except asyncio.CancelledError:
+        job.line("Cancelled.")
+        job.finish("cancelled")
+        await _stop(keeper)
+        await job.save(force=True)
+        _TASKS.pop(job.scan_id, None)
+        raise
+    except Exception as exc:  # noqa: BLE001 - a failed job is shown, never left running
+        log.warning("repo scan job %s failed", job.scan_id, exc_info=True)
+        job.line(f"Failed: {exc}")
+        job.finish("failed", str(exc)[:300])
+    await _stop(keeper)
+    _TASKS.pop(job.scan_id, None)
+    await job.save(force=True)
+
+
+async def _stop(task: asyncio.Task) -> None:
+    task.cancel()
+    try:
+        await task
+    except (asyncio.CancelledError, Exception):  # noqa: BLE001 - the saver only writes state
+        pass
+
+
+async def _job_body(
+    job: _Job,
+    folder: str,
+    project_id: str,
+    commands: dict,
+    keep: list[str],
+    env_path: list[str],
+    only: list[str] | None,
+    previous: dict,
+) -> None:
+    async with database.async_session() as session:
+        row = await session.get(AiRepoScan, job.scan_id)
+        found = json.loads(row.found or "{}")
+        suggested = json.loads(row.suggested or "{}")
+        settings = await get_settings(session, project_id)
+        saved = project_env.extra(settings)
+        account = await _claude_account(session)
+    mode = job.doc["mode"]
+    names = [n for n in COMMANDS if n == "prepare" or only is None or n in only]
+
+    if mode == "ai":
+        job.step(
+            "ai",
+            "The AI is reading the repository",
+            "Read-only: Read, Glob and Grep.",
+            "running",
+        )
+        job.step("path", "Looking for the programs the commands need")
+    for n in names:
+        job.step(n, _STEP_LABEL[n])
+    await job.save(force=True)
+
+    env_entries: list[dict] = [
+        {"path": p, "by": "you", "why": ""} for p in env_path
+    ] or [{"path": p, "by": "project", "why": ""} for p in saved]
+
+    if mode == "ai":
+        keep_cmds = {n: commands[n] for n in keep if n in COMMANDS}
+        prompt = _ai_prompt(found, job.doc["hint"], keep_cmds, previous)
+        scratch = _Scratch(folder)
+        work = await asyncio.to_thread(scratch.__enter__)
+        reads = 0
+
+        def on_tool(text: str) -> None:
+            nonlocal reads
+            reads += 1
+            job.line(f"ai: {text}")
+            job.mark("ai", "running", detail=text)
+
+        try:
+            job.line(f"$ cd {work}")
+            answer = await _ask_ai(prompt, str(work), account, on_tool)
+        finally:
+            await asyncio.to_thread(scratch.__exit__, None, None, None)
+        proposal = _parse_proposal(answer)
+        if proposal is None:
+            job.line("The AI's answer could not be read; the board's own scan is used.")
+            proposal = _code_proposal(suggested)
+        for n, cmd in keep_cmds.items():
+            proposal["commands"][n] = {
+                **proposal["commands"].get(n, {}),
+                "command": cmd,
+                "source": proposal["commands"].get(n, {}).get("source")
+                or "typed by you",
+            }
+        commands = {n: proposal["commands"][n]["command"] for n in COMMANDS}
+        sources = sorted(
+            {
+                c["source"].split(" ›")[0].split(" ·")[0]
+                for c in proposal["commands"].values()
+                if c["source"]
+            }
+        )
+        found_n = sum(1 for c in commands.values() if c)
+        job.line(
+            "AI proposed: " + ", ".join(f"{n} = {c}" for n, c in commands.items() if c)
+            if found_n
+            else "AI proposed: no commands (the repository has none it could find)"
+        )
+        job.mark(
+            "ai",
+            "done",
+            label="The AI proposed the commands"
+            if found_n
+            else "The AI found no commands",
+            detail=(
+                f"{found_n} of 4 · from {', '.join(sources)}"
+                if sources
+                else f"{found_n} of 4"
+            )
+            + (f" · {proposal['notes']}" if proposal.get("notes") else ""),
+        )
+        job.proposal = {**proposal, "env_path": []}
+        await job.save(force=True)
+
+        # the programs: a folder the app's own PATH does not have, found in the usual install folders
+        job.mark("path", "running")
+        base = project_env.with_path(None, [e["path"] for e in env_entries])["PATH"]
+        missing = project_env.missing_folders([c for c in commands.values() if c], base)
+        for m in missing:
+            job.line(f"$ which {m['program']}")
+            job.line(f"{m['program']} not found on PATH={os.environ.get('PATH', '')}")
+            job.line(f"{m['path']}/{m['program']}")
+            env_entries.append(
+                {"path": m["path"], "by": "ai", "why": f"{m['program']} was found here"}
+            )
+        job.mark(
+            "path",
+            "done",
+            label="Looked for the programs",
+            detail=(
+                "; ".join(
+                    f"{m['program']} is not on the app’s PATH. Found in {m['path']}; proposed as an extra folder."
+                    for m in missing
+                )
+                or "Everything the commands need is on the PATH."
+            ),
+        )
+        job.proposal["env_path"] = env_entries
+        await job.save(force=True)
+    else:
+        job.proposal = {**(job.proposal or {}), "env_path": env_entries}
+
+    for n in names:
+        if n != "prepare" and not commands.get(n):
+            job.trial[n] = None
+            job.mark(n, "skipped", detail="No command.")
+        elif commands.get(n):
+            job.trial[n] = {
+                "command": commands[n],
+                "status": "waiting",
+                "ok": False,
+                "exit_code": None,
+                "seconds": 0,
+                "tail": [],
+                "reason": None,
+            }
+            job.mark(n, "waiting", detail=commands[n])
+        else:
+            job.mark(n, "skipped", detail="No command.")
+
+    def on_event(kind: str, name: str, data) -> None:
+        if kind == "start":
+            job.trial[name] = {
+                **(job.trial.get(name) or {}),
+                "command": data,
+                "status": "running",
+            }
+            job.mark(
+                name,
+                "running",
+                label=f"The board is running {name}, the way a ticket will",
+                detail=data,
+            )
+            job.line(f"board$ /bin/sh -c {json.dumps(data)}  (saved PATH in front)")
+        elif kind == "line":
+            job.line(data)
+        elif kind == "done":
+            job.trial[name] = data
+            if data is None:
+                return
+            status = data.get("status")
+            if status == "not_run":
+                job.mark(
+                    name,
+                    "skipped",
+                    label=_STEP_LABEL[name],
+                    detail=data.get("reason") or "",
+                )
+            else:
+                job.mark(
+                    name,
+                    "done" if status == "works" else "failed",
+                    label=_STEP_LABEL[name],
+                    detail=f"{status} · {data.get('seconds')} s",
+                )
+                job.line(
+                    f"{name}: {status}, exit {data.get('exit_code')}, {data.get('seconds')} s"
+                )
+
+    if any(commands.get(n) for n in names):
+        run_cmds = {n: commands.get(n, "") for n in names}
+        result = await try_commands(
+            folder,
+            run_cmds,
+            [e["path"] for e in env_entries],
+            only=[n for n in names if n != "prepare"],
+            on_event=on_event,
+        )
+        for n in names:
+            if result.get(n) is not None or n == "prepare":
+                job.trial[n] = result.get(n)
+    await job.save(force=True)
+
+
+async def latest(session, project_id: str) -> AiRepoScan | None:
+    """The newest scan of the project that was not applied, from the last day (the wizard picks it up again)."""
+    since = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+    return (
+        await session.exec(
+            select(AiRepoScan)
+            .where(
+                AiRepoScan.project_id == project_id,
+                col(AiRepoScan.applied_at).is_(None),
+                AiRepoScan.created_at >= since,
+            )
+            .order_by(col(AiRepoScan.created_at).desc())
+        )
+    ).first()
+
+
+async def to_api(session, row: AiRepoScan) -> dict:
+    """A scan for the API, with whether the AI can run and a job a restart left behind marked as stopped."""
+    out = to_dict(row)
+    job = out["job"]
+    if job.get("state") == "running" and not running(row.id):
+        job.update(
+            state="failed", error="The app restarted while it ran. Run it again."
+        )
+    status = await ai_status(session)
+    out["ai_available"] = status["available"]
+    out["ai_unavailable_why"] = status["why"]
+    return out
+
+
 async def rescan_if_changed(session, project_id: str) -> bool:
     """Scan again when the files the last scan read have changed. Never applies anything: the new scan waits for a
     person. Returns whether it scanned."""
@@ -696,6 +1519,22 @@ async def sweep(session_factory) -> list[str]:
     return done
 
 
+def _job_view(raw: str | None) -> dict:
+    job = json.loads(raw or "{}")
+    if job.get("started_at"):
+        try:
+            start = datetime.fromisoformat(job["started_at"])
+            end = (
+                datetime.fromisoformat(job["ended_at"])
+                if job.get("ended_at")
+                else datetime.now(UTC)
+            )
+            job["elapsed_s"] = int((end - start).total_seconds())
+        except ValueError:
+            job["elapsed_s"] = 0
+    return job
+
+
 def to_dict(row: AiRepoScan) -> dict:
     """A scan for the API."""
     return {
@@ -705,6 +1544,9 @@ def to_dict(row: AiRepoScan) -> dict:
         "found": json.loads(row.found or "{}"),
         "suggested": json.loads(row.suggested or "{}"),
         "trial": json.loads(row.trial or "{}"),
+        "job": _job_view(row.job),
+        "proposal": json.loads(row.proposal or "{}"),
+        "base_path": os.environ.get("PATH", ""),
         "applied_at": row.applied_at,
         "created_at": row.created_at,
     }
@@ -714,7 +1556,8 @@ async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) 
     """Create what the person confirmed: the members from packs, the project's settings, the plugins.
 
     `choice` is the suggestion as the person edited it: {team: [{pack, name}], commands, prepare, base_port,
-    workflow_default, handover, worktrees, plugins: [catalogue keys], account_id}. `create_member(body)` makes one AI
+    workflow_default, handover, worktrees, plugins: [catalogue keys], account_id, env_path: [folders],
+    checks_off: [commands saved but not checks yet]}. `create_member(body)` makes one AI
     member through the member service and returns it.
     """
     row = await session.get(AiRepoScan, scan_id)
@@ -723,6 +1566,16 @@ async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) 
     settings = await get_settings(session, row.project_id)
     patch = {
         "commands": choice.get("commands") or {},
+        "checks_off": [
+            n
+            for n in (choice.get("checks_off") or [])
+            if n in ("test", "lint", "build")
+        ],
+        "env_path": [
+            str(p).strip()
+            for p in (choice.get("env_path") or [])
+            if str(p or "").strip()
+        ],
         "workflow_default": choice.get("workflow_default") or "standard",
         "worktrees": {
             "on": bool(choice.get("worktrees")),

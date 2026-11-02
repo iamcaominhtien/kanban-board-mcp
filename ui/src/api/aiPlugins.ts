@@ -83,7 +83,6 @@ export function useOwnPlugins(projectId: string) {
   });
 }
 
-/** The "Suggested for a role" catalogue. */
 /** One of the board's own skills (the design guide, permissions, the shared skills for every role). */
 export interface BoardSkill {
   name: string;
@@ -99,6 +98,7 @@ export function useBoardSkills() {
   });
 }
 
+/** The "Suggested for a role" catalogue. */
 export function useCatalogue() {
   return useQuery({ queryKey: pluginKeys.catalogue, queryFn: aiPluginsApi.catalogue, staleTime: 5 * 60_000 });
 }
