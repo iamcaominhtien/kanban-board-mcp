@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { FileCategoryIcon, cleanDisplayFileName, formatFileSize, getFileTypeMeta } from '../utils/fileIcons';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { uploadUrl } from '../api/tickets';
@@ -12,31 +12,32 @@ interface Props {
   fileSize?: number;
 }
 
-const sizeCache = new Map<string, number | null>();
+/** The stored name of a file this server keeps (`/uploads/<name>` here or on the API origin), or null for any other URL. */
+function storedName(url: string): string | null {
+  const origins = [resolveOrigin(), typeof window !== 'undefined' ? window.location.origin : ''].filter(Boolean);
+  const path = url.startsWith('/uploads/')
+    ? url
+    : (origins.map((o) => (url.startsWith(o + '/uploads/') ? url.slice(o.length) : null)).find(Boolean) ?? null);
+  return path ? path.slice('/uploads/'.length) : null;
+}
 
-/** The size of a stored file linked from Markdown, asked of the server once (`/upload-info`); null while unknown. */
+/** The size of a stored file linked from Markdown, asked of the server once (`/upload-info`, shared with the ticket's
+ * attachment list); null while unknown. */
 function useUploadSize(url: string, known?: number): number | null {
-  const stored = url.includes('/uploads/') ? url.slice(url.indexOf('/uploads/') + '/uploads/'.length) : null;
-  const [size, setSize] = useState<number | null>(known ?? (stored ? (sizeCache.get(stored) ?? null) : null));
-  useEffect(() => {
-    if (known != null || !stored || sizeCache.has(stored)) return;
-    let live = true;
-    (async () => {
-      try {
-        const res = await fetch(`${resolveOrigin()}/upload-info/${stored}`);
-        const body = res.ok ? ((await res.json()) as { size?: number }) : null;
-        const n = typeof body?.size === 'number' ? body.size : null;
-        sizeCache.set(stored, n);
-        if (live) setSize(n);
-      } catch {
-        // size stays unknown; the card still works
-      }
-    })();
-    return () => {
-      live = false;
-    };
-  }, [known, stored]);
-  return known ?? size;
+  const stored = known == null ? storedName(url) : null;
+  const { data } = useQuery({
+    queryKey: ['upload-info', stored],
+    queryFn: async () => {
+      const res = await fetch(`${resolveOrigin()}/upload-info/${stored}`);
+      if (!res.ok) return null;
+      const body = (await res.json()) as { size?: number };
+      return typeof body.size === 'number' ? body.size : null;
+    },
+    enabled: !!stored,
+    staleTime: Infinity,
+    retry: false,
+  });
+  return known ?? data ?? null;
 }
 
 /** Card for an attached file: a real thumbnail for images, a click opens the viewer on it and the files around it. */

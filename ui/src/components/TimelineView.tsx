@@ -516,7 +516,7 @@ function GanttChart({ tickets, onCardClick }: GanttProps) {
                     onClick={() => {
                       if (!justResized.current) onCardClick(ticket);
                     }}
-                    title={`${ticket.title}\n${formatShortDate(ticketStart)} → ${formatShortDate(ticketEnd)}`}
+                    title={`${ticket.id} · ${ticket.title}\n${formatShortDate(ticketStart)} → ${formatShortDate(ticketEnd)}`}
                   >
                     {/* A marker too narrow for the ID shows no label (the ID is in the tooltip) */}
                     {widthPx >= 40 && <span className={styles.ganttBarLabel}>{ticket.id}</span>}

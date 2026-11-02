@@ -429,11 +429,8 @@ export function Board({
 
         {topBanner}
 
-        <div
-          {...(loadState === 'projects' || loadState === 'tickets'
-            ? { inert: '' as unknown as boolean, 'aria-hidden': true, style: { opacity: 0.55 } }
-            : {})}
-        >
+        {/* AL-1: dimmed while the tickets load, as drawn; still usable, so a search can be typed during the load */}
+        <div style={loadState === 'projects' || loadState === 'tickets' ? { opacity: 0.55 } : undefined}>
           {viewMode !== 'docs' && viewMode !== 'schedules' && viewMode !== 'ai_team' && (
             <FilterBar
               searchQuery={searchQuery}

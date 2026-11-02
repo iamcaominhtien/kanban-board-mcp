@@ -1124,7 +1124,12 @@ export function ActivitySection({
     if (field === 'work_log') {
       // A debug note is Markdown ("**Root cause**: `onDragEnd`…"): draw it, do not print the marks
       return (
-        <span className={styles.acChip} title={String(val)}>
+        <span
+          className={styles.acChip}
+          title={String(val)}
+          // a removed note reads as removed: grey and struck through, as before
+          style={isOldTitle ? { color: '#9AA8A0', textDecoration: 'line-through' } : undefined}
+        >
           <MarkdownRenderer inline plain>
             {String(val)}
           </MarkdownRenderer>

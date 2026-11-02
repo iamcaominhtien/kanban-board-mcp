@@ -390,9 +390,9 @@ export function SearchPalette({
     }
     if (mode === 'ticket') {
       const allTickets = ticketQ.data?.tickets ?? data.tickets;
-      // SR-2: a ticket key finds that ticket: an exact key match wins over the longer keys that start with it
-      const exact = allTickets.filter((t) => t.ticketId.toLowerCase() === dTrim.toLowerCase());
-      const tickets = exact.length ? exact : allTickets;
+      // SR-2: a ticket key finds that ticket first; the longer keys that start with it stay listed under it
+      const isExact = (t: { ticketId: string }) => t.ticketId.toLowerCase() === dTrim.toLowerCase();
+      const tickets = [...allTickets.filter(isExact), ...allTickets.filter((t) => !isExact(t))];
       if (tickets.length) {
         out.push({
           title: `Ticket · ${tickets.length}`,
