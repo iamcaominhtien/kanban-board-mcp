@@ -99,7 +99,9 @@ def test_the_roles_know_which_drawing_to_use():
     personas = {p["key"]: p["persona"] for p in packs.BUILTIN}
     for role in ("ba", "pm", "dev", "designer"):
         assert "draw.io Diagram" in personas[role], role
-    assert "HTML frames on a Canvas" in personas["designer"]
+    # the Designer presents a design document and measures it against the guide's exemplar boards
+    for needle in ("design document", "exemplar boards", "Foundations board", "side by side", "spec per screen"):
+        assert needle in personas["designer"], needle
     text = (
         instructions.INSTRUCTIONS
         if hasattr(instructions, "INSTRUCTIONS")
@@ -176,7 +178,7 @@ async def test_a_member_made_from_an_older_pack_is_offered_the_update_and_keeps_
     async with env["maker"]() as s:
         p = await s.get(AiMember, m["id"])
         cfg = _json.loads(p.config)
-    assert "Write" in cfg["allow_rules"] and "HTML frames on a Canvas" in p.persona
+    assert "Write" in cfg["allow_rules"] and "design document" in p.persona
     assert p.model == "haiku"  # the person's choice stays
     assert any(srv["name"] == "mine" for srv in cfg["mcp_servers"])
 

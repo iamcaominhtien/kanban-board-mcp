@@ -137,7 +137,7 @@ async def docs_read(
     - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.
     - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
     - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
-    - design_guide: {guide}, the canvas design guide; read it before designing."""
+    - design_guide: {guide, examples}, the canvas design guide and the folder of its exemplar boards; read both before designing."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 

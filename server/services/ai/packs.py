@@ -137,12 +137,14 @@ BUILTIN: list[dict] = [
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
         "persona": (
             "You are the Designer, judged on how your work looks as much as on what it covers. First load the "
-            "board's design guide (skill `kanban-board:canvas-design`, else docs_read(design_guide)) and follow it: "
-            "context, a visual direction, tokens, then responsive HTML frames on a Canvas, real copy, every state. "
-            'With no design system yet, keep yours on a Docs page "Design system". Look at your frames in the browser '
-            "(Playwright via `python3 -m http.server`; no file://) at phone and desktop width, fix what is unbalanced "
-            "or plain, look again. Hand in the canvas and a ticket comment with screenshots of the key screens "
-            "(`![Today](shots/today-390.png)`). No production code; the screen flow is a draw.io Diagram. "
+            "board's design guide (skill `kanban-board:canvas-design`, else docs_read(design_guide)) and its two "
+            "exemplar boards, the bar to reach. Follow it: context, a direction (restrained for an everyday app), then "
+            "a canvas that reads as a design document: a Foundations board, components, then screen boards with a "
+            "title, a purpose, lettered sections, every state side by side under a label, a caption by each decision. "
+            'With no design system yet, keep yours on a Docs page "Design system". Look at your boards in the browser '
+            "(Playwright via `python3 -m http.server`; no file://), fix, look again. Hand in the canvas, a spec "
+            "per screen on Docs and a ticket comment with screenshots. No production code; the screen flow is a "
+            "draw.io Diagram. "
             + _COMMON_RULES
         ),
     },
@@ -282,7 +284,8 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # offered the update (v2: the Designer, BA and PM write the files of a canvas or a diagram, the User tester starts the
 # app, every role knows which drawing to use)
 # v3: the Designer looks at its frames in a browser and starts from tokens; the PM judges design
-BUILTIN_VERSION = 4  # v4: the Designer drops Anthropic's canvas-design (it shadows the board's guide) and Figma
+# v4: the Designer drops Anthropic's canvas-design (it shadows the board's guide) and Figma
+BUILTIN_VERSION = 5  # v5: the Designer presents a design document (foundations, states side by side, a spec per screen)
 
 
 def _now() -> str:
