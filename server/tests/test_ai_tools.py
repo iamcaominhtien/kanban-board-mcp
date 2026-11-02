@@ -404,7 +404,7 @@ async def test_a_pack_exports_to_one_file_and_imports_saying_what_is_missing(env
     ).json()["id"]
     got = (await c.post(f"/projects/{pid2}/ai/packs/import", json=out)).json()
     assert got["pack"]["key"] == "designer"
-    assert set(got["missing"]) >= {"design", "ui-ux-pro-max"}
+    assert set(got["missing"]) >= {"design", "motion-design"}
     assert (
         await c.post(f"/projects/{pid2}/ai/packs/import", json={"x": 1})
     ).status_code == 422
@@ -663,10 +663,9 @@ async def test_a_run_is_told_its_skills_by_exact_name_and_when_to_use_each(
     assert "shaders before a shader" in block  # the catalogue's "use"
     assert "gsap" not in block
     assert "Skill tool by the exact name" in block
-    # told the list alone, a live Designer planned a skill for each step and then opened none while it built: the
-    # plan goes on the ticket first, one item per skill, so opening it is a step it ticks off
-    assert "sub-tasks" in block and "its own item" in block
-    assert "why you dropped any you planned" in block
+    # a run made to plan and open every skill took its palette and type from their rules: the skills teach a craft
+    # or check work, the guide sets the look
+    assert "none of them sets a design's look" in block
 
 
 def test_the_designers_skills_leave_out_what_hides_or_repeats_another():

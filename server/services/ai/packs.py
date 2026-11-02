@@ -132,16 +132,14 @@ BUILTIN: list[dict] = [
         "allow": ["Read", "Glob", "Grep"],
         # not Anthropic's canvas-design (poster art as a PNG; its name hides the board's own guide), nor Figma (it signs
         # in through a browser, which a run cannot do): both stay in the catalogue for a person to add
+        # only skills for work the guide does not teach (motion, charts) and checks run on drawn boards: rule sets
+        # that pick a palette, a type scale or a layout (taste-skill, dembrandt, ui-ux-pro-max...) pulled a live
+        # Designer to one flat hue and a generic dashboard, its worst run; they stay in the catalogue for a person
         "plugins": [
             "design",
-            "taste-skill",
-            "make-interfaces-feel-better",
-            "ui-foundations",
             "emil-design-eng",
             "motion-design",
             "tufte-data-viz",
-            "ui-ux-pro-max",
-            "frontend-design",
         ],
         "mcp": ["playwright"],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
@@ -296,7 +294,8 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # v4: the Designer drops Anthropic's canvas-design (it shadows the board's guide) and Figma
 # v5: the Designer presents a design document (foundations, states side by side, a spec per screen)
 # v6: the Designer explores three directions, reads craft.md, critiques its own screens and gets taste-skill
-BUILTIN_VERSION = 7  # v7: the Designer gets the niche design skills (polish, UI rules, motion, charts)
+# v7: the Designer gets the niche design skills (polish, UI rules, motion, charts)
+BUILTIN_VERSION = 8  # v8: the Designer keeps only motion, chart and checking skills; the guide sets the look
 
 
 def _now() -> str:

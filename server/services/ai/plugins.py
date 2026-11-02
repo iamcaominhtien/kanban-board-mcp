@@ -50,12 +50,11 @@ CATALOGUE: list[dict] = [
         "skills": [
             "design-critique",
             "accessibility-review",
-            "ux-copy",
             "design-handoff",
         ],
         "roles": ["designer"],
         "what": "Anthropic's design plugin: design-handoff, design-critique, accessibility-review, ux-copy, design-system, user-research, research-synthesis.",
-        "use": "design-critique on your own screens, accessibility-review before you hand in, ux-copy for buttons, errors and empty states, design-handoff for the spec of each screen",
+        "use": "once your boards are drawn: design-critique on them, accessibility-review before you hand in, design-handoff for the spec of each screen",
     },
     {
         "key": "ui-ux-pro-max",
@@ -1010,11 +1009,10 @@ async def skills_block(session, profile: AiMember) -> str:
     if not lines:
         return ""
     return (
-        "Skills installed for you. Plan first: before the first file, put your steps on the ticket as sub-tasks "
-        "(ticket_items item='sub_task', one call; in your first message if you may not edit the ticket), each skill below you will use as its own item right before the work "
-        "it serves. When you reach that item, open the skill with the Skill tool by the exact name below, follow it and "
-        "tick the item. Where one disagrees with the board's own guide (`kanban-board:canvas-design`), the guide wins. "
-        "Your report names the skills you opened and why you dropped any you planned.\n"
+        "Skills installed for you. When you reach the work a skill covers, open it with the Skill tool by the exact "
+        "name below. They teach a craft (motion, 3D, a chart) or check finished work; none of them sets a design's "
+        "look: colour, type, layout and the signature come from the board's own guide (`kanban-board:canvas-design`), "
+        "which wins wherever they disagree. Your report names the skills you opened.\n"
         + "\n".join(lines)
     )
 
