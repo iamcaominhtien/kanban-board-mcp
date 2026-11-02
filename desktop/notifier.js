@@ -6,6 +6,7 @@
 // tested with plain fakes, and `startNotifier` takes the Electron objects it uses as arguments (main.js passes them).
 
 const http = require('node:http');
+const { createSoundPlayer } = require('./sounds');
 
 const RATE_MS = 20000; // at most one notice every 20 s
 const POLL_MS = 15000; // the feed is polled as a fallback for a dropped /events stream
@@ -34,7 +35,9 @@ function noticeFor(rows) {
     const actions = (row.actions || [])
       .filter((a) => a?.id && a.label && a.id !== 'dismiss' && a.id !== 'expand')
       .slice(0, MAX_ACTIONS);
-    return { title: row.title || 'Kanban Board', body: `${where}${row.body || ''}`.trim(), actions, open: row };
+    // a row that stayed unanswered and came back (Settings › Remind me if unanswered) says so
+    const title = row.reminded ? `Still waiting: ${row.title || 'Kanban Board'}` : row.title || 'Kanban Board';
+    return { title, body: `${where}${row.body || ''}`.trim(), actions, needs: Boolean(row.needs), open: row };
   }
   const needs = rows.filter((r) => r.needs).length;
   const title = needs > 0 ? `${rows.length} things need you` : `${rows.length} updates`;
@@ -45,6 +48,7 @@ function noticeFor(rows) {
     title,
     body: `${titles.join(' · ')}${more}`,
     actions: [],
+    needs: needs > 0,
     open: { group: true, ids: rows.map((r) => r.id), needs: needs > 0, title },
   };
 }
@@ -286,10 +290,12 @@ function getJson(port, path, headers, timeoutMs = 10000) {
  * Starts following the log for the backend on `port`. Returns the controller main.js keeps:
  * { setPort(port), setActor(name), status(), test(), refresh(), stop() }.
  *
- * opts: { Notification, app, nativeImage, platform, apiSecret, getWindow() → BrowserWindow|null, onOpen(payload) }.
+ * opts: { Notification, app, nativeImage, platform, apiSecret, getWindow() → BrowserWindow|null, onOpen(payload),
+ * soundPlayer }. `soundPlayer` ({play(name), usable()}) is made here unless a test passes one.
  */
 function startNotifier(opts) {
   const { Notification, app, nativeImage, platform = process.platform, apiSecret = '', getWindow, onOpen } = opts;
+  const soundPlayer = opts.soundPlayer || createSoundPlayer({ platform });
   let port = opts.port || null;
   let actor = 'user';
   let stopped = false;
@@ -301,7 +307,8 @@ function startNotifier(opts) {
   let again = false;
   let testFailed = false;
   let overlay = null;
-  let soundOn = true; // the person's "Play a sound" setting, from the feed
+  let soundOn = true; // the person's "Sound" setting, from the feed
+  let soundName = 'chime'; // which of the sounds, from the feed
   const live = new Set(); // keeps Notification objects referenced so their click handlers survive GC
 
   const headers = () => {
@@ -351,12 +358,35 @@ function startNotifier(opts) {
     return n;
   }
 
+  /**
+   * One notice for the person: the OS notification, and for a Needs you the person's own sound and one bounce of the
+   * dock (macOS). Information is silent, whatever the setting (#270). The OS's own sound is let in only when ours
+   * cannot play (no player on this computer), so a Needs you is never both silent and unheard.
+   */
+  function presentNotice(notice) {
+    const wantsSound = soundOn && notice.needs;
+    const ownSound = wantsSound && soundPlayer.usable();
+    const n = makeNotification(notice, { silent: !wantsSound || ownSound });
+    if (n && ownSound) soundPlayer.play(soundName);
+    if (n && notice.needs && platform === 'darwin' && !focused()) bounceDock();
+    return n;
+  }
+
+  /** The dock icon jumps once ('informational'; 'critical' would go on until the window is focused). */
+  function bounceDock() {
+    try {
+      app?.dock?.bounce?.('informational');
+    } catch (err) {
+      console.error('[notifier] dock:', err.message);
+    }
+  }
+
   const core = new NotifierCore({
     now: () => Date.now(),
     setTimer: (fn, ms) => setTimeout(fn, ms),
     clearTimer: (t) => clearTimeout(t),
     context: () => ({ focused: focused() }),
-    show: (notice) => makeNotification(notice, { silent: !soundOn }),
+    show: presentNotice,
     close: (n) => {
       live.delete(n);
       try { n.close(); } catch { /* already gone */ }
@@ -387,6 +417,7 @@ function startNotifier(opts) {
     const since = core.since();
     const feed = await getJson(port, since === undefined ? '/notifications/feed' : `/notifications/feed?since=${since}`, headers());
     if (typeof feed.sound === 'boolean') soundOn = feed.sound;
+    if (typeof feed.sound_name === 'string') soundName = feed.sound_name;
     // feed.dnd ("follow the system Do not disturb"): nothing to do here — macOS Focus and Windows Do not disturb
     // already hold every notification an app sends, and Electron cannot read either state.
     core.applyFeed(feed);
@@ -524,7 +555,13 @@ function startNotifier(opts) {
           testFailed = true;
           return resolve({ ok: false, reason: 'Notifications are not supported on this computer.' });
         }
-        const n = new Notification({ title: TEST_TITLE, body: 'Notifications from Kanban Board will look like this.' });
+        const ownSound = soundOn && soundPlayer.usable();
+        const n = new Notification({
+          title: TEST_TITLE,
+          body: 'Notifications from Kanban Board will look like this.',
+          silent: !soundOn || ownSound,
+        });
+        if (ownSound) soundPlayer.play(soundName);
         live.add(n);
         let settled = false;
         const finish = (result) => {

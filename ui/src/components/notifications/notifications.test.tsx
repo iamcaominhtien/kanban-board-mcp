@@ -28,6 +28,8 @@ vi.mock('../../api/projects', () => ({
 
 const toastApi = vi.hoisted(() => ({ showToast: vi.fn((_t: unknown) => 'toast-1'), removeToast: vi.fn() }));
 vi.mock('../Toast', () => ({ useToast: () => toastApi }));
+const sound = vi.hoisted(() => ({ play: vi.fn(async (_name: string) => true) }));
+vi.mock('../../utils/notificationSound', () => ({ playNotificationSound: sound.play }));
 
 import { AllNotificationsPage } from './AllNotificationsPage';
 import { NotificationBell } from './NotificationBell';
@@ -436,6 +438,65 @@ describe('useNotificationToasts', () => {
     api.feed.mockResolvedValueOnce(feed([row({ id: 'q1', lastEventId: 9 })], [], 13));
     rerender({ h: 13 });
     await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(3));
+  });
+
+  it('keeps a Needs you toast until it is acted on or closed, and plays the chosen sound with it (#270)', async () => {
+    const { rerender } = await primed();
+    api.feed.mockResolvedValueOnce({ ...feed([row({ id: 'q1' })]), sound: true, soundName: 'bell' });
+    rerender({ h: 10 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(1));
+    expect(toastApi.showToast.mock.calls[0][0]).toMatchObject({ duration: 0 });
+    expect(sound.play).toHaveBeenCalledTimes(1);
+    expect(sound.play).toHaveBeenCalledWith('bell');
+  });
+
+  it('plays the sound again for a reminder, and not at all when the sound is off', async () => {
+    const { rerender } = await primed();
+    api.feed.mockResolvedValueOnce({ ...feed([row({ id: 'q1', lastEventId: 11 })]), sound: true });
+    rerender({ h: 10 });
+    await waitFor(() => expect(sound.play).toHaveBeenCalledTimes(1));
+    api.feed.mockResolvedValueOnce({
+      ...feed([row({ id: 'q1', lastEventId: 14, reminded: true })], [], 14),
+      sound: true,
+    });
+    rerender({ h: 14 });
+    await waitFor(() => expect(sound.play).toHaveBeenCalledTimes(2));
+    api.feed.mockResolvedValueOnce({
+      ...feed([row({ id: 'q2', lastEventId: 15 })], [], 15),
+      sound: false,
+    });
+    rerender({ h: 15 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(3));
+    expect(sound.play).toHaveBeenCalledTimes(2);
+  });
+
+  it('makes no sound for a row that earns no toast (information, quiet hours)', async () => {
+    const { rerender } = await primed();
+    api.feed.mockResolvedValueOnce({
+      ...feed([row({ id: 'u1', needs: false, kind: 'ai_finished' })]),
+      sound: true,
+    });
+    rerender({ h: 10 });
+    await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(2));
+    api.feed.mockResolvedValueOnce({ ...feed([row({ id: 'q9' })], [], 12), sound: true, quiet: true });
+    rerender({ h: 12 });
+    await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(3));
+    expect(sound.play).not.toHaveBeenCalled();
+  });
+
+  it('hands every feed after the first to the browser notifier', async () => {
+    const seen = vi.fn();
+    api.feed.mockResolvedValueOnce({ head: 5, cursorTooOld: false, items: [], resolved: [] });
+    const { rerender } = renderHook(({ h }: { h?: number }) => useNotificationToasts(vi.fn(), h, seen), {
+      initialProps: { h: undefined } as { h?: number },
+      wrapper: ({ children }) => wrap(children),
+    });
+    await waitFor(() => expect(api.feed).toHaveBeenCalledTimes(1));
+    expect(seen).not.toHaveBeenCalled(); // the first call only gives the cursor
+    api.feed.mockResolvedValueOnce(feed([row({ id: 'q1' })]));
+    rerender({ h: 10 });
+    await waitFor(() => expect(seen).toHaveBeenCalledTimes(1));
+    expect(seen.mock.calls[0][0].items[0].id).toBe('q1');
   });
 
   it('shows the ticket and the question as the detail line, and one action', async () => {

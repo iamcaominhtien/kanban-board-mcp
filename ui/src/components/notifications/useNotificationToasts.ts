@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { notificationsApi } from '../../api/notifications';
 import type { NotificationRow } from '../../types/notifications';
+import { playNotificationSound } from '../../utils/notificationSound';
 import { useToast, type ToastVariant } from '../Toast';
 import type { RowActionHandler } from './NotificationRow';
 import { runAction } from './notificationUi';
@@ -54,7 +55,7 @@ function mayToast(row: NotificationRow, feed: Feed): boolean {
   return document.visibilityState === 'visible' && document.hasFocus();
 }
 
-function showRowToast(c: ToastContext, row: NotificationRow) {
+function showRowToast(c: ToastContext, row: NotificationRow, feed: Feed) {
   const shown = c.shown.get(row.id);
   // a reminder (the row's newest event moved on) toasts again; the same event never twice
   if (shown && row.lastEventId <= shown.event) return;
@@ -64,7 +65,8 @@ function showRowToast(c: ToastContext, row: NotificationRow) {
     variant: toastVariantFor(row.kind),
     title: row.title,
     message: toastDetail(row) || undefined,
-    duration: 12000,
+    // a Needs you stays until it is acted on or closed (#270): it is not news that fades after a few seconds
+    duration: 0,
     action: first ? { label: first.label, onClick: () => runAction(c.onAction, row, first.id) } : undefined,
     // closed, timed out or collapsed: forget it, so a later reminder may toast again
     onClose: () => {
@@ -72,6 +74,8 @@ function showRowToast(c: ToastContext, row: NotificationRow) {
     },
   });
   c.shown.set(row.id, { toastId, event: row.lastEventId });
+  // the sound of a Needs you, in the window being looked at too (never for information: earnsToast says needs only)
+  if (feed.sound !== false) void playNotificationSound(feed.soundName ?? 'chime');
 }
 
 /** Decisions a toast under the cursor must never offer as its one button: they act at once on something unread. */
@@ -94,7 +98,7 @@ function applyFeed(c: ToastContext, feed: Feed) {
   for (const id of feed.resolved ?? []) dropToast(c, id);
   for (const row of feed.items ?? []) {
     if (row.done || row.snoozed || row.gone || row.read) dropToast(c, row.id);
-    else if (mayToast(row, feed)) showRowToast(c, row);
+    else if (mayToast(row, feed)) showRowToast(c, row, feed);
   }
 }
 
@@ -102,14 +106,21 @@ function applyFeed(c: ToastContext, feed: Feed) {
  * Toasts for Needs you (design G): follows `GET /notifications/feed?since=`. The first call only stores `head`, so
  * opening the app never replays old news. Each new open row gets one toast with its action; when the row closes
  * anywhere, its toast goes. Only the window being looked at shows toasts. `headHint` (the bell's `head`) asks
- * again at once when the server announced something; every 30 s is the fallback.
+ * again at once when the server announced something; every 30 s is the fallback. `onFeed` gets every feed after the
+ * first, so the browser notifier (useBrowserNotifier) reads the same one.
  */
-export function useNotificationToasts(onAction: RowActionHandler, headHint: number | undefined) {
+export function useNotificationToasts(
+  onAction: RowActionHandler,
+  headHint: number | undefined,
+  onFeed?: (feed: Feed) => void,
+) {
   const toast = useToast();
   const toastRef = useRef(toast);
   toastRef.current = toast;
   const actionRef = useRef(onAction);
   actionRef.current = onAction;
+  const feedRef = useRef(onFeed);
+  feedRef.current = onFeed;
 
   const since = useRef<number | null>(null);
   const running = useRef(false);
@@ -126,6 +137,7 @@ export function useNotificationToasts(onAction: RowActionHandler, headHint: numb
       { toast: toastRef.current, shown: toasts.current, onAction: (...args) => actionRef.current(...args) },
       feed,
     );
+    feedRef.current?.(feed); // the browser notifier follows the same feed
   };
 
   poll.current = async () => {
