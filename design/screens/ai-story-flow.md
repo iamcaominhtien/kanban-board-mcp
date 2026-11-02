@@ -1,6 +1,6 @@
 # Story, Flow by scope and Live commentary — one big job handed to the PM, and a way to look at it
 
-> SCREEN — V1 PROPOSAL · source: [`AiStoryFlow.dc.html`](../source/AiStoryFlow.dc.html) · canvas `1793585400-3480` · sha256 `8609c84d26ee561448ca087b88b2363ece789ec4d6b22fa9aa7054be681c9ba4`
+> SCREEN — V1 PROPOSAL · source: [`AiStoryFlow.dc.html`](../source/AiStoryFlow.dc.html) · canvas `1793585580-3705` · sha256 `ef8bc99cce8ccaad49036305762ac978d579a8e0c1d212ed6fe7fe03fb6a36bd`
 
 > Drawn against `main` at 3.20.0, from the code and not from the earlier designs. It extends `design/screens/ai-team.md` (the Flow tab, the parent-ticket view and the live column), `ai-team-timeline.md`, `ai-team-process.md` and `ai-operations.md`. Section A2 lists what main already has and what this board changes. The screens in sections L to R already run in code and had no design. All names, tickets and text in the mock-ups are illustrative.
 
@@ -50,7 +50,7 @@ Source: [AiStoryFlow.dc.html](../source/AiStoryFlow.dc.html) › block "B. A Sto
 
 ## C. The Story on the board
 
-Drawn with the six columns of the board (Backlog, To Do, In Progress, Review, Testing, Done; Won’t do is hidden as for tickets) in a window about 1650 px wide, which is what six columns at their minimum width of 200 px need. A Story card is a ticket card that reads differently at a glance: a tinted ground, a dark-blue left edge, the bookmark and the word Story where a ticket says Feature, and a progress bar where a ticket has points. It never relies on colour alone, so it still reads in the black-and-white theme. Its children carry one small chip that says which Story they belong to. A Draft waits in Backlog; Planning is in To Do; In progress and Blocked are in In Progress, also while the open children are in Testing; Review and Done as named.
+Drawn with the six columns of the board (Backlog, To Do, In Progress, Review, Testing, Done; Won’t do is hidden as for tickets) in a window about 1650 px wide, which is what six columns at their minimum width of 200 px need. A Story card is a ticket card that reads differently at a glance: a tinted ground, a blue outline, the bookmark and the word Story where a ticket says Feature, and a progress bar where a ticket has points. It never relies on colour alone, so it still reads in the black-and-white theme. Its children carry one small chip that says which Story they belong to. A Draft waits in Backlog; Planning is in To Do; In progress and Blocked are in In Progress, also while the open children are in Testing; Review and Done as named.
 
 Source: [AiStoryFlow.dc.html](../source/AiStoryFlow.dc.html) › block "C. The Story on the board"
 
