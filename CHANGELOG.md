@@ -8,6 +8,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.26.5] - 2026-11-02
+
+Wave 3 of the design audit's fixes: the Critical, High and Medium findings screen by screen (`docs/ui-audit/2026-11-design-audit`; what was done for each finding is in `fixes/<area>.md`). No feature is removed and no action takes more clicks than before; where the design would have changed how something works, the look was matched and the behaviour kept.
+
+### Changed
+- **Board and ticket.** Pointing at a parent card shows its group: a green ring on it and its sub-tickets and the links between them (a click still opens it). Tags are added from a picker with search, the project's tags and Create. The wave badge of a sub-ticket opens the wave popover (read-only: the wave comes from Blocked by). The workspace's retention is a menu on its chip instead of a band. New Ticket gets the assignee menu with avatars, Tags and Start date. The list view, toasts, branches, debug space and test cases follow the design.
+- **Docs.** The breadcrumb has its own row and the page actions sit beside the title. Comment numbers sit right after the highlighted text. The find bar no longer covers the page actions. One bar shows on a selection; the AI actions (Improve, Shorten, Fix spelling, Explain, Ask) are behind its "AI" item. Tables are saved compact. The comment composer has the design's header and toolbar. The draw.io error card says what happened and offers Download .drawio. Canvas opens one side panel at a time.
+- **AI screens.** Board AI dock (suggestions, history, scope, the joined AI button), Settings › Board assistant and AI, members, the add-member steps, the configuration cards, the permissions tester, Inbox and Audit log filters, account limits, the team wizard, the workflow editor, tools and the Story lanes follow the design. While all AI is paused the live feed says so, and the paused label shows its details on hover and on keyboard focus.
+- **AI Team and Schedules.** The range is the design's button on every tab, with Custom… on the Timeline. The seven-day Timeline is one list with an hourly chart per day. The run inspector offers Open, Pause or Resume, Approve or Deny. Health follows the design's order and banners. The machine meters show again and the Resources chart reaches the limit per run. Schedules get a searchable time zone and the design's dropdowns.
+- **Idea Space.** Triage is its own screen (the List, Stages and Matrix tabs stay in its header) with decision cards, the stage pills, the matrix, the idea page header and tabs, Quick idea and the promote preview follow the design.
+- **App.** The AI paused banner sits under the top bar and its label beside New Ticket; the person who paused gets no extra toast and nobody sees zero counts. The members panel, desktop windows, the notification panel, quiet-hours fields (24 h) and the file preview toolbar follow the design.
+- Dropdowns read their chosen value to screen readers.
+
+### Fixed
+- **Opening a page saved it.** Opening an idea or a Docs page and leaving it without typing saved the editor's own rewrite of the text as an edit ("Page text edited"); only a real edit saves now (ideas IP-15).
+- **Machine meters on AI Team › Resources** were collapsed to nothing by a CSS rule (RS-1).
+
 ## [3.26.4] - 2026-11-02
 
 Wave 2 of the design audit's fixes: the same problem fixed everywhere at once (`docs/ui-audit/2026-11-design-audit/SUMMARY.md`, "What goes wrong most often").
