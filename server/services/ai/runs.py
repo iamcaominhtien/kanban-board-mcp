@@ -1748,6 +1748,13 @@ async def _build_prompt(
                     }
                 ],
             )
+    if profile.provider == "claude-code":
+        from . import plugins as ai_plugins
+
+        await ai_plugins.settled(profile.project_id)
+        skills = await ai_plugins.skills_block(session, profile)
+        if skills:
+            system += "\n\n" + skills
     if record is not None:
         record["system"] = digest(system)
     return system, prompt, config

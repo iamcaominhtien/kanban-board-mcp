@@ -47,8 +47,15 @@ CATALOGUE: list[dict] = [
         "kind": "plugin",
         "source": "https://github.com/anthropics/knowledge-work-plugins",
         "plugin": "design",
+        "skills": [
+            "design-critique",
+            "accessibility-review",
+            "ux-copy",
+            "design-handoff",
+        ],
         "roles": ["designer"],
         "what": "Anthropic's design plugin: design-handoff, design-critique, accessibility-review, ux-copy, design-system, user-research, research-synthesis.",
+        "use": "design-critique on your own screens, accessibility-review before you hand in, ux-copy for buttons, errors and empty states, design-handoff for the spec of each screen",
     },
     {
         "key": "ui-ux-pro-max",
@@ -56,8 +63,10 @@ CATALOGUE: list[dict] = [
         "kind": "plugin",
         "source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
         "plugin": "ui-ux-pro-max",
+        "skills": ["ui-ux-pro-max"],
         "roles": ["designer"],
         "what": "UI/UX design intelligence: styles, palettes, font pairings, charts and stack guidelines.",
+        "use": "palettes and font pairings to look through while choosing the direction (ideas, not rules)",
     },
     {
         "key": "taste-skill",
@@ -67,6 +76,7 @@ CATALOGUE: list[dict] = [
         "plugin": "taste-skill",
         "roles": ["designer"],
         "what": "Art direction against the generic AI look (tasteskill): researched directions, a no-ornament house style, rules for app screens, and a look-and-fix loop on screenshots. MIT.",
+        "use": "while choosing the direction and again in the critique pass (its rules for app screens and pages)",
     },
     {
         "key": "impeccable",
@@ -78,6 +88,7 @@ CATALOGUE: list[dict] = [
         # binary the first time), which an unattended run should not depend on: in the catalogue, suggested to no role
         "roles": [],
         "what": "Design fluency: modes per surface, a craft floor of banned patterns, critique, audit and polish commands. Apache-2.0. Its hooks run a downloaded helper on every edit.",
+        "use": "a critique, audit or polish pass",
     },
     # Niche frontend skills (vetted 2026-11: license, no hooks, nothing downloaded at run time; a subset where a repository
     # also carries skills that need an API key, a browser download or an MCP engine)
@@ -89,6 +100,7 @@ CATALOGUE: list[dict] = [
         "ui": True,
         "roles": ["designer", "dev"],
         "what": "The finishing details: text wrapping, tabular numbers, optical alignment, nested radii, shadows, hit areas, icon states, restrained motion. MIT.",
+        "use": "in the critique pass, on every main screen",
     },
     {
         "key": "emil-design-eng",
@@ -109,6 +121,7 @@ CATALOGUE: list[dict] = [
         "ui": True,
         "roles": ["designer", "dev"],
         "what": "Animation craft (whether to animate, easing, duration, interruption), animation reviews and performance, a web app that feels native on a phone. MIT.",
+        "use": "before you design any motion (animate, emil-design-eng) and to check it (review-animations, animation-performance)",
     },
     {
         "key": "gsap",
@@ -119,6 +132,7 @@ CATALOGUE: list[dict] = [
         "ui": True,
         "roles": ["dev"],
         "what": "GSAP's own skills: tweens, timelines, ScrollTrigger, Flip and Draggable, React cleanup with useGSAP, performance, reduced motion. MIT.",
+        "use": "when an animation is built with GSAP",
     },
     {
         "key": "motion-design",
@@ -128,37 +142,29 @@ CATALOGUE: list[dict] = [
         "ui": True,
         "roles": ["designer"],
         "what": "Motion principles for any stack: timing, easing, choreography, purpose (LottieFiles). MIT.",
+        "use": "before you design motion: timing, easing, choreography",
     },
     {
         "key": "ui-foundations",
         "name": "UI foundations (dembrandt)",
         "kind": "plugin",
         "source": "https://github.com/dembrandt/dembrandt-skills",
-        # not the skills that need the dembrandt engine (an MCP server fetched with npx and a browser)
+        # eight of its 45: not the ones that need the dembrandt engine (an MCP server fetched with npx and a browser), and
+        # not the ones another skill or the board's guide already covers (motion, loading, gestalt, accessibility, forms)
         "skills": [
+            "surface-separation",
+            "visual-emphasis-and-hierarchy",
             "modular-scale-typography",
             "algorithmic-color-palette",
             "color-mode-and-theme",
-            "button-states",
-            "ui-density",
-            "surface-separation",
-            "visual-emphasis-and-hierarchy",
-            "status-colors-and-errors",
-            "elevation-and-depth",
-            "form-design",
-            "loading-states-and-perceived-performance",
-            "operational-expert-tool-ui",
-            "data-display-and-selection",
-            "gestalt-ui-organisation",
-            "responsive-paradigms",
-            "real-world-metaphors",
-            "micro-interactions",
             "component-family-consistency",
-            "wcag-accessibility",
+            "status-colors-and-errors",
+            "responsive-paradigms",
         ],
         "ui": True,
         "roles": ["designer"],
         "what": "Interface rules one by one: type scales, derived palettes, themes, button states, density, surfaces, hierarchy, forms, loading states, dense expert tools, WCAG. MIT.",
+        "use": "type scale (modular-scale-typography), palette and dark theme (algorithmic-color-palette, color-mode-and-theme), surfaces and hierarchy (surface-separation, visual-emphasis-and-hierarchy), the components board (component-family-consistency), states and errors (status-colors-and-errors), phone vs desktop (responsive-paradigms)",
     },
     {
         "key": "web-quality",
@@ -169,6 +175,7 @@ CATALOGUE: list[dict] = [
         "ui": True,
         "roles": ["dev", "qa"],
         "what": "WCAG 2.2 audits from evidence, performance and Core Web Vitals, web best practices (Addy Osmani). MIT.",
+        "use": "accessibility and performance checks of a built page",
     },
     {
         "key": "tufte-data-viz",
@@ -177,6 +184,7 @@ CATALOGUE: list[dict] = [
         "source": "https://github.com/caylent/tufte-data-viz",
         "roles": ["designer", "dev"],
         "what": "Charts after Tufte: data-ink, direct labels, range frames, accessible and dark-mode ready; for Recharts, ECharts, Chart.js, D3 or SVG. MIT.",
+        "use": "before you draw any chart",
     },
     {
         "key": "threejs",
@@ -201,6 +209,7 @@ CATALOGUE: list[dict] = [
         "ui": True,
         "roles": ["designer", "dev"],
         "what": "Current three.js, React Three Fiber and drei APIs (with WebGPU), each skill with the mistakes models still make. MIT.",
+        "use": "before you write three.js: fundamentals for the scene, materials and lighting for the look, shaders before a shader, performance before you hand in",
     },
     {
         "key": "webgl-animation",
@@ -208,8 +217,10 @@ CATALOGUE: list[dict] = [
         "kind": "plugin",
         "source": "https://github.com/iart-ai/webgl-animation-skills",
         "ui": True,
+        "skills": ["particle-system", "shader-glsl"],
         "roles": ["designer", "dev"],
         "what": "Particle systems, GLSL backgrounds and image transitions, three.js hero scenes with a scroll-linked camera. MIT.",
+        "use": "particles and GLSL backgrounds",
     },
     {
         "key": "shader-art",
@@ -218,6 +229,7 @@ CATALOGUE: list[dict] = [
         "source": "https://github.com/gokayfem/shader-skills",
         "roles": ["designer"],
         "what": "GLSL shaders in the Shadertoy style (raymarching, noise, terrain, water, clouds) from a tested function library, with a local checker. MIT.",
+        "use": "before you write a GLSL shader",
     },
     {
         "key": "genart",
@@ -226,6 +238,7 @@ CATALOGUE: list[dict] = [
         "source": "https://github.com/camilleroux/genart-skill",
         "roles": [],
         "what": "Seeded, reproducible generative art and creative coding, resolution-independent, with traits. MIT.",
+        "use": "generative or seeded art",
     },
     {
         "key": "frontend-design",
@@ -236,6 +249,7 @@ CATALOGUE: list[dict] = [
         "skills": ["frontend-design"],
         "roles": ["designer"],
         "what": "Distinctive, production-grade frontend interfaces (Anthropic skills).",
+        "use": "ideas for a distinctive frontend look (ideas, not rules)",
     },
     {
         "key": "canvas-design",
@@ -259,6 +273,7 @@ CATALOGUE: list[dict] = [
         "ui": True,  # a browser tool: only for a project with a UI
         "roles": ["designer", "user_tester", "qa"],
         "what": "Testing a local web app with Playwright (Anthropic skills).",
+        "use": "testing a running web app in the browser",
     },
     {
         "key": "figma",
@@ -950,6 +965,55 @@ def on_for(row: AiPlugin, profile: AiMember) -> bool:
     if row.default_on:
         return True
     return role_of(profile) in (loads(row.roles, []) or [])
+
+
+def _norm_source(source: str) -> str:
+    return re.sub(r"\.git$", "", (source or "").strip().rstrip("/")).lower()
+
+
+def catalogue_entry_for(row: AiPlugin) -> dict | None:
+    """The catalogue entry a plugin was installed from: same source, same marketplace entry, its skills."""
+    have = set(loads(row.skills, []) or [])
+    for e in CATALOGUE:
+        if e.get("kind") != "plugin" or _norm_source(
+            e.get("source", "")
+        ) != _norm_source(row.source):
+            continue
+        if (e.get("plugin") or None) != (row.plugin or None) and e.get("plugin"):
+            continue
+        wanted = set(e.get("skills") or [])
+        if wanted and not wanted & have:
+            continue
+        return e
+    return None
+
+
+async def skills_block(session, profile: AiMember) -> str:
+    """The skills a member's run loads, by the exact name the Skill tool takes and with the work each one covers. A run
+    that is only handed plugin folders seldom opens one (a live Designer run had 12 and opened none of them)."""
+    rows = (
+        await session.exec(
+            select(AiPlugin).where(AiPlugin.project_id == profile.project_id)
+        )
+    ).all()
+    lines = []
+    for r in rows:
+        if not (r.path and Path(r.path).is_dir() and on_for(r, profile)):
+            continue
+        names = loads(r.skills, []) or []
+        if not names:
+            continue
+        entry = catalogue_entry_for(r)
+        listed = ", ".join(f"`{r.name}:{n}`" for n in names)
+        use = (entry or {}).get("use")
+        lines.append(f"- {listed}: {use}" if use else f"- {listed}")
+    if not lines:
+        return ""
+    return (
+        "Skills installed for you. Before the work a skill covers, open it with the Skill tool by the exact name below "
+        "and follow it; where one disagrees with the board's own guide (`kanban-board:canvas-design`), the guide wins.\n"
+        + "\n".join(lines)
+    )
 
 
 async def dirs_for(session, profile: AiMember) -> list[str]:

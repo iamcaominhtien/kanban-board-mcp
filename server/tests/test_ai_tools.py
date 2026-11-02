@@ -610,3 +610,67 @@ async def test_a_run_waits_for_the_plugins_its_pack_is_still_installing():
     plugins.installing("p-slow", asyncio.sleep(5))
     assert await plugins.settled("p-slow", timeout=0.05) is False
     assert await plugins.settled("p-none") is True
+
+
+async def test_a_run_is_told_its_skills_by_exact_name_and_when_to_use_each(
+    env, tmp_path
+):
+    # a live Designer run had twelve plugins loaded and opened none of them: the prompt now names each skill and its use
+    import json as _json
+
+    from models import AiMember, AiPlugin
+    from tests.test_ai import _project
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    m = (
+        await c.post(
+            f"/projects/{pid}/ai/packs/designer/member",
+            json={"name": "Designer", "working_dir": env["repo"]},
+        )
+    ).json()
+    folder = tmp_path / "threejs"
+    folder.mkdir()
+    async with env["maker"]() as s:
+        s.add(
+            AiPlugin(
+                project_id=pid,
+                name="threejs-skills",
+                source="https://github.com/CloudAI-X/threejs-skills.git",
+                skills=_json.dumps(["threejs-shaders", "threejs-performance"]),
+                roles=_json.dumps(["designer", "dev"]),
+                path=str(folder),
+            )
+        )
+        s.add(  # installed, but for another role: not listed
+            AiPlugin(
+                project_id=pid,
+                name="gsap-skills",
+                source="https://github.com/greensock/gsap-skills",
+                plugin="gsap-skills",
+                skills=_json.dumps(["gsap-core"]),
+                roles=_json.dumps(["dev"]),
+                path=str(folder),
+            )
+        )
+        await s.commit()
+        member = await s.get(AiMember, m["id"])
+        block = await plugins.skills_block(s, member)
+    assert (
+        "`threejs-skills:threejs-shaders`" in block
+        and "`threejs-skills:threejs-performance`" in block
+    )
+    assert "shaders before a shader" in block  # the catalogue's "use"
+    assert "gsap" not in block
+    assert "Skill tool by the exact name" in block
+
+
+def test_the_designers_skills_leave_out_what_hides_or_repeats_another():
+    by_key = {e["key"]: e for e in plugins.CATALOGUE}
+    # ui-ux-pro-max's ui-styling teaches shadcn + Tailwind (the template look) and its "design" calls outside APIs
+    assert by_key["ui-ux-pro-max"]["skills"] == ["ui-ux-pro-max"]
+    # webgl-animation's threejs-animation has the name of three.js's own
+    assert "threejs-animation" not in by_key["webgl-animation"]["skills"]
+    assert len(by_key["ui-foundations"]["skills"]) == 8
+    for key in packs.builtin("designer")["plugins"]:
+        assert by_key[key].get("use"), key

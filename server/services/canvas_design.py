@@ -38,11 +38,10 @@ how a design stops looking machine-made (read it before the first frame), and tw
 (a document, states side by side, captions). They are a work tool's UI: never take their look (green, pills, hairline
 cards, the fonts) for another product, which gets its own.
 
-**Other design skills, at the step they serve**, when installed (load them by name; where one disagrees with this guide,
-the guide wins): `taste-skill` (its app-screen rules) while settling the direction; `ui-foundations` for the type scale,
-palette and states; `emil-design-eng` or `motion-design` before any motion; `tufte-data-viz` for a chart;
-`make-interfaces-feel-better` in the critique pass. The canvas speaks the product's language: board titles, captions and
-notes are in the language of its copy.
+**Other design skills.** A board run's prompt lists the skills installed for you, each by its exact name and the work
+it covers (the type scale, motion, three.js, a chart, the critique pass...). Before that work, open the skill with the
+Skill tool by that name and follow it; where one disagrees with this guide, the guide wins. The canvas speaks the
+product's language: board titles, captions and notes are in the language of its copy.
 
 ## 0. Context before anything
 
