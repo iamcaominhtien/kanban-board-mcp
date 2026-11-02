@@ -23,6 +23,7 @@ import {
   type GateState,
 } from './evidenceModel';
 import './evidence.css';
+import { LineIcon } from '../../ui/LineIcon';
 
 const GATE_CHIP: Record<GateState, { label: string; tone: 'ok' | 'bad' | 'plain' }> = {
   complete: { label: 'Evidence complete', tone: 'ok' },
@@ -39,7 +40,7 @@ function Check({ mark, title, sub, testId }: { mark: Mark; title: string; sub: s
   return (
     <div className={`ev-check ev-check-${mark}`} data-testid={testId} data-mark={mark}>
       <span className="ev-check-mark" aria-label={mark === 'ok' ? 'Passed' : mark === 'bad' ? 'Missing' : 'Not yet'}>
-        {mark === 'ok' ? '✓' : mark === 'bad' ? '!' : ''}
+        {mark === 'ok' ? <LineIcon name="check" size={12} /> : mark === 'bad' ? '!' : ''}
       </span>
       <div>
         <b>{title}</b>
@@ -124,7 +125,7 @@ function TddSummary({ dev, tdd, tddRequired }: { dev: ViewStep; tdd: TddEvidence
     return (
       <div className="ev-card ev-card-green" data-testid="evidence-tdd" data-state="accepted">
         <span className="ev-chip ev-chip-ok" style={{ alignSelf: 'flex-start' }}>
-          ✓ Accepted without tests
+          <LineIcon name="check" size={12} /> Accepted without tests
         </span>
         <AcceptedBy accepted={taken} />
       </div>
@@ -133,7 +134,7 @@ function TddSummary({ dev, tdd, tddRequired }: { dev: ViewStep; tdd: TddEvidence
     return (
       <div className="ev-card ev-card-red" data-testid="evidence-tdd" data-state="unproven">
         <span className="ev-chip ev-chip-bad" style={{ alignSelf: 'flex-start' }}>
-          ⚠ Test first not proven
+          <LineIcon name="warning" size={12} /> Test first not proven
         </span>
         <div className="ev-card-text">
           <div>{tdd && !tdd.proven ? tdd.why : 'No run where a test failed on an assertion and then passed.'}</div>
@@ -218,9 +219,21 @@ function DevColumn({
       )}
       {tests && (
         <div className="ev-tests" data-testid="evidence-tests">
-          {(tests.passed > 0 || tests.failed === 0) && <span className="ev-test">✓ {tests.passed} passed</span>}
-          {tests.failed > 0 && <span className="ev-test ev-test-bad">⚠ {tests.failed} failed</span>}
-          {tests.lint && <span className="ev-test">✓ lint {tests.lint}</span>}
+          {(tests.passed > 0 || tests.failed === 0) && (
+            <span className="ev-test">
+              <LineIcon name="check" size={12} /> {tests.passed} passed
+            </span>
+          )}
+          {tests.failed > 0 && (
+            <span className="ev-test ev-test-bad">
+              <LineIcon name="warning" size={12} /> {tests.failed} failed
+            </span>
+          )}
+          {tests.lint && (
+            <span className="ev-test">
+              <LineIcon name="check" size={12} /> lint {tests.lint}
+            </span>
+          )}
           <span className="ev-hint" style={{ fontSize: 11.5 }}>
             read from the command&rsquo;s output, not the AI&rsquo;s claim
           </span>
@@ -394,7 +407,7 @@ function MissingEvidenceCard({
               );
             }}
           >
-            ↩ Send back to {tester.memberName ?? 'Tester'}
+            <LineIcon name="reply" size={13} /> Send back to {tester.memberName ?? 'Tester'}
           </button>
           <button
             type="button"
@@ -460,7 +473,15 @@ export function EvidenceBlock({ ticket }: { ticket: Ticket }) {
           className={`ev-chip${chip.tone === 'ok' ? ' ev-chip-ok' : chip.tone === 'bad' ? ' ev-chip-bad' : ''}`}
           data-testid="evidence-state"
         >
-          {chip.tone === 'ok' ? '✓ ' : chip.tone === 'bad' ? '⚠ ' : ''}
+          {chip.tone === 'ok' ? (
+            <>
+              <LineIcon name="check" size={12} />{' '}
+            </>
+          ) : chip.tone === 'bad' ? (
+            <>
+              <LineIcon name="warning" size={12} />{' '}
+            </>
+          ) : null}
           {chip.label}
         </span>
         <span style={{ flex: 1 }} />

@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import './aiSafety.css';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Small shared pieces of the safety and cost screens: risk and result chips, countdowns, segmented pickers. */
 
@@ -151,13 +152,13 @@ export function TrustChip({ trust }: { trust: 'trusted' | 'data_only' | 'untrust
   if (!trust) return null;
   const s =
     trust === 'trusted'
-      ? { bg: '#F1F8F3', color: '#2E6F40', label: '✓ Trusted' }
+      ? { bg: '#F1F8F3', color: '#2E6F40', label: 'Trusted', icon: 'check' as const }
       : trust === 'data_only'
-        ? { bg: '#EEF1EE', color: '#5B6B60', label: 'Data only' }
-        : { bg: '#FDF5E6', color: '#8A5A12', label: 'Untrusted' };
+        ? { bg: '#EEF1EE', color: '#5B6B60', label: 'Data only', icon: undefined }
+        : { bg: '#FDF5E6', color: '#8A5A12', label: 'Untrusted', icon: undefined };
   return (
     <Pill bg={s.bg} color={s.color}>
-      {s.label}
+      {s.icon && <LineIcon name={s.icon} size={12} />} {s.label}
     </Pill>
   );
 }

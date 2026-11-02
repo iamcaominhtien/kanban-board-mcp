@@ -27,6 +27,7 @@ import {
   snake,
   usd,
 } from './aiSafetyUi';
+import { LineIcon } from '../ui/LineIcon';
 
 const ACTIONS = [
   'change_status',
@@ -574,7 +575,7 @@ function AuditDrawer({
         <b style={{ flex: 1, fontSize: 15 }}>{ACTION_LABEL[e.action] ?? e.action}</b>
         <ResultChip result={e.result} reverted={!!e.revertedAt} />
         <button type="button" className="ai-icobtn" onClick={onClose} aria-label="Close">
-          ✕
+          <LineIcon name="close" size={14} />
         </button>
       </div>
       <div className="ai-muted">
@@ -597,7 +598,7 @@ function AuditDrawer({
       )}
       {!!e.redactions && (
         <Pill>
-          🛡 {e.redactions} secret{e.redactions === 1 ? '' : 's'} redacted
+          <LineIcon name="shield" size={13} /> {e.redactions} secret{e.redactions === 1 ? '' : 's'} redacted
         </Pill>
       )}
       {d.before && d.after && (

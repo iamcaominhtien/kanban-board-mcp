@@ -3,6 +3,7 @@ import { useAiBoardState } from './aiUi';
 import type { AiMember } from '../../types/ai';
 import type { MentionIntent } from './MentionIntent';
 import './ticketWork.css';
+import { LineIcon } from '../ui/LineIcon';
 
 const CEILING: Record<string, string> = {
   none: 'its own comments only',
@@ -100,7 +101,8 @@ export function MentionPlan({
       )}
       {!paused && e && !e.available && (
         <div className="tw-plan-warn" role="alert" data-testid="plan-unavailable">
-          ⚠ {e.reason ?? 'It cannot start now.'} The comment is saved, but nothing will run.
+          <LineIcon name="warning" size={13} /> {e.reason ?? 'It cannot start now.'} The comment is saved, but nothing
+          will run.
         </div>
       )}
       <div className="tw-plan-foot">

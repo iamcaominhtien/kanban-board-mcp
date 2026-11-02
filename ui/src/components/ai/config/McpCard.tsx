@@ -6,6 +6,7 @@ import { configApi, useLibrary, type ProbeResult } from './configApi';
 import { adapterOf, useCfg } from './configCtx';
 import { CfgCard, Chip, Dialog, IssueText, TickRow, newId } from './parts';
 import { joinWords, splitWords } from './frontMatter';
+import { LineIcon } from '../../ui/LineIcon';
 
 const ENV_REF = /^\$\{[A-Za-z_][A-Za-z0-9_]*\}$/;
 
@@ -94,7 +95,7 @@ function KvEditor({
                 checked={!!r.secret}
                 onChange={(e) => onChange(rows.map((x, j) => (j === i ? { ...x, secret: e.target.checked } : x)))}
               />
-              🔒 Secret
+              <LineIcon name="lock" size={12} /> Secret
             </label>
           )}
           <button
@@ -103,7 +104,7 @@ function KvEditor({
             aria-label={`Remove ${label}`}
             onClick={() => onChange(rows.filter((_, j) => j !== i))}
           >
-            ✕
+            <LineIcon name="close" size={12} />
           </button>
         </div>
       ))}
@@ -442,7 +443,7 @@ export function McpCard() {
                   aria-label={`Remove ${s.name}`}
                   onClick={() => setCfg({ remoteMcp: cfg.remoteMcp.filter((x) => x.id !== s.id) })}
                 >
-                  ✕
+                  <LineIcon name="close" size={12} />
                 </button>
               </div>
               <IssueText issues={issues} path={`remote_mcp.${i}`} prefix />
@@ -490,7 +491,9 @@ export function McpCard() {
       <div className="cfg-row" data-testid="mcp-kanban-row">
         <div className="cfg-row-main">
           <div className="cfg-row-title">
-            <span aria-hidden="true">🔒</span>
+            <span aria-hidden="true">
+              <LineIcon name="lock" size={13} />
+            </span>
             <span className="ai-mono">kanban</span>
             <ProbeChip r={probes.kanban} busy={busy === 'kanban'} />
             <Chip>Preattached</Chip>
@@ -566,7 +569,7 @@ export function McpCard() {
                 aria-label={`Remove ${s.name}`}
                 onClick={() => setCfg({ mcpServers: cfg.mcpServers.filter((x) => x.id !== s.id) })}
               >
-                ✕
+                <LineIcon name="close" size={12} />
               </button>
             </div>
             <IssueText issues={issues} path={`mcp_servers.${i}`} prefix />

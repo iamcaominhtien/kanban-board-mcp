@@ -37,6 +37,7 @@ import {
   whenWords,
   LoadError,
 } from './aiUi';
+import { LineIcon } from '../ui/LineIcon';
 
 type Tab = 'overview' | 'configuration' | 'permissions' | 'usage' | 'activity';
 
@@ -100,7 +101,7 @@ export function AiProfile({
             )}
             {member.isBoardAi && (
               <span className="ai-chip" style={{ background: '#1E2A22', color: '#fff' }}>
-                ✦ Board AI
+                <LineIcon name="sparkle" size={13} /> Board AI
               </span>
             )}
           </div>

@@ -4,6 +4,7 @@ import type { AiMember } from '../../types/ai';
 import type { MentionIntent } from './MentionIntent';
 import { AiAvatar } from './aiUi';
 import './ticketWork.css';
+import { LineIcon } from '../ui/LineIcon';
 
 const CARET = (
   <svg
@@ -194,7 +195,11 @@ export function AskSplit({
             >
               <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={22} />
               <span style={{ flex: 1, fontWeight: 600 }}>{m.name}</span>
-              {m.id === member.id && <span style={{ color: '#2E6F40' }}>✓</span>}
+              {m.id === member.id && (
+                <span style={{ color: '#2E6F40' }}>
+                  <LineIcon name="check" size={13} />
+                </span>
+              )}
             </button>
           ))}
         </FloatMenu>

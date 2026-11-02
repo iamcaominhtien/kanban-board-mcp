@@ -10,6 +10,7 @@ import { caseName, proofGaps, unprovableCases } from '../../utils/proofRules';
 import { TakeOverButton, UndoRunDialog } from './RunActions';
 import { AiAvatar, SparkleIcon, fmtElapsed, hhmm, money, useAiBoardState } from './aiUi';
 import './ticketWork.css';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Test counts of a run: what the board read from a test command, else the agent's own claim (and which). */
 export function testsOf(run: AiRun): { counts: TestCounts; source: 'board' | 'claim' } | null {
@@ -23,10 +24,20 @@ export function TestChips({ counts }: { counts: TestCounts }) {
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} data-testid="test-chips">
       {(counts.passed > 0 || counts.failed === 0) && (
-        <span className="tw-test tw-test-ok">✓ {counts.passed} passed</span>
+        <span className="tw-test tw-test-ok">
+          <LineIcon name="check" size={12} /> {counts.passed} passed
+        </span>
       )}
-      {counts.failed > 0 && <span className="tw-test tw-test-bad">⚠ {counts.failed} failed</span>}
-      {counts.lint && <span className="tw-test tw-test-ok">✓ lint {counts.lint}</span>}
+      {counts.failed > 0 && (
+        <span className="tw-test tw-test-bad">
+          <LineIcon name="warning" size={12} /> {counts.failed} failed
+        </span>
+      )}
+      {counts.lint && (
+        <span className="tw-test tw-test-ok">
+          <LineIcon name="check" size={12} /> lint {counts.lint}
+        </span>
+      )}
     </div>
   );
 }
@@ -158,7 +169,7 @@ export function SummaryCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ti
                     className={`tw-claim ${c.met ? 'tw-claim-met' : 'tw-claim-open'}`}
                     aria-label={c.met ? 'Met' : 'Not verified'}
                   >
-                    {c.met ? '✓' : '?'}
+                    {c.met ? <LineIcon name="check" size={12} /> : '?'}
                   </span>
                   <span style={{ fontSize: 13.5, minWidth: 0 }}>
                     {c.text}
@@ -200,7 +211,7 @@ export function SummaryCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ti
           }}
           data-testid="ai-approve-done"
         >
-          ✓ Approve → Done
+          <LineIcon name="check" size={13} /> Approve → Done
         </button>
         <button
           type="button"
@@ -209,12 +220,12 @@ export function SummaryCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ti
           onClick={() => setMode(mode === 'changes' ? null : 'changes')}
           data-testid="ai-request-changes"
         >
-          ↻ Request changes
+          <LineIcon name="refresh" size={13} /> Request changes
         </button>
         <TakeOverButton ticketId={ticket.id} projectId={ticket.projectId} />
         <span style={{ flex: 1 }} />
         <button type="button" className="ai-link" onClick={() => setUndo(true)} data-testid="ai-undo-run">
-          Undo run’s changes ↶
+          Undo run’s changes <LineIcon name="undo" size={13} />
         </button>
       </div>
       {mode === 'changes' && (
