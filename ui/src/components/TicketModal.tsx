@@ -27,6 +27,7 @@ import {
   useUpdateTestCase,
   useDeleteTestCase,
   useTicketBranches,
+  useDefaultBase,
   useWorkspaceSettings,
   uploadUrl,
 } from '../api/tickets';
@@ -374,6 +375,8 @@ function TicketModalInner({
   const removeTicketLinkMutation = useRemoveTicketLink(ticket?.projectId ?? '');
 
   const { data: ticketBranches = [] } = useTicketBranches(ticket?.id ?? '');
+  // the repository's own default branch (main, else master…), shown as the baseline instead of a hard-coded main
+  const baseName = useDefaultBase(ticket?.id ?? '').data ?? 'main';
   const { data: project } = useProject(ticket?.projectId ?? '');
   const [repoPathDraft, setRepoPathDraft] = useState('');
   const [isEditingRepo, setIsEditingRepo] = useState(false);
@@ -1005,11 +1008,11 @@ function TicketModalInner({
     ticketBranches.length > 0 ? ticketBranches : ticket?.branches && ticket.branches.length > 0 ? ticket.branches : [];
 
   const branchesList: TicketBranch[] = [
-    ...(!rawBranches.some((b) => b.name === 'main' || b.status === 'baseline')
+    ...(!rawBranches.some((b) => b.name === baseName || b.status === 'baseline')
       ? [
           {
             id: 'baseline-main',
-            name: 'main',
+            name: baseName,
             status: 'baseline' as const,
             branchFrom: '',
             createdAt: new Date().toISOString(),
@@ -1023,11 +1026,11 @@ function TicketModalInner({
   // Use the live list (git-refreshed) rather than ticket.branches, whose counts are stale
   const defaultBranch = branchesList.find((b) => b.status !== 'baseline') || branchesList[0];
   const activeBranch = branchesList.find((b) => b.name === selectedBranchName) || defaultBranch;
-  const activeBranchName = activeBranch?.name ?? 'main';
+  const activeBranchName = activeBranch?.name ?? baseName;
   const activeBranchSubtext = activeBranch
     ? activeBranch.status === 'baseline'
       ? 'baseline'
-      : `from ${activeBranch.branchFrom || 'main'}${
+      : `from ${activeBranch.branchFrom || baseName}${
           activeBranch.aheadCount !== undefined
             ? ` · ${activeBranch.aheadCount} ahead${activeBranch.behindCount ? `, ${activeBranch.behindCount} behind` : ''}`
             : ''

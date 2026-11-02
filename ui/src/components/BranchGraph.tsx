@@ -39,6 +39,7 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
   const { data, isLoading, error } = useBranchGraph(ticketId, limit);
   const { data: ticketBranches = [] } = useTicketBranches(ticketId);
+  const baseName = data?.base ?? 'main';
 
   const layout = useMemo(() => {
     if (!data || !data.linked) return null;
@@ -231,7 +232,7 @@ export function BranchGraph({ ticketId }: { ticketId: string }) {
                   </span>
                 )}
                 <span className={styles.legendMeta}>
-                  from <span className={styles.legendPath}>{b.branchFrom || 'main'}</span>
+                  from <span className={styles.legendPath}>{b.branchFrom || baseName}</span>
                   {b.aheadCount !== undefined && ` · ${b.aheadCount} ahead, ${b.behindCount ?? 0} behind`}
                   {b.worktreePath && (
                     <>

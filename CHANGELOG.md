@@ -8,6 +8,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.23.3] - 2026-11-02
+
+A full design audit, and the first wave of fixes: what was broken or behaved wrongly (`docs/ui-audit/2026-11-design-audit`, 375 findings across 81 artboards; finding ids in brackets).
+
+### Added
+- **The design audit.** One report per area (AI, components, board, Idea Space, Docs, app), each finding with the design and the app side by side, the code that draws it and a fix, and a summary with the plan (`docs/ui-audit/2026-11-design-audit/SUMMARY.md`).
+
+### Fixed
+- **The Ask AI dock covered the board.** The page now leaves the dock's width free: the board, its header and New Ticket shrink beside it (AB-1). The board header wraps instead of pushing New Ticket and the view tabs out of the window, and the project name stays on one line (AB-2).
+- **Popovers inside a ticket opened in the wrong place.** The ticket panel kept a transform after its opening animation, so the `@` and `[[` suggesters (and other menus) opened off by the panel's offset, often off-screen (CM-3).
+- **The comment action bar (Edit, Delete, Copy link) never showed** on hover (CM-2).
+- **Esc in a ticket.** Esc saved the tag being typed, did not cancel a new criterion and did not close the ticket: three closed dialogs kept listening for Esc. Esc now cancels the field and keeps the ticket open; a comma adds a tag (TG-3, AC-1).
+- **New branch from `main` in a repository whose default is `master`** failed with "Branch 'main' does not exist"; a new branch starts from the repository's default branch (BR-2).
+- **Centred and right-aligned text showed `::: center`** once saved; it now renders aligned (DM-1).
+- **"Read the repository" in Set up the AI team called an AI** although it says no quota is spent; it reads files only (RC-7). A command run where there is no `package.json` is "command is wrong", not "the repo's own lint fails" (RC-2).
+- **Switching projects showed the previous project's cards** under the new name; it shows the loading skeleton (LD-1).
+- **Timeline:** resizing a bar opened the ticket (TV-2); the event list showed raw values such as `todo → done` and `None → None` (TV-4).
+- **Charts:** the usage axis read "1, 1, 0" and the RAM axis skipped 0.2 GB (SC-7, RS-2).
+- **AI Team:** Flow › Timeline showed two Copy link buttons and two range pickers (TL-1, AT-2); Health said "Only 0 runs" instead of "No AI work between …" with Widen to 30 days (RV-1).
+- **Docs:** Ctrl+K in the editor opened the search over the link field (ED-3); at 1100 px the breadcrumb vanished and the page menu was cut off (DP-2).
+
+### Security
+- **An uploaded HTML file ran with the app's origin** in its preview and could read the app's storage or call its API as the viewer. It now runs in a sandboxed frame of its own origin; its scripts, forms and pop-ups still work (PT-1).
+
 ## [3.23.2] - 2026-11-02
 
 Settings drawn the way the design draws it (#283, design `design/screens/settings-structure.md`, `settings-pages.md`).

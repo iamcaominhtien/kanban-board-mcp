@@ -269,7 +269,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
                       'baseline'
                     ) : (
                       <>
-                        from <span className={styles.metaMono}>{br.branchFrom || 'main'}</span>
+                        from <span className={styles.metaMono}>{br.branchFrom || baseName}</span>
                         {br.aheadCount !== undefined && ` · ${br.aheadCount} ahead, ${br.behindCount ?? 0} behind`}
                       </>
                     )}
