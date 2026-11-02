@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useProject } from '../../../api/projects';
 import { useAiWindows } from '../../../api/aiWindows';
 import {
@@ -60,8 +60,8 @@ const Check = () => (
 
 /**
  * The wizard as a page (design ai-team-process D): breadcrumb, title with the project chip, "Nothing is created until
- * the last step" on the right, then the steps at one fixed width. It covers the window like a page; Esc and
- * "I will do it myself" leave it.
+ * the last step" on the right, then the steps at one fixed width. It covers the window like a page;
+ * "I will do it myself" and the close button leave it.
  */
 function WizardPage({
   projectId,
@@ -76,16 +76,6 @@ function WizardPage({
 }) {
   const project = useProject(projectId);
   const name = project.data?.name ?? 'This project';
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented) return;
-      // a dialog opened from the wizard keeps its own Esc
-      if (document.querySelectorAll('[role="dialog"]').length > 1) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
   return (
     <div className="pk-page" role="dialog" aria-modal="true" aria-label="Set up the AI team">
       <div className="pk-page-crumb">

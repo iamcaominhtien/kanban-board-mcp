@@ -2,11 +2,17 @@ import type { ReactNode } from 'react';
 import type { Idea, IdeaReadiness, IdeaStage, ReadinessState } from '../../types/idea';
 import { READINESS_LABELS, STAGE_LABELS } from '../../types/idea';
 import { Avatar } from '../docs/docsShared';
+import { IdeaIcon, STAGE_ICONS } from './ideaIcons';
 import './ideas.css';
 
-/** Pill with the stage's name, coloured by stage. */
+/** Pill with the stage's icon and name, coloured by stage. */
 export function StagePill({ stage }: { stage: IdeaStage }) {
-  return <span className={`is-stage is-stage-${stage}`}>{STAGE_LABELS[stage]}</span>;
+  return (
+    <span className={`is-stage is-stage-${stage}`}>
+      <IdeaIcon name={STAGE_ICONS[stage]} size={12} strokeWidth={2} />
+      {STAGE_LABELS[stage]}
+    </span>
+  );
 }
 
 /** The purple chip that marks what an AI member wrote, until a person edits it. */
@@ -19,18 +25,19 @@ export function AiChip({ title }: { title?: string }) {
 }
 
 /**
- * The bar of a list row: one cell per assumption, green validated, red disproved, amber being tested, grey untested.
+ * The readiness bar: one continuous bar, green for the validated share, red for the disproved share, grey for the rest
+ * (untested and being tested).
  * @param props.idea - The idea whose assumptions are drawn.
  */
 export function ReadinessBar({ idea }: { idea: Pick<Idea, 'assumptions' | 'readiness'> }) {
-  const { total, validated } = idea.readiness;
+  const { total, validated, disproved } = idea.readiness;
   if (total === 0) return <span className="is-muted">No assumptions</span>;
+  const pct = (n: number) => `${(n / total) * 100}%`;
   return (
     <span className="is-readiness" title={`${validated} of ${total} assumptions validated`}>
       <span className="is-bar" aria-hidden="true">
-        {idea.assumptions.map((a) => (
-          <span key={a.id} className={`is-seg is-seg-${a.state}`} />
-        ))}
+        <i className="is-seg-validated" style={{ width: pct(validated) }} />
+        <i className="is-seg-disproved" style={{ width: pct(disproved) }} />
       </span>
       <span className="is-readiness-n">
         {validated} of {total}
@@ -102,6 +109,14 @@ export function warningLabel(w: string): { text: string; tone: 'warn' | 'risk' }
 /** The ticket link of a promoted idea: "Building · KAN-251 in Mobile App". */
 export function ticketLabel(idea: Idea): ReactNode {
   return idea.ticket ? idea.ticket.id : '—';
+}
+
+/** "2026-12-01" → "1 Dec" (with the year when it is not this year). */
+export function shortDate(iso: string): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: sameYear ? undefined : 'numeric' });
 }
 
 /** Local date as YYYY-MM-DD, `days` from today. */

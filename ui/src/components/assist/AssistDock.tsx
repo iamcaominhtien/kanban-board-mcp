@@ -77,13 +77,20 @@ function History({
   provider,
   onOpen,
   onNew,
+  onBack,
   onClose,
+  extra,
 }: {
   projectId: string;
   provider?: AssistState['boardAi']['provider'];
   onOpen: (id: string) => void;
   onNew: () => void;
+  /** Back to the chat (the same history toggle as in the dock header). */
+  onBack: () => void;
+  /** Closes the dock, as the dock header's ✕ does. */
   onClose: () => void;
+  /** The maximize button, so it stays one click away. */
+  extra?: React.ReactNode;
 }) {
   const [q, setQ] = useState('');
   const list = useChats(projectId, q);
@@ -115,10 +122,15 @@ function History({
         <button
           type="button"
           className="ai-icobtn"
-          title="Back to the chat"
-          aria-label="Close chat history"
-          onClick={onClose}
+          title="Chat history"
+          aria-label="Chat history"
+          aria-pressed="true"
+          onClick={onBack}
         >
+          <LineIcon name="clock" size={15} />
+        </button>
+        {extra}
+        <button type="button" className="ai-icobtn" title="Close" aria-label="Close Board AI" onClick={onClose}>
           <LineIcon name="close" size={14} />
         </button>
       </div>
@@ -397,7 +409,9 @@ export function AssistDock() {
         <History
           projectId={projectId}
           provider={b?.provider}
-          onClose={() => setView('chat')}
+          onBack={() => setView('chat')}
+          onClose={ctx.close}
+          extra={<PanelMaxButton panel={panel} />}
           onOpen={(id) => {
             ctx.setChatId(id);
             setView('chat');

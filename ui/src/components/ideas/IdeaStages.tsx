@@ -1,7 +1,22 @@
 import { useState } from 'react';
 import type { IdeaRow, IdeaStage } from '../../types/idea';
 import { STAGE_LABELS } from '../../types/idea';
-import { AiChip, Demand, ReadinessBar, warningLabel } from './ideaShared';
+import { AiChip, ReadinessBar, shortDate } from './ideaShared';
+import { IdeaIcon } from './ideaIcons';
+import { WarningChip } from './IdeaList';
+
+/** The dot before each column's name. */
+const STAGE_DOTS: Record<IdeaStage, string> = {
+  inbox: '#B8860B',
+  exploring: '#2F6FB0',
+  ready: '#2E6F40',
+  building: '#E8861A',
+  parked: '#9AA8A0',
+  shipped: '#7C5CD6',
+  archived: '#9AA8A0',
+};
+/** Columns an idea cannot be dropped into by hand: Building comes from Promote, Shipped from the ticket. */
+const NO_DROP_HINT: IdeaStage[] = ['building', 'shipped'];
 
 const COLUMNS: { stage: IdeaStage; hint: string }[] = [
   { stage: 'exploring', hint: 'Learning what must be true.' },
@@ -51,7 +66,8 @@ export function IdeaStages({ ideas, showArchived, onOpen, onMove }: Props) {
             }}
           >
             <header className="is-col-head">
-              <span className={`is-stage is-stage-${stage}`}>{STAGE_LABELS[stage]}</span>
+              <span className="is-col-dot" style={{ background: STAGE_DOTS[stage] }} aria-hidden="true" />
+              <b>{STAGE_LABELS[stage]}</b>
               <span className="is-muted">{items.length}</span>
             </header>
             <div className="is-col-hint">{hint}</div>
@@ -61,37 +77,79 @@ export function IdeaStages({ ideas, showArchived, onOpen, onMove }: Props) {
                 className="is-card"
                 draggable
                 tabIndex={0}
+                title={idea.id}
                 data-testid={`idea-card-${idea.id}`}
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/idea-id', idea.id);
                   e.dataTransfer.effectAllowed = 'move';
                 }}
                 onClick={() => onOpen(idea.id)}
-                onKeyDown={(e) => e.key === 'Enter' && onOpen(idea.id)}
+                onKeyDown={(e) => e.target === e.currentTarget && e.key === 'Enter' && onOpen(idea.id)}
               >
                 <div className="is-card-title">
                   {idea.title} {idea.source === 'ai' && <AiChip />}
                 </div>
-                <div className="is-row-sub">
-                  <span className="is-mono">{idea.id}</span>
-                  {idea.ticket && <span className="is-mono">→ {idea.ticket.id}</span>}
-                  {idea.stage === 'parked' && idea.parkUntil && <span className="is-warn">Back {idea.parkUntil}</span>}
-                  {idea.warnings.slice(0, 1).map((w) => {
-                    const l = warningLabel(w);
-                    return (
-                      <span key={w} className={`is-warn ${l.tone === 'risk' ? 'is-warn-risk' : ''}`}>
-                        {l.text}
+                {idea.warnings.slice(0, 1).map((w) => (
+                  <span key={w} className="is-card-chip">
+                    <WarningChip warning={w} />
+                  </span>
+                ))}
+                {idea.tags.length > 0 && (
+                  <div className="is-card-tags">
+                    {idea.tags.slice(0, 4).map((t) => (
+                      <span key={t} className="is-tag">
+                        {t}
                       </span>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )}
+                <ReadinessBar idea={idea} />
                 <div className="is-card-foot">
-                  <ReadinessBar idea={idea} />
-                  <Demand voters={idea.voters} max={2} />
+                  <span
+                    className="is-card-votes"
+                    title={
+                      idea.voters.length
+                        ? `Wanted by ${idea.voters.join(', ')}`
+                        : 'Nobody has asked for this yet'
+                    }
+                  >
+                    <IdeaIcon name="thumb" size={13} color="#5B6B60" />
+                    {idea.voters.length}
+                  </span>
+                  <span className="is-mono is-muted is-card-key">{idea.id}</span>
+                  <span className="is-grow" />
+                  {idea.stage === 'parked' && idea.parkUntil && (
+                    <span className="is-muted">Back {shortDate(idea.parkUntil)}</span>
+                  )}
+                  {idea.ticket && (
+                    <span className="is-ticket-chip" title={`${idea.ticket.title} · ${idea.ticket.status}`}>
+                      <span
+                        className="is-dot"
+                        style={{ background: idea.stage === 'shipped' ? '#2E6F40' : '#E8861A' }}
+                      />
+                      {idea.ticket.id}
+                    </span>
+                  )}
+                  {idea.stage === 'ready' && (
+                    <button
+                      type="button"
+                      className="is-btn is-btn-sm is-btn-primary"
+                      data-testid={`stage-promote-${idea.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMove(idea, 'building');
+                      }}
+                    >
+                      <IdeaIcon name="rocket" size={12} />
+                      Promote
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
-            {items.length === 0 && <div className="is-col-empty">Drop an idea here</div>}
+            {items.length === 0 && !NO_DROP_HINT.includes(stage) && (
+              <div className="is-col-empty">Drop an idea here</div>
+            )}
           </section>
         );
       })}
