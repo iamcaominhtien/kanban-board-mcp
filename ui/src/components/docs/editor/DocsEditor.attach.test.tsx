@@ -22,7 +22,8 @@ const noRects = () =>
 const rect = () => ({ x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, toJSON: () => ({}) });
 Range.prototype.getClientRects = noRects;
 Range.prototype.getBoundingClientRect = rect;
-if (!Text.prototype.getClientRects) (Text.prototype as unknown as Element).getClientRects = noRects;
+const textProto = Text.prototype as unknown as { getClientRects?: () => DOMRectList };
+if (!textProto.getClientRects) textProto.getClientRects = noRects;
 document.elementFromPoint = () => null;
 
 function renderEditor(onChange = vi.fn()) {

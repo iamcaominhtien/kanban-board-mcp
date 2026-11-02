@@ -176,7 +176,12 @@ function createWindow() {
   );
   mainWindow.loadFile(uiPath);
 
-  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  // No second app window: a web or mail link the page opens in a new window (a link in a Docs page, a ticket, a
+  // comment) goes to the person's browser instead of being dropped silently
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    void openExternalSafely(shell, url);
+    return { action: 'deny' };
+  });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
     const allowed = url.startsWith('file://') || url.startsWith('http://127.0.0.1:');
