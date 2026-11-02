@@ -408,12 +408,7 @@ export function SubTicketsSection({
 
               return (
                 <div key={ticket.id} className={`${styles.row} ${isInProgress ? styles.rowActive : ''}`}>
-                  <WaveBadge
-                    ticketId={ticket.id}
-                    wave={wave}
-                    pinned={ticket.wavePin ?? null}
-                    className={waveClass}
-                  />
+                  <WaveBadge ticketId={ticket.id} wave={wave} pinned={ticket.wavePin ?? null} className={waveClass} />
 
                   {isDone ? (
                     <svg className={styles.statusIconDone} viewBox="0 0 14 14" fill="none">

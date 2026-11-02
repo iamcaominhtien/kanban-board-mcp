@@ -277,6 +277,8 @@ export interface AiSettings {
   approvers: { low: string; medium: string; high: string };
   delegates: { from: string; to: string; until: string | null }[];
   auditRetentionDays: number | null;
+  /** Days a finished AI run is kept (OPS-7); null or absent: forever. */
+  runRetentionDays?: number | null;
   loopCooldownS: number;
   /** Auto-trip rules (safety D6): switch, thresholds and the sentence for each. */
   autoTrip?: {

@@ -41,12 +41,12 @@ Medium or High one.
 ## comp-2
 
 - TD-1 · Skipped: the AI buttons (`RunHeaderButton`, `TicketAiMenu`) are in `ai/RunPanel.tsx` and `assist/TicketAi.tsx`, not my files
-- TD-2 · Skipped: sub-tasks are checklist items (`id, text, done`) with no ticket id to show; needs a data model change
+- TD-2 · Fixed (wave 5) — Not built, by design: sub-tasks are checklist items (`id`, `text`, `done`) with no ticket, so there is no id to show; the data model is unchanged. The design doc now says so (`design/components/ticket-detail.md`, frame 2). Before: Skipped: sub-tasks are checklist items (`id, text, done`) with no ticket id to show; needs a data model change
 - TD-3 · Fixed (wave 4): the checkbox is 2 px lower, centred on the first line of the (now 13 px) text (`AcceptanceCriteriaSection.module.css`)
 - TD-4 · Fixed: comments default to oldest first with the composer under the thread (same fix as board CM-1)
 - TD-5 · Fixed (wave 4): the attachments zone drops its own top border; the one divider above it stays (`TicketModal.module.css`)
 - TD-6 · Already fixed (wave 2: the native selects are drawn as the design's field)
-- TDP-1 · Partly fixed (UI): the wave badge is a button (green ring on hover, blue halo while open) that opens the popover: WAVE, − n + stepper, "Auto-set from Blocked by", shown read-only (wave from Blocked by, controls disabled). Pinning a wave by hand needs a server field, so it is not offered (`SubTicketsSection.tsx`; test `SubTicketsSection.wave.test.tsx`)
+- TDP-1 · Fixed (wave 5) — `ticket.wave_pin` (nullable; null = computed from Blocked by, as before; migration `b5e7d9f1a3c4`). The popover is live: − n + pins the wave, unchecking "Auto-set from Blocked by" pins it where it is, checking it drops the pin; each change is saved at once and a server error shows in the popover (`SubTicketsSection.tsx`). Waves honour the pin only when set: sub-ticket order (UI `buildRows`, server `services/ticket_waves.py`), the Story orchestration (`stories.drive`: a pinned child waits for the earlier waves instead of its own waits) and the MCP tools (`manage_ticket` update `wave_pin` / `clear_fields`, `list_tickets` shows it). Tests: `server/tests/test_ticket_wave_pin.py`, `SubTicketsSection.wave.test.tsx`. Before: Partly fixed (UI): the wave badge is a button (green ring on hover, blue halo while open) that opens the popover: WAVE, − n + stepper, "Auto-set from Blocked by", shown read-only (wave from Blocked by, controls disabled). Pinning a wave by hand needs a server field, so it is not offered (`SubTicketsSection.tsx`; test `SubTicketsSection.wave.test.tsx`)
 - TDP-2 · Fixed: a parent with no estimate shows "8 pt (rolled up)" from its sub-tickets (`TicketModal.tsx`)
 - DM-1 · Already fixed (wave 1)
 - DM-2 · Already fixed (wave 2: callouts use line icons); whether a bold "Heads up:" lead becomes a callout is a design decision, not changed

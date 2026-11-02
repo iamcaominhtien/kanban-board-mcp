@@ -232,7 +232,12 @@ export function Triage({
             <span className="is-grow" />
             <span className="is-muted">newest first</span>
           </div>
-          <AdviceBar projectId={aiProject} ideaIds={ideas.map((i) => i.id)} onOpenSettings={onOpenSettings} />
+          <AdviceBar
+            projectId={aiProject}
+            ideaIds={ideas.map((i) => i.id)}
+            titles={Object.fromEntries(ideas.map((i) => [i.id, i.title]))}
+            onOpenSettings={onOpenSettings}
+          />
           <div className="is-inbox-scroll">
             {ideas.map((i) => {
               const src = sourceLine(i);

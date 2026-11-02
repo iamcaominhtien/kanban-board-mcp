@@ -60,6 +60,8 @@ export interface DocsPage {
   parentId: string | null;
   title: string;
   slug: string;
+  /** The share link's path from the current titles (`architecture/api`, AC-4); null when another page has the same. */
+  slugPath?: string | null;
   status: DocsStatus;
   version: number;
   markdown: string;

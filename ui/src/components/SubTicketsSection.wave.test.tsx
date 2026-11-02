@@ -12,7 +12,9 @@ import { SubTicketsSection } from './SubTicketsSection';
 afterEach(cleanup);
 beforeEach(() => {
   http.patch.mockReset();
-  http.patch.mockImplementation((_url: string, data: object) => Promise.resolve({ data: { ...child('KAN-3'), ...data } }));
+  http.patch.mockImplementation((_url: string, data: object) =>
+    Promise.resolve({ data: { ...child('KAN-3'), ...data } }),
+  );
 });
 
 const child = (id: string, blockedBy: string[] = [], wavePin: number | null = null): Ticket =>
