@@ -483,9 +483,11 @@
 .dk-toc a {
   display: block;
 }
+/* The keyboard focus ring for buttons, links and the inputs that draw no box of their own. Text fields are left out:
+   they draw their own focus (border and halo), and a second ring inside them doubled it (design audit, comp-1). */
 button:focus-visible,
 a:focus-visible,
-input:focus-visible {
+input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color']):focus-visible {
   outline: 2px solid #2e6f40;
   outline-offset: 2px;
 }
