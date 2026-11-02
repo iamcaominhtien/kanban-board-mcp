@@ -406,6 +406,7 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
                 target,
                 detail,
                 "Autopilot only reads and decides; it does not change anything itself. Nothing was changed.",
+                code="autopilot",
             )
         ticket = (
             await session.get(Ticket, params["ticket_id"])
@@ -421,6 +422,7 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
                 target,
                 detail,
                 f"{params.get('ticket_id')} is outside this AI member's scope (only tickets assigned to it or this run's ticket).",
+                code="scope",
             )
         # Status ceiling: a hard rule, also for approved actions
         new_status = params.get("status") if tool == "manage_ticket" else None
@@ -461,7 +463,13 @@ async def check(ctx: RunContext, tool: str, action: str, params: dict) -> dict:
             decisions, key=lambda d: {"allowed": 0, "approval": 1, "blocked": 2}[d.mode]
         )
         if worst.mode == BLOCKED:
-            raise await _refuse(ctx, worst.action, target, detail, worst.reason)
+            decider = max(
+                worst.layers,
+                key=lambda x: {"allowed": 0, "approval": 1, "blocked": 2}[x["mode"]],
+            )
+            raise await _refuse(
+                ctx, worst.action, target, detail, worst.reason, layer=decider["layer"]
+            )
         if worst.mode == APPROVAL:
             asking = [d.action for d in decisions if d.mode == APPROVAL]
             grants = await safety.remembered(
@@ -581,8 +589,19 @@ _TICKET_KEY = re.compile(r"^[A-Z][A-Z0-9]*-\d+$")
 
 
 async def _refuse(
-    ctx: RunContext, perm: str, target, detail: dict, reason: str, code: str = "blocked"
+    ctx: RunContext,
+    perm: str,
+    target,
+    detail: dict,
+    reason: str,
+    code: str = "blocked",
+    layer: str | None = None,
 ) -> AiActionError:
+    from . import hints
+
+    # Say why (issue #275): the AI reads what it may do instead, the person reads what to switch on
+    instead, switch = hints.explain(perm, layer, code)
+    detail = {**detail, "instead": instead, "switch": switch}
     source = await _injection_source(ctx)
     if source:
         detail = {**detail, "source": source}
@@ -605,7 +624,8 @@ async def _refuse(
         ctx.project_id,
         "blocked",
         "AI action blocked",
-        f"{ctx.member_name} could not {ACTIONS.get(perm, (perm,))[0].lower()} on {target or 'the board'}: {reason}",
+        f"{ctx.member_name} could not {ACTIONS.get(perm, (perm,))[0].lower()} on {target or 'the board'}: {reason} "
+        f"{switch}",
         ref_kind=ref_kind,
         ref_id=target,
         member_id=ctx.member_id,
@@ -613,7 +633,7 @@ async def _refuse(
         # A move past the ceiling is told once, by the run's own "can't move" notice (_post_move_blocked)
         to_centre=code != "status_ceiling",
     )
-    return AiActionError(f"BLOCKED ({code}): {reason}")
+    return AiActionError(f"BLOCKED ({code}): {reason} Instead: {instead}")
 
 
 async def _post_move_blocked(

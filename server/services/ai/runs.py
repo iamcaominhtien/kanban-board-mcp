@@ -1932,11 +1932,22 @@ _WEB_TOOLS = ["WebFetch", "WebSearch"]
 
 
 def cli_tool_rules(
-    allowed: list[str], denied: list[str], *, safe: bool, domains: list[str]
+    allowed: list[str],
+    denied: list[str],
+    *,
+    safe: bool,
+    domains: list[str],
+    role: str | None = None,
+    web_search: str = "off",
+    granted: list[str] | None = None,
 ) -> tuple[list[str], list[str]]:
     """The CLI's own tool rules for a run. The board is not a sandbox, but it writes these rules before every run:
     in safe mode the CLI may only read (and use the board's MCP server, where the guard allows read and comment);
-    otherwise outbound web calls are limited to the allowed domains, because a run cannot ask a person mid-call."""
+    otherwise the member's allow list gets what its role needs (`tool_rules.ROLE_TOOLS`) and what a person allowed
+    once and asked to remember (`granted`), web search follows the project's switch, and web pages are limited to the
+    allowed domains, because a run cannot ask a person mid-call."""
+    from . import tool_rules
+
     allowed = [a for a in allowed if a.split("(")[0] not in _WEB_TOOLS]
     denied = list(denied)
     if safe:
@@ -1949,9 +1960,20 @@ def cli_tool_rules(
         ]
         denied += [d for d in _WRITE_TOOLS + _WEB_TOOLS if d not in denied]
         return allowed, denied
+    extra = tool_rules.role_tools(role) + [
+        g for g in (granted or []) if not tool_rules.never_remembered(g)
+    ]
+    for rule in extra:
+        if rule.split("(")[0] == "WebSearch":
+            continue  # the project's web search switch decides that one
+        if rule not in allowed and rule not in denied:
+            allowed.append(rule)
     allowed += [f"WebFetch(domain:{d})" for d in domains if isinstance(d, str) and d]
-    denied += [d for d in ["WebSearch"] if d not in denied]
-    return allowed, denied
+    if tool_rules.web_search_for(role, web_search) and "WebSearch" not in denied:
+        allowed.append("WebSearch")
+    else:
+        denied += [d for d in ["WebSearch"] if d not in denied]
+    return list(dict.fromkeys(allowed)), denied
 
 
 def mcp_config(
@@ -2408,11 +2430,28 @@ async def _execute_cli_held(
                 domains=loads(settings.allowed_domains, []),
             )
         else:
+            from . import plugins as ai_plugins
+            from . import tool_rules
+
+            switches = tool_rules.settings_of(settings)
+            role = ai_plugins.role_of(profile)
             allowed, denied = cli_tool_rules(
                 allowed,
                 denied,
                 safe=safe,
                 domains=loads(settings.allowed_domains, []),
+                # a question or an Autopilot decision only reads: no role tools, no remembered rules, no web
+                role=None if narrow else role,
+                web_search="off" if narrow else switches["web_search"],
+                granted=[]
+                if narrow
+                else await safety.granted_rules(
+                    session,
+                    project_id=run.project_id,
+                    member_id=run.member_id,
+                    ticket_id=run.ticket_id,
+                    role=role,
+                ),
             )
             edits = False
         # An owner's "Bypass permissions" (Claude Code and Antigravity): work runs only, never in safe mode. Deny
@@ -2420,7 +2459,19 @@ async def _execute_cli_held(
         # own Claude Code (references, docs, fonts): the blanket web denial the allow list adds is lifted, a deny
         # rule the member was given for a site stays. What a page says is data, as everything an AI reads.
         # Antigravity's questions too: a denied command ends the whole run
-        bypass = config.get("permission_mode") == "bypass" and not narrow and not safe
+        # The project's preset may hold every run to its allow list (Careful) or run every work run in Bypass
+        # (Trusted); Normal keeps each member's own choice (services/ai/tool_rules.py)
+        from . import tool_rules
+
+        bypass = (
+            tool_rules.bypass_for(
+                tool_rules.settings_of(settings)["bypass"],
+                config.get("permission_mode") == "bypass",
+                profile.provider,
+            )
+            and not narrow
+            and not safe
+        )
         if bypass:
             denied = [d for d in denied if d not in _WEB_TOOLS]
         extra_flags = [
@@ -2752,6 +2803,14 @@ async def _execute_cli_held(
         session.add(run)
         await session.commit()
         question = loads(run.question, None)
+    if result and result.get("denials") and not restart:
+        # what the CLI refused for lack of a rule: a person answers once and the answer is kept (issue #275)
+        from . import tool_asks
+
+        try:
+            await tool_asks.post(run_id, result["denials"])
+        except Exception:  # noqa: BLE001 - asking is a courtesy: the run's own end must not fail on it
+            logger.exception("Could not ask about the tools run %s was refused", run_id)
     if restart:
         await _restart_inside_run(run_id, token, restart, scratch)
         return

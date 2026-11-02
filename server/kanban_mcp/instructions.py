@@ -55,7 +55,7 @@ from a folder; a person sees before and after and accepts or rejects. You never 
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions
-- Failures come back as tool errors whose message says how to fix the call; read it and retry.
+- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it; docs_read(permissions_guide) says what you may do and what needs a person.
 - Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).
 - Omitted optional arguments mean "unchanged". To empty a field use manage_ticket's clear_fields.
 - Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.

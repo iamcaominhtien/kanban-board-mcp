@@ -1857,6 +1857,10 @@ class DecideBody(BaseModel):
     remember: bool = False
     always: bool = False
     accept_updated: bool = False
+    # once | ticket | project | role (issue #275); `remember` and `always` are the ticket and project of before
+    scope: Optional[str] = None
+    # a tool the CLI refused: the run goes on where it stopped once it is allowed
+    go_on: bool = True
 
 
 def _decide_error(exc: Exception):
@@ -1878,6 +1882,8 @@ async def post_approve(approval_id: str, body: DecideBody) -> dict:
             remember=body.remember,
             always=body.always,
             accept_updated=body.accept_updated,
+            scope=body.scope,
+            go_on=body.go_on,
         )
     except svc_approvals.ApprovalError as exc:
         _decide_error(exc)

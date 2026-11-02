@@ -8,6 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.23.0] - 2026-11-02
+
+AI permissions: fewer needless stops, the risky things still with a person (#275).
+
+### Added
+- **What each role runs without asking.** Every Claude Code run that is not in safe mode gets its role's tools on top of the member's own allow list: a Dev edits, installs packages (npm, pnpm, yarn, pip, uv, poetry, go, cargo), runs the tests, lint and build and commits on its branch; QA installs, runs the tests, starts the app and drives the browser; a Designer writes its frames, serves them on a local port and looks at them in the browser; the Reviewer runs the tests; the User tester starts the app. Never `git push`, `sudo` or a forced delete.
+- **Web search per project**: Off, By role (PM, BA, Designer, Dev: the roles that look things up) or Every role. Web pages stay limited to the allowed domains outside Bypass.
+- **Presets** Careful, Normal and Trusted in Settings › AI › Safety and limits and AI Team › Safety, each explained in a line. Careful: no Bypass, no web search, Docs edits wait for you. Normal (the default): as before, plus the role tools and web search by role. Trusted (the owner's): every work run of a local CLI in Bypass with the web open. The status ceiling, deletes, approvals and safe mode hold in all three.
+- **Ask once, then remember.** A tool the CLI refused for lack of a rule (it cannot ask mid-call) becomes one request with the narrowest rule that covers it (“Let Dev run `npm install left-pad`” → `Bash(npm install:*)`). Answer it for this ticket, this project or every AI with the role (the owner's), and the run carries on where it stopped. A board approval can be remembered the same way: once, this ticket, this project, or the role. Remembered answers are listed in AI Team › Safety with Revoke. A push, `sudo` or a forced delete is asked every time, a person's deny rule is never asked about, and high risk is decided once each time.
+- **What stopped the AIs** (AI Team › Safety): every refused action, refused tool, permission question and “I cannot” in the runs, grouped, with the role, what it was trying to do, how often, and what the board does about it now (fixed, a setting, or kept on purpose with the reason).
+- **The permissions guide** for an AI: the `board-permissions` skill in every Claude Code run, and `docs_read(action='permissions_guide')` for any MCP agent, with what the calling AI may do right now (its board actions, ceiling, role tools, web search, remembered rules).
+
+### Changed
+- **Every refusal says why and what next.** The AI reads `Instead: …` (leave the ticket and say it is ready, propose the change in a comment, hand it over); the person's notice says what to switch on, or that it is kept on purpose. “Why was this blocked?” shows both.
+- **The owner may go past a lock or the role template, after a warning.** On an AI's Permissions tab the greyed modes keep their look and the 🔒 (Delete tickets and Delete docs past Needs approval, anything looser than the template), but for the project owner they are clickable: a dialog says what it risks (a deleted ticket is gone for good), asks to tick “I understand” for a lock, and records the change as Owner-enabled with the name and time. Admins and members still cannot (the design's A1 lock becomes the owner's decision, as the owner asked in #275).
+- Handing a ticket to a teammate from inside a run with `ai_team(action='ask', intent='work')` now goes through as `ai_run(action='handoff')`, with the same checks, instead of being refused.
+
+### Fixed
+- **Evidence an AI names by path**, on top of 3.22.1's worktree fix: the member's own folder still counts after the worktree (a file saved there before the worktree was made), an absolute path inside either is accepted, and the refusal names the folders it looked in.
+
 ## [3.22.1] - 2026-11-02
 
 ### Added

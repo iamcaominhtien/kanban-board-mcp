@@ -1933,12 +1933,14 @@ class AiGrant(SQLModel, table=True):
         default_factory=lambda: f"grt_{uuid.uuid4().hex[:10]}", primary_key=True
     )
     project_id: str = Field(foreign_key="project.id", index=True)
-    kind: str  # approval | cap_raise | extra_runs
+    kind: str  # approval | tool | cap_raise | extra_runs
     member_id: Optional[str] = Field(default=None, index=True)
+    # "always for this role": every AI member of the project with this role pack key (member_id is then empty)
+    role: Optional[str] = Field(default=None, index=True)
     ticket_id: Optional[str] = Field(default=None, index=True)
     action: Optional[str] = Field(
         default=None
-    )  # permission action of an `approval` grant
+    )  # permission action of an `approval` grant, the CLI allow rule of a `tool` grant
     amount: float = Field(default=0.0)  # USD of a cap raise, runs of extra_runs
     day: Optional[str] = Field(
         default=None
