@@ -27,6 +27,7 @@ DocsReadAction = Literal[
     "canvas",
     "design_guide",
     "permissions_guide",
+    "guides",
 ]
 
 DOCS_READ_OPS = {
@@ -46,6 +47,7 @@ DOCS_READ_OPS = {
     "canvas": Op(ops.read_canvas, ("canvas_id",), ("board_id", "path")),
     "design_guide": Op(ops.design_guide, ()),
     "permissions_guide": Op(ops.permissions_guide, ()),
+    "guides": Op(ops.shared_guides, ()),
 }
 
 
@@ -140,7 +142,8 @@ async def docs_read(
     - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
     - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
     - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.
-    - permissions_guide: {guide, you}: what you may do; read it when refused."""
+    - permissions_guide: {guide, you}: what you may do; read it when refused.
+    - guides: {name: text}: how to work a ticket, show proof, use the repo, ask and write."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 

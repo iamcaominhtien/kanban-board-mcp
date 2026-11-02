@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CatalogueEntry, Plugin } from '../../../types/aiPlugins';
@@ -129,8 +129,23 @@ describe('CatalogueTab', () => {
 });
 
 describe('MemberPluginsCard', () => {
-  function setup(opts: { plugins?: Plugin[] | 'error'; cfg?: unknown; catalogue?: CatalogueEntry[] } = {}) {
+  function setup(
+    opts: {
+      plugins?: Plugin[] | 'error';
+      cfg?: unknown;
+      catalogue?: CatalogueEntry[];
+      boardSkills?: { skill: string; on?: boolean; membersOn?: string[]; membersOff?: string[] }[];
+    } = {},
+  ) {
     http.get.mockImplementation((url: string) => {
+      if (url === '/ai/board-skills')
+        return Promise.resolve({
+          data: [
+            { name: 'canvas-design', description: 'The design guide.' },
+            { name: 'repo-and-machine', description: 'Git and processes.' },
+          ],
+        });
+      if (url === '/projects/pr/ai/ops') return Promise.resolve({ data: { boardSkills: opts.boardSkills ?? [] } });
       if (url.endsWith('/ai/plugins'))
         return opts.plugins === 'error'
           ? Promise.reject({ response: { data: { detail: 'plugins down' } } })
@@ -146,6 +161,20 @@ describe('MemberPluginsCard', () => {
     http.post.mockResolvedValue({ data: {} });
   }
   const renderIt = () => render(wrap(<MemberPluginsCard memberId="m1" projectId="pr" />));
+
+  it("switches one of the board's skills for this member only, and back to the project's default", async () => {
+    setup({ boardSkills: [{ skill: 'repo-and-machine', on: false }] });
+    http.patch.mockResolvedValue({ data: { boardSkills: [] } });
+    renderIt();
+    const row = await screen.findByTestId('bs-repo-and-machine');
+    expect(row.textContent).toContain('Project default is off.');
+    fireEvent.click(within(row).getByRole('switch'));
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/pr/ai/ops', {
+        boardSkills: [{ skill: 'repo-and-machine', on: false, membersOn: ['m1'], membersOff: [] }],
+      }),
+    );
+  });
 
   it('reads the role from the config', () => {
     expect(roleOfConfig({ role: 'dev' })).toBe('dev');

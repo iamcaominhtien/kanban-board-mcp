@@ -121,6 +121,13 @@ async def design_guide() -> dict:
     }
 
 
+async def shared_guides() -> dict:
+    """The board's shared guides for any role (in Claude Code they are its skills): {name: text} (issue #277)."""
+    from services import shared_skills
+
+    return shared_skills.guides()
+
+
 async def permissions_guide() -> dict:
     """What an AI may do on the board, what needs a person and what to do when refused, and (inside a run) what the
     calling AI may do right now (in Claude Code it is also the board-permissions skill)."""

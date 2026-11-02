@@ -2370,7 +2370,9 @@ async def _execute_cli_held(
             from . import board_skills
 
             # the board's own skills (the canvas design guide), too long for the MCP instructions
-            plugin_dirs.append(board_skills.plugin_dir())
+            plugin_dirs.append(
+                board_skills.plugin_dir(board_skills.enabled_for(cfg_ops, profile.id))
+            )
             project_safe = (await get_settings(session, run.project_id)).safe_mode
             if cfg_ops.get("own_claude", True) and not (
                 project_safe or profile.safe_mode

@@ -57,6 +57,15 @@ async def get_catalogue() -> list[dict]:
 # --------------------------------------------------------------------------- plugins
 
 
+@router.get("/ai/board-skills")
+async def get_board_skills() -> list[dict]:
+    """The board's own skills (the canvas design guide, permissions, the shared skills of issue #277): [{name,
+    description}]. Whether each is on for a project or a member is in the project's ops (`board_skills`)."""
+    from services.ai import board_skills
+
+    return board_skills.catalog()
+
+
 @router.get("/projects/{project_id}/ai/plugins")
 async def get_plugins(project_id: str, session: Session) -> list[dict]:
     """The project's installed plugins, with their real use counted from the runs."""
