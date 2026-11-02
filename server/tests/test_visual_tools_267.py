@@ -258,6 +258,22 @@ async def test_an_ai_run_looks_only_at_files_in_its_own_folder(env, tmp_path):
         guard.leave(tokens)
 
 
+async def test_an_ai_run_writes_a_picture_only_in_its_own_folder(
+    env, tmp_path, monkeypatch
+):
+    _no_browser(monkeypatch)
+    ctx, pid, an, m, tid = await _ctx(env)
+    _, made = await _diagram(env, tmp_path, pid=pid)
+    outside = tmp_path / "elsewhere"
+    tokens = guard.enter(ctx)
+    try:
+        with pytest.raises(ValueError, match="outside your working folder"):
+            await docs_read(action="picture", diagram_id=made["id"], path=str(outside))
+    finally:
+        guard.leave(tokens)
+    assert not outside.exists()
+
+
 @pytest.mark.skipif(
     diagram_export.find_chrome() is None, reason="no Chrome or Chromium here"
 )

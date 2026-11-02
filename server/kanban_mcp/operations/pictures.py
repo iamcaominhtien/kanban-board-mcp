@@ -288,6 +288,9 @@ async def picture(
     ) as exc:
         raise ValueError(exc.message) from exc
     # safe mode writes nothing beside your files and nothing on the board: only a PNG in the temp folder
+    if may_write and path and given:
+        # inside a run, a PNG is written only in the run's own folder, as its other files are
+        await _check_run(None, Path(path))
     target = _target(path if may_write else None, name)
     target.write_bytes(png)
     w, h = _size(png)
