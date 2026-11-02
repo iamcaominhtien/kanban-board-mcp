@@ -28,19 +28,18 @@ _INSTRUCTIONS_TAIL = """\
 docs_write (create, update, move, ...). Send the `version` you read as base_version when updating; a stale one is rejected, \
 so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: \
 docs_read(comments) lists the threads, docs_write(comment, reply, resolve, ...) answers them.
-- Which drawing: a screen, page or flow a person will look at goes on a Canvas (HTML frames, every state); a structure or \
-a process (architecture, data flow, a sequence, a state machine, a workflow, an entity model) is a draw.io Diagram in the Docs page \
-or ticket it explains; a rough first draft, or a mark on a screenshot, is a Sketch. Draw when words alone are hard to follow \
-(more than three parts, branches, an order that matters); a picture sits beside the words, never instead of them, and nothing \
-one sentence says needs one.
-- Diagrams: a draw.io drawing shows in any text (ticket description, comment, Docs page) as one line `[Name](diagram:dg_xxxxxxxx)`. \
-Edit it as a file: docs_read(diagram) writes the .drawio XML to a path, change it with your own file tools, docs_write(diagram_save) \
-stores it (with the `version` you got as base_version). docs_write(diagram_create) makes a new one from a file; put the returned \
-`markdown` line on its own line in the text.
-- Sketches: a freehand drawing shows in a text as one line `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is when you edit the text. \
-Work on one as files: docs_read(sketch) writes its PNG and editable .sketch.json (layers, at most 4096 px, 10 layers, 10 MB), \
-docs_write(sketch_save) stores a new PNG (+ source) with the `version` you read as base_version; docs_write(sketch_create) makes a new one \
-for a ticket or Docs page from a PNG (put the returned `markdown` line on its own line in the text).
+- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit \
+(a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the \
+Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. "The sign-up flow and its screens" is both: \
+the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.
+- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, \
+labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it \
+(the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line \
+in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).
+- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); \
+what to do with one: the `sketches` skill, else docs_read(diagram_guide).
+- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or \
+frame folder, and returns `markdown` (a copy on the board) for a comment.
 - Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. \
 docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). \
 docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) \

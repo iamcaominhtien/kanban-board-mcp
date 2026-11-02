@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.27.0] - 2026-11-02
+## [3.28.0] - 2026-11-03
 
 Each AI role works like a good professional in that role, and the roles work together (#273). Measured with live sonnet runs, before and after, on the same small task per role.
 
@@ -19,12 +19,94 @@ Each AI role works like a good professional in that role, and the roles work tog
 - **How the roles work together**: a shared skill, `working-together` (who does what, read the handoff first, never redo another role's work, ask the PM rather than guess, what to do when blocked or when you disagree), and a core rule in every run's prompt. A run's list of teammates now names each one's role, so it knows whom to ask.
 
 ### Changed
-- Role packs are at version 10: every persona points to its role's skill.
+- Role packs are at version 11: every persona points to its role's skill.
 - A workflow step no longer says a decision goes to "the coordinator with ai_run(ask)" (that reaches the person): scope and priority go to the PM with an @mention, a person's call to `ai_run(ask)`.
 - Settings › AI: the role packs table lists twelve roles; the board's skills show which role a skill is for, and a member's page lists only its own role's skill. The role chips, the template editor and the own-plugins grid know the new roles.
 
 ### Fixed
 - **A real red-then-green run was marked unproven** when the red run's output was piped or redirected (`pytest -q t.py 2>&1 | tail -16`) and the green one was not: the board now compares the test commands without the pipe and the redirections.
+
+## [3.27.1] - 2026-11-03
+
+The desktop app opens again: 3.27.0 showed "Can't start the local server" on every start.
+
+### Fixed
+- **The installed app could not start its server.** The build left out the `slides` skill's folder (its guide, themes, scripts and examples), which the server reads while it starts, so both programs (`kanban-server` and `kanban-mcp-stdio`) exited with `FileNotFoundError: …/services/slides_skill/guide.md`. A checkout never showed it. The folder is now part of the bundle (`desktop/common_spec.py`).
+
+### Added
+- A test that every data file under `server/services/` is in the desktop bundle, at the path the code reads it from.
+- The Python build (`desktop/scripts/build-python.sh`, run by `build-desktop.sh` and the release workflow) starts the built `kanban-server` and fails unless it reports READY, so a bundle that cannot start is never packaged or released.
+
+## [3.27.0] - 2026-11-02
+
+Canvas, draw.io and Sketch for any AI, on the board or outside it: which one fits, a guide for diagrams, and a way to see what it drew before handing it in (#267).
+
+### Added
+- **A draw.io guide for every AI**: which tool fits (a screen or page that is looked at → Canvas; boxes and arrows a team will edit → draw.io; a person's hand drawing → Sketch), which kind of diagram answers which question (flowchart, swimlanes, sequence, state machine, architecture, data model, a plan), layout on a grid of 10 with standard sizes, styles from one palette, labels, groups and lanes, how to change one shape without wrecking a person's layout, and how to look and hand in. It is the `drawio-diagrams` skill of the board's plugin in Claude Code runs and `docs_read(action='diagram_guide')` for any other agent: one text, a test checks both are the same.
+- **AIs read Sketches, they do not draw them**, written down as the `sketches` skill (and in `diagram_guide`): a Sketch is worth something because a person drew it while thinking; strokes drawn by code are a fake hand-drawn look nobody can edit by its parts, and a Diagram or a Canvas frame shows the same thing better. An AI reads a person's sketch and turns it into the right drawing; the one Sketch it makes is a screenshot for a person to mark on.
+- **`docs_read(action='picture')`: look at what you drew.** A PNG of a diagram, a canvas frame (at any width: 390 for the phone), a sketch, or a local `.drawio`, `.svg`, `.html` or frame folder before it is handed in, drawn by the desktop app's own Chromium (`--export-png`) or a Chrome / Chromium / Edge on the machine; no Playwright needed. Without any browser it says so and gives a wireframe. The answer carries `markdown`, a copy of the picture on the board, to put in a comment, so an outside agent can hand in a comment with a picture too. The page is served from a throwaway 127.0.0.1 server that only serves its own folder, and the hidden browser loads only that and public hosts (fonts, CDNs), never another port of the machine or the private network; an AI run may only look at files in its working folder.
+- **Flow, suggested for the PM, BA, Designer and Dev**: the owner's diagram plugin (github.com/iamcaominhtien/flow: flowchart, swimlanes, sequence, ER, architecture, C4, state, BPMN, DFD, screen flow, mind map, Gantt and more, laid out from a short JSON spec and checked) is in the catalogue of plugins, and the draw.io guide says when to lay a diagram out with it and how its `.drawio` reaches the board (`diagram_create`, then the same look and hand-in steps). Tried on ten of its examples: the board reads each one as a model and draws its picture.
+- **`docs_read(action='diagram')` reads a diagram as a model**: shapes (id, label, shape, box, style, the group it is in), links (from, to, label) and `problems` (a link to nothing, shapes on top of each other), without writing a file; `path` still writes the `.drawio` to edit.
+- The MCP instructions say which drawing to use (with "the sign-up flow and its screens" as both: the flow as a Diagram, the screens on a Canvas) and where the guides are; the PM, BA, Designer and Dev point to the draw.io guide (ready-made packs v10), and the Designer looks at its frames with `docs_read(picture)` instead of starting a web server. Live runs showed a BA and a Dev that were told a diagram "helps" drew none: the BA now hands in a diagram for a flow with branches, and a Dev's page on how parts fit together or what happens in which order carries one.
+
+### Changed
+- A diagram whose page the editor stored compressed is written out as plain XML by `docs_read(diagram, path)`, so it can be edited as text. A path without an extension that does not exist yet is a folder (`…/out` was written as a file named `out`).
+- `diagram_create` and `diagram_save` say what will look broken in the saved file (`problems`, and how to fix them).
+- **The plain preview draws a link the way the editor does**: through the bends it was given (`<Array as="points">`) and, for an orthogonal link, as an elbow between the facing sides. It drew every link as a straight line, so a loop an agent had routed around the outside showed as a diagonal through the shapes, and a live BA run added bends it could not see.
+- Canvas comments read over MCP carry the element they are pinned on (`at`, in the form `canvas_comment` takes) and when each was written.
+- A Sketch made from a picture alone (an agent's screenshot) has the picture on a locked layer and an empty **Marks** layer above it, chosen: a person's marks never change the picture, as with Draw on it.
+
+### Fixed
+- **A diagram's check took decoration for shapes on top of each other**: a step's number chip, a lane's name tab, a lane or pool frame behind its steps, an icon on a disc. Only two shapes of about the same size that partly cover each other are reported now (Flow's files had 5 or 6 false reports each, an AI would have "fixed" them).
+- A diagram in a ticket or a comment drew a second bordered box inside its card (the text's picture style); it is one card again, the drawing on white (Diagrams design B).
+- A canvas in a ticket description was capped at 560 px, half the description; it is as wide as the text, like a diagram or a sketch (Canvas design G1).
+- The large view of a canvas names each board under its picture in the filmstrip, the current one in white (Canvas design H1); the pictures were unnamed.
+
+## [3.26.6] - 2026-11-02
+
+Wave 4, the last of the design audit's fixes: the Low findings, and the rows wave 3 left because they sat in another area's files (`docs/ui-audit/2026-11-design-audit/fixes/<area>.md`). As in wave 3, nothing is removed or takes more clicks, and an independent review against the previous release checked it.
+
+### Changed
+- **Board and ticket.**
+  - The board's columns can shrink to 176 px, so six columns fit at 1440 px.
+  - A ticket on a workflow shows its step strip on the Ticket view.
+  - A board card's step chip turns red with "blocked" when its AI step has no member.
+  - File cards show their size.
+  - File types have the design's tints and labels (CSV, Markdown, HTML, Audio, Video).
+  - The list's sort menu, test cases, debug space, workspace and activity got smaller polish.
+  - The CSS uses the design's colour tokens, with the same colours.
+- **AI screens and AI Team.**
+  - Members show avatars, and the role is a menu with the same three choices.
+  - The AI paused dialog shows the project, budget and safe-mode details.
+  - Account rows were polished.
+  - Run history filters are chips, and "Export this page" saves the runs on screen as CSV.
+  - Now, Flow, Health, Resources and Timeline were polished.
+- **Docs, Idea Space and app.**
+  - The page menu says "Delete page".
+  - A page hidden from AI offers "Show to AI" to editors and keeps the server's own explanation.
+  - In the search palette, an exact ticket key is listed first.
+  - Canvas, sketch, the idea list (project name and colour), MCP integrations (tool count chip), notifications and the splash screen were polished.
+  - Images with transparency open on the checkerboard.
+
+### Fixed
+- **A selection bar could show over a picture.** No AI selection bar can open while a sketch, image or diagram is selected in the editor (ideas IP-14).
+
+## [3.26.5] - 2026-11-02
+
+Wave 3 of the design audit's fixes: the Critical, High and Medium findings screen by screen (`docs/ui-audit/2026-11-design-audit`; what was done for each finding is in `fixes/<area>.md`). No feature is removed and no action takes more clicks than before; where the design would have changed how something works, the look was matched and the behaviour kept.
+
+### Changed
+- **Board and ticket.** Pointing at a parent card shows its group: a green ring on it and its sub-tickets and the links between them (a click still opens it). Tags are added from a picker with search, the project's tags and Create. The wave badge of a sub-ticket opens the wave popover (read-only: the wave comes from Blocked by). The workspace's retention is a menu on its chip instead of a band. New Ticket gets the assignee menu with avatars, Tags and Start date. The list view, toasts, branches, debug space and test cases follow the design.
+- **Docs.** The breadcrumb has its own row and the page actions sit beside the title. Comment numbers sit right after the highlighted text. The find bar no longer covers the page actions. One bar shows on a selection; the AI actions (Improve, Shorten, Fix spelling, Explain, Ask) are behind its "AI" item. Tables are saved compact. The comment composer has the design's header and toolbar. The draw.io error card says what happened and offers Download .drawio. Canvas opens one side panel at a time.
+- **AI screens.** Board AI dock (suggestions, history, scope, the joined AI button), Settings › Board assistant and AI, members, the add-member steps, the configuration cards, the permissions tester, Inbox and Audit log filters, account limits, the team wizard, the workflow editor, tools and the Story lanes follow the design. While all AI is paused the live feed says so, and the paused label shows its details on hover and on keyboard focus.
+- **AI Team and Schedules.** The range is the design's button on every tab, with Custom… on the Timeline. The seven-day Timeline is one list with an hourly chart per day. The run inspector offers Open, Pause or Resume, Approve or Deny. Health follows the design's order and banners. The machine meters show again and the Resources chart reaches the limit per run. Schedules get a searchable time zone and the design's dropdowns.
+- **Idea Space.** Triage is its own screen (the List, Stages and Matrix tabs stay in its header) with decision cards, the stage pills, the matrix, the idea page header and tabs, Quick idea and the promote preview follow the design.
+- **App.** The AI paused banner sits under the top bar and its label beside New Ticket; the person who paused gets no extra toast and nobody sees zero counts. The members panel, desktop windows, the notification panel, quiet-hours fields (24 h) and the file preview toolbar follow the design.
+- Dropdowns read their chosen value to screen readers.
+
+### Fixed
+- **Opening a page saved it.** Opening an idea or a Docs page and leaving it without typing saved the editor's own rewrite of the text as an edit ("Page text edited"); only a real edit saves now (ideas IP-15).
+- **Machine meters on AI Team › Resources** were collapsed to nothing by a CSS rule (RS-1).
 
 ## [3.26.4] - 2026-11-02
 

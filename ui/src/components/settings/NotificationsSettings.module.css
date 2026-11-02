@@ -123,7 +123,7 @@
 .rows {
   display: flex;
   flex-direction: column;
-  max-width: 430px;
+  max-width: none;
 }
 
 .setting {
@@ -197,6 +197,12 @@
   padding: 0;
 }
 
+/* a 24 h time typed as text, sized to "00:00" */
+.input input.time {
+  width: 5.5ch;
+  font-variant-numeric: tabular-nums;
+}
+
 /* A select inside the field box: the box is the control, so the select draws no box of its own (the app-wide
    dropdown look, index.css, keeps only its chevron here) */
 .input select {
@@ -239,7 +245,7 @@
   border-radius: 12px;
   background: #ffffff;
   box-sizing: border-box;
-  max-width: 430px;
+  max-width: none;
 }
 
 .cardTitle {
@@ -278,7 +284,7 @@
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  max-width: 430px;
+  max-width: none;
 }
 
 .refusedIcon {

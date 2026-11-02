@@ -92,7 +92,7 @@ describe('WindowsSection', () => {
     expect(card.textContent).toContain('KAN-9');
     expect(card.textContent).toContain('2 runs held until');
     const local = screen.getByTestId('window-local');
-    expect(local.textContent).toContain('This computer’s own login · Pro');
+    expect(local.textContent).toContain('Pro · signed in');
     expect(local.textContent).toContain('This computer');
     expect(local.textContent).toContain('Nothing running.');
   });
@@ -138,5 +138,17 @@ describe('WindowsSection', () => {
     fireEvent.click(await screen.findByTestId('move-urgent-switch-a1'));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/windows/a1', { moveUrgent: true }));
     await screen.findByText('Could not change the switch');
+  });
+
+  it('sets the limit of every account from the one header control, and keeps a row of its own', async () => {
+    setup({ accounts: [acct(), acct({ key: 'a2', name: 'work', maxParallel: 3 })], room: [] });
+    expect((await screen.findByTestId('win-count')).textContent).toBe('2 Claude accounts');
+    const all = screen.getByTestId('win-limit-all') as HTMLInputElement;
+    expect(all.value).toBe('2');
+    fireEvent.change(all, { target: { value: '4' } });
+    fireEvent.blur(all);
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/windows/a1', { maxParallel: 4 }));
+    expect(http.patch).toHaveBeenCalledWith('/ai/windows/a2', { maxParallel: 4 });
+    expect(screen.getByLabelText('Runs at a time on work')).toBeTruthy();
   });
 });

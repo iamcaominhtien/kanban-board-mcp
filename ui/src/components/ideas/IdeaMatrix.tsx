@@ -3,6 +3,7 @@ import { ideaRuleError, useEditAssumption } from '../../api/ideas';
 import type { AssumptionImpact, AssumptionState, IdeaRow } from '../../types/idea';
 import { useToast } from '../Toast';
 import { plural } from '../docs/docsShared';
+import { IdeaIcon } from './ideaIcons';
 
 const IMPACT_Y: Record<AssumptionImpact, number> = { high: 0.82, medium: 0.5, low: 0.18 };
 const PALETTE = ['#2f6fb0', '#e2793d', '#6d5dd3', '#2e6f40', '#c4432a', '#b4791e', '#b0446e', '#3a8f8f'];
@@ -19,6 +20,38 @@ interface Dot {
   x: number;
   y: number;
   color: string;
+  /** The label sits on the left of the dot near the right edge, so it is not cut off. */
+  labelLeft: boolean;
+}
+
+/** Room a label takes, as a share of the plot: about 240 px wide and 22 px high on the usual plot. */
+const LABEL_W = 0.26;
+const LABEL_H = 0.055;
+
+/**
+ * Moves dots apart so that no two labels sit on top of each other: a dot whose label would cover one already placed
+ * steps down (then up) by one label height, staying inside the plot. A label runs right of its dot, or left of it
+ * near the right edge (`labelLeft`).
+ */
+export function spreadDots<T extends { x: number; y: number; labelLeft: boolean }>(dots: T[]): T[] {
+  const placed: T[] = [];
+  const span = (d: T): [number, number] => (d.labelLeft ? [d.x - LABEL_W, d.x + 0.02] : [d.x - 0.02, d.x + LABEL_W]);
+  const sorted = [...dots].sort((a, b) => b.y - a.y || a.x - b.x);
+  for (const d of sorted) {
+    const [l, r] = span(d);
+    const hits = (y: number) =>
+      placed.some((p) => {
+        const [pl, pr] = span(p);
+        return l < pr && pl < r && Math.abs(p.y - y) < LABEL_H;
+      });
+    let y = d.y;
+    for (let step = 1; hits(y) && step < 40; step++) {
+      const next = d.y - Math.ceil(step / 2) * LABEL_H * (step % 2 ? 1 : -1);
+      if (next > 0.04 && next < 0.96) y = next;
+    }
+    placed.push({ ...d, y });
+  }
+  return placed;
 }
 
 /** How well supported an assumption is, 0 to 1: tested ones count most, evidence adds a little. */
@@ -51,10 +84,11 @@ export function IdeaMatrix({ ideas, onOpen }: { ideas: IdeaRow[]; onOpen: (id: s
           x: Math.min(0.97, evidenceStrength(a.state, a.evidence.length) + jitter),
           y: Math.min(0.95, IMPACT_Y[a.impact] + jitter / 2),
           color: PALETTE[n % PALETTE.length],
+          labelLeft: false,
         });
       });
     });
-    return out;
+    return spreadDots(out.map((d) => ({ ...d, labelLeft: d.x > 0.62 })));
   }, [ideas]);
 
   const current = dots.find((d) => d.key === selected) ?? null;
@@ -80,24 +114,48 @@ export function IdeaMatrix({ ideas, onOpen }: { ideas: IdeaRow[]; onOpen: (id: s
   return (
     <div className="is-matrix-wrap">
       <div className="is-matrix" role="group" aria-label="Assumptions by impact and evidence">
-        <div className="is-quad is-quad-tl">TEST THESE FIRST</div>
-        <div className="is-quad is-quad-tr">WELL SUPPORTED</div>
-        <div className="is-quad is-quad-bl">LOW STAKES, LOW PROOF</div>
-        <div className="is-quad is-quad-br">FINE</div>
+        <div className="is-quad is-quad-tl">
+          <span>Test these first</span>
+        </div>
+        <div className="is-quad is-quad-tr">
+          <span>Well supported</span>
+        </div>
+        <div className="is-quad is-quad-bl">
+          <span>Low stakes, low proof</span>
+        </div>
+        <div className="is-quad is-quad-br">
+          <span>Fine</span>
+        </div>
         {dots.map((d) => (
-          <button
+          <div
             key={d.key}
-            type="button"
-            className={`is-dot-btn ${selected === d.key ? 'is-dot-sel' : ''} is-dot-${d.state}`}
-            style={{ left: `${d.x * 100}%`, bottom: `${d.y * 100}%`, background: d.color }}
-            title={`${d.text} (${d.idea.title})`}
-            aria-label={`${d.text}. ${d.impact} impact, ${d.state}`}
-            data-testid="matrix-dot"
-            onClick={() => setSelected(d.key)}
-          />
+            className={`is-dot-at ${d.labelLeft ? 'is-dot-at-left' : ''}`}
+            style={{ left: `${d.x * 100}%`, bottom: `${d.y * 100}%` }}
+          >
+            <button
+              type="button"
+              className={`is-dot-btn ${selected === d.key ? 'is-dot-sel' : ''} is-dot-${d.state}`}
+              style={{ background: d.color }}
+              title={`${d.text} (${d.idea.title})`}
+              aria-label={`${d.text}. ${d.impact} impact, ${d.state}`}
+              data-testid="matrix-dot"
+              onClick={() => setSelected(d.key)}
+            />
+            <button
+              type="button"
+              className={`is-dot-label ${selected === d.key ? 'is-dot-label-sel' : ''}`}
+              tabIndex={-1}
+              aria-hidden="true"
+              title={`${d.text} (${d.idea.title})`}
+              onClick={() => setSelected(d.key)}
+            >
+              {d.text}
+              {d.state === 'disproved' ? ' (disproved)' : ''}
+            </button>
+          </div>
         ))}
-        <div className="is-axis-y">IMPACT IF WRONG →</div>
-        <div className="is-axis-x">EVIDENCE →</div>
+        <div className="is-axis-y">IMPACT IF WRONG → higher</div>
+        <div className="is-axis-x">EVIDENCE → stronger</div>
       </div>
       <aside className="is-matrix-side" aria-label="Selected assumption">
         {current ? (
@@ -113,15 +171,23 @@ export function IdeaMatrix({ ideas, onOpen }: { ideas: IdeaRow[]; onOpen: (id: s
               <dd>{current.evidence ? plural(current.evidence, 'piece') : 'None'}</dd>
               <dt>Status</dt>
               <dd>{current.state[0].toUpperCase() + current.state.slice(1)}</dd>
-              <dt>Test</dt>
-              <dd>{current.testTicketId ?? 'No test yet'}</dd>
             </dl>
+            <div className="is-matrix-test">
+              Test:{' '}
+              {current.testTicketId ? (
+                <span className="is-ticket-chip">{current.testTicketId}</span>
+              ) : (
+                <span className="is-muted">No test yet</span>
+              )}
+            </div>
             <div className="is-side-actions">
-              <button type="button" className="is-btn" onClick={() => onOpen(current.idea.id)}>
+              <button type="button" className="is-btn is-btn-primary" onClick={() => onOpen(current.idea.id)}>
+                <IdeaIcon name="arrowUpRight" size={14} />
                 Open the idea
               </button>
               {current.state !== 'validated' && (
-                <button type="button" className="is-btn is-btn-primary" onClick={() => setState(current, 'validated')}>
+                <button type="button" className="is-btn" onClick={() => setState(current, 'validated')}>
+                  <IdeaIcon name="check" size={14} />
                   Mark validated
                 </button>
               )}

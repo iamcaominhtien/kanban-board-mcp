@@ -2,11 +2,17 @@ import type { ReactNode } from 'react';
 import type { Idea, IdeaReadiness, IdeaStage, ReadinessState } from '../../types/idea';
 import { READINESS_LABELS, STAGE_LABELS } from '../../types/idea';
 import { Avatar } from '../docs/docsShared';
+import { IdeaIcon, STAGE_ICONS, type IdeaIconName } from './ideaIcons';
 import './ideas.css';
 
-/** Pill with the stage's name, coloured by stage. */
+/** Pill with the stage's icon and name, coloured by stage. */
 export function StagePill({ stage }: { stage: IdeaStage }) {
-  return <span className={`is-stage is-stage-${stage}`}>{STAGE_LABELS[stage]}</span>;
+  return (
+    <span className={`is-stage is-stage-${stage}`}>
+      <IdeaIcon name={STAGE_ICONS[stage]} size={12} strokeWidth={2} />
+      {STAGE_LABELS[stage]}
+    </span>
+  );
 }
 
 /** The purple chip that marks what an AI member wrote, until a person edits it. */
@@ -19,18 +25,20 @@ export function AiChip({ title }: { title?: string }) {
 }
 
 /**
- * The bar of a list row: one cell per assumption, green validated, red disproved, amber being tested, grey untested.
+ * The readiness bar: one continuous bar, green for the validated share, amber for the ones being tested, red for the disproved share, grey for
+ * the untested rest.
  * @param props.idea - The idea whose assumptions are drawn.
  */
 export function ReadinessBar({ idea }: { idea: Pick<Idea, 'assumptions' | 'readiness'> }) {
-  const { total, validated } = idea.readiness;
+  const { total, validated, testing, disproved } = idea.readiness;
   if (total === 0) return <span className="is-muted">No assumptions</span>;
+  const pct = (n: number) => `${(n / total) * 100}%`;
   return (
     <span className="is-readiness" title={`${validated} of ${total} assumptions validated`}>
       <span className="is-bar" aria-hidden="true">
-        {idea.assumptions.map((a) => (
-          <span key={a.id} className={`is-seg is-seg-${a.state}`} />
-        ))}
+        <i className="is-seg-validated" style={{ width: pct(validated) }} />
+        <i className="is-seg-testing" style={{ width: pct(testing) }} />
+        <i className="is-seg-disproved" style={{ width: pct(disproved) }} />
       </span>
       <span className="is-readiness-n">
         {validated} of {total}
@@ -56,10 +64,13 @@ export function ReadinessBadge({ readiness }: { readiness: IdeaReadiness }) {
 }
 
 /** Round avatars of the people who want an idea, "+n" for the rest. */
-export function Demand({ voters, max = 3 }: { voters: string[]; max?: number }) {
+export function Demand({ voters, max = 3, title }: { voters: string[]; max?: number; title?: string }) {
   if (voters.length === 0) return <span className="is-muted">—</span>;
   return (
-    <span className="is-demand" title={`${voters.length} ${voters.length === 1 ? 'person wants' : 'people want'} this`}>
+    <span
+      className="is-demand"
+      title={title ?? `${voters.length} ${voters.length === 1 ? 'person wants' : 'people want'} this`}
+    >
       {voters.slice(0, max).map((v) => (
         <Avatar key={v} name={v} size={20} />
       ))}
@@ -104,6 +115,14 @@ export function ticketLabel(idea: Idea): ReactNode {
   return idea.ticket ? idea.ticket.id : '—';
 }
 
+/** "2026-12-01" → "1 Dec" (with the year when it is not this year). */
+export function shortDate(iso: string): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: sameYear ? undefined : 'numeric' });
+}
+
 /** Local date as YYYY-MM-DD, `days` from today. */
 export function dateIn(days: number): string {
   const d = new Date();
@@ -136,4 +155,39 @@ export function BulbIcon({ size = 16 }: { size?: number }) {
 /** Keyboard key cap. */
 export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="is-kbd">{children}</kbd>;
+}
+
+/**
+ * A state card: an icon, a coloured title line, the body, then the actions below (the design's banners on the idea
+ * page, Promote and triage).
+ */
+export function StateCard({
+  tone = 'info',
+  icon,
+  title,
+  children,
+  actions,
+  role = 'status',
+  testId,
+}: {
+  tone?: 'info' | 'warn' | 'risk' | 'ok';
+  icon: IdeaIconName;
+  title: ReactNode;
+  children?: ReactNode;
+  actions?: ReactNode;
+  role?: 'status' | 'alert';
+  testId?: string;
+}) {
+  return (
+    <div className={`is-scard is-scard-${tone}`} role={role} data-testid={testId}>
+      <span className="is-scard-icon">
+        <IdeaIcon name={icon} size={16} />
+      </span>
+      <div className="is-scard-main">
+        <span className="is-scard-title">{title}</span>
+        {children && <div className="is-scard-body">{children}</div>}
+        {actions && <div className="is-scard-actions">{actions}</div>}
+      </div>
+    </div>
+  );
 }

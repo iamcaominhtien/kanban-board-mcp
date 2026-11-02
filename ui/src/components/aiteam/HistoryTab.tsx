@@ -13,6 +13,8 @@ import type { TeamCard } from '../../types/aiTeam';
 import type { HistoryFilters, HistoryRow } from '../../types/aiHistory';
 import { END_LOOK, endWords, fmtBytes, fmtTook, fmtWhen, whoOf } from './historyFormat';
 import { RunDetail } from './RunDetail';
+import { LineIcon } from '../ui/LineIcon';
+import { MenuSelect } from '../ui/MenuSelect';
 import { Badge } from './teamUi';
 import './history.css';
 
@@ -106,6 +108,34 @@ function Row({ r, onOpen }: { r: HistoryRow; onOpen: () => void }) {
   );
 }
 
+/** Saves the runs of the page on screen as a CSV file (there is no endpoint for the whole filtered list). */
+function exportCsv(runs: HistoryRow[]) {
+  const cell = (v: string | number | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [
+    ['When', 'Who', 'Ticket', 'Title', 'How it ended', 'Steps', 'Took (s)', 'Skills'].map(cell).join(','),
+    ...runs.map((r) =>
+      [
+        r.startedAt ?? r.queuedAt,
+        whoOf(r),
+        r.ticketId,
+        r.ticketTitle,
+        endWords(r).label,
+        r.transcript?.events ?? '',
+        r.durationS ?? '',
+        r.skills.join('; '),
+      ]
+        .map(cell)
+        .join(','),
+    ),
+  ];
+  const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'run-history.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** AI Team › Run history: finding the run you mean, then opening it (design/screens/ai-operations.md, F and G). */
 export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicket }: Props) {
   const [filters, setFilters] = useState<HistoryFilters>(DEFAULT_FILTERS);
@@ -164,6 +194,7 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
         </span>
         <span style={{ flex: 1 }} />
         <label className="hs-search">
+          <LineIcon name="search" size={14} color="#9AA8A0" />
           <input
             type="search"
             value={typed}
@@ -177,7 +208,19 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
           className={`tl-btn${showRetention ? ' on' : ''}`}
           onClick={() => setShowRetention(!showRetention)}
         >
+          <LineIcon name="clock" size={13} />
           Retention
+        </button>
+        <button
+          type="button"
+          className="tl-btn"
+          disabled={runs.length === 0}
+          title="Saves the runs on this page as a CSV file"
+          onClick={() => exportCsv(runs)}
+          data-testid="hs-export"
+        >
+          <LineIcon name="download" size={13} />
+          Export this page
         </button>
       </div>
 
@@ -230,19 +273,20 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
             {counts[v.id] != null ? <b>{counts[v.id]}</b> : null}
           </button>
         ))}
-        <select
-          className="at-select"
+        <MenuSelect
+          variant="chip"
+          label="Member"
           value={filters.memberId}
-          onChange={(e) => change({ memberId: e.target.value })}
-          aria-label="Member"
-        >
-          <option value="">Any member</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => change({ memberId: v })}
+          options={[
+            { value: '', label: 'Any member' },
+            ...members.map((m) => ({
+              value: m.id,
+              label: m.name,
+              icon: <Badge name={m.name} color={m.color} size={18} />,
+            })),
+          ]}
+        />
         <input
           className="hs-text"
           placeholder="Any ticket"
@@ -250,32 +294,28 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
           value={filters.ticketId}
           onChange={(e) => change({ ticketId: e.target.value })}
         />
-        <select
-          className="at-select"
+        <MenuSelect
+          variant="chip"
+          label="Skill"
           value={filters.skill}
-          onChange={(e) => change({ skill: e.target.value })}
-          aria-label="Skill"
-        >
-          <option value="">Any skill</option>
-          {(skills.data ?? []).map((s) => (
-            <option key={`${s.kind}:${s.name}`} value={s.name}>
-              {s.name}
-              {s.kind === 'subagent' ? ' (subagent)' : ''} · {s.uses}
-            </option>
-          ))}
-        </select>
-        <select
-          className="at-select"
-          value={filters.days}
-          onChange={(e) => change({ days: Number(e.target.value) })}
-          aria-label="Time"
-        >
-          {DAYS.map((d) => (
-            <option key={d.days} value={d.days}>
-              {d.label}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => change({ skill: v })}
+          menuWidth={260}
+          options={[
+            { value: '', label: 'Any skill' },
+            ...(skills.data ?? []).map((sk) => ({
+              value: sk.name,
+              label: `${sk.name}${sk.kind === 'subagent' ? ' (subagent)' : ''} · ${sk.uses}`,
+            })),
+          ]}
+        />
+        <MenuSelect
+          variant="chip"
+          label="Time"
+          icon={<LineIcon name="clock" size={13} />}
+          value={String(filters.days)}
+          onChange={(v) => change({ days: Number(v) })}
+          options={DAYS.map((d) => ({ value: String(d.days), label: d.label }))}
+        />
       </div>
 
       {list.isError ? (
@@ -323,12 +363,12 @@ export function HistoryTab({ projectId, members, runId, onRunChange, onOpenTicke
         </div>
       ) : null}
 
-      <div className="hs-note">
+      <div className="hs-card">
         <b>What the search reads.</b> The summary and report, what the AI said, the name and arguments of every tool
         call, file paths, error text, and the question it asked you. Full text, so <code>npm test 2 failed</code> finds
         the run that printed it.
       </div>
-      <div className="hs-note" data-testid="hs-usage">
+      <div className="hs-card hs-card-info" data-testid="hs-usage">
         {usage.data
           ? `Transcripts: ${fmtBytes(usage.data.bytes)} of ${retention} days. Summaries are kept forever and are small. ${usage.data.pinned} pinned run${usage.data.pinned === 1 ? ' is' : 's are'} never deleted.`
           : `Transcripts are kept for ${retention} days. Summaries are kept forever.`}

@@ -10,6 +10,19 @@
   animation: fadeIn 0.12s ease-out;
 }
 
+/* Anchored under the Create branch button: no dimming, the card hangs from the button (Branches 5) */
+.popoverBackdrop {
+  background: transparent;
+  backdrop-filter: none;
+  display: block;
+}
+
+.popoverCard {
+  position: fixed;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -48,7 +61,7 @@
 .title {
   font-size: 13px;
   font-weight: 700;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   font-family:
     'Plus Jakarta Sans',
     system-ui,
@@ -81,7 +94,7 @@
   background: #ffffff;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   outline: none;
   width: 100%;
   box-sizing: border-box;
@@ -91,7 +104,7 @@
 }
 
 .textInput:focus {
-  border-color: #2e6f40;
+  border-color: var(--color-forest);
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.12);
 }
 
@@ -117,7 +130,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
   font-weight: 600;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   transition:
     background-color 0.12s,
     border-color 0.12s;
@@ -132,7 +145,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #2e6f40;
+  background: var(--color-forest);
   flex-shrink: 0;
 }
 
@@ -164,7 +177,7 @@
   background: none;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -173,12 +186,12 @@
 
 .dropdownItem:hover {
   background: #f6faf7;
-  color: #2e6f40;
+  color: var(--color-forest);
 }
 
 .dropdownItemActive {
   background: #f6faf7;
-  color: #2e6f40;
+  color: var(--color-forest);
   font-weight: 600;
 }
 
@@ -204,7 +217,7 @@
   padding: 7px 14px;
   border-radius: 6px;
   border: none;
-  background: #2e6f40;
+  background: var(--color-forest);
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
@@ -231,7 +244,7 @@
   border-radius: 6px;
   border: 1px solid #e3e8e5;
   background: none;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -247,7 +260,7 @@
 
 .btnSecondary:hover {
   background: #f6faf7;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .worktreeSection {
@@ -271,7 +284,7 @@
 .checkbox {
   width: 15px;
   height: 15px;
-  accent-color: #2e6f40;
+  accent-color: var(--color-forest);
   cursor: pointer;
   margin: 0;
 }
@@ -279,7 +292,7 @@
 .checkboxText {
   font-size: 12.5px;
   font-weight: 600;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   font-family:
     'Plus Jakarta Sans',
     system-ui,
@@ -303,7 +316,7 @@
 .resetBtn {
   font-size: 11px;
   font-weight: 600;
-  color: #2e6f40;
+  color: var(--color-forest);
   background: none;
   border: none;
   cursor: pointer;

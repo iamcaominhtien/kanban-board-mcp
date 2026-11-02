@@ -15,7 +15,8 @@
   border-radius: 8px;
   border: 1px solid #e3e8e5;
   background: #ffffff;
-  width: 220px;
+  /* narrower than before so the filters and Group by keep one line at 1440 px (board MB-3) */
+  width: 170px;
   box-sizing: border-box;
   transition:
     border-color 0.15s ease,
@@ -23,7 +24,7 @@
 }
 
 .searchBox:focus-within {
-  border-color: #2e6f40;
+  border-color: var(--color-forest);
   box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.12);
 }
 
@@ -40,7 +41,7 @@
   outline: none;
   font-family: var(--font-body);
   font-size: 12.5px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .searchInput::placeholder {
@@ -70,7 +71,7 @@
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   transition:
     background 0.12s ease,
     border-color 0.12s ease;
@@ -81,7 +82,7 @@
 }
 
 .dropdownBtnActive {
-  border-color: #2e6f40;
+  border-color: var(--color-forest);
 }
 
 .labelMuted {
@@ -97,7 +98,7 @@
 
 .chevronRotated {
   transform: rotate(180deg);
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .dropdownMenu {
@@ -139,7 +140,7 @@
 
 .dropdownItemActive {
   background: #f1f8f3;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   font-weight: 600;
 }
 
@@ -152,20 +153,8 @@
 
 .checkIcon {
   flex-shrink: 0;
-  color: #2e6f40;
+  color: var(--color-forest);
   margin-left: auto;
-}
-
-.miniAvatar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  font-size: 8px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 
 /* Group by: Story (ai-story-flow D) */
@@ -181,14 +170,14 @@
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .groupBy b {
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 .groupBy:hover {
@@ -196,7 +185,7 @@
 }
 
 .groupByOn {
-  border-color: #2e6f40;
+  border-color: var(--color-forest);
   background: #f1f8f3;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }

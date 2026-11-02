@@ -16,6 +16,15 @@ import { Ico } from './wizardIcons';
 
 type Tone = 'ok' | 'bad' | 'warn' | 'grey' | 'run' | 'empty';
 
+/** The green check of the chosen card; the radio itself stays for the keyboard and screen readers. */
+function ChoiceCheck() {
+  return (
+    <span className="pk-choice-chk" aria-hidden="true">
+      <Ico name="check" size={11} sw={2.6} color="#fff" />
+    </span>
+  );
+}
+
 /** A status chip in the design's colours (D4). */
 export function Chip({ tone, icon, children }: { tone: Tone; icon?: string; children: React.ReactNode }) {
   const color = { ok: '#1F5A31', bad: '#A5321E', warn: '#7A5A06', grey: '#5B6B60', run: '#244E78', empty: '#7F8F85' }[
@@ -332,6 +341,7 @@ export function CommandRow({
                 onChange={() => onCheck(true)}
                 aria-label={`Use ${name} as a check`}
               />
+              {checkOn && <ChoiceCheck />}
               <span>
                 <b>Use as a check.</b>{' '}
                 {kind === 'fails'
@@ -350,6 +360,7 @@ export function CommandRow({
                 onChange={() => onCheck(false)}
                 aria-label={`Keep ${name}, but not as a check yet`}
               />
+              {!checkOn && <ChoiceCheck />}
               <span>
                 <b>Keep it, but not as a check yet.</b> The command stays saved and the check step leaves it out.{' '}
                 <i>Suggested.</i>

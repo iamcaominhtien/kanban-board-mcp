@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LineIcon } from '../../../ui/LineIcon';
 import { useCreateOrder, usePatchOrder } from '../../../../api/aiOrders';
 import { extractError } from '../../../../api/extractError';
 import type { Order, OrderTemplates, Rule, RuleThen, SignalKind } from '../../../../types/aiOrders';
@@ -97,7 +98,10 @@ export function RuleEditor({
   return (
     <div className="so-editor" data-testid="rule-editor">
       <div className="so-editor-title">
-        <b>What I understood — change anything</b>
+        <b style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <LineIcon name="bolt" size={14} color="#2E6F40" />
+          What I understood — change anything
+        </b>
         <span className="ai-chip" style={{ background: '#F1F3F1', color: '#5B6B60' }}>
           {existing ? 'Saved' : 'Not saved yet'}
         </span>

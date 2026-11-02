@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useIdeaAiStatus, useShapeIdea, type IdeaAiStatus, type ShapeResult } from '../../api/ideaAi';
 import {
   ideaRuleError,
@@ -13,7 +13,8 @@ import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import { useToast } from '../Toast';
-import { AiChip } from './ideaShared';
+import { AiChip, BulbIcon } from './ideaShared';
+import { IdeaIcon } from './ideaIcons';
 import { LineIcon } from '../ui/LineIcon';
 
 const money = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
@@ -42,7 +43,7 @@ export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus
       </div>
       {onOpenSettings && (
         <button type="button" className="is-btn is-btn-sm" onClick={onOpenSettings}>
-          Open settings
+          {status.state === 'no_member' ? 'Open AI members' : 'Open settings'}
         </button>
       )}
     </div>
@@ -351,6 +352,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
     >
       <PanelResizer panel={panel} label="Resize Shape with AI" />
       <header className="is-ai-head">
+        <IdeaIcon name="sparkle" size={15} color="#6D5DD3" />
         <b>Shape with AI</b>
         {status?.member && <span className="is-muted">{status.member}</span>}
         <span style={{ flex: 1 }} />
@@ -369,28 +371,31 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
         </div>
       )}
       <div className="is-ai-body">
+        {open && (
+          <div className="is-reading" data-testid="shape-reading">
+            <span className="is-muted">Reading:</span>
+            <span className="is-read-chip">
+              <BulbIcon size={11} /> This idea
+            </span>
+            {idea.commentCount > 0 && (
+              <span className="is-read-chip">
+                <IdeaIcon name="comment" size={11} /> {idea.commentCount}{' '}
+                {idea.commentCount === 1 ? 'comment' : 'comments'}
+              </span>
+            )}
+            <span className="is-read-chip">
+              <IdeaIcon name="doc" size={11} /> related Docs and tickets
+            </span>
+            {status?.settings.readRepo && !status.limited && (
+              <span className="is-read-chip">
+                <IdeaIcon name="branch" size={11} /> repo (read only)
+              </span>
+            )}
+          </div>
+        )}
         {turns.length === 0 && open && (
           <div data-testid="shape-empty">
-            <p className="is-muted">
-              It reads this idea{idea.commentCount ? `, ${idea.commentCount} comments` : ''} and related Docs and
-              tickets{status?.settings.readRepo ? ', and the repository (read only)' : ''}. Anything it proposes is a
-              draft; you add what you want.
-            </p>
-            {STARTERS.filter((s) => s.kind !== 'effort' || (!status?.limited && status?.settings.readRepo)).map((s) => (
-              <button key={s.kind} type="button" className="is-starter" onClick={() => run(s.kind, s.label)}>
-                {s.label}
-                <span className="is-muted">{hint(s.hint)}</span>
-              </button>
-            ))}
-            {idea.assumptions.some((a) => a.state !== 'validated') && (
-              <button
-                type="button"
-                className="is-starter"
-                onClick={() => run('tests', 'Cheapest test for each assumption')}
-              >
-                Cheapest test for each assumption<span className="is-muted">{hint('shape')}</span>
-              </button>
-            )}
+            <p className="is-muted">Anything it proposes is a draft; you add what you want.</p>
           </div>
         )}
         {turns.map((t) => (
@@ -412,8 +417,12 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
                 </button>
               </div>
             ) : (
-              <div className="is-muted" aria-live="polite">
-                Reading the idea… <AiChip />
+              <div className="is-working" aria-live="polite">
+                <span className="is-spin" aria-hidden="true" />
+                <span className="is-grow">
+                  Reading the idea… <AiChip />
+                </span>
+                <Elapsed />
               </div>
             )}
           </div>
@@ -429,13 +438,45 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
             setQuestion('');
           }}
         >
-          <input
-            className="is-input"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ask about this idea…"
-            aria-label="Ask about this idea"
-          />
+          {turns.length === 0 && (
+            <div className="is-starter-chips">
+              {STARTERS.filter((s) => s.kind !== 'effort' || (!status?.limited && status?.settings.readRepo)).map(
+                (s) => (
+                  <button
+                    key={s.kind}
+                    type="button"
+                    className="is-starter-chip"
+                    title={`${s.label}${hint(s.hint)}`}
+                    onClick={() => run(s.kind, s.label)}
+                  >
+                    {s.label}
+                    <span className="is-muted">{hint(s.hint)}</span>
+                  </button>
+                ),
+              )}
+              {idea.assumptions.some((a) => a.state !== 'validated') && (
+                <button
+                  type="button"
+                  className="is-starter-chip"
+                  onClick={() => run('tests', 'Cheapest test for each assumption')}
+                >
+                  Cheapest test for each assumption<span className="is-muted">{hint('shape')}</span>
+                </button>
+              )}
+            </div>
+          )}
+          <div className="is-ai-inrow">
+            <input
+              className="is-input"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Ask about this idea…"
+              aria-label="Ask about this idea"
+            />
+            <button type="submit" className="is-send" aria-label="Send" disabled={!question.trim()}>
+              <LineIcon name="send" size={15} />
+            </button>
+          </div>
           <div className="is-muted" style={{ fontSize: 11.5 }}>
             About {money(status?.hints.ask ?? 0.01)} per answer · suggestions are drafts · Enter sends
           </div>
@@ -443,6 +484,17 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
       )}
     </aside>
   );
+}
+
+/** Seconds since the work started ("12 s"), while the AI is reading. */
+function Elapsed() {
+  const [start] = useState(() => Date.now());
+  const [now, setNow] = useState(start);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return <span className="is-muted">{Math.round((now - start) / 1000)} s</span>;
 }
 
 /** The card of the idea page's right rail that opens the chat. Hidden while AI help is off. */
@@ -477,7 +529,13 @@ export function ShapeButton({
   const status = useIdeaAiStatus(projectId).data;
   if (!status || status.state === 'off') return null;
   return (
-    <button type="button" className="is-btn" aria-pressed={active} onClick={onClick} data-testid="shape-button">
+    <button
+      type="button"
+      className="is-btn is-btn-ai"
+      aria-pressed={active}
+      onClick={onClick}
+      data-testid="shape-button"
+    >
       <span aria-hidden="true">
         <LineIcon name="sparkle" size={12} />
       </span>{' '}

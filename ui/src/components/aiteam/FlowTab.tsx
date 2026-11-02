@@ -497,9 +497,9 @@ function MapView({
           {map.folded && map.folded.count > 0 && <FoldedChip folded={map.folded} names={names} />}
         </div>
       )}
-      {(map.clusters?.length ?? 0) > 0 && onShare && onOpenStory && (
+      {((map.clusters?.length ?? 0) > 0 || stories.length > 0) && onShare && onOpenStory && (
         <StoryClusters
-          clusters={map.clusters!}
+          clusters={map.clusters ?? []}
           stories={stories}
           hovered={share}
           onHover={onShare}
@@ -511,7 +511,7 @@ function MapView({
         <Stat
           label="Sent back"
           value={s.sentBack}
-          color="#A5321E"
+          color={s.sentBack > 0 ? '#A5321E' : undefined}
           hint={
             s.sentBackShare != null
               ? `${Math.round(s.sentBackShare * 100)}% · returned after the first review round${sentTo ? `. ${sentTo}` : ''}`
@@ -521,7 +521,7 @@ function MapView({
         <Stat
           label="Ping-pong"
           value={s.pingPong.length}
-          color="#A5321E"
+          color={s.pingPong.length > 0 ? '#A5321E' : undefined}
           hint={pp ? `one ticket sent back ${pp.count} times: ${pp.ticketId}` : 'no ticket went back and forth'}
         />
         <Stat

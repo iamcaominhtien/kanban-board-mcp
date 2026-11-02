@@ -37,12 +37,24 @@ function closesPanel(target: EventTarget | null, panel: HTMLElement | null): boo
   return !panel?.contains(t) && !t.closest('[data-notification-bell]') && !t.closest('[role="alert"]');
 }
 
-/** The empty state of the panel: nothing needs you (with updates in the other tab) or nothing at all. */
+/**
+ * The empty state of the panel: nothing needs you (with updates in the other tab), no updates (while things wait
+ * in Needs you), or nothing at all ("No notifications yet" is only for an empty feed).
+ */
 function PanelEmpty({
   tab,
+  needs,
   updates,
   todayUpdates,
-}: Readonly<{ tab: PanelTab; updates: number; todayUpdates: number }>) {
+}: Readonly<{ tab: PanelTab; needs: number; updates: number; todayUpdates: number }>) {
+  if (tab === 'updates' && needs > 0)
+    return (
+      <EmptyState
+        icon="check"
+        title="No updates"
+        text={`Nothing new to read. ${needs} ${needs === 1 ? 'item needs' : 'items need'} you in the other tab.`}
+      />
+    );
   if (tab !== 'needs' || updates <= 0)
     return (
       <EmptyState
@@ -187,7 +199,7 @@ export function NotificationPanel({
         {loading && !offline && <LoadingRows />}
         {dayCard && <DayCard row={dayCard} onAction={onAction} onShowNeeds={showNeeds} />}
         {noMatch && <EmptyState icon="check" title="Nothing here" text="Nothing in this filter needs you." />}
-        {nothing && <PanelEmpty tab={tab} updates={updates} todayUpdates={todayUpdates} />}
+        {nothing && <PanelEmpty tab={tab} needs={needs} updates={updates} todayUpdates={todayUpdates} />}
         {groups.map((g) => (
           <div key={g.key} style={{ display: 'contents' }}>
             <div className={styles.dayHead}>

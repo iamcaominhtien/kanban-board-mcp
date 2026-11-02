@@ -24,6 +24,12 @@
   box-shadow: 0 2px 8px rgba(30, 42, 34, 0.08);
 }
 
+/* The selected parent group: a green ring on the parent and every sub-ticket (Sub-task Grouping 1, comp-1 BG-1) */
+.cardGroupSelected {
+  outline: 1.6px solid var(--color-forest);
+  outline-offset: 3px;
+}
+
 .cardParent {
   background: #f1f8f3 !important;
   border-color: #d7e8dc !important;
@@ -39,19 +45,19 @@
   flex-grow: 1;
   height: 4px;
   border-radius: 2px;
-  background: #dce6df;
+  background: var(--color-border);
   overflow: hidden;
 }
 
 .subtaskFill {
   height: 100%;
-  background: #2e6f40;
+  background: var(--color-forest);
 }
 
 .subtaskText {
   font-size: 10px;
   font-weight: 600;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   white-space: nowrap;
 }
 
@@ -60,9 +66,30 @@
 }
 
 .cardDragging {
-  border-color: #dce6df !important;
-  box-shadow: 0 12px 24px rgba(30, 42, 34, 0.18) !important;
-  transform: rotate(1deg);
+  border-color: var(--color-border) !important;
+  /* Picked up: 0 -> 150 ms ease-out, scale 103 %, lift 4 px, shadow grows; dragging: 1.5deg tilt, 97 % opacity
+     (Drag & Drop 1, cardMotion; comp-1 DD-3) */
+  animation: cardPickUp 150ms ease-out forwards;
+}
+
+@keyframes cardPickUp {
+  from {
+    transform: translateY(0) scale(1) rotate(0deg);
+    box-shadow: 0 1px 2px rgba(30, 42, 34, 0.06);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-4px) scale(1.03) rotate(1.5deg);
+    box-shadow: 0 16px 30px rgba(30, 42, 34, 0.22);
+    opacity: 0.97;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardDragging {
+    animation: none;
+    box-shadow: 0 16px 30px rgba(30, 42, 34, 0.22);
+  }
 }
 
 .cardBlocked {
@@ -86,7 +113,7 @@
 }
 
 .cardPending .cardTitle {
-  color: #5b6b60 !important;
+  color: var(--color-text-sec) !important;
 }
 
 .pendingRail {
@@ -177,7 +204,7 @@
 }
 
 .cardDone .cardTitle {
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .cardDone .cardId {
@@ -217,21 +244,31 @@
 }
 
 .typeLabel {
-  /* on a narrow card (indented sub-ticket) the label gives way rather than run into the ticket id */
-  flex-shrink: 1;
+  /* the type word stays readable next to a Reopened or Pending chip (board RO-1); the chips collapse first */
+  flex-shrink: 0;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 500;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .headerRight {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+  /* the ID sits flush right at rest; the "..." button only takes its room on hover, focus or with the menu open
+     (Ticket Card 1/2, comp-1 TC-2) */
+  margin-right: 0;
+  transition: margin-right 0.15s ease;
+}
+
+.card:hover .headerRight,
+.card:focus-within .headerRight,
+.cardMenuOpen .headerRight {
   margin-right: 28px;
 }
 
@@ -267,13 +304,20 @@
   justify-content: center;
   z-index: 5;
   cursor: pointer;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   transition: all 0.15s ease;
+  opacity: 0;
+}
+
+.card:hover .menuButton,
+.card:focus-within .menuButton,
+.cardMenuOpen .menuButton {
+  opacity: 1;
 }
 
 .menuButton:hover {
   background: #e3f2e7;
-  color: #1e2a22;
+  color: var(--color-text-pri);
 }
 
 /* Context menu dropdown matching TicketPending.dc.html A1 and TicketReopen.dc.html A2 */
@@ -329,7 +373,7 @@
 
 .menuItemResume {
   background: #f1f8f3 !important;
-  color: #2e6f40 !important;
+  color: var(--color-forest) !important;
   font-weight: 600 !important;
 }
 
@@ -348,7 +392,7 @@
   background: #f6faf7;
   font-size: 11px;
   font-weight: 700;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   margin-left: auto;
 }
 
@@ -376,7 +420,7 @@
 
 .blockerDoneText {
   font-size: 11px;
-  color: #2e6f40;
+  color: var(--color-forest);
   line-height: 1.35;
 }
 
@@ -390,7 +434,7 @@
 .blockerDoneBtnResume {
   padding: 2px 7px;
   border-radius: 4px;
-  background: #2e6f40;
+  background: var(--color-forest);
   color: #ffffff;
   font-size: 11px;
   font-weight: 600;
@@ -403,7 +447,7 @@
   border-radius: 4px;
   background: #ffffff;
   border: 1px solid #d4ddd7;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -412,7 +456,7 @@
 .cardTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -445,7 +489,7 @@
   border: 1px solid #e3e8e5;
   font-size: 10px;
   font-weight: 600;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   width: fit-content;
 }
 
@@ -466,14 +510,20 @@
   color: #9aa8a0;
 }
 
+.acCount {
+  font-size: 11px;
+  color: var(--color-text-sec);
+  white-space: nowrap;
+}
+
 .subtasksProgress {
   font-size: 11px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .subtasksDone {
   font-size: 11px;
-  color: #2e6f40;
+  color: var(--color-forest);
   font-weight: 600;
 }
 
@@ -483,7 +533,7 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 500;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .dueDateOverdue {
@@ -524,7 +574,7 @@
 /* A Story child: what it waits for (ai-story-flow C) */
 .waitsLine {
   font-size: 11.5px;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   display: flex;
   align-items: center;
   gap: 6px;

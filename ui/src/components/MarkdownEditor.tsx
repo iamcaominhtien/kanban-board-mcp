@@ -52,6 +52,8 @@ interface Props {
   onUploadComplete?: (value: string) => void;
   readOnly?: boolean;
   startInEditMode?: boolean;
+  /** With startInEditMode: false leaves the focus where it is when the editor first shows (a form's first field). */
+  focusOnMount?: boolean;
   disableClickOutside?: boolean;
   placeholderText?: string;
   editAriaLabel?: string;
@@ -103,6 +105,7 @@ export function MarkdownEditor({
   onUploadComplete,
   readOnly = false,
   startInEditMode = false,
+  focusOnMount = true,
   disableClickOutside = false,
   placeholderText = 'Add a description…',
   editAriaLabel = 'Edit description',
@@ -184,9 +187,14 @@ export function MarkdownEditor({
     return () => document.removeEventListener('selectionchange', onSel);
   }, [isEditing]);
 
+  const skipFirstFocus = useRef(startInEditMode && !focusOnMount);
   useEffect(() => {
     if (isEditing && wysiwygRef.current) {
       dirtyRef.current = false;
+      if (skipFirstFocus.current) {
+        skipFirstFocus.current = false;
+        return;
+      }
       requestAnimationFrame(() => {
         wysiwygRef.current?.focus();
       });
@@ -1209,7 +1217,7 @@ export function MarkdownEditor({
                   type="button"
                   className={styles.toolbarBtn}
                   aria-label="Attach File"
-                  title="Đính kèm tệp tin (Excel, Word, PowerPoint, PDF, JSON, TXT, Zip...)"
+                  title="Attach file (Excel, Word, PowerPoint, PDF, JSON, TXT, Zip...)"
                   disabled={isUploading}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1354,7 +1362,7 @@ export function MarkdownEditor({
                   type="button"
                   className={styles.toolbarBtn}
                   aria-label="Image"
-                  title="Chèn ảnh"
+                  title="Insert image"
                   disabled={isUploading}
                   onMouseDown={(e) => {
                     e.preventDefault();

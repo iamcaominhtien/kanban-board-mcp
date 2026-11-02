@@ -9,6 +9,8 @@ vi.mock('../../../api/client', () => ({ client: http }));
 
 import { mergeFeed } from '../../../api/aiLiveFeed';
 import { LiveFeed, LiveFeedSplit, type FeedLinks } from './LiveFeed';
+import { AiBoardContext } from '../aiUi';
+import type { AiSettings } from '../../../types/ai';
 import { codeParts, foldDense, relTime, toGroups, toLines } from './liveFeedModel';
 import type { NeedsItem } from '../../../types/aiTeam';
 
@@ -429,5 +431,31 @@ describe('following the scope (design K, K2)', () => {
     setup({ links: { lit: { memberId: 'm1', ticketId: null } } });
     const text = await screen.findByText('Edited calc.py');
     expect((text.closest('.lf-group') as HTMLElement).className).toContain('lf-lit');
+  });
+});
+
+describe('while all AI is paused', () => {
+  it('greys the badge and says why the column is quiet', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const paused = new Date(2026, 10, 2, 16, 40).toISOString();
+    render(
+      <QueryClientProvider client={qc}>
+        <AiBoardContext.Provider
+          value={{
+            projectId: 'p1',
+            members: new Map(),
+            runsByTicket: new Map(),
+            settings: { pausedAll: true, pausedAt: paused } as AiSettings,
+          }}
+        >
+          <LiveFeed projectId="p1" />
+        </AiBoardContext.Provider>
+      </QueryClientProvider>,
+    );
+    const why = await screen.findByTestId('live-feed-ai-paused');
+    expect(why.textContent).toContain('AI is paused since 16:40.');
+    const badge = screen.getByTestId('live-feed-badge');
+    expect(badge.className).toContain('off');
+    expect(badge.textContent).toBe('PAUSED');
   });
 });

@@ -228,7 +228,7 @@ def test_every_persona_fits_and_points_to_its_craft():
             assert (
                 f"`kanban-board:{role_skills.SKILL_OF_ROLE[p['key']]}`" in p["persona"]
             ), p["key"]
-    assert packs.BUILTIN_VERSION == 10
+    assert packs.BUILTIN_VERSION == 11
     assert packs.role_name("dev") == "Dev" and packs.role_name("my_role") == "my role"
 
 

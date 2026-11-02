@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { IdeaBulb } from './ideas/ideaLinks';
 import type { Member, Priority, Status, Ticket } from '../types';
 import styles from './ListView.module.css';
+import { MemberAvatar } from './MemberAvatar';
+import { LineIcon, type LineIconName } from './ui/LineIcon';
 
 type GroupBy = 'status' | 'priority' | 'tag';
 type SortBy = 'createdAt' | 'priority' | 'dueDate' | 'updatedAt' | 'mostReopened' | 'pendingFirst' | 'longestPending';
@@ -14,6 +16,12 @@ const SORT_LABELS: Record<SortBy, string> = {
   mostReopened: 'Most reopened',
   pendingFirst: 'Pending first',
   longestPending: 'Longest pending',
+};
+/** The three reopen and pause sorts carry their icon (reopen, pause, clock). */
+const SORT_ICONS: Partial<Record<SortBy, LineIconName>> = {
+  mostReopened: 'refresh',
+  pendingFirst: 'pause',
+  longestPending: 'clock',
 };
 const SORT_ORDER: SortBy[] = [
   'createdAt',
@@ -237,6 +245,7 @@ interface GroupRowProps {
 }
 
 function GroupSection({ group, members, collapsed, onToggle, onCardClick }: GroupRowProps) {
+  const assigneeOf = (t: Ticket) => (t.assignee ? members.find((m) => m.id === t.assignee) : undefined);
   return (
     <div className={styles.group}>
       <button type="button" className={styles.groupHeader} onClick={onToggle}>
@@ -261,6 +270,16 @@ function GroupSection({ group, members, collapsed, onToggle, onCardClick }: Grou
 
       {!collapsed && (
         <div className={styles.groupRows}>
+          {/* Column header row (TicketReopen E2, TicketPending F2; board LV-1) */}
+          <div className={styles.headerRow} aria-hidden="true">
+            <span style={{ width: 68, flexShrink: 0 }}>Key</span>
+            <span style={{ flex: 1 }}>Title</span>
+            <span style={{ width: 20, flexShrink: 0 }} />
+            <span style={{ width: 62, flexShrink: 0, textAlign: 'center' }}>Priority</span>
+            <span style={{ width: 78, flexShrink: 0, textAlign: 'right' }}>Due</span>
+            <span style={{ width: 34, flexShrink: 0 }} />
+            <span style={{ width: 76, flexShrink: 0 }}>Status</span>
+          </div>
           {group.tickets.map((ticket) => {
             const isDone = ticket.status === 'done';
             const overdue = isOverdue(ticket.dueDate, ticket.status);
@@ -301,14 +320,25 @@ function GroupSection({ group, members, collapsed, onToggle, onCardClick }: Grou
 
                 <span style={{ flexGrow: 1 }} />
 
+                {/* Assignee: the 20 px tinted avatar before the priority chip (board LV-1) */}
+                <span className={styles.rowAssignee}>
+                  {assigneeOf(ticket) ? (
+                    <MemberAvatar member={assigneeOf(ticket)!} size={20} />
+                  ) : (
+                    <span className={styles.rowNoAssignee} title="Unassigned" />
+                  )}
+                </span>
+
                 {/* Priority Chip */}
-                {ticket.priority ? (
-                  <span className={`${styles.chip} ${styles[PRIORITY_CHIP_CLASS[ticket.priority]]}`}>
-                    {PRIORITY_LABELS[ticket.priority]}
-                  </span>
-                ) : (
-                  <span className={`${styles.chip} ${styles.chipNeutral}`}>—</span>
-                )}
+                <span className={styles.priorityCell}>
+                  {ticket.priority ? (
+                    <span className={`${styles.chip} ${styles[PRIORITY_CHIP_CLASS[ticket.priority]]}`}>
+                      {PRIORITY_LABELS[ticket.priority]}
+                    </span>
+                  ) : (
+                    <span className={`${styles.chip} ${styles.chipNeutral}`}>—</span>
+                  )}
+                </span>
 
                 {/* Due Date */}
                 <span className={`${styles.rowDue} ${overdue ? styles.rowDueOverdue : ''}`}>
@@ -526,14 +556,14 @@ export function ListView({ tickets, members = [], onCardClick }: ListViewProps) 
         </div>
 
         <div className={styles.toolbarRight}>
-          <span className={styles.toolbarLabel}>Sort</span>
           <div className={styles.dropdownContainer}>
             <button
               type="button"
               className={`${styles.dropdownBtn} ${openDropdown === 'sort' ? styles.dropdownBtnActive : ''}`}
               onClick={() => setOpenDropdown(openDropdown === 'sort' ? null : 'sort')}
             >
-              {SORT_LABELS[sortBy]}
+              <LineIcon name="sort" size={13} />
+              <span className={styles.labelMuted}>Sort:</span> {SORT_LABELS[sortBy]}
               <svg
                 className={styles.chevronIcon}
                 width="9"
@@ -561,6 +591,7 @@ export function ListView({ tickets, members = [], onCardClick }: ListViewProps) 
                       setOpenDropdown(null);
                     }}
                   >
+                    {SORT_ICONS[o] && <LineIcon name={SORT_ICONS[o]!} size={14} />}
                     <span style={{ flexGrow: 1 }}>{SORT_LABELS[o]}</span>
                     {sortBy === o && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">

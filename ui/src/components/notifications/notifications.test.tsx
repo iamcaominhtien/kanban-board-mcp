@@ -36,7 +36,7 @@ import { NotificationBell } from './NotificationBell';
 import { NotificationPanel } from './NotificationPanel';
 import { NotificationRow } from './NotificationRow';
 import { openActionOf } from './notificationUi';
-import { toastAction, toastDetail, useNotificationToasts } from './useNotificationToasts';
+import { toastAction, toastDetail, useNotificationToasts, withoutZeroCounts } from './useNotificationToasts';
 
 function row(over: Partial<Row>): Row {
   return {
@@ -509,6 +509,30 @@ describe('useNotificationToasts', () => {
     expect(t.action).toMatchObject({ label: 'Answer' });
     expect(t.secondaryAction).toBeUndefined();
     expect(toastDetail(row({ body: 'KAN-215 failed', ticketId: 'KAN-215' }))).toBe('KAN-215 failed');
+  });
+
+  it('Pause all AI: no toast for the person who paused, an info toast without zero counts for others', async () => {
+    localStorage.setItem('kanbanActor', 'An Nguyen');
+    const { rerender } = await primed();
+    const pause = (id: string, who: string) =>
+      row({
+        id,
+        kind: 'auto_trip',
+        title: 'AI is paused',
+        ticketId: null,
+        body: `${who} paused all AI. 0 runs cancelled, 2 queued runs held. Reason: demo.`,
+      } as Partial<Row>);
+    api.feed.mockResolvedValueOnce(feed([pause('p1', 'An Nguyen'), pause('p2', 'Hoa Mai')]));
+    rerender({ h: 10 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(1));
+    const t = toastApi.showToast.mock.calls[0][0] as Record<string, unknown>;
+    expect(t.variant).toBe('info');
+    expect(t.message).toBe('Hoa Mai paused all AI. 2 queued runs held. Reason: demo.');
+    expect(withoutZeroCounts('user paused all AI. 0 runs cancelled, 0 queued runs held.')).toBe('user paused all AI.');
+    expect(withoutZeroCounts('x paused all AI. 1 run cancelled, 0 queued runs held.')).toBe(
+      'x paused all AI. 1 run cancelled.',
+    );
+    localStorage.removeItem('kanbanActor');
   });
 
   it("a toast's one button is the safe way in, never a decision taken from under the cursor", () => {

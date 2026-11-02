@@ -8,7 +8,8 @@ import { useSketchStarter } from '../sketch/useSketchStarter';
 import { useCanvasStarter } from '../canvas/useCanvasStarter';
 import { useToast } from '../Toast';
 import { BulbIcon, Kbd } from './ideaShared';
-import { ProjectSelect, TagInput } from './TriageDialogs';
+import { ProjectPill, TagInput } from './TriageDialogs';
+import { IdeaIcon } from './ideaIcons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppCommand } from '../../utils/appCommands';
 
@@ -316,10 +317,67 @@ function QuickAdd({
             }}
           />
         </div>
+        <div className="is-qa-row">
+          <span className="is-muted">Project</span>
+          <ProjectPill value={projectId} onChange={setProjectId} />
+        </div>
+        <div className="is-qa-row">
+          <div className="is-grow">
+            <TagInput tags={tags} onChange={setTags} suggestions={tagHints} bare />
+          </div>
+          {!moreOpen && (
+            <button
+              type="button"
+              className="is-icon-btn"
+              title="Add details or paste a picture"
+              aria-label="Add details or paste a picture"
+              onClick={() => setMoreOpen(true)}
+            >
+              <IdeaIcon name="image" size={16} />
+            </button>
+          )}
+          {sketch.available && (
+            <button
+              type="button"
+              className="is-icon-btn"
+              title="Start with a sketch"
+              aria-label="Start with a sketch"
+              data-testid="quick-add-sketch"
+              onClick={() => void sketch.start()}
+            >
+              <IdeaIcon name="brush" size={16} />
+            </button>
+          )}
+          {canvas.available && (
+            <button
+              type="button"
+              className="is-icon-btn"
+              title="Start with a canvas"
+              aria-label="Start with a canvas"
+              data-testid="quick-add-canvas"
+              onClick={() => void canvas.start()}
+            >
+              <IdeaIcon name="frame" size={16} />
+            </button>
+          )}
+        </div>
+        {moreOpen && (
+          <div className="is-field">
+            <span className="is-label">Details</span>
+            <textarea
+              className="is-textarea"
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Markdown. Paste a screenshot with Ctrl+V."
+            />
+          </div>
+        )}
         {match && (
-          <div className="is-banner is-banner-warn" role="status" style={{ marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              Looks like “{match.title}” ({Math.round(match.score * 100)}% similar).{' '}
+          <div className="is-similar" role="status">
+            <IdeaIcon name="merge" size={15} />
+            <div>
+              Looks like <b>“{match.title}”</b> ({Math.round(match.score * 100)}% similar).{' '}
               <button type="button" className="is-link" onClick={addToExisting}>
                 Add to it instead
               </button>
@@ -337,54 +395,6 @@ function QuickAdd({
             <div className="is-muted">
               {prefill.sourceRef.label ? `from ${prefill.sourceRef.label}` : 'highlighted text'}
             </div>
-          </div>
-        )}
-        <div className="is-field">
-          <span className="is-label">Project</span>
-          <ProjectSelect value={projectId} onChange={setProjectId} />
-        </div>
-        <div className="is-field">
-          <span className="is-label">Tags</span>
-          <TagInput tags={tags} onChange={setTags} suggestions={tagHints} />
-        </div>
-        {moreOpen ? (
-          <div className="is-field">
-            <span className="is-label">Details</span>
-            <textarea
-              className="is-textarea"
-              rows={4}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Markdown. Paste a screenshot with Ctrl+V."
-            />
-          </div>
-        ) : (
-          <button type="button" className="is-link" onClick={() => setMoreOpen(true)}>
-            Add details or paste a picture
-          </button>
-        )}
-        {sketch.available && (
-          <div style={{ marginTop: 8 }}>
-            <button
-              type="button"
-              className="is-link"
-              data-testid="quick-add-sketch"
-              onClick={() => void sketch.start()}
-            >
-              Start with a sketch
-            </button>
-          </div>
-        )}
-        {canvas.available && (
-          <div style={{ marginTop: 8 }}>
-            <button
-              type="button"
-              className="is-link"
-              data-testid="quick-add-canvas"
-              onClick={() => void canvas.start()}
-            >
-              Start with a canvas
-            </button>
           </div>
         )}
       </div>

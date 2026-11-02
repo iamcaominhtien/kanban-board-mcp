@@ -47,8 +47,13 @@ describe('DiagramEditor without a draw.io editor', () => {
     api.checkDiagramEditor.mockResolvedValue({ mode: 'self-hosted', url: 'http://localhost:8080', reachable: false });
     open();
     const card = await screen.findByTestId('diagram-editor-unreachable');
-    expect(card.textContent).toContain('No draw.io editor is running');
+    // the design's copy for members, with Retry and Download .drawio; what to run is folded away for admins
+    expect(card.textContent).toContain('Editor could not be reached');
+    expect(card.textContent).toContain('Ask an admin to check the editor address in Settings.');
+    expect(screen.getByTestId('diagram-editor-admin-hint').textContent).toContain('no draw.io editor is running');
     expect(card.textContent).toContain('http://localhost:8080');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Download .drawio' })).toBeTruthy();
     expect(screen.queryByTitle('draw.io editor')).toBeNull();
   });
 
@@ -61,7 +66,7 @@ describe('DiagramEditor without a draw.io editor', () => {
     open();
     fireEvent.click(await screen.findByRole('button', { name: 'Use the public editor' }));
     await waitFor(() => expect(api.saveDiagramSettings).toHaveBeenCalledWith({ mode: 'public', url: '' }));
-    await waitFor(() => expect(screen.queryByText('No draw.io editor is running')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('diagram-editor-unreachable')).toBeNull());
     expect(new URL(screen.getByTitle('draw.io editor').getAttribute('src') ?? '').host).toBe('embed.diagrams.net');
     Object.assign(api.settings, { mode: 'self-hosted', effectiveUrl: 'http://localhost:8080' });
   });

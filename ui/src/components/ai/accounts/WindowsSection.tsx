@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useAiOverview } from '../../../api/ai';
 import { useAiWindows, usePatchWindow } from '../../../api/aiWindows';
 import { extractError } from '../../../api/extractError';
 import type { AccountWindow, RoomAccount } from '../../../types/aiWindows';
 import { useToast } from '../../Toast';
 import { LoadError, Toggle } from '../aiUi';
+import type { AiMember } from '../../../types/ai';
+import { AccountBadge } from './AccountParts';
 import { MoveUrgentDialog } from './MoveUrgentDialog';
 import { WindowBar } from './WindowBar';
 import { clock, isHeld, lastReadText, planLine, runsText, windowTone } from './windowFormat';
@@ -27,8 +30,7 @@ function LimitControl({ account }: { account: AccountWindow }) {
       );
   };
   return (
-    <label className="win-limit">
-      <span>Run at most</span>
+    <label className="win-limit" title="This account's own limit">
       <input
         className="ai-input win-limit-input"
         type="number"
@@ -45,16 +47,62 @@ function LimitControl({ account }: { account: AccountWindow }) {
   );
 }
 
+/**
+ * The one header control of design E: “Run at most [2] at a time per account”. It sets every account's limit; an
+ * account keeps its own number in its row when it should differ.
+ */
+function AllLimitControl({ accounts }: { accounts: AccountWindow[] }) {
+  const patch = usePatchWindow();
+  const toast = useToast();
+  const counts = new Map<number, number>();
+  accounts.forEach((a) => counts.set(a.maxParallel, (counts.get(a.maxParallel) ?? 0) + 1));
+  const common = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 2;
+  const [value, setValue] = useState(String(common));
+  const save = (n: number) => {
+    const next = Math.min(20, Math.max(1, Math.round(n) || common));
+    setValue(String(next));
+    accounts
+      .filter((a) => a.maxParallel !== next)
+      .forEach((a) =>
+        patch.mutate(
+          { key: a.key, body: { maxParallel: next } },
+          { onError: (e) => toast.error('Could not change the limit', extractError(e)) },
+        ),
+      );
+  };
+  return (
+    <label className="win-limit win-limit-all">
+      <span>Run at most</span>
+      <input
+        className="ai-input win-limit-input"
+        type="number"
+        min={1}
+        max={20}
+        aria-label="Runs at a time on every account"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => save(Number(value))}
+        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+        data-testid="win-limit-all"
+      />
+      <span className="acc-hint">at a time per account</span>
+    </label>
+  );
+}
+
 function WindowCard({
   account,
   nowMs,
   onMove,
   canMove,
+  members,
 }: {
   account: AccountWindow;
   nowMs: number;
   onMove: () => void;
   canMove: boolean;
+  /** This project's AI members, for the MEMBERS column and the member on each running run. */
+  members: AiMember[];
 }) {
   const patch = usePatchWindow();
   const toast = useToast();
@@ -62,6 +110,8 @@ function WindowCard({
   const tone = windowTone(Math.max(account.fiveHour.used ?? 0, account.sevenDay.used ?? 0));
   const runs = runsText(account, nowMs);
   const signedOut = account.status !== 'signed_in';
+  const users = members.filter((m) => (account.key === 'local' ? !m.accountId : m.accountId === account.key));
+  const byId = new Map(members.map((m) => [m.id, m]));
   return (
     <div
       className={`win-card ${held || tone === 'full' ? 'win-card-held' : ''} ${signedOut ? 'win-card-out' : ''}`}
@@ -69,10 +119,10 @@ function WindowCard({
       data-held={held}
     >
       <div className="win-id">
-        <b>{account.email ?? account.name}</b>
-        <div className="acc-hint">
-          {account.key === 'local' ? 'This computer’s own login' : planLine(account)}
-          {account.key === 'local' && account.plan ? ` · ${account.plan}` : ''}
+        <AccountBadge cli="claude" label="Claude Code" />
+        <div style={{ minWidth: 0 }}>
+          <b>{account.email ?? account.name}</b>
+          <div className="acc-hint">{planLine(account)}</div>
         </div>
       </div>
       <div className="win-bars">
@@ -82,9 +132,13 @@ function WindowCard({
           {lastReadText(account.readAt, signedOut)}
         </div>
       </div>
+      <div className="win-members" data-testid="win-members">
+        <b>{users.length}</b> member{users.length === 1 ? '' : 's'}
+      </div>
       <div className="win-runs">
         {account.running.map((r) => (
           <div key={r.runId} className="win-run">
+            {byId.get(r.memberId) && <span className="win-member">{byId.get(r.memberId)!.name}</span>}
             <span className="win-ticket">{r.ticketId}</span>
             <span className="acc-hint">· {minutesSince(r.startedAt, nowMs)} min</span>
           </div>
@@ -139,6 +193,8 @@ function WindowCard({
 /** “This window” of each Claude account, above the account list (design/screens/ai-operations.md, E). */
 export function WindowsSection({ projectId }: { projectId: string }) {
   const windows = useAiWindows();
+  const overview = useAiOverview(projectId);
+  const members = useMemo(() => overview.data?.members ?? [], [overview.data]);
   const [moving, setMoving] = useState<AccountWindow | null>(null);
   const [now] = useState(() => Date.now());
   const nowMs = windows.dataUpdatedAt || now;
@@ -165,6 +221,7 @@ export function WindowsSection({ projectId }: { projectId: string }) {
         <div className="win-card win-cols" aria-hidden="true">
           <span>Claude account</span>
           <span>This window</span>
+          <span>Members</span>
           <span>Running now</span>
           <span />
         </div>
@@ -174,6 +231,7 @@ export function WindowsSection({ projectId }: { projectId: string }) {
             account={a}
             nowMs={nowMs}
             canMove={room.some((r) => r.accountId !== a.key)}
+            members={members}
             onMove={() => setMoving(a)}
           />
         ))}
@@ -183,8 +241,23 @@ export function WindowsSection({ projectId }: { projectId: string }) {
 
   return (
     <section className="win-root" data-testid="windows-section" aria-label="Usage windows of Claude accounts">
+      {/* E: one header with the account count and the one limit control */}
       <div className="win-head">
-        <b>Usage window</b>
+        <div className="win-head-row">
+          <b className="win-title">Usage window</b>
+          {!!windows.data?.accounts.length && (
+            <span className="win-count" data-testid="win-count">
+              {windows.data.accounts.length} Claude account{windows.data.accounts.length === 1 ? '' : 's'}
+            </span>
+          )}
+          <span style={{ flex: 1 }} />
+          {!!windows.data?.accounts.length && (
+            <AllLimitControl
+              key={windows.data.accounts.map((a) => a.maxParallel).join(',')}
+              accounts={windows.data.accounts}
+            />
+          )}
+        </div>
         <span className="acc-hint">
           A subscription has a usage window, not a bill. This is how much of the current window each account has spent,
           when it reopens, and what is waiting on it.

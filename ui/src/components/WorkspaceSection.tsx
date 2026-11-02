@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   createWorkspaceFolder,
   deleteWorkspaceEntry,
@@ -23,6 +24,7 @@ import {
 } from '../utils/workspaceTree';
 import { usePreview } from './preview/PreviewContext';
 import type { PreviewItem } from './preview/types';
+import { getFileTypeMeta } from '../utils/fileIcons';
 import styles from './WorkspaceSection.module.css';
 import { LineIcon } from './ui/LineIcon';
 
@@ -73,6 +75,17 @@ const REFRESH = ['M4 4V10H10', 'M4 10L8 6.5A8 8 0 1 1 4 14'];
 const UPLOAD = ['M12 16V5', 'M7 9L12 4L17 9', 'M5 20H19'];
 const FOLDER_PLUS = [FOLDER, 'M12 10V16', 'M9 13H15'];
 
+/** `/root/kanban-workspace/KAN-1` as `~/kanban-workspace/KAN-1` (the title and Copy keep the real path). */
+function tildePath(path: string): string {
+  return path.replace(/^\/(?:root|home\/[^/]+|Users\/[^/]+)(?=\/|$)/, '~');
+}
+
+/** "3 files" for a folder row. */
+function folderCount(files: WorkspaceFile[], dir: string): string {
+  const n = files.filter((f) => !f.isDir && f.name.startsWith(`${dir}/`)).length;
+  return `${n} ${n === 1 ? 'file' : 'files'}`;
+}
+
 function FileIcon({ entry }: { entry: WorkspaceFile }) {
   if (entry.isDir) {
     return (
@@ -81,16 +94,18 @@ function FileIcon({ entry }: { entry: WorkspaceFile }) {
       </span>
     );
   }
+  // A tint per type, from the design: image orange, video purple, JSON blue, log grey
+  const meta = getFileTypeMeta(entry.name);
   if (previewKind(entry.name) === 'image' && /\.(png|jpe?g|gif|webp)$/i.test(entry.name)) {
     return (
-      <span className={styles.tcFileIcon} style={{ background: '#FBE9E1' }}>
-        <Icon d={['M3 5H21V19H3Z', 'M21 15L16 10L5 19']} color="#B4571F" size={14} />
+      <span className={styles.tcFileIcon} style={{ background: meta.bgColor }}>
+        <Icon d={['M3 5H21V19H3Z', 'M21 15L16 10L5 19']} color={meta.color} size={14} />
       </span>
     );
   }
   return (
-    <span className={styles.tcFileIcon} style={{ background: '#E1EEFB' }}>
-      <Icon d={FILE} color="#2F6FB0" size={14} />
+    <span className={styles.tcFileIcon} style={{ background: meta.bgColor }}>
+      <Icon d={FILE} color={meta.color} size={14} />
     </span>
   );
 }
@@ -239,7 +254,7 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
         <div className={styles.wsPathBar}>
           <Icon d={FOLDER} color="#9AA8A0" size={12} />
           <span className={styles.pathText} title={displayPath}>
-            {displayPath}
+            {tildePath(displayPath)}
           </span>
           <button
             type="button"
@@ -256,12 +271,49 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
           </button>
         </div>
         <div className={styles.topActions}>
-          <span
-            className={`${styles.retentionChip} ${retentionChip.forever ? styles.retentionChipForever : ''}`}
-            data-testid="retention-chip"
-          >
-            {retentionChip.text}
-          </span>
+          {readOnly ? (
+            <span
+              className={`${styles.retentionChip} ${retentionChip.forever ? styles.retentionChipForever : ''}`}
+              data-testid="retention-chip"
+            >
+              {retentionChip.text}
+            </span>
+          ) : (
+            <RetentionMenu
+              chipText={retentionChip.text}
+              forever={retentionChip.forever}
+              heading={ideaRetention ? "This idea's retention" : "This task's retention"}
+              hint={
+                ideaRetention
+                  ? 'A plain folder on this computer. It moves to the ticket when the idea is promoted, if you choose so.'
+                  : "Defaults to whatever's set in Settings — override per task here. Once the ticket is Done or Won't do, the folder is deleted after it has been idle this long; open tickets are never cleaned."
+              }
+              options={
+                ideaRetention
+                  ? [
+                      { value: 'open_then_30', label: 'Keep while the idea is open, then 30 days' },
+                      { value: '30_days', label: 'Auto-delete after 30 days' },
+                      { value: 'forever', label: 'Keep forever' },
+                    ]
+                  : [
+                      { value: 'inherit', label: 'Use the workspace default' },
+                      { value: '7', label: 'Auto-delete after 7 days' },
+                      { value: '14', label: 'Auto-delete after 14 days' },
+                      { value: '30', label: 'Auto-delete after 30 days' },
+                      { value: '0', label: 'Keep forever' },
+                    ]
+              }
+              value={ideaRetention ? ideaRetention.value : override === null ? 'inherit' : String(override)}
+              onChange={(v) => {
+                if (ideaRetention) ideaRetention.onChange(v as IdeaRetentionControl['value']);
+                else
+                  setRetention.mutate(
+                    { ticketId, retentionDays: v === 'inherit' ? null : parseInt(v, 10) },
+                    { onError: fail },
+                  );
+              }}
+            />
+          )}
           <button type="button" className={styles.actionBtn} onClick={openFolder} disabled={!ws?.exists && readOnly}>
             <Icon d={[FOLDER, 'M12 11V16', 'M9.5 13.5L12 11L14.5 13.5']} />
             Open folder
@@ -275,56 +327,6 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
           <button type="button" className={styles.noticeClose} onClick={() => setNotice(null)} aria-label="Dismiss">
             <LineIcon name="close" size={14} />
           </button>
-        </div>
-      )}
-
-      {!readOnly && ideaRetention && (
-        <div className={styles.retentionCard}>
-          <div className={styles.retentionText}>
-            <span className={styles.retentionTitle}>Retention Policy</span>
-            <span className={styles.retentionHint}>
-              A plain folder on this computer. It moves to the ticket when the idea is promoted, if you choose so.
-            </span>
-          </div>
-          <select
-            className={styles.retentionSelect}
-            aria-label="Retention policy"
-            value={ideaRetention.value}
-            onChange={(e) => ideaRetention.onChange(e.target.value as IdeaRetentionControl['value'])}
-          >
-            <option value="open_then_30">Keep while the idea is open, then 30 days after it is closed</option>
-            <option value="30_days">Auto-delete after 30 days</option>
-            <option value="forever">Keep forever</option>
-          </select>
-        </div>
-      )}
-
-      {!readOnly && !ideaRetention && (
-        <div className={styles.retentionCard}>
-          <div className={styles.retentionText}>
-            <span className={styles.retentionTitle}>Retention Policy</span>
-            <span className={styles.retentionHint}>
-              Once the ticket is Done or Won&apos;t do, the folder is deleted after it has been idle this long. Open
-              tickets are never cleaned.
-            </span>
-          </div>
-          <select
-            className={styles.retentionSelect}
-            aria-label="Retention policy"
-            value={override === null ? 'inherit' : String(override)}
-            onChange={(e) =>
-              setRetention.mutate(
-                { ticketId, retentionDays: e.target.value === 'inherit' ? null : parseInt(e.target.value, 10) },
-                { onError: fail },
-              )
-            }
-          >
-            <option value="inherit">Inherit workspace default</option>
-            <option value="7">Auto-delete after 7 days</option>
-            <option value="14">Auto-delete after 14 days</option>
-            <option value="30">Auto-delete after 30 days</option>
-            <option value="0">Keep forever (never delete)</option>
-          </select>
         </div>
       )}
 
@@ -440,8 +442,14 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
 
           <div className={styles.tableContainer}>
             {rows.length === 0 ? (
-              <div className={styles.emptyState}>
-                No files yet. Drop files here, use Upload, or let an agent write into <code>{displayPath}</code>.
+              <div className={`${styles.emptyState} ${styles.emptyDashed}`}>
+                <span className={styles.emptyFolderIcon} aria-hidden="true">
+                  <LineIcon name="folder" size={20} />
+                </span>
+                <div>No files yet. The folder exists, nothing has been written to it yet.</div>
+                <div className={styles.emptyHint}>
+                  Drop files here, use Upload, or let an agent write into <code>{tildePath(displayPath)}</code>.
+                </div>
               </div>
             ) : (
               rows.map((file) => (
@@ -492,7 +500,9 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
                       </span>
                     </button>
                   )}
-                  <span className={styles.fileSize}>{file.isDir ? '' : formatBytes(file.size)}</span>
+                  <span className={styles.fileSize}>
+                    {file.isDir ? folderCount(files, file.name) : formatBytes(file.size)}
+                  </span>
                   <span className={styles.fileTime}>{formatTimeAgo(file.modifiedAt)}</span>
                   <span className={styles.rowActions}>
                     {!file.isDir && (
@@ -572,5 +582,126 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The retention chip ("Auto-delete in 12 days") as a button that opens the retention menu (Workspace 4, comp-2
+ * WS-1): a heading, a checked list of the choices and the helper text. It replaces the permanent Retention Policy band.
+ */
+function RetentionMenu({
+  chipText,
+  forever,
+  heading,
+  hint,
+  options,
+  value,
+  onChange,
+}: Readonly<{
+  chipText: string;
+  forever: boolean;
+  heading: string;
+  hint: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+}>) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setPos({ left: Math.max(8, Math.min(r.right - 300, window.innerWidth - 308)), top: r.bottom + 6 });
+    menuRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!menuRef.current?.contains(t) && !btnRef.current?.contains(t)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault(); // the ticket stays open
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className={`${styles.retentionChip} ${styles.retentionChipBtn} ${forever ? styles.retentionChipForever : ''}`}
+        data-testid="retention-chip"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="Change how long this folder is kept"
+        onClick={() => setOpen((o) => !o)}
+      >
+        {chipText}
+        <LineIcon name="chevronDown" size={11} strokeWidth={2.2} />
+      </button>
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            aria-label={heading}
+            data-testid="retention-menu"
+            className={styles.retentionMenu}
+            style={{ left: pos?.left ?? -9999, top: pos?.top ?? 0 }}
+            onKeyDown={(e) => {
+              if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+              e.preventDefault();
+              const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitemradio"]') ?? []);
+              const i = items.indexOf(document.activeElement as HTMLElement);
+              items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
+            }}
+          >
+            <div className={styles.retentionMenuHead}>{heading}</div>
+            <div className={styles.retentionMenuList}>
+              {options.map((o) => {
+                const on = o.value === value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={on}
+                    className={`${styles.retentionMenuItem} ${on ? styles.retentionMenuItemOn : ''}`}
+                    onClick={() => {
+                      setOpen(false);
+                      btnRef.current?.focus();
+                      if (!on) onChange(o.value);
+                    }}
+                  >
+                    {on ? (
+                      <LineIcon name="check" size={13} color="#2E6F40" strokeWidth={2.4} />
+                    ) : (
+                      <span style={{ width: 13, flexShrink: 0 }} />
+                    )}
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className={styles.retentionMenuHint}>{hint}</div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

@@ -414,6 +414,15 @@
   border: 2px solid #c7d2cb;
   border-top-color: #2e6f40;
 }
+.skelRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+}
 .skel {
   height: 64px;
   border-radius: 12px;

@@ -4,6 +4,7 @@ import { extractError } from '../../../api/extractError';
 import type { Tier, TierRow } from '../../../types/aiBoard';
 import { LoadError, Toggle } from '../aiUi';
 import { LOCKED_REASON, OP_WORDS, TIER_STYLE, TIER_WORDS } from './tierWords';
+import { MenuSelect } from '../../ui/MenuSelect';
 import { LineIcon } from '../../ui/LineIcon';
 
 const ORDER: Tier[] = ['free', 'undo', 'ask'];
@@ -71,60 +72,75 @@ export function BoardAiSection({ projectId }: { projectId: string }) {
               )}
               <ul style={{ margin: 0, paddingLeft: 17, fontSize: 12, lineHeight: 1.55, color: '#3A4A3E' }}>
                 {rows(tier).map((r) => (
-                  <li key={r.op} style={{ margin: '0 0 5px' }}>
+                  <li key={r.op} style={{ margin: '0 0 5px' }} data-testid={`tier-${tier}-${r.op}`}>
                     {OP_WORDS[r.op] ?? r.op}
                   </li>
                 ))}
               </ul>
+              {tier === 'ask' && (
+                <div style={{ fontSize: 12, color: '#3A4A3E' }}>
+                  <b>Never, even if asked:</b> enter a key or password, delete a project.
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
       <div className="ai-card" style={{ padding: 0, overflow: 'hidden' }} data-testid="board-ai-table">
-        {view.tiers.map((r) => {
+        {[...view.tiers.filter((r) => !r.locked), ...view.tiers.filter((r) => r.locked)].map((r, i, all) => {
           const locked = r.locked;
+          // C: the fixed actions come last, greyed, with the reason said once above them
+          const firstLocked = locked && !all[i - 1]?.locked;
           const lowered = r.tier === 'free';
           return (
-            <div
-              key={r.op}
-              data-testid={`tier-row-${r.op}`}
-              data-locked={locked ? 'true' : undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '9px 14px',
-                borderBottom: '1px solid #EEF3EF',
-                opacity: locked ? 0.62 : 1,
-                background: locked ? '#F6F7F6' : undefined,
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600 }}>{OP_WORDS[r.op] ?? r.op}</div>
-                {locked && <div className="ai-hint">{LOCKED_REASON}</div>}
-              </div>
-              {locked ? (
-                <span className="ai-chip" style={{ background: '#FFFBEF', color: '#7A5A06' }}>
-                  <LineIcon name="lock" size={12} /> Asks first
-                </span>
-              ) : lowerable(r) || lowered ? (
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <span className="ai-muted">When it acts</span>
-                  <select
-                    className="ai-select"
-                    aria-label={`Tier of: ${OP_WORDS[r.op] ?? r.op}`}
-                    value={r.tier}
-                    disabled={save.isPending}
-                    onChange={(e) => patch({ tiers: { [r.op]: e.target.value as 'free' | 'undo' } })}
-                  >
-                    <option value="undo">{TIER_WORDS.undo}</option>
-                    <option value="free">{TIER_WORDS.free}</option>
-                  </select>
-                </label>
-              ) : (
-                <span className="ai-muted">{TIER_WORDS[r.tier]}</span>
+            <div key={r.op} style={{ display: 'contents' }}>
+              {firstLocked && (
+                <div className="ai-tier-locked-head" data-testid="tier-locked-reason">
+                  <LineIcon name="lock" size={13} />
+                  <span>{LOCKED_REASON}</span>
+                </div>
               )}
+              <div
+                data-testid={`tier-row-${r.op}`}
+                data-locked={locked ? 'true' : undefined}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '9px 14px',
+                  borderBottom: '1px solid #EEF3EF',
+                  opacity: locked ? 0.62 : 1,
+                  background: locked ? '#F6F7F6' : undefined,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>{OP_WORDS[r.op] ?? r.op}</div>
+                </div>
+                {locked ? (
+                  <span className="ai-chip" style={{ background: '#FFFBEF', color: '#7A5A06' }}>
+                    <LineIcon name="lock" size={12} /> Asks first
+                  </span>
+                ) : lowerable(r) || lowered ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                    <span className="ai-muted">When it acts</span>
+                    <MenuSelect
+                      variant="chip"
+                      label={`Tier of: ${OP_WORDS[r.op] ?? r.op}`}
+                      value={r.tier as 'free' | 'undo'}
+                      disabled={save.isPending}
+                      menuWidth={240}
+                      onChange={(v) => patch({ tiers: { [r.op]: v } })}
+                      options={[
+                        { value: 'undo', label: TIER_WORDS.undo, hint: 'Recorded, with an Undo' },
+                        { value: 'free', label: TIER_WORDS.free, hint: 'Not recorded' },
+                      ]}
+                    />
+                  </div>
+                ) : (
+                  <span className="ai-muted">{TIER_WORDS[r.tier]}</span>
+                )}
+              </div>
             </div>
           );
         })}

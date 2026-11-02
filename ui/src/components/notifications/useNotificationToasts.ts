@@ -4,7 +4,7 @@ import type { NotificationRow } from '../../types/notifications';
 import { playNotificationSound } from '../../utils/notificationSound';
 import { useToast, type ToastVariant } from '../Toast';
 import type { RowActionHandler } from './NotificationRow';
-import { runAction } from './notificationUi';
+import { currentActor, runAction } from './notificationUi';
 
 const POLL_MS = 30_000;
 const ERROR_KINDS = new Set(['run_failed', 'run_stopped_memory', 'offline', 'auto_trip', 'account_signed_out']);
@@ -24,6 +24,25 @@ export function toastDetail(row: NotificationRow): string {
   const id = row.ticketId;
   if (!id || row.body.includes(id) || row.title.includes(id)) return row.body;
   return row.body ? `${id} · ${row.body}` : id;
+}
+
+/** A row written by Pause all AI (not an auto-trip): "<who> paused all AI. N runs cancelled, M queued runs held." */
+export function isPauseAllRow(row: NotificationRow): boolean {
+  return row.kind === 'auto_trip' && / paused all AI\./.test(row.body);
+}
+
+/** The counts of a Pause all AI row without the zeros: "0 runs cancelled, 2 queued runs held." → "2 queued runs held." */
+export function withoutZeroCounts(text: string): string {
+  return text
+    .replace(
+      /(\d+) (runs? cancelled), (\d+) (queued runs? held)\./,
+      (_m, a: string, b: string, c: string, d: string) => {
+        const parts = [a === '0' ? '' : `${a} ${b}`, c === '0' ? '' : `${c} ${d}`].filter(Boolean);
+        return parts.length ? `${parts.join(', ')}.` : '';
+      },
+    )
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 type Feed = Awaited<ReturnType<typeof notificationsApi.feed>>;
@@ -60,11 +79,15 @@ function showRowToast(c: ToastContext, row: NotificationRow, feed: Feed) {
   // a reminder (the row's newest event moved on) toasts again; the same event never twice
   if (shown && row.lastEventId <= shown.event) return;
   if (shown) dropToast(c, row.id);
+  // Pause all AI (ai-2 AP-6): the banner says it once; the person who paused gets no toast, others an info one
+  // without zero counts
+  const pause = isPauseAllRow(row);
+  if (pause && row.body.startsWith(`${currentActor()} paused all AI.`)) return;
   const first = toastAction(row);
   const toastId: string = c.toast.showToast({
-    variant: toastVariantFor(row.kind),
+    variant: pause ? 'info' : toastVariantFor(row.kind),
     title: row.title,
-    message: toastDetail(row) || undefined,
+    message: (pause ? withoutZeroCounts(toastDetail(row)) : toastDetail(row)) || undefined,
     // a Needs you stays until it is acted on or closed (#270): it is not news that fades after a few seconds
     duration: 0,
     action: first ? { label: first.label, onClick: () => runAction(c.onAction, row, first.id) } : undefined,

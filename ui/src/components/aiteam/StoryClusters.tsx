@@ -40,7 +40,7 @@ function Card({
   return (
     <button
       type="button"
-      className={`fs-cl${faded ? ' faded' : ''}${lit ? ' lit' : ''}`}
+      className={`fs-cl${faded ? ' faded' : ''}${lit ? ' lit' : ''}${c.tickets === 0 && c.handoffs === 0 ? ' quiet' : ''}`}
       onMouseEnter={() => onHover(c)}
       onMouseLeave={() => onHover(null)}
       onFocus={() => onHover(c)}
@@ -91,7 +91,21 @@ export function StoryClusters({
   const [sort, setSort] = useState<ClusterSort>('activity');
   const [all, setAll] = useState(false);
   const [openDone, setOpenDone] = useState(false);
-  const { rows, loose } = clusterRows(clusters, stories, sort);
+  // Every Story has its card, also one with no AI work in the range: it shows "0 of 0" and is greyed (design H)
+  const seen = new Set(clusters.map((c) => c.storyId));
+  const quietOnes: FlowCluster[] = stories
+    .filter((st) => !seen.has(st.id))
+    .map((st) => ({
+      storyId: st.id,
+      title: st.title,
+      state: st.state,
+      done: st.progress.done,
+      total: st.progress.total,
+      tickets: 0,
+      handoffs: 0,
+      edges: [],
+    }));
+  const { rows, loose } = clusterRows([...clusters, ...quietOnes], stories, sort);
   if (!rows.length && !loose) return null;
   const busy = rows.length > CLUSTERS_SHOWN;
   const running = rows.filter((r) => !r.done);

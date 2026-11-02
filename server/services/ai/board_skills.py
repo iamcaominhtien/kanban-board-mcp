@@ -4,7 +4,8 @@ Claude Code keeps only the first 10,000 characters of an MCP server's instructio
 it reaches an AI as a skill instead, which Claude Code loads whole when the work calls for it (the person's own design
 skills work the same way). Today: `canvas-design`, the design guide for canvas frames (services/canvas_design.py),
 with `craft.md` and its exemplar boards in `examples/` (services/design_examples/): a skill can carry files, and a
-board to look at teaches the bar better than a paragraph; and `board-permissions`, what an AI may do and what to do
+board to look at teaches the bar better than a paragraph; `drawio-diagrams` and `sketches`, how to draw a diagram,
+what to do with a person's Sketch and which tool fits (services/visual_guides.py, issue #267); `board-permissions`, what an AI may do and what to do
 when refused (services/permissions_guide.py); and the shared skills every role uses (services/shared_skills.py, issue
 #277): working a ticket, evidence and handing over, the repository and the machine, asking and writing, working
 together; and one skill per role (services/role_skills.py, issue #273), which only a member of that role gets.
@@ -24,10 +25,19 @@ NAME = "kanban-board"
 
 
 def _skills() -> dict[str, str]:
-    from services import canvas_design, permissions_guide, role_skills, shared_skills
+    from services import (
+        canvas_design,
+        permissions_guide,
+        role_skills,
+        shared_skills,
+        visual_guides,
+    )
 
     return {
         "canvas-design": canvas_design.SKILL_HEADER + canvas_design.GUIDE,
+        # draw.io diagrams and what an AI does with a Sketch, with which tool to choose (issue #267)
+        "drawio-diagrams": visual_guides.DRAWIO_HEADER + visual_guides.DRAWIO,
+        "sketches": visual_guides.SKETCH_HEADER + visual_guides.SKETCH,
         # what the AI may do, what needs a person, what to do when refused (issue #275)
         "board-permissions": permissions_guide.SKILL_HEADER + permissions_guide.GUIDE,
         # how any role works a ticket (issue #277)

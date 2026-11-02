@@ -1,6 +1,8 @@
 'use strict';
 /**
- * Headless diagram export: `Kanban Board --export-svg in.drawio out.svg --editor-url http://localhost:8080`.
+ * Headless diagram export: `Kanban Board --export-svg in.drawio out.svg --editor-url http://localhost:8080`, and
+ * `--export-png <page url> out.png --width 1280`: a picture of a page the board serves on 127.0.0.1, so an AI can look
+ * at the diagram or frame it drew (server/services/screenshots.py).
  *
  * The server asks the desktop app for this when an AI agent saves a diagram (nobody has a window open to ask the
  * draw.io editor for the picture). The app starts without a backend or a visible window, loads the editor in a hidden
@@ -33,10 +35,11 @@ const PAGE_SCRIPT = `
 `;
 
 /**
- * Reads `--export-svg <input> <output> [--editor-url <url>]` from the command line.
+ * Reads `--export-svg <input> <output> [--editor-url <url>]` (or `--export-png`, see parsePngArgs) from the command line.
  * @returns {{input: string, output: string, editorUrl: string} | null} null when this is a normal start.
  */
 function parseExportArgs(argv) {
+  if (argv.includes('--export-png')) return parsePngArgs(argv);
   const at = argv.indexOf('--export-svg');
   if (at === -1) return null;
   const input = argv[at + 1];
@@ -104,12 +107,99 @@ async function exportSvg(electron, { xml, editorUrl, timeoutMs = EXPORT_TIMEOUT_
   }
 }
 
+/**
+ * Reads `--export-png <page url> <output.png> --width <px> [--height <px>]`: a picture of a page the board serves on
+ * 127.0.0.1 (a diagram or a canvas frame an AI drew, issue #267). Without a height the whole page is drawn.
+ */
+function parsePngArgs(argv) {
+  const at = argv.indexOf('--export-png');
+  const url = argv[at + 1];
+  const output = argv[at + 2];
+  const usage = { error: 'usage: --export-png <http://127.0.0.1:port/page.html> <output.png> --width <px> [--height <px>]' };
+  if (!url || !output || url.startsWith('--') || output.startsWith('--')) return usage;
+  if (!/^http:\/\/127\.0\.0\.1:\d+\//.test(url)) return { error: '--export-png only draws a page served on http://127.0.0.1' };
+  const num = (flag) => {
+    const i = argv.indexOf(flag);
+    if (i === -1) return null;
+    const n = Number(argv[i + 1]);
+    return Number.isInteger(n) && n >= 100 && n <= 8000 ? n : NaN;
+  };
+  const width = num('--width');
+  const height = num('--height');
+  if (!width || Number.isNaN(height)) return usage;
+  return { png: true, url, output, width, height };
+}
+
+/** What a page drawn for a picture may load: its own server, inline data, and public http(s) hosts (fonts, CDNs). */
+function isAllowedPageUrl(url, pageUrl) {
+  if (/^(data|blob|about|devtools):/.test(url)) return true;
+  let u;
+  try {
+    u = new URL(url);
+    if (u.origin === new URL(pageUrl).origin) return true;
+  } catch {
+    return false;
+  }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+  const host = u.hostname.replace(/^\[|\]$/g, '');
+  if (host === 'localhost' || /\.(localhost|local|internal)$/.test(host)) return false;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+  if (host.includes(':')) return false; // an IPv6 literal: loopback or a private address more often than not
+  return true;
+}
+
+/**
+ * Draws a page in a hidden window and returns PNG bytes.
+ * @param {object} electron  The `electron` module (injected so the pure helpers stay testable).
+ */
+async function exportPng(electron, { url, width, height, timeoutMs = EXPORT_TIMEOUT_MS }) {
+  const { BrowserWindow } = electron;
+  const win = new BrowserWindow({
+    show: false,
+    width,
+    height: height || 800,
+    useContentSize: true,
+    webPreferences: { sandbox: true, nodeIntegration: false, contextIsolation: true, offscreen: true },
+  });
+  win.webContents.session.webRequest.onBeforeRequest((details, callback) => {
+    callback({ cancel: !isAllowedPageUrl(details.url, url) });
+  });
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const timer = wait(timeoutMs).then(() => {
+    throw new Error('the page did not finish loading');
+  });
+  try {
+    await Promise.race([win.loadURL(url), timer]);
+    await win.webContents.executeJavaScript('document.fonts ? document.fonts.ready.then(() => 1) : 1', true);
+    await wait(800);
+    let h = height;
+    if (!h) {
+      const measured = await win.webContents.executeJavaScript(
+        'Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0)',
+        true,
+      );
+      h = Math.max(100, Math.min(8000, Number(measured) || 800));
+      win.setContentSize(width, h);
+      await wait(300);
+    }
+    const image = await win.webContents.capturePage({ x: 0, y: 0, width, height: h });
+    return image.toPNG();
+  } finally {
+    if (!win.isDestroyed()) win.destroy();
+  }
+}
+
 /** The whole command: read the file, export, write the file, quit with 0 or 1. */
 async function runExportCli(electron, args) {
   const { app } = electron;
   if (process.platform === 'darwin' && app.dock) app.dock.hide();
   try {
     if (args.error) throw new Error(args.error);
+    if (args.png) {
+      fs.writeFileSync(args.output, await exportPng(electron, args));
+      app.exit(0);
+      return;
+    }
     const xml = fs.readFileSync(args.input, 'utf8');
     const svg = await exportSvg(electron, { xml, editorUrl: args.editorUrl });
     fs.writeFileSync(args.output, svg, 'utf8');
@@ -123,7 +213,10 @@ async function runExportCli(electron, args) {
 module.exports = {
   PAGE_SCRIPT,
   parseExportArgs,
+  parsePngArgs,
   isAllowedUrl,
+  isAllowedPageUrl,
+  exportPng,
   decodeSvgData,
   describeLoadError,
   exportSvg,

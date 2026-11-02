@@ -129,10 +129,14 @@ export function TicketCard({
     isReopened ? styles.cardReopened : '',
     isDone ? styles.cardDone : '',
     hasSubtasks ? styles.cardParent : '',
+    menuOpen ? styles.cardMenuOpen : '',
     className ?? '',
   ]
     .filter(Boolean)
     .join(' ');
+
+  const acTotal = (ticket.acceptanceCriteria ?? []).length;
+  const acDone = (ticket.acceptanceCriteria ?? []).filter((c) => c.done).length;
 
   const visibleTags = (ticket.tags ?? []).slice(0, 3);
   const overflowCount = (ticket.tags ?? []).length - visibleTags.length;
@@ -231,7 +235,23 @@ export function TicketCard({
       )}
 
       {/* Card ... Context Menu button matching TicketPending.dc.html A1 */}
-      <div className={styles.menuButton} onClick={handleMenuClick} title="Card options">
+      <div
+        className={styles.menuButton}
+        onClick={handleMenuClick}
+        title="Card options"
+        role="button"
+        tabIndex={0}
+        aria-label="Card options"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMenuClick(e as unknown as React.MouseEvent);
+          }
+        }}
+      >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="#5B6B60" style={{ flexShrink: 0 }}>
           <circle cx="5" cy="12" r="1.8" />
           <circle cx="12" cy="12" r="1.8" />
@@ -471,8 +491,9 @@ export function TicketCard({
               </HoverTip>
             )}
 
-            {/* Pending chip matching TicketPending.dc.html C1/C2 */}
-            {isPending && (
+            {/* Pending chip in the header only when the card is also Reopened (TicketPending C2); a pending card
+                alone says it with the striped rail and the "Waiting on" strip (C1), board PD-1 */}
+            {isPending && isReopened && (
               <HoverTip className={styles.pendingChip} tip={pendingTip}>
                 <svg
                   width="11"
@@ -737,6 +758,13 @@ export function TicketCard({
 
           {ticket.estimate && <span className={styles.estimate}>{ticket.estimate} pt</span>}
 
+          {/* Acceptance criteria progress "2/4" after the estimate (Ticket Card 1, comp-1 TC-3) */}
+          {acTotal > 0 && (
+            <span className={styles.acCount} title={`${acDone} of ${acTotal} acceptance criteria done`}>
+              {acDone}/{acTotal}
+            </span>
+          )}
+
           {due && (
             <span className={due.overdue ? styles.dueDateOverdue : styles.dueDate}>
               <svg
@@ -754,7 +782,7 @@ export function TicketCard({
                 <path d="M8 3V6.5" />
                 <path d="M16 3V6.5" />
               </svg>
-              {due.label}
+              Due {due.label}
             </span>
           )}
         </div>

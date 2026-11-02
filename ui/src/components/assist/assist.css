@@ -648,3 +648,166 @@
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+
+/* "Try asking" rows: quiet suggestion rows, not buttons (design A1) */
+.as-suggest {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #d4e7d9;
+  background: #f6faf7;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.as-suggest:hover {
+  background: #eef6f0;
+}
+
+/* Chat history: its own header, a search field with a magnifier and a footer band (design B3) */
+.as-history {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.as-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 7px;
+  background: #fff;
+}
+.as-search:focus-within {
+  border-color: #2e6f40;
+}
+.as-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+.as-history-foot {
+  padding: 10px 14px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+  font-size: 11px;
+  color: #9aa8a0;
+}
+
+/* Scope popover: bordered radio rows (design B8) */
+.as-radio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.as-radio-row:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.as-radio-row.as-radio-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.as-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #c7d2cb;
+  box-sizing: border-box;
+  background: #fff;
+  flex-shrink: 0;
+}
+.as-radio-on .as-radio {
+  border: 5px solid #2e6f40;
+}
+.as-head[hidden] {
+  display: none;
+}
+.as-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: #e3e8e5;
+}
+
+/* Settings › Board assistant (design H1, H2) */
+.as-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid #e3e8e5;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.as-opt.as-opt-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #1e2a22;
+}
+.as-sent-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+}
+.as-money {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.as-money > span {
+  position: absolute;
+  left: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #5b6b60;
+  pointer-events: none;
+}
+.as-money > input {
+  width: 100%;
+  padding-left: 22px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.as-usage-bar {
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: #dce6df;
+  overflow: hidden;
+}
+.as-usage-bar > div {
+  height: 100%;
+}

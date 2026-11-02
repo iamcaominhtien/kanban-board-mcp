@@ -4,8 +4,18 @@ import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
 import { useRestartRun, useResourcesStream } from '../../api/aiResources';
 import type { ResourceRun, ResourceSnapshot } from '../../types/aiResources';
-import { LEVEL_COLOR, fmtGb, fmtMb, levelOf, limitPct, linePoints, verdictOf, type Verdict } from './resourcesFormat';
-import { Badge, TicketChip } from './teamUi';
+import {
+  LEVEL_COLOR,
+  fmtGb,
+  fmtGbOf,
+  fmtMb,
+  levelOf,
+  limitPct,
+  linePoints,
+  verdictOf,
+  type Verdict,
+} from './resourcesFormat';
+import { Badge, ICONS, Icon, TicketChip } from './teamUi';
 import './resources.css';
 
 interface Props {
@@ -55,7 +65,7 @@ function Tile({
       <div className="rs-big">{value}</div>
       <div className="at-hint-sm">{hint}</div>
       {pct != null && (
-        <div className="at-bar">
+        <div className="rs-meter" data-testid="rs-meter">
           <i style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background: LEVEL_COLOR[level].bar }} />
         </div>
       )}
@@ -69,10 +79,10 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
   const now = Date.parse(snap.at);
   const limit = snap.limits.runMemoryLimitMb;
   const peak = Math.max(0, ...snap.runs.flatMap((r) => r.history.map((p) => p.rssMb)));
-  // Scaled to what the runs use, so a 200 MB run is not a flat line under a 4 GB limit; the limit line is drawn when it
-  // is within reach of the lines, and written under the chart when it is far above them
+  // The axis runs up to the limit per run, with the red dashed limit line at its top, as drawn (design F1, B); without a
+  // limit it is scaled to what the runs use
   const fitMb = Math.max(peak * 1.3, 512);
-  const limitInView = limit > 0 && limit <= fitMb * 2.5;
+  const limitInView = limit > 0;
   const wantMb = limitInView ? Math.max(fitMb, limit) : fitMb;
   // Round the axis up to four even steps, so every label is a round number (it read 0.0, 0.1, 0.3, 0.4, 0.5 GB)
   const step =
@@ -120,7 +130,14 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
               stroke="#C4432A"
               strokeDasharray="5 4"
             />
-            <text x={W + 54} y={H - (limit / maxMb) * H} textAnchor="end" fontSize="11" fill="#A5321E">
+            <text
+              x={W + 54}
+              // at the top of the axis the label sits under its line, inside the chart
+              y={H - (limit / maxMb) * H < 12 ? H - (limit / maxMb) * H + 18 : H - (limit / maxMb) * H}
+              textAnchor="end"
+              fontSize="11"
+              fill="#A5321E"
+            >
               limit per run {fmtGb(limit)}
             </text>
           </g>
@@ -151,6 +168,11 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
             }),
           )}
         </g>
+        {[1, 2, 3, 4].map((m) => (
+          <text key={m} x={52 + (W * (5 - m)) / 5} y={H + 20} textAnchor="middle" fontSize="11" fill="#8A998F">
+            {m}
+          </text>
+        ))}
         <text x="52" y={H + 20} fontSize="11" fill="#8A998F">
           5 min ago
         </text>
@@ -158,9 +180,6 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
           now
         </text>
       </svg>
-      {limit > 0 && !limitInView && (
-        <div className="at-hint-sm">Limit per run: {fmtGb(limit)}, above the top of this chart.</div>
-      )}
       {!live.length && (
         <div className="at-hint">Nothing is running. The last runs stay in the table below for 10 minutes.</div>
       )}
@@ -348,6 +367,11 @@ export function ResourcesTab({ projectId, onOpenTicket }: Props) {
         </div>
       )}
       <div className="rs-banner" style={{ background: look.bg, borderColor: look.border }}>
+        <span style={{ color: look.fg, display: 'inline-flex', paddingTop: 1 }}>
+          <Icon color={look.fg} size={16}>
+            {verdict.tone === 'ok' || verdict.tone === 'idle' ? ICONS.check : ICONS.info}
+          </Icon>
+        </span>
         <div>
           <b style={{ color: look.fg }}>{verdict.title}</b>
           <div className="at-hint" style={{ color: '#3A4A3E' }}>
@@ -358,17 +382,17 @@ export function ResourcesTab({ projectId, onOpenTicket }: Props) {
       <div className="at-tiles">
         <Tile
           label="Machine RAM"
-          value={`${fmtGb(machine.ramTotalMb - machine.ramFreeMb)} / ${fmtGb(machine.ramTotalMb)}`}
+          value={fmtGbOf(machine.ramTotalMb - machine.ramFreeMb, machine.ramTotalMb)}
           hint={`${fmtGb(machine.ramFreeMb)} free`}
           pct={usedPct}
-          level={free < 10 ? 'bad' : usedPct >= 80 ? 'warn' : 'ok'}
+          level={free < 10 ? 'bad' : levelOf(usedPct)}
         />
         <Tile
           label="Machine load"
           value={machine.load1 != null ? String(machine.load1) : '—'}
           hint={`on ${machine.cores} cores · 1 min average`}
           pct={loadPct}
-          level={loadPct >= 100 ? 'bad' : loadPct >= 70 ? 'warn' : 'ok'}
+          level={levelOf(loadPct)}
         />
         <Tile
           label="AI processes"
@@ -384,7 +408,7 @@ export function ResourcesTab({ projectId, onOpenTicket }: Props) {
               : `project limit · ${limits.boardMaxParallel - liveCount} free`
           }
           pct={slotsPct}
-          level={slotsPct >= 100 ? 'warn' : 'ok'}
+          level={levelOf(slotsPct)}
         />
       </div>
       <RunsChart snap={snap} colors={colors} />

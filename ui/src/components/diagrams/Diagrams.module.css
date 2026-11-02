@@ -35,6 +35,12 @@
 .embedSmall .stage img {
   max-height: 330px;
 }
+/* Inside text the picture is the card's own content: no second border and margin from the text's image style
+   (`.markdown img`), which drew a box inside the card (design B: one card, the drawing on white) */
+.embed .stage img {
+  border: 0;
+  margin: 0;
+}
 .toolbar {
   position: absolute;
   top: 10px;
@@ -539,4 +545,21 @@
   to {
     background-position: 200px 0;
   }
+}
+
+/* the "what to run" note for admins under the design's copy (docs DG-1) */
+.cardDetails {
+  margin-top: 10px;
+  font: 400 13px/1.55 var(--font-body);
+  color: #5b6b60;
+}
+.cardDetails summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #3f4b45;
+  margin-bottom: 4px;
+}
+.cardDetails code {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
 }

@@ -32,7 +32,7 @@ interface DebugSpaceSectionProps {
   disabled?: boolean;
 }
 
-const KINDS: DebugEntryKind[] = ['investigation', 'fix_attempt', 'root_cause', 'blocked', 'resolved'];
+const KINDS: DebugEntryKind[] = ['root_cause', 'investigation', 'fix_attempt', 'blocked', 'resolved'];
 
 const KIND_CONFIG: Record<DebugEntryKind, { label: string; dot: string; color: string; bg: string }> = {
   investigation: {
@@ -100,6 +100,15 @@ function getInitials(name?: string | null): string {
 
 const AUTHOR_KEY = 'kanban_debug_author';
 const ROLE_KEY = 'kanban_debug_role';
+
+/** The person using the app (the name the header shows), used to prefill the author of a new entry. */
+function currentActor(): string {
+  try {
+    return localStorage.getItem('kanbanActor') ?? '';
+  } catch {
+    return '';
+  }
+}
 
 function readStored(key: string): string {
   try {
@@ -190,6 +199,19 @@ function EntryForm({
   const { projectId } = useAiBoardState();
   const noteAdapter = useMemo(() => textareaAdapter(() => noteRef.current), []);
   const noteAi = useEditorAi({ surface: 'debug_note', projectId, ticketId, adapter: noteAdapter });
+  /** Wraps the selection of the note (or a placeholder word) in Markdown, and keeps it selected. */
+  const wrapNote = (before: string, after: string, placeholder: string) => {
+    const el = noteRef.current;
+    const text = v.note;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const picked = text.slice(start, end) || placeholder;
+    set('note', text.slice(0, start) + before + picked + after + text.slice(end));
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(start + before.length, start + before.length + picked.length);
+    });
+  };
   const set = <K extends keyof EntryFormValues>(key: K, value: EntryFormValues[K]) =>
     setV((prev) => ({ ...prev, [key]: value }));
 
@@ -287,6 +309,63 @@ function EntryForm({
       )}
 
       <div className={styles.noteInputBox}>
+        {/* The compact Markdown toolbar of the Log entry form (Debug Space 2, comp-2 DS-3) */}
+        <div className={styles.noteToolbar} role="toolbar" aria-label="Formatting">
+          <button
+            type="button"
+            className={styles.noteToolBtn}
+            aria-label="Bold"
+            title="Bold"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapNote('**', '**', 'bold text')}
+          >
+            <span style={{ fontSize: 12, fontWeight: 800 }}>B</span>
+          </button>
+          <button
+            type="button"
+            className={styles.noteToolBtn}
+            aria-label="Italic"
+            title="Italic"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapNote('_', '_', 'italic text')}
+          >
+            <span style={{ fontSize: 12, fontStyle: 'italic', fontWeight: 600 }}>i</span>
+          </button>
+          <button
+            type="button"
+            className={styles.noteToolBtn}
+            aria-label="Code"
+            title="Code"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapNote('`', '`', 'code')}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M8 6L2 12L8 18" />
+              <path d="M16 6L22 12L16 18" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={styles.noteToolBtn}
+            aria-label="Link"
+            title="Link"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrapNote('[', '](https://)', 'link text')}
+          >
+            <LineIcon name="link" size={12} />
+          </button>
+          <span style={{ flexGrow: 1 }} />
+          <span className={styles.noteToolLabel}>Markdown</span>
+        </div>
         <textarea
           ref={noteRef}
           className={styles.noteTextarea}
@@ -302,7 +381,7 @@ function EntryForm({
               e.stopPropagation();
             }
           }}
-          placeholder="Write what you found, tried, or ran into… (Markdown supported)"
+          placeholder="Write what you found, tried, or ran into…"
           aria-label="Note"
           required
         />
@@ -515,7 +594,7 @@ export function DebugSpaceSection({
 
   const initialAdd: EntryFormValues = {
     kind: 'investigation',
-    author: readStored(AUTHOR_KEY),
+    author: readStored(AUTHOR_KEY) || currentActor(),
     role: ROLES.includes(readStored(ROLE_KEY)) ? readStored(ROLE_KEY) : 'Developer',
     note: '',
     linkedBranch: '',
@@ -593,7 +672,9 @@ export function DebugSpaceSection({
                 <span className={styles.dbgKindBadge} style={{ background: cfg.bg, color: cfg.color }}>
                   {cfg.label}
                 </span>
-                <span className={styles.pinText}>{pe.note.replace(/[#*`\n]/g, ' ')}</span>
+                <span className={styles.pinText}>
+                  <MarkdownRenderer inline>{pe.note.replace(/^#+\s*/gm, '').replace(/\n+/g, ' ')}</MarkdownRenderer>
+                </span>
                 <span className={styles.pinMeta}>
                   {pe.author} · {formatTimeAgo(pe.at)}
                 </span>

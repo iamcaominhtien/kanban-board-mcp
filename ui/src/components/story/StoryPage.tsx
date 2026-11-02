@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useOverrideDecision, useStory, useStoryAction } from '../../api/stories';
 import type { Ticket } from '../../types';
 import type { Decision, StoryDetail, StoryPlanItem, StoryView } from '../../types/story';
+import { useProject } from '../../api/projects';
 import { GiveStoryDialog } from './GiveStoryDialog';
 import { PlanEditor, PlanReviewCard } from './PlanReview';
 import { openStoryFlow } from './storyLinks';
@@ -40,6 +41,7 @@ interface StoryPageProps {
  */
 export function StoryPage({ ticket, allTickets = [], onClose, onOpenTicket, onOpenAsTicket }: StoryPageProps) {
   const query = useStory(ticket.id);
+  const project = useProject(ticket.projectId);
   const detail: StoryDetail = query.data ?? { ...fallbackStory(ticket, allTickets), decisions: [], children: [] };
   const story: StoryView = detail;
   const face = storyFace(story);
@@ -108,6 +110,10 @@ export function StoryPage({ ticket, allTickets = [], onClose, onOpenTicket, onOp
         aria-label={`Story ${story.id}`}
         data-testid="story-page"
       >
+        {/* E: the Story page says where it sits */}
+        <div className={styles.crumb} data-testid="story-crumb">
+          {project.data?.name ?? 'Project'} <span>›</span> Board <span>›</span> <b>{story.id}</b>
+        </div>
         <div className={styles.pageHead}>
           <span
             style={{
@@ -137,14 +143,18 @@ export function StoryPage({ ticket, allTickets = [], onClose, onOpenTicket, onOp
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <RoleBadge role="pm" size={26} title={pmName} />
             <div style={{ fontSize: 12, lineHeight: 1.3 }}>
-              <b>Run by {story.pm ? byWord(story.pm.name, pmName) : 'PM'}</b>
+              <b data-testid="story-pm">
+                {story.pm ? `Run by ${byWord(story.pm.name, pmName)}` : 'No PM in this project'}
+              </b>
               <br />
               <span style={{ color: '#5B6B60' }}>
-                {story.state === 'draft'
-                  ? 'not given to the PM yet'
-                  : started
-                    ? `${closed ? 'ran for' : 'started'} ${fmtSpan(started, closed ? story.closedAt : null, true)}${closed ? '' : ' ago'}`
-                    : 'planning'}
+                {!story.pm
+                  ? 'Make one from the PM pack in Settings › AI'
+                  : story.state === 'draft'
+                    ? 'not given to the PM yet'
+                    : started
+                      ? `${closed ? 'ran for' : 'started'} ${fmtSpan(started, closed ? story.closedAt : null, true)}${closed ? '' : ' ago'}`
+                      : 'planning'}
               </span>
             </div>
           </div>

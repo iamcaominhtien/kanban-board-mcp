@@ -285,177 +285,202 @@ export function IdeaSpace({
     );
   }
 
+  const switcher = <Switcher projects={projects} value={scope} counts={counts} onChange={(s) => setScope(s)} />;
+  const askButton = askAvailable && (
+    <button
+      type="button"
+      className="is-btn"
+      aria-pressed={askOpen}
+      onClick={() => setAskOpen(!askOpen)}
+      data-testid="ask-button"
+    >
+      <span aria-hidden="true">
+        <LineIcon name="sparkle" size={12} />
+      </span>{' '}
+      Ask
+    </button>
+  );
+  const newIdeaButton = (
+    <button type="button" className="is-btn is-btn-primary" onClick={newIdea} data-testid="new-idea">
+      <LineIcon name="plus" size={14} />
+      New idea <Kbd>C</Kbd>
+    </button>
+  );
+
+  // List / Stages / Matrix: in the Idea Space header, and in the Triage header too, so another view is one click away
+  const viewTabs = (
+    <div className="is-tabs" role="tablist" aria-label="View">
+      {(['list', 'stages', 'matrix'] as View[]).map((v) => (
+        <button
+          key={v}
+          type="button"
+          role="tab"
+          className="is-tab"
+          aria-selected={view === v && !triage}
+          onClick={() => {
+            setView(v);
+            setTriage(false);
+          }}
+        >
+          {v[0].toUpperCase() + v.slice(1)}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="is-root" data-testid="idea-space">
-      <div className="is-head">
-        <h1 className="is-title">
-          <BulbIcon size={20} /> Idea Space
-        </h1>
-        <Switcher projects={projects} value={scope} counts={counts} onChange={(s) => setScope(s)} />
-        <div className="is-tabs" role="tablist" aria-label="View">
-          {(['list', 'stages', 'matrix'] as View[]).map((v) => (
-            <button
-              key={v}
-              type="button"
-              role="tab"
-              className="is-tab"
-              aria-selected={view === v && !triage}
-              onClick={() => {
-                setView(v);
-                setTriage(false);
-              }}
-            >
-              {v[0].toUpperCase() + v.slice(1)}
-            </button>
-          ))}
-        </div>
-        <span className="is-grow" />
-        <div className="is-search">
-          <input
-            ref={searchRef}
-            className="is-input"
-            placeholder="Search ideas"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search ideas"
-          />
-          <Kbd>/</Kbd>
-        </div>
-        {askAvailable && (
-          <button
-            type="button"
-            className="is-btn"
-            aria-pressed={askOpen}
-            onClick={() => setAskOpen(!askOpen)}
-            data-testid="ask-button"
-          >
-            <span aria-hidden="true">
-              <LineIcon name="sparkle" size={12} />
-            </span>{' '}
-            Ask
+      {!triage && (
+        <div className="is-head">
+          <h1 className="is-title">
+            <BulbIcon size={20} /> Idea Space
+          </h1>
+          {switcher}
+          {viewTabs}
+          <span className="is-grow" />
+          <div className="is-search">
+            <input
+              ref={searchRef}
+              className="is-input"
+              placeholder="Search ideas"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search ideas"
+            />
+            <Kbd>/</Kbd>
+          </div>
+          {askButton}
+          <button type="button" className="is-btn" onClick={() => setTriage(true)} data-testid="inbox-button">
+            Inbox {inboxHere > 0 && <span className="is-count-pill is-count-pill-amber">{inboxHere}</span>}
           </button>
-        )}
-        <button type="button" className="is-btn" onClick={() => setTriage(true)} data-testid="inbox-button">
-          Inbox {inboxHere > 0 && <span className="is-count-pill">{inboxHere}</span>}
-        </button>
-        <button type="button" className="is-btn is-btn-primary" onClick={newIdea} data-testid="new-idea">
-          New idea <Kbd>C</Kbd>
-        </button>
-        <NotificationBellButton />
-      </div>
+          {newIdeaButton}
+          <NotificationBellButton />
+        </div>
+      )}
 
-      {triage ? (
-        <Triage
-          scope={scope.scope}
-          projectId={scope.projectId}
-          onOpenIdea={(id) => {
-            setTriage(false);
-            setOpenId(id);
-          }}
-          onOpenTicket={onOpenTicket}
-          onPromote={(i) => setPromoting(i)}
-          onBack={() => setTriage(false)}
-          onOpenSettings={onOpenSettings}
-        />
-      ) : (
-        <div className="is-body">
-          <DigestCard
-            projectId={scope.scope === 'project' ? (scope.projectId ?? null) : null}
-            onOpenInbox={() => setTriage(true)}
-            onOpenIdea={setOpenId}
+      <div className="is-main-row">
+        {triage ? (
+          <Triage
+            scope={scope.scope}
+            projectId={scope.projectId}
+            onOpenIdea={(id) => {
+              setTriage(false);
+              setOpenId(id);
+            }}
+            onOpenTicket={onOpenTicket}
+            onPromote={(i) => setPromoting(i)}
+            onBack={() => setTriage(false)}
+            onOpenSettings={onOpenSettings}
+            switcher={switcher}
+            views={viewTabs}
+            actions={
+              <>
+                {askButton}
+                {newIdeaButton}
+                <NotificationBellButton />
+              </>
+            }
           />
-          <div className="is-filters">
-            {view !== 'matrix' && <StageChips value={stage} onChange={setStage} counts={bucket} />}
-            <span className="is-grow" />
-            <select
-              className="is-select"
-              value={source}
-              onChange={(e) => setSource(e.target.value as IdeaSource | '')}
-              aria-label="Source"
-            >
-              <option value="">Source: all</option>
-              {(['manual', 'doc', 'comment', 'ticket', 'picture', 'ai', 'import'] as IdeaSource[]).map((s) => (
-                <option key={s} value={s}>
-                  {s === 'ai' ? 'AI suggested' : s[0].toUpperCase() + s.slice(1)}
-                </option>
-              ))}
-            </select>
-            <select className="is-select" value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag">
-              <option value="">Tag: all</option>
-              {allTags.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            {view === 'list' && (
+        ) : (
+          <div className="is-body">
+            <DigestCard
+              projectId={scope.scope === 'project' ? (scope.projectId ?? null) : null}
+              onOpenInbox={() => setTriage(true)}
+              onOpenIdea={setOpenId}
+            />
+            <div className="is-filters">
+              {view !== 'matrix' && <StageChips value={stage} onChange={setStage} counts={bucket} />}
+              <span className="is-grow" />
               <select
                 className="is-select"
-                value={sort}
-                onChange={(e) => setSort(e.target.value as typeof sort)}
-                aria-label="Sort"
+                value={source}
+                onChange={(e) => setSource(e.target.value as IdeaSource | '')}
+                aria-label="Source"
               >
-                <option value="readiness">Sort: readiness</option>
-                <option value="updated">Sort: updated</option>
-                <option value="created">Sort: newest</option>
-                <option value="votes">Sort: demand</option>
-                <option value="title">Sort: title</option>
+                <option value="">Source: all</option>
+                {(['manual', 'doc', 'comment', 'ticket', 'picture', 'ai', 'import'] as IdeaSource[]).map((s) => (
+                  <option key={s} value={s}>
+                    {s === 'ai' ? 'AI suggested' : s[0].toUpperCase() + s.slice(1)}
+                  </option>
+                ))}
               </select>
-            )}
-          </div>
-          {list.isError ? (
-            <div className="is-empty">
-              <h3>Could not load the ideas</h3>
-              <button type="button" className="is-btn" onClick={() => list.refetch()}>
-                Try again
-              </button>
+              <select className="is-select" value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag">
+                <option value="">Tag: all</option>
+                {allTags.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              {view === 'list' && (
+                <select
+                  className="is-select"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as typeof sort)}
+                  aria-label="Sort"
+                >
+                  <option value="readiness">Sort: readiness</option>
+                  <option value="updated">Sort: updated</option>
+                  <option value="created">Sort: newest</option>
+                  <option value="votes">Sort: demand</option>
+                  <option value="title">Sort: title</option>
+                </select>
+              )}
             </div>
-          ) : view === 'list' ? (
-            <IdeaList
-              ideas={ideas}
-              scope={scope.scope}
-              projects={projects}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              onOpen={setOpenId}
-              onOpenTicket={onOpenTicket}
-              filtered={!!debounced || !!source || !!tag || stage !== 'active'}
-              emptyAction={
-                <button type="button" className="is-btn is-btn-primary" onClick={newIdea}>
-                  New idea
+            {list.isError ? (
+              <div className="is-empty">
+                <h3>Could not load the ideas</h3>
+                <button type="button" className="is-btn" onClick={() => list.refetch()}>
+                  Try again
                 </button>
-              }
-            />
-          ) : view === 'stages' ? (
-            <IdeaStages
-              ideas={ideas}
-              showArchived={stage === 'archived'}
-              onOpen={setOpenId}
-              onMove={(i, to) => moves.request(i, to)}
-            />
-          ) : (
-            <IdeaMatrix ideas={ideas} onOpen={setOpenId} />
-          )}
-          <div className="is-muted" style={{ marginTop: 12 }}>
-            {bucket
-              ? `${bucket.active} active ${bucket.active === 1 ? 'idea' : 'ideas'} · the ${inboxHere} in the Inbox are not counted`
-              : ''}
+              </div>
+            ) : view === 'list' ? (
+              <IdeaList
+                ideas={ideas}
+                scope={scope.scope}
+                projects={projects}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onOpen={setOpenId}
+                onOpenTicket={onOpenTicket}
+                filtered={!!debounced || !!source || !!tag || stage !== 'active'}
+                emptyAction={
+                  <button type="button" className="is-btn is-btn-primary" onClick={newIdea}>
+                    New idea
+                  </button>
+                }
+              />
+            ) : view === 'stages' ? (
+              <IdeaStages
+                ideas={ideas}
+                showArchived={stage === 'archived'}
+                onOpen={setOpenId}
+                onMove={(i, to) => moves.request(i, to)}
+              />
+            ) : (
+              <IdeaMatrix ideas={ideas} onOpen={setOpenId} />
+            )}
+            <div className="is-muted" style={{ marginTop: 12 }}>
+              {bucket
+                ? `${bucket.active} active ${bucket.active === 1 ? 'idea' : 'ideas'} · the ${inboxHere} in the Inbox are not counted`
+                : ''}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        {askOpen && (
+          <AskPanel
+            projectId={scope.scope === 'project' ? scope.projectId : undefined}
+            scope={scope.scope}
+            onClose={() => setAskOpen(false)}
+            onOpenIdea={(id) => {
+              setAskOpen(false);
+              setOpenId(id);
+            }}
+            onOpenSettings={onOpenSettings}
+          />
+        )}
+      </div>
       {moves.dialogs}
-      {askOpen && (
-        <AskPanel
-          projectId={scope.scope === 'project' ? scope.projectId : undefined}
-          scope={scope.scope}
-          onClose={() => setAskOpen(false)}
-          onOpenIdea={(id) => {
-            setAskOpen(false);
-            setOpenId(id);
-          }}
-          onOpenSettings={onOpenSettings}
-        />
-      )}
       {promoting && (
         <PromoteDialog
           idea={promoting}

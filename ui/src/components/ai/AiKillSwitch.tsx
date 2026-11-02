@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import { aiApi, useAiMutation } from '../../api/ai';
 import { useResumeInfo } from '../../api/aiSafety';
+import { useProject } from '../../api/projects';
+import { LineIcon } from '../ui/LineIcon';
 import { extractError } from '../../api/extractError';
 import type { AiMember, AiSettings } from '../../types/ai';
 import { useToast } from '../Toast';
 import { useAiBoardState } from './aiUi';
 import { ACTION_LABEL, RESULT_STYLE, dateTime, usd } from './aiSafetyUi';
 import { AiAvatar } from './aiUi';
-import { PAUSE_COLOR, PauseGlyph, agoText, canResume, clockTime, pausedSummary } from './pausedUi';
+import { PAUSE_COLOR, PauseGlyph, agoText, canResume, clockTime, pausedByLine, pausedSummary } from './pausedUi';
 import type { ResumeInfo } from '../../api/aiSafety';
 
 /** Kill switch and containment (design/screens/ai-safety-cost.md, D1 to D5). */
@@ -62,16 +64,38 @@ export function PauseAllButton({
       {settings.safeMode && <SafeModeChip />}
       {settings.pausedAll ? (
         <span className="ai-pausebar" data-testid="ai-paused-bar">
-          <span
-            className={`ai-pausebar-label ${mayResume ? '' : 'ai-pausebar-solo'}`}
-            tabIndex={0}
-            title={pausedSummary(settings)}
-            aria-label={`AI paused${since ? ` since ${since}` : ''}. ${pausedSummary(settings)}`}
-            data-testid="ai-paused-label"
-          >
-            <PauseGlyph />
-            AI paused
-            {since && <span className="ai-pausebar-since">since {since}</span>}
+          {/* B1: hover or focus on the label shows the card (who, when, the counts, the reason) */}
+          <span className="ai-pausebar-wrap">
+            <span
+              className={`ai-pausebar-label ${mayResume ? '' : 'ai-pausebar-solo'}`}
+              tabIndex={0}
+              aria-label={`AI paused${since ? ` since ${since}` : ''}. ${pausedSummary(settings)}`}
+              aria-describedby="ai-paused-card"
+              data-testid="ai-paused-label"
+            >
+              <PauseGlyph />
+              AI paused
+              {since && <span className="ai-pausebar-since">since {since}</span>}
+            </span>
+            <span className="ai-pausebar-card" id="ai-paused-card" role="tooltip" data-testid="ai-paused-card">
+              <b>{pausedByLine(settings)}</b>
+              {(settings.pausedCancelled ?? 0) + (settings.pausedHeld ?? 0) > 0 && (
+                <span>
+                  {[
+                    settings.pausedCancelled
+                      ? `${settings.pausedCancelled} run${settings.pausedCancelled === 1 ? '' : 's'} cancelled`
+                      : '',
+                    settings.pausedHeld
+                      ? `${settings.pausedHeld} queued run${settings.pausedHeld === 1 ? '' : 's'} held`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              )}
+              {settings.pausedReason && <span className="ai-pausebar-reason">“{settings.pausedReason}”</span>}
+              <span className="ai-pausebar-note">Nothing new starts until an owner or admin resumes.</span>
+            </span>
           </span>
           {mayResume && (
             <button
@@ -325,6 +349,7 @@ function ResumeAllDialog({
   onClose: () => void;
 }) {
   const info = useResumeInfo(projectId);
+  const project = useProject(projectId);
   const [reviewed, setReviewed] = useState(false);
   const [safe, setSafe] = useState(true);
   const [showActions, setShowActions] = useState(false);
@@ -382,8 +407,18 @@ function ResumeAllDialog({
         role="dialog"
         aria-label="Resume AI"
       >
-        <div className="ai-modal-head">
-          <h2 className="ai-modal-title">Resume AI</h2>
+        <div className="ai-modal-head" style={{ position: 'relative', paddingRight: 52 }}>
+          <button
+            type="button"
+            className="ai-icobtn ai-modal-x"
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+            data-testid="resume-close"
+          >
+            <LineIcon name="close" size={15} />
+          </button>
+          <h2 className="ai-modal-title">Resume AI{project.data?.name ? ` in ${project.data.name}` : ''}</h2>
         </div>
         <div className="ai-modal-body" style={{ maxHeight: '70vh', overflow: 'auto' }}>
           <label
@@ -445,12 +480,17 @@ function ResumeAllDialog({
             <span
               className="ai-chip"
               style={{
-                alignSelf: 'flex-start',
+                alignSelf: 'stretch',
+                justifyContent: 'flex-start',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: 8,
                 background: d.budgetsOk ? '#F1F8F3' : '#FDF0E6',
                 color: d.budgetsOk ? '#2E6F40' : '#B4571F',
               }}
               data-testid="resume-budget"
             >
+              <LineIcon name={d.budgetsOk ? 'check' : 'info'} size={14} strokeWidth={2.2} />
               {d.budgetsOk ? 'Budget is fine' : 'A budget is used up'}: {usd(d.spentToday)} of{' '}
               {d.dailyCap != null ? usd(d.dailyCap) : 'no cap'} today
             </span>
@@ -471,7 +511,9 @@ function ResumeAllDialog({
                 onClick={() => setSafe(true)}
               >
                 <span className={`ai-radio ${safe ? 'ai-radio-on' : ''}`} /> Safe mode first
-                <span className="ai-muted">(read and comment only)</span>
+                <span className="ai-muted" style={{ whiteSpace: 'nowrap' }}>
+                  (read and comment only)
+                </span>
               </button>
             </div>
             <span className="ai-hint" data-testid="resume-safe-hint">
@@ -556,8 +598,17 @@ function ResumeAllDialog({
             data-testid="resume-confirm"
             onClick={async () => {
               try {
-                await resume.mutateAsync(undefined);
-                toast.success('AI resumed', safe ? 'In safe mode: read and comment only.' : undefined);
+                const out = (await resume.mutateAsync(undefined)) as { resumed?: number } | undefined;
+                const n = typeof out?.resumed === 'number' ? out.resumed : picked.length;
+                const started = `${n} AI member${n === 1 ? '' : 's'} started again`;
+                const heldText = heldStarting.length
+                  ? `, ${heldStarting.length} held run${heldStarting.length === 1 ? '' : 's'} starting in order`
+                  : '';
+                toast.success(
+                  'AI resumed',
+                  `${started}${heldText}.${safe ? ' In safe mode: read and comment only.' : ''}`,
+                  6000,
+                );
                 onClose();
               } catch (err) {
                 const detail = (err as { response?: { data?: { detail?: Record<string, unknown> | string } } })

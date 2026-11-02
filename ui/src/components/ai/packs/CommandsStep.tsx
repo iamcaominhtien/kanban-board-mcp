@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useScanJob } from '../../../api/aiPacks';
 import { extractError } from '../../../api/extractError';
 import type { CheckName, CommandName, EnvFolder, Scan } from '../../../types/aiPacks';
@@ -63,6 +64,7 @@ export function CommandsStep({
   onBack,
   onContinue,
   onRecheck,
+  footSlot,
 }: {
   scan: Scan;
   draft: Draft;
@@ -71,6 +73,8 @@ export function CommandsStep({
   setLook: (l: CmdLook) => void;
   onBack: () => void;
   onContinue: () => void;
+  /** The wizard's footer: when given, the action row is drawn there (one footer row, design B–D). */
+  footSlot?: HTMLElement | null;
   onRecheck: () => void;
 }) {
   const { startAi, tryCommands, cancel } = useScanJob();
@@ -541,7 +545,7 @@ export function CommandsStep({
         />
       )}
       {errLine}
-      <div className="pk-bar-actions">{actions}</div>
+      {footSlot ? createPortal(<>{actions}</>, footSlot) : <div className="pk-bar-actions">{actions}</div>}
     </div>
   );
 }

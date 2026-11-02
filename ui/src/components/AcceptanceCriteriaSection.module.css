@@ -47,7 +47,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 1px;
+  /* centred on the first text line (13 px / 1.4 + 1 px top padding) */
+  margin-top: 2px;
   flex-shrink: 0;
 }
 
@@ -61,7 +62,7 @@
 }
 
 .checkboxBtn:hover .uncheckedSquare {
-  border-color: #2e6f40;
+  border-color: var(--color-forest);
 }
 
 .checkedCircle {
@@ -115,7 +116,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   flex-shrink: 0;
   transition:
     background-color 0.15s ease,
@@ -150,8 +151,8 @@
 }
 
 .addDashedBtn:hover {
-  border-color: #2e6f40;
-  color: #2e6f40;
+  border-color: var(--color-forest);
+  color: var(--color-forest);
 }
 
 /* Inline Input Box */
@@ -160,7 +161,7 @@
   align-items: center;
   gap: 9px;
   padding: 5px 8px;
-  border: 1px solid #2e6f40;
+  border: 1px solid var(--color-forest);
   border-radius: 6px;
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
   background: #ffffff;
@@ -172,7 +173,7 @@
   outline: none;
   font-family: inherit;
   font-size: 13px;
-  color: #1e2a22;
+  color: var(--color-text-pri);
   background: none;
 }
 
@@ -194,7 +195,7 @@
 
 .actionBtnCancel:hover {
   background: #eef3ef;
-  color: #5b6b60;
+  color: var(--color-text-sec);
 }
 
 .actionBtnSave {
@@ -202,7 +203,7 @@
   height: 20px;
   border-radius: 5px;
   border: none;
-  background: #2e6f40;
+  background: var(--color-forest);
   display: flex;
   align-items: center;
   justify-content: center;

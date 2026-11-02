@@ -45,6 +45,7 @@ function VerdictChip({ v }: { v: Verdict | null }) {
 
 function summary(h: Health): string {
   if (!h.canJudge) {
+    if (h.runs === 0) return 'No runs in this range yet. The numbers show, the verdict waits for 10 runs.';
     return `Only ${h.runs} run${h.runs === 1 ? '' : 's'} in this range. The numbers show, the verdict waits for 10 runs.`;
   }
   const m = h.measures;
@@ -295,6 +296,7 @@ export function HealthTab({
     return <div className="at-hint">{q.isError ? "Couldn't load the health page." : 'Working out the numbers…'}</div>;
   const m = h.measures;
   const pct = (v: number | null) => (v == null ? '–' : `${Math.round(v * 100)}%`);
+  const unknown = h.state === 'unknown';
   const bannerClass = h.state === 'good' ? 'good' : h.state === 'fix' ? 'fix' : h.state === 'unknown' ? 'unknown' : '';
   const rest = h.runs < 20 && h.canJudge ? ' Too few runs to be sure about a change.' : '';
   const maxNotOk = Math.max(...h.notOk.map((x) => x.count), 1);
@@ -305,15 +307,25 @@ export function HealthTab({
       <div className={`at-banner ${bannerClass}`} data-testid="health-banner">
         <span
           className="at-banner-ico"
-          style={{ borderColor: h.state === 'good' ? '#2E6F40' : h.state === 'fix' ? '#C4432A' : undefined }}
+          style={{
+            borderColor:
+              h.state === 'good' ? '#2E6F40' : h.state === 'fix' ? '#C4432A' : unknown ? '#C9DDF0' : undefined,
+          }}
         >
-          <Icon color={h.state === 'good' ? '#2E6F40' : h.state === 'fix' ? '#C4432A' : '#B8860B'} size={22}>
-            {h.state === 'good' ? ICONS.check : <path d="M12 4l9 16H3L12 4zM12 10v4M12 17v.5" />}
-          </Icon>
+          {unknown ? (
+            // Too few runs (or none) is information, not a warning: the design's blue (i) banner
+            <Icon color="#244E78" size={22}>
+              {ICONS.info}
+            </Icon>
+          ) : (
+            <Icon color={h.state === 'good' ? '#2E6F40' : h.state === 'fix' ? '#C4432A' : '#B8860B'} size={22}>
+              {h.state === 'good' ? ICONS.check : <path d="M12 4l9 16H3L12 4zM12 10v4M12 17v.5" />}
+            </Icon>
+          )}
         </span>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <b style={{ fontSize: 18 }}>
+            <b style={{ fontSize: 18, color: unknown ? '#244E78' : undefined }}>
               {h.runs === 0 ? `No AI work between ${dayPart} and ${endPart}` : STATE_TITLE[h.state]}
             </b>
             <span className="at-hint">
@@ -337,8 +349,6 @@ export function HealthTab({
         )}
       </div>
 
-      <WorkflowMetrics projectId={projectId} />
-      <MarksPanel projectId={projectId} />
       <div className="at-measures">
         <Tile
           name="Reliability"
@@ -381,15 +391,6 @@ export function HealthTab({
           hint={`${m.cost.perTicket != null ? `${fmtUsd(m.cost.perTicket)} per ticket on priced runs. ` : ''}${m.cost.tokensOnly ? `${m.cost.tokensOnly} runs report tokens only. ` : ''}${m.cost.cap ? `${Math.round((m.cost.capShare ?? 0) * 100)}% of the ${fmtUsd(m.cost.cap)} cap` : 'No monthly cap set'}`}
         />
       </div>
-
-      {h.stories && (
-        <StoryAutonomy
-          projectId={projectId}
-          stories={h.stories}
-          onOpenStepped={() => actions.onOpenStepped?.()}
-          onOpenStory={(id) => (actions.onOpenStory ? actions.onOpenStory(id) : actions.onOpenTicket(id))}
-        />
-      )}
 
       <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
         <b style={{ fontSize: 14, flex: 1 }}>Each AI</b>
@@ -471,37 +472,41 @@ export function HealthTab({
           )}
         </div>
         <div className="at-box" style={{ width: 300, flexShrink: 0 }}>
-          <b style={{ fontSize: 13.5, display: 'block', marginBottom: 6 }}>
-            Why {h.notOkTotal} run{h.notOkTotal === 1 ? '' : 's'} did not finish OK
-          </b>
-          {h.notOk.length === 0 && <div className="at-hint">Every run in this range finished OK.</div>}
-          {h.notOk.map((x) => (
-            <button
-              key={x.label}
-              type="button"
-              className="at-barrow"
-              style={{
-                gridTemplateColumns: '130px 1fr 22px',
-                width: '100%',
-                background: 'none',
-                border: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                font: 'inherit',
-              }}
-              onClick={() => x.ticketIds[0] && actions.onOpenTicket(x.ticketIds[0])}
-              title="Open the first ticket behind this"
-            >
-              <span>{x.label}</span>
-              <div className="at-bar" style={{ height: 8 }}>
-                <i style={{ width: `${(x.count / maxNotOk) * 100}%`, background: '#C4432A' }} />
+          {h.runs > 0 && (
+            <>
+              <b style={{ fontSize: 13.5, display: 'block', marginBottom: 6 }}>
+                Why {h.notOkTotal} run{h.notOkTotal === 1 ? '' : 's'} did not finish OK
+              </b>
+              {h.notOk.length === 0 && <div className="at-hint">Every run in this range finished OK.</div>}
+              {h.notOk.map((x) => (
+                <button
+                  key={x.label}
+                  type="button"
+                  className="at-barrow"
+                  style={{
+                    gridTemplateColumns: '130px 1fr 22px',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    font: 'inherit',
+                  }}
+                  onClick={() => x.ticketIds[0] && actions.onOpenTicket(x.ticketIds[0])}
+                  title="Open the first ticket behind this"
+                >
+                  <span>{x.label}</span>
+                  <div className="at-bar" style={{ height: 8 }}>
+                    <i style={{ width: `${(x.count / maxNotOk) * 100}%`, background: '#C4432A' }} />
+                  </div>
+                  <b style={{ textAlign: 'right' }}>{x.count}</b>
+                </button>
+              ))}
+              <div className="at-hint-sm" style={{ marginTop: 8 }}>
+                Each bar opens a ticket behind it.
               </div>
-              <b style={{ textAlign: 'right' }}>{x.count}</b>
-            </button>
-          ))}
-          <div className="at-hint-sm" style={{ marginTop: 8 }}>
-            Each bar opens a ticket behind it.
-          </div>
+            </>
+          )}
           <div className="at-hint-sm" style={{ marginTop: 12, lineHeight: 1.5 }}>
             <b>Not enough to judge yet?</b>
             <br />
@@ -510,6 +515,18 @@ export function HealthTab({
           </div>
         </div>
       </div>
+
+      {/* The extensions (ai-team-process, ai-board-wave3) come after the design's own sections */}
+      {h.stories && (
+        <StoryAutonomy
+          projectId={projectId}
+          stories={h.stories}
+          onOpenStepped={() => actions.onOpenStepped?.()}
+          onOpenStory={(id) => (actions.onOpenStory ? actions.onOpenStory(id) : actions.onOpenTicket(id))}
+        />
+      )}
+      <WorkflowMetrics projectId={projectId} />
+      <MarksPanel projectId={projectId} />
     </>
   );
 }

@@ -11,7 +11,15 @@ import { AiFillPanel, type AiFilled } from './AiFillPanel';
 import { AccountPicker } from './accounts/AccountPicker';
 import { AccountNote } from './accounts/AccountBanner';
 import { GreyChip, NotReadyChip } from './accounts/AccountChip';
-import { accountReady, accountsFor, runsNotReady, typeChip, usesAccounts } from '../../utils/memberAccount';
+import {
+  CLI_OF_PROVIDER,
+  accountReady,
+  accountsFor,
+  runsNotReady,
+  typeChip,
+  usesAccounts,
+} from '../../utils/memberAccount';
+import { AccountBadge } from './accounts/AccountParts';
 import { LineIcon } from '../ui/LineIcon';
 
 interface MemberPreset {
@@ -387,7 +395,17 @@ export function AddAiMemberModal({
   return (
     <div className="ai-overlay" onClick={onClose}>
       <div className="ai-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add AI member">
-        <div className="ai-modal-head">
+        <div className="ai-modal-head" style={{ position: 'relative', paddingRight: 52 }}>
+          <button
+            type="button"
+            className="ai-icobtn ai-modal-x"
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+            data-testid="ai-add-close"
+          >
+            <LineIcon name="close" size={15} />
+          </button>
           <h2 className="ai-modal-title">
             {step === 2 && local
               ? `Connect ${spec.label}`
@@ -408,11 +426,16 @@ export function AddAiMemberModal({
                 <span key={t} style={{ display: 'contents' }}>
                   <span
                     className={`ai-step ${step === i + 1 ? 'ai-step-active' : ''} ${step > i + 1 ? 'ai-step-done' : ''}`}
+                    aria-current={step === i + 1 ? 'step' : undefined}
                   >
-                    <span className="ai-step-n">{step > i + 1 ? <LineIcon name="check" size={12} /> : i + 1}</span>
-                    {step === i + 1 && t}
+                    <span className="ai-step-n">
+                      {step > i + 1 ? <LineIcon name="check" size={12} strokeWidth={2.4} /> : i + 1}
+                    </span>
+                    {t}
                   </span>
-                  {i < titles.length - 1 && <span className="ai-step-line" />}
+                  {i < titles.length - 1 && (
+                    <span className={`ai-step-line ${step > i + 1 ? 'ai-step-line-done' : ''}`} />
+                  )}
                 </span>
               ))}
             </div>
@@ -486,10 +509,11 @@ export function AddAiMemberModal({
               )}
               {detect && detect.found && (
                 <>
-                  <dl className="ai-kv">
+                  <dl className="ai-kv ai-kv-lines">
                     <dt>CLI found</dt>
                     <dd className="ai-mono" style={{ fontSize: 12 }}>
                       {detect.path}
+                      <LineIcon name="check" size={14} strokeWidth={2} color="#2E6F40" className="ai-kv-ok" />
                     </dd>
                     <dt>Version</dt>
                     <dd data-testid="cli-version">
@@ -497,6 +521,9 @@ export function AddAiMemberModal({
                       {detect.upToDate === true && ' (latest)'}
                       {detect.upToDate === false && detect.latestVersion && (
                         <span style={{ color: '#B4571F' }}> · {detect.latestVersion} is available</span>
+                      )}
+                      {detect.version && detect.upToDate !== false && (
+                        <LineIcon name="check" size={14} strokeWidth={2} color="#2E6F40" className="ai-kv-ok" />
                       )}
                     </dd>
                     <dt>Signed in as</dt>
@@ -552,14 +579,18 @@ export function AddAiMemberModal({
                   </div>
                   <div className="ai-field">
                     <span className="ai-label ai-label-dark">Working folder</span>
-                    <input
-                      className={`ai-input ai-mono ${folderError && (folderTouched || attempted) ? 'ai-input-error' : ''}`}
-                      value={workingDir}
-                      onChange={(e) => setWorkingDir(e.target.value)}
-                      onBlur={() => setFolderTouched(true)}
-                      placeholder="~/dev/kanban-board"
-                      data-testid="ai-working-dir"
-                    />
+                    <span className="ai-input-icon">
+                      <LineIcon name="folder" size={14} color="#5B6B60" />
+                      <input
+                        className={`ai-input ai-mono ${folderError && (folderTouched || attempted) ? 'ai-input-error' : ''}`}
+                        value={workingDir}
+                        onChange={(e) => setWorkingDir(e.target.value)}
+                        onBlur={() => setFolderTouched(true)}
+                        placeholder="~/dev/kanban-board"
+                        aria-label="Working folder"
+                        data-testid="ai-working-dir"
+                      />
+                    </span>
                     {folderError && (folderTouched || attempted) ? (
                       <span className="ai-error-text">{folderError}</span>
                     ) : (
@@ -590,7 +621,7 @@ export function AddAiMemberModal({
                   {provider === 'claude-code' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <button type="button" className="ai-btn" onClick={runTest} disabled={testing}>
-                        {testing ? <span className="ai-spin" /> : <PlayIcon />} Run test
+                        {testing ? <span className="ai-spin" /> : <LineIcon name="bolt" size={13} />} Run test
                       </button>
                       {testRun && (
                         <span className={testRun.ok ? 'ai-ok-text' : 'ai-error-text'} data-testid="ai-test-result">
@@ -1078,7 +1109,7 @@ export function AddAiMemberModal({
             <>
               {step > 1 && (
                 <button type="button" className="ai-btn" onClick={() => setStep(step - 1)}>
-                  Back
+                  <LineIcon name="chevronLeft" size={13} /> Back
                 </button>
               )}
               <span style={{ flex: 1 }} />
@@ -1140,8 +1171,12 @@ function Group({
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700 }}>{title}</span>
-        <span className="ai-label">{tag}</span>
+        <span className="ai-label ai-label-dark" style={{ fontSize: 11 }}>
+          {title}
+        </span>
+        <span className="ai-label" style={{ fontWeight: 500 }}>
+          {tag}
+        </span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 8 }}>{children}</div>
     </div>
@@ -1175,14 +1210,65 @@ function TypeOption({
       style={wide ? { gridColumn: '1 / -1' } : undefined}
       data-testid={`ai-type-${p}`}
     >
-      <AiAvatar provider={p} size={30} />
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: chip ? 1 : undefined, textAlign: 'left' }}>
+      {CLI_OF_PROVIDER[p] ? (
+        <AccountBadge cli={CLI_OF_PROVIDER[p]!} label={PROVIDERS[p].label} size={30} />
+      ) : p === 'mcp-client' ? (
+        <span
+          aria-hidden="true"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            background: '#5B6B6024',
+            color: '#5B6B60',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M4 13l2.5-7h11L20 13M4 13v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5M4 13h4.5l1 2h5l1-2H20" />
+          </svg>
+        </span>
+      ) : (
+        <AiAvatar provider={p} size={30} />
+      )}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, textAlign: 'left' }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>{PROVIDERS[p].label}</span>
         <span className="ai-muted" style={{ fontSize: 11.5 }}>
           {sub ?? PROVIDERS[p].sub}
         </span>
       </span>
       {chip}
+      {active && (
+        <span
+          aria-hidden="true"
+          data-testid={`ai-type-check-${p}`}
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            background: '#2E6F40',
+            color: '#fff',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <LineIcon name="check" size={11} strokeWidth={2.6} />
+        </span>
+      )}
     </button>
   );
 }
@@ -1268,14 +1354,6 @@ export function ShieldIcon() {
     >
       <path d="M12 3L20 6V12C20 16.5 16.5 20 12 21C7.5 20 4 16.5 4 12V6Z" />
       <path d="M9 12L11 14L15 10" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M7 4L20 12L7 20Z" />
     </svg>
   );
 }

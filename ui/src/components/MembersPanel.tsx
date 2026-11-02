@@ -1,4 +1,5 @@
 import { displayStatus } from '../utils/memberAccount';
+import { MenuSelect } from './ui/MenuSelect';
 import { extractError } from '../api/extractError';
 import { useState } from 'react';
 import type { AxiosError } from 'axios';
@@ -53,7 +54,8 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_MEMBER_COLORS[0]);
   const [addError, setAddError] = useState<string | null>(null);
-  const [removeError, setRemoveError] = useState<string | null>(null);
+  // the blocked remove message sits under the row it belongs to (design: members-view 4)
+  const [removeError, setRemoveError] = useState<{ id: string; message: string } | null>(null);
 
   const addMemberMutation = useAddMember(projectId);
   const removeMemberMutation = useRemoveMember(projectId);
@@ -68,8 +70,11 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
       await addMemberMutation.mutateAsync({ name, color: newColor });
       setNewName('');
     } catch (err) {
-      // 409: names are unique across people and AI in a project, so @mentions never point at two members
-      setAddError(extractError(err) || 'Failed to add member. Please try again.');
+      // Any 4xx carries the server's sentence (409: names are unique across people and AI in a project; 422: "Enter a
+      // name."). Network errors and 5xx get the generic text.
+      const status = (err as AxiosError)?.response?.status;
+      const fromServer = status !== undefined && status >= 400 && status < 500 ? extractError(err) : '';
+      setAddError(fromServer || 'Failed to add member. Please try again.');
     }
   }
 
@@ -79,7 +84,10 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
       await removeMemberMutation.mutateAsync(memberId);
     } catch (err: unknown) {
       const detail = (err as AxiosError<{ detail: string }>)?.response?.data?.detail;
-      setRemoveError(detail ?? 'Failed to remove member. If assigned to open tickets, reassign first.');
+      setRemoveError({
+        id: memberId,
+        message: detail ?? 'Failed to remove member. If assigned to open tickets, reassign first.',
+      });
     }
   }
 
@@ -172,7 +180,7 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                 </div>
                 <button
                   type="button"
-                  className="ai-btn ai-btn-sm"
+                  className="ai-link"
                   onClick={() => setPicker(true)}
                   data-testid="members-board-ai-change"
                 >
@@ -209,34 +217,25 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                 <ConnectionChip connection={m.connection} />
               </button>
             ))}
-            {aiMembers.length > 4 && (
-              <button
-                type="button"
-                className="ai-link"
-                style={{ alignSelf: 'flex-start' }}
-                onClick={() => onOpenAiPage?.()}
-                data-testid="members-more"
-              >
-                +{aiMembers.length - 4} more
-              </button>
-            )}
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm"
-                onClick={() => onOpenAiPage?.()}
-                data-testid="open-ai-page"
-              >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+              {aiMembers.length > 4 && (
+                <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="members-more">
+                  +{aiMembers.length - 4} more
+                </button>
+              )}
+              <span style={{ flex: 1 }} />
+              <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="open-ai-page">
                 Open AI members page →
               </button>
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm ai-btn-primary"
-                onClick={() => onOpenAiPage?.({ add: true })}
-              >
-                + Add AI member
-              </button>
             </div>
+            <button
+              type="button"
+              className="ai-btn ai-btn-primary"
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => onOpenAiPage?.({ add: true })}
+            >
+              + Add AI member
+            </button>
           </div>
         )}
 
@@ -255,35 +254,33 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
             {members.map((m, idx) => (
               <div key={m.id}>
                 <div className={styles.memberRow}>
-                  <div className={styles.avatar} style={{ background: m.color || '#2E6F40' }}>
+                  <div
+                    className={styles.avatar}
+                    style={{
+                      background: `${m.color || '#2E6F40'}22`,
+                      color: m.color || '#2E6F40',
+                      border: `1.5px solid ${m.color || '#2E6F40'}`,
+                    }}
+                  >
                     {memberInitials(m.name)}
                   </div>
                   <span className={styles.memberName}>{m.name}</span>
-                  <select
-                    aria-label={`Docs role of ${m.name}`}
-                    title="Docs comments: viewers read, members comment and resolve, admins can delete any comment"
-                    data-testid={`member-role-${m.name}`}
+                  <MenuSelect<'viewer' | 'member' | 'admin'>
+                    label={`Docs role of ${m.name}`}
+                    testId={`member-role-${m.name}`}
+                    variant="chip"
                     value={m.role ?? 'member'}
-                    onChange={(e) =>
-                      setRole.mutate({ memberId: m.id, role: e.target.value as 'viewer' | 'member' | 'admin' })
-                    }
-                    style={{
-                      font: 'inherit',
-                      fontSize: 12,
-                      border: '1px solid #dce6df',
-                      borderRadius: 6,
-                      padding: '2px 4px',
-                      background: '#fff',
-                      color: '#3a4a3e',
-                    }}
-                  >
-                    <option value="viewer">Viewer</option>
-                    <option value="member">Member</option>
-                    <option value="admin">Admin</option>
-                  </select>
+                    menuWidth={230}
+                    onChange={(role) => setRole.mutate({ memberId: m.id, role })}
+                    options={[
+                      { value: 'viewer', label: 'Viewer', hint: 'Reads docs comments' },
+                      { value: 'member', label: 'Member', hint: 'Comments and resolves' },
+                      { value: 'admin', label: 'Admin', hint: 'Can delete any comment' },
+                    ]}
+                  />
                   <button
                     type="button"
-                    className={styles.removeBtn}
+                    className={`${styles.removeBtn} ${removeError?.id === m.id ? styles.removeBtnBlocked : ''}`}
                     onClick={() => handleRemove(m.id)}
                     aria-label={`Remove ${m.name}`}
                   >
@@ -300,14 +297,17 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                     </svg>
                   </button>
                 </div>
+                {removeError?.id === m.id && (
+                  <div className={styles.rowError} role="alert" data-testid="member-remove-error">
+                    {removeError.message}
+                  </div>
+                )}
                 {idx < members.length - 1 && <div className={styles.rowDivider} />}
               </div>
             ))}
 
             {members.length === 0 && <div className={styles.emptyState}>No members yet.</div>}
           </div>
-
-          {removeError && <div className={styles.errorText}>{removeError}</div>}
 
           <div className={styles.sectionDivider} />
 

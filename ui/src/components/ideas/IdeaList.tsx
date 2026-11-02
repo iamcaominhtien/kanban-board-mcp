@@ -5,7 +5,8 @@ import { STAGE_LABELS } from '../../types/idea';
 import { relativeTime } from '../../utils/relativeTime';
 import type { Project } from '../../types';
 import { ProjectSelect } from './TriageDialogs';
-import { AiChip, Demand, ReadinessBar, StagePill, sourceLine, warningLabel } from './ideaShared';
+import { AiChip, Demand, ReadinessBar, StagePill, shortDate, sourceLine, warningLabel } from './ideaShared';
+import { IdeaIcon, type IdeaIconName } from './ideaIcons';
 
 export type StageFilter = 'active' | IdeaStage;
 export const LIST_FILTERS: StageFilter[] = [
@@ -43,34 +44,69 @@ export function StageChips({
   );
 }
 
-/** The cell with the title, tags, where it came from and the warnings of a row. */
+/** The icon of where an idea came from, as the design draws it on the second line of a row. */
+const SOURCE_ICONS: Partial<Record<IdeaRow['source'], IdeaIconName>> = {
+  ai: 'sparkle',
+  doc: 'book',
+  comment: 'comment',
+  ticket: 'square',
+  selection: 'book',
+  picture: 'image',
+  import: 'download',
+};
+
+/** A warning chip with its icon: At risk, Stale n days, Waiting n days. */
+export function WarningChip({ warning }: { warning: string }) {
+  const l = warningLabel(warning);
+  return (
+    <span className={`is-warn ${l.tone === 'risk' ? 'is-warn-risk' : ''}`}>
+      <IdeaIcon name={l.tone === 'risk' ? 'warning' : 'clock'} size={11} strokeWidth={2} />
+      {l.text}
+    </span>
+  );
+}
+
+/** The cell with the title and its warnings, then the tags and the owner or where it came from. */
 function IdeaCell({ idea }: { idea: IdeaRow }) {
-  const from = sourceLine(idea);
+  const from = idea.source !== 'manual' ? sourceLine(idea) : null;
+  const who = idea.owner ?? idea.createdBy;
   return (
     <>
       <div className="is-row-title">
-        {idea.title} {idea.source === 'ai' && <AiChip />}
+        <span>{idea.title}</span> {idea.source === 'ai' && <AiChip />}
+        {idea.stage === 'parked' && idea.parkUntil && (
+          <span className="is-warn is-warn-grey">
+            <IdeaIcon name="calendar" size={11} strokeWidth={2} />
+            Back {shortDate(idea.parkUntil)}
+          </span>
+        )}
+        {idea.stage === 'archived' && idea.archiveReason && (
+          <span className="is-warn is-warn-grey">{idea.archiveNote ?? idea.archiveReason.replace('_', ' ')}</span>
+        )}
+        {idea.warnings.map((w) => (
+          <WarningChip key={w} warning={w} />
+        ))}
       </div>
       <div className="is-row-sub">
-        <span className="is-mono">{idea.id}</span>
         {idea.tags.slice(0, 4).map((t) => (
           <span key={t} className="is-tag">
             {t}
           </span>
         ))}
-        {from && <span>{from}</span>}
-        {idea.stage === 'parked' && idea.parkUntil && <span className="is-warn">Back {idea.parkUntil}</span>}
-        {idea.stage === 'archived' && idea.archiveReason && (
-          <span className="is-warn">{idea.archiveNote ?? idea.archiveReason.replace('_', ' ')}</span>
-        )}
-        {idea.warnings.map((w) => {
-          const l = warningLabel(w);
-          return (
-            <span key={w} className={`is-warn ${l.tone === 'risk' ? 'is-warn-risk' : ''}`}>
-              {l.text}
+        {from ? (
+          <span className="is-row-who">
+            <IdeaIcon name={SOURCE_ICONS[idea.source] ?? 'page'} size={12} />
+            {from}
+          </span>
+        ) : (
+          who && (
+            <span className="is-row-who">
+              <IdeaIcon name="edit" size={12} />
+              {who}
             </span>
-          );
-        })}
+          )
+        )}
+        <span className="is-mono is-muted">{idea.id}</span>
       </div>
     </>
   );
@@ -142,95 +178,108 @@ export function IdeaList({
   }
 
   return (
-    <table className="is-table" aria-label="Ideas">
-      <thead>
-        <tr>
-          <th>Idea</th>
-          {showProject && <th>Project</th>}
-          <th>Stage</th>
-          <th>Readiness (assumptions)</th>
-          <th>Demand</th>
-          <th>Ticket</th>
-          <th>Updated</th>
-        </tr>
-      </thead>
-      <tbody ref={bodyRef}>
-        {ideas.map((idea) => {
-          const project = idea.projectId ? projectName.get(idea.projectId) : null;
-          return (
-            <tr
-              key={idea.id}
-              className="is-row"
-              tabIndex={0}
-              aria-selected={selectedId === idea.id}
-              onClick={() => onOpen(idea.id)}
-              onFocus={() => onSelect(idea.id)}
-              data-testid={`idea-row-${idea.id}`}
-            >
-              <td>
-                <IdeaCell idea={idea} />
-              </td>
-              {showProject && (
-                <td onClick={(e) => assigning === idea.id && e.stopPropagation()}>
-                  {project ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span className="is-dot" style={{ background: project.color }} /> {project.prefix}
-                    </span>
-                  ) : assigning === idea.id ? (
-                    <ProjectSelect
-                      value={null}
-                      onChange={(id) => {
-                        setAssigning(null);
-                        if (id) setProject.mutate({ id: idea.id, projectId: id });
-                      }}
-                    />
-                  ) : (
+    <>
+      <table className="is-table" aria-label="Ideas">
+        <thead>
+          <tr>
+            <th>Idea</th>
+            {showProject && <th>Project</th>}
+            <th>Stage</th>
+            <th>Readiness (assumptions)</th>
+            <th>Demand</th>
+            <th>Ticket</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody ref={bodyRef}>
+          {ideas.map((idea) => {
+            const project = idea.projectId ? projectName.get(idea.projectId) : null;
+            return (
+              <tr
+                key={idea.id}
+                className="is-row"
+                tabIndex={0}
+                aria-selected={selectedId === idea.id}
+                onClick={() => onOpen(idea.id)}
+                onFocus={() => onSelect(idea.id)}
+                data-testid={`idea-row-${idea.id}`}
+              >
+                <td>
+                  <IdeaCell idea={idea} />
+                </td>
+                {showProject && (
+                  <td onClick={(e) => assigning === idea.id && e.stopPropagation()}>
+                    {project ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title={project.prefix}>
+                        <span className="is-dot" style={{ background: project.color }} /> {project.name}
+                      </span>
+                    ) : assigning === idea.id ? (
+                      <ProjectSelect
+                        value={null}
+                        onChange={(id) => {
+                          setAssigning(null);
+                          if (id) setProject.mutate({ id: idea.id, projectId: id });
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="is-btn is-btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigning(idea.id);
+                        }}
+                      >
+                        Assign
+                      </button>
+                    )}
+                  </td>
+                )}
+                <td>
+                  <StagePill stage={idea.stage} />
+                </td>
+                <td>
+                  <ReadinessBar idea={idea} />
+                </td>
+                <td>
+                  <Demand voters={idea.voters} />
+                </td>
+                <td>
+                  {idea.ticket ? (
                     <button
                       type="button"
-                      className="is-btn is-btn-sm"
+                      className="is-link is-mono"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setAssigning(idea.id);
+                        onOpenTicket(idea.ticket!.id);
                       }}
+                      title={`${idea.ticket.title} · ${idea.ticket.status}`}
                     >
-                      Assign
+                      {idea.ticket.id}
                     </button>
+                  ) : (
+                    <span className="is-muted">—</span>
                   )}
                 </td>
-              )}
-              <td>
-                <StagePill stage={idea.stage} />
-              </td>
-              <td>
-                <ReadinessBar idea={idea} />
-              </td>
-              <td>
-                <Demand voters={idea.voters} />
-              </td>
-              <td>
-                {idea.ticket ? (
-                  <button
-                    type="button"
-                    className="is-link is-mono"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenTicket(idea.ticket!.id);
-                    }}
-                    title={`${idea.ticket.title} · ${idea.ticket.status}`}
-                  >
-                    {idea.ticket.id}
-                  </button>
-                ) : (
-                  <span className="is-muted">—</span>
-                )}
-              </td>
-              <td className="is-muted" style={{ whiteSpace: 'nowrap' }}>
-                {relativeTime(idea.updatedAt)}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                <td className="is-muted" style={{ whiteSpace: 'nowrap' }}>
+                  {relativeTime(idea.updatedAt)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div className="is-legend" data-testid="idea-legend">
+        <span>
+          <i className="is-seg-validated" /> Validated
+        </span>
+        <span>
+          <i className="is-seg-disproved" /> Disproved
+        </span>
+        <span>
+          <i className="is-seg-untested" /> Still untested
+        </span>
+      </div>
+    </>
   );
 }

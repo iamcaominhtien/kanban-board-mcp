@@ -673,12 +673,13 @@ def _instruction(
             "components with their states; then the components; then a board per screen or area. Every board opens "
             "with a title and one sentence on what it is for, then lettered sections with headings; the states of a "
             "thing sit side by side in one row, each under a label (never one frame per state), each phone screen a "
-            "390 px panel, and a short caption beside each decision. 5) Critique: serve the folder "
-            "(`python3 -m http.server 8765 --bind 127.0.0.1 &`; the browser does not open file://), screenshot each "
-            "board with the browser (Playwright), write down the three most template-like things on each main screen, "
-            "fix them, and look again. 6) Hand in the canvas, a spec per screen on Docs (purpose, a screenshot of "
-            "each state, tokens and components used, behaviour, the copy of every state, open questions), the "
-            "screenshots in a ticket comment, and what you would still improve."
+            "390 px panel, and a short caption beside each decision. 5) Critique: look at each board, "
+            "docs_read(action='picture', path=<the frame folder>) writes its PNG (width=390 for the phone; "
+            "Playwright on a served folder works too), write down the three most template-like things on each main "
+            "screen, fix them, and look again. 6) Hand in the canvas, a spec per screen on Docs (purpose, a "
+            "screenshot of each state, tokens and components used, behaviour, the copy of every state, open "
+            "questions), the screenshots in a ticket comment, and what you would still improve. The flow between "
+            "the screens, when there is one, is a draw.io Diagram (skill `kanban-board:drawio-diagrams`)."
         )
     if step.get("role") == "triage":
         parts.append(

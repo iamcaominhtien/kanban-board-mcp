@@ -182,6 +182,17 @@ test('Present in the large view really presents (the viewer is replaced, not clo
   await waitFor(() => expect(screen.queryByTestId('canvas-present')).toBeNull());
 });
 
+test('the large view names each board under its picture in the filmstrip, the current one marked', async () => {
+  render(withProvider());
+  fireEvent.click(screen.getByText('open the large view'));
+  const strip = await screen.findByTestId('canvas-filmstrip');
+  const items = Array.from(strip.querySelectorAll('button'));
+  expect(items.map((b) => b.textContent)).toEqual(['Sign in', 'Sign in: phone']);
+  expect(items[0].getAttribute('aria-current')).toBe('true');
+  fireEvent.click(items[1]);
+  await waitFor(() => expect(items[1].getAttribute('aria-current')).toBe('true'));
+});
+
 test('the P key in the large view presents too', async () => {
   render(withProvider());
   fireEvent.click(screen.getByText('open the large view'));

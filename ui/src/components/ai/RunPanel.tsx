@@ -30,6 +30,7 @@ import {
   SparkleIcon,
   fmtElapsed,
   hhmm,
+  inWords,
   secondsSince,
   useAiBoardState,
   useNow,
@@ -604,6 +605,7 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
         {run.state === 'running' && !run.paused && <div className="ai-progress" />}
       </div>
       <RestartNotice run={run} />
+      <RetryLine run={run} />
       {run.state === 'running' && <TroubleCard run={run} />}
       {run.state === 'running' && <RunResourcesStrip run={run} />}
       {run.state === 'running' && <TellBox run={run} />}
@@ -638,6 +640,48 @@ function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
+const CARDINAL = ['one', 'two', 'three', 'four', 'five', 'six'];
+
+/**
+ * A run the board will try again by itself (design ai-operations L): “Lost the connection. Trying again in 2 minutes —
+ * second of three.” with Stop trying, while the wait is still to come.
+ */
+export function RetryLine({ run }: { run: AiRun }) {
+  const toast = useToast();
+  const cancel = useAiMutation(() => aiApi.cancel(run.id, 'Stopped trying again'));
+  const last = run.retries?.[run.retries.length - 1];
+  if (run.state !== 'queued' || !run.retryAt || !last || new Date(run.retryAt).getTime() <= Date.now()) return null;
+  const what =
+    last.kind === 'network' ? 'Lost the connection' : last.label.charAt(0).toUpperCase() + last.label.slice(1);
+  const nth = ORDINAL[last.n - 1] ?? `try ${last.n}`;
+  const of = CARDINAL[last.of - 1] ?? String(last.of);
+  return (
+    <div className="ai-retry-line" data-testid="run-retry-line" title={last.detail}>
+      <LineIcon name="refresh" size={13} />
+      <span style={{ flex: 1 }}>
+        {what}. Trying again in {inWords(run.retryAt)} — {nth} of {of}.
+      </span>
+      <button
+        type="button"
+        className="ai-link"
+        style={{ color: '#8A5A12' }}
+        disabled={cancel.isPending}
+        onClick={async () => {
+          try {
+            await cancel.mutateAsync(undefined);
+          } catch (err) {
+            toast.error("Couldn't stop it", extractError(err));
+          }
+        }}
+        data-testid="run-retry-stop"
+      >
+        Stop trying
+      </button>
     </div>
   );
 }

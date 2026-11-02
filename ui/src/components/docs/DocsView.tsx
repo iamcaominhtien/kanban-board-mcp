@@ -11,6 +11,7 @@ import {
 import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
+import { useProject } from '../../api/projects';
 import { useDocsAccess, useRequestDocsAccess } from '../../api/docsAccess';
 import { useDocsAiState } from '../../api/docsAi';
 import { useDocsHealthCount } from '../../api/docsAiCare';
@@ -236,6 +237,8 @@ export function DocsView({
 }: Props) {
   const toast = useToast();
   const offlineApi = useDocsOffline(projectId);
+  // the empty space's example key uses this project's prefix (MOB-12 in Mobile App, not KAN-12)
+  const heroPrefix = useProject(projectId).data?.prefix;
   const tree = useDocsTree(projectId);
   const liveNodes = useMemo<DocsTreeNode[]>(() => tree.data ?? [], [tree.data]);
   const cachedTree = tree.isError && !docsErrorDetail(tree.error) ? offlineApi.getCachedTree() : null;
@@ -660,6 +663,7 @@ export function DocsView({
     content = (
       <DocsHero
         projectName={projectName}
+        ticketPrefix={heroPrefix}
         onCreate={(t) => setNewPage({ parentId: null, template: t })}
         onImport={onImport}
         onDropFiles={onDropFiles}

@@ -8,6 +8,7 @@
 .rs-livebar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 .rs-banner {
@@ -256,4 +257,18 @@
 }
 .rs-mini .rs-big {
   font-size: 18px;
+}
+
+/* The meter under a machine tile (AiResources.dc.html .id-bar): 6 px, green under 65 %, amber from 65 %, red from 90 % */
+.rs-meter {
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: #e3e8e5;
+  overflow: hidden;
+  flex: none;
+}
+.rs-meter > i {
+  display: block;
+  height: 100%;
 }

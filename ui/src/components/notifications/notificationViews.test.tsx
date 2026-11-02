@@ -293,9 +293,16 @@ describe('NotificationPanel branches', () => {
     open('needs');
     expect(await screen.findByText('Earlier updates are in the other tab.')).toBeTruthy();
     cleanup();
-    api.counts.mockResolvedValue({ ...counts, updates: 0 });
+    api.counts.mockResolvedValue({ ...counts, needs: 0, updates: 0 });
     open('updates');
     expect(await screen.findByText('No notifications yet')).toBeTruthy();
+    cleanup();
+    // things wait in Needs you: the empty Updates tab says so instead of "No notifications yet"
+    api.counts.mockResolvedValue({ ...counts, needs: 3, updates: 0 });
+    open('updates');
+    expect(await screen.findByText('No updates')).toBeTruthy();
+    expect(screen.getByText(/3 items need you in the other tab/)).toBeTruthy();
+    expect(screen.queryByText('No notifications yet')).toBeNull();
     cleanup();
     api.list.mockRejectedValue(new Error('down'));
     open('needs');

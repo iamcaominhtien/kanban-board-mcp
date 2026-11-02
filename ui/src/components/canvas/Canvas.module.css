@@ -219,8 +219,10 @@
   color: var(--cv-ink);
   font: 400 13px var(--font-body);
 }
+/* In a ticket or a comment the card is as wide as the text, like a diagram or a sketch (design G1); it was capped at
+   560 px, half a ticket's description */
 .embedSmall {
-  max-width: 560px;
+  max-width: 100%;
 }
 .embedStage {
   position: relative;
@@ -541,6 +543,20 @@ input.title:focus {
 .board {
   position: absolute;
   box-sizing: border-box;
+}
+.boardSel {
+  outline: 2px solid var(--cv-blue);
+  outline-offset: -1px;
+  border-radius: 4px;
+}
+.emptyLabel {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 700 14px var(--font-body);
+  color: #9aa8a0;
+  pointer-events: none;
 }
 .boardLabel {
   position: absolute;
@@ -1555,6 +1571,33 @@ input.title:focus {
 }
 .filmOn {
   border-color: #68ba7f;
+}
+.filmItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex-shrink: 0;
+  width: 84px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+.filmItem .film {
+  display: block;
+}
+.filmName {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #9db3a5;
+}
+.filmNameOn {
+  color: #fff;
 }
 .keysHint {
   text-align: center;

@@ -26,6 +26,8 @@ DocsReadAction = Literal[
     "canvases",
     "canvas",
     "design_guide",
+    "diagram_guide",
+    "picture",
     "permissions_guide",
     "guides",
     "role_guide",
@@ -41,12 +43,26 @@ DOCS_READ_OPS = {
     "check_links": Op(ops.resolve_docs_links, ("project_id", "refs")),
     "comments": Op(ops.list_docs_comments, ("page_id",), ("state",)),
     "diagrams": Op(ops.list_project_diagrams, ("project_id",)),
-    "diagram": Op(ops.export_diagram, ("diagram_id", "path"), ("version",)),
+    "diagram": Op(ops.export_diagram, ("diagram_id",), ("path", "version")),
     "sketches": Op(ops.list_project_sketches, ("project_id",)),
     "sketch": Op(ops.export_sketch, ("sketch_id", "path")),
     "canvases": Op(ops.list_project_canvases, ("project_id",)),
     "canvas": Op(ops.read_canvas, ("canvas_id",), ("board_id", "path")),
     "design_guide": Op(ops.design_guide, ()),
+    "diagram_guide": Op(ops.diagram_guide, ()),
+    "picture": Op(
+        ops.picture,
+        (),
+        (
+            "path",
+            "diagram_id",
+            "version",
+            "canvas_id",
+            "board_id",
+            "sketch_id",
+            "width",
+        ),
+    ),
     "permissions_guide": Op(ops.permissions_guide, ()),
     "guides": Op(ops.shared_guides, ()),
     "role_guide": Op(ops.role_guide, (), ("query",)),
@@ -82,34 +98,42 @@ async def docs_read(
     version: Annotated[
         int | None,
         Field(
-            description="version: version number from the `versions` action. diagram: an older diagram version."
+            description="version: version number from the `versions` action. diagram, picture: an older diagram version."
         ),
     ] = None,
     diagram_id: Annotated[
         str | None,
         Field(
-            description="diagram, diagram_save, diagram_delete, diagram_restore: id 'dg_xxxxxxxx' from `(diagram:dg_xxxxxxxx)` in a text."
+            description="diagram, picture: id 'dg_xxxxxxxx' from `(diagram:dg_xxxxxxxx)` in a text."
         ),
     ] = None,
     path: Annotated[
         str | None,
         Field(
-            description="diagram: absolute path to write the .drawio file to (a folder gets '<name>.drawio' inside it). sketch: absolute folder (gets '<name>.png' and '<name>.sketch.json') or a '.png' path. canvas: folder to write a frame's files to."
+            description="diagram: absolute path to write the .drawio file to (a folder gets '<name>.drawio' inside it). sketch: absolute folder (gets '<name>.png' and '<name>.sketch.json') or a '.png' path. canvas: folder to write a frame's files to. picture: a local .drawio, .svg, .html or frame folder to look at (no id), else where the PNG goes."
         ),
     ] = None,
     sketch_id: Annotated[
         str | None,
         Field(
-            description="sketch, sketch_save: id 'sk_xxxxxxxx' from `(sketch:sk_xxxxxxxx)` in a text."
+            description="sketch, picture: id 'sk_xxxxxxxx' from `(sketch:sk_xxxxxxxx)` in a text."
         ),
     ] = None,
     canvas_id: Annotated[
         str | None,
-        Field(description="canvas: id 'cv_xxxxxxxx'."),
+        Field(description="canvas, picture: id 'cv_xxxxxxxx'."),
     ] = None,
     board_id: Annotated[
         str | None,
-        Field(description="canvas: frame id 'b_xxxxxxxx' to read the source of."),
+        Field(
+            description="canvas: frame id 'b_xxxxxxxx' to read the source of. picture: the frame to draw."
+        ),
+    ] = None,
+    width: Annotated[
+        int | None,
+        Field(
+            description="picture: width to draw a frame at (390 phone, 820 tablet, 1280 desktop); default its own."
+        ),
     ] = None,
     compare_to: Annotated[
         int | None,
@@ -138,12 +162,14 @@ async def docs_read(
     - check_links: project_id, refs. Whether [[page]] / ticket references resolve: ok, missing, section_missing, in_bin or ambiguous.
     - comments: page_id [, state]. {threads: [{id, kind: inline|page, status, quote, anchor_state, comments: [{id, author, body}]}], counts}.
     - diagrams: project_id. draw.io diagrams: [{id, label, version, updated_by, updated_at, summary}]. A text shows one as `[Name](diagram:dg_xxxxxxxx)`.
-    - diagram: diagram_id, path [, version]. Writes the diagram's .drawio file (XML) to `path`: edit it with your own file tools, then docs_write(diagram_save). Returns {path, version, markdown}.
+    - diagram: diagram_id [, path, version]. {version, markdown, model: {shapes, links, problems}} (ids, labels, boxes, styles); path: also write the .drawio file (XML) there to edit with your own file tools, then docs_write(diagram_save).
     - sketches: project_id. Freehand sketches: [{id, title, owner_kind, owner_id, version, width, height, layers, updated_by, updated_at, markdown}]. A text shows one as `![Name](sketch:sk_xxxxxxxx)`.
     - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.
     - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
     - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
     - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.
+    - diagram_guide: {guide, sketches}: how to draw and edit a draw.io diagram, what to do with a Sketch, which tool fits.
+    - picture: diagram_id | canvas_id + board_id | sketch_id | path [, width]. A PNG to look at before you hand in: {path, drawn_by, markdown (a copy for a comment)}.
     - permissions_guide: {guide, you}: what you may do; read it when refused.
     - guides: {name: text}: how to work a ticket, prove it, ask, work as a team, brainstorm, write for users, make office files and decks.
     - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles."""

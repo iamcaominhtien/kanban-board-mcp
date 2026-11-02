@@ -311,7 +311,11 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
   );
 
   return (
-    <Wrapper className={styles.markdown} style={inline ? { display: 'inline' } : undefined} data-preview-scope>
+    <Wrapper
+      className={styles.markdown}
+      style={inline ? { display: 'inline', fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' } : undefined}
+      data-preview-scope
+    >
       {segments.length === 1 && !segments[0].align
         ? renderMarkdown(segments[0].markdown)
         : segments.map((seg, i) =>

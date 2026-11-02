@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, aiKeys, useAiMutation, useAiPermissions } from '../../api/ai';
 import { safetyApi } from '../../api/aiSafety';
@@ -8,7 +8,23 @@ import { useToast } from '../Toast';
 import { LoadError, Toggle, STATUS_NAMES, useAiBoardState } from './aiUi';
 import { MODE_LABEL, Pill, SafetyCard, dateTime } from './aiSafetyUi';
 import { ProjectsPicker } from './ProjectsPicker';
-import { LineIcon } from '../ui/LineIcon';
+import { MenuSelect } from '../ui/MenuSelect';
+import { LineIcon, type LineIconName } from '../ui/LineIcon';
+
+/** The line icon at the start of each matrix row (design ai-safety-cost A1). */
+const ACTION_ICON: Record<string, LineIconName> = {
+  read: 'eye',
+  comment: 'chat',
+  edit_fields: 'edit',
+  change_status: 'chevronRight',
+  change_assignee: 'user',
+  create_tickets: 'plus',
+  delete_tickets: 'trash',
+  edit_docs: 'page',
+  delete_docs: 'trash',
+  manage_test_cases: 'checkCircle',
+  create_branches: 'branch',
+};
 
 const CEILING_STEPS = ['none', 'backlog', 'todo', 'in-progress', 'review', 'testing', 'done'];
 const RANK: Record<PermissionMode, number> = { allowed: 0, approval: 1, blocked: 2 };
@@ -151,6 +167,26 @@ export function Permissions({ member }: { member: AiMember }) {
     null,
   );
 
+  async function runTester(quiet = false) {
+    try {
+      const r = await aiApi.testPermission(member.id, {
+        action: tester.action,
+        ticketId: tester.ticketId || undefined,
+        targetStatus: tester.targetStatus,
+      });
+      setVerdict(r);
+      setVerdictData(r as unknown as { ticket?: { id: string; title: string; status: string } });
+    } catch (err) {
+      if (!quiet) toast.error('Tester failed', extractError(err));
+    }
+  }
+  // The verdict follows the pickers (design A1: a live result card); it reads, never changes anything
+  const testerKey = `${member.id}|${tester.action}|${tester.ticketId}|${tester.targetStatus}`;
+  useEffect(() => {
+    void runTester(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [testerKey]);
+
   async function update(body: Record<string, unknown>) {
     try {
       await save.mutateAsync(body);
@@ -235,12 +271,13 @@ export function Permissions({ member }: { member: AiMember }) {
             </Pill>
           }
         >
-          <div className="ai-seg" data-testid="ai-ceiling">
+          <div className="ai-ceiling" data-testid="ai-ceiling">
             {CEILING_STEPS.map((c, i) => (
               <button
                 key={c}
                 type="button"
-                className={member.ceiling === c ? 'ai-seg-on' : i < ceilingRank ? 'ai-seg-within' : ''}
+                aria-pressed={member.ceiling === c}
+                className={member.ceiling === c ? 'ai-ceiling-on' : i < ceilingRank ? 'ai-ceiling-within' : ''}
                 onClick={() => (c === 'testing' || c === 'done' ? setAllowDone(c) : void update({ ceiling: c }))}
               >
                 {member.ceiling === c && (
@@ -264,7 +301,7 @@ export function Permissions({ member }: { member: AiMember }) {
         </SafetyCard>
         <SafetyCard
           title="What it may do"
-          sub="Three modes per action. Past the role template or a lock (🔒) only the owner may go, after a warning."
+          sub="Three modes per action. Past the role template or a lock only the owner may go, after a warning."
           right={
             <button type="button" className="ai-btn ai-btn-sm" onClick={() => update({ permissions: {} })}>
               Reset to template
@@ -287,11 +324,16 @@ export function Permissions({ member }: { member: AiMember }) {
           {data.matrix.map((row) => {
             return (
               <div key={row.action} className="ai-matrix-row" data-testid={`perm-${row.action}`}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{row.label}</div>
-                  <div className="ai-muted">{row.description}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <span className="ai-matrix-ico" aria-hidden="true">
+                    <LineIcon name={ACTION_ICON[row.action] ?? 'settings'} size={13} />
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{row.label}</div>
+                    <div className="ai-muted">{row.description}</div>
+                  </div>
                 </div>
-                <div className="ai-seg">
+                <div className="ai-seg ai-mode-seg">
                   {(['allowed', 'approval', 'blocked'] as PermissionMode[]).map((mode) => {
                     const looser = member.template !== 'custom' && RANK[mode] < RANK[row.templateMode];
                     const locked = !!row.lockedMin && RANK[mode] < RANK[row.lockedMin];
@@ -313,7 +355,8 @@ export function Permissions({ member }: { member: AiMember }) {
                                 : 'The role template forbids this; only the project owner can widen it'
                             : undefined
                         }
-                        className={`${row.mode === mode ? 'ai-seg-on' : ''} ${widening ? 'ai-seg-owner' : ''}`}
+                        aria-pressed={row.mode === mode}
+                        className={`${row.mode === mode ? `ai-seg-on ai-mode-${mode}` : ''} ${widening ? 'ai-seg-owner' : ''}`}
                         onClick={() =>
                           widening
                             ? setWiden({ row, mode, locked })
@@ -356,12 +399,17 @@ export function Permissions({ member }: { member: AiMember }) {
             );
           })}
           <div className="ai-matrix-row" style={{ opacity: 0.7 }} data-testid="perm-run-tools">
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Run commands and tools via the runner</div>
-              <div className="ai-muted">
-                {member.connection === 'local'
-                  ? 'Shell, files, network: decided by the CLI (see below)'
-                  : 'The API agent only gets the board tools its tool groups allow'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <span className="ai-matrix-ico" aria-hidden="true">
+                <LineIcon name="frame" size={13} />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Run commands and tools via the runner</div>
+                <div className="ai-muted">
+                  {member.connection === 'local'
+                    ? 'Shell, files, network: decided by the CLI (see below)'
+                    : 'The API agent only gets the board tools its tool groups allow'}
+                </div>
               </div>
             </div>
             <div className="ai-seg">
@@ -468,69 +516,58 @@ export function Permissions({ member }: { member: AiMember }) {
         </SafetyCard>
         <SafetyCard title="Can this AI do X on a ticket?" sub="Effective-permission tester; changes nothing">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* A1: two custom dropdowns; the result shows as soon as both are picked (the check changes nothing) */}
             <div className="ai-grid2" style={{ gap: 8 }}>
-              <label className="ai-field">
+              <div className="ai-field">
                 <span className="ai-label">Action</span>
-                <select
-                  className="ai-select-sm"
+                <MenuSelect
+                  label="Action"
                   value={tester.action}
-                  onChange={(e) => setTester({ ...tester, action: e.target.value })}
-                >
-                  {data.matrix.map((r) => (
-                    <option key={r.action} value={r.action}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="ai-field">
+                  onChange={(v) => setTester({ ...tester, action: v })}
+                  testId="tester-action"
+                  options={data.matrix.map((r) => ({
+                    value: r.action,
+                    label: r.label,
+                    icon: <LineIcon name={ACTION_ICON[r.action] ?? 'settings'} size={13} />,
+                  }))}
+                />
+              </div>
+              <div className="ai-field">
                 <span className="ai-label">Ticket</span>
-                <select
-                  className="ai-select-sm"
+                <MenuSelect
+                  label="Ticket"
                   value={tester.ticketId}
-                  onChange={(e) => setTester({ ...tester, ticketId: e.target.value })}
-                >
-                  <option value="">No ticket</option>
-                  {member.assigned.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.id} · {STATUS_NAMES[t.status] ?? t.status}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onChange={(v) => setTester({ ...tester, ticketId: v })}
+                  testId="tester-ticket"
+                  options={[
+                    { value: '', label: 'No ticket' },
+                    ...member.assigned.map((t) => ({
+                      value: t.id,
+                      label: t.id,
+                      hint: `${STATUS_NAMES[t.status] ?? t.status} · ${t.title}`,
+                    })),
+                  ]}
+                />
+              </div>
             </div>
             {tester.action === 'change_status' && (
-              <select
-                className="ai-select-sm"
+              <MenuSelect
+                label="Move to"
+                prefix="Move to"
                 value={tester.targetStatus}
-                onChange={(e) => setTester({ ...tester, targetStatus: e.target.value })}
-              >
-                {CEILING_STEPS.slice(1).map((s) => (
-                  <option key={s} value={s}>
-                    → {STATUS_NAMES[s]}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setTester({ ...tester, targetStatus: v })}
+                testId="tester-target"
+                options={CEILING_STEPS.slice(1).map((st) => ({ value: st, label: STATUS_NAMES[st] }))}
+              />
             )}
             <button
               type="button"
               className="ai-btn ai-btn-sm"
+              style={{ alignSelf: 'flex-start' }}
               data-testid="tester-check"
-              onClick={async () => {
-                try {
-                  const r = await aiApi.testPermission(member.id, {
-                    action: tester.action,
-                    ticketId: tester.ticketId || undefined,
-                    targetStatus: tester.targetStatus,
-                  });
-                  setVerdict(r);
-                  setVerdictData(r as unknown as { ticket?: { id: string; title: string; status: string } });
-                } catch (err) {
-                  toast.error('Tester failed', extractError(err));
-                }
-              }}
+              onClick={() => void runTester()}
             >
-              Check
+              <LineIcon name="refresh" size={13} /> Check
             </button>
           </div>
           {verdict && (
