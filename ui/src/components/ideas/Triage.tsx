@@ -354,7 +354,14 @@ export function Triage({
             What do you want to do with it?
           </div>
           <div className="is-decisions">
-            <DecisionButton k="K" icon="flask" tone="keep" label="Keep" hint="Start exploring it" onClick={() => decide('keep')} />
+            <DecisionButton
+              k="K"
+              icon="flask"
+              tone="keep"
+              label="Keep"
+              hint="Start exploring it"
+              onClick={() => decide('keep')}
+            />
             <DecisionButton k="P" icon="bars" label="Park" hint="Come back on a date" onClick={() => decide('park')} />
             <DecisionButton
               k="M"

@@ -138,6 +138,20 @@
   color: #c4432a;
 }
 
+.removeBtnBlocked,
+.removeBtnBlocked:hover {
+  background: #fbeaea;
+  color: #c4432a;
+}
+
+/* the blocked remove message, under its own row */
+.rowError {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #c4432a;
+  padding: 0 4px 10px;
+}
+
 .rowDivider {
   height: 1px;
   background: #eef3ef;

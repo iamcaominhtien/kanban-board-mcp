@@ -107,11 +107,7 @@ export function IdeaStages({ ideas, showArchived, onOpen, onMove }: Props) {
                 <div className="is-card-foot">
                   <span
                     className="is-card-votes"
-                    title={
-                      idea.voters.length
-                        ? `Wanted by ${idea.voters.join(', ')}`
-                        : 'Nobody has asked for this yet'
-                    }
+                    title={idea.voters.length ? `Wanted by ${idea.voters.join(', ')}` : 'Nobody has asked for this yet'}
                   >
                     <IdeaIcon name="thumb" size={13} color="#5B6B60" />
                     {idea.voters.length}

@@ -354,125 +354,125 @@ export function IdeaSpace({
       )}
 
       <div className="is-main-row">
-      {triage ? (
-        <Triage
-          scope={scope.scope}
-          projectId={scope.projectId}
-          onOpenIdea={(id) => {
-            setTriage(false);
-            setOpenId(id);
-          }}
-          onOpenTicket={onOpenTicket}
-          onPromote={(i) => setPromoting(i)}
-          onBack={() => setTriage(false)}
-          onOpenSettings={onOpenSettings}
-          switcher={switcher}
-          actions={
-            <>
-              {askButton}
-              {newIdeaButton}
-              <NotificationBellButton />
-            </>
-          }
-        />
-      ) : (
-        <div className="is-body">
-          <DigestCard
-            projectId={scope.scope === 'project' ? (scope.projectId ?? null) : null}
-            onOpenInbox={() => setTriage(true)}
-            onOpenIdea={setOpenId}
+        {triage ? (
+          <Triage
+            scope={scope.scope}
+            projectId={scope.projectId}
+            onOpenIdea={(id) => {
+              setTriage(false);
+              setOpenId(id);
+            }}
+            onOpenTicket={onOpenTicket}
+            onPromote={(i) => setPromoting(i)}
+            onBack={() => setTriage(false)}
+            onOpenSettings={onOpenSettings}
+            switcher={switcher}
+            actions={
+              <>
+                {askButton}
+                {newIdeaButton}
+                <NotificationBellButton />
+              </>
+            }
           />
-          <div className="is-filters">
-            {view !== 'matrix' && <StageChips value={stage} onChange={setStage} counts={bucket} />}
-            <span className="is-grow" />
-            <select
-              className="is-select"
-              value={source}
-              onChange={(e) => setSource(e.target.value as IdeaSource | '')}
-              aria-label="Source"
-            >
-              <option value="">Source: all</option>
-              {(['manual', 'doc', 'comment', 'ticket', 'picture', 'ai', 'import'] as IdeaSource[]).map((s) => (
-                <option key={s} value={s}>
-                  {s === 'ai' ? 'AI suggested' : s[0].toUpperCase() + s.slice(1)}
-                </option>
-              ))}
-            </select>
-            <select className="is-select" value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag">
-              <option value="">Tag: all</option>
-              {allTags.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            {view === 'list' && (
+        ) : (
+          <div className="is-body">
+            <DigestCard
+              projectId={scope.scope === 'project' ? (scope.projectId ?? null) : null}
+              onOpenInbox={() => setTriage(true)}
+              onOpenIdea={setOpenId}
+            />
+            <div className="is-filters">
+              {view !== 'matrix' && <StageChips value={stage} onChange={setStage} counts={bucket} />}
+              <span className="is-grow" />
               <select
                 className="is-select"
-                value={sort}
-                onChange={(e) => setSort(e.target.value as typeof sort)}
-                aria-label="Sort"
+                value={source}
+                onChange={(e) => setSource(e.target.value as IdeaSource | '')}
+                aria-label="Source"
               >
-                <option value="readiness">Sort: readiness</option>
-                <option value="updated">Sort: updated</option>
-                <option value="created">Sort: newest</option>
-                <option value="votes">Sort: demand</option>
-                <option value="title">Sort: title</option>
+                <option value="">Source: all</option>
+                {(['manual', 'doc', 'comment', 'ticket', 'picture', 'ai', 'import'] as IdeaSource[]).map((s) => (
+                  <option key={s} value={s}>
+                    {s === 'ai' ? 'AI suggested' : s[0].toUpperCase() + s.slice(1)}
+                  </option>
+                ))}
               </select>
-            )}
-          </div>
-          {list.isError ? (
-            <div className="is-empty">
-              <h3>Could not load the ideas</h3>
-              <button type="button" className="is-btn" onClick={() => list.refetch()}>
-                Try again
-              </button>
+              <select className="is-select" value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag">
+                <option value="">Tag: all</option>
+                {allTags.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              {view === 'list' && (
+                <select
+                  className="is-select"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as typeof sort)}
+                  aria-label="Sort"
+                >
+                  <option value="readiness">Sort: readiness</option>
+                  <option value="updated">Sort: updated</option>
+                  <option value="created">Sort: newest</option>
+                  <option value="votes">Sort: demand</option>
+                  <option value="title">Sort: title</option>
+                </select>
+              )}
             </div>
-          ) : view === 'list' ? (
-            <IdeaList
-              ideas={ideas}
-              scope={scope.scope}
-              projects={projects}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              onOpen={setOpenId}
-              onOpenTicket={onOpenTicket}
-              filtered={!!debounced || !!source || !!tag || stage !== 'active'}
-              emptyAction={
-                <button type="button" className="is-btn is-btn-primary" onClick={newIdea}>
-                  New idea
+            {list.isError ? (
+              <div className="is-empty">
+                <h3>Could not load the ideas</h3>
+                <button type="button" className="is-btn" onClick={() => list.refetch()}>
+                  Try again
                 </button>
-              }
-            />
-          ) : view === 'stages' ? (
-            <IdeaStages
-              ideas={ideas}
-              showArchived={stage === 'archived'}
-              onOpen={setOpenId}
-              onMove={(i, to) => moves.request(i, to)}
-            />
-          ) : (
-            <IdeaMatrix ideas={ideas} onOpen={setOpenId} />
-          )}
-          <div className="is-muted" style={{ marginTop: 12 }}>
-            {bucket
-              ? `${bucket.active} active ${bucket.active === 1 ? 'idea' : 'ideas'} · the ${inboxHere} in the Inbox are not counted`
-              : ''}
+              </div>
+            ) : view === 'list' ? (
+              <IdeaList
+                ideas={ideas}
+                scope={scope.scope}
+                projects={projects}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onOpen={setOpenId}
+                onOpenTicket={onOpenTicket}
+                filtered={!!debounced || !!source || !!tag || stage !== 'active'}
+                emptyAction={
+                  <button type="button" className="is-btn is-btn-primary" onClick={newIdea}>
+                    New idea
+                  </button>
+                }
+              />
+            ) : view === 'stages' ? (
+              <IdeaStages
+                ideas={ideas}
+                showArchived={stage === 'archived'}
+                onOpen={setOpenId}
+                onMove={(i, to) => moves.request(i, to)}
+              />
+            ) : (
+              <IdeaMatrix ideas={ideas} onOpen={setOpenId} />
+            )}
+            <div className="is-muted" style={{ marginTop: 12 }}>
+              {bucket
+                ? `${bucket.active} active ${bucket.active === 1 ? 'idea' : 'ideas'} · the ${inboxHere} in the Inbox are not counted`
+                : ''}
+            </div>
           </div>
-        </div>
-      )}
-      {askOpen && (
-        <AskPanel
-          projectId={scope.scope === 'project' ? scope.projectId : undefined}
-          scope={scope.scope}
-          onClose={() => setAskOpen(false)}
-          onOpenIdea={(id) => {
-            setAskOpen(false);
-            setOpenId(id);
-          }}
-          onOpenSettings={onOpenSettings}
-        />
-      )}
+        )}
+        {askOpen && (
+          <AskPanel
+            projectId={scope.scope === 'project' ? scope.projectId : undefined}
+            scope={scope.scope}
+            onClose={() => setAskOpen(false)}
+            onOpenIdea={(id) => {
+              setAskOpen(false);
+              setOpenId(id);
+            }}
+            onOpenSettings={onOpenSettings}
+          />
+        )}
       </div>
       {moves.dialogs}
       {promoting && (

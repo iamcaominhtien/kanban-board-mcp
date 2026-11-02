@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useScopeState } from '../../api/assist';
 import { useDocsTree } from '../../api/docs';
 import {
@@ -16,20 +16,48 @@ import type { Idea, IdeaStage } from '../../types/idea';
 import { STAGE_LABELS } from '../../types/idea';
 import { relativeTime } from '../../utils/relativeTime';
 import { DocsEditor, type DocsEditorHandle } from '../docs/editor/DocsEditor';
-import { plural } from '../docs/docsShared';
+import { Avatar, plural } from '../docs/docsShared';
 import { useToast } from '../Toast';
 import { WorkspaceSection } from '../WorkspaceSection';
 import { IdeaAssumptions } from './IdeaAssumptions';
 import { IdeaActivityTab, IdeaComments, IdeaLog } from './IdeaDiscussion';
 import { IdeaEvidenceTab } from './IdeaEvidenceTab';
-import { AiChip, Demand, ReadinessBadge, StagePill, sourceLine } from './ideaShared';
-import { ProjectSelect } from './TriageDialogs';
+import {
+  AiChip,
+  Demand,
+  ReadinessBadge,
+  ReadinessBar,
+  StagePill,
+  StateCard,
+  shortDate,
+  sourceLine,
+} from './ideaShared';
+import { IdeaIcon, type IdeaIconName } from './ideaIcons';
+import { ProjectPill } from './TriageDialogs';
 import { useIdeaMoves } from './useIdeaMoves';
 import { AiRailCard, ShapeButton, ShapePanel } from './IdeaAiPanel';
 import { AskAiButton, AskAiShortcut, IdeaChat } from './IdeaChat';
 import { LineIcon } from '../ui/LineIcon';
 
 type Tab = 'page' | 'assumptions' | 'evidence' | 'comments' | 'log' | 'workspace' | 'activity';
+type SaveState = 'saved' | 'saving' | 'error' | 'readonly';
+
+/** The three tools of the header (icon buttons; hover shows a short summary). Each opens in place of the tabs' body. */
+const TOOLS: { id: Tab; label: string; icon: IdeaIconName; summary: (idea: Idea) => string }[] = [
+  {
+    id: 'log',
+    label: 'Research log',
+    icon: 'log',
+    summary: (i) => `Research log — ${i.logCount} ${i.logCount === 1 ? 'entry' : 'entries'}`,
+  },
+  { id: 'workspace', label: 'Workspace', icon: 'folder', summary: (i) => `Workspace — the folder ${i.id}/ on disk` },
+  {
+    id: 'activity',
+    label: 'Activity',
+    icon: 'history',
+    summary: () => 'Activity — who changed what, and when',
+  },
+];
 
 /** The name this browser acts as, the same one the API receives in `X-Actor`. */
 export function currentActor(): string {
@@ -83,6 +111,7 @@ export function IdeaPage({
   const del = useDeleteIdea();
   const [tab, setTab] = useState<Tab>('page');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState | null>(null);
   const [shapeOpen, setShapeOpen] = useState(false);
   // Shape with AI and Ask AI are both docked on the right: only one is open at a time
   const [askOpen, setAskOpen] = useState(false);
@@ -127,21 +156,46 @@ export function IdeaPage({
     { id: 'assumptions', label: 'Assumptions', n: idea.assumptions.length },
     { id: 'evidence', label: 'Evidence', n: idea.evidenceCount },
     { id: 'comments', label: 'Comments', n: idea.commentCount },
-    { id: 'log', label: 'Research log', n: idea.logCount },
-    { id: 'workspace', label: 'Workspace' },
-    { id: 'activity', label: 'Activity' },
   ];
 
   return (
     <div className="is-page" data-testid="idea-page">
       <header className="is-page-head">
-        <button type="button" className="is-btn is-btn-ghost" onClick={onBack} aria-label="Back to Idea Space">
-          ← Idea Space
+        <button type="button" className="is-btn is-btn-sm" onClick={onBack} aria-label="Back to Idea Space">
+          <IdeaIcon name="arrowLeft" size={14} />
+          Idea Space
         </button>
-        <span className="is-mono">{idea.id}</span>
-        <StagePill stage={idea.stage} />
-        <ReadinessBadge readiness={idea.readiness} />
+        <span className="is-key-chip">{idea.id}</span>
+        <span className="is-page-head-title" title={idea.title}>
+          {idea.title}
+        </span>
         <span className="is-grow" />
+        {tab === 'page' && saveState && (
+          <span className="is-muted is-head-saved" aria-live="polite">
+            {saveState === 'readonly'
+              ? 'Read only'
+              : saveState === 'saving'
+                ? 'Saving…'
+                : saveState === 'error'
+                  ? 'Could not save. Your text is kept here; keep typing to retry.'
+                  : 'Saved'}
+          </span>
+        )}
+        {TOOLS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className="is-tool"
+            aria-pressed={tab === t.id}
+            aria-label={t.label}
+            title={t.summary(idea)}
+            onClick={() => setTab(tab === t.id ? 'page' : t.id)}
+            data-testid={`tab-${t.id}`}
+          >
+            <IdeaIcon name={t.icon} size={17} />
+          </button>
+        ))}
+        <span className="is-head-sep" aria-hidden="true" />
         <AskAiButton
           projectId={idea.projectId}
           active={askOpen}
@@ -150,6 +204,12 @@ export function IdeaPage({
             setAskOpen(!askOpen);
           }}
         />
+        {!closed && idea.stage !== 'building' && (
+          <button type="button" className="is-btn" onClick={() => moves.request(idea, 'parked')}>
+            <IdeaIcon name="bars" size={14} />
+            Park
+          </button>
+        )}
         <ShapeButton
           projectId={idea.projectId}
           active={shapeOpen}
@@ -158,11 +218,17 @@ export function IdeaPage({
             setShapeOpen(!shapeOpen);
           }}
         />
-        {!closed && idea.stage !== 'building' && (
-          <button type="button" className="is-btn" onClick={() => moves.request(idea, 'parked')}>
-            Park
+        {promotable ? (
+          <button type="button" className="is-btn is-btn-primary" onClick={() => onPromote(idea)} data-testid="promote">
+            <IdeaIcon name="rocket" size={14} />
+            Promote
           </button>
-        )}
+        ) : idea.ticket ? (
+          <button type="button" className="is-btn is-btn-primary" onClick={() => onOpenTicket(idea.ticket!.id)}>
+            <IdeaIcon name="external" size={14} />
+            Open {idea.ticket.id}
+          </button>
+        ) : null}
         <div className="is-switch">
           <button
             type="button"
@@ -233,15 +299,6 @@ export function IdeaPage({
             </div>
           )}
         </div>
-        {promotable ? (
-          <button type="button" className="is-btn is-btn-primary" onClick={() => onPromote(idea)} data-testid="promote">
-            Promote
-          </button>
-        ) : idea.ticket ? (
-          <button type="button" className="is-btn is-btn-primary" onClick={() => onOpenTicket(idea.ticket!.id)}>
-            Open {idea.ticket.id}
-          </button>
-        ) : null}
       </header>
 
       <div className="is-page-main">
@@ -256,29 +313,41 @@ export function IdeaPage({
               )
             }
           />
-          <div className="is-row-sub" style={{ marginBottom: 10 }}>
-            {from && <span>{from}</span>}
-            {idea.createdBy && <span>· {idea.createdBy === 'user' ? 'You' : idea.createdBy}</span>}
+          <div className="is-row-sub is-page-meta">
+            <StagePill stage={idea.stage} />
+            <ReadinessBadge readiness={idea.readiness} />
+            {(idea.owner ?? idea.createdBy) && (
+              <span className="is-row-who">
+                <Avatar name={idea.owner ?? idea.createdBy ?? ''} size={20} />
+                {(idea.owner ?? idea.createdBy) === 'user' ? 'You' : (idea.owner ?? idea.createdBy)}
+              </span>
+            )}
+            {from && (
+              <span className="is-row-who">
+                <IdeaIcon
+                  name={idea.source === 'ai' ? 'sparkle' : idea.source === 'comment' ? 'comment' : 'book'}
+                  size={12}
+                />
+                {from}
+              </span>
+            )}
             {idea.source === 'ai' && <AiChip />}
             {idea.tags.map((t) => (
               <span key={t} className="is-tag">
                 {t}
               </span>
             ))}
+          </div>
+          <div className="is-row-sub is-page-demand">
             <button
               type="button"
-              className={`is-chip ${voted ? '' : ''}`}
+              className="is-btn is-btn-sm"
               aria-pressed={voted}
               onClick={() => vote.mutate({ id: idea.id, on: !voted })}
               data-testid="vote"
             >
-              {voted ? (
-                <>
-                  <LineIcon name="check" size={13} /> You want this
-                </>
-              ) : (
-                'I want this'
-              )}
+              <IdeaIcon name={voted ? 'check' : 'thumb'} size={13} />
+              {voted ? 'You want this' : 'I want this'}
             </button>
             <Demand voters={idea.voters} max={4} />
             {idea.voters.length > 0 && <span>{plural(idea.voters.length, 'person wants', 'people want')} this</span>}
@@ -298,13 +367,13 @@ export function IdeaPage({
             projects={projects}
           />
 
-          <div className="is-tabs is-page-tabs" role="tablist" aria-label="Idea sections">
+          <div className="is-utabs" role="tablist" aria-label="Idea sections">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 role="tab"
-                className="is-tab"
+                className="is-utab"
                 aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
                 data-testid={`tab-${t.id}`}
@@ -316,9 +385,25 @@ export function IdeaPage({
 
           <div className="is-page-body">
             {tab === 'page' && (
-              <PageTab idea={idea} projects={projects} readOnly={readOnly} onOpenTicket={onOpenTicket} />
+              <PageTab
+                idea={idea}
+                projects={projects}
+                readOnly={readOnly}
+                onOpenTicket={onOpenTicket}
+                onStatus={setSaveState}
+              />
             )}
-            {tab === 'assumptions' && <IdeaAssumptions idea={idea} readOnly={readOnly} onOpenTicket={onOpenTicket} />}
+            {tab === 'assumptions' && (
+              <IdeaAssumptions
+                idea={idea}
+                readOnly={readOnly}
+                onOpenTicket={onOpenTicket}
+                onSuggest={() => {
+                  setAskOpen(false);
+                  setShapeOpen(true);
+                }}
+              />
+            )}
             {tab === 'evidence' && <IdeaEvidenceTab idea={idea} readOnly={readOnly} />}
             {tab === 'comments' && <IdeaComments idea={idea} readOnly={false} />}
             {tab === 'log' && <IdeaLog idea={idea} readOnly={!idea.canEdit} closed={closed} />}
@@ -329,12 +414,16 @@ export function IdeaPage({
 
         <aside className="is-rail" aria-label="Decide">
           <section className="is-rail-card" data-testid="readiness-card">
-            <div className="is-label">Readiness</div>
-            <div className="is-rail-big">
-              {idea.readiness.validated} of {idea.readiness.total}
+            <div className="is-rail-head">
+              <span className="is-label is-grow">Readiness</span>
+              <ReadinessBadge readiness={idea.readiness} />
             </div>
-            <ReadinessBadge readiness={idea.readiness} />
-            <p className="is-muted" style={{ marginTop: 8 }}>
+            {idea.readiness.total > 0 && (
+              <div className="is-rail-bar">
+                <ReadinessBar idea={idea} />
+              </div>
+            )}
+            <p className="is-rail-text">
               {idea.readiness.total === 0
                 ? 'Write what must be true for this to work. A bare idea is never promoted by accident.'
                 : idea.readiness.state === 'ready'
@@ -342,56 +431,66 @@ export function IdeaPage({
                   : idea.readiness.state === 'at_risk'
                     ? 'A high-impact assumption was disproved. Rethink before promoting.'
                     : `${idea.readiness.highOpen} high-impact ${idea.readiness.highOpen === 1 ? 'assumption is' : 'assumptions are'} not validated yet.`}
+              {idea.readiness.nextId && idea.assumptions.find((a) => a.id === idea.readiness.nextId) && (
+                <>
+                  {' '}
+                  Start with <b>“{idea.assumptions.find((a) => a.id === idea.readiness.nextId)!.text}”</b>
+                </>
+              )}
             </p>
             {idea.readiness.nextId && (
-              <button type="button" className="is-link" onClick={() => setTab('assumptions')}>
-                Go to “{idea.assumptions.find((a) => a.id === idea.readiness.nextId)?.text.slice(0, 50)}”
+              <button type="button" className="is-btn is-btn-sm is-rail-go" onClick={() => setTab('assumptions')}>
+                <IdeaIcon name="arrowUpRight" size={13} />
+                Go to it
               </button>
             )}
           </section>
 
           <section className="is-rail-card">
             <div className="is-label">Details</div>
-            <dl className="is-dl">
+            <dl className="is-dl is-details">
               <dt>Project</dt>
               <dd>
-                <ProjectSelect
+                <ProjectPill
+                  plain
                   value={idea.projectId}
                   onChange={(id) => setProject.mutate({ id: idea.id, projectId: id })}
                 />
               </dd>
               <dt>Stage</dt>
-              <dd>
-                {STAGE_LABELS[idea.stage]}
-                {idea.parkUntil ? ` until ${idea.parkUntil}` : ''}
+              <dd className="is-dd-row">
+                <StagePill stage={idea.stage} />
+                {idea.parkUntil ? <span className="is-muted">until {shortDate(idea.parkUntil)}</span> : null}
               </dd>
               <dt>Owner</dt>
               <dd>
-                <input
-                  className="is-input"
-                  defaultValue={idea.owner ?? ''}
+                <ClickToEdit
                   key={`${idea.id}-${idea.owner}`}
+                  value={idea.owner ?? ''}
+                  label="Owner"
                   placeholder="Nobody yet"
-                  aria-label="Owner"
                   disabled={closed}
-                  onBlur={(e) =>
-                    e.target.value !== (idea.owner ?? '') && edit.mutate({ id: idea.id, owner: e.target.value || null })
+                  display={
+                    idea.owner ? (
+                      <span className="is-row-who">
+                        <Avatar name={idea.owner} size={20} />
+                        {idea.owner}
+                      </span>
+                    ) : null
                   }
+                  onSave={(v) => edit.mutate({ id: idea.id, owner: v || null })}
                 />
               </dd>
               <dt>Effort guess</dt>
               <dd>
-                <input
-                  className="is-input"
-                  defaultValue={idea.effortGuess ?? ''}
+                <ClickToEdit
                   key={`${idea.id}-e-${idea.effortGuess}`}
+                  value={idea.effortGuess ?? ''}
+                  label="Effort guess"
                   placeholder="Small, medium, big…"
-                  aria-label="Effort guess"
                   disabled={closed}
-                  onBlur={(e) =>
-                    e.target.value !== (idea.effortGuess ?? '') &&
-                    edit.mutate({ id: idea.id, effortGuess: e.target.value || null })
-                  }
+                  display={idea.effortGuess ? <b>{idea.effortGuess}</b> : null}
+                  onSave={(v) => edit.mutate({ id: idea.id, effortGuess: v || null })}
                 />
               </dd>
               <dt>Last touched</dt>
@@ -401,41 +500,80 @@ export function IdeaPage({
 
           <section className="is-rail-card">
             <div className="is-label">Linked</div>
-            {idea.ticket ? (
-              <div>
-                <button type="button" className="is-link is-mono" onClick={() => onOpenTicket(idea.ticket!.id)}>
-                  {idea.ticket.id}
-                </button>{' '}
-                <span className="is-muted">
-                  {idea.ticket.title} · {idea.ticket.status}
-                </span>
-              </div>
-            ) : (
-              <div className="is-muted">
-                No ticket yet.{' '}
-                {idea.projectId
-                  ? `Promote creates one in ${project?.name ?? 'the project'}.`
-                  : 'Choose a project, then promote.'}
-              </div>
-            )}
-            {idea.assumptions
-              .filter((a) => a.testTicketId)
-              .map((a) => (
-                <div key={a.id}>
-                  <span className="is-muted">test </span>
-                  <button type="button" className="is-link is-mono" onClick={() => onOpenTicket(a.testTicketId!)}>
-                    {a.testTicketId}
+            <div className="is-linked">
+              {idea.ticket && (
+                <div className="is-linked-row">
+                  <button
+                    type="button"
+                    className="is-ticket-chip is-chip-btn"
+                    onClick={() => onOpenTicket(idea.ticket!.id)}
+                    title={`${idea.ticket.title} · ${statusLabel(idea.ticket.status)}`}
+                  >
+                    <span className="is-dot" style={{ background: idea.stage === 'shipped' ? '#2E6F40' : '#E8861A' }} />
+                    {idea.ticket.id}
                   </button>
+                  <span className="is-muted">ticket · {statusLabel(idea.ticket.status)}</span>
                 </div>
-              ))}
-            {idea.mergedIntoId && (
-              <div>
-                <span className="is-muted">merged into </span>
-                <button type="button" className="is-link is-mono" onClick={() => onOpenIdea(idea.mergedIntoId!)}>
-                  {idea.mergedIntoId}
-                </button>
-              </div>
-            )}
+              )}
+              {idea.assumptions
+                .filter((a) => a.testTicketId)
+                .map((a) => (
+                  <div key={a.id} className="is-linked-row">
+                    <button
+                      type="button"
+                      className="is-ticket-chip is-chip-btn"
+                      onClick={() => onOpenTicket(a.testTicketId!)}
+                      title={a.text}
+                    >
+                      <span className="is-dot" style={{ background: '#E8B93A' }} />
+                      {a.testTicketId}
+                    </button>
+                    <span className="is-muted">test</span>
+                  </div>
+                ))}
+              {idea.source !== 'manual' && (idea.sourceRef.label || idea.sourceRef.id) && (
+                <div className="is-linked-row">
+                  {idea.source === 'ticket' && idea.sourceRef.id ? (
+                    <button
+                      type="button"
+                      className="is-ticket-chip is-chip-btn"
+                      onClick={() => onOpenTicket(idea.sourceRef.id!)}
+                    >
+                      {idea.sourceRef.id}
+                    </button>
+                  ) : (
+                    <span className="is-doc-chip" title={idea.sourceRef.quote ?? undefined}>
+                      <IdeaIcon
+                        name={idea.source === 'doc' ? 'doc' : idea.source === 'comment' ? 'comment' : 'link'}
+                        size={12}
+                      />
+                      {idea.sourceRef.label ?? idea.sourceRef.id}
+                    </span>
+                  )}
+                  <span className="is-muted">source</span>
+                </div>
+              )}
+              {idea.mergedIntoId && (
+                <div className="is-linked-row">
+                  <button
+                    type="button"
+                    className="is-ticket-chip is-chip-btn"
+                    onClick={() => onOpenIdea(idea.mergedIntoId!)}
+                  >
+                    {idea.mergedIntoId}
+                  </button>
+                  <span className="is-muted">merged into</span>
+                </div>
+              )}
+              {!idea.ticket && (
+                <div className="is-muted">
+                  No ticket yet.{' '}
+                  {idea.projectId
+                    ? `Promote creates one in ${project?.name ?? 'the project'}.`
+                    : 'Choose a project, then promote.'}
+                </div>
+              )}
+            </div>
           </section>
           <AiRailCard
             idea={idea}
@@ -465,6 +603,55 @@ export function IdeaPage({
       )}
       {moves.dialogs}
     </div>
+  );
+}
+
+/** A value shown as text; a click (or Enter) turns it into a field, saved when it loses the focus. */
+function ClickToEdit({
+  value,
+  label,
+  placeholder,
+  disabled,
+  display,
+  onSave,
+}: {
+  value: string;
+  label: string;
+  placeholder: string;
+  disabled: boolean;
+  display: ReactNode;
+  onSave: (value: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  if (editing && !disabled) {
+    return (
+      <input
+        className="is-input"
+        defaultValue={value}
+        placeholder={placeholder}
+        aria-label={label}
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        onBlur={(e) => {
+          setEditing(false);
+          if (e.target.value.trim() !== value) onSave(e.target.value.trim());
+        }}
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="is-click-edit"
+      aria-label={`${label}: ${value || placeholder}. Change`}
+      disabled={disabled}
+      onClick={() => setEditing(true)}
+    >
+      {display ?? <span className="is-muted">{placeholder}</span>}
+    </button>
   );
 }
 
@@ -512,99 +699,137 @@ function Banners({
 }) {
   const [choosing, setChoosing] = useState(false);
   return (
-    <>
+    <div className="is-banners">
       {idea.stage === 'archived' && (
-        <div className="is-banner" role="status">
-          <div style={{ flex: 1 }}>
-            <b>This idea is archived{idea.archiveReason ? ` (${idea.archiveReason.replace('_', ' ')})` : ''}.</b> The
-            log, workspace and activity stay readable; adding entries and files is turned off.
-            {idea.archiveNote ? ` “${idea.archiveNote}”` : ''}
-          </div>
-          <button type="button" className="is-btn is-btn-sm" onClick={onReopen}>
-            Reopen
-          </button>
-        </div>
+        <StateCard
+          icon="archive"
+          title={`This idea is archived${idea.archiveReason ? ` (${idea.archiveReason.replace('_', ' ')})` : ''}`}
+          actions={
+            <button type="button" className="is-btn is-btn-sm" onClick={onReopen}>
+              Reopen
+            </button>
+          }
+        >
+          The log, workspace and activity stay readable; adding entries and files is turned off.
+          {idea.archiveNote ? ` “${idea.archiveNote}”` : ''}
+        </StateCard>
       )}
       {idea.stage === 'shipped' && (
-        <div className="is-banner" role="status">
-          <div style={{ flex: 1 }}>
-            <b>Shipped{idea.ticket ? ` as ${idea.ticket.id}` : ''}.</b> The idea is read only; comments are still open.{' '}
-            {idea.ticket && (
-              <button type="button" className="is-link" onClick={() => onOpenTicket(idea.ticket!.id)}>
-                Open the ticket
-              </button>
-            )}
-            {!idea.outcome ? (
-              <div style={{ marginTop: 6 }}>
-                Did it work as expected?{' '}
-                <button type="button" className="is-btn is-btn-sm" onClick={() => onOutcome('worked')}>
-                  Yes
-                </button>{' '}
-                <button type="button" className="is-btn is-btn-sm" onClick={() => onOutcome('partly')}>
-                  Partly
-                </button>{' '}
-                <button type="button" className="is-btn is-btn-sm" onClick={() => onOutcome('no')}>
-                  No
+        <StateCard
+          tone="ok"
+          icon="check"
+          title={`Shipped${idea.ticket ? ` as ${idea.ticket.id}` : ''}`}
+          actions={
+            <>
+              {!idea.outcome ? (
+                <>
+                  <span>Did it work as expected?</span>
+                  <button type="button" className="is-btn is-btn-sm" onClick={() => onOutcome('worked')}>
+                    Yes
+                  </button>
+                  <button type="button" className="is-btn is-btn-sm" onClick={() => onOutcome('partly')}>
+                    Partly
+                  </button>
+                  <button type="button" className="is-btn is-btn-sm" onClick={() => onOutcome('no')}>
+                    No
+                  </button>
+                </>
+              ) : (
+                <span className="is-muted">Outcome: {idea.outcome}</span>
+              )}
+              <span className="is-grow" />
+              {idea.ticket && (
+                <button type="button" className="is-btn is-btn-sm" onClick={() => onOpenTicket(idea.ticket!.id)}>
+                  <IdeaIcon name="external" size={13} />
+                  Open the ticket
                 </button>
-              </div>
-            ) : (
-              <div className="is-muted">Outcome: {idea.outcome}</div>
-            )}
-          </div>
-          <button type="button" className="is-btn is-btn-sm" onClick={onReopen}>
-            Reopen
-          </button>
-        </div>
+              )}
+              <button type="button" className="is-btn is-btn-sm" onClick={onReopen}>
+                Reopen
+              </button>
+            </>
+          }
+        >
+          The idea is read only; comments are still open.
+        </StateCard>
       )}
       {idea.stage === 'building' && idea.ticket && (
-        <div className="is-banner" role="status">
-          <div style={{ flex: 1 }}>
-            <b>Building</b> · {idea.ticket.id} · {idea.ticket.status}. It moves to Shipped when {idea.ticket.id} is
-            Done.
+        <div className="is-promoted" role="status" data-testid="promoted-card">
+          <div className="is-promoted-card">
+            <IdeaIcon name="rocket" size={18} strokeWidth={2} color="#1F5A31" />
+            <div className="is-grow">
+              <b>Promoted to</b>{' '}
+              <span className="is-ticket-chip">
+                <span className="is-dot" style={{ background: '#E8861A' }} />
+                {idea.ticket.id}
+              </span>{' '}
+              <span className="is-muted">
+                · {statusLabel(idea.ticket.status)}
+                {idea.ticket.assignee ? ` · ${idea.ticket.assignee}` : ''}
+                {idea.promotedAt ? ` · promoted ${relativeTime(idea.promotedAt)}` : ''}
+              </span>
+            </div>
+            <button type="button" className="is-btn is-btn-sm" onClick={() => onOpenTicket(idea.ticket!.id)}>
+              <IdeaIcon name="external" size={14} />
+              Open ticket
+            </button>
           </div>
-          <button type="button" className="is-btn is-btn-sm" onClick={() => onOpenTicket(idea.ticket!.id)}>
-            Open ticket
-          </button>
+          <div className="is-promoted-next">
+            <StagePill stage="building" />
+            <span className="is-muted">→ moves to Shipped when {idea.ticket.id} is Done</span>
+          </div>
         </div>
       )}
       {idea.formerTicketId && !idea.ticket && (idea.stage === 'exploring' || idea.stage === 'ready') && (
-        <div className="is-banner is-banner-warn" role="status">
-          <div style={{ flex: 1 }}>
-            {idea.formerTicketId} was {idea.stage === 'ready' ? 'deleted' : 'dropped'}.{' '}
-            {idea.stage === 'ready' ? 'You can promote again; nothing was lost.' : 'Try again, park it or archive it.'}
-          </div>
-        </div>
+        <StateCard
+          tone="warn"
+          icon="warning"
+          title={`${idea.formerTicketId} was ${idea.stage === 'ready' ? 'deleted' : 'dropped'}`}
+        >
+          {idea.stage === 'ready' ? 'You can promote again; nothing was lost.' : 'Try again, park it or archive it.'}
+        </StateCard>
       )}
       {disproved.length > 0 && !['archived', 'shipped', 'building'].includes(idea.stage) && (
-        <div className="is-banner is-banner-risk" role="alert">
-          <div style={{ flex: 1 }}>
-            <b>A key assumption was disproved.</b> “{disproved[0]}” is disproved. Promoting now is not recommended.
-          </div>
-          <button type="button" className="is-btn is-btn-sm" onClick={onSeeEvidence}>
-            See the evidence
-          </button>
-        </div>
+        <StateCard
+          tone="risk"
+          role="alert"
+          icon="warning"
+          title="A key assumption was disproved"
+          actions={
+            <button type="button" className="is-btn is-btn-sm" onClick={onSeeEvidence}>
+              See the evidence
+            </button>
+          }
+        >
+          “{disproved[0]}” is disproved. Promoting now is not recommended.
+        </StateCard>
       )}
       {staleDays >= 30 && ['exploring', 'ready'].includes(idea.stage) && (
-        <div className="is-banner is-banner-warn" role="status">
-          <div style={{ flex: 1 }}>
-            <b>Not touched for {staleDays} days.</b> Still worth doing? Test an assumption, park it, or archive it.
-          </div>
-          <button type="button" className="is-btn is-btn-sm" onClick={onPark}>
-            Park
-          </button>
-          <button type="button" className="is-btn is-btn-sm" onClick={onArchive}>
-            Archive
-          </button>
-        </div>
+        <StateCard
+          tone="warn"
+          icon="clock"
+          title={`Not touched for ${staleDays} days`}
+          actions={
+            <>
+              <button type="button" className="is-btn is-btn-sm" onClick={onPark}>
+                Park
+              </button>
+              <button type="button" className="is-btn is-btn-sm" onClick={onArchive}>
+                Archive
+              </button>
+            </>
+          }
+        >
+          Still worth doing? Test an assumption, park it, or archive it.
+        </StateCard>
       )}
       {idea.projectId === null && !['archived', 'shipped'].includes(idea.stage) && (
-        <div className="is-banner" role="status">
-          <div style={{ flex: 1 }}>
-            <b>This idea is not in a project.</b> You can keep writing, testing and drawing. Choose a project when you
-            want to promote it.
-            {choosing && (
-              <div style={{ marginTop: 8, maxWidth: 260 }}>
+        <StateCard
+          icon="folder"
+          title="This idea is not in a project"
+          actions={
+            choosing ? (
+              <div style={{ maxWidth: 260, width: '100%' }}>
                 <select
                   className="is-select"
                   style={{ width: '100%' }}
@@ -620,17 +845,24 @@ function Banners({
                   ))}
                 </select>
               </div>
-            )}
-          </div>
-          {!choosing && (
-            <button type="button" className="is-btn is-btn-sm" onClick={() => setChoosing(true)}>
-              Choose a project
-            </button>
-          )}
-        </div>
+            ) : (
+              <button type="button" className="is-btn is-btn-sm" onClick={() => setChoosing(true)}>
+                Choose a project
+              </button>
+            )
+          }
+        >
+          You can keep writing, testing and drawing. Choose a project when you want to promote it.
+        </StateCard>
       )}
-    </>
+    </div>
   );
+}
+
+/** "in_progress" → "In progress". */
+function statusLabel(status: string): string {
+  const t = status.replace(/_/g, ' ');
+  return t ? t[0].toUpperCase() + t.slice(1) : t;
 }
 
 /** The page itself: the Docs editor on the idea's markdown body, saved as you type. */
@@ -639,11 +871,14 @@ function PageTab({
   projects,
   readOnly,
   onOpenTicket,
+  onStatus,
 }: {
   idea: Idea;
   projects: Project[];
   readOnly: boolean;
   onOpenTicket: (id: string) => void;
+  /** "Saved", "Saving…" or the error, shown in the page header. */
+  onStatus: (s: SaveState | null) => void;
 }) {
   const edit = useEditIdeaPage();
   const editor = useRef<DocsEditorHandle>(null);
@@ -697,21 +932,17 @@ function PageTab({
     [save],
   );
 
+  useEffect(() => {
+    onStatus(readOnly ? 'readonly' : status);
+  }, [onStatus, readOnly, status]);
+  useEffect(() => () => onStatus(null), [onStatus]);
+
   if (!projectId) {
     return <div className="is-empty">Create a project first: the page editor needs one to resolve references.</div>;
   }
 
   return (
     <div className="is-editor" data-testid="idea-editor">
-      <div className="is-saved" aria-live="polite">
-        {readOnly
-          ? 'Read only'
-          : status === 'saving'
-            ? 'Saving…'
-            : status === 'error'
-              ? 'Could not save. Your text is kept here; keep typing to retry.'
-              : 'Saved'}
-      </div>
       <DocsEditor
         ref={editor}
         projectId={projectId}
@@ -745,6 +976,10 @@ function IdeaWorkspaceTab({ idea, closed }: { idea: Idea; closed: boolean }) {
   const edit = useEditIdeaPage();
   return (
     <div data-testid="workspace-tab">
+      <div className="is-tool-title">
+        <h3>Workspace</h3>
+        <span className="is-muted">· {idea.id}</span>
+      </div>
       {closed && (
         <div className="is-banner" style={{ marginBottom: 10 }}>
           The idea is closed. The folder stays readable; adding files is turned off.

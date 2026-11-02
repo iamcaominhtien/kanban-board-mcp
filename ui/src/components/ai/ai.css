@@ -1330,3 +1330,39 @@
 .ai-tier-locked-head svg {
   margin-top: 2px;
 }
+
+/* "AI paused": hover or keyboard focus on the label shows the card (design ai-paused B1) */
+.ai-pausebar-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.ai-pausebar-card {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1300;
+  width: 280px;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.14);
+  color: #1e2a22;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+}
+.ai-pausebar-wrap:hover .ai-pausebar-card,
+.ai-pausebar-wrap:focus-within .ai-pausebar-card {
+  display: flex;
+}
+.ai-pausebar-reason {
+  color: #3a4a3e;
+}
+.ai-pausebar-note {
+  color: #5b6b60;
+}

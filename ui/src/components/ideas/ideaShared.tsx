@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { Idea, IdeaReadiness, IdeaStage, ReadinessState } from '../../types/idea';
 import { READINESS_LABELS, STAGE_LABELS } from '../../types/idea';
 import { Avatar } from '../docs/docsShared';
-import { IdeaIcon, STAGE_ICONS } from './ideaIcons';
+import { IdeaIcon, STAGE_ICONS, type IdeaIconName } from './ideaIcons';
 import './ideas.css';
 
 /** Pill with the stage's icon and name, coloured by stage. */
@@ -151,4 +151,39 @@ export function BulbIcon({ size = 16 }: { size?: number }) {
 /** Keyboard key cap. */
 export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="is-kbd">{children}</kbd>;
+}
+
+/**
+ * A state card: an icon, a coloured title line, the body, then the actions below (the design's banners on the idea
+ * page, Promote and triage).
+ */
+export function StateCard({
+  tone = 'info',
+  icon,
+  title,
+  children,
+  actions,
+  role = 'status',
+  testId,
+}: {
+  tone?: 'info' | 'warn' | 'risk' | 'ok';
+  icon: IdeaIconName;
+  title: ReactNode;
+  children?: ReactNode;
+  actions?: ReactNode;
+  role?: 'status' | 'alert';
+  testId?: string;
+}) {
+  return (
+    <div className={`is-scard is-scard-${tone}`} role={role} data-testid={testId}>
+      <span className="is-scard-icon">
+        <IdeaIcon name={icon} size={16} />
+      </span>
+      <div className="is-scard-main">
+        <span className="is-scard-title">{title}</span>
+        {children && <div className="is-scard-body">{children}</div>}
+        {actions && <div className="is-scard-actions">{actions}</div>}
+      </div>
+    </div>
+  );
 }

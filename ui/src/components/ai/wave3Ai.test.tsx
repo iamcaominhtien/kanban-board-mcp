@@ -3,7 +3,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AiRun } from '../../types/ai';
 import type { AssistState } from '../../types/assist';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), post: vi.fn() }));
@@ -12,6 +11,8 @@ vi.mock('../../api/client', () => ({ client: http }));
 import { ToastProvider } from '../Toast';
 import { notReadyReason } from './AiFillPanel';
 import { RetryLine } from './RunPanel';
+import { PauseAllButton } from './AiKillSwitch';
+import type { AiMember, AiRun, AiSettings } from '../../types/ai';
 
 afterEach(cleanup);
 
@@ -81,5 +82,28 @@ describe('A run the board tries again by itself', () => {
       ),
     );
     expect(container.querySelector('[data-testid="run-retry-line"]')).toBeNull();
+  });
+});
+
+describe('The "AI paused" label', () => {
+  it('describes itself with a card that keyboard focus reaches too', () => {
+    const settings = {
+      pausedAll: true,
+      pausedAt: new Date(2026, 10, 2, 10, 41).toISOString(),
+      pausedBy: 'An Nguyen',
+      pausedReason: 'Release freeze',
+      pausedCancelled: 2,
+      pausedHeld: 1,
+    } as AiSettings;
+    render(wrap(<PauseAllButton projectId="p1" settings={settings} members={[{ slotsInUse: 0 } as AiMember]} />));
+    const label = screen.getByTestId('ai-paused-label');
+    expect(label.getAttribute('tabindex')).toBe('0');
+    expect(label.getAttribute('title')).toBeNull();
+    const card = screen.getByTestId('ai-paused-card');
+    expect(label.getAttribute('aria-describedby')).toBe(card.id);
+    expect(card.getAttribute('role')).toBe('tooltip');
+    expect(card.textContent).toContain('2 runs cancelled · 1 queued run held');
+    expect(card.textContent).toContain('Release freeze');
+    expect(card.textContent).toContain('Nothing new starts until an owner or admin resumes.');
   });
 });

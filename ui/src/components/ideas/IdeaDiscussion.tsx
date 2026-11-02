@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { extractError } from '../../api/extractError';
 import {
   ideaRuleError,
@@ -13,14 +13,18 @@ import {
   useIdeaLog,
   useLogAsEvidence,
 } from '../../api/ideas';
-import type { Idea, IdeaActivityEntry, LogKind } from '../../types/idea';
+import type { Idea, IdeaActivityEntry, IdeaStage, LogKind } from '../../types/idea';
 import { LOG_KIND_LABELS } from '../../types/idea';
 import { absoluteTime, relativeTime } from '../../utils/relativeTime';
 import { lineDiffCounts } from '../../utils/lineDiff';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { Avatar, plural } from '../docs/docsShared';
 import { useToast } from '../Toast';
-import { AiChip } from './ideaShared';
+import { AiChip, StagePill } from './ideaShared';
+import { IdeaIcon, type IdeaIconName } from './ideaIcons';
+import { LineIcon } from '../ui/LineIcon';
+import { MenuSelect } from '../ui/MenuSelect';
+import { uploadAnyFile } from '../../api/tickets';
 
 const who = (a?: string | null) => (!a ? 'Someone' : a === 'user' ? 'You' : a === 'agent' ? 'AI agent' : a);
 
@@ -140,9 +144,80 @@ export function IdeaComments({ idea, readOnly }: { idea: Idea; readOnly: boolean
   );
 }
 
-const LOG_KINDS = Object.keys(LOG_KIND_LABELS) as LogKind[];
+const LOG_KINDS: LogKind[] = ['research', 'interview', 'experiment', 'finding', 'decision', 'note'];
 
-/** The research log: what was found, tried and decided, in the order it happened. */
+/** Each kind's icon and colours, as the design draws the composer chips, the timeline dots and the entry chips. */
+const LOG_STYLE: Record<LogKind, { icon: IdeaIconName; dot: string; ink: string }> = {
+  research: { icon: 'search', dot: '#2F6FB0', ink: '#244E78' },
+  interview: { icon: 'comment', dot: '#7C5CD6', ink: '#5B3AA6' },
+  experiment: { icon: 'flask', dot: '#E8861A', ink: '#8A4B08' },
+  finding: { icon: 'target', dot: '#2E6F40', ink: '#1F5A31' },
+  decision: { icon: 'flag', dot: '#B8860B', ink: '#7A5A06' },
+  note: { icon: 'edit', dot: '#9AA8A0', ink: '#5B6B60' },
+};
+
+/** A log kind as a coloured chip with its icon. */
+function KindChip({ kind }: { kind: LogKind }) {
+  const st = LOG_STYLE[kind];
+  return (
+    <span className="is-kind-chip" style={{ background: `${st.dot}1F`, color: st.ink }}>
+      <IdeaIcon name={st.icon} size={12} strokeWidth={2} />
+      {LOG_KIND_LABELS[kind]}
+    </span>
+  );
+}
+
+/** The ⋯ menu of a log entry: Pin or Unpin, and Delete. */
+function EntryMenu({ pinned, onPin, onDelete }: { pinned: boolean; onPin: () => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="is-switch">
+      <button
+        type="button"
+        className="is-icon-btn"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Entry actions"
+        onClick={() => setOpen(!open)}
+      >
+        <LineIcon name="more" size={15} />
+      </button>
+      {open && (
+        <div
+          className="is-switch-menu"
+          role="menu"
+          style={{ right: 0, left: 'auto', minWidth: 140 }}
+          onMouseLeave={() => setOpen(false)}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className="is-switch-item"
+            onClick={() => {
+              setOpen(false);
+              onPin();
+            }}
+          >
+            {pinned ? 'Unpin' : 'Pin'}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="is-switch-item"
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The research log: what was found, tried and decided, as a timeline. */
 export function IdeaLog({ idea, readOnly, closed }: { idea: Idea; readOnly: boolean; closed: boolean }) {
   const toast = useToast();
   const list = useIdeaLog(idea.id);
@@ -153,71 +228,228 @@ export function IdeaLog({ idea, readOnly, closed }: { idea: Idea; readOnly: bool
   const [kind, setKind] = useState<LogKind>('note');
   const [body, setBody] = useState('');
   const [assumptionId, setAssumptionId] = useState('');
+  const [attachments, setAttachments] = useState<{ name: string; url: string }[]>([]);
   const [filter, setFilter] = useState<LogKind | 'all'>('all');
+  const [newestFirst, setNewestFirst] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const entries = (list.data ?? []).filter((e) => filter === 'all' || e.kind === filter);
-  const counts = (list.data ?? []).reduce<Record<string, number>>(
-    (m, e) => ({ ...m, [e.kind]: (m[e.kind] ?? 0) + 1 }),
-    {},
-  );
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const all = list.data ?? [];
+  const filtered = all.filter((e) => filter === 'all' || e.kind === filter);
+  // the server sends the pinned entries first, then the newest; "Oldest first" sorts by time alone
+  const entries = newestFirst ? filtered : [...filtered].sort((x, y) => x.createdAt.localeCompare(y.createdAt));
+  const counts = all.reduce<Record<string, number>>((m, e) => ({ ...m, [e.kind]: (m[e.kind] ?? 0) + 1 }), {});
+  const pinned = all.find((e) => e.pinned);
+  const canWrite = !readOnly && !closed;
 
   async function submit() {
     if (!body.trim()) return;
     try {
-      await add.mutateAsync({ id: idea.id, kind, body, assumptionId: assumptionId || null });
+      await add.mutateAsync({
+        id: idea.id,
+        kind,
+        body,
+        assumptionId: assumptionId || null,
+        attachments: attachments.length ? attachments : undefined,
+      });
       setBody('');
       setAssumptionId('');
+      setAttachments([]);
       setError(null);
     } catch (e) {
       setError(ideaRuleError(e).message);
     }
   }
 
+  /** Wrap the selected text (or put the marks at the caret) for the B, I, code and link buttons. */
+  function wrap(before: string, after: string = before) {
+    const el = textRef.current;
+    if (!el) return;
+    const { selectionStart: a, selectionEnd: b } = el;
+    const next = body.slice(0, a) + before + body.slice(a, b) + after + body.slice(b);
+    setBody(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(a + before.length, b + before.length);
+    });
+  }
+
+  async function attach(file: File) {
+    try {
+      const up = await uploadAnyFile(file);
+      setAttachments((x) => [...x, { name: up.name || file.name, url: up.url }]);
+    } catch (e) {
+      setError(extractError(e));
+    }
+  }
+
+  const assumptionOptions = [
+    { value: '', label: 'No assumption' },
+    ...idea.assumptions.map((a) => ({ value: a.id, label: a.text.slice(0, 80) })),
+  ];
+
   return (
-    <div data-testid="log-tab" style={{ maxWidth: 760 }}>
-      <div className="is-muted" style={{ marginBottom: 10 }}>
-        {plural((list.data ?? []).length, 'entry', 'entries')} · the story of exploring this idea
+    <div data-testid="log-tab" style={{ maxWidth: 820 }}>
+      <div className="is-tool-title">
+        <h3>Research log</h3>
+        <span className="is-muted">
+          {plural(all.length, 'entry', 'entries')} · {idea.id}
+        </span>
+        <span className="is-grow" />
+        {canWrite && (
+          <button type="button" className="is-btn is-btn-sm is-btn-primary" onClick={() => textRef.current?.focus()}>
+            <IdeaIcon name="plus" size={13} />
+            Log entry
+          </button>
+        )}
       </div>
+
+      {all.length > 0 && (
+        <div className="is-filters">
+          <button type="button" className="is-chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+            All <small>{all.length}</small>
+          </button>
+          {LOG_KINDS.filter((k) => counts[k]).map((k) => (
+            <button key={k} type="button" className="is-chip" aria-pressed={filter === k} onClick={() => setFilter(k)}>
+              {LOG_KIND_LABELS[k]} <small>{counts[k]}</small>
+            </button>
+          ))}
+          <span className="is-grow" />
+          <button
+            type="button"
+            className="is-btn is-btn-sm"
+            onClick={() => setNewestFirst(!newestFirst)}
+            data-testid="log-order"
+          >
+            <IdeaIcon name="sort" size={13} />
+            {newestFirst ? 'Newest first' : 'Oldest first'}
+          </button>
+        </div>
+      )}
+
+      {pinned && (
+        <div className="is-pinned-strip" data-testid="pinned-entry">
+          <IdeaIcon name="pin" size={14} />
+          <span>
+            <b>Pinned {LOG_KIND_LABELS[pinned.kind].toLowerCase()}</b> · {pinned.body.split('\n')[0].slice(0, 160)}{' '}
+            <span className="is-muted">
+              {who(pinned.author)} · {relativeTime(pinned.createdAt)}
+            </span>
+          </span>
+        </div>
+      )}
+
       {closed ? (
         <div className="is-banner" style={{ marginBottom: 12 }}>
           The idea is closed. The log stays readable; adding entries is turned off. Reopen the idea to turn it back on.
         </div>
       ) : !readOnly ? (
-        <div className="is-log-form">
-          <div className="is-radio-row" style={{ marginBottom: 8 }}>
-            {LOG_KINDS.map((k) => (
-              <button key={k} type="button" className="is-choice" aria-pressed={kind === k} onClick={() => setKind(k)}>
-                {LOG_KIND_LABELS[k]}
-              </button>
-            ))}
+        <div className="is-log-form is-composer">
+          <div className="is-composer-kinds" role="group" aria-label="Kind of entry">
+            {LOG_KINDS.map((k) => {
+              const st = LOG_STYLE[k];
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  className="is-kind-chip is-kind-choice"
+                  aria-pressed={kind === k}
+                  style={{ background: `${st.dot}1F`, color: st.ink, borderColor: kind === k ? st.dot : 'transparent' }}
+                  onClick={() => setKind(k)}
+                >
+                  <IdeaIcon name={st.icon} size={12} strokeWidth={2} />
+                  {LOG_KIND_LABELS[k]}
+                </button>
+              );
+            })}
           </div>
           <textarea
-            className="is-textarea"
+            ref={textRef}
+            className="is-composer-text"
             rows={3}
             value={body}
             aria-label="Log entry"
             placeholder="Write what you found, tried or decided… (markdown)"
             onChange={(e) => setBody(e.target.value)}
           />
-          <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            <select
-              className="is-select"
-              value={assumptionId}
-              aria-label="Link to assumption"
-              onChange={(e) => setAssumptionId(e.target.value)}
-            >
-              <option value="">Link to assumption…</option>
-              {idea.assumptions.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.text.slice(0, 60)}
-                </option>
+          {attachments.length > 0 && (
+            <div className="is-entry-chips">
+              {attachments.map((f) => (
+                <span key={f.url} className="is-entry-chip">
+                  <IdeaIcon name="attach" size={12} />
+                  {f.name}
+                  <button
+                    type="button"
+                    className="is-x"
+                    aria-label={`Remove ${f.name}`}
+                    onClick={() => setAttachments((x) => x.filter((y) => y.url !== f.url))}
+                  >
+                    <LineIcon name="close" size={11} />
+                  </button>
+                </span>
               ))}
-            </select>
+            </div>
+          )}
+          <div className="is-composer-bar">
+            <button type="button" className="is-icon-btn" aria-label="Bold" onClick={() => wrap('**')}>
+              <IdeaIcon name="bold" size={14} />
+            </button>
+            <button type="button" className="is-icon-btn" aria-label="Italic" onClick={() => wrap('_')}>
+              <IdeaIcon name="italic" size={14} />
+            </button>
+            <button type="button" className="is-icon-btn" aria-label="Code" onClick={() => wrap('`')}>
+              <IdeaIcon name="code" size={14} />
+            </button>
+            <button type="button" className="is-icon-btn" aria-label="Link" onClick={() => wrap('[', '](https://)')}>
+              <IdeaIcon name="link" size={14} />
+            </button>
+            <span className="is-head-sep" aria-hidden="true" />
+            <input
+              ref={fileRef}
+              type="file"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void attach(f);
+                e.target.value = '';
+              }}
+            />
+            <button type="button" className="is-btn is-btn-sm is-btn-ghost" onClick={() => fileRef.current?.click()}>
+              <IdeaIcon name="attach" size={13} />
+              Attach
+            </button>
+            {idea.assumptions.length > 0 && (
+              <MenuSelect
+                value={assumptionId}
+                options={assumptionOptions}
+                onChange={setAssumptionId}
+                label="Link to assumption"
+                variant="button"
+                icon={<IdeaIcon name="target" size={13} />}
+                placeholder="Link to assumption"
+                testId="log-link-assumption"
+                menuWidth={320}
+                className="is-composer-link"
+              />
+            )}
             <span className="is-grow" />
             {error && <span className="is-muted">{error}</span>}
+            {(body || attachments.length > 0) && (
+              <button
+                type="button"
+                className="is-btn is-btn-sm"
+                onClick={() => {
+                  setBody('');
+                  setAttachments([]);
+                  setAssumptionId('');
+                }}
+              >
+                Cancel
+              </button>
+            )}
             <button
               type="button"
-              className="is-btn is-btn-primary"
+              className="is-btn is-btn-sm is-btn-primary"
               onClick={submit}
               disabled={!body.trim() || add.isPending}
             >
@@ -227,20 +459,7 @@ export function IdeaLog({ idea, readOnly, closed }: { idea: Idea; readOnly: bool
         </div>
       ) : null}
 
-      {(list.data ?? []).length > 0 && (
-        <div className="is-filters" style={{ marginTop: 12 }}>
-          <button type="button" className="is-chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
-            All <small>{(list.data ?? []).length}</small>
-          </button>
-          {LOG_KINDS.filter((k) => counts[k]).map((k) => (
-            <button key={k} type="button" className="is-chip" aria-pressed={filter === k} onClick={() => setFilter(k)}>
-              {LOG_KIND_LABELS[k]} <small>{counts[k]}</small>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {(list.data ?? []).length === 0 && (
+      {all.length === 0 && (
         <div className="is-empty">
           <h3>Nothing logged yet</h3>
           <div>
@@ -249,68 +468,79 @@ export function IdeaLog({ idea, readOnly, closed }: { idea: Idea; readOnly: bool
         </div>
       )}
 
-      <div className="is-timeline">
+      <div className="is-timeline is-log-rail">
         {entries.map((e) => {
           const supports = idea.assumptions.find((a) => a.id === e.assumptionId);
+          const st = LOG_STYLE[e.kind] ?? LOG_STYLE.note;
           return (
             <article key={e.id} className={`is-log-entry ${e.pinned ? 'is-log-pinned' : ''}`} data-testid="log-entry">
-              <div className="is-comment-head">
+              <span className="is-log-dot" style={{ background: st.dot }} aria-hidden="true" />
+              <div className="is-log-head">
+                <KindChip kind={e.kind} />
+                {e.pinned && (
+                  <span className="is-log-pin" title="Pinned">
+                    <IdeaIcon name="pin" size={13} />
+                    <span className="is-sr">Pinned</span>
+                  </span>
+                )}
+                <span className="is-grow" />
                 <Avatar name={e.author ?? '?'} size={22} />
                 <b>{who(e.author)}</b>
                 {e.ai && <AiChip />}
-                <span className={`is-tag is-log-${e.kind}`}>{LOG_KIND_LABELS[e.kind]}</span>
-                {e.pinned && <span className="is-warn">Pinned</span>}
                 <span className="is-muted">{relativeTime(e.createdAt)}</span>
-                <span className="is-grow" />
-                {!readOnly && !closed && (
-                  <>
-                    <button
-                      type="button"
-                      className="is-btn is-btn-ghost is-btn-sm"
-                      onClick={() => edit.mutate({ id: idea.id, entryId: e.id, pinned: !e.pinned })}
-                    >
-                      {e.pinned ? 'Unpin' : 'Pin'}
-                    </button>
-                    <button
-                      type="button"
-                      className="is-btn is-btn-ghost is-btn-sm"
-                      onClick={() =>
-                        window.confirm('Delete this entry? It stays in Activity as “entry deleted”.') &&
-                        del.mutate({ id: idea.id, entryId: e.id })
-                      }
-                    >
-                      Delete
-                    </button>
-                  </>
+                {canWrite && (
+                  <EntryMenu
+                    pinned={e.pinned}
+                    onPin={() => edit.mutate({ id: idea.id, entryId: e.id, pinned: !e.pinned })}
+                    onDelete={() =>
+                      window.confirm('Delete this entry? It stays in Activity as “entry deleted”.') &&
+                      del.mutate({ id: idea.id, entryId: e.id })
+                    }
+                  />
                 )}
               </div>
-              <MarkdownRenderer>{e.body}</MarkdownRenderer>
-              <div className="is-row-sub">
-                {supports && <span>Supports: {supports.text}</span>}
-                {e.ticketId && <span className="is-mono">Test ticket {e.ticketId}</span>}
-                {!readOnly && !closed && e.kind === 'finding' && idea.assumptions.length > 0 && (
-                  <select
-                    className="is-select"
-                    aria-label="Use as evidence"
-                    value=""
-                    onChange={(ev) =>
-                      ev.target.value &&
+              <div className="is-log-body">
+                <MarkdownRenderer>{e.body}</MarkdownRenderer>
+              </div>
+              <div className="is-entry-chips">
+                {e.attachments.map((f) => (
+                  <a key={f.url} className="is-entry-chip" href={f.url} target="_blank" rel="noreferrer noopener">
+                    <IdeaIcon name="attach" size={12} />
+                    {f.name}
+                  </a>
+                ))}
+                {supports && (
+                  <span className="is-entry-chip">
+                    <IdeaIcon name="target" size={12} />
+                    Supports: {supports.text}
+                  </span>
+                )}
+                {e.ticketId && (
+                  <span className="is-entry-chip">
+                    <IdeaIcon name="flask" size={12} />
+                    Test ticket {e.ticketId}
+                  </span>
+                )}
+                {canWrite && e.kind === 'finding' && idea.assumptions.length > 0 && (
+                  <MenuSelect<string>
+                    value={null}
+                    options={idea.assumptions.map((a) => ({ value: a.id, label: a.text.slice(0, 80) }))}
+                    onChange={(id) =>
                       asEvidence.mutate(
-                        { id: idea.id, entryId: e.id, assumptionId: ev.target.value },
+                        { id: idea.id, entryId: e.id, assumptionId: id },
                         {
                           onSuccess: () => toast.success('Added as evidence'),
                           onError: (err) => toast.error('Could not add', ideaRuleError(err).message),
                         },
                       )
                     }
-                  >
-                    <option value="">Use as evidence…</option>
-                    {idea.assumptions.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.text.slice(0, 60)}
-                      </option>
-                    ))}
-                  </select>
+                    label="Use as evidence"
+                    variant="button"
+                    icon={<IdeaIcon name="check" size={13} />}
+                    placeholder="Use as evidence"
+                    testId={`use-as-evidence-${e.id}`}
+                    menuWidth={320}
+                  />
                 )}
               </div>
             </article>
@@ -367,11 +597,64 @@ function Diff({ entry }: { entry: IdeaActivityEntry }) {
   );
 }
 
+const ACTIVITY_KINDS: Record<string, { word: string; icon: IdeaIconName; tint: string; ink: string }> = {
+  stage: { word: 'Stage', icon: 'inbox', tint: '#FEF6E7', ink: '#7A5A06' },
+  assumption: { word: 'Assumption', icon: 'target', tint: '#E6F2EA', ink: '#1F5A31' },
+  evidence: { word: 'Evidence', icon: 'clipboard', tint: '#E8F1FA', ink: '#244E78' },
+  page: { word: 'Page', icon: 'edit', tint: '#F1F3F1', ink: '#3A4A3E' },
+  log: { word: 'Research log', icon: 'log', tint: '#E8F1FA', ink: '#244E78' },
+  vote: { word: 'Demand', icon: 'thumb', tint: '#F1F3F1', ink: '#3A4A3E' },
+  created: { word: 'Created', icon: 'bulb', tint: '#FEF6E7', ink: '#7A5A06' },
+  merge: { word: 'Merged', icon: 'merge', tint: '#FEF6E7', ink: '#7A5A06' },
+  project: { word: 'Project', icon: 'folder', tint: '#F1F3F1', ink: '#3A4A3E' },
+  link: { word: 'Linked', icon: 'link', tint: '#F1F3F1', ink: '#3A4A3E' },
+  ai: { word: 'AI', icon: 'sparkle', tint: '#EFE8FB', ink: '#5B3AA6' },
+};
+const STAGE_WORDS = new Set(['inbox', 'exploring', 'ready', 'building', 'parked', 'shipped', 'archived']);
+const STATE_WORDS = new Set(['untested', 'testing', 'validated', 'disproved']);
+
+/** A before or after value as a chip: a stage pill for a stage, a coloured chip for an assumption state. */
+function ValueChip({ value }: { value: string }) {
+  if (STAGE_WORDS.has(value)) return <StagePill stage={value as IdeaStage} />;
+  if (STATE_WORDS.has(value))
+    return <span className={`is-value-chip is-value-${value}`}>{value[0].toUpperCase() + value.slice(1)}</span>;
+  return <span className="is-value-chip">{value}</span>;
+}
+
+/**
+ * Splits an activity label into the subject and the before → after values it names, and marks text the server cut
+ * ("… real cost at t" becomes "… real cost at t…").
+ */
+function activityParts(entry: IdeaActivityEntry): { subject: string; from?: string; to?: string } {
+  let label = entry.label;
+  // the server keeps the first 60 characters of a quote or of an entry's text
+  label = label.replace(/“([^”]{60})”/g, '“$1…”').replace(/^(Log entry \([a-z]+\): )(.{60})$/s, '$1$2…');
+  const word = ACTIVITY_KINDS[entry.kind ?? '']?.word;
+  const meta = entry.meta ?? {};
+  if (entry.kind !== 'page' && typeof meta.from === 'string' && typeof meta.to === 'string' && meta.to) {
+    const subject = label
+      .replace(/^[^:]*:\s*/, '')
+      .replace(/\S+\s*→\s*\S+/, '')
+      .trim();
+    return { subject, from: meta.from || undefined, to: meta.to };
+  }
+  const marked = /^Assumption marked as (\w+)$/.exec(label);
+  if (marked) return { subject: 'marked as', to: marked[1] };
+  if (word && label.toLowerCase().startsWith(word.toLowerCase()))
+    label = label.slice(word.length).replace(/^[:\s]+/, '');
+  else if (entry.kind === 'log') label = label.replace(/^Log entry\s*/, '');
+  return { subject: label };
+}
+
+const ACTIVITY_PAGE = 30;
+
 /** Activity: who changed what, and when. Read-only, grouped by day, with filters. */
 export function IdeaActivityTab({ idea }: { idea: Idea }) {
   const [filter, setFilter] = useState('all');
+  const [shown, setShown] = useState(ACTIVITY_PAGE);
   const activity = useIdeaActivity(idea.id, filter === 'all' ? undefined : filter);
-  const items = activity.data?.items ?? [];
+  const all = activity.data?.items ?? [];
+  const items = all.slice(0, shown);
   const counts = activity.data?.counts ?? {};
   const groups: { day: string; items: IdeaActivityEntry[] }[] = [];
   items.forEach((i) => {
@@ -382,9 +665,12 @@ export function IdeaActivityTab({ idea }: { idea: Idea }) {
   });
 
   return (
-    <div data-testid="activity-tab" style={{ maxWidth: 760 }}>
-      <div className="is-muted" style={{ marginBottom: 8 }}>
-        {plural(counts.all ?? 0, 'change')} · {idea.id}
+    <div data-testid="activity-tab" style={{ maxWidth: 820 }}>
+      <div className="is-tool-title">
+        <h3>Activity</h3>
+        <span className="is-muted">
+          {plural(counts.all ?? 0, 'change')} · {idea.id}
+        </span>
       </div>
       <div className="is-filters">
         {ACTIVITY_FILTERS.map((f) => (
@@ -393,40 +679,84 @@ export function IdeaActivityTab({ idea }: { idea: Idea }) {
             type="button"
             className="is-chip"
             aria-pressed={filter === f.id}
-            onClick={() => setFilter(f.id)}
+            onClick={() => {
+              setFilter(f.id);
+              setShown(ACTIVITY_PAGE);
+            }}
           >
+            {f.id === 'ai' && <IdeaIcon name="sparkle" size={12} />}
             {f.label} {counts[f.id] ? <small>{counts[f.id]}</small> : null}
           </button>
         ))}
       </div>
-      {items.length === 0 && (
+      {all.length === 0 && (
         <div className="is-empty">
           <h3>No activity yet</h3>
           <div>Moves between stages, assumption changes, evidence and edits will show up here.</div>
         </div>
       )}
       {groups.map((g) => (
-        <section key={g.day}>
+        <section key={g.day} className="is-activity-day">
           <div className="is-label" style={{ margin: '14px 0 6px' }}>
             {g.day} · {plural(g.items.length, 'change')}
           </div>
-          {g.items.map((i) => (
-            <div key={i.id} className="is-activity-row">
-              <Avatar name={i.author ?? '?'} size={22} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div>
-                  {i.label} {i.ai && <AiChip />}
+          {g.items.map((i) => {
+            const k = i.ai
+              ? ACTIVITY_KINDS.ai
+              : (ACTIVITY_KINDS[i.kind ?? ''] ?? {
+                  word: '',
+                  icon: 'info' as IdeaIconName,
+                  tint: '#F1F3F1',
+                  ink: '#3A4A3E',
+                });
+            const parts = activityParts(i);
+            return (
+              <div key={i.id} className="is-activity-row">
+                <span className="is-activity-icon" style={{ background: k.tint, color: k.ink }}>
+                  <IdeaIcon name={k.icon} size={15} />
+                </span>
+                <div className="is-activity-main">
+                  <div className="is-activity-line">
+                    {(ACTIVITY_KINDS[i.kind ?? '']?.word ?? '') && <b>{ACTIVITY_KINDS[i.kind ?? ''].word}</b>}
+                    {parts.subject && (
+                      <span className="is-activity-subject" title={i.label}>
+                        {parts.subject}
+                      </span>
+                    )}
+                    {parts.from && <ValueChip value={parts.from} />}
+                    {parts.from && parts.to && <IdeaIcon name="arrowRight" size={12} color="#9AA8A0" />}
+                    {parts.to && <ValueChip value={parts.to} />}
+                    {i.ai && (
+                      <span className="is-advice-chip">
+                        <IdeaIcon name="sparkle" size={11} />
+                        By AI
+                      </span>
+                    )}
+                  </div>
+                  <Diff entry={i} />
                 </div>
-                <div className="is-muted">
-                  {who(i.author)} · <span title={absoluteTime(i.at)}>{relativeTime(i.at)}</span>
-                  {i.kind && <span> · {i.kind}</span>}
-                </div>
-                <Diff entry={i} />
+                <span className="is-activity-who" title={who(i.author)}>
+                  <Avatar name={i.author ?? '?'} size={22} />
+                  <span className="is-sr">{who(i.author)}</span>
+                </span>
+                <span className="is-muted is-activity-time" title={absoluteTime(i.at)}>
+                  {relativeTime(i.at)}
+                </span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </section>
       ))}
+      {all.length > shown && (
+        <button
+          type="button"
+          className="is-btn is-btn-sm"
+          style={{ marginTop: 12 }}
+          onClick={() => setShown((n) => n + ACTIVITY_PAGE)}
+        >
+          Show {Math.min(ACTIVITY_PAGE, all.length - shown)} earlier changes
+        </button>
+      )}
     </div>
   );
 }

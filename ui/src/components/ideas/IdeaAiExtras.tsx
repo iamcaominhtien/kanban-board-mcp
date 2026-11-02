@@ -150,12 +150,20 @@ export function RowAdvice({
         </span>
         <span className="is-grow" />
         {!advice.stale && (
-          <button type="button" className="is-btn is-btn-sm" onClick={() => onAccept(advice.action as Decision, advice)}>
+          <button
+            type="button"
+            className="is-btn is-btn-sm"
+            onClick={() => onAccept(advice.action as Decision, advice)}
+          >
             <IdeaIcon name="check" size={13} />
             Accept
           </button>
         )}
-        <button type="button" className="is-btn is-btn-sm" onClick={() => state.mutate({ id: advice.id, state: 'ignored' })}>
+        <button
+          type="button"
+          className="is-btn is-btn-sm"
+          onClick={() => state.mutate({ id: advice.id, state: 'ignored' })}
+        >
           Ignore
         </button>
       </div>
@@ -500,7 +508,12 @@ export function DigestCard({
               <DigestLine text={item.text} />
               {onOpenIdea &&
                 item.ideaIds.slice(0, 8).map((id) => (
-                  <button key={id} type="button" className="is-link is-mono is-digest-id" onClick={() => onOpenIdea(id)}>
+                  <button
+                    key={id}
+                    type="button"
+                    className="is-link is-mono is-digest-id"
+                    onClick={() => onOpenIdea(id)}
+                  >
                     {id}
                   </button>
                 ))}

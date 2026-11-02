@@ -854,6 +854,15 @@ export default function App() {
       />
     );
   }
+  // the AI paused banner (ai-2 AP-2): under the top bar. The board has its top bar inside, so it draws the banner
+  const pausedBanner = aiState.settings?.pausedAll ? (
+    <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
+  ) : null;
+  const boardShown =
+    !overlayPage &&
+    !(aiPage && currentProjectId && !noProjects) &&
+    !noProjects &&
+    !(activeBoard === 'idea' && !boardLoadState);
 
   return (
     <BoardProviders
@@ -997,9 +1006,8 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {aiState.settings?.pausedAll && (
-                  <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
-                )}
+                {/* the board draws the banner under its own top bar (ai-2 AP-2); other pages keep it here */}
+                {pausedBanner && !boardShown && pausedBanner}
                 <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   {overlayPage ??
                     (aiPage && currentProjectId && !noProjects ? (
@@ -1077,17 +1085,20 @@ export default function App() {
                               />
                             ) : null
                           }
+                          topBanner={pausedBanner}
+                          headerActions={
+                            aiState.settings && currentProjectId ? (
+                              <PauseAllButton
+                                projectId={currentProjectId}
+                                settings={aiState.settings}
+                                members={aiOverview.data?.members ?? []}
+                              />
+                            ) : null
+                          }
                           headerExtra={
                             <>
                               <BoardHealthChip />
                               <KeepAwakeChip />
-                              {aiState.settings && currentProjectId ? (
-                                <PauseAllButton
-                                  projectId={currentProjectId}
-                                  settings={aiState.settings}
-                                  members={aiOverview.data?.members ?? []}
-                                />
-                              ) : null}
                               <AskAiButton />
                               <NotificationBellButton />
                             </>

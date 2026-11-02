@@ -9,6 +9,7 @@ import {
   filterShortcuts,
   formatKeys,
   releaseNotesFor,
+  reportIssueFacts,
   reportIssueText,
   reportIssueUrl,
   type AppInfo,
@@ -21,6 +22,8 @@ const isMac = () => window.electronAPI?.platform === 'darwin';
 
 interface DialogProps {
   title: string;
+  /** Keep the title for screen readers only (About shows the app name in its body instead). */
+  hideTitle?: boolean;
   subtitle?: string;
   small?: boolean;
   onClose: () => void;
@@ -29,7 +32,7 @@ interface DialogProps {
 }
 
 /** The frame the four windows share: a title, a body, a footer with Close, and Esc to close. */
-function Dialog({ title, subtitle, small, onClose, footer, children }: DialogProps) {
+function Dialog({ title, hideTitle, subtitle, small, onClose, footer, children }: DialogProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -46,7 +49,7 @@ function Dialog({ title, subtitle, small, onClose, footer, children }: DialogPro
         aria-label={title}
       >
         <div className={styles.head}>
-          <h2 className={styles.title}>{title}</h2>
+          {hideTitle ? <span /> : <h2 className={styles.title}>{title}</h2>}
           <button type="button" className={styles.x} aria-label="Close" onClick={onClose}>
             <LineIcon name="close" size={14} />
           </button>
@@ -184,6 +187,7 @@ export function ReportIssueWindow({ onClose }: { onClose: () => void }) {
             Cancel
           </button>
           <button type="button" className={styles.btn} onClick={() => void copy()} disabled={!info}>
+            <LineIcon name="copy" size={14} />
             Copy text
           </button>
           <button
@@ -195,16 +199,26 @@ export function ReportIssueWindow({ onClose }: { onClose: () => void }) {
               onClose();
             }}
           >
+            <LineIcon name="external" size={14} />
             Open GitHub
           </button>
         </>
       }
     >
-      <div className={styles.preview}>{info ? reportIssueText(info) : 'Loading…'}</div>
-      <p className={styles.never}>
-        Included: versions, system, window size. Never included: tickets, Docs, file paths, keys, logs. Logs can help;
-        attach them yourself with Help › Export Logs…
-      </p>
+      <div className={styles.factsBlock} data-testid="report-facts">
+        {info ? reportIssueFacts(info).map((l) => <div key={l}>{l}</div>) : 'Loading…'}
+      </div>
+      <div className={styles.scope}>
+        <span className={styles.included}>
+          <LineIcon name="check" size={13} />
+          Included: versions, system, window size
+        </span>
+        <span className={styles.excluded}>
+          <LineIcon name="close" size={13} />
+          Never included: tickets, Docs, file paths, keys, logs
+        </span>
+      </div>
+      <p className={styles.never}>Logs can help; attach them yourself with Help › Export Logs…</p>
     </Dialog>
   );
 }
@@ -214,17 +228,27 @@ export function AboutWindow({ onClose }: { onClose: () => void }) {
   const info = useAppInfo();
   const toast = useToast();
   return (
-    <Dialog
-      small
-      title="About"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog small hideTitle title="About Kanban Board" onClose={onClose} footer={<CloseButton onClose={onClose} />}>
+      <div className={styles.about}>
+        <span className={styles.appTile} aria-hidden="true">
+          <span />
+        </span>
+        <h2 className={styles.aboutName}>Kanban Board</h2>
+        <p className={styles.facts}>
+          {info
+            ? `Version ${info.version} · Backend ${info.backendRunning ? 'running' : 'not running'} · Electron ${info.electron}`
+            : 'Loading…'}
+        </p>
+        <p className={styles.blurb}>
+          A local Kanban board with Docs, ideas and AI members. Your data stays on this computer.
+        </p>
+        <div className={styles.aboutActions}>
           <button
             type="button"
             className={styles.btn}
             onClick={() => void window.electronAPI?.openExternal?.(RELEASES_URL)}
           >
+            <LineIcon name="external" size={14} />
             Release notes
           </button>
           <button
@@ -236,20 +260,10 @@ export function AboutWindow({ onClose }: { onClose: () => void }) {
               void navigator.clipboard.writeText(diagnosticsText(info)).then(() => toast.success('Copied'));
             }}
           >
+            <LineIcon name="copy" size={14} />
             Copy diagnostics
           </button>
-          <CloseButton onClose={onClose} />
-        </>
-      }
-    >
-      <div className={styles.about}>
-        <p className={styles.aboutName}>Kanban Board</p>
-        <p className={styles.facts}>
-          {info
-            ? `Version ${info.version} · Backend ${info.backendRunning ? 'running' : 'not running'} · Electron ${info.electron}`
-            : 'Loading…'}
-        </p>
-        <p>A local Kanban board with Docs, ideas and AI members. Your data stays on this computer.</p>
+        </div>
         <p className={styles.never}>
           © 2026 Cao Minh Tiến · MIT licence ·{' '}
           <a href={REPO_URL} onClick={(e) => (e.preventDefault(), void window.electronAPI?.openExternal?.(REPO_URL))}>

@@ -74,8 +74,12 @@ interface BoardProps {
   statusSlot?: ReactNode;
   /** A notice shown over the board under the filter bar (the blocked-drag confirmation, Main Board 4). */
   boardNotice?: ReactNode;
-  /** Extra controls at the left of the view switcher (e.g. “Pause all AI”). */
+  /** Extra controls at the left of the view switcher (Board health, Ask AI, the bell). */
   headerExtra?: ReactNode;
+  /** Controls in the right action group, next to New Ticket (“Pause all AI” / “AI paused | Resume…”). */
+  headerActions?: ReactNode;
+  /** A banner under the top bar that pushes the page down (the AI paused banner). */
+  topBanner?: ReactNode;
   filterReopened?: boolean;
   onFilterReopenedChange?: (val: boolean) => void;
   filterPending?: boolean;
@@ -147,6 +151,8 @@ export function Board({
   statusSlot,
   boardNotice,
   headerExtra,
+  headerActions,
+  topBanner,
   filterReopened,
   onFilterReopenedChange,
   filterPending,
@@ -397,6 +403,7 @@ export function Board({
                 <span>Give a Story</span>
               </button>
             )}
+            {headerActions}
             <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
               <svg
                 width="12"
@@ -416,6 +423,8 @@ export function Board({
             </button>
           </div>
         </div>
+
+        {topBanner}
 
         <div
           {...(loadState === 'projects'

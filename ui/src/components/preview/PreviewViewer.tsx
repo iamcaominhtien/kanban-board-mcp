@@ -9,7 +9,7 @@ import { HtmlReader } from './HtmlReader';
 import { MediaReader } from './MediaReader';
 import { StatePanel } from './StatePanel';
 import { canShowInFolder, isDesktop, openInDefaultApp, showInFolder } from './desktop';
-import { previewKind } from './kinds';
+import { kindLabel, previewKind } from './kinds';
 import { isTyping, useViewerKeys } from './useViewerKeys';
 import { useSketch, type SketchOwner } from '../sketch/SketchContext';
 import { useCanvas, type CanvasOwner } from '../canvas/CanvasContext';
@@ -34,8 +34,6 @@ interface Props {
   /** Where "Open on a canvas" puts the file; without it the button is hidden. */
   canvasOwner?: CanvasOwner | null;
 }
-
-const WEB_OPEN_HINT = 'Only in the desktop app. In the browser, download the file and open it from your downloads.';
 
 function Icon({ d, size = 16 }: { d: string; size?: number }) {
   return (
@@ -65,6 +63,7 @@ const ICONS = {
   full: 'M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3',
   prev: 'm15 18-6-6 6-6',
   next: 'm9 18 6-6-6-6',
+  page: 'M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7zM14 3v4h4',
 };
 
 function Thumb({ item, active, onPick }: { item: PreviewItem; active: boolean; onPick: () => void }) {
@@ -148,6 +147,24 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
     setFacts({});
     setStatus(null);
   }, [item.id]);
+  // The size, when the place that opened the file did not say it: ask for its first byte and read the total length
+  // from the answer (the uploads route takes GET only), then stop the download
+  const [headSize, setHeadSize] = useState<number | null>(null);
+  useEffect(() => {
+    setHeadSize(null);
+    if (item.size || !item.src || item.src.startsWith('blob:') || item.src.startsWith('data:')) return;
+    const ctl = new AbortController();
+    fetch(item.src, { headers: { Range: 'bytes=0-0' }, signal: ctl.signal })
+      .then((r) => {
+        const total = Number(/\/(\d+)$/.exec(r.headers.get('content-range') ?? '')?.[1]);
+        const n = r.status === 206 ? total : Number(r.headers.get('content-length'));
+        if (r.ok && n > 0) setHeadSize(n);
+        ctl.abort();
+      })
+      .catch(() => undefined);
+    return () => ctl.abort();
+  }, [item.id, item.src, item.size]);
+  const size = item.size || headSize || 0;
   const onFacts = useCallback((f: Record<string, string>) => setFacts((prev) => ({ ...prev, ...f })), []);
 
   // Lock page scroll and move focus into the viewer
@@ -283,19 +300,55 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
       case 'powerpoint':
         return <OfficeReader {...props} which={kind} />;
       default:
+        // design preview-types M: a neutral tile, the facts and a primary Download (not a warning)
         return (
-          <StatePanel tone="warn" title="No preview available" actions={actions}>
-            This kind of file cannot be shown here. You can download it
-            {desktop ? ', or open it in an app on your computer' : ''}.
-          </StatePanel>
+          <div className={styles.noPreview} role="status" data-testid="no-preview">
+            <span className={styles.noPreviewTile} aria-hidden="true">
+              {meta.badge}
+            </span>
+            <div className={styles.stateTitle}>{item.name}</div>
+            <span className={styles.srOnly}>No preview available.</span>
+            <div className={styles.stateText}>
+              This kind of file cannot be shown here. You can download it
+              {desktop ? ', or open it in an app on your computer' : ''}.
+            </div>
+            <dl className={styles.noPreviewFacts}>
+              <div>
+                <dt>Type</dt>
+                <dd>{kindLabel(item.name, meta.label)}</dd>
+              </div>
+              {size > 0 && (
+                <div>
+                  <dt>Size</dt>
+                  <dd>{formatFileSize(size)}</dd>
+                </div>
+              )}
+              {item.uploadedBy && (
+                <div>
+                  <dt>Uploaded by</dt>
+                  <dd>{item.uploadedBy}</dd>
+                </div>
+              )}
+            </dl>
+            <div className={styles.stateActions}>
+              {desktop && (
+                <button type="button" className={styles.btn} onClick={() => void openInApp()}>
+                  <Icon d={ICONS.external} size={14} /> Open in app
+                </button>
+              )}
+              <a className={`${styles.btn} ${styles.btnPrimary}`} href={downloadHref} download={item.name}>
+                <Icon d={ICONS.download} size={14} /> Download
+              </a>
+            </div>
+          </div>
         );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item, kind, desktop, go, onFacts]);
+  }, [item, kind, desktop, go, onFacts, size]);
 
   const detailRows: [string, string][] = [
-    ['Type', meta.label],
-    ...(item.size ? ([['Size', formatFileSize(item.size)]] as [string, string][]) : []),
+    ['Type', kindLabel(item.name, meta.label)],
+    ...(size ? ([['Size', formatFileSize(size)]] as [string, string][]) : []),
     ...Object.entries(facts),
     ...(item.uploadedBy ? ([['Uploaded by', item.uploadedBy]] as [string, string][]) : []),
     ...(item.uploadedAt ? ([['Uploaded', item.uploadedAt]] as [string, string][]) : []),
@@ -329,29 +382,46 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
               </span>
             </div>
             <div className={styles.subtitle} aria-live="polite">
-              {meta.label}
-              {item.size ? ` · ${formatFileSize(item.size)}` : ''}
+              {kindLabel(item.name, meta.label)}
+              {size ? ` · ${formatFileSize(size)}` : ''}
               {facts.Dimensions ? ` · ${facts.Dimensions}` : ''}
               {item.uploadedBy ? ` · ${item.uploadedBy}` : ''}
               {item.uploadedAt ? ` · ${item.uploadedAt}` : ''}
               {status ? ` · ${status}` : ''}
             </div>
           </div>
+          {/* design preview-viewer B: ‹ 1 of 7 ›, a rule, then icon buttons with tooltips */}
           {items.length > 1 && (
-            <span className={styles.counter} aria-label={`File ${index + 1} of ${items.length}`}>
-              {index + 1} of {items.length}
-            </span>
+            <div className={styles.counterGroup}>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={() => go(-1)}
+                aria-label="Previous"
+                title="Previous (←)"
+              >
+                <Icon d={ICONS.prev} />
+              </button>
+              <span className={styles.counter} aria-label={`File ${index + 1} of ${items.length}`}>
+                {index + 1} of {items.length}
+              </span>
+              <button type="button" className={styles.iconBtn} onClick={() => go(1)} aria-label="Next" title="Next (→)">
+                <Icon d={ICONS.next} />
+              </button>
+            </div>
           )}
+          <span className={styles.headRule} aria-hidden="true" />
           <div className={styles.actions}>
             {canDraw && kind === 'image' && (
               <button
                 type="button"
-                className={`${styles.btn} ${styles.btnDraw}`}
+                className={`${styles.iconBtn} ${styles.iconBtnDraw}`}
                 onClick={() => void drawOnIt()}
-                title="Open the picture in the sketch editor. Your marks go on a layer above it; the original is never changed."
+                aria-label="Draw on it"
+                title="Draw on it: open the picture in the sketch editor. Your marks go on a layer above it; the original is never changed."
                 data-testid="draw-on-it"
               >
-                <SketchIcon name="sketch" size={14} /> <span className={styles.btnLabel}>Draw on it</span>
+                <SketchIcon name="sketch" size={15} />
               </button>
             )}
             {!!canvasOwner &&
@@ -362,66 +432,10 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
                   owner={canvasOwner}
                   name={item.name}
                   src={item.src}
-                  buttonClass={`${styles.btn} ${styles.btnDraw}`}
-                  labelClass={styles.btnLabel}
+                  buttonClass={`${styles.iconBtn} ${styles.iconBtnDraw}`}
+                  labelClass={styles.srOnly}
                 />
               )}
-            {desktop ? (
-              <>
-                <button
-                  type="button"
-                  className={styles.btn}
-                  onClick={() => void openInApp()}
-                  title="Open with the default app on this computer"
-                >
-                  <Icon d={ICONS.external} size={14} /> <span className={styles.btnLabel}>Open in app</span>
-                </button>
-                {canShowInFolder() && (
-                  <button
-                    type="button"
-                    className={styles.btn}
-                    onClick={() => void reveal()}
-                    title="Show in Finder or Explorer"
-                  >
-                    <Icon d={ICONS.folder} size={14} /> <span className={styles.btnLabel}>Show in folder</span>
-                  </button>
-                )}
-                <a
-                  id="pv-download"
-                  className={styles.btn}
-                  href={downloadHref}
-                  download={item.name}
-                  title="Download (D)"
-                >
-                  <Icon d={ICONS.download} size={14} /> <span className={styles.btnLabel}>Download</span>
-                </a>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className={styles.btn}
-                  disabled
-                  title={WEB_OPEN_HINT}
-                  aria-label={`Open in app. ${WEB_OPEN_HINT}`}
-                >
-                  <Icon d={ICONS.external} size={14} /> <span className={styles.btnLabel}>Open in app</span>
-                </button>
-                <a
-                  id="pv-download"
-                  className={styles.btn}
-                  href={downloadHref}
-                  download={item.name}
-                  title="The browser saves the file; open it from your downloads (D)"
-                >
-                  <Icon d={ICONS.download} size={14} /> <span className={styles.btnLabel}>Download and open</span>
-                </a>
-                <button type="button" className={styles.btn} onClick={copyLink}>
-                  <Icon d={ICONS.link} size={14} />{' '}
-                  <span className={styles.btnLabel}>{copied ? 'Copied' : 'Copy link'}</span>
-                </button>
-              </>
-            )}
             <button
               type="button"
               className={styles.iconBtn}
@@ -431,6 +445,53 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
               title="Details (I)"
             >
               <Icon d={ICONS.info} />
+            </button>
+            <a
+              id="pv-download"
+              className={styles.iconBtn}
+              href={downloadHref}
+              download={item.name}
+              aria-label={desktop ? 'Download' : 'Download and open'}
+              title={
+                desktop
+                  ? 'Download (D)'
+                  : 'Download and open: the browser saves the file; open it from your downloads (D)'
+              }
+            >
+              <Icon d={ICONS.download} />
+            </a>
+            {/* Open in app and Show in folder exist only in the desktop app (design E: the web build hides them) */}
+            {desktop && (
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={() => void openInApp()}
+                aria-label="Open in app"
+                title="Open in app: the default app on this computer"
+              >
+                <Icon d={ICONS.external} />
+              </button>
+            )}
+            {desktop && canShowInFolder() && (
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={() => void reveal()}
+                aria-label="Show in folder"
+                title="Show in Finder or Explorer"
+              >
+                <Icon d={ICONS.folder} />
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.iconBtn}
+              onClick={copyLink}
+              aria-label={copied ? 'Copied' : 'Copy link'}
+              title={copied ? 'Copied' : 'Copy link'}
+              data-copied={copied || undefined}
+            >
+              <Icon d={copied ? 'M5 12.5l4.5 4.5L19 7.5' : ICONS.link} />
             </button>
             <button
               type="button"
@@ -448,7 +509,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
         </header>
 
         <div className={styles.main}>
-          <div className={styles.stage}>
+          <div className={styles.stage} data-kind={kind}>
             {items.length > 1 && (
               <>
                 <button
@@ -478,7 +539,18 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
 
           {details && (
             <aside className={styles.details} aria-label="Details">
-              <h2>Details</h2>
+              <div className={styles.detailsHead}>
+                <h2>Details</h2>
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={() => setDetails(false)}
+                  aria-label="Close details"
+                  title="Close details (I)"
+                >
+                  <Icon d={ICONS.close} size={14} />
+                </button>
+              </div>
               <dl>
                 {detailRows.map(([k, v]) => (
                   <div key={k}>
@@ -492,32 +564,36 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
                   <h3>Used in</h3>
                   <ul className={styles.usedIn}>
                     {item.usedIn.map((u) => (
-                      <li key={u}>{u}</li>
+                      <li key={u}>
+                        <Icon d={ICONS.page} size={14} /> {u}
+                      </li>
                     ))}
                   </ul>
                 </>
               )}
               <div className={styles.quick}>
-                <a className={styles.btn} href={downloadHref} download={item.name}>
-                  Download
+                <div className={styles.quickRow}>
+                  <button type="button" className={styles.btn} onClick={copyLink}>
+                    <Icon d={ICONS.link} size={14} /> {copied ? 'Copied' : 'Copy link'}
+                  </button>
+                  {desktop && (
+                    <button type="button" className={styles.btn} onClick={() => void openInApp()}>
+                      <Icon d={ICONS.external} size={14} /> Open in app
+                    </button>
+                  )}
+                  {desktop && canShowInFolder() && (
+                    <button type="button" className={styles.btn} onClick={() => void reveal()}>
+                      <Icon d={ICONS.folder} size={14} /> Show in folder
+                    </button>
+                  )}
+                </div>
+                <a
+                  className={`${styles.btn} ${styles.btnPrimary} ${styles.btnWide}`}
+                  href={downloadHref}
+                  download={item.name}
+                >
+                  <Icon d={ICONS.download} size={14} /> Download
                 </a>
-                <button type="button" className={styles.btn} onClick={copyLink}>
-                  {copied ? 'Copied' : 'Copy link'}
-                </button>
-                {desktop ? (
-                  <button type="button" className={styles.btn} onClick={() => void openInApp()}>
-                    Open in app
-                  </button>
-                ) : (
-                  <button type="button" className={styles.btn} disabled title={WEB_OPEN_HINT}>
-                    Open in app
-                  </button>
-                )}
-                {desktop && canShowInFolder() && (
-                  <button type="button" className={styles.btn} onClick={() => void reveal()}>
-                    Show in folder
-                  </button>
-                )}
               </div>
             </aside>
           )}
