@@ -8,6 +8,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.26.4] - 2026-11-02
+
+Wave 2 of the design audit's fixes: the same problem fixed everywhere at once (`docs/ui-audit/2026-11-design-audit/SUMMARY.md`, "What goes wrong most often").
+
+### Fixed
+- **Dropdowns look like the design's.** Every dropdown in the app (about 130, from the AI screens to Settings and Idea Space) is drawn with the design's box, corners, text size, chevron and green focus halo instead of the operating system's grey control. They stay real dropdowns: the keyboard, type-ahead and screen readers work as before. Date and time fields get the same box.
+- **Line icons instead of characters and emoji.** About 280 glyphs used as icons (✦ ✕ ✓ 🔒 ⚠ ▾ ↻ ✎ 📄 💬 ⚙ ➤ 🛡 …) are the design's line icons, in the Ask AI dock, the AI screens, AI Team, Schedules, the ticket, Docs and Idea Space. Icon-only buttons keep or gain a spoken name. Keyboard hints (⌘ ⇧ ↵), arrows written as words and × as "times" stay as they are.
+- **One focus ring.** Text fields no longer get a second ring inside their own focus border; buttons, links, checkboxes and radios keep the keyboard ring (comp-1).
+- **Ticket cards fit their content** instead of a 140 px minimum that left an empty band under a one-line title (comp-1 TC-1).
+- **Hint lines in the AI screens** (role packs, Set up the AI team) are small grey text instead of body text with a bold word broken onto its own line (ai-3 TP-1).
+
 ## [3.26.3] - 2026-11-02
 
 A full design audit, and the first wave of fixes: what was broken or behaved wrongly (`docs/ui-audit/2026-11-design-audit`, 375 findings across 81 artboards; finding ids in brackets).
