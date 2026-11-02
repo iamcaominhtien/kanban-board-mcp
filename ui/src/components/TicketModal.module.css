@@ -667,7 +667,7 @@
 }
 
 .attMetaText {
-  font-size: 9.5px;
+  font-size: 10px;
   color: #9aa8a0;
   padding-left: 2px;
 }
@@ -822,7 +822,7 @@
 }
 
 .branchBadge {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
@@ -933,7 +933,7 @@
 }
 
 .repoBadgeConnected {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -944,7 +944,7 @@
 }
 
 .repoBadgeEmpty {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;

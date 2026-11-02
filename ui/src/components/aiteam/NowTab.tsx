@@ -185,7 +185,7 @@ function NeedCard({ item, actions }: { item: NeedsItem | CapNeed; actions: NowAc
             }
           >
             <Icon>{ICONS.check}</Icon>
-            {always ? 'Allow, don’t ask again' : 'Allow'}
+            {always ? 'Approve, don’t ask again' : 'Approve'}
           </button>
           <button
             type="button"
@@ -571,7 +571,10 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
       <div className="at-card-body">{body}</div>
       <div className="at-card-foot">
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="at-label">{RANGE_LABEL[range].head}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div className="at-label">{RANGE_LABEL[range].head}</div>
+            <Spark values={card.spark} color={stateLine(card.state)} />
+          </div>
           <div style={{ fontSize: 12 }}>
             {u.runs} run{u.runs === 1 ? '' : 's'} · {u.ok} ok
             {u.failed ? ` · ${u.failed} failed` : ''} ·{' '}
@@ -586,7 +589,6 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
             )}
           </div>
         </div>
-        <Spark values={card.spark} color={stateLine(card.state)} />
       </div>
       <div className="at-actions">
         {cap && (
