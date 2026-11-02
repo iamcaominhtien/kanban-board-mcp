@@ -167,7 +167,7 @@ describe('MemberPluginsCard', () => {
     http.patch.mockResolvedValue({ data: { boardSkills: [] } });
     renderIt();
     const row = await screen.findByTestId('bs-repo-and-machine');
-    expect(row.textContent).toContain('Project default is off.');
+    expect(row.textContent).toContain('Off for this project.');
     fireEvent.click(within(row).getByRole('switch'));
     await waitFor(() =>
       expect(http.patch).toHaveBeenCalledWith('/projects/pr/ai/ops', {

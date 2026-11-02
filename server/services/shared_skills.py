@@ -1,6 +1,7 @@
 """The board's shared skills: how any AI member works on a ticket, whatever its role (issue #277).
 
-Agreed with the owner on 2 Nov from what live runs got wrong: a report that claimed what nobody did, a server left
+Agreed with the owner on 2 Nov from what live runs got wrong, then three more they asked for (brainstorming, the
+end user's eyes, office files): a report that claimed what nobody did, a server left
 running so the run never ended, a hand-in without screenshots, a choice a person should have made, English labels on a
 Vietnamese canvas. The few rules that matter most ride in every run's prompt (``context.rules_block``); the detail is
 here, as skills of the board's own plugin (``services/ai/board_skills.py``) that Claude Code opens when the work calls
@@ -163,11 +164,145 @@ calendar access). B) Always remind. C) Let the user choose in Settings (one more
 """,
 )
 
+BRAINSTORMING = (
+    "brainstorming",
+    "How to work out with a person what to build before building it, and how to lay out options for yourself when "
+    "nobody needs to be asked: questions in rounds, approaches with their trade-offs, an agreed list written down. Use "
+    "when a ticket is vague or has several ways to go: a new feature, a Story to split, a scope to settle, a design "
+    "direction, a solution to pick.",
+    r"""# Brainstorming
+
+You build what you believe the person wants, and that belief is usually thinner than it feels. This is for finding
+out what they want, and why, before the work starts. (After obra/superpowers' brainstorming skill, MIT.)
+
+## First: what do you already know?
+- **The ticket says it all** ("rename the button to Save"): do it, no brainstorm.
+- **Something that would change the result is missing**: brainstorm. Read first (the ticket, its comments, the
+  project's Docs and lessons, the code or screens it touches), so you never ask what is already written.
+
+## With a person
+A question reaches the person through `ai_run(action='ask')`, and the run stops until they answer, so each round
+counts.
+- **Round 1, what and why.** Say back in two or three sentences what you understood (what, for whom, why), add what
+  you found that bears on it (a constraint, a conflict, a cheaper path), then ask the one question whose answer would
+  change the result most.
+- **Round 2, how.** Lay out **2 or 3 approaches** that differ on something that matters, each with what it costs and
+  what it gives up, your recommendation first. Ask them to pick, or to change one.
+- Two rounds are usually enough; a third only for a point that would make the work wrong.
+- Their words beat your options: when they describe what they want, use their terms.
+
+Example question: "Xuất CSV: chủ yếu để gửi bác sĩ (một file gọn, đúng định dạng ngày Việt Nam) hay để tự phân tích
+(mọi cột, mọi lần uống)? A) Gửi bác sĩ, một file mỗi tháng (đề xuất: ít việc, đúng nhu cầu đã nêu). B) Tự phân tích,
+xuất mọi thứ. C) Cả hai, chọn khi xuất (thêm một màn)."
+
+## On your own
+When the choice is yours (easy to change, or the ticket says you decide): still lay out 2 or 3 approaches, score
+them against what the ticket asks, keep the best and say why in one line. Do not stop at the first idea.
+
+## Write it down
+End with the agreed list where the next person looks: a ticket comment, the Story's description or a Docs page.
+What was decided, what was left out and why, the open questions and who decides them. Then do the work from that
+list, not from memory.
+""",
+)
+
+END_USER_EYES = (
+    "end-user-eyes",
+    "How to look at your work the way its real user will before you hand it in: the first-time test, the five-second "
+    "test, jargon and translated-sounding words, walking one real task, and the machine-made look. Use before handing "
+    "in anything a person will read or use: screen copy, an error message, a Docs page, a report, a slide, a screen.",
+    r"""# Through the end user's eyes
+
+What you make is judged by someone who did not see you make it, is in a hurry and does not know the words you used
+while working. Before you hand in, become that person for a few minutes.
+
+## Who is it for?
+Name the reader or user in one line: who they are, what they came to do, what they already know. "An office worker in
+Hanoi, on the phone between meetings, wants to log a glass in one tap." Judge everything against that person.
+
+## The tests
+1. **First time.** Read it as someone who has never seen the product. Every word and icon understood without
+   explanation? Anything you would have to explain in person is a fix.
+2. **Five seconds.** Look for five seconds, then look away: what is this, and what do I do next? If either answer is
+   unclear, the hierarchy is wrong (one main thing, one main action).
+3. **Their words.** Replace jargon, internal names (ticket keys, field names, "sync", "payload", "entity") and words
+   that sound translated. Vietnamese reads like a Vietnamese person wrote it: natural word order, the product's
+   register, full diacritics. Numbers in the user's format (1.250 ml, 14:05, 02/11).
+4. **One real task.** Walk one thing a user came to do from start to end. Count the steps and the places you had to
+   guess. Every guess is a fix.
+5. **States they will hit.** Empty, loading, error, offline, too long, too many: each says what happened and what to
+   do now, in a sentence a person would say.
+6. **The machine-made look.** Would this look the same in any other app? The tells: white rounded cards on a tinted
+   ground, icons in pale circles, a row of equal buttons, filler text, a gradient for no reason, every sentence the
+   same length. For screens, `kanban-board:canvas-design` and its `craft.md` say what to do instead.
+
+## Fix, then say what you checked
+Fix what the tests found, look again, and in your report name the tests you ran and what changed: "First-time test:
+renamed 'Sync pending' to 'Chưa gửi lên máy chủ'; the empty History now says how to log the first glass."
+""",
+)
+
+OFFICE_FILES = (
+    "office-files",
+    "How to make Excel, Word, PowerPoint and PDF files that work and look considered, and how to look at them before "
+    "handing in: real formulas, styles and layouts, content with a point, then rendering each sheet, page or slide to "
+    "an image to check it. Use whenever you create or change a .xlsx, .docx, .pptx or .pdf file.",
+    r"""# Office files: Excel, Word, PowerPoint, PDF
+
+A file you hand in is opened by a person in Excel, Word or PowerPoint. It has to work there and read well there, and
+you have to have seen it, not assumed it.
+
+## Make it with a library, from code you keep
+Write a small script in your working folder that builds the file, so a fix is one edit and one run. Python:
+`openpyxl` (Excel), `python-docx` (Word), `python-pptx` (PowerPoint), `reportlab` or HTML printed to PDF (PDF). Install
+them in the project's environment if they are missing, and say so.
+
+## Look at it before you hand it in
+You cannot judge a file you have not seen. Render it to images and look at every one:
+1. `soffice --headless --convert-to pdf --outdir out file.xlsx` (the same for .docx and .pptx; LibreOffice).
+2. `pdftoppm -png -r 80 out/file.pdf out/page` (poppler), then open the PNGs.
+3. Fix what you see, render again.
+If `soffice` or `pdftoppm` is not on the machine, do not guess: say in your report that the file was not looked at, and
+how to install them (LibreOffice; poppler-utils). Never hand in a screenshot of something else.
+
+## Excel
+- **Formulas, not typed results**: `=SUM(B2:B31)`, so the sheet still works when a number changes. Recalculate it
+  before you look (LibreOffice recalculates on conversion) and check no cell shows `#REF!`, `#VALUE!` or `#DIV/0!`.
+- Numbers as numbers with a format (thousands separator, decimals, dates, %), never as text.
+- A header row that is bold and frozen, columns wide enough for their content, one table per sheet, sheet names that
+  say what is in them. Inputs, calculations and outputs kept apart, inputs marked.
+- A chart only when it answers a question; its title says the answer.
+
+## Word and PDF
+- Real styles (Title, Heading 1, 2, Normal), not bold text made to look like a heading, so the outline and the table
+  of contents work.
+- Tables with a header row, numbers right-aligned, page numbers, margins that leave room.
+
+## PowerPoint: a point, then a look
+Most bad decks fail on content before design.
+- **Story first.** Write the slide titles alone, in order: read together they must tell the whole argument. Each title
+  is a sentence that states the point ("Reminders tripled the glasses logged after 3 pm"), not a label ("Results").
+- **One idea per slide**, the evidence for it (a number, a chart, a picture), and little text. No walls of bullets,
+  no filler, no invented numbers: a missing fact is a visible placeholder.
+- **A look chosen for the subject**, not the default template: one or two typefaces, a small palette, generous
+  margins, the same grid on every slide, real images or drawn diagrams instead of clip-art. No gradients, no shadows on
+  everything, no stock icons in circles.
+- **Critique pass**: render the deck, look at the slides as thumbnails side by side, and fix the three slides that
+  look most like a template or say least.
+
+## Hand it in
+Attach the file and the rendered images (or the first pages) to the ticket or Docs page, and say what you checked.
+""",
+)
+
 SKILLS: list[tuple[str, str, str]] = [
     WORKING_A_TICKET,
     EVIDENCE_AND_HANDOVER,
     REPO_AND_MACHINE,
     ASKING_AND_WRITING,
+    BRAINSTORMING,
+    END_USER_EYES,
+    OFFICE_FILES,
 ]
 
 

@@ -703,9 +703,7 @@ def _instruction(
         "criteria you finished. Do not move the ticket between columns: the board does that as the workflow moves."
     )
     parts.append(
-        "Show, do not tell: what you hand in carries its proof, in a ticket comment or a test case's evidence "
-        "(`![what it shows](path/to/shot.png)` from your folder, the command and its output in a ``` block, a link). "
-        "A change a person will see gets screenshots of it (e.g. `npx playwright screenshot http://localhost:$PORT shot.png`)."
+        "Show, do not tell: hand in the proof a person can see (the board's `evidence-and-handover` skill says how)."
     )
     parts.append(
         "Work as a team: when you need something from a teammate (the BA for a criterion, the Designer for a state "

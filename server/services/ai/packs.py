@@ -17,10 +17,9 @@ from models import AiRolePack
 
 FORMAT = "kanban-role-pack/1"
 
-_COMMON_RULES = (
-    "Work only on what the ticket asks. Report with ai_run(action='report') before your final message. "
-    "Ask a person with ai_run(action='ask') when a decision is theirs."
-)
+# How every role works a ticket (stay in it, report the truth, ask, prove it) is in the board's rules and its shared
+# skills (services/shared_skills.py, issue #277): a persona only points to them
+_COMMON_RULES = "How to work a ticket, prove it and ask: the board's shared skills (`kanban-board:*`)."
 
 BUILTIN: list[dict] = [
     {
@@ -295,7 +294,8 @@ BUILTIN_KEYS = [p["key"] for p in BUILTIN]
 # v5: the Designer presents a design document (foundations, states side by side, a spec per screen)
 # v6: the Designer explores three directions, reads craft.md, critiques its own screens and gets taste-skill
 # v7: the Designer gets the niche design skills (polish, UI rules, motion, charts)
-BUILTIN_VERSION = 8  # v8: the Designer keeps only motion, chart and checking skills; the guide sets the look
+# v8: the Designer keeps only motion, chart and checking skills; the guide sets the look
+BUILTIN_VERSION = 9  # v9: every persona points to the board's shared skills (issue #277) instead of repeating them
 
 
 def _now() -> str:

@@ -143,7 +143,7 @@ async def docs_read(
     - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
     - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.
     - permissions_guide: {guide, you}: what you may do; read it when refused.
-    - guides: {name: text}: how to work a ticket, show proof, use the repo, ask and write."""
+    - guides: {name: text}: how to work a ticket, prove it, ask, brainstorm, write for users, make office files."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 

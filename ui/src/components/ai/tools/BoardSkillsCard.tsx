@@ -40,14 +40,24 @@ export function BoardSkillsRows({ projectId, memberId }: { projectId: string; me
         const on = boardSkillOn(list, s.name, memberId);
         const own = memberId ? boardSkillOwn(list, s.name, memberId) : false;
         return (
-          <div key={s.name} data-testid={`bs-${s.name}`} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div
+            key={s.name}
+            data-testid={`bs-${s.name}`}
+            style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}
+          >
             <Toggle label={s.name} on={on} disabled={patch.isPending} onChange={(v) => void set(s.name, v)} />
             <b style={{ fontSize: 13 }}>{s.name}</b>
-            <span className="ai-chip">Board</span>
-            <span className="ai-hint" style={{ flex: 1 }} title={s.description}>
+            <span className="ai-chip">Skill</span>
+            <span
+              className="ai-hint"
+              style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+              title={s.description}
+            >
               {memberId
-                ? `Project default is ${boardSkillOn(list, s.name) ? 'on' : 'off'}.${own ? ' Switched here.' : ''}`
-                : s.description}
+                ? `${boardSkillOn(list, s.name) ? 'On for every member' : 'Off for this project'}.${
+                    own ? ` Switched ${on ? 'on' : 'off'} here.` : ''
+                  }`
+                : `Board library · on for ${on ? 'every member' : 'nobody'} · ${s.description}`}
             </span>
             {own && (
               <button className="ai-link" onClick={() => void set(s.name, null)}>
@@ -69,7 +79,11 @@ export function BoardSkillsRows({ projectId, memberId }: { projectId: string; me
 /** The project's switches for the board's own skills, on the Installed tab. */
 export function BoardSkillsCard({ projectId }: { projectId: string }) {
   return (
-    <div className="ai-card" data-testid="board-skills" style={{ padding: 12, display: 'grid', gap: 8 }}>
+    <div
+      className="ai-card"
+      data-testid="board-skills"
+      style={{ padding: 12, display: 'grid', gap: 8, minWidth: 0, overflow: 'hidden' }}
+    >
       <b style={{ fontSize: 13.5 }}>The board's own skills</b>
       <div className="ai-hint">
         Every Claude Code member gets these, whatever its role. Switch one off for the project here, or for one member

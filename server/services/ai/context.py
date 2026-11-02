@@ -435,7 +435,8 @@ def _core_rules(member, settings) -> list[str]:
     else:
         rules.append(
             "docs_read(action='guides') has the detail (working a ticket, evidence and handover, the repository "
-            "and the machine, asking and writing): read the one the work calls for."
+            "and the machine, asking and writing, brainstorming, the end user's eyes, office files): read the one "
+            "the work calls for."
         )
     return rules
 

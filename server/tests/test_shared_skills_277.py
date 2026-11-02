@@ -16,6 +16,10 @@ SHARED = [
     "evidence-and-handover",
     "repo-and-machine",
     "asking-and-writing",
+    # asked for by the owner in the brainstorm
+    "brainstorming",
+    "end-user-eyes",
+    "office-files",
 ]
 
 
@@ -54,6 +58,12 @@ def test_the_texts_carry_what_the_live_runs_got_wrong():
         "Never invent evidence",
         "ai_run(action='ask')",  # "nobody was there to answer, so I chose"
         "The project's language, everywhere",  # English page names on a Vietnamese canvas
+        # the three the owner asked for: a brainstorm in rounds, the user's view, files that were looked at
+        "**2 or 3 approaches**",
+        "Five seconds",
+        "soffice --headless --convert-to pdf",
+        "**Formulas, not typed results**",
+        "is a sentence that states the point",
     ):
         assert needle in text, needle
 
@@ -115,3 +125,29 @@ async def test_the_ui_lists_the_board_skills(env):
     r = await env["c"].get("/ai/board-skills")
     assert r.status_code == 200
     assert [s["name"] for s in r.json()][2:] == SHARED
+
+
+def test_personas_and_step_texts_point_to_the_skills_instead_of_repeating_them():
+    from services.ai import packs
+
+    for pack in packs.BUILTIN:
+        assert "the board's shared skills" in pack["persona"], pack["key"]
+        assert "Report with ai_run(action='report')" not in pack["persona"], pack["key"]
+    src = (
+        Path(__file__)
+        .resolve()
+        .parents[1]
+        .joinpath("services/ai/workflow.py")
+        .read_text()
+    )
+    assert (
+        "`evidence-and-handover` skill" in src
+        and "npx playwright screenshot" not in src
+    )
+
+
+def test_an_outside_agent_is_told_where_the_guides_are():
+    import kanban_mcp
+
+    text = kanban_mcp.build_instructions(True)
+    assert "docs_read(guides)" in text and len(text) < 10_000
