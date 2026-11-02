@@ -661,7 +661,9 @@ async def run_scan(
             KANBAN_AI_ROOTS): said at step 1, not after the whole wizard when Create skips every member.
     """
     try:
-        paths.folder(folder)
+        # the real, absolute path, checked to sit inside the places people keep their work: everything below reads
+        # and runs in this one, never in the text the request carried
+        folder = paths.folder(folder)
     except paths.PathRefused as exc:
         raise ValueError(
             f"The AI team can only work in a folder inside your home folder, or one listed in {paths.ROOTS_ENV}. "
