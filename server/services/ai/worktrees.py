@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import re
+import unicodedata
 import shutil
 import subprocess
 from urllib.parse import urlparse
@@ -136,8 +137,12 @@ def repo_root(folder: str | None) -> str | None:
 
 
 def slug(title: str, limit: int = 32) -> str:
-    """A branch-safe slug of a ticket title."""
-    s = re.sub(r"[^a-z0-9]+", "-", (title or "").lower()).strip("-")
+    """A branch-safe slug of a ticket title; accents are dropped, not the letters ("Tài liệu học" -> tai-lieu-hoc)."""
+    plain = unicodedata.normalize(
+        "NFKD", (title or "").replace("đ", "d").replace("Đ", "D")
+    )
+    plain = "".join(ch for ch in plain if not unicodedata.combining(ch))
+    s = re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-")
     return (s[:limit].rstrip("-")) or "work"
 
 
