@@ -81,7 +81,12 @@ def _fake_app(tmp_path, body: str) -> list[str]:
     return [sys.executable, str(script)]
 
 
+async def _up(editor, timeout=ex.PROBE_TIMEOUT):
+    return True
+
+
 async def test_runs_the_desktop_command_and_reads_its_svg(monkeypatch, tmp_path):
+    monkeypatch.setattr(ex, "_reachable", _up)
     cmd = _fake_app(
         tmp_path,
         f"""
@@ -97,12 +102,71 @@ async def test_runs_the_desktop_command_and_reads_its_svg(monkeypatch, tmp_path)
 
 
 async def test_a_failing_command_falls_back_quietly(monkeypatch, tmp_path):
+    monkeypatch.setattr(ex, "_reachable", _up)
     monkeypatch.setenv(
         ex.EXPORT_CMD_ENV, json.dumps(_fake_app(tmp_path, "import sys; sys.exit(3)"))
     )
     assert await ex.export_svg(drawio("A"), "http://editor:8080") is None
     monkeypatch.setenv(ex.EXPORT_CMD_ENV, json.dumps(["/no/such/program"]))
     assert await ex.export_svg(drawio("A"), "http://editor:8080") is None
+
+
+async def test_an_editor_that_is_not_running_starts_no_hidden_browser(
+    monkeypatch, tmp_path, caplog
+):
+    """The self-hosted default (http://localhost:8080) on a computer that never started draw.io: the desktop app was
+    started for every AI save only to fail with ERR_CONNECTION_REFUSED. Now nothing is started, and it is said once."""
+    import socket
+
+    with socket.socket() as s:  # a port nobody listens on
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    started = tmp_path / "started"
+    cmd = _fake_app(tmp_path, f"open({str(started)!r}, 'w').write('x')")
+    monkeypatch.setenv(ex.EXPORT_CMD_ENV, json.dumps(cmd))
+    monkeypatch.setattr(ex, "_unreachable_said", {})
+    editor = f"http://127.0.0.1:{port}"
+    with caplog.at_level("INFO", logger=ex.logger.name):
+        assert await ex.export_svg(drawio("A"), editor) is None
+        assert await ex.export_svg(drawio("A"), editor) is None
+    assert not started.exists()
+    said = [r for r in caplog.records if "no draw.io editor answers" in r.getMessage()]
+    assert (
+        len(said) == 1
+        and said[0].levelname == "INFO"
+        and editor in said[0].getMessage()
+    )
+
+
+async def test_a_running_editor_is_reachable():
+    import asyncio
+
+    server = await asyncio.start_server(lambda r, w: w.close(), "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    try:
+        assert await ex._reachable(f"http://127.0.0.1:{port}")
+    finally:
+        server.close()
+        await server.wait_closed()
+    assert not await ex._reachable("not a url")
+
+
+def test_the_reason_is_the_apps_own_line_not_a_cut_off_tail():
+    err = (
+        b"[1234:ERROR:navigation] Navigation failed: -2\r\n"
+        b"(node:11508) electron: Failed to load URL: http://localhost:8080/clear.html with error: "
+        b"ERR_CONNECTION_REFUSED\n(Use `Kanban Board --trace-warnings ...` to show where the warning was created)\n"
+        b"export-svg failed: the draw.io editor at http://localhost:8080 could not be reached "
+        b"(ERR_CONNECTION_REFUSED)\n\n"
+    )
+    assert (
+        ex._why(err)
+        == "the draw.io editor at http://localhost:8080 could not be reached (ERR_CONNECTION_REFUSED)"
+    )
+    # without that line: the last lines whole, never a word cut in two
+    why = ex._why(b"first line\n" + b"x" * 290 + b"\nlast words\n")
+    assert why.endswith("last words") and "first" not in why
+    assert ex._why(b"") == "no output"
 
 
 async def test_without_a_command_or_browser_nothing_is_exported(monkeypatch):
