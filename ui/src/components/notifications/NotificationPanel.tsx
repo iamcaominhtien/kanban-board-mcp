@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   notificationKeys,
@@ -9,6 +9,8 @@ import {
 import { useProjects } from '../../api/projects';
 import type { NotificationRow as Row } from '../../types/notifications';
 import { DayCard } from './DayCard';
+import { NeedsFilterBar } from './NeedsFilterBar';
+import { applyNeedsFilter, type NeedsFilter } from './needsFilters';
 import { NotificationRow, type RowActionHandler } from './NotificationRow';
 import { EmptyState, LoadingRows, OfflineNotice } from './NotificationStates';
 import { Icon, dayLabel, groupByDay, rowKeyAction } from './notificationUi';
@@ -85,7 +87,12 @@ export function NotificationPanel({
   const rows = useMemo(() => (placeholder ? [] : (list.data?.items ?? [])), [placeholder, list.data]);
   const dayCard = tab === 'updates' && !placeholder ? (list.data?.dayCard ?? null) : null;
   // the layout the rows are shown in: Needs you open rows by when they began, done rows under their own header
-  const groups = useMemo(() => panelGroups(rows, tab), [rows, tab]);
+  const [needsFilter, setNeedsFilter] = useState<NeedsFilter>('all');
+  const shownRows = useMemo(
+    () => (tab === 'needs' ? applyNeedsFilter(rows, needsFilter) : rows),
+    [rows, tab, needsFilter],
+  );
+  const groups = useMemo(() => panelGroups(shownRows, tab), [shownRows, tab]);
   const ordered = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
   const scroller = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -127,6 +134,7 @@ export function NotificationPanel({
   const todayList = useNotificationList({ view: 'panel', tab: 'updates' }, needsEmpty);
   const todayUpdates = (todayList.data?.items ?? []).filter((r) => dayLabel(r.updatedAt) === 'Today').length;
   const nothing = !loading && !offline && rows.length === 0 && !dayCard;
+  const noMatch = tab === 'needs' && !loading && !offline && rows.length > 0 && shownRows.length === 0;
   const showNeeds = () => onTab('needs');
 
   return (
@@ -171,10 +179,14 @@ export function NotificationPanel({
           Updates<b className={styles.tabCount}> {updates}</b>
         </button>
       </div>
+      {tab === 'needs' && rows.length > 0 && (
+        <NeedsFilterBar rows={rows} value={needsFilter} onChange={setNeedsFilter} />
+      )}
       <div className={styles.list} ref={scroller}>
         {offline && <OfflineNotice at={list.dataUpdatedAt || null} onRetry={() => void list.refetch()} />}
         {loading && !offline && <LoadingRows />}
         {dayCard && <DayCard row={dayCard} onAction={onAction} onShowNeeds={showNeeds} />}
+        {noMatch && <EmptyState icon="check" title="Nothing here" text="Nothing in this filter needs you." />}
         {nothing && <PanelEmpty tab={tab} updates={updates} todayUpdates={todayUpdates} />}
         {groups.map((g) => (
           <div key={g.key} style={{ display: 'contents' }}>

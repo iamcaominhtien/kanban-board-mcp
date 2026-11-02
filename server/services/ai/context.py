@@ -53,6 +53,9 @@ class RunContext:
     mode: str  # work | ask
     chain: list[str] = field(default_factory=list)
     trigger: str = ""
+    # A Board AI chat answer that acts by risk tier (D23): its board tools only read, and its changes go through the
+    # chat's actions block, where the board applies them by tier with one Undo
+    acts_by_tier: bool = False
 
     @property
     def narrow(self) -> bool:

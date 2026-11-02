@@ -340,3 +340,148 @@
   color: #5b6b60;
   line-height: 1.5;
 }
+
+/* Usage window of a Claude account (design/screens/ai-operations.md, E) */
+.win-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.win-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.win-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.win-card {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(240px, 1.3fr) minmax(160px, 1fr) minmax(190px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+  padding: 13px 16px;
+  border: 1px solid #e3e8e5;
+  border-radius: 11px;
+  background: #fff;
+}
+.win-card-held {
+  border-color: #f2c7bb;
+  background: #fdece8;
+}
+.win-card-out {
+  border-color: #f0dba8;
+  background: #fffbef;
+}
+.win-cols {
+  padding-top: 0;
+  padding-bottom: 2px;
+  border: none;
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.win-note {
+  border: 1px solid #cbddee;
+  border-radius: 10px;
+  background: #f2f7fc;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.win-bars,
+.win-runs,
+.win-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.win-bar-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.win-bar-label {
+  width: 52px;
+  font-size: 11px;
+  color: #5b6b60;
+}
+.win-bar {
+  flex: 1;
+  max-width: 170px;
+  height: 8px;
+  border-radius: 4px;
+  background: #e8ece9;
+  overflow: hidden;
+}
+.win-bar i {
+  display: block;
+  height: 100%;
+}
+.win-bar-pct {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.win-bar-sub {
+  margin-left: 60px;
+  font-size: 11px;
+}
+.win-run {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12.5px;
+}
+.win-ticket {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.win-held {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a5321e;
+}
+.win-actions {
+  align-items: flex-end;
+}
+.win-limit,
+.win-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.win-limit-input {
+  width: 52px;
+}
+.win-dlg {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.win-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+@media (max-width: 900px) {
+  .win-card {
+    grid-template-columns: 1fr;
+  }
+  .win-cols {
+    display: none;
+  }
+  .win-actions {
+    align-items: flex-start;
+  }
+}

@@ -743,6 +743,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         # A local Claude Code Board AI keeps one conversation per chat: the CLI remembers the earlier messages
         session_use = None
         page_scope = None
+        live_work = None
         if profile.connection == "local" and profile.provider == "claude-code":
             # a chat about a Docs page shares the AI member's one session on that page (Ask, threads, summaries...)
             session_id = c.session_id
@@ -766,6 +767,13 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 if not docs_sessions.is_busy(shared, profile.id):
                     page_scope = shared
                     session_id = await docs_sessions.lookup(shared, profile.id)
+                else:
+                    # its work run holds the conversation: this answer is told what that run is doing now
+                    from .. import runs as ai_runs
+
+                    live_work = await ai_runs.own_work_note(
+                        session, c.ticket_id, profile.id
+                    )
             from .. import accounts
 
             resume = bool(session_id) and cli.session_exists(
@@ -929,15 +937,26 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             " without repeating anything, and without an actions block unless the earlier part promised one."
         )
     # the member's own configured tools (MCP servers, tool rules) when this chat answers from the board
+    from .. import ops as ai_ops
+    from ..store import get_settings as _ai_settings
+
+    async with database.async_session() as session:
+        board_ai_cfg = (
+            ai_ops.get(await _ai_settings(session, c.project_id)).get("board_ai") or {}
+        )
+    acts = bool(board_ai_cfg.get("acts")) and provider is None and form is None
     chat_tools = chat_token = None
     if lean and not (turn_in and turn_in.images):
-        chat_tools, chat_token = await chat_tools_mod.build(c, profile, member)
+        chat_tools, chat_token = await chat_tools_mod.build(
+            c, profile, member, acts_by_tier=acts
+        )
     system = prompts.system(
         member.name,
         project.name if project else "",
         row,
         extra,
         tools=chat_tools is not None,
+        acts=acts,
     )
 
     # the proposal that is still open: a request to change it must come back as the whole updated list
@@ -992,6 +1011,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 if convo and with_history
                 else "",
                 turn_in.text if turn_in else "",
+                live_work or "",
                 "The person asks:\n" + ctxb.fence("question", question),
                 ("Your answer so far:\n" + partial[-3000:]) if partial else "",
             ]
@@ -1230,6 +1250,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             )
         draft_id = done.get("draft_id")
     proposed, member_notes, filled = [], [], False
+    acted = 0
     if block.get("ai_members") and (provider is None or provider.core_ops):
         async with database.async_session() as session:
             proposed, member_notes = member_drafts.check_ai_members(
@@ -1277,7 +1298,11 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         async with database.async_session() as session:
             base = {}
             for ch in changes:
-                t = await session.get(Ticket, ch["ticket"])
+                t = (
+                    await session.get(Ticket, ch["ticket"])
+                    if ch.get("ticket")
+                    else None
+                )  # pausing or resuming one AI names no ticket
                 if t:
                     base[t.id] = t.updated_at
             d = await svc_drafts.start(
@@ -1297,6 +1322,31 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             session.add(d)
             await session.commit()
             draft_id = d.id
+            # The Board AI acts as the person by tier (D23): small and reversible is done now with one Undo; the
+            # rest stays a card that asks first (design wave 3, C, D)
+            from . import tiers as ai_tiers
+
+            if board_ai_cfg.get("acts") and provider is None and form is None:
+                verdict = ai_tiers.decide(
+                    changes,
+                    project_ids={c.project_id},
+                    overrides=board_ai_cfg.get("tiers"),
+                )
+                if verdict["act"]:
+                    try:
+                        await svc_drafts.apply(session, d.id, c.owner, {})
+                        acted = len(changes)
+                    except svc_drafts.AssistError as exc:
+                        problems.append(str(exc))
+                else:
+                    payload = loads(d.payload, {})
+                    payload["asks_first"] = verdict["reasons"]
+                    payload["intro"] = (
+                        "This asks you first: " + "; ".join(verdict["reasons"]) + "."
+                    )
+                    d.payload = json.dumps(payload)
+                    session.add(d)
+                    await session.commit()
     # The cost is booked before the answer reads "done": whoever sees it done (a budget check, the next
     # question sent at once) must already count it
     label = (
@@ -1325,6 +1375,8 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             if filled and not changes
             else "Here is what I would create."
             if proposed
+            else f"Done — {acted} change{'' if acted == 1 else 's'}. Undo puts {'it' if acted == 1 else 'them'} back."
+            if acted
             else "Here is what I would change."
             if changes
             else out.text

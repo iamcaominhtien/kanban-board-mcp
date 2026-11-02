@@ -112,6 +112,7 @@ describe('notificationUi helpers', () => {
     expect(visualOf('question').icon).toBe('bubble');
     expect(visualOf('run_failed').icon).toBe('triangle');
     expect(visualOf('ai_finished').icon).toBe('check');
+    expect(visualOf('workflow_blocked').icon).toBe('clock');
     expect(visualOf('unknown').icon).toBe('bell');
     const { container } = render(<Icon name="bell" />);
     expect(container.querySelector('svg')).toBeTruthy();

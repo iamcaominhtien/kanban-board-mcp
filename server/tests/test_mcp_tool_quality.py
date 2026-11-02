@@ -51,7 +51,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     assert not core & ideas
     assert set(await _tools()) == core
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(core) == 12 and len(ideas) == 5
+    assert len(core) == 14 and len(ideas) == 5
 
 
 async def test_every_operation_is_reachable_through_a_tool():
@@ -116,7 +116,14 @@ async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(
 
 
 async def test_every_tool_has_annotations_that_match_its_name():
-    reads = {"get_projects", "list_tickets", "get_ticket", "docs_read"}
+    reads = {
+        "get_projects",
+        "list_tickets",
+        "get_ticket",
+        "docs_read",
+        "knowledge",
+        "board_wait",
+    }
     for name, tool in (await _tools(_full_mcp())).items():
         a = tool.annotations
         assert a is not None, name
@@ -194,11 +201,12 @@ async def test_the_tool_list_stays_compact():
     # docs_write about 440; ai_run (3.16.0) lists the fields of its criteria and tests, which Antigravity needs to build
     # them (a bare "object" made it send nulls), and takes an ignored ticket_id: about 300; the AI accounts actions of
     # ai_team a few hundred more; the canvas actions (docs_read canvases / canvas, docs_write canvas_comment /
-    # canvas_propose, 3.17.0) add about 1,800 characters and no tool
-    assert default < 44_300, (
+    # canvas_propose, 3.17.0) add about 1,800 characters and no tool; `knowledge` (the knowledge base: index, search,
+    # read) and `board_wait` (wait for the board to move) add about 1,400 characters and two tools
+    assert default < 45_800, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 47_300, (
+    assert full < 48_800, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

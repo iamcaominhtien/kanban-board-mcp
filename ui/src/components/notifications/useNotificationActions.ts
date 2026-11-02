@@ -2,10 +2,12 @@ import { useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { aiApi } from '../../api/ai';
 import { safetyApi } from '../../api/aiSafety';
+import { aiOpsApi, type TroubleAction } from '../../api/aiOps';
 import { extractError } from '../../api/extractError';
 import { notificationKeys, notificationsApi } from '../../api/notifications';
 import type { DayCardData, NotificationRow } from '../../types/notifications';
 import { useToast } from '../Toast';
+import { openRun } from '../aiteam/runLink';
 import type { RowActionHandler } from './NotificationRow';
 
 /** Where the app goes for an action that opens something. `extra.ticketId` names the ticket of a line inside a group. */
@@ -68,6 +70,30 @@ async function retryFailed(c: ActionContext) {
   if (ok < ids.length) c.toast.error('Could not retry every run', `${ids.length - ok} did not start.`);
 }
 
+/** The run a row is about, for the actions that act on a run. */
+function runIdOf(c: ActionContext): string | null {
+  return c.row.targetKind === 'run' && c.row.targetId ? c.row.targetId : null;
+}
+
+const troubleAction = (action: TroubleAction): ActionHandler =>
+  withRefresh(async (c) => {
+    const id = runIdOf(c);
+    if (!id) return;
+    const r = await aiOpsApi.trouble(id, action, c.extra?.text);
+    if (r.text) c.toast.info(r.text);
+  });
+
+const arbitrate = (side: 'reviewer' | 'dev' | 'split'): ActionHandler =>
+  withRefresh(async (c) => {
+    if (c.row.ticketId) await aiOpsApi.arbitration(c.row.ticketId, side);
+  });
+
+const continueWithNote: ActionHandler = withRefresh(async (c) => {
+  const id = runIdOf(c);
+  const note = c.extra?.text?.trim();
+  if (id && note) await aiOpsApi.continueWith(id, note);
+});
+
 const HANDLERS = new Map<string, ActionHandler>(
   Object.entries<ActionHandler>({
     async answer(c) {
@@ -89,6 +115,44 @@ const HANDLERS = new Map<string, ActionHandler>(
       if (c.row.targetKind === 'run' && c.row.targetId) await aiApi.retry(c.row.targetId);
     }),
     retry_failed: withRefresh(retryFailed),
+    cancel: withRefresh(async (c) => {
+      const id = runIdOf(c);
+      if (id) await aiApi.cancel(id);
+    }),
+    'trouble:stop_child': troubleAction('stop_child'),
+    'trouble:tell_ai': troubleAction('tell_ai'),
+    'trouble:wait': troubleAction('wait'),
+    'trouble:cancel': troubleAction('cancel'),
+    'trouble:continue_note': continueWithNote,
+    continue_note: continueWithNote,
+    hand_to: withRefresh(async (c) => {
+      const id = runIdOf(c);
+      if (id && c.extra?.memberId) await aiOpsApi.handTo(id, c.extra.memberId, c.extra.text);
+    }),
+    move_account: withRefresh(async (c) => {
+      const id = runIdOf(c);
+      if (id && c.extra?.accountId) await aiOpsApi.moveAccount(id, c.extra.accountId);
+    }),
+    'conflict:ai': withRefresh(async (c) => {
+      if (c.row.ticketId) await aiOpsApi.conflict(c.row.ticketId, 'ai');
+    }),
+    'conflict:me': withRefresh(async (c) => {
+      if (c.row.ticketId) await aiOpsApi.conflict(c.row.ticketId, 'me');
+    }),
+    'arbitration:reviewer': arbitrate('reviewer'),
+    'arbitration:dev': arbitrate('dev'),
+    'arbitration:split': arbitrate('split'),
+    open_run_log(c) {
+      const id = runIdOf(c);
+      if (!id) {
+        openInApp(c, 'open_run_log');
+        return Promise.resolve();
+      }
+      if (!c.row.read) void notificationsApi.read({ ids: [c.row.id] }).then(c.refresh, () => undefined);
+      openRun(id);
+      c.navigate(c.row, 'open_run');
+      return Promise.resolve();
+    },
     dismiss: withRefresh((c) => notificationsApi.dismiss(c.row.id)),
     snooze: withRefresh((c) => notificationsApi.snooze(c.row.id, c.extra?.until ?? null)),
     unsnooze: withRefresh((c) => notificationsApi.snooze(c.row.id, null)),

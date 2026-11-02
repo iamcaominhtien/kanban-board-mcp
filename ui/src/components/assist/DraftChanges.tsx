@@ -4,10 +4,12 @@ import { extractError } from '../../api/extractError';
 import type { AssistDraft, DraftChange } from '../../types/assist';
 import { hhmm } from '../ai/aiUi';
 import { AppliedAs, DraftTag, STATUS_LABEL, TicketPill, currentPerson } from './assistUi';
+import { AsksFirst, DoneReceipt, proposedWords } from './DoneReceipt';
 
 const FIELD_LABEL: Record<string, string> = {
   status: 'Status',
   priority: 'Priority',
+  tags: 'Labels',
   assignee: 'Assignee',
   due_date: 'Due date',
   estimate: 'Estimate',
@@ -20,6 +22,7 @@ function show(ch: DraftChange, side: 'from' | 'to'): string {
   if (ch.op === 'status') return STATUS_LABEL[String(v)] ?? String(v);
   if (ch.op === 'priority') return String(v ?? '').replace(/^\w/, (c) => c.toUpperCase());
   if (ch.op === 'estimate') return v == null ? 'No estimate' : `${v} pt`;
+  if (ch.op === 'tags') return Array.isArray(v) && v.length ? v.join(', ') : 'No labels';
   if (ch.op === 'due_date')
     return v ? new Date(String(v)).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'No date';
   return v == null ? '—' : String(v);
@@ -70,6 +73,8 @@ export function DraftChanges({
   if (d.status === 'failed')
     return <div className="ai-notice ai-notice-error">{d.result.error?.message ?? 'The draft did not come back.'}</div>;
 
+  // The wire's `asks_first` arrives camel-cased
+  const askReasons = (d.payload as { asksFirst?: string[] }).asksFirst ?? [];
   const sel = picked ?? new Set<number>();
   const n = changes.filter((_, i) => sel.has(i)).length;
   const person = currentPerson();
@@ -95,6 +100,19 @@ export function DraftChanges({
   if (d.status === 'applied' || d.status === 'undone') {
     const count = d.result.count ?? 0;
     const added = (d.result.applied ?? []).reduce((n, a) => n + ((a as { ids?: string[] }).ids?.length ?? 0), 0);
+    const undo = async () => {
+      setBusy(true);
+      try {
+        await assistApi.undo(d.id);
+        await q.refetch();
+      } catch (e) {
+        setError(extractError(e));
+      } finally {
+        setBusy(false);
+      }
+    };
+    if (d.kind === 'changes' && !added && d.result.applied?.length)
+      return <DoneReceipt draft={d} busy={busy} onUndo={() => void undo()} error={error} />;
     return (
       <div className="as-tile" style={{ flexDirection: 'row', alignItems: 'center' }} data-testid="draft-result">
         <span style={{ color: '#2E6F40', fontWeight: 700 }}>✓</span>
@@ -225,6 +243,7 @@ export function DraftChanges({
           Not applied
         </span>
       </div>
+      {askReasons.length ? <AsksFirst reasons={askReasons} /> : null}
       {changes.map((ch, i) => (
         <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
           <input
@@ -273,7 +292,7 @@ export function DraftChanges({
                   ) : (
                     <div className="as-diff-add">
                       <span>+</span>
-                      <span style={{ whiteSpace: 'pre-wrap' }}>{ch.text ?? ch.op}</span>
+                      <span style={{ whiteSpace: 'pre-wrap' }}>{proposedWords(ch) ?? ch.text ?? ch.op}</span>
                     </div>
                   )}
                 </div>

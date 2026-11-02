@@ -112,6 +112,15 @@ CLI trên máy người dùng: **Claude Code 2.1.316**. Có sẵn các flag cấ
 
 ## 4. Cần thử nghiệm trước khi làm
 
+**Kết quả (2026-11-02, Claude Code 2.1.316, Haiku):**
+- S1 **được**: plugin nạp qua `--plugin-dir` hiện trong sự kiện `init` (`plugins`, `skills`), và AI gọi được skill trong `-p` (tool `Skill`, input `{"skill": "plugin:skill"}`).
+- S2 **được**: `--resume` với danh sách plugin khác vẫn giữ hội thoại; danh sách mới có hiệu lực (skill cũ biến mất, skill mới có).
+- S3 **được**: hook trong plugin chạy (SessionStart, PreToolUse).
+- S4 **không đáng kể**: 8 plugin không làm chậm khởi động đo được.
+- S5 **có nguồn thật**: mỗi run có sự kiện `rate_limit_event` với `unifiedWindows.five_hour` / `seven_day` (`utilization` 0..1, `resetsAt`, `status`); khi hết khung, kết quả có `api_error: "usage_limit_reached"` và HTTP 429. Thanh quota là số thật, không phải ước tính.
+- S6 **được, ở ranh giới lượt**: với `-p --input-format stream-json --replay-user-messages`, tin nhắn gửi giữa chừng được xử lý sau khi lượt hiện tại kết thúc (một tiến trình phát nhiều `result`); CLI thoát khi đóng stdin. Board dùng nó khi project bật `live_messages`; không bật thì tin nhắn đi kèm lần gọi board kế tiếp.
+- Ghi chú: thư mục cấu hình của tài khoản tự nạp các plugin đã đồng bộ của tài khoản đó vào mọi run.
+
 - S1. Skill nạp qua `--plugin-dir` có hiện và được dùng trong `-p` không.
 - S2. `--resume` có chấp nhận khi danh sách `--plugin-dir` khác lần trước không.
 - S3. Hook trong plugin nạp qua `--plugin-dir` có chạy không.
@@ -185,6 +194,9 @@ Cả 32 hàng của mục 5 đã có thiết kế. Mục B của đợt 3 liệt
 - Lệnh `wait` / `kanban wait` cho AI bên ngoài (đã bàn ở phần thông báo).
 
 ## 7. Thứ tự đề xuất (cập nhật sau các chủ đề mới)
+
+Kế hoạch implement chi tiết (giai đoạn, PR, phụ thuộc): [`ai-claude-code-implementation.md`](ai-claude-code-implementation.md).
+Ở đó lưu log được đưa lên trước độ bền, vì transcript đang mất dần và chẩn đoán treo cần đọc log.
 
 1. **Độ bền:** treo → chẩn đoán → xử lý; lỗi theo loại; giới hạn theo tài khoản (mặc định 2); quota theo khung giờ; sửa hướng dẫn MCP.
 2. **Lưu log của board** (gấp: Claude Code tự xoá transcript sau ~30 ngày, dữ liệu đang mất dần), skill/subagent được dùng, tìm kiếm.

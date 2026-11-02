@@ -494,23 +494,28 @@ def _through_cmd_exe(args: list[str]) -> bool:
     )
 
 
-def spill_long_args(args: list[str]) -> tuple[list[str], str | None, str | None]:
+def spill_long_args(
+    args: list[str], prompt_on_stdin: bool = True
+) -> tuple[list[str], str | None, str | None]:
     """Move a long prompt and system prompt off the command line.
 
     Returns:
         (args to run, text for stdin or None, temp folder holding the system prompt file or None). Short commands come
         back unchanged, except behind a Windows `.cmd` shim. `-p <text>` becomes a bare `-p` (the CLI then reads the prompt from stdin); `--system-prompt
-        <text>` becomes `--system-prompt-file <path>`.
+        <text>` becomes `--system-prompt-file <path>`. `prompt_on_stdin=False` (a live run: its stdin carries
+        stream-json and `-p` takes no text) moves only the system prompts.
     """
     if (
         not _through_cmd_exe(args)
-        and len(subprocess.list2cmdline(args)) <= _MAX_COMMAND_CHARS
+        # counted in bytes: Linux limits one argument to 128 KB, and a character may take up to four
+        and len(subprocess.list2cmdline(args).encode("utf-8")) <= _MAX_COMMAND_CHARS
     ):
         return args, None, None
     out = list(args)
     stdin_text: str | None = None
     folder: str | None = None
-    for flag, file_flag in (("-p", None), *_FILE_FLAGS.items()):
+    flags = (("-p", None),) if prompt_on_stdin else ()
+    for flag, file_flag in (*flags, *_FILE_FLAGS.items()):
         if flag not in out or out.index(flag) + 1 >= len(out):
             continue
         i = out.index(flag)
@@ -537,6 +542,7 @@ class CliProcess:
         cwd: str,
         env: dict | None = None,
         spill: bool = True,
+        first_message: str | None = None,
     ):
         """Prepare the command; nothing starts until `start()`. `spill` lets a long prompt travel by stdin (Claude
         Code only)."""
@@ -549,11 +555,19 @@ class CliProcess:
         self._stderr_task: asyncio.Task | None = None
         self.stderr_tail: list[str] = []
         self._temp: str | None = None
+        # Live input (stream-json on stdin): the first message is the prompt; `send` adds one, `end_input` closes it
+        self.first_message = first_message
+        self.live = first_message is not None
+        self._input_open = False
 
     async def start(self) -> int:
         """Launch; returns the pid."""
+        # A live run's stdin carries its messages, so only the system prompt moves to a file: on the command line
+        # a cmd.exe shim mangles it, and one argument over 128 KB fails on Linux (E2BIG)
         args, stdin_text, self._temp = (
-            spill_long_args(self.args) if self.spill else (self.args, None, None)
+            spill_long_args(self.args, prompt_on_stdin=not self.live)
+            if self.spill
+            else (self.args, None, None)
         )
         try:
             self.proc = await asyncio.create_subprocess_exec(
@@ -561,7 +575,7 @@ class CliProcess:
                 *args,
                 cwd=self.cwd,
                 stdin=asyncio.subprocess.DEVNULL
-                if stdin_text is None
+                if stdin_text is None and not self.live
                 else asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -572,7 +586,10 @@ class CliProcess:
         except BaseException:
             self._cleanup()
             raise
-        if stdin_text is not None and self.proc.stdin:
+        if self.live and self.proc.stdin:
+            self._input_open = True
+            await self.send(self.first_message or "")
+        elif stdin_text is not None and self.proc.stdin:
             self.proc.stdin.write(stdin_text.encode("utf-8"))
             try:
                 await self.proc.stdin.drain()
@@ -581,6 +598,36 @@ class CliProcess:
                 pass  # the CLI already exited; its exit code and stderr say why
         self._stderr_task = asyncio.create_task(self._drain_stderr())
         return self.proc.pid
+
+    async def send(self, text: str) -> bool:
+        """Write one user message to a live CLI's input; False when it is not live or its input is closed."""
+        if not (self.live and self._input_open and self.proc and self.proc.stdin):
+            return False
+        line = json.dumps(
+            {
+                "type": "user",
+                "message": {
+                    "role": "user",
+                    "content": [{"type": "text", "text": text}],
+                },
+            }
+        )
+        try:
+            self.proc.stdin.write((line + "\n").encode("utf-8"))
+            await self.proc.stdin.drain()
+        except (ConnectionError, OSError):
+            self._input_open = False
+            return False
+        return True
+
+    def end_input(self) -> None:
+        """Close a live CLI's input: it finishes the turn it is on and exits."""
+        if self.live and self._input_open and self.proc and self.proc.stdin:
+            self._input_open = False
+            try:
+                self.proc.stdin.close()
+            except (ConnectionError, OSError):
+                pass
 
     def _cleanup(self) -> None:
         """Remove the temp folder of a spilled system prompt."""
@@ -621,6 +668,12 @@ class CliProcess:
 # ---------------------------------------------------------------------------
 
 
+def message_of(ev: dict) -> dict:
+    """An event's ``message`` when it is an object; a CLI may print one as plain text, which holds no blocks."""
+    msg = ev.get("message") if isinstance(ev, dict) else None
+    return msg if isinstance(msg, dict) else {}
+
+
 def _short(text: str, n: int = 160) -> str:
     text = " ".join((text or "").split())
     return text if len(text) <= n else text[: n - 1] + "…"
@@ -659,6 +712,12 @@ def describe_tool(name: str, inp: dict, cwd: str) -> tuple[str, str, dict | None
         return "command", f"Ran {_short(inp.get('command', ''), 120)}", None
     if name in ("Grep", "Glob"):
         return "search", f"Searched {_short(inp.get('pattern', ''), 80)}", None
+    if name == "Skill" and inp.get("skill"):
+        return "skill", f"Used the skill {_short(str(inp['skill']), 80)}", None
+    if name in ("Task", "Agent"):
+        who = inp.get("subagent_type") or "a subagent"
+        what = inp.get("description") or inp.get("prompt") or ""
+        return "subagent", _short(f"Asked {who}: {what}", 160), None
     if name.startswith("mcp__"):
         parts = name.split("__")
         tool = parts[-1]
@@ -670,6 +729,14 @@ def describe_tool(name: str, inp: dict, cwd: str) -> tuple[str, str, dict | None
     return "tool", f"{name} {_short(json.dumps(inp)[:200], 80)}", None
 
 
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+
+
+def strip_ansi(text: str) -> str:
+    """Text without terminal colour codes (pytest colours its summary: "\\x1b[32m6 passed\\x1b[0m")."""
+    return _ANSI.sub("", text or "")
+
+
 _PASSED = re.compile(r"\b(\d+) (?:passed|passing)\b", re.IGNORECASE)
 _FAILED = re.compile(r"\b(\d+) (?:failed|failing)\b", re.IGNORECASE)
 _FAILING_NAME = re.compile(r"^(?:FAILED|FAIL|✗|×)\s+(\S.{0,120})$", re.MULTILINE)
@@ -678,8 +745,11 @@ _FAILING_NAME = re.compile(r"^(?:FAILED|FAIL|✗|×)\s+(\S.{0,120})$", re.MULTIL
 def parse_tests(output: str) -> dict | None:
     """Pass and fail counts read from a test command's output (pytest, jest, vitest, mocha, ...), or None when the
     output does not look like a test run."""
-    passed = _PASSED.findall(output or "")
-    failed = _FAILED.findall(output or "")
+    output = strip_ansi(
+        output
+    )  # a colour code right before the count leaves no word boundary
+    passed = _PASSED.findall(output)
+    failed = _FAILED.findall(output)
     if not passed and not failed:
         return None
     return {
@@ -734,7 +804,7 @@ def parse_stream_line(line: str, cwd: str) -> dict:
                 }
             )
     elif kind == "assistant":
-        usage = (ev.get("message") or {}).get("usage") or {}
+        usage = message_of(ev).get("usage") or {}
         held = sum(
             int(usage.get(k) or 0)
             for k in (
@@ -745,7 +815,9 @@ def parse_stream_line(line: str, cwd: str) -> dict:
         )
         if held:
             out["context_used"] = held
-        for block in (ev.get("message") or {}).get("content") or []:
+        for block in message_of(ev).get("content") or []:
+            if not isinstance(block, dict):
+                continue
             if block.get("type") == "tool_use" and block.get("name") == "ToolSearch":
                 continue  # the CLI loading its own deferred tools: not a step of the work
             if block.get("type") == "tool_use":
@@ -762,9 +834,10 @@ def parse_stream_line(line: str, cwd: str) -> dict:
                     {"kind": "say", "text": redact(_short(block["text"], 300))}
                 )
     elif kind == "user":
-        for block in (ev.get("message") or {}).get("content") or []:
+        for block in message_of(ev).get("content") or []:
             if isinstance(block, dict) and block.get("type") == "tool_result":
-                text = _result_text(block.get("content"))
+                # what a command printed is kept and shown without its colour codes
+                text = strip_ansi(_result_text(block.get("content")))
                 code = re.match(r"Exit code (\d+)", text)
                 out["results"].append(
                     {
@@ -789,7 +862,7 @@ def parse_stream_line(line: str, cwd: str) -> dict:
                 out["steps"].append(
                     {
                         "kind": "error",
-                        "text": redact(_short(str(content), 240)),
+                        "text": redact(_short(strip_ansi(str(content)), 240)),
                         "tool_id": block.get("tool_use_id"),
                     }
                 )
@@ -808,6 +881,9 @@ def parse_stream_line(line: str, cwd: str) -> dict:
             + int(usage.get("cache_read_input_tokens") or 0),
             "tokens_out": int(usage.get("output_tokens") or 0),
             "turns": ev.get("num_turns"),
+            # Claude Code names the failure: "usage_limit_reached" (the window), and the HTTP status behind it
+            "api_error": ev.get("api_error"),
+            "api_status": ev.get("api_error_status"),
         }
         out["session_id"] = ev.get("session_id")
         windows = [
@@ -842,14 +918,22 @@ def claude_args(
     effort: str | None = None,
     extra_flags: list[str] | None = None,
     bypass: bool = False,
+    plugin_dirs: list[str] | None = None,
+    live: bool = False,
 ) -> list[str]:
     """Command line of one headless Claude Code run. By default it never skips the CLI's own permission checks:
     only the Allow rules run, anything else is denied. `bypass` (an owner's explicit choice for the member) lets
     every tool run except what a Deny rule stops."""
+    # `live`: the prompt and later messages travel on stdin as stream-json, so a person can send the running AI a
+    # message it reads at its next turn (spike S6); the CLI ends when the board closes its input
     args = [
         path,
         "-p",
-        prompt,
+        *(
+            ["--input-format", "stream-json", "--replay-user-messages"]
+            if live
+            else [prompt]
+        ),
         "--output-format",
         "stream-json",
         "--verbose",
@@ -872,6 +956,11 @@ def claude_args(
         args += ["--allowedTools", ",".join(allowed)]
     if denied:
         args += ["--disallowedTools", ",".join(denied)]
+    for folder in plugin_dirs or []:
+        args += [
+            "--plugin-dir",
+            folder,
+        ]  # skills, subagents and hooks loaded for this run only (D5)
     for flag in extra_flags or []:
         if any(bad in flag for bad in REJECTED_FLAGS):
             continue

@@ -1,0 +1,74 @@
+/** Worktrees and the hand-over of code (design/screens/ai-operations.md, I and J). Camel-cased by the client. */
+export type WorktreeState = 'active' | 'conflict' | 'kept' | 'merged' | 'removed';
+export type HandoverRoute = 'auto' | 'pr' | 'local' | 'branch';
+
+export interface WorktreeLive {
+  uncommitted: string[];
+  sizeMb: number;
+  exists: boolean;
+  ahead: number;
+}
+
+export interface Worktree {
+  ticketId: string;
+  projectId: string;
+  repo: string;
+  path: string;
+  branch: string;
+  base: string | null;
+  port: number | null;
+  state: WorktreeState;
+  handover: HandoverRoute | null;
+  prUrl: string | null;
+  prNumber: number | null;
+  conflictFiles: string[];
+  preparedAt: string | null;
+  prepareS: number | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+  mergedAt: string | null;
+  live: WorktreeLive | null;
+}
+
+export interface WorktreeList {
+  worktrees: Worktree[];
+  totalMb: number;
+}
+
+export interface WorktreeWithRoute extends Worktree {
+  /** The route that will be used: the ticket's choice, else the project's, else the guess. */
+  route: HandoverRoute;
+}
+
+export interface MergeResult {
+  merged: boolean;
+  conflict?: string[];
+  refused?: string;
+  prReady?: boolean;
+  prUrl?: string;
+  pushed?: boolean;
+}
+
+export interface CleanupResult {
+  removed: string[];
+  kept: { ticketId: string; why: string }[];
+}
+
+export interface TicketFlag {
+  id: string;
+  kind: string;
+  data: Record<string, unknown>;
+  open: boolean;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  resolution: string | null;
+}
+
+export type ConflictChoice = 'ai' | 'me' | 'later';
+
+export interface ConfigMigration {
+  memberId: string;
+  folder: string;
+  files: { path: string; unchanged: boolean; blockOnly: boolean }[];
+}

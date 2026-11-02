@@ -26,17 +26,37 @@ def system(
     row: AiAssistSettings,
     extra: str = "",
     tools: bool = False,
+    acts: bool = False,
 ) -> str:
-    """Rules every Board AI request starts with. `tools`: the member answers with its own configured tools."""
+    """Rules every Board AI request starts with. `tools`: the member answers with its own configured tools. `acts`:
+    the Board AI acts as the person by risk tier (D23) instead of only drafting."""
     today = datetime.now().astimezone().strftime("%A %Y-%m-%d %H:%M")
     lines = [
         f"You are {member_name}, the Board AI of the Kanban board “{project_name}”.",
         "You answer people's questions about the board and propose changes as drafts.",
         (
             "You also have your own tools (the board's MCP server and the others your configuration lists). Use them to"
-            " look things up instead of guessing. A change you make with a tool is applied at once, within your"
-            " permissions, and a change that needs approval waits for a person: say what you changed or what is waiting."
-            " Propose a change as a draft only when you did not make it."
+            " look things up instead of guessing. "
+            + (
+                "Do not change the board with a tool (the board refuses it): list every change in the block below."
+                if acts
+                else "A change you make with a tool is applied at once, within your permissions, and a change that needs"
+                " approval waits for a person: say what you changed or what is waiting. Propose a change as a draft only"
+                " when you did not make it."
+            )
+            if tools
+            else ""
+        )
+        + (
+            ("" if not tools else " ")
+            + "You act as the person who asks you, by risk tier: what you list in the block is done at once when it is"
+            " reversible and small (at most three tickets, one project), and the person gets one Undo; moving a ticket"
+            " to Done, bulk changes, deleting, Pause all AI, permissions, budgets, merging and anything posted outside"
+            " the board ask the person first. The board makes the small ones before the person reads your answer, so write"
+            " them as done (\u201cI moved KAN-1\u201d), never as a draft to apply, and say plainly what waits for their yes. You never answer"
+            " a question an AI asked a person, and never approve on their behalf."
+            if acts
+            else ""
             if tools
             else "You never change anything yourself: a person reviews your draft and presses Apply; only then is anything written."
         ),
@@ -70,8 +90,21 @@ the answer with ONE fenced block in exactly this form:
   {"op": "due_date", "ticket": "KAN-1", "to": "YYYY-MM-DD or null"}
   {"op": "estimate", "ticket": "KAN-1", "to": 1|2|3|5|8|13|null}
   {"op": "title", "ticket": "KAN-1", "to": "new title"}
+  {"op": "tags", "ticket": "KAN-1", "add": ["label"], "remove": ["label"]}
   {"op": "comment", "ticket": "KAN-1", "text": "comment text; mention people as @Name"}
   {"op": "add_criteria", "ticket": "KAN-1", "items": ["a testable acceptance criterion", "another"]}
+  {"op": "run", "ticket": "KAN-1", "member": "<exact AI member name>", "text": "what it should do"}
+  {"op": "stop_run", "ticket": "KAN-1"}
+  {"op": "workflow", "ticket": "KAN-1", "to": "quick_fix|standard|feature_ui|research|docs|chore"}
+  {"op": "depth", "ticket": "KAN-1", "to": "light|standard|deep"}
+  {"op": "pause_member", "member": "<exact AI member name>"}  /  {"op": "resume_member", "member": "..."}
+  {"op": "create", "title": "a new ticket", "description": "what and why", "parent": "KAN-1 or null",
+   "criteria": ["testable criterion"], "workflow": "quick_fix|standard|feature_ui|research|docs|chore or null"}
+  {"op": "message", "ticket": "KAN-1", "text": "what to tell the AI working on it now"}
+  {"op": "delegate", "ticket": "KAN-1", "text": "what the PM should coordinate on it"}
+You manage the AI team for the person (you rank above the PM): to split work, create the pieces (parent = the ticket)
+and put each on a workflow; to steer an AI that is working, message it; hand long coordination of one ticket to the PM
+with delegate.
 Use add_criteria when asked for acceptance criteria: one short, testable sentence each, none that the ticket already
 has, at most 8.
 "suggestions" (optional, at most 2): follow-ups the person may want, each
@@ -205,7 +238,7 @@ def check_changes(
 
     Args:
         raw: Changes as the model wrote them.
-        tickets: id -> {"status", "priority", "assignee", "due_date", "estimate", "title"}.
+        tickets: id -> {"status", "priority", "assignee", "due_date", "estimate", "title", "tags"}.
         members: lower-case name -> member id (people and AI members of the project).
 
     Returns:
@@ -218,11 +251,87 @@ def check_changes(
         if not isinstance(ch, dict):
             continue
         op = ch.get("op")
+        if op in ("pause_member", "resume_member"):
+            mid = members.get(str(ch.get("member") or "").strip().lower())
+            if not mid:
+                problems.append(f"Unknown member {ch.get('member')!r}")
+                continue
+            out.append(
+                {
+                    "op": op,
+                    "member": mid,
+                    "member_name": names.get(mid, ch.get("member")),
+                }
+            )
+            continue
+        if op == "create":
+            title = " ".join(str(ch.get("title") or "").split())[:200]
+            if not title:
+                problems.append("A new ticket needs a title")
+                continue
+            parent = by_lower.get(str(ch.get("parent") or "").strip().lower())
+            if ch.get("parent") and not parent:
+                problems.append(f"Unknown parent ticket {ch.get('parent')!r}")
+                continue
+            out.append(
+                {
+                    "op": "create",
+                    "title": title,
+                    "description": str(ch.get("description") or "")[:4000],
+                    "parent": parent,
+                    "criteria": [
+                        " ".join(str(x or "").split())[:500]
+                        for x in (ch.get("criteria") or [])[:8]
+                        if str(x or "").strip()
+                    ],
+                    "workflow": str(ch.get("workflow") or "").strip().lower() or None,
+                }
+            )
+            continue
         tid = by_lower.get(str(ch.get("ticket") or "").strip().lower())
         if not tid:
             problems.append(f"Unknown ticket {ch.get('ticket')!r}")
             continue
         cur = tickets[tid]
+        if op in ("message", "delegate"):
+            text = str(ch.get("text") or "").strip()
+            if not text:
+                problems.append(f"{tid}: what should it say?")
+                continue
+            out.append({"op": op, "ticket": tid, "text": text[:2000]})
+            continue
+        if op == "run":
+            mid = members.get(str(ch.get("member") or "").strip().lower())
+            if not mid:
+                problems.append(f"{tid}: unknown AI member {ch.get('member')!r}")
+                continue
+            out.append(
+                {
+                    "op": "run",
+                    "ticket": tid,
+                    "member": mid,
+                    "member_name": names.get(mid, ch.get("member")),
+                    "text": str(ch.get("text") or "")[:2000],
+                }
+            )
+            continue
+        if op == "stop_run":
+            out.append({"op": "stop_run", "ticket": tid})
+            continue
+        if op == "workflow":
+            key = str(ch.get("to") or "").strip().lower()
+            if not key:
+                problems.append(f"{tid}: which workflow?")
+                continue
+            out.append({"op": "workflow", "ticket": tid, "to": key})
+            continue
+        if op == "depth":
+            to = str(ch.get("to") or "").strip().lower()
+            if to not in ("light", "standard", "deep"):
+                problems.append(f"{tid}: review depth {ch.get('to')!r}")
+                continue
+            out.append({"op": "depth", "ticket": tid, "to": to})
+            continue
         if op == "comment":
             text = str(ch.get("text") or "").strip()
             if text:
@@ -287,6 +396,21 @@ def check_changes(
             to = " ".join(str(to or "").split())[:300]
             if not to:
                 continue
+        elif op == "tags":
+            have = [str(x) for x in cur.get("tags") or []]
+
+            def _labels(v) -> list[str]:
+                v = v if isinstance(v, list) else [v] if v else []
+                return [
+                    " ".join(str(x).split())[:40] for x in v if str(x or "").strip()
+                ]
+
+            drop = {x.lower() for x in _labels(ch.get("remove"))}
+            to = [x for x in have if x.lower() not in drop]
+            for label in _labels(ch.get("add")):
+                if label.lower() not in {x.lower() for x in to}:
+                    to.append(label)
+            to = to[:20]
         else:
             problems.append(f"Unknown change {op!r}")
             continue

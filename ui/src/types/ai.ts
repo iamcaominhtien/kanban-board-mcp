@@ -441,6 +441,13 @@ export interface AiRun {
   tests: TestCounts | null;
   /** Steps the member's recent runs took (the median): "step 9 of ~14". */
   stepEstimate?: number | null;
+  /** The board's reading of a run in trouble or stopped (design/screens/ai-operations.md, C and D). */
+  diagnosis?: RunDiagnosis | null;
+  /** Retries the board scheduled itself (network, crash, board fault, a fresh conversation). */
+  retries?: RunRetry[];
+  retryAt?: string | null;
+  /** The Claude account this run spends when it is not the member's own (urgent work moved). */
+  accountId?: string | null;
 }
 
 export interface AiApproval {
@@ -555,4 +562,38 @@ export interface RunnerInfo {
   local: boolean;
   appVersion: string;
   platform: string;
+}
+
+/** What the board found out about a run in trouble, by code (or a light model), and what it allows. */
+export interface RunDiagnosis {
+  at: string;
+  by: 'code' | 'model';
+  /** foreground_server | waiting_input | mcp_stuck | busy | memory_child | unknown, or a stop kind: network | crash |
+   * board_fault | compact | error */
+  cause: string;
+  boardFault?: boolean;
+  trigger: string;
+  what: string;
+  means: string;
+  tried: string[];
+  /** stop_child | tell_ai | wait | continue_note | cancel | retry | hand_to */
+  actions: string[];
+  child?: { pid: number; cmd: string; cpu?: number; rssMb?: number } | null;
+  lesson?: string;
+  model?: { cause: string; means: string; action: string; note: string; lesson: string } | null;
+  quietS?: number;
+  process?: { alive: boolean; cpu: number; rssMb: number };
+  confidence?: 'high' | 'medium' | 'low';
+  clearedAt?: string;
+  clearedWhy?: string;
+}
+
+export interface RunRetry {
+  at: string;
+  kind: 'network' | 'board_fault' | 'crash' | 'compact' | string;
+  n: number;
+  of: number;
+  label: string;
+  detail: string;
+  delayS: number;
 }

@@ -108,6 +108,14 @@ async def _ai_may_read(session, c) -> bool:
     return page is not None and await access.ai_can_read(session, page)
 
 
+async def design_guide() -> dict:
+    """The whole canvas design guide: how to design frames that look like one considered product (in Claude Code it
+    is also the canvas-design skill)."""
+    from services import canvas_design
+
+    return {"guide": canvas_design.GUIDE}
+
+
 async def list_project_canvases(project_id: ProjectId) -> list[dict]:
     """List a project's canvases: [{id, title, owner_kind, owner_id, page_id, version, rev, boards, updated_by, updated_at, markdown}]."""
     from models import Canvas

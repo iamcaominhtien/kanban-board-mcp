@@ -20,6 +20,7 @@ from models import (
     AiMember,
     AiProjectSettings,
     AiRun,
+    AiTicketStep,
     DocsAiProposal,
     DocsCommentThread,
     DocsLink,
@@ -87,6 +88,8 @@ class Data:
         default_factory=list
     )  # ticket ids with a canvas proposal waiting for a person
     events: list[dict] = field(default_factory=list)
+    # the workflow step rows of the tickets in `runs` (every state): who held each step, skipped, sent back
+    steps: list[AiTicketStep] = field(default_factory=list)
     cap: float | None = None
 
 
@@ -712,7 +715,15 @@ async def load(session: AsyncSession, project_id: str, since: datetime) -> Data:
         canvas_open=list(canvas_open),
         cap=settings.board_monthly_budget or None,
     )
-    d.events = flow.events(runs, ais, templates)
+    steps = (
+        await session.exec(
+            select(AiTicketStep).where(
+                col(AiTicketStep.ticket_id).in_(list(recent_tickets) or [""])
+            )
+        )
+    ).all()
+    d.steps = list(steps)
+    d.events = flow.events(runs, ais, templates, steps=d.steps)
     return d
 
 

@@ -1000,6 +1000,8 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
       });
     }
     lines.push({ text: `Kind: ${arrowWord(a.kind)}` });
+    if (a.skipped?.length) lines.push({ text: `Skipped: ${a.skipped.join(', ')}` });
+    if (a.via === 'checks') lines.push({ text: 'The checks failed the work and sent it back' });
     return {
       icon: ICONS.arrow,
       iconColor: arrowStroke(a),
@@ -1458,6 +1460,7 @@ function Legend() {
     { k: 'handoff', t: 'hand-off (dashed and moving while under way)' },
     { k: 'report', t: 'report back (dotted)', c: '#5B6B60' },
     { k: 'sent_back', t: 'sent back (red dashed)' },
+    { k: 'skip', t: 'a workflow step skipped' },
     { k: 'ask', t: 'asks you' },
     { k: 'auto', t: 'Autopilot decided' },
   ];

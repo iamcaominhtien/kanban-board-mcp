@@ -168,13 +168,28 @@ export type DraftKind =
 export interface DraftChange {
   /** The board's own kinds, or a kind that another scope adds (an idea's, for example). */
   op:
-    'status' | 'priority' | 'assignee' | 'due_date' | 'estimate' | 'title' | 'comment' | 'add_criteria' | (string & {});
+    | 'status'
+    | 'priority'
+    | 'tags'
+    | 'assignee'
+    | 'due_date'
+    | 'estimate'
+    | 'title'
+    | 'comment'
+    | 'add_criteria'
+    | (string & {});
   ticket: string;
   from?: unknown;
   to?: unknown;
   text?: string;
   /** add_criteria: the criteria to add. */
   items?: string[];
+  /** create: a new ticket (it has no `ticket` yet). */
+  title?: string;
+  description?: string;
+  parent?: string | null;
+  criteria?: string[];
+  workflow?: string | null;
   /** Set when the change belongs to a scope's own kind (e.g. "idea"). */
   scope?: string;
   /** idea_assumption: how much the idea depends on it. */

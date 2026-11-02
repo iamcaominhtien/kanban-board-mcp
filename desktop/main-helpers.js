@@ -244,7 +244,130 @@ async function openExternalSafely(shell, url) {
   }
 }
 
+// ── Keeping the computer awake while an AI runs (plan: "Máy ngủ") ───────────────────────────────────────────────────
+const POWER_POLL_MS = 30 * 1000;
+const DEFAULT_PREFERENCES = { keepAwake: true };
+
+/** The app's small preferences file (a JSON in the user data folder); a missing or broken file gives the defaults. */
+function readPreferences(file) {
+  try {
+    const stored = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (stored && typeof stored === 'object' && !Array.isArray(stored)) return { ...DEFAULT_PREFERENCES, ...stored };
+  } catch {
+    // no file yet, or unreadable: the defaults
+  }
+  return { ...DEFAULT_PREFERENCES };
+}
+
+function writePreferences(file, preferences) {
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(preferences, null, 2), 'utf8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** What to do with the power save blocker: 'start', 'stop' or 'none'. Runs need the computer awake while the person
+ * allows it; with the switch off, or no run, or no backend to ask, nothing is held. */
+function decidePowerBlock({ keepAwake, active, blocking }) {
+  const want = Boolean(keepAwake) && Number.isFinite(active) && active > 0;
+  if (want && !blocking) return 'start';
+  if (!want && blocking) return 'stop';
+  return 'none';
+}
+
+/** Asks the board how many AI runs are going: a number, or null when it cannot be reached. */
+async function fetchActiveRuns({ port, apiSecret, fetchFn = globalThis.fetch, timeoutMs = 5000 }) {
+  if (!port) return null;
+  try {
+    const res = await fetchFn(`http://127.0.0.1:${port}/ai/power`, {
+      headers: apiSecret ? { 'X-Kanban-Secret': apiSecret } : {},
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return Number.isFinite(body.active) ? body.active : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Tells the board the computer woke up so it looks at the runs it thinks are going. */
+async function postWake({ port, apiSecret, fetchFn = globalThis.fetch, timeoutMs = 30000 }) {
+  if (!port) return false;
+  try {
+    const res = await fetchFn(`http://127.0.0.1:${port}/ai/power/wake`, {
+      method: 'POST',
+      headers: apiSecret ? { 'X-Kanban-Secret': apiSecret } : {},
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Polls the board every 30 s and holds `prevent-app-suspension` while runs are going.
+ * opts: { powerSaveBlocker, getPort(), getApiSecret(), getKeepAwake(), fetchFn?, setIntervalFn?, clearIntervalFn? }
+ */
+function createPowerKeeper(opts) {
+  const {
+    powerSaveBlocker,
+    getPort,
+    getApiSecret = () => '',
+    getKeepAwake,
+    fetchFn = globalThis.fetch,
+    setIntervalFn = setInterval,
+    clearIntervalFn = clearInterval,
+  } = opts;
+  let blockerId = null;
+  let timer = null;
+
+  const blocking = () => blockerId !== null && powerSaveBlocker.isStarted(blockerId);
+  const release = () => {
+    if (blockerId !== null) powerSaveBlocker.stop(blockerId);
+    blockerId = null;
+  };
+
+  async function tick() {
+    const active = await fetchActiveRuns({ port: getPort(), apiSecret: getApiSecret(), fetchFn });
+    // an unreachable board holds nothing
+    const action = decidePowerBlock({ keepAwake: getKeepAwake(), active: active ?? 0, blocking: blocking() });
+    if (action === 'start') blockerId = powerSaveBlocker.start('prevent-app-suspension');
+    else if (action === 'stop') release();
+    return action;
+  }
+
+  return {
+    tick,
+    start() {
+      if (timer) return;
+      tick();
+      timer = setIntervalFn(tick, POWER_POLL_MS);
+      if (timer && timer.unref) timer.unref();
+    },
+    stop() {
+      if (timer) clearIntervalFn(timer);
+      timer = null;
+      release();
+    },
+    wake: () => postWake({ port: getPort(), apiSecret: getApiSecret(), fetchFn }),
+    isBlocking: blocking,
+  };
+}
+
 module.exports = {
+  DEFAULT_PREFERENCES,
+  POWER_POLL_MS,
+  createPowerKeeper,
+  decidePowerBlock,
+  fetchActiveRuns,
+  postWake,
+  readPreferences,
+  writePreferences,
   StartupProfiler,
   buildBackendLaunchSpec,
   buildExportCommand,

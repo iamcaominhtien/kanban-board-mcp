@@ -28,12 +28,14 @@ const VIEWS = [
  * @param {string} ctx.version - the running version, for "What's New in x"
  * @param {boolean} ctx.backendRunning - items that need data are greyed while it is not
  * @param {boolean} ctx.windowOpen - false on macOS after the last window is closed
+ * @param {boolean} [ctx.keepAwake] - the "Keep awake while AI runs" check mark (default on)
  * @param {string|null} ctx.currentView - one of VIEWS ids, shown with a check mark
  * @param {{checking: boolean, availableVersion: string|null}} ctx.update
  * @param {(command: string, payload?: object) => void} ctx.dispatch - called by every command item
  */
 function buildMenuTemplate(ctx) {
   const { platform, appName, version, backendRunning, windowOpen, currentView, update, dispatch } = ctx;
+  const keepAwake = ctx.keepAwake !== false; // on unless the person switched it off
   const mac = platform === 'darwin';
   const win = platform === 'win32';
 
@@ -136,6 +138,8 @@ function buildMenuTemplate(ctx) {
       ),
       sep('view-sep-1'),
       command('ask-ai', 'Ask AI', { accelerator: 'CmdOrCtrl+J', needs: BACKEND }),
+      // The computer stays awake while an AI runs (main.js holds a power save blocker); not a page command
+      { id: 'keep-awake', label: 'Keep awake while AI runs', type: 'checkbox', checked: keepAwake, click: () => dispatch('keep-awake') },
       sep('view-sep-2'),
       role('reset-zoom', 'resetZoom', { label: 'Actual Size' }),
       role('zoom-in', 'zoomIn'),
@@ -209,7 +213,7 @@ function buildMenuTemplate(ctx) {
 }
 
 // Commands the main process handles itself; every other id is sent to the page as `app-command`.
-const MAIN_COMMANDS = new Set(['open-logs', 'open-data', 'copy-diagnostics', 'new-window', 'maximize', 'check-updates']);
+const MAIN_COMMANDS = new Set(['open-logs', 'open-data', 'copy-diagnostics', 'new-window', 'maximize', 'check-updates', 'keep-awake']);
 // Items that open a Settings page: id -> the page and the `data-setting` anchor to scroll to
 const SETTINGS_TARGETS = {
   settings: {},

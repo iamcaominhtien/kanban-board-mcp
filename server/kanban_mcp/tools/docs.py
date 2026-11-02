@@ -25,6 +25,7 @@ DocsReadAction = Literal[
     "sketch",
     "canvases",
     "canvas",
+    "design_guide",
 ]
 
 DOCS_READ_OPS = {
@@ -42,6 +43,7 @@ DOCS_READ_OPS = {
     "sketch": Op(ops.export_sketch, ("sketch_id", "path")),
     "canvases": Op(ops.list_project_canvases, ("project_id",)),
     "canvas": Op(ops.read_canvas, ("canvas_id",), ("board_id", "path")),
+    "design_guide": Op(ops.design_guide, ()),
 }
 
 
@@ -134,7 +136,8 @@ async def docs_read(
     - sketches: project_id. Freehand sketches: [{id, title, owner_kind, owner_id, version, width, height, layers, updated_by, updated_at, markdown}]. A text shows one as `![Name](sketch:sk_xxxxxxxx)`.
     - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.
     - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
-    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose))."""
+    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
+    - design_guide: {guide}, the canvas design guide; read it before designing."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 

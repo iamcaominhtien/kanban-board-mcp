@@ -90,6 +90,21 @@ export interface MemberUsage {
   maxRunsPerDay: number | null;
 }
 
+/** What a member carries into every run before the ticket, in tokens (design: "base prompt N tokens"). */
+export function useBasePrompt(id: string) {
+  return useQuery({
+    queryKey: ['ai', 'base-prompt', id] as const,
+    queryFn: async () =>
+      (
+        await client.get<{ memberId: string; tokens: number; parts: Record<string, number>; skills: string[] }>(
+          `/ai/members/${id}/base-prompt`,
+        )
+      ).data,
+    enabled: !!id,
+    retry: false,
+  });
+}
+
 /** Usage tab. */
 export function useAiUsage(id: string) {
   return useQuery({

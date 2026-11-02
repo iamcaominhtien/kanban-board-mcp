@@ -33,7 +33,7 @@ def applies(chat: AiChat, profile: AiMember) -> bool:
 
 
 async def build(
-    chat: AiChat, profile: AiMember, member: Member
+    chat: AiChat, profile: AiMember, member: Member, *, acts_by_tier: bool = False
 ) -> tuple[llm.ChatTools, str]:
     """The tools of one answer and the token its board calls carry (give it back with `guard.revoke_chat_token`)."""
     async with database.async_session() as session:
@@ -57,6 +57,7 @@ async def build(
             ticket_id=chat.ticket_id or "",
             on_behalf_of=chat.owner,
             mode="work",
+            acts_by_tier=acts_by_tier,
         )
     )
     async with database.async_session() as db:

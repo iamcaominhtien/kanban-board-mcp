@@ -70,8 +70,10 @@ def _approvals_do_not_wait(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _claude_account_is_empty(monkeypatch, tmp_path_factory):
-    """The MCP servers of the machine's own `~/.claude.json` must not leak into a test."""
+    """The MCP servers of the machine's own `~/.claude.json`, and the plugins of its `~/.claude`, must not leak into
+    a test."""
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path_factory.mktemp("claude-home")))
+    monkeypatch.setenv("KANBAN_CLAUDE_HOME", str(tmp_path_factory.mktemp("own-claude")))
 
 
 @pytest.fixture(autouse=True)
@@ -130,3 +132,14 @@ def pytest_collection_modifyitems(config, items):
     chosen = [it for it in items if it.nodeid.split("::", 1)[0] in keep]
     config.hook.pytest_deselected(items=[it for it in items if it not in chosen])
     items[:] = chosen
+
+
+@pytest.fixture(autouse=True)
+def _no_marketplace_clones(monkeypatch):
+    """Making a member from a pack installs the pack's plugins from their marketplaces: never from a test."""
+    from services.ai import packs
+
+    async def nothing(*_a, **_k):
+        return {"installed": [], "failed": []}
+
+    monkeypatch.setattr(packs, "install_plugins", nothing)

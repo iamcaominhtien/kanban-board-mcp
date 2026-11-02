@@ -74,6 +74,22 @@ async def live_runs(session: AsyncSession, project_id: str) -> list[dict]:
         ).all()
     }
     rows = [_live_row(r, names, tickets) for r in runs]
+    for r, row in zip(runs, rows, strict=True):
+        if r.trigger in flow.WORKFLOW_TRIGGERS:
+            # the board moved the ticket on: the hand-off under way is from the AI of the step before (D14)
+            before = (
+                await session.exec(
+                    select(AiRun)
+                    .where(
+                        AiRun.ticket_id == r.ticket_id,
+                        col(AiRun.queued_at) < (r.queued_at or ""),
+                        AiRun.trigger != "autopilot",
+                    )
+                    .order_by(col(AiRun.queued_at).desc())
+                )
+            ).first()
+            if before is not None:
+                row["sender"] = before.member_id
     return sorted(
         rows, key=lambda x: (_LIVE_RANK.get(x["state"], 3), -(x["elapsed_s"] or 0))
     )
@@ -212,15 +228,20 @@ async def team_map(
     edges: dict[tuple[str, str, str], dict] = {}
     for e in evs:
         src, dst = _ends(e, names)
-        if src == dst:
-            continue
-        kind = (
-            "report back"
-            if e["kind"] == "report back"
-            else "sent back"
-            if e["sent_back"]
-            else "flow"
-        )
+        checks = e.get("via") == flow.CHECKS
+        if src == dst and not checks:
+            continue  # the Checks sending the Dev's work back is the one loop onto the same AI
+        if e["kind"] == "report back":
+            kind = "report back"
+        elif e["sent_back"]:
+            kind = "sent back"
+        elif e["returned"] and e.get("workflow"):
+            # a workflow's first review round going back (normal): not a hand-off forward, not counted as sent back
+            kind = "returned"
+        elif e.get("skipped"):
+            kind = "skip"  # the workflow went past a step it skipped for this ticket
+        else:
+            kind = "flow"
         edge = edges.setdefault(
             (src, dst, kind),
             {
@@ -230,38 +251,66 @@ async def team_map(
                 "count": 0,
                 "waits": [],
                 "tickets": set(),
+                "runs": set(),
+                "skipped": [],
+                "workflow": False,
+                "via": flow.CHECKS if checks else None,
             },
         )
         edge["count"] += 1
         edge["tickets"].add(e["ticket_id"])
+        edge["runs"].add(e["run_id"])
+        edge["workflow"] = edge["workflow"] or bool(e.get("workflow"))
+        for label in e.get("skipped") or []:
+            if label not in edge["skipped"]:
+                edge["skipped"].append(label)
         if e["wait_s"] is not None:
             edge["waits"].append(e["wait_s"])
 
     def edge_kind(v: dict) -> tuple[str, list[str]]:
-        if v["kind"] != "flow" or v["from"] not in order or v["to"] not in order:
+        if v["kind"] == "skip":
+            return "skip", v["skipped"]  # the step rows say what was skipped
+        if (
+            v["kind"] != "flow"
+            or v[
+                "workflow"
+            ]  # a workflow's steps are its template's: no step is skipped by guess
+            or v["from"] not in order
+            or v["to"] not in order
+        ):
             return v["kind"], []
         skipped = skipped_between(runs, order, v["from"], v["to"])
         return ("skip" if skipped else "flow"), [names.get(s, "AI") for s in skipped]
 
-    edge_rows = [
-        {
-            "from": v["from"],
-            "to": v["to"],
-            "kind": edge_kind(v)[0],
-            "skipped": edge_kind(v)[1],
-            "count": v["count"],
-            "wait_s": int(statistics.mean(v["waits"])) if v["waits"] else None,
-            "tickets": sorted(v["tickets"])[:5],
-            # a hand-off between these two is under way: the receiver is queued or working on it
-            "live": any(
-                x["sender"] == v["from"]
-                and x["member_id"] == v["to"]
-                and x["trigger"] != "autopilot"
-                for x in live
-            ),
-        }
-        for v in edges.values()
-    ]
+    # the runs under way: the hand-off that started one of them is moving on the map
+    live_ids = {x["run_id"] for x in live if x["trigger"] != "autopilot"}
+    edge_rows = []
+    for v in edges.values():
+        kind, skipped = edge_kind(v)
+        edge_rows.append(
+            {
+                "from": v["from"],
+                "to": v["to"],
+                "kind": kind,
+                "skipped": skipped,
+                "via": v["via"],
+                "count": v["count"],
+                "wait_s": int(statistics.mean(v["waits"])) if v["waits"] else None,
+                "tickets": sorted(v["tickets"])[:5],
+                # a hand-off between these two is under way: the receiver is queued or working on it
+                "live": bool(v["runs"] & live_ids)
+                or (
+                    v["via"] is None
+                    and any(
+                        x["sender"] == v["from"]
+                        and x["member_id"] == v["to"]
+                        and x["trigger"] != "autopilot"
+                        and x["trigger"] not in flow.WORKFLOW_TRIGGERS
+                        for x in live
+                    )
+                ),
+            }
+        )
     kinds = Counter(e["kind"] for e in evs)
     sent = [e for e in evs if e["sent_back"]]
     by_target = Counter(names.get(e["to"], "AI") for e in sent)
@@ -607,6 +656,7 @@ async def ticket_journey(
 
     bars = []
     working = waiting = 0.0
+    step_of = {s.run_id: s for s in d.steps if s.run_id}
     for r in runs:
         s = parse_iso(r.started_at) or parse_iso(r.queued_at)
         e = _end_of(r, now) or s
@@ -644,6 +694,8 @@ async def ticket_journey(
                 "ended_reason": r.ended_reason,
                 "files": len(loads(r.files, [])),
                 "limit_min": r.limit_min,
+                # the workflow step this run did (None for an odd job)
+                "step": step_of[r.id].label if r.id in step_of else None,
             }
         )
     for ap in d.approvals:
@@ -706,7 +758,9 @@ async def ticket_journey(
                 "what": "Started it",
                 "mark": "start",
                 "why": "",
-                "details": f"{runs[0].started_by} assigned the ticket to {names.get(runs[0].member_id, 'an AI')}",
+                "details": f"The board took the ticket in and gave it to {names.get(runs[0].member_id, 'an AI')}"
+                if flow.is_board(runs[0].started_by)
+                else f"{runs[0].started_by} assigned the ticket to {names.get(runs[0].member_id, 'an AI')}",
             }
         )
     diamonds.sort(key=lambda x: x["at"] or "")
@@ -720,7 +774,12 @@ async def ticket_journey(
             if e["sent_back"]
             else "returned"
             if e["returned"]
+            else "skip"
+            if e.get("skipped")
             else e["kind"],
+            # the workflow steps this hand-off went past, and "checks" when the Checks sent the work back
+            "skipped": e.get("skipped") or [],
+            "via": e.get("via"),
         }
         for e in evs
     ]

@@ -111,6 +111,7 @@ _PATTERNS = [
     (re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{12,})"), "gh_••••"),
     (re.compile(r"\b(xox[baprs]-[A-Za-z0-9\-]{8,})"), "xox-••••"),
     (re.compile(r"\bAIza[0-9A-Za-z_\-]{20,}"), "AIza••••"),
+    (re.compile(r"\bkbr_[A-Za-z0-9_\-]{8,}"), "kbr_••••"),  # a run's MCP token
     (re.compile(r"(?i)\b(bearer)\s+[A-Za-z0-9._~+/=\-]{8,}"), r"\1 ••••••••"),
     (
         re.compile(

@@ -122,6 +122,9 @@ export function NotificationsHost({
         if (ticket) p.onOpenTicket(ticket);
         else if (row.pageId) p.onOpenDoc(row.pageId, row.projectId);
         break;
+      case 'open_run':
+        // the run's detail is shown by AI Team › Run history; the panel only closes
+        break;
       case 'sign_in':
         p.onOpenAiTab('accounts', row.projectId);
         break;

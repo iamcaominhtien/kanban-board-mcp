@@ -7,6 +7,9 @@ import { useToast } from '../Toast';
 import { RaiseLimitButton, TakeOverButton, UndoRunDialog } from './RunActions';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
 import { testsOf, TestChips } from './ReviewGate';
+import { BoardStepIcon, isBoardStep } from './trouble/stepKinds';
+import { TellBox } from './trouble/TellBox';
+import { TroubleCard } from './trouble/TroubleCard';
 import {
   ACTIVE_RUN_STATES,
   AiAvatar,
@@ -24,6 +27,7 @@ import './ticketWork.css';
 
 function stepIcon(step: RunStep, last: boolean, live: boolean) {
   if (last && live) return <span className="ai-spin" />;
+  if (isBoardStep(step.kind)) return <BoardStepIcon kind={step.kind} />;
   if (step.kind === 'error' || step.kind === 'blocked')
     return <span style={{ color: '#C4432A', fontWeight: 800, width: 13, textAlign: 'center' }}>!</span>;
   if (step.kind === 'question' || step.kind === 'approval')
@@ -447,11 +451,13 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
         </div>
       )}
       {run.state === 'queued' && run.waitingReason && (
-        <div className="ai-notice ai-notice-slate">
+        <div className="ai-notice ai-notice-warn" data-testid="why-waiting">
           {run.queuePosition ? `#${run.queuePosition} in the queue · ` : ''}
           {run.waitingReason}
         </div>
       )}
+      {run.state === 'running' && <TroubleCard run={run} />}
+      {run.state === 'running' && <TellBox run={run} />}
       {run.paused && (
         <div className="ai-notice ai-notice-slate" data-testid="run-paused-note">
           Paused: the agent is stopped where it was and its time limits are not running. Resume continues from here.

@@ -229,6 +229,8 @@ async def timeline(
             if e["sent_back"]
             else "returned"
             if e["returned"]
+            else "skip"
+            if e.get("skipped")
             else {
                 "assigned": "assign",
                 "mention": "mention",
@@ -249,6 +251,9 @@ async def timeline(
                 "wait_s": e["wait_s"],
                 "round": e["pair_count"] or 0,
                 "label": None,
+                # the workflow steps it went past; "checks" when the Checks sent the work back to the same AI
+                "skipped": e.get("skipped") or [],
+                "via": e.get("via"),
             }
         )
 
@@ -459,7 +464,17 @@ async def timeline(
     involved |= {x["to"] for x in arrows if x["to"] in names}
     order = flow_view.usual_order([r for r in d.runs if r.queued_at], list(d.ais))
     if scope_ids is not None:
-        order = [m for m in order if m in involved]
+        # one ticket: the lifelines in the order its AIs took it (a workflow's step order), then the rest
+        first: dict[str, str] = {}
+        for r in sorted(
+            (r for r in d.runs if in_scope(r.ticket_id) and r.trigger != "autopilot"),
+            key=lambda r: r.queued_at or "",
+        ):
+            first.setdefault(r.member_id, r.queued_at or "")
+        order = sorted(
+            (m for m in order if m in involved),
+            key=lambda m: (m not in first, first.get(m, ""), order.index(m)),
+        )
     live = await flow_view.live_runs(session, project_id)
     profiles = {
         p.id: p

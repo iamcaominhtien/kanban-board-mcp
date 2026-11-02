@@ -4,6 +4,7 @@ import type { IssueType, Member, Ticket } from '../types';
 import { MemberAvatar } from './MemberAvatar';
 import { CardAiFooter } from './ai/RunPanel';
 import { CardInsightChip } from './assist/BoardHealth';
+import { WorkflowCardChip } from './workflowBoard/WorkflowBoardContext';
 import { ScheduleCardChip } from './schedules/ScheduleTicketBlock';
 import { TagPill } from './TagPill';
 import { TicketTypeIcon, PriorityMark } from './icons';
@@ -662,6 +663,7 @@ export function TicketCard({
         )}
 
         {/* AI line: Run, running, queued, needs input, failed, summary ready (AI work on tickets, A4) */}
+        {!isDragging && <WorkflowCardChip ticketId={ticket.id} />}
         {!isDragging && <CardAiFooter ticket={ticket} />}
 
         {/* Schedule chip: "Tue 02:00", "Starts in 12 min", "Missed, waiting for runner", "Schedule paused" (AI schedules, E2) */}

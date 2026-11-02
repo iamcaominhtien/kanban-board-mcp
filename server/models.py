@@ -1290,9 +1290,461 @@ class AiRun(SQLModel, table=True):
     last_rss_mb: Optional[float] = Field(default=None)
     # JSON [{at, rss_mb, limit_mb, by, n}]: every time the CLI was started again inside this run, by the system or a person
     restarts: str = Field(default="[]")
+    # JSON {at, trigger, cause, what, means, tried[], actions[], child, by, confidence}: the board's reading of why the
+    # run is in trouble (services/ai/watchdog.py). One text, shown on the run, in Needs you and in the notification.
+    diagnosis: Optional[str] = Field(default=None)
+    # A retry the board scheduled itself (network, 5xx, crash, board fault): when, and every try so far
+    retry_at: Optional[str] = Field(default=None)
+    retries: str = Field(default="[]")  # JSON [{at, kind, n, detail}]
+    # The Claude account this run spends when it is not the member's own (urgent work moved to an account with room)
+    account_id: Optional[str] = Field(default=None)
+    # A workflow step's own model and effort for this run (review depth, Opus on a second attempt), over the member's
+    model_override: Optional[str] = Field(default=None)
+    effort_override: Optional[str] = Field(default=None)
 
 
 AI_ACTIVE_STATES = ("queued", "starting", "running", "needs_input")
+
+
+class AiTicketFlag(SQLModel, table=True):
+    """An open condition on a ticket that waits for someone: a merge conflict, an arbitration, a workflow that stopped
+    (services/ai/flags.py) (table)."""
+
+    __tablename__ = "ai_ticket_flag"
+
+    id: str = Field(
+        default_factory=lambda: f"flag_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    ticket_id: str = Field(index=True)
+    project_id: str = Field(index=True)
+    kind: str = Field(
+        index=True
+    )  # merge_conflict | arbitration | no_progress | board_fault | quota_cap
+    data: str = Field(default="{}")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+    resolved_at: Optional[str] = Field(default=None)
+    resolved_by: Optional[str] = Field(default=None)
+    resolution: Optional[str] = Field(default=None)
+
+
+class AiProjectKnowledge(SQLModel, table=True):
+    """A project's instructions for every AI on it (services/ai/knowledge.py) (table)."""
+
+    __tablename__ = "ai_project_knowledge"
+
+    project_id: str = Field(primary_key=True)
+    instructions: str = Field(default="")
+    history: str = Field(default="[]")  # JSON [{at, by, text}] of earlier versions
+    updated_at: Optional[str] = Field(default=None)
+    updated_by: Optional[str] = Field(default=None)
+
+
+class AiLesson(SQLModel, table=True):
+    """One thing the project's AIs learned: proposed by an AI, kept or dropped by a person (table)."""
+
+    __tablename__ = "ai_lesson"
+
+    id: str = Field(
+        default_factory=lambda: f"lsn_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    text: str = Field(default="")
+    # proposed | kept | dropped | none (a ticket read by the light model with nothing to propose)
+    state: str = Field(default="proposed", index=True)
+    source_ticket_id: Optional[str] = Field(default=None, index=True)
+    source_run_id: Optional[str] = Field(default=None)
+    proposed_by: Optional[str] = Field(
+        default=None
+    )  # model | diagnosis | a person's name
+    kept_by: Optional[str] = Field(default=None)
+    uses: int = Field(default=0)  # runs whose prompt carried it
+    last_used_at: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiWorktree(SQLModel, table=True):
+    """A ticket's git worktree, beside the repository, on its own branch and port (services/ai/worktrees.py) (table).
+    The board stores only the mapping; size and uncommitted files are read from git when asked."""
+
+    __tablename__ = "ai_worktree"
+
+    ticket_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    repo: str  # the main checkout
+    path: str
+    branch: str
+    base: str = Field(default="main")
+    port: Optional[int] = Field(default=None)
+    state: str = Field(
+        default="active", index=True
+    )  # active | conflict | kept | merged | removed
+    handover: Optional[str] = Field(
+        default=None
+    )  # per-ticket override: pr | local | branch
+    pr_url: Optional[str] = Field(default=None)
+    pr_number: Optional[int] = Field(default=None)
+    conflict_files: str = Field(default="[]")
+    prepared_at: Optional[str] = Field(default=None)
+    prepare_s: Optional[int] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    last_used_at: Optional[str] = Field(default=None)
+    merged_at: Optional[str] = Field(default=None)
+
+
+class AiPlugin(SQLModel, table=True):
+    """A plugin installed on a project from a git URL, a marketplace or a folder (services/ai/plugins.py) (table)."""
+
+    __tablename__ = "ai_plugin"
+
+    id: str = Field(
+        default_factory=lambda: f"plg_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: Optional[str] = Field(default=None, index=True)
+    name: str = Field(index=True)
+    source_kind: str = Field(default="git")  # git | marketplace | folder
+    source: str
+    ref: Optional[str] = Field(
+        default=None
+    )  # a tag, branch or commit; a commit when pinned
+    plugin: Optional[str] = Field(default=None)  # the marketplace entry
+    skills_wanted: str = Field(
+        default="[]"
+    )  # a subset of the entry's skills, when chosen
+    commit: Optional[str] = Field(default=None)
+    version: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
+    path: Optional[str] = Field(default=None)  # the installed copy
+    skills: str = Field(default="[]")
+    hooks: int = Field(default=0)
+    mcp: int = Field(default=0)
+    size_bytes: int = Field(default=0)
+    pinned: bool = Field(default=False)
+    default_on: bool = Field(default=False)  # the project default
+    roles: str = Field(default="[]")  # role pack keys that get it
+    members: str = Field(default="{}")  # {member_id: on/off}: a member's own switch
+    previous: Optional[str] = Field(
+        default=None
+    )  # JSON {path, commit, version, skills}: one button puts it back
+    installed_by: Optional[str] = Field(default=None)
+    installed_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiRolePack(SQLModel, table=True):
+    """A project's own role pack, or its edited copy of a ready-made one (services/ai/packs.py) (table)."""
+
+    __tablename__ = "ai_role_pack"
+
+    id: str = Field(
+        default_factory=lambda: f"pck_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    key: str = Field(index=True)
+    name: str
+    version: int = Field(default=1)
+    body: str = Field(
+        default="{}"
+    )  # JSON: persona, model, effort, tools, permissions, writes, hands in, limits
+    history: str = Field(default="[]")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+    updated_by: Optional[str] = Field(default=None)
+
+
+class AiRepoScan(SQLModel, table=True):
+    """What the repository scan found, what it suggested and how its trial run went (services/ai/repo_scan.py)
+    (table)."""
+
+    __tablename__ = "ai_repo_scan"
+
+    id: str = Field(
+        default_factory=lambda: f"scn_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    folder: str
+    found: str = Field(default="{}")
+    suggested: str = Field(default="{}")
+    trial: str = Field(default="{}")
+    applied_at: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+
+
+class AiWorkflowTemplate(SQLModel, table=True):
+    """A project's own workflow template, or its changed copy of a ready-made one (services/ai/workflow.py) (table)."""
+
+    __tablename__ = "ai_workflow_template"
+
+    id: str = Field(
+        default_factory=lambda: f"wft_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    key: str = Field(index=True)
+    name: str
+    version: int = Field(default=1)
+    body: str = Field(default="{}")  # JSON {name, description, steps: [...]}
+    history: str = Field(default="[]")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+    updated_by: Optional[str] = Field(default=None)
+
+
+class AiTicketWorkflow(SQLModel, table=True):
+    """The workflow a ticket follows: the template and version it started on, the review depth, the rounds between
+    roles, the stop and the rulings (table)."""
+
+    __tablename__ = "ai_ticket_workflow"
+
+    ticket_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    template_key: str
+    template_name: str
+    template_version: int = Field(default=1)
+    steps: str = Field(
+        default="[]"
+    )  # the template's steps as they were when the ticket started on it
+    state: str = Field(
+        default="active", index=True
+    )  # active | stopped | done | detached
+    stop_reason: Optional[str] = Field(
+        default=None
+    )  # no_progress | board_fault | quota_cap | split
+    stop_detail: Optional[str] = Field(default=None)
+    review_depth: Optional[str] = Field(default=None)  # light | standard | deep
+    depth_by: Optional[str] = Field(default=None)  # triage | person
+    depth_note: Optional[str] = Field(default=None)
+    rounds: str = Field(default="{}")  # {"dev|reviewer": n}
+    objections: str = Field(default="[]")  # [{at, by, role, text, diff}]
+    rulings: str = Field(default="[]")  # [{at, by, verdict, reason, run_id}]
+    arbitration_run_id: Optional[str] = Field(default=None)
+    # An odd job (no template): the optional reviewer that reviews its work when it finishes (D14)
+    reviewer_id: Optional[str] = Field(default=None)
+    # The first step row of this workflow (rows before it belong to an earlier workflow of the ticket)
+    seq_base: int = Field(default=0)
+    attached_by: Optional[str] = Field(default=None)
+    # What the board decided along the way: {"cap_base": tokens, "tdd_sent": n, "split": [ids], "retried": [step ids]}
+    meta: str = Field(default="{}")
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiTicketStep(SQLModel, table=True):
+    """One step of a ticket's workflow, one row per attempt: who did it, its run, what it handed in (table). Never
+    overwritten: a send-back adds a new attempt."""
+
+    __tablename__ = "ai_ticket_step"
+
+    id: str = Field(
+        default_factory=lambda: f"stp_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    ticket_id: str = Field(index=True)
+    seq: int = Field(
+        default=0
+    )  # order of the rows (attempts after a send-back follow the steps already done)
+    idx: int = Field(default=0)  # the step's place in the template
+    key: str
+    label: str
+    kind: str = Field(default="ai")  # ai | code | person
+    role: Optional[str] = Field(default=None)
+    state: str = Field(
+        default="pending", index=True
+    )  # pending | active | waiting | blocked | done | failed | skipped | superseded
+    attempt: int = Field(default=1)
+    member_id: Optional[str] = Field(default=None)
+    run_id: Optional[str] = Field(default=None, index=True)
+    note_in: Optional[str] = Field(
+        default=None
+    )  # what the step was told on top of the template (a send-back, a ruling)
+    note: Optional[str] = Field(default=None)  # what it handed in
+    outcome: Optional[str] = Field(
+        default=None
+    )  # pass | changes | approved | sent_back | failed
+    result: Optional[str] = Field(
+        default=None
+    )  # JSON: the checks' output, the test-first evidence
+    started_at: Optional[str] = Field(default=None)
+    ended_at: Optional[str] = Field(default=None)
+
+
+class AiStandingOrder(SQLModel, table=True):
+    """A rule in a person's words, tried before it does anything (services/ai/orders.py) (table)."""
+
+    __tablename__ = "ai_standing_order"
+
+    id: str = Field(
+        default_factory=lambda: f"ord_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    name: str
+    sentence: str = Field(default="")
+    rule: str = Field(
+        default="{}"
+    )  # JSON {when, if, then, afterwards, max_per_day, max_per_target, only_project}
+    state: str = Field(default="off", index=True)  # off | trial | on
+    trial_days: int = Field(default=3)
+    trial_started_at: Optional[str] = Field(default=None)
+    trial_fired_at: Optional[str] = Field(default=None)
+    fired: int = Field(default=0)
+    would_have: int = Field(default=0)
+    last_fired_at: Optional[str] = Field(default=None)
+    last_summary: Optional[str] = Field(default=None)
+    template: Optional[str] = Field(default=None)
+    created_by: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+
+
+class AiOrderFiring(SQLModel, table=True):
+    """One time a standing order fired (or, in trial, would have), with its Undo (table)."""
+
+    __tablename__ = "ai_order_firing"
+
+    id: str = Field(
+        default_factory=lambda: f"fir_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    order_id: str = Field(index=True)
+    project_id: str = Field(index=True)
+    at: str = Field(default_factory=_now_iso, index=True)
+    target: Optional[str] = Field(default=None, index=True)
+    ticket_id: Optional[str] = Field(default=None)
+    trigger: str = Field(default="{}")  # what set it off, with its numbers
+    action: str = Field(default="{}")  # what it did, or would have done
+    would: bool = Field(default=False)  # a trial firing: nothing was applied
+    result: Optional[str] = Field(default=None)
+    undo: Optional[str] = Field(default=None)  # JSON: how to put it back
+    undone_at: Optional[str] = Field(default=None)
+    undone_by: Optional[str] = Field(default=None)
+
+
+class AiWatchedPr(SQLModel, table=True):
+    """A pull request the board opened, watched with gh while it is open (services/ai/github.py) (table)."""
+
+    __tablename__ = "ai_watched_pr"
+
+    ticket_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    number: int
+    url: Optional[str] = Field(default=None)
+    branch: str
+    repo: str
+    state: str = Field(default="open")  # open | closed
+    ci: Optional[str] = Field(default=None)  # green | red | pending | none
+    red: Optional[str] = Field(
+        default=None
+    )  # JSON {check, url, at, blamed, base, handled_at, run_id}
+    seen_comments: str = Field(default="[]")
+    pending_comments: str = Field(default="[]")
+    checked_at: Optional[str] = Field(default=None)
+    last_error: Optional[str] = Field(default=None)
+
+
+class AiKnowledgeDoc(SQLModel, table=True):
+    """A document of the knowledge base: its text, a summary and keywords, in a project's store or the shared one
+    (services/ai/kb.py) (table)."""
+
+    __tablename__ = "ai_knowledge_doc"
+
+    id: str = Field(
+        default_factory=lambda: f"kb_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: Optional[str] = Field(
+        default=None, index=True
+    )  # None: the shared store
+    store: str = Field(default="project", index=True)  # project | shared
+    title: str
+    kind: str = Field(default="text")  # text | pdf | image | code | docs_page
+    text: str = Field(default="")
+    summary: Optional[str] = Field(default=None)
+    keywords: str = Field(default="[]")
+    answers: str = Field(default="[]")
+    described_by: Optional[str] = Field(default=None)  # model | code
+    source_name: Optional[str] = Field(default=None)
+    upload_url: Optional[str] = Field(default=None)
+    private: bool = Field(default=False)
+    tokens: int = Field(default=0)
+    created_by: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    last_read_at: Optional[str] = Field(default=None)
+    deleted_at: Optional[str] = Field(default=None)
+
+
+class AiEvalMark(SQLModel, table=True):
+    """One run of an eval suite on the sandbox project and its score (services/ai/evals.py) (table)."""
+
+    __tablename__ = "ai_eval_mark"
+
+    id: str = Field(
+        default_factory=lambda: f"evm_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    suite: str = Field(index=True)
+    project_id: str
+    member_id: Optional[str] = Field(default=None)
+    model: Optional[str] = Field(default=None)
+    state: str = Field(default="running")  # running | done
+    score: Optional[float] = Field(default=None)
+    details: str = Field(default="[]")
+    runs: str = Field(default="[]")
+    created_at: str = Field(default_factory=_now_iso, index=True)
+    ended_at: Optional[str] = Field(default=None)
+
+
+class AiAccountState(SQLModel, table=True):
+    """The usage window and run limit of one Claude account, or of "local" (members on the person's own login)
+    (table). Read from the CLI's `rate_limit_event` (services/ai/quota.py)."""
+
+    __tablename__ = "ai_account_state"
+
+    key: str = Field(primary_key=True)  # AiAccount.id, or "local"
+    max_parallel: int = Field(default=2)
+    move_urgent: bool = Field(
+        default=False
+    )  # move High/Urgent work to an account with room, by itself
+    five_hour_used: Optional[float] = Field(default=None)  # 0..1
+    five_hour_resets_at: Optional[str] = Field(default=None)
+    five_hour_status: Optional[str] = Field(default=None)
+    seven_day_used: Optional[float] = Field(default=None)
+    seven_day_resets_at: Optional[str] = Field(default=None)
+    seven_day_status: Optional[str] = Field(default=None)
+    held_until: Optional[str] = Field(
+        default=None
+    )  # every run of the account waits until then
+    held_reason: Optional[str] = Field(default=None)
+    updated_at: Optional[str] = Field(default=None)
+
+
+class AiRunTranscript(SQLModel, table=True):
+    """The board's own copy of a run's conversation: a compressed file in the data folder (services/ai/transcripts.py)
+    (table). The run's summary stays on `AiRun` forever; this file follows the notification retention unless pinned."""
+
+    __tablename__ = "ai_run_transcript"
+
+    run_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    member_id: Optional[str] = Field(default=None, index=True)
+    path: str
+    bytes: int = Field(default=0)
+    events: int = Field(default=0)
+    pinned: bool = Field(default=False)
+    pinned_by: Optional[str] = Field(default=None)
+    started_at: str = Field(default_factory=_now_iso)
+    ended_at: Optional[str] = Field(default=None, index=True)
+    # Set when the retention removed the file; the row stays so the run says "transcript removed after N days"
+    deleted_at: Optional[str] = Field(default=None)
+
+
+class AiSkillUse(SQLModel, table=True):
+    """One time a run used a skill (the CLI's `Skill` tool) or a subagent (`Task`/`Agent`), read from its stream (table)."""
+
+    __tablename__ = "ai_skill_use"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    run_id: str = Field(index=True)
+    project_id: str = Field(index=True)
+    member_id: Optional[str] = Field(default=None, index=True)
+    kind: str = Field(default="skill")  # skill | subagent
+    name: str = Field(index=True)  # "plugin:skill" or "skill"
+    plugin: Optional[str] = Field(default=None, index=True)
+    at: str = Field(default_factory=_now_iso)
 
 
 class AiApproval(SQLModel, table=True):
@@ -1412,6 +1864,8 @@ class AiProjectSettings(SQLModel, table=True):
     paused_safe_before: bool = Field(default=False)
     # JSON list of "What to fix" suggestions a person dismissed in AI Team › Health: [{key, at, by}]
     team_dismissed: str = Field(default="[]")
+    # JSON: the AI team v2 settings of the project, merged over defaults (services/ai/ops.py)
+    ops: str = Field(default="{}")
 
 
 class AiGrant(SQLModel, table=True):

@@ -69,6 +69,24 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
     "page_proposal": ("A page proposal from an AI", True, True, False),
     "auto_trip": ("AI was paused (auto-trip or Pause all AI)", True, True, True),
     "offline": ("An AI member went offline", True, False, True),
+    # AI team v2 (design/screens/ai-operations.md C, D; ai-board-wave3.md L)
+    "run_stuck": ("An AI stopped moving", True, True, True),
+    "board_fault": ("The board failed an AI (a board fault)", True, True, True),
+    "merge_conflict": ("A merge conflict", True, True, False),
+    "arbitration": ("Two AIs could not agree", True, True, False),
+    "window_urgent": ("Urgent work waits for a usage window", True, True, True),
+    "workflow_step": (
+        "A workflow waits for you (the design to approve)",
+        True,
+        True,
+        False,
+    ),
+    "workflow_blocked": (
+        "A workflow step cannot start, or a ticket reached its token cap",
+        True,
+        True,
+        False,
+    ),
     # For information: never interrupts.
     "ai_finished": ("An AI finished work", False, False, False),
     "schedule": ("A scheduled run finished or was skipped", False, False, False),
@@ -79,6 +97,8 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
     "budget_warning": ("Budget passed a warning level", False, False, False),
     "access_request": ("Someone asked for access to Docs", False, False, False),
     "day_card": ("The day in one card", False, False, False),
+    "window_wait": ("Runs wait for the next usage window", False, False, False),
+    "lesson": ("An AI proposed a lesson for the project", False, False, False),
 }
 
 # The order of the Settings table (L)
@@ -667,7 +687,7 @@ def _group_key(
     if is_needs(kind):
         # Needs you items group only when they are the same request (a question asked again); failures of one
         # ticket are one row, as Retry answers them all
-        if kind in ("run_failed", "run_stopped_memory") and ticket_id:
+        if kind in ("run_failed", "run_stopped_memory", "board_fault") and ticket_id:
             return f"{kind}:ticket:{ticket_id}"
         if target_id:
             return f"{kind}:{target_kind or '-'}:{target_id}"
@@ -1102,8 +1122,30 @@ async def _why_closed(session: AsyncSession, r: Notification) -> _Why:
 
 async def _why_closed_by_kind(session: AsyncSession, r: Notification) -> _Why:
     """`_why_closed` once the ticket and the run it points at are still there."""
-    if r.kind in ("run_failed", "run_stopped_memory") and r.ticket_id:
+    if r.kind in ("run_stuck",) and r.target_kind == "run" and r.target_id:
+        return await _why_trouble_closed(session, r.target_id)
+    if r.kind in ("run_failed", "run_stopped_memory", "board_fault") and r.ticket_id:
         return await _why_retried(session, r)
+    if r.kind == "window_urgent" and r.target_id:
+        return await _why_window_closed(session, r.target_id)
+    if r.kind in ("merge_conflict", "arbitration"):
+        return await _why_flag_closed(session, r)
+    if r.target_kind == "flag" and r.target_id:
+        from models import AiTicketFlag
+
+        flag = await session.get(AiTicketFlag, r.target_id)
+        if flag is None or flag.resolved_at:
+            return (
+                (flag.resolution if flag else None) or "It was resolved.",
+                None,
+                False,
+            )
+    if r.kind == "workflow_step" and r.target_id:
+        from models import AiTicketStep
+
+        step = await session.get(AiTicketStep, r.target_id)
+        if step is None or step.state != "waiting":
+            return "{who} decided it.", None, False
     if r.target_kind == "approval" and r.target_id:
         return await _why_approval_closed(session, r.target_id)
     if r.target_kind == "account" and r.target_id:
@@ -1129,6 +1171,37 @@ def _why_question_closed(run: AiRun) -> _Why:
         run.ended_by,
         False,
     )
+
+
+async def _why_trouble_closed(session: AsyncSession, run_id: str) -> _Why:
+    """A run in trouble: the row closes once it moved again, someone chose to wait, or the run ended."""
+    run = await session.get(AiRun, run_id)
+    if run is None:
+        return "The run is gone.", None, True
+    if run.state not in ("running", "starting"):
+        return f"The run ended ({run.state.replace('_', ' ')}).", run.ended_by, False
+    diag = _loads(run.diagnosis, {}) or {}
+    if not diag or diag.get("cleared_at"):
+        return diag.get("cleared_why") or "It started moving again.", None, False
+    return None
+
+
+async def _why_window_closed(session: AsyncSession, run_id: str) -> _Why:
+    run = await session.get(AiRun, run_id)
+    if run is None:
+        return "The run is gone.", None, True
+    if run.state != "queued":
+        return "The run started.", None, False
+    return None
+
+
+async def _why_flag_closed(session: AsyncSession, r: Notification) -> _Why:
+    """A merge conflict or an arbitration closes when the ticket no longer carries the flag (services/ai/flags)."""
+    from services.ai import flags as ai_flags
+
+    if r.ticket_id and not await ai_flags.is_open(session, r.ticket_id, r.kind):
+        return "It was resolved.", None, False
+    return None
 
 
 async def _why_retried(session: AsyncSession, r: Notification) -> _Why:
@@ -1573,11 +1646,94 @@ async def on_run_ended(run_id: str) -> None:
                     "run_number": run.number,
                     "state": run.state,
                     "cost_usd": run.cost_usd,
+                    **(
+                        {"diagnosis": _loads(run.diagnosis, None)}
+                        if run.diagnosis and kind != "ai_finished"
+                        else {}
+                    ),
                 },
                 session=session,
             )
     except Exception:  # noqa: BLE001
         logger.exception("Could not write a run end notification")
+
+
+async def on_run_trouble(run_id: str) -> None:
+    """A running AI stopped moving and the board diagnosed it (design C, D): one Needs you row per run and cause,
+    carrying the diagnosis and the actions it allows. A board fault comes straight to people."""
+    try:
+        async with database.async_session() as session:
+            run = await session.get(AiRun, run_id)
+            if run is None:
+                return
+            diag = _loads(run.diagnosis, {}) or {}
+            member = await session.get(Member, run.member_id)
+            name = member.name if member else _AN_AI_MEMBER
+            keys = await _run_people(session, run)
+            keys += [
+                k
+                for k in await owners_and_admins(session, run.project_id)
+                if k not in keys
+            ]
+            kind = "run_stuck"  # a board fault while running is the same card, marked board fault in its data
+            title = f"{name} has produced nothing for {max(1, int(diag.get('quiet_s', 0)) // 60)} min on {run.ticket_id}"
+            if diag.get("cause") == "busy":
+                title = f"{name} is still working on {run.ticket_id}: one command has run a long time"
+            await emit(
+                kind,
+                project_id=run.project_id,
+                recipients=keys,
+                title=title,
+                body=f"{diag.get('what', '')} {diag.get('means', '')}".strip()[:600],
+                target_kind="run",
+                target_id=run.id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                actor=name,
+                data={"run_number": run.number, "diagnosis": diag},
+                session=session,
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write a run trouble notification")
+
+
+async def on_window_urgent(run_id: str, *, until: str, room: list[dict]) -> None:
+    """Urgent work waits for a usage window and no other account has room (or moving is off): Needs you."""
+    try:
+        async with database.async_session() as session:
+            run = await session.get(AiRun, run_id)
+            if run is None:
+                return
+            keys = await _run_people(session, run)
+            keys += [
+                k
+                for k in await owners_and_admins(session, run.project_id)
+                if k not in keys
+            ]
+            when = ""
+            try:
+                when = datetime.fromisoformat(until).astimezone().strftime("%H:%M")
+            except ValueError:
+                pass
+            await emit(
+                "window_urgent",
+                project_id=run.project_id,
+                recipients=keys,
+                title=f"Urgent {run.ticket_id} waits for the usage window (reopens {when})",
+                body=(
+                    f"{len(room)} other account{'s have' if len(room) != 1 else ' has'} room: move it there."
+                    if room
+                    else "No other Claude account has room right now."
+                ),
+                target_kind="run",
+                target_id=run.id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                data={"until": until, "room": room},
+                session=session,
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write a usage window notification")
 
 
 def _run_end_notice(run: AiRun, name: str) -> tuple[str, str, str] | None:
@@ -1611,6 +1767,13 @@ def _failed_notice(run: AiRun) -> tuple[str, str, str] | None:
     if run.trigger == "schedule":
         return None  # its schedule tells the slot's failure, once
     verb = "failed" if run.state == "failed" else "timed out"
+    diag = _loads(run.diagnosis, {}) or {}
+    if diag.get("board_fault"):
+        return (
+            "board_fault",
+            f"The board failed run #{run.number} on {run.ticket_id}",
+            (diag.get("what") or run.ended_reason or "")[:400],
+        )
     return (
         "run_failed",
         f"Run #{run.number} on {run.ticket_id} {verb}",
@@ -1791,10 +1954,54 @@ def _actions(r: Notification, gone: bool) -> list[dict]:
         ]
     if k == "page_proposal":
         return [{"id": "review", "label": "Review"}]
-    if k in ("run_failed", "run_stopped_memory"):
+    if k in ("run_failed", "run_stopped_memory", "board_fault"):
+        # a stopped run: the four ways out, always in this order (design D)
         return [
-            {"id": "retry", "label": "Retry"},
-            {"id": "open_run_log", "label": "Open run log"},
+            {"id": "retry", "label": "Try again"},
+            {"id": "continue_note", "label": "Continue with a note"},
+            {"id": "hand_to", "label": "Hand to another AI"},
+            {"id": "open_run_log", "label": "Open the run"},
+        ]
+    if k == "run_stuck":
+        labels = {
+            "stop_child": "Stop that command, keep the run",
+            "tell_ai": "Tell the AI to run it in the background",
+            "wait": "Wait, tell me again at 30 min",
+            "continue_note": "Continue with a note",
+            "cancel": "Cancel the run",
+        }
+        diag = (_loads(r.data, {}) or {}).get("diagnosis") or {}
+        ids = [
+            a
+            for a in diag.get("actions") or ["continue_note", "wait", "cancel"]
+            if a in labels
+        ]
+        return [{"id": f"trouble:{a}", "label": labels[a]} for a in ids] + [
+            {"id": "open_run_log", "label": "Open the run"}
+        ]
+    if k == "merge_conflict":
+        return [
+            {"id": "conflict:ai", "label": "Hand it to an AI"},
+            {"id": "conflict:me", "label": "I will do it"},
+            {"id": "open_ticket", "label": "Open ticket"},
+        ]
+    if k == "arbitration":
+        return [
+            {"id": "arbitration:reviewer", "label": "Side with Reviewer"},
+            {"id": "arbitration:dev", "label": "Side with Dev"},
+            {"id": "arbitration:split", "label": "Split the ticket"},
+            {"id": "open_ticket", "label": "Read the arbitration"},
+        ]
+    if k == "workflow_step":
+        return [
+            {"id": "workflow:approve", "label": "Approve"},
+            {"id": "workflow:send_back", "label": "Send back"},
+            {"id": "open_ticket", "label": "Open ticket"},
+        ]
+    if k == "window_urgent":
+        return [
+            {"id": "move_account", "label": "Move urgent work"},
+            {"id": "open_ai", "label": "Open accounts"},
         ]
     if k == "account_signed_out":
         return [{"id": "sign_in", "label": "Sign in again"}]

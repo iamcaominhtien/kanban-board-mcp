@@ -1,8 +1,10 @@
 """What an AI is told about designing a frame: one guide, in one place.
 
-``GUIDE`` is given whole to the "Ask AI" job (its rules) and to every MCP agent (the server instructions it gets on
-connect, ``kanban_mcp/instructions.py``). The skill file for Claude Code, ``.claude/skills/canvas-design/SKILL.md``, is
-``SKILL_HEADER`` + ``GUIDE``; ``tests/test_canvas_mcp.py`` fails if the file differs.
+``GUIDE`` is given whole to the "Ask AI" job (its rules), to every Claude Code run of an AI member as the
+``canvas-design`` skill (``services/ai/board_skills.py``), and to any other MCP agent through docs_read(design_guide). It
+is not in the MCP server instructions: Claude Code keeps only their first 10,000 characters. The repository's skill
+file, ``.claude/skills/canvas-design/SKILL.md``, is ``SKILL_HEADER`` + ``GUIDE``; ``tests/test_canvas_mcp.py`` fails if
+the file differs.
 """
 
 SKILL_HEADER = r"""---

@@ -89,6 +89,12 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   back: <path d="M15 6l-6 6 6 6" />,
+  stop: (
+    <>
+      <rect x="7" y="5" width="3.5" height="14" rx="1" />
+      <rect x="13.5" y="5" width="3.5" height="14" rx="1" />
+    </>
+  ),
   more: <path d="M5 12h.01M12 12h.01M19 12h.01" />,
 };
 
@@ -158,6 +164,14 @@ const VISUALS: Record<string, Visual> = {
   ai_finished: { icon: 'check', ...GREEN },
   schedule: { icon: 'calendar', ...GREEN },
   day_card: { icon: 'sun', ...AMBER },
+  run_stuck: { icon: 'clock', ...AMBER },
+  board_fault: { icon: 'triangle', ...RED },
+  merge_conflict: { icon: 'triangle', ...RED },
+  arbitration: { icon: 'bubble', ...AMBER },
+  workflow_blocked: { icon: 'clock', ...AMBER },
+  window_urgent: { icon: 'bolt', ...AMBER },
+  window_wait: { icon: 'clock', ...BLUE },
+  lesson: { icon: 'doc', ...GREEN },
 };
 
 /** The icon of a kind. */

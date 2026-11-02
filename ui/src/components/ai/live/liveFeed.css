@@ -1,0 +1,779 @@
+/* AI Team › Flow › Live commentary: a live-chat column beside Team map and Timeline.
+   Every colour is a token on .lf-root so a designer can restyle it in one place; the defaults follow the app's own
+   tokens (index.css) and the AI Team look (aiTeam.css). Dark: under [data-theme='dark'] on any ancestor. */
+
+.lf-root {
+  --lf-surface: var(--color-surface, #ffffff);
+  --lf-sunken: var(--color-bg, #f6faf7);
+  --lf-border: var(--color-border, #dce6df);
+  --lf-hair: #e9efeb;
+  --lf-text: var(--color-text-pri, #1e2a22);
+  --lf-body: var(--color-text-body, #3f4b45);
+  --lf-sec: var(--color-text-sec, #5b6b60);
+  --lf-faint: #9aa8a0;
+  --lf-ink: var(--color-ink, #253d2c);
+  --lf-on-ink: #ffffff;
+  --lf-accent: var(--color-forest, #2e6f40);
+  --lf-accent-soft: #e6f2ea;
+  --lf-live: #e5322d;
+  --lf-live-glow: rgba(229, 50, 45, 0.35);
+  --lf-good: #2e6f40;
+  --lf-warn: #b8860b;
+  --lf-bad: #c4432a;
+  --lf-bad-soft: #fdece8;
+  --lf-warn-soft: #fef3d9;
+  --lf-code-bg: #eef3ef;
+  --lf-code-fg: #244e33;
+  --lf-new-flash: #f1faf3;
+  --lf-shadow: 0 1px 2px rgba(30, 42, 34, 0.05), 0 8px 24px -12px rgba(30, 42, 34, 0.18);
+  --lf-radius: var(--radius-panel, 16px);
+  --lf-font: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+  --lf-mono: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  background: var(--lf-surface);
+  border: 1px solid var(--lf-border);
+  border-radius: var(--lf-radius);
+  box-shadow: var(--lf-shadow);
+  color: var(--lf-text);
+  font-family: var(--lf-font);
+  overflow: hidden;
+}
+
+[data-theme='dark'] .lf-root,
+.lf-root[data-theme='dark'] {
+  --lf-surface: #151b17;
+  --lf-sunken: #101511;
+  --lf-border: #2a352e;
+  --lf-hair: #212a24;
+  --lf-text: #e8efe9;
+  --lf-body: #c5d0c8;
+  --lf-sec: #93a39a;
+  --lf-faint: #66756c;
+  --lf-ink: #e8efe9;
+  --lf-on-ink: #151b17;
+  --lf-accent: #7ccf93;
+  --lf-accent-soft: #1d2d22;
+  --lf-live: #ff4d47;
+  --lf-live-glow: rgba(255, 77, 71, 0.4);
+  --lf-good: #74cf8e;
+  --lf-warn: #e8b93a;
+  --lf-bad: #ff7a63;
+  --lf-bad-soft: #3a1f1a;
+  --lf-warn-soft: #362d14;
+  --lf-code-bg: #1f2a23;
+  --lf-code-fg: #b9e6c5;
+  --lf-new-flash: #1b2a20;
+  --lf-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.6);
+}
+
+/* ------------------------------------------------------------------ the split: views on the left, feed on the right */
+
+.lf-split {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  min-width: 0;
+}
+.lf-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.lf-main > * {
+  flex-shrink: 0;
+}
+.lf-split > .lf-root {
+  flex: 0 0 340px;
+  width: 340px;
+  position: sticky;
+  top: 8px;
+  height: calc(100dvh - 150px);
+  min-height: 440px;
+  max-height: 940px;
+}
+.lf-split > .lf-rail {
+  flex: 0 0 60px;
+  width: 60px;
+  position: sticky;
+  top: 8px;
+  height: min(380px, calc(100dvh - 150px));
+  min-height: 240px;
+}
+
+/* ------------------------------------------------------------------------------------------------------ header */
+
+.lf-top {
+  padding: 12px 12px 10px 14px;
+  border-bottom: 1px solid var(--lf-hair);
+  background: linear-gradient(180deg, var(--lf-sunken), var(--lf-surface));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lf-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.lf-title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.lf-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px 0 6px;
+  border-radius: 5px;
+  background: var(--lf-live);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+.lf-live.off {
+  background: var(--lf-faint);
+}
+.lf-live-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.lf-live:not(.off) .lf-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+  animation: lf-pulse 1.6s ease-out infinite;
+}
+.lf-live:not(.off) {
+  box-shadow: 0 0 0 0 var(--lf-live-glow);
+  animation: lf-glow 2.4s ease-out infinite;
+}
+
+.lf-ibtn {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--lf-sec);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.lf-ibtn:hover {
+  background: var(--lf-sunken);
+  border-color: var(--lf-border);
+  color: var(--lf-text);
+}
+.lf-ibtn.on {
+  background: var(--lf-warn-soft);
+  color: var(--lf-warn);
+}
+.lf-ibtn:focus-visible,
+.lf-chip:focus-visible,
+.lf-tkt:focus-visible,
+.lf-jump:focus-visible,
+.lf-rail-btn:focus-visible {
+  outline: 2px solid var(--lf-accent);
+  outline-offset: 2px;
+}
+
+.lf-watch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--lf-sec);
+}
+.lf-eye {
+  color: var(--lf-live);
+}
+.lf-stack {
+  display: inline-flex;
+}
+.lf-stack:empty {
+  display: none;
+}
+.lf-stack .lf-av {
+  border: 2px solid var(--lf-surface);
+  box-sizing: content-box;
+  margin-left: -6px;
+}
+.lf-stack .lf-av:first-child {
+  margin-left: 0;
+}
+
+.lf-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -12px 0 -14px;
+  padding: 0 12px 0 14px;
+  overscroll-behavior-x: contain;
+  --lf-fade-s: 0px;
+  --lf-fade-e: 0px;
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--lf-fade-s),
+    #000 calc(100% - var(--lf-fade-e)),
+    transparent 100%
+  );
+}
+.lf-chips.fade-start {
+  --lf-fade-s: 22px;
+}
+.lf-chips.fade-end {
+  --lf-fade-e: 26px;
+}
+.lf-chips::-webkit-scrollbar {
+  display: none;
+}
+.lf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--lf-border);
+  background: var(--lf-surface);
+  color: var(--lf-body);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.lf-chip:hover {
+  border-color: var(--lf-sec);
+}
+.lf-chip.on {
+  background: var(--lf-ink);
+  border-color: var(--lf-ink);
+  color: var(--lf-on-ink);
+}
+.lf-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.lf-chip-sel {
+  appearance: none;
+  max-width: 150px;
+  text-overflow: ellipsis;
+  padding-right: 22px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 10px,
+    calc(100% - 8px) 10px;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+}
+
+/* ------------------------------------------------------------------------------------------------------- lines */
+
+.lf-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 0 44px;
+  scrollbar-width: thin;
+}
+.lf-list,
+.lf-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lf-group {
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px 6px 12px;
+  border-radius: 10px;
+  margin: 0 4px;
+}
+.lf-group:hover {
+  background: var(--lf-sunken);
+}
+.lf-body {
+  flex: 1;
+  min-width: 0;
+}
+.lf-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  flex-wrap: wrap;
+}
+.lf-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+.lf-role {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.lf-tkt {
+  margin-left: auto;
+  height: 19px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid var(--lf-border);
+  background: var(--lf-surface);
+  color: var(--color-todo, #2f6fb0);
+  font-family: var(--lf-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lf-tkt:hover {
+  border-color: currentColor;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lf-line {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 2px 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--lf-body);
+}
+.lf-mark {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--lf-hair);
+  flex-shrink: 0;
+  transform: translateY(-2px);
+}
+.lf-t-good > .lf-mark {
+  background: var(--lf-good);
+}
+.lf-t-warn > .lf-mark {
+  background: var(--lf-warn);
+}
+.lf-t-bad > .lf-mark {
+  background: var(--lf-bad);
+}
+.lf-line.lf-t-bad > .lf-text {
+  color: var(--lf-bad);
+}
+.lf-line[data-kind='question'] > .lf-text {
+  background: var(--lf-warn-soft);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-left: -2px;
+  color: var(--lf-text);
+  font-weight: 600;
+}
+.lf-line[data-kind='say'] > .lf-text {
+  font-style: italic;
+}
+.lf-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.lf-res {
+  font-weight: 700;
+}
+.lf-res.lf-t-good {
+  color: var(--lf-good);
+}
+.lf-res.lf-t-bad {
+  color: var(--lf-bad);
+}
+.lf-code {
+  font-family: var(--lf-mono);
+  font-size: 11px;
+  font-style: normal;
+  background: var(--lf-code-bg);
+  color: var(--lf-code-fg);
+  padding: 1px 5px;
+  border-radius: var(--radius-code, 6px);
+}
+.lf-time {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--lf-faint);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.lf-group:hover .lf-time,
+.lf-line:last-child .lf-time {
+  opacity: 1;
+}
+
+.lf-av {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1.5px solid;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.lf-group > .lf-av {
+  margin-top: 1px;
+}
+.lf-av-txt {
+  font-size: 10px;
+  font-weight: 800;
+}
+.lf-av-board {
+  background: var(--lf-ink);
+  border-color: var(--lf-ink);
+  color: var(--lf-on-ink);
+}
+
+/* new lines slide up and fade in, with a brief wash */
+.lf-in {
+  animation:
+    lf-enter 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    lf-flash 1.2s ease-out both;
+}
+
+.lf-empty {
+  height: 100%;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 28px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--lf-sec);
+  box-sizing: border-box;
+}
+.lf-empty svg {
+  color: var(--lf-faint);
+}
+.lf-big {
+  width: 10px;
+  height: 10px;
+  color: var(--lf-live);
+  animation: lf-breathe 1.2s ease-in-out infinite;
+}
+
+.lf-note {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 52px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--lf-bad-soft);
+  color: var(--lf-bad);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.lf-jump {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill, 999px);
+  border: none;
+  background: var(--lf-ink);
+  color: var(--lf-on-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 6px 18px -6px rgba(30, 42, 34, 0.5);
+  animation: lf-pop 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.lf-jump-quiet {
+  background: var(--lf-surface);
+  color: var(--lf-text);
+  border: 1px solid var(--lf-border);
+}
+
+/* -------------------------------------------------------------------------------------------- collapsed rail */
+
+.lf-rail {
+  background: linear-gradient(180deg, var(--lf-sunken), var(--lf-surface));
+}
+.lf-rail-btn {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0 14px;
+  border: none;
+  background: transparent;
+  color: var(--lf-sec);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.lf-rail-btn:hover {
+  background: var(--lf-accent-soft);
+  color: var(--lf-text);
+}
+.lf-rail-btn:focus-visible {
+  outline-offset: -3px;
+  border-radius: var(--lf-radius);
+}
+.lf-rail-dot {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--lf-live);
+  flex-shrink: 0;
+}
+.lf-rail-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--lf-live);
+  opacity: 0.5;
+  animation: lf-pulse 1.6s ease-out infinite;
+}
+.lf-rail-dot.off {
+  background: var(--lf-faint);
+}
+.lf-rail-dot.off::after {
+  display: none;
+}
+.lf-rail-av {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.lf-rail-one {
+  display: block;
+  line-height: 0;
+  border-radius: 8px;
+  margin-top: -7px;
+}
+.lf-rail-one:first-child {
+  margin-top: 0;
+}
+.lf-rail-one .lf-av {
+  border: 2px solid var(--lf-surface);
+  box-sizing: content-box;
+}
+.lf-rail-one.spoke {
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    0 0 0 2px var(--lf-live),
+    0 0 0 5px var(--lf-live-glow);
+  animation: lf-glow 2.4s ease-out infinite;
+}
+.lf-rail-more {
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--lf-sec);
+}
+.lf-rail-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: var(--lf-accent);
+  color: var(--lf-surface);
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.lf-rail-label {
+  margin-top: auto;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lf-faint);
+  white-space: nowrap;
+}
+.lf-rail-btn:hover .lf-rail-label {
+  color: var(--lf-sec);
+}
+
+/* ----------------------------------------------------------------------------------------------- phone width */
+
+@media (max-width: 860px) {
+  .lf-split {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lf-split > .lf-root {
+    flex: none;
+    width: auto;
+    position: relative;
+    top: auto;
+    height: 480px;
+    min-height: 0;
+  }
+  .lf-split > .lf-rail {
+    flex: none;
+    width: auto;
+    height: 48px;
+    min-height: 0;
+    position: relative;
+    top: auto;
+  }
+  .lf-rail-btn {
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 12px;
+  }
+  .lf-rail-av {
+    flex-direction: row;
+  }
+  .lf-rail-one {
+    margin-top: 0;
+    margin-left: -7px;
+  }
+  .lf-rail-one:first-child {
+    margin-left: 0;
+  }
+  .lf-rail-more {
+    margin: 0 0 0 4px;
+  }
+  .lf-rail-label {
+    margin-top: 0;
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------------------------------------------- motion */
+
+@keyframes lf-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+@keyframes lf-glow {
+  0% {
+    box-shadow: 0 0 0 0 var(--lf-live-glow);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+@keyframes lf-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lf-flash {
+  0% {
+    background-color: var(--lf-new-flash);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+@keyframes lf-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+@keyframes lf-breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lf-root *,
+  .lf-root *::after,
+  .lf-root {
+    animation: none !important;
+    transition: none !important;
+  }
+  .lf-scroll {
+    scroll-behavior: auto;
+  }
+}

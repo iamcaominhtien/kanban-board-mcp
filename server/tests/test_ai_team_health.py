@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from models import AiAudit, AiMember, AiRun
 from services.ai import flow
-from tests.test_ai import _ctx, _runner, _ticket, env  # noqa: F401
+from tests.test_ai import _ctx, _project, _runner, _ticket, env  # noqa: F401
 
 
 async def _health(c, pid, **params):
@@ -495,3 +495,57 @@ async def test_flow_says_what_is_happening_now(env):
     assert [x["state"] for x in data["picker"][0]["live"]] == ["working", "queued"]
     j = (await c.get(f"/projects/{pid}/ai/team/flow/{tid}")).json()
     assert len(j["live"]) == 2 and j["live"][0]["member_id"] == dev["id"]
+
+
+def test_a_workflow_hand_off_comes_from_the_ai_of_the_step_before():
+    def run(n, member, trigger="workflow"):
+        return AiRun(
+            id=f"r{n}",
+            project_id="p",
+            ticket_id="KAN-1",
+            member_id=member,
+            number=n,
+            trigger=trigger,
+            started_by="the board (intake)",
+            queued_at=f"2026-11-02T0{n}:00:00",
+        )
+
+    runs = [run(1, "triage"), run(2, "dev"), run(3, "reviewer"), run(4, "dev")]
+    ais = {m: object() for m in ("triage", "dev", "reviewer")}
+    evs = flow.events(runs, ais, {"reviewer": "reviewer", "dev": "developer"})
+    # the board taking the ticket in is no hand-off from a person
+    assert [(e["from"], e["to"]) for e in evs] == [
+        ("triage", "dev"),
+        ("dev", "reviewer"),
+        ("reviewer", "dev"),
+    ]
+    assert evs[-1]["returned"] is True  # back from the reviewer: round 1
+
+
+async def test_the_map_animates_a_workflow_hand_off_from_the_ai_before(env):
+    from services.ai import flow_view
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    tid = await _ticket(c, pid)
+    async with env["maker"]() as s:
+        for n, member, state in (
+            (1, "triage-ai", "finished"),
+            (2, "dev-ai", "running"),
+        ):
+            s.add(
+                AiRun(
+                    id=f"run-{n}",
+                    project_id=pid,
+                    ticket_id=tid,
+                    member_id=member,
+                    number=n,
+                    state=state,
+                    trigger="workflow",
+                    started_by="the board (intake)",
+                    queued_at=f"2026-11-02T0{n}:00:00",
+                )
+            )
+        await s.commit()
+        live = await flow_view.live_runs(s, pid)
+    assert [(x["member_id"], x["sender"]) for x in live] == [("dev-ai", "triage-ai")]

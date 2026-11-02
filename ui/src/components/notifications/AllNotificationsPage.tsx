@@ -8,6 +8,8 @@ import {
 } from '../../api/notifications';
 import { useProjects } from '../../api/projects';
 import type { NotificationFamily, NotificationFilter } from '../../types/notifications';
+import { NeedsFilterBar } from './NeedsFilterBar';
+import { applyNeedsFilter, type NeedsFilter } from './needsFilters';
 import { NotificationRow, type RowActionHandler } from './NotificationRow';
 import { EmptyState, LoadingRows, OfflineNotice } from './NotificationStates';
 import { Icon, groupByDay, rowKeyAction } from './notificationUi';
@@ -55,6 +57,7 @@ export function AllNotificationsPage({
 }>) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<NotificationFilter>('all');
+  const [needsFilter, setNeedsFilter] = useState<NeedsFilter>('all');
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [days, setDays] = useState(7);
@@ -86,7 +89,8 @@ export function AllNotificationsPage({
     for (const r of all) if (r.projectId) m.set(r.projectId, (m.get(r.projectId) ?? 0) + 1);
     return m;
   }, [all]);
-  const rows = projectId ? all.filter((r) => r.projectId === projectId) : all;
+  const inProject = projectId ? all.filter((r) => r.projectId === projectId) : all;
+  const rows = filter === 'needs' ? applyNeedsFilter(inProject, needsFilter) : inProject;
   // grouped by the time the page is sorted by: the last activity
   const groups = useMemo(() => groupByDay(rows, Date.now(), (r) => r.updatedAt), [rows]);
   const ordered = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
@@ -176,6 +180,7 @@ export function AllNotificationsPage({
           <option value={90}>Last 90 days</option>
         </select>
       </div>
+      {filter === 'needs' && <NeedsFilterBar rows={inProject} value={needsFilter} onChange={setNeedsFilter} />}
       <div className={styles.content}>
         <div className={styles.list} ref={scroller}>
           {offline && <OfflineNotice at={list.dataUpdatedAt || null} onRetry={() => void list.refetch()} />}

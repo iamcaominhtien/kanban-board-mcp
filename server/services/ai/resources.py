@@ -116,6 +116,9 @@ class Monitor:
         self.peak: dict[str, float] = {}
         self.subscribers: dict[str, set[asyncio.Queue]] = {}
         self.on_breach: Callable[[str, float, int], Awaitable[None]] | None = None
+        # the CLI's children together passed the limit: the runner stops the heaviest one (services/ai/runs.py)
+        self.on_child_breach: Callable[[str, float, int], Awaitable[None]] | None = None
+        self._child_breached: set[str] = set()
         self.task: asyncio.Task | None = None
         self._hist_at: dict[str, float] = {}
         self._saved_at: dict[str, float] = {}
@@ -228,6 +231,16 @@ class Monitor:
             ):
                 self._breached.add(run_id)
                 await self.on_breach(run_id, rss, limit)
+            extra = reading.get("extra_mb") or 0.0
+            if (
+                limit > 0
+                and extra > limit
+                and run_id not in self._child_breached
+                and self.on_child_breach is not None
+            ):
+                # what the CLI started holds more than the limit: the child is the cause, not the CLI (design C)
+                self._child_breached.add(run_id)
+                await self.on_child_breach(run_id, extra, limit)
         if len(_procs) > 200:
             await asyncio.to_thread(forget_dead)
 

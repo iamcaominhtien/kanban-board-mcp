@@ -266,7 +266,13 @@ async def test_a_failed_run_is_retried_and_failures_of_one_ticket_are_one_row(en
     [row] = (await _panel(c, "needs"))["items"]
     assert row["count"] == 2
     assert row["title"] == f"Run #2 on {tid} failed"
-    assert [a["id"] for a in row["actions"]] == ["retry", "open_run_log"]
+    # a stopped run: the four ways out, in this order (design/screens/ai-operations.md, D)
+    assert [a["id"] for a in row["actions"]] == [
+        "retry",
+        "continue_note",
+        "hand_to",
+        "open_run_log",
+    ]
     await _run(env, pid, m["id"], tid, state="queued", number=3, trigger="retry")
     await centre.reconcile()
     [row] = (await _panel(c, "needs"))["items"]

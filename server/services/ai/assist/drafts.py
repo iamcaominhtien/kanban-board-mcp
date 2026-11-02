@@ -19,7 +19,16 @@ import database
 import events as board_events
 import services.activity as act
 import services.tickets as svc_tickets
-from models import AiDraft, AiMember, DocsPage, Member, Project, Ticket, TicketUpdate
+from models import (
+    AiDraft,
+    AiMember,
+    AiRun,
+    DocsPage,
+    Member,
+    Project,
+    Ticket,
+    TicketUpdate,
+)
 
 from .. import llm
 from ..context import STATUS_LABELS
@@ -134,6 +143,7 @@ async def _ticket_state(session: AsyncSession, project_id: str) -> tuple[dict, d
             "due_date": t.due_date,
             "estimate": t.estimate,
             "title": t.title,
+            "tags": loads(t.tags, []),
             "criteria": [
                 a.get("text", "")
                 for a in loads(t.acceptance_criteria, [])
@@ -1247,7 +1257,7 @@ async def apply_changes(
         for i, ch in enumerate(changes):
             if i not in picks:
                 continue
-            tid = ch["ticket"]
+            tid = ch.get("ticket")  # pausing or resuming one AI names no ticket
             try:
                 if ch.get("scope"):
                     provider = scopes.get(ch["scope"])
@@ -1286,6 +1296,10 @@ async def apply_changes(
                         {"i": i, "op": "add_criteria", "ticket": tid, "ids": ids}
                     )
                     continue
+                team = await _apply_team_op(session, ch, person, d.project_id)
+                if team is not None:
+                    applied.append({"i": i, **team})
+                    continue
                 if ch["op"] == "comment":
                     text = (edits or {}).get(str(i)) or ch["text"]
                     t = await svc_tickets.add_comment(
@@ -1302,7 +1316,7 @@ async def apply_changes(
                     continue
                 t = await session.get(Ticket, tid)
                 field = ch["op"]
-                before = getattr(t, field)
+                before = _field_value(t, field)
                 if field == "assignee":
                     await ai_runs.before_ticket_change(
                         tid, assignee=ch["to"], by=person
@@ -1616,6 +1630,206 @@ async def edit(session: AsyncSession, draft_id: str, payload_patch: dict) -> AiD
     return d
 
 
+TEAM_OPS = (
+    "run",
+    "stop_run",
+    "workflow",
+    "depth",
+    "pause_member",
+    "resume_member",
+    "create",
+    "message",
+    "delegate",
+)
+
+DELEGATE_TASK = (
+    "You are the coordinator of this project, and {person} asked you, through the Board AI, to take care of {ticket}: "
+    "{text}\n\nRead the ticket and what the team did on it. Coordinate it with the board's tools: split it into child "
+    "tickets (parent {ticket}, status todo, no assignee: the board puts each on a workflow), give work to the right "
+    "AI, or comment what is needed. You never edit code. End with a short report of what you did."
+)
+
+
+async def _apply_team_op(
+    session: AsyncSession, ch: dict, person: str, project_id: str | None = None
+) -> dict | None:
+    """The AI team actions the Board AI takes as the person (design wave 3, C): start or stop one run, put a ticket on a
+    workflow or set its depth, pause or resume one AI. Returns what to record for Undo, or None for other ops."""
+    from services.ai import workflow as ai_workflow
+
+    from .. import runs as ai_runs
+
+    op = ch.get("op")
+    if op not in TEAM_OPS:
+        return None
+    tid = ch.get("ticket")
+    if op == "create":
+        if (
+            ch.get("workflow")
+            and await ai_workflow.get_template(session, project_id, ch["workflow"])
+            is None
+        ):
+            raise ValueError(f"No workflow called {ch['workflow']}.")
+        # made in the backlog and moved to To do once whole, so intake never takes it half made (no criteria yet)
+        # nor races the workflow asked for here
+        t = await svc_tickets.create_ticket(
+            session,
+            project_id,
+            ch["title"],
+            status="backlog",
+            description=ch.get("description") or "",
+            parent_id=ch.get("parent"),
+            created_by=person,
+        )
+        for text in ch.get("criteria") or []:
+            await svc_tickets.add_acceptance_criterion(session, t.id, text)
+        if ch.get("workflow"):
+            await ai_workflow.attach(session, t, ch["workflow"], by=person)
+        await svc_tickets.update_ticket(session, t.id, TicketUpdate(status="todo"))
+        return {"op": op, "ticket": t.id, "created": t.id}
+    if op == "message":
+        active = [
+            r
+            for r in await ai_runs.active_runs(session, ticket_id=tid)
+            if r.mode == "work"
+        ]
+        if not active:
+            raise ValueError(f"No AI is working on {tid}.")
+        how = await ai_runs.tell(active[0].id, ch["text"], by=person)
+        return {"op": op, "ticket": tid, "run_id": active[0].id, "via": how}
+    if op == "delegate":
+        ticket = await session.get(Ticket, tid)
+        pm = await ai_workflow.coordinator(session, ticket.project_id)
+        if pm is None:
+            raise ValueError(
+                "The project has no coordinator (a member made from the PM pack)."
+            )
+        run = await ai_runs.create_run(
+            session,
+            ticket_id=tid,
+            member_id=pm.id,
+            mode="work",
+            trigger="board_ai",
+            started_by=person,
+            instruction=DELEGATE_TASK.format(
+                person=person, ticket=tid, text=ch["text"]
+            ),
+        )
+        return {"op": op, "ticket": tid, "run_id": run.id}
+    if op == "run":
+        run = await ai_runs.create_run(
+            session,
+            ticket_id=tid,
+            member_id=ch["member"],
+            mode="work",
+            trigger="board_ai",
+            started_by=person,
+            instruction=ch.get("text") or "",
+        )
+        return {"op": op, "ticket": tid, "run_id": run.id}
+    if op == "stop_run":
+        active = [
+            r
+            for r in await ai_runs.active_runs(session, ticket_id=tid)
+            if r.mode == "work"
+        ]
+        if not active:
+            raise ValueError(f"No AI is working on {tid}.")
+        await ai_runs.cancel(
+            active[0].id, by=person, reason=f"Stopped by {person} through the Board AI."
+        )
+        return {"op": op, "ticket": tid, "run_id": active[0].id}
+    if op == "workflow":
+        ticket = await session.get(Ticket, tid)
+        await ai_workflow.attach(session, ticket, ch["to"], by=person)
+        return {"op": op, "ticket": tid, "to": ch["to"]}
+    if op == "depth":
+        wf = await ai_workflow.of_ticket(session, tid)
+        before = wf.review_depth if wf else None
+        await ai_workflow.set_depth(session, tid, ch["to"], by=person)
+        return {"op": op, "ticket": tid, "before": before, "after": ch["to"]}
+    if op in ("pause_member", "resume_member"):
+        profile = await session.get(AiMember, ch["member"])
+        if profile is None:
+            raise ValueError("Unknown AI member.")
+        profile.paused = op == "pause_member"
+        profile.paused_reason = f"{'Paused' if profile.paused else 'Resumed'} by {person} through the Board AI"
+        session.add(profile)
+        await session.commit()
+        return {"op": op, "ticket": None, "member": ch["member"]}
+    return None
+
+
+async def _undo_team_op(session: AsyncSession, a: dict, person: str) -> str | None:
+    """Put a team action back; returns what could not be taken back (None when it was)."""
+    from services.ai import workflow as ai_workflow
+
+    from .. import runs as ai_runs
+
+    op = a["op"]
+    if op == "create":
+        t = await session.get(Ticket, a["created"])
+        if t is None:
+            return None
+        if (
+            t.updated_at
+            and t.created_at
+            and t.updated_at > t.created_at
+            and (t.assignee or t.status != "todo")
+        ):
+            return f"{t.id} was worked on since, so it stays"
+        await ai_workflow.detach(session, t.id, by=person)
+        await svc_tickets.delete_ticket(session, t.id)
+        return None
+    if op == "message":
+        return f"{a['ticket']}: a message cannot be taken back"
+    if op in ("run", "delegate"):
+        run = await session.get(AiRun, a.get("run_id"))
+        if run is not None and run.state in (
+            "queued",
+            "starting",
+            "running",
+            "needs_input",
+        ):
+            await ai_runs.cancel(run.id, by=person, reason=f"Undone by {person}.")
+            return (
+                None
+                if run.state == "queued"
+                else f"{a['ticket']}: the run was stopped, but it had already started (what it spent is not taken back)"
+            )
+        return f"{a['ticket']}: the run had already ended, so it is not taken back"
+    if op == "stop_run":
+        try:
+            await ai_runs.retry(a["run_id"], by=person)
+        except ai_runs.RunError as exc:
+            return str(exc)
+        return None
+    if op == "workflow":
+        await ai_workflow.detach(session, a["ticket"], by=person)
+        return None
+    if op == "depth":
+        wf = await ai_workflow.of_ticket(session, a["ticket"])
+        if wf is None or wf.review_depth != a.get("after"):
+            return f"{a['ticket']}: the depth was changed since"
+        if a.get("before"):
+            await ai_workflow.set_depth(session, a["ticket"], a["before"], by=person)
+        return None
+    if op in ("pause_member", "resume_member"):
+        profile = await session.get(AiMember, a["member"])
+        if profile is None:
+            return "The AI member is gone"
+        profile.paused = op != "pause_member"
+        session.add(profile)
+        await session.commit()
+        return None
+    return None
+
+
+def _field_value(t: Ticket, field: str):
+    """A ticket field as a change records it (the labels are stored as JSON)."""
+    return loads(t.tags, []) if field == "tags" else getattr(t, field)
+
+
 async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
     """Undo an applied draft (B10, C4, D3). A field a person changed since is left as they set it."""
     d = await _get(session, draft_id)
@@ -1642,6 +1856,13 @@ async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
                     else:
                         skipped.append(f"{a['ticket']} {a['op']} was changed since")
                     continue
+                if a["op"] in TEAM_OPS:
+                    note = await _undo_team_op(session, a, person)
+                    if note:
+                        skipped.append(note)
+                    else:
+                        undone += 1
+                    continue
                 if a["op"] == "comment":
                     if a.get("comment_id"):
                         await svc_tickets.delete_comment(
@@ -1652,7 +1873,7 @@ async def undo(session: AsyncSession, draft_id: str, person: str) -> AiDraft:
                 t = await session.get(Ticket, a["ticket"])
                 if t is None:
                     continue
-                if getattr(t, a["op"]) != a["after"]:
+                if _field_value(t, a["op"]) != a["after"]:
                     skipped.append(f"{a['ticket']} {a['op']} was changed since")
                     continue
                 try:

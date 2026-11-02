@@ -6,11 +6,13 @@ import { FlowTab } from './FlowTab';
 import { HealthTab } from './HealthTab';
 import { SteppedInTab } from './SteppedInTab';
 import { ResourcesTab } from './ResourcesTab';
+import { HistoryTab } from './HistoryTab';
+import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
 import { Icon, ICONS } from './teamUi';
 import { OPEN_TIMELINE_EVENT, takePendingTimeline, type TimelineLink } from './timelineLink';
 import './aiTeam.css';
 
-type Tab = 'now' | 'flow' | 'stepped' | 'health' | 'resources';
+type Tab = 'now' | 'flow' | 'stepped' | 'health' | 'resources' | 'history';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'now', label: 'Now' },
@@ -18,6 +20,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'stepped', label: 'You stepped in' },
   { id: 'health', label: 'Health' },
   { id: 'resources', label: 'Resources' },
+  { id: 'history', label: 'Run history' },
 ];
 
 interface Props {
@@ -35,7 +38,9 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
     const link = takePendingTimeline();
     return link ? { link, key: Date.now() } : null;
   });
-  const [tab, setTab] = useState<Tab>(timelineLink ? 'flow' : 'now');
+  // A run was asked for (a link to its detail): Run history opens on it
+  const [runId, setRunId] = useState<string | null>(() => takePendingRun());
+  const [tab, setTab] = useState<Tab>(runId ? 'history' : timelineLink ? 'flow' : 'now');
   const [flowTicket, setFlowTicket] = useState<string | null>(null);
   useEffect(() => {
     const open = () => {
@@ -47,6 +52,16 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
     window.addEventListener(OPEN_TIMELINE_EVENT, open);
     return () => window.removeEventListener(OPEN_TIMELINE_EVENT, open);
   }, []);
+  useEffect(() => {
+    const open = () => {
+      const id = takePendingRun();
+      if (!id) return;
+      setRunId(id);
+      setTab('history');
+    };
+    window.addEventListener(OPEN_RUN_EVENT, open);
+    return () => window.removeEventListener(OPEN_RUN_EVENT, open);
+  }, []);
   // Now reads best for today, the other tabs for a week; each tab keeps the range the person picked
   const [ranges, setRanges] = useState<Record<Tab, TeamRange>>({
     now: 'today',
@@ -54,6 +69,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
     stepped: '7d',
     health: '7d',
     resources: 'today',
+    history: '30d',
   });
   const range = ranges[tab];
   const setRange = (r: TeamRange) => setRanges({ ...ranges, [tab]: r });
@@ -111,7 +127,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
         <span style={{ flex: 1 }} />
         <select
           className="at-range"
-          hidden={tab === 'resources'}
+          hidden={tab === 'resources' || tab === 'history'}
           value={range}
           onChange={(e) => setRange(e.target.value as TeamRange)}
           aria-label="Range"
@@ -120,7 +136,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
           <option value="7d">Last 7 days</option>
           <option value="30d">Last 30 days</option>
         </select>
-        <span className="at-hint" hidden={tab === 'resources'}>
+        <span className="at-hint" hidden={tab === 'resources' || tab === 'history'}>
           {isError ? 'Not live: reconnecting' : updated != null ? `Live · updated ${updated} s ago` : ''}
         </span>
       </div>
@@ -147,6 +163,14 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
               setTab('flow');
             },
           }}
+        />
+      ) : tab === 'history' ? (
+        <HistoryTab
+          projectId={projectId}
+          members={data?.members ?? []}
+          runId={runId}
+          onRunChange={setRunId}
+          onOpenTicket={onOpenTicket}
         />
       ) : tab === 'resources' ? (
         <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} />

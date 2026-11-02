@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { IssueType, Member, Priority } from '../types';
 import { useAppCommand } from '../utils/appCommands';
 import styles from './FilterBar.module.css';
+import type { WorkflowFilterState } from '../types/aiWorkflowBoard';
+import type { WorkflowFilterOptions } from './workflowBoard/workflowFilter';
+import { WorkflowFilters } from './workflowBoard/WorkflowFilters';
 
 interface FilterBarProps {
   searchQuery: string;
@@ -28,6 +31,10 @@ interface FilterBarProps {
   fromIdeaCount?: number;
   filterFromIdea?: boolean;
   onFilterFromIdeaChange?: (v: boolean) => void;
+  /** Workflow filters (Waiting for me, Role, Workflow, Step); nothing is drawn while no ticket is on a workflow. */
+  workflowOptions?: WorkflowFilterOptions;
+  workflowFilter?: WorkflowFilterState;
+  onWorkflowFilterChange?: (f: WorkflowFilterState) => void;
 }
 
 const TYPE_OPTIONS: { value: IssueType | 'all'; label: string }[] = [
@@ -81,6 +88,9 @@ export function FilterBar({
   fromIdeaCount = 0,
   filterFromIdea = false,
   onFilterFromIdeaChange,
+  workflowOptions,
+  workflowFilter,
+  onWorkflowFilterChange,
 }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<'type' | 'priority' | 'assignee' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -674,6 +684,10 @@ export function FilterBar({
           </span>
           Hide pending
         </button>
+
+        {workflowOptions && workflowFilter && onWorkflowFilterChange && (
+          <WorkflowFilters options={workflowOptions} value={workflowFilter} onChange={onWorkflowFilterChange} />
+        )}
       </div>
     </div>
   );

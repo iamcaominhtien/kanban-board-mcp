@@ -1,7 +1,5 @@
 """The usage instructions the server sends to the agent on connect."""
 
-from services import canvas_design
-
 from .settings import ideas_enabled
 
 
@@ -29,6 +27,11 @@ _INSTRUCTIONS_TAIL = """\
 docs_write (create, update, move, ...). Send the `version` you read as base_version when updating; a stale one is rejected, \
 so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: \
 docs_read(comments) lists the threads, docs_write(comment, reply, resolve, ...) answers them.
+- Which drawing: a screen, page or flow a person will look at goes on a Canvas (HTML frames, every state); a structure or \
+a process (architecture, data flow, a sequence, a state machine, a workflow, an entity model) is a draw.io Diagram in the Docs page \
+or ticket it explains; a rough first draft, or a mark on a screenshot, is a Sketch. Draw when words alone are hard to follow \
+(more than three parts, branches, an order that matters); a picture sits beside the words, never instead of them, and nothing \
+one sentence says needs one.
 - Diagrams: a draw.io drawing shows in any text (ticket description, comment, Docs page) as one line `[Name](diagram:dg_xxxxxxxx)`. \
 Edit it as a file: docs_read(diagram) writes the .drawio XML to a path, change it with your own file tools, docs_write(diagram_save) \
 stores it (with the `version` you got as base_version). docs_write(diagram_create) makes a new one from a file; put the returned \
@@ -43,13 +46,16 @@ docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folde
 or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). \
 Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, \
 so use `<meta name="viewport" content="width=device-width, initial-scale=1">`, fluid widths (%, flex, grid, max-width) and media queries \
-(`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Follow the design guide at the end of these instructions whenever you write or change a frame. \
+(`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, \
+else docs_read(design_guide); follow it. \
 You never change an existing frame directly: docs_write(canvas_comment) comments under your own name and docs_write(canvas_propose) offers a changed HTML frame \
 from a folder; a person sees before and after and accepts or rejects. You never take the lock on a frame a person is editing.
 - AI team: ai_team looks at the board's AI members (members, member, usage, runs, run, approvals, docs_jobs, resources: RAM and CPU of the running AIs and the machine) and acts on them \
-(ask, cancel, restart (a run's CLI starts again in the same run), retry, answer, pause, resume, create_member, update_member). An @mention in a comment posted through MCP does NOT wake \
-an AI: use ai_team(action='ask', member_id, text, ticket_id) (intent 'work' to assign it the ticket). Approvals are decided by a person \
-in the board, never over MCP; inside an AI run only the read actions work (resources needs the member's Resource tools set to View; restart and cancel need Control).
+(ask, cancel, restart (a run's CLI starts again in the same run), retry, answer, pause, resume, create_member, update_member). From outside an AI run, \
+an @mention in a comment does NOT wake an AI: use ai_team(action='ask', member_id, text, ticket_id) (intent 'work' to assign it the ticket). \
+Inside an AI run it is the other way round: ai_team allows only its read actions there, and an @mention of another AI in a comment you post \
+does wake it (one question, within the board's chain limits); to pass the work itself on, use ai_run(action='handoff'). Approvals are decided by a person \
+in the board, never over MCP (resources needs the member's Resource tools set to View; restart and cancel need Control).
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
 
 Conventions
@@ -70,13 +76,10 @@ def build_instructions(include_ideas: bool | None = None) -> str:
     tail = _INSTRUCTIONS_TAIL.format(
         ideas_null="",
     )
-    return (
-        _INSTRUCTIONS_HEAD
-        + (_INSTRUCTIONS_IDEAS if include_ideas else "")
-        + tail
-        + "\n"
-        + canvas_design.GUIDE
-    )
+    # The canvas design guide is too long to ride here (Claude Code keeps the first 10,000 characters of a server's
+    # instructions and drops the rest): it is the canvas-design skill in every Claude Code run, and docs_read
+    # (design_guide) for any other agent.
+    return _INSTRUCTIONS_HEAD + (_INSTRUCTIONS_IDEAS if include_ideas else "") + tail
 
 
 MCP_INSTRUCTIONS = build_instructions()

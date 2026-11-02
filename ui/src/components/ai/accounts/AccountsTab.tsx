@@ -22,6 +22,7 @@ import { RemoveAccountDialog } from './RemoveAccountDialog';
 import { RenameAccountDialog } from './RenameAccountDialog';
 import { SignInWindow } from './SignInWindow';
 import { SignOutDialog } from './SignOutDialog';
+import { WindowsSection } from './WindowsSection';
 import './accounts.css';
 
 /** Opens a link in the person's browser (the desktop app has its own bridge). */
@@ -261,6 +262,8 @@ export function AccountsTab({ projectId }: { projectId: string }) {
           </AccountNote>
         );
       })}
+
+      <WindowsSection projectId={projectId} />
 
       {body}
 
