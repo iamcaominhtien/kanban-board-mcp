@@ -7,6 +7,8 @@ import { usePatchProjectOps, useProjectOps, type ProjectOps } from '../../../api
 import type { HandoverRoute } from '../../../types/aiCode';
 import { LoadError, Toggle } from '../aiUi';
 import { ROUTE_TEXT, ROUTE_TITLE, WorktreeRow, mbText } from './worktreeUi';
+import { TeamRow } from '../settings/settingsUi';
+import '../settings/teamOwn.css';
 
 interface WtSettings {
   on?: boolean;
@@ -19,13 +21,9 @@ interface WtSettings {
 
 function Row({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>{title}</div>
-        {hint && <div className="ai-hint">{hint}</div>}
-      </div>
+    <TeamRow title={title} hint={hint}>
       {children}
-    </div>
+    </TeamRow>
   );
 }
 

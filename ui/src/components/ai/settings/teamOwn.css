@@ -93,8 +93,8 @@
   border-top: 1px solid #eef3ef;
 }
 .to-row-main {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 220px;
+  min-width: 180px;
 }
 .to-row-title {
   font-size: 13px;
@@ -106,6 +106,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  max-width: 50%;
+}
+/* a long option name must not widen the control and squeeze the title (the select is 100% of the control) */
+.to-row-ctl .ai-select {
+  width: auto;
+  min-width: 140px;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+.to-row-ctl .ai-input {
+  min-width: 0;
 }
 .to-opts {
   display: flex;
