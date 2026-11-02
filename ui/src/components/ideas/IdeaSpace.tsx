@@ -285,65 +285,75 @@ export function IdeaSpace({
     );
   }
 
+  const switcher = <Switcher projects={projects} value={scope} counts={counts} onChange={(s) => setScope(s)} />;
+  const askButton = askAvailable && (
+    <button
+      type="button"
+      className="is-btn"
+      aria-pressed={askOpen}
+      onClick={() => setAskOpen(!askOpen)}
+      data-testid="ask-button"
+    >
+      <span aria-hidden="true">
+        <LineIcon name="sparkle" size={12} />
+      </span>{' '}
+      Ask
+    </button>
+  );
+  const newIdeaButton = (
+    <button type="button" className="is-btn is-btn-primary" onClick={newIdea} data-testid="new-idea">
+      <LineIcon name="plus" size={14} />
+      New idea <Kbd>C</Kbd>
+    </button>
+  );
+
   return (
     <div className="is-root" data-testid="idea-space">
-      <div className="is-head">
-        <h1 className="is-title">
-          <BulbIcon size={20} /> Idea Space
-        </h1>
-        <Switcher projects={projects} value={scope} counts={counts} onChange={(s) => setScope(s)} />
-        <div className="is-tabs" role="tablist" aria-label="View">
-          {(['list', 'stages', 'matrix'] as View[]).map((v) => (
-            <button
-              key={v}
-              type="button"
-              role="tab"
-              className="is-tab"
-              aria-selected={view === v && !triage}
-              onClick={() => {
-                setView(v);
-                setTriage(false);
-              }}
-            >
-              {v[0].toUpperCase() + v.slice(1)}
-            </button>
-          ))}
-        </div>
-        <span className="is-grow" />
-        <div className="is-search">
-          <input
-            ref={searchRef}
-            className="is-input"
-            placeholder="Search ideas"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search ideas"
-          />
-          <Kbd>/</Kbd>
-        </div>
-        {askAvailable && (
-          <button
-            type="button"
-            className="is-btn"
-            aria-pressed={askOpen}
-            onClick={() => setAskOpen(!askOpen)}
-            data-testid="ask-button"
-          >
-            <span aria-hidden="true">
-              <LineIcon name="sparkle" size={12} />
-            </span>{' '}
-            Ask
+      {!triage && (
+        <div className="is-head">
+          <h1 className="is-title">
+            <BulbIcon size={20} /> Idea Space
+          </h1>
+          {switcher}
+          <div className="is-tabs" role="tablist" aria-label="View">
+            {(['list', 'stages', 'matrix'] as View[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                className="is-tab"
+                aria-selected={view === v && !triage}
+                onClick={() => {
+                  setView(v);
+                  setTriage(false);
+                }}
+              >
+                {v[0].toUpperCase() + v.slice(1)}
+              </button>
+            ))}
+          </div>
+          <span className="is-grow" />
+          <div className="is-search">
+            <input
+              ref={searchRef}
+              className="is-input"
+              placeholder="Search ideas"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search ideas"
+            />
+            <Kbd>/</Kbd>
+          </div>
+          {askButton}
+          <button type="button" className="is-btn" onClick={() => setTriage(true)} data-testid="inbox-button">
+            Inbox {inboxHere > 0 && <span className="is-count-pill">{inboxHere}</span>}
           </button>
-        )}
-        <button type="button" className="is-btn" onClick={() => setTriage(true)} data-testid="inbox-button">
-          Inbox {inboxHere > 0 && <span className="is-count-pill">{inboxHere}</span>}
-        </button>
-        <button type="button" className="is-btn is-btn-primary" onClick={newIdea} data-testid="new-idea">
-          New idea <Kbd>C</Kbd>
-        </button>
-        <NotificationBellButton />
-      </div>
+          {newIdeaButton}
+          <NotificationBellButton />
+        </div>
+      )}
 
+      <div className="is-main-row">
       {triage ? (
         <Triage
           scope={scope.scope}
@@ -356,6 +366,14 @@ export function IdeaSpace({
           onPromote={(i) => setPromoting(i)}
           onBack={() => setTriage(false)}
           onOpenSettings={onOpenSettings}
+          switcher={switcher}
+          actions={
+            <>
+              {askButton}
+              {newIdeaButton}
+              <NotificationBellButton />
+            </>
+          }
         />
       ) : (
         <div className="is-body">
@@ -443,7 +461,6 @@ export function IdeaSpace({
           </div>
         </div>
       )}
-      {moves.dialogs}
       {askOpen && (
         <AskPanel
           projectId={scope.scope === 'project' ? scope.projectId : undefined}
@@ -456,6 +473,8 @@ export function IdeaSpace({
           onOpenSettings={onOpenSettings}
         />
       )}
+      </div>
+      {moves.dialogs}
       {promoting && (
         <PromoteDialog
           idea={promoting}

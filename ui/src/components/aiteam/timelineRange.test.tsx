@@ -67,7 +67,7 @@ describe('Timeline range button', () => {
     show();
     fireEvent.click(screen.getByRole('button', { name: 'Range' }));
     fireEvent.click(screen.getByRole('option', { name: 'Last 24 h' }));
-    expect(calls.at(-1)).toMatchObject({ range: '24h' });
+    expect(calls[calls.length - 1]).toMatchObject({ range: '24h' });
   });
 
   it('Custom… opens a two-day popover and asks for that window', () => {
@@ -79,7 +79,7 @@ describe('Timeline range button', () => {
     fireEvent.change(from, { target: { value: '2026-10-20' } });
     fireEvent.change(to, { target: { value: '2026-10-22' } });
     fireEvent.click(screen.getByRole('button', { name: 'Show this range' }));
-    const q = calls.at(-1) as { range: string; since: string; until: string };
+    const q = calls[calls.length - 1] as { range: string; since: string; until: string };
     expect(q.range).toBe('custom');
     expect(new Date(q.since).getTime()).toBe(new Date(2026, 9, 20).getTime());
     expect(new Date(q.until).getTime()).toBe(new Date(2026, 9, 23).getTime());
