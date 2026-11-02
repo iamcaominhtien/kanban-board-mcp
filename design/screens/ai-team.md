@@ -6,6 +6,8 @@
 
 > **Extended by [AI team & process](ai-team-process.md)** (wave 2 of `docs/specs/ai-claude-code-plan.md`) — two AIs that stop converging go to a coordinator AI before they reach you (section H), and Health gains a second grouping — per workflow template rather than per AI (section L).
 
+> **Extended by [Story, Flow by scope and Live commentary](ai-story-flow.md)** — Flow gets one scope bar (the whole project, one Story, one ticket) that drives the Team map, the Timeline and the live column; *One ticket* stops being a third view and becomes the third scope. The parent ticket of section F gains an owner and a state and is called a **Story** (sections B to G, I, J). The live column keeps what it has and follows the scope (section K).
+
 A view for any project that has an AI team. It shows what each AI is doing now, how work passes between them (tickets, Docs deliverables and whole parent tickets), and where a person had to step in. It reads records the app already keeps.
 
 Source: [AiTeam.dc.html](../source/AiTeam.dc.html) › header ("SCREEN — V1 PROPOSAL", "AI Team — what the AIs are doing and how work moves between them" and the intro)

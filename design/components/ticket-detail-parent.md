@@ -2,6 +2,8 @@
 
 > Component — same panel, parent ticket · source: [`TicketDetailParent.dc.html`](../source/TicketDetailParent.dc.html) · canvas `1789831198-eb58` · sha256 `8adf1e756bd5c8e341b1df96c557cd52c5da78a8e18ed51b4cf1d316081d9ec5`
 
+> **Extended by [Story, Flow by scope and Live commentary](../screens/ai-story-flow.md)** — a parent ticket can be handed to the PM as a **Story**: a goal, the criteria that say it is done, a plan, a state and a page of its own (sections B, E and F).
+
 Each sub-ticket keeps its own live status mark, and the header rolls those up into a "done" count — only tickets actually in Done count toward it, In Progress doesn't move the bar.
 
 Same panel as [ticket-detail.md](ticket-detail.md), here for a parent ticket (KAN-140) that has a Sub-tickets section.
