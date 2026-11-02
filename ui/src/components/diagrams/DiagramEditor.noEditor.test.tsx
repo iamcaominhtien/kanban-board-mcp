@@ -74,3 +74,39 @@ describe('DiagramEditor without a draw.io editor', () => {
     expect(screen.queryByTestId('diagram-editor-unreachable')).toBeNull();
   });
 });
+
+describe('DiagramEditor with the editor built into the app', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    Object.assign(api.settings, {
+      mode: 'self-hosted',
+      effectiveUrl: 'http://localhost:8080',
+      builtInAvailable: undefined,
+    });
+  });
+
+  it('opens the built-in editor from the board itself, with every internet service off', async () => {
+    Object.assign(api.settings, {
+      mode: 'built-in',
+      effectiveUrl: 'http://127.0.0.1:5123/drawio',
+      builtInAvailable: true,
+    });
+    open();
+    const src = screen.getByTitle('draw.io editor').getAttribute('src') ?? '';
+    expect(src.startsWith('http://127.0.0.1:5123/drawio/?')).toBe(true);
+    expect(new URL(src).searchParams.get('stealth')).toBe('1');
+    expect(new URL(src).searchParams.get('embed')).toBe('1');
+    expect(api.checkDiagramEditor).not.toHaveBeenCalled();
+  });
+
+  it('offers the built-in editor when a self-hosted address does not answer', async () => {
+    Object.assign(api.settings, { builtInAvailable: true });
+    api.checkDiagramEditor.mockResolvedValue({ mode: 'self-hosted', url: 'http://localhost:8080', reachable: false });
+    api.saveDiagramSettings.mockResolvedValue(api.settings);
+    open();
+    fireEvent.click(await screen.findByRole('button', { name: 'Use the built-in editor' }));
+    await waitFor(() => expect(api.saveDiagramSettings).toHaveBeenCalledWith({ mode: 'built-in', url: '' }));
+    expect(screen.queryByRole('button', { name: 'Use the public editor' })).toBeNull();
+  });
+});

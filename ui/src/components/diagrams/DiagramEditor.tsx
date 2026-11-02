@@ -60,9 +60,11 @@ function writeDraft(key: string, draft: Draft | null): void {
   }
 }
 
-/** Build the embed URL of the draw.io editor. */
-function editorSrc(base: string): string {
+/** Build the embed URL of the draw.io editor. The built-in one also turns off every feature that needs a service
+ * on the internet (stealth), so a drawing never leaves the computer. */
+function editorSrc(base: string, builtIn = false): string {
   const q = new URLSearchParams({
+    ...(builtIn ? { stealth: '1' } : {}),
     embed: '1',
     proto: 'json',
     spin: '1',
@@ -237,10 +239,10 @@ export function DiagramEditor({ request, onClose }: Props) {
     };
   }, [base, attempt, settings.data?.mode]);
 
-  const switchToPublicEditor = async () => {
+  const switchEditor = async (mode: 'built-in' | 'public') => {
     setSwitching(true);
     try {
-      await saveDiagramSettings({ mode: 'public', url: settings.data?.url ?? '' });
+      await saveDiagramSettings({ mode, url: settings.data?.url ?? '' });
       await qc.invalidateQueries({ queryKey: diagramKeys.settings });
       setNoEditorAt(null);
       setPhase('loading');
@@ -531,7 +533,7 @@ export function DiagramEditor({ request, onClose }: Props) {
               ref={frame}
               className={styles.frame}
               title="draw.io editor"
-              src={editorSrc(base)}
+              src={editorSrc(base, settings.data?.mode === 'built-in')}
               allow="clipboard-read; clipboard-write"
             />
           )}
@@ -557,9 +559,15 @@ export function DiagramEditor({ request, onClose }: Props) {
                 <div className={styles.cardText}>
                   {phase === 'missing' ? (
                     'It was deleted, or you do not have access.'
+                  ) : noEditorAt && settings.data?.builtInAvailable ? (
+                    <>
+                      The editor address is <code>{noEditorAt}</code> and nothing answers there. Use the editor built
+                      into the app instead (nothing to run, the drawing stays on this computer), or start the one at
+                      that address, then Retry.
+                    </>
                   ) : noEditorAt ? (
                     <>
-                      The editor address is <code>{noEditorAt}</code> and nothing answers there: the app does not
+                      The editor address is <code>{noEditorAt}</code> and nothing answers there: this install does not
                       include draw.io. Use the public editor ({settings.data?.publicUrl ?? 'embed.diagrams.net'}; the
                       drawing is sent there while the editor is open), or start draw.io on this computer, for example{' '}
                       <code>docker run -d -p 8080:8080 jgraph/drawio</code>, then Retry. The diagram is still shown on
@@ -579,12 +587,22 @@ export function DiagramEditor({ request, onClose }: Props) {
                       Download .drawio
                     </a>
                   )}
-                  {phase === 'unreachable' && noEditorAt && (
+                  {phase === 'unreachable' && noEditorAt && settings.data?.builtInAvailable && (
                     <button
                       type="button"
                       className={`${styles.btn} ${styles.btnPrimary}`}
                       disabled={switching}
-                      onClick={() => void switchToPublicEditor()}
+                      onClick={() => void switchEditor('built-in')}
+                    >
+                      {switching ? 'Switching…' : 'Use the built-in editor'}
+                    </button>
+                  )}
+                  {phase === 'unreachable' && noEditorAt && !settings.data?.builtInAvailable && (
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                      disabled={switching}
+                      onClick={() => void switchEditor('public')}
                     >
                       {switching ? 'Switching…' : 'Use the public editor'}
                     </button>

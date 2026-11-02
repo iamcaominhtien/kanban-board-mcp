@@ -7,7 +7,12 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import (
+    FileResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from mcp.server.fastmcp import FastMCP
 
 import api_secret
@@ -63,6 +68,7 @@ from services.docs_ai import proposals as docs_ai_proposals
 from services.ai import schedules as ai_schedules
 from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
+from services import drawio_bundle
 from services.ai import orders as ai_orders
 from services.ai import github as ai_github
 from services.ai import evals as ai_evals
@@ -226,6 +232,7 @@ async def record_activity_actor(request: Request, call_next):
     if server and server[0] in ("127.0.0.1", "localhost", "::1"):
         # A local runner's CLI reaches the board's MCP server on the same socket
         ai_runs.set_board_url(f"http://127.0.0.1:{server[1]}")
+        drawio_bundle.set_origin(server[0], server[1])
     header = (request.headers.get("x-actor") or "").strip()[:80]
     token = svc_activity.set_actor(header or svc_activity.HUMAN_ACTOR)
     origin_token = svc_activity.set_origin(
@@ -273,6 +280,53 @@ async def log_requests(request: Request, call_next):
 
 
 app.mount("/mcp", mcp.streamable_http_app())
+
+# Set here, not by the platform's registry (Windows can map .js to text/plain)
+_DRAWIO_TYPES = {
+    ".html": "text/html",
+    ".js": "text/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".jpg": "image/jpeg",
+    ".ico": "image/x-icon",
+    ".txt": "text/plain; charset=utf-8",
+    ".xml": "application/xml",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+    ".ttf": "font/ttf",
+}
+
+
+@app.get(drawio_bundle.PATH, include_in_schema=False)
+async def drawio_root():
+    """The shipped draw.io editor lives under its folder (its own files are named relative to it)."""
+    return RedirectResponse(f"{drawio_bundle.PATH}/")
+
+
+@app.get(f"{drawio_bundle.PATH}/{{file_path:path}}", include_in_schema=False)
+async def serve_drawio(file_path: str):
+    """A file of the draw.io editor shipped with the app (services/drawio_bundle.py).
+
+    Raises:
+        HTTPException: 404 when this install ships no editor or has no such file.
+    """
+    folder = drawio_bundle.directory()
+    if folder is None:
+        raise HTTPException(status_code=404, detail="No draw.io editor in this install")
+    target = (folder / (file_path or "index.html")).resolve()
+    if target.is_dir():
+        target = target / "index.html"
+    if not target.is_relative_to(folder) or not target.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(
+        target,
+        media_type=_DRAWIO_TYPES.get(target.suffix.lower()),
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
 
 app.include_router(projects_router)
 app.include_router(assist_router)
@@ -558,6 +612,7 @@ if __name__ == "__main__":
             """Start up, then tell the parent process the port is ready."""
             await super().startup(sockets)
             _startup_mark("uvicorn-startup-done")
+            drawio_bundle.set_origin("127.0.0.1", self.config.port)
             print(f"READY port={self.config.port}", flush=True)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:

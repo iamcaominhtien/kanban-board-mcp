@@ -27,12 +27,18 @@ export interface Diagram {
   source?: string;
 }
 
+export type DiagramEditorMode = 'built-in' | 'self-hosted' | 'public';
+
 export interface DiagramSettings {
-  mode: 'self-hosted' | 'public';
+  /** built-in: the draw.io editor shipped with the app, served by the board at /drawio (the default when shipped). */
+  mode: DiagramEditorMode;
   url: string;
-  effectiveUrl: string;
+  /** Null only for a built-in editor this install does not have. */
+  effectiveUrl: string | null;
   defaultSelfHostedUrl: string;
   publicUrl: string;
+  builtInAvailable: boolean;
+  builtInVersion: string | null;
   sendsDrawingsToThirdParty: boolean;
 }
 
@@ -174,8 +180,8 @@ export async function updateDiagram(
 }
 
 export interface DiagramEditorCheck {
-  mode: 'self-hosted' | 'public';
-  url: string;
+  mode: DiagramEditorMode;
+  url: string | null;
   /** False when nothing answers at a self-hosted address (the app ships no draw.io editor). */
   reachable: boolean;
 }

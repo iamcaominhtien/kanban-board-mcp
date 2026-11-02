@@ -1,6 +1,6 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -67,24 +67,33 @@ async def post_diagram(
 
 
 @router.get("/diagrams/settings")
-async def get_diagram_settings(session: Session) -> dict[str, Any]:
+async def get_diagram_settings(request: Request, session: Session) -> dict[str, Any]:
     """Where the draw.io editor runs."""
-    return await svc.get_settings(session)
+    return await svc.get_settings(session, _origin(request))
 
 
 @router.get("/diagrams/editor-check")
-async def get_diagram_editor_check(session: Session) -> dict[str, Any]:
+async def get_diagram_editor_check(
+    request: Request, session: Session
+) -> dict[str, Any]:
     """Whether the self-hosted draw.io editor answers, asked before the editor opens: without one (the default
     http://localhost:8080 that the app does not ship) it spun for 20 seconds before saying so."""
-    return await svc.editor_check(session)
+    return await svc.editor_check(session, _origin(request))
 
 
 @router.put("/diagrams/settings")
 async def put_diagram_settings(
-    body: DiagramSettingsBody, session: Session
+    request: Request, body: DiagramSettingsBody, session: Session
 ) -> dict[str, Any]:
-    """Choose self-hosted or public draw.io (admin only)."""
-    return await svc.set_settings(session, mode=body.mode, url=body.url)
+    """Choose the built-in, a self-hosted or the public draw.io editor (admin only)."""
+    return await svc.set_settings(
+        session, mode=body.mode, url=body.url, origin=_origin(request)
+    )
+
+
+def _origin(request: Request) -> str:
+    """The board's address as the caller reached it: the built-in editor is served there."""
+    return str(request.base_url).rstrip("/")
 
 
 @router.get("/diagrams/{diagram_id}")
