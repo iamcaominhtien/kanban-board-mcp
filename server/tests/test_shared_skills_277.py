@@ -13,6 +13,8 @@ from tests.test_ai import env  # noqa: F401
 
 SHARED = [
     "working-a-ticket",
+    # how every part of a ticket is used, and where files go (issue #269)
+    "working-with-tickets",
     "evidence-and-handover",
     "repo-and-machine",
     "asking-and-writing",

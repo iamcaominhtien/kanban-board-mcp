@@ -26,6 +26,19 @@ export const codeApi = {
   remove: async (ticketId: string) =>
     (await client.post<Worktree>(`/tickets/${ticketId}/ai/worktree/remove`, { force: false })).data,
   keep: async (ticketId: string) => (await client.post<Worktree>(`/tickets/${ticketId}/ai/worktree/keep`)).data,
+  /** Discard what is not committed and remove the worktree (a person's choice, confirmed first). */
+  discard: async (ticketId: string) =>
+    (await client.post<Worktree>(`/tickets/${ticketId}/ai/worktree/remove`, { force: true })).data,
+  /** Move the outputs left in the worktree (screenshots, logs, reports) to the ticket's Workspace. */
+  moveOutputs: async (ticketId: string) =>
+    (
+      await client.post<{ moved: string[]; to?: string; left?: string[]; reason?: string }>(
+        `/tickets/${ticketId}/ai/worktree/outputs`,
+      )
+    ).data,
+  /** Commit the code left in the worktree on its branch (outputs never go in the commit). */
+  commit: async (ticketId: string) =>
+    (await client.post<{ committed: boolean; left: string[] }>(`/tickets/${ticketId}/ai/worktree/commit`)).data,
   cleanup: async (projectId: string) =>
     (await client.post<CleanupResult>(`/projects/${projectId}/ai/worktrees/cleanup`)).data,
   open: async (ticketId: string) =>

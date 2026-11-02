@@ -8,6 +8,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.29.0] - 2026-11-03
+
+Tickets look like their designs, and every AI uses every part of a ticket: criteria, sub-tickets, blocks, work log, test cases, attachments, Docs links and branches; files a person should see go to the ticket's Workspace and never into the branch (#269).
+
+### Added
+- **A ticket guide for every AI**: what a good title, description and acceptance criteria are, when to use a sub-task, a sub-ticket, a Story, a block or a link, how to keep the work log, a comment a person reads in ten seconds, test cases and attachments as evidence, where each kind of file goes (code in the worktree, committed; reports, screenshots, logs and exports in the Workspace), never saying a file is somewhere without looking, and what each of the twelve roles leaves on a ticket. It is the `working-with-tickets` skill of the board's plugin and `docs_read(action='ticket_guide')` for any other agent: one text, a test checks both are the same. Each run's prompt says what its own role leaves on a ticket.
+- **Attachments over MCP**: `ticket_items(item='attachment', path=…, text=…)` posts a file in a comment, so it shows in the ticket's Attachments, and returns `attached.markdown` to reuse in a test case's proof or the description. An agent outside a board run names the file by its absolute path; a picture or document named that way in a comment, work log, proof or Docs page is attached too (keys, `.env` and anything under a dot folder never are).
+- `manage_ticket(create)` takes `acceptance_criteria`: they are written with the ticket, so the AI team's intake never takes a new ticket before it has any.
+- **What blocks a worktree's clean-up, and what to do about it**: the ticket's AI view lists the files not committed (outputs marked) with **Move N outputs to the Workspace**, **Commit the code** and **Discard…** (asks first).
+- **Move a Workspace to another ticket** of the same project (Move to ticket… in the panel, `POST /tickets/{id}/workspace/move`), recorded in both tickets' activity.
+
+### Changed
+- Every work run of a ticket is told where files go: code in the worktree, committed; outputs a person should see in the ticket's Workspace, whose path it gets (the folder is made when the run starts, when Workspace is on). Claude Code runs may write there (`--add-dir`); a file there can be named in a proof or comment like one in the worktree. The QA and user-tester skills and workflow steps keep their screenshots and reports there.
+- **When a run ends, the outputs it left in the worktree** (untracked screenshots, logs, reports, exports) move to `Workspace/from-worktree/<date-time>/`, and the work log says what moved and where. A run waiting for an answer keeps its files.
+- `get_ticket` says what is really there: `workspace` {path, exists, file_count, files, note} read from disk, `workspace_path` only when the folder exists, and `worktree` {path, branch, state, uncommitted, outputs, note}.
+- A rule in every run's prompt and in the MCP instructions: never claim without checking. Before saying a file, branch or page exists or where it is, look, and name the exact place.
+- The work-log `role` field says which role a QA (Tester) or a reviewer (Other) takes.
+
+### Fixed
+- **A QA's screenshots and logs were committed into the product's branch**: the hand-over at Review and Done ran `git add -A` on the worktree, so whatever a run left there went into the pull request or the merge. Outputs now go to the Workspace first, and stay out of the commit when the Workspace is off.
+- **A PM said a QA's files were "in the Workspace" that had never been made**: `get_ticket` gave the Workspace's path whether or not the folder existed, no run was told about the Workspace, and a Claude Code run could not have written there anyway.
+- Open folder on a machine without a file manager made the ticket's Workspace folder before failing, leaving an empty folder behind.
+- The tests no longer make ticket folders in the home folder (`KANBAN_WORKSPACE_ROOT`).
+
 ## [3.28.0] - 2026-11-03
 
 Each AI role works like a good professional in that role, and the roles work together (#273). Measured with live sonnet runs, before and after, on the same small task per role.

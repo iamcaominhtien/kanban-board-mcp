@@ -228,6 +228,8 @@ def classify(tool: str, action: str, params: dict) -> list[str]:
             "comment": ["comment"],
             # the AI's own notes on its work, which every run is asked to write: a comment, not a field edit
             "work_log": ["comment"],
+            # a file posted in a comment (a screenshot, a report): a comment too
+            "attachment": ["comment"],
             "test_case": ["manage_test_cases"],
         }.get(item, ["edit_fields"])
     if tool == "manage_ticket":
@@ -882,7 +884,7 @@ async def guarded(tool: str, action: str, given: dict, call):
             )
     tokens = enter(ctx) if current() is None else None
     try:
-        if tool == "ticket_items" and action == "comment.add":
+        if tool == "ticket_items" and action in ("comment.add", "attachment.add"):
             given = {**given, "author": ctx.member_name}
         if tool == "docs_write" and _approved.get() is None:
             # Docs AI on: a page edit becomes a proposal (or a private draft); the published page is never touched
@@ -928,7 +930,7 @@ async def guarded(tool: str, action: str, given: dict, call):
                 result = {**result, "board_notice": notice}
         if (
             tool == "ticket_items"
-            and action == "comment.add"
+            and action in ("comment.add", "attachment.add")
             and isinstance(result, dict)
         ):
             await _after_ai_comment(ctx, result)

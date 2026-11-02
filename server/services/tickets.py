@@ -259,6 +259,9 @@ async def get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
     return await session.get(Ticket, ticket_id)
 
 
+MAX_NEW_CRITERIA = 50
+
+
 async def create_ticket(
     session: AsyncSession,
     project_id: str,
@@ -274,6 +277,7 @@ async def create_ticket(
     tags: list | None = None,
     created_by: str | None = None,
     assignee: str | None = None,
+    acceptance_criteria: list[str] | None = None,
 ) -> Ticket:
     """Validate and create a ticket with the next project number.
 
@@ -291,6 +295,8 @@ async def create_ticket(
         tags: Tag names.
         created_by: Actor recorded as creator.
         assignee: Member id; must belong to the project.
+        acceptance_criteria: Criteria to start with, one checkable condition each. Written with the ticket, so the
+            AI team's intake (which may take a new ticket at once) never sees it without them.
 
     Returns:
         The created ticket.
@@ -307,6 +313,18 @@ async def create_ticket(
 
     if parent_id is not None:
         await _validate_parent(session, parent_id, project_id, None)
+    if acceptance_criteria and len(acceptance_criteria) > MAX_NEW_CRITERIA:
+        raise ValueError(
+            f"At most {MAX_NEW_CRITERIA} acceptance criteria at once: split the ticket, or add the rest one by one."
+        )
+    criteria = [
+        {
+            "id": str(uuid.uuid4()),
+            "text": _clean_text(c, "Acceptance criterion", MAX_AC_TEXT),
+            "done": False,
+        }
+        for c in (acceptance_criteria or [])
+    ]
 
     # Validate assignee belongs to this project
     if assignee is not None:
@@ -350,6 +368,10 @@ async def create_ticket(
         assignee=assignee,
         activity_log=_dumps([act.entry("created", None, None, ref=title)]),
     )
+    if criteria:
+        ticket.acceptance_criteria = _dumps(criteria)
+        for c in criteria:
+            act.record(ticket, "acceptance_criterion", None, c["text"])
     if type == "story" and parent_id:
         raise ValueError(
             "A Story holds tickets, never Stories: it cannot have a parent."

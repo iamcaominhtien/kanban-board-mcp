@@ -22,7 +22,7 @@ async def _with_pictures(session, markdown: str, page_id: str | None = None) -> 
     written when its file is not there (an imported page's `images/…`), so the AI can still edit that page."""
     if "](" not in markdown:
         return markdown
-    folder = await common.run_folder()
+    folder = await common.attach_folder()
     if folder is None:
         return markdown
     keep: set[str] = set()

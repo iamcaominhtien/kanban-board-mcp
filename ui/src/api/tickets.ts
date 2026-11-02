@@ -577,6 +577,24 @@ export async function initTicketWorkspace(ticketId: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/init`);
 }
 
+/**
+ * Move (or copy) a ticket's workspace folder to another ticket of the same project.
+ * @param ticketId - Ticket whose workspace moves.
+ * @param toTicketId - Ticket that receives it.
+ * @param mode - `move` (the default) or `copy`.
+ */
+export async function moveTicketWorkspace(
+  ticketId: string,
+  toTicketId: string,
+  mode: 'move' | 'copy' = 'move',
+): Promise<{ result: string; path: string; to: string }> {
+  const res = await client.post<{ result: string; path: string; to: string }>(`/tickets/${ticketId}/workspace/move`, {
+    to_ticket_id: toTicketId,
+    mode,
+  });
+  return res.data;
+}
+
 /** Open a ticket's workspace in the file manager. */
 export async function openTicketWorkspace(ticketId: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/open`);

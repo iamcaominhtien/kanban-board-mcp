@@ -22,6 +22,7 @@ from .tickets import (
 from .relations import block_ticket, unblock_ticket, link_tickets, unlink_tickets
 from .comments import (
     add_comment,
+    attach_file,
     update_comment,
     delete_comment,
     restore_comment,
@@ -85,6 +86,7 @@ from .canvases import (
     permissions_guide,
     shared_guides,
     role_guide,
+    ticket_guide,
     list_project_canvases,
     read_canvas,
     create_canvas_from_files,
@@ -123,6 +125,7 @@ __all__ = [
     "link_tickets",
     "unlink_tickets",
     "add_comment",
+    "attach_file",
     "update_comment",
     "delete_comment",
     "restore_comment",
@@ -159,6 +162,7 @@ __all__ = [
     "permissions_guide",
     "shared_guides",
     "role_guide",
+    "ticket_guide",
     "list_project_canvases",
     "read_canvas",
     "create_canvas_from_files",

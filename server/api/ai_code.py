@@ -65,6 +65,23 @@ async def post_remove_worktree(
     return svc_worktrees.to_dict(row)
 
 
+@router.post("/tickets/{ticket_id}/ai/worktree/outputs")
+async def post_move_outputs(ticket_id: str) -> dict:
+    """Move the outputs left in the worktree (untracked screenshots, logs, reports) to the ticket's Workspace."""
+    result = await svc_worktrees.move_outputs(ticket_id)
+    await svc_worktrees.log_tidy(ticket_id, result, by=_by())
+    return result
+
+
+@router.post("/tickets/{ticket_id}/ai/worktree/commit")
+async def post_commit_worktree(ticket_id: str) -> dict:
+    """Commit the code left uncommitted in the worktree on its branch (outputs go to the Workspace first)."""
+    try:
+        return await svc_worktrees.commit_now(ticket_id, by=_by())
+    except svc_worktrees.WorktreeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.post("/tickets/{ticket_id}/ai/worktree/keep")
 async def post_keep_worktree(ticket_id: str, session: Session) -> dict:
     """Keep a finished worktree (Clean up finished skips it)."""

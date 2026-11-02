@@ -42,6 +42,59 @@ async def add_comment(
 
 
 @notify_on_success
+async def attach_file(
+    ticket_id: TicketId,
+    path: Annotated[
+        str,
+        Field(
+            description="The file: in an AI run its path in your working folder (qa/evidence/TC-1.png); outside a board run its absolute path on this computer."
+        ),
+    ],
+    author: Annotated[
+        str, Field(description="Name shown on the comment that carries it.")
+    ] = "Claude",
+    text: Annotated[
+        str | None,
+        Field(description="What the file shows or why it is here (one line)."),
+    ] = None,
+) -> dict:
+    """Attach a file (a screenshot, a log, a report, a PDF, a spreadsheet) to a ticket: the board keeps a copy and posts
+    it in a comment, so it shows in the ticket's Attachments with the comment it came from. Returns the ticket with
+    `attached: {url, markdown}`; put `markdown` in a test case's proof or the description to show it there too."""
+    import os
+
+    import uploads
+
+    name = os.path.basename(path.strip()) or "file"
+    if os.path.splitext(name)[1].lower() not in uploads.MIME_BY_EXTENSION:
+        raise ValueError(
+            f"{path}: not a type the board stores (png, jpg, webp, gif, pdf, txt, log, json, csv, md, xlsx, docx, zip, "
+            "mp4 …). Zip it, or export it as one of those."
+        )
+    image = os.path.splitext(name)[1].lower() in uploads.SUPPORTED_IMAGE_EXTENSIONS
+    ref = f"{'!' if image else ''}[{name}]({path.strip()})"
+    folder = await common.attach_folder()
+    import services.proofs as svc_proofs
+
+    # a link to a file is only copied when it is a document; a direct attach copies any type the board stores
+    try:
+        stored = svc_proofs.localize(ref, folder) if folder else None
+    except svc_proofs.ProofError as exc:
+        raise ValueError(str(exc)) from exc
+    if not stored or "/uploads/" not in stored:
+        raise ValueError(
+            f"{path}: not attached. Name a file in your working folder (in an AI run) or by its absolute path."
+        )
+    body = f"{text.strip()}\n\n{stored}" if text and text.strip() else stored
+    ticket = await _edit_ticket(
+        ticket_id,
+        lambda s: svc_tickets.add_comment(s, ticket_id, text=body, author=author),
+    )
+    url = stored[stored.rindex("](") + 2 : -1]
+    return {**ticket, "attached": {"url": url, "markdown": stored}}
+
+
+@notify_on_success
 async def update_comment(
     ticket_id: TicketId,
     comment_id: CommentId,

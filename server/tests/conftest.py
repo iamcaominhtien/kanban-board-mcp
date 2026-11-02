@@ -97,6 +97,14 @@ def _claude_account_is_empty(monkeypatch, tmp_path_factory):
 
 
 @pytest.fixture(autouse=True)
+def _workspaces_in_a_temp_folder(monkeypatch, tmp_path_factory):
+    """A run makes its ticket's Workspace (issue #269): never in the machine's own home folder."""
+    monkeypatch.setenv(
+        "KANBAN_WORKSPACE_ROOT", str(tmp_path_factory.mktemp("kanban-workspace"))
+    )
+
+
+@pytest.fixture(autouse=True)
 def _app_config_in_a_temp_folder(monkeypatch, tmp_path_factory):
     """App-wide switches (config.json) must never touch the developer's own ~/.kanban-board."""
     import config

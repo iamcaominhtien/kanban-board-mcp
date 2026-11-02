@@ -453,10 +453,19 @@ def _core_rules(member, settings) -> list[str]:
                 f"Read your role's guide before you start: docs_read(action='role_guide', query='{role}')."
             )
         rules.append(
-            "docs_read(action='guides') has the detail (working a ticket, evidence and handover, the repository "
-            "and the machine, asking and writing, working together, brainstorming, the end user's eyes, office "
-            "files): read the one the work calls for."
+            "docs_read(action='guides') has the detail (working a ticket, the parts of a ticket, evidence and "
+            "handover, the repository and the machine, asking and writing, working together, brainstorming, the end "
+            "user's eyes, office files): read the one the work calls for."
         )
+    from services import ticket_guide
+
+    line = ticket_guide.role_line(
+        role,
+        skill=getattr(member, "provider", "claude-code") == "claude-code"
+        and ticket_guide.NAME in names,
+    )
+    if line:
+        rules.append(line)
     return rules
 
 

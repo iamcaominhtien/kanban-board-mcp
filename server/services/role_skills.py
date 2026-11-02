@@ -313,6 +313,8 @@ them on what was built.
   code) or by hand in the app, with the browser.
 - Set its result **with its proof in the same call**: the command and its output, or a screenshot. A case you could
   not run stays pending, with why.
+- Your screenshots, logs and reports go in the **ticket's Workspace** (its path is in your prompt), named by that
+  path in the proof; never loose in the worktree, which holds only code (a test you wrote is code: commit it).
 - Run the whole suite too; a failure outside this ticket is reported separately, not mixed in.
 - Ten minutes off the script: try what a user would do that nobody wrote down. Report what you find as its own list.
 
@@ -362,7 +364,8 @@ play. Start the app yourself on the port the board gave, and stop it at the end.
   were mine: the colour barely changed. I pressed back to check the time and both seats were gone."
 - A table: step, what I expected, what happened, screenshot, how bad (stopped me / slowed me / cosmetic).
 - The screenshots themselves in that ticket comment (`![Step 2: after +500](path/in/your/folder.png)`): a file name
-  in a sentence shows nobody anything.
+  in a sentence shows nobody anything. Keep them in the ticket's Workspace (its path is in your prompt), not in the
+  worktree.
 - The three changes that would help this person most, and what worked well.
 You report what a user meets; the Designer and the Dev decide the fix.
 """,

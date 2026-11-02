@@ -102,7 +102,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Test",
                 "kind": "ai",
                 "role": "qa",
-                "hands_in": "Every test case run, passed or failed, each with its evidence: a screenshot or the command and its output",
+                "hands_in": "Every test case run, passed or failed, each with its evidence: a screenshot or the command and its output; its screenshots, logs and reports in the ticket's Workspace, none left in the worktree",
             },
             {
                 "key": "review",
@@ -153,7 +153,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Try it",
                 "kind": "ai",
                 "role": "user_tester",
-                "hands_in": "What it tried and where it got stuck, with a screenshot of each screen it used and the browser console's errors",
+                "hands_in": "What it tried and where it got stuck, with a screenshot of each screen it used and the browser console's errors; the screenshots kept in the ticket's Workspace",
             },
             {
                 "key": "review",

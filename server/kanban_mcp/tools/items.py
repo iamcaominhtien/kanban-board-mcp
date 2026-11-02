@@ -15,7 +15,9 @@ ItemId = Annotated[
     ),
 ]
 
-ItemKind = Literal["comment", "work_log", "criterion", "sub_task", "test_case"]
+ItemKind = Literal[
+    "comment", "work_log", "criterion", "sub_task", "test_case", "attachment"
+]
 ItemAction = Literal["add", "update", "delete", "toggle", "restore"]
 
 _TEST_CASE_FIELDS = (
@@ -29,6 +31,9 @@ _TEST_CASE_FIELDS = (
 
 ITEM_OPS: dict[tuple[str, str], Op] = {
     ("comment", "add"): Op(ops.add_comment, ("ticket_id", "text", "author")),
+    ("attachment", "add"): Op(
+        ops.attach_file, ("ticket_id", "path"), ("author", "text")
+    ),
     ("comment", "update"): Op(
         ops.update_comment,
         ("ticket_id", "item_id", "text"),
@@ -120,7 +125,7 @@ async def ticket_items(
     text: Annotated[
         str | None,
         Field(
-            description="comment: Markdown, max 50,000 chars; ![a](x.png)/[b](x.xlsx) by working-folder path attach (also work_log); @Name mentions a member, but only ai_team(ask) wakes an AI. criterion: one checkable condition, max 1,000 chars (e.g. 'Login fails with a clear message on a wrong password'). sub_task: one small step, max 500 chars."
+            description="comment: Markdown, max 50,000 chars; ![a](x.png)/[b](x.xlsx) by working-folder (or absolute) path attach (also work_log); @Name mentions a member, but only ai_team(ask) wakes an AI. criterion: one checkable condition, max 1,000 chars (e.g. 'Login fails with a clear message on a wrong password'). sub_task: one small step, max 500 chars."
         ),
     ] = None,
     author: Annotated[
@@ -131,7 +136,9 @@ async def ticket_items(
     ] = None,
     role: Annotated[
         WorkLogRole | None,
-        Field(description="work_log add: the author's role on this work."),
+        Field(
+            description="work_log add: your role (QA: Tester; reviewer, security, writer: Other)."
+        ),
     ] = None,
     note: Annotated[
         str | None,
@@ -192,6 +199,12 @@ async def ticket_items(
             description="test_case: member id (UUID) who runs it; see get_projects(project_id)."
         ),
     ] = None,
+    path: Annotated[
+        str | None,
+        Field(
+            description="attachment: the file (absolute path; in a board run, a working-folder path)."
+        ),
+    ] = None,
     items: Annotated[
         list[dict] | None,
         Field(
@@ -205,6 +218,7 @@ async def ticket_items(
     - work_log, the ticket's debug journal (Debug Space tab): what you investigated, tried and found, for humans and later sessions. add (author, role, note [, log_kind, pinned, linked_branch, linked_test_case]) | update (item_id [, note, log_kind, pinned, linked_branch, linked_test_case]; to record a fix add a new 'resolved' entry rather than editing an old one) | delete (item_id, permanent).
     - criterion, acceptance criteria (the ticket's definition of done): add (text) | toggle (item_id; flips done/not done, see `acceptance_criteria[].done` in the result) | delete (item_id).
     - sub_task, small checklist steps inside the ticket (not tickets; for real child tickets use manage_ticket with parent_id): add (text) | toggle (item_id) | delete (item_id).
+    - attachment: add (path [, text, author]): a file posted in a comment (`text`: what it shows); `attached.markdown` reuses it in a proof.
     - test_case: add (title [, status, description, expected_result, notes, proof, assignee]) gets a code 'TC-<n>' | update (item_id [, same fields + title]; typically status and proof after running it) | delete (item_id). With the ticket's 'Done requires: all test cases passed' guard on, it cannot move to 'done' until every test case is 'pass'."""
     given = params_of(locals())
     many = given.pop("items", None)

@@ -4,6 +4,8 @@ export type HandoverRoute = 'auto' | 'pr' | 'local' | 'branch';
 
 export interface WorktreeLive {
   uncommitted: string[];
+  /** The untracked outputs among them (screenshots, logs, reports): they belong in the Workspace, not the branch. */
+  outputs?: string[];
   sizeMb: number;
   exists: boolean;
   ahead: number;
