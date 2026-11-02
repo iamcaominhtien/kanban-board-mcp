@@ -738,7 +738,7 @@ export function DocsTree({
               style={{
                 width: 7,
                 height: 7,
-                borderRadius: '50%',
+                borderRadius: 2,
                 background: '#B4791E',
                 flexShrink: 0,
                 margin: '0 3px',

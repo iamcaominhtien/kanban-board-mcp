@@ -48,6 +48,7 @@ import { SlashMenu } from './SlashMenu';
 import type { AiSlashId, SlashItem } from './slashItems';
 import { TableControls } from './TableControls';
 import { cleanEditorMarkdown } from '../../../utils/docsMarkdown';
+import { compactMarkdown } from './compactMarkdown';
 
 export type EditorMode = 'visual' | 'markdown';
 
@@ -468,7 +469,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const emit = useCallback(() => {
     const ed = editorRef.current;
     if (!ed || ed.isDestroyed) return lastMd.current;
-    const md = cleanEditorMarkdown(ed.getMarkdown());
+    const md = compactMarkdown(cleanEditorMarkdown(ed.getMarkdown()));
     if (md !== lastMd.current) {
       lastMd.current = md;
       live.current.onChange(md);
@@ -599,6 +600,24 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   // the editor says it has AI, so the board-wide Ctrl+J leaves the key to it
   const hasTextAi = textAi.available;
+  // ED-2: one bar on a selection. The formatting bar shows first; its "AI" item swaps it for the AI selection bar,
+  // which closes again when the selection changes or on Esc
+  const [aiBarOpen, setAiBarOpen] = useState(false);
+  useEffect(() => {
+    if (!editor || !aiBarOpen) return undefined;
+    // the AI bar places itself on selection events; give it one now that it is mounted
+    editor.view.dom.dispatchEvent(new Event('select'));
+    const close = () => setAiBarOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    editor.on('selectionUpdate', close);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      editor.off('selectionUpdate', close);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [editor, aiBarOpen]);
   useEffect(() => {
     const dom = editor && !editor.isDestroyed ? (editor.view.dom as HTMLElement) : null;
     if (!dom) return undefined;
@@ -814,21 +833,23 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             </div>
           )}
         </div>
-        {editor && !readOnly && (
+        {editor && !readOnly && !aiBarOpen && (
           <BubbleToolbar
             editor={editor}
             linkOpen={linkOpen}
             setLinkOpen={setLinkOpen}
             ticketPrefix={ticketPrefix}
             onComment={comments ? startComment : undefined}
-            // the selection bar of the AI layer (Improve, Shorten, Fix spelling, Explain, Ask…) replaces these three
+            // the selection bar of the AI layer (Improve, Shorten, Fix spelling, Explain, Ask…) replaces these three;
+            // it opens from the bar's "AI" item, so one bar shows at a time
             onAi={hasTextAi ? undefined : ai?.onSelection}
+            onAiBar={inlineAi && hasTextAi ? () => setAiBarOpen(true) : undefined}
           />
         )}
         {inlineAi && (
           <>
             {textAi.layer}
-            <EditorAiSelectionBar ai={textAi} adapter={aiAdapter} />
+            {aiBarOpen && <EditorAiSelectionBar ai={textAi} adapter={aiAdapter} />}
           </>
         )}
         {slashState && (

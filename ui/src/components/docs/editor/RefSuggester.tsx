@@ -494,6 +494,55 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
             );
           })}
         </div>
+        {/* ED-8: what Enter inserts is part of the card (above its footer), not a strip over the page below */}
+        {preview && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 5,
+              padding: '8px 12px',
+              borderTop: '1px solid #E3E8E5',
+              background: '#FFFFFF',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#5B6B60',
+              }}
+            >
+              Enter inserts
+            </div>
+            <div
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 12,
+                lineHeight: 1.6,
+                padding: '7px 10px',
+                borderRadius: 7,
+                background: '#F6FAF7',
+                border: '1px solid #E3E8E5',
+                color: '#3A4A3E',
+                overflowWrap: 'anywhere',
+              }}
+            >
+              {state.lineBefore.slice(-60)}
+              <span
+                style={{
+                  color: preview.ticket ? '#6D5DD3' : '#2F6FB0',
+                  background: preview.ticket ? 'rgba(109,93,211,0.10)' : 'rgba(47,111,176,0.10)',
+                  borderRadius: 3,
+                }}
+              >
+                {preview.token}
+              </span>
+            </div>
+          </div>
+        )}
         <MenuFooter>
           <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
             <span className="dk-kbd">&uarr; &darr;</span>move
@@ -524,46 +573,6 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
           </button>
         </MenuFooter>
       </div>
-      {preview && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 6 }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: '#5B6B60',
-            }}
-          >
-            Enter inserts
-          </div>
-          <div
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 12,
-              lineHeight: 1.6,
-              padding: '7px 10px',
-              borderRadius: 7,
-              background: '#F6FAF7',
-              border: '1px solid #E3E8E5',
-              color: '#3A4A3E',
-              overflowWrap: 'anywhere',
-              boxShadow: '0 6px 16px rgba(30,42,34,0.08)',
-            }}
-          >
-            {state.lineBefore.slice(-60)}
-            <span
-              style={{
-                color: preview.ticket ? '#6D5DD3' : '#2F6FB0',
-                background: preview.ticket ? 'rgba(109,93,211,0.10)' : 'rgba(47,111,176,0.10)',
-                borderRadius: 3,
-              }}
-            >
-              {preview.token}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

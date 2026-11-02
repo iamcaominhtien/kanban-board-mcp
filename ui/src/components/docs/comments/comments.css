@@ -16,9 +16,13 @@
 ::highlight(dk-cmt-pending) {
   background-color: #cfe5d6;
 }
+/* the number sits inline right after the highlighted text, centred on the line (CM-1) */
 .dk-cmt-badge {
-  position: absolute;
-  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: 2px;
+  margin-left: 3px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -29,11 +33,12 @@
   /* "font: 700 10px/16px inherit" is invalid CSS (inherit cannot be part of the shorthand), so it was dropped */
   font-weight: 700;
   font-size: 10px;
-  line-height: 16px;
+  line-height: 1;
   font-family: inherit;
   text-align: center;
+  text-indent: 0;
   cursor: pointer;
-  box-shadow: 0 0 0 2px #fff;
+  user-select: none;
 }
 .dk-cmt-badge.is-active {
   background: #8a5a0b;
@@ -48,18 +53,18 @@
   background: #f7d25c;
   border-bottom-color: #b4791e;
 }
+/* inline (not inline-block): no line break between the text and its number, and the line keeps its height */
 .dk-cmt-hl::after {
   content: attr(data-num);
-  display: inline-block;
-  min-width: 16px;
-  height: 16px;
+  display: inline;
+  padding: 2px 5px;
   margin-left: 3px;
   border-radius: 8px;
   background: #1e2a22;
   color: #fff;
   font-weight: 700;
   font-size: 10px;
-  line-height: 16px;
+  line-height: 1;
   font-family: inherit;
   text-align: center;
   vertical-align: 1px;
@@ -455,9 +460,11 @@
   box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.12);
   border-radius: 10px;
   background: #fff;
-  overflow: hidden;
+  /* visible, so the "+" menu can open over the box (CM-2); the field keeps the rounded top itself */
+  overflow: visible;
 }
 .dc-box textarea {
+  border-radius: 10px 10px 0 0;
   display: block;
   width: 100%;
   box-sizing: border-box;
@@ -474,12 +481,14 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 5px 6px 6px;
+  padding: 4px 6px;
   border-top: 1px solid #eef3ef;
 }
+/* CM-2: 28 px tools, B I code │ @ link, the rest behind "+" */
 .dc-tool {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   border: none;
   background: none;
   border-radius: 6px;
@@ -490,8 +499,56 @@
   align-items: center;
   justify-content: center;
 }
-.dc-tool:hover {
+.dc-tool:hover,
+.dc-tool[aria-expanded='true'] {
   background: #eef1ee;
+}
+.dc-sep {
+  width: 1px;
+  height: 16px;
+  background: #dce6df;
+  margin: 0 5px;
+  flex-shrink: 0;
+}
+.dc-more {
+  position: relative;
+  display: inline-flex;
+}
+.dc-more-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 5;
+  min-width: 200px;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+  display: flex;
+  flex-direction: column;
+}
+.dc-more-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.dc-more-menu button:hover {
+  background: #f1f5f2;
+}
+.dc-more-menu button > :first-child {
+  color: #5b6b60;
+  display: inline-flex;
 }
 .dc-plain {
   border: none;
@@ -686,11 +743,32 @@ kbd {
   flex-direction: column;
   gap: 9px;
 }
+.dc-compose-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dc-compose-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 .dc-compose-title {
   font-weight: 700;
   font-size: 13.5px;
+  color: #1e2a22;
 }
 .dc-hint {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
   font-size: 12px;
   color: #7a887f;
 }

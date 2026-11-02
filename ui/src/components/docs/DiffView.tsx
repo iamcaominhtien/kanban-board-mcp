@@ -52,7 +52,8 @@ function sectionOf(g: Group): DiffSection | null {
   const added = g.rows.filter((r) => r.type === 'add').length;
   const removed = g.rows.filter((r) => r.type === 'del').length;
   if (!added && !removed) return null;
-  const same = g.rows.some((r) => r.type === 'same');
+  // a blank line the two versions share does not make a new section "Changed": only unchanged text does
+  const same = g.rows.some((r) => r.type === 'same' && r.text.trim() !== '');
   return {
     heading: g.heading,
     added,

@@ -38,9 +38,16 @@
   color: #1e2a22;
   margin: 20px 0 6px;
 }
-.dk-editor .ProseMirror > h1:first-child,
-.dk-editor .ProseMirror > h2:first-child {
-  margin-top: 6px;
+/* ED-1: headings keep the reading view's top margins; the "* + *" reset above would otherwise zero them, and the
+   first heading sits about 40 px under the title rule as in view mode */
+.dk-editor .ProseMirror > h1 {
+  margin-top: 34px;
+}
+.dk-editor .ProseMirror > h2 {
+  margin-top: 30px;
+}
+.dk-editor .ProseMirror > h3 {
+  margin-top: 20px;
 }
 .dk-editor p {
   margin: 0 0 12px;

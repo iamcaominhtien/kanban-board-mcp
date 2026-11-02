@@ -11,9 +11,11 @@ import { getAvatarColors } from '../MemberAvatar';
 import { CommentsPanel } from './comments/CommentsPanel';
 import { OrphanWarning } from './comments/OrphanWarning';
 import { ComposePopover, type Pick } from './comments/SelectionComment';
+import { personOf } from './comments/people';
 import { useCommentsController } from './comments/useCommentsController';
 import './comments/comments.css';
 import { DocsEditor, type DocsEditorHandle, type EditorMode } from './editor/DocsEditor';
+import { EditorErrorBoundary } from './editor/EditorErrorBoundary';
 import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorReplace';
 import { Icon } from './Icon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
@@ -402,7 +404,10 @@ export function DocsEditScreen({
       style={{ flex: 1, minWidth: 0, display: 'flex', minHeight: 0, background: '#FFFFFF' }}
     >
       {rail}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div
+        className="dk-find-push"
+        style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}
+      >
         <header
           style={{
             display: 'flex',
@@ -589,103 +594,105 @@ export function DocsEditScreen({
 
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-            <DocsEditor
-              ref={editor}
-              projectId={projectId}
-              markdown={markdown}
-              mode={mode}
-              nodes={nodes}
-              currentPageId={page.id}
-              pageTitle={title}
-              filename={`${page.slug}.md`}
-              onOpenPage={onOpenPage}
-              onOpenTicket={onOpenTicket}
-              onChange={(md) => {
-                if (md === latest.current.markdown) return;
-                setMarkdown(md);
-                // the editor re-serialises the markdown right after loading: that is not an edit
-                if (!userInput.current && Date.now() - mountedAt.current < 2500 && !dirty.current) return;
-                touch();
-              }}
-              comments={
-                canComment
-                  ? { threads: highlightThreads, activeId: cc.activeId, onSelect: cc.activate, onPick }
-                  : undefined
-              }
-              onBlur={() => void flush()}
-              onUserInput={() => {
-                userInput.current = true;
-                // the editor reports changes after a short debounce: flag the draft as behind right away
-                setSaveState((s) => (s === 'saved' ? 'dirty' : s));
-              }}
-              inlineAi={{ surface: 'doc', projectId }}
-              ai={{
-                onAsk: () => setAiMenu((v) => !v),
-                onSlash: (id) => setAiCommand((c) => ({ id, n: (c?.n ?? 0) + 1 })),
-                docsAi: docsAiOn,
-                onSelection: (action, text) => {
-                  if (action === 'ask') {
-                    assist?.ask({
-                      scope: 'doc',
-                      docId: page.id,
-                      text: `About this passage of the page: “${text.slice(0, 600)}” — what does it mean, and is anything missing?`,
-                    });
-                    return;
-                  }
-                  void startSelectionDraft(projectId, page.id, action, text)
-                    .then(() => qc.invalidateQueries({ queryKey: ['assist', 'doc-drafts', projectId, page.id] }))
-                    .catch((e: unknown) => toast.error('Board AI', extractError(e)));
-                },
-              }}
-              header={
-                <div style={{ paddingBottom: 12, marginBottom: 6, borderBottom: '1px solid #E3E8E5' }}>
-                  <input
-                    aria-label="Page title"
-                    placeholder="Page title"
-                    value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      touch();
-                    }}
-                    style={{
-                      width: '100%',
-                      border: 'none',
-                      outline: 'none',
-                      background: 'transparent',
-                      fontFamily: 'inherit',
-                      fontSize: 32,
-                      fontWeight: 800,
-                      lineHeight: 1.15,
-                      letterSpacing: '-0.01em',
-                      color: '#1E2A22',
-                      padding: 0,
-                    }}
-                  />
-                  <DocsAi
-                    projectId={projectId}
-                    pageId={page.id}
-                    pageTitle={title}
-                    menuOpen={aiMenu}
-                    setMenuOpen={setAiMenu}
-                    hidden={!!page.aiHidden}
-                    command={aiCommand}
-                    onCreateTickets={setTicketsFrom}
-                    ed={{
-                      getEditor: () => editor.current?.getEditor() ?? null,
-                      getMarkdown: () => editor.current?.flush() ?? latest.current.markdown,
-                      setMarkdown: (md) => {
-                        editor.current
-                          ?.getEditor()
-                          ?.commands.setContent(md, { contentType: 'markdown', emitUpdate: true } as never);
-                        userInput.current = true;
-                        setMarkdown(md);
+            <EditorErrorBoundary>
+              <DocsEditor
+                ref={editor}
+                projectId={projectId}
+                markdown={markdown}
+                mode={mode}
+                nodes={nodes}
+                currentPageId={page.id}
+                pageTitle={title}
+                filename={`${page.slug}.md`}
+                onOpenPage={onOpenPage}
+                onOpenTicket={onOpenTicket}
+                onChange={(md) => {
+                  if (md === latest.current.markdown) return;
+                  setMarkdown(md);
+                  // the editor re-serialises the markdown right after loading: that is not an edit
+                  if (!userInput.current && Date.now() - mountedAt.current < 2500 && !dirty.current) return;
+                  touch();
+                }}
+                comments={
+                  canComment
+                    ? { threads: highlightThreads, activeId: cc.activeId, onSelect: cc.activate, onPick }
+                    : undefined
+                }
+                onBlur={() => void flush()}
+                onUserInput={() => {
+                  userInput.current = true;
+                  // the editor reports changes after a short debounce: flag the draft as behind right away
+                  setSaveState((s) => (s === 'saved' ? 'dirty' : s));
+                }}
+                inlineAi={{ surface: 'doc', projectId }}
+                ai={{
+                  onAsk: () => setAiMenu((v) => !v),
+                  onSlash: (id) => setAiCommand((c) => ({ id, n: (c?.n ?? 0) + 1 })),
+                  docsAi: docsAiOn,
+                  onSelection: (action, text) => {
+                    if (action === 'ask') {
+                      assist?.ask({
+                        scope: 'doc',
+                        docId: page.id,
+                        text: `About this passage of the page: “${text.slice(0, 600)}” — what does it mean, and is anything missing?`,
+                      });
+                      return;
+                    }
+                    void startSelectionDraft(projectId, page.id, action, text)
+                      .then(() => qc.invalidateQueries({ queryKey: ['assist', 'doc-drafts', projectId, page.id] }))
+                      .catch((e: unknown) => toast.error('Board AI', extractError(e)));
+                  },
+                }}
+                header={
+                  <div style={{ paddingBottom: 12, marginBottom: 6, borderBottom: '1px solid #E3E8E5' }}>
+                    <input
+                      aria-label="Page title"
+                      placeholder="Page title"
+                      value={title}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
                         touch();
-                      },
-                    }}
-                  />
-                </div>
-              }
-            />
+                      }}
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        outline: 'none',
+                        background: 'transparent',
+                        fontFamily: 'inherit',
+                        fontSize: 32,
+                        fontWeight: 800,
+                        lineHeight: 1.15,
+                        letterSpacing: '-0.01em',
+                        color: '#1E2A22',
+                        padding: 0,
+                      }}
+                    />
+                    <DocsAi
+                      projectId={projectId}
+                      pageId={page.id}
+                      pageTitle={title}
+                      menuOpen={aiMenu}
+                      setMenuOpen={setAiMenu}
+                      hidden={!!page.aiHidden}
+                      command={aiCommand}
+                      onCreateTickets={setTicketsFrom}
+                      ed={{
+                        getEditor: () => editor.current?.getEditor() ?? null,
+                        getMarkdown: () => editor.current?.flush() ?? latest.current.markdown,
+                        setMarkdown: (md) => {
+                          editor.current
+                            ?.getEditor()
+                            ?.commands.setContent(md, { contentType: 'markdown', emitUpdate: true } as never);
+                          userInput.current = true;
+                          setMarkdown(md);
+                          touch();
+                        },
+                      }}
+                    />
+                  </div>
+                }
+              />
+            </EditorErrorBoundary>
           </div>
           {docsAiOn && page.draft?.aiSource && (
             <AiDraftPanel
@@ -778,6 +785,7 @@ export function DocsEditScreen({
           pick={compose}
           projectId={projectId}
           members={suggest}
+          me={commentsData ? personOf(commentsData.me, commentsData.members, commentsData.me) : undefined}
           onCancel={() => setCompose(null)}
           onSubmit={async (text) => {
             const t = await cc.actions.createThread.mutateAsync({ kind: 'inline', body: text, anchor: compose.anchor });

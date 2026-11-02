@@ -103,6 +103,16 @@ export function DiagramEditor({ request, onClose }: Props) {
   const [attempt, setAttempt] = useState(0);
   const [phase, setPhase] = useState<Phase>('loading');
   const [label, setLabel] = useState(request.label ?? 'Untitled diagram');
+  // "Download .drawio" for a drawing that is not saved yet (no server copy): the XML this editor holds
+  const downloadLocal = () => {
+    const xml = lastXml.current || request.initialXml || EMPTY_DIAGRAM_XML;
+    const url = URL.createObjectURL(new Blob([xml], { type: 'application/xml' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(label.trim() || 'diagram').replace(/[\\/:*?"<>|]+/g, '-')}.drawio`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   const [existing, setExisting] = useState<Diagram | null>(null);
   const [modified, setModified] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -552,43 +562,61 @@ export function DiagramEditor({ request, onClose }: Props) {
             <div className={styles.cover}>
               <div className={styles.card} role="alert" data-testid="diagram-editor-unreachable">
                 <div className={styles.cardTitle}>
-                  {phase === 'missing'
-                    ? 'Diagram not found'
-                    : noEditorAt
-                      ? 'No draw.io editor is running'
-                      : 'Editor could not be reached'}
+                  {phase === 'missing' ? 'Diagram not found' : 'Editor could not be reached'}
                 </div>
                 <div className={styles.cardText}>
-                  {phase === 'missing' ? (
-                    'It was deleted, or you do not have access.'
-                  ) : noEditorAt && settings.data?.builtInAvailable ? (
-                    <>
-                      The editor address is <code>{noEditorAt}</code> and nothing answers there. Use the editor built
-                      into the app instead (nothing to run, the drawing stays on this computer), or start the one at
-                      that address, then Retry.
-                    </>
-                  ) : noEditorAt ? (
-                    <>
-                      The editor address is <code>{noEditorAt}</code> and nothing answers there: this install does not
-                      include draw.io. Use the public editor ({settings.data?.publicUrl ?? 'embed.diagrams.net'}; the
-                      drawing is sent there while the editor is open), or start draw.io on this computer, for example{' '}
-                      <code>docker run -d -p 8080:8080 jgraph/drawio</code>, then Retry. The diagram is still shown on
-                      the page and can be downloaded.
-                    </>
-                  ) : (
-                    'The diagram is still shown on the page and can be downloaded. Editing needs the draw.io service. Ask an admin to check the editor address in Settings.'
-                  )}
+                  {phase === 'missing'
+                    ? 'It was deleted, or you do not have access.'
+                    : 'The diagram is still shown on the page and can be downloaded. Editing needs the draw.io service. Ask an admin to check the editor address in Settings.'}
                 </div>
+                {/* DG-1: the design's copy for everyone; what to run, for whoever looks after the app, folds away */}
+                {phase === 'unreachable' && noEditorAt && (
+                  <details className={styles.cardDetails} data-testid="diagram-editor-admin-hint">
+                    <summary>For admins: no draw.io editor is running</summary>
+                    {settings.data?.builtInAvailable ? (
+                      <>
+                        The editor address is <code>{noEditorAt}</code> and nothing answers there. Use the editor built
+                        into the app instead (nothing to run, the drawing stays on this computer), or start the one at
+                        that address, then Retry.
+                      </>
+                    ) : (
+                      <>
+                        The editor address is <code>{noEditorAt}</code> and nothing answers there: this install does not
+                        include draw.io. Use the public editor ({settings.data?.publicUrl ?? 'embed.diagrams.net'}; the
+                        drawing is sent there while the editor is open), or start draw.io on this computer, for example{' '}
+                        <code>docker run -d -p 8080:8080 jgraph/drawio</code>, then Retry.
+                      </>
+                    )}
+                  </details>
+                )}
                 <div className={styles.cardRow}>
-                  {request.diagramId && phase === 'unreachable' && (
-                    <a
-                      className={styles.btn}
-                      href={`${resolveOrigin()}/diagrams/${request.diagramId}/download?format=drawio`}
-                      download
+                  {phase === 'unreachable' && (
+                    <button
+                      type="button"
+                      className={noEditorAt ? styles.btn : `${styles.btn} ${styles.btnPrimary}`}
+                      onClick={() => {
+                        setPhase('loading');
+                        setAttempt((a) => a + 1);
+                      }}
                     >
-                      Download .drawio
-                    </a>
+                      Retry
+                    </button>
                   )}
+                  {phase === 'unreachable' &&
+                    (request.diagramId ? (
+                      <a
+                        className={styles.btn}
+                        href={`${resolveOrigin()}/diagrams/${request.diagramId}/download?format=drawio`}
+                        download
+                      >
+                        Download .drawio
+                      </a>
+                    ) : (
+                      // a new drawing has nothing on the server yet: download what this editor holds
+                      <button type="button" className={styles.btn} onClick={downloadLocal}>
+                        Download .drawio
+                      </button>
+                    ))}
                   {phase === 'unreachable' && noEditorAt && settings.data?.builtInAvailable && (
                     <button
                       type="button"
@@ -607,18 +635,6 @@ export function DiagramEditor({ request, onClose }: Props) {
                       onClick={() => void switchEditor('public')}
                     >
                       {switching ? 'Switching…' : 'Use the public editor'}
-                    </button>
-                  )}
-                  {phase === 'unreachable' && (
-                    <button
-                      type="button"
-                      className={noEditorAt ? styles.btn : `${styles.btn} ${styles.btnPrimary}`}
-                      onClick={() => {
-                        setPhase('loading');
-                        setAttempt((a) => a + 1);
-                      }}
-                    >
-                      Retry
                     </button>
                   )}
                   <button type="button" className={styles.btn} onClick={onClose}>
