@@ -258,12 +258,34 @@ Write a small script in your working folder that builds the file, so a fix is on
 them in the project's environment if they are missing, and say so.
 
 ## Look at it before you hand it in
-You cannot judge a file you have not seen. Render it to images and look at every one:
-1. `soffice --headless --convert-to pdf --outdir out file.xlsx` (the same for .docx and .pptx; LibreOffice).
-2. `pdftoppm -png -r 80 out/file.pdf out/page` (poppler), then open the PNGs.
-3. Fix what you see, render again.
-If `soffice` or `pdftoppm` is not on the machine, do not guess: say in your report that the file was not looked at, and
-how to install them (LibreOffice; poppler-utils). Never hand in a screenshot of something else.
+You cannot judge a file you have not seen. Render every sheet, page or slide to an image, open each one, fix what you
+see and render again. Use the first way the machine has (check with `command -v`, `ls /Applications`, `Get-Command`):
+1. **LibreOffice** (macOS, Windows, Linux): `soffice --headless --convert-to pdf --outdir out file.pptx` (the same for
+   .xlsx and .docx; it recalculates formulas). On a Mac it is often only in
+   `/Applications/LibreOffice.app/Contents/MacOS/soffice`.
+2. **Microsoft Office**, the app the reader will open, driven from a script (no one has to click):
+   - Windows, PowerShell: `$a = New-Object -ComObject PowerPoint.Application; $p = $a.Presentations.Open($in, $true,
+     $false, $false); $p.SaveAs($outDir, 18); $p.Close(); $a.Quit()` saves one PNG per slide (32 saves a PDF). Excel:
+     `$wb = $x.Workbooks.Open($in); $wb.ExportAsFixedFormat(0, $pdf)`; Word: `$d.SaveAs2($pdf, 17)`. Use full paths,
+     close and quit the app at the end.
+   - macOS, `osascript`: PowerPoint `save active presentation in POSIX file "/full/out" as save as PNG` (or
+     `as save as PDF`); Word and Excel save as PDF the same way. Office on a Mac may show a dialog asking for access to
+     the folder, which no one sees: give the command a time limit (60 s) and go to the next way if it does not finish.
+3. **macOS without either**: `qlmanage -t -s 1600 -o out file.pptx` (Quick Look, on every Mac) gives an image of the
+   first slide or page only: enough for the look, not for the whole file.
+4. **No app at all**: an approximation from code, said to be one. Excel: compute the formulas in Python (`formulas`)
+   and check no cell gives `#REF!`, `#VALUE!` or `#DIV/0!`, then write each sheet as an HTML table with its number
+   formats and screenshot it. Word: HTML with `mammoth`, then a screenshot. There is no code that draws a .pptx the way
+   PowerPoint does: for a deck go to 5.
+5. **Still not seen** (a deck with no app): ask with `ai_run(action='ask')` whether to install LibreOffice, with the
+   command (`brew install --cask libreoffice`, `winget install TheDocumentFoundation.LibreOffice`,
+   `sudo apt install libreoffice`); installing software on the person's machine is their call. If they say no, hand in
+   and say plainly that the file was not looked at.
+
+A PDF becomes images with `pdftoppm -png -r 80 out/file.pdf out/page` (poppler) or, where poppler is missing, PyMuPDF
+(`pip install pymupdf`; `page.get_pixmap(dpi=80).save(...)`). In the report, say how you looked (LibreOffice,
+PowerPoint, Quick Look, an HTML approximation): only an image from LibreOffice or Office counts as "looked at in the
+app". Never hand in a screenshot of something else.
 
 ## Excel
 - **Formulas, not typed results**: `=SUM(B2:B31)`, so the sheet still works when a number changes. Recalculate it
