@@ -8,6 +8,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.35.1] - 2026-11-03
+
+### Fixed
+- **A ticket another one still blocks can no longer be moved to Done.** The ticket guide told AIs not to, but the board let anyone do it (dragging the card, the status menu, the API, MCP). Done is now refused while a blocker is open (not Done or Won't do), with the blocker named: "Cannot move to Done: it is blocked by LIVE-5 (todo); finish that first, or remove the block if it no longer holds." Found in the live runs of #269.
+- **The ticket panel no longer says "Moved to Done" before the board agrees.** Choosing Done in the status menu showed the success toast at once, even when the board then refused (open criteria or test cases, and now an open blocker); it now says so only once saved, and otherwise shows "Couldn't move to Done" with the reason and keeps the status as it was.
+
 ## [3.35.0] - 2026-11-03
 
 Talk to the AI team from the screen and over MCP, and hand work between an AI, a person and an outside agent with nothing lost (#272).

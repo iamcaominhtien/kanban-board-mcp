@@ -481,8 +481,8 @@ async def update_ticket(
 
     Raises:
         ValueError: If "wont_do" lacks a reason or is set on a child ticket, if Done
-            is blocked by open acceptance criteria or test cases, or if the assignee
-            is not a project member.
+            is blocked by open acceptance criteria or test cases or by a ticket that is
+            not done yet, or if the assignee is not a project member.
     """
     ticket = await session.get(Ticket, ticket_id)
     if ticket is None:
@@ -565,6 +565,20 @@ async def update_ticket(
             tcs = _loads(ticket.test_cases)
             if not tcs or any(tc.get("status") != "pass" for tc in tcs):
                 violations.append("Test Cases are missing or not all passed")
+        if ticket.status != "done":
+            # a ticket another one still blocks is not done: finish the blocker, or remove the block if it no longer holds
+            open_blockers = [
+                b
+                for b in [
+                    await session.get(Ticket, bid) for bid in _loads(ticket.blocked_by)
+                ]
+                if b is not None and b.status not in ("done", "wont_do")
+            ]
+            if open_blockers:
+                names = ", ".join(f"{b.id} ({b.status})" for b in open_blockers)
+                violations.append(
+                    f"it is blocked by {names}; finish that first, or remove the block if it no longer holds"
+                )
         if violations:
             raise ValueError(f"Cannot move to Done: {' and '.join(violations)}.")
 
