@@ -4,7 +4,7 @@ Three tiers, decided by one question — can the board put it back by itself?
 
 - **Just does it**: looking things up. Nothing changes, so there is nothing to undo.
 - **Does it, and keeps an Undo**: reversible and small — up to three tickets, in one project. Create or edit a ticket,
-  move it (not to Done), assign it, comment, put it on a workflow or set its review depth, start or stop one run,
+  move it (not to Done), assign it, comment, put it on a workflow or set its review depth or pace, start or stop one run,
   pause or resume one AI, make, change, pause, resume or run one schedule.
 - **Asks first**: hard to put back, or big — Done, more than three tickets or more than one project, deleting
   anything (a schedule too), Pause all AI, permission/ceiling/bypass changes, budgets and accounts, merging, anything that posts
@@ -37,6 +37,7 @@ TIERS: dict[str, tuple[str, bool]] = {
     "add_criteria": (UNDO, False),
     "workflow": (UNDO, False),
     "depth": (UNDO, False),
+    "pace": (UNDO, False),  # fast mode on one ticket: Undo puts the pace back
     "run": (UNDO, False),
     "stop_run": (UNDO, False),
     "pause_member": (UNDO, False),

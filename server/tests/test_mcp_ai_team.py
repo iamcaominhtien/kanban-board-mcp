@@ -758,8 +758,9 @@ async def test_the_tool_is_small_and_marked_write():
     size = len(tool.description or "") + len(
         json.dumps(tool.inputSchema, separators=(",", ":"))
     )
-    # 3.21.1: the guide, workflows and Stories (12 actions, 3 ids) add about 700 characters
-    assert size < 4_000 and tool.annotations.readOnlyHint is False
+    # 3.21.1: the guide, workflows and Stories (12 actions, 3 ids) add about 700 characters; fast mode (`pace`,
+    # set_pace) about 185
+    assert size < 4_200 and tool.annotations.readOnlyHint is False
     assert tool.annotations.destructiveHint is not True
     assert set(tool.inputSchema["properties"]["action"]["enum"]) == set(AI_TEAM_OPS)
     assert ops.PROVIDERS_OK == ("claude-code", "antigravity", "mcp-client")

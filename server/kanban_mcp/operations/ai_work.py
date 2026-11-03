@@ -59,6 +59,7 @@ def _workflow_row(view: dict | None) -> dict | None:
     return {
         "ticket_id": view.get("ticket_id"),
         "workflow": view.get("template_key"),
+        "pace": view.get("pace"),
         "state": view.get("state"),
         "stop_reason": view.get("stop_reason"),
         "stop_detail": view.get("stop_detail"),
@@ -99,17 +100,33 @@ async def workflow(ticket_id: str) -> dict:
     }
 
 
-async def start_workflow(ticket_id: str, workflow: str) -> dict:
-    """Put the ticket on a workflow and start its first step (ai_team(workflows) lists the keys)."""
+async def start_workflow(
+    ticket_id: str, workflow: str, pace: str | None = None
+) -> dict:
+    """Put the ticket on a workflow and start its first step (ai_team(workflows) lists the keys); pace='fast' for a
+    quick result of about the same quality."""
     async with common.async_session() as session:
         ticket = await _ticket(session, ticket_id)
         try:
-            await svc_workflow.attach(session, ticket, workflow, by=_by())
+            await svc_workflow.attach(session, ticket, workflow, by=_by(), pace=pace)
         except svc_workflow.WorkflowError as exc:
             raise ValueError(str(exc)) from exc
         out = _workflow_row(await svc_workflow.view(session, ticket_id))
     await board_events.publish("invalidate")
     return out
+
+
+async def set_pace(ticket_id: str, pace: str) -> dict:
+    """Turn fast mode on or off for a ticket on a workflow: the steps not reached yet are skipped or put back."""
+    async with common.async_session() as session:
+        await _ticket(session, ticket_id)
+        try:
+            changed = await svc_workflow.set_pace(session, ticket_id, pace, by=_by())
+        except svc_workflow.WorkflowError as exc:
+            raise ValueError(str(exc)) from exc
+        out = _workflow_row(await svc_workflow.view(session, ticket_id))
+    await board_events.publish("invalidate")
+    return {**(out or {}), "changed_steps": changed}
 
 
 async def _ticket(session, ticket_id: str) -> Ticket:

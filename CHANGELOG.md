@@ -8,6 +8,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.36.0] - 2026-11-03
+
+Fast mode for the AI team: a quick result of about the same quality, on the tickets you choose.
+
+### Added
+- **⚡ Fast, per ticket.** Tick Fast when you put a ticket on a workflow, or switch the ticket's **Pace** between Normal and Fast at any time. Fast mode:
+  - skips the steps a quick result can do without: Triage, the BA's Shape, QA's Test and the User tester's Try (a template's step may say `"fast": "skip"` or `"keep"`; a workflow is never left without an AI step to do the work). The strip shows them as "skipped · fast", and a step blocked for want of a member (no BA on the team, say) is skipped too, so the ticket moves on;
+  - runs every AI step one effort level lower (medium → low) and the review one depth lower (standard → light, on Haiku), unless a person set the depth;
+  - tells each step to go straight to the simplest thing that meets the criteria, and the reviewer to send work back only for what breaks a criterion or the build (smaller points go in its comment). A failing test run first is not asked for; a passing run of the project's checks is.
+- What keeps the quality: the **Checks** by code and the **Review** always run, and a step sent back runs again at its full effort and model (a Dev's second attempt is still Opus at high). Back to Normal, the skipped steps still ahead come back.
+- `PATCH /tickets/{id}/ai/workflow/pace`, `pace` on `POST /tickets/{id}/ai/workflow`; the workflow view has `pace` and `review_runs_at`. Over MCP: `ai_team(start_workflow, ..., pace='fast')` and `ai_team(set_pace)`; the team guide says when. The Board AI can turn it on or off (`pace`, with an Undo).
+
+### Changed
+- Tool list: about 185 characters more (`pace` on `ai_team`).
+
+### Checked
+- Live, real Claude Code runs on the board (`docs/demo/fast-mode/record_demo.js`, screenshots in `docs/screenshots/fast-mode/`): the same ticket twice on "Standard feature" (discount codes at checkout, four criteria), at the same time, each in its own worktree. Normal: Triage (Haiku), Shape, Build and Test (Sonnet), Review deep (Opus at high, as Triage chose), ready for the person after 4m 23s, 2.59M tokens. Fast: Build (Sonnet at low) and Review light (Haiku at low), ready after 0m 55s, 0.46M tokens. Both passed review first time, and both passed 6 of 6 acceptance tests written beforehand and never shown to the AIs.
+- A fast quick fix, live: Triage skipped, Fix, Checks and Review ran, ready in about 45 s; the Dev said in its note that fast mode let it skip the red run.
+
 ## [3.35.1] - 2026-11-03
 
 ### Fixed

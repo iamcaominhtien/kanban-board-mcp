@@ -93,6 +93,7 @@ async def get_board(project_id: str, session: Session) -> list[dict]:
                 "state": wf.state,
                 "stop_reason": wf.stop_reason,
                 "review_depth": wf.review_depth,
+                "pace": wf.pace or "normal",
                 "step": current["label"] if current else None,
                 "step_kind": current["kind"] if current else None,
                 "role": current["role"] if current else None,
@@ -109,6 +110,7 @@ class AttachBody(BaseModel):
 
     template_key: str
     depth: Optional[Literal["light", "standard", "deep"]] = None
+    pace: Optional[Literal["normal", "fast"]] = None
 
 
 @router.get("/tickets/{ticket_id}/ai/workflow")
@@ -124,7 +126,12 @@ async def post_workflow(ticket_id: str, body: AttachBody, session: Session) -> d
     ticket = await _ticket(session, ticket_id)
     try:
         await svc_workflow.attach(
-            session, ticket, body.template_key, by=_by(), depth=body.depth
+            session,
+            ticket,
+            body.template_key,
+            by=_by(),
+            depth=body.depth,
+            pace=body.pace,
         )
     except svc_workflow.WorkflowError as exc:
         _fail(exc, 409)
@@ -169,6 +176,24 @@ async def patch_depth(ticket_id: str, body: DepthBody, session: Session) -> dict
         await svc_workflow.set_depth(session, ticket_id, body.depth, by=_by())
     except svc_workflow.WorkflowError as exc:
         _fail(exc)
+    return await svc_workflow.view(session, ticket_id)
+
+
+class PaceBody(BaseModel):
+    """The ticket's pace."""
+
+    pace: Literal["normal", "fast"]
+
+
+@router.patch("/tickets/{ticket_id}/ai/workflow/pace")
+async def patch_pace(ticket_id: str, body: PaceBody, session: Session) -> dict:
+    """Fast mode on or off for this ticket: the steps not reached yet are skipped or put back, every AI step runs one
+    effort level lower and the review one depth lower; a step sent back runs at its full effort."""
+    await _ticket(session, ticket_id)
+    try:
+        await svc_workflow.set_pace(session, ticket_id, body.pace, by=_by())
+    except svc_workflow.WorkflowError as exc:
+        _fail(exc, 409)
     return await svc_workflow.view(session, ticket_id)
 
 

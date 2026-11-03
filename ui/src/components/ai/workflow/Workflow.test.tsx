@@ -278,6 +278,49 @@ describe('the review depth chip', () => {
   });
 });
 
+describe('fast mode', () => {
+  it('turns fast mode on for the ticket', async () => {
+    wf = view({ pace: 'normal', reviewRunsAt: 'standard' });
+    mount(<TicketWorkflow ticket={ticket} />);
+    expect((await screen.findByTestId('pace-hint')).textContent).toContain('about the same quality');
+    expect(screen.queryByTestId('fast-pill')).toBeNull();
+    expect(screen.getByTestId('pace-normal').getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByTestId('pace-fast'));
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow/pace', { pace: 'fast' }));
+  });
+
+  it('shows what a fast ticket skips and the review it runs', async () => {
+    const v = view({ pace: 'fast', reviewDepth: null, depthBy: null, reviewRunsAt: 'light' });
+    v.steps[0] = { ...v.steps[0], state: 'skipped', outcome: 'fast', memberName: null };
+    wf = v;
+    mount(<TicketWorkflow ticket={ticket} />);
+    expect((await screen.findByTestId('fast-pill')).textContent).toContain('Fast');
+    const hint = screen.getByTestId('pace-hint').textContent ?? '';
+    expect(hint).toContain('Skips Triage');
+    expect(hint).toContain('review Light');
+    expect(within(screen.getByTestId('wf-step-triage')).getByText('skipped · fast')).toBeTruthy();
+    expect(within(screen.getByTestId('wf-step-review')).getByText('Review · Light')).toBeTruthy();
+    expect(screen.getByTestId('pace-fast').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('puts a ticket on a workflow in fast mode', async () => {
+    wf = null;
+    mount(<TicketWorkflow ticket={ticket} />);
+    const box = await screen.findByTestId('put-on-workflow');
+    await waitFor(() => expect(within(box).getByRole('option', { name: 'Quick fix' })).toBeTruthy());
+    fireEvent.change(within(box).getByLabelText('Workflow'), { target: { value: 'quick_fix' } });
+    fireEvent.click(within(box).getByTestId('put-fast'));
+    fireEvent.click(within(box).getByRole('button', { name: 'Put on a workflow' }));
+    await waitFor(() =>
+      expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow', {
+        template_key: 'quick_fix',
+        depth: undefined,
+        pace: 'fast',
+      }),
+    );
+  });
+});
+
 describe('the design approval', () => {
   const waiting = () => {
     const v = view();

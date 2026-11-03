@@ -118,7 +118,7 @@ export function stepStateLabel(
       if (s.outcome === 'taken_back') return { text: 'taken back', tone: 'you' };
       return { text: 'failed', tone: 'bad' };
     case 'skipped':
-      return { text: 'skipped', tone: 'pending' };
+      return { text: s.outcome === 'fast' ? 'skipped · fast' : 'skipped', tone: 'pending' };
     default:
       return { text: person ? 'waiting for you' : 'waiting', tone: person ? 'you' : 'pending' };
   }

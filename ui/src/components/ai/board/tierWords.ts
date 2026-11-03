@@ -13,6 +13,7 @@ export const OP_WORDS: Record<string, string> = {
   add_criteria: 'Add acceptance criteria',
   workflow: 'Put a workflow on a ticket',
   depth: 'Set a ticket’s review depth',
+  pace: 'Turn fast mode on or off for a ticket',
   run: 'Start an AI on a ticket',
   stop_run: 'Stop one run',
   pause_member: 'Pause one AI member',

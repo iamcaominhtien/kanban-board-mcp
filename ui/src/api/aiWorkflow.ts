@@ -3,6 +3,7 @@ import { client } from './client';
 import { LIVE_POLL_MS, SAFETY_POLL_MS } from './pollIntervals';
 import type {
   ArbitrationResult,
+  Pace,
   ReviewDepth,
   TddEvidence,
   TemplateDraft,
@@ -26,8 +27,14 @@ export const workflowApi = {
   metrics: async (projectId: string) =>
     (await client.get<WorkflowMetric[]>(`/projects/${projectId}/ai/workflow-metrics`, { params: { days: 30 } })).data,
   view: async (ticketId: string) => (await client.get<WorkflowView | null>(`/tickets/${ticketId}/ai/workflow`)).data,
-  attach: async (ticketId: string, templateKey: string, depth?: ReviewDepth) =>
-    (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow`, { template_key: templateKey, depth })).data,
+  attach: async (ticketId: string, templateKey: string, depth?: ReviewDepth, pace?: Pace) =>
+    (
+      await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow`, {
+        template_key: templateKey,
+        depth,
+        ...(pace === 'fast' ? { pace } : {}),
+      })
+    ).data,
   detach: async (ticketId: string) => {
     await client.delete(`/tickets/${ticketId}/ai/workflow`);
   },
@@ -45,6 +52,9 @@ export const workflowApi = {
     ).data,
   skip: async (ticketId: string, stepId?: string) =>
     (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/skip`, { step_id: stepId })).data,
+  /** Fast mode on or off: the steps not reached yet are skipped or put back. */
+  pace: async (ticketId: string, pace: Pace) =>
+    (await client.patch<WorkflowView>(`/tickets/${ticketId}/ai/workflow/pace`, { pace })).data,
   depth: async (ticketId: string, depth: ReviewDepth) =>
     (await client.patch<WorkflowView>(`/tickets/${ticketId}/ai/workflow/depth`, { depth })).data,
   rule: async (ticketId: string, side: 'reviewer' | 'dev' | 'split', reason?: string) =>

@@ -1555,6 +1555,8 @@ class AiTicketWorkflow(SQLModel, table=True):
     review_depth: Optional[str] = Field(default=None)  # light | standard | deep
     depth_by: Optional[str] = Field(default=None)  # triage | person
     depth_note: Optional[str] = Field(default=None)
+    # fast: a quick result of about the same quality, set by a person on this ticket (None is the normal pace)
+    pace: Optional[str] = Field(default=None)
     rounds: str = Field(default="{}")  # {"dev|reviewer": n}
     objections: str = Field(default="[]")  # [{at, by, role, text, diff}]
     rulings: str = Field(default="[]")  # [{at, by, verdict, reason, run_id}]
