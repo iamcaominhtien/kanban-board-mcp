@@ -518,7 +518,7 @@ export function BranchesSection({ ticketId, readOnly = false }: BranchesSectionP
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                submitRename();
+                void submitRename();
               }}
             >
               <input

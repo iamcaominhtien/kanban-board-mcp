@@ -5,15 +5,15 @@ Revises: c2d3e4f5a6b7
 Create Date: 2026-10-29
 """
 
-from typing import Sequence, Union
+from typing import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "d3e4f5a6b7c8"
-down_revision: Union[str, Sequence[str], None] = "c2d3e4f5a6b7"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "c2d3e4f5a6b7"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # Until now nobody could pick a glyph or a colour: every member had the default glyph and a colour handed out in
 # turn. Give each existing member the look of its provider (what the avatar showed before), so nothing changes

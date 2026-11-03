@@ -1214,13 +1214,13 @@ async def _requeue(run_id: str, step: dict, fresh: bool = False, **fields) -> No
     await _publish(force=True)
 
 
-async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -> bool:
+async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -> None:
     """The plan's usage window is used up: not a failure and not a try. The run waits for the reset; urgent work
     moves to an account with room when the account says so, otherwise it becomes a Needs you row (design E)."""
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None or run.state in ENDED:
-            return True
+            return
         ticket = await session.get(Ticket, run.ticket_id)
         urgent = (ticket.priority if ticket else "") in ("high", "critical", "urgent")
         state_row = await quota.state(session, quota_key)
@@ -1252,7 +1252,7 @@ async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -
             account_id=target["account_id"],
             session_id=None,
         )
-        return True
+        return
     await _requeue(
         run_id,
         {
@@ -1265,7 +1265,6 @@ async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -
         from services import notifications as centre
 
         await centre.on_window_urgent(run_id, until=until, room=room)
-    return True
 
 
 async def _retry_later(
@@ -1399,7 +1398,8 @@ async def _recover(
             wait = cli.reset_wait(said) or 3600.0
             until = (datetime.now(UTC) + timedelta(seconds=wait)).isoformat()
         await quota.hold_until(quota_key, until, (watch.quota or {}).get("type"))
-        return await _hold_for_window(run_id, until, said, quota_key), kind, said
+        await _hold_for_window(run_id, until, said, quota_key)
+        return True, kind, said
     if kind in ("network", "board_fault", "crash", "compact"):
         return await _retry_later(run_id, kind, said), kind, said
     return False, kind, said

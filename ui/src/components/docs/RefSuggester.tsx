@@ -109,7 +109,7 @@ function textCaretRect(
   mirror.appendChild(marker);
   document.body.appendChild(mirror);
   const box = el.getBoundingClientRect();
-  const line = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3;
+  const line = Number.parseFloat(cs.lineHeight) || Number.parseFloat(cs.fontSize) * 1.3;
   const left = box.left + marker.offsetLeft - el.scrollLeft;
   const top = box.top + marker.offsetTop - el.scrollTop;
   document.body.removeChild(mirror);
@@ -574,7 +574,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
                       fontFamily: state.mode === 'ticket' ? 'var(--font-mono)' : undefined,
                     }}
                   >
-                    {boldMatch(it.title, state.mode === 'section' ? state.query : state.query)}
+                    {boldMatch(it.title, state.query)}
                   </span>
                   {it.subNode}
                   {it.sub && (

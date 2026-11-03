@@ -560,7 +560,9 @@ async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
             "No file manager available on this machine; copy the path instead"
         )
     await asyncio.to_thread(folder.mkdir, 0o755, True, True)
-    subprocess.Popen(  # noqa: S603 - fixed argv
+    # Popen in a thread, not asyncio's subprocess: the event loop on Windows may not support subprocesses
+    await asyncio.to_thread(
+        subprocess.Popen,  # noqa: S603 - fixed argv
         [opener, "."],
         cwd=folder,
         stdout=subprocess.DEVNULL,

@@ -554,7 +554,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
           onSubmit={(e) => {
             e.preventDefault();
             if (!question.trim()) return;
-            run('ask', question.trim(), question.trim());
+            void run('ask', question.trim(), question.trim());
             setQuestion('');
           }}
         >

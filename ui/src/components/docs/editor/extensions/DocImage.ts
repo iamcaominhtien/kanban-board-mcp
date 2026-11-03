@@ -9,7 +9,7 @@ export const DocImage = Image.extend({
         default: null,
         parseHTML: (el) => {
           const w = el.getAttribute('width') ?? el.style.width;
-          return w ? parseInt(w, 10) || null : null;
+          return w ? Number.parseInt(w, 10) || null : null;
         },
         renderHTML: (attrs) =>
           attrs.width ? { width: attrs.width, style: `width:${attrs.width}px;max-width:100%;height:auto` } : {},
@@ -25,7 +25,7 @@ export const DocImage = Image.extend({
       src: t.href,
       title: t.title ?? null,
       alt: m ? m[1] : raw,
-      width: m ? parseInt(m[2], 10) : null,
+      width: m ? Number.parseInt(m[2], 10) : null,
     });
   },
 

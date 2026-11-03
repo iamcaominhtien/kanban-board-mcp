@@ -149,7 +149,7 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
             disabled={off}
             onChange={(e) => setCap(e.target.value)}
             onBlur={() => {
-              const n = parseFloat(cap ?? '');
+              const n = Number.parseFloat(cap ?? '');
               setCap(null);
               if (n > 0 && n !== s.dailyCap) set({ dailyCap: n });
             }}

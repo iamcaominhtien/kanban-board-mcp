@@ -60,6 +60,6 @@ describe('HandToDialog', () => {
 
   it('says so when there is no other AI member', async () => {
     setup([member('m1', 'Dev An')]);
-    await screen.findByText('There is no other AI member in this project.');
+    expect(await screen.findByText('There is no other AI member in this project.')).toBeTruthy();
   });
 });

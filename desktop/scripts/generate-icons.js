@@ -10,9 +10,9 @@
  *   node desktop/scripts/generate-icons.js
  */
 
-const path = require('path');
-const fs = require('fs');
-const { execFileSync } = require('child_process');
+const path = require('node:path');
+const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
 const sharp = require('sharp');
 const pngToIco = require('png-to-ico');
 

@@ -1,10 +1,10 @@
 const { app, BrowserWindow, Menu, Notification, clipboard, ipcMain, dialog, nativeImage, powerMonitor, powerSaveBlocker, shell } = require('electron');
-const os = require('os');
-const crypto = require('crypto');
-const path = require('path');
-const { pathToFileURL } = require('url');
-const { spawn } = require('child_process');
-const fs = require('fs');
+const os = require('node:os');
+const crypto = require('node:crypto');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+const { spawn } = require('node:child_process');
+const fs = require('node:fs');
 const { registerMcpServer } = require('./vscode-setup');
 const { parseExportArgs, runExportCli } = require('./export-svg');
 const { setupUpdater, getUpdateState, checkNow } = require('./updater');
@@ -73,7 +73,7 @@ function startBackend() {
     // Strip macOS quarantine attribute from packaged binary so it can be spawned
     if (process.platform === 'darwin' && app.isPackaged) {
       try {
-        const { execFileSync } = require('child_process');
+        const { execFileSync } = require('node:child_process');
         execFileSync('/usr/bin/xattr', ['-d', 'com.apple.quarantine', spec.command], { stdio: 'ignore' });
       } catch { /* attribute may not exist — non-fatal */ }
     }
@@ -622,7 +622,7 @@ if (exportArgs) {
     refreshMenu();
     createWindow();
 
-    launchBackend();
+    void launchBackend(); // it catches its own errors and shows them in the window
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -1,4 +1,5 @@
 import asyncio
+import math
 import json
 import re
 import uuid
@@ -128,7 +129,7 @@ def _clean_date(value: str | None, label: str) -> str | None:
 def _clean_estimate(value: float | None) -> float | None:
     if value is None:
         return None
-    if value != value or value < 0 or value > MAX_ESTIMATE:  # NaN, negative, absurd
+    if math.isnan(value) or value < 0 or value > MAX_ESTIMATE:  # NaN, negative, absurd
         raise ValueError(f"Estimate must be between 0 and {MAX_ESTIMATE}")
     return value
 

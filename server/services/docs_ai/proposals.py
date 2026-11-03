@@ -121,7 +121,7 @@ def _section_at(blocks: list[str], i: int) -> str | None:
 
 def _short(text: str, n: int = 48) -> str:
     line = next((x for x in text.split("\n") if x.strip()), "")
-    line = re.sub(r"^[#>*\-\s\d.|]+|[*_`|]", "", line).strip()
+    line = re.sub(r"(?:^[#>*\-\s\d.|]+)|[*_`|]", "", line).strip()
     return line if len(line) <= n else line[: n - 1].rstrip() + "…"
 
 

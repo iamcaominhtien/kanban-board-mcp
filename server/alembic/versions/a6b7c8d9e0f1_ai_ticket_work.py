@@ -5,15 +5,15 @@ Revises: f5a6b7c8d9e0
 Create Date: 2026-10-29
 """
 
-from typing import Sequence, Union
+from typing import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "a6b7c8d9e0f1"
-down_revision: Union[str, Sequence[str], None] = "f5a6b7c8d9e0"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "f5a6b7c8d9e0"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 OLD_WHERE = (
     "mode = 'work' AND state IN ('queued', 'starting', 'running', 'needs_input')"

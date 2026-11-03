@@ -9,7 +9,7 @@ export const UNDO_MS = 10_000;
 export function relative(iso?: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return String(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
   const sec = Math.floor((Date.now() - d.getTime()) / 1000);
   if (sec < 60) return 'just now';
   const min = Math.floor(sec / 60);
@@ -26,7 +26,7 @@ export function relative(iso?: string | null): string {
 export function exactTime(iso?: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
+  if (Number.isNaN(d.getTime())) return '';
   const date = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   return `${date} · ${time}`;

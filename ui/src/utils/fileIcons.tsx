@@ -238,7 +238,7 @@ export function isOfficeDoc(filename: string): boolean {
 
 /** Format bytes as "1.5 KB"; empty for missing values. */
 export function formatFileSize(bytes?: number | null): string {
-  if (bytes === undefined || bytes === null || isNaN(bytes) || bytes < 0) return '';
+  if (bytes === undefined || bytes === null || Number.isNaN(bytes) || bytes < 0) return '';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;

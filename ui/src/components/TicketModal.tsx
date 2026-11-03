@@ -156,7 +156,7 @@ function fmtActor(actor?: string | null): string | null {
 function fmtShortDate(iso?: string | null): string {
   if (!iso) return 'recently';
   const d = new Date(iso);
-  return isNaN(d.getTime()) ? 'recently' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return Number.isNaN(d.getTime()) ? 'recently' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatDueDate(iso?: string | null): string {
@@ -164,14 +164,14 @@ function formatDueDate(iso?: string | null): string {
   try {
     const parts = iso.split('T')[0].split('-');
     if (parts.length === 3) {
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1;
-      const day = parseInt(parts[2], 10);
+      const year = Number.parseInt(parts[0], 10);
+      const month = Number.parseInt(parts[1], 10) - 1;
+      const day = Number.parseInt(parts[2], 10);
       const d = new Date(year, month, day);
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
     const d = new Date(iso);
-    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {
     return iso;
   }
@@ -182,7 +182,7 @@ function formatRelativeTime(iso?: string | null): string {
   try {
     const now = Date.now();
     const then = new Date(iso).getTime();
-    if (isNaN(then)) return 'recently';
+    if (Number.isNaN(then)) return 'recently';
     const diffMs = now - then;
     const diffSec = Math.floor(diffMs / 1000);
     const diffMin = Math.floor(diffSec / 60);
@@ -775,7 +775,7 @@ function TicketModalInner({
 
   function handleCopyId() {
     if (!ticket) return;
-    navigator.clipboard.writeText(ticket.id);
+    void navigator.clipboard.writeText(ticket.id);
     toast.info('Copied ticket ID', ticket.id);
   }
 
@@ -1931,7 +1931,7 @@ function TicketModalInner({
                     </div>
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
-                    <TicketAiPanel ticket={ticket} members={members} onOpenRun={() => setActiveTab('ai')} />
+                    <TicketAiPanel ticket={ticket} onOpenRun={() => setActiveTab('ai')} />
                     {!wfOnTicket && <TicketWorkflow ticket={ticket} />}
                     <TicketHandover ticket={ticket} />
                     {mainView === 'ai' && ticket.projectId && (
@@ -3035,7 +3035,7 @@ function TicketModalInner({
                                     className={styles.repoEditForm}
                                     onSubmit={(e) => {
                                       e.preventDefault();
-                                      saveTicketRepo(
+                                      void saveTicketRepo(
                                         repoPathDraft.trim() === (project?.repoPath ?? '') ? '' : repoPathDraft,
                                       );
                                     }}
