@@ -13,7 +13,7 @@ function widget(): HTMLElement {
   return el;
 }
 
-/** Hint on the empty top-level line that holds the caret (board: "Type / for blocks, or [[ ...") */
+/** Hint on the empty top-level line that holds the caret, or on the page's empty last line (board: "Type / for blocks, or [[ ...") */
 export const Placeholder = Extension.create({
   name: 'docsPlaceholder',
   addProseMirrorPlugins() {
@@ -22,14 +22,28 @@ export const Placeholder = Extension.create({
         key,
         props: {
           decorations: (state) => {
-            const { selection } = state;
-            if (!selection.empty) return null;
+            const { selection, doc } = state;
             const { $from } = selection;
-            if ($from.depth !== 1 || $from.parent.type.name !== 'paragraph' || $from.parent.content.size > 0)
-              return null;
-            return DecorationSet.create(state.doc, [
-              Decoration.widget($from.pos, widget, { side: -1, key: 'ph' }),
-              Decoration.node($from.before(), $from.after(), { class: 'dk-empty' }),
+            // the empty line holding the caret, else the page's empty last line (DocsEditor board A shows the hint
+            // there while the caret is elsewhere; the editor always keeps that trailing line, nothing is added)
+            let at: number | null = null;
+            if (
+              selection.empty &&
+              $from.depth === 1 &&
+              $from.parent.type.name === 'paragraph' &&
+              $from.parent.content.size === 0
+            )
+              at = $from.before();
+            else {
+              const last = doc.lastChild;
+              if (doc.childCount > 1 && last?.type.name === 'paragraph' && last.content.size === 0)
+                at = doc.content.size - last.nodeSize;
+            }
+            if (at == null) return null;
+            const node = doc.nodeAt(at)!;
+            return DecorationSet.create(doc, [
+              Decoration.widget(at + 1, widget, { side: -1, key: 'ph' }),
+              Decoration.node(at, at + node.nodeSize, { class: 'dk-empty' }),
             ]);
           },
         },

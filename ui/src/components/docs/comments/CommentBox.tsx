@@ -334,27 +334,29 @@ export function CommentBox({
             {diagram.fileInput}
           </>
         )}
-        <span style={{ flex: 1 }} />
-        {stored.length > MAX - 300 && (
-          <span className="dc-count" style={{ color: stored.length > MAX ? '#C4432A' : undefined }}>
-            {stored.length}/{MAX}
-          </span>
-        )}
-        {onCancel && (
-          <button type="button" className="dc-plain" onClick={onCancel} data-testid="comment-cancel">
-            Cancel
+        {/* pushed right; in a narrow box it wraps onto its own row instead of spilling out of the box */}
+        <span className="dc-box-send">
+          {stored.length > MAX - 300 && (
+            <span className="dc-count" style={{ color: stored.length > MAX ? '#C4432A' : undefined }}>
+              {stored.length}/{MAX}
+            </span>
+          )}
+          {onCancel && (
+            <button type="button" className="dc-plain" onClick={onCancel} data-testid="comment-cancel">
+              Cancel
+            </button>
+          )}
+          <button
+            type="button"
+            className="dc-send"
+            disabled={!canSend}
+            onClick={() => void send()}
+            data-testid="comment-submit"
+          >
+            <Icon name="send" size={13} strokeWidth={2} />
+            {busy ? 'Posting…' : submitLabel}
           </button>
-        )}
-        <button
-          type="button"
-          className="dc-send"
-          disabled={!canSend}
-          onClick={() => void send()}
-          data-testid="comment-submit"
-        >
-          <Icon name="send" size={13} strokeWidth={2} />
-          {busy ? 'Posting…' : submitLabel}
-        </button>
+        </span>
       </div>
       <RefSuggester targetRef={ta} projectId={projectId} keyPrefix={project.data?.prefix} members={members} />
     </div>

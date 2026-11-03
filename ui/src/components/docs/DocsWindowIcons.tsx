@@ -1,4 +1,6 @@
 /** The two icons of the Docs window feature, 14 px line icons in the app's stroke style. */
+
+/** A window with an arrow out of it: open Docs in its own window. */
 export function PopOutIcon({ size = 14 }: { size?: number }) {
   return (
     <svg
@@ -19,6 +21,7 @@ export function PopOutIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+/** A window with an arrow into it: dock Docs back into the board. */
 export function DockIcon({ size = 14 }: { size?: number }) {
   return (
     <svg

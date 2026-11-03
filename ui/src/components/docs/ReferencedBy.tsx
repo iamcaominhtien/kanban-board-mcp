@@ -125,6 +125,9 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
   const pages = backlinks.data?.pages ?? [];
   const tickets = backlinks.data?.tickets ?? [];
   const total = pages.length + tickets.length;
+  // a page or ticket that links here twice is one source: the rows list every link, the counts the sources (DocsRefs E)
+  const pageCount = new Set(pages.map((p) => p.pageId)).size;
+  const ticketCount = new Set(tickets.map((t) => t.ticketId)).size;
 
   async function copy(text: string, message: string) {
     try {
@@ -138,7 +141,7 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
   const summary =
     total === 0
       ? '0 references'
-      : `${plural(total, 'reference')} from ${[pages.length ? plural(pages.length, 'page') : '', tickets.length ? plural(new Set(tickets.map((t) => t.ticketId)).size, 'ticket') : ''].filter(Boolean).join(' and ')}`;
+      : `${plural(total, 'reference')} from ${[pageCount ? plural(pageCount, 'page') : '', ticketCount ? plural(ticketCount, 'ticket') : ''].filter(Boolean).join(' and ')}`;
 
   return (
     <section
@@ -247,7 +250,7 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
         <>
           {pages.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={groupLabel}>Pages · {pages.length}</div>
+              <div style={groupLabel}>Pages · {pageCount}</div>
               {pages.map((p, i) => {
                 const section = p.section ?? p.in;
                 const anchor = p.anchor ?? (section ? slugify(section) : undefined);
@@ -274,7 +277,7 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
           )}
           {tickets.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={groupLabel}>Tickets · {tickets.length}</div>
+              <div style={groupLabel}>Tickets · {ticketCount}</div>
               {tickets.map((t) => {
                 const text = t.excerpt ?? t.context ?? t.snippet ?? '';
                 const words: Record<string, string> = {

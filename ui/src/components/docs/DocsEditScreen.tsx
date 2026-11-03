@@ -536,7 +536,7 @@ export function DocsEditScreen({
           </div>
           <button
             type="button"
-            className="st-btn st-btn-sm"
+            className="st-btn"
             aria-pressed={cc.open}
             data-testid="comments-button"
             title={`${commentsData?.counts.all ?? 0} inline · ${commentsData?.counts.page ?? 0} on the page`}
@@ -550,7 +550,7 @@ export function DocsEditScreen({
           </button>
           <button
             type="button"
-            className="st-btn st-btn-danger-outline st-btn-sm"
+            className="st-btn st-btn-danger-outline"
             onClick={() => setDiscardOpen(true)}
             data-testid="discard"
           >
@@ -558,7 +558,7 @@ export function DocsEditScreen({
           </button>
           <button
             type="button"
-            className="st-btn st-btn-primary st-btn-sm"
+            className="st-btn st-btn-primary"
             disabled={Boolean(conflict) || !online}
             onClick={openPublish}
             data-testid="publish"
