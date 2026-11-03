@@ -56,7 +56,7 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # Coverage with greenlet tracing doubles the time, so the backend still runs as two shards (tests/conftest.py)
+  # Coverage with greenlet tracing doubles the time, so the backend still runs as two shards (tests/shard.py)
   backend:
     name: Backend tests with coverage (${{ matrix.shard }}/2)
     needs: check
@@ -77,9 +77,7 @@ jobs:
       - run: pip install uv
       - run: uv sync
       - name: Tests with coverage
-        env:
-          KANBAN_TEST_SHARD: ${{ matrix.shard }}/2
-        run: uv run pytest -q -n auto --cov --cov-report=xml
+        run: uv run pytest -q -n auto --cov --cov-report=xml $(python3 tests/shard.py ${{ matrix.shard }}/2)
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }} # the report is written even when a test fails
         with:

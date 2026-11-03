@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 
 # Fake keys in tests write one character as an escape (`sk-ant\x2d…`) so secret scanners do not take them for real ones.
@@ -39,17 +40,30 @@ os.environ.setdefault(
 )
 
 
+# Running every migration takes about 4 s. The first process does it and keeps a copy whose path it leaves in this
+# variable; pytest-xdist's workers inherit it and copy the file instead (CI names the shard's files on the command
+# line, so the controller loads this conftest before it starts the workers).
+_MIGRATED_ENV = "KANBAN_TEST_MIGRATED_DB"
+
+
 def _migrate_default_db() -> None:
+    target = os.environ["KANBAN_DB_PATH"]
+    ready = os.environ.get(_MIGRATED_ENV, "")
+    if ready and os.path.isfile(ready):
+        shutil.copyfile(ready, target)
+        return
+
     from alembic import command
     from alembic.config import Config
 
     cfg = Config(
         os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
     )
-    cfg.set_main_option(
-        "sqlalchemy.url", f"sqlite+aiosqlite:///{os.environ['KANBAN_DB_PATH']}"
-    )
+    cfg.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{target}")
     command.upgrade(cfg, "head")
+    copy = os.path.join(tempfile.mkdtemp(prefix="kanban-test-migrated-"), "kanban.db")
+    shutil.copyfile(target, copy)
+    os.environ[_MIGRATED_ENV] = copy
 
 
 _migrate_default_db()
@@ -157,49 +171,6 @@ async def _notification_queues_are_per_test():
         await asyncio.gather(*notifications._background, return_exceptions=True)
     notifications._pending.clear()
     notifications._later.clear()
-
-
-def _file_seconds() -> dict[str, float]:
-    """How long each test file took (setup, call and teardown of its tests, summed over the workers), measured on a
-    full run and kept in tests/durations.json. Refresh it when the shards drift apart:
-    `uv run pytest -q -n auto --durations=0 --durations-min=0` then `python tests/durations.py <that output>`."""
-    import json
-    from pathlib import Path
-
-    try:
-        return json.loads((Path(__file__).parent / "durations.json").read_text())
-    except (OSError, ValueError):
-        return {}
-
-
-def pytest_collection_modifyitems(config, items):
-    """KANBAN_TEST_SHARD=K/N keeps only shard K of N (CI runs the shards side by side). Whole files go to one shard,
-    the slowest first onto the lightest shard, so the shards take about as long and every worker picks the same set.
-    A file's weight is its measured time (tests/durations.json); a file not measured yet counts its tests at the
-    average time of one."""
-    shard = os.environ.get("KANBAN_TEST_SHARD", "").strip()
-    if not shard:
-        return
-    k, n = (int(x) for x in shard.split("/"))
-    files: dict[str, list] = {}
-    for item in items:
-        files.setdefault(item.nodeid.split("::", 1)[0], []).append(item)
-    seconds = _file_seconds()
-    per_test = (sum(seconds.values()) / len(items)) if seconds else 1.0
-    weight = {
-        path: seconds.get(path, len(its) * per_test) for path, its in files.items()
-    }
-    load = [0.0] * n
-    keep: set[str] = set()
-    for path in sorted(files, key=lambda p: (-weight[p], p)):
-        i = load.index(min(load))
-        load[i] += weight[path]
-        if i == k - 1:
-            keep.add(path)
-    chosen = [it for it in items if it.nodeid.split("::", 1)[0] in keep]
-    dropped = [it for it in items if it.nodeid.split("::", 1)[0] not in keep]
-    config.hook.pytest_deselected(items=dropped)
-    items[:] = chosen
 
 
 @pytest.fixture(autouse=True)

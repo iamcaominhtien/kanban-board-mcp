@@ -1,10 +1,10 @@
-"""Write tests/durations.json, the measured time of each test file that conftest uses to split CI's shards evenly.
+"""Write tests/durations.json, the measured time of each test file that tests/shard.py uses to split CI's shards evenly.
 
     uv run pytest -q -n auto --durations=0 --durations-min=0 > /tmp/durations.log
     python tests/durations.py /tmp/durations.log
 
 A file's time is the setup, call and teardown of all its tests, summed (over the workers, so the shards compare
-like with like). Files the log does not name keep no entry and count at the average time per test.
+like with like). Files the log does not name keep no entry and count as the median file.
 """
 
 import collections
