@@ -148,4 +148,31 @@ describe('TicketHandover', () => {
     renderIt();
     expect(await screen.findByTestId('conflict-card')).toBeTruthy();
   });
+
+  it('says what keeps the worktree and lets a person move the outputs, commit the code or discard', async () => {
+    const w = wt({}, ['src/a.ts', 'qa/evidence/TC-1.png']);
+    w.live = { ...w.live!, outputs: ['qa/evidence/TC-1.png'] };
+    setup(w);
+    http.post.mockImplementation((url: string) => {
+      if (url.endsWith('/outputs'))
+        return Promise.resolve({ data: { moved: ['qa/evidence/TC-1.png'], to: '/ws/KAN-1/from-worktree/x' } });
+      if (url.endsWith('/commit')) return Promise.resolve({ data: { committed: true, left: [] } });
+      return Promise.resolve({ data: wt({ state: 'removed' }) });
+    });
+    renderIt();
+    const box = await screen.findByTestId('worktree-not-committed');
+    expect(box.textContent).toContain('2 files not committed');
+    expect(box.textContent).toContain('qa/evidence/TC-1.png · output');
+    fireEvent.click(screen.getByTestId('move-outputs'));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-1/ai/worktree/outputs'));
+    expect((await screen.findByTestId('tidy-note')).textContent).toContain('/ws/KAN-1/from-worktree/x');
+    fireEvent.click(screen.getByTestId('commit-leftovers'));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-1/ai/worktree/commit'));
+    // discarding asks first
+    fireEvent.click(screen.getByTestId('discard-worktree'));
+    expect(http.post).not.toHaveBeenCalledWith('/tickets/KAN-1/ai/worktree/remove', { force: true });
+    expect(screen.getByTestId('discard-worktree').textContent).toBe('Discard 2 files and remove');
+    fireEvent.click(screen.getByTestId('discard-worktree'));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-1/ai/worktree/remove', { force: true }));
+  });
 });

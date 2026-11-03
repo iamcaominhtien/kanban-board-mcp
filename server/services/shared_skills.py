@@ -124,8 +124,9 @@ holds a port and uses the machine after you are gone.
 - Temporary files go in your working folder's own scratch place, not in the user's home or `/tmp` of another tool.
 
 ## Files
-- **Write only inside your working folder** (or the worktree). Never edit the person's own config, dotfiles or other
-  projects, and never delete what you did not create.
+- **Write only inside your working folder** (or the worktree), and outputs a person should see (reports,
+  screenshots, logs) in the ticket's Workspace. Never edit the person's own config, dotfiles or other projects, and
+  never delete what you did not create.
 - Do not commit generated files, build output, secrets or large binaries; check `git status` before each commit.
 """,
 )
@@ -373,6 +374,16 @@ again once it was answered.
 )
 
 
+def _tickets() -> tuple[str, str, str]:
+    from services import ticket_guide
+
+    return (ticket_guide.NAME, ticket_guide.DESCRIPTION, ticket_guide.GUIDE)
+
+
+# how every part of a ticket is used, and where files go (issue #269)
+TICKETS = _tickets()
+
+
 def _slides() -> tuple[str, str, str]:
     from services import slides_skill
 
@@ -383,6 +394,7 @@ SLIDES = _slides()
 
 SKILLS: list[tuple[str, str, str]] = [
     WORKING_A_TICKET,
+    TICKETS,
     EVIDENCE_AND_HANDOVER,
     REPO_AND_MACHINE,
     ASKING_AND_WRITING,
@@ -425,4 +437,7 @@ CORE_RULES = [
     "Write in the project's language everywhere: copy, titles, labels, comments and the report.",
     "Stay in your role and start from the handoff: read what the step before you left first, never redo another "
     "role's work (send it back to them with the reason), and ask the PM (an @mention) rather than guess.",
+    "Never claim without checking: before you say a file, branch or page exists or where it is, look (list the "
+    "folder, read the ticket) and name the exact place. Code goes in the worktree, committed; outputs a person "
+    "should see in the ticket's Workspace or attached to the ticket.",
 ]  # then where the detail is, which depends on the member (context._core_rules)

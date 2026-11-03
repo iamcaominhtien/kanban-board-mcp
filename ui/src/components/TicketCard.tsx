@@ -138,6 +138,26 @@ export function TicketCard({
   const acTotal = (ticket.acceptanceCriteria ?? []).length;
   const acDone = (ticket.acceptanceCriteria ?? []).filter((c) => c.done).length;
 
+  // Test Cases roll-up of a Testing card: the ticket's own cases and its sub-tickets' (as the detail's Test tab)
+  const testRollup = (() => {
+    if (ticket.status !== 'testing') return null;
+    const cases = [
+      ...(ticket.testCases ?? []),
+      ...allTickets.filter((t) => t.parentId === ticket.id).flatMap((t) => t.testCases ?? []),
+    ];
+    if (cases.length === 0) return null;
+    const n = (st: string) => cases.filter((c) => c.status === st).length;
+    const [pass, fail, running, pending] = [n('pass'), n('fail'), n('running'), n('pending')];
+    const parts = [
+      pass ? `${pass} pass` : '',
+      fail ? `${fail} fail` : '',
+      running ? `${running} running` : '',
+      pending ? `${pending} pending` : '',
+    ].filter(Boolean);
+    const dot = fail ? '#C4432A' : running ? '#2F6FB0' : pass ? '#2E6F40' : '#9AA8A0';
+    return { text: `Test — ${parts.join(' · ')}`, dot };
+  })();
+
   const visibleTags = (ticket.tags ?? []).slice(0, 3);
   const overflowCount = (ticket.tags ?? []).length - visibleTags.length;
 
@@ -718,6 +738,15 @@ export function TicketCard({
           </div>
         )}
 
+        {/* A Testing card shows its Test Cases roll-up, same words and dot as the detail's Test tab tooltip
+            (Main Board 1, Testing column) */}
+        {testRollup && (
+          <span className={styles.testLine} data-testid="card-test-rollup">
+            <span className={styles.testDot} style={{ background: testRollup.dot }} aria-hidden="true" />
+            <span>{testRollup.text}</span>
+          </span>
+        )}
+
         {/* AI line: Run, running, queued, needs input, failed, summary ready (AI work on tickets, A4) */}
         {!isDragging && <CardCapLine ticketId={ticket.id} />}
         {!isDragging && <WorkflowCardChip ticketId={ticket.id} />}
@@ -734,25 +763,11 @@ export function TicketCard({
           {assigneeMember ? (
             <MemberAvatar member={assigneeMember} size={20} />
           ) : (
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                background: '#EEF3EF',
-                border: '1px dashed #C7D2CB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                color: '#9AA8A0',
-              }}
-            >
-              ?
-            </div>
+            <span className={styles.avatarEmpty} title="Unassigned" aria-label="Unassigned" role="img" />
           )}
 
-          <PriorityMark priority={ticket.priority} />
+          {/* 15 x 14 bars, as drawn; a Done card shows no priority (Ticket Card 7, Main Board Done) */}
+          {!isDone && <PriorityMark priority={ticket.priority} width={15} height={14} />}
 
           <div className={styles.footerSpacer} />
 

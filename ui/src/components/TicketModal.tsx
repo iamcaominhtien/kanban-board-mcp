@@ -87,7 +87,7 @@ import { StoryPage } from './story/StoryPage';
 import { useMakeStory } from '../api/stories';
 import { SubTasksSection } from './SubTasksSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
-import { StatusMenu } from './StatusMenu';
+import { StatusMenu, STATUS_OPTIONS } from './StatusMenu';
 import { TagPill } from './TagPill';
 import { TagPicker } from './TagPicker';
 import { MemberAvatar } from './MemberAvatar';
@@ -948,7 +948,7 @@ function TicketModalInner({
                           className={`${styles.ntTypeBtn} ${type === t ? styles.ntTypeBtnActive : ''}`}
                           onClick={() => setType(t)}
                         >
-                          <TicketTypeIcon type={t} size={14} />
+                          <TicketTypeIcon type={t} size={13} />
                           {TYPE_CONFIG[t].label}
                         </button>
                       ))}
@@ -1000,6 +1000,26 @@ function TicketModalInner({
                         variant="button"
                         label="Assignee"
                         testId="new-ticket-assignee"
+                        // the trigger carries the chosen avatar, or the dashed one for Unassigned, in the Filter bar's
+                        // dropdown size (New Ticket 1)
+                        icon={(() => {
+                          const m = assignee ? members.find((x) => x.id === assignee) : undefined;
+                          return m ? (
+                            <MemberAvatar member={m} size={15} />
+                          ) : (
+                            <span
+                              style={{
+                                display: 'block',
+                                width: 15,
+                                height: 15,
+                                borderRadius: '50%',
+                                border: '1.4px dashed #C7D2CB',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                          );
+                        })()}
+                        style={{ padding: '7px 11px', borderColor: '#E3E8E5', gap: 6 }}
                         value={assignee ?? ''}
                         onChange={(v) => setAssignee(v || null)}
                         menuWidth={220}
@@ -1253,9 +1273,11 @@ function TicketModalInner({
                     border: '1px solid #F0C77A',
                     color: '#8A4B00',
                     fontSize: 11,
-                    fontWeight: 600,
-                    padding: '2px 7px',
-                    borderRadius: 4,
+                    fontWeight: 700,
+                    lineHeight: 1.3,
+                    whiteSpace: 'nowrap',
+                    padding: '2px 7px 2px 5px',
+                    borderRadius: 999,
                     marginLeft: 6,
                   }}
                 >
@@ -1276,11 +1298,13 @@ function TicketModalInner({
                   {(ticket.reopenCount ?? 0) > 1 && (
                     <span
                       style={{
-                        fontSize: 10,
-                        background: '#FDE3A7',
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 11,
+                        background: 'rgba(199,119,0,0.16)',
                         padding: '0 4px',
-                        borderRadius: 3,
+                        borderRadius: 999,
                         fontWeight: 700,
+                        marginLeft: 1,
                       }}
                     >
                       x{ticket.reopenCount}
@@ -1300,9 +1324,11 @@ function TicketModalInner({
                     border: '1px solid #B8C4D2',
                     color: '#34455A',
                     fontSize: 11,
-                    fontWeight: 600,
-                    padding: '2px 7px',
-                    borderRadius: 4,
+                    fontWeight: 700,
+                    lineHeight: 1.3,
+                    whiteSpace: 'nowrap',
+                    padding: '2px 7px 2px 5px',
+                    borderRadius: 999,
                     marginLeft: 6,
                   }}
                 >
@@ -1736,7 +1762,11 @@ function TicketModalInner({
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <span className={styles.pendingBannerTitle}>
                                   Pending since {ticket.pendingSince ? fmtShortDate(ticket.pendingSince) : 'recent'}
-                                  {ticket.pendingBy ? ` - set by ${fmtActor(ticket.pendingBy)}` : ''}
+                                  {ticket.pendingBy && (
+                                    <span className={styles.pendingBannerBy}>
+                                      {` - set by ${fmtActor(ticket.pendingBy)}`}
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                               <div className={styles.pendingBannerDetail}>
@@ -1748,27 +1778,16 @@ function TicketModalInner({
                                     </strong>
                                     {pendingBlockerTicket && (
                                       <>
-                                        {' · '}
+                                        <span className={styles.pendingBannerSep}> · </span>
                                         <span>{pendingBlockerTicket.title}</span>
-                                        <span
-                                          style={{
-                                            marginLeft: 6,
-                                            fontSize: 11,
-                                            padding: '1px 5px',
-                                            borderRadius: 3,
-                                            background: '#E8EDF3',
-                                            color: '#34455A',
-                                            textTransform: 'capitalize',
-                                          }}
-                                        >
+                                        {/* The blocker's live status: a white pill with the status's own dot (TicketPending D1) */}
+                                        <span className={styles.pendingBannerStatus}>
                                           <span
+                                            className={styles.pendingBannerStatusDot}
                                             style={{
-                                              display: 'inline-block',
-                                              width: 6,
-                                              height: 6,
-                                              borderRadius: '50%',
-                                              background: '#2F6FD0',
-                                              marginRight: 5,
+                                              background:
+                                                STATUS_OPTIONS.find((o) => o.status === pendingBlockerTicket.status)
+                                                  ?.dotColor ?? '#9AA8A0',
                                             }}
                                           />
                                           {STATUS_LABELS[pendingBlockerTicket.status] ?? pendingBlockerTicket.status}
@@ -2351,8 +2370,6 @@ function TicketModalInner({
                           projectId={ticket.projectId}
                           onOpenPage={(pageId) => onOpenDocsPage?.(pageId)}
                         />
-
-                        <hr className={styles.sectionDivider} />
 
                         {/* Consolidated Attachments Zone (matching Attachments.dc.html - placed after Comments) */}
                         {(() => {
@@ -3187,7 +3204,10 @@ function TicketModalInner({
                             <path d="M8 3V6.5" />
                             <path d="M16 3V6.5" />
                           </svg>
-                          <span style={!dueDate ? { color: '#9AA8A0' } : undefined}>
+                          <span
+                            className={styles.sidebarValuePlain}
+                            style={!dueDate ? { color: '#9AA8A0' } : undefined}
+                          >
                             {dueDate ? formatDueDate(dueDate) : '–'}
                           </span>
                           <input
@@ -3210,6 +3230,7 @@ function TicketModalInner({
                         <div className={styles.sidebarItemInteractive} title="Click to change estimate">
                           {/* A parent with no estimate of its own shows the sum of its sub-tickets' (comp-2 TDP-2) */}
                           <span
+                            className={styles.sidebarValuePlain}
                             style={estimate === null && rolledUpEstimate === null ? { color: '#9AA8A0' } : undefined}
                             data-testid="sidebar-estimate"
                           >

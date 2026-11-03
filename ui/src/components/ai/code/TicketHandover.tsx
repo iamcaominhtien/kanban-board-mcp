@@ -20,6 +20,11 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
   const conflict = useCodeMutation((v: { choice: 'ai' | 'me' | 'later'; memberId?: string }) =>
     codeApi.conflict(ticket.id, v.choice, v.memberId),
   );
+  const moveOutputs = useCodeMutation(() => codeApi.moveOutputs(ticket.id));
+  const commit = useCodeMutation(() => codeApi.commit(ticket.id));
+  const discard = useCodeMutation(() => codeApi.discard(ticket.id));
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [tidyNote, setTidyNote] = useState<string | null>(null);
 
   const w = wt.data;
   if (!w || w.state === 'removed') return null;
@@ -57,6 +62,40 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
           {uncommittedText(w)}
         </span>
       </div>
+      {dirty && w.state !== 'merged' && (
+        <NotCommitted
+          files={w.live?.uncommitted ?? []}
+          outputs={w.live?.outputs ?? []}
+          busy={moveOutputs.isPending || commit.isPending || discard.isPending}
+          confirmDiscard={confirmDiscard}
+          note={tidyNote}
+          onMoveOutputs={() =>
+            void run(async () => {
+              const r = await moveOutputs.mutateAsync(undefined);
+              setTidyNote(
+                r.moved.length
+                  ? `Moved ${r.moved.length} file${r.moved.length === 1 ? '' : 's'} to the Workspace: ${r.to}`
+                  : (r.reason ?? 'Nothing to move.'),
+              );
+            })
+          }
+          onCommit={() =>
+            void run(async () => {
+              const r = await commit.mutateAsync(undefined);
+              setTidyNote(r.committed ? 'Committed on the branch.' : 'Nothing to commit.');
+            })
+          }
+          onDiscard={() => {
+            if (!confirmDiscard) {
+              setConfirmDiscard(true);
+              return;
+            }
+            setConfirmDiscard(false);
+            void run(() => discard.mutateAsync(undefined));
+          }}
+          onCancelDiscard={() => setConfirmDiscard(false)}
+        />
+      )}
       {w.prUrl && (
         <div>
           <a href={w.prUrl} target="_blank" rel="noreferrer" className="ai-link" data-testid="handover-pr">
@@ -126,6 +165,97 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
       )}
       {!openConflict && error && <div className="ai-error-text">{error}</div>}
       <PullStatus ticketId={ticket.id} />
+    </div>
+  );
+}
+
+/** What keeps the worktree from being cleaned, and what a person can do about it (issue #269): the outputs a run left
+ * (screenshots, logs, reports) go to the Workspace, the code is committed on the branch, or everything is discarded. */
+function NotCommitted({
+  files,
+  outputs,
+  busy,
+  confirmDiscard,
+  note,
+  onMoveOutputs,
+  onCommit,
+  onDiscard,
+  onCancelDiscard,
+}: {
+  files: string[];
+  outputs: string[];
+  busy: boolean;
+  confirmDiscard: boolean;
+  note: string | null;
+  onMoveOutputs: () => void;
+  onCommit: () => void;
+  onDiscard: () => void;
+  onCancelDiscard: () => void;
+}) {
+  const out = new Set(outputs);
+  const code = files.filter((f) => !out.has(f));
+  return (
+    <div className="ai-notice ai-notice-warn" style={{ display: 'block' }} data-testid="worktree-not-committed">
+      <div style={{ fontWeight: 700 }}>
+        {files.length} file{files.length === 1 ? '' : 's'} not committed: the worktree stays until you decide
+      </div>
+      <ul style={{ margin: '4px 0 8px', paddingLeft: 18, fontSize: 12 }}>
+        {files.slice(0, 8).map((f) => (
+          <li key={f}>
+            <span className="ai-mono">{f}</span>
+            {out.has(f) ? <span className="ai-muted"> · output</span> : null}
+          </li>
+        ))}
+        {files.length > 8 && <li className="ai-muted">and {files.length - 8} more</li>}
+      </ul>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {outputs.length > 0 && (
+          <button
+            type="button"
+            className="ai-btn ai-btn-sm ai-btn-primary"
+            disabled={busy}
+            data-testid="move-outputs"
+            onClick={onMoveOutputs}
+          >
+            Move {outputs.length} output{outputs.length === 1 ? '' : 's'} to the Workspace
+          </button>
+        )}
+        {code.length > 0 && (
+          <button
+            type="button"
+            className="ai-btn ai-btn-sm"
+            disabled={busy}
+            data-testid="commit-leftovers"
+            onClick={onCommit}
+          >
+            Commit the code
+          </button>
+        )}
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm ai-btn-danger-outline"
+          disabled={busy}
+          data-testid="discard-worktree"
+          onClick={onDiscard}
+        >
+          {confirmDiscard ? `Discard ${files.length} file${files.length === 1 ? '' : 's'} and remove` : 'Discard…'}
+        </button>
+        {confirmDiscard && (
+          <button type="button" className="ai-btn ai-btn-sm" onClick={onCancelDiscard}>
+            Cancel
+          </button>
+        )}
+      </div>
+      {confirmDiscard && (
+        <div className="ai-hint" style={{ marginTop: 6 }}>
+          This deletes the worktree and everything not committed in it. It cannot be undone.
+        </div>
+      )}
+      {note && (
+        <div className="ai-hint" style={{ marginTop: 6 }} data-testid="tidy-note">
+          {note}
+        </div>
+      )}
     </div>
   );
 }

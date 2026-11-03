@@ -1606,6 +1606,8 @@ async def _execute(run_id: str, token: str) -> None:
         if run is not None:
             # its CLI has stopped: a Review hand-over that waited for it goes now
             worktrees.after_run(run.ticket_id)
+            # and what it left in the worktree that is not code goes to the ticket's Workspace (issue #269)
+            worktrees.tidy_later(run.ticket_id, run_id)
 
 
 async def _has_ended(run_id: str) -> bool:
@@ -2439,6 +2441,16 @@ async def _execute_cli_held(
                 f"touch the main checkout. If you start a server, use the port {worktree.port} (the PORT environment "
                 "variable) and run it in the background."
             )
+        if config.get("permission_mode") != "bypass":
+            # A live Reviewer typed `git -C <worktree> log` and `cd <worktree> && …`: an allow rule matches the start of
+            # the command, so both were refused, it took the shell for switched off and never ran the tests (issue #269)
+            system = f"{system}\n\n{SHELL_LINE}"
+        ws_dir = None
+        if run.ticket_id:
+            # The ticket's Workspace, which runs never mentioned: a PM told a person a QA's files were "in the
+            # Workspace" that had never been made (issue #269)
+            ws_text, ws_dir = await workspace_line(session, run.ticket_id, worktree)
+            system = f"{system}\n\n{ws_text}"
         resume = session_id is not None
         # Claude Code takes the session id up front; the others tell it in their first event
         if not (agy or adapter):
@@ -2471,6 +2483,10 @@ async def _execute_cli_held(
             denied = ["Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"]
         else:
             allowed = list(config.get("allow_rules") or []) + ["mcp__kanban"]
+            # the project's own test, lint and build commands: a Reviewer's allow list named pytest and npm, so on a
+            # project whose tests are `python3 -m unittest` it could not run them and asked the Dev to paste the
+            # output instead, two rounds for nothing (issue #269)
+            allowed += project_command_rules(cfg_ops)
             for server in mcp["mcpServers"]:
                 if server != "kanban":
                     allowed.append(f"mcp__{server}")
@@ -2571,7 +2587,7 @@ async def _execute_cli_held(
                         / "mcp"
                     )
                 ]
-                # The ticket's workspace (a worktree the board made for it) is part of the task
+                # The ticket's Workspace (its scratch folder, not the worktree) is part of the task
                 ws = await svc_workspace.get_workspace_settings(session)
                 if ws.enabled and ws.root_path:
                     read_dirs.append(os.path.expanduser(ws.root_path))
@@ -2618,6 +2634,8 @@ async def _execute_cli_held(
                 bypass=bypass,
                 plugin_dirs=plugin_dirs or None,
                 live=live,
+                # without it a run in dontAsk mode cannot write its outputs to the Workspace (outside its folder)
+                add_dirs=[ws_dir] if ws_dir and not narrow else None,
             )
         run.session_id = session_id
         session.add(run)
@@ -3945,6 +3963,53 @@ async def _end(
     RT.wake.set()
     await _publish(force=True)
     return run
+
+
+SHELL_LINE = (
+    "Your shell starts in your working folder: type commands as they are (`git diff main...HEAD`, the project's test "
+    "command), never `git -C <path> …` or `cd <path> && …`. Your permissions match the start of a command, so those "
+    "forms are refused; a refused command is not a switched-off shell: try its plain form before you say you could "
+    "not run something."
+)
+
+
+def project_command_rules(cfg_ops: dict) -> list[str]:
+    """Claude Code allow rules for the project's own checks (Settings › AI › Commands): ``Bash(<command>:*)``."""
+    out = []
+    for cmd in (cfg_ops.get("commands") or {}).values():
+        cmd = " ".join(str(cmd or "").split())
+        if cmd and "(" not in cmd and ")" not in cmd:
+            out.append(f"Bash({cmd}:*)")
+    return out
+
+
+async def workspace_line(
+    session, ticket_id: str, worktree=None
+) -> tuple[str, str | None]:
+    """Where a run's files go, for its prompt: the ticket's Workspace (made now when Workspace is on) for what a
+    person should see, the worktree (when there is one) for code only. Returns the line and the Workspace's path."""
+    try:
+        ws = await svc_workspace.get_workspace_path(session, ticket_id, create=True)
+    except (OSError, ValueError):
+        ws = None
+    code = (
+        f"Code goes in the worktree {worktree.path}, committed; leave nothing else there."
+        if worktree is not None
+        else "Code goes in the repository, committed on the ticket's branch."
+    )
+    if ws is None or not ws.get("enabled"):
+        return (
+            f"Where files go: {code} The ticket has no Workspace (it is off): attach what a person should see to the "
+            "ticket (ticket_items item='attachment', or a picture in a comment or a test case's proof).",
+            None,
+        )
+    return (
+        f"Where files go: {code} Outputs a person should see (reports, screenshots, logs, exports) go in the ticket's "
+        f"Workspace, {ws['path']}, and the ones that prove a result also on the ticket (ticket_items "
+        "item='attachment', or a picture in a comment or a test case's proof, by their path there). Before you say "
+        "where a file is, look (list the folder): name the exact path.",
+        ws["path"],
+    )
 
 
 _WORKFLOW_TASKS: set[asyncio.Task] = set()

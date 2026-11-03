@@ -4,6 +4,7 @@ import {
   createWorkspaceFolder,
   deleteWorkspaceEntry,
   initTicketWorkspace,
+  moveTicketWorkspace,
   openTicketWorkspace,
   uploadWorkspaceFile,
   useSetTicketWorkspaceRetention,
@@ -123,6 +124,12 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
     uploadWorkspaceFile(ticketId, file, dir),
   );
   const deleteMut = useWorkspaceAction<string>(ticketId, (p) => deleteWorkspaceEntry(ticketId, p));
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveTo, setMoveTo] = useState('');
+  const moveMut = useWorkspaceAction<{ to: string; mode: 'move' | 'copy' }>(ticketId, async ({ to, mode }) => {
+    const r = await moveTicketWorkspace(ticketId, to, mode);
+    setNotice({ kind: 'info', text: `Workspace ${r.result} to ${r.to}: ${r.path}` });
+  });
 
   const [copied, setCopied] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
@@ -369,6 +376,17 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
             <div className={styles.topActions}>
               {!readOnly && (
                 <>
+                  {!ideaRetention && (
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => setMoveOpen((v) => !v)}
+                      data-testid="workspace-move-open"
+                    >
+                      <Icon d={[FOLDER, 'M10 13H16', 'M13.5 10.5L16 13L13.5 15.5']} size={12} />
+                      Move to ticket…
+                    </button>
+                  )}
                   <button type="button" className={styles.actionBtn} onClick={() => setNewFolderOpen((v) => !v)}>
                     <Icon d={FOLDER_PLUS} size={12} />
                     New folder
@@ -401,6 +419,56 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
               </button>
             </div>
           </div>
+
+          {moveOpen && !ideaRetention && (
+            <form
+              className={styles.newFolderRow}
+              data-testid="workspace-move-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const to = moveTo.trim().toUpperCase();
+                if (!to) return;
+                moveMut.mutate(
+                  { to, mode: 'move' },
+                  {
+                    onSuccess: () => {
+                      setMoveOpen(false);
+                      setMoveTo('');
+                    },
+                    onError: fail,
+                  },
+                );
+              }}
+            >
+              <Icon d={FOLDER} color="#5B6B60" size={14} />
+              <span className={styles.moveLabel}>Move every file to</span>
+              <input
+                className={styles.newFolderInput}
+                autoFocus
+                placeholder="ticket ID, e.g. KAN-12"
+                aria-label="Ticket to move the workspace to"
+                value={moveTo}
+                onChange={(e) => setMoveTo(e.target.value)}
+              />
+              <button
+                type="submit"
+                className={`${styles.actionBtn} ${styles.primaryBtn}`}
+                disabled={!moveTo.trim() || moveMut.isPending}
+              >
+                Move
+              </button>
+              <button
+                type="button"
+                className={styles.actionBtn}
+                onClick={() => {
+                  setMoveOpen(false);
+                  setMoveTo('');
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+          )}
 
           {newFolderOpen && (
             <form

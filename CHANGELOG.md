@@ -8,6 +8,41 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.31.0] - 2026-11-03
+
+Tickets look like their designs, and every AI uses every part of a ticket: criteria, sub-tickets, blocks, work log, test cases, attachments, Docs links and branches; files a person should see go to the ticket's Workspace and never into the branch (#269).
+
+### Added
+- **A ticket guide for every AI**: what a good title, description and acceptance criteria are, when to use a sub-task, a sub-ticket, a Story, a block or a link, how to keep the work log, a comment a person reads in ten seconds, test cases and attachments as evidence, where each kind of file goes (code in the worktree, committed; reports, screenshots, logs and exports in the Workspace), never saying a file is somewhere without looking, and what each of the twelve roles leaves on a ticket. It is the `working-with-tickets` skill of the board's plugin and `docs_read(action='ticket_guide')` for any other agent: one text, a test checks both are the same. Each run's prompt says what its own role leaves on a ticket.
+- **Attachments over MCP**: `ticket_items(item='attachment', path=…, text=…)` posts a file in a comment, so it shows in the ticket's Attachments, and returns `attached.markdown` to reuse in a test case's proof or the description. An agent outside a board run names the file by its absolute path; a picture or document named that way in a comment, work log, proof or Docs page is attached too (keys, `.env` and anything under a dot folder never are).
+- `manage_ticket(create)` takes `acceptance_criteria`: they are written with the ticket, so the AI team's intake never takes a new ticket before it has any.
+- **What blocks a worktree's clean-up, and what to do about it**: the ticket's AI view lists the files not committed (outputs marked) with **Move N outputs to the Workspace**, **Commit the code** and **Discard…** (asks first).
+- **Move a Workspace to another ticket** of the same project (Move to ticket… in the panel, `POST /tickets/{id}/workspace/move`), recorded in both tickets' activity.
+
+### Changed
+- Every work run of a ticket is told where files go: code in the worktree, committed; outputs a person should see in the ticket's Workspace, whose path it gets (the folder is made when the run starts, when Workspace is on). Claude Code runs may write there (`--add-dir`); a file there can be named in a proof or comment like one in the worktree. The QA and user-tester skills and workflow steps keep their screenshots and reports there.
+- **When a run ends, the outputs it left in the worktree** (untracked screenshots, logs, reports, exports) move to `Workspace/from-worktree/<date-time>/`, and the work log says what moved and where. A run waiting for an answer keeps its files.
+- `get_ticket` says what is really there: `workspace` {path, exists, file_count, files, note} read from disk, `workspace_path` only when the folder exists, and `worktree` {path, branch, state, uncommitted, outputs, note}.
+- A rule in every run's prompt and in the MCP instructions: never claim without checking. Before saying a file, branch or page exists or where it is, look, and name the exact place.
+- The work-log `role` field says which role a QA (Tester) or a reviewer (Other) takes.
+- **Every run may run the project's own test, lint and build commands** (Settings › AI › Commands), whatever its allow list names. In a live run the Reviewer's list named only pytest and npm, so on a project tested with `python3 -m unittest` it could not run the tests and sent the ticket back twice for the Dev to paste their output.
+- **A run with an allow list is told to type commands plainly** (`git diff main...HEAD`, not `git -C <path> …` or `cd <path> && …`): an allow rule matches the start of a command, so a live Reviewer's `git -C` calls were refused and it took the shell for switched off. Checked again with the Reviewer's own settings: no refusal, the tests ran.
+- **The QA ticks the criteria its passing cases prove**, and the guide says a "met" in a report ticks nothing on the ticket. A live run ended with 12 test cases passed and not one criterion ticked.
+- **Ticket screens 1:1 with their designs**, read from the design source (`design/source/*.dc.html`), one table per design in `docs/ui-audit/269/` (detail: 84 rows, 29 fixed; board: 61 rows):
+  - Ticket detail: every button in the ticket panel was drawn in Arial (the Add buttons, tooltips, the Pending and Reopen buttons): they use the app's font. Criteria rows 26 px apart (were 36), no empty band and doubled line above Attachments, the comment box's Attach button has the paperclip, the Pending and Reopened badges are pills, the pending banner's status pill has the status's own colour (it was always blue), the Set Pending dialog's status dots match the status menu, test-case group headers and the time of a pending case as in the design, Linked docs' origin chips in blue.
+  - Card: a Done card keeps a dark title and shows no priority bars; a Testing card shows "Test — 2 pass · 1 running · 1 pending"; the design's gaps and priority-bar size; the blocked lock where Main Board draws it; an unassigned card shows the dashed empty circle instead of a grey "?".
+  - Drag and drop: the card tilts −1.5° as drawn, the ghost keeps its place without shifting the cards below, and the drop slot takes the dragged card's height.
+  - New Ticket, the filter menus and the top bar: sizes, gaps and icons as drawn. List View: a Done row keeps a dark title.
+  - Event timeline: an assignee change names the person, and an added or removed item reads "Added test case — …" instead of "none → …".
+  - Kept on purpose: comments newest first by default (wave 3 kept it; the toggle gives the design's order), and where the code does more than an older design (Story, AI and schedule chips, the Workspace's file manager).
+- The dev server proxies `/upload-info`, so attachment chips show their size there too.
+
+### Fixed
+- **A QA's screenshots and logs were committed into the product's branch**: the hand-over at Review and Done ran `git add -A` on the worktree, so whatever a run left there went into the pull request or the merge. Outputs now go to the Workspace first, and stay out of the commit when the Workspace is off.
+- **A PM said a QA's files were "in the Workspace" that had never been made**: `get_ticket` gave the Workspace's path whether or not the folder existed, no run was told about the Workspace, and a Claude Code run could not have written there anyway.
+- Open folder on a machine without a file manager made the ticket's Workspace folder before failing, leaving an empty folder behind.
+- The tests no longer make ticket folders in the home folder (`KANBAN_WORKSPACE_ROOT`).
+
 ## [3.30.0] - 2026-11-03
 
 Wave 5 of the design audit's fixes: the findings that needed data from the server (`docs/ui-audit/2026-11-design-audit/fixes/<area>.md`). Nothing changes for an existing project or its data until a person turns the new thing on; Docs AI off by default applies to new projects only.

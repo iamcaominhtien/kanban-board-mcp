@@ -31,6 +31,7 @@ DocsReadAction = Literal[
     "permissions_guide",
     "guides",
     "role_guide",
+    "ticket_guide",
 ]
 
 DOCS_READ_OPS = {
@@ -66,6 +67,7 @@ DOCS_READ_OPS = {
     "permissions_guide": Op(ops.permissions_guide, ()),
     "guides": Op(ops.shared_guides, ()),
     "role_guide": Op(ops.role_guide, (), ("query",)),
+    "ticket_guide": Op(ops.ticket_guide, ()),
 }
 
 
@@ -172,7 +174,8 @@ async def docs_read(
     - picture: diagram_id | canvas_id + board_id | sketch_id | path [, width]. A PNG to look at before you hand in: {path, drawn_by, markdown (a copy for a comment)}.
     - permissions_guide: {guide, you}: what you may do; read it when refused.
     - guides: {name: text}: how to work a ticket, prove it, ask, work as a team, brainstorm, write for users, make office files and decks.
-    - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles."""
+    - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles.
+    - ticket_guide: {guide, roles}: using every part of a ticket; where files go."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 

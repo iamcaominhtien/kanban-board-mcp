@@ -549,3 +549,10 @@
 .chevronBtn:hover {
   background: #eef3ef;
 }
+
+/* "Move every file to" before the ticket field (issue #269): a label, not a path */
+.moveLabel {
+  font-size: 13px;
+  color: var(--color-text-sec);
+  white-space: nowrap;
+}

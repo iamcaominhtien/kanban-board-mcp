@@ -17,6 +17,12 @@ from models import IdeaTicket, Ticket, WorkspaceSettings
 from services import activity as act
 
 
+def default_root() -> str:
+    """Where ticket workspaces go until a person picks a folder in Settings (``KANBAN_WORKSPACE_ROOT`` moves it: the
+    tests keep it out of the home folder)."""
+    return os.environ.get("KANBAN_WORKSPACE_ROOT") or "~/kanban-workspace"
+
+
 async def get_workspace_settings(session: AsyncSession) -> WorkspaceSettings:
     """Return the workspace settings row, creating it with defaults if missing."""
     result = await session.exec(
@@ -27,7 +33,7 @@ async def get_workspace_settings(session: AsyncSession) -> WorkspaceSettings:
         settings = WorkspaceSettings(
             id=1,
             enabled=True,
-            root_path="~/kanban-workspace",
+            root_path=default_root(),
             default_retention_days=14,
         )
         session.add(settings)
@@ -374,6 +380,40 @@ async def get_workspace_path(
     }
 
 
+async def brief(
+    session: AsyncSession, ticket_id: str, limit: int = 20
+) -> dict[str, Any] | None:
+    """What an AI needs to know about a ticket's Workspace, read from disk now (never created here):
+    ``{path, exists, file_count, files: [newest first, at most `limit`], note}``; None when Workspace is off."""
+    settings = await get_workspace_settings(session)
+    if not settings.enabled:
+        return None
+    try:
+        folder = _resolve_workspace_path(settings.root_path, ticket_id)
+    except ValueError:
+        return None
+    out: dict[str, Any] = {"path": str(folder), "exists": folder.is_dir()}
+    if not out["exists"]:
+        out["note"] = (
+            "Not created yet: nothing is in it. manage_ticket(action='workspace') creates it."
+        )
+        return out
+    try:
+        files, _total, _last, _cut = await asyncio.to_thread(_scan, folder)
+    except OSError:
+        files = []
+    plain = sorted(
+        (f for f in files if not f["is_dir"]),
+        key=lambda f: f["modified_at"],
+        reverse=True,
+    )
+    out["file_count"] = len(plain)
+    out["files"] = [f["name"] for f in plain[:limit]]
+    if not plain:
+        out["note"] = "Empty: the folder exists, nothing has been written to it."
+    return out
+
+
 async def create_folder(session: AsyncSession, ticket_id: str, rel: str) -> str:
     """Create a sub-folder inside the ticket's workspace.
 
@@ -506,7 +546,6 @@ async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
         WorkspaceError: If no file manager is available.
     """
     folder = await _enabled_folder(session, ticket_id)
-    await asyncio.to_thread(folder.mkdir, 0o755, True, True)
     # The folder is passed as the working directory and "." as the only argument,
     # so no configurable path ever becomes part of the command line.
     if sys.platform == "darwin":
@@ -516,9 +555,11 @@ async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
     else:
         opener = "xdg-open"
     if shutil.which(opener) is None:
+        # checked before the folder is made: a failed Open folder must not leave an empty folder behind
         raise WorkspaceError(
             "No file manager available on this machine; copy the path instead"
         )
+    await asyncio.to_thread(folder.mkdir, 0o755, True, True)
     subprocess.Popen(  # noqa: S603 - fixed argv
         [opener, "."],
         cwd=folder,
@@ -593,6 +634,42 @@ async def sweep_loop(session_factory) -> None:
         except Exception:
             logger.exception("Workspace sweep failed")
         await asyncio.sleep(SWEEP_INTERVAL_SECONDS)
+
+
+async def move_to_ticket(
+    session: AsyncSession, ticket_id: str, to_ticket_id: str, mode: str = "move"
+) -> dict[str, Any]:
+    """Move (or copy) a ticket's Workspace to another ticket of the same project: a split ticket, work that turned
+    out to belong elsewhere. Files already in the target are kept; one of the same name is replaced.
+
+    Returns:
+        ``{result: moved|copied, path}`` (the target's folder).
+
+    Raises:
+        LookupError: Either ticket is missing.
+        WorkspaceError: Workspace is off, the tickets are the same or in different projects, or there is nothing to
+            move.
+    """
+    source = await session.get(Ticket, ticket_id)
+    target = await session.get(Ticket, (to_ticket_id or "").strip().upper())
+    if source is None or target is None:
+        raise LookupError("Ticket not found")
+    if target.id == source.id:
+        raise WorkspaceError("Pick another ticket")
+    if target.project_id != source.project_id:
+        raise WorkspaceError("Workspaces move only between tickets of the same project")
+    folder = await _enabled_folder(session, source.id)
+    if not folder.is_dir():
+        raise WorkspaceError("This ticket has no workspace folder to move")
+    done = await transfer_workspace(session, source.id, target.id, mode)
+    settings = await get_workspace_settings(session)
+    dest = _folder_for(settings.root_path, target.id)
+    act.record(source, "workspace", None, f"{done} to {target.id}")
+    act.record(target, "workspace", None, f"{done} from {source.id}")
+    session.add(source)
+    session.add(target)
+    await session.commit()
+    return {"result": done, "path": str(dest), "to": target.id}
 
 
 async def transfer_workspace(

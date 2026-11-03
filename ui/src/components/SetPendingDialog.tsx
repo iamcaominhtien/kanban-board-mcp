@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Ticket, Member, PendingReasonType } from '../types/ticket';
 import { DOCS_SCRIM, useEscape } from './docs/docsShared';
+import { STATUS_OPTIONS } from './StatusMenu';
 
 interface SetPendingDialogProps {
   isOpen?: boolean;
@@ -24,15 +25,10 @@ interface SetPendingDialogProps {
   onRetry?: () => void;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; dotColor: string }> = {
-  backlog: { label: 'Backlog', dotColor: '#C7D2CB' },
-  todo: { label: 'To Do', dotColor: '#9AA8A0' },
-  'in-progress': { label: 'In Progress', dotColor: '#2F6FB0' },
-  review: { label: 'Review', dotColor: '#6D5DD3' },
-  testing: { label: 'Testing', dotColor: '#B4571F' },
-  done: { label: 'Done', dotColor: '#2E6F40' },
-  wont_do: { label: "Won't Do", dotColor: '#C4432A' },
-};
+/** One status is one colour: the dots are the board's column accents, as in the status menu (comp-1 SM-1). */
+const STATUS_CONFIG: Record<string, { label: string; dotColor: string }> = Object.fromEntries(
+  STATUS_OPTIONS.map((o) => [o.status, { label: o.label, dotColor: o.dotColor }]),
+);
 
 /**
  * Pixel-perfect SetPendingDialog strictly matching design/source/TicketPending.dc.html (B1-B6).
