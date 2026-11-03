@@ -10,7 +10,7 @@ have written it in the editor, and a person's later edit in the editor does not 
 
 SKILL_HEADER = r"""---
 name: docs-pages
-description: Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, format text the editor keeps (headings, tables, highlights, callouts, task lists, code, pictures and files), edit one part of a page safely without rewriting it, comment on a passage and answer a thread, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page or in a ticket comment.
+description: Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, format text the editor keeps (headings, tables, highlights, callouts, task lists, code, pictures and files), edit one part of a page safely without rewriting it, comment on a passage, answer a thread, fix your own comment and resolve a thread when it is settled, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page or in a ticket comment.
 ---
 
 """
@@ -118,14 +118,62 @@ write plain sentences under clear headings, short paragraphs, one idea each.
 
 ## 7. Comments
 
+### Add a comment
+
 - **On a passage**: `docs_write(action='comment', page_id, body, quote='exact text of the page')`. The quote is plain
   text inside one paragraph, list item or table cell. The person sees it highlighted with your comment beside it.
   Make one point per comment; say what is wrong and what you propose.
-- **On the page**: omit `quote`.
-- **Answer**: `docs_read(action='comments', page_id, state='open')`, then `docs_write(action='reply', thread_id,
-  body)`. Read the whole thread first; answer the last question asked.
-- You never resolve a person's thread: the person who asked resolves it when they are satisfied. You may resolve a
-  thread you opened once it is answered.
+- **On the page**: omit `quote`. A page comment cannot be resolved; it stays in the list.
+- Read the open threads first (`docs_read(action='comments', page_id, state='open')`). If one is already about the
+  same passage or point, reply there instead of opening a second thread.
+- **A question**: one question per thread, and say what you will do with each answer ("If the limit is per user, I
+  will change § Limits to …"), so one reply settles it. Several at once: one call with `items=[...]`.
+
+### Answer a thread
+
+- `docs_read(action='comments', page_id, state='open')`, then `docs_write(action='reply', thread_id, body)`. Read the
+  whole thread first; answer the last question asked.
+- When the answer asks for a change, make the change on the page first (section 4), then reply with what you
+  changed ("Changed § Limits: 100 requests per user per minute."). Do not reply "I will update it" and stop.
+
+### Change or delete your own comment
+
+- `docs_write(action='edit_comment', comment_id, body)` fixes a comment of yours (a typo, a wrong name, a missing
+  link). `comment_id` is the comment's `id` in `comments[]` of the thread; you can edit only your own (`can_edit`).
+  The comment is then shown as edited.
+- Edit only while nobody has replied after it. Once someone has, they answered the old text: reply with the
+  correction instead.
+- An edit notifies nobody. Never edit a comment to answer, ask a new question or report progress: that is a reply.
+- `docs_write(action='delete_comment', comment_id)` removes a comment you posted by mistake. Deleting the first
+  comment of a thread removes the whole thread. Do not delete a comment someone has answered.
+
+### When to resolve
+
+Resolving closes a thread: its highlight leaves the page and it moves to the Resolved tab.
+
+| The thread | What you do |
+|---|---|
+| You opened it, and the person's answer settles it | Make the change it calls for (or none), reply in one line with what you did, then **resolve it in the same turn** |
+| You opened it, and the answer leaves something open | Reply with the next question; keep it open |
+| You opened it, and the passage is gone (`anchor.state='orphaned'`) or the point no longer applies | Reply with why, then resolve it |
+| A person opened it | Answer, or make the change and reply with what you changed; leave it open. You never resolve a person's thread: the person resolves it when satisfied |
+| A page comment (no `quote`) | It cannot be resolved; your reply is the end |
+
+- ==Resolving is an action, not a word.== Never write "resolved", "closing this" or "done, resolving" in a reply
+  unless you call `docs_write(action='resolve', thread_id)` in the same turn, right after the reply. Reply first:
+  the board refuses an AI's resolve (`reply_first`) until it has replied in the thread.
+- Check the answer: it returns the thread, and `status` must be `resolved`. If the call is refused or the status is
+  still `open`, the thread is open: say so in the thread ("I can't resolve this here; please resolve it if you
+  agree."), never that it is done. With Docs AI keeping AI edits for review, AI members cannot resolve; end your
+  reply by asking the person to resolve it.
+- Several threads: `docs_write(action='resolve', items=[{thread_id}, ...])`, after a reply in each.
+- `docs_write(action='reopen', thread_id)` when a thread you resolved is not settled after all (the change was
+  undone, the person writes that it is still wrong).
+- Before you hand in, list the threads you opened (`created_by` is you, `state='open'`): each one is either waiting
+  for a person's answer, and your hand-over says so, or it is resolved.
+
+### Asking another AI
+
 - A person who writes `@AI member` in a thread gets an answer there from that member (when the project has Docs AI
   on). A comment by an AI never wakes another AI (no loops); to ask another AI member, use `ai_team(action='ask',
   page_id, member_id, text)` or, inside a run, `ai_run(action='handoff')`.
@@ -149,6 +197,7 @@ write plain sentences under clear headings, short paragraphs, one idea each.
 
 - Read your page back with `docs_read(action='get')`: headings in order, every `[[link]]` and ticket key resolves
   (`check_links`), tables have the same number of cells in every row, pictures have alt text.
+- Every thread you opened is resolved or waiting for an answer (section 7); none says "resolved" while still open.
 - Say on the ticket what you wrote, with the link, and what is still open.
 """
 

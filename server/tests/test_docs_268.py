@@ -340,6 +340,14 @@ async def test_the_docs_guide_is_one_text_in_both_places():
         "action='upload'",
     ):
         assert form in docs_guide.GUIDE
+    # comments: fix your own, and resolve a thread you opened for real, not only in words
+    for rule in (
+        "action='edit_comment'",
+        "action='resolve'",
+        "Resolving is an action, not a word.",
+        "You never resolve a person's thread",
+    ):
+        assert rule in docs_guide.GUIDE
 
 
 async def test_a_person_gives_a_page_to_an_ai_and_sees_its_work_on_the_page(env):
