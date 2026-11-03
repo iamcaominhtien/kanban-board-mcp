@@ -330,7 +330,11 @@ function PageChipBody({
       {anchor && (
         <>
           <span style={color ? { color, fontWeight: 500 } : sage}>›</span>
-          {section ?? anchor}
+          {/* a # glyph before the heading name (TicketDocRefs A, DR-1) */}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+            <Icon name="hash" size={11} strokeWidth={2.4} />
+            {section ?? anchor}
+          </span>
         </>
       )}
     </>

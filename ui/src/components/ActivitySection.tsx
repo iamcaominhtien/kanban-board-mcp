@@ -283,6 +283,7 @@ const FIELD_DISPLAY_NAMES: Record<string, string> = {
   pending_prompt: 'Prompt',
   status: 'Status',
   assignee: 'Assignee',
+  review_requested_from: 'Review by',
   priority: 'Priority',
   description: 'Description',
   doc_refs: 'Doc references',
@@ -1038,6 +1039,13 @@ export function ActivitySection({
   // Render chip value
   const renderValueChip = (field: string, val: any, isOldTitle = false) => {
     if (val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)) {
+      if (field === 'review_requested_from') {
+        return (
+          <span className={styles.acChip} style={{ color: '#9AA8A0' }}>
+            Nobody
+          </span>
+        );
+      }
       if (field === 'assignee') {
         return (
           <span className={styles.acChip} style={{ color: '#9AA8A0' }}>
@@ -1072,7 +1080,7 @@ export function ActivitySection({
       );
     }
 
-    if (field === 'assignee') {
+    if (field === 'assignee' || field === 'review_requested_from') {
       const member = members.find((m) => m.id === val || m.name === val);
       const name = member?.name || String(val);
       const initials = getInitials(name);

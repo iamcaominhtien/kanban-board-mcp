@@ -91,13 +91,13 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
         data-testid="ticket-ai-tab"
         data-can-run={canRun ? 'true' : undefined}
         style={{
-          minWidth: 32,
+          minWidth: 30,
           padding: canRun ? '0 10px' : 0,
           gap: 5,
           fontSize: 12.5,
           fontWeight: 700,
           fontFamily: 'inherit',
-          height: 32,
+          height: 30,
           borderRadius: '8px 0 0 8px',
           border: border(active),
           background: active ? '#F1F8F3' : '#fff',
@@ -121,7 +121,7 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
         data-testid="ticket-run-menu"
         style={{
           width: 20,
-          height: 32,
+          height: 30,
           borderRadius: '0 8px 8px 0',
           border: border(menu),
           borderLeft: 'none',

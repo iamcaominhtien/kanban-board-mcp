@@ -97,6 +97,8 @@ export async function updateTicket(
     repoPath?: string | null;
     /** A sub-ticket's execution wave pinned by hand; null computes it from Blocked by again (TDP-1). */
     wavePin?: number | null;
+    /** Member whose review the ticket waits for; null clears it (issue #269). */
+    reviewRequestedFrom?: string | null;
   },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);

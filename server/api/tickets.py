@@ -863,6 +863,8 @@ class TestCaseCreateBody(BaseModel):
     notes: Optional[str] = None
     assignee: Optional[str] = None
     test_data_files: list[dict[str, Any]] = []
+    expected_files: list[dict[str, Any]] = []
+    notes_files: list[dict[str, Any]] = []
     criterion_id: Optional[str] = None
 
 
@@ -878,6 +880,9 @@ class TestCaseUpdateBody(BaseModel):
     notes: Optional[str] = None
     assignee: Optional[str] = None
     test_data_files: Optional[list[dict[str, Any]]] = None
+    # files beside the Expected result and the Notes, as the Test data has (TestCases design; issue #269)
+    expected_files: Optional[list[dict[str, Any]]] = None
+    notes_files: Optional[list[dict[str, Any]]] = None
     criterion_id: Optional[str] = None  # "" unlinks
 
 
@@ -899,6 +904,8 @@ async def post_test_case(
             notes=body.notes,
             assignee=body.assignee,
             test_data_files=body.test_data_files,
+            expected_files=body.expected_files,
+            notes_files=body.notes_files,
             criterion_id=body.criterion_id,
         )
     except ValueError as exc:
@@ -928,6 +935,8 @@ async def patch_test_case(
             notes=body.notes,
             assignee=body.assignee,
             test_data_files=body.test_data_files,
+            expected_files=body.expected_files,
+            notes_files=body.notes_files,
             criterion_id=body.criterion_id,
         )
     except ValueError as exc:
