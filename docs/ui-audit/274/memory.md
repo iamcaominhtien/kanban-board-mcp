@@ -70,8 +70,20 @@ projects are not checked; every cause below is in the code and holds for any pro
   on SHOP-1 keeps two Dev notes and a ticket note and proposes a lesson; run 2 on SHOP-2 gets them in its system prompt
   and, in its transcript, runs `npm test -- --run` first time and writes in Vietnamese.
 - **Outside agent**, MCP only: `docs/demo/ai-memory-274/external_agent.py` reads the memory and proposes a lesson.
-- **Not done**: a live run with a real model (the issue asks to agree the scenarios with the owner first, and this
-  environment has no Claude Code account). Suggested scenarios: (1) a Dev on a repo whose tests hang in watch mode —
-  does it save the working command, and does the next Dev run use it; (2) a person corrects a run in a comment — is the
-  correction saved as feedback and followed on another ticket; (3) an outside agent proposes a lesson; a person keeps
-  it; the next run's "What it was given" lists it.
+- **Live, with real models** (scenarios left to us by the owner; `docs/demo/ai-memory-274/live_check.py`, sonnet for
+  the Devs, haiku for the outside agent, about $0.40 a round). A small repository whose `./test.sh` watches unless run
+  with `--once`; SHOP-1 for Dev An with a comment from An asking for Vietnamese; then SHOP-2 (no comment) for Dev Binh,
+  another member of the Dev role.
+
+  | Round | Dev An on SHOP-1 kept | Dev Binh on SHOP-2 was given | Dev Binh did |
+  |---|---|---|---|
+  | 1 (3.34.0) | **nothing**, though the rule was in its prompt, the `keeping-memory` skill loaded and `knowledge` listed | nothing | wrote in **English**, ran the same refused commands |
+  | 2 (`learned` on the report) | 1 note (pytest missing, `python3 -m unittest` refused); not the request for Vietnamese | that note | Vietnamese, but it cannot be told from the note's language; still tried `unittest` |
+  | 3 (the board's pass after every run) | 2 notes itself; the board added 3: **An's request for Vietnamese (feedback)**, the refused `git checkout`, the values `ticket_items` takes | 4 role notes, listed in What it was given | wrote in **Vietnamese** on a ticket with no comment from An, and **did not run pytest** (the note says it is missing) where Dev An had |
+
+  So a model does not keep memory on its own initiative, even told to: the report's `learned` and the board's pass
+  after the run are what make it reliable (3.34.1). Not shown live: neither Dev found `./test.sh --once` (both ran
+  `unittest`, which the allow list refuses, and never read the README), so the "hung test command" trap was not met; a
+  Dev's allow list not covering the repository's own runner is a separate gap. The outside agent (haiku) read the
+  memory and the notes each time and wrote good lessons, but asked before proposing them on the board, even after the
+  tool said a project lesson is only a proposal; the MCP write path itself is covered by the tests and the demo.

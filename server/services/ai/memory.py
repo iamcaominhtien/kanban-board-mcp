@@ -377,3 +377,218 @@ async def flags(session, project_id: str) -> dict[str, list[dict]]:
                 )
                 break
     return out
+
+
+# ---------------------------------------------------------------------------
+# Kept without the AI's initiative (issue #274, live check): a run's report says what it learned, and after the run
+# a light model reads it and keeps what the next run would pay for again and nobody kept
+# ---------------------------------------------------------------------------
+
+MAX_LEARNED = 5
+
+
+async def keep_learned(ctx, items: list | None) -> dict:
+    """The `learned` of a run's report, kept as notes: ``{kept: [...], refused: [...]}``."""
+    from models import AiMember as _AiMember
+
+    from . import ops
+    from . import plugins as ai_plugins
+    from .store import get_settings
+
+    import database
+
+    out: dict = {"kept": [], "refused": []}
+    rows = [i for i in (items or []) if isinstance(i, (dict, str))][:MAX_LEARNED]
+    if not rows:
+        return out
+    async with database.async_session() as session:
+        settings = await get_settings(session, ctx.project_id)
+        if ops.get(settings).get("ai_notes", True) is False:
+            out["refused"].append("AI notes are switched off on this project.")
+            return out
+        profile = await session.get(_AiMember, ctx.member_id)
+        role = ai_plugins.role_of(profile) if profile is not None else None
+        for item in rows:
+            if isinstance(item, str):
+                item = {"text": item}
+            scope = item.get("scope") or "role"
+            if scope == "ticket" and ctx.ticket_id:
+                where = ("ticket", ctx.ticket_id)
+            else:
+                where = own_scope(role, ctx.member_id)
+            try:
+                row, what = await write(
+                    session,
+                    ctx.project_id,
+                    where[0],
+                    where[1],
+                    str(item.get("text") or ""),
+                    by=ctx.member_name,
+                    kind=str(item.get("kind") or "learned"),
+                    source_run_id=ctx.run_id,
+                    source_ticket_id=ctx.ticket_id or None,
+                )
+            except ValueError as exc:
+                out["refused"].append(str(exc))
+                continue
+            if what != "unchanged":
+                out["kept"].append({"id": row.id, "scope": row.scope, "text": row.text})
+    return out
+
+
+EXTRACT_PROMPT = (
+    "You read the log of an AI agent's run on one ticket of a software project, and what the project's people wrote "
+    "on the ticket. Keep AT MOST 3 short notes that the next AI of the same role would otherwise pay for again: a "
+    "command that works here (or the exact form that is refused or hangs, and what works instead), where something "
+    "is, a trap that cost several attempts, a preference or correction a PERSON wrote (kind feedback). Not a summary "
+    "of the work, not generic advice, nothing the notes already say, no secrets. If nothing qualifies, keep nothing. "
+    'Answer with ONE JSON object only: {"notes": [{"text": "one or two sentences", "kind": "learned" | "feedback"}]}.'
+    "\n\n"
+)
+
+
+def parse_notes(text: str) -> list[dict]:
+    """The notes in the light model's answer."""
+    import json
+
+    m = re.search(r"\{.*\}", text or "", re.DOTALL)
+    if not m:
+        return []
+    try:
+        data = json.loads(m.group(0))
+    except ValueError:
+        return []
+    out = []
+    for n in (data.get("notes") or [])[:3]:
+        if isinstance(n, dict) and clean(n.get("text")):
+            out.append(
+                {
+                    "text": clean(n.get("text")),
+                    "kind": n.get("kind") if n.get("kind") in KINDS else "learned",
+                }
+            )
+    return out
+
+
+async def extract_from_run(run_id: str) -> list[AiMemoryNote]:
+    """When a work run ended: a light model reads it, with the notes its role already keeps (the run's own among
+    them), and keeps what the next run of its role should know and nobody kept. Only for a Claude Code member on a
+    subscription (the light model runs on its account)."""
+    import json
+
+    import database
+    from models import AiAccount, AiRun, Member, Ticket
+
+    from . import knowledge, ops, transcripts
+    from . import plugins as ai_plugins
+    from .store import get_profile, get_settings
+
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.mode != "work" or run.state not in ("finished", "failed"):
+            return []
+        settings = await get_settings(session, run.project_id)
+        if ops.get(settings).get("ai_notes", True) is False:
+            return []
+        # once per run: what the run kept itself is in the notes the model is given, so it only adds what the run
+        # missed (a person's request in a comment, say: the live check's Dev kept a command and not the request)
+        already = (
+            await session.exec(
+                select(AiMemoryNote).where(
+                    AiMemoryNote.source_run_id == run_id,
+                    col(AiMemoryNote.written_by).startswith("the board"),
+                )
+            )
+        ).first()
+        if already is not None:
+            return []
+        member, profile = await get_profile(session, run.member_id)
+        if (
+            profile is None
+            or profile.provider != "claude-code"
+            or profile.connection == "api_key"
+        ):
+            return []
+        account_id = run.account_id or profile.account_id
+        account = await session.get(AiAccount, account_id) if account_id else None
+        role = ai_plugins.role_of(profile)
+        scope, key = own_scope(role, profile.id)
+        existing = [n.text for n in await notes(session, run.project_id, scope, key)]
+        ticket = await session.get(Ticket, run.ticket_id)
+        humans = {
+            m.name
+            for m in (
+                await session.exec(
+                    select(Member).where(
+                        Member.project_id == run.project_id, Member.kind == "human"
+                    )
+                )
+            ).all()
+        }
+        said = [
+            f"{c.get('author')}: {str(c.get('text') or '')[:400]}"
+            for c in json.loads((ticket.comments if ticket else None) or "[]")
+            if isinstance(c, dict)
+            and c.get("author") in humans
+            and not c.get("deleted_at")
+        ][-8:]
+        name = member.name if member else "an AI"
+    records = await transcripts.read(run_id)
+    if not records:
+        return []
+    prompt = (
+        EXTRACT_PROMPT
+        + "Notes the role already keeps:\n"
+        + ("\n".join(f"- {t}" for t in existing) or "(none)")
+        + "\n\nWhat people wrote on the ticket:\n"
+        + ("\n".join(said) or "(nothing)")
+        + "\n\nThe run:\n"
+        + knowledge.digest(records)
+    )
+    answer = await knowledge._ask_light_model(prompt, profile, account)
+    kept: list[AiMemoryNote] = []
+    async with database.async_session() as session:
+        for n in parse_notes(answer or ""):
+            try:
+                row, what = await write(
+                    session,
+                    run.project_id,
+                    scope,
+                    key,
+                    n["text"],
+                    by=f"the board, from {name}'s run",
+                    kind=n["kind"],
+                    source_run_id=run_id,
+                    source_ticket_id=run.ticket_id,
+                )
+            except ValueError:
+                break  # full: a person or the AI curates it first
+            if what == "added":
+                kept.append(row)
+    return kept
+
+
+_TASKS: set = set()
+
+
+def after_run(run_id: str) -> None:
+    """Called when a run's CLI stopped: the extraction runs in the background, never in the runner."""
+    import asyncio
+    import logging
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+
+    async def _safe() -> None:
+        try:
+            await extract_from_run(run_id)
+        except Exception:  # noqa: BLE001 - memory must never disturb the board
+            logging.getLogger(__name__).exception(
+                "Could not keep notes from %s", run_id
+            )
+
+    task = loop.create_task(_safe())
+    _TASKS.add(task)
+    task.add_done_callback(_TASKS.discard)

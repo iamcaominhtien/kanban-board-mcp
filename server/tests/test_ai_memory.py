@@ -366,3 +366,193 @@ async def test_a_lesson_proposed_by_a_diagnosis_tells_a_person(env, monkeypatch)
     )
     assert isinstance(row, AiLesson) and row.state == "proposed"
     assert sent and sent[0][0] == "lesson"
+
+
+# --- kept without the AI's initiative (the live check: two sonnet runs kept nothing by themselves) ---
+
+
+async def test_a_reports_learned_is_kept_as_notes_and_shown_as_steps(env):
+    from services.ai import runs
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    dev = await _dev(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    async with env["maker"]() as s:
+        run = AiRun(project_id=pid, ticket_id=tid, member_id=dev["id"])
+        s.add(run)
+        await s.commit()
+        run_id = run.id
+    ctx = await _as_run(env, dev["id"], tid, run_id=run_id)
+    out = await runs.record_report(
+        ctx,
+        "Fixed it.",
+        [],
+        None,
+        [
+            {
+                "text": "Run the tests with ./test.sh --once; python3 -m unittest is refused."
+            },
+            {"text": "An wants reports in Vietnamese.", "kind": "feedback"},
+            {"text": "The header row is still to do.", "scope": "ticket"},
+            "A plain string is a note too.",
+        ],
+    )
+    assert out["remembered"] == 4
+    async with env["maker"]() as s:
+        kept = await memory.notes(s, pid)
+        row = await s.get(AiRun, run_id)
+    by_scope = {(n.scope, n.scope_key, n.kind) for n in kept}
+    assert ("role", "dev", "learned") in by_scope
+    assert ("role", "dev", "feedback") in by_scope
+    assert ("ticket", tid, "learned") in by_scope
+    steps = json.loads(row.steps)
+    assert sum(1 for x in steps if x.get("kind") == "memory") == 4
+    assert len(json.loads(row.report)["learned"]["kept"]) == 4
+    # nothing learned: nothing kept, no noise in the answer
+    assert "remembered" not in await runs.record_report(ctx, "Again.", [], None, [])
+
+
+async def test_when_a_run_kept_nothing_a_light_model_keeps_notes_for_its_role(
+    env, monkeypatch
+):
+    from services.ai import transcripts
+
+    c = env["c"]
+    pid, an = await _project(c)
+    dev = await _dev(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    await c.post(
+        f"/tickets/{tid}/comments",
+        json={
+            "author": "An Nguyen",
+            "text": "Từ giờ hãy viết báo cáo bằng tiếng Việt nhé.",
+        },
+    )
+    async with env["maker"]() as s:
+        run = AiRun(
+            project_id=pid, ticket_id=tid, member_id=dev["id"], state="finished"
+        )
+        s.add(run)
+        await s.commit()
+        run_id = run.id
+    seen = {}
+
+    async def fake_read(rid):
+        return [{"k": "note", "text": "Ran python3 -m unittest: refused"}]
+
+    async def fake_model(prompt, profile, account):
+        seen["prompt"] = prompt
+        return json.dumps(
+            {
+                "notes": [
+                    {
+                        "text": "Run the tests with ./test.sh --once; python3 -m unittest is refused here."
+                    },
+                    {
+                        "text": "An wants reports written in Vietnamese.",
+                        "kind": "feedback",
+                    },
+                ]
+            }
+        )
+
+    monkeypatch.setattr(transcripts, "read", fake_read)
+    monkeypatch.setattr(knowledge, "_ask_light_model", fake_model)
+    kept = await memory.extract_from_run(run_id)
+    assert [(n.scope, n.scope_key, n.kind) for n in kept] == [
+        ("role", "dev", "learned"),
+        ("role", "dev", "feedback"),
+    ]
+    assert kept[0].written_by == "the board, from Dev An's run"
+    # the model was given the person's comment and the run
+    assert "tiếng Việt" in seen["prompt"] and "python3 -m unittest" in seen["prompt"]
+    # once per run
+    assert await memory.extract_from_run(run_id) == []
+
+
+async def test_the_light_model_adds_what_a_run_missed_and_sees_what_it_kept(
+    env, monkeypatch
+):
+    """The live check: Dev An kept a command in its report and not the person's request for Vietnamese."""
+    from services.ai import runs, transcripts
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    dev = await _dev(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    async with env["maker"]() as s:
+        run = AiRun(project_id=pid, ticket_id=tid, member_id=dev["id"], state="running")
+        s.add(run)
+        await s.commit()
+        run_id = run.id
+    ctx = await _as_run(env, dev["id"], tid, run_id=run_id)
+    await runs.record_report(
+        ctx, "Done.", [], None, [{"text": "Tests use unittest here."}]
+    )
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, run_id)
+        row.state = "finished"
+        s.add(row)
+        await s.commit()
+    seen = {}
+
+    async def fake_read(rid):
+        return [{"k": "note", "text": "done"}]
+
+    async def fake_model(prompt, profile, account):
+        seen["prompt"] = prompt
+        return '{"notes": [{"text": "An wants reports in Vietnamese.", "kind": "feedback"}]}'
+
+    monkeypatch.setattr(transcripts, "read", fake_read)
+    monkeypatch.setattr(knowledge, "_ask_light_model", fake_model)
+    kept = await memory.extract_from_run(run_id)
+    assert [n.kind for n in kept] == ["feedback"]
+    assert "Tests use unittest here." in seen["prompt"]
+
+
+async def test_no_light_model_notes_when_notes_are_off_or_the_run_did_not_end(
+    env, monkeypatch
+):
+    c = env["c"]
+    pid, _ = await _project(c)
+    dev = await _dev(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    called = []
+
+    async def fake_model(*a):
+        called.append(1)
+        return "{}"
+
+    monkeypatch.setattr(knowledge, "_ask_light_model", fake_model)
+    async with env["maker"]() as s:
+        waiting = AiRun(
+            project_id=pid, ticket_id=tid, member_id=dev["id"], state="needs_input"
+        )
+        s.add(waiting)
+        await s.commit()
+        waiting_id = waiting.id
+    assert await memory.extract_from_run(waiting_id) == []
+    await c.patch(f"/projects/{pid}/ai/ops", json={"ai_notes": False})
+    async with env["maker"]() as s:
+        done = AiRun(
+            project_id=pid,
+            ticket_id=tid,
+            member_id=dev["id"],
+            state="finished",
+            number=2,
+        )
+        s.add(done)
+        await s.commit()
+        done_id = done.id
+    assert await memory.extract_from_run(done_id) == []
+    assert called == []
+
+
+def test_parse_notes_keeps_at_most_three_clean_notes():
+    text = 'x {"notes": [{"text": " a  b "}, {"text": ""}, {"text": "c", "kind": "feedback"}, {"text": "d"}, {"text": "e"}]} y'
+    assert memory.parse_notes(text) == [
+        {"text": "a b", "kind": "learned"},
+        {"text": "c", "kind": "feedback"},
+    ]
+    assert memory.parse_notes("no json") == []
