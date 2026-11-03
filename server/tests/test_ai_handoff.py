@@ -125,9 +125,11 @@ async def test_the_run_is_told_its_project_id_and_its_teammates(env):
             s, run, *(await _profile(s, pm["id"])), resume_note=None
         )
     assert f"project_id` to the tools that ask for one): {pid}" in prompt
-    assert "Teammate AIs (exact names): BA Bao." in prompt
+    # a member made without a role pack has no role beside its name (one made from a pack: test_role_skills_273)
+    assert "Teammate AIs (exact name, then role): BA Bao." in prompt
     assert (
-        pm["name"] not in prompt.split("Teammate AIs (exact names):")[1].split("\n")[0]
+        pm["name"]
+        not in prompt.split("Teammate AIs (exact name, then role):")[1].split("\n")[0]
     )
 
 

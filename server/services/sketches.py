@@ -526,8 +526,9 @@ def _read_local(path: str, what: str) -> bytes:
 
 
 def flat_source(png: bytes) -> bytes:
-    """A source for a picture that came without one: the white page and the picture on a layer of its own. Used when an
-    agent saves only a PNG; the drawing then opens in the editor as one picture layer that can be drawn over."""
+    """A source for a picture that came without one: the white page, the picture on a locked layer of its own and an
+    empty "Marks" layer above it, chosen. Used when an agent saves only a PNG (a screenshot for a person to mark on,
+    issue #267): the person's marks go above the picture and never change it, as with "Draw on it" in the editor."""
     width, height = png_size(png)
     doc = {
         "format": SOURCE_FORMAT,
@@ -535,7 +536,7 @@ def flat_source(png: bytes) -> bytes:
         "width": width,
         "height": height,
         "background": "white",
-        "activeLayer": "l2",
+        "activeLayer": "l3",
         "layers": [
             {
                 "id": "l1",
@@ -553,8 +554,18 @@ def flat_source(png: bytes) -> bytes:
                 "kind": "picture",
                 "visible": True,
                 "opacity": 1,
-                "locked": False,
+                "locked": True,
                 "png": "data:image/png;base64," + base64.b64encode(png).decode("ascii"),
+                "texts": [],
+            },
+            {
+                "id": "l3",
+                "name": "Marks",
+                "kind": "layer",
+                "visible": True,
+                "opacity": 1,
+                "locked": False,
+                "png": None,
                 "texts": [],
             },
         ],

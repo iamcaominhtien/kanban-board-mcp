@@ -706,12 +706,13 @@ def _instruction(
             "components with their states; then the components; then a board per screen or area. Every board opens "
             "with a title and one sentence on what it is for, then lettered sections with headings; the states of a "
             "thing sit side by side in one row, each under a label (never one frame per state), each phone screen a "
-            "390 px panel, and a short caption beside each decision. 5) Critique: serve the folder "
-            "(`python3 -m http.server 8765 --bind 127.0.0.1 &`; the browser does not open file://), screenshot each "
-            "board with the browser (Playwright), write down the three most template-like things on each main screen, "
-            "fix them, and look again. 6) Hand in the canvas, a spec per screen on Docs (purpose, a screenshot of "
-            "each state, tokens and components used, behaviour, the copy of every state, open questions), the "
-            "screenshots in a ticket comment, and what you would still improve."
+            "390 px panel, and a short caption beside each decision. 5) Critique: look at each board, "
+            "docs_read(action='picture', path=<the frame folder>) writes its PNG (width=390 for the phone; "
+            "Playwright on a served folder works too), write down the three most template-like things on each main "
+            "screen, fix them, and look again. 6) Hand in the canvas, a spec per screen on Docs (purpose, a "
+            "screenshot of each state, tokens and components used, behaviour, the copy of every state, open "
+            "questions), the screenshots in a ticket comment, and what you would still improve. The flow between "
+            "the screens, when there is one, is a draw.io Diagram (skill `kanban-board:drawio-diagrams`)."
         )
     if step.get("role") == "triage":
         parts.append(
@@ -739,10 +740,12 @@ def _instruction(
         "Show, do not tell: hand in the proof a person can see (the board's `evidence-and-handover` skill says how)."
     )
     parts.append(
-        "Work as a team: when you need something from a teammate (the BA for a criterion, the Designer for a state "
+        "Work as a team (the board's `working-together` skill): start from what the step before you handed in and "
+        "never redo it; when you need something from a teammate (the BA for a criterion, the Designer for a state "
         "that is not drawn, the Dev for how a part works), @mention them in a ticket comment with one clear question; "
-        "for a decision, ask the coordinator with ai_run(action='ask'). When you were sent back, answer every comment "
-        "left for you on the ticket, the Docs page or the canvas: fix it, reply in its thread, resolve it."
+        "a question of scope or priority goes to the PM the same way, and only a person's call (money, taste, "
+        "anything irreversible) to ai_run(action='ask'). When you were sent back, answer every comment left for you "
+        "on the ticket, the Docs page or the canvas: fix it, reply in its thread, resolve it."
     )
     parts.append(
         "When you are done, report and end; the board moves the ticket to the next step. Do not hand the ticket to another AI yourself."
@@ -2239,6 +2242,16 @@ def _step_iso(run: AiRun, at: str | None) -> str | None:
     return f"{day}T{at}+00:00"
 
 
+# a redirection of the output (`2>&1`, `> out.txt`, `2>/dev/null`): it changes where the output goes, not the test run
+_REDIRECT = re.compile(r"\s+\d?>>?&?\s*\S+")
+
+
+def _test_command(command: str) -> str:
+    """The test command a step ran, without what only shapes its output: a pipe into `tail` and a redirection. A live
+    Dev ran `pytest -q t.py 2>&1 | tail -16` red and `pytest -q t.py` green, and the board saw no red run (issue #273)."""
+    return " ".join(_REDIRECT.sub("", command.split("|")[0]).split())
+
+
 async def tdd_evidence(ticket_id: str) -> dict:
     """A red run and a later green one, matched by command, test file and test name, red only on an assertion (a run
     that died on an import error or a typo never ran the test, so it proves nothing). Read from the runs' own command
@@ -2275,10 +2288,7 @@ async def tdd_evidence(ticket_id: str) -> dict:
                 continue
             red = ev
         elif red is not None and not failed and ev["tests"].get("passed"):
-            same_cmd = (
-                ev["command"].split("|")[0].strip()
-                == red["command"].split("|")[0].strip()
-            )
+            same_cmd = _test_command(ev["command"]) == _test_command(red["command"])
             names = red["tests"].get("failing") or []
             if same_cmd and (
                 not names

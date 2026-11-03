@@ -4,9 +4,11 @@ Claude Code keeps only the first 10,000 characters of an MCP server's instructio
 it reaches an AI as a skill instead, which Claude Code loads whole when the work calls for it (the person's own design
 skills work the same way). Today: `canvas-design`, the design guide for canvas frames (services/canvas_design.py),
 with `craft.md` and its exemplar boards in `examples/` (services/design_examples/): a skill can carry files, and a
-board to look at teaches the bar better than a paragraph; and `board-permissions`, what an AI may do and what to do
+board to look at teaches the bar better than a paragraph; `drawio-diagrams` and `sketches`, how to draw a diagram,
+what to do with a person's Sketch and which tool fits (services/visual_guides.py, issue #267); `board-permissions`, what an AI may do and what to do
 when refused (services/permissions_guide.py); and the shared skills every role uses (services/shared_skills.py, issue
-#277): working a ticket, evidence and handing over, the repository and the machine, asking and writing.
+#277): working a ticket, evidence and handing over, the repository and the machine, asking and writing, working
+together; and one skill per role (services/role_skills.py, issue #273), which only a member of that role gets.
 
 A project switches each skill off for every member or for one (`ops.board_skills`); a run gets a folder holding only
 the skills on for it.
@@ -23,31 +25,54 @@ NAME = "kanban-board"
 
 
 def _skills() -> dict[str, str]:
-    from services import canvas_design, permissions_guide, shared_skills
+    from services import (
+        canvas_design,
+        permissions_guide,
+        role_skills,
+        shared_skills,
+        visual_guides,
+    )
 
     return {
         "canvas-design": canvas_design.SKILL_HEADER + canvas_design.GUIDE,
+        # draw.io diagrams and what an AI does with a Sketch, with which tool to choose (issue #267)
+        "drawio-diagrams": visual_guides.DRAWIO_HEADER + visual_guides.DRAWIO,
+        "sketches": visual_guides.SKETCH_HEADER + visual_guides.SKETCH,
         # what the AI may do, what needs a person, what to do when refused (issue #275)
         "board-permissions": permissions_guide.SKILL_HEADER + permissions_guide.GUIDE,
         # how any role works a ticket (issue #277)
         **shared_skills.skill_files(),
+        # how each role does its own job (issue #273): only a member of that role gets its skill
+        **role_skills.skill_files(),
     }
 
 
 def catalog() -> list[dict]:
-    """The board's skills for the UI: ``[{name, description}]``, from each SKILL.md's front matter."""
+    """The board's skills for the UI: ``[{name, description, role}]``, from each SKILL.md's front matter; ``role`` is
+    the role a role skill is for (None: every role)."""
+    from services import role_skills
+
     out = []
     for name, text in _skills().items():
         m = re.search(r"^description:\s*(.+)$", text, re.M)
-        out.append({"name": name, "description": m.group(1).strip() if m else ""})
+        out.append(
+            {
+                "name": name,
+                "description": m.group(1).strip() if m else "",
+                "role": role_skills.role_of_skill(name),
+            }
+        )
     return out
 
 
-def enabled_for(ops: dict, member_id: str | None) -> list[str]:
+def enabled_for(ops: dict, member_id: str | None, role: str | None = None) -> list[str]:
     """The board's skills on for a member: the member's own switch, else the project's (on unless switched off).
 
     ``ops["board_skills"]`` is a list (the UI camel-cases dict keys): ``[{skill, on, members_on, members_off}]``; a
-    skill not listed is on for everyone."""
+    skill not listed is on for everyone. A role skill is only for its role (``role``: the member's role pack key):
+    a Dev does not get the QA's craft, which would only blur its own."""
+    from services import role_skills
+
     rows = {
         r.get("skill"): r
         for r in (ops.get("board_skills") or [])
@@ -55,6 +80,9 @@ def enabled_for(ops: dict, member_id: str | None) -> list[str]:
     }
     out = []
     for name in _skills():
+        for_role = role_skills.role_of_skill(name)
+        if for_role is not None and for_role != role:
+            continue
         r = rows.get(name)
         if r is None:
             out.append(name)
@@ -72,7 +100,7 @@ def enabled_for(ops: dict, member_id: str | None) -> list[str]:
 
 def _skill_files() -> dict[str, dict[str, bytes]]:
     """The files a skill carries beside its SKILL.md: ``{skill: {relative path: bytes}}``."""
-    from services import canvas_design, shared_skills
+    from services import canvas_design, role_skills, shared_skills
 
     return {
         "canvas-design": {
@@ -81,6 +109,8 @@ def _skill_files() -> dict[str, dict[str, bytes]]:
         },
         # the slides skill's scripts, themes and examples (issue #277)
         **shared_skills.extra_files(),
+        # the BA's document templates (issue #273)
+        **role_skills.extra_files(),
     }
 
 

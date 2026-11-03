@@ -10,6 +10,11 @@ const ROLE_LOOK: Record<string, { glyph: string; bg: string; fg: string; border:
   qa: { glyph: 'QA', bg: '#FEF3D9', fg: '#7A5A06', border: '#B4791E' },
   user_tester: { glyph: 'UT', bg: '#EFE8FB', fg: '#5B3AA6', border: '#6D5DD3' },
   reviewer: { glyph: 'RV', bg: '#E9EAF7', fg: '#3F4390', border: '#6A6FD0' },
+  // the four roles of issue #273
+  tech_writer: { glyph: 'TW', bg: '#F3EEE6', fg: '#6B4A1F', border: '#A87B3D' },
+  devops: { glyph: 'DO', bg: '#E7EEF3', fg: '#2C4A5E', border: '#4F7A96' },
+  security: { glyph: 'SR', bg: '#FBEAEA', fg: '#8E2A2A', border: '#C24B4B' },
+  data_analyst: { glyph: 'DA', bg: '#EAF4EE', fg: '#2D5B46', border: '#4C8C6E' },
 };
 const PLAIN = { bg: '#F1F3F1', fg: '#4A5A50', border: '#C7D2CB' };
 

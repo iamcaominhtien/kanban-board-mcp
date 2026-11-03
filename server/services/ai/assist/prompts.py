@@ -8,6 +8,7 @@ from datetime import datetime
 from models import AiAssistSettings
 
 from ..context import LINK_RULE
+from . import team_config
 
 TONE_RULES = {
     "neutral": "Plain and neutral.",
@@ -363,6 +364,11 @@ def check_changes(
         if not isinstance(ch, dict):
             continue
         op = ch.get("op")
+        if op in team_config.OPS:
+            checked = team_config.check(ch, members, names, problems)
+            if checked:
+                out.append(checked)
+            continue
         if op in ("pause_member", "resume_member"):
             mid = members.get(str(ch.get("member") or "").strip().lower())
             if not mid:

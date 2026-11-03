@@ -35,6 +35,15 @@ const TEMPLATE_ICON: Record<string, string> = {
   'meeting-notes': 'i32',
   'decision-log': 'i17',
   'technical-design': 'i33',
+  // the BA's documents (issue #273)
+  'feature-spec': 'i13',
+  'bugfix-spec': 'i13',
+  'decision-table': 'hash',
+  'use-case': 'i13',
+  'example-map': 'comment',
+  'one-pager': 'page',
+  'data-dictionary': 'hash',
+  'nfr-checklist': 'check',
 };
 
 function pathOf(nodes: DocsTreeNode[], id: string | null): string {
@@ -376,7 +385,18 @@ export function NewPageDialog({
             <div
               role="radiogroup"
               aria-label="Template"
-              style={{ width: 250, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}
+              data-testid="template-list"
+              // fourteen templates since the BA's (issue #273): the list scrolls so the title and Create stay in view
+              style={{
+                width: 250,
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                maxHeight: 'min(420px, 46vh)',
+                overflowY: 'auto',
+                paddingRight: 4,
+              }}
             >
               {templates.map((t) => {
                 const on = !aiOn && template === t.id;

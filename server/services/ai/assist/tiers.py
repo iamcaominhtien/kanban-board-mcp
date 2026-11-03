@@ -12,7 +12,13 @@ Three tiers, decided by one question — can the board put it back by itself?
 
 A fixed set can never leave the ask-first tier, whatever a project setting says, and the server enforces it (this is
 also what stops a standing order from reaching one). Only the middle tier can be lowered, and only to the first.
+
+Setting up the AI team (members from role packs, their role, plugins, the board's skills, MCP servers, hooks, skills;
+services/ai/assist/team_config.py) asks first, unless the project turns on "Board AI manages the AI team"
+(`ops.board_ai.manages_team`): then it is done and keeps an Undo, at any size, as the owner asked.
 """
+
+from .team_config import OPS as TEAM_CONFIG_OPS
 
 BULK_TICKETS = 3
 
@@ -47,6 +53,8 @@ TIERS: dict[str, tuple[str, bool]] = {
     "schedule_resume": (UNDO, False),
     "schedule_run": (UNDO, False),
     "message": (FREE, False),  # a message to the AI working on a ticket (D20)
+    # setting up the AI team: asks first, or done with an Undo when the project's switch is on (team_config.py)
+    **{op: (ASK, False) for op in TEAM_CONFIG_OPS},
     # locked in the last tier
     "done": (ASK, True),
     "delete": (ASK, True),
@@ -67,9 +75,13 @@ def op_key(change: dict) -> str:
     return str(change.get("op") or "")
 
 
-def tier_of(change: dict, overrides: dict | None = None) -> str:
+def tier_of(
+    change: dict, overrides: dict | None = None, manages_team: bool = False
+) -> str:
     """The tier of one change, with the project's overrides applied where they are allowed."""
     key = op_key(change)
+    if key in TEAM_CONFIG_OPS:
+        return UNDO if manages_team else ASK
     tier, locked = TIERS.get(key, (ASK, False))
     want = (overrides or {}).get(key)
     if locked or want is None:
@@ -84,13 +96,14 @@ def decide(
     *,
     project_ids: set[str] | None = None,
     overrides: dict | None = None,
+    manages_team: bool = False,
 ) -> dict:
     """Whether a set of changes is done by itself or asks first, and why.
 
     Returns:
         {"act": bool, "tier": "free"|"undo"|"ask", "reasons": [...], "tiers": [per change]}
     """
-    tiers = [tier_of(ch, overrides) for ch in changes]
+    tiers = [tier_of(ch, overrides, manages_team) for ch in changes]
     reasons = []
     for ch, t in zip(changes, tiers, strict=False):
         if t == ASK:
@@ -102,6 +115,10 @@ def decide(
                 f"{label} asks first"
                 + (" (it cannot be moved out of this tier)" if key in LOCKED else "")
             )
+    # setting up a team names members and plugins, many at once: with the switch on it is not a bulk action
+    changes = [
+        ch for ch in changes if not (manages_team and op_key(ch) in TEAM_CONFIG_OPS)
+    ]
     tickets = {ch.get("ticket") for ch in changes if ch.get("ticket")}
     # each new ticket counts as one more ticket touched
     tickets |= {("new", i) for i, ch in enumerate(changes) if ch.get("op") == "create"}
@@ -129,12 +146,12 @@ def decide(
         )
     if project_ids and len(project_ids) > 1:
         reasons.append("Changes across more than one project ask first")
-    act = not reasons and bool(changes)
+    act = not reasons and bool(tiers)
     tier = ASK if reasons else (UNDO if UNDO in tiers else FREE)
     return {"act": act, "tier": tier, "reasons": reasons, "tiers": tiers}
 
 
-def table(overrides: dict | None = None) -> list[dict]:
+def table(overrides: dict | None = None, manages_team: bool = False) -> list[dict]:
     """Every action with its tier and lock, for the settings page."""
     return [
         {
@@ -145,7 +162,9 @@ def table(overrides: dict | None = None) -> list[dict]:
                     **({"to": "done"} if op == "done" else {}),
                 },
                 overrides,
+                manages_team,
             ),
+            "team": op in TEAM_CONFIG_OPS,
             "default": tier,
             "locked": locked,
         }
@@ -166,6 +185,10 @@ def check_overrides(overrides: dict) -> dict:
             raise ValueError(f"Unknown action: {op}")
         if locked:
             raise ValueError(f"{op} can never leave the ask-first tier.")
+        if op in TEAM_CONFIG_OPS:
+            raise ValueError(
+                f"{op} follows the switch “Board AI manages the AI team”, not a tier of its own."
+            )
         if want == tier:
             continue
         if not (tier == UNDO and want == FREE):

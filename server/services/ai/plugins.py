@@ -181,7 +181,7 @@ CATALOGUE: list[dict] = [
         "name": "tufte-data-viz",
         "kind": "plugin",
         "source": "https://github.com/caylent/tufte-data-viz",
-        "roles": ["designer", "dev"],
+        "roles": ["designer", "dev", "data_analyst"],
         "what": "Charts after Tufte: data-ink, direct labels, range frames, accessible and dark-mode ready; for Recharts, ECharts, Chart.js, D3 or SVG. MIT.",
         "use": "before you draw any chart",
     },
@@ -273,6 +273,18 @@ CATALOGUE: list[dict] = [
         "roles": ["designer", "user_tester", "qa"],
         "what": "Testing a local web app with Playwright (Anthropic skills).",
         "use": "testing a running web app in the browser",
+    },
+    {
+        "key": "flow",
+        "name": "Flow",
+        "kind": "plugin",
+        "source": "https://github.com/iamcaominhtien/flow",
+        "plugin": "flow",
+        # Python's standard library only, no hooks, nothing downloaded at run time; the board's draw.io guide says
+        # how its files reach the board (diagram_create) and when to lay a diagram out with it
+        "roles": ["pm", "ba", "designer", "dev"],
+        "what": "Diagrams laid out from a short JSON spec: flowchart, swimlanes, sequence, ER, architecture, C4, state, BPMN, DFD, screen flow, mind map, Gantt and more, one design, checked, as a .drawio file and a moving HTML page. MIT.",
+        "use": "before you draw a diagram of a kind it knows: write its spec, build, read the check, then diagram_create with the .drawio (the board's drawio-diagrams guide, section 6)",
     },
     {
         "key": "figma",

@@ -17,7 +17,20 @@ const GIVES: { key: Gives; label: string }[] = [
 ];
 const MODELS = ['', 'haiku', 'sonnet', 'opus'];
 const EFFORTS = ['', 'low', 'medium', 'high', 'xhigh', 'max'];
-const DEFAULT_ROLES = ['triage', 'pm', 'ba', 'designer', 'dev', 'reviewer', 'qa', 'user_tester'];
+const DEFAULT_ROLES = [
+  'triage',
+  'pm',
+  'ba',
+  'designer',
+  'dev',
+  'reviewer',
+  'qa',
+  'user_tester',
+  'tech_writer',
+  'devops',
+  'security',
+  'data_analyst',
+];
 
 const slug = (s: string) => {
   let out = '';

@@ -80,6 +80,15 @@ def _ai_skips(root: Path, file: Path) -> bool:
     )
 
 
+def _at(anchor: dict | None) -> str | None:
+    """A comment's pin as `docs_write(canvas_comment, at=...)` takes it: a CSS selector or 'text=...'."""
+    if not anchor:
+        return None
+    if anchor.get("sel"):
+        return str(anchor["sel"])
+    return f"text={anchor['text']}" if anchor.get("text") else None
+
+
 async def _not_in_safe_mode(session) -> None:
     """Writing files to a folder is a write: an AI run in safe mode only reads."""
     from services.ai import guard
@@ -121,6 +130,14 @@ async def design_guide() -> dict:
     }
 
 
+async def diagram_guide() -> dict:
+    """How to draw and edit a draw.io diagram, and what an AI does with a Sketch (in Claude Code these are the
+    drawio-diagrams and sketches skills; issue #267): {guide, sketches}."""
+    from services import visual_guides
+
+    return visual_guides.diagram_guide()
+
+
 async def shared_guides() -> dict:
     """The board's shared guides for any role (in Claude Code they are its skills): {name: text} (issue #277)."""
     from services import shared_skills
@@ -132,6 +149,39 @@ async def shared_guides() -> dict:
         out[name] += (
             f"\n\nThis guide's folder (scripts/, themes/, examples/): {board_skills.skill_dir(name)}\n"
         )
+    return out
+
+
+async def role_guide(query: str | None = None) -> dict:
+    """One role's guide (in Claude Code it is that role's skill, issue #273): {role, skill, guide}; without `query`,
+    which roles have one: {roles: {role: what it covers}}."""
+    from services import role_skills
+
+    if not (query or "").strip():
+        return {
+            "roles": {r: desc for r, _n, desc, _b in role_skills.ROLE_SKILLS},
+            "designer": "docs_read(action='design_guide')",
+        }
+    role = query.strip().lower().replace(" ", "_").replace("-", "_")
+    if role == "designer":
+        return {
+            "role": "designer",
+            "skill": "canvas-design",
+            "guide": "The Designer's guide is the design guide: docs_read(action='design_guide').",
+        }
+    text = role_skills.guide(role)
+    if text is None:
+        raise ValueError(
+            f"No guide for the role {query!r}. Roles: "
+            + ", ".join(r for r, _n, _d, _b in role_skills.ROLE_SKILLS)
+            + ", designer."
+        )
+    out = {"role": role, "skill": role_skills.SKILL_OF_ROLE[role], "guide": text}
+    if out["skill"] in role_skills.extra_files():
+        from services.ai import board_skills
+
+        # the templates the guide refers to are files: say where they are on this machine
+        out["folder"] = board_skills.skill_dir(out["skill"])
     return out
 
 
@@ -253,8 +303,14 @@ async def read_canvas(
                         "board_id": t["board_id"],
                         "status": t["status"],
                         "number": t["number"],
+                        # the element the person pinned it on, so the agent knows what they point at (#267)
+                        **({"at": _at(t["anchor"])} if _at(t["anchor"]) else {}),
                         "comments": [
-                            {"author": c["author"], "body": c["body"]}
+                            {
+                                "author": c["author"],
+                                "body": c["body"],
+                                "when": c["created_at"],
+                            }
                             for c in t["comments"]
                         ],
                     }

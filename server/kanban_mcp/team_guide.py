@@ -13,7 +13,7 @@ drive every step by hand.
 
 ## 1. Look before you hand anything over
 - ai_team(members, project_id): who is on the team, each member's role (pm, ba, designer, dev, qa, user_tester,
-  reviewer, triage), whether it is idle, working, paused or offline, and what it holds.
+  reviewer, triage, tech_writer, devops, security, data_analyst), whether it is idle, working, paused or offline, and what it holds.
 - ai_team(runs, project_id, active_only=true): what is running now. A ticket that a work run holds takes no second
   work run until that run ends.
 - get_ticket: the ticket's criteria, comments and status; ai_team(workflow, ticket_id) if it is on a workflow.

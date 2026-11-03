@@ -49,7 +49,9 @@ async def get_board_ai(project_id: str, session: Session) -> dict:
     cfg = svc_ops.get(await get_settings(session, project_id)).get("board_ai") or {}
     return {
         "acts": bool(cfg.get("acts")),
-        "tiers": svc_tiers.table(cfg.get("tiers")),
+        # the Board AI sets up the AI team by itself, with an Undo (services/ai/assist/team_config.py)
+        "manages_team": bool(cfg.get("manages_team")),
+        "tiers": svc_tiers.table(cfg.get("tiers"), bool(cfg.get("manages_team"))),
         "locked": svc_tiers.LOCKED,
         "bulk_tickets": svc_tiers.BULK_TICKETS,
     }
@@ -59,6 +61,7 @@ class BoardAiBody(BaseModel):
     """The Board AI's mode and the project's tier changes (only the middle tier lowered to the first)."""
 
     acts: Optional[bool] = None
+    manages_team: Optional[bool] = None
     tiers: Optional[dict[str, Literal["free", "undo", "ask"]]] = None
 
 
@@ -71,6 +74,27 @@ async def patch_board_ai(project_id: str, body: BoardAiBody, session: Session) -
     patch = dict(cur)
     if body.acts is not None:
         patch["acts"] = body.acts
+    if body.manages_team is not None and body.manages_team != bool(
+        cur.get("manages_team")
+    ):
+        from services.ai import audit, safety
+
+        # MCP servers and hooks run commands on this machine: only the project's owner hands that to the Board AI
+        if await safety.role_name(session, project_id, _by()) != "owner":
+            _fail(
+                ValueError(
+                    "Only the project owner can let the Board AI manage the AI team."
+                ),
+                403,
+            )
+        patch["manages_team"] = body.manages_team
+        await audit.record(
+            project_id,
+            "board_ai_manages_team",
+            "warning" if body.manages_team else "info",
+            on_behalf_of=_by(),
+            detail={"on": body.manages_team},
+        )
     if body.tiers is not None:
         try:
             patch["tiers"] = svc_tiers.check_overrides(body.tiers)

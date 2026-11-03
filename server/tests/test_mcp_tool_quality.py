@@ -206,12 +206,13 @@ async def test_the_tool_list_stays_compact():
     # workflow and Story actions (3.21.1, so an agent knows how to hand work to the team) about 900, and the notes on
     # manage_ticket (an AI assignee is not started, intake takes a ticket, a Story) with list_tickets' type and parent
     # filters about 500 more; docs_read's permissions_guide (what an AI may do, issue #275) about 100, and its guides (the
-    # board's shared skills for any role, issue #277) about 120; manage_ticket's wave_pin (a sub-ticket's wave pinned
-    # by hand, TDP-1) about 160
-    assert default < 48_000, (
+    # board's shared skills for any role, issue #277) about 120; docs_read's diagram_guide and picture (the draw.io guide
+    # and a PNG of what an agent drew, issue #267) with its `width` about 600; its role_guide (one guide per role, issue
+    # #273) about 150; manage_ticket's wave_pin (a sub-ticket's wave pinned by hand, TDP-1) about 160
+    assert default < 48_850, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 50_800, (
+    assert full < 51_650, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

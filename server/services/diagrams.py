@@ -750,14 +750,21 @@ async def export_to_file(
     target = Path(path)
     if not target.is_absolute():
         raise _file_error(f"Give an absolute path (got {path!r}).")
-    if target.is_dir() or path.endswith(("/", "\\")):
+    # a folder, or a path without an extension that does not exist yet (it was written as a file named "out", issue
+    # #267), gets '<name>.drawio' inside it
+    if (
+        target.is_dir()
+        or path.endswith(("/", "\\"))
+        or (not target.exists() and not target.suffix)
+    ):
         stem = (
             re.sub(r"[^\w.-]+", "-", d.label, flags=re.ASCII).strip("-._") or "diagram"
         )
         target = target / f"{stem}.drawio"
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(v.source, encoding="utf-8")
+        # a page the editor stored compressed is written out as plain XML, so it can be edited as text
+        target.write_text(diagram_model.uncompressed(v.source), encoding="utf-8")
     except OSError as e:
         raise _file_error(f"{target} could not be written ({e.strerror}).") from e
     return {

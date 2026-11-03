@@ -28,19 +28,18 @@ _INSTRUCTIONS_TAIL = """\
 docs_write (create, update, move, ...). Send the `version` you read as base_version when updating; a stale one is rejected, \
 so re-read and retry. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: \
 docs_read(comments) lists the threads, docs_write(comment, reply, resolve, ...) answers them.
-- Which drawing: a screen, page or flow a person will look at goes on a Canvas (HTML frames, every state); a structure or \
-a process (architecture, data flow, a sequence, a state machine, a workflow, an entity model) is a draw.io Diagram in the Docs page \
-or ticket it explains; a rough first draft, or a mark on a screenshot, is a Sketch. Draw when words alone are hard to follow \
-(more than three parts, branches, an order that matters); a picture sits beside the words, never instead of them, and nothing \
-one sentence says needs one.
-- Diagrams: a draw.io drawing shows in any text (ticket description, comment, Docs page) as one line `[Name](diagram:dg_xxxxxxxx)`. \
-Edit it as a file: docs_read(diagram) writes the .drawio XML to a path, change it with your own file tools, docs_write(diagram_save) \
-stores it (with the `version` you got as base_version). docs_write(diagram_create) makes a new one from a file; put the returned \
-`markdown` line on its own line in the text.
-- Sketches: a freehand drawing shows in a text as one line `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is when you edit the text. \
-Work on one as files: docs_read(sketch) writes its PNG and editable .sketch.json (layers, at most 4096 px, 10 layers, 10 MB), \
-docs_write(sketch_save) stores a new PNG (+ source) with the `version` you read as base_version; docs_write(sketch_create) makes a new one \
-for a ticket or Docs page from a PNG (put the returned `markdown` line on its own line in the text).
+- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit \
+(a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the \
+Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. "The sign-up flow and its screens" is both: \
+the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.
+- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, \
+labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it \
+(the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line \
+in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).
+- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); \
+what to do with one: the `sketches` skill, else docs_read(diagram_guide).
+- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or \
+frame folder, and returns `markdown` (a copy on the board) for a comment.
 - Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. \
 docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). \
 docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) \
@@ -51,9 +50,9 @@ so use `<meta name="viewport" content="width=device-width, initial-scale=1">`, f
 else docs_read(design_guide); follow it. \
 You never change an existing frame directly: docs_write(canvas_comment) comments under your own name and docs_write(canvas_propose) offers a changed HTML frame \
 from a folder; a person sees before and after and accepts or rejects. You never take the lock on a frame a person is editing.
-- AI team. Outside an AI run you act for the person: before you hand work over, read ai_team(action='guide'). ai_team(members) shows each AI's role (pm, ba, designer, dev, qa, user_tester, reviewer, triage) and state. Pick by what you want: an answer or a review, nothing changed: ai_team(ask, member_id, text, ticket_id) (it answers in a comment); one AI to do one ticket: the same with intent='work' (it takes the ticket; one work run per ticket); a heads-up, no run: intent='notify'; several roles on one ticket: ai_team(start_workflow, ticket_id, workflow); a goal bigger than one ticket: ai_team(give_story): the PM plans it and the board runs it. Do not chain asks and assignments yourself for that. An @mention you write in a comment does NOT wake an AI. Inside an AI run it is the other way round: ai_team allows only its reads there, an @mention of another AI in a comment you post does wake it (one question, within the board's chain limits), and ai_run(action='handoff') passes the work on. An AI's question to the person: ai_team(answer). Permission requests are decided by a person in the board, never over MCP (resources needs the member's Resource tools set to View; restart and cancel need Control).
+- AI team. Outside an AI run you act for the person: before you hand work over, read ai_team(action='guide'). ai_team(members) shows each AI's role (pm, ba, designer, dev, qa, user_tester, reviewer, triage, tech_writer, devops, security, data_analyst) and state. Pick by what you want: an answer or a review, nothing changed: ai_team(ask, member_id, text, ticket_id) (it answers in a comment); one AI to do one ticket: the same with intent='work' (it takes the ticket; one work run per ticket); a heads-up, no run: intent='notify'; several roles on one ticket: ai_team(start_workflow, ticket_id, workflow); a goal bigger than one ticket: ai_team(give_story): the PM plans it and the board runs it. Do not chain asks and assignments yourself for that. An @mention you write in a comment does NOT wake an AI. Inside an AI run it is the other way round: ai_team allows only its reads there, an @mention of another AI in a comment you post does wake it (one question, within the board's chain limits), and ai_run(action='handoff') passes the work on. An AI's question to the person: ai_team(answer). Permission requests are decided by a person in the board, never over MCP (resources needs the member's Resource tools set to View; restart and cancel need Control).
 - Each ticket has a scratch folder: manage_ticket(action='workspace'), then use your own file tools there.
-- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, brainstorm, check as the user would, office files).
+- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).
 
 Working a ticket (the same rules every AI on the board follows)
 {core_rules}

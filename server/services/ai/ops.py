@@ -74,7 +74,9 @@ DEFAULTS: dict = {
     "tdd": {"required": True},
     "ticket_token_cap": 0,  # tokens one ticket's workflow may use before it stops for a person (D11); 0: no cap
     # Phase 7 — the Board AI acts as the person by risk tier (D23); `tiers` lowers middle-tier actions to "free"
-    "board_ai": {"acts": True, "tiers": {}},
+    # manages_team: it sets up the AI team (members from role packs, roles, plugins, board skills, MCP servers, hooks,
+    # skills) by itself, with an Undo, instead of asking first (services/ai/assist/team_config.py); the owner's switch
+    "board_ai": {"acts": True, "tiers": {}, "manages_team": False},
     # Phase 8
     "knowledge_shared": False,  # also search the shared store
     # auto: red CI the PR's own change caused, and review comments on it, go to the ticket's Dev by themselves (D21)

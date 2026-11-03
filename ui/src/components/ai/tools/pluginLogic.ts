@@ -9,6 +9,10 @@ export const ROLES: Record<string, string> = {
   reviewer: 'Reviewer',
   qa: 'QA',
   user_tester: 'User tester',
+  tech_writer: 'Technical writer',
+  devops: 'DevOps',
+  security: 'Security reviewer',
+  data_analyst: 'Data analyst',
 };
 
 /** The display name of a role pack key. */

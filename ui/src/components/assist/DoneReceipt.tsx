@@ -104,7 +104,8 @@ export function appliedWords(a: AppliedChange): string {
     case 'resume_member':
       return 'AI member resumed';
     default:
-      return a.op.replace(/_/g, ' ');
+      // setting up the AI team: the server says the change in words (with the command an MCP server or hook runs)
+      return typeof a.label === 'string' && a.label ? a.label : a.op.replace(/_/g, ' ');
   }
 }
 
@@ -157,7 +158,7 @@ export function proposedWords(ch: DraftChange): ReactNode | null {
         </>
       );
     default:
-      return null;
+      return ch.label ?? null;
   }
 }
 

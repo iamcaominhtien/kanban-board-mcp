@@ -60,6 +60,17 @@ class Raster:
         self.rect(x, y, t, h, color)
         self.rect(x + w - t, y, t, h, color)
 
+    def line(
+        self, x0: float, y0: float, x1: float, y1: float, color: Color, t: int = 2
+    ) -> None:
+        """Draw a straight line ``t`` pixels thick."""
+        steps = int(max(abs(x1 - x0), abs(y1 - y0))) + 1
+        for i in range(steps + 1):
+            f = i / steps
+            self.rect(
+                x0 + (x1 - x0) * f - t / 2, y0 + (y1 - y0) * f - t / 2, t, t, color
+            )
+
     def png(self) -> bytes:
         """The picture as PNG bytes."""
 

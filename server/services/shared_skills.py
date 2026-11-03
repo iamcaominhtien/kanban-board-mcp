@@ -3,8 +3,8 @@
 Agreed with the owner on 2 Nov from what live runs got wrong, then three more they asked for (brainstorming, the
 end user's eyes, office files): a report that claimed what nobody did, a server left
 running so the run never ended, a hand-in without screenshots, a choice a person should have made, English labels on a
-Vietnamese canvas. The few rules that matter most ride in every run's prompt (``context.rules_block``); the detail is
-here, as skills of the board's own plugin (``services/ai/board_skills.py``) that Claude Code opens when the work calls
+Vietnamese canvas. Issue #273 added how the roles work together (`working-together`). The few rules that matter
+most ride in every run's prompt (``context.rules_block``); the detail is here, as skills of the board's own plugin (``services/ai/board_skills.py``) that Claude Code opens when the work calls
 for them, and through ``docs_read(guides)`` for agents outside Claude Code. A project can switch each one off, for every
 member or for one (``ops.board_skills``).
 
@@ -73,7 +73,8 @@ People and the next AI judge your work by what they can see on the ticket, not b
 - **Code**: the command you ran and its real output in a ``` block (the test run, the build), and the branch or PR
   link. A failing run first and a passing one after, when you fixed a bug.
 - **Docs, diagrams, canvases**: the embed line (`![Name](canvas:cv_…)`, `[Name](diagram:dg_…)`, `[[Page]]`) so it opens
-  from the ticket.
+  from the ticket, and a picture of it: `docs_read(action='picture')` draws a PNG of a diagram or a frame, to look at
+  before you hand in, and returns the `markdown` line that shows it in a comment.
 - **Never invent evidence.** A screenshot of something else, output you did not get, or a "should work" is worse than
   saying it could not be shown.
 
@@ -312,6 +313,66 @@ Attach the file and the rendered images (or the first pages) to the ticket or Do
 )
 
 
+WORKING_TOGETHER = (
+    "working-together",
+    "How the AI roles on this board work as one team: stay in your role, read the handoff note before anything else, "
+    "never redo another role's work, ask the PM rather than guess, and what to do when you are blocked or disagree. "
+    "Use at the start of every run on a ticket other roles touch, and whenever you need something from a teammate.",
+    r"""# Working together
+
+A team of roles is only faster than one AI when each does its own part once and passes it on cleanly.
+
+## Who does what
+| Role | Does | Does not |
+|---|---|---|
+| Triage | sorts a new ticket: kind, labels, workflow, depth | solve it |
+| PM | plans and splits, answers the team's questions, rules on disagreements | write criteria in detail, design, code |
+| BA | acceptance criteria and specs | design, code, test |
+| Designer | screens on a canvas, a spec per screen | production code |
+| Dev | the change and its tests, on the ticket's branch | change criteria, review itself |
+| Reviewer | judges the change against the criteria | rewrite it |
+| QA | test cases and runs, with proof | fix what fails |
+| User tester | uses the app as one real person | read or judge the code |
+| Technical writer | docs and guides, every step tried | change the product |
+| DevOps | CI, builds, environments | deploy or spend without a person |
+| Security reviewer | finds and proves weaknesses | fix them |
+| Data analyst | answers questions with numbers | change the product or its data |
+
+Your prompt names your teammates and their roles. Work that belongs to another role goes to that role: hand it on
+(`ai_run(action='handoff')`) or name it in your report. A role missing from the team is a gap to report, not a job to
+take over.
+
+## Read the handoff first
+Before anything else, read what the step before you left: the previous step's note in your prompt, the latest work-log
+entries, the last comments, and what they link (the spec, the canvas, the branch). Start from there.
+- Something there is already done: build on it, do not do it again.
+- Something there looks wrong: say so to its author (an @mention with the reason, on the thing itself), and go on with
+  what does not depend on it. Never redo it quietly your way.
+
+## Ask the PM rather than guess
+- A question about **scope, priority or which way to go**: @mention the PM in a ticket comment, one question with
+  options and your recommendation. A question about a **criterion**: the BA. How a part works: the Dev.
+- While the answer comes, carry on with what does not depend on it, and write down the assumption you work on.
+- A **person's call** (money, a deadline, a public promise, taste between good options, something irreversible), or a
+  team with no PM: `ai_run(action='ask')` and stop.
+- Never "nobody answered, so I chose": if the work cannot go on without the answer, you are blocked (below).
+
+## When you are blocked
+Blocked means you cannot finish without something you cannot get yourself: an answer, access, a broken dependency,
+criteria that contradict each other, a refused tool.
+1. Do every part that is not blocked.
+2. Write a work-log entry `kind='blocked'`: what you need, from whom, and what you tried.
+3. Ask the one who can unblock it (the PM, the teammate, or a person with `ai_run(ask)`).
+4. Report the step as not done, with what is left. Do not fake progress, and do not work around a refusal.
+
+## When you disagree
+Say it once, with the reason and a concrete case, on the thing (the line, the criterion, the frame). If the other role
+keeps its view, the PM rules (or a person, when there is no PM); then follow the ruling. Do not raise the same point
+again once it was answered.
+""",
+)
+
+
 def _slides() -> tuple[str, str, str]:
     from services import slides_skill
 
@@ -325,6 +386,8 @@ SKILLS: list[tuple[str, str, str]] = [
     EVIDENCE_AND_HANDOVER,
     REPO_AND_MACHINE,
     ASKING_AND_WRITING,
+    # how the roles work together (issue #273)
+    WORKING_TOGETHER,
     BRAINSTORMING,
     END_USER_EYES,
     OFFICE_FILES,
@@ -360,4 +423,6 @@ CORE_RULES = [
     "Before you hand in anything a person will read or use, look at it as that person would "
     "(`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.",
     "Write in the project's language everywhere: copy, titles, labels, comments and the report.",
+    "Stay in your role and start from the handoff: read what the step before you left first, never redo another "
+    "role's work (send it back to them with the reason), and ask the PM (an @mention) rather than guess.",
 ]  # then where the detail is, which depends on the member (context._core_rules)
