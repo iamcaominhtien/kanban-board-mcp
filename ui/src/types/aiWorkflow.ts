@@ -3,6 +3,8 @@
 export type StepKind = 'ai' | 'code' | 'person';
 export type Gives = 'ticket' | 'criteria' | 'design' | 'previous_note' | 'transcript';
 export type ReviewDepth = 'light' | 'standard' | 'deep';
+/** A ticket's pace: `fast` skips the steps a quick result can do without and runs a level lower. */
+export type Pace = 'normal' | 'fast';
 
 export interface WorkflowStep {
   key: string;
@@ -16,6 +18,8 @@ export interface WorkflowStep {
   effort: string | null;
   retryModel: string | null;
   depth: ReviewDepth | null;
+  /** What fast mode does with the step, over its role's default (Triage, QA and the User tester are skipped). */
+  fast?: 'skip' | 'keep' | null;
 }
 
 export interface WorkflowTemplate {
@@ -61,7 +65,9 @@ export type StepOutcome =
   | 'no_evidence'
   | 'accepted'
   | 'board'
-  | 'taken_back';
+  | 'taken_back'
+  /** a step fast mode skipped (the normal pace puts it back) */
+  | 'fast';
 
 /** Who took a step without its evidence, when, and why (ai-story-flow N). */
 export interface StepAccepted {
@@ -130,6 +136,10 @@ export interface WorkflowView {
   reviewDepth: ReviewDepth | null;
   depthBy: 'triage' | 'person' | null;
   depthNote: string | null;
+  /** Fast mode on this ticket; absent from an older server. */
+  pace?: Pace;
+  /** The depth the review runs at (fast mode lowers it unless a person set it). */
+  reviewRunsAt?: ReviewDepth;
   /** Round counts per pair of roles. The keys are camel-cased on the way in, so only the values are used. */
   rounds: Record<string, number>;
   /** The tickets a stopped-for-split workflow waits for. */

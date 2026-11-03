@@ -3,6 +3,7 @@ import { client } from './client';
 import { LIVE_POLL_MS, SAFETY_POLL_MS } from './pollIntervals';
 import type {
   ArbitrationResult,
+  Pace,
   ReviewDepth,
   TddEvidence,
   TemplateDraft,
@@ -16,7 +17,16 @@ export const workflowKeys = {
   metrics: (projectId: string) => ['ai', 'workflow-metrics', projectId] as const,
   ticket: (ticketId: string) => ['ai', 'ticket-workflow', ticketId] as const,
   tdd: (ticketId: string) => ['ai', 'tdd', ticketId] as const,
+  pace: (ticketId: string) => ['ai', 'ticket-pace', ticketId] as const,
 };
+
+/** A ticket's pace as the server keeps it. */
+export interface TicketPace {
+  ticketId: string;
+  pace: Pace;
+  setBy: string | null;
+  setAt: string | null;
+}
 
 export const workflowApi = {
   templates: async (projectId: string) =>
@@ -26,8 +36,14 @@ export const workflowApi = {
   metrics: async (projectId: string) =>
     (await client.get<WorkflowMetric[]>(`/projects/${projectId}/ai/workflow-metrics`, { params: { days: 30 } })).data,
   view: async (ticketId: string) => (await client.get<WorkflowView | null>(`/tickets/${ticketId}/ai/workflow`)).data,
-  attach: async (ticketId: string, templateKey: string, depth?: ReviewDepth) =>
-    (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow`, { template_key: templateKey, depth })).data,
+  attach: async (ticketId: string, templateKey: string, depth?: ReviewDepth, pace?: Pace) =>
+    (
+      await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow`, {
+        template_key: templateKey,
+        depth,
+        ...(pace ? { pace } : {}),
+      })
+    ).data,
   detach: async (ticketId: string) => {
     await client.delete(`/tickets/${ticketId}/ai/workflow`);
   },
@@ -45,6 +61,14 @@ export const workflowApi = {
     ).data,
   skip: async (ticketId: string, stepId?: string) =>
     (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/skip`, { step_id: stepId })).data,
+  /** The ticket's pace (fast or normal), with or without a workflow. */
+  getPace: async (ticketId: string) => (await client.get<TicketPace>(`/tickets/${ticketId}/ai/pace`)).data,
+  /** Fast mode on or off for the ticket; it starts nothing (on a workflow the steps not reached yet are skipped or
+   * put back). */
+  pace: async (ticketId: string, pace: Pace) =>
+    (await client.put<TicketPace>(`/tickets/${ticketId}/ai/pace`, { pace })).data,
+  /** Start the workflow's current step when it waits to be started. */
+  start: async (ticketId: string) => (await client.post<WorkflowView>(`/tickets/${ticketId}/ai/workflow/start`)).data,
   depth: async (ticketId: string, depth: ReviewDepth) =>
     (await client.patch<WorkflowView>(`/tickets/${ticketId}/ai/workflow/depth`, { depth })).data,
   rule: async (ticketId: string, side: 'reviewer' | 'dev' | 'split', reason?: string) =>
@@ -107,6 +131,29 @@ export function useTicketWorkflow(ticketId: string, enabled = true) {
     queryFn: () => workflowApi.view(ticketId),
     enabled: !!ticketId && enabled,
     refetchInterval: (q) => (q.state.data?.steps.some((s) => s.state === 'active') ? LIVE_POLL_MS : SAFETY_POLL_MS),
+  });
+}
+
+/** The ticket's pace; a failure reads as the normal pace. */
+export function useTicketPace(ticketId: string, enabled = true) {
+  return useQuery({
+    queryKey: workflowKeys.pace(ticketId),
+    queryFn: () => workflowApi.getPace(ticketId),
+    enabled: !!ticketId && enabled,
+    retry: false,
+  });
+}
+
+/** Set the ticket's pace (runs nothing); the workflow strip and the pace refresh. */
+export function useSetPace(ticketId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pace: Pace) => workflowApi.pace(ticketId, pace),
+    onSuccess: (data) => {
+      qc.setQueryData(workflowKeys.pace(ticketId), data);
+      void qc.invalidateQueries({ queryKey: workflowKeys.ticket(ticketId) });
+      void qc.invalidateQueries({ queryKey: ['ai', 'workflow-board'] });
+    },
   });
 }
 

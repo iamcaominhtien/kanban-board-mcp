@@ -7,7 +7,7 @@ databases have the other Docs AI tables but not this one. Deleting a project ran
 Idempotent: a database that already has the table is left alone.
 
 Revision ID: c4e6a8b0d2f1
-Revises: d7a9c1e3f5b8
+Revises: a3c5e7f9b1d4
 Create Date: 2026-11-03 22:30:00.000000
 
 """
@@ -19,7 +19,7 @@ import sqlmodel
 from alembic import op
 
 revision: str = "c4e6a8b0d2f1"
-down_revision: str | Sequence[str] | None = "d7a9c1e3f5b8"
+down_revision: str | Sequence[str] | None = "a3c5e7f9b1d4"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

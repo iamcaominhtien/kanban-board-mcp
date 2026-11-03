@@ -412,10 +412,11 @@ async def ask(
     page_id: str | None = None,
     thread_id: str | None = None,
     intent: str = "ask",
+    pace: str | None = None,
 ) -> dict:
     """Wake an AI member the way the board's Ask AI does: post `@Name text` as a comment on the ticket (or in a Docs
     thread on the page) and start the run. intent: ask (answer in a comment), work (assign the ticket and start a
-    work run), notify (comment only, nothing runs)."""
+    work run), notify (comment only, nothing runs). pace: fast or normal for this run (default: the ticket's)."""
     text = _need_text(text)
     if intent not in ("ask", "work", "notify"):
         raise ValueError("intent must be ask, work or notify.")
@@ -485,6 +486,7 @@ async def ask(
                 started_by=by,
                 instruction=text,
                 source_comment_id=comment_id,
+                pace=pace,
             )
         except svc_runs.RunError as exc:
             raise ValueError(f"{exc} (The comment was posted.)") from exc

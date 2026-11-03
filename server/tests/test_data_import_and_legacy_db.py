@@ -133,7 +133,7 @@ async def test_database_missing_docs_ai_ignore_is_repaired_and_a_project_deletes
     async with engine.begin() as conn:
         await conn.execute(text("DROP TABLE docs_ai_ignore"))
         await conn.execute(
-            text("UPDATE alembic_version SET version_num = 'd7a9c1e3f5b8'")
+            text("UPDATE alembic_version SET version_num = 'a3c5e7f9b1d4'")
         )
 
     await database.init_db()

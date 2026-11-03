@@ -428,3 +428,29 @@
   gap: 5px;
   white-space: nowrap;
 }
+/* Fast mode in the ticket header (PaceButton) */
+.wf-pace-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #dce6df;
+  background: #fff;
+  color: #5b6b60;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-pace-btn.on {
+  background: #fef3d9;
+  border-color: #f0d68a;
+  color: #7a5a06;
+}
+.wf-pace-btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}

@@ -1635,6 +1635,7 @@ TEAM_OPS = (
     "stop_run",
     "workflow",
     "depth",
+    "pace",
     "pause_member",
     "resume_member",
     "create",
@@ -1900,6 +1901,10 @@ async def _apply_team_op(
         before = wf.review_depth if wf else None
         await ai_workflow.set_depth(session, tid, ch["to"], by=person)
         return {"op": op, "ticket": tid, "before": before, "after": ch["to"]}
+    if op == "pace":
+        before = await ai_workflow.ticket_pace(session, tid)
+        await ai_workflow.set_pace(session, tid, ch["to"], by=person)
+        return {"op": op, "ticket": tid, "before": before, "after": ch["to"]}
     if op in ("pause_member", "resume_member"):
         profile = await session.get(AiMember, ch["member"])
         if profile is None:
@@ -1969,6 +1974,14 @@ async def _undo_team_op(session: AsyncSession, a: dict, person: str) -> str | No
             return f"{a['ticket']}: the depth was changed since"
         if a.get("before"):
             await ai_workflow.set_depth(session, a["ticket"], a["before"], by=person)
+        return None
+    if op == "pace":
+        if await ai_workflow.ticket_pace(session, a["ticket"]) != a.get("after"):
+            return f"{a['ticket']}: the pace was changed since"
+        try:
+            await ai_workflow.set_pace(session, a["ticket"], a["before"], by=person)
+        except ai_workflow.WorkflowError as exc:
+            return f"{a['ticket']}: {exc}"
         return None
     if op in ("pause_member", "resume_member"):
         profile = await session.get(AiMember, a["member"])
