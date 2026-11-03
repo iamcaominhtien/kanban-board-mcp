@@ -7,6 +7,10 @@ Redesign reference for the Kanban Board app (React UI in `ui/`), exported from t
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
+## Implementing from these docs
+
+Do not build from the Markdown and the PNGs alone. They are renders and extracted text, and they can miss states, labels and details that only the source shows. Open the board on the canvas (link above) or its `source/*.dc.html`, and check the code the board talks about before you rely on a claim: the boards are drawn against a version of `main` that has usually moved on (each doc says which). If the code and the board disagree, say so in the PR.
+
 ## Layout
 
 | Path | Contents |
