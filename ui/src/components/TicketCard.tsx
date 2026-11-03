@@ -26,7 +26,7 @@ const TYPE_LABELS: Record<IssueType, string> = {
 function getDueDateDisplay(dueDate: string | null): { label: string; overdue: boolean } | null {
   if (!dueDate) return null;
   const due = new Date(dueDate);
-  if (isNaN(due.getTime())) return null;
+  if (Number.isNaN(due.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const overdue = due < today;
@@ -239,7 +239,7 @@ export function TicketCard({
   function copyTicketLink(e: React.MouseEvent) {
     e.stopPropagation();
     const url = `${window.location.origin}/#ticket-${ticket.id}`;
-    navigator.clipboard.writeText(url);
+    void navigator.clipboard.writeText(url);
     setMenuOpen(false);
   }
 

@@ -1389,7 +1389,9 @@ class AiMemoryNote(SQLModel, table=True):
     )
     project_id: str = Field(index=True)
     scope: str = Field(default="role", index=True)  # role | member | ticket
-    scope_key: str = Field(default="", index=True)  # the role key, the member id or the ticket id
+    scope_key: str = Field(
+        default="", index=True
+    )  # the role key, the member id or the ticket id
     text: str = Field(default="")
     kind: str = Field(default="learned")  # learned | feedback (a person told the AI)
     written_by: Optional[str] = Field(default=None)  # a member's name or a person's

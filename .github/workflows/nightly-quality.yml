@@ -1,0 +1,187 @@
+name: Nightly quality
+
+# Once a night on main: every test with coverage, the SonarQube Cloud analysis (config: sonar-project.properties),
+# then sonar-digest.py files the result in one GitHub issue labelled `sonarqube` and comments when new issues
+# appear. Pull requests wait only for the fast checks in ci.yml.
+#
+# A night with no new commit on main is skipped (SonarQube already analysed that commit). Run it by hand from the
+# Actions tab ("Run workflow"); tick "force" to analyse again anyway.
+
+on:
+  schedule:
+    - cron: "17 19 * * *" # 02:17 in Vietnam (UTC+7)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run even when SonarQube Cloud already analysed main's latest commit
+        type: boolean
+        default: false
+
+concurrency:
+  group: nightly-quality
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Skipped when the SONAR_TOKEN secret is not set, or (on the schedule) when nothing reached main since the last
+  # analysis
+  check:
+    name: Anything to analyse
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::notice::No SONAR_TOKEN secret: nothing to do"
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          key=$(sed -n 's/^sonar.projectKey=//p' sonar-project.properties)
+          last=$(curl -sf -H "Authorization: Bearer $SONAR_TOKEN" \
+            "https://sonarcloud.io/api/project_branches/list?project=$key" \
+            | python3 -c 'import json,sys; print(next((b.get("commit",{}).get("sha","") for b in json.load(sys.stdin)["branches"] if b.get("isMain")), ""))' \
+            || true)
+          echo "main is at $GITHUB_SHA, SonarQube last analysed ${last:-nothing}"
+          if [ "$last" = "$GITHUB_SHA" ] && [ "$FORCE" != "true" ]; then
+            echo "::notice::SonarQube Cloud already analysed $GITHUB_SHA: skipped"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Coverage with greenlet tracing doubles the time, so the backend still runs as two shards (tests/shard.py)
+  backend:
+    name: Backend tests with coverage (${{ matrix.shard }}/2)
+    needs: check
+    if: needs.check.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install uv
+      - run: uv sync
+      - name: Tests with coverage
+        run: uv run pytest -q -n auto --cov --cov-report=xml $(python3 tests/shard.py ${{ matrix.shard }}/2)
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }} # the report is written even when a test fails
+        with:
+          name: coverage-server-${{ matrix.shard }}
+          path: server/coverage.xml
+          retention-days: 3
+
+  frontend:
+    name: Frontend tests with coverage
+    needs: check
+    if: needs.check.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-ui
+          path: ui/coverage/lcov.info
+          retention-days: 3
+
+  desktop:
+    name: Desktop tests with coverage
+    needs: check
+    if: needs.check.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-desktop
+          path: desktop/lcov.info
+          retention-days: 3
+
+  # Runs even when a test job fails, so one failing test does not leave main without an analysis; the report
+  # issue then says which tests failed
+  sonar:
+    name: SonarQube Cloud and the report issue
+    needs: [check, backend, frontend, desktop]
+    if: ${{ !cancelled() && needs.check.outputs.run == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # the report issue
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history, so new code and blame are right
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverage-reports
+      # The reports name files relative to server/, ui/ and desktop/; Sonar needs paths it can find from here
+      - name: Point the coverage reports at the checkout
+        run: |
+          # A report is missing when its job stopped before the tests ran; Sonar then goes without it
+          for f in coverage-reports/coverage-server-*/coverage.xml; do
+            [ -f "$f" ] && sed -i "s#<source>.*</source>#<source>$GITHUB_WORKSPACE/server</source>#" "$f"
+          done
+          f=coverage-reports/coverage-ui/lcov.info
+          [ -f "$f" ] && sed -i "s#^SF:#SF:$GITHUB_WORKSPACE/ui/#" "$f"
+          f=coverage-reports/coverage-desktop/lcov.info
+          [ -f "$f" ] && sed -i "s#^SF:#SF:$GITHUB_WORKSPACE/desktop/#" "$f"
+          true
+      - uses: SonarSource/sonarqube-scan-action@v8
+      # Last night's issue keys, so the report can tell what is new (the newest cache whose key starts like this)
+      - uses: actions/cache/restore@v4
+        with:
+          path: sonar-state
+          key: sonar-issue-keys-${{ github.run_id }}
+          restore-keys: sonar-issue-keys-
+      - name: File the result in the report issue
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TESTS_SUMMARY: >-
+            backend ${{ needs.backend.result }} · frontend ${{ needs.frontend.result }} ·
+            desktop ${{ needs.desktop.result }}
+        run: >-
+          python3 .github/scripts/sonar-digest.py
+          --previous-keys sonar-state/keys.txt --keys-out sonar-state/keys.txt
+      - uses: actions/cache/save@v4
+        with:
+          path: sonar-state
+          key: sonar-issue-keys-${{ github.run_id }}

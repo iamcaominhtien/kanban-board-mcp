@@ -10,7 +10,7 @@ const legacyKey = (pageId: string) => `docsSeen:${pageId}`;
 function readLegacySeen(pageId: string): number | null {
   try {
     const raw = localStorage.getItem(legacyKey(pageId));
-    const n = raw == null ? NaN : Number(raw);
+    const n = raw == null ? Number.NaN : Number(raw);
     return Number.isFinite(n) ? n : null;
   } catch {
     return null;

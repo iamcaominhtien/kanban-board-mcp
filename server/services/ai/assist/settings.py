@@ -3,10 +3,10 @@
 
 from datetime import datetime, timedelta
 
-from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import database
 from models import (
     AiAssistSettings,
     AiMember,
@@ -74,14 +74,9 @@ async def get(session: AsyncSession) -> AiAssistSettings:
     """The board-wide assistant settings, created with defaults on first use."""
     row = await session.get(AiAssistSettings, 1)
     if row is None:
-        row = AiAssistSettings(id=1)
-        session.add(row)
-        try:
-            await session.commit()
-        except IntegrityError:
-            await session.rollback()
-            return await session.get(AiAssistSettings, 1)
-        await session.refresh(row)
+        await database.insert_missing(session, AiAssistSettings, id=1)
+        await session.commit()
+        row = await session.get(AiAssistSettings, 1)
     return row
 
 

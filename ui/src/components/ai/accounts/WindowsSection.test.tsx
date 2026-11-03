@@ -116,7 +116,7 @@ describe('WindowsSection', () => {
       room: [{ accountId: 'a2', name: 'work', email: null, plan: 'Pro', used: 0.2, free: 1 }],
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Move urgent work' }));
-    await screen.findByRole('dialog');
+    expect(await screen.findByRole('dialog')).toBeTruthy();
   });
 
   it('saves the limit when committed, clamped to 1..20, and not when unchanged', async () => {

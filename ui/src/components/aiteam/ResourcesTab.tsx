@@ -39,7 +39,7 @@ function clock(iso: string | null | undefined): string {
 }
 
 function runningFor(run: ResourceRun, nowMs: number): string {
-  const start = run.startedAt ? Date.parse(run.startedAt) : NaN;
+  const start = run.startedAt ? Date.parse(run.startedAt) : Number.NaN;
   const end = run.endedAt ? Date.parse(run.endedAt) : nowMs;
   if (!Number.isFinite(start)) return '';
   const min = Math.max(0, Math.round((end - start) / 60000));

@@ -31,7 +31,7 @@ function tickText(t: number, span: number): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-const ms = (iso: string | null | undefined) => (iso ? Date.parse(iso) : NaN);
+const ms = (iso: string | null | undefined) => (iso ? Date.parse(iso) : Number.NaN);
 
 /**
  * The Timeline inside a Story (design/screens/ai-story-flow.md, I2): one row per child ticket with the PM on top. Bars

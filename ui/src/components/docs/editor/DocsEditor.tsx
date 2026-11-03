@@ -774,7 +774,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
               ref={hostRef}
               style={{
                 width: mode === 'markdown' ? '100%' : 'clamp(640px, 62vw, 1120px)',
-                maxWidth: mode === 'markdown' ? 'calc(100% - 48px)' : 'calc(100% - 48px)',
+                maxWidth: 'calc(100% - 48px)',
                 margin: '0 auto',
                 position: 'relative',
               }}

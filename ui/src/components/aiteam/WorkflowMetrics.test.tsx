@@ -39,7 +39,7 @@ describe('WorkflowMetrics', () => {
 
   it('says so when the measures cannot be read', async () => {
     setup(() => Promise.reject(new Error('boom')));
-    await screen.findByText('The workflow measures could not be read.');
+    expect(await screen.findByText('The workflow measures could not be read.')).toBeTruthy();
   });
 
   it('shows a tile and a table row per template, with verdicts and cost against Standard', async () => {

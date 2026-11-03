@@ -243,16 +243,18 @@ async def start(account: AiAccount, by: str, cols: int = 80, rows: int = 24) -> 
         raise PtyUnavailable(str(exc)) from exc
     _winsize(master, cols, rows)
     try:
-        proc = subprocess.Popen(
-            argv,
-            stdin=slave,
-            stdout=slave,
-            stderr=slave,
-            cwd=cwd,
-            env=env,
-            start_new_session=True,
-            close_fds=True,
-            preexec_fn=_controlling_tty,  # noqa: PLW1509 - the child needs a controlling terminal
+        proc = await asyncio.to_thread(
+            lambda: subprocess.Popen(
+                argv,
+                stdin=slave,
+                stdout=slave,
+                stderr=slave,
+                cwd=cwd,
+                env=env,
+                start_new_session=True,
+                close_fds=True,
+                preexec_fn=_controlling_tty,  # noqa: PLW1509 - the child needs a controlling terminal
+            )
         )
     except OSError as exc:
         os.close(master)

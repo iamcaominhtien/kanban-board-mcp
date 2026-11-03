@@ -230,7 +230,7 @@ def _norm(text: str) -> str:
 
 
 def _json_of(text: str) -> Any:
-    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", (text or "").strip())
+    text = re.sub(r"(?:^```(?:json)?\s*)|(?:\s*```$)", "", (text or "").strip())
     start = min([i for i in (text.find("{"), text.find("[")) if i >= 0], default=-1)
     if start < 0:
         return None

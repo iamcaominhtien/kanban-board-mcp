@@ -13,6 +13,7 @@ from typing import Any, Optional
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import database
 from models import IdeaTicket, Ticket, WorkspaceSettings
 from services import activity as act
 
@@ -25,20 +26,19 @@ def default_root() -> str:
 
 async def get_workspace_settings(session: AsyncSession) -> WorkspaceSettings:
     """Return the workspace settings row, creating it with defaults if missing."""
-    result = await session.exec(
-        select(WorkspaceSettings).where(WorkspaceSettings.id == 1)
-    )
-    settings = result.first()
+    settings = await session.get(WorkspaceSettings, 1)
     if settings is None:
-        settings = WorkspaceSettings(
+        # two runs that start together on a new board both get here: the second insert does nothing
+        await database.insert_missing(
+            session,
+            WorkspaceSettings,
             id=1,
             enabled=True,
             root_path=default_root(),
             default_retention_days=14,
         )
-        session.add(settings)
         await session.commit()
-        await session.refresh(settings)
+        settings = await session.get(WorkspaceSettings, 1)
     return settings
 
 
@@ -560,7 +560,9 @@ async def open_in_file_manager(session: AsyncSession, ticket_id: str) -> str:
             "No file manager available on this machine; copy the path instead"
         )
     await asyncio.to_thread(folder.mkdir, 0o755, True, True)
-    subprocess.Popen(  # noqa: S603 - fixed argv
+    # Popen in a thread, not asyncio's subprocess: the event loop on Windows may not support subprocesses
+    await asyncio.to_thread(
+        subprocess.Popen,  # noqa: S603 - fixed argv
         [opener, "."],
         cwd=folder,
         stdout=subprocess.DEVNULL,

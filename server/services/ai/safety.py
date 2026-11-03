@@ -659,10 +659,9 @@ async def workspace_defaults(session: AsyncSession) -> AiWorkspaceDefaults:
     """The workspace's start values for new AI members (created on first use)."""
     row = await session.get(AiWorkspaceDefaults, 1)
     if row is None:
-        row = AiWorkspaceDefaults(id=1)
-        session.add(row)
+        await database.insert_missing(session, AiWorkspaceDefaults, id=1)
         await session.commit()
-        await session.refresh(row)
+        row = await session.get(AiWorkspaceDefaults, 1)
     return row
 
 

@@ -1175,7 +1175,7 @@ export function ActivitySection({
     if (field === 'due_date' || field === 'dueDate' || field === 'start_date' || field === 'startDate') {
       try {
         const d = new Date(val);
-        if (!isNaN(d.getTime())) {
+        if (!Number.isNaN(d.getTime())) {
           return (
             <span className={styles.acChip}>{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
           );
