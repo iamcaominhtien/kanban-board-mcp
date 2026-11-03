@@ -220,11 +220,12 @@ async def test_the_tool_list_stays_compact():
     # ticket_id, about 810; ai_run report's `learned` (what the next run must not pay for again, with its item
     # fields, so a run that keeps nothing by itself still hands it over: the #274 live check), about 360; handing work
     # over with nothing lost (issue #272): ai_run's handoff note (its four fields spelled out for Antigravity),
-    # ai_team's take_back, hand_over and tell, and get_ticket's held_by, about 480
-    assert default < 54_500, (
+    # ai_team's take_back, hand_over and tell, and get_ticket's held_by, about 480; manage_ticket's description
+    # "name a file or cause only once you have read it" (#269 live run) about 50
+    assert default < 54_560, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 57_350, (
+    assert full < 57_410, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
