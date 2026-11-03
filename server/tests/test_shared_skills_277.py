@@ -39,13 +39,14 @@ def _block(member: AiMember, settings: AiProjectSettings, mode: str = "work") ->
 def test_the_four_skills_agreed_with_the_owner_are_board_skills_with_a_description_that_says_when():
     assert [n for n, _d, _b in shared_skills.SKILLS] == SHARED
     names = [s["name"] for s in board_skills.catalog() if not s["role"]]
-    assert names[:4] == [
+    assert names[:5] == [
         "canvas-design",
         "drawio-diagrams",
         "sketches",
         "board-permissions",
+        "docs-pages",  # issue #268
     ]
-    assert names[4:] == SHARED
+    assert names[5:] == SHARED
     for s in board_skills.catalog():
         # Claude Code opens a skill by its description: each says what it covers and when to use it
         assert "Use " in s["description"], s["name"]
@@ -147,7 +148,7 @@ def test_a_run_gets_a_folder_with_only_the_skills_on_for_it():
 async def test_the_ui_lists_the_board_skills(env):
     r = await env["c"].get("/ai/board-skills")
     assert r.status_code == 200
-    assert [s["name"] for s in r.json() if not s["role"]][4:] == SHARED
+    assert [s["name"] for s in r.json() if not s["role"]][5:] == SHARED
 
 
 def test_personas_and_step_texts_point_to_the_skills_instead_of_repeating_them():

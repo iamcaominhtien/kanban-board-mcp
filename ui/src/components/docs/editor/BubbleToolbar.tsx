@@ -5,6 +5,7 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import { NodeSelection } from '@tiptap/pm/state';
 import { CellSelection } from '@tiptap/pm/tables';
 import { Icon } from '../Icon';
+import { HighlightGlyph } from './EditorToolbar';
 import { LineIcon } from '../../ui/LineIcon';
 
 interface Props {
@@ -90,6 +91,7 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
       italic: !!e?.isActive('italic'),
       strike: !!e?.isActive('strike'),
       code: !!e?.isActive('code'),
+      highlight: !!e?.isActive('highlight'),
       link: !!e?.isActive('link'),
       href: (e?.getAttributes('link').href as string | undefined) ?? '',
       block: BLOCKS.find((b) => e && b.on(e))?.label ?? 'Text',
@@ -275,6 +277,9 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
             </Btn>
             <Btn label="Inline code" on={st?.code} onClick={() => editor.chain().focus().toggleCode().run()}>
               <Icon name="i33" size={15} />
+            </Btn>
+            <Btn label="Highlight" on={st?.highlight} onClick={() => editor.chain().focus().toggleHighlight().run()}>
+              <HighlightGlyph />
             </Btn>
             {SEP}
             <div style={{ position: 'relative' }}>

@@ -448,7 +448,7 @@ export function DocsAi({
                   fontSize: 11,
                   fontWeight: 700,
                   letterSpacing: '0.06em',
-                  color: '#6B5BD2',
+                  color: '#7c5cd6',
                 }}
               >
                 DOCS ONLY

@@ -28,15 +28,32 @@ const HEAD: React.CSSProperties = {
 export function useMenuPosition(rect: DOMRect | null, width: number) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  // The menu's height, followed with a ResizeObserver as its list changes. It used to be read in a layout effect
+  // that ran after every render and set the position: whenever React could not bail out of that update early, the
+  // effect ran again after the render it caused, and the editor died with "Maximum update depth exceeded" (ED-9).
+  const [height, setHeight] = useState<number | null>(null);
+  const open = rect != null;
   useLayoutEffect(() => {
-    if (!rect) return;
-    const h = ref.current?.offsetHeight ?? 300;
-    const below = rect.bottom + 6;
-    const top = below + h > window.innerHeight - 8 && rect.top - 6 - h > 8 ? rect.top - 6 - h : below;
-    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
-    // runs after every render (the menu height can change), so only update when the spot moved
+    const el = ref.current;
+    if (!open || !el) return;
+    const measure = () => setHeight(el.offsetHeight);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open]);
+  const rTop = rect?.top;
+  const rBottom = rect?.bottom;
+  const rLeft = rect?.left;
+  useLayoutEffect(() => {
+    if (rTop == null || rBottom == null || rLeft == null) return;
+    const h = height ?? 300;
+    const below = rBottom + 6;
+    const top = below + h > window.innerHeight - 8 && rTop - 6 - h > 8 ? rTop - 6 - h : below;
+    const left = Math.max(8, Math.min(rLeft, window.innerWidth - width - 8));
     setPos((p) => (p && p.top === top && p.left === left ? p : { top, left }));
-  });
+  }, [rTop, rBottom, rLeft, width, height]);
   return { ref, pos };
 }
 

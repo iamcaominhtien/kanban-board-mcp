@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -17,6 +17,10 @@ import type { WorkflowFilterOptions } from './workflowBoard/workflowFilter';
 import { ListView } from './ListView';
 import { TimelineView } from './TimelineView';
 import { DocsSpace } from './docs/DocsSpace';
+import { DocsPoppedOut } from './docs/DocsPoppedOut';
+import { PopOutIcon } from './docs/DocsWindowIcons';
+import { useDocsWindowHost } from './docs/useDocsWindow';
+import { useToast } from './Toast';
 import { AiTeamView } from './aiteam/AiTeamView';
 import { useTeamNow } from '../api/aiTeam';
 import { SchedulesTab } from './schedules/SchedulesTab';
@@ -182,6 +186,25 @@ export function Board({
   onDelete,
 }: BoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const toast = useToast();
+  const openTicketById = (id: string) => {
+    const t = allTickets.find((x) => x.id === id);
+    if (t) onCardClick(t);
+  };
+  // Docs in a window of its own (#268): the board knows it is out, takes it back, and sends it pages to show
+  const docsWindow = useDocsWindowHost(
+    projectId ?? '',
+    (pageId) => (pageId ? onOpenDocsPage?.(pageId) : onViewModeChange('docs')),
+    openTicketById,
+  );
+  const { popped: docsPopped, openPage: showInDocsWindow } = docsWindow;
+  useEffect(() => {
+    // a page opened from a ticket or a link while Docs is in its own window goes to that window
+    if (docsPopped && docsRequestedPageId) {
+      showInDocsWindow(docsRequestedPageId);
+      onDocsRequestHandled?.();
+    }
+  }, [docsPopped, docsRequestedPageId, showInDocsWindow, onDocsRequestHandled]);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   // The lifted card keeps the footprint of the card it was picked from (Drag & Drop 1, comp-1 DD-1)
   const [activeWidth, setActiveWidth] = useState<number | null>(null);
@@ -314,8 +337,11 @@ export function Board({
                 className={`${styles.viewBtn} ${viewMode === 'docs' ? styles.viewBtnActive : ''}`}
                 onClick={() => onViewModeChange('docs')}
                 data-testid="view-docs"
+                title={docsWindow.popped ? 'Docs is open in its own window' : undefined}
+                style={docsWindow.popped ? { display: 'inline-flex', alignItems: 'center', gap: 6 } : undefined}
               >
                 Docs
+                {docsWindow.popped && <PopOutIcon size={12} />}
               </button>
               {hasAiTeam && (
                 <button
@@ -477,7 +503,15 @@ export function Board({
           </div>
         )}
 
-        {viewMode === 'docs' && projectId && !loadState ? (
+        {viewMode === 'docs' && projectId && !loadState && docsWindow.popped ? (
+          <DocsPoppedOut
+            projectId={projectId}
+            projectName={projectName}
+            pageId={docsWindow.popped.pageId}
+            onFocus={docsWindow.focus}
+            onDockBack={docsWindow.dockBack}
+          />
+        ) : viewMode === 'docs' && projectId && !loadState ? (
           <DocsSpace
             projectId={projectId}
             projectName={projectName}
@@ -485,9 +519,11 @@ export function Board({
             onRequestHandled={onDocsRequestHandled}
             onOpenSettings={onOpenSettings}
             onBack={() => onViewModeChange('board')}
-            onOpenTicket={(id) => {
-              const t = allTickets.find((x) => x.id === id);
-              if (t) onCardClick(t);
+            onOpenTicket={openTicketById}
+            onPopOut={(pageId) => {
+              if (!docsWindow.popOut(pageId)) {
+                toast.error('The window was blocked', 'Allow pop-ups for the board, then try again.');
+              }
             }}
           />
         ) : viewMode === 'ai_team' && projectId && !loadState ? (

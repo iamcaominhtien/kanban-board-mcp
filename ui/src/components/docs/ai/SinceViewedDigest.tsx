@@ -79,11 +79,11 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage }: Props) {
         right: 16,
         width: 340,
         zIndex: 4, // under the history / comments drawers, which have their own footers
-        borderRadius: 12,
+        borderRadius: 10,
         border: '1px solid #E3E8E5',
         background: '#FFFFFF',
         boxShadow: '0 8px 28px rgba(30,42,34,0.14)',
-        padding: '10px 12px',
+        padding: 12,
         boxSizing: 'border-box',
       }}
     >
@@ -92,7 +92,7 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage }: Props) {
           <Icon name="eye" size={16} strokeWidth={1.8} />
         </span>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Changes since you last viewed</span>
-        <span className="mc-chip" style={{ background: '#DCEEE1', color: '#1F5A31' }}>
+        <span className="mc-chip" style={{ background: '#E6F2EA', color: '#1F5A31' }}>
           {pagesLabel(done ? pages.length : changed)}
         </span>
         <button
@@ -109,14 +109,14 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage }: Props) {
         <div
           style={{
             marginTop: 8,
-            padding: '8px 10px',
-            borderRadius: 9,
-            border: '1px solid #D9CCF7',
-            background: '#F8F5FE',
+            padding: 10,
+            borderRadius: 10,
+            border: '1px solid #d9ccf3',
+            background: '#faf7ff',
           }}
         >
           {pages.map((p) => (
-            <div key={p.pageId} style={{ fontSize: 13, lineHeight: 1.5, color: '#1E2A22' }}>
+            <div key={p.pageId} style={{ fontSize: 12.5, lineHeight: 1.6, color: '#1E2A22' }}>
               <button
                 type="button"
                 onClick={() => onOpenPage(p.pageId)}
@@ -141,7 +141,7 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage }: Props) {
                     : 'changed')}
             </div>
           ))}
-          <div style={{ fontSize: 11.5, color: '#5B6B60', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: '#5B6B60', marginTop: 4 }}>
             Summary by AI · open a page to see the diff · {costLabel(done.cost, done.metered).replace('About ', '')}
           </div>
         </div>

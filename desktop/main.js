@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, Notification, clipboard, ipcMain, dialog, nati
 const os = require('os');
 const crypto = require('crypto');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { registerMcpServer } = require('./vscode-setup');
@@ -16,6 +17,8 @@ const {
   createPowerKeeper,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
+  isAppUrl,
+  isDocsWindowUrl,
   openExternalSafely,
   openPathSafely,
   parseReadyPort,
@@ -34,6 +37,8 @@ const profiler = new StartupProfiler();
 // (KANBAN_NO_API_SECRET=1 starts the app without it, should a window ever be locked out of its own board)
 const apiSecret = process.env.KANBAN_NO_API_SECRET ? '' : crypto.randomBytes(24).toString('hex');
 let mainWindow = null;
+// Docs windows the board popped out (issue #268): they may change the board like the main window
+const docsWindows = new Set();
 let backendPort = null;
 let backendProcess = null;
 // What the page tells the menu so the check mark follows the view on screen
@@ -176,11 +181,49 @@ function createWindow() {
   );
   mainWindow.loadFile(uiPath);
 
-  // No second app window: a web or mail link the page opens in a new window (a link in a Docs page, a ticket, a
-  // comment) goes to the person's browser instead of being dropped silently
+  // One kind of second app window: Docs popped out of the board (index.html?docsWindow=1, issue #268). Any other link
+  // the page opens in a new window (a link in a Docs page, a ticket, a comment) goes to the person's browser instead
+  // of being dropped silently
+  const appUrl = pathToFileURL(uiPath).href;
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isDocsWindowUrl(url, appUrl)) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 1180,
+          height: 860,
+          minWidth: 720,
+          minHeight: 480,
+          title: 'Docs',
+          autoHideMenuBar: true,
+          webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+          },
+        },
+      };
+    }
     void openExternalSafely(shell, url);
     return { action: 'deny' };
+  });
+  mainWindow.webContents.on('did-create-window', (win) => {
+    docsWindows.add(win);
+    win.on('closed', () => docsWindows.delete(win));
+    // from a Docs window, the board's own page (a ticket it opens) shows in the main window; web links go to the browser
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      if (isAppUrl(url, appUrl) && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
+      } else if (!isAppUrl(url, appUrl)) {
+        void openExternalSafely(shell, url);
+      }
+      return { action: 'deny' };
+    });
+    win.webContents.on('will-navigate', (event, url) => {
+      if (!(url.startsWith('file://') || url.startsWith('http://127.0.0.1:'))) event.preventDefault();
+    });
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -436,7 +479,10 @@ ipcMain.handle('get-backend-port', () => backendPort);
 // IPC: the page asks for the secret that lets it change the board (server/api_secret.py). Synchronous, so the first
 // request already carries it; only the app's own window gets an answer.
 ipcMain.on('get-api-secret', (event) => {
-  event.returnValue = mainWindow && event.sender === mainWindow.webContents ? apiSecret : '';
+  const own =
+    (mainWindow && event.sender === mainWindow.webContents) ||
+    [...docsWindows].some((w) => !w.isDestroyed() && event.sender === w.webContents);
+  event.returnValue = own ? apiSecret : '';
 });
 
 // IPC: renderer asks to start the backend again after a failure ("Try again" on the splash)

@@ -22,20 +22,24 @@ import { Icon } from '../Icon';
 import '../docs.css';
 
 const chip: CSSProperties = {
-  fontSize: 12,
-  fontWeight: 600,
-  color: '#2E6F40',
-  background: '#E9F3EC',
+  display: 'inline-flex',
+  alignItems: 'center',
+  height: 21,
+  boxSizing: 'border-box',
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#3A4A3E',
+  background: '#F1F3F1',
   borderRadius: 999,
-  padding: '3px 10px',
+  padding: '0 8px',
 };
 const btn: CSSProperties = {
   font: 'inherit',
-  fontSize: 13,
+  fontSize: 12,
   fontWeight: 600,
-  padding: '8px 16px',
+  padding: '5px 10px',
   borderRadius: 8,
-  border: '1px solid #D5DDD8',
+  border: '1px solid #E3E8E5',
   background: '#fff',
   color: '#1E2A22',
   cursor: 'pointer',
@@ -127,7 +131,7 @@ export function CreateTicketsDialog({
         aria-label="Create tickets"
         data-testid="create-tickets-dialog"
         style={{
-          width: 560,
+          width: 460,
           maxWidth: '100%',
           maxHeight: '90vh',
           display: 'flex',
@@ -140,28 +144,23 @@ export function CreateTicketsDialog({
       >
         <div
           style={{
-            padding: '20px 24px 14px',
+            padding: '14px 18px',
             borderBottom: '1px solid #EEF3EF',
             display: 'flex',
             alignItems: 'flex-start',
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#1E2A22' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>
               {drafts.length ? createLabel(drafts.length) : 'Create tickets'}
             </div>
-            <div style={{ fontSize: 13, color: '#5B6B60' }}>From {page.title}</div>
+            <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>From {page.title}</div>
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#5B6B60' }}
-          >
-            <Icon name="close" size={16} />
+          <button type="button" aria-label="Close" onClick={onClose} className="dk-icobtn">
+            <Icon name="close" size={14} strokeWidth={2} />
           </button>
         </div>
-        <div style={{ padding: '16px 24px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: '16px 18px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 9 }}>
           {loading && (
             <div role="status" style={{ fontSize: 13.5, color: '#5B6B60' }}>
               Looking for unchecked items…
@@ -176,7 +175,12 @@ export function CreateTicketsDialog({
             <div
               key={d.n}
               data-testid="ticket-draft"
-              style={{ border: '1px solid #E3E8E5', borderRadius: 12, padding: 12, opacity: d.include ? 1 : 0.55 }}
+              style={{
+                border: '1px solid #E3E8E5',
+                borderRadius: 9,
+                padding: '9px 10px',
+                opacity: d.include ? 1 : 0.55,
+              }}
             >
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input
@@ -192,20 +196,22 @@ export function CreateTicketsDialog({
                   style={{
                     flex: 1,
                     font: 'inherit',
-                    fontSize: 14,
-                    padding: '8px 10px',
+                    fontSize: 13,
+                    minHeight: 34,
+                    boxSizing: 'border-box',
+                    padding: '6px 10px',
                     borderRadius: 8,
-                    border: '1px solid #D5DDD8',
+                    border: '1px solid #E3E8E5',
                   }}
                 />
               </div>
               <div
                 style={{
                   display: 'flex',
-                  gap: 8,
+                  gap: 6,
                   flexWrap: 'wrap',
                   alignItems: 'center',
-                  marginTop: 8,
+                  marginTop: 6,
                   paddingLeft: 24,
                 }}
               >
@@ -213,7 +219,7 @@ export function CreateTicketsDialog({
                   aria-label={`Type of ticket ${d.n}`}
                   value={d.type}
                   onChange={(e) => set(d.n, { type: e.target.value })}
-                  style={{ ...chip, border: 'none' }}
+                  style={{ ...chip, border: 'none', background: '#E6F2EA', color: '#1F5A31' }}
                 >
                   {['task', 'bug', 'feature', 'chore'].map((t) => (
                     <option key={t} value={t}>
@@ -254,25 +260,38 @@ export function CreateTicketsDialog({
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 6,
+                      gap: 5,
                       font: 'inherit',
-                      fontSize: 12.5,
+                      fontSize: 11.5,
+                      color: '#3A4A3E',
                       border: 'none',
                       background: 'none',
                       cursor: 'pointer',
                       padding: 0,
                     }}
                   >
-                    <span style={{ ...chip, background: '#E9F3EC', padding: '2px 7px', fontSize: 10.5 }}>
+                    <span
+                      style={{
+                        ...chip,
+                        width: 18,
+                        height: 18,
+                        padding: 0,
+                        justifyContent: 'center',
+                        borderRadius: '50%',
+                        background: '#DDEFE3',
+                        color: '#1F5A31',
+                        fontSize: 8,
+                      }}
+                    >
                       {initials(d.suggestedAssignee.name)}
                     </span>
                     {d.suggestedAssignee.name}
-                    <span style={{ ...chip, color: '#6B5BD2', background: '#EEEBFB' }}>
+                    <span style={{ ...chip, height: 17, fontSize: 10, color: '#5B3AA6', background: '#EFE8FB' }}>
                       {d.assigneeId ? 'assigned' : 'suggested'}
                     </span>
                   </button>
                 ) : (
-                  <span style={{ fontSize: 12.5, color: '#7A877F' }}>Unassigned</span>
+                  <span style={{ fontSize: 11.5, color: '#5B6B60' }}>Unassigned</span>
                 )}
                 {dueLabel(d.dueDate) && <span style={chip}>{dueLabel(d.dueDate)}</span>}
               </div>
@@ -280,23 +299,23 @@ export function CreateTicketsDialog({
           ))}
           {drafts.length > 0 && (
             <>
-              <label style={{ display: 'flex', gap: 10, fontSize: 13.5, alignItems: 'center' }}>
+              <label style={{ display: 'flex', gap: 9, fontSize: 12.5, lineHeight: 1.45, alignItems: 'center' }}>
                 <input type="checkbox" checked={replaceText} onChange={(e) => setReplaceText(e.target.checked)} />
                 Replace the text on the page with the ticket chips
               </label>
-              <label style={{ display: 'flex', gap: 10, fontSize: 13.5, alignItems: 'center' }}>
+              <label style={{ display: 'flex', gap: 9, fontSize: 12.5, lineHeight: 1.45, alignItems: 'center' }}>
                 <input type="checkbox" checked={link} onChange={(e) => setLink(e.target.checked)} />
                 {picked.length === 2 ? 'Link both tickets to this page' : 'Link the tickets to this page'}
               </label>
               {replaceText && (
-                <div style={{ fontSize: 12, color: '#7A877F' }}>
+                <div style={{ fontSize: 11.5, color: '#5B6B60' }}>
                   The chips go into your draft of the page. Nothing is published until you press Publish.
                 </div>
               )}
             </>
           )}
           {info?.skipped.map((s) => (
-            <div key={`${s.reason}-${s.text}`} style={{ fontSize: 12.5, color: '#7A877F' }}>
+            <div key={`${s.reason}-${s.text}`} style={{ fontSize: 11.5, color: '#5B6B60' }}>
               {s.note}
             </div>
           ))}
@@ -308,14 +327,15 @@ export function CreateTicketsDialog({
         </div>
         <div
           style={{
-            padding: '12px 24px',
+            padding: '12px 18px',
             borderTop: '1px solid #EEF3EF',
+            background: '#FBFCFB',
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
+            gap: 8,
           }}
         >
-          <span style={{ fontSize: 12.5, color: '#7A877F', flex: 1 }}>
+          <span style={{ fontSize: 11.5, color: '#5B6B60', flex: 1 }}>
             {info && drafts.length ? costLabel(info.cost, info.metered) : ''}
           </span>
           <button type="button" style={btn} onClick={onClose}>

@@ -211,7 +211,9 @@ def classify(tool: str, action: str, params: dict) -> list[str]:
             "delete_comment",
             "canvas_comment",
             "canvas_propose",
+            "upload",
         ):
+            # storing a file changes nothing a person sees; putting it on a page is an `update`, checked on its own
             return ["comment"]
         if action in ("delete", "diagram_delete"):
             return ["delete_docs"]
@@ -309,6 +311,7 @@ _DOCS_VERBS = {
     "delete_comment": "Delete a comment on the page",
     "resolve": "Resolve a comment thread on the page",
     "reopen": "Reopen a comment thread on the page",
+    "upload": "Store a file",
 }
 
 

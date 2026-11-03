@@ -53,7 +53,7 @@ export function SelectionAi({
           type="button"
           data-testid="selection-ask"
           onMouseDown={(e) => e.preventDefault()}
-          style={{ background: '#6b5bd2' }}
+          style={{ background: '#7c5cd6' }}
           onClick={run(() =>
             assist.ask({
               scope: 'doc',

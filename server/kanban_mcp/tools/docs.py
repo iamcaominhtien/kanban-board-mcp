@@ -32,11 +32,12 @@ DocsReadAction = Literal[
     "guides",
     "role_guide",
     "ticket_guide",
+    "docs_guide",
 ]
 
 DOCS_READ_OPS = {
     "list": Op(ops.list_docs_pages, ("project_id",)),
-    "get": Op(ops.get_docs_page, ("page_id",)),
+    "get": Op(ops.get_docs_page, ("page_id",), ("section",)),
     "search": Op(ops.search_docs, ("project_id", "query"), ("scope", "limit")),
     "versions": Op(ops.list_docs_versions, ("page_id",)),
     "version": Op(ops.get_docs_version, ("page_id", "version"), ("compare_to",)),
@@ -68,6 +69,7 @@ DOCS_READ_OPS = {
     "guides": Op(ops.shared_guides, ()),
     "role_guide": Op(ops.role_guide, (), ("query",)),
     "ticket_guide": Op(ops.ticket_guide, ()),
+    "docs_guide": Op(ops.docs_guide, ()),
 }
 
 
@@ -143,6 +145,10 @@ async def docs_read(
             description="version: another version number; returns a line diff `version` -> `compare_to` instead."
         ),
     ] = None,
+    section: Annotated[
+        str | None,
+        Field(description="get: one section (heading text or slug)."),
+    ] = None,
     state: Annotated[
         Literal["all", "open", "resolved"] | None,
         Field(description="comments: inline threads to list (default all)."),
@@ -156,7 +162,7 @@ async def docs_read(
 ) -> dict | list[dict]:
     """Read a project's Docs: a tree of Markdown pages. `action`:
     - list: project_id. The flat page tree [{id, parent_id, position, title, slug, status, version}].
-    - get: page_id. {title, markdown (latest published), version, headings, referenced_by}. Pass its `version` to docs_write(update) as base_version.
+    - get: page_id [, section]. {title, markdown (latest published), version, headings, referenced_by, work (tickets tied to it, their AI runs)}. `version` is docs_write's base_version. section: only that part.
     - search: project_id, query [, scope, limit]. Full-text search over titles, headings and bodies with snippets: {total, pages, tickets}.
     - versions: page_id. Published versions, newest first: [{version, author, note, created_at, words}].
     - version: page_id, version [, compare_to]. One old version's markdown, or a line diff between two versions.
@@ -175,13 +181,18 @@ async def docs_read(
     - permissions_guide: {guide, you}: what you may do; read it when refused.
     - guides: {name: text}: how to work a ticket, prove it, ask, work as a team, brainstorm, write for users, make office files and decks.
     - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles.
-    - ticket_guide: {guide, roles}: using every part of a ticket; where files go."""
+    - ticket_guide: {guide, roles}: using every part of a ticket; where files go.
+    - docs_guide: {guide}: how to write pages: the Markdown kept, linking, safe edits, files, comments. Read before writing."""
     return await dispatch("docs_read", DOCS_READ_OPS, action, params_of(locals()))
 
 
 DocsWriteAction = Literal[
     "create",
     "update",
+    "edit",
+    "upload",
+    "tickets",
+    "assign",
     "move",
     "duplicate",
     "delete",
@@ -214,6 +225,7 @@ DOCS_WRITE_OPS = {
         ("page_id", "markdown", "base_version"),
         ("note", "publish", "title"),
     ),
+    "upload": Op(ops.upload_file, (), ("path", "data", "name")),
     "move": Op(ops.move_docs_page, ("page_id",), ("parent_id", "after_id")),
     "duplicate": Op(
         ops.duplicate_docs_page, ("page_id",), ("include_children", "title")
@@ -270,6 +282,10 @@ DOCS_WRITE_OPS = {
 }
 
 
+# Actions made of other actions (each part checked by the AI guard as a call of its own): edit reads the page and
+# publishes it with `update`, tickets creates tickets and edits the page, assign creates a ticket and asks an AI
+DOCS_WRITE_COMPOSITE = ("edit", "tickets", "assign")
+
 # The light actions that take `items`; page, file and diagram work is one call each
 _BATCH_ACTIONS = {"comment", "reply", "resolve", "reopen"}
 
@@ -292,7 +308,7 @@ async def docs_write(
     markdown: Annotated[
         str | None,
         Field(
-            description="create: initial body. update: the FULL new Markdown body (not a patch). In an AI run, a picture may be named by its path in your working folder (![TC-1](qa/evidence/TC-1.png); the file must exist): the board keeps a copy and rewrites it to /uploads/…. So is [a document](a/b.xlsx)."
+            description="create: initial body. update: the FULL new body (not a patch). edit: the new text. In an AI run, a picture may be named by its path in your working folder (![TC-1](qa/evidence/TC-1.png); the file must exist): the board keeps a copy and rewrites it to /uploads/…. So is [a document](a/b.xlsx)."
         ),
     ] = None,
     parent_id: Annotated[
@@ -310,7 +326,7 @@ async def docs_write(
     base_version: Annotated[
         int | None,
         Field(
-            description="update: the `version` you read with docs_read(get). diagram_save: from docs_read(diagram). sketch_save: from docs_read(sketch). A stale value is rejected, so re-read and retry."
+            description="update, edit (optional): the `version` you read with docs_read(get). diagram_save: from docs_read(diagram). sketch_save: from docs_read(sketch). A stale value is rejected, so re-read and retry."
         ),
     ] = None,
     note: Annotated[
@@ -357,7 +373,7 @@ async def docs_write(
     path: Annotated[
         str | None,
         Field(
-            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB). canvas_propose: folder with the frame's files."
+            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). upload: absolute path of the file. diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB). canvas_propose: folder with the frame's files."
         ),
     ] = None,
     diagram_id: Annotated[
@@ -416,16 +432,64 @@ async def docs_write(
             description="canvas_comment (needs board_id): pin on an element: CSS selector or 'text=Add task'."
         ),
     ] = None,
+    section: Annotated[
+        str | None,
+        Field(
+            description="edit, upload: a heading's text or slug ('Endpoints'); with its sub-sections."
+        ),
+    ] = None,
+    find: Annotated[
+        str | None,
+        Field(
+            description="edit, upload, tickets: exact page text (unique on the page)."
+        ),
+    ] = None,
+    mode: Annotated[
+        Literal["replace", "append", "prepend", "before", "after"] | None,
+        Field(
+            description="edit, upload: replace (default; a section keeps its heading unless markdown starts with one), append, prepend (in the section), before, after (a new block); no section/find + append: end of page."
+        ),
+    ] = None,
+    data: Annotated[
+        str | None,
+        Field(description="upload: the file in base64 (with name)."),
+    ] = None,
+    name: Annotated[
+        str | None,
+        Field(description="upload: file name with extension."),
+    ] = None,
+    member_id: Annotated[
+        str | None,
+        Field(description="assign: the AI member's id."),
+    ] = None,
+    kind: Annotated[
+        Literal["write", "review"] | None,
+        Field(description="assign: write it, or review it (comments)."),
+    ] = None,
+    ticket_id: Annotated[
+        str | None,
+        Field(
+            description="upload: post it on this ticket as a comment (body: its text)."
+        ),
+    ] = None,
+    author: Annotated[
+        str | None,
+        Field(description="upload: the ticket comment's author (default 'Agent')."),
+    ] = None,
     items: Annotated[
         list[dict] | None,
         Field(
-            description="comment, reply, resolve, reopen: many at once (max 25): one object of parameters per call; the other arguments apply to all. In order; failures are reported per item."
+            description="comment, reply, resolve, reopen: many at once (max 25): one object of parameters per call; the other arguments apply to all. In order; failures are reported per item. edit: [{section | find, markdown, mode}], one version, all or nothing. tickets: drafts [{title, text, type, status, assignee}]."
         ),
     ] = None,
 ) -> dict:
     """Write a project's Docs. `action`:
     - create: project_id, title [, markdown, parent_id]. Published as v1. Returns {id, title, slug, status, version}.
     - update: page_id, markdown, base_version [, note, publish, title]. Replaces the whole body; may rename. Returns {id, title, version, published}.
+    - edit: page_id, markdown, section | find [, mode, base_version, note, publish] or items. Changes ONE part and publishes it; others' changes elsewhere stay. Prefer it to update. Returns {id, version, changed, now}.
+    - tickets: page_id [, find, items, publish]. Open tasks of the page (or of `find`, or items) become tickets, linked, each key put on its line. Returns {tickets, page}.
+    - assign: page_id, member_id, kind (write|review) [, body]. A ticket "Write/Review the page" for an AI member, linked and started; shown in docs_read(get).work.
+    - upload: path | data+name [, page_id (+ section, find, mode), ticket_id (+ body, author)]. Stores a file: {url, markdown}; on the page (default: at the end) and/or as a ticket comment.
     - move: page_id [, parent_id, after_id]. Under another page or to the top level (not into itself or its sub-pages).
     - duplicate: page_id [, include_children, title]. A new draft copy. Returns {id, title, slug, status}.
     - delete: page_id. Moves the page and its sub-pages to the Recycle Bin (30 days).
@@ -446,6 +510,28 @@ async def docs_write(
     - canvas_propose: canvas_id, board_id, path [, note]. Offer a changed HTML frame from a folder (see docs_read(canvas)). Nothing changes until a person accepts; a frame being edited waits.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     given = params_of(locals())
+    if action == "edit":
+        return await _edit(given)
+    if action == "upload":
+        return await _upload(given)
+    if action == "tickets":
+        return await _tickets(given)
+    if action == "assign":
+        return await _assign(given)
+    for key in (
+        "section",
+        "find",
+        "mode",
+        "data",
+        "name",
+        "ticket_id",
+        "author",
+        "member_id",
+        "kind",
+    ):
+        if given.get(key) is not None:
+            raise ValueError(f"docs_write(action='{action}') does not use: {key}.")
+        given.pop(key, None)
     many = given.pop("items", None)
     if many is not None:
         if action not in _BATCH_ACTIONS:
@@ -459,3 +545,332 @@ async def docs_write(
             many,
         )
     return await dispatch("docs_write", DOCS_WRITE_OPS, action, given)
+
+
+_EDIT_KEYS = ("section", "find", "markdown", "mode")
+
+
+async def _edit(given: dict) -> dict:
+    """docs_write(edit): read the page, change one part (or several, in order), publish it as one new version through
+    `update`, so an AI run's edit goes through the same checks, proposals and history as a whole-page update."""
+    from services import docs_edit
+
+    page_id = given.get("page_id")
+    if not page_id:
+        raise ValueError("docs_write(action='edit') requires page_id.")
+    allowed = {"page_id", "base_version", "note", "publish", "items", *_EDIT_KEYS}
+    extra = [k for k, v in given.items() if v is not None and k not in allowed]
+    if extra:
+        raise ValueError(
+            f"docs_write(action='edit') does not use: {', '.join(extra)}. It takes page_id, markdown, section | find "
+            "[, mode, base_version, note, publish] or items."
+        )
+    many = given.get("items")
+    if many is not None:
+        if any(given.get(k) is not None for k in _EDIT_KEYS):
+            raise ValueError(
+                "edit: give items, or one edit (section | find, markdown), not both."
+            )
+        if not isinstance(many, list) or not many or len(many) > 25:
+            raise ValueError("items: a list of 1 to 25 edits.")
+        edits = many
+    else:
+        edits = [{k: given.get(k) for k in _EDIT_KEYS}]
+    page = await dispatch("docs_read", DOCS_READ_OPS, "get", {"page_id": page_id})
+    base_version = given.get("base_version")
+    base = None
+    if base_version is not None and base_version != page["version"]:
+        if base_version > page["version"] or base_version < 1:
+            raise ValueError(
+                f"base_version {base_version}: the page is at v{page['version']}."
+            )
+        old = await dispatch(
+            "docs_read",
+            DOCS_READ_OPS,
+            "version",
+            {"page_id": page_id, "version": base_version},
+        )
+        base = old["markdown"]
+    text = page["markdown"]
+    changed: list[str] = []
+    for i, e in enumerate(edits):
+        if not isinstance(e, dict):
+            raise ValueError(
+                f"items[{i}]: an object {{section | find, markdown, mode}}."
+            )
+        unknown = [k for k in e if k not in _EDIT_KEYS]
+        if unknown:
+            raise ValueError(f"items[{i}] does not use: {', '.join(unknown)}.")
+        try:
+            # a later edit in the same call works on the text the earlier ones made
+            text = docs_edit.apply(text, e, base if i == 0 else None)
+        except docs_edit.EditError as exc:
+            where = f"items[{i}]: " if many is not None else ""
+            raise ValueError(f"{where}{exc} Nothing was changed.") from exc
+        changed.append(
+            f"section '{e['section']}'"
+            if e.get("section")
+            else ("a passage" if e.get("find") is not None else "the end of the page")
+        )
+    if text == page["markdown"]:
+        return {
+            "id": page["id"],
+            "title": page["title"],
+            "version": page["version"],
+            "published": False,
+            "changed": [],
+            "message": "The text is the same as the published page; nothing was changed.",
+        }
+    note = given.get("note") or f"Edited {', '.join(dict.fromkeys(changed))}"
+    update = {
+        "page_id": page_id,
+        "markdown": text,
+        "base_version": page["version"],
+        "note": note,
+    }
+    if given.get("publish") is not None:
+        update["publish"] = given["publish"]
+    out = await dispatch("docs_write", DOCS_WRITE_OPS, "update", update)
+    if isinstance(out, dict):
+        out = {**out, "changed": changed}
+        last = edits[-1]
+        if last.get("section") and out.get("published", True):
+            try:
+                name = last["section"]
+                if (last.get("mode") or "replace") == "replace":
+                    head = (last.get("markdown") or "").lstrip().split("\n", 1)[0]
+                    if head.startswith("#"):
+                        name = head.lstrip("#").strip()
+                out["now"] = docs_edit.section_text(text, name)
+            except docs_edit.EditError:
+                pass
+    return out
+
+
+async def _upload(given: dict) -> dict:
+    """docs_write(upload): store the file, then put it on the page (an `edit`) and/or post it on the ticket."""
+    allowed = {
+        "path",
+        "data",
+        "name",
+        "page_id",
+        "section",
+        "find",
+        "mode",
+        "note",
+        "base_version",
+        "ticket_id",
+        "body",
+        "author",
+    }
+    extra = [k for k, v in given.items() if v is not None and k not in allowed]
+    if extra:
+        raise ValueError(
+            f"docs_write(action='upload') does not use: {', '.join(extra)}. It takes path | data+name "
+            "[, page_id, section, find, mode, ticket_id, body, author]."
+        )
+    page_id, ticket_id = given.get("page_id"), given.get("ticket_id")
+    if not page_id and any(
+        given.get(k) is not None for k in ("section", "find", "mode")
+    ):
+        raise ValueError(
+            "upload: section, find and mode place the file on a page: give page_id."
+        )
+    if not ticket_id and given.get("body") is not None:
+        raise ValueError(
+            "upload: body is the comment's text on a ticket: give ticket_id."
+        )
+    stored = await dispatch(
+        "docs_write",
+        DOCS_WRITE_OPS,
+        "upload",
+        {k: given.get(k) for k in ("path", "data", "name")},
+    )
+    out = dict(stored)
+    if page_id:
+        by_text = given.get("find") is not None
+        # by default the file goes at the end of the page or of the section, or in a paragraph of its own after `find`
+        mode = given.get("mode") or ("after" if by_text else "append")
+        snippet = stored["markdown"]
+        if by_text and mode in ("before", "after"):
+            snippet = f"{snippet}\n\n" if mode == "before" else f"\n\n{snippet}"
+        edit = {
+            "page_id": page_id,
+            "markdown": snippet,
+            "section": given.get("section"),
+            "find": given.get("find"),
+            "mode": mode,
+            "note": given.get("note") or f"Added {stored['name']}",
+            "base_version": given.get("base_version"),
+        }
+        out["page"] = await _edit(edit)
+    if ticket_id:
+        from .items import ticket_items
+
+        text = (given.get("body") or "").strip()
+        text = f"{text}\n\n{stored['markdown']}" if text else stored["markdown"]
+        ticket = await ticket_items(
+            ticket_id=ticket_id,
+            item="comment",
+            action="add",
+            text=text,
+            author=given.get("author") or "Agent",
+        )
+        comments = ticket.get("comments") if isinstance(ticket, dict) else None
+        out["ticket"] = {
+            "id": ticket_id,
+            "comment_id": comments[-1].get("id") if comments else None,
+        }
+    return out
+
+
+def _only(label: str, given: dict, allowed: set[str], usage: str) -> None:
+    extra = [k for k, v in given.items() if v is not None and k not in allowed]
+    if extra:
+        raise ValueError(
+            f"docs_write(action='{label}') does not use: {', '.join(extra)}. It takes {usage}."
+        )
+
+
+async def _tickets(given: dict) -> dict:
+    """docs_write(tickets): tickets from the page's open tasks (or from drafts), linked, their keys on their lines."""
+    from services.docs_ai import tickets as docs_tickets
+
+    from .tickets import manage_ticket
+
+    _only(
+        "tickets",
+        given,
+        {"page_id", "find", "items", "publish"},
+        "page_id [, find, items, publish]",
+    )
+    page_id = given.get("page_id")
+    if not page_id:
+        raise ValueError("docs_write(action='tickets') requires page_id.")
+    page = await dispatch("docs_read", DOCS_READ_OPS, "get", {"page_id": page_id})
+    drafts = given.get("items")
+    lines: list[str | None] = []
+    skipped: list[dict] = []
+    if drafts is None:
+        found = docs_tickets.extract(page["markdown"], given.get("find"))
+        if not found.items:
+            return {
+                "tickets": [],
+                "skipped": found.skipped,
+                "message": "No unchecked task or action item without a ticket"
+                + (" in that passage." if given.get("find") else " on the page."),
+            }
+        drafts = [
+            {"title": docs_tickets.clean_title(it["text"]), "text": it["text"]}
+            for it in found.items
+        ]
+        lines = [it["raw"] for it in found.items]
+        skipped = found.skipped
+    else:
+        if not isinstance(drafts, list) or not drafts or len(drafts) > 30:
+            raise ValueError(
+                "items: 1 to 30 drafts {title, text, type, status, assignee}."
+            )
+        for i, d in enumerate(drafts):
+            if not isinstance(d, dict) or not str(d.get("title") or "").strip():
+                raise ValueError(f"items[{i}]: an object with a title.")
+            bad = [
+                k for k in d if k not in ("title", "text", "type", "status", "assignee")
+            ]
+            if bad:
+                raise ValueError(f"items[{i}] does not use: {', '.join(bad)}.")
+        # a draft whose text is one line of the page gets its key on that line
+        page_lines = page["markdown"].split("\n")
+        for d in drafts:
+            text = str(d.get("text") or d["title"]).strip()
+            hit = [
+                ln
+                for ln in page_lines
+                if text and docs_tickets.line_text(ln).strip() == text
+            ]
+            lines.append(hit[0] if len(hit) == 1 else None)
+    made: list[dict] = []
+    for d in drafts:
+        text = str(d.get("text") or "").strip()
+        description = f"From the page [[{page['title']}]]" + (
+            ":\n\n> " + "\n> ".join(text.splitlines()) if text else "."
+        )
+        t = await manage_ticket(
+            action="create",
+            project_id=page["project_id"],
+            title=str(d["title"]).strip()[:200],
+            description=description,
+            type=d.get("type") or "task",
+            status=d.get("status") or None,
+            assignee=d.get("assignee") or None,
+        )
+        made.append({"id": t["id"], "title": t["title"], "status": t.get("status")})
+    for m in made:
+        await manage_ticket(action="link_doc", ticket_id=m["id"], page_id=page_id)
+    out: dict = {"tickets": made}
+    if skipped:
+        out["skipped"] = skipped
+    marks = [
+        {"find": ln, "markdown": f"{ln.rstrip()} {m['id']}", "mode": "replace"}
+        for ln, m in zip(lines, made)
+        if ln and page["markdown"].count(ln) == 1
+    ]
+    if marks and given.get("publish") is not False:
+        out["page"] = await _edit(
+            {
+                "page_id": page_id,
+                "items": marks,
+                "note": f"Tickets {', '.join(m['id'] for m in made)} made from the page",
+            }
+        )
+    return out
+
+
+async def _assign(given: dict) -> dict:
+    """docs_write(assign): a ticket that gives the page to an AI member to write or review, and its work run."""
+    from services import docs_work
+
+    from .ai_team import ai_team
+    from .tickets import manage_ticket
+
+    _only(
+        "assign",
+        given,
+        {"page_id", "member_id", "kind", "body"},
+        "page_id, member_id, kind (write|review) [, body]",
+    )
+    for key in ("page_id", "member_id", "kind"):
+        if not given.get(key):
+            raise ValueError(f"docs_write(action='assign') requires {key}.")
+    page = await dispatch(
+        "docs_read", DOCS_READ_OPS, "get", {"page_id": given["page_id"]}
+    )
+    spec = docs_work.assignment_ticket(given["kind"], page["title"], given.get("body"))
+    ticket = await manage_ticket(
+        action="create",
+        project_id=page["project_id"],
+        title=spec["title"],
+        description=spec["description"],
+        type="task",
+        status="todo",
+    )
+    await manage_ticket(action="link_doc", ticket_id=ticket["id"], page_id=page["id"])
+    text = (given.get("body") or "").strip() or spec["title"]
+    try:
+        started = await ai_team(
+            action="ask",
+            member_id=given["member_id"],
+            ticket_id=ticket["id"],
+            text=text,
+            intent="work",
+        )
+    except ValueError as exc:
+        raise ValueError(
+            f"{exc} The ticket {ticket['id']} was made and linked to the page; give it to the member when it can run."
+        ) from exc
+    run = started.get("run") if isinstance(started, dict) else None
+    return {
+        "ticket": {"id": ticket["id"], "title": ticket["title"]},
+        "run": {"id": run.get("id"), "state": run.get("state")} if run else None,
+        "note": started.get("note") if isinstance(started, dict) else None,
+    }

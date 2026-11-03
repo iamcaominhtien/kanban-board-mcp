@@ -16,28 +16,29 @@ import { LineIcon } from '../../ui/LineIcon';
 const btn: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 5,
-  height: 30,
-  padding: '0 12px',
-  border: '1px solid #DCE0DC',
-  borderRadius: 7,
+  gap: 6,
+  padding: '5px 10px',
+  border: '1px solid #E3E8E5',
+  borderRadius: 8,
   background: '#fff',
   color: '#1E2A22',
-  fontSize: 12.5,
+  fontFamily: 'inherit',
+  fontSize: 12,
   fontWeight: 600,
   cursor: 'pointer',
 };
-const primary: CSSProperties = { ...btn, border: 0, background: '#2E6F40', color: '#fff' };
+const primary: CSSProperties = { ...btn, borderColor: '#2E6F40', background: '#2E6F40', color: '#fff' };
 const chip = (bg: string, color: string): CSSProperties => ({
   display: 'inline-flex',
   alignItems: 'center',
-  height: 20,
+  gap: 5,
+  height: 21,
   padding: '0 8px',
-  borderRadius: 10,
+  borderRadius: 999,
   background: bg,
   color,
   fontSize: 11,
-  fontWeight: 600,
+  fontWeight: 700,
 });
 
 function Diff({ c }: { c: ProposalChange }) {
@@ -53,14 +54,14 @@ function Diff({ c }: { c: ProposalChange }) {
   };
   return (
     <div style={{ display: 'grid', gap: 4, marginTop: 8 }} data-testid="proposal-diff">
-      {c.kind === 'title' && <div style={{ fontSize: 11.5, color: '#6A6F6B' }}>Page title</div>}
+      {c.kind === 'title' && <div style={{ fontSize: 11.5, color: '#5B6B60' }}>Page title</div>}
       {c.old && (
-        <pre style={{ ...box, background: '#FDF0EE', color: '#A2341F', textDecoration: 'line-through' }}>{c.old}</pre>
+        <pre style={{ ...box, background: '#FDECE8', color: '#A5321E', textDecoration: 'line-through' }}>{c.old}</pre>
       )}
       {c.new ? (
-        <pre style={{ ...box, background: '#EAF6EE', color: '#1F5A33' }}>{c.new}</pre>
+        <pre style={{ ...box, background: '#E3F3E7', color: '#1F5A31' }}>{c.new}</pre>
       ) : (
-        <div style={{ fontSize: 12, color: '#6A6F6B' }}>Removed.</div>
+        <div style={{ fontSize: 12, color: '#5B6B60' }}>Removed.</div>
       )}
     </div>
   );
@@ -135,45 +136,45 @@ export function ProposalReview({
         top: 0,
         right: 0,
         bottom: 0,
-        width: 'min(420px, 100vw)',
+        width: 'min(380px, 100vw)',
         zIndex: 70,
         display: 'flex',
         flexDirection: 'column',
-        background: '#fff',
-        borderLeft: '1px solid #E4E7E4',
+        background: '#FBFCFB',
+        borderLeft: '1px solid #E3E8E5',
         boxShadow: '-12px 0 32px rgba(20, 30, 24, 0.12)',
       }}
     >
-      <header style={{ padding: '16px 18px 10px', borderBottom: '1px solid #EEF0EE' }}>
+      <header style={{ padding: '14px 14px 10px', borderBottom: '1px solid #EEF3EF' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <h2 style={{ margin: 0, fontSize: 16, flex: 1 }}>Proposed changes · {p.changes.length}</h2>
-          <span style={chip('#F1ECFB', '#6B4FBB')}>
+          <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, flex: 1 }}>Proposed changes · {p.changes.length}</h2>
+          <span style={chip('#EFE8FB', '#5b3aa6')}>
             <LineIcon name="sparkle" size={11} /> {p.memberName ?? 'AI'}
           </span>
           <button type="button" aria-label="Close" onClick={onClose} style={{ ...btn, padding: '0 8px', border: 0 }}>
             <Icon name="close" size={15} strokeWidth={1.9} />
           </button>
         </div>
-        <div style={{ marginTop: 6, fontSize: 12.5, color: '#5E655F' }}>
+        <div style={{ marginTop: 6, fontSize: 11.5, color: '#5B6B60' }}>
           {memberLabel(p)} {proposedText(p.changes.length)}
           {p.ticketId ? `, for ${p.ticketId}` : ''}.
         </div>
         <div
-          style={{ marginTop: 4, fontSize: 12.5, color: p.changedSince ? '#B26A0B' : '#5E655F' }}
+          style={{ marginTop: 4, fontSize: 11.5, color: p.changedSince ? '#B26A0B' : '#5B6B60' }}
           data-testid="proposal-base"
         >
           {baseLine(p)}
         </div>
         {!waiting && (
           <div style={{ marginTop: 6 }}>
-            <span style={chip('#EEF0EE', '#3C4A40')}>{STATUS_LABEL[p.status]}</span>
+            <span style={chip('#EEF3EF', '#3A4A3E')}>{STATUS_LABEL[p.status]}</span>
             {p.decisionNote && (
-              <span style={{ marginLeft: 6, fontSize: 12, color: '#5E655F' }}>“{p.decisionNote}”</span>
+              <span style={{ marginLeft: 6, fontSize: 12, color: '#5B6B60' }}>“{p.decisionNote}”</span>
             )}
           </div>
         )}
       </header>
-      <div style={{ flex: 1, overflow: 'auto', padding: '12px 18px', display: 'grid', gap: 10, alignContent: 'start' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '10px 14px', display: 'grid', gap: 10, alignContent: 'start' }}>
         {p.changes.map((c) => {
           const st = changeState(c);
           return (
@@ -182,22 +183,27 @@ export function ProposalReview({
               data-testid="proposal-change"
               data-state={st}
               style={{
-                padding: '12px 14px',
-                border: '1px solid #E4E7E4',
+                padding: '10px 12px',
+                border: '1px solid #E3E8E5',
                 borderRadius: 10,
+                background: '#fff',
                 opacity: st === 'rejected' ? 0.65 : 1,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <b style={{ fontSize: 13.5, flex: 1 }}>
+                <b style={{ fontSize: 12.5, flex: 1 }}>
                   {c.n}. {c.title}
                 </b>
-                {st === 'accepted' && <span style={chip('#EAF6EE', '#2E6F40')}>Accepted</span>}
-                {st === 'rejected' && <span style={chip('#EEF0EE', '#5E655F')}>Rejected</span>}
+                {st === 'accepted' && <span style={chip('#E3F3E7', '#2E6F40')}>Accepted</span>}
+                {st === 'rejected' && <span style={chip('#EEF3EF', '#5B6B60')}>Rejected</span>}
                 {st === 'stale' && <span style={chip('#FDF3E3', '#B26A0B')}>Needs a new look</span>}
               </div>
-              {c.reason && <div style={{ marginTop: 3, fontSize: 12.5, color: '#5E655F' }}>Reason: {c.reason}</div>}
-              {c.section && <div style={{ fontSize: 11.5, color: '#8A8F8B' }}>In # {c.section}</div>}
+              {c.reason && (
+                <div style={{ marginTop: 6, fontSize: 11.5, lineHeight: 1.45, color: '#5B6B60' }}>
+                  Reason: {c.reason}
+                </div>
+              )}
+              {c.section && <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>In # {c.section}</div>}
               {editing === c.n ? (
                 <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
                   <textarea
@@ -205,7 +211,7 @@ export function ProposalReview({
                     onChange={(e) => setText(e.target.value)}
                     rows={5}
                     aria-label="New text"
-                    style={{ width: '100%', fontSize: 12.5, padding: 8, borderRadius: 6, border: '1px solid #DCE0DC' }}
+                    style={{ width: '100%', fontSize: 12.5, padding: 8, borderRadius: 6, border: '1px solid #E3E8E5' }}
                   />
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
@@ -274,7 +280,7 @@ export function ProposalReview({
                   >
                     Reject
                   </button>
-                  <span style={{ fontSize: 12, color: '#8A8F8B', alignSelf: 'center' }}>
+                  <span style={{ fontSize: 12, color: '#9AA8A0', alignSelf: 'center' }}>
                     The page no longer has this text.
                   </span>
                 </div>
@@ -284,14 +290,14 @@ export function ProposalReview({
         })}
         {earlier.length > 0 && (
           <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#8A8F8B', textTransform: 'uppercase' }}>Earlier</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#9AA8A0', textTransform: 'uppercase' }}>Earlier</div>
             {earlier.map((e) => (
-              <div key={e.id} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '6px 0', color: '#3C4A40' }}>
+              <div key={e.id} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '6px 0', color: '#3A4A3E' }}>
                 <span style={{ flex: 1 }}>
                   {e.memberName} · {e.changes.length} {e.changes.length === 1 ? 'change' : 'changes'}
                   {e.ticketId ? ` · ${e.ticketId}` : ''}
                 </span>
-                <span style={chip('#EEF0EE', '#3C4A40')}>{STATUS_LABEL[e.status]}</span>
+                <span style={chip('#EEF3EF', '#3A4A3E')}>{STATUS_LABEL[e.status]}</span>
               </div>
             ))}
           </div>
@@ -300,7 +306,7 @@ export function ProposalReview({
           <button
             type="button"
             onClick={() => setLegend((v) => !v)}
-            style={{ ...btn, border: 0, padding: 0, height: 24, color: '#5E655F' }}
+            style={{ ...btn, border: 0, padding: 0, height: 24, color: '#5B6B60' }}
           >
             <Icon name={legend ? 'chevronDown' : 'chevronRight'} size={12} strokeWidth={2} /> States of a proposal
           </button>
@@ -320,7 +326,7 @@ export function ProposalReview({
           )}
         </div>
       </div>
-      <footer style={{ padding: '12px 18px 16px', borderTop: '1px solid #EEF0EE', display: 'grid', gap: 8 }}>
+      <footer style={{ padding: '10px 14px 14px', borderTop: '1px solid #E3E8E5', display: 'grid', gap: 8 }}>
         {error && (
           <div role="alert" style={{ fontSize: 12.5, color: '#C4432A' }}>
             {error}
@@ -335,7 +341,7 @@ export function ProposalReview({
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Why? (optional; the AI member sees it)"
                   aria-label="Reason for rejecting"
-                  style={{ height: 30, padding: '0 8px', borderRadius: 6, border: '1px solid #DCE0DC', fontSize: 12.5 }}
+                  style={{ height: 30, padding: '0 8px', borderRadius: 6, border: '1px solid #E3E8E5', fontSize: 12.5 }}
                 />
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
@@ -372,7 +378,7 @@ export function ProposalReview({
                     />
                     <span>
                       Don’t ask me again for <b>{p.memberName}</b>
-                      <span style={{ display: 'block', color: '#5E655F', fontSize: 12 }}>
+                      <span style={{ display: 'block', color: '#5B6B60', fontSize: 12 }}>
                         Its page edits are published without review. Undo it in Approvals › Always allowed.
                       </span>
                     </span>
@@ -402,11 +408,11 @@ export function ProposalReview({
           </>
         )}
         {waiting && !p.canDecide && (
-          <div style={{ fontSize: 12.5, color: '#5E655F' }}>
+          <div style={{ fontSize: 12.5, color: '#5B6B60' }}>
             Only people who can edit this page decide its proposals.
           </div>
         )}
-        <div style={{ fontSize: 12, color: '#5E655F' }}>
+        <div style={{ fontSize: 12, color: '#5B6B60' }}>
           Accepted changes go into <b>your draft</b>. You publish it yourself, like any edit.
         </div>
       </footer>

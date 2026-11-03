@@ -8,11 +8,11 @@ import '../docs.css';
 
 const btn: CSSProperties = {
   font: 'inherit',
-  fontSize: 12.5,
+  fontSize: 12,
   fontWeight: 600,
-  padding: '5px 12px',
-  borderRadius: 7,
-  border: '1px solid #D5DDD8',
+  padding: '5px 10px',
+  borderRadius: 8,
+  border: '1px solid #E3E8E5',
   background: '#fff',
   color: '#1E2A22',
   cursor: 'pointer',
@@ -42,20 +42,20 @@ function ChangeCard({
         border: '1px solid #E3E8E5',
         borderRadius: 10,
         background: '#fff',
-        padding: '12px 14px',
+        padding: '11px 13px',
         opacity: pending || first ? 1 : 0.7,
       }}
     >
-      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 6 }}>
-        <b style={{ fontSize: 13.5, color: '#1E2A22' }}>Change {change.n}</b>
-        <span style={{ fontSize: 12.5, color: '#5B6B60' }}>{change.reason || change.title}</span>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 7 }}>
+        <b style={{ fontSize: 12.5, color: '#1E2A22' }}>Change {change.n}</b>
+        <span style={{ fontSize: 11.5, color: '#5B6B60' }}>{change.reason || change.title}</span>
         {change.status !== 'pending' && (
           <span
             style={{
               marginLeft: 'auto',
               fontSize: 11.5,
               fontWeight: 700,
-              color: change.status === 'accepted' ? '#2E6F40' : '#8A978F',
+              color: change.status === 'accepted' ? '#2E6F40' : '#9AA8A0',
             }}
           >
             {change.status === 'accepted' ? 'Accepted' : 'Skipped'}
@@ -67,11 +67,11 @@ function ChangeCard({
           </span>
         )}
       </div>
-      <div style={{ fontSize: 13.5, lineHeight: 1.55, color: '#1E2A22' }}>
+      <div style={{ fontSize: 13, lineHeight: 1.7, color: '#1E2A22' }}>
         {change.old && (
-          <span style={{ background: '#FBE7E4', color: '#8A2A18', textDecoration: 'line-through' }}>{change.old}</span>
+          <span style={{ background: '#FDECE8', color: '#A5321E', textDecoration: 'line-through' }}>{change.old}</span>
         )}{' '}
-        <span style={{ background: '#E4F2E7', color: '#1F5A2E' }}>{change.new}</span>
+        <span style={{ background: '#E3F3E7', color: '#1F5A31' }}>{change.new}</span>
       </div>
       {editing && (
         <div style={{ marginTop: 8 }}>
@@ -87,7 +87,7 @@ function ChangeCard({
               fontSize: 13,
               padding: 8,
               borderRadius: 7,
-              border: '1px solid #D5DDD8',
+              border: '1px solid #E3E8E5',
             }}
           />
           <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
@@ -109,7 +109,7 @@ function ChangeCard({
         </div>
       )}
       {pending && canDecide && !editing && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 7 }}>
           <button
             type="button"
             style={primary}
@@ -151,7 +151,7 @@ export function SuggestedEdits({ pageId, proposalId }: { pageId: string; proposa
   const err = act.error ? (docsAiError(act.error)?.detail ?? 'Could not save that.') : null;
   return (
     <div data-testid="suggested-edits" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-      <div style={{ fontSize: 12.5, color: '#5B6B60' }}>
+      <div style={{ fontSize: 12, color: '#5B6B60' }}>
         {proposal.changes.length} change{proposal.changes.length === 1 ? '' : 's'} proposed
         {proposal.memberName ? ` by ${proposal.memberName}` : ''}
         {proposal.summary ? ` · ${proposal.summary}` : ''}
@@ -166,7 +166,7 @@ export function SuggestedEdits({ pageId, proposalId }: { pageId: string; proposa
           onAction={(a, text) => act.mutate({ proposalId, n: c.n, action: a, text })}
         />
       ))}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         {proposal.canDecide && left > 0 && (
           <button
             type="button"
@@ -177,7 +177,7 @@ export function SuggestedEdits({ pageId, proposalId }: { pageId: string; proposa
             Accept all ({left})
           </button>
         )}
-        <span style={{ fontSize: 12, color: '#5B6B60' }}>
+        <span style={{ fontSize: 11.5, color: '#5B6B60' }}>
           Accepted changes go into your draft of the page. Nothing is published until you press Publish.
         </span>
       </div>

@@ -32,7 +32,7 @@ from services.ai.assist import settings as assist
 from services.ai.store import get_settings, loads
 from services.docs_text import parse_references
 
-from . import access, engine, jobs, proposals
+from . import access, engine, jobs, proposals, ticket_context
 from . import settings as svc_settings
 from .errors import DocsAiError
 
@@ -364,11 +364,10 @@ async def _load(job: DocsAiJob) -> dict[str, Any]:
                 for r in parse_references(docs_comments.plain_mentions(c.body))
                 if r["kind"] == "ticket"
             ]
-        tickets = []
-        for k in list(dict.fromkeys(keys))[:6]:
-            t = await s.get(Ticket, k)
-            if t is not None and t.project_id == page.project_id:
-                tickets.append(t)
+        # the tickets named in the thread first, then the ones the page links (#268)
+        tickets = await ticket_context.linked_tickets(
+            s, page.project_id, [page.id], first=keys
+        )
         s.expunge_all()
     return {
         "thread": thread,
@@ -489,16 +488,9 @@ async def _summary_of(
 
 
 def _ticket_block(tickets: list[Ticket]) -> str:
-    if not tickets:
-        return ""
-    parts = [
-        engine.fenced(
-            f"ticket {t.id}",
-            f"{t.id} · {t.title} · status {t.status}\n{(t.description or '')[:600]}",
-        )
-        for t in tickets
-    ]
-    return "Tickets mentioned in the thread:\n" + "\n".join(parts)
+    return ticket_context.tickets_block(
+        tickets, "Tickets mentioned in the thread or linked from the page:"
+    )
 
 
 async def _job_cost(job_id: str) -> float:

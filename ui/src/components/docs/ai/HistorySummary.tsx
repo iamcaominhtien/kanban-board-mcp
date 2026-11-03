@@ -58,24 +58,32 @@ export function HistorySummary({ projectId, pageId, versions, selected }: Props)
       data-testid="history-summary"
       style={{
         margin: '0 16px 12px',
-        padding: '10px 12px',
+        padding: 10,
         borderRadius: 10,
-        border: '1px solid #D9CCF7',
-        background: '#F8F5FE',
+        border: '1px solid #d9ccf3',
+        background: '#faf7ff',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5B3FBF' }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: '#5b3aa6',
+          }}
+        >
           WHAT CHANGED SINCE V{range.from}
         </span>
         {done && (
-          <span style={{ marginLeft: 'auto', fontSize: 11.5, color: '#5B6B60' }}>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: '#5B6B60' }}>
             AI · {costLabel(done.cost, done.metered).replace('About ', '')}
           </span>
         )}
       </div>
       {line ? (
-        <div style={{ fontSize: 13, lineHeight: 1.5, color: '#1E2A22', marginTop: 6 }}>{line}</div>
+        <div style={{ fontSize: 12.5, lineHeight: 1.55, color: '#1E2A22', marginTop: 8 }}>{line}</div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
           {selected.length !== 2 && versions.length > 2 && (

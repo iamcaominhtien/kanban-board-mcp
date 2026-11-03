@@ -14,8 +14,28 @@ import {
 } from '../../../utils/writeRules';
 import { Icon } from '../Icon';
 
-const label: CSSProperties = { fontSize: 12, fontWeight: 600, color: '#1E2A22', margin: '0 0 6px' };
+const label: CSSProperties = { fontSize: 12, fontWeight: 600, color: '#3A4A3E', margin: '0 0 5px' };
 const hint: CSSProperties = { fontSize: 11.5, color: '#5B6B60', lineHeight: 1.4 };
+const checkRow: CSSProperties = {
+  display: 'flex',
+  gap: 9,
+  alignItems: 'flex-start',
+  fontSize: 12.5,
+  lineHeight: 1.45,
+  cursor: 'pointer',
+};
+const sendChip: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  height: 22,
+  padding: '0 8px',
+  borderRadius: 6,
+  background: '#F1F5F2',
+  fontSize: 11.5,
+  fontWeight: 600,
+  color: '#3A4A3E',
+};
 const KINDS: WritePageKind[] = ['spec', 'howto', 'release_note', 'decision', 'meeting_notes'];
 
 interface Props {
@@ -200,7 +220,14 @@ export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props
         <div
           role="radiogroup"
           aria-label="What kind of page"
-          style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 9, background: '#EEF3EF', flexWrap: 'wrap' }}
+          style={{
+            display: 'inline-flex',
+            gap: 2,
+            padding: 2,
+            borderRadius: 8,
+            background: '#EEF3EF',
+            flexWrap: 'wrap',
+          }}
         >
           {KINDS.map((k) => (
             <button
@@ -211,14 +238,15 @@ export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props
               onClick={() => set({ pageKind: k })}
               style={{
                 border: 'none',
-                borderRadius: 7,
-                padding: '6px 11px',
-                fontSize: 12.5,
-                fontWeight: form.pageKind === k ? 700 : 500,
+                borderRadius: 6,
+                padding: '3px 10px',
+                font: 'inherit',
+                fontSize: 12,
+                fontWeight: 600,
                 cursor: 'pointer',
                 background: form.pageKind === k ? '#FFFFFF' : 'transparent',
                 color: form.pageKind === k ? '#1E2A22' : '#5B6B60',
-                boxShadow: form.pageKind === k ? '0 1px 2px rgba(30,42,34,0.12)' : 'none',
+                boxShadow: form.pageKind === k ? '0 1px 2px rgba(30,42,34,0.10)' : 'none',
               }}
             >
               {PAGE_KIND_LABEL[k]}
@@ -230,8 +258,8 @@ export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props
       {form.kind === 'ticket' && (
         <div>
           <div style={label}>Also read</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 13, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <label style={checkRow}>
               <input
                 type="checkbox"
                 checked={form.comments}
@@ -240,7 +268,7 @@ export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props
               />
               <span>{commentsRowLabel(p ? p.send.comments : null)}</span>
             </label>
-            <label style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 13, cursor: 'pointer' }}>
+            <label style={checkRow}>
               <input
                 type="checkbox"
                 checked={form.linkedPages}
@@ -252,7 +280,7 @@ export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props
                 {p && p.send.pages.length > 0 && <div style={hint}>{p.send.pages.map((x) => x.title).join(', ')}</div>}
               </span>
             </label>
-            <label style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 13, cursor: 'pointer' }}>
+            <label style={checkRow}>
               <input
                 type="checkbox"
                 checked={form.codeChanges}
@@ -270,10 +298,10 @@ export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props
 
       <div
         data-testid="what-will-be-sent"
-        style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minHeight: 28 }}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minHeight: 28 }}
       >
         <span
-          style={{ fontSize: 12, color: '#5B6B60' }}
+          style={{ fontSize: 11.5, color: '#5B6B60' }}
           title="Only this goes to the AI. Pages hidden from AI are never read."
         >
           What will be sent ⓘ
@@ -282,16 +310,12 @@ export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props
         {ready && preview.isLoading && <span style={hint}>Checking…</span>}
         {p &&
           sendChips(p).map((c) => (
-            <span
-              key={c.id}
-              className="mc-chip"
-              style={{ background: '#F6FAF7', border: '1px solid #E3E8E5', color: '#1E2A22' }}
-            >
+            <span key={c.id} style={sendChip}>
               {c.label}
             </span>
           ))}
         {p && (
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#5B6B60' }}>
+          <span style={{ marginLeft: 'auto', fontSize: 11.5, color: '#5B6B60' }}>
             {costLabel(p.cost, p.metered)} · ~{p.tokens.toLocaleString()} tokens
           </span>
         )}

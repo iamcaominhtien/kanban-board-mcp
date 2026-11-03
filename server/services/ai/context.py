@@ -150,6 +150,29 @@ def ticket_block(
     return "\n".join(lines)
 
 
+def docs_block(pages: list[dict]) -> str:
+    """The Docs pages tied to the ticket, as a list to read (not their text: the agent reads what it needs)."""
+    if not pages:
+        return ""
+    lines = [
+        "Docs pages tied to this ticket (the spec, design notes, decisions). Read the ones that matter before you "
+        "start, with docs_read(action='get', page_id=...) (add section=... for one part of a long page):"
+    ]
+    for p in pages[:12]:
+        where = " › ".join(p.get("path") or []) or p["title"]
+        sections = (
+            f" — sections: {', '.join(p['sections'][:4])}" if p.get("sections") else ""
+        )
+        lines.append(
+            f"- {where} (page_id {p['page_id']}; {'; '.join(p.get('why') or [])}){sections}"
+        )
+    if len(pages) > 12:
+        lines.append(
+            f"- … and {len(pages) - 12} more: get_ticket lists them under `docs`."
+        )
+    return "\n".join(lines)
+
+
 def comments_for_reader(
     raw: list[dict],
     ai_names: set[str],

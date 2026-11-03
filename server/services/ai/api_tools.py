@@ -63,6 +63,29 @@ DOC_WRITE = {
         },
     },
 }
+DOC_WRITE["edit_doc"] = {
+    "name": "edit_doc",
+    "description": (
+        "Change one part of a Docs page and publish it: a section (heading text) or an exact passage (find). "
+        "mode: replace (default), append, prepend, before, after. Prefer it to update_doc."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "page_id": _S,
+            "markdown": _S,
+            "section": _S,
+            "find": _S,
+            "mode": {
+                "type": "string",
+                "enum": ["replace", "append", "prepend", "before", "after"],
+            },
+            "base_version": {"type": "integer"},
+            "note": _S,
+        },
+        "required": ["page_id", "markdown"],
+    },
+}
 DOC_TOOLS = set(DOC_READ) | set(DOC_WRITE)
 
 
@@ -115,6 +138,19 @@ async def run_docs(ctx, name: str, args: dict, call) -> str:
             params["note"] = args["note"]
         data = await call("docs_write", "update", DOCS_WRITE_OPS["update"], params)
         return f"Updated page {data.get('id')} to v{data.get('version')}."
+    if name == "edit_doc":
+        # one part of the page: read, change, published with update, each step through the guard (issue #268)
+        from kanban_mcp.tools.docs import _edit
+
+        params = {
+            k: args.get(k)
+            for k in ("page_id", "markdown", "section", "find", "mode", "note")
+            if args.get(k) is not None
+        }
+        if args.get("base_version") is not None:
+            params["base_version"] = int(args["base_version"])
+        data = await _edit(params)
+        return f"Edited page {data.get('id')} to v{data.get('version')}: {', '.join(data.get('changed') or [])}."
     return f"Unknown tool {name}."
 
 

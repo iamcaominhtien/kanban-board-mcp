@@ -29,31 +29,37 @@ type Kind = 'out_of_date' | 'missing' | 'broken' | 'overlaps';
 const th: CSSProperties = {
   textAlign: 'left',
   fontSize: 11,
-  letterSpacing: 0.5,
-  color: '#7A877F',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: '#5B6B60',
   fontWeight: 700,
-  padding: '10px 14px',
+  padding: '9px 16px',
+  background: '#FBFCFB',
 };
 const td: CSSProperties = {
-  padding: '12px 14px',
-  fontSize: 13.5,
+  padding: '11px 16px',
+  fontSize: 12.5,
+  lineHeight: 1.5,
   color: '#1E2A22',
-  verticalAlign: 'top',
+  verticalAlign: 'middle',
   borderTop: '1px solid #EEF3EF',
 };
 const btn: CSSProperties = {
   font: 'inherit',
-  fontSize: 12.5,
+  fontSize: 12,
   fontWeight: 600,
-  padding: '5px 12px',
-  borderRadius: 7,
-  border: '1px solid #D5DDD8',
+  padding: '5px 10px',
+  borderRadius: 8,
+  border: '1px solid #E3E8E5',
   background: '#fff',
   color: '#1E2A22',
   cursor: 'pointer',
   whiteSpace: 'nowrap',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
 };
-const accent: CSSProperties = { ...btn, color: '#6B5BD2', borderColor: '#CFC8F2', background: '#F7F5FE' };
+const accent: CSSProperties = { ...btn, color: '#5B3AA6', borderColor: '#C9B6FF', background: '#FAF7FF' };
 
 function DismissMenu({
   onPick,
@@ -143,9 +149,11 @@ function Table({ head, children }: { head: ReactNode; children: ReactNode }) {
   return (
     <div style={{ border: '1px solid #E3E8E5', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>{head}</tr>
-        </thead>
+        {head && (
+          <thead>
+            <tr>{head}</tr>
+          </thead>
+        )}
         <tbody>{children}</tbody>
       </table>
     </div>
@@ -174,7 +182,7 @@ function AddToPage({ ticketId, projectId }: { ticketId: string; projectId: strin
           font: 'inherit',
           fontSize: 12.5,
           borderRadius: 7,
-          border: '1px solid #D5DDD8',
+          border: '1px solid #E3E8E5',
           padding: '4px 6px',
           maxWidth: 160,
         }}
@@ -240,18 +248,18 @@ function Lists({
         {data.outOfDate.map((r) => (
           <tr key={r.pageId} data-testid="health-out-of-date">
             <td style={{ ...td, width: '22%' }}>
-              <b>{r.title}</b>
-              {r.parent && <div style={{ fontSize: 12, color: '#7A877F' }}>{r.parent}</div>}
+              <b style={{ fontSize: 13 }}>{r.title}</b>
+              {r.parent && <div style={{ fontSize: 11.5, color: '#5B6B60' }}>{r.parent}</div>}
             </td>
             <td style={td}>
               {r.reasons.map((x) => (
                 <div key={x.key} style={{ marginBottom: 4 }}>
                   {x.text}
-                  <div style={{ fontSize: 11.5, color: '#8A978F' }}>Compared: {x.compared}</div>
+                  <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>Compared: {x.compared}</div>
                 </div>
               ))}
             </td>
-            <td style={{ ...td, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+            <td style={{ ...td, fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>
               {r.editedAt ? relativeTime(r.editedAt) : ''}
             </td>
             <td style={{ ...td, whiteSpace: 'nowrap', textAlign: 'right' }}>
@@ -271,17 +279,26 @@ function Lists({
     if (!data.missing.length) return <Empty text="Every Done ticket from the last 30 days has a page." />;
     return (
       <div>
-        <div style={{ fontSize: 11, letterSpacing: 0.5, fontWeight: 700, color: '#7A877F', margin: '0 0 8px' }}>
-          MISSING DOCS · {missingHeading(data.missing.length)}
+        <div
+          style={{
+            fontSize: 11,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            fontWeight: 700,
+            color: '#5B6B60',
+            margin: '0 0 8px',
+          }}
+        >
+          Missing docs · {missingHeading(data.missing.length)}
         </div>
-        <Table head={<th style={th} colSpan={3} />}>
+        <Table head={null}>
           {data.missing.map((r) => (
             <tr key={r.ticketId} data-testid="health-missing">
               <td style={{ ...td, width: '34%' }}>
                 <TicketKey id={r.ticketId} onOpen={onOpenTicket} />
                 <b>{r.title}</b>
               </td>
-              <td style={{ ...td, color: '#5B6B60' }}>{r.note}</td>
+              <td style={{ ...td, fontSize: 12, color: '#5B6B60' }}>{r.note}</td>
               <td style={{ ...td, textAlign: 'right' }}>
                 <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   {onWritePage && (
@@ -382,7 +399,7 @@ function Empty({ text }: { text: string }) {
   return (
     <div
       style={{
-        border: '1px dashed #D5DDD8',
+        border: '1px dashed #E3E8E5',
         borderRadius: 12,
         padding: '28px 16px',
         textAlign: 'center',
@@ -394,15 +411,6 @@ function Empty({ text }: { text: string }) {
     </div>
   );
 }
-
-const noteBox: CSSProperties = {
-  flex: 1,
-  minWidth: 220,
-  border: '1px solid #E3E8E5',
-  borderRadius: 12,
-  background: '#fff',
-  padding: '14px 16px',
-};
 
 /**
  * Docs health (docs-ai-care A3): pages that may no longer match the board, missing docs, broken links and overlaps for
@@ -440,17 +448,17 @@ export function DocsHealthView({
     <div
       data-testid="docs-health"
       className="docs-root"
-      style={{ padding: '28px 36px', overflow: 'auto', height: '100%', boxSizing: 'border-box' }}
+      style={{ padding: '22px 32px', overflow: 'auto', height: '100%', boxSizing: 'border-box' }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 260 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#1E2A22' }}>Docs health</h1>
-          <p style={{ margin: '6px 0 0', fontSize: 14, color: '#5B6B60' }}>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#1E2A22' }}>Docs health</h1>
+          <p style={{ margin: '4px 0 0', fontSize: 13, lineHeight: 1.5, color: '#5B6B60' }}>
             Pages that may no longer match the board. Nothing here changes a page.
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 12.5, color: '#5B6B60' }}>
+          <span style={{ fontSize: 12, color: '#5B6B60' }}>
             {data ? checkedLabel(data.checkedAt).replace('Checked', 'Last checked') : ''}
             {data?.digest.on ? ` · Digest every ${data.digest.schedule}` : ' · Digest off'}
           </span>
@@ -461,7 +469,8 @@ export function DocsHealthView({
             onClick={() => run.mutate()}
             data-testid="health-run"
           >
-            <Icon name="refresh" size={13} /> {run.isPending ? 'Checking…' : 'Run now'}
+            <Icon name="refresh" size={14} strokeWidth={1.7} />
+            {run.isPending ? 'Checking…' : 'Run now'}
           </button>
         </div>
       </div>
@@ -475,7 +484,7 @@ export function DocsHealthView({
         <>
           <div
             role="tablist"
-            style={{ display: 'flex', gap: 22, margin: '22px 0 16px', borderBottom: '1px solid #E3E8E5' }}
+            style={{ display: 'flex', gap: 18, margin: '16px 0 14px', borderBottom: '1px solid #E3E8E5' }}
           >
             {healthTabs(data.counts).map((t) => (
               <button
@@ -486,18 +495,18 @@ export function DocsHealthView({
                 onClick={() => setTab(t.id)}
                 style={{
                   font: 'inherit',
-                  fontSize: 14,
-                  fontWeight: active === t.id ? 700 : 500,
+                  fontSize: 13,
+                  fontWeight: 600,
                   color: active === t.id ? '#1E2A22' : '#5B6B60',
                   background: 'none',
                   border: 'none',
                   borderBottom: `2px solid ${active === t.id ? '#2E6F40' : 'transparent'}`,
-                  padding: '8px 0',
+                  padding: '9px 2px',
                   cursor: 'pointer',
                   marginBottom: -1,
                 }}
               >
-                {t.label} {t.count}
+                {t.label} <b style={{ fontWeight: 700 }}>{t.count}</b>
               </button>
             ))}
           </div>
@@ -512,39 +521,6 @@ export function DocsHealthView({
           />
         </>
       )}
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 28 }}>
-        <div style={noteBox}>
-          <b>How it decides</b>
-          <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, color: '#3D4B42', lineHeight: 1.55 }}>
-            <li>
-              It compares a page with the tickets it links to (status, title, recent comments) and with the pages it
-              links to. It does not guess from the page alone.
-            </li>
-            <li>Every reason names what it compared, so you can check it in a few seconds.</li>
-            <li>
-              It runs daily and when you ask. A page is only flagged again when something it depends on changes after
-              you chose “Still correct”.
-            </li>
-          </ul>
-        </div>
-        <div style={noteBox}>
-          <b>What it never does</b>
-          <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, color: '#3D4B42', lineHeight: 1.55 }}>
-            <li>It never edits a page. Suggested edits are drafts you accept one by one.</li>
-            <li>It never flags a page for being old. A page nobody needs to change is not out of date.</li>
-            <li>
-              It never marks a page as wrong in front of readers. The banner shows to people who can edit the page.
-            </li>
-          </ul>
-        </div>
-        <div style={noteBox}>
-          <b>Digest and noise</b>
-          <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, color: '#3D4B42', lineHeight: 1.55 }}>
-            <li>The Monday digest uses the same Board health digest as tickets, one line per page.</li>
-            <li>Dismiss has three levels: this time, 30 days, or never. Ignored items are remembered per page.</li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }

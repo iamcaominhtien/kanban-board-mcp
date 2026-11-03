@@ -43,6 +43,8 @@ import {
   TopProgress,
   TreeSkeleton,
 } from './DocsStates';
+import { PopOutIcon } from './DocsWindowIcons';
+import { GivePageDialog } from './GivePageDialog';
 import { DocsTree } from './DocsTree';
 import { DuplicateDialog } from './DuplicateDialog';
 import { HistoryDrawer } from './HistoryDrawer';
@@ -73,6 +75,8 @@ interface Props {
   /** Docs switched off for the project (E6). */
   onOpenSettings?: () => void;
   onBack?: () => void;
+  /** Pop the Docs space out into a window of its own, on this page (#268); absent in that window itself. */
+  onPopOut?: (pageId: string | null) => void;
   /** Search palette / full results; `query` is passed when the tree filter's Enter or "Search page content" asks for it. */
   onSearch?: (query?: string) => void;
   /** "Ask the docs": opens the search palette in Ask mode (Docs AI). */
@@ -210,6 +214,7 @@ function cachedToPage(
  * @param props.onDropFiles - Called with Markdown files or folders dropped on the page or picked with "Choose files".
  * @param props.onOpenSettings - Called to open project settings when Docs is disabled.
  * @param props.onBack - Called to leave the Docs view.
+ * @param props.onPopOut - Called with the open page to move the Docs space into a window of its own.
  * @param props.onSearch - Called to open search, with the query when the tree filter asks for it.
  * @param props.onBodyRef - Receives the element holding the rendered page body (for find-in-page).
  * @param props.resultsQuery - Query of the full search results shown in place of the page, or `null`.
@@ -228,6 +233,7 @@ export function DocsView({
   onDropFiles,
   onOpenSettings,
   onBack,
+  onPopOut,
   onSearch,
   onAskDocs,
   onBodyRef,
@@ -259,6 +265,8 @@ export function DocsView({
   const [dupFor, setDupFor] = useState<DocsPage | null>(null);
   const [history, setHistory] = useState<{ compare?: { from: number; to: number } } | null>(null);
   const [deleteFor, setDeleteFor] = useState<{ id: string; title: string } | null>(null);
+  // a page given to an AI member to write or review (#268)
+  const [giveFor, setGiveFor] = useState<{ id: string; title: string } | null>(null);
   const [renameFor, setRenameFor] = useState<{ node: { id: string; title: string }; newTitle: string } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [narrow, setNarrow] = useState(() => window.innerWidth < NARROW_PX);
@@ -438,6 +446,9 @@ export function DocsView({
       case 'delete':
         setDeleteFor({ id: target.id, title: target.title });
         return;
+      case 'give-ai':
+        setGiveFor({ id: target.id, title: target.title });
+        return;
       case 'history':
         select(target.id);
         setHistory({});
@@ -457,7 +468,7 @@ export function DocsView({
       download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(full.markdown))}\n`);
   }
 
-  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor);
+  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor || giveFor);
   usePageShortcuts(
     (a) => {
       if (page) void runAction(a, page);
@@ -581,6 +592,20 @@ export function DocsView({
         select(id);
       }}
       onNewPage={(parentId) => setNewPage({ parentId })}
+      headerActions={
+        onPopOut ? (
+          <button
+            type="button"
+            className="dk-icobtn"
+            aria-label="Open Docs in its own window"
+            title="Open in its own window"
+            data-testid="docs-pop-out"
+            onClick={() => onPopOut(selectedId)}
+          >
+            <PopOutIcon size={15} />
+          </button>
+        ) : undefined
+      }
       readOnly={!!readOnly}
       onRequestRename={(n, t) => void requestRename(n, t)}
       renamingId={renamingId}
@@ -993,6 +1018,17 @@ export function DocsView({
                 setSelectedId(null);
                 setEditing(false);
               }
+            }}
+          />
+        )}
+        {giveFor && (
+          <GivePageDialog
+            projectId={projectId}
+            page={giveFor}
+            onClose={() => setGiveFor(null)}
+            onGiven={(ticketId, member) => {
+              setGiveFor(null);
+              toast.success(`${member} has the page`, `${ticketId} is linked to it; its work shows on the page.`);
             }}
           />
         )}

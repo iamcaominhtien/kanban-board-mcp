@@ -24,7 +24,7 @@ export function TranslateBanner({ view, markdown }: { view: PageAiView; markdown
   return (
     <div data-testid="translate-banner" style={{ margin: '0 0 14px' }}>
       <div className="pai-banner" role="status">
-        <Icon name="i47" size={16} strokeWidth={1.9} style={{ color: '#6b5bd2', flexShrink: 0 }} />
+        <Icon name="i47" size={16} strokeWidth={1.9} style={{ color: '#7c5cd6', flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           {waiting && <span>Translating into {t.language}…</span>}
           {fail && (
@@ -63,7 +63,7 @@ export function TranslateBanner({ view, markdown }: { view: PageAiView; markdown
         )}
       </div>
       {result?.tooLong && result.sections && (
-        <div className="pai-banner" style={{ marginTop: -6, background: '#faf9ff' }} data-testid="translate-too-long">
+        <div className="pai-banner" style={{ marginTop: -6, background: '#faf7ff' }} data-testid="translate-too-long">
           <div style={{ flex: 1 }}>
             <b>
               I read the first {result.tooLong.readSections} of {result.tooLong.totalSections} sections
@@ -76,7 +76,7 @@ export function TranslateBanner({ view, markdown }: { view: PageAiView; markdown
             aria-label="Choose a section"
             defaultValue=""
             onChange={(e) => e.target.value && view.translateTo(t.language, e.target.value)}
-            style={{ maxWidth: 200, padding: '6px 8px', borderRadius: 8, border: '1px solid #d9d2f6' }}
+            style={{ maxWidth: 200, padding: '6px 8px', borderRadius: 8, border: '1px solid #d9ccf3' }}
           >
             <option value="" disabled>
               Choose a section

@@ -46,10 +46,10 @@ export function ProposalBanner({ projectId, page, canEdit }: { projectId: string
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: 10,
             margin: '0 0 16px',
-            padding: '12px 14px',
-            border: '1px solid #DDD0F7',
+            padding: '11px 14px',
+            border: '1px solid #D9CCF3',
             borderRadius: 10,
             background: '#FAF7FF',
           }}
@@ -58,20 +58,20 @@ export function ProposalBanner({ projectId, page, canEdit }: { projectId: string
             aria-hidden
             style={{
               display: 'inline-flex',
-              width: 28,
-              height: 28,
+              width: 26,
+              height: 26,
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: 14,
-              background: '#EEE6FD',
-              color: '#6B4FBB',
+              borderRadius: 13,
+              background: '#EFE8FB',
+              color: '#5b3aa6',
               fontSize: 14,
               flex: 'none',
             }}
           >
             <LineIcon name="sparkle" size={14} />
           </span>
-          <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, lineHeight: 1.45, color: '#2A2340' }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.5, color: '#1E2A22' }}>
             <div>
               <b>{memberLabel(p)}</b> proposed{' '}
               <b>
@@ -85,8 +85,8 @@ export function ProposalBanner({ projectId, page, canEdit }: { projectId: string
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: 6,
-                color: '#6A6380',
-                fontSize: 12.5,
+                color: '#5B6B60',
+                fontSize: 12,
               }}
             >
               {p.ticketId && (
@@ -96,7 +96,7 @@ export function ProposalBanner({ projectId, page, canEdit }: { projectId: string
                     fontSize: 12,
                     fontWeight: 600,
                     padding: '1px 7px',
-                    border: '1px solid #E2E5E2',
+                    border: '1px solid #E3E8E5',
                     borderRadius: 6,
                     background: '#fff',
                     color: '#1E2A22',
@@ -117,13 +117,12 @@ export function ProposalBanner({ projectId, page, canEdit }: { projectId: string
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              height: 32,
-              padding: '0 14px',
-              border: 0,
+              padding: '5px 10px',
+              border: '1px solid #7C5CD6',
               borderRadius: 8,
               background: '#7C5CD6',
               color: '#fff',
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
               flex: 'none',

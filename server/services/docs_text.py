@@ -104,7 +104,7 @@ def slugify(text: str) -> str:
 def _strip_inline(text: str) -> str:
     text = _REF.sub(lambda m: m.group(3) or m.group(1), text)
     text = _LINK.sub(r"\1", text)
-    return re.sub(r"[*_`~]", "", text).strip()
+    return re.sub(r"==|[*_`~]", "", text).strip()
 
 
 def heading_anchors(markdown: str) -> list[dict[str, Any]]:

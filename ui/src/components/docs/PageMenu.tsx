@@ -3,7 +3,16 @@ import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 
 export type PageMenuAction =
-  'rename' | 'add-child' | 'duplicate' | 'copy-link' | 'copy-markdown' | 'move' | 'history' | 'export' | 'delete';
+  | 'rename'
+  | 'add-child'
+  | 'duplicate'
+  | 'copy-link'
+  | 'copy-markdown'
+  | 'move'
+  | 'history'
+  | 'export'
+  | 'give-ai'
+  | 'delete';
 
 interface PageMenuProps {
   page: DocsPage;
@@ -32,6 +41,7 @@ const GROUPS: Item[][] = [
     { action: 'history', label: 'Page history', icon: 'i39', kbd: 'H' },
     { action: 'export', label: 'Export as Markdown', icon: 'i43' },
   ],
+  [{ action: 'give-ai', label: 'Give to an AI member…', icon: 'i28' }],
   [{ action: 'delete', label: 'Delete page', icon: 'i12', kbd: 'Del', danger: true }],
 ];
 

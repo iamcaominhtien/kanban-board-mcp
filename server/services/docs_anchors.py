@@ -23,7 +23,8 @@ _LINK = re.compile(r"\[([^\][\n]{1,300})\]\(([^()\n]{0,500})\)")
 _REF = re.compile(
     r"\[\[([^\][|#\n]{1,200})(?:#[^\][|\n]{0,200})?(?:\|([^\][\n]{1,200}))?\]\]"
 )
-_EMPHASIS = re.compile(r"(\*\*|__|~~|\*|`)")
+# ==highlight== (#268) is emphasis too: a quote of highlighted text is found, and anchors survive a highlight
+_EMPHASIS = re.compile(r"(\*\*|__|~~|==|\*|`)")
 _UNDERSCORE = re.compile(r"(?<![\w])_([^_\n]{1,300})_(?![\w])")
 _HTML = re.compile(r"</?[a-zA-Z][^>\n]{0,200}>")
 

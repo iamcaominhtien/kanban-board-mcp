@@ -36,6 +36,8 @@ interface Props {
   filterRequest?: { q: string; n: number } | null;
   /** Slot in the header, next to the collapse button (Follow space). */
   headerExtra?: ReactNode;
+  /** Buttons in the header before the bell and the collapse button (e.g. open Docs in its own window). */
+  headerActions?: ReactNode;
   /** Docs AI is on for the project: two rows above the page list, and the hidden / guidance marks on pages. */
   aiOn?: boolean;
   /** "Ask the docs" row (opens the search palette in Ask mode). */
@@ -228,6 +230,7 @@ function highlight(text: string, q: string): ReactNode {
  * @param props.onOpenSearch - Called with the filter text on Enter or "Search page content".
  * @param props.filterRequest - Sets the filter text and focuses the box when its `n` changes.
  * @param props.headerExtra - Slot in the header next to the collapse button.
+ * @param props.headerActions - Buttons in the header before the bell and the collapse button.
  */
 export function DocsTree({
   projectId,
@@ -247,6 +250,7 @@ export function DocsTree({
   onOpenSearch,
   filterRequest,
   headerExtra,
+  headerActions,
   aiOn,
   onAskDocs,
   onHealth,
@@ -873,6 +877,7 @@ export function DocsTree({
             <span style={{ fontWeight: 500, color: '#5B6B60' }}>Space:</span> {projectName}
           </span>
         </div>
+        {headerActions}
         {headerExtra}
         <button
           type="button"
@@ -962,10 +967,10 @@ export function DocsTree({
       )}
       {aiOn && (
         <div
-          style={{ padding: '0 8px 6px', display: 'flex', flexDirection: 'column', gap: 1 }}
+          style={{ padding: '0 10px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}
           data-testid="docs-ai-rows"
         >
-          <button type="button" className="dk-tree-airow" onClick={onAskDocs} data-testid="tree-ask-docs">
+          <button type="button" className="dk-tree-airow is-ask" onClick={onAskDocs} data-testid="tree-ask-docs">
             <Icon name="comment" size={14} strokeWidth={1.9} />
             <span style={{ flex: 1, textAlign: 'left' }}>Ask the docs</span>
           </button>
@@ -978,7 +983,7 @@ export function DocsTree({
           >
             <Icon name="check" size={14} strokeWidth={1.9} />
             <span style={{ flex: 1, textAlign: 'left' }}>Docs health</span>
-            {!!healthCount && <span className="dc-btn-count">{healthCount}</span>}
+            {!!healthCount && <span className="dk-tree-count">{healthCount}</span>}
           </button>
         </div>
       )}

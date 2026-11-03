@@ -16,6 +16,8 @@ interface Props {
   onOpenTicket: (ticketId: string) => void;
   onOpenSettings?: () => void;
   onBack?: () => void;
+  /** Move Docs into a window of its own, on this page (#268). */
+  onPopOut?: (pageId: string | null) => void;
 }
 
 /**
@@ -27,6 +29,7 @@ interface Props {
  * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
  * @param props.onOpenSettings - Called to open project settings when Docs is disabled.
  * @param props.onBack - Called to leave the Docs space.
+ * @param props.onPopOut - Called with the open page to move Docs into a window of its own.
  */
 export function DocsSpace({
   projectId,
@@ -36,6 +39,7 @@ export function DocsSpace({
   onOpenTicket,
   onOpenSettings,
   onBack,
+  onPopOut,
 }: Props) {
   const tree = useDocsTree(projectId);
   const nodes = tree.data ?? [];
@@ -81,6 +85,7 @@ export function DocsSpace({
         onDropFiles={(files) => setImporting({ files })}
         onOpenSettings={onOpenSettings}
         onBack={onBack}
+        onPopOut={onPopOut}
         onSearch={(q) => (q ? setResults(q) : setPalette({}))}
         onAskDocs={() => setPalette({ mode: 'ask' })}
         onBodyRef={setRoot}

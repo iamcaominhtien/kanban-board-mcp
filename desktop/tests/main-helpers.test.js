@@ -335,3 +335,15 @@ test('openExternalSafely opens web links only', async () => {
   });
   assert.deepEqual(shell.calls, [['openExternal', 'https://github.com/x']]);
 });
+
+test('only the app page with docsWindow=1 opens as a Docs window (#268)', () => {
+  const { isDocsWindowUrl, isAppUrl } = require('../main-helpers');
+  const app = 'file:///opt/Kanban/resources/ui/dist/index.html';
+  assert.equal(isDocsWindowUrl(`${app}?proj=p1&docs=pg&docsWindow=1`, app), true);
+  assert.equal(isDocsWindowUrl(`${app}?proj=p1&docs=pg`, app), false);
+  assert.equal(isDocsWindowUrl('file:///etc/passwd?docsWindow=1', app), false);
+  assert.equal(isDocsWindowUrl('https://example.com/index.html?docsWindow=1', app), false);
+  assert.equal(isDocsWindowUrl('not a url', app), false);
+  assert.equal(isAppUrl(`${app}?proj=p1&ticket=KAN-1`, app), true);
+  assert.equal(isAppUrl('https://example.com/', app), false);
+});
