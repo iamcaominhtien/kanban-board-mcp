@@ -9,6 +9,8 @@ import { StagePill, dateIn } from './ideaShared';
 import { LineIcon } from '../ui/LineIcon';
 import { MenuSelect, type MenuOption } from '../ui/MenuSelect';
 import { IdeaIcon } from './ideaIcons';
+import { useIdeaAiStatus } from '../../api/ideaAi';
+import { useSuggestOnKeep } from './IdeaAiPanel';
 
 type Subject = Pick<Idea, 'id' | 'title' | 'projectId' | 'tags' | 'body' | 'description' | 'stage'>;
 
@@ -150,12 +152,20 @@ export function TagInput({
   );
 }
 
-/** Keep: start exploring the idea. The project and tags can be set in the same step. */
+/**
+ * Keep: start exploring the idea. The project and tags can be set in the same step. While AI help is on, a switch
+ * (off by default, ICT-5) asks an AI member to draft the problem and assumptions once it is kept: the same Shape
+ * requests as Shape with AI, whose drafts wait on the idea's page.
+ */
 export function KeepDialog({ idea, onClose, onDone }: DialogProps) {
   const move = useMoveIdea();
   const [projectId, setProjectId] = useState<string | null>(idea.projectId);
   const [tags, setTags] = useState<string[]>(idea.tags);
   const [error, setError] = useState<string | null>(null);
+  const [suggest, setSuggest] = useState(false);
+  const ai = useIdeaAiStatus(projectId).data;
+  const aiOn = ai?.state === 'on';
+  const suggestOnKeep = useSuggestOnKeep();
   const suggestions = useTagSuggestions(`${idea.title} ${idea.description}`, idea.id).data ?? [];
 
   async function submit() {
@@ -169,6 +179,7 @@ export function KeepDialog({ idea, onClose, onDone }: DialogProps) {
         tags: tags.join() === idea.tags.join() ? undefined : tags,
       });
       onDone(`Kept “${idea.title}”: Exploring`, 'move');
+      if (suggest && aiOn) void suggestOnKeep(idea.id, idea.title);
     } catch (e) {
       setError(extractError(e));
     }
@@ -206,6 +217,25 @@ export function KeepDialog({ idea, onClose, onDone }: DialogProps) {
           <span className="is-label">Tags</span>
           <TagInput tags={tags} onChange={setTags} suggestions={suggestions} />
         </div>
+        {aiOn && (
+          <label
+            className="is-advice-switch"
+            style={{ padding: '9px 10px', borderRadius: 8, background: '#F6FAF7', gap: 10, fontSize: 12.5 }}
+          >
+            <input
+              type="checkbox"
+              role="switch"
+              checked={suggest}
+              onChange={(e) => setSuggest(e.target.checked)}
+              data-testid="keep-suggest"
+              aria-label="Ask an AI member to suggest a problem statement and assumptions"
+            />
+            <span>
+              Ask an AI member to suggest a problem statement and assumptions
+              {ai && <span className="is-muted"> · about ${(ai.hints.shape * 2).toFixed(2)}</span>}
+            </span>
+          </label>
+        )}
       </div>
     </ModalShell>
   );

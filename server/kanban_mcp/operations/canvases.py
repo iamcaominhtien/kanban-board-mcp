@@ -682,7 +682,7 @@ async def create_canvas_from_files(
         "id": fresh.id,
         "title": fresh.title,
         "version": fresh.version,
-        "markdown": f"![{fresh.title}](canvas:{fresh.id})",
+        "markdown": svc_canvases.embed_line(fresh.id, fresh.title),
         "boards": boards,
         **({"pages": list(pages)} if pages else {}),
         **counts,

@@ -2288,8 +2288,21 @@ async def _day_card_dict(session: AsyncSession, me: str) -> dict | None:
     return to_dict(card, me) if card is not None else None
 
 
+# The Docs family (NT-5): rows about a page (a comment, a mention, a proposal) and the Docs kinds with no page
+DOCS_KINDS = ("page_proposal", "page_published", "access_request")
+
+
 def _where_family(stmt, family: str | None):
-    """Only the rows of a family: ai | people | schedules | info (any other value: every row)."""
+    """Only the rows of a family: ai | people | schedules | info | needs | docs (any other value: every row)."""
+    if family == "needs":
+        return stmt.where(Notification.needs == True)  # noqa: E712
+    if family == "docs":
+        return stmt.where(
+            or_(
+                col(Notification.page_id).is_not(None),
+                col(Notification.kind).in_(DOCS_KINDS),
+            )
+        )
     if family == "ai":
         return stmt.where(col(Notification.member_id).is_not(None))
     if family == "people":

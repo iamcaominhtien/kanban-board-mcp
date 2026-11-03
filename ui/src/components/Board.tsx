@@ -70,6 +70,8 @@ interface BoardProps {
   countDeltas?: Partial<Record<Status, number>>;
   /** 'projects': project list still loading (placeholders); 'tickets': real shell, skeleton cards. */
   loadState?: 'projects' | 'tickets';
+  /** While tickets load: the lane counts by status, shown on the lane headers in place of the skeleton pill (AL-1). */
+  loadingCounts?: Record<string, number>;
   /** Replaces the lanes (e.g. the "couldn't load" panel). */
   lanesOverride?: ReactNode;
   /** Content of the reserved status row at the top right (the loading pill). */
@@ -149,6 +151,7 @@ export function Board({
   activeAssignee = 'all',
   onAssigneeChange,
   loadState,
+  loadingCounts,
   countDeltas,
   lanesOverride,
   statusSlot,
@@ -515,6 +518,7 @@ export function Board({
                 onCardClick={onCardClick}
                 memberMap={memberMap}
                 skeletonCards={SKELETON_COUNTS[i]}
+                loadingCount={loadingCounts ? (loadingCounts[col.id] ?? 0) : undefined}
               />
             ))}
           </div>

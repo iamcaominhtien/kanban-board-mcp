@@ -114,6 +114,37 @@ export function useIdeaCounts() {
   });
 }
 
+/** How many Inbox ideas the caller sorted in the last 7 days, by decision (the empty Triage inbox, ICT-9). */
+export interface SortedThisWeek {
+  total: number;
+  kept: number;
+  parked: number;
+  merged: number;
+  archived: number;
+  days: number;
+}
+
+/** The caller's sorting of the last 7 days; refreshed with every other idea query after a move. */
+export function useSortedThisWeek(scope: IdeaScope, projectId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['ideas', 'sorted-this-week', scope, projectId ?? ''] as const,
+    enabled: enabled && (scope !== 'project' || !!projectId),
+    queryFn: async () =>
+      (
+        await client.get<SortedThisWeek>(`${BASE}/sorted-this-week`, {
+          params: { scope, project_id: scope === 'project' ? projectId : undefined },
+        })
+      ).data,
+  });
+}
+
+/** "You sorted 7 ideas this week: 3 kept, 2 parked, 1 merged, 1 archived." (zero decisions left out), or null. */
+export function sortedThisWeekLine(s: SortedThisWeek | undefined): string | null {
+  if (!s || s.total <= 0) return null;
+  const parts = (['kept', 'parked', 'merged', 'archived'] as const).filter((k) => s[k] > 0).map((k) => `${s[k]} ${k}`);
+  return `You sorted ${s.total} idea${s.total === 1 ? '' : 's'} this week: ${parts.join(', ')}.`;
+}
+
 /** One idea in full. */
 export function useIdea(id: string | null) {
   return useQuery({

@@ -49,6 +49,8 @@ export interface AccountCliCard {
   blurb: string;
   provider: string;
   found: boolean;
+  /** What `<cli> --version` printed ("2.1.4"), read in the background (ACC-5); null until known or when it did not answer. */
+  version?: string | null;
   runnable: boolean;
   unavailable: string | null;
 }

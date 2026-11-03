@@ -454,6 +454,22 @@ describe('AllNotificationsPage branches', () => {
     await waitFor(() => expect(lastParams()).toMatchObject({ filter: 'all' }));
   });
 
+  it('has the Needs you and Docs kinds, in the order drawn (NT-5)', async () => {
+    mountPage();
+    await waitFor(() => expect(api.list).toHaveBeenCalled());
+    const kinds = screen
+      .getAllByRole('checkbox')
+      .map((c) => c.closest('label')?.textContent ?? '')
+      .filter((t) => !/project|Mobile|Kanban/i.test(t) && !/\d/.test(t));
+    expect(kinds).toEqual(['Needs you', 'For information', 'From AI members', 'From people', 'Docs', 'Schedules']);
+    click(screen.getByRole('checkbox', { name: 'Needs you' }));
+    await waitFor(() => expect(lastParams()).toMatchObject({ family: 'needs' }));
+    click(screen.getByRole('checkbox', { name: 'Docs' }));
+    await waitFor(() => expect(lastParams()).toMatchObject({ family: 'docs' }));
+    click(screen.getByRole('checkbox', { name: 'Schedules' }));
+    await waitFor(() => expect(lastParams()).toMatchObject({ family: 'schedules' }));
+  });
+
   it('shows offline, and takes keys unless the panel is open', async () => {
     api.list.mockRejectedValue(new Error('down'));
     mountPage();

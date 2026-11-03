@@ -8,6 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.30.0] - 2026-11-03
+
+Wave 5 of the design audit's fixes: the findings that needed data from the server (`docs/ui-audit/2026-11-design-audit/fixes/<area>.md`). Nothing changes for an existing project or its data until a person turns the new thing on; Docs AI off by default applies to new projects only.
+
+### Added
+- **A sub-ticket's wave can be pinned by hand** in the wave popover (− n +, "Auto-set from Blocked by"). Unpinned waves are computed as before; sub-ticket order and Story orchestration honour a pin (TDP-1).
+- **Run history retention** in Settings › AI › Running the team: "Keep run details for" (Keep forever by default). Only the details of finished runs go (transcript, steps, prompt, logs); every run stays in the history with its cost, status, summary and links. Runs of this budget month, active runs and runs another record works from are never trimmed (OPS-7).
+- **Max turns and Run timeout** for Claude Code members apply once a person saves them; existing members stay unlimited (PC-5). "Open folder" in the desktop app (PC-7).
+- **Idea Space:** Keep can ask an AI member to suggest a problem statement and assumptions (off by default); Stop on Shape with AI; AI advice can say "not sure"; "Accept Merge and Park" with one confirmation; Ask answers offer actions that open a pre-filled dialog (ICT-5, IP-16, IAI-1, IAI-3). The empty Inbox says how many ideas you sorted this week (ICT-9). An opened assumption says who changed it and when (IP-8, IW-4).
+- **Docs:** pages have a path link (`?docs=architecture/api`); old links by page id keep working, and old paths keep resolving after a rename or move (AC-4).
+- **More data on screen:** CLI versions on account cards (ACC-5), role codes on AI Team cards (AT-4), lane counts while tickets load (AL-1), "Needs you" and "Docs" notification filters (NT-5), a Shared tab in the knowledge base (WV-7).
+
+### Changed
+- **Docs AI is off by default for new projects** (AI-1). Existing projects keep their setting.
+- The pause notification names a person instead of "user" (NT-1); a new canvas keeps the page title as typed (CA-1); role names in messages read BA, QA, Dev (TP-8).
+- The repo scan tells a missing script, file or make target ("wrong command") from a failing suite more often (RC-2).
+
+### Database
+- Migrations `b5e7d9f1a3c4` and `c6f8a0b2d4e6` add three nullable columns (`ticket.wave_pin`, `ai_project_settings.run_retention_days`, `ai_run.details_removed_at`); existing rows are unchanged.
+
 ## [3.29.0] - 2026-11-03
 
 The Board AI manages the AI team: it advises what each AI could use and sets it up, by itself when the owner allows it.

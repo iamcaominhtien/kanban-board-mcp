@@ -178,6 +178,18 @@ async def get_counts(session: Session) -> dict[str, Any]:
     return await space.counts(session)
 
 
+@router.get("/sorted-this-week")
+async def get_sorted_this_week(
+    session: Session,
+    project_id: str | None = None,
+    scope: Literal["project", "all", "none"] = "project",
+) -> dict[str, Any]:
+    """How many Inbox ideas the caller sorted in the last 7 days: kept, parked, merged, archived (ICT-9)."""
+    return await space.sorted_this_week(
+        session, _actor(), scope=scope, project_id=project_id
+    )
+
+
 @router.get("/similar")
 async def get_similar(
     session: Session,

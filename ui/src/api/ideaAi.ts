@@ -31,7 +31,8 @@ export interface IdeaAiStatus {
 export interface IdeaAdvice {
   id: string;
   ideaId: string;
-  action: 'keep' | 'park' | 'merge' | 'archive';
+  /** `none`: the AI read the idea and had no suggestion ("No suggestion: not sure", IAI-1); listed only on request. */
+  action: 'keep' | 'park' | 'merge' | 'archive' | 'none';
   reason: string;
   confidence: 'high' | 'medium' | 'low';
   targetId: string | null;
@@ -64,9 +65,22 @@ export interface ShapeResult {
   answer?: string;
 }
 
+/** A next step an Ask answer offers (IAI-3). "Create test ticket" opens the create dialog filled in; nothing is made
+ * until the person creates it there. */
+export interface AskAction {
+  kind: 'create_test_ticket' | 'open_idea';
+  ideaId: string;
+  ideaTitle: string;
+  assumptionId?: string;
+  assumptionText?: string;
+  title?: string;
+}
+
 export interface AskResult {
   answer: string;
   sources: { id: string; title: string }[];
+  /** Absent in answers from before IAI-3. */
+  actions?: AskAction[];
   ideasRead: number;
   member: string;
   cost: number;
@@ -94,7 +108,8 @@ export interface IdeaDigest {
 
 const key = {
   status: (projectId: string | null) => ['ideas', 'ai', 'status', projectId ?? ''] as const,
-  advice: (ids: string[]) => ['ideas', 'ai', 'advice', ids] as const,
+  advice: (ids: string[], includeNone = false) =>
+    (includeNone ? ['ideas', 'ai', 'advice', ids, 'with-none'] : ['ideas', 'ai', 'advice', ids]) as readonly unknown[],
   digest: (projectId: string | null) => ['ideas', 'ai', 'digest', projectId ?? ''] as const,
 };
 
@@ -129,15 +144,15 @@ export function useUpdateIdeaAiSettings(projectId: string | null) {
   });
 }
 
-/** Query: the open triage advice of some ideas. */
-export function useIdeaAdvice(ideaIds: string[], enabled: boolean) {
+/** Query: the open triage advice of some ideas; with `includeNone` also the ideas the AI was not sure about. */
+export function useIdeaAdvice(ideaIds: string[], enabled: boolean, includeNone = false) {
   return useQuery({
-    queryKey: key.advice(ideaIds),
+    queryKey: key.advice(ideaIds, includeNone),
     enabled: enabled && ideaIds.length > 0,
     queryFn: async () =>
       (
         await client.get<IdeaAdvice[]>(`${BASE}/advice`, {
-          params: { idea_ids: ideaIds },
+          params: includeNone ? { idea_ids: ideaIds, include_none: true } : { idea_ids: ideaIds },
           paramsSerializer: { indexes: null },
         })
       ).data,
@@ -173,14 +188,61 @@ export function useAdviceState() {
   });
 }
 
+export interface ShapeRequest {
+  ideaId: string;
+  kind: ShapeResult['kind'];
+  question?: string;
+  /** Names the request so Stop can end it (IP-16). */
+  requestId?: string;
+}
+
+/** The Shape request ("Shape with AI"): drafts come back, nothing is changed. */
+export async function requestShape(v: ShapeRequest): Promise<ShapeResult> {
+  return (await client.post<ShapeResult>(`${BASE}/shape`, v)).data;
+}
+
+/** Stop a running Shape request; false when it had already ended. */
+export async function stopShape(requestId: string): Promise<boolean> {
+  return (await client.post<{ stopped: boolean }>(`${BASE}/shape/${encodeURIComponent(requestId)}/stop`)).data.stopped;
+}
+
+/** A fresh id for a Shape request. */
+export function newRequestId(): string {
+  return `shape-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 /** Mutation: draft help for an idea page (problem, assumptions, tests, effort, what exists, or a question). */
 export function useShapeIdea() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { ideaId: string; kind: ShapeResult['kind']; question?: string }) =>
-      (await client.post<ShapeResult>(`${BASE}/shape`, v)).data,
+    mutationFn: requestShape,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ideas', 'ai', 'status'] }),
   });
+}
+
+/** A Shape turn asked for when an idea was kept (ICT-5): shown in the idea's Shape with AI panel. */
+export interface KeptTurn {
+  id: number;
+  kind: ShapeResult['kind'];
+  title: string;
+  result?: ShapeResult;
+  error?: string;
+}
+
+/** Where the suggestions asked for on Keep wait for the idea's Shape panel (in memory for this session). */
+export const keptKey = (ideaId: string) => ['ideas', 'ai', 'kept-suggestions', ideaId] as const;
+
+/** Query: the suggestions asked for when this idea was kept, if any. */
+export function useKeptSuggestions(ideaId: string): KeptTurn[] {
+  return (
+    useQuery({
+      queryKey: keptKey(ideaId),
+      queryFn: async () => [] as KeptTurn[],
+      enabled: false,
+      staleTime: Infinity,
+      gcTime: Infinity,
+    }).data ?? []
+  );
 }
 
 /** Mutation: draft the ticket text, acceptance criteria and a split for the Promote dialog. */

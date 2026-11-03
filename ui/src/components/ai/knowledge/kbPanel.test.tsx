@@ -84,4 +84,27 @@ describe('KnowledgeBasePanel', () => {
     fireEvent.click(within(screen.getByRole('alertdialog')).getByText('Move to the shared store'));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/kb/d1', { store: 'shared' }));
   });
+
+  it('has a Shared tab that lists the shared store while this project does not search it (WV-7)', async () => {
+    http.get.mockImplementation((url: string) => {
+      if (url.endsWith('/ai/ops')) return Promise.resolve({ data: { knowledgeShared: false } });
+      return Promise.resolve({
+        data: {
+          stores: ['project'],
+          documents: [doc],
+          sharedDocuments: [{ ...doc, id: 'd2', title: 'Style guide.md', store: 'shared', kind: 'text' }],
+        },
+      });
+    });
+    mount();
+    expect(await screen.findByText('Billing.pdf')).toBeTruthy();
+    // the toggle stays
+    expect(screen.getByText('Search the shared store too')).toBeTruthy();
+    const shared = screen.getByRole('tab', { name: /Shared/ });
+    expect(shared.textContent).toContain('1');
+    fireEvent.click(shared);
+    expect(await screen.findByText('Style guide.md')).toBeTruthy();
+    expect(screen.queryByText('Billing.pdf')).toBeNull();
+    expect(screen.getByTestId('kb-shared-off').textContent).toMatch(/does not search the shared store/);
+  });
 });

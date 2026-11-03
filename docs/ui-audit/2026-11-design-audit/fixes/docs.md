@@ -26,13 +26,13 @@ Data added for the checks: the draft page **[docs] W3 editor check** (KAN, An Ng
 
 ## Docs — empty, loading and errors
 - EM-1 · Fixed — the example key uses the project prefix ("tickets like MOB-12" in Mobile App) (`docs/DocsHero.tsx`, `docs/DocsView.tsx`).
-- EM-2 · Skipped — Low (wave 4): the page has no admin name for the request; needs a server field.
+- EM-2 · Skipped — Low (wave 4): the page has no admin name for the request; needs a server field. — Already fixed: the access state already names the first admin with an avatar ("Admin: Hoa Mai gets the request") from `admins` of `/docs/access`, and keeps "The board owner gets the request" when the project has no admin; the audit project had none. Test added (wave 5, `docs/NoAccess.admin.test.tsx`).
 
 ## Docs — page actions and history
 - AC-1 · Fixed — a shared blank line no longer makes a new section "Changed": only unchanged text does, so "Example request" reads "Added" (`docs/DiffView.tsx`; test `DiffView.test.ts`).
 - AC-2 · Fixed — an edited callout is marked as a whole: bar and "Changed in vN" outside its box, the inner paragraph's mark hidden (`docs/DocsMarkdown.tsx`, `docs/docs.css`). Tables were already marked on a wrapper outside the table.
 - AC-3 · Fixed (wave 4) — Move to: title matches are listed before path-only matches (`docs/MoveToDialog.tsx`). The highlight was already an inline span with no padding.
-- AC-4 · Skipped — Low (wave 4): pages have no slug field; needs a server field.
+- AC-4 · Fixed (wave 5) — A page has a slug path from its tree titles (`architecture/api`, `slug_path` on the page detail; `server/services/docs.py`). Share shows `?proj=<id>&docs=architecture/api` when the path is the page's own (two pages with the same path keep the id link), and keeps "Copy the link by page id" (`SharePopover.tsx`). Opening a slug link resolves it (`GET /projects/{id}/docs/by-path`, `DocsView.tsx`); `?docs=<uuid>` links open as before. A rename changes the path, and old paths keep resolving (the safer choice): each part may be a current title, a title the page had (the rename aliases `[[links]]` already keep) or the slug it got when made, which also covers a page moved elsewhere. The stored `slug` is unchanged (Markdown links use it). Tests: `server/tests/test_docs_slug_path.py`, `SharePopover.test.tsx`. Before: Skipped — Low (wave 4): pages have no slug field; needs a server field.
 
 ## Docs — search
 - SR-1 · Fixed — while the find bar is open, the page view and the editor move down by the bar's height (it measures itself and sets `--dk-find-h`), so it no longer covers Share / Edit / ··· (`docs/FindInPage.tsx`, `docs/docs.css`, `DocsPageView.tsx`, `DocsEditScreen.tsx`). Comment numbers are skipped by find.
@@ -50,13 +50,13 @@ Data added for the checks: the draft page **[docs] W3 editor check** (KAN, An Ng
 - DG-2 · Fixed — the slash item reads "New draw.io drawing" ("diagram" kept as a keyword, so "/dia" still finds it) (`docs/editor/slashItems.ts`). The tile icon is unchanged (the slash tiles take Docs icon ids, not `DiagramIcon`).
 
 ## Docs AI
-- AI-1 · Skipped — the default is the server's (`server/models.py` `ai_enabled = True`); the copy matches the real default. Changing it is a server change.
+- AI-1 · Fixed (wave 5) — Docs AI is off by default for a new project: `create_project` writes the Docs AI row switched off (`server/services/projects.py`, model default `DocsAiSettings.enabled = False`). An existing project keeps its stored value, and one that never stored a row is given "on" on first use, as before (`services/docs_ai/settings.py`); no migration touches existing rows. Settings copy: "… Off by default." (`DocsAiSettings.tsx`). Tests: `server/tests/test_docs_ai_default_off.py`. Before: Skipped — the default is the server's (`server/models.py` `ai_enabled = True`); the copy matches the real default. Changing it is a server change.
 - AI-2 · Fixed (wave 4) — hidden page: title "This page is hidden from AI", the design's hint, and a "Show to AI" button for editors (`docs/ai/PageAiMenu.tsx`, `useSetPageAiFlags`).
 - AI-3 · Fixed (wave 4) — "Reads" and "Compare with" count only ticket keys that exist in the project (`docs/ai/PageAiMenu.tsx`).
 - AI-4 · Skipped — Low (wave 4): not done.
 
 ## Canvas
-- CA-1 · Skipped — server change (`server/services/canvases.py`, the canvas name drops the brackets).
+- CA-1 · Skipped — server change (`server/services/canvases.py`, the canvas name drops the brackets). — Fixed (wave 5): a new canvas keeps the page title as typed for its name (line breaks and runs of spaces folded); the brackets are dropped only in the markdown alt text, on the server (`embed_line`) and in the canvas block's "link"/"embed" text. Existing canvases keep their names (`server/services/canvases.py` `canvas_name`, `canvas/useCanvasBlocks.tsx`).
 - CA-2 · Fixed — one side panel at a time: opening History closes Boards / Comments, and opening either closes History (`canvas/CanvasEditor.tsx`).
 - CA-3 · Fixed (wave 4) — a selected board has a 2 px blue outline (`canvas/Canvas.module.css`).
 - CA-4 · Fixed (wave 4) — the "Empty frame" label is drawn in screen space at 14 px whatever the zoom (`canvas/CanvasEditor.tsx`, `BoardFrame.tsx` `hideEmptyLabel`).

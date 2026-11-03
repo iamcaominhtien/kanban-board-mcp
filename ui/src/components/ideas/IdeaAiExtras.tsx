@@ -8,9 +8,13 @@ import {
   useRequestAdvice,
   useRunDigest,
   useUpdateIdeaAiSettings,
+  type AskAction,
+  type AskResult,
   type IdeaAdvice,
 } from '../../api/ideaAi';
-import { ideaRuleError } from '../../api/ideas';
+import { ideaRuleError, useCreateTestTicket, useMergeIdea, useMoveIdea } from '../../api/ideas';
+import { FooterNote, ModalShell, Spacer } from '../docs/docsShared';
+import { dateIn } from './ideaShared';
 import type { IdeaScope } from '../../types/idea';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { relativeTime } from '../../utils/relativeTime';
@@ -22,7 +26,111 @@ import { LineIcon } from '../ui/LineIcon';
 import { IdeaIcon, type IdeaIconName } from './ideaIcons';
 
 const money = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
-const VERB: Record<IdeaAdvice['action'], string> = { keep: 'Keep', park: 'Park', merge: 'Merge', archive: 'Archive' };
+const VERB: Record<IdeaAdvice['action'], string> = {
+  keep: 'Keep',
+  park: 'Park',
+  merge: 'Merge',
+  archive: 'Archive',
+  none: 'No suggestion',
+};
+/** What "Accept …" in the summary row takes in one go (IAI-1); archive is always one by one. */
+const BULK: IdeaAdvice['action'][] = ['keep', 'merge', 'park'];
+
+/** "Merge and Park", "Keep, Merge and Park". */
+function joinVerbs(actions: IdeaAdvice['action'][]): string {
+  const words = BULK.filter((a) => actions.includes(a)).map((a) => VERB[a]);
+  return words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : (words[0] ?? '');
+}
+
+/** One line of the bulk accept confirmation: what will happen to the idea. */
+function moveLine(a: IdeaAdvice, title: string): string {
+  if (a.action === 'merge') return `Merge “${title}” into “${a.targetTitle ?? a.targetId}”`;
+  if (a.action === 'park') return `Park “${title}” until ${dateIn(a.parkDays ?? 30)}`;
+  return `Keep “${title}”: it moves to Exploring`;
+}
+
+/**
+ * "Accept Merge and Park": one confirmation that lists every move, then each move is made as its own dialog would
+ * (IAI-1). It is an extra action: the Accept of each row still opens that row's dialog.
+ */
+function BulkAcceptDialog({
+  items,
+  titles,
+  onClose,
+}: {
+  items: IdeaAdvice[];
+  titles: Record<string, string>;
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const move = useMoveIdea();
+  const merge = useMergeIdea();
+  const state = useAdviceState();
+  const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+  const title = (a: IdeaAdvice) => titles[a.ideaId] ?? a.ideaId;
+
+  async function accept() {
+    setBusy(true);
+    const failed: string[] = [];
+    let done = 0;
+    for (const a of items) {
+      try {
+        if (a.action === 'merge' && a.targetId) await merge.mutateAsync({ id: a.ideaId, intoId: a.targetId });
+        else if (a.action === 'park')
+          await move.mutateAsync({ id: a.ideaId, to: 'parked', parkUntil: dateIn(a.parkDays ?? 30), via: 'Park' });
+        else await move.mutateAsync({ id: a.ideaId, to: 'exploring', via: 'Keep' });
+        state.mutate({ id: a.id, state: 'accepted' });
+        done += 1;
+      } catch (e) {
+        failed.push(`${title(a)}: ${ideaRuleError(e).message}`);
+      }
+    }
+    setBusy(false);
+    if (done) toast.success(`Accepted ${done} suggestion${done === 1 ? '' : 's'}`);
+    if (failed.length) setErrors(failed);
+    else onClose();
+  }
+
+  return (
+    <ModalShell
+      width={460}
+      ariaLabel="Accept these suggestions"
+      title={`Accept ${joinVerbs(items.map((a) => a.action))}?`}
+      subtitle="Each move is made as its own dialog would make it. Archive is always one by one."
+      onClose={onClose}
+      footer={
+        <>
+          {errors.length > 0 && <FooterNote>{errors.join(' · ')}</FooterNote>}
+          <Spacer />
+          <button type="button" className="is-btn" onClick={onClose}>
+            {errors.length ? 'Close' : 'Cancel'}
+          </button>
+          {!errors.length && (
+            <button
+              type="button"
+              className="is-btn is-btn-primary"
+              onClick={accept}
+              disabled={busy}
+              data-testid="bulk-accept-confirm"
+            >
+              Accept {items.length} move{items.length === 1 ? '' : 's'}
+            </button>
+          )}
+        </>
+      }
+    >
+      <ul className="is-root is-dlg-body" data-testid="bulk-accept-moves" style={{ margin: 0, paddingLeft: 32 }}>
+        {items.map((a) => (
+          <li key={a.id} style={{ padding: '3px 0' }}>
+            {moveLine(a, title(a))}
+            <div className="is-muted">{a.reason}</div>
+          </li>
+        ))}
+      </ul>
+    </ModalShell>
+  );
+}
 
 /**
  * The summary row at the top of the Inbox list: ask the AI to read the new ideas and suggest what to do with each. It
@@ -32,18 +140,23 @@ export function AdviceBar({
   projectId,
   ideaIds,
   onOpenSettings,
+  titles = {},
 }: {
   projectId: string | null;
   ideaIds: string[];
   onOpenSettings?: () => void;
+  /** Idea titles by id, for the moves listed by "Accept Merge and Park". */
+  titles?: Record<string, string>;
 }) {
   const toast = useToast();
   const status = useIdeaAiStatus(projectId).data;
-  const advice = useIdeaAdvice(ideaIds, !!status?.settings.triageAdvice && status.state === 'on');
+  const advice = useIdeaAdvice(ideaIds, !!status?.settings.triageAdvice && status.state === 'on', true);
   const request = useRequestAdvice();
+  const [bulk, setBulk] = useState(false);
   if (!status || status.state === 'off' || !status.settings.triageAdvice) return null;
   if (status.state !== 'on') return <AiUnavailable status={status} onOpenSettings={onOpenSettings} />;
-  const open = advice.data ?? [];
+  const open = (advice.data ?? []).filter((a) => a.action !== 'none');
+  const bulkItems = open.filter((a) => BULK.includes(a.action) && !a.stale && (a.action !== 'merge' || a.targetId));
 
   async function ask() {
     try {
@@ -73,6 +186,12 @@ export function AdviceBar({
           `${status.member ?? 'The AI'} can read the ${ideaIds.length} new ideas and suggest Keep, Park, Merge or Archive.`
         )}
       </div>
+      {bulkItems.length > 0 && (
+        <button type="button" className="is-btn is-btn-sm" onClick={() => setBulk(true)} data-testid="bulk-accept">
+          <IdeaIcon name="check" size={13} />
+          Accept {joinVerbs(bulkItems.map((a) => a.action))}
+        </button>
+      )}
       <button
         type="button"
         className="is-btn is-btn-sm"
@@ -85,6 +204,7 @@ export function AdviceBar({
             ? 'Ask again'
             : `Get advice · about ${money(status.hints.advice * ideaIds.length)}`}
       </button>
+      {bulk && <BulkAcceptDialog items={bulkItems} titles={titles} onClose={() => setBulk(false)} />}
     </div>
   );
 }
@@ -132,9 +252,25 @@ export function RowAdvice({
 }) {
   const status = useIdeaAiStatus(projectId).data;
   const on = !!status?.settings.triageAdvice && status.state === 'on';
-  const advice = useIdeaAdvice(ideaIds, on).data?.find((a) => a.ideaId === ideaId);
+  const all = useIdeaAdvice(ideaIds, on, true).data?.filter((a) => a.ideaId === ideaId) ?? [];
+  const advice = all.find((a) => a.action !== 'none');
+  const notSure = all.find((a) => a.action === 'none');
   const state = useAdviceState();
-  if (!on || !advice) return null;
+  if (!on) return null;
+  if (!advice && notSure) {
+    // the AI read it and had no suggestion (IAI-1): said so, nothing to accept
+    return (
+      <div className="is-row-advice" data-testid={`row-advice-${ideaId}`}>
+        <div className="is-row-advice-head">
+          <span className="is-grow" />
+          <span className="is-muted" title={notSure.reason || undefined} data-testid={`row-not-sure-${ideaId}`}>
+            No suggestion: not sure
+          </span>
+        </div>
+      </div>
+    );
+  }
+  if (!advice) return null;
   return (
     <div className="is-row-advice" data-testid={`row-advice-${ideaId}`}>
       <div className="is-row-advice-head">
@@ -266,14 +402,8 @@ export function AskPanel({
   const status = useIdeaAiStatus(projectId ?? null).data;
   const ask = useAskIdeas();
   const [q, setQ] = useState('');
-  const [turns, setTurns] = useState<
-    {
-      id: number;
-      q: string;
-      a?: { answer: string; sources: { id: string; title: string }[]; ideasRead: number; cost: number; member: string };
-      error?: string;
-    }[]
-  >([]);
+  const [turns, setTurns] = useState<{ id: number; q: string; a?: AskResult; error?: string }[]>([]);
+  const [creating, setCreating] = useState<AskAction | null>(null);
 
   async function send(text: string) {
     const id = Date.now();
@@ -328,6 +458,35 @@ export function AskPanel({
                         <span className="is-source-chip-t">{s.title || s.id}</span>
                       </button>
                     ))}
+                  </div>
+                )}
+                {(t.a.actions ?? []).length > 0 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }} data-testid="ask-actions">
+                    {(t.a.actions ?? []).map((act) =>
+                      act.kind === 'create_test_ticket' ? (
+                        <button
+                          key={`t-${act.ideaId}-${act.assumptionId}`}
+                          type="button"
+                          className="is-btn is-btn-sm"
+                          title={act.assumptionText}
+                          onClick={() => setCreating(act)}
+                        >
+                          <IdeaIcon name="flask" size={13} />
+                          Create test ticket
+                        </button>
+                      ) : (
+                        <button
+                          key={`o-${act.ideaId}`}
+                          type="button"
+                          className="is-btn is-btn-sm"
+                          title={`${act.ideaId} · ${act.ideaTitle}`}
+                          onClick={() => onOpenIdea(act.ideaId)}
+                        >
+                          <LineIcon name="external" size={13} />
+                          Open the idea
+                        </button>
+                      ),
+                    )}
                   </div>
                 )}
                 <div className="is-muted" style={{ marginTop: 4, fontSize: 11.5 }}>
@@ -385,6 +544,7 @@ export function AskPanel({
           </div>
         </form>
       )}
+      {creating && <CreateTestTicketDialog action={creating} onClose={() => setCreating(null)} />}
     </aside>
   );
 }
@@ -542,5 +702,80 @@ export function DigestCard({
         Shown on the Idea Space home and in the Inbox. A digest is not a notification; nobody is pinged.
       </div>
     </div>
+  );
+}
+
+/**
+ * "Create test ticket" from an Ask answer (IAI-3): the usual test ticket of an assumption, filled in with what the
+ * answer suggested. Nothing is created until the person presses Create; the title can be changed first.
+ */
+export function CreateTestTicketDialog({ action, onClose }: { action: AskAction; onClose: () => void }) {
+  const toast = useToast();
+  const create = useCreateTestTicket();
+  const [title, setTitle] = useState(action.title ?? `Test: ${action.assumptionText ?? ''}`);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!action.assumptionId || !title.trim()) return;
+    setError(null);
+    try {
+      const res = await create.mutateAsync({
+        id: action.ideaId,
+        assumptionId: action.assumptionId,
+        title: title.trim(),
+      });
+      toast.success(
+        `Created ${res.ticket.id}`,
+        'It tests this assumption. When it is Done you are asked what it showed.',
+      );
+      onClose();
+    } catch (e) {
+      setError(ideaRuleError(e).message);
+    }
+  }
+
+  return (
+    <ModalShell
+      width={440}
+      ariaLabel="Create a test ticket"
+      title="Create a test ticket"
+      subtitle={`For “${action.ideaTitle}”. Filled in from the answer; change what you want.`}
+      onClose={onClose}
+      footer={
+        <>
+          {error && <FooterNote>{error}</FooterNote>}
+          <Spacer />
+          <button type="button" className="is-btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="is-btn is-btn-primary"
+            onClick={submit}
+            disabled={create.isPending || !title.trim()}
+            data-testid="create-test-confirm"
+          >
+            Create
+          </button>
+        </>
+      }
+    >
+      <div className="is-root is-dlg-body" style={{ flex: 'none', background: 'transparent' }}>
+        <label className="is-field">
+          <span className="is-label">Title</span>
+          <input
+            className="is-input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label="Title"
+            maxLength={200}
+          />
+        </label>
+        <div className="is-field">
+          <span className="is-label">Tests the assumption</span>
+          <span>{action.assumptionText}</span>
+        </div>
+      </div>
+    </ModalShell>
   );
 }

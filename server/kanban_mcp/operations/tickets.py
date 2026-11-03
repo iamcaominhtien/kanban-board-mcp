@@ -371,6 +371,7 @@ _CLEARABLE_FIELDS = frozenset(
         "assignee",
         "repo_path",
         "wont_do_reason",
+        "wave_pin",
     }
 )
 
@@ -437,6 +438,14 @@ async def update_ticket(
             description="true: refuse status 'done' until there is at least one test case and all pass."
         ),
     ] = None,
+    wave_pin: Annotated[
+        int | None,
+        Field(
+            ge=1,
+            le=99,
+            description="Pin this sub-ticket to an execution wave; clear_fields=['wave_pin'] computes it from blocked_by again.",
+        ),
+    ] = None,
     clear_fields: Annotated[
         list[
             Literal[
@@ -447,6 +456,7 @@ async def update_ticket(
                 "assignee",
                 "repo_path",
                 "wont_do_reason",
+                "wave_pin",
             ]
         ]
         | None,
@@ -474,6 +484,7 @@ async def update_ticket(
         "wont_do_reason": wont_do_reason,
         "block_done_if_acs_incomplete": block_done_if_acs_incomplete,
         "block_done_if_tcs_incomplete": block_done_if_tcs_incomplete,
+        "wave_pin": wave_pin,
     }
     update_data = {k: v for k, v in fields.items() if v is not None}
     for name in clear_fields or []:

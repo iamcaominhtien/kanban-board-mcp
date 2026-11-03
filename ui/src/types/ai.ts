@@ -119,6 +119,8 @@ export interface AiConfig {
   extraFlags: string[];
   maxTurns: number;
   runTimeoutMin: number;
+  /** The CLI run limits a person turned on (PC-5): `max_turns`, `run_timeout_min`. Absent or empty: no limit. */
+  cliLimits?: ('max_turns' | 'run_timeout_min')[];
   idleTimeoutMin: number;
   compactAtPct: number;
   compactAtTokens: number;
@@ -275,6 +277,8 @@ export interface AiSettings {
   approvers: { low: string; medium: string; high: string };
   delegates: { from: string; to: string; until: string | null }[];
   auditRetentionDays: number | null;
+  /** Days a finished AI run is kept (OPS-7); null or absent: forever. */
+  runRetentionDays?: number | null;
   loopCooldownS: number;
   /** Auto-trip rules (safety D6): switch, thresholds and the sentence for each. */
   autoTrip?: {
@@ -448,6 +452,8 @@ export interface AiRun {
   retryAt?: string | null;
   /** The Claude account this run spends when it is not the member's own (urgent work moved). */
   accountId?: string | null;
+  /** When the run history retention removed its details (transcript, steps, prompt, logs); the rest is kept (OPS-7). */
+  detailsRemovedAt?: string | null;
 }
 
 export interface AiApproval {

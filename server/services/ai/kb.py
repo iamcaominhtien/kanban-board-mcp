@@ -361,6 +361,35 @@ async def stores_for(session, project_id: str) -> list[str]:
     return ["project", "shared"] if cfg.get("knowledge_shared") else ["project"]
 
 
+def _toc_row(d: AiKnowledgeDoc) -> dict:
+    """One line of a table of contents."""
+    return {
+        "id": d.id,
+        "title": d.title,
+        "summary": d.summary,
+        "store": d.store,
+        "kind": d.kind,
+        "tokens": d.tokens,
+        "answers": json.loads(d.answers or "[]"),
+        "private": d.private,
+        "created_by": d.created_by,
+        "created_at": d.created_at,
+        "last_read_at": d.last_read_at,
+        "source_name": d.source_name,
+    }
+
+
+async def shared_store(session, *, person: str | None = None) -> list[dict]:
+    """Every document of the shared store this person may see, whether or not the project searches it: the
+    knowledge base's Shared tab (WV-7)."""
+    stmt = select(AiKnowledgeDoc).where(
+        col(AiKnowledgeDoc.deleted_at).is_(None), AiKnowledgeDoc.store == "shared"
+    )
+    rows = (await session.exec(stmt)).all()
+    out = [_toc_row(d) for d in rows if visible(d, person=person)]
+    return sorted(out, key=lambda r: r["title"].lower())
+
+
 async def table_of_contents(
     session, project_id: str, *, person: str | None = None
 ) -> list[dict]:
@@ -374,22 +403,7 @@ async def table_of_contents(
             continue
         if d.store not in stores or not visible(d, person=person):
             continue
-        out.append(
-            {
-                "id": d.id,
-                "title": d.title,
-                "summary": d.summary,
-                "store": d.store,
-                "kind": d.kind,
-                "tokens": d.tokens,
-                "answers": json.loads(d.answers or "[]"),
-                "private": d.private,
-                "created_by": d.created_by,
-                "created_at": d.created_at,
-                "last_read_at": d.last_read_at,
-                "source_name": d.source_name,
-            }
-        )
+        out.append(_toc_row(d))
     return sorted(out, key=lambda r: (r["store"], r["title"].lower()))
 
 

@@ -31,6 +31,11 @@ export function roleLook(role: string | null) {
   };
 }
 
+/** The two-letter code of a ready-made role ("reviewer" → "RV"), or null for any other role (AT-4). */
+export function roleCode(role: string | null | undefined): string | null {
+  return (role && ROLE_LOOK[role]?.glyph) || null;
+}
+
 /** Capitalise the first letter. */
 export const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 

@@ -1328,3 +1328,13 @@ def test_an_id_that_becomes_a_folder_name_must_have_the_shape_the_server_makes()
     with _pytest.raises(DocsError):
         svc.proposal_dir("cv_12345678", "../p")
     assert svc.board_dir("cv_12345678", "b_0a1b2c3d", 3).name == "r3"
+
+
+async def test_a_new_canvas_keeps_its_name_as_typed_and_the_markdown_drops_the_brackets(
+    c, pid
+):
+    """CA-1: "[docs] Login canvas" is the canvas's name; only the alt text of the markdown line loses the brackets."""
+    cv = await make(c, pid, title="[docs]  Login canvas")
+    assert cv["title"] == "[docs] Login canvas"
+    assert cv["markdown"] == f"![docs  Login canvas](canvas:{cv['id']})"
+    assert svc.canvas_name("  \n ", "Canvas") == "Canvas"

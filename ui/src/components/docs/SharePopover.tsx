@@ -16,10 +16,36 @@ export function pageUrl(pageId: string): string {
   return url.toString();
 }
 
+/** A page id from a link (`?docs=<uuid>`), as opposed to a slug path. */
+export function isPageId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+/**
+ * The share link of a page by its slug path (`?docs=architecture/api&proj=…`, AC-4), or its page-id link when the
+ * page has no path of its own. A slug path is per project, so the link names the project.
+ */
+export function pageShareUrl(page: Pick<DocsPage, 'id' | 'projectId' | 'slugPath'>): string {
+  if (!page.slugPath) return pageUrl(page.id);
+  const url = new URL(window.location.href);
+  url.hash = '';
+  // the path first: it is what the field shows when the link is longer than the field
+  url.search = `?docs=${encodeURI(page.slugPath)}&proj=${encodeURIComponent(page.projectId)}`;
+  return url.toString();
+}
+
 function referenceFor(page: DocsPage): string {
   const titles = (page.path ?? []).map((p) => p.title);
   if (!titles.length || titles[titles.length - 1] !== page.title) titles.push(page.title);
   return `[[${titles.join('/')}]]`;
+}
+
+function safeDecode(text: string): string {
+  try {
+    return decodeURI(text);
+  } catch {
+    return text;
+  }
 }
 
 async function writeClipboard(text: string): Promise<boolean> {
@@ -38,16 +64,17 @@ async function writeClipboard(text: string): Promise<boolean> {
  */
 export function SharePopover({ page, onClose }: SharePopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const [copied, setCopied] = useState<'link' | 'ref' | null>(null);
+  const [copied, setCopied] = useState<'link' | 'ref' | 'id' | null>(null);
   const timer = useRef<number>();
-  const url = pageUrl(page.id);
-  const shown = url.replace(/^https?:\/\//, '');
+  const url = pageShareUrl(page);
+  const idUrl = pageUrl(page.id);
+  const shown = safeDecode(url.replace(/^https?:\/\//, ''));
   const ref = referenceFor(page);
   const crumbs = (page.path ?? []).map((p) => p.title);
   if (!crumbs.length || crumbs[crumbs.length - 1] !== page.title) crumbs.push(page.title);
 
-  async function copy(kind: 'link' | 'ref') {
-    if (await writeClipboard(kind === 'link' ? url : ref)) {
+  async function copy(kind: 'link' | 'ref' | 'id') {
+    if (await writeClipboard(kind === 'link' ? url : kind === 'id' ? idUrl : ref)) {
       setCopied(kind);
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setCopied(null), 2000);
@@ -128,6 +155,27 @@ export function SharePopover({ page, onClose }: SharePopoverProps) {
           {copied === 'link' ? 'Copied' : 'Copy link'}
         </button>
       </div>
+      {url !== idUrl && (
+        // the link by page id, as before: it keeps working whatever the page is renamed to or moved under
+        <button
+          type="button"
+          data-testid="share-id-link"
+          onClick={() => void copy('id')}
+          style={{
+            alignSelf: 'flex-start',
+            marginTop: -6,
+            padding: 0,
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            fontSize: 12,
+            color: '#5B6B60',
+            textDecoration: 'underline',
+          }}
+        >
+          {copied === 'id' ? 'Copied the link by page id' : 'Copy the link by page id'}
+        </button>
+      )}
       <div
         style={{
           display: 'flex',

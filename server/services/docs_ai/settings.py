@@ -1,6 +1,8 @@
 """Per-project Docs AI settings and who answers (Settings > Docs > AI; design/screens/docs-ai-care.md, F, G).
 
-Docs AI is on until an admin turns it off (`enabled`). The board-wide "Docs AI" feature switch (Settings > AI > Features) stays the master
+Docs AI is off for a new project until an admin turns it on (`enabled`, AI-1): `services.projects.create_project`
+writes the row. A project made before that change keeps its stored value; one that never stored a row was "on" and
+is given `enabled=True` here on first use, so nothing changes for it. The board-wide "Docs AI" feature switch (Settings > AI > Features) stays the master
 switch: when it is off, Docs AI is off everywhere.
 """
 
@@ -23,10 +25,11 @@ GUIDANCE_LIMIT_RANGE = (1000, 32000)
 
 
 async def get(session: AsyncSession, project_id: str) -> DocsAiSettings:
-    """The project's Docs AI settings, created with defaults (on) on first use."""
+    """The project's Docs AI settings. A project without a row predates AI-1 (new projects get one when they are
+    made, switched off), so its row is created on first use with Docs AI on, as it always was."""
     row = await session.get(DocsAiSettings, project_id)
     if row is None:
-        row = DocsAiSettings(project_id=project_id)
+        row = DocsAiSettings(project_id=project_id, enabled=True)
         session.add(row)
         try:
             await session.commit()

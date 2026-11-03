@@ -147,10 +147,13 @@ async def post_advice(body: AdviceBody, session: Session) -> dict[str, Any]:
 
 @router.get("/advice")
 async def get_advice(
-    session: Session, idea_ids: Annotated[list[str], Query()]
+    session: Session,
+    idea_ids: Annotated[list[str], Query()],
+    include_none: bool = False,
 ) -> list[dict[str, Any]]:
-    """Open advice for the ideas, each marked `stale` when the idea changed after the AI read it."""
-    return await idea_ai.advice_for(session, idea_ids)
+    """Open advice for the ideas, each marked `stale` when the idea changed after the AI read it. `include_none` also
+    lists the ideas the AI read and had no suggestion for (action `none`, "No suggestion: not sure")."""
+    return await idea_ai.advice_for(session, idea_ids, include_none=include_none)
 
 
 class AdviceState(BaseModel):
@@ -201,6 +204,8 @@ class ShapeBody(BaseModel):
     idea_id: str
     kind: Literal["problem", "assumptions", "tests", "effort", "exists", "ask"]
     question: str | None = Field(default=None, max_length=1000)
+    # names the request so Stop can end it (IP-16); without one it cannot be stopped, as before
+    request_id: str | None = Field(default=None, min_length=8, max_length=64)
 
 
 @router.post("/shape")
@@ -212,17 +217,26 @@ async def post_shape(body: ShapeBody, session: Session) -> dict[str, Any]:
         _fail(404, "not_found", f"Idea ticket '{body.idea_id}' not found")
     await _need_member(session, idea.project_id)
     try:
-        return await idea_ai.shape(
-            session,
-            body.idea_id,
-            body.kind,
-            question=body.question,
-            person=act.current_actor(),
+        return await idea_ai.run_stoppable(
+            body.request_id,
+            idea_ai.shape(
+                session,
+                body.idea_id,
+                body.kind,
+                question=body.question,
+                person=act.current_actor(),
+            ),
         )
     except idea_ai.IdeaAiError as exc:
         _ai_error(exc)
     except ValueError as exc:
         _fail(400, "invalid", str(exc))
+
+
+@router.post("/shape/{request_id}/stop")
+async def post_shape_stop(request_id: str) -> dict[str, Any]:
+    """Stop a running shape request (Stop in Shape with AI). `stopped` is false when it had already ended."""
+    return {"stopped": idea_ai.stop_shape(request_id)}
 
 
 class PrepareBody(BaseModel):

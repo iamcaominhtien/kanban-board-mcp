@@ -46,7 +46,7 @@ async def list_notifications(
 ) -> dict:
     """The caller's rows, newest activity first. `view=panel&tab=needs|updates` is the bell panel (30 days, quiet,
     cleared and snoozed rows left out); `view=page` is All notifications with `filter` all | unread | needs |
-    snoozed | done | cleared, search `q`, `project_id`, `kind`, `family` (ai | people | schedules | info), `days`."""
+    snoozed | done | cleared, search `q`, `project_id`, `kind`, `family` (ai | people | schedules | info | needs | docs), `days`."""
     if filter not in svc.FILTERS:
         raise HTTPException(
             status_code=422, detail=f"filter must be one of {', '.join(svc.FILTERS)}"

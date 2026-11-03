@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from sqlmodel import col, select
 
 from models import AiDecision, AiRun, AiTicketWorkflow, Member, Story, Ticket
+from services import ticket_waves
 
 logger = logging.getLogger(__name__)
 
@@ -728,13 +729,18 @@ async def drive(session, story_id: str) -> None:
         await _start_review(session, story)
         return
     start = []
+    closed = {tid for tid, st in status.items() if st in CLOSED}
     for i in open_:
         t = tickets[i["ticket_id"]]
         if t.assignee or await session.get(AiTicketWorkflow, t.id) is not None:
             continue  # under way
         if t.status not in ("backlog", "todo"):
             continue  # a person is on it
-        if any(
+        if t.wave_pin is not None:
+            # pinned to a wave by hand (TDP-1): it waits for the earlier waves, not for its own waits
+            if not ticket_waves.pinned_ready(t, tickets.values(), closed):
+                continue
+        elif any(
             status.get(a) not in CLOSED for a in i.get("after") or [] if a in status
         ):
             continue
@@ -1153,6 +1159,8 @@ async def view(
                 "held_by": held,
                 "step": row.label if row is not None else None,
                 "after": i.get("after") or [],
+                # a wave pinned by hand (TDP-1): the ticket starts after the earlier waves, not after `after`
+                "wave_pin": t.wave_pin,
                 "covers": i.get("covers") or [],
                 "started_at": runs_[0].queued_at if runs_ else None,
                 "ended_at": (

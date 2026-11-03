@@ -137,6 +137,8 @@ class Ticket(SQLModel, table=True):
     # Idea Space links: the idea this ticket was promoted from, and the assumption it tests.
     from_idea_id: Optional[str] = Field(default=None, index=True)
     tests_assumption_id: Optional[str] = Field(default=None, index=True)
+    # A sub-ticket's execution wave pinned by hand (TDP-1); None: computed from Blocked by (services/ticket_waves.py)
+    wave_pin: Optional[int] = Field(default=None)
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -659,12 +661,14 @@ class DocsCommentEvent(SQLModel, table=True):
 
 
 class DocsAiSettings(SQLModel, table=True):
-    """Per-project Docs AI settings. Docs AI is on by default; an admin can turn it off (Settings > Docs > AI)."""
+    """Per-project Docs AI settings (Settings > Docs > AI). Docs AI is off by default for a new project; an admin
+    turns it on (AI-1). A project made before that change keeps its stored value, and one that never stored a row is
+    given `enabled=True` on first use (`services.docs_ai.settings.get`), as it had before."""
 
     __tablename__ = "docs_ai_settings"
 
     project_id: str = Field(foreign_key="project.id", primary_key=True)
-    enabled: bool = Field(default=True)
+    enabled: bool = Field(default=False)
     member_id: Optional[str] = Field(
         default=None
     )  # the AI member that answers and checks
@@ -1301,6 +1305,9 @@ class AiRun(SQLModel, table=True):
     # A workflow step's own model and effort for this run (review depth, Opus on a second attempt), over the member's
     model_override: Optional[str] = Field(default=None)
     effort_override: Optional[str] = Field(default=None)
+    # Set when the run history retention (OPS-7) removed the run's details: its transcript, steps, prompt and logs.
+    # The row stays with its number, cost, tokens, status, summary and links
+    details_removed_at: Optional[str] = Field(default=None)
 
 
 AI_ACTIVE_STATES = ("queued", "starting", "running", "needs_input")
@@ -1898,6 +1905,8 @@ class AiProjectSettings(SQLModel, table=True):
     audit_retention_days: Optional[int] = Field(
         default=90
     )  # None keeps entries forever
+    # Days a finished AI run is kept (OPS-7); None keeps every run forever, as before (services/ai/run_retention.py)
+    run_retention_days: Optional[int] = Field(default=None)
     loop_cooldown_s: int = Field(default=60)
     no_repeat_chain: bool = Field(default=True)
     docs_edits_ask: bool = Field(default=False)  # True: AI Docs edits wait for approval
@@ -2537,6 +2546,8 @@ class TicketUpdate(SQLModel):
     block_done_if_acs_incomplete: Optional[bool] = None
     block_done_if_tcs_incomplete: Optional[bool] = None
     repo_path: Optional[str] = None  # empty/null clears the ticket override
+    # a sub-ticket's wave pinned by hand; null: computed from Blocked by again (TDP-1)
+    wave_pin: Optional[int] = None
 
 
 class TicketRead(SQLModel):
@@ -2588,6 +2599,9 @@ class TicketRead(SQLModel):
     pending_by: Optional[str] = None
     from_idea_id: Optional[str] = None
     tests_assumption_id: Optional[str] = None
+    wave_pin: Optional[int] = (
+        None  # TDP-1: None means the wave is computed from Blocked by
+    )
     # When / by whom a Done or Won't Do ticket was closed (derived from the activity log)
     completed_at: Optional[str] = None
     completed_by: Optional[str] = None
@@ -2646,6 +2660,7 @@ class TicketRead(SQLModel):
             pending_by=getattr(ticket, "pending_by", None),
             from_idea_id=getattr(ticket, "from_idea_id", None),
             tests_assumption_id=getattr(ticket, "tests_assumption_id", None),
+            wave_pin=getattr(ticket, "wave_pin", None),
             **_completion_of(ticket),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,

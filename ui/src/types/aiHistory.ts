@@ -35,6 +35,8 @@ export interface HistoryRow {
   skills: string[];
   transcript: TranscriptInfo | null;
   diagnosis: RunDiagnosis | null;
+  /** When the run history retention removed its details (transcript, steps, prompt, logs); cost, status and links stay. */
+  detailsRemovedAt?: string | null;
   /** The matching part of the transcript, when searching. */
   snippet?: string;
 }

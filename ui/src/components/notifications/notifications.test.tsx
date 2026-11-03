@@ -36,7 +36,13 @@ import { NotificationBell } from './NotificationBell';
 import { NotificationPanel } from './NotificationPanel';
 import { NotificationRow } from './NotificationRow';
 import { openActionOf } from './notificationUi';
-import { toastAction, toastDetail, useNotificationToasts, withoutZeroCounts } from './useNotificationToasts';
+import {
+  pausedByMe,
+  toastAction,
+  toastDetail,
+  useNotificationToasts,
+  withoutZeroCounts,
+} from './useNotificationToasts';
 
 function row(over: Partial<Row>): Row {
   return {
@@ -533,6 +539,25 @@ describe('useNotificationToasts', () => {
       'x paused all AI. 1 run cancelled.',
     );
     localStorage.removeItem('kanbanActor');
+  });
+
+  it('Pause all AI by the board user: the row names the owner, the key in data still keeps the toast away (NT-1)', async () => {
+    localStorage.removeItem('kanbanActor');
+    const { rerender } = await primed();
+    const pause = (id: string, by: string) =>
+      row({
+        id,
+        kind: 'auto_trip',
+        title: 'AI is paused',
+        ticketId: null,
+        body: 'An Nguyen paused all AI. 0 runs cancelled, 0 queued runs held.',
+        data: { pausedBy: by, pausedByName: 'An Nguyen' },
+      } as Partial<Row>);
+    api.feed.mockResolvedValueOnce(feed([pause('p1', 'user'), pause('p2', 'Hoa Mai')]));
+    rerender({ h: 10 });
+    await waitFor(() => expect(toastApi.showToast).toHaveBeenCalledTimes(1));
+    expect(pausedByMe(pause('p3', 'user'))).toBe(true);
+    expect(pausedByMe(pause('p4', 'Hoa Mai'))).toBe(false);
   });
 
   it("a toast's one button is the safe way in, never a decision taken from under the cursor", () => {

@@ -254,6 +254,24 @@ async def list_tickets(
     return tickets
 
 
+async def lane_counts(session: AsyncSession, project_id: str) -> dict[str, int]:
+    """How many tickets each lane counts, by status: the board's lane badge (not pending, not Won't do), read with one
+    grouped query so the lane headers can show it while the tickets themselves load (AL-1)."""
+    from sqlalchemy import func, or_
+    from sqlmodel import col
+
+    rows = await session.exec(
+        select(Ticket.status, func.count())
+        .where(
+            Ticket.project_id == project_id,
+            Ticket.status != "wont_do",
+            or_(Ticket.pending == False, col(Ticket.pending).is_(None)),  # noqa: E712
+        )
+        .group_by(Ticket.status)
+    )
+    return {str(status): int(n) for status, n in rows.all()}
+
+
 async def get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
     """Return a ticket by id, or None."""
     return await session.get(Ticket, ticket_id)
@@ -475,6 +493,12 @@ async def update_ticket(
         await _validate_parent(
             session, update_data["parent_id"], ticket.project_id, ticket.id
         )
+    if (
+        "wave_pin" in update_data
+    ):  # TDP-1: a wave pinned by hand, null computes it from Blocked by again
+        from services.ticket_waves import clean_pin
+
+        update_data["wave_pin"] = clean_pin(update_data["wave_pin"])
 
     if (
         update_data.get("status") == "wont_do"

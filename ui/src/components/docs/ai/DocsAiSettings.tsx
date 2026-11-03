@@ -46,10 +46,7 @@ export function DocsAiSettings({ project }: { project: Project }) {
   const off = !d.enabled;
   return (
     <div className="docs-root" style={box} data-testid="docs-ai-settings">
-      <Row
-        title="Use AI in Docs"
-        text="Ask the docs, the AI menu, Check this page and Docs health. On by default; turn it off here."
-      >
+      <Row title="Use AI in Docs" text="Ask the docs, the AI menu, Check this page and Docs health. Off by default.">
         <Switch
           on={d.enabled}
           label="Use AI in Docs"
