@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.34.1] - 2026-11-03
+
+Found by the live check of #274 (real Claude Code runs, sonnet): two Devs kept no memory at all, though the rule was in their prompt and the `keeping-memory` skill was there. Dev An wrote in Vietnamese as a person asked in a comment, and had `python3 -m unittest` and `git checkout` refused, and kept none of it; Dev Binh, the next Dev, wrote in English and ran the same refused commands.
+
+### Fixed
+- **A run hands over what it learned in its report**: `ai_run(action='report', learned=[{text, scope, kind}])`, kept as notes for the next run of its role (or on its ticket), with a person's request as feedback. Every run already calls report; the prompt asks for `learned` there (`[]` if nothing). API-key members' report takes it too.
+- **When a run kept nothing itself, the board keeps it**: once the run ends, a light model reads the run and what people wrote on the ticket and keeps at most 3 notes for the role (a command that works or is refused here, where something is, a person's request), marked "the board, from Dev An's run". Claude Code members on a subscription; off with "Let the AIs keep their own notes".
+- `docs/demo/ai-memory-274/live_check.py`: the live check, to run again.
+
 ## [3.34.0] - 2026-11-03
 
 The AI team keeps its own memory, without being asked, and a person can see it, trust it and correct it (#274). Why it felt absent, and the screens 1:1 with the design: `docs/ui-audit/274/memory.md`.

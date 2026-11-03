@@ -1610,6 +1610,10 @@ async def _execute(run_id: str, token: str) -> None:
             worktrees.after_run(run.ticket_id)
             # and what it left in the worktree that is not code goes to the ticket's Workspace (issue #269)
             worktrees.tidy_later(run.ticket_id, run_id)
+            # and when it kept nothing itself, a light model keeps what the next run should know (issue #274)
+            from . import memory
+
+            memory.after_run(run_id)
 
 
 async def _has_ended(run_id: str) -> bool:
@@ -5688,7 +5692,11 @@ def _clean_tests(tests) -> dict | None:
 
 
 async def record_report(
-    ctx: RunContext, summary: str, criteria: list[dict] | None, tests: dict | None
+    ctx: RunContext,
+    summary: str,
+    criteria: list[dict] | None,
+    tests: dict | None,
+    learned: list | None = None,
 ) -> dict:
     """The agent's own account of what it did; shown as the AI summary (a claim, not proof)."""
     report = {
@@ -5716,12 +5724,29 @@ async def record_report(
             "ticket_items(item='test_case', action='update', proof=...): a screenshot, the command and its output, "
             "or 'Not provable: <why>'. Then end with a short final message."
         )
-    await _append(
-        ctx.run_id,
-        steps=[{"kind": "report", "text": "Wrote the summary"}],
-        report=json.dumps(report),
-    )
-    return {"recorded": True, "next": next_step}
+    # what it learned, kept as notes for the next run of its role or on its ticket (issue #274)
+    from . import memory
+
+    kept = await memory.keep_learned(ctx, learned)
+    if kept["kept"] or kept["refused"]:
+        report["learned"] = kept
+    steps = [{"kind": "report", "text": "Wrote the summary"}]
+    steps += [
+        {
+            "kind": "memory",
+            "text": f"Remembered: {k['text'][:200]}",
+            "note_id": k["id"],
+            "scope": k["scope"],
+        }
+        for k in kept["kept"]
+    ]
+    await _append(ctx.run_id, steps=steps, report=json.dumps(report))
+    out = {"recorded": True, "next": next_step}
+    if kept["kept"]:
+        out["remembered"] = len(kept["kept"])
+    if kept["refused"]:
+        out["not_remembered"] = kept["refused"]
+    return out
 
 
 # ---------------------------------------------------------------------------

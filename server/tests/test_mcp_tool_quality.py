@@ -217,11 +217,12 @@ async def test_the_tool_list_stays_compact():
     # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900;
     # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150;
     # the project memory on `knowledge` (issue #274): memory, remember, forget with text, scope, kind, note_id and
-    # ticket_id, about 810
-    assert default < 53_600, (
+    # ticket_id, about 810; ai_run report's `learned` (what the next run must not pay for again, with its item
+    # fields, so a run that keeps nothing by itself still hands it over: the #274 live check), about 360
+    assert default < 53_950, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 56_500, (
+    assert full < 56_850, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
