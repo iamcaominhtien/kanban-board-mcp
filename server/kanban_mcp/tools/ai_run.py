@@ -14,6 +14,15 @@ _CRITERION = {
     },
     "required": ["text", "met"],
 }
+_LEARNED = {
+    "type": "object",
+    "properties": {
+        "text": {"type": "string"},
+        "scope": {"type": "string", "enum": ["role", "ticket"]},
+        "kind": {"type": "string", "enum": ["learned", "feedback"]},
+    },
+    "required": ["text"],
+}
 _TESTS = {
     "type": "object",
     "properties": {"passed": {"type": "integer"}, "failed": {"type": "integer"}},
@@ -32,6 +41,10 @@ def _spell_out(schema: dict, shape: dict, *, array: bool) -> None:
 
 def _criteria_schema(schema: dict) -> None:
     _spell_out(schema, _CRITERION, array=True)
+
+
+def _learned_schema(schema: dict) -> None:
+    _spell_out(schema, _LEARNED, array=True)
 
 
 def _tests_schema(schema: dict) -> None:
@@ -57,6 +70,13 @@ async def ai_run(
         Field(
             description="report: test counts.",
             json_schema_extra=_tests_schema,
+        ),
+    ] = None,
+    learned: Annotated[
+        list[dict] | None,
+        Field(
+            description="report: what the next run must not pay for again; kept as notes.",
+            json_schema_extra=_learned_schema,
         ),
     ] = None,
     ticket_id: Annotated[
@@ -103,4 +123,4 @@ async def ai_run(
             raise ValueError(str(exc)) from exc
     if action == "handoff":
         return await runs.record_handoff(ctx, member or "", ticket, instruction or "")
-    return await runs.record_report(ctx, summary or "", criteria, tests)
+    return await runs.record_report(ctx, summary or "", criteria, tests, learned)

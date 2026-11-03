@@ -369,7 +369,9 @@ def board_tools(mode: str, groups: dict) -> list[dict]:
         },
         {
             "name": "report",
-            "description": "Record your summary and which criteria you believe are met.",
+            "description": "Record your summary and which criteria you believe are met. learned: what the next run "
+            "of your role must not pay for again (a command that works here, where something is, a person's request "
+            "as kind feedback); kept as notes the next run reads.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -383,6 +385,21 @@ def board_tools(mode: str, groups: dict) -> list[dict]:
                                 "met": {"type": "boolean"},
                                 "evidence": _S,
                             },
+                        },
+                    },
+                    "learned": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "text": _S,
+                                "scope": {"type": "string", "enum": ["role", "ticket"]},
+                                "kind": {
+                                    "type": "string",
+                                    "enum": ["learned", "feedback"],
+                                },
+                            },
+                            "required": ["text"],
                         },
                     },
                 },
@@ -500,7 +517,11 @@ async def run_tool(ctx, name: str, args: dict, extra: dict | None = None) -> str
             return "Question posted. Stop now."
         if name == "report":
             await runs.record_report(
-                ctx, args.get("summary", ""), args.get("criteria"), args.get("tests")
+                ctx,
+                args.get("summary", ""),
+                args.get("criteria"),
+                args.get("tests"),
+                args.get("learned"),
             )
             return "Report recorded. End with a short final message."
         return f"Unknown tool {name}."

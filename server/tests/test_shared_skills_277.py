@@ -20,6 +20,8 @@ SHARED = [
     "asking-and-writing",
     # how the roles work together (issue #273)
     "working-together",
+    # keeping the project memory without being asked (issue #274)
+    "keeping-memory",
     # asked for by the owner in the brainstorm
     "brainstorming",
     "end-user-eyes",

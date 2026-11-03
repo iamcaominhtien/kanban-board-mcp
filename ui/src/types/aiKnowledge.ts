@@ -23,6 +23,39 @@ export interface InstructionsVersion {
   text: string;
 }
 
+/** Where a note lives (issue #274): a role's memory, a member's (no role), or a ticket's. */
+export type NoteScope = 'role' | 'member' | 'ticket';
+
+/** A note an AI keeps across runs; live at once, editable by a person. */
+export interface MemoryNote {
+  id: string;
+  scope: NoteScope;
+  scopeKey: string;
+  /** The role's name, the member's name, or "KEY · title". */
+  scopeLabel: string | null;
+  text: string;
+  /** 'feedback': a person told the AI. */
+  kind: 'learned' | 'feedback';
+  tokens: number;
+  writtenBy: string | null;
+  sourceRunId: string | null;
+  sourceTicketId: string | null;
+  uses: number;
+  lastUsedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Why a lesson or a note should be looked at again (hygiene). */
+export interface MemoryFlag {
+  /** The lesson or note it is about. */
+  id: string;
+  kind: 'missing_path' | 'newer';
+  text: string;
+  otherId?: string;
+  paths?: string[];
+}
+
 export interface Knowledge {
   projectId: string;
   instructions: string;
@@ -36,4 +69,9 @@ export interface Knowledge {
   totalTokens: number;
   budget: number;
   unused: string[];
+  /** Lessons proposed and waiting for a person. */
+  proposals: number;
+  notes: MemoryNote[];
+  noteCaps: Record<NoteScope, number>;
+  flags: MemoryFlag[];
 }

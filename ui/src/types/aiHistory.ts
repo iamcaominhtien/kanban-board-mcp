@@ -37,6 +37,8 @@ export interface HistoryRow {
   diagnosis: RunDiagnosis | null;
   /** When the run history retention removed its details (transcript, steps, prompt, logs); cost, status and links stay. */
   detailsRemovedAt?: string | null;
+  /** The project memory its prompt carried (issue #274): "used 3 lessons" and which. */
+  memoryUsed?: MemoryUsed | null;
   /** The matching part of the transcript, when searching. */
   snippet?: string;
 }
@@ -128,4 +130,11 @@ export interface HistoryFilters {
   /** Days back; 0 = all time. */
   days: number;
   q: string;
+}
+
+/** What project memory a run's prompt carried. */
+export interface MemoryUsed {
+  lessons: { id: string; text: string }[];
+  notes: { id: string; scope: 'role' | 'member' | 'ticket'; text: string }[];
+  tokens?: number;
 }

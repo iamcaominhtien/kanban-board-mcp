@@ -104,7 +104,7 @@ In the guide's table, and the line for the member's own role in its run's prompt
 | User tester | one comment with the person's story, the steps and screenshots in it |
 | Technical writer, DevOps, Security reviewer, Data analyst | see `server/services/ticket_guide.py` |
 
-## 6. Live runs with real AI (after 3.33.0)
+## 6. Live runs with real AI (after 3.34.1)
 
 Run on a test project ("Giọt", a small Python command-line app) with Claude Code, sonnet only. The BA → Dev → Reviewer →
 QA workflow (LIVE-1, LIVE-2) is reported on [#296](https://github.com/iamcaominhtien/kanban-board-mcp/pull/296).
@@ -140,10 +140,10 @@ A Claude Code started in a clone of the app, with only the board's MCP over HTTP
 | **Wrong** | The new ticket said "`cli.py` calls `int(...)`" right after reading `cli.py` had failed: there is no `cli.py`. It wrote the right file in a later work log; the description stayed wrong |
 | **Gap** | It moved the ticket to Review with the change not committed (it was not asked to), and the ticket did not say where the change was |
 
-Fixed in 3.33.1: "Never claim without checking" covered where a file, branch or page is, not a cause. It now says: name
+Fixed in 3.34.2: "Never claim without checking" covered where a file, branch or page is, not a cause. It now says: name
 a file, function or line as the cause only once you have read it, a result only once you have run it; correct a wrong
 statement where it was written (the description, a criterion), not only in a later note. In every run's prompt, the MCP
-instructions (9,656 of 10,000 characters), the ticket guide and `manage_ticket`'s `description`. The ticket guide also
+instructions (9,893 of 10,000 characters), the ticket guide and `manage_ticket`'s `description`. The ticket guide also
 says to name where the change is before Review (branch and commit, or "not committed, in <folder>").
 
 A second outside agent, given the same words in a fresh clone after the fix, read every file before writing and did not

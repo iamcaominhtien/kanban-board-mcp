@@ -409,9 +409,12 @@ def rules_block(
             "Keep the ticket's work log: before you finish, add one entry (ticket_items item='work_log' action='add', "
             "role = your role, kind investigation|fix_attempt|root_cause|blocked|resolved) with what you looked at, what "
             "you decided and why, and what is left. The board records the facts (time, files, commands) itself.",
-            "When you are done, call ai_run(action='report', summary=..., criteria=[{text, met, evidence}]) and end "
-            "with a short final message: it becomes the AI summary on the ticket. `evidence` is the proof itself, not "
-            "a sentence about it: the command and its real output in a ``` block, a screenshot, a link.",
+            "When you are done, call ai_run(action='report', summary=..., criteria=[{text, met, evidence}], "
+            "learned=[...]) and end with a short final message: it becomes the AI summary on the ticket. `evidence` "
+            "is the proof itself, not a sentence about it: the command and its real output in a ``` block, a "
+            "screenshot, a link. `learned` is what the next run of your role must not pay for again: a command that "
+            "works here (or was refused or hung, and what worked instead), where something is, a person's request or "
+            "correction (kind 'feedback'); scope 'ticket' for what only this ticket's next run needs; [] if nothing.",
             "A test case you set to pass or fail needs its proof in the same call (`proof`, Markdown): a screenshot as "
             "![what it shows](path/in/working/folder.png) (take it first), the command and its output in a ``` block. "
             "If it cannot be shown write 'Not provable: <why>'; never invent evidence, and leave a case you could not "
@@ -443,6 +446,12 @@ def rules_block(
     return "\n".join(lines)
 
 
+_DOCS_RULE = (
+    "Before you create or change a Docs page, {where}: where the page goes in the tree (search, then put it under "
+    "the page it belongs to), the Markdown the editor keeps, and how to change one part without rewriting the page."
+)
+
+
 def _core_rules(member, settings) -> list[str]:
     """The shared skills' few rules that matter most (issue #277), and where their detail is for this member."""
     from services import role_skills, shared_skills
@@ -470,11 +479,17 @@ def _core_rules(member, settings) -> list[str]:
             rules.append(
                 f"The board's skills {listed} have the detail: open the one the work calls for."
             )
+        if "docs-pages" in on:
+            # a live BA run wrote a good spec at the top of the tree: it never opened the Docs guide (#268)
+            rules.append(
+                _DOCS_RULE.format(where=f"open `{board_skills.NAME}:docs-pages`")
+            )
     else:
         if own and own != "canvas-design":
             rules.append(
                 f"Read your role's guide before you start: docs_read(action='role_guide', query='{role}')."
             )
+        rules.append(_DOCS_RULE.format(where="read docs_read(action='docs_guide')"))
         rules.append(
             "docs_read(action='guides') has the detail (working a ticket, the parts of a ticket, evidence and "
             "handover, the repository and the machine, asking and writing, working together, brainstorming, the end "
