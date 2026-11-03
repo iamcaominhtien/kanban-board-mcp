@@ -151,7 +151,7 @@ export function PageAiMenu({
         <div className="dk-menu pai-menu" role="menu" aria-label="AI" data-testid="page-ai-popover">
           {menu.kind === 'hidden' && (
             <div style={{ display: 'flex', gap: 10, padding: '10px 10px 12px', alignItems: 'flex-start' }}>
-              <Icon name="lock" size={16} strokeWidth={1.9} style={{ color: '#6b5bd2', marginTop: 2 }} />
+              <Icon name="lock" size={16} strokeWidth={1.9} style={{ color: '#7c5cd6', marginTop: 2 }} />
               <div>
                 <div className="pai-row-title">This page is hidden from AI</div>
                 {/* the server's own words (who hid it, why) when it sends them; the design copy otherwise */}
@@ -278,15 +278,16 @@ export function PageAiMenu({
           )}
           {menu.kind === 'rows' && (
             <>
-              <div className="pai-rule" />
               <div className="pai-reads" data-testid="ai-reads">
                 <span>Reads</span>
                 {readsChips(resolvedText).map((c) => (
                   <span key={c} className="pai-chip">
+                    {c.includes('linked page') ? <BookIcon /> : <Icon name="page" size={12} strokeWidth={2} />}
                     {c}
                   </span>
                 ))}
-                <span style={{ flexBasis: '100%' }}>{estimateLabel(markdown)}</span>
+                <span style={{ flex: 1 }} />
+                <span>{estimateLabel(markdown)}</span>
               </div>
             </>
           )}
@@ -301,5 +302,24 @@ export function PageAiMenu({
         />
       )}
     </div>
+  );
+}
+
+/** The linked-pages chip icon of the design (an open book). */
+function BookIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width={12}
+      height={12}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10" />
+    </svg>
   );
 }

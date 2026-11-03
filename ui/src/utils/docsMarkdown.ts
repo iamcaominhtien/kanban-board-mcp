@@ -163,7 +163,7 @@ interface MdNode {
   value?: string;
   depth?: number;
   children?: MdNode[];
-  data?: { hProperties?: Record<string, unknown> };
+  data?: { hProperties?: Record<string, unknown>; hName?: string };
 }
 
 function nodeText(node: MdNode): string {
@@ -184,9 +184,64 @@ const CALLOUT_KINDS: Record<string, 'info' | 'warning' | 'danger' | 'tip'> = {
   danger: 'danger',
 };
 
-/** Remark plugin: mark `> [!KIND]` callouts and add heading ids. */
+/** Nodes whose text is code or math: `==` inside them is literal. */
+const LITERAL = new Set(['code', 'inlineCode', 'math', 'inlineMath', 'html']);
+
+/**
+ * Turn `==text==` into a `<mark>` (the editor's highlight, @tiptap/extension-highlight): the same rule as its
+ * tokenizer, `==` + text without `=` + `==`, which may hold bold, links or chips; never inside code or math. An `==`
+ * without its pair stays as typed.
+ * @param tree - The mdast tree, changed in place.
+ */
+export function markHighlights(tree: MdNode): void {
+  const OPEN = '\u0000mark';
+  const walk = (node: MdNode) => {
+    if (LITERAL.has(node.type) || !node.children) return;
+    node.children.forEach(walk);
+    if (!node.children.some((c) => c.type === 'text' && c.value?.includes('=='))) return;
+    const out: MdNode[] = [];
+    let open = -1; // index in `out` of the opening marker, or -1
+    const close = () => {
+      const inner = out.splice(open);
+      inner.shift();
+      const ok = inner.length > 0 && inner.every((n) => n.type !== 'text' || !n.value?.includes('='));
+      if (ok) out.push({ type: 'mark', data: { hName: 'mark' }, children: inner } as MdNode);
+      else out.push({ type: 'text', value: '==' }, ...inner, { type: 'text', value: '==' });
+      open = -1;
+    };
+    for (const child of node.children) {
+      if (child.type !== 'text' || !child.value?.includes('==')) {
+        out.push(child);
+        continue;
+      }
+      child.value.split('==').forEach((seg, i) => {
+        if (i > 0) {
+          if (open >= 0) close();
+          else {
+            open = out.length;
+            out.push({ type: 'text', value: OPEN });
+          }
+        }
+        if (seg) out.push({ type: 'text', value: seg });
+      });
+    }
+    if (open >= 0) out[open] = { type: 'text', value: '==' };
+    // join the text runs again
+    const merged: MdNode[] = [];
+    for (const n of out) {
+      const last = merged[merged.length - 1];
+      if (n.type === 'text' && last?.type === 'text') last.value = (last.value ?? '') + n.value;
+      else merged.push(n.type === 'text' ? { ...n } : n);
+    }
+    node.children = merged;
+  };
+  walk(tree);
+}
+
+/** Remark plugin: mark `> [!KIND]` callouts, add heading ids and render `==highlights==`. */
 export function remarkDocs() {
   return (tree: MdNode) => {
+    markHighlights(tree);
     const seen = new Map<string, number>();
     const walk = (node: MdNode) => {
       if (node.type === 'heading') {

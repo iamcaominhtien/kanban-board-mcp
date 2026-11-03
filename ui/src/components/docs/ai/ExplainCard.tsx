@@ -41,8 +41,8 @@ export function ExplainCard({ view }: { view: PageAiView }) {
       data-nocomment
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-        <span style={{ color: '#6b5bd2' }}>
-          <LineIcon name="sparkle" size={13} />
+        <span className="pai-explain-ico">
+          <LineIcon name="sparkle" size={12} />
         </span>
         Explain
         <span style={{ flex: 1 }} />

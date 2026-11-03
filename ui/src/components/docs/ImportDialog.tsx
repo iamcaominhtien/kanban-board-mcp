@@ -725,7 +725,7 @@ export function ImportDialog({
             {r.path}
           </div>
           {changesByPath.get(r.path)?.map((c) => (
-            <div key={c} style={{ fontSize: 11.5, color: '#5B3FBF' }}>
+            <div key={c} style={{ fontSize: 11.5, color: '#5B3AA6' }}>
               {c}
             </div>
           ))}

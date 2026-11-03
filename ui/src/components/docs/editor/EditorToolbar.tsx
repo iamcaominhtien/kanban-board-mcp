@@ -22,6 +22,37 @@ interface Props {
 
 const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
 
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+
+/** "Mod+Shift+H" as the person's keyboard writes it: "Ctrl+Shift+H", or "⌘⇧H" on a Mac. */
+export function keyLabel(keys: string, mac = IS_MAC): string {
+  if (!mac) return keys.replace(/Mod/g, 'Ctrl');
+  const sym: Record<string, string> = { Mod: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃' };
+  return keys
+    .split('+')
+    .map((k) => sym[k] ?? k)
+    .join('');
+}
+
+/** A marker pen over a yellow stroke: the Highlight button. */
+export function HighlightGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 21h16" stroke="#E8B93A" strokeWidth={3} />
+      <path d="M14.5 4.5l4 4L11 16H7v-4z" stroke="currentColor" strokeWidth={1.9} />
+      <path d="M12.5 6.5l4 4" stroke="currentColor" strokeWidth={1.9} />
+    </svg>
+  );
+}
+
 /**
  * 44px formatting toolbar (DocsEditor board A).
  * @param props.editor - Editor the buttons act on, or `null`.
@@ -52,6 +83,7 @@ export function EditorToolbar({
       italic: !!e?.isActive('italic'),
       strike: !!e?.isActive('strike'),
       code: !!e?.isActive('code'),
+      highlight: !!e?.isActive('highlight'),
       h1: !!e?.isActive('heading', { level: 1 }),
       h2: !!e?.isActive('heading', { level: 2 }),
       h3: !!e?.isActive('heading', { level: 3 }),
@@ -74,18 +106,22 @@ export function EditorToolbar({
     onClick,
     children,
     off,
+    keys,
   }: {
     label: string;
     on?: boolean;
     onClick: () => void;
     children: ReactNode;
     off?: boolean;
+    /** The keyboard shortcut, shown in the tooltip ("Mod" reads Ctrl, or ⌘ on a Mac). */
+    keys?: string;
   }) => (
     <button
       type="button"
       className="dk-tb"
       aria-label={label}
-      title={label}
+      aria-keyshortcuts={keys ? keys.replace(/Mod/g, IS_MAC ? 'Meta' : 'Control') : undefined}
+      title={keys ? `${label} (${keyLabel(keys)})` : label}
       aria-pressed={on}
       disabled={disabled || !editor || off}
       style={{ ...(on ? ACTIVE : null), ...(off || disabled ? { opacity: 0.45, cursor: 'default' } : null) }}
@@ -115,39 +151,42 @@ export function EditorToolbar({
         flexShrink: 0,
       }}
     >
-      <Btn label="Bold" on={s.bold} onClick={() => c().toggleBold().run()}>
+      <Btn label="Bold" keys="Mod+B" on={s.bold} onClick={() => c().toggleBold().run()}>
         <span style={{ fontSize: 14, fontWeight: 800 }}>B</span>
       </Btn>
-      <Btn label="Italic" on={s.italic} onClick={() => c().toggleItalic().run()}>
+      <Btn label="Italic" keys="Mod+I" on={s.italic} onClick={() => c().toggleItalic().run()}>
         <span style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 600, fontFamily: 'Georgia,serif' }}>i</span>
       </Btn>
-      <Btn label="Strikethrough" on={s.strike} onClick={() => c().toggleStrike().run()}>
+      <Btn label="Strikethrough" keys="Mod+Shift+X" on={s.strike} onClick={() => c().toggleStrike().run()}>
         <Icon name="i47" size={16} />
       </Btn>
-      <Btn label="Inline code" on={s.code} onClick={() => c().toggleCode().run()}>
+      <Btn label="Inline code" keys="Mod+E" on={s.code} onClick={() => c().toggleCode().run()}>
         <Icon name="i33" size={16} />
       </Btn>
+      <Btn label="Highlight" keys="Mod+Shift+H" on={s.highlight} onClick={() => c().toggleHighlight().run()}>
+        <HighlightGlyph />
+      </Btn>
       <span className="dk-sep" />
-      <Btn label="H1" on={s.h1} onClick={() => c().toggleHeading({ level: 1 }).run()}>
+      <Btn label="H1" keys="Mod+Alt+1" on={s.h1} onClick={() => c().toggleHeading({ level: 1 }).run()}>
         H1
       </Btn>
-      <Btn label="H2" on={s.h2} onClick={() => c().toggleHeading({ level: 2 }).run()}>
+      <Btn label="H2" keys="Mod+Alt+2" on={s.h2} onClick={() => c().toggleHeading({ level: 2 }).run()}>
         H2
       </Btn>
-      <Btn label="H3" on={s.h3} onClick={() => c().toggleHeading({ level: 3 }).run()}>
+      <Btn label="H3" keys="Mod+Alt+3" on={s.h3} onClick={() => c().toggleHeading({ level: 3 }).run()}>
         H3
       </Btn>
       <span className="dk-sep" />
-      <Btn label="Bulleted list" on={s.bullet} onClick={() => c().toggleBulletList().run()}>
+      <Btn label="Bulleted list" keys="Mod+Shift+8" on={s.bullet} onClick={() => c().toggleBulletList().run()}>
         <Icon name="i48" size={16} />
       </Btn>
-      <Btn label="Numbered list" on={s.ordered} onClick={() => c().toggleOrderedList().run()}>
+      <Btn label="Numbered list" keys="Mod+Shift+7" on={s.ordered} onClick={() => c().toggleOrderedList().run()}>
         <Icon name="i49" size={16} />
       </Btn>
-      <Btn label="Task list" on={s.task} onClick={() => c().toggleTaskList().run()}>
+      <Btn label="Task list" keys="Mod+Shift+9" on={s.task} onClick={() => c().toggleTaskList().run()}>
         <Icon name="i50" size={16} />
       </Btn>
-      <Btn label="Quote" on={s.quote} onClick={() => c().toggleBlockquote().run()}>
+      <Btn label="Quote" keys="Mod+Shift+B" on={s.quote} onClick={() => c().toggleBlockquote().run()}>
         <Icon name="i51" size={16} />
       </Btn>
       <span className="dk-sep" />
@@ -159,14 +198,14 @@ export function EditorToolbar({
       >
         <Icon name="i52" size={16} />
       </Btn>
-      <Btn label="Code block" on={s.codeBlock} onClick={() => c().toggleCodeBlock().run()}>
+      <Btn label="Code block" keys="Mod+Alt+C" on={s.codeBlock} onClick={() => c().toggleCodeBlock().run()}>
         <Icon name="i53" size={16} />
       </Btn>
       <Btn label="Callout" on={s.callout} onClick={() => c().toggleCallout('info').run()}>
         <Icon name="i31" size={16} />
       </Btn>
       <span className="dk-sep" />
-      <Btn label="Link" on={s.link} onClick={onLink}>
+      <Btn label="Link" keys="Mod+K" on={s.link} onClick={onLink}>
         <Icon name="i11" size={16} />
       </Btn>
       <Btn label="Reference a page or section" onClick={() => c().insertContent('[[').run()}>
@@ -218,10 +257,10 @@ export function EditorToolbar({
           <LineIcon name="sparkle" size={12} /> Ask AI
         </button>
       )}
-      <Btn label="Undo" off={!s.canUndo} onClick={() => c().undo().run()}>
+      <Btn label="Undo" keys="Mod+Z" off={!s.canUndo} onClick={() => c().undo().run()}>
         <Icon name="i19" size={16} />
       </Btn>
-      <Btn label="Redo" off={!s.canRedo} onClick={() => c().redo().run()}>
+      <Btn label="Redo" keys="Mod+Shift+Z" off={!s.canRedo} onClick={() => c().redo().run()}>
         <Icon name="i62" size={16} />
       </Btn>
       <span className="dk-sep" />

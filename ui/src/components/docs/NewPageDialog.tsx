@@ -463,7 +463,7 @@ export function NewPageDialog({
                 <div
                   role="group"
                   aria-label="Write with AI"
-                  style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
                 >
                   <div
                     style={{
@@ -471,8 +471,8 @@ export function NewPageDialog({
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.06em',
-                      color: '#5B3FBF',
-                      margin: '8px 0 0 2px',
+                      color: '#5B3AA6',
+                      padding: '10px 10px 4px',
                     }}
                   >
                     Write with AI
@@ -496,21 +496,21 @@ export function NewPageDialog({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 10,
+                          gap: 9,
                           padding: '8px 10px',
-                          borderRadius: 9,
+                          borderRadius: 8,
                           border: '1px solid',
                           cursor: 'pointer',
                           textAlign: 'left',
                           font: 'inherit',
                           fontSize: 13,
-                          fontWeight: 600,
+                          fontWeight: sel ? 600 : 500,
                           color: '#1E2A22',
-                          background: sel ? '#F1ECFD' : '#FFFFFF',
-                          borderColor: sel ? '#8D6FE3' : '#E3E8E5',
+                          background: sel ? '#F1EAFF' : 'transparent',
+                          borderColor: sel ? '#C9B6FF' : 'transparent',
                         }}
                       >
-                        <span style={{ display: 'flex', color: sel ? '#5B3FBF' : '#5B6B60' }}>
+                        <span style={{ display: 'flex', color: sel ? '#5B3AA6' : '#5B6B60' }}>
                           {icon === 'spark' ? <AiSpark size={16} /> : <Icon name={icon} size={16} strokeWidth={1.8} />}
                         </span>
                         {text}
@@ -829,7 +829,7 @@ export function NewPageDialog({
           <div style={{ flex: 1 }} />
           <button
             type="button"
-            className="st-btn"
+            className={aiOn ? 'st-btn st-btn-sm' : 'st-btn'}
             onClick={() => {
               if (jobId) cancelJob.mutate(jobId);
               onClose();
@@ -840,8 +840,8 @@ export function NewPageDialog({
           {aiOn ? (
             <button
               type="button"
-              className="st-btn st-btn-primary"
-              style={{ background: '#6F4BD8', borderColor: '#6F4BD8' }}
+              className="st-btn st-btn-sm st-btn-primary"
+              style={{ background: '#7C5CD6', borderColor: '#7C5CD6' }}
               disabled={writing || startWrite.isPending || !canWrite(form, title)}
               onClick={() => void submit()}
               data-testid="write-draft"

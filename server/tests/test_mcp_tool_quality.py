@@ -11,7 +11,7 @@ from main import mcp
 from kanban_mcp.tools import CORE_TOOL_TABLE
 from kanban_mcp.tools.ai_team import AI_TEAM_OPS
 from kanban_mcp.tools.branches import BRANCH_OPS
-from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_OPS
+from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_COMPOSITE, DOCS_WRITE_OPS
 from kanban_mcp.tools.items import ITEM_OPS
 from kanban_mcp.tools.projects import PROJECT_OPS
 from kanban_mcp.tools.tickets import TICKET_OPS
@@ -210,11 +210,13 @@ async def test_the_tool_list_stays_compact():
     # and a PNG of what an agent drew, issue #267) with its `width` about 600; its role_guide (one guide per role, issue
     # #273) about 150; manage_ticket's wave_pin (a sub-ticket's wave pinned by hand, TDP-1) about 160; the ticket guide,
     # attachments, criteria on create and what get_ticket says about the Workspace and the worktree (issue #269) about
-    # 750
-    assert default < 49_600, (
+    # 750; Docs for every AI (issue #268): docs_write edit (one section or passage), upload (a file to a page or a
+    # ticket), tickets (from a checklist) and assign (a page to an AI member), docs_read get's section and docs_guide,
+    # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900
+    assert default < 52_550, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 52_500, (
+    assert full < 55_450, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
@@ -264,7 +266,7 @@ async def test_schema_enums_match_the_services():
         ("manage_ticket", TICKET_OPS),
         ("ticket_branches", BRANCH_OPS),
         ("docs_read", DOCS_READ_OPS),
-        ("docs_write", DOCS_WRITE_OPS),
+        ("docs_write", {**DOCS_WRITE_OPS, **dict.fromkeys(DOCS_WRITE_COMPOSITE)}),
         ("ai_team", AI_TEAM_OPS),
     ):
         assert enum(tool, "action") == set(table), tool

@@ -19,11 +19,11 @@ import { LineIcon } from '../../ui/LineIcon';
 
 const btn: CSSProperties = {
   font: 'inherit',
-  fontSize: 12.5,
+  fontSize: 12,
   fontWeight: 600,
-  padding: '6px 12px',
-  borderRadius: 7,
-  border: '1px solid #E2D3A0',
+  padding: '5px 10px',
+  borderRadius: 8,
+  border: '1px solid #E3E8E5',
   background: '#fff',
   color: '#1E2A22',
   cursor: 'pointer',
@@ -43,7 +43,7 @@ function Reason({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <li style={{ margin: '3px 0', fontSize: 13.5, color: '#1E2A22' }} data-testid="freshness-reason">
+    <li style={{ margin: '2px 0', fontSize: 12.5, lineHeight: 1.55, color: '#1E2A22' }} data-testid="freshness-reason">
       {r.kind === 'ticket' && (
         <code
           style={{
@@ -60,7 +60,7 @@ function Reason({
         </code>
       )}
       {r.text}
-      <span style={{ color: '#8A978F', fontSize: 11.5, marginLeft: 8 }} title="What was compared">
+      <span style={{ color: '#9AA8A0', fontSize: 11.5, marginLeft: 8 }} title="What was compared">
         Compared: {r.compared}
       </span>
       <span style={{ position: 'relative', marginLeft: 8 }}>
@@ -75,7 +75,7 @@ function Reason({
             fontSize: 11.5,
             border: 'none',
             background: 'none',
-            color: '#6B5BD2',
+            color: '#7c5cd6',
             cursor: 'pointer',
             padding: 0,
           }}
@@ -165,30 +165,38 @@ export function FreshnessBanner({
       data-testid="freshness-banner"
       style={{
         margin: '0 0 16px',
-        padding: '14px 16px',
-        borderRadius: 12,
-        border: '1px solid #EBD9A2',
-        background: '#FFF8E6',
+        padding: '12px 14px',
+        borderRadius: 10,
+        border: '1px solid #F0DBA8',
+        background: '#FFFBEF',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Icon name="i14" size={18} style={{ color: '#9A6B00' }} />
-        <b style={{ fontSize: 14.5, color: '#1E2A22' }}>This page may be out of date</b>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Icon name="i14" size={16} strokeWidth={2} style={{ color: '#B8860B' }} />
+        <b style={{ fontSize: 13.5, color: '#1E2A22' }}>This page may be out of date</b>
         <span
           style={{
             marginLeft: 'auto',
-            fontSize: 11.5,
-            fontWeight: 600,
-            color: '#6B5BD2',
-            background: '#EEEBFB',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            height: 21,
+            boxSizing: 'border-box',
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#5b3aa6',
+            background: '#efe8fb',
             borderRadius: 999,
-            padding: '3px 10px',
+            padding: '0 8px',
           }}
         >
           <LineIcon name="sparkle" size={12} /> {checkedLabel(check.checkedAt)}
         </span>
       </div>
-      <ul style={{ margin: '8px 0 10px 4px', paddingLeft: 16 }}>
+      <ul style={{ margin: '0 0 0 4px', paddingLeft: 16 }}>
         {check.reasons.map((r) => (
           <Reason
             key={r.key}
@@ -203,7 +211,7 @@ export function FreshnessBanner({
           type="button"
           disabled={suggest.isPending}
           onClick={() => suggest.mutate(undefined, { onSuccess: (d) => setProposalId(d.proposalId || null) })}
-          style={{ ...btn, background: '#6B5BD2', borderColor: '#6B5BD2', color: '#fff' }}
+          style={{ ...btn, background: '#7c5cd6', borderColor: '#7c5cd6', color: '#fff' }}
           data-testid="freshness-suggest"
         >
           <LineIcon name="sparkle" size={12} />{' '}
@@ -223,10 +231,10 @@ export function FreshnessBanner({
             <Icon name="i38" size={13} /> Open {ticket}
           </button>
         )}
-      </div>
-      <div style={{ fontSize: 12, color: '#7A6A3A', marginTop: 8 }}>
-        “Still correct” hides this for 30 days
-        {suggest.data ? ` · ${costLabel(suggest.data.cost, suggest.data.metered)}` : ''}
+        <span style={{ fontSize: 11.5, color: '#5B6B60' }}>
+          “Still correct” hides this for 30 days
+          {suggest.data ? ` · ${costLabel(suggest.data.cost, suggest.data.metered)}` : ''}
+        </span>
       </div>
       {proposalId && <SuggestedEdits pageId={page.id} proposalId={proposalId} />}
       {err && (

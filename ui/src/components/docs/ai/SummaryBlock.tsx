@@ -19,9 +19,10 @@ export function SummaryBlock({ view }: { view: PageAiView }) {
   return (
     <div className="pai-summary" data-testid="page-summary" role="region" aria-label="Summary by AI">
       <div className="pai-head">
-        <b>SUMMARY</b>
+        <b>Summary</b>
         <span className="pai-tag">
-          <LineIcon name="sparkle" size={11} /> AI
+          <LineIcon name="sparkle" size={11} />
+          AI
         </span>
         <span>
           {s.of === 'selection' ? 'of the selection · ' : ''}not part of the page
@@ -45,10 +46,10 @@ export function SummaryBlock({ view }: { view: PageAiView }) {
       )}
       {result && (
         <>
-          <div style={{ fontSize: 15, lineHeight: 1.55, color: '#1e2a22' }} data-testid="summary-text">
+          <div style={{ fontSize: 13, lineHeight: 1.55, color: '#1e2a22' }} data-testid="summary-text">
             {result.text}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <button
               type="button"
               className="st-btn st-btn-sm"

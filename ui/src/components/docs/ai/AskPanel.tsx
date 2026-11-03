@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import '../docs.css';
+import './pageAi.css';
 import { Icon } from '../Icon';
 import { docsAiError, useCancelDocsAiJob, useDocsAiJob, useDocsAiState } from '../../../api/docsAi';
 import {
@@ -19,7 +20,8 @@ import {
   askView,
   copyText,
   defaultScope,
-  footerLine,
+  footerParts,
+  textBeforeCite,
   justEdited,
   openTarget,
   reportTarget,
@@ -46,57 +48,44 @@ const smallBtn: CSSProperties = {
   cursor: 'pointer',
 };
 const primaryBtn: CSSProperties = { ...smallBtn, background: '#2E6F40', borderColor: '#2E6F40', color: '#FFFFFF' };
-const label: CSSProperties = { fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', color: '#6B7A70' };
 
 function editedLabel(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function Sources({ sources, onOpen }: { sources: (AskSource & { n?: number })[]; onOpen: (s: AskSource) => void }) {
+function Cite({ n }: { n: number }) {
+  return <span className="ask-cite">{n}</span>;
+}
+
+function Sources({
+  sources,
+  onOpen,
+  title = 'Sources',
+}: {
+  sources: (AskSource & { n?: number })[];
+  onOpen: (s: AskSource) => void;
+  title?: string | null;
+}) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="ask-sources">
-      <div style={label}>SOURCES</div>
+    <div className="ask-sources" data-testid="ask-sources">
+      {title && <div className="ask-sources-h">{title}</div>}
       {sources.map((s, i) => (
-        <button
-          key={`${s.pageId}-${s.heading}-${i}`}
-          type="button"
-          onClick={() => onOpen(s)}
-          style={{
-            display: 'flex',
-            gap: 10,
-            textAlign: 'left',
-            padding: '8px 10px',
-            border: `1px solid ${LINE}`,
-            borderRadius: 8,
-            background: '#FBFCFB',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: 9,
-              background: '#E8F1EA',
-              color: '#2E6F40',
-              fontSize: 11,
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {s.n ?? i + 1}
-          </span>
-          <span style={{ minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#1E2A22' }}>
+        <button key={`${s.pageId}-${s.heading}-${i}`} type="button" className="ask-source" onClick={() => onOpen(s)}>
+          <Cite n={s.n ?? i + 1} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span className="ask-source-title">
+              <Icon name="page" size={13} strokeWidth={1.7} style={{ color: MUTED }} />
               {s.path.join(' › ')}
-              {s.heading !== s.title && <span style={{ color: MUTED, fontWeight: 600 }}> {`› # ${s.heading}`}</span>}
-              <span style={{ color: '#9AA8A0', fontWeight: 500 }}> · Edited {editedLabel(s.editedAt)}</span>
+              {s.heading !== s.title && (
+                <>
+                  <Icon name="chevronRight" size={11} strokeWidth={1.7} style={{ color: '#9AA8A0' }} />
+                  <span className="st-code"># {s.heading}</span>
+                </>
+              )}
             </span>
-            <span style={{ display: 'block', fontSize: 12, color: MUTED, marginTop: 2 }}>…{s.quote}…</span>
+            <span className="ask-source-quote">
+              …{s.quote}… <span style={{ color: MUTED }}>Edited {editedLabel(s.editedAt)}</span>
+            </span>
           </span>
         </button>
       ))}
@@ -136,13 +125,12 @@ export function AskPanel({
   const assist = useAssist();
   const state = useDocsAiState(projectId);
   const [q, setQ] = useState(initialQuestion);
-  const [scope, setScope] = useState<AskScope>(defaultScope(!!pageId, pageId ? 'page' : 'space'));
+  const [scope, setScope] = useState<AskScope>(defaultScope(!!pageId, 'space'));
   const [jobId, setJobId] = useState<string | null>(null);
   const [asked, setAsked] = useState('');
   const [startError, setStartError] = useState<{ code: string; detail: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [rating, setRating] = useState<'up' | 'down' | null>(null);
-  const [rateOpen, setRateOpen] = useState(false);
   const [reported, setReported] = useState<string[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -168,7 +156,6 @@ export function AskPanel({
     if (!text || running) return;
     setStartError(null);
     setRating(null);
-    setRateOpen(false);
     setReported([]);
     setChatError(null);
     setAsked(text);
@@ -218,7 +205,6 @@ export function AskPanel({
   const rate = async (r: 'up' | 'down') => {
     if (!jobId) return;
     setRating(r);
-    setRateOpen(false);
     try {
       await askDocsApi.feedback(jobId, r);
     } catch {
@@ -248,8 +234,7 @@ export function AskPanel({
   const tabBtn = (id: 'search' | 'ask', text: string) => (
     <button
       type="button"
-      className={`dk-tabs-btn${id === 'ask' ? ' dk-tabs-btn-on' : ''}`}
-      style={{ padding: '4px 11px' }}
+      className={id === 'ask' ? 'on' : ''}
       aria-pressed={id === 'ask'}
       onClick={() => id === 'search' && onSwitchToSearch(q)}
     >
@@ -258,6 +243,7 @@ export function AskPanel({
   );
 
   let body: ReactNode = null;
+  let footer: [string, string] | null = null;
   if (noMember) {
     body = (
       <div style={{ padding: 18 }} data-testid="ask-no-member">
@@ -318,25 +304,26 @@ export function AskPanel({
     const sources = sourcesOf(r);
     const target = reportTarget(r);
     const longLine = tooLongLine(r);
+    const [left, right] = footerParts(r, j?.cost ?? 0, j?.metered ?? true);
+    footer = [left, right + (j?.endedAt ? ` · answered ${relativeTime(j.endedAt)}` : '')];
     body = (
       <div
-        style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}
+        style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}
         data-testid={`ask-${view.kind}`}
       >
-        {view.kind === 'disagree' && <div style={{ fontWeight: 700, fontSize: 13 }}>Two pages disagree</div>}
-        {view.kind === 'not_covered' && !/do not say/i.test(r.answer) && (
-          <div style={{ fontWeight: 700, fontSize: 13 }}>The docs do not say</div>
-        )}
-        <div style={{ fontSize: 14, lineHeight: 1.6, color: '#1E2A22' }} data-testid="ask-answer">
-          {answerParts(r.answer, r.citations).map((p, i) =>
-            p.type === 'text' ? (
-              <span key={i}>{p.text}</span>
-            ) : (
-              <sup key={i} style={{ color: '#2E6F40', fontWeight: 700, margin: '0 1px' }}>
-                {p.n}
-              </sup>
-            ),
-          )}
+        <div className="ask-lead">
+          {view.kind === 'not_covered' && <InfoIcon />}
+          {view.kind === 'disagree' && <WarnIcon />}
+          <div
+            style={{ fontSize: 13.5, lineHeight: view.kind === 'answer' ? 1.6 : 1.55, color: '#1E2A22' }}
+            data-testid="ask-answer"
+          >
+            {view.kind === 'disagree' && !/disagree/i.test(r.answer.slice(0, 40)) && <b>Two pages disagree. </b>}
+            {view.kind === 'not_covered' && !/do not say/i.test(r.answer) && <b>The docs do not say. </b>}
+            {answerParts(r.answer, r.citations).map((p, i, all) =>
+              p.type === 'text' ? <span key={i}>{textBeforeCite(all, i)}</span> : <Cite key={i} n={p.n} />,
+            )}
+          </div>
         </div>
         {longLine && (
           <div
@@ -367,32 +354,26 @@ export function AskPanel({
           </div>
         )}
         {view.kind === 'answer' && sources.length > 0 && <Sources sources={sources} onOpen={open} />}
-        {view.kind === 'disagree' && <Sources sources={r.conflicts} onOpen={open} />}
+        {view.kind === 'disagree' && <Sources sources={r.conflicts} onOpen={open} title={null} />}
         {view.kind === 'not_covered' && r.closest.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="ask-closest">
-            <div style={label}>CLOSEST PAGES</div>
+          <div className="ask-sources" data-testid="ask-closest">
+            <div className="ask-sources-h">Closest pages</div>
             {r.closest.map((c) => (
-              <button
-                key={c.pageId}
-                type="button"
-                onClick={() => onOpenPage(c.pageId)}
-                style={{
-                  textAlign: 'left',
-                  padding: '8px 10px',
-                  border: `1px solid ${LINE}`,
-                  borderRadius: 8,
-                  background: '#FBFCFB',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700 }}>
-                  {c.path.join(' › ')}
-                  {c.heading !== c.title && (
-                    <span style={{ color: MUTED, fontWeight: 600 }}>{` › # ${c.heading}`}</span>
-                  )}
+              <button key={c.pageId} type="button" className="ask-source" onClick={() => onOpenPage(c.pageId)}>
+                <span className="ask-cite">·</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="ask-source-title">
+                    <Icon name="page" size={13} strokeWidth={1.7} style={{ color: MUTED }} />
+                    {c.path.join(' › ')}
+                    {c.heading !== c.title && (
+                      <>
+                        <Icon name="chevronRight" size={11} strokeWidth={1.7} style={{ color: '#9AA8A0' }} />
+                        <span className="st-code"># {c.heading}</span>
+                      </>
+                    )}
+                  </span>
+                  <span className="ask-source-quote">{c.snippet}</span>
                 </span>
-                <span style={{ display: 'block', fontSize: 12, color: MUTED }}>{c.snippet}</span>
               </button>
             ))}
           </div>
@@ -400,22 +381,24 @@ export function AskPanel({
         {view.kind === 'not_covered' && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {onSearchWords && (
-              <button type="button" style={smallBtn} onClick={() => onSearchWords(asked)}>
+              <button type="button" className="st-btn st-btn-sm" onClick={() => onSearchWords(asked)}>
+                <Icon name="search" size={14} strokeWidth={1.7} />
                 Search these words
               </button>
             )}
             {onWritePage && (
-              <button type="button" style={smallBtn} onClick={() => onWritePage(asked)}>
+              <button type="button" className="st-btn st-btn-sm ask-ai-btn" onClick={() => onWritePage(asked)}>
+                <PenIcon />
                 Draft a page from this question
               </button>
             )}
           </div>
         )}
         {view.kind === 'disagree' && target && (
-          <div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
-              style={smallBtn}
+              className="st-btn st-btn-sm ask-ai-btn"
               disabled={reported.includes(target.pageId) || report.isPending}
               onClick={() => {
                 const other = r.conflicts.find((c) => c.pageId !== target.pageId);
@@ -429,13 +412,12 @@ export function AskPanel({
                 );
               }}
             >
+              <FlagIcon />
               {reported.includes(target.pageId)
                 ? `${target.title} added to Docs health`
                 : `Report ${target.title} as out of date`}
             </button>
-            <div style={{ fontSize: 11.5, color: '#6B7A70', marginTop: 3 }}>
-              Adds it to Docs health. Nothing is edited.
-            </div>
+            <span style={{ fontSize: 12, color: MUTED }}>Adds it to Docs health. Nothing is edited.</span>
           </div>
         )}
         {justEdited(r) && (
@@ -451,37 +433,33 @@ export function AskPanel({
         )}
         {view.kind !== 'not_covered' || r.askedModel ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button type="button" style={smallBtn} onClick={() => void openChat()}>
+            <button type="button" className="st-btn st-btn-sm" onClick={() => void openChat()}>
+              <ChatIcon />
               Open as chat
             </button>
-            <button type="button" style={smallBtn} onClick={() => void copy()}>
+            <button type="button" className="st-btn st-btn-sm" onClick={() => void copy()}>
+              <CopyIcon />
               {copied ? 'Copied' : 'Copy'}
             </button>
+            <span style={{ flex: 1 }} />
             {rating ? (
               <span style={{ fontSize: 12, color: MUTED }}>
                 {rating === 'up' ? 'Thanks, noted.' : 'Thanks, we will look at it.'}
               </span>
-            ) : rateOpen ? (
-              <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                <button type="button" style={smallBtn} onClick={() => void rate('up')}>
-                  Yes
-                </button>
-                <button type="button" style={smallBtn} onClick={() => void rate('down')}>
-                  No
-                </button>
-              </span>
             ) : (
-              <button type="button" style={smallBtn} onClick={() => setRateOpen(true)}>
-                Was this right?
-              </button>
+              <>
+                <span style={{ fontSize: 12, color: MUTED }}>Was this right?</span>
+                <button type="button" className="dk-icobtn" aria-label="Yes" onClick={() => void rate('up')}>
+                  <ThumbIcon />
+                </button>
+                <button type="button" className="dk-icobtn" aria-label="No" onClick={() => void rate('down')}>
+                  <ThumbIcon down />
+                </button>
+              </>
             )}
           </div>
         ) : null}
         {chatError && <div style={{ fontSize: 12, color: '#B3261E' }}>{chatError}</div>}
-        <div style={{ fontSize: 11.5, color: '#6B7A70' }} data-testid="ask-footer">
-          {footerLine(r, j?.cost ?? 0, j?.metered ?? true)}
-          {j?.endedAt && ` · answered ${relativeTime(j.endedAt)}`}
-        </div>
       </div>
     );
   }
@@ -524,15 +502,14 @@ export function AskPanel({
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              padding: '13px 18px',
-              borderBottom: `1px solid ${LINE}`,
+              padding: '12px 14px',
+              borderBottom: '1px solid #EEF3EF',
             }}
           >
-            <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
+            <AiSparkIcon />
             <input
               ref={inputRef}
-              className="fx-qinput"
-              style={{ flex: 1 }}
+              className="ask-qinput"
               value={q}
               placeholder={`Ask ${projectName} docs a question…`}
               onChange={(e) => setQ(e.target.value)}
@@ -541,48 +518,120 @@ export function AskPanel({
               autoComplete="off"
               aria-label={`Ask the ${projectName} docs`}
             />
-            <div style={{ display: 'flex', gap: 4 }}>
+            <span className="ask-seg">
               {tabBtn('search', 'Search')}
               {tabBtn('ask', 'Ask')}
-            </div>
-            <span style={{ fontSize: 11.5, color: MUTED }}>Esc</span>
+            </span>
+            <span className="dk-kbd">Esc</span>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '9px 18px',
-              borderBottom: '1px solid #EEF3EF',
-              background: '#FBFCFB',
-              flexWrap: 'wrap',
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>In:</span>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {chips.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`dk-tabs-btn${scope === c.id ? ' dk-tabs-btn-on' : ''}`}
-                  style={{ padding: '4px 10px', whiteSpace: 'nowrap' }}
-                  aria-pressed={scope === c.id}
-                  onClick={() => {
-                    setScope(c.id);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-            <span style={{ marginLeft: 'auto', fontSize: 11.5, color: '#6B7A70' }}>Enter to ask</span>
+          <div className="ask-scopes">
+            <span style={{ fontSize: 12, color: MUTED }}>In:</span>
+            {chips.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`ask-opt${scope === c.id ? ' ask-opt-on' : ''}`}
+                aria-pressed={scope === c.id}
+                onClick={() => {
+                  setScope(c.id);
+                  inputRef.current?.focus();
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+            <span style={{ marginLeft: 'auto', fontSize: 11.5, color: MUTED }}>Enter to ask</span>
           </div>
           <div className="fx-scroll" style={{ maxHeight: 'min(520px, 66vh)', overflowY: 'auto', minHeight: 0 }}>
             {body}
           </div>
+          {footer && (
+            <div className="ask-footer" data-testid="ask-footer">
+              <span>{footer[0]}</span>
+              <span style={{ flex: 1 }} />
+              <span>{footer[1]}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+const svgProps = {
+  'aria-hidden': true,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.7,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+} as const;
+
+function ChatIcon() {
+  return (
+    <svg width={14} height={14} {...svgProps}>
+      <path d="M21 12a8 8 0 0 1-11.5 7.2L4 20.5l1.4-4.6A8 8 0 1 1 21 12z" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width={14} height={14} {...svgProps}>
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+    </svg>
+  );
+}
+
+function ThumbIcon({ down = false }: { down?: boolean }) {
+  return (
+    <svg width={15} height={15} {...svgProps} style={down ? { transform: 'rotate(180deg)' } : undefined}>
+      <path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2.5 2.5V10H19a2 2 0 0 1 2 2.3l-1 6A2 2 0 0 1 18 20H7" />
+    </svg>
+  );
+}
+
+function AiSparkIcon() {
+  return (
+    <svg width={16} height={16} {...svgProps} strokeWidth={2} style={{ color: '#7C5CD6', flexShrink: 0 }}>
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width={18} height={18} {...svgProps} strokeWidth={2} style={{ color: '#7A5A06', flexShrink: 0 }}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8h.01" />
+    </svg>
+  );
+}
+
+function WarnIcon() {
+  return (
+    <svg width={18} height={18} {...svgProps} strokeWidth={2} style={{ color: '#B8860B', flexShrink: 0 }}>
+      <path d="M12 4l9 16H3L12 4z" />
+      <path d="M12 10v4M12 17v.5" />
+    </svg>
+  );
+}
+
+function PenIcon() {
+  return (
+    <svg width={14} height={14} {...svgProps} strokeWidth={2}>
+      <path d="M4 20h4L19 9l-4-4L4 16v4z" />
+      <path d="M13.5 6.5l4 4" />
+    </svg>
+  );
+}
+
+function FlagIcon() {
+  return (
+    <svg width={14} height={14} {...svgProps} strokeWidth={2}>
+      <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
+    </svg>
   );
 }

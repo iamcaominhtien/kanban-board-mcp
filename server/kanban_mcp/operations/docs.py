@@ -5,6 +5,7 @@ import services.docs_anchors as svc_anchors
 import services.docs_comments as svc_comments
 import services.activity as svc_activity
 import services.proofs as svc_proofs
+from pathlib import Path
 from pydantic import Field
 from typing import Annotated, Literal
 from .. import common
@@ -65,11 +66,36 @@ async def list_docs_pages(project_id: ProjectId) -> list[dict]:
         ]
 
 
-async def get_docs_page(page_id: DocsPageId) -> dict:
-    """Read a Docs page: {title, markdown (latest published), version, headings, referenced_by}. Pass `version` to update_docs_page as `base_version`."""
+async def get_docs_page(
+    page_id: DocsPageId,
+    section: Annotated[
+        str | None,
+        Field(
+            description="Only this section (heading text or slug), with its sub-sections."
+        ),
+    ] = None,
+) -> dict:
+    """Read a Docs page: {title, markdown (latest published), version, headings, referenced_by, work}. Pass `version` to update_docs_page as `base_version`.
+    `work`: the tickets tied to the page with their state and the AI run on each (who, what it is doing now).
+    With `section`, only that part: {id, title, version, section, markdown, headings}."""
+    from services import docs_edit
+
     async with common.async_session() as session:
         try:
             page = await svc_docs.page_detail(session, page_id)
+            if section is not None:
+                try:
+                    part = docs_edit.section_text(page["markdown"], section)
+                except docs_edit.EditError as exc:
+                    raise ValueError(str(exc)) from exc
+                return {
+                    "id": page["id"],
+                    "title": page["title"],
+                    "version": page["version"],
+                    "section": section,
+                    "markdown": part,
+                    "headings": page["headings"],
+                }
             links = await svc_docs.backlinks(session, page_id)
         except svc_docs.DocsError as exc:
             raise _docs_error(exc) from exc
@@ -86,7 +112,14 @@ async def get_docs_page(page_id: DocsPageId) -> dict:
             "updated_by",
             "updated_at",
         )
-        return {k: page[k] for k in keep} | {"referenced_by": links}
+        from services import docs_work
+
+        out = {k: page[k] for k in keep} | {"referenced_by": links}
+        work = await docs_work.work_on_page(session, page_id)
+        if work["tickets"]:
+            # the tickets tied to the page and what the AIs on them are doing (#268)
+            out["work"] = work
+        return out
 
 
 @notify_on_success
@@ -578,3 +611,104 @@ async def reopen_docs_comment(thread_id: DocsThreadId) -> dict:
     """Reopen a resolved inline Docs comment thread."""
     async with common.async_session() as session:
         return await _comment_call(svc_comments.set_status(session, thread_id, "open"))
+
+
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+
+def _stored(name: str, content: bytes) -> dict:
+    """Write `content` to the uploads folder under a unique name; {url, name, size, type, markdown}."""
+    import uploads
+
+    clean = Path(name).name[:200]
+    suffix = Path(clean).suffix.lower()
+    if suffix not in uploads.MIME_BY_EXTENSION:
+        raise ValueError(
+            f"{clean}: {suffix or 'a file without an extension'} is not a type the board stores "
+            "(png, jpg, webp, gif, svg, pdf, txt, log, json, csv, md, xlsx, docx, pptx, zip, mp4 …)."
+        )
+    if svc_proofs.never_copied(Path(clean)):
+        raise ValueError(
+            f"{clean}: this kind of file (a key or a secret) is never stored."
+        )
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise ValueError(
+            f"{clean}: larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
+        )
+    stored = uploads.build_upload_filename(clean)
+    (uploads.get_uploads_dir() / stored).write_bytes(content)
+    url = f"/uploads/{stored}"
+    label = clean.replace("[", "").replace("]", "")
+    image = suffix in uploads.SUPPORTED_IMAGE_EXTENSIONS
+    return {
+        "url": url,
+        "name": clean,
+        "size": len(content),
+        "type": uploads.MIME_BY_EXTENSION[suffix],
+        "markdown": f"![{label}]({url})" if image else f"[{label}]({url})",
+    }
+
+
+async def upload_file(
+    path: Annotated[
+        str | None,
+        Field(
+            description="Local file to store: an absolute path (in an AI run, a path inside its working folder)."
+        ),
+    ] = None,
+    data: Annotated[
+        str | None,
+        Field(
+            description="The file's bytes in base64, for an agent whose files are not on the board's machine."
+        ),
+    ] = None,
+    name: Annotated[
+        str | None,
+        Field(description="File name with its extension (needed with data)."),
+    ] = None,
+) -> dict:
+    """Store a file (a picture, a PDF, a sheet, a log…) on the board. Returns {url, name, size, type, markdown}:
+    put `markdown` in a page, a description or a comment to show it (a picture shows inline, another file as a link)."""
+    import base64
+    import binascii
+
+    if (path is None) == (data is None):
+        raise ValueError(
+            "upload: give path (a local file) or data (base64 with name), not both."
+        )
+    if data is not None:
+        if not name:
+            raise ValueError(
+                "upload: data needs name (with its extension, e.g. 'flow.png')."
+            )
+        try:
+            content = base64.b64decode(data, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("upload: data is not valid base64.") from exc
+        return _stored(name, content)
+    # the same rule as an attachment (ticket_items(item='attachment')): an AI run names a file in its working folders
+    # or the ticket's Workspace, an agent outside a board run by its absolute path; keys, `.env` and dot folders never
+    folder = await common.attach_folder()
+    if folder is None:
+        raise ValueError(
+            "upload: this run has no working folder; send the file as data (base64) with name."
+        )
+    try:
+        url = svc_proofs.ingest_file(path, folder)
+    except svc_proofs.ProofError as exc:
+        raise ValueError(str(exc)) from exc
+    import uploads
+
+    stored = Path(url).name
+    size = (uploads.get_uploads_dir() / stored).stat().st_size
+    clean = Path(name or path).name
+    suffix = Path(stored).suffix.lower()
+    label = clean.replace("[", "").replace("]", "")
+    image = suffix in uploads.SUPPORTED_IMAGE_EXTENSIONS
+    return {
+        "url": url,
+        "name": clean,
+        "size": size,
+        "type": uploads.MIME_BY_EXTENSION.get(suffix, "application/octet-stream"),
+        "markdown": f"![{label}]({url})" if image else f"[{label}]({url})",
+    }

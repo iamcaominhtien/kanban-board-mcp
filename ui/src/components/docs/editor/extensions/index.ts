@@ -3,6 +3,7 @@ import { Markdown } from '@tiptap/markdown';
 import StarterKit from '@tiptap/starter-kit';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
+import Highlight from '@tiptap/extension-highlight';
 import { Callout } from './Callout';
 import { CommentHighlights } from './CommentHighlights';
 import { CodeBlock } from './CodeBlock';
@@ -63,6 +64,8 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
       },
     }),
     Markdown.configure({ markedOptions: { gfm: true, breaks: false } }),
+    // `==text==` in the Markdown, a <mark> on screen, Mod-Shift-H (the reading view renders the same, remarkDocs)
+    Highlight.configure({ multicolor: false }),
     TaskList,
     TaskItem.configure({ nested: true }),
     TableKit.configure({ table: { resizable: false } }),

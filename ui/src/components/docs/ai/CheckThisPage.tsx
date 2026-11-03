@@ -91,7 +91,7 @@ function FindingCard({
   const failure = problem ?? (error ? problemLine(error.code, error.detail) : null);
   return (
     <div className="pai-finding" data-testid="check-finding" data-kind={f.kind} {...(pending ? { [PENDING]: '' } : {})}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span className="pai-kind" data-kind={f.kind}>
           {FINDING_LABEL[f.kind]}
         </span>
@@ -128,7 +128,7 @@ function FindingCard({
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             type="button"
-            className="st-btn st-btn-sm pai-btn"
+            className="st-btn st-btn-sm ask-ai-btn"
             disabled={asking}
             onClick={fix}
             data-testid="fix-as-draft"
@@ -199,10 +199,10 @@ export function CheckThisPage({
   return (
     <div className="pai-check" role="region" aria-label="Check this page" data-testid="check-this-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Icon name="i17" size={18} strokeWidth={1.9} style={{ color: '#6b5bd2' }} />
-        <b style={{ fontSize: 15 }}>Check this page</b>
+        <Icon name="i17" size={16} strokeWidth={2} style={{ color: '#7c5cd6' }} />
+        <b style={{ fontSize: 14 }}>Check this page</b>
         <span style={{ flex: 1 }} />
-        {result && <span className="pai-tag">{findingsTitle(findings.length)}</span>}
+        {result && <span className="pai-count">{findingsTitle(findings.length)}</span>}
         <button
           type="button"
           className="dk-icobtn"
@@ -213,7 +213,7 @@ export function CheckThisPage({
           <Icon name="close" size={13} strokeWidth={2} />
         </button>
       </div>
-      <div className="pai-foot" style={{ fontSize: 12.5 }}>
+      <div className="pai-foot">
         {result?.stylePage ? (
           <>
             Read this page and the style guide page <b>{result.stylePage.title}</b>. Nothing is changed.
@@ -250,11 +250,11 @@ export function CheckThisPage({
             onGone={(id) => setGone((g) => new Set(g).add(id))}
           />
         ))}
-      <div style={{ display: 'flex', alignItems: 'center', fontSize: 12.5, color: '#5b6b60' }}>
+      <div style={{ display: 'flex', alignItems: 'center', fontSize: 11.5, color: '#5b6b60' }}>
         <span>{result ? costLabel(result.cost, result.metered) : ''}</span>
         <span style={{ flex: 1 }} />
         <span>
-          <kbd>Esc</kbd> close
+          <span className="dk-kbd">Esc</span> close
         </span>
       </div>
     </div>

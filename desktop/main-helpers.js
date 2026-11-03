@@ -361,7 +361,43 @@ function createPowerKeeper(opts) {
   };
 }
 
+/**
+ * Whether `url` is the app's own page opened as a Docs window (`index.html?docsWindow=1`, issue #268): the one window
+ * the page may open as another app window. Anything else it opens goes to the browser.
+ * @param {string} url - The address the page asked to open.
+ * @param {string} appUrl - The app page's own file:// address (index.html).
+ */
+function isDocsWindowUrl(url, appUrl) {
+  let target;
+  let own;
+  try {
+    target = new URL(url);
+    own = new URL(appUrl);
+  } catch {
+    return false;
+  }
+  return (
+    target.protocol === own.protocol &&
+    target.host === own.host &&
+    target.pathname === own.pathname &&
+    target.searchParams.get('docsWindow') === '1'
+  );
+}
+
+/** Whether `url` is the app's own page (any query), e.g. the board a Docs window asks for. */
+function isAppUrl(url, appUrl) {
+  try {
+    const target = new URL(url);
+    const own = new URL(appUrl);
+    return target.protocol === own.protocol && target.host === own.host && target.pathname === own.pathname;
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
+  isAppUrl,
+  isDocsWindowUrl,
   DEFAULT_PREFERENCES,
   POWER_POLL_MS,
   createPowerKeeper,

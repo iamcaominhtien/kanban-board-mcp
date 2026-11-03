@@ -280,6 +280,8 @@ async def get_ticket(
     branches, relations (blocks / blocked_by / links).
     `workspace` {path, exists, files}: its scratch folder now; `worktree` {path, branch, uncommitted, outputs}: the AI
     team's checkout. Look here before you say where a file is.
+    `docs`: the Docs pages tied to the ticket (its spec, design notes): [{page_id, title, path, sections, why}]; read
+    the ones that matter with docs_read(action='get', page_id) before you work.
     `files`: uploads the ticket mentions, with absolute `path` to read.
     Sub-item ids (comment, test case, branch, ...) used by the other tools come from here.
     `activity_log`: the latest changes (who, what, when); `activity_total`: how many there are in all (activity_limit
@@ -327,6 +329,9 @@ async def get_ticket(
         tree = await svc_worktrees.brief(session, ticket_id)
         if tree is not None:
             data["worktree"] = tree
+        docs = await _linked_docs(session, ticket)
+        if docs:
+            data["docs"] = docs
     log = data.get("activity_log") or []
     data["activity_total"] = len(log)
     if since is not None:
@@ -341,6 +346,24 @@ async def get_ticket(
         log = log[-limit:] if limit > 0 else []
     data["activity_log"] = _clip_activity(log)
     return data
+
+
+async def _linked_docs(session, ticket) -> list[dict]:
+    """The Docs pages tied to the ticket (its spec, its design notes), as an agent should read them: a page hidden
+    from AI is left out of an AI run's view. Read one with docs_read(action='get', page_id)."""
+    from services import docs as svc_docs
+    from services.ai import guard
+    from services.docs_ai import access as docs_ai_access
+
+    try:
+        hidden = (
+            await docs_ai_access.hidden_page_ids(session, ticket.project_id)
+            if await guard.resolve() is not None
+            else set()
+        )
+        return await svc_docs.linked_pages(session, ticket.id, hidden=hidden)
+    except Exception:  # noqa: BLE001 - the pages are extra context; the ticket reads without them
+        return []
 
 
 async def get_ticket_workspace_path(ticket_id: TicketId) -> dict:

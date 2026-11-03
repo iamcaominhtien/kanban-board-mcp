@@ -70,7 +70,7 @@ export function TidyOptions({ projectId, file, onResult }: Props) {
 
   return (
     <div data-testid="tidy-options" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5B3FBF' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: '#5b3aa6' }}>
         TIDY WHILE IMPORTING (OPTIONAL)
       </div>
       {file && result && (
@@ -99,10 +99,10 @@ export function TidyOptions({ projectId, file, onResult }: Props) {
       {candidates.length > 0 && (
         <div
           data-testid="see-links-review"
-          style={{ border: '1px solid #D9CCF7', borderRadius: 9, background: '#F8F5FE', padding: '8px 10px' }}
+          style={{ border: '1px solid #d9ccf3', borderRadius: 9, background: '#faf7ff', padding: '8px 10px' }}
         >
           <div
-            style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B3FBF', fontWeight: 700 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5b3aa6', fontWeight: 700 }}
           >
             Review links
             <button

@@ -50,6 +50,7 @@ import type { AiSlashId, SlashItem } from './slashItems';
 import { TableControls } from './TableControls';
 import { cleanEditorMarkdown } from '../../../utils/docsMarkdown';
 import { compactMarkdown } from './compactMarkdown';
+import { markdownToPaste } from './pasteMarkdown';
 
 export type EditorMode = 'visual' | 'markdown';
 
@@ -542,7 +543,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         previewRef.current.open(items, index);
         return true;
       },
-      handlePaste: (_view, event) => {
+      handlePaste: (view, event) => {
         live.current.onUserInput?.();
         const files = Array.from(event.clipboardData?.files ?? []);
         const image = files.find(isPicture);
@@ -550,10 +551,21 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           void uploadImage(image);
           return true;
         }
-        if (!files.length) return false;
-        void (async () => {
-          for (const f of files) await uploadFile(f);
-        })();
+        if (files.length) {
+          void (async () => {
+            for (const f of files) await uploadFile(f);
+          })();
+          return true;
+        }
+        // Markdown from a plain-text source becomes blocks (not "## Title" as text); never inside a code block
+        const md = view.state.selection.$from.parent.type.spec.code
+          ? null
+          : markdownToPaste(
+              event.clipboardData?.getData('text/plain') ?? '',
+              event.clipboardData?.getData('text/html') ?? '',
+            );
+        if (md == null || !editorRef.current) return false;
+        editorRef.current.commands.insertContent(md, { contentType: 'markdown' });
         return true;
       },
       handleDrop: (view, event) => {

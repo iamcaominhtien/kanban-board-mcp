@@ -106,8 +106,11 @@ export function useCommentHighlights({ root, threads, activeId, revision, onSele
       mo.takeRecords();
       mo.observe(root, OBSERVE);
     };
+    // a late callback (fonts ready, a resize) after this effect was cleaned up must not lay out its stale threads:
+    // the registry is global, so it would wipe the highlights the current effect set
+    let disposed = false;
     const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(layout);
+      if (!disposed && !frame) frame = requestAnimationFrame(layout);
     };
     const mo = new MutationObserver(schedule);
     mo.observe(root, OBSERVE);
@@ -131,6 +134,7 @@ export function useCommentHighlights({ root, threads, activeId, revision, onSele
     root.addEventListener('click', onClick);
 
     return () => {
+      disposed = true;
       if (frame) cancelAnimationFrame(frame);
       mo.disconnect();
       ro.disconnect();

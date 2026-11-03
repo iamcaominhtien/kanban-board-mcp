@@ -279,6 +279,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
     alignItems: 'center',
     gap: 7,
     height: 32,
+    flexShrink: 0,
     padding: '0 10px 0 8px',
     borderRadius: 7,
     fontSize: 13,
@@ -403,7 +404,14 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
             setTarget(atGap(r.parentId, r.afterId));
             setError(null);
           }}
-          style={{ position: 'relative', height: 4, margin: `-1px 4px -1px ${ml}px`, cursor: 'pointer', zIndex: 1 }}
+          style={{
+            position: 'relative',
+            height: 4,
+            flexShrink: 0,
+            margin: `-2.5px 4px -2.5px ${ml}px`,
+            cursor: 'pointer',
+            zIndex: 1,
+          }}
         >
           <div
             className="mv-line"
@@ -467,7 +475,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
 
   return (
     <ModalShell
-      width={668}
+      width={560}
       ariaLabel={`Move “${page.title}”`}
       icon="i35"
       title={<>Move “{page.title}”</>}

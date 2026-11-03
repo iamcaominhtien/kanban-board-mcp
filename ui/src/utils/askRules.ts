@@ -124,6 +124,20 @@ export function footerLine(result: AskResult, cost: number, metered: boolean, no
   return `${read}${cited}${seen} · Index updated ${indexAge(result.indexUpdatedAt, now)}${cash}`;
 }
 
+/** The footer as its two ends (docs-ai C): what was read on the left, the index age and cost on the right. */
+export function footerParts(result: AskResult, cost: number, metered: boolean, now = Date.now()): [string, string] {
+  const line = footerLine(result, cost, metered, now);
+  const cut = line.indexOf(' · Index updated');
+  return cut < 0 ? [line, ''] : [line.slice(0, cut), line.slice(cut + 3)];
+}
+
+/** The text before a citation marker, without the space: the marker sits right after the word, as drawn. */
+export function textBeforeCite(parts: AnswerPart[], i: number): string {
+  const p = parts[i];
+  if (p?.type !== 'text') return '';
+  return parts[i + 1]?.type === 'cite' ? p.text.replace(/\s+$/, '') : p.text;
+}
+
 /** "Just edited, not indexed yet": a page saved in the last minute may be missing from the answer. */
 export function justEdited(result: AskResult | null, now = Date.now()): boolean {
   if (!result?.indexUpdatedAt) return false;

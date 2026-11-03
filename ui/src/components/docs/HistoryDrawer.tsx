@@ -663,9 +663,9 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
                 data-testid={`with-ai-${v.version}`}
                 title="The author accepted AI text in this version"
                 style={{
-                  background: '#F1ECFD',
+                  background: '#EFE8FB',
                   border: '1px solid #D9CCF7',
-                  color: '#5B3FBF',
+                  color: '#5B3AA6',
                   fontWeight: 600,
                   height: 20,
                 }}
