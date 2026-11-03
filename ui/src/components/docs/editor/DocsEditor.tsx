@@ -560,7 +560,10 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         // Markdown from a plain-text source becomes blocks (not "## Title" as text); never inside a code block
         const md = view.state.selection.$from.parent.type.spec.code
           ? null
-          : markdownToPaste(event.clipboardData?.getData('text/plain') ?? '', event.clipboardData?.getData('text/html') ?? '');
+          : markdownToPaste(
+              event.clipboardData?.getData('text/plain') ?? '',
+              event.clipboardData?.getData('text/html') ?? '',
+            );
         if (md == null || !editorRef.current) return false;
         editorRef.current.commands.insertContent(md, { contentType: 'markdown' });
         return true;

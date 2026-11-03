@@ -37,7 +37,15 @@ export function keyLabel(keys: string, mac = IS_MAC): string {
 /** A marker pen over a yellow stroke: the Highlight button. */
 export function HighlightGlyph() {
   return (
-    <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden="true"
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M4 21h16" stroke="#E8B93A" strokeWidth={3} />
       <path d="M14.5 4.5l4 4L11 16H7v-4z" stroke="currentColor" strokeWidth={1.9} />
       <path d="M12.5 6.5l4 4" stroke="currentColor" strokeWidth={1.9} />

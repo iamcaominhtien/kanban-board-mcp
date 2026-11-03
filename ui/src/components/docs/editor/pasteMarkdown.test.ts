@@ -16,6 +16,8 @@ describe('markdownToPaste', () => {
   });
 
   it('treats a code editor’s styled copy as plain text', () => {
-    expect(markdownToPaste('## Title\n- one', '<div style="color:#000"><span>## Title</span><br><span>- one</span></div>')).not.toBeNull();
+    expect(
+      markdownToPaste('## Title\n- one', '<div style="color:#000"><span>## Title</span><br><span>- one</span></div>'),
+    ).not.toBeNull();
   });
 });
