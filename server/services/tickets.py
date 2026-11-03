@@ -84,6 +84,18 @@ def _doc_ref_entries(old: str | None, new: str | None, source: str) -> list[dict
     return out
 
 
+def _record_doc_refs(
+    ticket: Ticket, old: str | None, new: str | None, source: str
+) -> None:
+    """Append the doc references a text edit added or removed to the ticket's activity (the caller commits): a
+    [[Page]] in a comment or a test case is a reference as much as one in the description (TicketDocRefs E)."""
+    entries = _doc_ref_entries(old, new, source)
+    if entries:
+        log = _loads(ticket.activity_log)
+        log.extend(entries)
+        ticket.activity_log = _dumps(log)
+
+
 def mention_ids(text_: str) -> list[str]:
     """Member ids written as ``@[Name](member:id)`` in a comment."""
     return list(dict.fromkeys(m.group(2) for m in _MENTION.finditer(text_ or "")))
@@ -426,6 +438,7 @@ _AUDITABLE = (
     "parent_id",
     "wont_do_reason",
     "repo_path",
+    "review_requested_from",
 )
 
 
@@ -560,6 +573,24 @@ async def update_ticket(
         assignee_member = await session.get(Member, update_data["assignee"])
         if assignee_member is None or assignee_member.project_id != ticket.project_id:
             raise ValueError("Assignee must be a member of this project")
+
+    # Whose review it waits for: a member of the ticket's project (a person or an AI member)
+    if update_data.get("review_requested_from"):
+        reviewer = await session.get(Member, update_data["review_requested_from"])
+        if reviewer is None or reviewer.project_id != ticket.project_id:
+            raise ValueError("The reviewer must be a member of this project")
+    elif (
+        update_data.get("status") == "review"
+        and ticket.status != "review"
+        and "review_requested_from" not in update_data
+        and not ticket.review_requested_from
+    ):
+        # entering Review with nobody asked yet: the AI the workflow (or the odd job) names as its reviewer
+        from services.ai import workflow as ai_workflow
+
+        reviewer_id = await ai_workflow.reviewer_member_id(session, ticket.id)
+        if reviewer_id:
+            update_data["review_requested_from"] = reviewer_id
 
     # Per-ticket git repo override; empty/null falls back to the project's repo
     if "repo_path" in update_data:
@@ -830,6 +861,7 @@ async def add_comment(
     act.record(
         ticket, "comment", None, text, ref=comment_id, actor=act.author_actor(author)
     )
+    _record_doc_refs(ticket, None, text, "a comment")
     ticket.comments = _dumps(comments)
     ticket.updated_at = datetime.now(UTC).isoformat()
     session.add(ticket)
@@ -858,6 +890,7 @@ async def delete_comment(
     for c in comments:
         if c.get("id") == comment_id and not c.get("deleted_at"):
             c["deleted_at"] = now
+            _record_doc_refs(ticket, c.get("text"), None, "a comment")
             break
     ticket.comments = _dumps(comments)
     ticket.updated_at = now
@@ -887,6 +920,7 @@ async def restore_comment(
     for c in comments:
         if c.get("id") == comment_id and c.get("deleted_at"):
             c["deleted_at"] = None
+            _record_doc_refs(ticket, None, c.get("text"), "a comment")
             found = True
     if not found:
         return None
@@ -920,6 +954,7 @@ async def update_comment(
     for c in comments:
         if c.get("id") == comment_id and not c.get("deleted_at"):
             if c.get("text") != text:
+                _record_doc_refs(ticket, c.get("text"), text, "a comment")
                 c["text"] = text
                 c["edited_at"] = datetime.now(UTC).isoformat()
                 c["mentions"] = mention_ids(text)
@@ -1389,6 +1424,8 @@ async def add_test_case(
     test_data_files: list | None = None,
     criterion_id: str | None = None,
     suggested_by: str | None = None,
+    expected_files: list | None = None,
+    notes_files: list | None = None,
 ) -> Ticket | None:
     """Append a test case with the next `TC-n` code.
 
@@ -1443,15 +1480,23 @@ async def add_test_case(
         "proof": proof,
         "note": note,
         "started_at": now_iso if status == "running" else None,
+        # who ran it and who set its result, shown under the case ("Started 4m ago by Ha My", "Failed 3h ago by …")
+        "started_by": act.current_actor() if status == "running" else None,
+        "status_at": now_iso if status in ("pass", "fail") else None,
+        "status_by": act.current_actor() if status in ("pass", "fail") else None,
         "created_at": now_iso,
         "updated_at": now_iso,
         "assignee": assignee,
         "test_data_files": test_data_files or [],
+        "expected_files": expected_files or [],
+        "notes_files": notes_files or [],
         "criterion_id": criterion_id,
         "suggested_by": suggested_by,
     }
     tcs.append(new_tc)
     act.record(ticket, "test_case", None, title, ref=tc_code)
+    for key in ("description", "expected_result", "notes", "proof"):
+        _record_doc_refs(ticket, None, new_tc.get(key), f"test case {tc_code}")
     ticket.test_cases = _dumps(tcs)
     ticket.updated_at = now_iso
     session.add(ticket)
@@ -1474,6 +1519,8 @@ async def update_test_case(
     assignee: str | None = None,
     test_data_files: list | None = None,
     criterion_id: str | None = None,
+    expected_files: list | None = None,
+    notes_files: list | None = None,
 ) -> Ticket | None:
     """Update a test case; only the fields you pass are changed.
 
@@ -1513,22 +1560,32 @@ async def update_test_case(
                 tc["status"] = status
                 if status == "running" and old_status != "running":
                     tc["started_at"] = datetime.now(UTC).isoformat()
+                    tc["started_by"] = act.current_actor()
+                if status in ("pass", "fail") and status != old_status:
+                    tc["status_at"] = datetime.now(UTC).isoformat()
+                    tc["status_by"] = act.current_actor()
             if title is not None:
                 tc["title"] = title
-            if description is not None:
-                tc["description"] = description
-            if expected_result is not None:
-                tc["expected_result"] = expected_result
-            if notes is not None:
-                tc["notes"] = notes
-            if proof is not None:
-                tc["proof"] = proof
+            where = f"test case {tc.get('code') or ''}".strip()
+            for key, value in (
+                ("description", description),
+                ("expected_result", expected_result),
+                ("notes", notes),
+                ("proof", proof),
+            ):
+                if value is not None:
+                    _record_doc_refs(ticket, tc.get(key), value, where)
+                    tc[key] = value
             if note is not None:
                 tc["note"] = note
             if assignee is not None:
                 tc["assignee"] = assignee
             if test_data_files is not None:
                 tc["test_data_files"] = test_data_files
+            if expected_files is not None:
+                tc["expected_files"] = expected_files
+            if notes_files is not None:
+                tc["notes_files"] = notes_files
             if criterion_id is not None:
                 tc["criterion_id"] = criterion_id or None
             tc["updated_at"] = datetime.now(UTC).isoformat()

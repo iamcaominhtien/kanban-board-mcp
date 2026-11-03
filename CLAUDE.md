@@ -16,7 +16,7 @@ Do not spawn subagents by reflex. Each one costs tokens, often has to gather con
 - **Split by context, not by type of work.** Good cuts: independent search paths, components with clean interfaces, checking a finished result. Do not chain agents by role (plan → implement → test → review), and do not split sequential steps of one change or tightly coupled code; do those yourself.
 - **At most 3 subagents at a time.** If there are more pieces, run them in waves or do the small ones yourself. If the user asked for a specific number, spawn exactly that many.
 - **Brief each one fully**: the goal, the files, what is already ruled out, and what done looks like. No two agents edit the same files, and none waits on another's result. Ask for a short summary back, not raw output.
-- **Check what comes back** before relying on it, and do not redo a delegated task yourself. A verifier must run the whole test suite (not a few tests), check against concrete criteria, and report only what affects correctness, not style.
+- **Check what comes back** before relying on it, and do not redo a delegated task yourself. A verifier must run every test related to the change (see Tests below, not just one or two), check against concrete criteria, and report only what affects correctness, not style.
 
 Pick the model and effort for each subagent from the task, not by default:
 
@@ -30,6 +30,16 @@ Pick the model and effort for each subagent from the task, not by default:
 - **Start cheap and escalate on evidence.** Raise the effort first and the model second, and only when a cheaper run came back wrong or thin. When the result can be checked (tests, a verifier), run at low effort and re-run only the failures at `high`.
 - Keep `max` for a hard problem worked through without the user (a security hunt); on ordinary work it overthinks.
 - An escalation agent is a consultant: give it the code and the facts, ask for a recommendation, and do the implementation yourself (or with a cheaper agent) once the way forward is clear.
+
+# Tests
+
+Run only the tests related to what you changed, never the whole suite (it is slow, and some tests fail in a cloud container for reasons that have nothing to do with the change). Related means:
+
+- the test files of the modules you changed, and the suites that exercise them (for a change in `server/services/docs*.py` or the Docs MCP tools: `tests/test_docs*.py`; for the MCP tool list or instructions: `tests/test_mcp_tool_quality.py`; for the board's skills or the run prompt: `tests/test_shared_skills_277.py`, `tests/test_role_skills_273.py`);
+- in `ui/`, `npx vitest run <the folders you changed>` plus `npx tsc --noEmit -p .`, eslint and prettier on the files you touched;
+- in `desktop/`, `npm test` when you changed `desktop/`.
+
+Find the related suites with CodeGraph (`callers`, `impact`) or a grep for the module's name in `server/tests` and the `*.test.ts(x)` files. Say in the PR which suites you ran. Run the whole suite only when the user asks for it.
 
 # Pull requests
 

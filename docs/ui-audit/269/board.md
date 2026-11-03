@@ -122,14 +122,11 @@ Parts the card has that this board does not draw:
 
 ## Left open
 
-- **Review requested line on Review cards** (Main Board, Review column). It needs a server field naming who review was
-  requested from (for example `review_requested_from: member id`, set when a ticket enters Review). Then the card
-  shows a 15 px avatar and "Review requested — Name" at 10.5 `#5B6B60`.
-- **New Ticket description toolbar look**: a `#F6FAF7` toolbar, the "MARKDOWN" label and a `#C7D2CB` border at rest.
-  This lives in the shared `MarkdownEditor` (`compact`), which the ticket detail also uses. A change there needs the
-  owner of the detail editors.
-- **9 px chevron in dropdown triggers**: the shared `MenuSelect` draws 14 px. This affects every `MenuSelect`, not only
-  New Ticket.
+- **Review requested line on Review cards**: fixed in the second PR (`review_requested_from`), see `detail.md` › Server fields (second PR).
+- **New Ticket description toolbar look**: fixed in the second PR: the compact `MarkdownEditor` has the `#C7D2CB`
+  border at rest and the "MARKDOWN" label (see [detail.md, Shared components](detail.md#shared-components-second-pr)).
+- **9 px chevron in dropdown triggers**: fixed in the second PR: `MenuSelect` draws the 9 px chevron in every dropdown
+  (see [detail.md, Shared components](detail.md#shared-components-second-pr)).
 - **Sidebar** (232 px Ink Deep panel vs the hover rail): `ProjectSidebar`, not in these files (board MB-1).
 - **Search field width** 220 px vs 170 px: kept so the filter bar stays one line at 1440 px (MB-3). It can grow if the
   filters ever fold into a menu.

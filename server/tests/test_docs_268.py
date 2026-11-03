@@ -131,7 +131,9 @@ async def test_edit_one_section_keeps_what_another_person_changed(env):
         "note"
     ] == "Edited section 'Limits'"
     # the same section changed since v1: refused, nothing published
-    with pytest.raises(ValueError, match=r"(?s)conflict.*REST and MCP.*Nothing was changed"):
+    with pytest.raises(
+        ValueError, match=r"(?s)conflict.*REST and MCP.*Nothing was changed"
+    ):
         await docs_write(
             action="edit",
             page_id=page["id"],
@@ -347,7 +349,11 @@ async def test_a_person_gives_a_page_to_an_ai_and_sees_its_work_on_the_page(env)
     page = await _page(pid, "Export spec", "## Goal\n\nCSV export.\n")
     r = await c.post(
         f"/docs/pages/{page['id']}/assign",
-        json={"member_id": member["id"], "kind": "write", "instruction": "Add the columns"},
+        json={
+            "member_id": member["id"],
+            "kind": "write",
+            "instruction": "Add the columns",
+        },
     )
     assert r.status_code == 201, r.text
     key = r.json()["ticket"]["id"]
@@ -370,3 +376,27 @@ def test_a_quote_of_highlighted_text_is_found_and_headings_drop_the_marks():
     )
     assert hit is not None and hit.exact
     assert heading_anchors(md)[0]["text"] == "The key rule"
+
+
+def test_every_run_is_told_to_open_the_docs_guide_before_writing_a_page():
+    """A live BA run (sonnet) wrote a good spec at the top of the tree: its prompt never named the Docs guide."""
+    import json as _json
+
+    from models import AiMember, AiProjectSettings
+    from services import role_skills
+    from tests.test_shared_skills_277 import _block
+
+    block = _block(AiMember(id="m1", provider="claude-code"), AiProjectSettings())
+    assert (
+        "Before you create or change a Docs page, open `kanban-board:docs-pages`"
+        in block
+    )
+    other = _block(AiMember(id="m2", provider="gemini"), AiProjectSettings())
+    assert "docs_read(action='docs_guide')" in other
+    # switched off for the project: not named
+    off = AiProjectSettings(
+        ops=_json.dumps({"board_skills": [{"skill": "docs-pages", "on": False}]})
+    )
+    assert "docs-pages" not in _block(AiMember(id="m3", provider="claude-code"), off)
+    ba = role_skills.guide("ba")
+    assert "under the page it\nbelongs to" in ba and "`docs-pages` skill" in ba

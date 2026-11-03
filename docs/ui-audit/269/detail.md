@@ -238,13 +238,40 @@ Not checked:
 
 A row is counted once, under its main outcome. "Kept" and "listed" notes inside a fixed row are not counted twice.
 
+## Shared components (second PR)
+
+The four gaps above that sat in shared components, fixed in a second PR. Checked on **GIOT-25** (added through the REST API: its description links `[[API#Endpoints]]` and `[[Architecture]]`, with the Docs pages Architecture › API that has an "Endpoints" section). Shots in [`docs/screenshots/269/shared/`](../../screenshots/269/shared/).
+
+| Item | Design | Before | Fix |
+|---|---|---|---|
+| Ticket header height (TD-1) | `TicketDetail` header: padding 20/28 and 30 px view buttons, so the header is **71 px** | The AI split button (`RunHeaderButton`: sparkle + run options) was 32 px and the "AI" chat / helpers buttons (`TicketAiMenu`) 34 px: header **73 px**. [before](../../screenshots/269/shared/header-before.jpg) | All AI header buttons are 30 px, as tall as the view buttons (`ai/RunPanel.tsx`, `assist/TicketAi.tsx`; the helpers menu opens 36 px below instead of 40). Run, the run menu, the chat toggle and the helpers menu work as before. Header **71 px**. The "▾" glyph was already a chevron icon. [after](../../screenshots/269/shared/header-after.jpg) |
+| Section pill (DR-1) | `TicketDocRefs` A: "API › #Endpoints", an 11 px # glyph (stroke 2.4, gap 1) before the heading | "API › Endpoints". [before](../../screenshots/269/shared/docpill-before.jpg) | The # glyph before the section name in every page pill with a section, the amber "section gone" pill too (`docs/RefChip.tsx`). [after](../../screenshots/269/shared/docpill-after.jpg) |
+| Hover card and panel header (DR-2) | B2: section card breadcrumb "Architecture › API" (page path, then the page). C1: panel header "API › # Endpoints" | Card: "Architecture" only. Panel: "Architecture › # Endpoints", no page. [card](../../screenshots/269/shared/dochover-before.jpg), [panel](../../screenshots/269/shared/docpanel-before.jpg) | The card breadcrumb is the parent path plus the page; a page card is "Docs › … › Page" (`docs/RefCardsTicket.tsx`). The panel header is parent path › page › # section, "Architecture › API › # Endpoints" (`docs/DocPeekPanel.tsx`). [card](../../screenshots/269/shared/dochover-after.jpg), [panel](../../screenshots/269/shared/docpanel-after.jpg) |
+| Panel over the ticket (DR-3) | C1: "The ticket dims and shifts left" beside the 480 px panel | The modal stayed centred (x 200 at 1440 px); the panel covered its right column. [before](../../screenshots/269/shared/docpanel-before.jpg) | While the panel is open the ticket modal slides left by up to 240 px, keeping 16 px to the window edge (x 16 at 1440 px), and the scrim dims it. `docs/TicketDocsHost.tsx` measures the modal and sets the shift on a `display: contents` wrapper; the rule is in `docs/docs.css`. `TicketModal` is not changed. A full-screen ticket does not move. [after](../../screenshots/269/shared/docpanel-after.jpg) |
+| Dropdown chevron | `NewTicket` assignee trigger: a **9 px** chevron, stroke 2.4, `#9AA8A0` | The shared `MenuSelect` drew 14 px `#5B6B60` in every dropdown. [before](../../screenshots/269/shared/menuselect-newticket-before.jpg) | `ui/MenuSelect.tsx`: 9 px, stroke 2.4, `#9AA8A0`. Checked in New Ticket ([after](../../screenshots/269/shared/menuselect-newticket-after.jpg), [open](../../screenshots/269/shared/menuselect-newticket-open-after.jpg)), Members ([after](../../screenshots/269/shared/menuselect-members-after.jpg)) and Settings › AI ([after](../../screenshots/269/shared/menuselect-settings-after.jpg)) |
+| New Ticket description toolbar | `NewTicket`: box radius 7, `#C7D2CB` border, `#F6FAF7` toolbar, "MARKDOWN" 9.5/700 uppercase `#9AA8A0` on the right | The compact `MarkdownEditor` had the `#F6FAF7` toolbar but a green border and ring at rest and no label. [before](../../screenshots/269/shared/newticket-desc-before.jpg) | Compact mode (`MarkdownEditor.tsx`, `.module.css`): radius 7, `#C7D2CB` border at rest, the green border and ring only while you type in it, and the "MARKDOWN" label. The extra buttons stay (kept code). The detail description editor is not compact, so it keeps its `DescriptionMarkdown` look (green border and ring while editing, no label): [after](../../screenshots/269/shared/detail-desc-editor-after.jpg). The compact test-case editors get the same box and label (checked from code). [after](../../screenshots/269/shared/newticket-desc-after.jpg) |
+
+One more fix was needed to see the at-rest look: with `startInEditMode` and `focusOnMount={false}` the editor still took focus in the dev app, because React StrictMode runs the focus effect twice and the one-time skip was already used. The skip now holds until the editor first leaves edit mode, so New Ticket opens with the focus in the title, as intended.
+
 ## Left open
 
 - **Attachment size in the dev app**: fixed, `ui/vite.config.ts` proxies `/upload-info` now.
-- **Header height 73 vs 71**: the AI header buttons are 32 and 34 px, while the view buttons are 30 (TD-1). Fix in `ai/RunPanel.tsx` (`RunHeaderButton`) and `assist/TicketAi.tsx`.
-- **Sub-task ids** (TD-2): sub-tasks have no ticket behind them. Needs a data model change (server).
-- **Pin a wave by hand** (TDP-1): needs a wave override field on the ticket (server).
-- **Test case fields** (TC-2): per-field attachments on Expected result and Notes, and who started or failed a case. Needs server fields.
-- **Doc pills and panel** (DR-1, DR-2, DR-3): the shared Docs components `docs/RefChip.tsx`, `RefCardsTicket.tsx` and `DocPeekPanel.tsx`.
-- **Doc reference Activity lines**: needs `doc_ref_added` / `doc_ref_removed` events on the server.
+- **Header height 73 vs 71** (TD-1): fixed in the second PR, the AI header buttons are 30 px (see Shared components).
+- **Sub-task ids** (TD-2): not done, by decision: sub-tasks are a checklist with no ticket behind them; giving them ids is a data model change for little use.
+- **Pin a wave by hand** (TDP-1): done by wave 5 (3.30.0).
+- **Test case fields** (TC-2): fixed in the second PR, see "Server fields (second PR)". Proof stays its own field: an AI's evidence is checked there.
+- **Doc pills and panel** (DR-1, DR-2, DR-3): fixed in the second PR (see Shared components).
+- **Doc reference Activity lines**: fixed in the second PR. The description already had them (3.12.0); comments, test cases and Linked docs now do too.
 - Not reached in the app, so checked from the code only: comment edit, delete, failed and offline states; the pending and reopen auto prompts (E1/E3); the Won't Do dialog; mention origin chips (no mention data on GIOT-1).
+
+## Server fields (second PR)
+
+Rows that needed data from the server, now built. Shots in `../../screenshots/269/server-fields/`.
+
+| Design | Row | Before | Fix |
+|---|---|---|---|
+| MainBoard (Review column) | "Review requested — Ha My" with a 15 px avatar | nothing: no field said whose review a ticket waits for | `ticket.review_requested_from` (migration `d8a0c2e4f6b8`), set in the ticket's sidebar ("Review by", shown in Review or once set), over REST and MCP (`manage_ticket update review_requested_from`); filled by the board from the workflow's (or odd job's) AI reviewer when a ticket enters Review with nobody asked. The card shows the line in Review. Activity reads "Review by Nobody → Reviewer Rin". [before](../../screenshots/269/server-fields/review-card-before.jpg) · [after](../../screenshots/269/server-fields/review-card-after.jpg) · [sidebar](../../screenshots/269/server-fields/review-by-sidebar-after.jpg) |
+| TestCases (expanded row) | files under Expected result and Notes, "+ Attach file" under each | only Test data had files | `expected_files` and `notes_files` on a test case, the same chips and Attach file as Test data. [after](../../screenshots/269/server-fields/testcase-files-who-after.jpg) |
+| TestCases (footer) | "Started 4m ago by Ha My · Last edited 1m ago", "Failed 3h ago by Ha My" | "Started 4m ago · Last edited 1m ago", no who, no result time | `started_by`, `status_by`, `status_at` recorded from the actor; the footer reads as drawn |
+| TicketDocRefs E (Activity) | a reference added or removed has its own entry, wherever it is written | only the description's references | comments (added, edited, deleted, restored), test case fields and Linked docs (by hand) write `doc_ref_added` / `doc_ref_removed`; Activity says where ("in a comment", "in test case TC-1", "in Linked docs"). [after](../../screenshots/269/server-fields/activity-doc-refs-after.jpg) |
+

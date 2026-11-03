@@ -1027,6 +1027,13 @@ mark.docs-find-mark.docs-find-cur {
   transition: padding-top 0.12s ease;
 }
 
+/* A ticket under the doc side panel shifts left so the 480px panel does not cover its right column; the panel's scrim
+   dims it (TicketDocRefs C1, DR-3). The host is the display: contents wrapper of TicketDocsHost; the shift is measured
+   there when the panel opens. */
+.dk-peek-host[data-peek-open='true'] > div > [role='dialog'][aria-modal='true'] {
+  transform: translateX(calc(-1 * var(--dk-peek-shift, 0px)));
+}
+
 /* Text highlight, `==text==` in the Markdown: the same soft yellow in the reading view and the editor */
 .dk-md mark:not(.docs-find-mark),
 .dk-editor mark {

@@ -207,8 +207,8 @@ function Loaded({
   const text = useMemo(() => excerptOf(page.markdown, heading ? heading.text : null), [page.markdown, heading]);
   const author = actorName(page.updatedBy);
   const av = avatarColors(author);
-  const crumbs = page.path.map((p) => p.title);
-  const shownCrumbs = heading ? crumbs : crumbs.length > 1 ? crumbs : crumbs;
+  // The parent path plus the page itself: "Architecture › API" on a section card (TicketDocRefs B2, DR-2)
+  const crumbs = [...page.path.map((p) => p.title), page.title];
   const published = page.status === 'published';
   const when = relativeTime(page.updatedAt);
   const full = new Date(page.updatedAt).toLocaleString('en-US', {
@@ -265,7 +265,7 @@ function Loaded({
                 flexWrap: 'wrap',
               }}
             >
-              {(heading ? shownCrumbs : ['Docs', ...shownCrumbs]).map((c, i, a) => (
+              {(heading ? crumbs : ['Docs', ...crumbs]).map((c, i, a) => (
                 <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                   <span
                     style={{

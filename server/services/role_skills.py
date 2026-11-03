@@ -173,8 +173,10 @@ prose with exceptions are where the Dev and QA end up reading them differently. 
 rules: propose the split (to the PM) in your report. Say in your report which documents you chose and why, in one
 line.
 
-A page is called "Spec: <feature>" (or "Bugfix: …", "Rules: …"), created with `docs_write create`, linked from the
-ticket (`[[Spec: …]]`) and linking the ticket back. The criteria stay numbered on the ticket too, with the same
+A page is called "Spec: <feature>" (or "Bugfix: …", "Rules: …"), created with `docs_write create` under the page it
+belongs to (look at the tree first: a feature's spec goes under its feature or under Requirements, not at the top),
+linked from the ticket (`[[Spec: …]]`) and linking the ticket back. The `docs-pages` skill (outside Claude Code:
+`docs_read(action='docs_guide')`) says how to write and change a page. The criteria stay numbered on the ticket too, with the same
 numbers as the page's requirements: the board checks the ticket. Open points are marked `[NEEDS CLARIFICATION: …]`
 with who decides, never guessed.
 

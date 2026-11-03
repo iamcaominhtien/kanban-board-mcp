@@ -215,12 +215,13 @@ async def test_the_tool_list_stays_compact():
     # 750; Docs for every AI (issue #268): docs_write edit (one section or passage), upload (a file to a page or a
     # ticket), tickets (from a checklist) and assign (a page to an AI member), docs_read get's section and docs_guide,
     # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900;
+    # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150;
     # the project memory on `knowledge` (issue #274): memory, remember, forget with text, scope, kind, note_id and
     # ticket_id, about 810
-    assert default < 53_450, (
+    assert default < 53_600, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 56_350, (
+    assert full < 56_500, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

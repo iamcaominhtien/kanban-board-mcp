@@ -53,6 +53,7 @@ TICKET_OPS = {
             "block_done_if_acs_incomplete",
             "block_done_if_tcs_incomplete",
             "wave_pin",
+            "review_requested_from",
             "clear_fields",
         ),
     ),
@@ -186,6 +187,10 @@ async def manage_ticket(
         int | None,
         Field(ge=1, le=99, description="update: pin a sub-ticket's wave (1-99)."),
     ] = None,
+    review_requested_from: Annotated[
+        str | None,
+        Field(description="update: member id whose review it waits for."),
+    ] = None,
     clear_fields: Annotated[
         list[
             Literal[
@@ -197,6 +202,7 @@ async def manage_ticket(
                 "repo_path",
                 "wont_do_reason",
                 "wave_pin",
+                "review_requested_from",
             ]
         ]
         | None,

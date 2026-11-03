@@ -3,7 +3,7 @@
 Additive: a new table, and a nullable column on ai_run that every existing run starts with empty.
 
 Revision ID: d7a9c1e3f5b8
-Revises: c6f8a0b2d4e6
+Revises: d8a0c2e4f6b8
 Create Date: 2026-11-03 10:00:00.000000
 
 """
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "d7a9c1e3f5b8"
-down_revision: Union[str, Sequence[str], None] = "c6f8a0b2d4e6"
+down_revision: Union[str, Sequence[str], None] = "d8a0c2e4f6b8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -60,7 +60,7 @@ projects are not checked; every cause below is in the code and holds for any pro
 
 | Design (G) | Code before | Gap | Fix |
 |---|---|---|---|
-| "Project memory · 6 lessons, 310 tokens · among them “run the dev server in the background” Section H" | no row | missing | "Used 2 lessons and 2 notes, 90 tokens · show which" lists each lesson and note; "not recorded" for runs before 3.33.0 |
+| "Project memory · 6 lessons, 310 tokens · among them “run the dev server in the background” Section H" | no row | missing | "Used 2 lessons and 2 notes, 90 tokens · show which" lists each lesson and note; "not recorded" for runs before 3.34.0 |
 
 ## 5. Checked
 

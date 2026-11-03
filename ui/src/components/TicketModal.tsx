@@ -3156,6 +3156,42 @@ function TicketModalInner({
                         <HoldChips ticket={ticket} />
                       </div>
 
+                      {/* Whose review it waits for: shown on the Review card ("Review requested — Name", Main Board 1);
+                          the board fills it from the workflow's reviewer when the ticket enters Review (issue #269) */}
+                      {(status === 'review' || ticket.reviewRequestedFrom) && (
+                        <div className={styles.sidebarRow} data-testid="review-requested-row">
+                          <span className={styles.sidebarLabel}>Review by</span>
+                          <div className={styles.sidebarItemInteractive} title="Who reviews this ticket">
+                            {(() => {
+                              const who = members.find((m) => m.id === ticket.reviewRequestedFrom);
+                              return who ? (
+                                <>
+                                  <MemberAvatar member={who} size={18} />
+                                  <span>{who.name}</span>
+                                </>
+                              ) : (
+                                <span style={{ color: 'var(--color-text-ter, #9AA8A0)' }}>Nobody asked yet</span>
+                              );
+                            })()}
+                            <select
+                              className={styles.sidebarSelect}
+                              aria-label="Review by"
+                              value={ticket.reviewRequestedFrom ?? ''}
+                              onChange={(e) => autoSaveField('reviewRequestedFrom', e.target.value || null)}
+                            >
+                              <option value="">Nobody</option>
+                              {members
+                                .filter((m) => m.kind !== 'ai_removed')
+                                .map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.name}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
                       {/* 4. Priority */}
                       <div className={styles.sidebarRow}>
                         <span className={styles.sidebarLabel}>Priority</span>
@@ -3371,6 +3407,8 @@ function TicketModalInner({
                               startedAt: tc.startedAt,
                               assignee: tc.assignee,
                               testDataFiles: tc.testDataFiles,
+                              expectedFiles: tc.expectedFiles,
+                              notesFiles: tc.notesFiles,
                               proof: tc.proof ?? null,
                               note: tc.note ?? null,
                             },
