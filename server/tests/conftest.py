@@ -1,6 +1,9 @@
 import os
 import tempfile
 
+# Tests run with the same lazy pydantic schemas as the server (the migration below already defines the models).
+import pydantic_defer  # noqa: F401
+
 # Fake keys in tests write one character as an escape (`sk-ant\x2d…`) so secret scanners do not take them for real ones.
 
 # `main` starts file logging when imported; keep test runs out of the developer's real log folder.
