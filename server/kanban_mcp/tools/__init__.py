@@ -98,6 +98,7 @@ CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     (ai_run, _WRITE),  # only inside a run the board started for an AI member
     (ai_schedules, _DESTRUCTIVE),  # delete
     (ai_team, _WRITE),  # acts on AI members and runs; nothing is deleted
-    (knowledge, _READ),  # the knowledge base: table of contents, search, read
+    # the knowledge base (table of contents, search, read) and the project memory: read it, remember, forget a note
+    (knowledge, _DESTRUCTIVE),
     (board_wait, _READ),  # wait until the board moves (the notification log)
 ]

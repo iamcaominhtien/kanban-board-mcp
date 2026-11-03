@@ -28,6 +28,7 @@ from .comments import (
     restore_comment,
     list_comments,
 )
+from .memory import memory_action
 from .work_log import add_work_log, update_work_log, delete_work_log
 from .test_cases import add_test_case, update_test_case, delete_test_case
 from .branches import add_branch, update_branch, delete_branch, checkout_branch
@@ -201,4 +202,5 @@ __all__ = [
     "get_idea_ticket",
     "list_idea_assumptions",
     "get_idea_activity_trail",
+    "memory_action",
 ]

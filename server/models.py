@@ -1287,6 +1287,8 @@ class AiRun(SQLModel, table=True):
     blocked_move: Optional[str] = Field(default=None)
     # JSON [{at, by, field, step}]: edits a person made to the ticket while this run was working on it
     context_notes: str = Field(default="[]")
+    # JSON {lessons: [{id, text}], notes: [{id, scope, text}]}: the project memory this run's prompt carried (issue #274)
+    memory_used: Optional[str] = Field(default=None)
     # "mcp" when a tool started the run for the person (MCP full control)
     started_via: Optional[str] = Field(default=None)
     # What the run's CLI process used (MB of RAM): the highest value and the last one read (services/ai/resources.py)
@@ -1365,6 +1367,31 @@ class AiLesson(SQLModel, table=True):
         default=None
     )  # model | diagnosis | a person's name
     kept_by: Optional[str] = Field(default=None)
+    uses: int = Field(default=0)  # runs whose prompt carried it
+    last_used_at: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiMemoryNote(SQLModel, table=True):
+    """A note an AI keeps across runs (services/ai/memory.py, issue #274): what works in this repository, the commands,
+    where things are, a person's feedback. Kept by a role (every member of the role reads it), by one member (a member
+    with no role) or on one ticket (every later run on that ticket reads it). Live at once, shown to people and
+    editable; capped per scope (table)."""
+
+    __tablename__ = "ai_memory_note"
+
+    id: str = Field(
+        default_factory=lambda: f"mem_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    scope: str = Field(default="role", index=True)  # role | member | ticket
+    scope_key: str = Field(default="", index=True)  # the role key, the member id or the ticket id
+    text: str = Field(default="")
+    kind: str = Field(default="learned")  # learned | feedback (a person told the AI)
+    written_by: Optional[str] = Field(default=None)  # a member's name or a person's
+    source_run_id: Optional[str] = Field(default=None)
+    source_ticket_id: Optional[str] = Field(default=None)
     uses: int = Field(default=0)  # runs whose prompt carried it
     last_used_at: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)

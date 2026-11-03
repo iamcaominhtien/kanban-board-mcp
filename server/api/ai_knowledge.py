@@ -11,6 +11,7 @@ import services.activity as svc_activity
 from database import get_session
 from models import Project
 from services.ai import knowledge as svc_knowledge
+from services.ai import memory as svc_memory
 
 router = APIRouter(tags=["ai"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -101,3 +102,72 @@ async def delete_lesson(lesson_id: str, session: Session) -> None:
         await svc_knowledge.update_lesson(session, lesson_id, by=_by(), state="dropped")
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+# --------------------------------------------------------------------------- notes an AI keeps (issue #274)
+
+
+class NoteBody(BaseModel):
+    """A note a person writes into an AI memory, or an edit of one."""
+
+    text: str
+    scope: Optional[Literal["role", "member", "ticket"]] = None
+    scope_key: Optional[str] = None
+    kind: Optional[Literal["learned", "feedback"]] = None
+
+
+@router.post("/projects/{project_id}/ai/notes", status_code=201)
+async def post_note(project_id: str, body: NoteBody, session: Session) -> dict:
+    """Write a note into a role's, a member's or a ticket's memory (a person's correction, say)."""
+    await _project(session, project_id)
+    if not body.scope or not body.scope_key:
+        raise HTTPException(status_code=422, detail="Say whose memory it goes in.")
+    try:
+        row, _what = await svc_memory.write(
+            session,
+            project_id,
+            body.scope,
+            body.scope_key,
+            body.text,
+            by=_by(),
+            kind=body.kind or "feedback",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return svc_memory.note_dict(row)
+
+
+async def _note(session, note_id: str):
+    from models import AiMemoryNote
+
+    row = await session.get(AiMemoryNote, note_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Note not found.")
+    return row
+
+
+@router.patch("/ai/notes/{note_id}")
+async def patch_note(note_id: str, body: NoteBody, session: Session) -> dict:
+    """Edit a note an AI wrote."""
+    row = await _note(session, note_id)
+    try:
+        row, _what = await svc_memory.write(
+            session,
+            row.project_id,
+            row.scope,
+            row.scope_key,
+            body.text,
+            by=_by(),
+            kind=body.kind or row.kind,
+            note_id=note_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return svc_memory.note_dict(row)
+
+
+@router.delete("/ai/notes/{note_id}", status_code=204)
+async def delete_note(note_id: str, session: Session) -> None:
+    """Remove a note."""
+    row = await _note(session, note_id)
+    await svc_memory.forget(session, row.project_id, note_id)

@@ -148,8 +148,11 @@ async def update_lesson(
 
 def _fits(rows: list[AiLesson]) -> list[AiLesson]:
     """Kept lessons up to the cap, the most used and most recent first."""
+    from .memory import _neg
+
     out, used = [], 0
-    for r in sorted(rows, key=lambda r: (-(r.uses or 0), r.created_at), reverse=False):
+    # newest first among equally used ones (it sorted the oldest first, so a fresh lesson was the one left out)
+    for r in sorted(rows, key=lambda r: (-(r.uses or 0), _neg(r.created_at))):
         cost = estimate_tokens(r.text)
         if used + cost > LESSON_TOKEN_CAP:
             continue
@@ -159,11 +162,37 @@ def _fits(rows: list[AiLesson]) -> list[AiLesson]:
 
 
 async def prompt_block(session, project_id: str, *, record_use: bool = False) -> str:
-    """The text every run on the project gets in its system prompt: the instructions, then the kept lessons."""
+    """The project's part of every run's system prompt: the instructions, then the kept lessons."""
+    text, _used = await block_for(session, project_id, record_use=record_use)
+    return text
+
+
+async def block_for(
+    session,
+    project_id: str,
+    *,
+    role: str | None = None,
+    member_id: str | None = None,
+    ticket_id: str | None = None,
+    record_use: bool = False,
+    notes_on: bool = True,
+) -> tuple[str, dict]:
+    """(text, used) for a run's system prompt: the instructions, the kept lessons, the member's own notes (its role's)
+    and the notes on its ticket (issue #274). ``used`` is what the run carried: {lessons, notes}, recorded on the run
+    so a person sees "used 3 lessons" and which."""
+    from . import memory
+
     row = await session.get(AiProjectKnowledge, project_id)
     settings = await get_settings(session, project_id)
     cap = int(ops.get(settings).get("lessons_in_prompt") or 20)
     kept = _fits(await lessons(session, project_id, state="kept"))[:cap]
+    own, on_ticket = (
+        await memory.for_run(
+            session, project_id, role=role, member_id=member_id, ticket_id=ticket_id
+        )
+        if notes_on and (member_id or ticket_id)
+        else ([], [])
+    )
     parts = []
     if row is not None and (row.instructions or "").strip():
         parts.append(
@@ -174,25 +203,83 @@ async def prompt_block(session, project_id: str, *, record_use: bool = False) ->
             "What the AIs on this project learned (lessons kept by a person; follow them):\n"
             + "\n".join(f"- {r.text}" for r in kept)
         )
-    if record_use and kept:
+    if own:
+        whose = f"the {role} role's" if role else "your own"
+        parts.append(
+            f"Your notes ({whose} memory, kept across runs by you and your teammates of the same role; update them "
+            "when they are wrong):\n"
+            + "\n".join(
+                f"- [{n.id}]{' (a person said)' if n.kind == 'feedback' else ''} {n.text}"
+                for n in own
+            )
+        )
+    if on_ticket:
+        parts.append(
+            f"Notes on this ticket (left by earlier runs on {ticket_id}; read them before you start):\n"
+            + "\n".join(
+                f"- [{n.id}] ({n.written_by or 'a run'}) {n.text}" for n in on_ticket
+            )
+        )
+    used = {
+        "lessons": [{"id": r.id, "text": r.text} for r in kept],
+        "notes": [
+            {"id": n.id, "scope": n.scope, "text": n.text} for n in [*own, *on_ticket]
+        ],
+        "tokens": sum(estimate_tokens(r.text) for r in kept)
+        + sum(estimate_tokens(n.text) for n in [*own, *on_ticket]),
+    }
+    if record_use and (kept or own or on_ticket):
         now = _now()
-        for r in kept:
+        for r in [*kept, *own, *on_ticket]:
             r.uses = (r.uses or 0) + 1
             r.last_used_at = now
             session.add(r)
         await session.commit()
-    return "\n\n".join(parts)
+    return "\n\n".join(parts), used
+
+
+async def for_run(session, run: AiRun, profile) -> str:
+    """The memory block of one run, recorded on the run (``memory_used``)."""
+    from . import plugins as ai_plugins
+
+    settings = await get_settings(session, run.project_id)
+    text, used = await block_for(
+        session,
+        run.project_id,
+        role=ai_plugins.role_of(profile),
+        member_id=profile.id,
+        ticket_id=run.ticket_id,
+        record_use=True,
+        notes_on=ops.get(settings).get("ai_notes", True) is not False,
+    )
+    run.memory_used = json.dumps(used)
+    session.add(run)
+    await session.commit()
+    return text
 
 
 async def summary(session, project_id: str) -> dict:
     """The knowledge page: instructions, lessons, and how many tokens they add to every prompt."""
+    from . import memory
+
     row = await get(session, project_id)
     rows = await lessons(session, project_id)
     kept = _fits([r for r in rows if r.state == "kept"])
     instr_tokens = estimate_tokens(row.instructions or "")
     lesson_tokens = sum(estimate_tokens(r.text) for r in kept)
+    notes = await memory.notes(session, project_id)
+    flags = await memory.flags(session, project_id)
+    labels = await memory.labels(session, notes)
     await session.commit()
     return {
+        "proposals": sum(1 for r in rows if r.state == "proposed"),
+        "notes": [
+            {**memory.note_dict(n), "scope_label": labels.get((n.scope, n.scope_key))}
+            for n in notes
+        ],
+        "note_caps": memory.MAX_NOTES,
+        # a list, not a dict keyed by id: the UI camel-cases dict keys, ids included
+        "flags": [{"id": k, **f} for k, fs in flags.items() for f in fs],
         "project_id": project_id,
         "instructions": row.instructions or "",
         "instructions_tokens": instr_tokens,
@@ -416,21 +503,69 @@ async def propose_from_ticket(ticket_id: str) -> AiLesson | None:
         return marker
 
 
+async def propose(
+    session,
+    project_id: str,
+    text: str,
+    *,
+    by: str,
+    proposed_by: str,
+    source_ticket_id: str | None = None,
+    source_run_id: str | None = None,
+    member_id: str | None = None,
+) -> AiLesson | None:
+    """Propose a lesson and tell the project's owners and admins it waits for them (an AI in a run, an outside agent
+    over MCP, a diagnosis). None when the same lesson is already there."""
+    from services import notifications as centre
+
+    row = await add_lesson(
+        session,
+        project_id,
+        text,
+        by=by,
+        state="proposed",
+        source_ticket_id=source_ticket_id,
+        source_run_id=source_run_id,
+        proposed_by=proposed_by,
+    )
+    if row is None:
+        return None
+    try:
+        await centre.emit(
+            "lesson",
+            project_id=project_id,
+            recipients=await centre.owners_and_admins(session, project_id),
+            title=f"A lesson proposed by {proposed_by}"
+            + (f" on {source_ticket_id}" if source_ticket_id else ""),
+            body=row.text[:300],
+            target_kind="lesson",
+            target_id=row.id,
+            ticket_id=source_ticket_id,
+            member_id=member_id,
+            data={"run_id": source_run_id} if source_run_id else {},
+            session=session,
+        )
+    except Exception:  # noqa: BLE001 - the proposal stands even if nobody could be told
+        logger.exception("Could not tell anyone about lesson %s", row.id)
+    return row
+
+
 async def propose_from_diagnosis(run_id: str, text: str) -> AiLesson | None:
-    """A diagnosis named something the project will meet again (a dev server that hung): propose it."""
+    """A diagnosis named something the project will meet again (a dev server that hung): propose it. A person is told,
+    as for a proposal at the end of a ticket (it used to wait unseen)."""
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None:
             return None
-        return await add_lesson(
+        return await propose(
             session,
             run.project_id,
             text,
             by="the board",
-            state="proposed",
+            proposed_by="diagnosis",
             source_ticket_id=run.ticket_id,
             source_run_id=run_id,
-            proposed_by="diagnosis",
+            member_id=run.member_id,
         )
 
 

@@ -60,6 +60,10 @@ const knowledge = (o: Partial<Knowledge> = {}): Knowledge => ({
   totalTokens: 2490,
   budget: 8000,
   unused: [],
+  proposals: 0,
+  notes: [],
+  noteCaps: { role: 30, member: 30, ticket: 15 },
+  flags: [],
   ...o,
 });
 

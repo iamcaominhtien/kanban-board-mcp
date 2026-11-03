@@ -8,6 +8,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.33.0] - 2026-11-03
+
+The AI team keeps its own memory, without being asked, and a person can see it, trust it and correct it (#274). Why it felt absent, and the screens 1:1 with the design: `docs/ui-audit/274/memory.md`.
+
+### Added
+- **Memory a run writes itself**: `knowledge(action='remember')` keeps a note in the run's role memory (every member of the role reads it at the start of a run; a member without a role keeps its own), on its ticket (every later run on that ticket reads it, so what one run learned reaches the next), or proposes a project lesson for a person to keep. A person's correction is kept as feedback and read first. Notes are live at once, deduplicated and capped (30 per role, 15 per ticket); a full memory refuses a write and names the notes to replace. `forget` removes one; a person edits or deletes any of them.
+- **`keeping-memory`, a skill for every role**: what is worth keeping (a command that must be run a certain way, where something is, a trap, a person's correction), where it goes, how to write it, what never to keep. In the board's plugin and in `docs_read(guides)`; one line of it in every run's prompt and in the MCP instructions.
+- **AI Team › Memory**, with a count of what waits for you (lessons proposed, memory that may be out of date); Project knowledge opens on Memory while anything waits, with "N waiting for you".
+- **What a run used**: each run records the lessons and notes its prompt carried; Run history › What it was given › Project memory says "Used 2 lessons and 2 notes, 90 tokens" and which. Saving a note is a step of the run.
+- **Over MCP**, for an agent outside the board: `knowledge(action='memory')` reads the instructions, lessons and notes; `remember` proposes a lesson or leaves a ticket note.
+- **Stale memory is flagged** for a person: a lesson or note naming a file none of the project's checkouts has, or one a newer lesson or note says something close to (a possible contradiction when one of them negates).
+- Settings › AI › Project knowledge › "Let the AIs keep their own notes" (on by default).
+
+### Fixed
+- **API-key members never got the project's instructions or lessons** in their prompt.
+- A lesson proposed by a diagnosis waited unseen: it now notifies the project's owners and admins, as an end-of-ticket proposal does.
+- When kept lessons outgrow the cap, the newest of equally used ones stays in the prompt (the oldest did).
+
 ## [3.32.0] - 2026-11-03
 
 Docs for every AI, and Docs in a window of its own (#268): an AI, on the board or outside it, works in Docs as a person does, and a person can move Docs out of the board into its own window and dock it back.
