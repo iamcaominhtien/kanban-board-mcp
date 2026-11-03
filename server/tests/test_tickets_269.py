@@ -268,6 +268,8 @@ async def test_a_runs_outputs_go_to_the_workspace_and_the_work_log_says_where(
     assert args[args.index("--add-dir") + 1] == str(ws)
     # and may run the project's own test command, whatever its allow list names (a live Reviewer could not)
     assert "Bash(python3 -m unittest -v:*)" in args[args.index("--allowedTools") + 1]
+    # and is told to type commands plainly: `git -C <path> log` does not match `Bash(git log:*)`
+    assert "never `git -C <path>" in system
     # the code it left is still in the worktree, for the Dev to commit; the outputs are not
     wt = (await c.get(f"/tickets/{tid}/ai/worktree")).json()
     assert Path(wt["path"], "src/new_helper.py").exists()

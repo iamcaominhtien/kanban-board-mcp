@@ -2441,6 +2441,10 @@ async def _execute_cli_held(
                 f"touch the main checkout. If you start a server, use the port {worktree.port} (the PORT environment "
                 "variable) and run it in the background."
             )
+        if config.get("permission_mode") != "bypass":
+            # A live Reviewer typed `git -C <worktree> log` and `cd <worktree> && …`: an allow rule matches the start of
+            # the command, so both were refused, it took the shell for switched off and never ran the tests (issue #269)
+            system = f"{system}\n\n{SHELL_LINE}"
         ws_dir = None
         if run.ticket_id:
             # The ticket's Workspace, which runs never mentioned: a PM told a person a QA's files were "in the
@@ -3959,6 +3963,14 @@ async def _end(
     RT.wake.set()
     await _publish(force=True)
     return run
+
+
+SHELL_LINE = (
+    "Your shell starts in your working folder: type commands as they are (`git diff main...HEAD`, the project's test "
+    "command), never `git -C <path> …` or `cd <path> && …`. Your permissions match the start of a command, so those "
+    "forms are refused; a refused command is not a switched-off shell: try its plain form before you say you could "
+    "not run something."
+)
 
 
 def project_command_rules(cfg_ops: dict) -> list[str]:
