@@ -258,6 +258,8 @@ def to_dict(run: AiRun, member_name: str | None = None) -> dict:
         "account_id": run.account_id,
         # OPS-7: the run history retention removed its transcript, steps and prompt (the rest is kept)
         "details_removed_at": run.details_removed_at,
+        # the project memory its prompt carried: lessons and notes (issue #274)
+        "memory_used": loads(run.memory_used, None),
     }
 
 
@@ -1608,6 +1610,10 @@ async def _execute(run_id: str, token: str) -> None:
             worktrees.after_run(run.ticket_id)
             # and what it left in the worktree that is not code goes to the ticket's Workspace (issue #269)
             worktrees.tidy_later(run.ticket_id, run_id)
+            # and a light model keeps what the next run should know and the run did not keep itself (issue #274)
+            from . import memory
+
+            memory.after_run(run_id)
 
 
 async def _has_ended(run_id: str) -> bool:
@@ -1835,7 +1841,8 @@ async def _build_prompt_base(
     # The project's instructions and the lessons its AIs learned: every run, before the member's own persona (D18)
     from . import knowledge
 
-    known = await knowledge.prompt_block(session, run.project_id, record_use=True)
+    # and the notes this member's role keeps and the notes on this ticket (issue #274), recorded on the run
+    known = await knowledge.for_run(session, run, profile)
     if known:
         system += f"\n\n{known}"
     if profile.persona.strip():
@@ -5716,6 +5723,7 @@ async def record_report(
     summary: str,
     criteria: list[dict] | None,
     tests: dict | None,
+    learned: list | None = None,
     handoff: dict | None = None,
 ) -> dict:
     """The agent's own account of what it did; shown as the AI summary (a claim, not proof). Its handoff note is what
@@ -5750,12 +5758,29 @@ async def record_report(
             "ticket_items(item='test_case', action='update', proof=...): a screenshot, the command and its output, "
             "or 'Not provable: <why>'. Then end with a short final message."
         )
-    await _append(
-        ctx.run_id,
-        steps=[{"kind": "report", "text": "Wrote the summary"}],
-        report=json.dumps(report),
-    )
-    return {"recorded": True, "next": next_step}
+    # what it learned, kept as notes for the next run of its role or on its ticket (issue #274)
+    from . import memory
+
+    kept = await memory.keep_learned(ctx, learned)
+    if kept["kept"] or kept["refused"]:
+        report["learned"] = kept
+    steps = [{"kind": "report", "text": "Wrote the summary"}]
+    steps += [
+        {
+            "kind": "memory",
+            "text": f"Remembered: {k['text'][:200]}",
+            "note_id": k["id"],
+            "scope": k["scope"],
+        }
+        for k in kept["kept"]
+    ]
+    await _append(ctx.run_id, steps=steps, report=json.dumps(report))
+    out = {"recorded": True, "next": next_step}
+    if kept["kept"]:
+        out["remembered"] = len(kept["kept"])
+    if kept["refused"]:
+        out["not_remembered"] = kept["refused"]
+    return out
 
 
 # ---------------------------------------------------------------------------

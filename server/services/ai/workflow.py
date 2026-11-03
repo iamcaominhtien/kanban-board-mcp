@@ -2608,6 +2608,27 @@ async def skip_step(ticket_id: str, *, by: str, step_id: str | None = None) -> N
     await advance(ticket_id)
 
 
+async def reviewer_member_id(session, ticket_id: str) -> str | None:
+    """The AI that reviews a ticket: its workflow's review step's member (the last one that took it, else the one
+    the step would pick), or an odd job's chosen reviewer. None when nothing names one."""
+    wf = await session.get(AiTicketWorkflow, ticket_id)
+    if wf is None:
+        return None
+    if not wf.template_key:
+        return wf.reviewer_id
+    rows = (
+        await session.exec(
+            select(AiTicketStep).where(
+                AiTicketStep.ticket_id == ticket_id, AiTicketStep.role == "reviewer"
+            )
+        )
+    ).all()
+    taken = [r for r in rows if r.member_id]
+    if taken:
+        return max(taken, key=lambda r: r.seq).member_id
+    return wf.reviewer_id
+
+
 async def set_reviewer(
     session, ticket: Ticket, member_id: str | None, *, by: str
 ) -> AiTicketWorkflow:

@@ -189,12 +189,12 @@ export function MarkdownEditor({
 
   const skipFirstFocus = useRef(startInEditMode && !focusOnMount);
   useEffect(() => {
+    // The skip holds until the editor first leaves edit mode: cleared on the first run, a StrictMode re-run of this
+    // effect would focus the box after all (and the compact box would never show its at-rest border)
+    if (!isEditing) skipFirstFocus.current = false;
     if (isEditing && wysiwygRef.current) {
       dirtyRef.current = false;
-      if (skipFirstFocus.current) {
-        skipFirstFocus.current = false;
-        return;
-      }
+      if (skipFirstFocus.current) return;
       requestAnimationFrame(() => {
         wysiwygRef.current?.focus();
       });
@@ -1489,6 +1489,12 @@ export function MarkdownEditor({
               </svg>
             </button>
           </div>
+          {/* The compact box names its format on the right of the toolbar (NewTicket description) */}
+          {compact && (
+            <span className={styles.formatLabel} aria-hidden="true">
+              Markdown
+            </span>
+          )}
 
           {/* Link Popover matching description-markdown-5-link-popover.png */}
           {isLinkPopoverOpen && (

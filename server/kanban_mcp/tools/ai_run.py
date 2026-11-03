@@ -23,6 +23,15 @@ _HANDOFF = {
         "check": {"type": "string"},
     },
 }
+_LEARNED = {
+    "type": "object",
+    "properties": {
+        "text": {"type": "string"},
+        "scope": {"type": "string", "enum": ["role", "ticket"]},
+        "kind": {"type": "string", "enum": ["learned", "feedback"]},
+    },
+    "required": ["text"],
+}
 _TESTS = {
     "type": "object",
     "properties": {"passed": {"type": "integer"}, "failed": {"type": "integer"}},
@@ -41,6 +50,10 @@ def _spell_out(schema: dict, shape: dict, *, array: bool) -> None:
 
 def _criteria_schema(schema: dict) -> None:
     _spell_out(schema, _CRITERION, array=True)
+
+
+def _learned_schema(schema: dict) -> None:
+    _spell_out(schema, _LEARNED, array=True)
 
 
 def _tests_schema(schema: dict) -> None:
@@ -77,6 +90,13 @@ async def ai_run(
         Field(
             description="report, handoff: your handoff note; the next role reads it first.",
             json_schema_extra=_handoff_schema,
+        ),
+    ] = None,
+    learned: Annotated[
+        list[dict] | None,
+        Field(
+            description="report: what the next run must not pay for again; kept as notes.",
+            json_schema_extra=_learned_schema,
         ),
     ] = None,
     ticket_id: Annotated[
@@ -125,4 +145,6 @@ async def ai_run(
         return await runs.record_handoff(
             ctx, member or "", ticket, instruction or "", note=handoff
         )
-    return await runs.record_report(ctx, summary or "", criteria, tests, handoff)
+    return await runs.record_report(
+        ctx, summary or "", criteria, tests, learned, handoff=handoff
+    )

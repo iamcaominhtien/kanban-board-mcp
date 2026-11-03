@@ -13,6 +13,8 @@ DEFAULTS: dict = {
     # Phase 3 — knowledge
     "propose_lessons": True,  # a light model proposes lessons at the end of a ticket
     "lessons_in_prompt": 20,  # at most this many kept lessons go into a run's prompt
+    # A run keeps its own notes across runs (its role's, and on its ticket) and reads them back (issue #274)
+    "ai_notes": True,
     # Load a member's skills, subagents and hooks per run through CLI flags instead of writing them into its folder
     # (D5). Always on for a project that uses worktrees; for the rest, a switch (a migration removes what was written).
     "per_run_config": False,

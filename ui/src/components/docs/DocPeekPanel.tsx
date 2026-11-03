@@ -472,7 +472,8 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
 
 function loadingHeader(loading: boolean, crumbs: string[], title: string, section: string | null | undefined) {
   if (loading) return <span className="skel" style={{ display: 'inline-block', width: 180, height: 14 }} />;
-  const all = crumbs.length ? crumbs : [title];
+  // The parent path, then the page, then the section: "API › # Endpoints" (TicketDocRefs C1, DR-2)
+  const all = [...crumbs, title];
   return (
     <>
       <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />

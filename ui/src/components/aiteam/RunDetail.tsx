@@ -5,7 +5,7 @@ import { aiOpsApi } from '../../api/aiOps';
 import { ContinueNoteDialog } from '../ai/trouble/ContinueNoteDialog';
 import { exportRunUrl, usePinRun, useRunRecord, useTranscript } from '../../api/aiHistory';
 import { extractError } from '../../api/extractError';
-import type { Entry, HistoryRow } from '../../types/aiHistory';
+import type { Entry, HistoryRow, MemoryUsed } from '../../types/aiHistory';
 import {
   END_LOOK,
   asText,
@@ -134,6 +134,48 @@ function Collapsible({ label, text }: { label: string; text: string }) {
   );
 }
 
+/** "Used 3 lessons and 2 notes", and which (issue #274). */
+export function memoryUsedLabel(used: MemoryUsed | null | undefined): string {
+  if (!used) return 'not recorded (a run from before the board recorded it)';
+  const l = used.lessons.length;
+  const n = used.notes.length;
+  if (!l && !n) return 'none: no kept lessons or notes yet';
+  const parts = [l ? `${l} lesson${l === 1 ? '' : 's'}` : '', n ? `${n} note${n === 1 ? '' : 's'}` : ''].filter(Boolean);
+  return `Used ${parts.join(' and ')}${used.tokens ? `, ${used.tokens.toLocaleString('en-US')} tokens` : ''}`;
+}
+
+function MemoryUsedLine({ used }: { used: MemoryUsed | null | undefined }) {
+  const [open, setOpen] = useState(false);
+  const any = !!used && used.lessons.length + used.notes.length > 0;
+  return (
+    <div data-testid="hs-memory-used">
+      <span>{memoryUsedLabel(used)}</span>
+      {any ? (
+        <>
+          {' '}
+          <button type="button" className="ai-link" onClick={() => setOpen(!open)}>
+            {open ? 'hide' : 'show which'}
+          </button>
+          {open ? (
+            <ul style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: 12.5 }}>
+              {used!.lessons.map((x) => (
+                <li key={x.id}>
+                  <b>Lesson</b> · {x.text}
+                </li>
+              ))}
+              {used!.notes.map((x) => (
+                <li key={x.id}>
+                  <b>{x.scope === 'ticket' ? 'Ticket note' : 'Role note'}</b> · {x.text}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function Given({ entries, run }: { entries: Entry[]; run: HistoryRow }) {
   const { sent, init, messages } = givenOf(entries);
   const skills = init?.skills?.length ? init.skills : [];
@@ -162,6 +204,8 @@ function Given({ entries, run }: { entries: Entry[]; run: HistoryRow }) {
             />
           </>
         ) : null}
+        <b>Project memory</b>
+        <MemoryUsedLine used={run.memoryUsed} />
         {sent?.prompt ? (
           <>
             <b>Prompt</b>

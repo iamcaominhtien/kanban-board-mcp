@@ -252,6 +252,24 @@ async def compose(
         project_name=project.name if project else "",
         ticket_status=ticket.status,
     )
+    # The project's instructions, lessons and notes (issue #274): an API-key member never got them before
+    from . import knowledge
+
+    known = (
+        await knowledge.for_run(session, run, profile)
+        if run is not None
+        else (
+            await knowledge.block_for(
+                session,
+                ticket.project_id,
+                role=_role(profile),
+                member_id=profile.id,
+                ticket_id=ticket.id,
+            )
+        )[0]
+    )
+    if known:
+        system += f"\n\n{known}"
     if profile.persona.strip():
         system += f"\n\nRole / persona (set by the project's people):\n{profile.persona.strip()}"
     rendered = cm.render_prompt(raw, values).strip()
@@ -304,6 +322,12 @@ async def compose(
         ],
         "prompt_tokens": cm.estimate_tokens(rendered),
     }
+
+
+def _role(profile: AiMember) -> str | None:
+    from . import plugins as ai_plugins
+
+    return ai_plugins.role_of(profile)
 
 
 async def build(

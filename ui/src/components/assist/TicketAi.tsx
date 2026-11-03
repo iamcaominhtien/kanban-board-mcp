@@ -1118,7 +1118,7 @@ export function TicketAiMenu({
           type="button"
           className="ai-btn ai-btn-sm"
           style={{
-            height: 34,
+            height: 30,
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
             borderColor: chatOpen ? '#6B4FE0' : undefined,
@@ -1137,7 +1137,7 @@ export function TicketAiMenu({
         type="button"
         className="ai-btn ai-btn-sm"
         style={{
-          height: 34,
+          height: 30,
           borderColor: open ? '#2E6F40' : undefined,
           ...(onToggleChat
             ? { padding: '0 7px', marginLeft: -1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
@@ -1158,7 +1158,7 @@ export function TicketAiMenu({
         )}
       </button>
       {open && (
-        <div className="as-menu" style={{ top: 40, left: 0 }} role="menu">
+        <div className="as-menu" style={{ top: 36, left: 0 }} role="menu">
           {items.map((it) => (
             <Fragment key={it.label}>
               {'divider' in it && it.divider && <div role="separator" className="as-menu-sep" />}
@@ -1182,7 +1182,7 @@ export function TicketAiMenu({
         </div>
       )}
       {(sd.error || error) && (
-        <div className="as-popover" style={{ top: 40, left: 0, width: 280 }} role="alert">
+        <div className="as-popover" style={{ top: 36, left: 0, width: 280 }} role="alert">
           <div className="ai-error-text">{sd.error?.message ?? error}</div>
           <button type="button" className="ai-link" onClick={() => sd.setError(null)}>
             Close

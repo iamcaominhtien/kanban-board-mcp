@@ -12,6 +12,8 @@ import { ResumeAllDialog } from '../ai/AiKillSwitch';
 import { useAiBoardState } from '../ai/aiUi';
 import { ResourcesTab } from './ResourcesTab';
 import { HistoryTab } from './HistoryTab';
+import { useKnowledge } from '../../api/aiKnowledge';
+import { KnowledgeSection, memoryWaiting } from '../ai/knowledge/KnowledgeSection';
 import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
 import { CalendarIcon, Icon, ICONS } from './teamUi';
 import { MenuSelect } from '../ui/MenuSelect';
@@ -19,7 +21,7 @@ import { OPEN_TIMELINE_EVENT, syncFlowAddress, takePendingTimeline, type Timelin
 import { PROJECT_SCOPE, scopeLevel, type FlowScope, type FlowView } from './flowScope';
 import './aiTeam.css';
 
-type Tab = 'now' | 'flow' | 'stepped' | 'decided' | 'health' | 'resources' | 'history';
+type Tab = 'now' | 'flow' | 'stepped' | 'decided' | 'health' | 'resources' | 'history' | 'memory';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'now', label: 'Now' },
@@ -29,6 +31,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'health', label: 'Health' },
   { id: 'resources', label: 'Resources' },
   { id: 'history', label: 'Run history' },
+  // what the AIs remember, and what waits for a person there (issue #274)
+  { id: 'memory', label: 'Memory' },
 ];
 
 interface Props {
@@ -103,6 +107,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
     health: '7d',
     resources: 'today',
     history: '30d',
+    memory: '30d',
   });
   const range = ranges[tab];
   const setRange = (r: TeamRange) => setRanges({ ...ranges, [tab]: r });
@@ -116,6 +121,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
   useEffect(() => () => syncFlowAddress(projectId, null), [projectId]);
   const { data, isLoading, isError, dataUpdatedAt } = useTeamNow(projectId, ranges.now);
   const stepped = useTeamStepped(projectId, ranges.stepped);
+  const knowledge = useKnowledge(projectId);
   const decided = useDecidedForYou(projectId, ranges.decided);
   const [decidedNew, setDecidedNew] = useState(decidedIsNew);
   useEffect(() => {
@@ -188,6 +194,15 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
                   }}
                 />
               ) : null}
+              {t.id === 'memory' && knowledge.data && memoryWaiting(knowledge.data) > 0 ? (
+                <b
+                  style={{ fontWeight: 700, color: '#7A5A06' }}
+                  title="Lessons proposed, and memory that may be out of date"
+                  data-testid="memory-tab-count"
+                >
+                  {memoryWaiting(knowledge.data)}
+                </b>
+              ) : null}
               {t.id === 'stepped' && stepped.data ? (
                 <b style={{ fontWeight: 700, color: '#7A5A06' }}>{stepped.data.totals.touches}</b>
               ) : null}
@@ -219,7 +234,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
           ))}
         </div>
         <span style={{ flex: 1 }} />
-        {!(tab === 'resources' || tab === 'history' || (tab === 'flow' && flowView === 'timeline')) && (
+        {!(tab === 'resources' || tab === 'history' || tab === 'memory' || (tab === 'flow' && flowView === 'timeline')) && (
           // Flow › Timeline has its own range in its toolbar: a second one here disagreed with it
           <MenuSelect<TeamRange | 'life'>
             variant="button"
@@ -293,6 +308,10 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
           onRunChange={setRunId}
           onOpenTicket={onOpenTicket}
         />
+      ) : tab === 'memory' ? (
+        <div style={{ padding: '4px 0 24px', maxWidth: 920 }} data-testid="at-memory">
+          <KnowledgeSection projectId={projectId} initialTab="memory" />
+        </div>
       ) : tab === 'resources' ? (
         <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} />
       ) : tab === 'decided' ? (

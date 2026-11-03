@@ -139,6 +139,9 @@ class Ticket(SQLModel, table=True):
     tests_assumption_id: Optional[str] = Field(default=None, index=True)
     # A sub-ticket's execution wave pinned by hand (TDP-1); None: computed from Blocked by (services/ticket_waves.py)
     wave_pin: Optional[int] = Field(default=None)
+    # The member (a person or an AI) whose review the ticket waits for in Review: the card shows "Review requested —
+    # Name" (MainBoard, Review column; issue #269). Set by hand, or by the board from the workflow's reviewer
+    review_requested_from: Optional[str] = Field(default=None)
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -1287,6 +1290,8 @@ class AiRun(SQLModel, table=True):
     blocked_move: Optional[str] = Field(default=None)
     # JSON [{at, by, field, step}]: edits a person made to the ticket while this run was working on it
     context_notes: str = Field(default="[]")
+    # JSON {lessons: [{id, text}], notes: [{id, scope, text}]}: the project memory this run's prompt carried (issue #274)
+    memory_used: Optional[str] = Field(default=None)
     # "mcp" when a tool started the run for the person (MCP full control)
     started_via: Optional[str] = Field(default=None)
     # What the run's CLI process used (MB of RAM): the highest value and the last one read (services/ai/resources.py)
@@ -1365,6 +1370,31 @@ class AiLesson(SQLModel, table=True):
         default=None
     )  # model | diagnosis | a person's name
     kept_by: Optional[str] = Field(default=None)
+    uses: int = Field(default=0)  # runs whose prompt carried it
+    last_used_at: Optional[str] = Field(default=None)
+    created_at: str = Field(default_factory=_now_iso)
+    updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiMemoryNote(SQLModel, table=True):
+    """A note an AI keeps across runs (services/ai/memory.py, issue #274): what works in this repository, the commands,
+    where things are, a person's feedback. Kept by a role (every member of the role reads it), by one member (a member
+    with no role) or on one ticket (every later run on that ticket reads it). Live at once, shown to people and
+    editable; capped per scope (table)."""
+
+    __tablename__ = "ai_memory_note"
+
+    id: str = Field(
+        default_factory=lambda: f"mem_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    scope: str = Field(default="role", index=True)  # role | member | ticket
+    scope_key: str = Field(default="", index=True)  # the role key, the member id or the ticket id
+    text: str = Field(default="")
+    kind: str = Field(default="learned")  # learned | feedback (a person told the AI)
+    written_by: Optional[str] = Field(default=None)  # a member's name or a person's
+    source_run_id: Optional[str] = Field(default=None)
+    source_ticket_id: Optional[str] = Field(default=None)
     uses: int = Field(default=0)  # runs whose prompt carried it
     last_used_at: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)
@@ -2548,6 +2578,8 @@ class TicketUpdate(SQLModel):
     repo_path: Optional[str] = None  # empty/null clears the ticket override
     # a sub-ticket's wave pinned by hand; null: computed from Blocked by again (TDP-1)
     wave_pin: Optional[int] = None
+    # who the review is asked of (member id); null clears it
+    review_requested_from: Optional[str] = None
 
 
 class TicketRead(SQLModel):
@@ -2602,6 +2634,7 @@ class TicketRead(SQLModel):
     wave_pin: Optional[int] = (
         None  # TDP-1: None means the wave is computed from Blocked by
     )
+    review_requested_from: Optional[str] = None
     # When / by whom a Done or Won't Do ticket was closed (derived from the activity log)
     completed_at: Optional[str] = None
     completed_by: Optional[str] = None
@@ -2661,6 +2694,7 @@ class TicketRead(SQLModel):
             from_idea_id=getattr(ticket, "from_idea_id", None),
             tests_assumption_id=getattr(ticket, "tests_assumption_id", None),
             wave_pin=getattr(ticket, "wave_pin", None),
+            review_requested_from=getattr(ticket, "review_requested_from", None),
             **_completion_of(ticket),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,

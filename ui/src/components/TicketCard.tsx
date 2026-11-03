@@ -87,6 +87,10 @@ export function TicketCard({
   const typeLabel = TYPE_LABELS[ticket.type] ?? 'Task';
   const due = getDueDateDisplay(ticket.dueDate);
   const assigneeMember = ticket.assignee && memberMap ? memberMap.get(ticket.assignee) : null;
+  const reviewer =
+    ticket.status === 'review' && ticket.reviewRequestedFrom && memberMap
+      ? (memberMap.get(ticket.reviewRequestedFrom) ?? null)
+      : null;
   // A pending ticket shows one signal: the pending chip replaces the blocked lock (TicketPending I)
   const isBlocked = (ticket.blockedBy ?? []).length > 0 && !ticket.pending;
   const isClosed = ticket.status === 'done' || ticket.status === 'wont_do';
@@ -744,6 +748,14 @@ export function TicketCard({
           <span className={styles.testLine} data-testid="card-test-rollup">
             <span className={styles.testDot} style={{ background: testRollup.dot }} aria-hidden="true" />
             <span>{testRollup.text}</span>
+          </span>
+        )}
+
+        {/* A Review card names whose review it waits for (Main Board 1, Review column; issue #269) */}
+        {reviewer && (
+          <span className={styles.reviewLine} data-testid="card-review-requested">
+            <MemberAvatar member={reviewer} size={15} />
+            <span>Review requested — {reviewer.name}</span>
           </span>
         )}
 

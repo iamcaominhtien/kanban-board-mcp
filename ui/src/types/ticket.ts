@@ -165,6 +165,13 @@ export interface TestCase {
   updatedAt?: string | null;
   assignee?: string | null;
   testDataFiles?: TestCaseFileData[];
+  /** Files beside the Expected result and the Notes (TestCases design, issue #269). */
+  expectedFiles?: TestCaseFileData[];
+  notesFiles?: TestCaseFileData[];
+  /** Who started the case running, and who set its pass / fail, with when (the row's footer). */
+  startedBy?: string | null;
+  statusBy?: string | null;
+  statusAt?: string | null;
   /** Acceptance criterion the case tests (coverage). */
   criterionId?: string | null;
   /** Board AI that suggested the case, when a person accepted its draft. */
@@ -222,6 +229,8 @@ export interface Ticket {
   testsAssumptionId?: string | null;
   /** A sub-ticket's execution wave pinned by hand (TDP-1); null or absent: computed from Blocked by. */
   wavePin?: number | null;
+  /** Member (person or AI) whose review the ticket waits for in Review: "Review requested — Name" on its card. */
+  reviewRequestedFrom?: string | null;
   completedAt?: string | null;
   completedBy?: string | null;
   createdAt: string;

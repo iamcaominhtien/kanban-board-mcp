@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.33.0] - 2026-11-03
+## [3.35.0] - 2026-11-03
 
 Talk to the AI team from the screen and over MCP, and hand work between an AI, a person and an outside agent with nothing lost (#272).
 
@@ -29,7 +29,63 @@ Talk to the AI team from the screen and over MCP, and hand work between an AI, a
 - Live, take over then give back: the Dev's task opened with the person's note, it noticed one line of the note was wrong (the language of WTH-1) and asked instead of following it. An outside agent on the board's MCP server alone gave a ticket back with `ai_team(hand_over)` and followed it with `board_wait` and `held_by`.
 - Fixed before release, found in those live runs: a ticket given back counted as a second attempt, so its Dev was moved up to Opus; the take-back note said "user" for the person and copied refused tool calls; the workflow strip showed a ticket taken back as "It stopped going round" with a red Failed step.
 
+## [3.34.1] - 2026-11-03
 
+Found by the live check of #274 (real Claude Code runs, sonnet): two Devs kept no memory at all, though the rule was in their prompt and the `keeping-memory` skill was there. Dev An wrote in Vietnamese as a person asked in a comment, and had `python3 -m unittest` and `git checkout` refused, and kept none of it; Dev Binh, the next Dev, wrote in English and ran the same refused commands.
+
+### Fixed
+- **A run hands over what it learned in its report**: `ai_run(action='report', learned=[{text, scope, kind}])`, kept as notes for the next run of its role (or on its ticket), with a person's request as feedback. Every run already calls report; the prompt asks for `learned` there (`[]` if nothing). API-key members' report takes it too.
+- **The board keeps what a run did not**: once a work run ends, a light model reads the run, what people wrote on the ticket and the notes the role already keeps, and adds at most 3 notes for the role (a command that works or is refused here, where something is, a person's request), marked "the board, from Dev An's run". In the live check it kept An's request for Vietnamese, which the run itself had not, and the next Dev, on a ticket with no comment from An, wrote in Vietnamese. Claude Code members on a subscription; off with "Let the AIs keep their own notes".
+- An outside agent was asking before it proposed a lesson: `knowledge` now says a project lesson is only a proposal.
+- `docs/demo/ai-memory-274/live_check.py`: the live check, to run again; three rounds in `docs/ui-audit/274/memory.md`.
+
+## [3.34.0] - 2026-11-03
+
+The AI team keeps its own memory, without being asked, and a person can see it, trust it and correct it (#274). Why it felt absent, and the screens 1:1 with the design: `docs/ui-audit/274/memory.md`.
+
+### Added
+- **Memory a run writes itself**: `knowledge(action='remember')` keeps a note in the run's role memory (every member of the role reads it at the start of a run; a member without a role keeps its own), on its ticket (every later run on that ticket reads it, so what one run learned reaches the next), or proposes a project lesson for a person to keep. A person's correction is kept as feedback and read first. Notes are live at once, deduplicated and capped (30 per role, 15 per ticket); a full memory refuses a write and names the notes to replace. `forget` removes one; a person edits or deletes any of them.
+- **`keeping-memory`, a skill for every role**: what is worth keeping (a command that must be run a certain way, where something is, a trap, a person's correction), where it goes, how to write it, what never to keep. In the board's plugin and in `docs_read(guides)`; one line of it in every run's prompt and in the MCP instructions.
+- **AI Team › Memory**, with a count of what waits for you (lessons proposed, memory that may be out of date); Project knowledge opens on Memory while anything waits, with "N waiting for you".
+- **What a run used**: each run records the lessons and notes its prompt carried; Run history › What it was given › Project memory says "Used 2 lessons and 2 notes, 90 tokens" and which. Saving a note is a step of the run.
+- **Over MCP**, for an agent outside the board: `knowledge(action='memory')` reads the instructions, lessons and notes; `remember` proposes a lesson or leaves a ticket note.
+- **Stale memory is flagged** for a person: a lesson or note naming a file none of the project's checkouts has, or one a newer lesson or note says something close to (a possible contradiction when one of them negates).
+- Settings › AI › Project knowledge › "Let the AIs keep their own notes" (on by default).
+
+### Fixed
+- **API-key members never got the project's instructions or lessons** in their prompt.
+- A lesson proposed by a diagnosis waited unseen: it now notifies the project's owners and admins, as an end-of-ticket proposal does.
+- When kept lessons outgrow the cap, the newest of equally used ones stays in the prompt (the oldest did).
+
+## [3.33.1] - 2026-11-03
+
+Found by the live check of #268 (real Claude Code runs, sonnet and haiku): a BA writes a spec on a Docs page, the Dev on the ticket reads it and builds from it.
+
+### Fixed
+- **An AI member wrote its Docs page at the top of the tree.** A BA (sonnet) asked to "write the spec as a Docs page" wrote a good page, but never opened the `docs-pages` skill: a run's prompt named its role's skill and the shared ones, not the Docs guide, so the page did not go under Requirements as the guide says. Every run is now told to open `docs-pages` (outside Claude Code: `docs_read(action='docs_guide')`) before it creates or changes a page, unless a project switched the skill off, and the BA's skill says where a spec page goes. Run again: the BA opened the guide, searched and listed the tree, read the existing spec and put the new page under Requirements.
+## [3.33.0] - 2026-11-03
+
+The ticket design rows #269 had left open: the ones in shared parts of the screen, and the ones that needed data from the server.
+
+### Added
+- **"Review requested — Name" on a Review card** (Main Board), with the member's avatar. A ticket says whose review it waits for: "Review by" in its sidebar (shown in Review, or once set), `review_requested_from` over the API and `manage_ticket(update)` over MCP. When a ticket enters Review with nobody asked, the board asks the AI its workflow (or odd job) names as reviewer; a person's choice is never replaced. Activity reads "Review by Nobody → Reviewer Rin".
+- **Files under a test case's Expected result and Notes**, with Attach file under each, as Test data already had.
+- **A test case says who**: "Started 4m ago by Ha My", "Failed 3h ago by Ha My", from whoever started it or set its result.
+- **Doc references in Activity from everywhere on a ticket**: a `[[page]]` added or removed in a comment (also when it is edited, deleted or restored) or a test case, and a page linked or unlinked by hand in Linked docs, each say where ("in a comment", "in test case TC-1", "in Linked docs"). The description already had them.
+
+### Changed
+- **The ticket header is 71 px as drawn**: the AI buttons are 30 px like the view buttons (they were 32 and 34).
+- **Doc pills and the doc side panel as designed**: a section pill reads "API › #Endpoints"; the hover card's breadcrumb is the page's path ("Architecture › API"); the panel header is path › page › # section; opening it from a ticket slides the ticket left so the panel no longer covers its right column (not in full screen).
+- **Dropdown chevrons are 9 px** (`MenuSelect`), as drawn. Every dropdown that uses it changes.
+- **The compact Markdown editor** (New Ticket's description, test case fields) has the drawn look at rest: a `#C7D2CB` border with no ring and a "MARKDOWN" label in its toolbar; the green ring shows while typing. The ticket's own description editor is unchanged.
+
+### Fixed
+- New Ticket opened with the focus in the description in the dev app (React StrictMode ran the editor's focus twice); it opens in the title.
+
+### Database
+- Migration `d8a0c2e4f6b8` adds the nullable `ticket.review_requested_from`; existing tickets are unchanged.
+
+## [3.32.0] - 2026-11-03
 
 Docs for every AI, and Docs in a window of its own (#268): an AI, on the board or outside it, works in Docs as a person does, and a person can move Docs out of the board into its own window and dock it back.
 
@@ -44,6 +100,7 @@ Docs for every AI, and Docs in a window of its own (#268): an AI, on the board o
 
 ### Changed
 - The 1:1 check of the nine Docs designs against the app: the tables are in `docs/ui-audit/docs-268/`, with before and after screenshots in `docs/screenshots/docs-268/`.
+
 ## [3.31.0] - 2026-11-03
 
 Tickets look like their designs, and every AI uses every part of a ticket: criteria, sub-tickets, blocks, work log, test cases, attachments, Docs links and branches; files a person should see go to the ticket's Workspace and never into the branch (#269).
