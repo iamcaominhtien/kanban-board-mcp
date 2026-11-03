@@ -613,11 +613,21 @@ function TicketModalInner({
           },
         },
       );
+    } else if (newStatus === 'done') {
+      // the board can refuse Done (open criteria or test cases, a ticket that still blocks this one): say so only
+      // once it is saved
+      updateTicketMutation.mutate(
+        { ticketId: ticket.id, data: { status: 'done' } },
+        {
+          onSuccess: () => toast.success('Moved to Done', `${ticket.id} · ${ticket.title}`),
+          onError: (err) => {
+            toast.error("Couldn't move to Done", extractError(err));
+            applyTicket(ticket);
+          },
+        },
+      );
     } else {
       autoSaveField('status', newStatus);
-      if (newStatus === 'done') {
-        toast.success('Moved to Done', `${ticket.id} · ${ticket.title}`);
-      }
     }
   }
 
