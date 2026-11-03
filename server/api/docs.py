@@ -177,6 +177,12 @@ async def post_page(
     return page
 
 
+@router.get("/projects/{project_id}/docs/by-path")
+async def get_by_path(project_id: str, path: str, session: Session) -> dict[str, Any]:
+    """Get a page by its slug path (`architecture/api`, a share link); a path from before a rename still works."""
+    return await svc.page_by_path(session, project_id, path)
+
+
 @router.get("/projects/{project_id}/docs/by-slug/{slug}")
 async def get_by_slug(project_id: str, slug: str, session: Session) -> dict[str, Any]:
     """Get a page by slug."""

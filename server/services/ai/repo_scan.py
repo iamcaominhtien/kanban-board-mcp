@@ -448,9 +448,16 @@ _WRONG = re.compile(
     r"command not found|: not found|Missing script|is not recognized as an internal|Unknown command|"
     r"no such command|unrecognized subcommand|Failed to spawn|Couldn't find a script|Unknown script|"
     r"No such file or directory: '?[\w./-]*'?$|error: unknown option|"
-    # the package manager found no package.json where it ran (npm exits 254): the command is not for this folder
-    r"Could not read package\.json|Couldn't find a package\.json file|ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND|"
-    r"No package\.json \(or package\.yaml, or package\.json5\) was found",
+    # the package manager found no package.json where it ran (npm exits 254): the command is not for this folder.
+    # Only the package manager's own lines: a test that reads a package.json fixture and fails ran, the project fails
+    r"^npm (?:ERR!|error) (?:enoent|path)\b[^\n]*package\.json|"
+    r"^(?:error )?Couldn't find a package\.json file|ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND|"
+    r"No package\.json \(or package\.yaml, or package\.json5\) was found|"
+    # the program's own input is not there (RC-2): the script given to python or the shell, the Makefile or its
+    # target, the test path given to pytest
+    r"can't open file '[^']*': \[Errno 2\]|^(?:ba|z|da)?sh: [^:\n]+: No such file or directory$|"
+    r"No rule to make target '[^']*'\.\s+Stop|No targets specified and no makefile found|"
+    r"ERROR: file or directory not found:",
     re.I | re.M,
 )
 

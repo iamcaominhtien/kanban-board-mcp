@@ -31,6 +31,14 @@ export function isPauseAllRow(row: NotificationRow): boolean {
   return row.kind === 'auto_trip' && / paused all AI\./.test(row.body);
 }
 
+/** Whether this browser's person paused: the row says who by key (`data.pausedBy`, NT-1), older rows only by name. */
+export function pausedByMe(row: NotificationRow): boolean {
+  const me = currentActor();
+  const by = row.data?.pausedBy;
+  if (typeof by === 'string' && by) return by === me;
+  return row.body.startsWith(`${me} paused all AI.`);
+}
+
 /** The counts of a Pause all AI row without the zeros: "0 runs cancelled, 2 queued runs held." → "2 queued runs held." */
 export function withoutZeroCounts(text: string): string {
   return text
@@ -82,7 +90,7 @@ function showRowToast(c: ToastContext, row: NotificationRow, feed: Feed) {
   // Pause all AI (ai-2 AP-6): the banner says it once; the person who paused gets no toast, others an info one
   // without zero counts
   const pause = isPauseAllRow(row);
-  if (pause && row.body.startsWith(`${currentActor()} paused all AI.`)) return;
+  if (pause && pausedByMe(row)) return;
   const first = toastAction(row);
   const toastId: string = c.toast.showToast({
     variant: pause ? 'info' : toastVariantFor(row.kind),

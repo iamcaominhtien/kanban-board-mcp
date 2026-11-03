@@ -15,6 +15,8 @@ export interface KbDocument {
 export interface KbList {
   stores: KbStore[];
   documents: KbDocument[];
+  /** The shared store, whether or not this project searches it (the Shared tab, WV-7). */
+  sharedDocuments?: KbDocument[];
 }
 
 export interface KbDetail extends KbDocument {

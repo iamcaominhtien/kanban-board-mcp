@@ -380,6 +380,7 @@ export function SyncPreview() {
           {p && p.conflicts.length ? 'Resolve and write' : 'Write now'}
         </button>
         {member.workingDir && <CopyButton text={member.workingDir} label="Copy folder path" />}
+        {member.workingDir && <OpenFolderButton dir={member.workingDir} />}
         <span className="ai-muted" data-testid="sync-summary">
           {folderOnline ? 'Runner online' : 'Runner offline'} · {p?.files.length ?? 0} file
           {(p?.files.length ?? 0) === 1 ? '' : 's'} · {p?.conflicts.length ?? 0} conflict
@@ -400,5 +401,32 @@ export function SyncPreview() {
         />
       )}
     </CfgCard>
+  );
+}
+
+/**
+ * "Open folder" (design B8, PC-7): only in the desktop app, which can show a folder in Finder / Explorer
+ * (`electronAPI.showItemInFolder`). A browser cannot open a folder on the computer, so the web build shows only
+ * "Copy folder path".
+ */
+export function OpenFolderButton({ dir }: Readonly<{ dir: string }>) {
+  const toast = useToast();
+  const show = window.electronAPI?.showItemInFolder;
+  if (!show) return null;
+  return (
+    <button
+      type="button"
+      className="ai-btn"
+      data-testid="open-folder"
+      title="Show the working folder in Finder / Explorer"
+      onClick={() => {
+        void show(dir).then((r) => {
+          if (r && !r.success) toast.error('Could not open the folder', r.error ?? dir);
+        });
+      }}
+    >
+      <LineIcon name="folder" size={13} />
+      Open folder
+    </button>
   );
 }

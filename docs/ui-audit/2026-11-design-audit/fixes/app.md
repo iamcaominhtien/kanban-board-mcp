@@ -34,11 +34,11 @@ no AI was paused or resumed. The desktop windows were opened through a stubbed `
 - DM-5 · Skipped — Low (wave 4): `desktop/menu.js` is outside my files (the dialog title already uses ’). Ctrl+Q on Linux needs a decision.
 
 ### Notifications
-- NT-1 · Partly fixed (wave 4) — "Done — AI was resumed": the first letter is lower-cased only when the second is lower case (`notifications/NotificationRow.tsx`). The "user" actor needs a server change.
+- NT-1 · Partly fixed (wave 4) — "Done — AI was resumed": the first letter is lower-cased only when the second is lower case (`notifications/NotificationRow.tsx`). The "user" actor needs a server change. — Fixed (wave 5): "Pause all AI" writes the person in the sentence: the X-Actor name, or for the board's own user ("user") the project's owner (its first admin), else "user" as before; the row's data carries `paused_by` (the key the banner compares with, unchanged) and `paused_by_name`. The toast for the person who paused matches on `data.pausedBy`, older rows by the sentence as before (`server/services/ai/runs.py`, `safety.person_name`; `notifications/useNotificationToasts.ts`).
 - NT-2 · Fixed: when items wait in Needs you, the empty Updates tab says "No updates — Nothing new to read. N items need you in the other tab." "No notifications yet" now shows only for an empty feed (`NotificationPanel.tsx`, test in `notificationViews.test.tsx`)
 - NT-3 · Skipped — Low (wave 4): not done.
 - NT-4 · Skipped: the All notifications page is mounted as `overlayPage` in `App.tsx`, which replaces the board and its top bar. Moving it under the top bar is a shell change in `App.tsx`, and my brief allows `App.tsx` only for AP-2 and AP-3
-- NT-5 · Skipped — Low (wave 4): "Needs you" and "Docs" are not notification families in the data; needs a server field.
+- NT-5 · Skipped — Low (wave 4): "Needs you" and "Docs" are not notification families in the data; needs a server field. — Fixed (wave 5): the Kind list has "Needs you" and "Docs" in the design's order; the server takes `family=needs` (rows that need you) and `family=docs` (rows about a page, or a proposal, publish or access request); the other families are unchanged (`server/services/notifications.py`, `AllNotificationsPage.tsx`).
 - NT-6 · Partly fixed (wave 4) — "Exists today" is dropped; "From Resources" stays (`settings/NotificationsSettings.tsx`).
 - NT-7 · Fixed: quiet hours and the day-card time are 24 h text fields (for example "22:00 – 08:00" and "☀ 18:00"), with no second browser clock icon. A complete time saves at once, as before. ↑ and ↓ step the hour or the minutes, depending on where the caret is, as the native field did. An unfinished value goes back to the saved one on blur (`NotificationsSettings.tsx`, `.module.css`, test added)
 - NT-8 · Fixed: when the browser blocks notifications, the Desktop notifications switch shows off and is disabled, and the existing line explains how to allow them. The desktop app already showed the "Your computer is blocking notifications" card (`NotificationsSettings.tsx`, test added)
@@ -52,7 +52,7 @@ no AI was paused or resumed. The desktop windows were opened through a stubbed `
 - SP-4 · Fixed (wave 4) — "Work offline is not available yet." on the unreachable and failed screens (`Splash.tsx`).
 
 ### App loading
-- AL-1 · Skipped: the lane-count skeleton is in `Column.tsx` and the filter bar in `FilterBar.tsx`, both outside my files
+- AL-1 · Skipped: the lane-count skeleton is in `Column.tsx` and the filter bar in `FilterBar.tsx`, both outside my files — Fixed (wave 5): `GET /projects/{id}/tickets/counts` (one grouped query: tickets by status, not pending, not Won't do, the badge's own count) fills the lane count pills while the tickets load, when no filter or search is on; otherwise the pill stays a skeleton (`server/api/tickets.py`, `App.tsx`, `Board.tsx`, `Column.tsx`).
 - AL-2 · Skipped — Low (wave 4): `Board.tsx` is outside my files.
 - AL-3 · Skipped — Low (wave 4): `ProjectSidebar.tsx` is outside my files.
 - AL-4 · Skipped: dark theme is not built (FIX-BRIEF)

@@ -265,6 +265,19 @@ describe('RunDetail (full)', () => {
     await screen.findByTestId('hs-files');
   });
 
+  it('says when the run history retention removed the run details, and that the rest is kept', async () => {
+    transcript = {
+      run: { ...row(), detailsRemovedAt: '2026-10-01T00:00:00Z' },
+      available: false,
+      transcript: { ...info, removedAt: '2026-10-01T00:00:00Z' },
+      entries: [],
+    };
+    setup();
+    const warn = await screen.findByTestId('hs-no-transcript');
+    expect(warn.textContent).toContain('Details removed on');
+    expect(warn.textContent).toContain('cost, status, summary and links are kept');
+  });
+
   it('continues a failed run with a note', async () => {
     http.post.mockResolvedValue({ data: {} });
     setup();

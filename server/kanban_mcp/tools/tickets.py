@@ -52,6 +52,7 @@ TICKET_OPS = {
             "wont_do_reason",
             "block_done_if_acs_incomplete",
             "block_done_if_tcs_incomplete",
+            "wave_pin",
             "clear_fields",
         ),
     ),
@@ -181,6 +182,10 @@ async def manage_ticket(
             description="update: true refuses status 'done' until there is a test case and all pass."
         ),
     ] = None,
+    wave_pin: Annotated[
+        int | None,
+        Field(ge=1, le=99, description="update: pin a sub-ticket's wave (1-99)."),
+    ] = None,
     clear_fields: Annotated[
         list[
             Literal[
@@ -191,6 +196,7 @@ async def manage_ticket(
                 "assignee",
                 "repo_path",
                 "wont_do_reason",
+                "wave_pin",
             ]
         ]
         | None,

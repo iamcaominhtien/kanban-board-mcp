@@ -475,11 +475,25 @@ _LEGACY_ASSUMPTION_STATUSES = {"invalidated": "disproved"}
 _VALID_ASSUMPTION_STATUSES = set(ASSUMPTION_STATUSES) | set(_LEGACY_ASSUMPTION_STATUSES)
 
 
+def assumption_meta(assumption: IdeaAssumption, **extra: str) -> dict:
+    """Which assumption an activity entry is about (IP-8, IW-4): its id and its text as it read then. Entries written
+    before this have no meta and stay as they are."""
+    return {
+        "assumption": assumption.id,
+        "assumption_text": (assumption.text or "")[:200],
+        **extra,
+    }
+
+
 async def _save_assumption_change(
-    session: AsyncSession, ticket: IdeaTicket, label: str, author: str | None
+    session: AsyncSession,
+    ticket: IdeaTicket,
+    label: str,
+    author: str | None,
+    meta: dict | None = None,
 ) -> IdeaTicket:
     now = _now_iso()
-    _add_trail(ticket, label, now, author, kind="assumption")
+    _add_trail(ticket, label, now, author, kind="assumption", meta=meta)
     ticket.last_touched_at = now
     ticket.updated_at = now
     session.add(ticket)
@@ -528,22 +542,22 @@ async def add_assumption(
         )
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     now = _now_iso()
-    session.add(
-        IdeaAssumption(
-            idea_id=ticket.id,
-            position=len(ticket.assumption_records),
-            text=text,
-            impact=impact,
-            ai=ai,
-            created_at=now,
-            updated_at=now,
-        )
+    added = IdeaAssumption(
+        idea_id=ticket.id,
+        position=len(ticket.assumption_records),
+        text=text,
+        impact=impact,
+        ai=ai,
+        created_at=now,
+        updated_at=now,
     )
+    session.add(added)
     return await _save_assumption_change(
         session,
         ticket,
         "Assumption added" + (" from the AI chat" if ai else ""),
         author,
+        assumption_meta(added),
     )
 
 
@@ -576,11 +590,16 @@ async def update_assumption_status(
     status = _LEGACY_ASSUMPTION_STATUSES.get(status, status)
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     assumption = _find_assumption(ticket, assumption_id)
+    before = assumption.status
     assumption.status = status
     assumption.updated_at = _now_iso()
     session.add(assumption)
     return await _save_assumption_change(
-        session, ticket, f"Assumption marked as {status}", author
+        session,
+        ticket,
+        f"Assumption marked as {status}",
+        author,
+        assumption_meta(assumption, **{"from": before, "to": status}),
     )
 
 
@@ -632,7 +651,9 @@ async def update_assumption(
         assumption.test_ticket_id = test_ticket_id  # type: ignore[assignment]
     assumption.updated_at = _now_iso()
     session.add(assumption)
-    return await _save_assumption_change(session, ticket, "Assumption edited", author)
+    return await _save_assumption_change(
+        session, ticket, "Assumption edited", author, assumption_meta(assumption)
+    )
 
 
 async def delete_assumption(
@@ -656,13 +677,16 @@ async def delete_assumption(
     """
     ticket = await _get_idea_ticket_or_raise(session, ticket_id)
     assumption = _find_assumption(ticket, assumption_id)
+    gone = assumption_meta(assumption)
     ticket.assumption_records.remove(
         assumption
     )  # the idea owns it: this deletes the row
     await session.flush()
     for position, remaining in enumerate(ticket.assumption_records):
         remaining.position = position
-    return await _save_assumption_change(session, ticket, "Assumption deleted", author)
+    return await _save_assumption_change(
+        session, ticket, "Assumption deleted", author, gone
+    )
 
 
 async def add_microthought(

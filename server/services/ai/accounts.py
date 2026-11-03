@@ -11,6 +11,7 @@ import os
 import re
 import shutil
 import sys
+import time
 from pathlib import Path
 
 from sqlmodel import col, select
@@ -142,6 +143,58 @@ def available(cli_name: str) -> str | None:
     return None
 
 
+# `<cli> --version` of each CLI found (ACC-5), by path and file time: read in the background, never while the page
+# waits, so the card says "found" alone until it is known (or for good, when the CLI does not answer)
+VERSION_TIMEOUT_S = 5.0
+VERSION_RETRY_S = 600.0
+_versions: dict[tuple[str, float], str | None] = {}
+_version_tried: dict[tuple[str, float], float] = {}
+_version_tasks: set[asyncio.Task] = set()
+_VERSION_RE = re.compile(r"\bv?(\d+\.\d+(?:\.\d+)?(?:[-+.][\w.]+)?)")
+
+
+def parse_version(out: str) -> str | None:
+    """ "2.1.4 (Claude Code)" → "2.1.4"; None when the output names no version."""
+    m = _VERSION_RE.search(out or "")
+    return m.group(1)[:40] if m else None
+
+
+def _version_key(path: str) -> tuple[str, float] | None:
+    try:
+        return (path, os.path.getmtime(path))
+    except OSError:
+        return None
+
+
+async def _read_version(path: str, key: tuple[str, float]) -> None:
+    try:
+        code, out, err = await cli.run_capture([path, "--version"], VERSION_TIMEOUT_S)
+        _versions[key] = parse_version(out or err) if code == 0 else None
+    except Exception:  # noqa: BLE001 - a version is a nicety: no answer leaves "found" alone
+        _versions[key] = None
+
+
+def cli_version(path: str | None) -> str | None:
+    """The cached version of the CLI at `path`, or None; starts one background read when none is known yet."""
+    key = _version_key(path) if path else None
+    if key is None:
+        return None
+    if key in _versions and _versions[key] is not None:
+        return _versions[key]
+    now = time.monotonic()
+    if now - _version_tried.get(key, -VERSION_RETRY_S) < VERSION_RETRY_S:
+        return _versions.get(key)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return None
+    _version_tried[key] = now
+    task = loop.create_task(_read_version(path, key))
+    _version_tasks.add(task)
+    task.add_done_callback(_version_tasks.discard)
+    return None
+
+
 def cli_cards() -> list[dict]:
     """Step 1 of the Add account window: each CLI, whether it is installed and whether it can be used here."""
     cards = []
@@ -154,6 +207,8 @@ def cli_cards() -> list[dict]:
                 "blurb": spec["blurb"],
                 "provider": spec["provider"],
                 "found": bool(path),
+                # "2.1.4" once `--version` answered (ACC-5); None while unknown or when it does not answer
+                "version": cli_version(path) if path else None,
                 "runnable": spec["runnable"],
                 "unavailable": available(key),
             }

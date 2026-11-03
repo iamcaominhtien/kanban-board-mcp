@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { PauseGlyph } from '../ai/pausedUi';
+import { roleCode } from '../ai/workflow/wfFormat';
 import type { CardState, HandoffEnd } from '../../types/aiTeam';
 import './aiTeam.css';
 import '../docs/docs.css';
@@ -65,12 +66,15 @@ export function Badge({
   color,
   size = 32,
   person,
+  role,
 }: {
   end?: HandoffEnd;
   name?: string;
   color?: string | null;
   size?: number;
   person?: boolean;
+  /** The role pack the member was made from: its code ("RV") replaces the initials (AT-4). */
+  role?: string | null;
 }) {
   const label = end?.name ?? name ?? '';
   const isPerson = person ?? end?.kind === 'person';
@@ -90,7 +94,7 @@ export function Badge({
           : { background: `${tint}22`, color: tint, border: `1.5px solid ${tint}` }),
       }}
     >
-      {isPerson ? 'You' : initialsOf(label)}
+      {isPerson ? 'You' : (roleCode(role) ?? initialsOf(label))}
     </span>
   );
 }

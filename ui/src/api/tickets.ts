@@ -95,6 +95,8 @@ export async function updateTicket(
     blockDoneIfAcsIncomplete?: boolean;
     blockDoneIfTcsIncomplete?: boolean;
     repoPath?: string | null;
+    /** A sub-ticket's execution wave pinned by hand; null computes it from Blocked by again (TDP-1). */
+    wavePin?: number | null;
   },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);
@@ -674,6 +676,27 @@ export const ticketKeys = {
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------
+
+/**
+ * The lane counts (tickets by status, without pending and Won't do ones): one cheap grouped query, shown on the lane
+ * headers while the tickets themselves load (AL-1).
+ * @param projectId - Project to count.
+ * @param enabled - Only while the tickets load.
+ */
+export function useLaneCounts(projectId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['ticket-lane-counts', projectId] as const,
+    queryFn: async () => {
+      const { lanes } = (
+        await client.get<{ lanes: { status: string; count: number }[] }>(`/projects/${projectId}/tickets/counts`)
+      ).data;
+      return Object.fromEntries(lanes.map((l) => [l.status, l.count])) as Record<string, number>;
+    },
+    enabled: !!projectId && enabled,
+    retry: false,
+    staleTime: 0,
+  });
+}
 
 /**
  * Query a project's tickets.

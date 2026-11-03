@@ -301,6 +301,137 @@ async def _path(session: AsyncSession, page: DocsPage) -> list[dict[str, str]]:
     return path
 
 
+def _path_key(title: str) -> str:
+    return slugify(unicodedata.normalize("NFC", title or "")) or "page"
+
+
+def _slug_paths(pages: list[DocsPage]) -> dict[str, str]:
+    """Each page's slug path from its current titles (`architecture/api`, AC-4), by id."""
+    by_id = {p.id: p for p in pages}
+    out: dict[str, str] = {}
+
+    def of(p: DocsPage, seen: set[str]) -> str:
+        if p.id in out:
+            return out[p.id]
+        parent = by_id.get(p.parent_id or "")
+        if parent is None or parent.id in seen:
+            path = _path_key(p.title)
+        else:
+            path = f"{of(parent, seen | {p.id})}/{_path_key(p.title)}"
+        out[p.id] = path
+        return path
+
+    for p in pages:
+        of(p, set())
+    return out
+
+
+async def slug_path(session: AsyncSession, page: DocsPage) -> str | None:
+    """The page's slug path for a share link, or None when another page of the space has the same one (two pages
+    titled alike under one parent): the link then stays the page id.
+
+    The same path `_slug_paths` gives, without loading the whole space: the page's ancestors give the path, then the
+    pages that could share it are only the top-level pages and the children of each match, level by level."""
+    chain = [page]
+    seen = {page.id}
+    cur = page
+    while cur.parent_id and cur.parent_id not in seen:
+        parent = await session.get(DocsPage, cur.parent_id)
+        if (
+            parent is None
+            or parent.deleted_at is not None
+            or parent.project_id != page.project_id
+        ):
+            break
+        chain.insert(0, parent)
+        seen.add(parent.id)
+        cur = parent
+    keys = [_path_key(p.title) for p in chain]
+    live = select(DocsPage.id).where(
+        DocsPage.project_id == page.project_id,
+        DocsPage.deleted_at.is_(None),  # type: ignore[union-attr]
+    )
+    # top level: no parent, or a parent that is deleted or gone (`_slug_paths` reads those pages as top level)
+    level = [
+        p
+        for p in (
+            await session.exec(
+                select(DocsPage).where(
+                    DocsPage.project_id == page.project_id,
+                    DocsPage.deleted_at.is_(None),  # type: ignore[union-attr]
+                    or_(
+                        DocsPage.parent_id.is_(None),  # type: ignore[union-attr]
+                        DocsPage.parent_id.not_in(live),  # type: ignore[union-attr]
+                    ),
+                )
+            )
+        ).all()
+        if _path_key(p.title) == keys[0]
+    ]
+    for key in keys[1:]:
+        if not level:
+            break
+        level = [
+            p
+            for p in (
+                await session.exec(
+                    select(DocsPage).where(
+                        DocsPage.project_id == page.project_id,
+                        DocsPage.deleted_at.is_(None),  # type: ignore[union-attr]
+                        DocsPage.parent_id.in_([x.id for x in level]),  # type: ignore[union-attr]
+                    )
+                )
+            ).all()
+            if _path_key(p.title) == key
+        ]
+    if [p.id for p in level] != [page.id]:
+        return None
+    return "/".join(keys)
+
+
+async def page_by_path(
+    session: AsyncSession, project_id: str, path: str
+) -> dict[str, Any]:
+    """The page a slug path names (`?docs=architecture/api`, AC-4).
+
+    A rename changes the path; the old one keeps resolving: each part may also be a title the page had before (the
+    titles a rename remembers for `[[links]]`) or the slug the page got when it was made. A path that matches more
+    than one page, or none, is not found.
+
+    Raises:
+        DocsError: 404 if no single page has that path.
+    """
+    parts = [unicodedata.normalize("NFC", x) for x in path.strip("/").split("/") if x]
+    if not parts:
+        raise DocsError(404, "page_not_found", "No page at this link")
+    pages = await _all_pages(session, project_id)
+    exact = [pid for pid, v in _slug_paths(pages).items() if v == "/".join(parts)]
+    if len(exact) == 1:
+        return await page_detail(session, exact[0])
+    olds: dict[str, set[str]] = {}
+    for old_title, pid in (
+        await _title_aliases(session, [p.id for p in pages])
+    ).items():
+        olds.setdefault(pid, set()).add(_path_key(old_title))
+
+    def names(p: DocsPage) -> set[str]:
+        return {_path_key(p.title), p.slug, *olds.get(p.id, set())}
+
+    kids: dict[str | None, list[DocsPage]] = {}
+    ids = {p.id for p in pages}
+    for p in pages:
+        kids.setdefault(p.parent_id if p.parent_id in ids else None, []).append(p)
+    level = [p for p in kids.get(None, []) if parts[0] in names(p)]
+    for part in parts[1:]:
+        level = [k for p in level for k in kids.get(p.id, []) if part in names(k)]
+    if len(level) != 1:
+        # the page may have moved: its creation slug is unique in the space
+        level = [p for p in pages if p.slug == parts[-1]]
+    if len(level) != 1:
+        raise DocsError(404, "page_not_found", "No page at this link")
+    return await page_detail(session, level[0].id)
+
+
 async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
     """Return a page with its published content, the caller's draft and stats."""
     page = await get_page(session, page_id)
@@ -319,6 +450,8 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
         "parent_id": page.parent_id,
         "title": page.title,
         "slug": page.slug,
+        # the share link's path from the current titles (AC-4); None when another page has the same path
+        "slug_path": await slug_path(session, page),
         "status": page.status,
         "version": page.version,
         "markdown": markdown,

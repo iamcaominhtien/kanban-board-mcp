@@ -1,5 +1,17 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { useIdeaAiStatus, useShapeIdea, type IdeaAiStatus, type ShapeResult } from '../../api/ideaAi';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  keptKey,
+  newRequestId,
+  requestShape,
+  stopShape,
+  useIdeaAiStatus,
+  useKeptSuggestions,
+  useShapeIdea,
+  type IdeaAiStatus,
+  type KeptTurn,
+  type ShapeResult,
+} from '../../api/ideaAi';
 import {
   ideaRuleError,
   useAddAssumption,
@@ -50,6 +62,55 @@ export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus
   );
 }
 
+/**
+ * Keep with "Ask an AI member to suggest a problem statement and assumptions" on (ICT-5): after the idea is kept, the
+ * same two Shape requests as the "Draft the problem" and "Suggest assumptions" starters run. Their drafts wait for the
+ * idea's Shape with AI panel (it opens with them); nothing is added to the idea until a person adds it there.
+ * @returns `suggest(ideaId, title)`, which runs in the background and tells the person with a toast.
+ */
+export function useSuggestOnKeep() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const suggest = useCallback(
+    async (ideaId: string, ideaTitle: string) => {
+      const asks: { kind: ShapeResult['kind']; title: string }[] = [
+        { kind: 'problem', title: STARTERS[0].label },
+        { kind: 'assumptions', title: STARTERS[1].label },
+      ];
+      const base = Date.now();
+      const turns: KeptTurn[] = asks.map((a, i) => ({ id: base + i, kind: a.kind, title: a.title }));
+      qc.setQueryData<KeptTurn[]>(keptKey(ideaId), turns);
+      const put = (id: number, patch: Partial<KeptTurn>) =>
+        qc.setQueryData<KeptTurn[]>(keptKey(ideaId), (all) =>
+          (all ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        );
+      let ok = 0;
+      for (const t of turns) {
+        try {
+          put(t.id, { result: await requestShape({ ideaId, kind: t.kind }) });
+          ok += 1;
+        } catch (e) {
+          put(t.id, { error: ideaRuleError(e).message });
+        }
+      }
+      void qc.invalidateQueries({ queryKey: ['ideas', 'ai', 'status'] });
+      if (ok > 0) {
+        toast.success(`Suggestions ready for “${ideaTitle}”`, 'Open the idea: they wait in Shape with AI to be added.');
+      } else {
+        qc.removeQueries({ queryKey: keptKey(ideaId) });
+        toast.error(
+          'The AI suggestion could not be made',
+          'The idea was kept as Exploring without a suggestion. You can ask again from its page.',
+          undefined,
+          { label: 'Try again', onClick: () => void suggest(ideaId, ideaTitle) },
+        );
+      }
+    },
+    [qc, toast],
+  );
+  return suggest;
+}
+
 const STARTERS: { kind: ShapeResult['kind']; label: string; hint: 'shape' | 'exists' }[] = [
   { kind: 'problem', label: 'Draft the problem and the idea', hint: 'shape' },
   { kind: 'assumptions', label: 'Suggest assumptions and cheapest tests', hint: 'shape' },
@@ -78,24 +139,60 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
   const addLog = useAddLogEntry();
   const createTest = useCreateTestTicket();
   const [turns, setTurns] = useState<
-    { id: number; title: string; result?: ShapeResult; error?: string; kind: ShapeResult['kind']; question?: string }[]
+    {
+      id: number;
+      title: string;
+      result?: ShapeResult;
+      error?: string;
+      /** Stopped by the person (IP-16): nothing was drafted. */
+      stopped?: boolean;
+      kind: ShapeResult['kind'];
+      question?: string;
+      requestId?: string;
+    }[]
   >([]);
   const [question, setQuestion] = useState('');
   const [added, setAdded] = useState<Set<string>>(new Set());
+  const kept = useKeptSuggestions(idea.id);
+
+  // the suggestions asked for on Keep (ICT-5) join the conversation, and fill in as they arrive
+  useEffect(() => {
+    if (!kept.length) return;
+    setTurns((t) => {
+      // a turn asked again here (it has a request id) is this panel's own from then on
+      const local = new Map(t.map((x) => [x.id, x]));
+      const merged = kept.map((k) => {
+        const own = local.get(k.id);
+        return own?.requestId ? own : k;
+      });
+      return [...merged, ...t.filter((x) => !kept.some((k) => k.id === x.id))];
+    });
+  }, [kept]);
 
   async function run(kind: ShapeResult['kind'], title: string, q?: string, retryId?: number) {
     const id = retryId ?? Date.now();
+    const requestId = newRequestId();
     setTurns((t) =>
       retryId
-        ? t.map((x) => (x.id === id ? { ...x, error: undefined, result: undefined } : x))
-        : [...t, { id, title, kind, question: q }],
+        ? t.map((x) => (x.id === id ? { ...x, error: undefined, result: undefined, stopped: false, requestId } : x))
+        : [...t, { id, title, kind, question: q, requestId }],
     );
     try {
-      const result = await shape.mutateAsync({ ideaId: idea.id, kind, question: q });
+      const result = await shape.mutateAsync({ ideaId: idea.id, kind, question: q, requestId });
       setTurns((t) => t.map((x) => (x.id === id ? { ...x, result } : x)));
     } catch (e) {
       const rule = ideaRuleError(e);
-      setTurns((t) => t.map((x) => (x.id === id ? { ...x, error: rule.message } : x)));
+      setTurns((t) =>
+        t.map((x) => (x.id === id ? { ...x, error: rule.message, stopped: rule.code === 'stopped' } : x)),
+      );
+    }
+  }
+
+  async function stop(requestId: string) {
+    try {
+      await stopShape(requestId);
+    } catch (e) {
+      toast.error('Could not stop it', ideaRuleError(e).message);
     }
   }
 
@@ -403,6 +500,17 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
             <div className="is-turn-you">{t.question ?? t.title}</div>
             {t.result ? (
               renderResult(t)
+            ) : t.stopped ? (
+              <div className="is-working" data-testid="shape-stopped">
+                <span className="is-grow is-muted">{t.error}</span>
+                <button
+                  type="button"
+                  className="is-btn is-btn-sm"
+                  onClick={() => run(t.kind, t.title, t.question, t.id)}
+                >
+                  Try again
+                </button>
+              </div>
             ) : t.error ? (
               <div className="is-banner is-banner-risk" role="alert">
                 <div style={{ flex: 1 }}>
@@ -423,6 +531,18 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
                   Reading the idea… <AiChip />
                 </span>
                 <Elapsed />
+                {/* the cost is known only when the answer comes back (a run reports it at its end): it is shown on
+                    the draft, never guessed here */}
+                {t.requestId && (
+                  <button
+                    type="button"
+                    className="is-btn is-btn-sm"
+                    data-testid="shape-stop"
+                    onClick={() => void stop(t.requestId!)}
+                  >
+                    Stop
+                  </button>
+                )}
               </div>
             )}
           </div>

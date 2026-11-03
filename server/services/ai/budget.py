@@ -24,9 +24,9 @@ def day_key(at: datetime | None = None) -> str:
     return (at or datetime.now()).astimezone().date().isoformat()
 
 
-def month_start() -> datetime:
-    """The 1st of this month at local midnight, in UTC."""
-    now = datetime.now().astimezone()
+def month_start(at: datetime | None = None) -> datetime:
+    """The 1st of this month (of `at`, default now) at local midnight, in UTC."""
+    now = (at or datetime.now()).astimezone()
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).astimezone(UTC)
 
 

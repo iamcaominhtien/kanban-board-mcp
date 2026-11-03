@@ -123,7 +123,7 @@ export interface NotificationFeed {
 }
 
 export type NotificationFilter = 'all' | 'unread' | 'needs' | 'snoozed' | 'done' | 'cleared';
-export type NotificationFamily = 'ai' | 'people' | 'schedules' | 'info';
+export type NotificationFamily = 'ai' | 'people' | 'schedules' | 'info' | 'needs' | 'docs';
 
 export interface NotificationListParams {
   view: 'panel' | 'page';

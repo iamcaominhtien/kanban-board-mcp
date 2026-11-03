@@ -161,6 +161,7 @@ async def rows_out(session, rows: list[AiRun], q: str | None = None) -> list[dic
             "skills": skills.get(r.id, []),
             "transcript": transcript_info(t),
             "diagnosis": loads(getattr(r, "diagnosis", None), None),
+            "details_removed_at": r.details_removed_at,
         }
         if q and t and not t.deleted_at:
             item["snippet"] = transcripts.snippet(await transcripts.read(r.id) or [], q)

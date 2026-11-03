@@ -15,6 +15,8 @@ interface ColumnProps {
   memberMap?: Map<string, Member>;
   /** Tickets are still loading: real lane header, skeleton cards (same size as real cards, so nothing moves). */
   skeletonCards?: number;
+  /** While tickets load: this lane's count, known before its cards (AL-1); the pill stays a skeleton without it. */
+  loadingCount?: number;
   onReopen?: (ticket: Ticket) => void;
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
@@ -47,6 +49,7 @@ export function Column({
   onCardClick,
   memberMap,
   skeletonCards,
+  loadingCount,
   onReopen,
   onPending,
   onResume,
@@ -114,7 +117,16 @@ export function Column({
               {aiRunning} AI running
             </span>
           )}
-          {skeletonCards !== undefined ? (
+          {skeletonCards !== undefined && loadingCount !== undefined ? (
+            <span
+              className={styles.columnBadge}
+              style={{ backgroundColor: column.accentColor }}
+              aria-label={`${loadingCount} active tickets`}
+              data-testid="column-loading-count"
+            >
+              {loadingCount}
+            </span>
+          ) : skeletonCards !== undefined ? (
             <span className={`${loading.skel} ${loading.skelBadge}`} aria-hidden="true" />
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

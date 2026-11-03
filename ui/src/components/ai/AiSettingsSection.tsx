@@ -2,6 +2,7 @@ import { LineIcon } from '../ui/LineIcon';
 import { useState, type ReactNode } from 'react';
 import { PermissionsCard } from './AiPermissionsCards';
 import { aiApi, useAiOverview } from '../../api/ai';
+import { client } from '../../api/client';
 import { extractError } from '../../api/extractError';
 import type { AiSettings } from '../../types/ai';
 import { BoardAiPicker } from './AiDialogs';
@@ -222,6 +223,154 @@ function RunsAtOnce({
   );
 }
 
+const RUN_KEEP = [
+  [0, 'Keep forever'],
+  [30, '30 days'],
+  [90, '90 days'],
+  [180, '180 days'],
+  [365, '1 year'],
+] as const;
+
+interface RetentionPreview {
+  days: number | null;
+  wouldRemove: number;
+  oldest: string | null;
+  keptLinked: number;
+  keptThisMonth: number;
+}
+
+/**
+ * History (design ai-operations K, OPS-7): how long a finished run keeps its details. Keep forever is the default, as it
+ * always was; a person who picks a number of days sees what would go first, and the hourly sweep then removes the
+ * details (transcript, steps, prompt and logs) of finished runs older than that. The run itself stays: its cost,
+ * status, summary and links. Runs still going, runs of this month and runs another record works from stay whole.
+ */
+export function RunHistory({
+  projectId,
+  settings,
+  onSaved,
+}: {
+  projectId: string;
+  settings: AiSettings;
+  onSaved: () => void;
+}) {
+  const saved = settings.runRetentionDays ?? 0;
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<RetentionPreview | null>(null);
+  const [checking, setChecking] = useState(false);
+  // a number of days picked but not saved yet: it is saved only after the person has seen what would go
+  const [pending, setPending] = useState<number | null>(null);
+  const shown = pending ?? saved;
+  const show = async (days: number) => {
+    setChecking(true);
+    setError(null);
+    try {
+      const r = await client.get<RetentionPreview>(`/projects/${projectId}/ai/history/retention`, {
+        params: { days },
+      });
+      setPreview(r.data);
+    } catch (e) {
+      setError(extractError(e));
+    } finally {
+      setChecking(false);
+    }
+  };
+  const save = async (days: number) => {
+    setError(null);
+    try {
+      await aiApi.updateSettings(projectId, { runRetentionDays: days });
+      setPending(null);
+      setPreview(null);
+      onSaved();
+    } catch (err) {
+      setError(extractError(err));
+    }
+  };
+  return (
+    <section className="to-sec" data-testid="ops-history">
+      <div className="to-group">
+        <GroupHead
+          title="History"
+          hint="Every run stays in the history with its cost, status, summary and links. Transcripts also follow Settings › Notifications."
+        />
+        <TeamRow
+          title="Keep run details for"
+          hint="Run details are the transcript, steps, prompt and logs; after this many days they are removed. Runs still going, runs of this month and runs a workflow, approval or pinned transcript points at keep theirs."
+        >
+          <select
+            className="ai-select"
+            aria-label="Keep run details for"
+            data-testid="ops-run-retention"
+            value={shown}
+            onChange={(e) => {
+              const days = Number(e.target.value);
+              setPreview(null);
+              if (days === saved) {
+                setPending(null);
+              } else if (days === 0) {
+                void save(0); // keeping more never removes anything: saved at once
+              } else {
+                setPending(days);
+                void show(days);
+              }
+            }}
+          >
+            {RUN_KEEP.map(([v, label]) => (
+              <option key={v} value={v}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="st-btn st-btn-sm"
+            disabled={checking || shown === 0}
+            onClick={() => void show(shown)}
+            data-testid="ops-run-retention-preview"
+          >
+            Show what would go
+          </button>
+        </TeamRow>
+        {preview && (
+          <div className="ai-hint" role="status" data-testid="ops-run-retention-result">
+            {preview.wouldRemove
+              ? `The details (transcripts and logs) of ${preview.wouldRemove} finished run${preview.wouldRemove === 1 ? '' : 's'} would go, the oldest ended ${preview.oldest?.slice(0, 10)}. Their cost, status, summary and links stay.`
+              : 'No run details would go now.'}
+            {preview.keptLinked > 0 &&
+              ` ${preview.keptLinked} older run${preview.keptLinked === 1 ? '' : 's'} keep theirs because a record points at them.`}
+            {preview.keptThisMonth > 0 &&
+              ` ${preview.keptThisMonth} keep theirs because they count toward this month's budget.`}
+          </div>
+        )}
+        {pending != null && (
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              onClick={() => {
+                setPending(null);
+                setPreview(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="st-btn st-btn-sm st-btn-primary"
+              data-testid="ops-run-retention-save"
+              disabled={checking}
+              onClick={() => void save(pending)}
+            >
+              Keep {RUN_KEEP.find(([v]) => v === pending)?.[1] ?? `${pending} days`}
+            </button>
+          </div>
+        )}
+      </div>
+      {error && <div className="ai-error-text">{error}</div>}
+    </section>
+  );
+}
+
 /** Statuses that read as trouble on the Board AI card (red dot). */
 const STATUS_BAD = new Set([
   'key_invalid',
@@ -376,6 +525,9 @@ export function AiSettingsSection({
           />
         )}
         <OperationsCard projectId={projectId} />
+        {overview.data && (
+          <RunHistory projectId={projectId} settings={overview.data.settings} onSaved={() => void overview.refetch()} />
+        )}
       </section>
 
       <section className="ai-group" id="ai-members" aria-labelledby="ai-members-h" data-toc="Members and workflows">

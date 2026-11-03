@@ -16,6 +16,7 @@ import { useProjects, useCreateProject, useDeleteProject } from './api/projects'
 import { useMembers } from './api/members';
 import {
   useTickets,
+  useLaneCounts,
   getTicket,
   useCreateTicket,
   useDeleteTicket,
@@ -816,6 +817,22 @@ export default function App() {
   const pillState = useLoadingPill(pillPhase);
   const boardLoadState: 'projects' | 'tickets' | undefined =
     projectsPhase || projectsError ? 'projects' : ticketsPhase || ticketsError ? 'tickets' : undefined;
+  // While the tickets load, the lane headers show their counts from one cheap query (AL-1), only when no filter or
+  // search is on: then they are the counts the lanes will show
+  const noBoardFilter =
+    !debouncedSearchQuery &&
+    activeType === 'all' &&
+    activePriority === 'all' &&
+    activeAssignee === 'all' &&
+    !filterReopened &&
+    !filterPending &&
+    !filterFromIdea &&
+    workflowFilter.waitingForMe === NO_WORKFLOW_FILTER.waitingForMe &&
+    workflowFilter.role === NO_WORKFLOW_FILTER.role &&
+    workflowFilter.template === NO_WORKFLOW_FILTER.template &&
+    workflowFilter.step === NO_WORKFLOW_FILTER.step;
+  const laneCountsQuery = useLaneCounts(currentProjectId ?? '', ticketsPhase && noBoardFilter);
+  const loadingLaneCounts = ticketsPhase && noBoardFilter ? laneCountsQuery.data : undefined;
   const lanesOverride = projectsError ? (
     <LoadError
       title="Couldn't load your projects"
@@ -1093,6 +1110,7 @@ export default function App() {
                           onAssigneeChange={setActiveAssignee}
                           countDeltas={countDeltas}
                           loadState={boardLoadState}
+                          loadingCounts={loadingLaneCounts}
                           lanesOverride={lanesOverride}
                           statusSlot={loadingPill}
                           boardNotice={

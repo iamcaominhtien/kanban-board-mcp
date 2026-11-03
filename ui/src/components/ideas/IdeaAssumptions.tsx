@@ -15,6 +15,7 @@ import { EvidenceForm } from './IdeaEvidenceTab';
 import { LineIcon } from '../ui/LineIcon';
 import { useIdeaAiStatus } from '../../api/ideaAi';
 import { IdeaIcon, type IdeaIconName } from './ideaIcons';
+import { absoluteTime, relativeTime } from '../../utils/relativeTime';
 
 const IMPACTS: AssumptionImpact[] = ['low', 'medium', 'high'];
 const STATES: AssumptionState[] = ['untested', 'testing', 'validated', 'disproved'];
@@ -347,6 +348,7 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId, onSugge
                             )}
                           </div>
                         </div>
+                        <LastChange idea={idea} assumptionId={a.id} />
                         {!readOnly && (
                           <div className="is-detail-actions">
                             {a.state !== 'validated' && (
@@ -432,6 +434,41 @@ export function IdeaAssumptions({ idea, readOnly, onOpenTicket, focusId, onSugge
 }
 
 /** Groups a row with its detail row (tbody needs a fragment-like wrapper without extra DOM). */
+const STATE_NAMES: Record<string, string> = {
+  untested: 'Untested',
+  testing: 'Testing',
+  validated: 'Validated',
+  disproved: 'Disproved',
+};
+
+/** "Changed to Testing by Hoa Mai · 2h ago": the latest state change of this assumption in the idea's activity
+ * (IP-8). Entries written before they named their assumption are not matched, so nothing shows for them. */
+export function LastChange({ idea, assumptionId }: { idea: Idea; assumptionId: string }) {
+  const trail = idea.activityTrail ?? [];
+  let last: (typeof trail)[number] | undefined;
+  for (let i = trail.length - 1; i >= 0; i--) {
+    const e = trail[i];
+    if (e.kind === 'assumption' && e.meta?.assumption === assumptionId && typeof e.meta?.to === 'string') {
+      last = e;
+      break;
+    }
+  }
+  if (!last) return null;
+  const to = String(last.meta?.to);
+  const by = !last.author
+    ? 'someone'
+    : last.author === 'user'
+      ? 'you'
+      : last.author === 'agent'
+        ? 'an AI agent'
+        : last.author;
+  return (
+    <div className="is-muted" data-testid={`assumption-change-${assumptionId}`} style={{ marginTop: 8, fontSize: 12 }}>
+      Changed to {STATE_NAMES[to] ?? to} by {by} · <span title={absoluteTime(last.at)}>{relativeTime(last.at)}</span>
+    </div>
+  );
+}
+
 function AssumptionRows({ children }: { open: boolean; children: React.ReactNode }) {
   return <>{children}</>;
 }
