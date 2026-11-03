@@ -33,6 +33,12 @@ _FENCE = re.compile(
 _UNPROVABLE = re.compile(r"^\s*(not provable|không chứng minh được)\b", re.I)
 
 
+# An agent outside a board run (Claude Code, Cursor... with only the MCP server) has no working folder: it names a file
+# by its absolute path on this computer, as for docs_write(import) and diagram_create. Files that are never copied
+# (keys, `.env`, anything under a dot folder such as ~/.ssh) stay refused.
+OUTSIDE_RUN = "<outside-run>"
+
+
 class ProofError(ValueError):
     """A proof was refused; the message tells the AI or the person what to fix."""
 
@@ -86,6 +92,8 @@ def _folders(folder: str | list[str]) -> list[Path]:
     raw = [folder] if isinstance(folder, str) else list(folder)
     out: list[Path] = []
     for f in raw:
+        if f == OUTSIDE_RUN:
+            f = os.sep
         if f:
             p = Path(os.path.realpath(os.path.expanduser(f)))
             if p not in out:
@@ -102,6 +110,14 @@ def ingest_file(raw: str, folder: str | list[str]) -> str:
     that must never be copied (keys, `.env`, `.git`)."""
     bases = _folders(folder)
     given = Path(os.path.expanduser(raw.strip()))
+    if _outside(folder):
+        if not given.is_absolute():
+            raise ProofError(
+                f"{raw}: outside a board run a file is named by its absolute path on this computer "
+                "(e.g. /Users/me/project/shots/login.png)."
+            )
+        if not given.is_file():
+            raise ProofError(f"{raw}: no such file. Save it first, then attach it.")
     where = " or ".join(str(b) for b in bases) or "(none)"
     found: tuple[Path, Path] | None = None
     inside = False
@@ -139,6 +155,13 @@ def ingest_file(raw: str, folder: str | list[str]) -> str:
     stored = uploads.build_upload_filename(path.name)
     (uploads.get_uploads_dir() / stored).write_bytes(path.read_bytes())
     return f"/uploads/{stored}"
+
+
+def _outside(folder: str | list[str] | None) -> bool:
+    """The caller is an agent outside a board run (it names files by their absolute path)."""
+    return folder == OUTSIDE_RUN or (
+        isinstance(folder, list) and folder == [OUTSIDE_RUN]
+    )
 
 
 def _is_local(target: str) -> bool:
@@ -198,6 +221,14 @@ def localize(
         head, target, tail = match.groups()
         if not _is_local(target):
             return match.group(0)
+        if (
+            _outside(folder)
+            and pictures_only
+            and not Path(os.path.expanduser(target)).is_absolute()
+        ):
+            return match.group(
+                0
+            )  # `images/x.png` on an imported page: not a file of this computer's
         if pictures_only and not head.startswith("!"):
             # a link: an Excel sheet or a PDF the run made is attached; anything else stays as written
             if not (

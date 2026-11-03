@@ -928,6 +928,11 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
     )
     if provider is not None and provider.format_extra:
         extra += "\n" + provider.format_extra
+    if provider is None and scope == "project":
+        # the Board AI sets up the AI team too (team_config.py): what it may list, read from the <ai-team> context
+        from . import team_config
+
+        extra += "\n" + team_config.FORMAT
     if req.get("draft"):
         extra += "\nThis request is a suggested action: answer in one sentence and put the change in the actions block."
     partial = str(req.get("continue_from") or "")
@@ -1333,6 +1338,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                     changes,
                     project_ids={c.project_id},
                     overrides=board_ai_cfg.get("tiers"),
+                    manages_team=bool(board_ai_cfg.get("manages_team")),
                 )
                 if verdict["act"]:
                     try:

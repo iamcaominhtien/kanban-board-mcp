@@ -33,6 +33,20 @@ export const OP_WORDS: Record<string, string> = {
   budget: 'Change a budget or an account',
   merge: 'Merge a pull request',
   post_outside: 'Post anything outside the board',
+  // setting up the AI team
+  ai_from_pack: 'Make an AI member from a role pack',
+  ai_role: 'Give an AI member a role',
+  ai_edit: 'Change an AI member’s instructions, model or effort',
+  ai_pack_update: 'Bring an AI member to its role pack’s latest version',
+  plugin_install: 'Install a plugin',
+  plugin_switch: 'Switch a plugin on or off for an AI member',
+  board_skill: 'Switch one of the board’s skills on or off',
+  mcp_add: 'Add an MCP server to an AI member (runs a command)',
+  mcp_remove: 'Remove an MCP server from an AI member',
+  hook_add: 'Add a hook to an AI member (runs a command)',
+  hook_remove: 'Remove a hook from an AI member',
+  skill_add: 'Give an AI member a skill of its own',
+  skill_remove: 'Remove an AI member’s own skill',
 };
 
 export const TIER_WORDS: Record<Tier, string> = {

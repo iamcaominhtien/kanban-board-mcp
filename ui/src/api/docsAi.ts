@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { client } from './client';
 
-/** Docs AI for a project (Settings › Docs › AI). On by default; an admin can turn it off. */
+/** Docs AI for a project (Settings › Docs › AI). Off by default for a new project (AI-1); an admin turns it on. */
 export interface DocsAiState {
   enabled: boolean;
   /** The board-wide "Docs AI" feature switch (Settings › AI › Features). */

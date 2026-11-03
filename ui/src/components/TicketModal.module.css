@@ -96,8 +96,10 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 18px 28px;
+  /* 24 px gaps and a 71 px bar as drawn (TicketDetail › Header: 20 px padding around 30 px buttons; the view row
+     keeps 4 px of its own padding for the focus ring, so 16 + 4) */
+  gap: 24px;
+  padding: 16px 28px;
   border-bottom: 1px solid #e3e8e5;
   flex-shrink: 0;
 }
@@ -160,8 +162,8 @@
   gap: 4px;
   background: none;
   border: none;
-  padding: 3px 6px;
-  margin: -3px -6px;
+  padding: 3px 5px;
+  margin: -3px -5px;
   border-radius: 5px;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
@@ -220,7 +222,8 @@
 .viewBtnActive {
   border-color: var(--color-forest) !important;
   background: #f1f8f3 !important;
-  color: var(--color-forest) !important;
+  /* a dark icon in the green box (TicketDetailParent › Header button: Active) */
+  color: var(--color-text-pri) !important;
   box-shadow: 0 1px 3px rgba(46, 111, 64, 0.16);
 }
 
@@ -466,20 +469,15 @@
   min-height: 36px;
 }
 
-.sectionDivider {
-  height: 1px;
-  background: #eef3ef;
-  border: none;
-  margin: 0;
-}
-
 /* Consolidated Attachments Zone matching Attachments.dc.html */
 .attachmentsZone {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  /* the .sectionDivider above is the one divider (a second top border left a 30 px empty band) */
-  padding-top: 14px;
+  gap: 8px;
+  /* One divider, drawn by the zone itself, as every section of the design (border-top #EEF3EF, 4 px above the
+     label); the hr and a 14 px padding before it left a 36 px band under the line */
+  padding-top: 4px;
+  border-top: 1px solid #eef3ef;
 }
 
 .attachmentsLabel {
@@ -1172,7 +1170,8 @@
   padding: 22px 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  /* 20 px between fields (New Ticket 1) */
+  gap: 20px;
   max-height: 640px;
   overflow-y: auto;
 }
@@ -1198,7 +1197,8 @@
   border-radius: 7px;
   border: 1px solid #c7d2cb;
   font-family: inherit;
-  font-size: 14px;
+  /* the title field is 15/600 (New Ticket 1) */
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-pri);
   outline: none;
@@ -1302,7 +1302,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
   padding: 16px 24px;
   border-top: 1px solid #e3e8e5;
 }
@@ -1327,7 +1327,8 @@
   font-weight: 600;
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.1);
+  /* flat, as drawn (New Ticket 1) */
+  box-shadow: none;
   transition: opacity 0.15s ease;
 }
 
@@ -1540,15 +1541,48 @@
 
 .pendingBannerTitle {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: #34455a;
 }
 
+/* " - set by Hoa Mai" is lighter than the date (TicketPending D1) */
+.pendingBannerBy {
+  font-weight: 500;
+  color: #5b6f86;
+}
+
 .pendingBannerDetail {
-  font-size: 13px;
-  color: #1e293b;
+  font-size: 12.5px;
+  color: #34455a;
   line-height: 1.45;
   word-break: break-word;
+}
+
+.pendingBannerSep {
+  color: #5b6f86;
+}
+
+.pendingBannerStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 7px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-pri);
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+.pendingBannerStatusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .pendingBannerActions {
@@ -1560,12 +1594,12 @@
 
 .pendingBannerBtn {
   font-size: 12px;
-  font-weight: 500;
-  padding: 5px 11px;
+  font-weight: 600;
+  padding: 3px 9px;
   border-radius: 6px;
-  border: 1px solid #b8c4d2;
+  border: 1px solid #d4ddd7;
   background: #fff;
-  color: #34455a;
+  color: var(--color-text-pri);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
@@ -1592,8 +1626,8 @@
 }
 
 .pendingBannerIcon {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #e8edf3;
   display: flex;
@@ -1900,6 +1934,7 @@
   background: #f4f6f9;
   border-color: #b8c4d2;
   align-items: center;
+  padding: 11px 28px;
 }
 
 /* While a file uploads: a pulsing placeholder thumbnail, or a thin bar under the file name (Attachments 2) */
@@ -1958,4 +1993,17 @@
   height: 100%;
   background: var(--color-forest);
   animation: attProgressSlide 1.2s ease-in-out infinite;
+}
+
+/* Buttons and fields in the ticket panel use the app font. Without this a <button> falls back to the browser's
+   own (Arial): the dashed Add buttons, the view tooltips, the Pending / Reopen buttons and the banner buttons.
+   :where() keeps it weightless, so a class that sets its own family (the mono id button) still wins. */
+:where(.panelDetail) :where(button, input, textarea, select) {
+  font-family: inherit;
+}
+
+/* Values in the side column: Due date and Estimate are 13 px regular, Priority and Assignee 500 (TicketDetail ›
+   Sidebar) */
+.sidebarValuePlain {
+  font-weight: 400;
 }

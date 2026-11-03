@@ -235,6 +235,7 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
   const used = run.skills.length ? run.skills : usedSkills(entries);
   const pinned = !!transcript?.pinned;
   const removed = transcript?.removedAt ?? null;
+  const detailsRemoved = run.detailsRemovedAt ?? null;
   const rec = record.data;
   const startNote = givenOf(entries).sent?.note?.trim() ?? '';
   const tests = rec?.report?.tests;
@@ -386,9 +387,11 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
 
       {!available && (pane === 'steps' || pane === 'given') ? (
         <div className="hs-warn" data-testid="hs-no-transcript">
-          {removed
-            ? `The full transcript was removed on ${new Date(removed).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}, when it passed the retention. The summary below is kept for good.`
-            : 'The board has no transcript of this run: it ended before the board began keeping them. The summary below is what is kept.'}
+          {detailsRemoved
+            ? `Details removed on ${new Date(detailsRemoved).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })} by the run history setting: the transcript, steps and prompt are gone. Its cost, status, summary and links are kept.`
+            : removed
+              ? `The full transcript was removed on ${new Date(removed).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}, when it passed the retention. The summary below is kept for good.`
+              : 'The board has no transcript of this run: it ended before the board began keeping them. The summary below is what is kept.'}
           {run.summary ? <p className="hs-prose">{run.summary}</p> : null}
         </div>
       ) : pane === 'steps' ? (

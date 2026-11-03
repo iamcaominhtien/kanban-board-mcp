@@ -110,7 +110,8 @@ write plain sentences under clear headings, short paragraphs, one idea each.
   inline, any other file as a file card. Without `section`/`find` it goes at the end; `section='Login'` puts it at the
   end of that section; `find='exact sentence'` puts it in a paragraph of its own after that sentence.
 - Your files are not on the board's machine? Send them as `data` (base64) with `name`.
-- `ticket_id=KAN-12` (with `body`) posts the file on the ticket as a comment instead or as well.
+- `ticket_id=KAN-12` (with `body`) posts the file on the ticket as a comment as well; for a ticket alone,
+  `ticket_items(item='attachment', path=...)` does the same (the file then shows in the ticket's Attachments).
 - Without `page_id` or `ticket_id` it only stores the file and returns `markdown` to put where you want.
 - In a board AI run, a picture in your working folder can also be named by its path in the Markdown you send
   (`![Login](qa/shots/login.png)`): the board copies it.

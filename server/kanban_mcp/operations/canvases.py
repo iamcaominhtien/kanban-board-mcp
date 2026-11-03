@@ -159,6 +159,14 @@ async def shared_guides() -> dict:
     return out
 
 
+async def ticket_guide() -> dict:
+    """How to use every part of a ticket and where files go (in Claude Code it is the working-with-tickets skill,
+    issue #269): {guide, roles: {role: what it leaves on a ticket}}."""
+    from services import ticket_guide as guide
+
+    return {"guide": guide.GUIDE, "roles": dict(guide.ON_TICKET)}
+
+
 async def role_guide(query: str | None = None) -> dict:
     """One role's guide (in Claude Code it is that role's skill, issue #273): {role, skill, guide}; without `query`,
     which roles have one: {roles: {role: what it covers}}."""
@@ -689,7 +697,7 @@ async def create_canvas_from_files(
         "id": fresh.id,
         "title": fresh.title,
         "version": fresh.version,
-        "markdown": f"![{fresh.title}](canvas:{fresh.id})",
+        "markdown": svc_canvases.embed_line(fresh.id, fresh.title),
         "boards": boards,
         **({"pages": list(pages)} if pages else {}),
         **counts,

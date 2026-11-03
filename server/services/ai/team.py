@@ -46,6 +46,14 @@ SPARK_POINTS = 7
 RECENT_HANDOFFS = 8
 
 
+def _role_of(m: dict) -> str | None:
+    """The role key of a member made from a role pack (``config.pack.key``, else ``config.role``), or None."""
+    cfg = m.get("config") or {}
+    pack = cfg.get("pack") if isinstance(cfg.get("pack"), dict) else {}
+    role = pack.get("key") or cfg.get("role")
+    return str(role) if role else None
+
+
 def window_start(range_key: str, now: datetime | None = None) -> datetime:
     """When `range_key` begins: local midnight for today, else that many days back."""
     now = now or datetime.now(UTC)
@@ -683,6 +691,8 @@ async def now_view(
                 "name": m["name"],
                 "color": m["color"],
                 "glyph": m["glyph"],
+                # the role pack it was made from ("reviewer"), for the role code on its avatar (AT-4); None otherwise
+                "role": _role_of(m),
                 "provider": m["provider"],
                 "provider_label": m["provider_label"],
                 "connection": m["connection"],

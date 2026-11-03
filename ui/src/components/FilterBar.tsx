@@ -295,7 +295,7 @@ export function FilterBar({
               aria-expanded={openDropdown === 'type'}
             >
               <span className={styles.labelMuted}>Type:</span>{' '}
-              {activeType !== 'all' && <TicketTypeIcon type={activeType} size={14} />}
+              {activeType !== 'all' && <TicketTypeIcon type={activeType} size={13} />}
               {TYPE_OPTIONS.find((t) => t.value === activeType)?.label ?? 'All'}
               <svg
                 className={`${styles.chevronIcon} ${openDropdown === 'type' ? styles.chevronRotated : ''}`}
@@ -328,7 +328,7 @@ export function FilterBar({
                       }}
                     >
                       {/* icon + label per row (Main Board 2, board MB-4) */}
-                      {opt.value !== 'all' && <TicketTypeIcon type={opt.value} size={15} />}
+                      {opt.value !== 'all' && <TicketTypeIcon type={opt.value} size={13} />}
                       <span className={styles.itemLabel}>{opt.label}</span>
                       {isSelected && (
                         <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">
@@ -417,7 +417,7 @@ export function FilterBar({
             aria-expanded={openDropdown === 'assignee'}
           >
             <span className={styles.labelMuted}>Assignee:</span>{' '}
-            {selectedMember && <MemberAvatar member={selectedMember} size={18} />}
+            {selectedMember && <MemberAvatar member={selectedMember} size={15} />}
             {activeAssignee === 'all'
               ? 'All'
               : activeAssignee === 'unassigned'
@@ -495,7 +495,7 @@ export function FilterBar({
                       setOpenDropdown(null);
                     }}
                   >
-                    <MemberAvatar member={m} size={20} />
+                    <MemberAvatar member={m} size={18} />
                     <span className={styles.itemLabel}>{m.name}</span>
                     {isSelected && (
                       <svg className={styles.checkIcon} width="13" height="13" viewBox="0 0 14 14" fill="none">

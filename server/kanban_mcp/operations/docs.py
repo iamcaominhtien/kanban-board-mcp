@@ -23,7 +23,7 @@ async def _with_pictures(session, markdown: str, page_id: str | None = None) -> 
     written when its file is not there (an imported page's `images/…`), so the AI can still edit that page."""
     if "](" not in markdown:
         return markdown
-    folder = await common.run_folder()
+    folder = await common.attach_folder()
     if folder is None:
         return markdown
     keep: set[str] = set()
@@ -686,35 +686,29 @@ async def upload_file(
         except (binascii.Error, ValueError) as exc:
             raise ValueError("upload: data is not valid base64.") from exc
         return _stored(name, content)
-    folder = await common.run_folder()
-    if folder is not None:
-        # an AI run stores only what is in its own working folder, by the same rules as a picture in a proof
-        try:
-            url = svc_proofs.ingest_file(path, folder)
-        except svc_proofs.ProofError as exc:
-            raise ValueError(str(exc)) from exc
-        import uploads
-
-        stored = Path(url).name
-        size = (uploads.get_uploads_dir() / stored).stat().st_size
-        clean = name or Path(path).name
-        suffix = Path(stored).suffix.lower()
-        label = clean.replace("[", "").replace("]", "")
-        image = suffix in uploads.SUPPORTED_IMAGE_EXTENSIONS
-        return {
-            "url": url,
-            "name": clean,
-            "size": size,
-            "type": uploads.MIME_BY_EXTENSION.get(suffix, "application/octet-stream"),
-            "markdown": f"![{label}]({url})" if image else f"[{label}]({url})",
-        }
-    file = Path(path).expanduser()
-    if not file.is_absolute():
-        raise ValueError(f"upload: path must be absolute: {path}")
-    if not file.is_file():
-        raise ValueError(f"upload: no such file: {path}")
-    if file.stat().st_size > MAX_UPLOAD_BYTES:
+    # the same rule as an attachment (ticket_items(item='attachment')): an AI run names a file in its working folders
+    # or the ticket's Workspace, an agent outside a board run by its absolute path; keys, `.env` and dot folders never
+    folder = await common.attach_folder()
+    if folder is None:
         raise ValueError(
-            f"{file.name}: larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
+            "upload: this run has no working folder; send the file as data (base64) with name."
         )
-    return _stored(name or file.name, file.read_bytes())
+    try:
+        url = svc_proofs.ingest_file(path, folder)
+    except svc_proofs.ProofError as exc:
+        raise ValueError(str(exc)) from exc
+    import uploads
+
+    stored = Path(url).name
+    size = (uploads.get_uploads_dir() / stored).stat().st_size
+    clean = Path(name or path).name
+    suffix = Path(stored).suffix.lower()
+    label = clean.replace("[", "").replace("]", "")
+    image = suffix in uploads.SUPPORTED_IMAGE_EXTENSIONS
+    return {
+        "url": url,
+        "name": clean,
+        "size": size,
+        "type": uploads.MIME_BY_EXTENSION.get(suffix, "application/octet-stream"),
+        "markdown": f"![{label}]({url})" if image else f"[{label}]({url})",
+    }

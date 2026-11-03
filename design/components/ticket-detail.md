@@ -30,6 +30,7 @@ Source: [TicketDetail.dc.html](../source/TicketDetail.dc.html) › `<!-- Main co
 
 - Tag pills are removable: the "×" on a pill is dimmed at rest and goes to full opacity on hover; "+ ADD TAG" is a dashed button.
 - Sub-tasks show a progress bar and an `x/y` count; rows have a completion circle, title and ticket id. "+ Add sub-task" is a dashed button.
+- **As built (2026-11, comp-2 TD-2):** sub-tasks are checklist items inside the ticket (`id`, `text`, `done`), not tickets, so a row has no ticket id: the completion circle and the title only. The mono grey id drawn at the right of each row (`KAN-146`) is not shown. Work that needs its own ticket is a sub-ticket (Sub-tickets section, with its id, status and wave).
 - Acceptance criteria have a checkbox per row and a dashed "+ Add criterion" button (see [add-ac.md](add-ac.md)).
 
 ## 3. Main column — relations, attachments, comments

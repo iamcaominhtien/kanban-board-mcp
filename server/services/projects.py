@@ -6,7 +6,7 @@ from sqlmodel import SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from services.git_repo import normalize_repo_path
-from models import Project, ProjectCreate, ProjectUpdate
+from models import DocsAiSettings, Project, ProjectCreate, ProjectUpdate
 from services.members import create_member as _create_member
 
 
@@ -48,6 +48,8 @@ async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
         session.add(project)
         await session.flush()
         await _create_member(session, project.id, "Admin", "#3B82F6", commit=False)
+        # Docs AI is off for a new project until an admin turns it on (AI-1); projects made before keep theirs
+        session.add(DocsAiSettings(project_id=project.id, enabled=False))
         await session.commit()
         await session.refresh(project)
     except IntegrityError as exc:

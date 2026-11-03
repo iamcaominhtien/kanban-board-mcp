@@ -313,6 +313,8 @@ them on what was built.
   code) or by hand in the app, with the browser.
 - Set its result **with its proof in the same call**: the command and its output, or a screenshot. A case you could
   not run stays pending, with why.
+- Your screenshots, logs and reports go in the **ticket's Workspace** (its path is in your prompt), named by that
+  path in the proof; never loose in the worktree, which holds only code (a test you wrote is code: commit it).
 - Run the whole suite too; a failure outside this ticket is reported separately, not mixed in.
 - Ten minutes off the script: try what a user would do that nobody wrote down. Report what you find as its own list.
 
@@ -325,6 +327,8 @@ Example: "TC-4 failed · late_fee(due=1 May, returned=1 May) returns 5,000 đ, e
 `python3 -m pytest tests/test_fees.py::test_on_due_date -q` → `1 failed` (output below). Blocks criterion 2."
 
 ## Your report
+Tick on the ticket each criterion whose cases all passed (`ticket_items item='criterion' action='toggle'`; read
+`done` first, a toggle flips it): a criterion "met" only in your report stays unticked for the person.
 A table: case, criterion, result, proof. Then: criteria met (only those whose cases passed), failures, what was not
 tested and why. A criterion with no passing case is not met, whatever the hand-over note says.
 """,
@@ -362,7 +366,8 @@ play. Start the app yourself on the port the board gave, and stop it at the end.
   were mine: the colour barely changed. I pressed back to check the time and both seats were gone."
 - A table: step, what I expected, what happened, screenshot, how bad (stopped me / slowed me / cosmetic).
 - The screenshots themselves in that ticket comment (`![Step 2: after +500](path/in/your/folder.png)`): a file name
-  in a sentence shows nobody anything.
+  in a sentence shows nobody anything. Keep them in the ticket's Workspace (its path is in your prompt), not in the
+  worktree.
 - The three changes that would help this person most, and what worked well.
 You report what a user meets; the Designer and the Dev decide the fix.
 """,

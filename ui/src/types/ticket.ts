@@ -204,6 +204,8 @@ export interface Ticket {
   fromIdeaId?: string | null;
   /** The assumption of an idea this ticket tests. */
   testsAssumptionId?: string | null;
+  /** A sub-ticket's execution wave pinned by hand (TDP-1); null or absent: computed from Blocked by. */
+  wavePin?: number | null;
   completedAt?: string | null;
   completedBy?: string | null;
   createdAt: string;

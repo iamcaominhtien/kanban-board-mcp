@@ -102,7 +102,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Test",
                 "kind": "ai",
                 "role": "qa",
-                "hands_in": "Every test case run, passed or failed, each with its evidence: a screenshot or the command and its output",
+                "hands_in": "Every test case run, passed or failed, each with its evidence: a screenshot or the command and its output; each criterion its passing cases prove ticked on the ticket; its screenshots, logs and reports in the ticket's Workspace, none left in the worktree",
             },
             {
                 "key": "review",
@@ -153,7 +153,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Try it",
                 "kind": "ai",
                 "role": "user_tester",
-                "hands_in": "What it tried and where it got stuck, with a screenshot of each screen it used and the browser console's errors",
+                "hands_in": "What it tried and where it got stuck, with a screenshot of each screen it used and the browser console's errors; the screenshots kept in the ticket's Workspace",
             },
             {
                 "key": "review",
@@ -554,6 +554,39 @@ async def current_step(session, ticket_id: str) -> AiTicketStep | None:
         if r.state in ("pending", "active", "waiting", "blocked", "failed"):
             return r
     return None
+
+
+# The ready-made roles' names as the packs write them ("BA", "QA", never "ba"); the UI has the same map (wfFormat.ts)
+ROLE_NAMES = {
+    "triage": "Triage",
+    "pm": "PM",
+    "ba": "BA",
+    "designer": "Designer",
+    "dev": "Dev",
+    "qa": "QA",
+    "user_tester": "User tester",
+    "reviewer": "Reviewer",
+}
+
+
+async def role_label(session, project_id: str, role: str | None) -> str:
+    """A role's name for a sentence (TP-8): the ready-made name, else the project's pack name, else its key in
+    words."""
+    if not role:
+        return ""
+    if role in ROLE_NAMES:
+        return ROLE_NAMES[role]
+    from . import packs
+
+    try:
+        pack = await packs.get_pack(session, project_id, role)
+    except Exception:  # noqa: BLE001 - a message never fails over its wording
+        pack = None
+    name = str((pack or {}).get("name") or "").strip()
+    if name:
+        return name
+    words = role.replace("_", " ")
+    return words[:1].upper() + words[1:]
 
 
 async def resolve_member(
@@ -1047,7 +1080,7 @@ async def _advance(ticket_id: str) -> None:
                 ticket,
                 row,
                 "no_member",
-                f"No member for the role {row.role} on this project.",
+                f"No member for the role {await role_label(session, wf.project_id, row.role)} on this project.",
                 {"role": row.role},
             )
             return

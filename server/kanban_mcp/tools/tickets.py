@@ -41,7 +41,7 @@ TICKET_OPS = {
     "create": Op(
         ops.create_ticket,
         ("project_id", "title"),
-        tuple(f for f in _TICKET_FIELDS if f != "title"),
+        tuple(f for f in _TICKET_FIELDS if f != "title") + ("acceptance_criteria",),
     ),
     "update": Op(
         ops.update_ticket,
@@ -52,6 +52,7 @@ TICKET_OPS = {
             "wont_do_reason",
             "block_done_if_acs_incomplete",
             "block_done_if_tcs_incomplete",
+            "wave_pin",
             "clear_fields",
         ),
     ),
@@ -151,6 +152,12 @@ async def manage_ticket(
             "member set here is not started: ai_team(ask, intent='work') assigns it and starts it."
         ),
     ] = None,
+    acceptance_criteria: Annotated[
+        list[str] | None,
+        Field(
+            description="create: one checkable condition each; later: ticket_items(item='criterion')."
+        ),
+    ] = None,
     repo_path: Annotated[
         str | None,
         Field(
@@ -175,6 +182,10 @@ async def manage_ticket(
             description="update: true refuses status 'done' until there is a test case and all pass."
         ),
     ] = None,
+    wave_pin: Annotated[
+        int | None,
+        Field(ge=1, le=99, description="update: pin a sub-ticket's wave (1-99)."),
+    ] = None,
     clear_fields: Annotated[
         list[
             Literal[
@@ -185,6 +196,7 @@ async def manage_ticket(
                 "assignee",
                 "repo_path",
                 "wont_do_reason",
+                "wave_pin",
             ]
         ]
         | None,
@@ -257,7 +269,7 @@ async def manage_ticket(
 ) -> dict:
     """Create, change, relate or delete a ticket (a ticket's checklists, comments, work log and branches have their own
     tools). `action`:
-    - create: project_id, title [, description, type, priority, status, parent_id, estimate, due_date, start_date, tags, assignee]. The ID comes from the project prefix ('IAM-5'). With parent_id it is a sub-ticket. Returns the ticket.
+    - create: project_id, title [, description, acceptance_criteria, type, priority, status, parent_id, estimate, due_date, start_date, tags, assignee]. The ID comes from the project prefix ('IAM-5'). With parent_id it is a sub-ticket. Returns the ticket.
     - update: ticket_id plus any fields to change; omitted fields are untouched, so a plain status move is just (ticket_id, status). To empty a nullable field name it in clear_fields. 'wont_do' needs wont_do_reason; not for sub-tickets, except a Story's. A Story's status moves with its plan, never by hand. Also takes repo_path, block_done_if_acs_incomplete, block_done_if_tcs_incomplete. Returns the ticket.
     - delete: ticket_id. PERMANENT (sub-tickets detached, links and workspace folder removed); to keep history set status 'wont_do'.
     - reopen: ticket_id [, reason, reset_ac, reset_tests, unassign, reopen_parent]. Moves a 'done' / 'wont_do' ticket back to 'todo'. Returns the ticket.

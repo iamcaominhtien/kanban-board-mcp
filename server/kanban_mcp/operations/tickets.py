@@ -152,6 +152,12 @@ async def create_ticket(
             description="Member id (UUID) of the project member who owns it; see list_members."
         ),
     ] = None,
+    acceptance_criteria: Annotated[
+        list[str] | None,
+        Field(
+            description="The definition of done, one checkable condition each (max 50, 1,000 chars each)."
+        ),
+    ] = None,
 ) -> dict:
     """Create a ticket. Its ID is generated from the project prefix (e.g. 'IAM-5'). Returns the created ticket."""
     try:
@@ -170,6 +176,7 @@ async def create_ticket(
                 start_date=start_date,
                 tags=tags or [],
                 assignee=assignee,
+                acceptance_criteria=acceptance_criteria,
             )
             return _ticket_to_dict(ticket)
     except NoResultFound:
@@ -198,7 +205,8 @@ def _entry_time(entry: dict) -> datetime | None:
 
 DEFAULT_ACTIVITY_ENTRIES = 10
 _HOW_TO_WORK = (
-    "Before you work on this ticket, read docs_read(action='guides') once: how to work a ticket here, show proof, "
+    "Before you work on this ticket, read docs_read(action='ticket_guide') (criteria, sub-tickets, work log, "
+    "comments, evidence, where files go) and docs_read(action='guides') once: how to work a ticket here, show proof, "
     "ask, brainstorm, check your work as its user would, and make office files."
 )
 _ACTIVITY_TEXT_CLIP = 300
@@ -269,7 +277,9 @@ async def get_ticket(
     ] = None,
 ) -> dict:
     """Get one ticket in full: Markdown description, acceptance criteria, test cases, comments, work log (debug notes),
-    branches, relations (blocks / blocked_by / links), `workspace_path` if Workspace is on.
+    branches, relations (blocks / blocked_by / links).
+    `workspace` {path, exists, files}: its scratch folder now; `worktree` {path, branch, uncommitted, outputs}: the AI
+    team's checkout. Look here before you say where a file is.
     `docs`: the Docs pages tied to the ticket (its spec, design notes): [{page_id, title, path, sections, why}]; read
     the ones that matter with docs_read(action='get', page_id) before you work.
     `files`: uploads the ticket mentions, with absolute `path` to read.
@@ -309,9 +319,16 @@ async def get_ticket(
         files = _upload_files(data)
         if files:
             data["files"] = files
-        info = await svc_workspace.get_workspace_path(session, ticket_id, create=False)
-        if info is not None and info["enabled"]:
-            data["workspace_path"] = info["path"]
+        ws = await svc_workspace.brief(session, ticket_id)
+        if ws is not None:
+            data["workspace"] = ws
+            if ws["exists"]:
+                data["workspace_path"] = ws["path"]
+        from services.ai import worktrees as svc_worktrees
+
+        tree = await svc_worktrees.brief(session, ticket_id)
+        if tree is not None:
+            data["worktree"] = tree
         docs = await _linked_docs(session, ticket)
         if docs:
             data["docs"] = docs
@@ -394,6 +411,7 @@ _CLEARABLE_FIELDS = frozenset(
         "assignee",
         "repo_path",
         "wont_do_reason",
+        "wave_pin",
     }
 )
 
@@ -460,6 +478,14 @@ async def update_ticket(
             description="true: refuse status 'done' until there is at least one test case and all pass."
         ),
     ] = None,
+    wave_pin: Annotated[
+        int | None,
+        Field(
+            ge=1,
+            le=99,
+            description="Pin this sub-ticket to an execution wave; clear_fields=['wave_pin'] computes it from blocked_by again.",
+        ),
+    ] = None,
     clear_fields: Annotated[
         list[
             Literal[
@@ -470,6 +496,7 @@ async def update_ticket(
                 "assignee",
                 "repo_path",
                 "wont_do_reason",
+                "wave_pin",
             ]
         ]
         | None,
@@ -497,6 +524,7 @@ async def update_ticket(
         "wont_do_reason": wont_do_reason,
         "block_done_if_acs_incomplete": block_done_if_acs_incomplete,
         "block_done_if_tcs_incomplete": block_done_if_tcs_incomplete,
+        "wave_pin": wave_pin,
     }
     update_data = {k: v for k, v in fields.items() if v is not None}
     for name in clear_fields or []:

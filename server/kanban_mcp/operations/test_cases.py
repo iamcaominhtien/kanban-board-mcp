@@ -16,7 +16,8 @@ from ..common import (
 
 _PROOF_HELP = (
     "Markdown evidence for the result: a screenshot as ![what it shows](qa/evidence/TC-1.png) (a path from the "
-    "working folder, the file must exist; the board keeps a copy and shows it on the ticket), the command you ran "
+    "working folder, outside a board run an absolute path; the file must exist; the board keeps a copy and shows it "
+    "on the ticket), the command you ran "
     "and its output in a ``` block, links. If it cannot be shown, write 'Not provable: <why>' instead of inventing one."
 )
 
@@ -27,7 +28,7 @@ async def _localized(
     """proof and notes with the pictures named by a path copied into the board (services/proofs.py)."""
     if "](" not in (proof or "") + (notes or ""):
         return proof, notes
-    folder = await common.run_folder()
+    folder = await common.attach_folder()
     return svc_proofs.localize(proof, folder), svc_proofs.localize(notes, folder)
 
 

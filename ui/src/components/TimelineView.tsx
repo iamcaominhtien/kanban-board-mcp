@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { IdeaBulb } from './ideas/ideaLinks';
-import type { Ticket } from '../types';
+import type { Member, Ticket } from '../types';
 import { useProjectActivities, useUpdateTicket } from '../api/tickets';
 import type { ActivityEvent } from '../api/tickets';
 import styles from './TimelineView.module.css';
@@ -11,6 +11,8 @@ interface TimelineViewProps {
   tickets: Ticket[];
   projectId: string;
   onCardClick: (ticket: Ticket) => void;
+  /** Project members, to name an assignee in the Event Timeline ("unassigned → An"). */
+  members?: Member[];
 }
 
 // ─── Gantt helpers ───────────────────────────────────────────────────────────
@@ -169,6 +171,43 @@ function friendlyEventDetail(type: string, detail: string | null | undefined): s
   if (field === 'doc_ref_added') return to ? to.replace('#', ' › ') : null;
   if (field === 'doc_ref_removed') return from ? from.replace('#', ' › ') : null;
   return `${from || 'none'} → ${to || 'none'}`;
+}
+
+/** Fields whose change adds or removes one item: "Added test case — Upload a PDF" reads better than "none → …". */
+const ITEM_FIELDS: Record<string, string> = {
+  acceptance_criterion: 'acceptance criterion',
+  test_case: 'test case',
+  sub_task: 'sub-task',
+  link: 'link',
+  branch: 'branch',
+  work_log: 'debug note',
+  blocked_by: 'blocker',
+  blocks: 'blocked ticket',
+};
+
+const isEmptyValue = (v: string | undefined) => {
+  const t = (v ?? '').trim();
+  return !t || t === 'None' || t === 'null' || t === 'undefined' || t === '[]';
+};
+
+/**
+ * The action and its detail as the Event Timeline shows them (Timeline View 5): "Changed status — To Do → In
+ * Progress", "Changed assignee — unassigned → An", "Added test case — Upload a PDF".
+ */
+function eventLine(type: string, detail: string | null | undefined, members: Member[]): [string, string | null] {
+  const field = type.startsWith('changed:') ? type.replace('changed:', '') : '';
+  const parts = detail ? detail.split(' → ') : [];
+  if (field === 'assignee' && parts.length === 2) {
+    const name = (v: string) =>
+      isEmptyValue(v) ? 'unassigned' : (members.find((m) => m.id === v.trim())?.name ?? v.trim());
+    return ['Changed assignee', `${name(parts[0])} → ${name(parts[1])}`];
+  }
+  const item = ITEM_FIELDS[field];
+  if (item && parts.length === 2 && isEmptyValue(parts[0]) !== isEmptyValue(parts[1])) {
+    const added = isEmptyValue(parts[0]);
+    return [`${added ? 'Added' : 'Removed'} ${item}`, plainText(added ? parts[1] : parts[0], 80)];
+  }
+  return [friendlyEventType(type), friendlyEventDetail(type, detail)];
 }
 
 function groupEventsByDate(events: ActivityEvent[]): { date: string; events: ActivityEvent[] }[] {
@@ -653,9 +692,10 @@ interface EventTimelineProps {
   projectId: string;
   tickets: Ticket[];
   onCardClick: (ticket: Ticket) => void;
+  members?: Member[];
 }
 
-function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) {
+function EventTimeline({ projectId, tickets, onCardClick, members = [] }: EventTimelineProps) {
   const { data: events = [], isLoading, isError } = useProjectActivities(projectId);
   const ticketMap = useMemo(() => new Map(tickets.map((t) => [t.id, t])), [tickets]);
 
@@ -676,6 +716,7 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
             {group.events.map((ev, idx) => {
               const ticket = ticketMap.get(ev.ticketId);
               const category = categorizeEvent(ev.eventType);
+              const [action, detail] = eventLine(ev.eventType, ev.detail, members);
               const time = new Date(ev.at).toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
@@ -763,10 +804,8 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
                     </div>
 
                     <div className={styles.eventActionDesc}>
-                      {friendlyEventType(ev.eventType)}
-                      {friendlyEventDetail(ev.eventType, ev.detail) && (
-                        <span className={styles.eventDetailDim}> — {friendlyEventDetail(ev.eventType, ev.detail)}</span>
-                      )}
+                      {action}
+                      {detail && <span className={styles.eventDetailDim}> — {detail}</span>}
                     </div>
                   </div>
                 </div>
@@ -786,7 +825,7 @@ function EventTimeline({ projectId, tickets, onCardClick }: EventTimelineProps) 
  * @param props.projectId - Project the timeline belongs to.
  * @param props.onCardClick - Called with the clicked ticket.
  */
-export function TimelineView({ tickets, projectId, onCardClick }: TimelineViewProps) {
+export function TimelineView({ tickets, projectId, onCardClick, members }: TimelineViewProps) {
   const [subMode, setSubMode] = useState<SubMode>('gantt');
 
   return (
@@ -811,7 +850,7 @@ export function TimelineView({ tickets, projectId, onCardClick }: TimelineViewPr
       {subMode === 'gantt' ? (
         <GanttChart tickets={tickets} onCardClick={onCardClick} />
       ) : (
-        <EventTimeline projectId={projectId} tickets={tickets} onCardClick={onCardClick} />
+        <EventTimeline projectId={projectId} tickets={tickets} onCardClick={onCardClick} members={members} />
       )}
     </div>
   );

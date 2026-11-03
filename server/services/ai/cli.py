@@ -976,6 +976,7 @@ def claude_args(
     bypass: bool = False,
     plugin_dirs: list[str] | None = None,
     live: bool = False,
+    add_dirs: list[str] | None = None,
 ) -> list[str]:
     """Command line of one headless Claude Code run. By default it never skips the CLI's own permission checks:
     only the Allow rules run, anything else is denied. `bypass` (an owner's explicit choice for the member) lets
@@ -1017,6 +1018,9 @@ def claude_args(
             "--plugin-dir",
             folder,
         ]  # skills, subagents and hooks loaded for this run only (D5)
+    for folder in add_dirs or []:
+        # a folder outside the working one the run may write in (the ticket's Workspace, issue #269)
+        args += ["--add-dir", folder]
     for flag in extra_flags or []:
         if any(bad in flag for bad in REJECTED_FLAGS):
             continue

@@ -99,6 +99,14 @@ if cwd_record:  # where the run works, and the port it was given (worktrees)
         fh.write(
             json.dumps({"cwd": os.getcwd(), "port": os.environ.get("PORT")}) + "\n"
         )
+if os.environ.get("FAKE_CLAUDE_LEAVE"):
+    # the run leaves files in its folder without committing them (a QA's screenshots, a stray script)
+    for rel in json.loads(os.environ["FAKE_CLAUDE_LEAVE"]):
+        os.makedirs(
+            os.path.dirname(os.path.join(os.getcwd(), rel)) or ".", exist_ok=True
+        )
+        with open(os.path.join(os.getcwd(), rel), "w") as fh:
+            fh.write("left by the run")
 if os.environ.get("FAKE_CLAUDE_COMMIT"):
     # the AI changes a file and commits it on its branch
     with open(os.path.join(os.getcwd(), "calc.py"), "w") as fh:

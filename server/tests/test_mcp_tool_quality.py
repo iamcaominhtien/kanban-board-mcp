@@ -208,14 +208,15 @@ async def test_the_tool_list_stays_compact():
     # filters about 500 more; docs_read's permissions_guide (what an AI may do, issue #275) about 100, and its guides (the
     # board's shared skills for any role, issue #277) about 120; docs_read's diagram_guide and picture (the draw.io guide
     # and a PNG of what an agent drew, issue #267) with its `width` about 600; its role_guide (one guide per role, issue
-    # #273) about 150; Docs for every AI (issue #268): docs_write edit (one section or passage), upload (a file to a
-    # page or a ticket), tickets (from a checklist) and assign (a page to an AI member), docs_read get's section and
-    # docs_guide, with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about
-    # 2,900 after trimming
-    assert default < 51_600, (
+    # #273) about 150; manage_ticket's wave_pin (a sub-ticket's wave pinned by hand, TDP-1) about 160; the ticket guide,
+    # attachments, criteria on create and what get_ticket says about the Workspace and the worktree (issue #269) about
+    # 750; Docs for every AI (issue #268): docs_write edit (one section or passage), upload (a file to a page or a
+    # ticket), tickets (from a checklist) and assign (a page to an AI member), docs_read get's section and docs_guide,
+    # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900
+    assert default < 52_550, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 54_400, (
+    assert full < 55_450, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

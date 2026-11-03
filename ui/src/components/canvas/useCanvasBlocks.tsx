@@ -108,8 +108,10 @@ export function useCanvasBlocks(o: Options) {
     const { block, canvas } = settings;
     const label = block.getAttribute('data-label') || canvas.title;
     const frag = mode === 'board' ? boardId : undefined;
+    // a canvas name may hold brackets ("[docs] Login canvas", CA-1): they would end the markdown text early
+    const text = label.replace(/[[\]\n]+/g, ' ').trim() || 'Canvas';
     const next =
-      mode === 'link' ? `[${label}](canvas:${canvas.id})` : `![${label}](canvas:${canvas.id}${frag ? `#${frag}` : ''})`;
+      mode === 'link' ? `[${text}](canvas:${canvas.id})` : `![${text}](canvas:${canvas.id}${frag ? `#${frag}` : ''})`;
     const replacement = mode === 'link' ? document.createElement('p') : canvasBlockElement(canvas.id, label, frag);
     if (mode === 'link') replacement.textContent = next;
     block.replaceWith(replacement);

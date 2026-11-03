@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -167,6 +167,24 @@ async def get_workspace_file(
     if image_type:
         return FileResponse(target, media_type=image_type, headers=headers)
     return JSONResponse(svc_workspace.read_text_preview(target), headers=headers)
+
+
+class MoveBody(BaseModel):
+    """Move or copy a ticket's workspace to another ticket."""
+
+    to_ticket_id: str
+    mode: Literal["move", "copy"] = "move"
+
+
+@router.post("/tickets/{ticket_id}/workspace/move")
+async def move_workspace(ticket_id: str, body: MoveBody, session: Session) -> dict:
+    """Move (or copy) the ticket's workspace folder to another ticket of the same project."""
+    try:
+        return await svc_workspace.move_to_ticket(
+            session, ticket_id, body.to_ticket_id, body.mode
+        )
+    except (LookupError, WorkspaceError) as exc:
+        raise _http(exc) from exc
 
 
 @router.delete("/tickets/{ticket_id}/workspace/entry")

@@ -235,6 +235,7 @@ export function CommentsSection({
     } catch {
       // ignore
     }
+    // Newest first by default: wave 3 put it back as a feature kept (the design draws oldest first; the toggle switches)
     return 'newest';
   });
 
@@ -872,8 +873,8 @@ export function CommentsSection({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
-        paddingTop: 14,
+        gap: 10,
+        paddingTop: 4, // the one divider and 4 px, as every section of the ticket (TicketDetail › Main column)
         paddingBottom: 28,
         borderTop: '1px solid #EEF3EF',
       }}

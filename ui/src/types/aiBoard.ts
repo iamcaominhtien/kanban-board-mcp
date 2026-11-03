@@ -7,10 +7,14 @@ export interface TierRow {
   tier: Tier;
   default: Tier;
   locked: boolean;
+  /** Setting up the AI team: its tier follows the switch `managesTeam`, not a tier of its own. */
+  team?: boolean;
 }
 
 export interface BoardAiView {
   acts: boolean;
+  /** The Board AI sets up the AI team by itself, with an Undo (the owner's switch). */
+  managesTeam: boolean;
   tiers: TierRow[];
   locked: string[];
   bulkTickets: number;
@@ -18,6 +22,7 @@ export interface BoardAiView {
 
 export interface BoardAiPatch {
   acts?: boolean;
+  managesTeam?: boolean;
   tiers?: Record<string, 'free' | 'undo'>;
 }
 

@@ -95,6 +95,8 @@ export async function updateTicket(
     blockDoneIfAcsIncomplete?: boolean;
     blockDoneIfTcsIncomplete?: boolean;
     repoPath?: string | null;
+    /** A sub-ticket's execution wave pinned by hand; null computes it from Blocked by again (TDP-1). */
+    wavePin?: number | null;
   },
 ): Promise<Ticket> {
   const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);
@@ -577,6 +579,24 @@ export async function initTicketWorkspace(ticketId: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/init`);
 }
 
+/**
+ * Move (or copy) a ticket's workspace folder to another ticket of the same project.
+ * @param ticketId - Ticket whose workspace moves.
+ * @param toTicketId - Ticket that receives it.
+ * @param mode - `move` (the default) or `copy`.
+ */
+export async function moveTicketWorkspace(
+  ticketId: string,
+  toTicketId: string,
+  mode: 'move' | 'copy' = 'move',
+): Promise<{ result: string; path: string; to: string }> {
+  const res = await client.post<{ result: string; path: string; to: string }>(`/tickets/${ticketId}/workspace/move`, {
+    to_ticket_id: toTicketId,
+    mode,
+  });
+  return res.data;
+}
+
 /** Open a ticket's workspace in the file manager. */
 export async function openTicketWorkspace(ticketId: string): Promise<void> {
   await client.post(`/tickets/${ticketId}/workspace/open`);
@@ -656,6 +676,27 @@ export const ticketKeys = {
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------
+
+/**
+ * The lane counts (tickets by status, without pending and Won't do ones): one cheap grouped query, shown on the lane
+ * headers while the tickets themselves load (AL-1).
+ * @param projectId - Project to count.
+ * @param enabled - Only while the tickets load.
+ */
+export function useLaneCounts(projectId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['ticket-lane-counts', projectId] as const,
+    queryFn: async () => {
+      const { lanes } = (
+        await client.get<{ lanes: { status: string; count: number }[] }>(`/projects/${projectId}/tickets/counts`)
+      ).data;
+      return Object.fromEntries(lanes.map((l) => [l.status, l.count])) as Record<string, number>;
+    },
+    enabled: !!projectId && enabled,
+    retry: false,
+    staleTime: 0,
+  });
+}
 
 /**
  * Query a project's tickets.

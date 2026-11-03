@@ -17,10 +17,13 @@ import { useRowKeys } from './useRowKeys';
 import panel from './NotificationPanel.module.css';
 import styles from './AllNotificationsPage.module.css';
 
+// in the design's order (NT-5): Needs you and Docs are families the server filters by too
 const KINDS: { id: NotificationFamily; label: string }[] = [
+  { id: 'needs', label: 'Needs you' },
   { id: 'info', label: 'For information' },
   { id: 'ai', label: 'From AI members' },
   { id: 'people', label: 'From people' },
+  { id: 'docs', label: 'Docs' },
   { id: 'schedules', label: 'Schedules' },
 ];
 

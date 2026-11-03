@@ -200,6 +200,9 @@ export interface DraftChange {
   schedule?: string;
   fields?: Record<string, unknown>;
   memberName?: string;
+  /** Setting up the AI team: the change in words, with the command it runs for an MCP server or a hook. */
+  label?: string;
+  runs?: string;
 }
 
 export interface SimilarTicket {

@@ -699,7 +699,21 @@ export function Composer({
               color: '#5B6B60',
             }}
           >
-            <Icon name="i24" size={14} strokeWidth={1.8} />
+            {/* a paperclip, as drawn (TicketComments C); i24 is the copy icon */}
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ flexShrink: 0 }}
+            >
+              <path d="M21 11L12.5 19.5A5 5 0 0 1 5.4 12.4L13.5 4.3A3.3 3.3 0 0 1 18.2 9L10.1 17.1A1.7 1.7 0 0 1 7.7 14.7L15 7.4" />
+            </svg>
             Attach
           </button>
           <input

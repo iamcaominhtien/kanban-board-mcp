@@ -298,10 +298,9 @@ async def status(row: AiWorktree) -> dict:
     }
     if not out["exists"]:
         return out
-    st = await git(row.path, "status", "--porcelain", check=False)
-    out["uncommitted"] = [line[3:] for line in st.stdout.splitlines() if line.strip()][
-        :50
-    ]
+    lines = await _porcelain(row.path)
+    out["uncommitted"] = [line[3:] for line in lines][:50]
+    out["outputs"] = outputs_in(lines)[:50]
     ahead = await git(row.path, "rev-list", "--count", f"{row.base}..HEAD", check=False)
     out["ahead"] = (
         int(ahead.stdout.strip())
@@ -309,6 +308,190 @@ async def status(row: AiWorktree) -> dict:
         else None
     )
     out["size_mb"] = await asyncio.to_thread(_size_mb, row.path)
+    return out
+
+
+# What a run leaves behind that a person should see, not the code: screenshots, logs, reports, exports. Committed by
+# a hand-over they would land in the product's branch; left loose they keep the worktree from being cleaned. They go to
+# the ticket's Workspace instead (issue #269). Only untracked files count: a changed tracked file is always code.
+_OUTPUT_DIRS = {
+    "qa", "evidence", "screenshots", "screenshot", "shots", "test-results", "playwright-report", "reports",
+    "report", "output", "outputs", "out-qa", "artifacts", "artefacts", ".look", "tmp", "temp", "scratch",
+}  # fmt: skip
+_OUTPUT_SUFFIXES = {".log", ".har", ".trace", ".webm", ".mov", ".mp4", ".gif"}
+# documents and pictures at the top of the worktree are a run's outputs too (code keeps its pictures in a folder)
+_TOP_LEVEL_OUTPUTS = {
+    ".png", ".jpg", ".jpeg", ".webp", ".pdf", ".xlsx", ".xls", ".docx", ".pptx", ".csv", ".zip", ".html",
+}  # fmt: skip
+
+
+def is_output(rel: str) -> bool:
+    """Whether an untracked file is a run's output (a screenshot, a log, a report) rather than code."""
+    p = Path(rel)
+    folders = [part.lower() for part in p.parts[:-1]]
+    if any(
+        f in _OUTPUT_DIRS
+        or f.endswith(("_work", "-work", "_output", "-output", "evidence"))
+        for f in folders
+    ):
+        return True
+    suffix = p.suffix.lower()
+    return suffix in _OUTPUT_SUFFIXES or (not folders and suffix in _TOP_LEVEL_OUTPUTS)
+
+
+async def _porcelain(path: str) -> list[str]:
+    """`git status --porcelain` with every untracked file listed by itself (not its folder)."""
+    st = await git(path, "status", "--porcelain", "-uall", check=False)
+    return [line for line in st.stdout.splitlines() if line.strip()]
+
+
+def outputs_in(lines: list[str]) -> list[str]:
+    """The untracked outputs among `git status --porcelain` lines."""
+    return [line[3:] for line in lines if line.startswith("??") and is_output(line[3:])]
+
+
+async def move_outputs(ticket_id: str) -> dict:
+    """Move the outputs a run left in the ticket's worktree (untracked screenshots, logs, reports) to the ticket's
+    Workspace, under ``from-worktree/<date-time>/`` with their paths kept, so they are where a person looks and never
+    end up committed. Returns ``{moved, to}``, or ``{moved: [], left, reason}`` when they cannot be moved (Workspace off,
+    no worktree)."""
+    from services import workspace as svc_workspace
+
+    async with database.async_session() as session:
+        row = await session.get(AiWorktree, ticket_id)
+        if row is None or row.state == "removed" or not Path(row.path).is_dir():
+            return {"moved": [], "left": [], "reason": "This ticket has no worktree."}
+        found = outputs_in(await _porcelain(row.path))
+        if not found:
+            return {"moved": [], "left": []}
+        ws = await svc_workspace.get_workspace_settings(session)
+        if not ws.enabled:
+            return {
+                "moved": [],
+                "left": found,
+                "reason": "Workspace is off (Settings › Workspace), so they stay in the worktree.",
+            }
+        root = await svc_workspace.init_ticket_workspace(session, ticket_id)
+    dest = root / "from-worktree" / datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    base = Path(row.path).resolve()
+
+    def _move() -> list[str]:
+        moved = []
+        for rel in found:
+            src = (base / rel).resolve()
+            if not src.is_file() or base not in src.parents:
+                continue
+            target = dest / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(src), str(target))
+            moved.append(rel)
+            parent = src.parent
+            while parent != base and parent.is_dir() and not any(parent.iterdir()):
+                parent.rmdir()
+                parent = parent.parent
+        return moved
+
+    moved = await asyncio.to_thread(_move)
+    return {"moved": moved, "to": str(dest)}
+
+
+def _note_for(result: dict, worktree: str) -> str | None:
+    """The work-log note that tells the team (and the PM) where a run's outputs are now."""
+    moved, left = result.get("moved") or [], result.get("left") or []
+    if moved:
+        names = "\n".join(f"- `{m}`" for m in moved[:20])
+        more = f"\n- … and {len(moved) - 20} more" if len(moved) > 20 else ""
+        return (
+            f"Moved {len(moved)} output file{'s' if len(moved) != 1 else ''} the run left in the worktree to the "
+            f"ticket's Workspace, `{result['to']}`:\n{names}{more}\n\nThey are not committed; the worktree "
+            "holds only code."
+        )
+    if left:
+        names = "\n".join(f"- `{m}`" for m in left[:20])
+        return (
+            f"{len(left)} output file{'s' if len(left) != 1 else ''} the run left are still in the worktree "
+            f"`{worktree}` ({result.get('reason') or 'not moved'}):\n{names}\n\nThey keep the worktree from being "
+            "cleaned: move them, commit them or delete them (the ticket's AI › Code panel)."
+        )
+    return None
+
+
+async def tidy_after_run(ticket_id: str, run_id: str) -> dict | None:
+    """A run of the ticket ended: its outputs go from the worktree to the Workspace, and the work log says where."""
+    from models import AiRun
+
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        row = await session.get(AiWorktree, ticket_id)
+    if run is None or row is None or run.state not in _RUN_ENDED:
+        return None  # a run waiting for an answer comes back to its files
+    if await _run_is_working(ticket_id):
+        return None  # another run works there now; it tidies when it ends
+    result = await move_outputs(ticket_id)
+    await log_tidy(ticket_id, result)
+    return result
+
+
+_RUN_ENDED = ("finished", "failed", "cancelled", "timed_out")
+
+
+async def log_tidy(ticket_id: str, result: dict, by: str | None = None) -> None:
+    """Say in the ticket's work log where the outputs went (or why they stayed)."""
+    from services import tickets as svc_tickets
+
+    async with database.async_session() as session:
+        row = await session.get(AiWorktree, ticket_id)
+        note = _note_for(result, row.path if row else "")
+        if note:
+            await svc_tickets.add_work_log(
+                session, ticket_id, author=by or "Kanban Board", role="Other", note=note
+            )
+
+
+async def commit_now(ticket_id: str, *, by: str) -> dict:
+    """A person commits what is left in the worktree on its branch: the code, never the outputs (they go to the
+    Workspace first, or stay out of the commit when it is off). Returns ``{committed, moved, left}``."""
+    async with database.async_session() as session:
+        row = await session.get(AiWorktree, ticket_id)
+    if row is None or row.state == "removed" or not Path(row.path).is_dir():
+        raise WorktreeError("This ticket has no worktree.")
+    before = await _porcelain(row.path)
+    if not before:
+        return {"committed": False, "moved": [], "left": []}
+    committed = await _commit_leftovers(
+        row, f"{ticket_id}: changes left in the worktree, committed by {by}"
+    )
+    left = outputs_in(await _porcelain(row.path))
+    return {"committed": committed, "left": left}
+
+
+async def brief(session, ticket_id: str) -> dict | None:
+    """The ticket's worktree for an AI reading the ticket: where it is, its branch, and what is not committed (outputs
+    apart from code), so nobody reports a vague "not cleaned"."""
+    row = await session.get(AiWorktree, ticket_id)
+    if row is None or row.state == "removed":
+        return None
+    out = {
+        "path": row.path,
+        "branch": row.branch,
+        "state": row.state,
+        "exists": Path(row.path).is_dir(),
+    }
+    if out["exists"]:
+        lines = await _porcelain(row.path)
+        outputs = outputs_in(lines)
+        out["uncommitted"] = [line[3:] for line in lines][:30]
+        out["outputs"] = outputs[:30]
+        if lines:
+            out["note"] = (
+                f"{len(lines)} file{'s' if len(lines) != 1 else ''} not committed"
+                + (
+                    f", {len(outputs)} of them outputs (screenshots, logs, reports)"
+                    if outputs
+                    else ""
+                )
+                + ": the worktree is not removed until a person commits, moves or discards them."
+            )
     return out
 
 
@@ -438,7 +621,19 @@ async def route_for(session, row: AiWorktree) -> str:
 
 
 async def _commit_leftovers(row: AiWorktree, message: str) -> bool:
-    """Commit what the AI left uncommitted on its branch (a hand-over never drops work). True when it committed."""
+    """Commit what the AI left uncommitted on its branch (a hand-over never drops work). True when it committed. Its
+    outputs (screenshots, logs, reports) go to the Workspace first: they are not code."""
+    result = await move_outputs(row.ticket_id)
+    await log_tidy(row.ticket_id, result)
+    if result.get("left"):
+        # the Workspace is off: an output is still not code, so it is left out of the commit
+        await git(row.path, "add", "-A")
+        await git(row.path, "reset", "-q", "--", *result["left"], check=False)
+        st = await git(row.path, "diff", "--cached", "--quiet", check=False)
+        if st.returncode == 0:
+            return False
+        await git(row.path, "commit", "-m", message, "--no-verify", check=False)
+        return True
     st = await git(row.path, "status", "--porcelain", check=False)
     if not st.stdout.strip():
         return False
@@ -703,6 +898,20 @@ def after_run(ticket_id: str) -> None:
                 await on_review(ticket_id)
         except Exception:  # noqa: BLE001 - a hand-over that fails must never disturb the board
             logger.exception("Hand-over of %s failed", ticket_id)
+
+    _spawn(go())
+
+
+def tidy_later(ticket_id: str | None, run_id: str) -> None:
+    """``tidy_after_run`` in the background, never failing the run's end."""
+    if not ticket_id:
+        return
+
+    async def go() -> None:
+        try:
+            await tidy_after_run(ticket_id, run_id)
+        except Exception:  # noqa: BLE001 - tidying must never disturb the board
+            logger.exception("Tidying the worktree of %s failed", ticket_id)
 
     _spawn(go())
 

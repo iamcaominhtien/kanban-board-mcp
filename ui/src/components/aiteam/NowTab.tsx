@@ -552,7 +552,7 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
   return (
     <div className="at-card" data-testid={`team-card-${card.state}`}>
       <div className="at-card-head">
-        <Badge name={card.name} color={card.color} />
+        <Badge name={card.name} color={card.color} role={card.role} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="at-card-name">{card.name}</div>
           <div className="at-hint-sm">{runnerText}</div>

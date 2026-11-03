@@ -62,10 +62,9 @@ export function DraggableTicketCard({
           height: slotHeight ?? undefined,
           minHeight: slotHeight ? undefined : 90,
           borderRadius: 8,
+          // a plain dashed outline at full strength, no margin, so nothing below moves (Drag & Drop 2, source ghost)
           border: '1.5px dashed #C7D2CB',
           boxSizing: 'border-box',
-          opacity: 0.75,
-          margin: '2px 0',
         }}
       />
     );

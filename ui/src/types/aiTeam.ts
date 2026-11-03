@@ -33,6 +33,8 @@ export interface TeamCard {
   name: string;
   color: string;
   glyph: string | null;
+  /** The role pack the member was made from ("reviewer"), for the role code on its avatar (AT-4); null otherwise. */
+  role?: string | null;
   provider: string;
   providerLabel: string;
   connection: 'local' | 'api_key' | 'inbox';

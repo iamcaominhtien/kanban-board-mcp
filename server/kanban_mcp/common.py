@@ -35,7 +35,7 @@ def async_session():
 
 async def run_folder() -> list[str] | None:
     """The working folders of the AI run making this call, the one it works in first (None for a person or another
-    client): the ticket's worktree when the board made one, then the member's own folder. A run in a worktree saves
+    client): the ticket's worktree when the board made one, then the member's own folder, then the ticket's Workspace. A run in a worktree saves
     its screenshots there, so looking only in the member's folder refused files that were where they should be."""
     from services.ai import guard, worktrees
 
@@ -57,18 +57,40 @@ async def run_folder() -> list[str] | None:
     main = os.path.expanduser(member.working_dir or "") if member else ""
     if main:
         folders.append(main)
+    if ctx.ticket_id and folders:
+        # the ticket's Workspace, where a run keeps the outputs a person should see (issue #269)
+        import services.workspace as svc_workspace
+
+        async with async_session() as session:
+            ws = await svc_workspace.get_workspace_path(
+                session, ctx.ticket_id, create=False
+            )
+        if ws and ws["enabled"] and ws["exists"]:
+            folders.append(ws["path"])
     return folders or None
+
+
+async def attach_folder() -> list[str] | str | None:
+    """Where the caller's files may be attached from: an AI run's working folders; for an agent outside any board run
+    (only the MCP server, on this computer) any absolute path, as `docs_write(import)` reads (keys, `.env` and dot
+    folders stay refused, services/proofs.py); None for a run with no folder at all."""
+    from services.ai import guard
+    import services.proofs as svc_proofs
+
+    if await guard.resolve() is None:
+        return svc_proofs.OUTSIDE_RUN
+    return await run_folder()
 
 
 async def attach_from_run(
     markdown: str | None, current: str | None = None
 ) -> str | None:
-    """`markdown` written by an AI run with the pictures, and the documents it links (an Excel sheet, a PDF), named by
-    a path in its working folder copied into the board, as on a Docs page (services/proofs.py). A person's text, and
-    what `current` (the text being replaced) already named, stay as written."""
+    """`markdown` written by an AI with the pictures, and the documents it links (an Excel sheet, a PDF), named by a
+    path in its working folder (outside a board run: an absolute path) copied into the board, as on a Docs page
+    (services/proofs.py). What `current` (the text being replaced) already named stays as written."""
     if not markdown or "](" not in markdown:
         return markdown
-    folder = await run_folder()
+    folder = await attach_folder()
     if folder is None:
         return markdown
     import services.proofs as svc_proofs
@@ -210,6 +232,7 @@ def _ticket_summary(ticket: Ticket) -> dict:
         "start_date": ticket.start_date,
         "due_date": ticket.due_date,
         "blocked_by": _loads(ticket.blocked_by),
+        "wave_pin": ticket.wave_pin,
         "pending": bool(ticket.pending),
         "reopen_count": ticket.reopen_count or 0,
         "acceptance_criteria": {

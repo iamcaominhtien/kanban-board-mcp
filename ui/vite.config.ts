@@ -20,6 +20,7 @@ export default defineConfig({
       '/version': 'http://localhost:8000',
       '/mcp': 'http://localhost:8000',
       '/uploads': 'http://localhost:8000',
+      '/upload-info': 'http://localhost:8000', // file sizes on attachment chips
       '/settings': 'http://127.0.0.1:8000',
       '/data': 'http://127.0.0.1:8000',
       '/workspace': 'http://localhost:8000',

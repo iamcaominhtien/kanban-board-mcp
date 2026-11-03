@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   docsErrorDetail,
   useDocsPage,
@@ -19,6 +19,7 @@ import { useWaitingProposalPages } from '../../api/docsAiProposals';
 import { DocsHealthView } from './ai/DocsHealthView';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
+import { isPageId } from './SharePopover';
 import { slugify as slugifyHeading } from '../../utils/docsMarkdown';
 import { useToast } from '../Toast';
 import { DeleteDialog } from './DeleteDialog';
@@ -292,14 +293,35 @@ export function DocsView({
     setEditing(false);
   }, [projectId]);
 
+  const handledRef = useRef(onRequestHandled);
+  handledRef.current = onRequestHandled;
   useEffect(() => {
-    if (requestedPageId) {
-      setSelectedId(requestedPageId);
-      setEditing(false);
-      if (requestedAnchor) scrollToSection(requestedAnchor);
-      onRequestHandled?.();
+    if (!requestedPageId) return;
+    if (!isPageId(requestedPageId)) {
+      if (!projectId) return undefined; // the project of the link is not open yet
+      // a share link by slug path (`?docs=architecture/api`, AC-4): find the page it names, then open it
+      let live = true;
+      client
+        .get<DocsPage>(`/projects/${projectId}/docs/by-path`, { params: { path: requestedPageId } })
+        .then((r) => {
+          if (!live) return;
+          setSelectedId(r.data.id);
+          setEditing(false);
+          if (requestedAnchor) scrollToSection(requestedAnchor);
+        })
+        .catch(() => live && toast.error('No page at this link', `Nothing in this space is at “${requestedPageId}”.`))
+        .finally(() => live && handledRef.current?.());
+      return () => {
+        live = false;
+      };
     }
-  }, [requestedPageId, requestedAnchor, onRequestHandled]);
+    setSelectedId(requestedPageId);
+    setEditing(false);
+    if (requestedAnchor) scrollToSection(requestedAnchor);
+    handledRef.current?.();
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedPageId, requestedAnchor, projectId]);
 
   // open the first top-level page when nothing is selected yet
   useEffect(() => {
