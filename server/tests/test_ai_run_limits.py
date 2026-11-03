@@ -132,7 +132,11 @@ async def test_a_person_can_restart_a_running_run(env, monkeypatch, quick_monito
 
     async def restarted():
         row = (await _runs(c, tid))[0]
-        return row if row["restarts"] and row["state"] == "running" else None
+        # the restart is recorded before the new CLI starts (the run goes through its start again, issue #269 made
+        # that a little longer): wait for the new process rather than read the old pid in between
+        new_pid = (await _run_row(env, run["id"])).pid
+        fresh = new_pid is not None and new_pid != first_pid
+        return row if row["restarts"] and row["state"] == "running" and fresh else None
 
     row = await _until(restarted, timeout=40)
     assert row["restarts"][0]["by"] == "An Nguyen" and row["restarts"][0]["n"] == 1

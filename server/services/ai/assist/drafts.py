@@ -34,7 +34,7 @@ from .. import llm
 from ..context import STATUS_LABELS
 from ..store import loads, now_iso, parse_iso
 from . import context as ctxb
-from . import match, prompts, scopes
+from . import match, prompts, scopes, team_config
 from . import settings as svc_settings
 from .settings import AssistError
 
@@ -1646,6 +1646,8 @@ TEAM_OPS = (
     "schedule_resume",
     "schedule_run",
     "schedule_delete",
+    # setting up the AI team (team_config.py)
+    *team_config.OPS,
 )
 
 DELEGATE_TASK = (
@@ -1805,6 +1807,11 @@ async def _apply_team_op(
     op = ch.get("op")
     if op not in TEAM_OPS:
         return None
+    if op in team_config.OPS:
+        try:
+            return await team_config.apply(session, ch, person, project_id)
+        except team_config.TeamError as exc:
+            raise ValueError(str(exc)) from exc
     tid = ch.get("ticket")
     if op.startswith("schedule_"):
         return await _apply_schedule_op(session, ch, person, project_id)
@@ -1912,6 +1919,8 @@ async def _undo_team_op(session: AsyncSession, a: dict, person: str) -> str | No
     from .. import runs as ai_runs
 
     op = a["op"]
+    if op in team_config.OPS:
+        return await team_config.undo(session, a, person)
     if op.startswith("schedule_"):
         return await _undo_schedule_op(session, a, person)
     if op == "create":

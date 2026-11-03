@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.29.0] - 2026-11-03
+## [3.30.0] - 2026-11-03
 
 Tickets look like their designs, and every AI uses every part of a ticket: criteria, sub-tickets, blocks, work log, test cases, attachments, Docs links and branches; files a person should see go to the ticket's Workspace and never into the branch (#269).
 
@@ -39,6 +39,16 @@ Tickets look like their designs, and every AI uses every part of a ticket: crite
 - **A PM said a QA's files were "in the Workspace" that had never been made**: `get_ticket` gave the Workspace's path whether or not the folder existed, no run was told about the Workspace, and a Claude Code run could not have written there anyway.
 - Open folder on a machine without a file manager made the ticket's Workspace folder before failing, leaving an empty folder behind.
 - The tests no longer make ticket folders in the home folder (`KANBAN_WORKSPACE_ROOT`).
+
+## [3.29.0] - 2026-11-03
+
+The Board AI manages the AI team: it advises what each AI could use and sets it up, by itself when the owner allows it.
+
+### Added
+- **The Board AI sets up the AI team.** In a project chat it can make an AI member from a role pack (so it gets that role's skill and tools), give an existing member a role, change its instructions, model or effort, bring it to its pack's latest version, install a plugin from the catalogue or a git URL, switch a plugin or one of the board's skills on or off (for the project or one member), add or remove an MCP server, a hook or a skill of a member's own. Each is one change in its answer, with Undo.
+- **It knows the team to advise from**: every member with its role, model, plugins, MCP servers, hooks and skills, the role packs, the catalogue and the board's skills are in its context, so "what should our Dev add to test the UI?" gets an answer from what exists.
+- **Settings › AI › Board AI › Manages the AI team**: with it on, these changes are made at once and keep an Undo, at any size (setting up a whole team is not a bulk action); off (the default), each asks first. Only the project owner can turn it on, over the screen and over the API, and the switch is audited.
+- An MCP server or a hook runs a command on this computer: its change says the command on the card and in the receipt, and the audit log keeps it as a warning.
 
 ## [3.28.0] - 2026-11-03
 

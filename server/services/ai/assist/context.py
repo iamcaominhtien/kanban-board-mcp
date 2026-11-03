@@ -477,6 +477,12 @@ async def _project_block(
                 fence(f"description of {t.id}", (t.description or "")[:600]),
                 label=f"{t.id} description",
             )
+    if scope == "project":
+        # the AI team as it is set up and what it could add, for the Board AI to advise and set it up (team_config.py);
+        # in a compact context too: no tool of the Board AI reads the catalogue or a member's configuration
+        from .team_config import context_block
+
+        b.add(await context_block(session, project.id), label="ai team")
     b.add("</project>", required=True)
 
 
