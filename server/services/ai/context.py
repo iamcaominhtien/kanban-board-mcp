@@ -443,6 +443,12 @@ def rules_block(
     return "\n".join(lines)
 
 
+_DOCS_RULE = (
+    "Before you create or change a Docs page, {where}: where the page goes in the tree (search, then put it under "
+    "the page it belongs to), the Markdown the editor keeps, and how to change one part without rewriting the page."
+)
+
+
 def _core_rules(member, settings) -> list[str]:
     """The shared skills' few rules that matter most (issue #277), and where their detail is for this member."""
     from services import role_skills, shared_skills
@@ -470,11 +476,17 @@ def _core_rules(member, settings) -> list[str]:
             rules.append(
                 f"The board's skills {listed} have the detail: open the one the work calls for."
             )
+        if "docs-pages" in on:
+            # a live BA run wrote a good spec at the top of the tree: it never opened the Docs guide (#268)
+            rules.append(
+                _DOCS_RULE.format(where=f"open `{board_skills.NAME}:docs-pages`")
+            )
     else:
         if own and own != "canvas-design":
             rules.append(
                 f"Read your role's guide before you start: docs_read(action='role_guide', query='{role}')."
             )
+        rules.append(_DOCS_RULE.format(where="read docs_read(action='docs_guide')"))
         rules.append(
             "docs_read(action='guides') has the detail (working a ticket, the parts of a ticket, evidence and "
             "handover, the repository and the machine, asking and writing, working together, brainstorming, the end "
