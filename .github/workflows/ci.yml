@@ -3,6 +3,10 @@ name: CI
 # The fast gate a pull request waits for: lint, types, build and the tests, with no coverage and no SonarQube.
 # Coverage (which doubles the backend's time) and the SonarQube Cloud analysis run once a night on main instead,
 # in nightly-quality.yml, which also files what SonarQube found in a GitHub issue.
+#
+# Every part runs side by side: the backend in 6 shards, the UI's tests in 3, the UI's checks (prettier, eslint, tsc,
+# build) in one job whose caches make an unchanged file cost nothing. The repository is public, so the extra jobs
+# cost no Actions minutes.
 
 on:
   pull_request:
@@ -15,10 +19,11 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read # the list of changed files, read from the API instead of from a full clone
 
 jobs:
   # Which parts a change touches, so a docs- or design-only change runs no tests. A job that is skipped this way
-  # still counts as passed for a required check.
+  # still counts as passed for a required check. A change to this workflow runs everything.
   changes:
     name: What changed
     runs-on: ubuntu-latest
@@ -27,27 +32,31 @@ jobs:
       frontend: ${{ steps.diff.outputs.frontend }}
       desktop: ${{ steps.diff.outputs.desktop }}
     steps:
+      # a pull request's files come from the API; a push to main compares with the commit before it, from git
       - uses: actions/checkout@v4
+        if: github.event_name == 'push'
         with:
-          fetch-depth: 0
+          fetch-depth: 2
       - id: diff
-        env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: bash .github/scripts/changed-parts.sh
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'server/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'ui/**'
+              - 'CHANGELOG.md'
+              - '.github/workflows/ci.yml'
+            desktop:
+              - 'desktop/**'
+              - '.github/workflows/ci.yml'
 
-  # The backend tests run as three shards side by side (tests/conftest.py, KANBAN_TEST_SHARD), without coverage:
-  # with coverage and two shards one shard took 4 to 6.5 minutes. Shard 1 also lints.
-  backend-tests:
-    name: Backend tests (${{ matrix.shard }}/3)
+  backend-lint:
+    name: Backend lint (ruff)
     needs: changes
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3]
     defaults:
       run:
         working-directory: server
@@ -59,31 +68,93 @@ jobs:
       - run: pip install uv
       - run: uv sync
       - name: Lint (includes the docstring rules)
-        if: matrix.shard == 1
         run: uv run ruff check .
       - name: Format
-        if: matrix.shard == 1
         run: uv run ruff format --check .
+
+  # Six shards side by side (tests/conftest.py, KANBAN_TEST_SHARD splits whole files, the largest first)
+  backend-tests:
+    name: Backend tests (${{ matrix.shard }}/6)
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install uv
+      - run: uv sync
       - name: Tests
         env:
-          KANBAN_TEST_SHARD: ${{ matrix.shard }}/3
-        run: uv run pytest -q -n auto --durations=15
+          KANBAN_TEST_SHARD: ${{ matrix.shard }}/6
+        run: uv run pytest -q -n auto --durations=10
 
   # The check that keeps its old name for branch protection: green only when lint and every shard passed
   backend:
     name: Backend (ruff, pytest)
-    needs: [changes, backend-tests]
+    needs: [changes, backend-lint, backend-tests]
     if: ${{ !cancelled() && needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Every shard passed
-        run: test "${{ needs.backend-tests.result }}" = success
+      - name: Lint and every shard passed
+        run: |
+          test "${{ needs.backend-lint.result }}" = success
+          test "${{ needs.backend-tests.result }}" = success
 
-  frontend:
-    name: Frontend (prettier, eslint, tsc, build)
+  # prettier, eslint and tsc keep their caches between runs (keyed by commit, restored from the newest one this
+  # branch or main made): a file that did not change is not checked again. prettier and eslint cache by content, so
+  # a fresh checkout's new timestamps do not count as changes; tsc's own incremental build info does the same.
+  frontend-checks:
+    name: Frontend checks (prettier, eslint, tsc, build)
     needs: changes
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    env:
+      CACHE_DIR: ${{ github.workspace }}/.ui-ci-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - uses: actions/cache@v4
+        with:
+          path: .ui-ci-cache
+          key: ui-checks-${{ hashFiles('ui/package-lock.json') }}-${{ github.sha }}
+          restore-keys: ui-checks-${{ hashFiles('ui/package-lock.json') }}-
+      - run: npm ci && mkdir -p "$CACHE_DIR"
+      - name: Format
+        run: npx prettier --check src --cache --cache-strategy content --cache-location "$CACHE_DIR/prettier"
+      - name: Lint (includes the JSDoc rule)
+        run: >-
+          npx eslint src --max-warnings=40
+          --cache --cache-strategy content --cache-location "$CACHE_DIR/eslint"
+      - name: Typecheck
+        run: npx tsc -p . --incremental --tsBuildInfoFile "$CACHE_DIR/tsbuildinfo"
+      - name: Build
+        run: npx vite build
+
+  frontend-tests:
+    name: Frontend tests (${{ matrix.shard }}/3)
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     defaults:
       run:
         working-directory: ui
@@ -95,14 +166,20 @@ jobs:
           cache: npm
           cache-dependency-path: ui/package-lock.json
       - run: npm ci
-      - name: Format
-        run: npm run format:check
-      - name: Lint (includes the JSDoc rule)
-        run: npm run lint -- --max-warnings=40
       - name: Unit tests
-        run: npm test
-      - name: Typecheck and build
-        run: npm run build
+        run: npx vitest run --shard=${{ matrix.shard }}/3
+
+  # The check that keeps its old name for branch protection
+  frontend:
+    name: Frontend (prettier, eslint, tsc, build)
+    needs: [changes, frontend-checks, frontend-tests]
+    if: ${{ !cancelled() && needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checks and every shard passed
+        run: |
+          test "${{ needs.frontend-checks.result }}" = success
+          test "${{ needs.frontend-tests.result }}" = success
 
   desktop:
     name: Desktop (node tests)
