@@ -8,7 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.32.0] - 2026-11-03
+## [3.33.0] - 2026-11-03
+
+Talk to the AI team from the screen and over MCP, and hand work between an AI, a person and an outside agent with nothing lost (#272).
+
+### Added
+- **A handoff note at every step.** Each workflow step ends with a short note of fixed form on the ticket: **Done** (what was done), **Where** (the branch, files, pages), **Left** (what is left, and why) and **Check** (what the next role should check first). The AI gives it with `ai_run(action='report', handoff={...})` or a `HANDOFF` block at the end of its message; without one, the board writes what it knows (the summary, the files changed) and says the rest was not said. The next step's task opens with it ("Read this first"), the comments show it as a card, and the workflow strip shows each step's Done and Left instead of the run's whole text. `ai_run(handoff)` between AIs takes the same note.
+- **Take a ticket back and give it back.** Take over stops the run, pauses the workflow at its step, gives the ticket to the person and leaves a note of what the AI did so far (with the person's reason). **Give back to AI** takes a note in the same four fields; the workflow goes on from that step, or, without a workflow, the AI that had it takes it again, and either way it reads the note first. `POST /tickets/{id}/ai/take-over` (now with `text`), `POST /tickets/{id}/ai/hand-over`.
+- **Who has it.** The ticket shows one line under the assignee: which AI is working on it and at which step, the person who took it back, or whom it waits on (an answer, a person's step, a stopped workflow), with Take over or Give back beside it. `GET /tickets/{id}/ai/holder`; `get_ticket` returns it as `held_by`.
+- **Over MCP**: `ai_team(hand_over)` makes an outside agent's work the team's input in one call (links its branch and Docs pages to the ticket, posts its note, and starts a workflow, resumes one, tells the running AI, or gives it to an AI member); `ai_team(take_back)`; `ai_team(tell, run_id, text)` sends a message to an AI while it works, as the Live commentary's reply box does.
+- The MCP team guide (`ai_team(guide)`) has the note's form, handing over and back, `tell`, and a session step by step: give a goal, follow it with `board_wait`, answer a question, approve the plan. The same form is in the board's `evidence-and-handover` skill (`docs_read(guides)` for other agents); a test checks the three are the same text.
+
+### Changed
+- `add_branch` can record a branch that already exists in the repository (`adopt`), so an outside agent's branch is linked as it is.
+- Tool list: about 480 characters more (the note's four fields on `ai_run`, the three `ai_team` actions, `held_by`).
+
+### Checked
+- A scripted session as an outside agent, over MCP only: gives a goal (`give_story`), follows it with `board_wait`, answers the PM's question and approves the plan; the Story runs to done (fake CLI).
+- A three-step workflow (BA → Dev → QA) leaves a note at each step, and each next step's prompt opens with the one before (fake CLI, and a live run on sonnet).
+
+
 
 Docs for every AI, and Docs in a window of its own (#268): an AI, on the board or outside it, works in Docs as a person does, and a person can move Docs out of the board into its own window and dock it back.
 

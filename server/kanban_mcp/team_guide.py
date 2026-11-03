@@ -4,6 +4,8 @@ Too long for the server instructions (Claude Code keeps their first 10,000 chara
 short table and point here.
 """
 
+from services.ai.handoff import FORM as _FORM
+
 TEAM_GUIDE = """\
 # Working with the board's AI team
 
@@ -57,12 +59,44 @@ Rules of thumb:
   what a Blocked one waits for. A Story moves with its plan: never move its status by hand.
 
 ## 5. While it runs
-- An AI's question to the person shows in ai_team(runs) as needs_input: answer it with ai_team(answer, run_id, text)
-  when you know the answer; otherwise tell the person.
+- Follow it with board_wait instead of sleeping: call board_wait() once for the `head`, then
+  board_wait(since=head, project_id) after each step; it returns as soon as the board moves (a run starts, asks, ends;
+  a plan waits; a step moves). Then read ai_team(runs, ticket_id), ai_team(workflow, ticket_id) or ai_team(story).
+- An AI's question to the person shows in ai_team(runs) as needs_input, with its `question`: answer it with
+  ai_team(answer, run_id, text) when you know the answer; otherwise tell the person.
+- To say something to an AI while it works (a correction, a hint): ai_team(tell, run_id, text). It reaches the
+  running AI at its next turn (`delivered: input`) or with its next board call (`next_board_call`).
 - Permission requests are decided by a person in the board, never over MCP.
 - A run that failed: ai_team(retry, run_id). A run that is stuck or wrong: ai_team(cancel, run_id, text=why).
 - ai_team(decisions, project_id) lists what the PM decided in the person's place; ai_team(override, decision_id)
   undoes one while nothing was built on it.
 - To pause an AI: ai_team(pause, member_id); everything: the person's Pause all AI in the board.
 - Cost and limits: ai_team(usage, project_id). Do not start more work than the team can run; work waits in a queue.
+
+## 6. Handing work over, and back
+Every hand-over carries a **handoff note** of fixed form, so nothing is lost between an AI, a person and you:
+__FORM__
+- Each workflow step ends with its AI's note, posted on the ticket (a comment with `handoff`); the next role reads it
+  first. get_ticket shows the notes in the comments and `held_by`: who has the ticket now (an AI, a person, or whom it
+  waits on).
+- **Your own work becomes the team's input** in one call: ai_team(hand_over, ticket_id, fields={done, where, left,
+  check, branch, pages}, workflow=<key> or member_id=<AI>). It links the branch and the Docs pages to the ticket,
+  posts your note, and starts the workflow (its first step reads your note) or the AI's work run.
+- **Take a ticket back** from the team: ai_team(take_back, ticket_id, text=why). The runs stop, a workflow pauses at
+  its step, the ticket is the person's, and a note of what the AI did so far goes on the ticket.
+- **Give it back**: ai_team(hand_over, ticket_id, fields={done, where, left, check}). A workflow paused by take_back
+  resumes at that step, and its AI picks up from your note; without a workflow, the AI that had it takes it again.
+
+## 7. A session, step by step
+1. ai_team(members, project_id) and ai_team(guide): who is there.
+2. ai_team(give_story, project_id, text=<the goal>, fields={approve: 'person'}) → its `story_id`; or
+   ai_team(start_workflow, ticket_id, workflow) for one ticket.
+3. head = board_wait()['head']; then loop: page = board_wait(since=head, project_id); head = page['head'] (or the
+   last event's id).
+4. After each page: ai_team(story, story_id). `plan_waiting` → read the plan, then approve_plan (or revise_plan with
+   what to change) when the person asked you to decide.
+5. ai_team(runs, project_id, active_only=true): a run in needs_input → ai_team(answer, run_id, text).
+6. A ticket's progress: ai_team(workflow, ticket_id) and get_ticket (the handoff notes, `held_by`).
+7. Done when ai_team(story) is done, or the workflow waits for the person at Done: tell the person what is there.
 """
+TEAM_GUIDE = TEAM_GUIDE.replace("__FORM__", _FORM)

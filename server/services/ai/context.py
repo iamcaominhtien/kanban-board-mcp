@@ -404,8 +404,10 @@ def rules_block(
             "If you cannot continue without a decision from a person, call ai_run(action='ask', question=..., "
             "options=[...]) and then stop: the board resumes this run with the answer.",
             "To have a teammate AI do work next, call ai_run(action='handoff', member='<exact name>', ticket='<KEY>', "
-            "instruction='...'): they start on their own (after you finish when it is this ticket). An @mention in a "
-            "comment only asks a teammate a question.",
+            "instruction='...', handoff={done, where, left, check}): they start on their own (after you finish when it "
+            "is this ticket) and read your handoff note first. An @mention in a comment only asks a teammate a question. "
+            "A handoff note from the step or the person before you, at the top of your task, is the first thing to "
+            "read.",
             "Keep the ticket's work log: before you finish, add one entry (ticket_items item='work_log' action='add', "
             "role = your role, kind investigation|fix_attempt|root_cause|blocked|resolved) with what you looked at, what "
             "you decided and why, and what is left. The board records the facts (time, files, commands) itself.",

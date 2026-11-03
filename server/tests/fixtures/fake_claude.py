@@ -483,6 +483,13 @@ elif "as the person would" in prompt_text and "You are the coordinator" in promp
     final_text = f"Looked at the design.\nDECISION: {os.environ.get('FAKE_CLAUDE_APPROVAL', 'APPROVE every state is drawn')}"
 elif "failed twice" in prompt_text and "You are the coordinator" in prompt_text:
     final_text = f"Looked at it.\nDECISION: {os.environ.get('FAKE_CLAUDE_DECISION', 'RETRY run the tests with -x first')}"
+elif (
+    os.environ.get("FAKE_CLAUDE_PLAN_AFTER_ANSWER")
+    and "--resume" in args
+    and "every ticket of Story" not in prompt_text
+):
+    # the PM asked the person a question while planning; resumed with the answer, it ends with its plan
+    final_text = "Planned it with your answer.\n" + os.environ.get("FAKE_CLAUDE_PLAN", "")
 elif "you own Story" in prompt_text:
     # the PM plans a Story: the test creates the children while it "works", then lets it end (FAKE_CLAUDE_PLAN_GATE)
     gate = os.environ.get("FAKE_CLAUDE_PLAN_GATE")
@@ -511,6 +518,16 @@ elif "DEPTH: light" in prompt_text and (
         final_text += f"\nWORKFLOW: {os.environ['FAKE_CLAUDE_WORKFLOW']}"
     if os.environ.get("FAKE_CLAUDE_SPLIT"):
         final_text += f"\nSPLIT: {os.environ['FAKE_CLAUDE_SPLIT']}"
+if os.environ.get("FAKE_CLAUDE_HANDOFF") and "You are doing the step “" in prompt_text:
+    # a workflow step ends with its handoff note (issue #272); FAKE_CLAUDE_PROMPTS keeps each step's prompt
+    step = prompt_text.split("You are doing the step “", 1)[1].split("”", 1)[0]
+    if os.environ.get("FAKE_CLAUDE_PROMPTS"):
+        with open(os.environ["FAKE_CLAUDE_PROMPTS"], "a") as fh:
+            fh.write(json.dumps({"step": step, "prompt": prompt_text}) + "\n")
+    final_text += (
+        f"\n\nHANDOFF\nDone: {step} is done by the fake.\nWhere: notes/{step.lower()}.md\n"
+        f"Left: Nothing.\nCheck: the {step} part first."
+    )
 emit(
     {
         "type": "result",

@@ -50,6 +50,11 @@ AI_TEAM_OPS: dict[str, Op] = {
     "reject_plan": Op(work.reject_plan, ("story_id",), ("text",)),
     "decisions": Op(work.decisions, ("project_id",), ("story_id", "limit")),
     "override": Op(work.override, ("decision_id",), ("text",)),
+    "take_back": Op(work.take_back, ("ticket_id",), ("text",)),
+    "hand_over": Op(
+        work.hand_over, ("ticket_id",), ("fields", "text", "member_id", "workflow")
+    ),
+    "tell": Op(work.tell, ("run_id", "text")),
 }
 READS = {
     "members",
@@ -109,6 +114,9 @@ async def ai_team(
         "reject_plan",
         "decisions",
         "override",
+        "take_back",
+        "hand_over",
+        "tell",
     ],
     project_id: Annotated[
         str | None,
@@ -119,7 +127,7 @@ async def ai_team(
     member_id: Annotated[
         str | None,
         Field(
-            description="AI member: member, ask, pause, resume, update_member, assign_account."
+            description="AI member: member, ask, pause, resume, update_member, assign_account, hand_over."
         ),
     ] = None,
     account_id: Annotated[
@@ -127,32 +135,29 @@ async def ai_team(
         Field(description="assign_account: id, or none."),
     ] = None,
     ticket_id: Annotated[
-        str | None, Field(description="ask, runs, workflow, start_workflow: IAM-12.")
+        str | None,
+        Field(description="Ticket key: IAM-12."),
     ] = None,
-    story_id: Annotated[
-        str | None, Field(description="story, *_plan, decisions: the Story's key.")
-    ] = None,
+    story_id: Annotated[str | None, Field(description="The Story's key.")] = None,
     workflow: Annotated[
         str | None, Field(description="start_workflow: a key from workflows.")
     ] = None,
     decision_id: Annotated[str | None, Field(description="override.")] = None,
-    page_id: Annotated[str | None, Field(description="Docs: ask, docs_jobs.")] = None,
+    page_id: Annotated[str | None, Field(description="Docs page.")] = None,
     thread_id: Annotated[str | None, Field(description="ask in Docs.")] = None,
-    run_id: Annotated[
-        str | None, Field(description="run, cancel, retry, answer.")
-    ] = None,
+    run_id: Annotated[str | None, Field(description="A run's id.")] = None,
     text: Annotated[
         str | None,
         Field(
-            description="ask, answer: message; give_story: the goal; revise_plan: what to change; cancel, pause, "
-            "reject_plan, override: why."
+            description="ask, answer, tell: message; give_story: goal; revise_plan: what to change; cancel, "
+            "pause, reject_plan, override, take_back: why."
         ),
     ] = None,
     intent: Annotated[
         Literal["ask", "work", "notify"] | None,
         Field(
             description="ask: ask (default: answers in a comment, changes nothing), work (assigns the ticket and "
-            "does it), notify (comment only, nothing runs)."
+            "does it), notify (comment only)."
         ),
     ] = None,
     range: Annotated[
@@ -179,15 +184,15 @@ async def ai_team(
             description="create/update_member: name, description, persona, template developer|reviewer|read_only, "
             "ceiling none..review, max_parallel, max_runs_per_day, model; create: provider claude-code|antigravity|"
             "mcp-client; update: daily_budget, monthly_cap, tokens_per_day, cap_per_run. give_story: title, criteria "
-            "(list), approve person|pm, budget_tokens, hand. api: JSON body."
+            "(list), approve person|pm, budget_tokens, hand. hand_over: done, where, left, check, branch, pages. api: body."
         ),
     ] = None,
 ) -> dict | list:
     """AI team. Read guide first: when to ask, hand over work, use a workflow or give a Story to the PM. Reads: members
     (with role), runs, usage, approvals, docs_jobs, resources, accounts, workflows, workflow, stories, story,
     decisions. Hand work:
-    ask (wakes an AI; an @mention via MCP does not), start_workflow, give_story, approve/revise/reject_plan, override.
-    Runs: cancel, restart, retry, answer. Members: pause, resume, create_member, update_member, assign_account (no
+    ask (wakes an AI; an @mention via MCP does not), start_workflow, give_story, approve/revise/reject_plan, override,
+    hand_over (with a handoff note), take_back. Runs: answer, tell (while it works), cancel, restart, retry. Members: pause, resume, create_member, update_member, assign_account (no
     keys, folders, Bypass, ceiling past Review; approvals are a person's, in the board). With "Full control over MCP":
     endpoints, api. Inside an AI run: reads only."""
     from services.ai import guard

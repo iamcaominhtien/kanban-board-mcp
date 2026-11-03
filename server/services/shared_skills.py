@@ -58,6 +58,13 @@ Bad: "Everything is done and polished." (when the web view is missing)
 """,
 )
 
+
+def _handoff_form() -> tuple[str, str]:
+    from services.ai import handoff
+
+    return handoff.FORM, handoff.HOW
+
+
 EVIDENCE_AND_HANDOVER = (
     "evidence-and-handover",
     "How to show your work and hand it over on this board: screenshots, test output and links as proof, a handoff "
@@ -80,21 +87,28 @@ People and the next AI judge your work by what they can see on the ticket, not b
 
 ## Hand it over
 When the next step is another role or a person, leave a **handoff note** they can act on without reading your whole
-run (in the work log, or the `instruction` of `ai_run handoff`):
-- what is done and where it is (links);
-- what is not, and why;
-- the decisions you took that they must follow;
-- the open questions, each with who decides.
+run. It has a fixed form, so every role writes and reads it the same way.
 
-Example: "Design is on the canvas (Foundations, Components, 6 screens) and the spec per screen is on Docs. Dev: tokens
-are in `tokens.css`, use them, do not copy hex values. Open: whether reminders pause in meetings (asked the PO in a
-comment)."
+{FORM}
+
+{HOW}
+
+Example:
+- Done: the Today screen in 6 states and the components board.
+- Where: canvas "Giọt" (pages Foundations, Components, Today); the spec per screen on Docs › Design › Today.
+- Left: the web view, not started (the step's budget ran out).
+- Check: tokens are in `tokens.css`, use them and do not copy hex values; whether reminders pause in meetings is open
+  (asked the PO in a comment).
+
+When you start, read the note the step or the person before you left (at the top of your task, and on the ticket's
+comments) before anything else. A note that says "Not said." was written by the board from your teammate's summary:
+check the ticket for the rest.
 
 ## Close the ticket's story
 End with one comment that a person reads first: what you handed in (with the pictures), what is left, and what
 waits for whom. A proposal or approval that waits for a person says so, by name: "The canvas edit on Foundations
 waits for your accept".
-""",
+""".replace("{FORM}", _handoff_form()[0]).replace("{HOW}", _handoff_form()[1]),
 )
 
 REPO_AND_MACHINE = (

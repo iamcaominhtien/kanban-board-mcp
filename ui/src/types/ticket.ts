@@ -49,10 +49,26 @@ export interface Comment {
   answerToRun?: string;
   /** The AI member this comment was posted to ask (Ask button). */
   askedAi?: string;
+  /** A handoff note (issue #272): what was done, where it is, what is left, what the next one checks first. */
+  handoff?: HandoffNote;
+}
+
+export interface HandoffNote {
+  done: string;
+  where: string;
+  left: string;
+  check: string;
+  /** The workflow step it ends, when it ends one. */
+  step?: string | null;
+  from?: string | null;
+  to?: string | null;
+  runId?: string | null;
+  /** False: the board wrote it from the run's summary and files (the AI left no note). */
+  complete?: boolean;
 }
 
 export interface AiCommentMeta {
-  kind: 'answer' | 'summary' | 'failed' | 'ask_failed' | 'move_blocked' | 'comment' | 'chat_answer';
+  kind: 'answer' | 'summary' | 'failed' | 'ask_failed' | 'move_blocked' | 'comment' | 'chat_answer' | 'handoff';
   /** The comment an `ask_failed` reply is about. */
   replyTo?: string | null;
   /** The run behind the comment; a `chat_answer` (posted from the ticket chat) has none. */

@@ -116,6 +116,8 @@ export function TddCard({ ticketId, view }: { ticketId: string; view: WorkflowVi
         <div className="wf-hint">Set in the project&rsquo;s AI settings, Team on its own.</div>
       </div>
     );
+  // A ticket taken back mid-step: its Dev did not end, so there is nothing to judge yet (#272)
+  if (view.stopReason === 'taken_back' || dev.outcome === 'taken_back') return null;
   // Not proven: only worth saying once the Dev step has had its turn.
   if (!['done', 'failed'].includes(dev.state) && !view.steps.some((s) => s.kind === 'code' && s.state !== 'pending'))
     return null;

@@ -45,13 +45,23 @@ export interface WorkflowMetric {
 }
 
 export type WorkflowState = 'active' | 'stopped' | 'done' | 'detached';
-export type StopReason = 'no_progress' | 'board_fault' | 'quota_cap' | 'split';
+/** `taken_back`: a person took the ticket from the AI team; it waits at its step until they give it back (#272). */
+export type StopReason = 'no_progress' | 'board_fault' | 'quota_cap' | 'split' | 'taken_back';
 export type StepState = 'pending' | 'active' | 'waiting' | 'blocked' | 'done' | 'failed' | 'skipped';
 /** `unproven`: a Dev step with no failing test run before the passing one; `no_evidence`: a testing step that handed
  * in no proof (twice); `accepted`: a person took either without; `board`: the Done step the board moved itself
  * (autonomy.done = after_review). */
 export type StepOutcome =
-  'pass' | 'changes' | 'approved' | 'sent_back' | 'failed' | 'unproven' | 'no_evidence' | 'accepted' | 'board';
+  | 'pass'
+  | 'changes'
+  | 'approved'
+  | 'sent_back'
+  | 'failed'
+  | 'unproven'
+  | 'no_evidence'
+  | 'accepted'
+  | 'board'
+  | 'taken_back';
 
 /** Who took a step without its evidence, when, and why (ai-story-flow N). */
 export interface StepAccepted {
@@ -85,6 +95,8 @@ export interface ViewStep {
   note: string | null;
   /** What it was told: a send-back, a ruling. */
   noteIn: string | null;
+  /** The handoff note its run left (issue #272): the strip shows it instead of the whole text. */
+  handoff?: { done: string; where: string; left: string; check: string } | null;
   outcome: StepOutcome | null;
   result: { checks?: CheckResult[]; tdd?: unknown; noCommands?: boolean; accepted?: StepAccepted } | null;
   startedAt: string | null;

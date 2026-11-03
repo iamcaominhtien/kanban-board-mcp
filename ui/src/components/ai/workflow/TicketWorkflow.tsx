@@ -31,6 +31,7 @@ import {
 import { RoleChip } from './WfUi';
 import { WorkflowPicker, triageChose } from './WorkflowPicker';
 import { CapStoppedCard } from '../limits/CapStoppedCard';
+import { GiveBackButton } from '../handoff/Handoff';
 import './workflow.css';
 
 function StepRow({
@@ -51,14 +52,15 @@ function StepRow({
   const skip = useWorkflowMutation(ticketId, (_: void) => workflowApi.skip(ticketId, s.id));
   const st = stepStateLabel(s, last);
   const you = s.kind === 'person';
-  const bad = s.state === 'blocked' || s.state === 'failed';
+  const takenBack = s.outcome === 'taken_back';
+  const bad = s.state === 'blocked' || (s.state === 'failed' && !takenBack);
   const cls = bad
     ? 'wf-step-bad'
     : s.state === 'done'
       ? 'wf-step-done'
       : s.state === 'active'
         ? 'wf-step-active'
-        : you && (s.state === 'waiting' || s.state === 'pending')
+        : takenBack || (you && (s.state === 'waiting' || s.state === 'pending'))
           ? 'wf-step-waiting-you'
           : '';
   const failedChecks = (s.result?.checks ?? []).filter((c) => !c.ok);
@@ -122,10 +124,23 @@ function StepRow({
         )}
         {s.noteIn && (
           <div className="wf-note wf-quote" data-testid={`wf-note-in-${s.key}`}>
-            Told: {s.noteIn}
+            {s.noteIn.startsWith('Read this first')
+              ? 'Started from the handoff note given with it (in the comments).'
+              : `Told: ${s.noteIn}`}
           </div>
         )}
-        {s.note && s.kind !== 'code' && <div className="wf-note">{s.note}</div>}
+        {s.handoff && s.kind === 'ai' ? (
+          <div className="wf-note" data-testid={`wf-handoff-${s.key}`}>
+            <div>
+              <b>Done:</b> {s.handoff.done}
+            </div>
+            <div>
+              <b>Left:</b> {s.handoff.left}
+            </div>
+          </div>
+        ) : (
+          s.note && s.kind !== 'code' && <div className="wf-note">{s.note}</div>
+        )}
         {s.kind === 'code' && s.result?.noCommands && (
           <div className="wf-note">The project has no test, lint or build command, so there was nothing to run.</div>
         )}
@@ -302,6 +317,26 @@ function DesignApproval({ step, view, ticketId }: { step: ViewStep; view: Workfl
           {error}
         </div>
       )}
+    </div>
+  );
+}
+
+/** A person took the ticket back (#272): the workflow waits at its step, and Give back goes on from there. */
+function TakenBackCard({ view, ticketId }: { view: WorkflowView; ticketId: string }) {
+  const at = view.steps.find((s) => s.outcome === 'taken_back');
+  return (
+    <div className="wf-card" data-testid="taken-back-card" role="status">
+      <div className="wf-line">
+        <b>{view.stopDetail || 'Taken back from the AI team'}</b>
+        <span className="wf-pill wf-pill-you">Waits for you</span>
+      </div>
+      <div className="wf-note">
+        The workflow waits at {at ? `“${at.label}”` : 'its step'}. Give it back with a short note and it goes on from
+        there; the AI reads your note first.
+      </div>
+      <div className="wf-actions">
+        <GiveBackButton ticketId={ticketId} />
+      </div>
     </div>
   );
 }
@@ -540,6 +575,8 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
       {view.state === 'stopped' &&
         (view.stopReason === 'quota_cap' ? (
           <CapStoppedCard ticket={ticket} view={view} />
+        ) : view.stopReason === 'taken_back' ? (
+          <TakenBackCard view={view} ticketId={ticket.id} />
         ) : (
           <StopCard view={view} ticketId={ticket.id} />
         ))}

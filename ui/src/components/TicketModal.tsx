@@ -55,6 +55,7 @@ import { AssigneePicker } from './ai/AssigneePicker';
 import { useMentionIntent } from './ai/MentionIntent';
 import { usePeopleAndAiSuggest } from './ai/useMentionList';
 import { AiCompletedBadge, HoldChips, StatusMovedBy } from './ai/TicketHold';
+import { WhoHasIt } from './ai/handoff/Handoff';
 import { TicketPlan } from './ai/TicketPlan';
 import { AiHoverHost } from './ai/MentionPill';
 import {
@@ -3154,6 +3155,7 @@ function TicketModalInner({
                           onAssignedAi={(id) => setAssignee(id)}
                         />
                         <HoldChips ticket={ticket} />
+                        <WhoHasIt ticket={ticket} />
                       </div>
 
                       {/* 4. Priority */}

@@ -42,7 +42,7 @@ from models import (
     TicketUpdate,
 )
 
-from . import flags, ops, project_env
+from . import flags, handoff, ops, project_env
 from .store import get_settings, loads
 
 logger = logging.getLogger(__name__)
@@ -641,13 +641,17 @@ def _instruction(
     previous_note: str | None,
     ticket: Ticket,
     given: dict | None = None,
+    read_first: str | None = None,
 ) -> str:
-    """What the step's AI is told; `given` holds what the step's `gives` asked for beyond the previous note."""
+    """What the step's AI is told; `given` holds what the step's `gives` asked for beyond the previous note, and
+    `read_first` the handoff note it reads before anything else (issue #272)."""
     given = given or {}
     gives = step.get("gives", [])
     parts = [
         f"You are doing the step “{step['label']}” of the workflow “{wf.template_name}” on {ticket.id}."
     ]
+    if read_first:
+        parts.append(read_first)
     if step.get("hands_in"):
         parts.append(
             f"What you must hand in: {step['hands_in']}. The step is not done until the board can see it."
@@ -663,7 +667,7 @@ def _instruction(
         parts.append(f"The previous step's note:\n{previous_note}")
     if given.get("transcript") and "transcript" in gives:
         parts.append(f"What the previous step's AI did:\n{given['transcript']}")
-    if row.note_in:
+    if row.note_in and row.note_in != read_first:
         parts.append(row.note_in)
     if step.get("role") == "reviewer":
         depth = wf.review_depth or step.get("depth") or "standard"
@@ -747,6 +751,7 @@ def _instruction(
         "anything irreversible) to ai_run(action='ask'). When you were sent back, answer every comment left for you "
         "on the ticket, the Docs page or the canvas: fix it, reply in its thread, resolve it."
     )
+    parts.append(f"{handoff.FORM}\n{handoff.HOW}")
     parts.append(
         "When you are done, report and end; the board moves the ticket to the next step. Do not hand the ticket to another AI yourself."
     )
@@ -1043,6 +1048,30 @@ async def _advance(ticket_id: str) -> None:
             )
         ).first()
         prev_note = previous.note if previous else None
+        # the handoff note the step reads first: the newest one left since the last AI step began (its own note, or a
+        # person's or an outside agent's given after it); a hand-over already put one in the step's own note
+        last_ai = (
+            await session.exec(
+                select(AiTicketStep)
+                .where(
+                    AiTicketStep.ticket_id == ticket_id,
+                    AiTicketStep.state == "done",
+                    AiTicketStep.kind == "ai",
+                    col(AiTicketStep.seq) < row.seq,
+                )
+                .order_by(col(AiTicketStep.seq).desc())
+            )
+        ).first()
+        read_first = (
+            row.note_in
+            if row.note_in and row.note_in.startswith("Read this first")
+            else handoff.prompt_from_latest(
+                ticket,
+                since=(last_ai.started_at if last_ai else None) or wf.created_at,
+            )
+        )
+        if read_first and previous is not None and previous.kind == "ai":
+            prev_note = None  # the note says it in the fixed form; the run's own words stay in the transcript
         if row.kind == "person":
             await _unblocked(session, ticket_id, f"{row.label} waits for a person.")
             if row.key == "done" and await _done_by_board(session, wf, ticket, row):
@@ -1115,6 +1144,7 @@ async def _advance(ticket_id: str) -> None:
                     prev_note,
                     ticket,
                     await _given(session, ticket, row, previous),
+                    read_first,
                 ),
                 model_override=model,
                 effort_override=effort,
@@ -1843,6 +1873,9 @@ async def on_run_ended(run_id: str) -> None:
             row.outcome = "changes" if changes_asked else "pass"
         session.add(row)
         await session.commit()
+        await _post_handoff(
+            session, wf, row, run, text, back_to_dev=bool(changes_asked)
+        )
         if changes_asked:
             changes = text.split("VERDICT:")[-1]
             await send_back(
@@ -1875,6 +1908,57 @@ async def on_run_ended(run_id: str) -> None:
             session.add(row)
             await session.commit()
     await advance(run.ticket_id)
+
+
+async def _post_handoff(
+    session,
+    wf: AiTicketWorkflow,
+    row: AiTicketStep,
+    run: AiRun,
+    text: str,
+    *,
+    back_to_dev: bool = False,
+) -> None:
+    """A step's run finished: its handoff note goes on the ticket (the AI's own, else what the board knows) and into
+    the run's report, so the next role reads it first (issue #272)."""
+    ticket = await session.get(Ticket, run.ticket_id)
+    if ticket is None:
+        return
+    note, complete = handoff.of_run(run, text, ticket)
+    steps = _template_steps(wf)
+    if back_to_dev:
+        nxt = next((s for s in steps if s.get("role") == "dev"), None)
+    else:
+        nxt = steps[row.idx + 1] if row.idx + 1 < len(steps) else None
+    to = None
+    if nxt is not None:
+        to = (
+            await role_label(session, wf.project_id, nxt.get("role"))
+            if nxt.get("kind") == "ai"
+            else "you"
+            if nxt.get("kind") == "person"
+            else nxt.get("label")
+        )
+    person = await session.get(Member, run.member_id)
+    author = person.name if person else "AI"
+    report = loads(run.report, {}) or {}
+    report["handoff"] = {**note, "by_board": not complete}
+    run.report = json.dumps(report)
+    session.add(run)
+    await session.commit()
+    try:
+        await handoff.post(
+            session,
+            ticket.id,
+            note,
+            author=author,
+            step=row.label,
+            to=to,
+            run=run,
+            complete=complete,
+        )
+    except ValueError:
+        logger.warning("Could not post the handoff note of %s", run.id, exc_info=True)
 
 
 EVIDENCE_ROLES = ("qa", "user_tester")
@@ -2342,6 +2426,17 @@ async def view(session, ticket_id: str) -> dict | None:
             )
         ).all()
     }
+    # each step's handoff note (issue #272): the strip shows it instead of the run's whole text
+    notes = {
+        r.id: (loads(r.report, {}) or {}).get("handoff")
+        for r in (
+            await session.exec(
+                select(AiRun).where(
+                    col(AiRun.id).in_({r.run_id for r in rows if r.run_id})
+                )
+            )
+        ).all()
+    }
     return {
         "ticket_id": ticket_id,
         "template_key": wf.template_key,
@@ -2371,6 +2466,7 @@ async def view(session, ticket_id: str) -> dict | None:
                 "member_name": names.get(r.member_id or ""),
                 "run_id": r.run_id,
                 "note": r.note,
+                "handoff": notes.get(r.run_id or ""),
                 "note_in": r.note_in,
                 "outcome": r.outcome,
                 "result": json.loads(r.result) if r.result else None,
