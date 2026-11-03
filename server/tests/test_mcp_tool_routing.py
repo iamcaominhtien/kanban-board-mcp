@@ -641,6 +641,10 @@ async def test_reopen_pend_and_resume_through_manage_ticket():
     )
     assert resumed["pending"] is False
 
+    # the ticket it waited on still blocks it: Done is refused until that one is done (3.35.1)
+    with pytest.raises(Exception, match="blocked by"):
+        await call("manage_ticket", action="update", ticket_id=tid, status="done")
+    await call("manage_ticket", action="update", ticket_id=other["id"], status="done")
     await call("manage_ticket", action="update", ticket_id=tid, status="done")
     reopened = await call(
         "manage_ticket", action="reopen", ticket_id=tid, reason="regression"
