@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Fixed
+- **Deleting a project failed with "no such table: docs_ai_ignore" on some databases.** A pre-release build had run the Docs AI migration without that table, and a migration never runs twice. A new migration creates the table when it is missing (and leaves it alone when it is there), so the project deletes, and a page's ignored "Check this page" findings can be saved again.
+
 ## [3.35.1] - 2026-11-03
 
 ### Fixed
