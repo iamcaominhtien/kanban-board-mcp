@@ -1,6 +1,7 @@
 import axios from 'axios';
 import camelcaseKeys from 'camelcase-keys';
 import snakecaseKeys from 'snakecase-keys';
+import { reportDatabaseUnreachable, unreachableOf } from './databaseDown';
 import { resolveOrigin } from './resolveOrigin';
 
 /** Axios instance that converts keys between snake_case (API) and camelCase (UI). */
@@ -24,13 +25,20 @@ function isFormDataPayload(value: unknown): value is FormData {
   return typeof FormData !== 'undefined' && value instanceof FormData;
 }
 
-// Transform response keys: snake_case → camelCase
-client.interceptors.response.use((response) => {
-  if (response.data && typeof response.data === 'object') {
-    response.data = camelcaseKeys(response.data, { deep: true });
-  }
-  return response;
-});
+// Transform response keys: snake_case → camelCase. A 503 "database_unreachable" opens the reconnect screen.
+client.interceptors.response.use(
+  (response) => {
+    if (response.data && typeof response.data === 'object') {
+      response.data = camelcaseKeys(response.data, { deep: true });
+    }
+    return response;
+  },
+  (error) => {
+    const down = unreachableOf(error);
+    if (down) reportDatabaseUnreachable(down);
+    return Promise.reject(error);
+  },
+);
 
 // Transform request bodies: camelCase → snake_case, and resolve baseURL per-request
 client.interceptors.request.use((config) => {

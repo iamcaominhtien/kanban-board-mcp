@@ -70,6 +70,9 @@ def _migrate_default_db() -> None:
 
 
 _migrate_default_db()
+# With KANBAN_TEST_DATABASE_URL (tests/fast_db.py) the services' own sessions use that server database too
+if os.environ.get("KANBAN_TEST_DATABASE_URL"):
+    os.environ["KANBAN_DATABASE_URL"] = os.environ["KANBAN_TEST_DATABASE_URL"]
 import database  # noqa: E402,F401
 
 if _DB_FROM_TESTS:

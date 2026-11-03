@@ -1,16 +1,41 @@
 import { useRef, useState } from 'react';
 import { client } from '../../api/client';
 import { resolveOrigin } from '../../api/resolveOrigin';
+import { useDatabase } from '../../api/database';
 import { useSettings, useSetDataPath } from '../../api/settings';
+import { DatabaseCard } from './database/DatabaseCard';
 import { WorkspaceSettingsSection } from './WorkspaceSettingsSection';
 import { Field, ICONS, SIcon, SettingsCard } from './settingsUi';
 import styles from './SettingsPage.module.css';
 
 type Status = { ok: boolean; text: string } | null;
 
-/** Storage & backup: data folder, workspace, export and import (design/screens/settings-pages.md F, H). */
+/** The Database card, or what stands in for it while it loads or when it cannot load. */
+function DatabaseSection({ db }: { db: ReturnType<typeof useDatabase> }) {
+  if (db.data) return <DatabaseCard db={db.data} />;
+  return (
+    <SettingsCard
+      title="Database"
+      hint="Where tickets, projects, docs and everything else are stored."
+      setting="database"
+      testId="database-card"
+    >
+      <span className={db.isError ? styles.statusErr : styles.statusInfo}>
+        {db.isError ? 'Could not read which database the board uses.' : 'Loading…'}
+      </span>
+    </SettingsCard>
+  );
+}
+
+/**
+ * Storage & backup: the database, data folder, workspace, export and import (design/screens/settings-pages.md F, H;
+ * ai-databases.md B).
+ */
 export function StoragePage() {
   const { data: settings, isLoading } = useSettings();
+  const database = useDatabase();
+  // Once the database is a server, the data folder holds only the attachments (ai-databases.md B2)
+  const onServer = !!database.data && database.data.engine !== 'sqlite';
   const setDataPath = useSetDataPath();
   const [folderInput, setFolderInput] = useState<string | null>(null);
   const [folderStatus, setFolderStatus] = useState<Status>(null);
@@ -100,9 +125,15 @@ export function StoragePage() {
 
   return (
     <>
+      <DatabaseSection db={database} />
+
       <SettingsCard
         title="Data folder"
-        hint="Where tickets, attachments and the database are stored."
+        hint={
+          onServer
+            ? 'Where attachments are stored. The database is not here any more.'
+            : 'Where tickets, attachments and the database are stored.'
+        }
         setting="data-folder"
         status={folderStatus}
       >
@@ -127,6 +158,11 @@ export function StoragePage() {
             }}
           />
         </Field>
+        {onServer && (
+          <div className={styles.hint}>
+            Attachments stay on this computer, next to the app. They are not copied to the database.
+          </div>
+        )}
         <div className={styles.row}>
           {isElectron && (
             <button type="button" className={styles.btn} onClick={handleBrowse}>
@@ -162,7 +198,11 @@ export function StoragePage() {
 
       <SettingsCard
         title="Import and export"
-        hint="Export all data (database and attachments) as a ZIP. Use the same file to restore."
+        hint={
+          onServer
+            ? 'Export all data as a ZIP with a portable copy of the database and the attachments. It loads into SQLite, PostgreSQL or MySQL.'
+            : 'Export all data (database and attachments) as a ZIP. Use the same file to restore.'
+        }
         setting="export"
       >
         <div className={styles.row} data-setting="import">
@@ -212,7 +252,9 @@ export function StoragePage() {
           </span>
         )}
         <div className={styles.hint}>
-          Workspace files are not included; they live outside the data folder on purpose.
+          {onServer
+            ? 'Import replaces the data in the connected database, after the same confirmation as today.'
+            : 'Workspace files are not included; they live outside the data folder on purpose.'}
         </div>
       </SettingsCard>
     </>

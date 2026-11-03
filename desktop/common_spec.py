@@ -33,6 +33,13 @@ def get_base_analysis_args(entry_point, app_name):
     alembic_hidden = collect_submodules('alembic')
     aiosqlite_hidden = collect_submodules('aiosqlite')
     sqlalchemy_async_hidden = ['sqlalchemy.ext.asyncio']
+    # PostgreSQL and MySQL/MariaDB (App settings › Storage & backup › Database): their async drivers and SQLAlchemy
+    # dialects are imported by name from a connection URL, so PyInstaller cannot see them
+    server_db_hidden = (
+        collect_submodules('asyncpg') + collect_submodules('aiomysql') + collect_submodules('pymysql') +
+        ['sqlalchemy.dialects.postgresql', 'sqlalchemy.dialects.postgresql.asyncpg',
+         'sqlalchemy.dialects.mysql', 'sqlalchemy.dialects.mysql.aiomysql']
+    )
     # API keys: the encryption key lives in the OS keychain; keyring is imported lazily and finds its
     # backends through entry points, so both the modules and the metadata must be bundled
     keyring_hidden = collect_submodules('keyring')
@@ -64,7 +71,7 @@ def get_base_analysis_args(entry_point, app_name):
 
     hidden_imports = (
         sqlmodel_hidden + anyio_hidden + alembic_hidden + aiosqlite_hidden +
-        sqlalchemy_async_hidden + keyring_hidden + tzdata_hidden +
+        sqlalchemy_async_hidden + server_db_hidden + keyring_hidden + tzdata_hidden +
         ['sqlalchemy.dialects.sqlite', 'multiprocessing.freeze_support', 'psutil']
     )
 

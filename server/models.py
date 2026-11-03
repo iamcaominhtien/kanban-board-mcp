@@ -69,7 +69,7 @@ class Member(SQLModel, table=True):
     """Project member who can be assigned tickets or mentioned (table)."""
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    project_id: str = Field(foreign_key="project.id")
+    project_id: str = Field(foreign_key="project.id", index=True)
     name: str
     color: str  # hex color for avatar background
     # Docs comment rights: viewer reads, member comments and resolves, admin also deletes any comment.
@@ -84,6 +84,9 @@ class Member(SQLModel, table=True):
 class Ticket(SQLModel, table=True):
     """Ticket with its checklists, comments, activity and relations stored as JSON (table)."""
 
+    # A project's board reads its tickets by project, often by status too
+    __table_args__ = (Index("ix_ticket_project_status", "project_id", "status"),)
+
     id: str = Field(primary_key=True)  # e.g. "IAM-1"
     project_id: str = Field(foreign_key="project.id")
     title: str
@@ -94,7 +97,7 @@ class Ticket(SQLModel, table=True):
     estimate: Optional[float] = Field(default=None)
     due_date: Optional[str] = Field(default=None)  # ISO date string
     tags: str = Field(default="[]")  # JSON array
-    parent_id: Optional[str] = Field(default=None, foreign_key="ticket.id")
+    parent_id: Optional[str] = Field(default=None, foreign_key="ticket.id", index=True)
     comments: str = Field(default="[]")  # JSON array
     acceptance_criteria: str = Field(default="[]")  # JSON array
     sub_tasks: str = Field(default="[]")  # JSON: checklist of {id, text, done}
@@ -104,7 +107,7 @@ class Ticket(SQLModel, table=True):
     start_date: Optional[str] = Field(default=None)  # ISO date string
     wont_do_reason: Optional[str] = Field(default=None)
     created_by: Optional[str] = Field(default=None, foreign_key="member.id")
-    assignee: Optional[str] = Field(default=None, foreign_key="member.id")
+    assignee: Optional[str] = Field(default=None, foreign_key="member.id", index=True)
     blocks: str = Field(default="[]")  # JSON array of ticket IDs this ticket blocks
     blocked_by: str = Field(
         default="[]"
@@ -479,7 +482,9 @@ class DocsPage(SQLModel, table=True):
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     project_id: str = Field(foreign_key="project.id", index=True)
-    parent_id: Optional[str] = Field(default=None, foreign_key="docs_page.id")
+    parent_id: Optional[str] = Field(
+        default=None, foreign_key="docs_page.id", index=True
+    )
     position: int = Field(default=0)
     title: str
     slug: str
@@ -2981,3 +2986,10 @@ class IdeaTicketRead(SQLModel):
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,
         )
+
+
+# Long text is text on every engine (VARCHAR(255) on MySQL otherwise), and MySQL tables are utf8mb4 with exact
+# comparison: design/screens/ai-databases.md F, "Long text"
+from dbkit.types import portable_text  # noqa: E402
+
+portable_text(SQLModel.metadata)

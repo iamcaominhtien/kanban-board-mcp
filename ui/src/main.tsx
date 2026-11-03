@@ -8,6 +8,7 @@ import { CanvasProvider } from './components/canvas/CanvasProvider';
 import { PreviewProvider } from './components/preview/PreviewContext';
 import App from './App.tsx';
 import { DocsWindowApp } from './components/docs/DocsWindowApp';
+import { DatabaseDown } from './components/settings/database/DatabaseDown';
 import { isDocsWindow } from './components/docs/docsWindow';
 import './index.css';
 import { installClientLogging } from './utils/clientLog';
@@ -23,7 +24,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <DiagramsProvider>
           <SketchProvider>
             <CanvasProvider>
-              <PreviewProvider>{isDocsWindow() ? <DocsWindowApp /> : <App />}</PreviewProvider>
+              <PreviewProvider>
+                {isDocsWindow() ? <DocsWindowApp /> : <App />}
+                <DatabaseDown />
+              </PreviewProvider>
             </CanvasProvider>
           </SketchProvider>
         </DiagramsProvider>

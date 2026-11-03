@@ -485,9 +485,9 @@ async def advice_for(
         return []
     rows = (
         await session.exec(
-            select(IdeaAdvice).where(
-                IdeaAdvice.idea_id.in_(idea_ids), IdeaAdvice.state == "open"
-            )
+            select(IdeaAdvice)
+            .where(IdeaAdvice.idea_id.in_(idea_ids), IdeaAdvice.state == "open")
+            .order_by(IdeaAdvice.created_at, IdeaAdvice.id)
         )
     ).all()
     if not include_none:

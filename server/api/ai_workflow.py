@@ -72,7 +72,9 @@ async def get_board(project_id: str, session: Session) -> list[dict]:
     """Every ticket on a workflow with its current step, role and holder (filters "needs my review", "AI in role X")."""
     rows = (
         await session.exec(
-            select(AiTicketWorkflow).where(AiTicketWorkflow.project_id == project_id)
+            select(AiTicketWorkflow)
+            .where(AiTicketWorkflow.project_id == project_id)
+            .order_by(AiTicketWorkflow.created_at, AiTicketWorkflow.ticket_id)
         )
     ).all()
     out = []

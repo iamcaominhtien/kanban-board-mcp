@@ -535,9 +535,9 @@ async def list_for_project(session, project_id: str) -> list[dict]:
     """Every worktree of a project with what git says now."""
     rows = (
         await session.exec(
-            select(AiWorktree).where(
-                AiWorktree.project_id == project_id, AiWorktree.state != "removed"
-            )
+            select(AiWorktree)
+            .where(AiWorktree.project_id == project_id, AiWorktree.state != "removed")
+            .order_by(AiWorktree.created_at, AiWorktree.ticket_id)
         )
     ).all()
     return [to_dict(r, await status(r)) for r in rows]

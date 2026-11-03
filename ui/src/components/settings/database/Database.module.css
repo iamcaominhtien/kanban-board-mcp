@@ -1,0 +1,859 @@
+/* Storage & backup › Database and the move wizard (design/screens/ai-databases.md B to E).
+   Colours are the Settings pages' own (SettingsPage.module.css): green #2E6F40, ink #1E2A22, muted #5B6B60. */
+
+.spacer {
+  flex: 1;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.dim {
+  color: #5b6b60;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.para {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #2c3a30;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.linkBtn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.linkBtn:hover {
+  text-decoration: underline;
+}
+.noticeOk {
+  background: #f1f8f3;
+  border-color: #d3e6d9;
+  color: #2c3a30;
+}
+.noticeErr {
+  background: #fdf1ee;
+  border-color: #f0c4b8;
+  color: #7a2a1a;
+}
+
+/* ---------- Engine badge ---------- */
+.badge {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  border: 1.5px solid #4a6fa5;
+  background: #eef3fb;
+  color: #1f3e6e;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-sizing: border-box;
+}
+.badgeSm {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  font-size: 11px;
+}
+.badge_sqlite {
+  border-color: #4a6fa5;
+  background: #eef3fb;
+  color: #1f3e6e;
+}
+.badge_postgresql {
+  border-color: #3b5f99;
+  background: #e8eef8;
+  color: #1c3766;
+}
+.badge_mysql {
+  border-color: #c26a2e;
+  background: #fcefe5;
+  color: #8a4210;
+}
+
+/* ---------- The card ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2e6f40;
+  white-space: nowrap;
+}
+.chipWarn {
+  color: #8a5a00;
+}
+.chipErr {
+  color: #c4432a;
+}
+.dbRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dbText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dbTitle {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dbMono {
+  color: #3a4a3e;
+  overflow-wrap: anywhere;
+}
+.dbFacts {
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid #d3e6d9;
+  background: #f1f8f3;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+
+/* ---------- Modal ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  /* above the reconnect screen, which opens Edit connection over itself */
+  z-index: 10002;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(30, 42, 34, 0.38);
+  font-family: var(--font-body);
+}
+.modal {
+  max-width: 100%;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(20, 30, 24, 0.28);
+  color: #1e2a22;
+  overflow: hidden;
+}
+.modalHead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.modalTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.modalTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.modalSub {
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.modalBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 24px;
+}
+.modalFoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+}
+
+/* ---------- Steps ---------- */
+.steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #5b6b60;
+}
+.stepRule {
+  width: 22px;
+  height: 1px;
+  margin: 0 10px;
+  background: #c7d2cb;
+}
+.stepDot {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid #b8c4bc;
+  font-size: 11.5px;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+.stepOn {
+  color: #1e2a22;
+  font-weight: 700;
+}
+.stepOn .stepDot,
+.stepDone .stepDot {
+  border-color: #2e6f40;
+  background: #2e6f40;
+  color: #ffffff;
+}
+
+/* ---------- Lines (test findings, what will happen, checks) ---------- */
+.lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f1f8f3;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1e2a22;
+}
+.line_warn {
+  background: #fef6e7;
+}
+.line_error {
+  background: #fdf1ee;
+}
+.line_info {
+  background: #f4f6f5;
+}
+.lineIcon {
+  display: inline-flex;
+  margin-top: 2px;
+}
+.lineBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+.lineRest {
+  color: #5b6b60;
+}
+.lineDetail {
+  font-size: 12.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+.findings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fix {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.fixCode {
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #e3e8e5;
+  border-radius: 6px;
+  background: #ffffff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Step 1 ---------- */
+.engineCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.engineCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px;
+  border: 1.5px solid #e3e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  color: #2c3a30;
+  text-align: left;
+  cursor: pointer;
+}
+.engineCard:hover:not(:disabled):not(.engineCardOn) {
+  background: #fbfcfb;
+}
+.engineCardOn {
+  border-color: #2e6f40;
+  background: #f6faf7;
+}
+.engineCardCurrent {
+  cursor: default;
+}
+.engineCardHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14.5px;
+  color: #1e2a22;
+}
+.engineCardText {
+  line-height: 1.5;
+}
+.radioRing {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #b8c4bc;
+  box-sizing: border-box;
+}
+.tag {
+  align-self: stretch;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e8eef8;
+  color: #1c3766;
+  white-space: nowrap;
+}
+.tagGrey,
+.tag_sqlite {
+  background: #f1f3f1;
+  color: #3a4a3e;
+}
+.tag_postgresql {
+  background: #e8eef8;
+  color: #1c3766;
+}
+.tag_mysql {
+  background: #fcefe5;
+  color: #8a4210;
+}
+.engineHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 24px;
+  align-items: start;
+}
+.splitSide {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.placeholder {
+  padding: 14px;
+  border: 1px dashed #c7d2cb;
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.formRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.port {
+  width: 110px;
+  flex-shrink: 0;
+}
+.showBtn {
+  min-height: 36px;
+}
+.sslSelect {
+  max-width: 320px;
+}
+.readonly {
+  overflow-wrap: anywhere;
+  background: #f6faf7;
+}
+.urlToggle {
+  font-size: 12.5px;
+  color: #5b6b60;
+  line-height: 1.6;
+}
+.urlToggle > div {
+  color: #3a4a3e;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Step 2 ---------- */
+.fromTo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+.box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: #3a4a3e;
+  line-height: 1.5;
+  min-width: 0;
+  align-self: stretch;
+}
+.boxHead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  color: #1e2a22;
+  margin-bottom: 4px;
+}
+.monoChip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #2e6f40;
+  background: #f6faf7;
+  border-radius: 4px;
+  padding: 1px 6px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.notEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.mode {
+  font: inherit;
+  text-align: left;
+}
+.modeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: #1e2a22;
+}
+.scriptRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  font-size: 13px;
+  color: #2c3a30;
+  flex-wrap: wrap;
+}
+
+/* ---------- Boxes ---------- */
+.dangerBox,
+.warnBox,
+.okBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #f0c4b8;
+  background: #fdf1ee;
+  font-size: 14px;
+  color: #1e2a22;
+  line-height: 1.45;
+}
+.warnBox {
+  border-color: #f0dba8;
+  background: #fef6e7;
+}
+.okBox {
+  border-color: #cfe3d5;
+  background: #f1f8f3;
+}
+
+/* ---------- Dark code ---------- */
+.dark {
+  border-radius: 10px;
+  overflow: hidden;
+  background: #17231b;
+  color: #d9e4dc;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.darkHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: #213027;
+  color: #a9b8ae;
+}
+.darkBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.darkBody > div {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.darkComment {
+  color: #8fa196;
+}
+.darkStmt {
+  color: #ffffff;
+}
+.darkPre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+.fact {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 8px;
+}
+.factName {
+  color: #8fa196;
+}
+.factBad,
+.factBad .factName {
+  color: #f19a85;
+}
+
+/* ---------- Step 3 ---------- */
+.progressHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #e3e8e5;
+  overflow: hidden;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  background: #2f6db5;
+  transition: width 0.4s ease;
+}
+.tableList {
+  margin: 0;
+  padding: 4px 14px;
+  list-style: none;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+}
+.tableRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid #eef1ef;
+  font-size: 13px;
+}
+.tableRow:last-child {
+  border-bottom: none;
+}
+.tableRowOn .tableName {
+  font-weight: 700;
+}
+.tableName {
+  flex: 1;
+  min-width: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.miniBar {
+  width: 160px;
+  height: 4px;
+  border-radius: 2px;
+  background: #e3e8e5;
+  overflow: hidden;
+}
+.miniBar > i {
+  display: block;
+  height: 100%;
+  background: #2e6f40;
+}
+.miniBar > i.miniBarOn {
+  background: #2f6db5;
+}
+.miniBar > i.miniBarErr {
+  background: #c4432a;
+}
+.tableCount {
+  width: 130px;
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #3a4a3e;
+}
+
+/* ---------- Stopped (D4) ---------- */
+.stopGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 24px;
+  align-items: start;
+}
+.stopLeft,
+.stopRight {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.aiHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.asking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f6faf7;
+  font-size: 13px;
+  color: #2c3a30;
+}
+.qa {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 3px solid #2e6f40;
+  background: #fbfcfb;
+}
+.editBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+}
+.textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+/* ---------- Step 4 ---------- */
+.verifyGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.cmpTable {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.cmpTable th {
+  padding: 10px 12px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  text-align: right;
+}
+.cmpTable th:first-child {
+  text-align: left;
+}
+.cmpTable td {
+  padding: 7px 12px;
+  border-top: 1px solid #eef1ef;
+}
+.cmpTable td:last-child {
+  width: 24px;
+}
+.num {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+}
+.success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 12px;
+  text-align: center;
+}
+.successTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ---------- Spinner ---------- */
+.spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  opacity: 0.8;
+  animation: dbSpin 0.8s linear infinite;
+  box-sizing: border-box;
+}
+@keyframes dbSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Cannot reach the database (E3) ---------- */
+.downOverlay {
+  position: fixed;
+  inset: 0;
+  /* above the start-up splash (index.html, 10000): a board that cannot load its data shows why */
+  z-index: 10001;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f4f6f5;
+  font-family: var(--font-body);
+  color: #1e2a22;
+}
+.downBox {
+  width: 560px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 28px 30px;
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 40px rgba(20, 30, 24, 0.12);
+}
+.downTitle {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+}
+.downError {
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fdf1ee;
+  color: #7a2a1a;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+  .engineCards,
+  .split,
+  .stopGrid,
+  .verifyGrid,
+  .modes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fromTo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .miniBar {
+    display: none;
+  }
+}

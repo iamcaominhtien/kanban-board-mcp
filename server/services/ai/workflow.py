@@ -734,7 +734,9 @@ async def resolve_member(
         p
         for p in (
             await session.exec(
-                select(AiMember).where(AiMember.project_id == project_id)
+                select(AiMember)
+                .where(AiMember.project_id == project_id)
+                .order_by(AiMember.created_at, AiMember.id)
             )
         ).all()
         if ai_plugins.role_of(p) == role and not p.paused

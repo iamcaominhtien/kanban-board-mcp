@@ -145,6 +145,11 @@ async def trim(session: AsyncSession, run: AiRun, at: str) -> None:
     await transcripts.index(session, run, [])
 
 
+# Runs trimmed per transaction: the first sweep of a project with years of runs must not hold the database's write
+# lock (one writer at a time on SQLite) for the whole sweep
+SWEEP_BATCH = 50
+
+
 async def sweep(now: datetime | None = None) -> int:
     """Trim the finished runs past each project's retention (projects with none set are not touched)."""
     removed = 0
@@ -167,5 +172,9 @@ async def sweep(now: datetime | None = None) -> int:
                     continue  # it changed since the plan
                 await trim(session, run, at)
                 removed += 1
+                if removed % SWEEP_BATCH == 0:
+                    await (
+                        session.commit()
+                    )  # other writers get the database between batches
             await session.commit()
     return removed

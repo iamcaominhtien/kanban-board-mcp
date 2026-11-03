@@ -236,6 +236,22 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     keywords: 'dark light color contrast',
   },
   {
+    id: 'database',
+    page: 'storage',
+    section: 'Database',
+    name: 'Database',
+    description: 'Where tickets, projects and docs are stored: SQLite, PostgreSQL or MySQL / MariaDB.',
+    keywords: 'sqlite postgres postgresql mysql mariadb server connection engine sql test',
+  },
+  {
+    id: 'database',
+    page: 'storage',
+    section: 'Database',
+    name: 'Move to another database',
+    description: 'Copy your data to PostgreSQL, MySQL / MariaDB or SQLite, check it, then switch.',
+    keywords: 'migrate migration copy switch postgres mysql mariadb sqlite',
+  },
+  {
     id: 'data-folder',
     page: 'storage',
     section: 'Data folder',

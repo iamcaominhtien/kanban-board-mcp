@@ -336,7 +336,11 @@ async def followers(
 
 async def get_prefs(session: AsyncSession, recipient: str) -> dict[str, Any]:
     """A recipient's settings, with the defaults filled in."""
-    row = await session.get(NotifyPrefs, recipient)
+    return _prefs_of(await session.get(NotifyPrefs, recipient))
+
+
+def _prefs_of(row: NotifyPrefs | None) -> dict[str, Any]:
+    """Settings from a stored row (None: never saved), with the defaults filled in."""
     mine = _loads(row.prefs, {}) if row else {}
     out = json.loads(json.dumps(DEFAULT_PREFS))
     for k, v in mine.items():
@@ -829,11 +833,18 @@ async def emit(
         "actor": ev.actor,
         "at": ev.created_at,
     }
+    # Read what every recipient's row depends on in three queries, not three per recipient: the event's insert holds
+    # the database's write lock until the commit below, and each await while it is held lets other work run first
+    known = await _recipients_state(session, keys, group_key, ev.needs, now)
     for key in keys:
-        await _write_row(
+        prefs, follows, row = known[key]
+        _write_row(
             session,
             key,
             ev,
+            prefs=prefs,
+            follows=follows,
+            row=row,
             item=item,
             data=data,
             group_key=group_key,
@@ -859,21 +870,68 @@ def _keys_to_tell(
     return keys
 
 
-async def _write_row(
+async def _recipients_state(
+    session: AsyncSession, keys: list[str], group_key: str, needs: bool, now: datetime
+) -> dict[str, tuple[dict[str, Any], list[NotifyFollow], Notification | None]]:
+    """For each recipient: their settings, their active follows and mutes, and the open row of this group an event
+    merges into (a Needs you row always, an information row while it is inside the group window)."""
+    if not keys:
+        return {}
+    prefs_rows = {
+        r.recipient: r
+        for r in (
+            await session.exec(
+                select(NotifyPrefs).where(col(NotifyPrefs.recipient).in_(keys))
+            )
+        ).all()
+    }
+    follows: dict[str, list[NotifyFollow]] = {k: [] for k in keys}
+    for f in (
+        await session.exec(
+            select(NotifyFollow).where(col(NotifyFollow.recipient).in_(keys))
+        )
+    ).all():
+        if _active(f, now):
+            follows[f.recipient].append(f)
+    open_rows: dict[str, Notification] = {}
+    for r in (
+        await session.exec(
+            select(Notification)
+            .where(
+                col(Notification.recipient).in_(keys),
+                Notification.group_key == group_key,
+                col(Notification.done_at).is_(None),
+                col(Notification.cleared_at).is_(None),
+            )
+            .order_by(col(Notification.created_at), col(Notification.id))
+        )
+    ).all():
+        if r.recipient in open_rows:
+            continue
+        first = _parse(r.created_at)
+        if needs or (first and now - first <= GROUP_WINDOW):
+            open_rows[r.recipient] = r
+    return {
+        k: (_prefs_of(prefs_rows.get(k)), follows[k], open_rows.get(k)) for k in keys
+    }
+
+
+def _write_row(
     session: AsyncSession,
     key: str,
     ev: NotifyEvent,
     *,
+    prefs: dict[str, Any],
+    follows: list[NotifyFollow],
+    row: Notification | None,
     item: dict,
     data: dict,
     group_key: str,
     now: datetime,
     since: str | None,
 ) -> None:
-    """One recipient's row of an event: merged into their open row of its group, or a new row."""
-    prefs = await get_prefs(session, key)
+    """One recipient's row of an event: merged into `row` (their open row of its group), or a new row."""
     inapp, desktop = event_switch(prefs, ev.kind)
-    follows = await _follows_of(session, key)
     quiet = _quiet_by_follows(
         follows,
         kind=ev.kind,
@@ -881,7 +939,6 @@ async def _write_row(
         ticket_id=ev.ticket_id,
         page_id=ev.page_id,
     )
-    row = await _open_row(session, key, group_key, ev.needs, now)
     if row is not None and ev.kind != "day_card":
         _merge_into(row, ev, item, data, now)
         session.add(row)
@@ -912,28 +969,6 @@ async def _write_row(
             updated_at=ev.created_at,
         )
     )
-
-
-async def _open_row(
-    session: AsyncSession, key: str, group_key: str, needs: bool, now: datetime
-) -> Notification | None:
-    """The recipient's open row an event of this group merges into: a Needs you row always, an information row
-    while it is inside the group window."""
-    open_rows = (
-        await session.exec(
-            select(Notification).where(
-                Notification.recipient == key,
-                Notification.group_key == group_key,
-                col(Notification.done_at).is_(None),
-                col(Notification.cleared_at).is_(None),
-            )
-        )
-    ).all()
-    for r in open_rows:
-        first = _parse(r.created_at)
-        if needs or (first and now - first <= GROUP_WINDOW):
-            return r
-    return None
 
 
 def _merge_into(
