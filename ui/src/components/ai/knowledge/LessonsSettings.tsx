@@ -36,6 +36,18 @@ export function LessonsSettings({ projectId }: { projectId: string }) {
           onChange={(v) => void save({ proposeLessons: v })}
         />
       </SettingRow>
+      <SettingRow
+        title="Let the AIs keep their own notes"
+        hint="What a run learns (its role's notes, and notes on its ticket) reaches the next run at once, without being kept by you first."
+      >
+        <Toggle
+          on={ops.data.aiNotes !== false}
+          label="Let the AIs keep their own notes"
+          testId="ops-ai-notes"
+          disabled={patch.isPending}
+          onChange={(v) => void save({ aiNotes: v })}
+        />
+      </SettingRow>
       <SettingRow title="Lessons in a run's prompt" hint="At most this many kept lessons go into the prompt of a run.">
         <NumberSetting
           value={ops.data.lessonsInPrompt}

@@ -4,6 +4,7 @@ import { extractError } from '../../../api/extractError';
 import type { Knowledge, Lesson } from '../../../types/aiKnowledge';
 import { shortDate } from '../aiUi';
 import { LessonsSettings } from './LessonsSettings';
+import { Flags, NotesPanel } from './NotesPanel';
 
 function Source({ lesson }: { lesson: Lesson }) {
   return lesson.sourceTicketId ? (
@@ -17,6 +18,7 @@ function Source({ lesson }: { lesson: Lesson }) {
 export function proposedByLine(by: string | null): string {
   if (by === 'model') return 'Proposed by a light model reading the run, not by the Dev itself.';
   if (by === 'diagnosis') return 'Proposed by a diagnosis of a run that went wrong.';
+  if (by && by !== 'model') return `Proposed by ${by} while it worked.`;
   return by ? `Proposed by ${by}.` : 'Proposed.';
 }
 
@@ -91,6 +93,11 @@ export function MemoryPanel({ projectId, data }: { projectId: string; data: Know
   return (
     <div data-testid="memory-panel" style={{ display: 'grid', gap: 10 }}>
       <LessonsSettings projectId={projectId} />
+      {proposed.length > 0 && (
+        <div data-testid="proposals-waiting" style={{ fontSize: 13, fontWeight: 700, color: '#8a5a00' }}>
+          {proposed.length} lesson{proposed.length === 1 ? '' : 's'} waiting for you
+        </div>
+      )}
       {proposed.map((l) => (
         <div
           key={l.id}
@@ -184,7 +191,7 @@ export function MemoryPanel({ projectId, data }: { projectId: string; data: Know
         )}
         {kept.length === 0 && !adding && (
           <div className="ai-hint" data-testid="lessons-empty">
-            No lessons yet. When a ticket ends, a light model may propose one; you can also write your own.
+            No lessons yet. An AI proposes one while it works or when a ticket ends; you can also write your own.
           </div>
         )}
         {kept.map((l) => (
@@ -209,6 +216,7 @@ export function MemoryPanel({ projectId, data }: { projectId: string; data: Know
             ) : (
               <div style={{ fontSize: 13 }}>{l.text}</div>
             )}
+            <Flags flags={data.flags.filter((f) => f.id === l.id)} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="ai-hint" style={{ flex: 1 }}>
                 {l.sourceTicketId ? (
@@ -263,6 +271,7 @@ export function MemoryPanel({ projectId, data }: { projectId: string; data: Know
             : ' Past that the board asks you to drop the ones nothing has used, and tells you which they are.'}
         </div>
       </div>
+      <NotesPanel projectId={projectId} data={data} />
     </div>
   );
 }

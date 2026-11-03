@@ -1,3 +1,4 @@
+import type { MemoryUsed } from './aiHistory';
 import type { RestartEntry } from './aiResources';
 import type { MemberAccountRef } from './aiAccounts';
 
@@ -454,6 +455,8 @@ export interface AiRun {
   accountId?: string | null;
   /** When the run history retention removed its details (transcript, steps, prompt, logs); the rest is kept (OPS-7). */
   detailsRemovedAt?: string | null;
+  /** The project memory its prompt carried (issue #274): "used 3 lessons" and which. */
+  memoryUsed?: MemoryUsed | null;
 }
 
 export interface AiApproval {

@@ -258,6 +258,8 @@ def to_dict(run: AiRun, member_name: str | None = None) -> dict:
         "account_id": run.account_id,
         # OPS-7: the run history retention removed its transcript, steps and prompt (the rest is kept)
         "details_removed_at": run.details_removed_at,
+        # the project memory its prompt carried: lessons and notes (issue #274)
+        "memory_used": loads(run.memory_used, None),
     }
 
 
@@ -1835,7 +1837,8 @@ async def _build_prompt_base(
     # The project's instructions and the lessons its AIs learned: every run, before the member's own persona (D18)
     from . import knowledge
 
-    known = await knowledge.prompt_block(session, run.project_id, record_use=True)
+    # and the notes this member's role keeps and the notes on this ticket (issue #274), recorded on the run
+    known = await knowledge.for_run(session, run, profile)
     if known:
         system += f"\n\n{known}"
     if profile.persona.strip():

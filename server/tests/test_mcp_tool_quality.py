@@ -80,6 +80,8 @@ async def test_every_operation_is_reachable_through_a_tool():
         "list_comments",
         "create_child_ticket",
         "update_ticket_status",
+        # knowledge(memory | remember | forget), issue #274
+        "memory_action",
     }
     former = {
         n
@@ -121,7 +123,6 @@ async def test_every_tool_has_annotations_that_match_its_name():
         "list_tickets",
         "get_ticket",
         "docs_read",
-        "knowledge",
         "board_wait",
     }
     for name, tool in (await _tools(_full_mcp())).items():
@@ -139,6 +140,7 @@ async def test_every_tool_has_annotations_that_match_its_name():
             "ticket_branches",
             "docs_write",
             "ai_schedules",
+            "knowledge",  # forget removes a note (issue #274)
         }:  # ai_team acts but never deletes: not destructive
             assert a.destructiveHint is True, name
         else:
@@ -213,11 +215,13 @@ async def test_the_tool_list_stays_compact():
     # 750; Docs for every AI (issue #268): docs_write edit (one section or passage), upload (a file to a page or a
     # ticket), tickets (from a checklist) and assign (a page to an AI member), docs_read get's section and docs_guide,
     # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900;
-    # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150
-    assert default < 52_700, (
+    # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150;
+    # the project memory on `knowledge` (issue #274): memory, remember, forget with text, scope, kind, note_id and
+    # ticket_id, about 810
+    assert default < 53_600, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 55_600, (
+    assert full < 56_500, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

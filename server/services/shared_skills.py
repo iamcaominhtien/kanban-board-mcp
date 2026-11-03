@@ -374,6 +374,57 @@ again once it was answered.
 )
 
 
+KEEPING_MEMORY = (
+    "keeping-memory",
+    "How to keep the project's memory yourself, without being asked: what is worth remembering (a command that must be "
+    "run a certain way, where something is, a trap, a person's correction or preference), where it goes (your role's "
+    "notes, the ticket's notes, a lesson for everyone), and how to keep it short and true. Use whenever you learn "
+    "something the next run would pay for again, and whenever a person corrects you.",
+    r"""# Keeping memory
+
+You start every run with no memory of the last one. What you write down is all the next run (you, or a teammate of
+your role) knows. Nobody will ask you to save it: **noticing that something is worth keeping is part of the job.**
+
+## Where it goes
+| What you learned | Where | Who reads it |
+|---|---|---|
+| How this repository is worked on, for your kind of work: a command and how it must be run, where a thing lives, a trap that cost you attempts | `knowledge(action='remember', scope='role', text=…)` | every run of your role on this project, at once |
+| Something about **this ticket** the next run on it needs: what you tried that failed, a decision taken, where you stopped, what to check first | `scope='ticket'` | every later run on this ticket |
+| A fact **every** AI on the project should follow | `scope='project'` (a lesson: proposed, a person keeps it) | everyone, once kept |
+| A person corrected you, or said how they want it ("do not touch X", "answer in Vietnamese", "always attach a screenshot") | `scope='role'` (or `'project'` if it is for everyone) with `kind='feedback'` | as above, read first |
+
+Your notes and the ticket's are in your prompt (with their ids, `[mem_…]`); `knowledge(action='memory')` reads them all,
+with the project's instructions and lessons.
+
+## When to write (without being asked)
+- **A person corrects you or states a preference**: save it before you carry on. The same correction twice is the
+  worst outcome.
+- **Something cost you more than one attempt** (a command that hangs, a test that needs a flag, a path that moved):
+  save the working way once it works.
+- **You found where something is** after searching for it.
+- **You stop with work left on a ticket**: a ticket note with where you stopped and what is next.
+- **A note in your prompt turned out wrong or out of date**: replace it (`note_id=mem_…` with the new text) or
+  `forget` it. A wrong memory is worse than none.
+
+## How to write one
+- **One fact, one or two sentences, with its reason**, concrete enough to act on:
+  good: "Run the UI tests with `npm test -- --run`: plain `npm test` watches and the run never ends."
+  bad: "Be careful with tests."
+- **Name the exact place**: the file path, the command, the setting. A person may check it; the board flags a note
+  whose file is gone.
+- **Never**: secrets, tokens, personal data; a diary of what you did today (that is the work log); what the ticket or
+  the instructions already say; guesses you did not check.
+- **Keep it small**: each memory is capped. When it is full, replace or forget the least useful note instead of
+  squeezing in another.
+
+## Feedback from a person
+When a comment, an answer or a review sends your work back, read it for the rule behind it, not only the fix. "The
+button should be green" is a fix; "use the project's colour tokens, never hex values" is the rule worth keeping.
+Save the rule with `kind='feedback'`, then do the fix. Say in your report what you saved.
+""",
+)
+
+
 def _tickets() -> tuple[str, str, str]:
     from services import ticket_guide
 
@@ -400,6 +451,8 @@ SKILLS: list[tuple[str, str, str]] = [
     ASKING_AND_WRITING,
     # how the roles work together (issue #273)
     WORKING_TOGETHER,
+    # remembering what was learned and what a person said, without being asked (issue #274)
+    KEEPING_MEMORY,
     BRAINSTORMING,
     END_USER_EYES,
     OFFICE_FILES,
@@ -440,4 +493,7 @@ CORE_RULES = [
     "Never claim without checking: before you say a file, branch or page exists or where it is, look (list the "
     "folder, read the ticket) and name the exact place. Code goes in the worktree, committed; outputs a person "
     "should see in the ticket's Workspace or attached to the ticket.",
+    "Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects "
+    "you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note "
+    "(`keeping-memory`).",
 ]  # then where the detail is, which depends on the member (context._core_rules)

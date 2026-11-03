@@ -10,6 +10,8 @@ export interface ProjectOps {
   diagnoseWithModel: boolean;
   proposeLessons: boolean;
   lessonsInPrompt: number;
+  /** A run keeps its own notes (its role's, and on its ticket) and reads them back (issue #274). */
+  aiNotes?: boolean;
   worktrees?: Record<string, unknown>;
   commands?: { test?: string; lint?: string; build?: string };
   /** Commands saved but not run as checks: names out of test, lint, build. */
