@@ -8,6 +8,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.34.3] - 2026-11-03
+
+From the live AI runs of #269 (scenarios QA → PM and an outside agent on its own).
+
+### Fixed
+- **An AI no longer writes a cause it has not checked into a ticket.** An outside Claude Code, with only the board's MCP, opened a bug ticket saying "`cli.py` calls `int(...)`" right after reading `cli.py` had failed (the file does not exist), and fixed it only in a later work log; the description stayed wrong. "Never claim without checking" covered only where a file, branch or page is. It now covers a cause or a result too (name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise "not checked"), and says to correct a wrong statement where it was written (the description, a criterion), not only in a later note. It is in every run's prompt, the MCP instructions, the ticket guide, and `manage_ticket`'s `description`.
+
+### Changed
+- **The ticket guide says where the change is before Review**: the branch and commit, or "not committed, in <folder>" when the agent was asked not to commit. In the same live run the agent handed the ticket to Review with its change uncommitted, and a second agent in another checkout, finding nothing, concluded the work had not been done.
+- The live runs (QA → PM, an outside agent on its own) are written up in `docs/ui-audit/269/ai-and-workspace.md`, section 6.
+
 ## [3.34.2] - 2026-11-03
 
 Also found by the #274 live check: neither Dev ran the repository's own tests, and their work stayed on `main`, so both tickets went to Review with nothing run.

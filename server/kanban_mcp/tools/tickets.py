@@ -107,7 +107,7 @@ async def manage_ticket(
     description: Annotated[
         str | None,
         Field(
-            description="Markdown: context, steps to reproduce, scope. On update it REPLACES the whole text: read it with get_ticket first if you only want to append."
+            description="Markdown: context, steps to reproduce, scope. Name a file or cause only once you have read it. On update it REPLACES the whole text: read it with get_ticket first if you only want to append."
         ),
     ] = None,
     type: Annotated[
