@@ -146,7 +146,9 @@ async def ai_team(
     ] = None,
     pace: Annotated[
         Literal["normal", "fast"] | None,
-        Field(description="set_pace, start_workflow, ask: fast = quick, about as good."),
+        Field(
+            description="set_pace, start_workflow, ask: fast = quick, about as good."
+        ),
     ] = None,
     decision_id: Annotated[str | None, Field(description="override.")] = None,
     page_id: Annotated[str | None, Field(description="Docs page.")] = None,
