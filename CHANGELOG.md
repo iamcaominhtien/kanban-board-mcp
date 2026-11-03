@@ -14,8 +14,9 @@ Found by the live check of #274 (real Claude Code runs, sonnet): two Devs kept n
 
 ### Fixed
 - **A run hands over what it learned in its report**: `ai_run(action='report', learned=[{text, scope, kind}])`, kept as notes for the next run of its role (or on its ticket), with a person's request as feedback. Every run already calls report; the prompt asks for `learned` there (`[]` if nothing). API-key members' report takes it too.
-- **When a run kept nothing itself, the board keeps it**: once the run ends, a light model reads the run and what people wrote on the ticket and keeps at most 3 notes for the role (a command that works or is refused here, where something is, a person's request), marked "the board, from Dev An's run". Claude Code members on a subscription; off with "Let the AIs keep their own notes".
-- `docs/demo/ai-memory-274/live_check.py`: the live check, to run again.
+- **The board keeps what a run did not**: once a work run ends, a light model reads the run, what people wrote on the ticket and the notes the role already keeps, and adds at most 3 notes for the role (a command that works or is refused here, where something is, a person's request), marked "the board, from Dev An's run". In the live check it kept An's request for Vietnamese, which the run itself had not, and the next Dev, on a ticket with no comment from An, wrote in Vietnamese. Claude Code members on a subscription; off with "Let the AIs keep their own notes".
+- An outside agent was asking before it proposed a lesson: `knowledge` now says a project lesson is only a proposal.
+- `docs/demo/ai-memory-274/live_check.py`: the live check, to run again; three rounds in `docs/ui-audit/274/memory.md`.
 
 ## [3.34.0] - 2026-11-03
 
