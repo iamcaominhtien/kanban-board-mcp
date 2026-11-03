@@ -77,8 +77,8 @@ jobs:
         run: uv run ruff format --check .
 
   # Ten shards side by side. tests/conftest.py (KANBAN_TEST_SHARD) splits whole files by their measured time
-  # (tests/durations.json), so the shards take about as long. ui/ and desktop/ come along for their package.json
-  # (tests/test_version.py).
+  # (tests/durations.json), so the shards take about as long. Some tests read ui/, desktop/ and .claude/ files
+  # (package.json versions, member presets, the canvas-design skill), so those come along.
   backend-tests:
     name: Backend tests (${{ matrix.shard }}/10)
     needs: changes
@@ -99,6 +99,7 @@ jobs:
             server
             ui
             desktop
+            .claude
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -215,12 +216,14 @@ jobs:
           filter: blob:none
           sparse-checkout: |
             desktop
+            ui
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: desktop/package-lock.json
-      # --ignore-scripts: the tests need no Electron binary, so skip its download
+      # --ignore-scripts: the tests need no Electron binary, so skip its download (ui/ is checked out because some
+      # tests read the UI's shortcuts and notification sound)
       - run: npm ci --ignore-scripts
       - name: Tests
         run: npm test
