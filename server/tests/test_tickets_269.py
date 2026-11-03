@@ -240,6 +240,10 @@ async def test_a_runs_outputs_go_to_the_workspace_and_the_work_log_says_where(
     )
     pid, _ = await _project(c)
     await _on(c, pid)
+    r = await c.patch(
+        f"/projects/{pid}/ai/ops", json={"commands": {"test": "python3 -m unittest -v"}}
+    )
+    assert r.status_code == 200
     m = await _runner(c, pid, repo)
     tid = await _ticket(c, pid, "Check the reminders")
     await c.post(
@@ -262,6 +266,8 @@ async def test_a_runs_outputs_go_to_the_workspace_and_the_work_log_says_where(
     system = args[args.index("--append-system-prompt") + 1]
     assert str(ws) in system and "worktree" in system
     assert args[args.index("--add-dir") + 1] == str(ws)
+    # and may run the project's own test command, whatever its allow list names (a live Reviewer could not)
+    assert "Bash(python3 -m unittest -v:*)" in args[args.index("--allowedTools") + 1]
     # the code it left is still in the worktree, for the Dev to commit; the outputs are not
     wt = (await c.get(f"/tickets/{tid}/ai/worktree")).json()
     assert Path(wt["path"], "src/new_helper.py").exists()
@@ -406,3 +412,28 @@ async def test_a_workspace_moves_to_another_ticket_of_the_project(env, tmp_path)
     assert (
         await c.post(f"/tickets/{b}/workspace/move", json={"to_ticket_id": x})
     ).status_code == 400
+
+
+def test_the_projects_own_commands_become_allow_rules():
+    from services.ai import runs
+
+    assert runs.project_command_rules(
+        {
+            "commands": {
+                "test": "python3 -m  unittest -v",
+                "lint": "",
+                "build": "npm run build",
+            }
+        }
+    ) == ["Bash(python3 -m unittest -v:*)", "Bash(npm run build:*)"]
+    assert runs.project_command_rules({"commands": {"test": "echo (x)"}}) == []
+    assert runs.project_command_rules({}) == []
+
+
+def test_the_qa_ticks_the_criteria_its_cases_prove():
+    from services import role_skills
+
+    # live run (LIVE-1): 12 cases passed, the report said "met", and not one criterion was ticked on the ticket
+    assert "action='toggle'" in ticket_guide.ON_TICKET["qa"]
+    assert "a claim in a report ticks nothing" in ticket_guide.GUIDE
+    assert "Tick on the ticket each criterion" in role_skills.guide("qa")

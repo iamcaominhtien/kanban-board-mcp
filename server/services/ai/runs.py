@@ -2465,6 +2465,10 @@ async def _execute_cli_held(
             denied = ["Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"]
         else:
             allowed = list(config.get("allow_rules") or []) + ["mcp__kanban"]
+            # the project's own test, lint and build commands: a Reviewer's allow list named pytest and npm, so on a
+            # project whose tests are `python3 -m unittest` it could not run them and asked the Dev to paste the
+            # output instead, two rounds for nothing (issue #269)
+            allowed += project_command_rules(cfg_ops)
             for server in mcp["mcpServers"]:
                 if server != "kanban":
                     allowed.append(f"mcp__{server}")
@@ -3924,6 +3928,16 @@ async def _end(
     RT.wake.set()
     await _publish(force=True)
     return run
+
+
+def project_command_rules(cfg_ops: dict) -> list[str]:
+    """Claude Code allow rules for the project's own checks (Settings › AI › Commands): ``Bash(<command>:*)``."""
+    out = []
+    for cmd in (cfg_ops.get("commands") or {}).values():
+        cmd = " ".join(str(cmd or "").split())
+        if cmd and "(" not in cmd and ")" not in cmd:
+            out.append(f"Bash({cmd}:*)")
+    return out
 
 
 async def workspace_line(

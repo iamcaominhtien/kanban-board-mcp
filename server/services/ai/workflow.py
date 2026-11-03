@@ -102,7 +102,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Test",
                 "kind": "ai",
                 "role": "qa",
-                "hands_in": "Every test case run, passed or failed, each with its evidence: a screenshot or the command and its output; its screenshots, logs and reports in the ticket's Workspace, none left in the worktree",
+                "hands_in": "Every test case run, passed or failed, each with its evidence: a screenshot or the command and its output; each criterion its passing cases prove ticked on the ticket; its screenshots, logs and reports in the ticket's Workspace, none left in the worktree",
             },
             {
                 "key": "review",

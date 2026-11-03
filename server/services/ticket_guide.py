@@ -27,11 +27,12 @@ ON_TICKET: dict[str, str] = {
     "ba": "acceptance criteria a tester can check (one per condition), a spec page linked with link_doc when design, "
     "build or test work from it, and the open questions in a comment",
     "designer": "the canvas line in the description or a comment, a spec per screen, and a picture of each screen",
-    "dev": "the work log (plan, root cause, what you tried), the branch, the red and then green test run pasted in "
-    "the work log, each criterion ticked with how you checked it, and a note for the reviewer",
+    "dev": "the work log (plan, root cause, what you tried), the red and then green test run pasted in the work "
+    "log, which criterion each part of the change meets, and a note for the reviewer",
     "reviewer": "findings, one per comment (must fix or suggestion, file:line, a concrete case), and the VERDICT line",
-    "qa": "test cases from the criteria, each run with its status and proof (output or screenshot attached), a "
-    "failure as steps anyone can repeat; your outputs in the Workspace, not the worktree",
+    "qa": "test cases from the criteria, each run with its status and proof (output or screenshot attached), each "
+    "criterion ticked once its cases passed (ticket_items item='criterion' action='toggle'), a failure as steps "
+    "anyone can repeat; your outputs in the Workspace, not the worktree",
     "user_tester": "one comment with the person's story, the steps and the screenshots in it, each problem as a "
     "test case or a comment",
     "tech_writer": "the page or file linked on the ticket and a note of which steps you tried",
@@ -120,7 +121,8 @@ requested and all tests are passing."
   it shows in the ticket's Attachments. In a board run, `path` is a path in your working folder; outside one, the
   file's absolute path. The result's `attached.markdown` puts the same file in a proof or the description. A picture
   or a document named that way in a comment, work log, proof or Docs page is attached too.
-- **Tick a criterion** only when you checked it, and say how in the work log or the closing comment.
+- **Tick a criterion** (`ticket_items item='criterion' action='toggle'`) only when it was checked, and say how. In a
+  team the QA ticks them, once the cases that prove each one passed: a claim in a report ticks nothing on the ticket.
 
 ## Where files go
 | What | Where |

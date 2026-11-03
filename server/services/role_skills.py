@@ -327,6 +327,8 @@ Example: "TC-4 failed · late_fee(due=1 May, returned=1 May) returns 5,000 đ, e
 `python3 -m pytest tests/test_fees.py::test_on_due_date -q` → `1 failed` (output below). Blocks criterion 2."
 
 ## Your report
+Tick on the ticket each criterion whose cases all passed (`ticket_items item='criterion' action='toggle'`; read
+`done` first, a toggle flips it): a criterion "met" only in your report stays unticked for the person.
 A table: case, criterion, result, proof. Then: criteria met (only those whose cases passed), failures, what was not
 tested and why. A criterion with no passing case is not met, whatever the hand-over note says.
 """,
