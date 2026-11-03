@@ -8,6 +8,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.34.2] - 2026-11-03
+
+Also found by the #274 live check: neither Dev ran the repository's own tests, and their work stayed on `main`, so both tickets went to Review with nothing run.
+
+### Fixed
+- **A run is told the project's own checks by name** (Settings › AI › Commands): "This project's own checks, allowed in every run: tests `./test.sh`…". They were already allowed, but the prompt only said "the project's test command", so a live Dev ran `python3 -m unittest` (refused) and never `./test.sh`.
+- **`python -m unittest` and `python3 -m unittest` are allowed** wherever pytest is (a Dev's, QA's and Reviewer's tests, and the default allow list).
+- **A run that commits, without a worktree, can reach the ticket's branch**: `git switch` and `git checkout -b` are allowed (`git switch -f`, `--force` and `--discard-changes` are not), and the prompt says how. A live Dev's `git checkout <branch>` was refused and its work stayed uncommitted on `main`. Plain `git checkout` stays refused: it also throws away changes. The prompt says to make the branch from the base, not from another ticket's branch (a live Dev branched SHOP-2 off SHOP-1, where the checkout stood).
+- **An outside agent proposes a lesson without asking first**: `knowledge(action='memory')` now says, where the agent decides, that a project lesson is only a proposal a person keeps or drops. Live: sonnet proposed two lessons on its own (it asked before, three times out of three), and so did haiku in the last round.
+- Checked live (sonnet): Dev An ran `./test.sh`, met its watch mode, ran `./test.sh --once`, kept that in its notes and committed on its branch; Dev Binh, given the note on another ticket, ran `./test.sh --once` the first time.
+
 ## [3.34.1] - 2026-11-03
 
 Found by the live check of #274 (real Claude Code runs, sonnet): two Devs kept no memory at all, though the rule was in their prompt and the `keeping-memory` skill was there. Dev An wrote in Vietnamese as a person asked in a comment, and had `python3 -m unittest` and `git checkout` refused, and kept none of it; Dev Binh, the next Dev, wrote in English and ran the same refused commands.

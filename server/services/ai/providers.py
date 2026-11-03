@@ -287,6 +287,8 @@ DEFAULT_CONFIG: dict = {
         "Bash(git log:*)",
         "Bash(python -m pytest:*)",
         "Bash(python3 -m pytest:*)",
+        "Bash(python -m unittest:*)",
+        "Bash(python3 -m unittest:*)",
         "Bash(pytest:*)",
         "Bash(npm test:*)",
         "Bash(npm run test:*)",
