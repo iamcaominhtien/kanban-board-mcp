@@ -3,7 +3,7 @@
 import json
 from datetime import UTC, datetime
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -49,15 +49,16 @@ async def get_settings(session: AsyncSession, project_id: str) -> AiProjectSetti
     """The project's AI settings, created with defaults on first use."""
     settings = await session.get(AiProjectSettings, project_id)
     if settings is None:
-        settings = AiProjectSettings(project_id=project_id)
-        session.add(settings)
-        try:
-            await session.commit()
-        except IntegrityError:
-            # Two first requests raced to create it: use the row the other one wrote
-            await session.rollback()
-            return await session.get(AiProjectSettings, project_id)
-        await session.refresh(settings)
+        # INSERT OR IGNORE, so two first requests that race both end with the row the first one wrote. A commit that
+        # fails would need a rollback, and a rollback expires everything the caller's session had loaded: reading any
+        # of it afterwards is lazy IO outside the async context (MissingGreenlet), a 500 on the page that asked
+        await session.exec(
+            sqlite_insert(AiProjectSettings)
+            .values(project_id=project_id)
+            .on_conflict_do_nothing()
+        )
+        await session.commit()
+        settings = await session.get(AiProjectSettings, project_id)
     return settings
 
 
