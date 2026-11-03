@@ -1,10 +1,10 @@
 const { app, ipcMain, net, shell } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const { spawn } = require('child_process');
-const { Readable } = require('stream');
-const { pipeline } = require('stream/promises');
+const path = require('node:path');
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const { spawn } = require('node:child_process');
+const { Readable } = require('node:stream');
+const { pipeline } = require('node:stream/promises');
 const { LATEST_RELEASE_URL, RELEASES_PAGE_URL, buildUpdateInfo, isTrustedDownloadUrl } = require('./updater-helpers');
 
 const CHECK_DELAY_MS = 15 * 1000;

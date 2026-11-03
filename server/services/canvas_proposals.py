@@ -426,7 +426,7 @@ def parse_reply(text: str) -> tuple[dict[str, dict[str, str]], str]:
     """The files in a model reply per frame, and its NOTE line."""
     files: dict[str, dict[str, str]] = {}
     for bid, path, body in _BLOCK.findall(text or ""):
-        body = re.sub(r"^```[a-z]*\n|\n```$", "", body.strip("\n"))
+        body = re.sub(r"(?:^```[a-z]*\n)|(?:\n```$)", "", body.strip("\n"))
         files.setdefault(bid, {})[path] = body
     m = re.search(r"^NOTE:\s*(.+)$", text or "", re.M)
     return files, (m.group(1).strip() if m else "")

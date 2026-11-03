@@ -471,6 +471,36 @@ async def test_when_a_run_kept_nothing_a_light_model_keeps_notes_for_its_role(
     assert await memory.extract_from_run(run_id) == []
 
 
+@pytest.mark.memory_extraction
+async def test_a_run_that_ends_starts_the_light_model_in_the_background(
+    env, monkeypatch
+):
+    """The wiring the other tests leave out (conftest turns it off for every unmarked test): a run's end calls the
+    extraction for that run."""
+    import asyncio
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    dev = await _dev(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    seen: list[str] = []
+
+    async def fake_extract(run_id):
+        seen.append(run_id)
+        return []
+
+    monkeypatch.setattr(memory, "extract_from_run", fake_extract)
+    await c.post(
+        f"/tickets/{tid}/ai/assign", json={"member_id": dev["id"], "start": "now"}
+    )
+    run = await _wait(c, tid, ("finished", "failed"))
+    for _ in range(50):
+        if seen:
+            break
+        await asyncio.sleep(0.05)
+    assert seen == [run["id"]]
+
+
 async def test_the_light_model_adds_what_a_run_missed_and_sees_what_it_kept(
     env, monkeypatch
 ):

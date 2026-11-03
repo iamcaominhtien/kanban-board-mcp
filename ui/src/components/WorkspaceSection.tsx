@@ -315,7 +315,7 @@ export function WorkspaceSection({ ticketId, readOnly = false, ideaRetention }: 
                 if (ideaRetention) ideaRetention.onChange(v as IdeaRetentionControl['value']);
                 else
                   setRetention.mutate(
-                    { ticketId, retentionDays: v === 'inherit' ? null : parseInt(v, 10) },
+                    { ticketId, retentionDays: v === 'inherit' ? null : Number.parseInt(v, 10) },
                     { onError: fail },
                   );
               }}

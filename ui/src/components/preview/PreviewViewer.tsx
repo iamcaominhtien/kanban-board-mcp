@@ -201,10 +201,13 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
   }
 
   function copyLink() {
-    navigator.clipboard.writeText(item.src).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    });
+    navigator.clipboard
+      .writeText(item.src)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      })
+      .catch(() => undefined);
   }
 
   function toggleFullscreen() {

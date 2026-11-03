@@ -39,9 +39,10 @@ async def get(session, project_id: str) -> AiProjectKnowledge:
     """The project's knowledge row, created on first use."""
     row = await session.get(AiProjectKnowledge, project_id)
     if row is None:
-        row = AiProjectKnowledge(project_id=project_id)
-        session.add(row)
-        await session.flush()
+        await database.insert_missing(
+            session, AiProjectKnowledge, project_id=project_id
+        )
+        row = await session.get(AiProjectKnowledge, project_id)
     return row
 
 

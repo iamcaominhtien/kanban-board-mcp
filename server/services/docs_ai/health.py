@@ -16,6 +16,7 @@ from rapidfuzz import fuzz
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import database
 from models import DocsAiCheck, DocsAiHealth, DocsLink, DocsPage, Ticket
 from services import docs as svc_docs
 from services.ai.store import loads, now_iso, parse_iso
@@ -44,10 +45,9 @@ async def row_of(session: AsyncSession, project_id: str) -> DocsAiHealth:
     """The project's health row, created on first use."""
     row = await session.get(DocsAiHealth, project_id)
     if row is None:
-        row = DocsAiHealth(project_id=project_id)
-        session.add(row)
+        await database.insert_missing(session, DocsAiHealth, project_id=project_id)
         await session.commit()
-        await session.refresh(row)
+        row = await session.get(DocsAiHealth, project_id)
     return row
 
 

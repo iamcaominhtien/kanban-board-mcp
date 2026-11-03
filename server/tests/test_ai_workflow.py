@@ -176,10 +176,17 @@ async def test_without_a_coordinator_a_person_rules_and_the_reviewer_wins(
     await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
     view = await _until(c, tid, lambda v: v["state"] == "stopped")
     assert view["stop_reason"] == "no_progress"
-    panel = (
-        await c.get("/notifications", params={"view": "panel", "tab": "needs"})
-    ).json()
-    row = next(i for i in panel["items"] if i["kind"] == "arbitration")
+    # the notification is written by a background task a moment after the workflow stops: wait for it
+    row = None
+    for _ in range(100):
+        panel = (
+            await c.get("/notifications", params={"view": "panel", "tab": "needs"})
+        ).json()
+        row = next((i for i in panel["items"] if i["kind"] == "arbitration"), None)
+        if row:
+            break
+        await asyncio.sleep(0.1)
+    assert row, panel
     assert [a["id"] for a in row["actions"]][:3] == [
         "arbitration:reviewer",
         "arbitration:dev",

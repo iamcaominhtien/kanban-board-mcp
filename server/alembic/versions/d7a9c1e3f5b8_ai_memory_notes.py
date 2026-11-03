@@ -8,15 +8,15 @@ Create Date: 2026-11-03 10:00:00.000000
 
 """
 
-from typing import Sequence, Union
+from typing import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "d7a9c1e3f5b8"
-down_revision: Union[str, Sequence[str], None] = "d8a0c2e4f6b8"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "d8a0c2e4f6b8"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

@@ -6,16 +6,16 @@ Create Date: 2026-10-28 00:00:00.000000
 
 """
 
-from typing import Sequence, Union
+from typing import Sequence
 
 import sqlalchemy as sa
 import sqlmodel
 from alembic import op
 
 revision: str = "a9b8c7d6e5f4"
-down_revision: Union[str, Sequence[str], None] = "f3a4b5c6d7e8"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "f3a4b5c6d7e8"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 _S = sqlmodel.sql.sqltypes.AutoString
 

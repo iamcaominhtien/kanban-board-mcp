@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 
 # Fake keys in tests write one character as an escape (`sk-ant\x2d…`) so secret scanners do not take them for real ones.
@@ -39,17 +40,30 @@ os.environ.setdefault(
 )
 
 
+# Running every migration takes about 4 s. The first process does it and keeps a copy whose path it leaves in this
+# variable; pytest-xdist's workers inherit it and copy the file instead (CI names the shard's files on the command
+# line, so the controller loads this conftest before it starts the workers).
+_MIGRATED_ENV = "KANBAN_TEST_MIGRATED_DB"
+
+
 def _migrate_default_db() -> None:
+    target = os.environ["KANBAN_DB_PATH"]
+    ready = os.environ.get(_MIGRATED_ENV, "")
+    if ready and os.path.isfile(ready):
+        shutil.copyfile(ready, target)
+        return
+
     from alembic import command
     from alembic.config import Config
 
     cfg = Config(
         os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
     )
-    cfg.set_main_option(
-        "sqlalchemy.url", f"sqlite+aiosqlite:///{os.environ['KANBAN_DB_PATH']}"
-    )
+    cfg.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{target}")
     command.upgrade(cfg, "head")
+    copy = os.path.join(tempfile.mkdtemp(prefix="kanban-test-migrated-"), "kanban.db")
+    shutil.copyfile(target, copy)
+    os.environ[_MIGRATED_ENV] = copy
 
 
 _migrate_default_db()
@@ -86,6 +100,25 @@ def _feed_needs_you_is_fresh(monkeypatch):
     from services.ai import live_feed
 
     monkeypatch.setattr(live_feed, "NEEDS_TTL_S", 0)
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "memory_extraction: let a run's end start the light model that keeps notes (services/ai/memory.after_run)",
+    )
+
+
+@pytest.fixture(autouse=True)
+def _no_notes_kept_after_runs(request, monkeypatch):
+    """When a run ends, the board starts a light model in the background to keep notes from it: with the fake CLI
+    that is one more Python process per run, half of what the run tests spent. Only a test marked
+    `memory_extraction` gets it; the extraction itself is tested by calling it (tests/test_ai_memory.py)."""
+    if request.node.get_closest_marker("memory_extraction"):
+        return
+    from services.ai import memory
+
+    monkeypatch.setattr(memory, "after_run", lambda run_id: None)
 
 
 @pytest.fixture(autouse=True)
@@ -138,28 +171,6 @@ async def _notification_queues_are_per_test():
         await asyncio.gather(*notifications._background, return_exceptions=True)
     notifications._pending.clear()
     notifications._later.clear()
-
-
-def pytest_collection_modifyitems(config, items):
-    """KANBAN_TEST_SHARD=K/N keeps only shard K of N (CI runs the shards side by side). Whole files go to one shard,
-    the largest first onto the lightest shard, so the shards come out even and every worker picks the same set."""
-    shard = os.environ.get("KANBAN_TEST_SHARD", "").strip()
-    if not shard:
-        return
-    k, n = (int(x) for x in shard.split("/"))
-    files: dict[str, list] = {}
-    for item in items:
-        files.setdefault(item.nodeid.split("::", 1)[0], []).append(item)
-    load = [0] * n
-    keep: set[str] = set()
-    for path, its in sorted(files.items(), key=lambda kv: (-len(kv[1]), kv[0])):
-        i = load.index(min(load))
-        load[i] += len(its)
-        if i == k - 1:
-            keep.add(path)
-    chosen = [it for it in items if it.nodeid.split("::", 1)[0] in keep]
-    config.hook.pytest_deselected(items=[it for it in items if it not in chosen])
-    items[:] = chosen
 
 
 @pytest.fixture(autouse=True)

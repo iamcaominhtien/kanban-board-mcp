@@ -445,7 +445,7 @@ export function ImportDialog({
     let skipped = 0;
     const set = (path: string, s: RowState) => mounted.current && setRowState((r) => ({ ...r, [path]: s }));
 
-    (async () => {
+    void (async () => {
       let serverDown: string | null = null;
       for (let i = 0; i < items.length; i++) {
         if (cancelled || serverDown) {

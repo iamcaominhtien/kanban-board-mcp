@@ -514,7 +514,7 @@ export function AskPanel({
           onSubmit={(e) => {
             e.preventDefault();
             if (!q.trim()) return;
-            send(q.trim());
+            void send(q.trim());
             setQ('');
           }}
         >

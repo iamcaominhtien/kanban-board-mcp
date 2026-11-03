@@ -177,7 +177,7 @@ describe('HistoryTab', () => {
     setup();
     await screen.findByText(/Nothing has run yet/);
     fireEvent.click(screen.getByRole('button', { name: /^Failed/ }));
-    await screen.findByText('No run matches these filters.');
+    expect(await screen.findByText('No run matches these filters.')).toBeTruthy();
   });
 
   it('searches after a pause in typing and counts matches against all runs', async () => {
@@ -204,7 +204,7 @@ describe('HistoryTab', () => {
       await vi.advanceTimersByTimeAsync(350);
     });
     vi.useRealTimers();
-    await screen.findByText('No run matches “zzz”.');
+    expect(await screen.findByText('No run matches “zzz”.')).toBeTruthy();
   });
 
   it('pages through a long list', async () => {

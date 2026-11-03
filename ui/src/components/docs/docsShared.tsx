@@ -48,7 +48,7 @@ export function Avatar({ name, size = 18 }: { name: string; size?: number }) {
         borderRadius: '50%',
         background: c.bg,
         color: c.fg,
-        fontSize: size >= 22 ? 11 : 11,
+        fontSize: 11,
         fontWeight: 700,
         display: 'inline-flex',
         alignItems: 'center',

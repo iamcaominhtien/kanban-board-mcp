@@ -1,6 +1,6 @@
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
 
 /**
  * Returns the path to VS Code's user-level mcp.json, or null if VS Code is not installed.

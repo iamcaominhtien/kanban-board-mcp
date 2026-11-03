@@ -489,7 +489,9 @@ elif (
     and "every ticket of Story" not in prompt_text
 ):
     # the PM asked the person a question while planning; resumed with the answer, it ends with its plan
-    final_text = "Planned it with your answer.\n" + os.environ.get("FAKE_CLAUDE_PLAN", "")
+    final_text = "Planned it with your answer.\n" + os.environ.get(
+        "FAKE_CLAUDE_PLAN", ""
+    )
 elif "you own Story" in prompt_text:
     # the PM plans a Story: the test creates the children while it "works", then lets it end (FAKE_CLAUDE_PLAN_GATE)
     gate = os.environ.get("FAKE_CLAUDE_PLAN_GATE")

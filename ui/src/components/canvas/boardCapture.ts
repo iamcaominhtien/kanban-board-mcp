@@ -354,7 +354,7 @@ export function ditherToPalette(
     const x = px % width;
     const y = (px - x) / width;
     const t = (BAYER[(y & 7) * 8 + (x & 7)] / 64 - 0.5) * DITHER_STRENGTH;
-    out[px] = lookup(clamp(r + t) | 0, clamp(g + t) | 0, clamp(b + t) | 0);
+    out[px] = lookup(Math.trunc(clamp(r + t)), Math.trunc(clamp(g + t)), Math.trunc(clamp(b + t)));
   }
   return out;
 }

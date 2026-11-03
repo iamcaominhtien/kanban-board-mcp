@@ -9,10 +9,10 @@ switch: when it is off, Docs AI is off everywhere.
 import json
 from typing import Any
 
-from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import database
 from models import AiMember, DocsAiSettings, DocsPage, Member, Project
 from services.ai.assist import settings as assist
 from services.ai.store import loads, now_iso
@@ -29,15 +29,12 @@ async def get(session: AsyncSession, project_id: str) -> DocsAiSettings:
     made, switched off), so its row is created on first use with Docs AI on, as it always was."""
     row = await session.get(DocsAiSettings, project_id)
     if row is None:
-        row = DocsAiSettings(project_id=project_id, enabled=True)
-        session.add(row)
-        try:
-            await session.commit()
-        except IntegrityError:
-            # two runs that start together raced to create it: use the row the other one wrote
-            await session.rollback()
-            return await session.get(DocsAiSettings, project_id)
-        await session.refresh(row)
+        # two runs that start together both get here: the second insert does nothing
+        await database.insert_missing(
+            session, DocsAiSettings, project_id=project_id, enabled=True
+        )
+        await session.commit()
+        row = await session.get(DocsAiSettings, project_id)
     return row
 
 
