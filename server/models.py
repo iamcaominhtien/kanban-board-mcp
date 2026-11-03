@@ -139,6 +139,9 @@ class Ticket(SQLModel, table=True):
     tests_assumption_id: Optional[str] = Field(default=None, index=True)
     # A sub-ticket's execution wave pinned by hand (TDP-1); None: computed from Blocked by (services/ticket_waves.py)
     wave_pin: Optional[int] = Field(default=None)
+    # The member (a person or an AI) whose review the ticket waits for in Review: the card shows "Review requested —
+    # Name" (MainBoard, Review column; issue #269). Set by hand, or by the board from the workflow's reviewer
+    review_requested_from: Optional[str] = Field(default=None)
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -2548,6 +2551,8 @@ class TicketUpdate(SQLModel):
     repo_path: Optional[str] = None  # empty/null clears the ticket override
     # a sub-ticket's wave pinned by hand; null: computed from Blocked by again (TDP-1)
     wave_pin: Optional[int] = None
+    # who the review is asked of (member id); null clears it
+    review_requested_from: Optional[str] = None
 
 
 class TicketRead(SQLModel):
@@ -2602,6 +2607,7 @@ class TicketRead(SQLModel):
     wave_pin: Optional[int] = (
         None  # TDP-1: None means the wave is computed from Blocked by
     )
+    review_requested_from: Optional[str] = None
     # When / by whom a Done or Won't Do ticket was closed (derived from the activity log)
     completed_at: Optional[str] = None
     completed_by: Optional[str] = None
@@ -2661,6 +2667,7 @@ class TicketRead(SQLModel):
             from_idea_id=getattr(ticket, "from_idea_id", None),
             tests_assumption_id=getattr(ticket, "tests_assumption_id", None),
             wave_pin=getattr(ticket, "wave_pin", None),
+            review_requested_from=getattr(ticket, "review_requested_from", None),
             **_completion_of(ticket),
             created_at=ticket.created_at,
             updated_at=ticket.updated_at,

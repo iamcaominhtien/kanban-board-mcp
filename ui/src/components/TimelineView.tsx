@@ -197,10 +197,10 @@ const isEmptyValue = (v: string | undefined) => {
 function eventLine(type: string, detail: string | null | undefined, members: Member[]): [string, string | null] {
   const field = type.startsWith('changed:') ? type.replace('changed:', '') : '';
   const parts = detail ? detail.split(' → ') : [];
-  if (field === 'assignee' && parts.length === 2) {
-    const name = (v: string) =>
-      isEmptyValue(v) ? 'unassigned' : (members.find((m) => m.id === v.trim())?.name ?? v.trim());
-    return ['Changed assignee', `${name(parts[0])} → ${name(parts[1])}`];
+  if ((field === 'assignee' || field === 'review_requested_from') && parts.length === 2) {
+    const empty = field === 'assignee' ? 'unassigned' : 'nobody';
+    const name = (v: string) => (isEmptyValue(v) ? empty : (members.find((m) => m.id === v.trim())?.name ?? v.trim()));
+    return [field === 'assignee' ? 'Changed assignee' : 'Asked for a review', `${name(parts[0])} → ${name(parts[1])}`];
   }
   const item = ITEM_FIELDS[field];
   if (item && parts.length === 2 && isEmptyValue(parts[0]) !== isEmptyValue(parts[1])) {

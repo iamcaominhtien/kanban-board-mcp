@@ -199,7 +199,8 @@ export function MenuSelect<T extends string>({
         <span id={valueId} className={styles.value}>
           {current ? current.label : <span className={styles.placeholder}>{placeholder}</span>}
         </span>
-        <LineIcon name="chevronDown" size={14} color="#5B6B60" style={{ marginLeft: 'auto' }} />
+        {/* the 9px chevron of the design dropdowns (NewTicket assignee trigger) */}
+        <LineIcon name="chevronDown" size={9} strokeWidth={2.4} color="#9AA8A0" style={{ marginLeft: 'auto' }} />
       </button>
       {open &&
         createPortal(

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { Fragment, useState, useRef, useEffect } from 'react';
 import type { Member, TestCase, TestCaseStatus, TestCaseFileData } from '../types';
 import { MemberAvatar } from './MemberAvatar';
 import { uploadAttachment, uploadUrl, uploadAnyFile } from '../api/tickets';
@@ -71,6 +71,160 @@ function getInitials(name?: string | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+type FileField = 'testDataFiles' | 'expectedFiles' | 'notesFiles';
+
+/** The row's footer as the design writes it: "Started 4m ago by Ha My · Last edited 1m ago", "Failed 3h ago by Ha My". */
+export function footerParts(tc: TestCase): string[] {
+  const by = (who?: string | null) => (who && who !== 'user' ? ` by ${who}` : '');
+  const out: string[] = [];
+  if ((tc.status === 'pass' || tc.status === 'fail') && tc.statusAt) {
+    out.push(`${tc.status === 'pass' ? 'Passed' : 'Failed'} ${formatTimeAgo(tc.statusAt)}${by(tc.statusBy)}`);
+  } else if (tc.startedAt) {
+    out.push(`Started ${formatTimeAgo(tc.startedAt)}${by(tc.startedBy)}`);
+  }
+  if (tc.updatedAt) out.push(`Last edited ${formatTimeAgo(tc.updatedAt)}`);
+  return out;
+}
+
+/** File chips with "Attach file" under a field of a test case (Expected result, Test data, Notes). */
+function FieldFiles({
+  files,
+  readOnly,
+  testId,
+  onChange,
+}: {
+  files: TestCaseFileData[];
+  readOnly?: boolean;
+  testId: string;
+  onChange: (files: TestCaseFileData[]) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  async function attach(list: FileList | null) {
+    if (!list?.length) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const uploaded: TestCaseFileData[] = [];
+      for (const file of Array.from(list)) uploaded.push(await uploadAttachment(file));
+      onChange([...files, ...uploaded]);
+    } catch (err) {
+      setError(extractError(err));
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
+  if (readOnly && files.length === 0) return null;
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {files.map((rawFile, i) => {
+          const file: TestCaseFileData =
+            typeof rawFile === 'string'
+              ? {
+                  id: `legacy-${i}`,
+                  name: (rawFile as string).split('/').pop() || (rawFile as string),
+                  url: rawFile as string,
+                  size: undefined,
+                }
+              : rawFile;
+          const href = file?.url ? uploadUrl(file.url, file.name) : '';
+          const chip = (
+            <>
+              <div className={styles.fileIcon} style={{ background: '#F1F8F3' }}>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#2E6F40"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z" />
+                  <path d="M14 3V8H19" />
+                </svg>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#1E2A22' }}>{file?.name || 'file'}</span>
+                <span style={{ fontSize: 10, color: '#9AA8A0' }}>
+                  {file?.size ? formatFileSize(file.size) : 'file'}
+                </span>
+              </div>
+            </>
+          );
+          return (
+            <div key={file?.id || i} className={styles.fileChip}>
+              {href ? (
+                <a
+                  href={href}
+                  download={file?.name}
+                  title={`Download ${file?.name}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+                >
+                  {chip}
+                </a>
+              ) : (
+                chip
+              )}
+              {!readOnly && (
+                <button
+                  type="button"
+                  className={styles.fileRemoveBtn}
+                  aria-label={`Remove ${file?.name || 'file'}`}
+                  onClick={() => onChange(files.filter((f) => f !== rawFile))}
+                >
+                  <LineIcon name="close" size={12} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+        {!readOnly && (
+          <>
+            <button
+              type="button"
+              className={styles.fileAddBtn}
+              onClick={() => inputRef.current?.click()}
+              disabled={busy}
+            >
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              >
+                <path d="M12 5V19" />
+                <path d="M5 12H19" />
+              </svg>
+              {busy ? 'Uploading…' : 'Attach file'}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              multiple
+              hidden
+              data-testid={testId}
+              onChange={(e) => attach(e.target.files)}
+            />
+          </>
+        )}
+      </div>
+      {error && (
+        <span style={{ fontSize: 11.5, color: '#A93226' }} role="alert">
+          {error}
+        </span>
+      )}
+    </>
+  );
+}
+
 function TestCaseRowItem({
   tc,
   index,
@@ -107,29 +261,9 @@ function TestCaseRowItem({
     ? { surface: 'test_case' as const, projectId: aiProjectId, ticketId: askTicketId }
     : undefined;
 
-  const [fileBusy, setFileBusy] = useState(false);
-  const [fileError, setFileError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  async function attachFiles(files: FileList | null) {
-    if (!files?.length) return;
-    setFileBusy(true);
-    setFileError(null);
-    try {
-      const uploaded: TestCaseFileData[] = [];
-      for (const file of Array.from(files)) uploaded.push(await uploadAttachment(file));
-      onUpdate({
-        ...tc,
-        testDataFiles: [...(tc.testDataFiles || []), ...uploaded],
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      setFileError(extractError(err));
-    } finally {
-      setFileBusy(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  }
+  // files beside a field (Expected result, Test data, Notes), each list stored on the case (TestCases design)
+  const setFiles = (key: FileField, files: TestCaseFileData[]) =>
+    onUpdate({ ...tc, [key]: files, updatedAt: new Date().toISOString() });
   const codeDisplay = tc.code || `TC-${index + 1}`;
   const assigneeMember = tc.assignee
     ? members.find((m) => m.id === tc.assignee || m.name.toLowerCase() === tc.assignee!.toLowerCase())
@@ -367,6 +501,12 @@ function TestCaseRowItem({
               onUploadFile={uploadAnyFile}
               onUploadImage={uploadAnyFile}
             />
+            <FieldFiles
+              files={tc.expectedFiles ?? []}
+              readOnly={readOnly}
+              testId="tc-attach-expected"
+              onChange={(f) => setFiles('expectedFiles', f)}
+            />
           </div>
 
           {/* Result and proof */}
@@ -387,114 +527,12 @@ function TestCaseRowItem({
           {/* Test Data */}
           <div className={styles.fieldGroup}>
             <span className={styles.fieldLabel}>Test data</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {(tc.testDataFiles ?? []).map((rawFile, i) => {
-                const file: TestCaseFileData =
-                  typeof rawFile === 'string'
-                    ? {
-                        id: `legacy-${i}`,
-                        name: (rawFile as string).split('/').pop() || (rawFile as string),
-                        url: rawFile as string,
-                        size: undefined,
-                      }
-                    : rawFile;
-                const href = file?.url ? uploadUrl(file.url, file.name) : '';
-                const chip = (
-                  <>
-                    <div className={styles.fileIcon} style={{ background: '#F1F8F3' }}>
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#2E6F40"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M14 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V8L14 3Z" />
-                        <path d="M14 3V8H19" />
-                      </svg>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#1E2A22' }}>{file?.name || 'file'}</span>
-                      <span style={{ fontSize: 10, color: '#9AA8A0' }}>
-                        {file?.size ? formatFileSize(file.size) : 'file'}
-                      </span>
-                    </div>
-                  </>
-                );
-                return (
-                  <div key={file?.id || i} className={styles.fileChip}>
-                    {href ? (
-                      <a
-                        href={href}
-                        download={file?.name}
-                        title={`Download ${file?.name}`}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
-                      >
-                        {chip}
-                      </a>
-                    ) : (
-                      chip
-                    )}
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        className={styles.fileRemoveBtn}
-                        aria-label={`Remove ${file?.name || 'file'}`}
-                        onClick={() =>
-                          onUpdate({
-                            ...tc,
-                            testDataFiles: (tc.testDataFiles ?? []).filter((f) => f !== rawFile),
-                            updatedAt: new Date().toISOString(),
-                          })
-                        }
-                      >
-                        <LineIcon name="close" size={12} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              {!readOnly && (
-                <>
-                  <button
-                    type="button"
-                    className={styles.fileAddBtn}
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={fileBusy}
-                  >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                    >
-                      <path d="M12 5V19" />
-                      <path d="M5 12H19" />
-                    </svg>
-                    {fileBusy ? 'Uploading…' : 'Attach file'}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    hidden
-                    data-testid="tc-attach-input"
-                    onChange={(e) => attachFiles(e.target.files)}
-                  />
-                </>
-              )}
-            </div>
-            {fileError && (
-              <span style={{ fontSize: 11.5, color: '#A93226' }} role="alert">
-                {fileError}
-              </span>
-            )}
+            <FieldFiles
+              files={tc.testDataFiles ?? []}
+              readOnly={readOnly}
+              testId="tc-attach-input"
+              onChange={(f) => setFiles('testDataFiles', f)}
+            />
           </div>
 
           {/* Notes */}
@@ -511,6 +549,12 @@ function TestCaseRowItem({
               onUploadFile={uploadAnyFile}
               onUploadImage={uploadAnyFile}
             />
+            <FieldFiles
+              files={tc.notesFiles ?? []}
+              readOnly={readOnly}
+              testId="tc-attach-notes"
+              onChange={(f) => setFiles('notesFiles', f)}
+            />
             {askTicketId && !readOnly && (
               <TestCaseMention ticketId={askTicketId} code={tc.code} notes={tc.notes || tc.note || ''} />
             )}
@@ -518,9 +562,12 @@ function TestCaseRowItem({
 
           {/* Footer Info */}
           <div className={styles.detailsFooter}>
-            {tc.startedAt && <span>Started {formatTimeAgo(tc.startedAt)}</span>}
-            {tc.startedAt && tc.updatedAt && <span>·</span>}
-            {tc.updatedAt && <span>Last edited {formatTimeAgo(tc.updatedAt)}</span>}
+            {footerParts(tc).map((part, i) => (
+              <Fragment key={part}>
+                {i > 0 && <span>·</span>}
+                <span>{part}</span>
+              </Fragment>
+            ))}
           </div>
         </div>
       )}

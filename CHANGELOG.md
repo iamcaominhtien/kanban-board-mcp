@@ -8,12 +8,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
-## [3.32.1] - 2026-11-03
+## [3.33.1] - 2026-11-03
 
 Found by the live check of #268 (real Claude Code runs, sonnet and haiku): a BA writes a spec on a Docs page, the Dev on the ticket reads it and builds from it.
 
 ### Fixed
 - **An AI member wrote its Docs page at the top of the tree.** A BA (sonnet) asked to "write the spec as a Docs page" wrote a good page, but never opened the `docs-pages` skill: a run's prompt named its role's skill and the shared ones, not the Docs guide, so the page did not go under Requirements as the guide says. Every run is now told to open `docs-pages` (outside Claude Code: `docs_read(action='docs_guide')`) before it creates or changes a page, unless a project switched the skill off, and the BA's skill says where a spec page goes. Run again: the BA opened the guide, searched and listed the tree, read the existing spec and put the new page under Requirements.
+## [3.33.0] - 2026-11-03
+
+The ticket design rows #269 had left open: the ones in shared parts of the screen, and the ones that needed data from the server.
+
+### Added
+- **"Review requested — Name" on a Review card** (Main Board), with the member's avatar. A ticket says whose review it waits for: "Review by" in its sidebar (shown in Review, or once set), `review_requested_from` over the API and `manage_ticket(update)` over MCP. When a ticket enters Review with nobody asked, the board asks the AI its workflow (or odd job) names as reviewer; a person's choice is never replaced. Activity reads "Review by Nobody → Reviewer Rin".
+- **Files under a test case's Expected result and Notes**, with Attach file under each, as Test data already had.
+- **A test case says who**: "Started 4m ago by Ha My", "Failed 3h ago by Ha My", from whoever started it or set its result.
+- **Doc references in Activity from everywhere on a ticket**: a `[[page]]` added or removed in a comment (also when it is edited, deleted or restored) or a test case, and a page linked or unlinked by hand in Linked docs, each say where ("in a comment", "in test case TC-1", "in Linked docs"). The description already had them.
+
+### Changed
+- **The ticket header is 71 px as drawn**: the AI buttons are 30 px like the view buttons (they were 32 and 34).
+- **Doc pills and the doc side panel as designed**: a section pill reads "API › #Endpoints"; the hover card's breadcrumb is the page's path ("Architecture › API"); the panel header is path › page › # section; opening it from a ticket slides the ticket left so the panel no longer covers its right column (not in full screen).
+- **Dropdown chevrons are 9 px** (`MenuSelect`), as drawn. Every dropdown that uses it changes.
+- **The compact Markdown editor** (New Ticket's description, test case fields) has the drawn look at rest: a `#C7D2CB` border with no ring and a "MARKDOWN" label in its toolbar; the green ring shows while typing. The ticket's own description editor is unchanged.
+
+### Fixed
+- New Ticket opened with the focus in the description in the dev app (React StrictMode ran the editor's focus twice); it opens in the title.
+
+### Database
+- Migration `d8a0c2e4f6b8` adds the nullable `ticket.review_requested_from`; existing tickets are unchanged.
 
 ## [3.32.0] - 2026-11-03
 
@@ -30,6 +51,7 @@ Docs for every AI, and Docs in a window of its own (#268): an AI, on the board o
 
 ### Changed
 - The 1:1 check of the nine Docs designs against the app: the tables are in `docs/ui-audit/docs-268/`, with before and after screenshots in `docs/screenshots/docs-268/`.
+
 ## [3.31.0] - 2026-11-03
 
 Tickets look like their designs, and every AI uses every part of a ticket: criteria, sub-tickets, blocks, work log, test cases, attachments, Docs links and branches; files a person should see go to the ticket's Workspace and never into the branch (#269).

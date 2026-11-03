@@ -212,11 +212,12 @@ async def test_the_tool_list_stays_compact():
     # attachments, criteria on create and what get_ticket says about the Workspace and the worktree (issue #269) about
     # 750; Docs for every AI (issue #268): docs_write edit (one section or passage), upload (a file to a page or a
     # ticket), tickets (from a checklist) and assign (a page to an AI member), docs_read get's section and docs_guide,
-    # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900
-    assert default < 52_550, (
+    # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900;
+    # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150
+    assert default < 52_700, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 55_450, (
+    assert full < 55_600, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
