@@ -13,6 +13,7 @@ from typing import Any, Optional
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import database
 from models import IdeaTicket, Ticket, WorkspaceSettings
 from services import activity as act
 
@@ -25,20 +26,19 @@ def default_root() -> str:
 
 async def get_workspace_settings(session: AsyncSession) -> WorkspaceSettings:
     """Return the workspace settings row, creating it with defaults if missing."""
-    result = await session.exec(
-        select(WorkspaceSettings).where(WorkspaceSettings.id == 1)
-    )
-    settings = result.first()
+    settings = await session.get(WorkspaceSettings, 1)
     if settings is None:
-        settings = WorkspaceSettings(
+        # two runs that start together on a new board both get here: the second insert does nothing
+        await database.insert_missing(
+            session,
+            WorkspaceSettings,
             id=1,
             enabled=True,
             root_path=default_root(),
             default_retention_days=14,
         )
-        session.add(settings)
         await session.commit()
-        await session.refresh(settings)
+        settings = await session.get(WorkspaceSettings, 1)
     return settings
 
 
