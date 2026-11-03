@@ -103,3 +103,51 @@ In the guide's table, and the line for the member's own role in its run's prompt
 | QA | test cases from the criteria, each run with status and proof, a failure anyone can repeat; outputs in the Workspace |
 | User tester | one comment with the person's story, the steps and screenshots in it |
 | Technical writer, DevOps, Security reviewer, Data analyst | see `server/services/ticket_guide.py` |
+
+## 6. Live runs with real AI (after 3.33.0)
+
+Run on a test project ("Giọt", a small Python command-line app) with Claude Code, sonnet only. The BA → Dev → Reviewer →
+QA workflow (LIVE-1, LIVE-2) is reported on [#296](https://github.com/iamcaominhtien/kanban-board-mcp/pull/296).
+
+### QA → PM (LIVE-3, about $0.41)
+
+A person asked QA (an @mention, "do the work") to test `add` and `today` and keep evidence for the PM, without saying
+where. Then the person asked the PM: "where is QA's evidence, and can this go to the five test users?"
+
+| What we looked for | What happened |
+|---|---|
+| Where QA put its outputs | The report in the ticket's Workspace (`kanban-workspace/LIVE-3/bao-cao-kiem-thu.md`), attached to the ticket in a comment. The worktree stayed clean |
+| Test cases | 7, each with its status and proof (the command and its output): 3 pass, 4 fail (`add abc` shows Python's English message; a broken data file crashes `today`) |
+| What QA said it did not check | `add 1.5`, very large numbers, several days |
+| The PM's answer | The exact Workspace path, "I opened the file and read it again", attached to the ticket; "I could not re-run the commands (no shell for the PM), so I rely on QA's log"; not ready to send, with the 4 failures; no screenshot exists (a text log), it will ask QA for one on the re-run |
+
+Every claim of the PM's answer was true. (The ticket had no acceptance criteria: the REST call used to set it up does not
+take them, a slip of the setup, not of the board.)
+
+### An outside agent, only the board's MCP (LIVE-4, about $0.64 in two turns)
+
+A Claude Code started in a clone of the app, with only the board's MCP over HTTP, was told: "a test user typed
+`add 1.5` and got `invalid literal for int()`; fix it, and track it on the Kanban board (project Giọt)".
+
+| What we looked for | What happened |
+|---|---|
+| The right project | Two projects are called Giọt; it read both ticket lists and chose the one whose tickets match this app |
+| The ticket | A bug with the cause, the way to fix it and 5 acceptance criteria, `in-progress` |
+| Work log | The root cause, then "resolved" with what was run |
+| When it could not run the tests (its permissions did not cover a chained shell line) | It kept the ticket `in-progress` and said nothing was verified |
+| Its question | Whether `1.250` is 1,250 ml or 1.25 litres (the project writes 1.250 for a thousand two hundred fifty) |
+| Second turn (permissions given) | 8 tests and 4 tries by hand; 5 criteria ticked; 3 test cases with proof; Review, not Done |
+| **Wrong** | The new ticket said "`cli.py` calls `int(...)`" right after reading `cli.py` had failed: there is no `cli.py`. It wrote the right file in a later work log; the description stayed wrong |
+| **Gap** | It moved the ticket to Review with the change not committed (it was not asked to), and the ticket did not say where the change was |
+
+Fixed in 3.33.1: "Never claim without checking" covered where a file, branch or page is, not a cause. It now says: name
+a file, function or line as the cause only once you have read it, a result only once you have run it; correct a wrong
+statement where it was written (the description, a criterion), not only in a later note. In every run's prompt, the MCP
+instructions (9,656 of 10,000 characters), the ticket guide and `manage_ticket`'s `description`. The ticket guide also
+says to name where the change is before Review (branch and commit, or "not committed, in <folder>").
+
+A second outside agent, given the same words in a fresh clone after the fix, read every file before writing and did not
+name a cause it had not read. It found LIVE-4, saw that its own clone had none of the change the ticket reported, and
+corrected the ticket where things were written: criteria unticked, test cases back to pending with "not run: the proof
+does not match this checkout", the ticket back to `in-progress`, and a work log saying why. True for its clone; it could
+not know the change was uncommitted in another folder, which is the gap above.

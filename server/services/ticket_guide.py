@@ -156,6 +156,10 @@ Done means: each criterion ticked (and how it was checked), the test cases passe
 pull request open, and one closing comment (what is done, what is left, who waits on what). An AI member stops at
 Review: a person moves it to Done. Work that will not be done: status `wont_do` with the reason.
 
+Before you move a ticket to Review, say where the change is, so the next person can find it: the branch and commit
+(`ticket_branches` links a branch), or, when you were asked not to commit, "not committed, in <folder> on this
+machine". A reviewer in another checkout who finds nothing otherwise concludes the work was never done.
+
 ## What each role writes on a ticket
 """
     + _roles_table()
