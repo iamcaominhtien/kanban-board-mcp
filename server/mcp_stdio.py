@@ -19,6 +19,7 @@ if "--bridge" in sys.argv:
     mcp_bridge.main()
     sys.exit(0)
 
+import pydantic_defer  # noqa: F401 — first, before any pydantic model is defined
 import app_logging
 from mcp.server.fastmcp import FastMCP
 

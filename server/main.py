@@ -5,7 +5,8 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+import pydantic_defer  # noqa: F401 — first, before any pydantic model is defined
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (
     FileResponse,
@@ -21,6 +22,7 @@ import events as board_events
 
 import kanban_mcp
 from api.projects import router as projects_router
+from api.routing import add_routes
 from api.tickets import router as tickets_router
 from api.members import router as members_router
 from api.settings import router as settings_router
@@ -377,44 +379,49 @@ async def serve_drawio(file_path: str):
     )
 
 
-app.include_router(projects_router)
-app.include_router(assist_router)
-app.include_router(ai_editor_router)
-app.include_router(ai_sketch_router)
+ROUTERS: list[APIRouter] = [
+    projects_router,
+    assist_router,
+    ai_editor_router,
+    ai_sketch_router,
+    schedules_router,
+    notifications_router,
+    tickets_router,
+    members_router,
+    settings_router,
+    database_router,
+    data_router,
+    idea_ai_router,
+    idea_space_router,
+    idea_tickets_router,
+    workspace_router,
+    docs_router,
+    docs_ai_router,
+    diagrams_router,
+    sketches_router,
+    canvases_router,
+    logs_router,
+    ai_accounts_router,
+    ai_history_router,
+    ai_ops_router,
+    ai_knowledge_router,
+    ai_code_router,
+    ai_tools_router,
+    ai_workflow_router,
+    ai_board_router,
+    ai_power_router,
+    ai_live_feed_router,
+    stories_router,
+    ai_router,
+    ai_safety_router,
+    ai_config_router,
+]
+# add_routes() keeps the routes the routers built instead of building them again (faster start)
+for _router in ROUTERS:
+    add_routes(app, _router)
 app.add_exception_handler(AssistError, assist_error_handler)
 app.add_exception_handler(DocsAiError, docs_ai_error_handler)
-app.include_router(schedules_router)
-app.include_router(notifications_router)
 app.add_exception_handler(ScheduleError, schedule_error_handler)
-app.include_router(tickets_router)
-app.include_router(members_router)
-app.include_router(settings_router)
-app.include_router(database_router)
-app.include_router(data_router)
-app.include_router(idea_ai_router)
-app.include_router(idea_space_router)
-app.include_router(idea_tickets_router)
-app.include_router(workspace_router)
-app.include_router(docs_router)
-app.include_router(docs_ai_router)
-app.include_router(diagrams_router)
-app.include_router(sketches_router)
-app.include_router(canvases_router)
-app.include_router(logs_router)
-app.include_router(ai_accounts_router)
-app.include_router(ai_history_router)
-app.include_router(ai_ops_router)
-app.include_router(ai_knowledge_router)
-app.include_router(ai_code_router)
-app.include_router(ai_tools_router)
-app.include_router(ai_workflow_router)
-app.include_router(ai_board_router)
-app.include_router(ai_power_router)
-app.include_router(ai_live_feed_router)
-app.include_router(stories_router)
-app.include_router(ai_router)
-app.include_router(ai_safety_router)
-app.include_router(ai_config_router)
 app.add_exception_handler(DocsError, docs_error_handler)
 
 

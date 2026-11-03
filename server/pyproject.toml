@@ -37,6 +37,8 @@ dev = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
+# The server silences this in pydantic_defer.py (deferred FastAPI TypeAdapters); pytest resets warning filters per test
+filterwarnings = ["ignore::pydantic.warnings.UnsupportedFieldAttributeWarning"]
 
 # Coverage for SonarQube Cloud (CI runs pytest --cov --cov-report=xml)
 [tool.coverage.run]

@@ -7,13 +7,16 @@ Every endpoint is gated by `services.docs_ai.settings.require_enabled`, except t
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from api.routing import add_routes
 from services.docs_ai import DocsAiError
 
 from . import ask, health, page, proposals, settings, threads, tickets, write
 
-router = APIRouter(tags=["docs-ai"])
+# No tags here: each module's router has tags=["docs-ai"] already, and tags on this router would
+# make add_routes() build every route again (they used to come out as ["docs-ai", "docs-ai"]).
+router = APIRouter()
 for _module in (settings, ask, page, write, proposals, threads, health, tickets):
-    router.include_router(_module.router)
+    add_routes(router, _module.router)
 
 
 async def docs_ai_error_handler(_request: Request, exc: DocsAiError) -> JSONResponse:

@@ -7,6 +7,7 @@ when it was chosen in Settings › Storage & backup (``dbkit.targets``). Every m
 
 import logging
 import os
+import re
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from dbkit import changes, targets
 logger = logging.getLogger(__name__)
 
 _ALEMBIC_INI = Path(__file__).parent / "alembic.ini"
+_MIGRATIONS_DIR = Path(__file__).parent / "alembic" / "versions"
 
 
 class SchemaError(RuntimeError):
@@ -186,6 +188,47 @@ def known_revision(rev: str) -> bool:
         return rev in LEGACY_REVISIONS
 
 
+_REVISION_RE = re.compile(r"""^revision\b[^=\n]*=\s*["']([^"']+)["']""", re.MULTILINE)
+_DOWN_REVISION_RE = re.compile(r"^down_revision\b[^=\n]*=(.*)$", re.MULTILINE)
+_QUOTED_RE = re.compile(r"""["']([^"']+)["']""")
+
+
+def migration_heads() -> set[str]:
+    """The head revisions of the migration scripts, read from the files without loading alembic.
+
+    Takes ``revision`` and ``down_revision`` from each script's header (a tuple for a merge); the
+    heads are the revisions no other script points back to. tests/test_database_startup.py checks
+    that this agrees with alembic's own view of the scripts.
+    """
+    revisions: set[str] = set()
+    parents: set[str] = set()
+    for script in _MIGRATIONS_DIR.glob("*.py"):
+        source = script.read_text(encoding="utf-8")
+        revision = _REVISION_RE.search(source)
+        if not revision:
+            continue
+        revisions.add(revision[1])
+        down = _DOWN_REVISION_RE.search(source)
+        if down:
+            parents.update(_QUOTED_RE.findall(down[1]))
+    return revisions - parents
+
+
+def _is_at_head(sync_conn) -> bool:
+    """Whether the database is stamped with the one head revision, so there is nothing to migrate."""
+    from sqlalchemy import inspect, text
+
+    heads = migration_heads()
+    if len(heads) != 1 or not inspect(sync_conn).has_table("alembic_version"):
+        return False
+    current = (
+        sync_conn.execute(text("SELECT version_num FROM alembic_version"))
+        .scalars()
+        .all()
+    )
+    return current == list(heads)
+
+
 def _run_upgrade(sync_conn, alembic_cfg) -> None:
     """Sync callback executed by AsyncConnection.run_sync.
 
@@ -267,22 +310,24 @@ async def init_db() -> None:
     SQLite: apply pending Alembic migrations and turn on WAL (readers never wait for a writer). PostgreSQL and MySQL:
     an empty database gets the app's tables, one of ours gets its pending migrations, anything else is refused.
     Safe to call on every startup; idempotent when already at head.
+    A SQLite database already at head skips alembic altogether: importing it and loading every
+    migration script took about 0.17 s of every start.
     """
     from sqlalchemy import text
-
-    alembic_cfg = alembic_config()
 
     if engine.dialect.name == "sqlite":
         async with engine.connect() as conn:
             await conn.execute(text("PRAGMA journal_mode=WAL"))
             await conn.commit()
+            if await conn.run_sync(_is_at_head):
+                return
 
         async with engine.begin() as conn:
-            await conn.run_sync(_run_upgrade, alembic_cfg)
+            await conn.run_sync(_run_upgrade, alembic_config())
         return
 
     async with engine.begin() as conn:
-        await conn.run_sync(_prepare_server, alembic_cfg)
+        await conn.run_sync(_prepare_server, alembic_config())
 
 
 def _set_target(target: targets.Target, source: str) -> None:
