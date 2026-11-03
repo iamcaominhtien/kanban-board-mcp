@@ -380,8 +380,8 @@ async def flags(session, project_id: str) -> dict[str, list[dict]]:
 
 
 # ---------------------------------------------------------------------------
-# Kept without the AI's initiative (issue #274, live check): a run's report says what it learned, and when it says
-# nothing, a light model reads the run and keeps what the next run would pay for again
+# Kept without the AI's initiative (issue #274, live check): a run's report says what it learned, and after the run
+# a light model reads it and keeps what the next run would pay for again and nobody kept
 # ---------------------------------------------------------------------------
 
 MAX_LEARNED = 5
@@ -471,8 +471,9 @@ def parse_notes(text: str) -> list[dict]:
 
 
 async def extract_from_run(run_id: str) -> list[AiMemoryNote]:
-    """When a work run ended without keeping anything: a light model reads it and keeps what the next run of its role
-    should know. Only for a Claude Code member on a subscription (the light model runs on its account)."""
+    """When a work run ended: a light model reads it, with the notes its role already keeps (the run's own among
+    them), and keeps what the next run of its role should know and nobody kept. Only for a Claude Code member on a
+    subscription (the light model runs on its account)."""
     import json
 
     import database
@@ -489,9 +490,14 @@ async def extract_from_run(run_id: str) -> list[AiMemoryNote]:
         settings = await get_settings(session, run.project_id)
         if ops.get(settings).get("ai_notes", True) is False:
             return []
+        # once per run: what the run kept itself is in the notes the model is given, so it only adds what the run
+        # missed (a person's request in a comment, say: the live check's Dev kept a command and not the request)
         already = (
             await session.exec(
-                select(AiMemoryNote).where(AiMemoryNote.source_run_id == run_id)
+                select(AiMemoryNote).where(
+                    AiMemoryNote.source_run_id == run_id,
+                    col(AiMemoryNote.written_by).startswith("the board"),
+                )
             )
         ).first()
         if already is not None:

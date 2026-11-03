@@ -172,6 +172,13 @@ def main() -> None:
             api(c, "POST", f"/tickets/{t1}/ai/assign", json={"member_id": devs["Dev An"], "start": "now"})
             r1 = wait_run(c, t1)
             report["1_dev_an_shop_1"] = run_view(c, t1, r1, "Dev An")
+            # the board's own pass over the run (a light model) runs after it ends: give it time to land
+            end = time.time() + 180
+            while time.time() < end:
+                know = api(c, "GET", f"/projects/{pid}/ai/knowledge")
+                if any((n.get("written_by") or "").startswith("the board") for n in know["notes"]):
+                    break
+                time.sleep(5)
             know = api(c, "GET", f"/projects/{pid}/ai/knowledge")
             report["1_memory_after"] = {
                 "notes": [{k: n[k] for k in ("scope", "scope_key", "kind", "text", "written_by")} for n in know["notes"]],

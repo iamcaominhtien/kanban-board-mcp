@@ -1610,7 +1610,7 @@ async def _execute(run_id: str, token: str) -> None:
             worktrees.after_run(run.ticket_id)
             # and what it left in the worktree that is not code goes to the ticket's Workspace (issue #269)
             worktrees.tidy_later(run.ticket_id, run_id)
-            # and when it kept nothing itself, a light model keeps what the next run should know (issue #274)
+            # and a light model keeps what the next run should know and the run did not keep itself (issue #274)
             from . import memory
 
             memory.after_run(run_id)
