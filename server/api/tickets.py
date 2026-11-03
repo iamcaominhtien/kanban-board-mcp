@@ -520,6 +520,9 @@ class CommentBody(BaseModel):
     author: str = "user"
     # What an @mention of an AI member means: ask (answer in a comment), work (assign + run) or notify
     ai_intent: Optional[Literal["ask", "work", "notify"]] = None
+    # Fast for the AI this comment wakes (a quick answer or result of about the same quality); otherwise the run
+    # follows the ticket's pace
+    ai_fast: Optional[bool] = None
     # A reply under another comment; under an AI's comment it asks that AI again
     reply_to: Optional[str] = None
 
@@ -586,6 +589,7 @@ async def post_comment(
             by=by,
             intent=body.ai_intent or "ask",
             source_comment_id=latest["id"],
+            fast=bool(body.ai_fast),
         )
         if delivered:
             await session.refresh(ticket)
@@ -596,6 +600,7 @@ async def post_comment(
                 by=by,
                 reply_to=body.reply_to,
                 source_comment_id=latest["id"],
+                fast=bool(body.ai_fast),
             ):
                 await session.refresh(ticket)
     return _read(ticket)

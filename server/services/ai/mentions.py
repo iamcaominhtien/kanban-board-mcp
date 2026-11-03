@@ -82,8 +82,10 @@ async def deliver(
     intent: str = "ask",
     source_comment_id: str | None = None,
     source: str = "comment",
+    fast: bool = False,
 ) -> list[dict]:
-    """Act on a person's mentions of AI members. Returns what happened per member."""
+    """Act on a person's mentions of AI members. Returns what happened per member. `fast`: the person ticked Fast on
+    the comment (otherwise the run follows the ticket's pace)."""
     from . import runs
 
     if intent not in INTENTS:
@@ -145,6 +147,7 @@ async def deliver(
                         started_by=by,
                         instruction=instruction,
                         source_comment_id=source_comment_id,
+                        pace="fast" if fast else None,
                     )
                 else:
                     run = await runs.create_run(
@@ -156,6 +159,7 @@ async def deliver(
                         started_by=by,
                         instruction=instruction,
                         source_comment_id=source_comment_id,
+                        pace="fast" if fast else None,
                     )
                 out.append(
                     {
@@ -281,7 +285,13 @@ def chain_of(run) -> list[str]:
 
 
 async def deliver_reply(
-    ticket_id: str, text: str, *, by: str, reply_to: str, source_comment_id: str
+    ticket_id: str,
+    text: str,
+    *,
+    by: str,
+    reply_to: str,
+    source_comment_id: str,
+    fast: bool = False,
 ) -> dict | None:
     """Replying under an AI's comment asks that AI again (design C2, “Reply asks again”): an ask run, no dialog and
     no @mention needed. Returns what happened, or None when the comment is not an AI's (or the AI is already
@@ -321,6 +331,7 @@ async def deliver_reply(
                 started_by=by,
                 instruction=plain(text),
                 source_comment_id=source_comment_id,
+                pace="fast" if fast else None,
             )
         except runs.RunError as exc:
             await _board_note(ticket_id, f"Reply to {member.name} not delivered: {exc}")

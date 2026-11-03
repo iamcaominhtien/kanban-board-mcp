@@ -49,6 +49,7 @@ CORE_OPS = (
     "stop_run",
     "workflow",
     "depth",
+    "pace",
     "pause_member",
     "resume_member",
     "create",

@@ -9,6 +9,8 @@ export interface WorkflowBoardRow {
   state: string;
   stopReason: string | null;
   reviewDepth: string | null;
+  /** Fast mode on this ticket (absent from an older server). */
+  pace?: 'normal' | 'fast';
   /** Label of the current step. */
   step: string | null;
   stepKind: StepKind | null;

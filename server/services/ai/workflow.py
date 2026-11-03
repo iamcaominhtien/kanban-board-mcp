@@ -16,6 +16,13 @@ D8–D14, D24).
   under 5% between the last two, or the reviewer repeated an objection it already made), a board fault, or a quota cap
   the person turned on. No progress goes to the **coordinator** (a PM member, D12/D24), whose ruling gets one chance:
   if it comes back again it goes to a person, with the ruling attached.
+- **Fast** (a ticket's pace, set by a person, with or without a workflow; setting it runs nothing): a quick result of
+  about the same quality. The steps a quick result can do
+  without are skipped (Triage, the BA's Shape, QA's Test, the User tester's Try; a template's step may say `"fast":
+  "skip"` or `"keep"`), every AI step runs one effort level lower and the review one depth lower (unless a person set
+  it). What keeps the quality: the Checks by code and the Review still run, and a step sent back runs again at its full
+  effort and model. Any other run on a fast ticket (an @mention, an assignment, a schedule) runs one effort level
+  lower too, with the same instruction (runs.create_run).
 """
 
 import asyncio
@@ -34,6 +41,7 @@ import database
 from models import (
     AiMember,
     AiRun,
+    AiTicketPace,
     AiTicketStep,
     AiTicketWorkflow,
     AiWorkflowTemplate,
@@ -86,6 +94,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Shape",
                 "kind": "ai",
                 "role": "ba",
+                "fast": "skip",
                 "hands_in": "Acceptance criteria a tester can check",
             },
             {
@@ -125,6 +134,7 @@ BUILTIN_TEMPLATES: list[dict] = [
                 "label": "Shape",
                 "kind": "ai",
                 "role": "ba",
+                "fast": "skip",
                 "hands_in": "Acceptance criteria a tester can check",
             },
             {
@@ -239,6 +249,18 @@ BUILTIN_TEMPLATES: list[dict] = [
 
 DEPTH_MODEL = {"light": "haiku", "standard": "sonnet", "deep": "opus"}
 DEPTH_UP = {"light": "standard", "standard": "deep", "deep": "deep"}
+DEPTH_DOWN = {"light": "light", "standard": "light", "deep": "standard"}
+PACES = ("normal", "fast")
+# the AI steps a quick result can do without, unless the template's step says otherwise (`"fast": "skip" | "keep"`)
+FAST_SKIP_ROLES = {"triage", "qa", "user_tester"}
+EFFORT_DOWN = {
+    "max": "xhigh",
+    "xhigh": "high",
+    "high": "medium",
+    "medium": "low",
+    "low": "low",
+}
+FAST_NOTE = "Skipped: fast mode."
 NO_PROGRESS_ROUNDS = 3
 NO_PROGRESS_DIFF = 0.05
 REPEAT_SIMILARITY = 85
@@ -282,6 +304,10 @@ def _step_defaults(step: dict) -> dict:
         "tdd": bool(step.get("tdd"))
         or "failing test" in (step.get("hands_in") or "").lower(),
     }
+    if step.get("fast") in ("skip", "keep"):
+        out["fast"] = step[
+            "fast"
+        ]  # what fast mode does with the step, over the role's default
     if out["kind"] == "ai" and not out["role"]:
         raise WorkflowError(f"The step {out['label']} needs a role.")
     return out
@@ -452,9 +478,19 @@ async def attach(
     by: str,
     depth: str | None = None,
     depth_by: str | None = None,
+    pace: str | None = None,
     start: bool = True,
 ) -> AiTicketWorkflow:
-    """Put a ticket on a workflow (its version is kept) and start the first step."""
+    """Put a ticket on a workflow (its version is kept) and start the first step; `pace="fast"` skips the steps fast
+    mode does without."""
+    if pace not in (None, *PACES):
+        raise WorkflowError("The pace is normal or fast.")
+    if pace is None:
+        pace = await ticket_pace(
+            session, ticket.id
+        )  # the pace the person set on the ticket
+    else:
+        await _keep_pace(session, ticket, pace, by=by)
     existing = await session.get(AiTicketWorkflow, ticket.id)
     if existing is not None and existing.template_key and existing.state != "detached":
         raise WorkflowError(f"{ticket.id} already follows a workflow.")
@@ -478,6 +514,7 @@ async def attach(
         steps=json.dumps(template["steps"]),
         review_depth=depth,
         depth_by=depth_by or ("person" if depth else None),
+        pace="fast" if pace == "fast" else None,
         attached_by=by,
     )
     session.add(wf)
@@ -496,6 +533,9 @@ async def attach(
                 role=step.get("role"),
             )
         )
+    await session.flush()
+    if is_fast(wf):
+        await _apply_pace(session, wf)
     await session.commit()
     await session.refresh(wf)
     if start:
@@ -545,6 +585,101 @@ async def detach(session, ticket_id: str, *, by: str) -> None:
 
 def _template_steps(wf: AiTicketWorkflow) -> list[dict]:
     return json.loads(wf.steps or "[]")
+
+
+async def ticket_pace(session, ticket_id: str) -> str:
+    """The pace a person set on the ticket: fast or normal (no row)."""
+    row = await session.get(AiTicketPace, ticket_id)
+    return row.pace if row is not None and row.pace in PACES else "normal"
+
+
+async def _keep_pace(session, ticket: Ticket, pace: str, *, by: str) -> None:
+    """Store the ticket's pace (the caller commits)."""
+    row = await session.get(AiTicketPace, ticket.id)
+    if row is None:
+        row = AiTicketPace(ticket_id=ticket.id, project_id=ticket.project_id)
+    row.pace, row.set_by, row.set_at = pace, by, _now()
+    session.add(row)
+
+
+def fast_run_text(mode: str) -> str:
+    """What fast mode adds to a run outside a workflow step (an @mention, an assignment, a schedule)."""
+    if mode == "ask":
+        return (
+            "Fast mode: the person wants a quick answer of about the same quality. Answer from what this needs "
+            "to read, briefly; say what you did not check instead of checking everything."
+        )
+    return (
+        "Fast mode: the person wants a quick result of about the same quality, not a perfect one. Go straight to "
+        "the simplest thing that meets the ticket and its criteria; read and run only what this work needs; no "
+        "side improvements; a passing run of the project's checks is enough (no failing run first); keep the "
+        "handoff note short."
+    )
+
+
+def is_fast(wf: AiTicketWorkflow | None) -> bool:
+    """Whether the ticket runs in fast mode (a stand-in without a pace runs at the normal one)."""
+    return getattr(wf, "pace", None) == "fast"
+
+
+def fast_skips(step: dict) -> bool:
+    """Whether fast mode skips the step: what the template's step says, else its role (Triage, QA, the User tester).
+    The Checks by code, the review and a person's steps always run."""
+    if step.get("kind", "ai") != "ai" or step.get("role") == "reviewer":
+        return False
+    if step.get("fast") in ("skip", "keep"):
+        return step["fast"] == "skip"
+    return step.get("role") in FAST_SKIP_ROLES
+
+
+def _fast_skipped_keys(steps: list[dict]) -> set[str]:
+    """The template's steps fast mode skips; none when that would leave no AI step to do the work."""
+    skip = {s["key"] for s in steps if fast_skips(s)}
+    ai = {s["key"] for s in steps if s.get("kind", "ai") == "ai"}
+    return skip if ai - skip else set()
+
+
+def review_depth(wf: AiTicketWorkflow, step: dict | None = None) -> str:
+    """The depth a review runs at: the ticket's (Triage's or a person's), else the template step's; in fast mode one
+    level lower unless a person set it."""
+    depth = wf.review_depth or (step or {}).get("depth") or "standard"
+    if is_fast(wf) and wf.depth_by != "person":
+        depth = DEPTH_DOWN[depth]
+    return depth
+
+
+async def _apply_pace(session, wf: AiTicketWorkflow) -> list[str]:
+    """Fast mode skips the steps it does without that nobody has reached yet; the normal pace puts back the ones fast
+    mode skipped that are still ahead. A step already done or under way is never touched. Returns the labels that
+    changed. The caller commits."""
+    rows = [
+        r
+        for r in await steps_of(session, wf.ticket_id)
+        if r.seq >= wf.seq_base and r.state != "superseded"
+    ]
+    reached = max(
+        (r.seq for r in rows if r.state not in ("pending", "blocked", "skipped")),
+        default=wf.seq_base - 1,
+    )
+    skip = _fast_skipped_keys(_template_steps(wf)) if is_fast(wf) else set()
+    changed = []
+    for r in rows:
+        if r.seq <= reached or r.run_id:
+            continue
+        if r.key in skip and r.state in ("pending", "blocked") and not r.note_in:
+            r.state, r.outcome, r.note, r.ended_at = (
+                "skipped",
+                "fast",
+                FAST_NOTE,
+                _now(),
+            )
+        elif r.key not in skip and r.state == "skipped" and r.outcome == "fast":
+            r.state, r.outcome, r.note, r.ended_at = "pending", None, None, None
+        else:
+            continue
+        session.add(r)
+        changed.append(r.label)
+    return changed
 
 
 async def current_step(session, ticket_id: str) -> AiTicketStep | None:
@@ -634,6 +769,30 @@ async def resolve_member(
     return (free or profiles)[0]
 
 
+def _fast_instruction(step: dict, wf: AiTicketWorkflow) -> str:
+    """What fast mode adds to a step's task: a quick result of about the same quality."""
+    skipped = [
+        s["label"]
+        for s in _template_steps(wf)
+        if s["key"] in _fast_skipped_keys(_template_steps(wf))
+    ]
+    text = (
+        "Fast mode: the person wants a quick result of about the same quality, not a perfect one. Go straight to the "
+        "simplest thing that meets the ticket and its criteria; read and run only what this work needs; no side "
+        "improvements, no options to choose from; keep the handoff note short."
+    )
+    if skipped:
+        text += f" This ticket skips {', '.join(skipped)}: cover what they would catch only where a criterion needs it."
+    if step.get("tdd"):
+        text += " A failing test run first is not required: one passing run of the project's checks is enough."
+    if step.get("role") == "reviewer":
+        text += (
+            " As the reviewer: pass it unless it breaks a criterion, the build or something a person relies on; list "
+            "smaller points in your comment for later instead of sending it back for them."
+        )
+    return text
+
+
 def _instruction(
     step: dict,
     row: AiTicketStep,
@@ -670,7 +829,7 @@ def _instruction(
     if row.note_in and row.note_in != read_first:
         parts.append(row.note_in)
     if step.get("role") == "reviewer":
-        depth = wf.review_depth or step.get("depth") or "standard"
+        depth = review_depth(wf, step)
         parts.append(
             f"Review depth: {depth}. You get the diff, the criteria and the hand-over note, not the other AI's transcript. "
             "Check every acceptance criterion against the change"
@@ -735,6 +894,8 @@ def _instruction(
             "`DEPTH: deep` (light: a small obvious change; deep: a migration, money, permissions, or anything marked "
             "risky); then either `SPLIT: ` and one sentence on why, or `WORKFLOW: quick_fix|standard|feature_ui|research|docs|chore`."
         )
+    if is_fast(wf):
+        parts.append(_fast_instruction(step, wf))
     parts.append(
         "While you work, keep the ticket's work log (what you tried, found and decided), comment when the next step "
         "or a person needs to know something (a decision, a risk, a question), and tick the checklist items and "
@@ -898,14 +1059,19 @@ def _model_for(
     step: dict, row: AiTicketStep, wf: AiTicketWorkflow, member: AiMember
 ) -> tuple[str | None, str | None]:
     """The step's model and effort: the template's; for a review, the depth's (the member's pack may set one per
-    depth), at high for a deep one; one level up on a second attempt at the same step (D17)."""
+    depth), at high for a deep one; in fast mode one effort level lower on a first attempt; one level up on a second
+    attempt at the same step (D17)."""
     cfg = loads(member.config, {}) or {}
     model, effort = step.get("model"), step.get("effort")
     if row.role == "reviewer":
-        depth = wf.review_depth or step.get("depth") or "standard"
+        depth = review_depth(wf, step)
         model = model or {**DEPTH_MODEL, **(cfg.get("depth_models") or {})}.get(depth)
         if depth == "deep":
             effort = effort or "high"
+    if is_fast(wf) and row.attempt <= 1:
+        # fast mode: one effort level lower on a first attempt; a step sent back runs at its full effort below
+        base = effort or cfg.get("effort") or "medium"
+        effort = EFFORT_DOWN.get(base, base)
     if row.attempt > 1:
         retry = step.get("retry_model") or cfg.get("retry_model")
         if retry:
@@ -1388,6 +1554,7 @@ async def _tdd_gate(ticket_id: str, evidence: dict) -> bool:
         dev = _tdd_dev(await steps_of(session, ticket_id), _template_steps(wf))
         if (
             dev is None
+            or is_fast(wf)  # fast mode asks for a passing run, not a failing one first
             or evidence.get("proven")
             or not (cfg.get("tdd") or {}).get("required", True)
             or dev.outcome == "accepted"
@@ -1586,6 +1753,10 @@ async def send_back(
             session.add(fresh)
             if idx == target.idx:
                 new_target = fresh
+        if is_fast(wf):
+            # the steps fast mode skipped stay skipped on the next round (the one sent back to always runs)
+            await session.flush()
+            await _apply_pace(session, wf)
         await session.commit()
         # the step's run is no longer wanted: its end finds the row superseded and moves nothing (on_run_ended)
         await _cancel_runs(to_cancel, by=by, reason=f"Sent back by {by}.")
@@ -1840,6 +2011,9 @@ async def on_run_ended(run_id: str) -> None:
                             )
                         )
                     session.add(wf)
+                    if is_fast(wf):
+                        await session.flush()
+                        await _apply_pace(session, wf)
             m = re.search(r"DEPTH:\s*(light|standard|deep)", text, re.IGNORECASE)
             if m and wf.depth_by != "person":
                 wf.review_depth = m.group(1).lower()
@@ -2448,6 +2622,15 @@ async def view(session, ticket_id: str) -> dict | None:
         "review_depth": wf.review_depth,
         "depth_by": wf.depth_by,
         "depth_note": wf.depth_note,
+        "pace": wf.pace or "normal",
+        # the depth the review runs at (fast mode lowers it), for the strip's Review tile
+        "review_runs_at": review_depth(
+            wf,
+            next(
+                (s for s in _template_steps(wf) if s.get("role") == "reviewer"),
+                None,
+            ),
+        ),
         "rounds": json.loads(wf.rounds or "{}"),
         "split": meta_of(wf).get("split") or [],
         "rulings": json.loads(wf.rulings or "[]"),
@@ -2491,6 +2674,39 @@ async def set_depth(session, ticket_id: str, depth: str, *, by: str) -> None:
     wf.depth_note = f"Set to {depth} by {by}."
     session.add(wf)
     await session.commit()
+
+
+async def set_pace(session, ticket_id: str, pace: str, *, by: str) -> list[str]:
+    """A person turns fast mode on or off for this ticket, with or without a workflow. It runs nothing: on a workflow
+    the steps not reached yet are skipped or put back, and a step that waits (one skipped while blocked) starts when
+    the person says so (`start_waiting`) or when the step before it ends. Returns the labels of the steps that
+    changed."""
+    if pace not in PACES:
+        raise WorkflowError("The pace is normal or fast.")
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise WorkflowError(f"No ticket {ticket_id}.")
+    await _keep_pace(session, ticket, pace, by=by)
+    wf = await session.get(AiTicketWorkflow, ticket_id)
+    changed: list[str] = []
+    if wf is not None and wf.template_key and wf.state not in ("done", "detached"):
+        wf.pace = "fast" if pace == "fast" else None
+        wf.updated_at = _now()
+        session.add(wf)
+        changed = await _apply_pace(session, wf)
+    await session.commit()
+    if changed and pace == "fast":
+        # a step skipped while blocked (no member for its role) no longer waits for one
+        for kind in BLOCKS:
+            await flags.resolve(
+                session, ticket_id, kind, by=by, how="Skipped: fast mode"
+            )
+    return changed
+
+
+async def start_waiting(ticket_id: str) -> None:
+    """Start the workflow's current step when it waits to be started (after a pace change skipped the one before)."""
+    await advance(ticket_id)
 
 
 async def metrics(session, project_id: str, days: int = 30) -> list[dict]:

@@ -23,7 +23,7 @@ AI_TEAM_OPS: dict[str, Op] = {
     "ask": Op(
         ops.ask,
         ("member_id", "text"),
-        ("ticket_id", "page_id", "thread_id", "intent"),
+        ("ticket_id", "page_id", "thread_id", "intent", "pace"),
     ),
     "resources": Op(ops.resources, ("project_id",)),
     "restart": Op(ops.restart, ("run_id",)),
@@ -41,7 +41,8 @@ AI_TEAM_OPS: dict[str, Op] = {
     "guide": Op(work.guide, ()),
     "workflows": Op(work.workflows, ("project_id",)),
     "workflow": Op(work.workflow, ("ticket_id",)),
-    "start_workflow": Op(work.start_workflow, ("ticket_id", "workflow")),
+    "start_workflow": Op(work.start_workflow, ("ticket_id", "workflow"), ("pace",)),
+    "set_pace": Op(work.set_pace, ("ticket_id", "pace")),
     "stories": Op(work.stories, ("project_id",)),
     "story": Op(work.story, ("story_id",)),
     "give_story": Op(work.give_story, ("project_id", "text"), ("fields",)),
@@ -106,6 +107,7 @@ async def ai_team(
         "workflows",
         "workflow",
         "start_workflow",
+        "set_pace",
         "stories",
         "story",
         "give_story",
@@ -141,6 +143,12 @@ async def ai_team(
     story_id: Annotated[str | None, Field(description="The Story's key.")] = None,
     workflow: Annotated[
         str | None, Field(description="start_workflow: a key from workflows.")
+    ] = None,
+    pace: Annotated[
+        Literal["normal", "fast"] | None,
+        Field(
+            description="set_pace, start_workflow, ask: fast = quick, about as good."
+        ),
     ] = None,
     decision_id: Annotated[str | None, Field(description="override.")] = None,
     page_id: Annotated[str | None, Field(description="Docs page.")] = None,
@@ -191,7 +199,7 @@ async def ai_team(
     """AI team. Read guide first: when to ask, hand over work, use a workflow or give a Story to the PM. Reads: members
     (with role), runs, usage, approvals, docs_jobs, resources, accounts, workflows, workflow, stories, story,
     decisions. Hand work:
-    ask (wakes an AI; an @mention via MCP does not), start_workflow, give_story, approve/revise/reject_plan, override,
+    ask (wakes an AI; an @mention via MCP does not), start_workflow, set_pace, give_story, approve/revise/reject_plan, override,
     hand_over (with a handoff note), take_back. Runs: answer, tell (while it works), cancel, restart, retry. Members: pause, resume, create_member, update_member, assign_account (no
     keys, folders, Bypass, ceiling past Review; approvals are a person's, in the board). With "Full control over MCP":
     endpoints, api. Inside an AI run: reads only."""

@@ -250,8 +250,15 @@ export async function addComment(
   author = 'user',
   aiIntent?: 'ask' | 'work' | 'notify',
   replyTo?: string,
+  aiFast?: boolean,
 ): Promise<Ticket> {
-  const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, { text, author, aiIntent, replyTo });
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, {
+    text,
+    author,
+    aiIntent,
+    replyTo,
+    ...(aiFast ? { aiFast } : {}),
+  });
   return res.data;
 }
 
@@ -860,13 +867,15 @@ export function useAddComment() {
       author,
       aiIntent,
       replyTo,
+      aiFast,
     }: {
       ticketId: string;
       text: string;
       author?: string;
       aiIntent?: 'ask' | 'work' | 'notify';
       replyTo?: string;
-    }) => addComment(ticketId, text, author, aiIntent, replyTo),
+      aiFast?: boolean;
+    }) => addComment(ticketId, text, author, aiIntent, replyTo, aiFast),
   );
 }
 

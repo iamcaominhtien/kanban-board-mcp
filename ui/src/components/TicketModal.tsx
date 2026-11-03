@@ -71,7 +71,8 @@ import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
 import { TicketWorkflow } from './ai/workflow/TicketWorkflow';
-import { useTicketWorkflow } from '../api/aiWorkflow';
+import { useTicketPace, useTicketWorkflow } from '../api/aiWorkflow';
+import { PaceButton } from './ai/workflow/PaceButton';
 import { TimelineTab } from './aiteam/TimelineTab';
 import { openTimeline } from './aiteam/timelineLink';
 import { TicketSafetyBlocks } from './ai/AiTicketSafety';
@@ -312,6 +313,7 @@ function TicketModalInner({
   // A ticket on a workflow shows its step strip on the ticket itself; one that is not on a workflow keeps the
   // "put it on a workflow" row in the AI activity view (TP-11). One instance either way.
   const wfQuery = useTicketWorkflow(ticket?.id ?? '', aiMembers.size > 0);
+  const ticketFast = useTicketPace(ticket?.id ?? '', aiMembers.size > 0).data?.pace === 'fast';
   const wfOnTicket = !!wfQuery.data && wfQuery.data.state !== 'detached';
   const [chatOpen, setChatOpen] = useState(false);
   const aiChatAvailable = aiSettings?.aiEnabled !== false && aiMembers.size > 0;
@@ -1478,6 +1480,7 @@ function TicketModalInner({
                 active={activeTab === 'ai'}
                 onClick={() => setActiveTab(activeTab === 'ai' ? 'main' : 'ai')}
               />
+              <PaceButton ticketId={ticket.id} />
               <TicketAiMenu
                 ticket={ticket}
                 chatOpen={chatOpen && aiChatAvailable}
@@ -2616,10 +2619,15 @@ function TicketModalInner({
                           focusCommentId={focusCommentId}
                           onFocusHandled={() => setFocusCommentId(null)}
                           criteriaCount={ticket.acceptanceCriteria?.length ?? 0}
+                          ticketFast={ticketFast}
                           onAdd={async (t, opts) => {
                             // The Ask button sends the text as a question to one AI member (C1)
                             if (opts?.askMemberId) {
-                              await aiApi.ask(ticket.id, { memberId: opts.askMemberId, question: t });
+                              await aiApi.ask(ticket.id, {
+                                memberId: opts.askMemberId,
+                                question: t,
+                                ...(opts.fast ? { fast: true } : {}),
+                              });
                               void queryClient.invalidateQueries({ queryKey: ['tickets'] });
                               return undefined;
                             }
@@ -2636,6 +2644,7 @@ function TicketModalInner({
                                   : 'user',
                               aiIntent: intent,
                               replyTo: opts?.replyTo,
+                              aiFast: opts?.fast,
                             });
                           }}
                           onEdit={(cId, t) =>

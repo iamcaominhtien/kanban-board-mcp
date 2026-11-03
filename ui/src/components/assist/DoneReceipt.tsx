@@ -77,6 +77,8 @@ export function appliedWords(a: AppliedChange): string {
       return `put on the ${text(a.to)} workflow`;
     case 'depth':
       return a.after ? `review depth ${a.before ? 'changed' : 'set'} to ${cap(a.after)}` : 'review depth changed';
+    case 'pace':
+      return a.after === 'fast' ? 'fast mode on' : 'fast mode off';
     case 'create':
       return 'created as a new ticket';
     case 'message':
