@@ -4,9 +4,9 @@ name: CI
 # Coverage (which doubles the backend's time) and the SonarQube Cloud analysis run once a night on main instead,
 # in nightly-quality.yml, which also files what SonarQube found in a GitHub issue.
 #
-# Every part runs side by side: the backend in 6 shards, the UI's tests in 3, the UI's checks (prettier, eslint, tsc,
+# Every part runs side by side: the backend in 10 shards, the UI's tests in 3, the UI's checks (prettier, eslint, tsc,
 # build) in one job whose caches make an unchanged file cost nothing. The repository is public, so the extra jobs
-# cost no Actions minutes.
+# cost no Actions minutes. Each job checks out only the folders it needs (docs/ and design/ alone are 300 MB).
 
 on:
   pull_request:
@@ -62,6 +62,10 @@ jobs:
         working-directory: server
     steps:
       - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            server
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -72,21 +76,29 @@ jobs:
       - name: Format
         run: uv run ruff format --check .
 
-  # Six shards side by side (tests/conftest.py, KANBAN_TEST_SHARD splits whole files, the largest first)
+  # Ten shards side by side. tests/conftest.py (KANBAN_TEST_SHARD) splits whole files by their measured time
+  # (tests/durations.json), so the shards take about as long. ui/ and desktop/ come along for their package.json
+  # (tests/test_version.py).
   backend-tests:
-    name: Backend tests (${{ matrix.shard }}/6)
+    name: Backend tests (${{ matrix.shard }}/10)
     needs: changes
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     defaults:
       run:
         working-directory: server
     steps:
       - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            server
+            ui
+            desktop
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -94,7 +106,7 @@ jobs:
       - run: uv sync
       - name: Tests
         env:
-          KANBAN_TEST_SHARD: ${{ matrix.shard }}/6
+          KANBAN_TEST_SHARD: ${{ matrix.shard }}/10
         run: uv run pytest -q -n auto --durations=10
 
   # The check that keeps its old name for branch protection: green only when lint and every shard passed
@@ -124,6 +136,10 @@ jobs:
       CACHE_DIR: ${{ github.workspace }}/.ui-ci-cache
     steps:
       - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            ui
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -160,6 +176,10 @@ jobs:
         working-directory: ui
     steps:
       - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            ui
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -191,6 +211,10 @@ jobs:
         working-directory: desktop
     steps:
       - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            desktop
       - uses: actions/setup-node@v4
         with:
           node-version: 22

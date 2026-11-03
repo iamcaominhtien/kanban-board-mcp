@@ -159,9 +159,24 @@ async def _notification_queues_are_per_test():
     notifications._later.clear()
 
 
+def _file_seconds() -> dict[str, float]:
+    """How long each test file took (setup, call and teardown of its tests, summed over the workers), measured on a
+    full run and kept in tests/durations.json. Refresh it when the shards drift apart:
+    `uv run pytest -q -n auto --durations=0 --durations-min=0` then `python tests/durations.py <that output>`."""
+    import json
+    from pathlib import Path
+
+    try:
+        return json.loads((Path(__file__).parent / "durations.json").read_text())
+    except (OSError, ValueError):
+        return {}
+
+
 def pytest_collection_modifyitems(config, items):
     """KANBAN_TEST_SHARD=K/N keeps only shard K of N (CI runs the shards side by side). Whole files go to one shard,
-    the largest first onto the lightest shard, so the shards come out even and every worker picks the same set."""
+    the slowest first onto the lightest shard, so the shards take about as long and every worker picks the same set.
+    A file's weight is its measured time (tests/durations.json); a file not measured yet counts its tests at the
+    average time of one."""
     shard = os.environ.get("KANBAN_TEST_SHARD", "").strip()
     if not shard:
         return
@@ -169,15 +184,21 @@ def pytest_collection_modifyitems(config, items):
     files: dict[str, list] = {}
     for item in items:
         files.setdefault(item.nodeid.split("::", 1)[0], []).append(item)
-    load = [0] * n
+    seconds = _file_seconds()
+    per_test = (sum(seconds.values()) / len(items)) if seconds else 1.0
+    weight = {
+        path: seconds.get(path, len(its) * per_test) for path, its in files.items()
+    }
+    load = [0.0] * n
     keep: set[str] = set()
-    for path, its in sorted(files.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+    for path in sorted(files, key=lambda p: (-weight[p], p)):
         i = load.index(min(load))
-        load[i] += len(its)
+        load[i] += weight[path]
         if i == k - 1:
             keep.add(path)
     chosen = [it for it in items if it.nodeid.split("::", 1)[0] in keep]
-    config.hook.pytest_deselected(items=[it for it in items if it not in chosen])
+    dropped = [it for it in items if it.nodeid.split("::", 1)[0] not in keep]
+    config.hook.pytest_deselected(items=dropped)
     items[:] = chosen
 
 
