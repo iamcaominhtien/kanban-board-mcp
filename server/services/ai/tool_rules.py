@@ -48,6 +48,15 @@ GIT_COMMIT = [
     "Bash(git mv:*)",
     "Bash(git rm:*)",
 ]
+# Moving to the ticket's branch when the run has no worktree of its own: the Dev guide says commit on the ticket's
+# branch, and a live Dev's `git checkout <branch>` was refused, so its work stayed on main (issue #274). Only creating
+# and switching; the forms that throw away changes stay refused (BRANCH_DENY).
+BRANCH_SWITCH = ["Bash(git switch:*)", "Bash(git checkout -b:*)"]
+BRANCH_DENY = [
+    "Bash(git switch -f:*)",
+    "Bash(git switch --force:*)",
+    "Bash(git switch --discard-changes:*)",
+]
 INSTALL = [
     "Bash(npm ci:*)",
     "Bash(npm install:*)",
@@ -82,6 +91,9 @@ TESTS = [
     "Bash(pytest:*)",
     "Bash(python -m pytest:*)",
     "Bash(python3 -m pytest:*)",
+    # a repository tested with the standard library: a live Dev's `python3 -m unittest` was refused (issue #274)
+    "Bash(python -m unittest:*)",
+    "Bash(python3 -m unittest:*)",
     "Bash(uv run pytest:*)",
     "Bash(uv run ruff:*)",
     "Bash(uvx pytest:*)",
