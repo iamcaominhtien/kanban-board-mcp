@@ -7,7 +7,8 @@ from datetime import date, datetime, timezone
 
 from git import GitCommandError
 from rapidfuzz import fuzz
-from sqlalchemy import text
+from dbkit.sql import bump_counter
+from sqlalchemy.exc import NoResultFound
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -255,7 +256,8 @@ async def list_tickets(
         stmt = stmt.where(Ticket.status != "wont_do")
     if priority is not None:
         stmt = stmt.where(Ticket.priority == priority)
-    result = await session.exec(stmt)
+    # The order SQLite gave without asking (insertion), on every engine; MCP pages through it with offset/limit
+    result = await session.exec(stmt.order_by(Ticket.created_at, Ticket.id))
     tickets = list(result.all())
 
     if q is not None and q.strip():
@@ -366,20 +368,20 @@ async def create_ticket(
     # Auto-assign created_by to first available member if not provided
     if created_by is None:
         first_member = await session.exec(
-            select(Member).where(Member.project_id == project_id).limit(1)
+            select(Member)
+            .where(Member.project_id == project_id)
+            .order_by(Member.created_at, Member.id)
+            .limit(1)
         )
         m = first_member.first()
         if m is not None:
             created_by = m.id
 
-    result = await session.execute(
-        text(
-            "UPDATE project SET ticket_counter = ticket_counter + 1"
-            " WHERE id = :pid RETURNING ticket_counter, prefix"
-        ),
-        {"pid": project_id},
+    row = await bump_counter(
+        session, "project", "ticket_counter", "id", project_id, also=("prefix",)
     )
-    row = result.one()
+    if row is None:
+        raise NoResultFound(f"Project {project_id} not found")  # what callers catch
     ticket_id = f"{row.prefix}-{row.ticket_counter}"
 
     ticket = Ticket(

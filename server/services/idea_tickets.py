@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import text
+from dbkit.sql import bump_counter
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -14,6 +14,7 @@ from models import (
     IDEA_STATUSES,
     IdeaAssumption,
     IdeaComment,
+    IdeaCounter,
     IdeaTicket,
     Project,
     Ticket,
@@ -153,12 +154,13 @@ def _page_body(problem: str | None, description: str) -> str:
 
 
 async def _next_idea_id(session: AsyncSession) -> str:
-    result = await session.execute(
-        text(
-            "UPDATE idea_counter SET counter = counter + 1 WHERE id = 1 RETURNING counter"
-        )
-    )
-    row = result.one()
+    row = await bump_counter(session, "idea_counter", "counter", "id", 1)
+    if row is None:
+        # The one counter row is made by a migration; a database made from the models (PostgreSQL, MySQL, a test)
+        # starts without it
+        session.add(IdeaCounter(id=1, counter=0))
+        await session.flush()
+        row = await bump_counter(session, "idea_counter", "counter", "id", 1)
     return f"IDEA-{row.counter}"
 
 

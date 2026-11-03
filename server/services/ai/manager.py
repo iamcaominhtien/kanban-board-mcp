@@ -217,11 +217,15 @@ async def sweep_intake(project_id: str, cfg: dict) -> int:
     async with database.async_session() as session:
         rows = (
             await session.exec(
-                select(Ticket).where(
+                select(Ticket)
+                .where(
                     Ticket.project_id == project_id,
                     Ticket.status == (intake.get("status") or "todo"),
                     col(Ticket.assignee).is_(None),
                 )
+                .order_by(
+                    Ticket.created_at, Ticket.id
+                )  # oldest first, as SQLite gave them
             )
         ).all()
         ids = [

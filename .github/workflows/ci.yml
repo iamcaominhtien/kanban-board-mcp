@@ -120,6 +120,64 @@ jobs:
           test "${{ needs.backend-lint.result }}" = success
           test "${{ needs.backend-tests.result }}" = success
 
+  # The board on PostgreSQL and MySQL/MariaDB (design/screens/ai-databases.md F, "Tests"): the database tests with a
+  # round trip SQLite → PostgreSQL → MariaDB → SQLite compared row by row, then the ticket, project, idea, docs and
+  # MCP suites run once on each server (tests/fast_db.py, KANBAN_TEST_DATABASE_URL).
+  databases:
+    name: Databases (PostgreSQL, MariaDB)
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: kanban
+          # a throwaway password made per run (the containers live for this job only)
+          POSTGRES_PASSWORD: ${{ github.run_id }}-db
+          POSTGRES_DB: kanban
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kanban" --health-interval 5s --health-timeout 5s --health-retries 10
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_USER: kanban
+          MARIADB_PASSWORD: ${{ github.run_id }}-db
+          MARIADB_DATABASE: kanban
+          MARIADB_ROOT_PASSWORD: ${{ github.run_id }}-root
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized" --health-interval 5s --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install uv
+      - run: uv sync
+      - name: Second databases for the suites
+        run: |
+          PGPASSWORD=${{ github.run_id }}-db psql -h 127.0.0.1 -U kanban -d kanban -c "CREATE DATABASE kanban_suites"
+          mysql -h 127.0.0.1 -uroot -p${{ github.run_id }}-root -e "CREATE DATABASE kanban_suites; GRANT ALL ON kanban_suites.* TO 'kanban'@'%'"
+      - name: Move, verify and the round trip
+        env:
+          KANBAN_TEST_PG_URL: postgresql://kanban:${{ github.run_id }}-db@127.0.0.1:5432/kanban
+          KANBAN_TEST_MYSQL_URL: mysql://kanban:${{ github.run_id }}-db@127.0.0.1:3306/kanban
+        run: uv run pytest -q tests/test_dbkit_move.py tests/test_dbkit_targets.py tests/test_dbkit_api.py
+      - name: The app's suites on PostgreSQL
+        env:
+          KANBAN_TEST_DATABASE_URL: postgresql://kanban:${{ github.run_id }}-db@127.0.0.1:5432/kanban_suites
+        run: uv run pytest -q tests/test_tickets.py tests/test_projects.py tests/test_mcp_tools.py tests/test_idea_tickets.py tests/test_docs.py
+      - name: The app's suites on MariaDB
+        env:
+          KANBAN_TEST_DATABASE_URL: mysql://kanban:${{ github.run_id }}-db@127.0.0.1:3306/kanban_suites
+        run: uv run pytest -q tests/test_tickets.py tests/test_projects.py tests/test_mcp_tools.py tests/test_idea_tickets.py tests/test_docs.py
+
   # prettier, eslint and tsc keep their caches between runs (keyed by commit, restored from the newest one this
   # branch or main made): a file that did not change is not checked again. prettier and eslint cache by content, so
   # a fresh checkout's new timestamps do not count as changes; tsc's own incremental build info does the same.

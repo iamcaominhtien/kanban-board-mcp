@@ -8,6 +8,35 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.37.0] - 2026-11-03
+
+Choose your database: SQLite (still the default), PostgreSQL or MySQL/MariaDB, and move between them (design: `design/screens/ai-databases.md`, #307). Guide: `docs/guideline/databases.md`.
+
+### Added
+- **A Database card in App settings › Storage & backup.** It says what the board uses (engine, where, size, tables, tickets, and for a server its version, latency and whether the connection is encrypted), with **Move to another database…**, and on a server **Edit connection…**, **Test connection** and **Use the SQLite file again**. `KANBAN_DATABASE_URL` sets the database for a server and locks the card; `KANBAN_DB_PASSWORD` gives its password.
+- **Move to another database**, in four steps: **Where to** (the test reaches the server, signs in, checks the version, the encoding or character set, the right to create tables and an encrypted connection, and says how to fix each problem, with the statement to copy), **Check** (what will be copied, and values the target cannot take as they are, before anything is written), **Copy** (table by table, with progress, pause, resume and cancel; the source is only read, from one consistent snapshot) and **Verify** (row counts, a random sample read back value by value, the links between rows, the counters, docs search). **Switch** points the board at the new database without a restart; if the board was used during the copy, the latest state is copied first. Any direction works.
+- **An AI helps when a copy stops.** The wizard shows where (table, row, column, the column's type on both sides, the value's length) and **Ask the AI** sends exactly that, never the rows or a password, to an AI member of the board. It proposes a change to the new database; only `ALTER TABLE` on the board's tables can be applied, and the board runs it, resumes and verifies. **Edit it myself** and **Ask something else** are there too.
+- **`kanban-db`** (`uv run python -m dbkit.cli`): `test`, `migrate --from … --to … [--dry-run] [--verify] [--resume] [--empty-first]` and `use`, with the same copy code and exit codes 0 done, 1 verify failed, 2 cannot connect, 3 target not empty, 4 stopped.
+- **The board cannot reach its database**: a screen instead of errors, which tries again every 8 seconds, with Edit connection and Use the old SQLite file instead. The app starts in that state rather than failing when the server is down at startup.
+- CI: a **Databases** job runs the move tests (with a round trip SQLite → PostgreSQL → MariaDB → SQLite compared row by row) and the ticket, project, idea, docs and MCP suites on PostgreSQL 16 and MariaDB 10.11.
+
+### Changed
+- **Faster lookups on every engine**: indexes on `member.project_id` (filtered by more than 90 queries), `ticket (project_id, status)`, `ticket.parent_id`, `ticket.assignee` and `docs_page.parent_id`; each of these lookups scanned the whole table before (migration `e8b0d2f4a6c9`).
+- **SQLite shares the file better between the board and the MCP process editors launch**: a writer now waits up to 30 seconds for the other one instead of failing with "database is locked" after 5, commits skip an fsync (`synchronous=NORMAL`, safe with WAL), and temporary data stays in memory.
+- **Export on PostgreSQL or MySQL** is the same ZIP with a SQLite copy of every table, so one export loads into any engine and into older versions of the app; **import** on a server database replaces its data and puts the previous data back if anything fails.
+- The stdio MCP server runs in one event loop and follows a database switch made in the board or with `kanban-db use`.
+- **Shorter holds of the write lock** (one writer at a time on SQLite), found by timing every write transaction of the AI, workflow, notification, docs and ticket suites:
+  - a notification reads what each recipient's row depends on in three queries for all recipients instead of three per recipient, while it holds the lock: 84 to 20 ms median with the event loop busy (5 recipients);
+  - checking whether a queued run waits on its account no longer writes a row on every scheduler tick;
+  - a new canvas, a canvas copy (every frame's files and the overview picture) and a new sketch write their files before the row is inserted, not while the lock is held;
+  - the hourly retention sweep commits every 50 runs instead of once for all of a project's old runs.
+- Lists that came back in SQLite's insertion order by chance now ask for it (members, tickets, a Story's pieces, standing orders, plugins, worktrees, workflows, an idea's advice), and so do the "first" choices (the default ticket creator, the project's first admin, the AI that takes a workflow step), so the order is the same on every engine.
+
+### Notes for PostgreSQL and MySQL
+- Links between tables are kept by the app and not enforced by the server, exactly as on SQLite, where `PRAGMA foreign_keys` was never on (the app writes some rows before the row they point at, and keeps rows whose parent went to the bin).
+- On MySQL/MariaDB long text is `LONGTEXT`; key and indexed text columns are `VARCHAR(255)`. Tables are `utf8mb4` with the binary collation, so text compares exactly as on the other engines.
+- Docs, knowledge-base and history search use SQLite's FTS5 index; on a server they use the plain search the board already had as a fallback.
+- Attachments, AI run logs and skills stay in the data folder on this computer.
 ## [3.36.1] - 2026-11-03
 
 ### Fixed

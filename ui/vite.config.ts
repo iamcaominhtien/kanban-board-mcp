@@ -23,6 +23,7 @@ export default defineConfig({
       '/upload-info': 'http://localhost:8000', // file sizes on attachment chips
       '/settings': 'http://127.0.0.1:8000',
       '/data': 'http://127.0.0.1:8000',
+      '/database': 'http://127.0.0.1:8000', // Storage & backup › Database
       '/workspace': 'http://localhost:8000',
       '/diagrams': 'http://localhost:8000',
       '/sketches': 'http://localhost:8000',

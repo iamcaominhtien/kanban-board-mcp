@@ -744,9 +744,9 @@ async def _claude_account(session, account_id: str | None = None):
             return acct
     return (
         await session.exec(
-            select(AiAccount).where(
-                AiAccount.cli == "claude", AiAccount.status == "signed_in"
-            )
+            select(AiAccount)
+            .where(AiAccount.cli == "claude", AiAccount.status == "signed_in")
+            .order_by(AiAccount.created_at, AiAccount.id)
         )
     ).first()
 

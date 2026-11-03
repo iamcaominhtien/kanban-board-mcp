@@ -7,9 +7,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from kanban_mcp import common, operations as ops
 from database import async_session as real_async_session
-from tests.fast_db import fresh_tables
+from tests.fast_db import TEST_URL, fresh_tables
 
-DATABASE_URL_TEST = "sqlite+aiosqlite:///:memory:"
+DATABASE_URL_TEST = TEST_URL
 
 test_engine = create_async_engine(DATABASE_URL_TEST, echo=False)
 test_async_session = sessionmaker(

@@ -8,9 +8,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from database import get_session
 from main import app
 from services import docs as svc
-from tests.fast_db import fresh_tables
+from tests.fast_db import TEST_URL, fresh_tables
 
-test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+test_engine = create_async_engine(TEST_URL, echo=False)
 test_async_session = sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )

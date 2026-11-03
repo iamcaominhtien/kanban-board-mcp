@@ -146,7 +146,9 @@ async def get_orders(project_id: str, session: Session) -> list[dict]:
     """The project's standing orders."""
     rows = (
         await session.exec(
-            select(AiStandingOrder).where(AiStandingOrder.project_id == project_id)
+            select(AiStandingOrder)
+            .where(AiStandingOrder.project_id == project_id)
+            .order_by(AiStandingOrder.created_at, AiStandingOrder.id)
         )
     ).all()
     return [svc_orders.to_dict(r) for r in rows]
@@ -267,7 +269,9 @@ async def get_pulls(project_id: str, session: Session) -> list[dict]:
     await svc_github.watch_new(session)
     rows = (
         await session.exec(
-            select(AiWatchedPr).where(AiWatchedPr.project_id == project_id)
+            select(AiWatchedPr)
+            .where(AiWatchedPr.project_id == project_id)
+            .order_by(AiWatchedPr.number)
         )
     ).all()
     return [svc_github.to_dict(r) for r in rows]

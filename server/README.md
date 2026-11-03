@@ -11,7 +11,7 @@ main.py          FastAPI app + MCP mount
 tests/           pytest async tests (httpx + ASGITransport)
 ```
 
-Data layer: SQLite via SQLModel + Alembic migrations (aiosqlite for async).
+Data layer: SQLModel + Alembic migrations on SQLite (aiosqlite, the default), PostgreSQL (asyncpg) or MySQL/MariaDB (aiomysql). `dbkit/` holds the connection settings, the test, the copy between databases and the `python -m dbkit.cli` script; see `docs/guideline/databases.md`.
 
 ## Setup
 

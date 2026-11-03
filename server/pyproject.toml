@@ -5,8 +5,10 @@ description = "Kanban Board MCP server — FastAPI REST + MCP tools for AI agent
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiomysql>=0.2",
     "aiosqlite>=0.22.1",
     "alembic>=1.18.4",
+    "asyncpg>=0.30",
     "defusedxml>=0.7.1",
     "fastapi[standard]>=0.135.3",
     "gitpython>=3.2.0",

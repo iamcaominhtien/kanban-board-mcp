@@ -172,7 +172,9 @@ async def blocking(session, run: AiRun, profile: AiMember) -> str | None:
         # windows and slots are Claude's (the accounts page shows only those): another CLI is not held by them
         return None
     key = key_for(profile, run)
-    row = await state(session, key)
+    # A check only reads: an account without a row yet is not held and has the default slots. Creating the row here
+    # made every scheduler tick a write (taking SQLite's write lock) for nothing
+    row = await session.get(AiAccountState, key) or AiAccountState(key=key)
     until = held(row)
     if until:
         return f"Waiting for the next window: {row.held_reason or 'the usage window is used up'}, reopens {_local(until)}"

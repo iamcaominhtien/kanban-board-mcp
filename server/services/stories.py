@@ -141,7 +141,15 @@ async def _pm(session, project_id: str):
 async def children(session, story_id: str) -> list[Ticket]:
     """The tickets whose parent is the Story."""
     return list(
-        (await session.exec(select(Ticket).where(Ticket.parent_id == story_id))).all()
+        (
+            await session.exec(
+                select(Ticket)
+                .where(Ticket.parent_id == story_id)
+                .order_by(
+                    Ticket.created_at, Ticket.id
+                )  # the pieces in the order they were made
+            )
+        ).all()
     )
 
 

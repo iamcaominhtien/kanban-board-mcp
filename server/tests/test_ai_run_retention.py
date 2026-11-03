@@ -6,6 +6,7 @@ import json
 from datetime import UTC, datetime, timedelta, timezone
 
 from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import (
     AiApproval,
@@ -145,6 +146,28 @@ async def test_only_finished_old_unlinked_runs_go(env, tmp_path):
             == 11
         )
     assert not transcript.exists()
+
+
+async def test_a_long_sweep_commits_in_batches(env, monkeypatch):
+    """Trimming years of runs must not hold SQLite's write lock (one writer at a time) for the whole sweep."""
+    c, pid, mid, tid = await _setup(env)
+    old = [await _run(env, pid, tid, mid, days=200 + i) for i in range(5)]
+    r = await c.patch(f"/projects/{pid}/ai/settings", json={"run_retention_days": 30})
+    assert r.status_code == 200
+    monkeypatch.setattr(run_retention, "SWEEP_BATCH", 2)
+    commits = []
+    real_commit = AsyncSession.commit
+
+    async def counted(self, *a, **k):
+        commits.append(1)
+        return await real_commit(self, *a, **k)
+
+    monkeypatch.setattr(AsyncSession, "commit", counted)
+    assert await run_retention.sweep(NOW) == 5
+    assert len(commits) >= 3, (
+        "5 runs in batches of 2: a commit after the 2nd, the 4th and at the end"
+    )
+    assert set(old).isdisjoint(await _ids(env, pid))
 
 
 async def test_the_preview_says_what_would_go_and_removes_nothing(env):
