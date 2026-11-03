@@ -201,9 +201,10 @@ function agent(url, step) {
   await docsWin.getByText('Auth', { exact: true }).first().click();
   await sleep(4000);
   caption('"Dock back" (or Ctrl+Shift+D) closes the window and opens Docs in the board on the same page');
-  await bounds(0, { x: 0, y: 0, width: W, height: H });
   await docsWin.getByTestId('docs-dock-back').click();
-  await sleep(5000);
+  await sleep(1500);
+  await bounds(0, { x: 0, y: 0, width: W, height: H });
+  await sleep(4000);
   caption('Recorded in the desktop app (Electron) with Playwright · the AI member\'s CLI is scripted (no model), its MCP calls are real');
   await sleep(4000);
   const total = (Date.now() - t0) / 1000;
