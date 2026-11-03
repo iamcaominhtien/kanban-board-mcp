@@ -251,6 +251,20 @@ def test_a_package_manager_with_no_package_json_is_a_wrong_command():
         )
         == "fails"
     )
+    # nor does one whose fixture is a package.json: only npm, yarn and pnpm's own lines make the command wrong
+    fixture = (
+        "FAIL src/scan.test.ts\n  ● reads the manifest\n"
+        "    Error: ENOENT: no such file or directory, open '/r/test/fixtures/package.json'\n"
+        "    Could not read package.json fixture\n"
+        "Tests:  1 failed, 4 passed\n"
+        "npm error Lifecycle script `test` failed with error:\nnpm error code 1"
+    )
+    assert repo_scan.classify(1, fixture) == "fails"
+    assert repo_scan.classify(1, fixture.replace("npm error", "npm ERR!")) == "fails"
+    assert (
+        repo_scan.classify(254, "npm ERR! path /r/package.json\nnpm ERR! code ENOENT")
+        == "wrong"
+    )
 
 
 def test_a_missing_input_of_the_program_itself_is_a_wrong_command():

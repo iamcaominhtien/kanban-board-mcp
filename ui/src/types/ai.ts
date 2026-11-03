@@ -452,6 +452,8 @@ export interface AiRun {
   retryAt?: string | null;
   /** The Claude account this run spends when it is not the member's own (urgent work moved). */
   accountId?: string | null;
+  /** When the run history retention removed its details (transcript, steps, prompt, logs); the rest is kept (OPS-7). */
+  detailsRemovedAt?: string | null;
 }
 
 export interface AiApproval {

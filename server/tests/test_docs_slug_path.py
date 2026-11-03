@@ -58,3 +58,53 @@ async def test_two_pages_with_the_same_path_share_by_id_and_unknown_paths_are_40
     assert r.status_code == 200 and r.json()["id"] == b["id"]
     r = await c.get(f"/projects/{pid}/docs/by-path", params={"path": "nothing/here"})
     assert r.status_code == 404
+
+
+async def test_the_slug_path_walks_only_the_ancestors_and_matches_the_whole_tree(
+    c, pid, monkeypatch
+):
+    """`slug_path` gives what the whole-space `_slug_paths` gives (unique paths only), without loading every page."""
+    from models import DocsPage
+    from services import docs
+    from tests.test_docs import test_async_session
+
+    a = await mk(c, pid, "Guides")
+    a2 = await mk(
+        c, pid, "Guides"
+    )  # two "guides": everything under them is shared by id
+    under = await mk(c, pid, "Setup", parent_id=a["id"])
+    under2 = await mk(c, pid, "Setup", parent_id=a2["id"])
+    ref = await mk(c, pid, "Reference")
+    api = await mk(c, pid, "API", parent_id=ref["id"])
+    leaf = await mk(c, pid, "Errors", parent_id=api["id"])
+    gone = await mk(c, pid, "Old")
+    orphan = await mk(c, pid, "Orphan", parent_id=gone["id"])
+    loose = await mk(
+        c, pid, "Orphan"
+    )  # same path as the orphan once its parent is deleted
+    for n in range(30):
+        await mk(c, pid, f"Other {n}", parent_id=ref["id"])
+    async with test_async_session() as s:
+        # only the parent is deleted (an old row): its child reads as top level
+        row = await s.get(DocsPage, gone["id"])
+        row.deleted_at = "2000-01-01T00:00:00+00:00"
+        s.add(row)
+        await s.commit()
+
+    async with test_async_session() as s:
+        pages = await docs._all_pages(s, pid)
+        whole = docs._slug_paths(pages)
+        unique = {k: v for k, v in whole.items() if list(whole.values()).count(v) == 1}
+        for p in pages:
+            assert await docs.slug_path(s, p) == unique.get(p.id), p.title
+
+    # a page view does not load the whole space for it
+    async def no_whole_space(*_a, **_k):
+        raise AssertionError("slug_path loaded every page")
+
+    monkeypatch.setattr(docs, "_all_pages", no_whole_space)
+    assert (await c.get(f"/docs/pages/{leaf['id']}")).json()[
+        "slug_path"
+    ] == "reference/api/errors"
+    for pg in (under, under2, a, a2, orphan, loose):
+        assert (await c.get(f"/docs/pages/{pg['id']}")).json()["slug_path"] is None

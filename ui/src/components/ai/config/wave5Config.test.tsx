@@ -102,8 +102,10 @@ describe('Run history retention (OPS-7)', () => {
     expect(select.value).toBe('0');
     fireEvent.change(select, { target: { value: '90' } });
     const result = await screen.findByTestId('ops-run-retention-result');
-    expect(result.textContent).toContain('3 finished runs would go');
-    expect(result.textContent).toContain('2 older runs stay because a record points at them');
+    expect(result.textContent).toContain('The details (transcripts and logs) of 3 finished runs would go');
+    expect(result.textContent).toContain('Their cost, status, summary and links stay.');
+    expect(result.textContent).toContain('2 older runs keep theirs because a record points at them');
+    expect(screen.getByText(/Run details are the transcript, steps, prompt and logs/)).toBeTruthy();
     expect(http.get).toHaveBeenCalledWith('/projects/p1/ai/history/retention', { params: { days: 90 } });
     expect(http.patch).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId('ops-run-retention-save'));

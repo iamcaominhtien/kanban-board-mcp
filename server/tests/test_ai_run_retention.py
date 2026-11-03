@@ -1,8 +1,9 @@
-"""OPS-7: run history retention. Keep forever by default; with N days set, the sweep removes finished runs older than
-that, never one that is not finished, never one of this month, never one another record still points at, and never
-the audit entries or ticket comments that name it."""
+"""OPS-7: run history retention. Keep forever by default; with N days set, the sweep trims finished runs older than
+that: their transcript, steps and prompt go, the run row (number, cost, status, summary, links) stays. Never one that
+is not finished, never one of this budget month, never one another record still works from."""
 
-from datetime import UTC, datetime, timedelta
+import json
+from datetime import UTC, datetime, timedelta, timezone
 
 from sqlmodel import select
 
@@ -36,6 +37,7 @@ async def _run(
             number=n + 1,
             state=state,
             queued_at=_ago(days),
+            started_at=_ago(days),
             ended_at=_ago(days) if state in run_retention.FINISHED else None,
             **extra,
         )
@@ -45,10 +47,12 @@ async def _run(
 
 
 async def _ids(env, pid) -> set[str]:
+    """The runs of the project that still have their details."""
     async with env["maker"]() as s:
         return {
             r.id
             for r in (await s.exec(select(AiRun).where(AiRun.project_id == pid))).all()
+            if not r.details_removed_at
         }
 
 
@@ -76,8 +80,8 @@ async def test_only_finished_old_unlinked_runs_go(env, tmp_path):
     gone = await _run(env, pid, tid, mid, days=200)
     failed = await _run(env, pid, tid, mid, state="failed", days=120)
     recent = await _run(env, pid, tid, mid, days=10)
-    # 1 Dec, 06:00: older than 30 days, yet this month
-    this_month = await _run(env, pid, tid, mid, days=30.25)
+    # 1 Dec, 10:48 UTC: older than 30 days, yet this (local) month in any zone from UTC-10 east
+    this_month = await _run(env, pid, tid, mid, days=30.05)
     paused = await _run(env, pid, tid, mid, days=200, paused=True)
     queued = await _run(env, pid, tid, mid, state="queued", days=200)
     waiting = await _run(env, pid, tid, mid, state="needs_input", days=200, mode="ask")
@@ -114,6 +118,7 @@ async def test_only_finished_old_unlinked_runs_go(env, tmp_path):
     assert p["kept_linked"] == 3 and p["kept_month"] == 1
 
     assert await run_retention.sweep(NOW) == 3
+    assert await run_retention.sweep(NOW) == 0, "a trimmed run is not trimmed again"
     left = await _ids(env, pid)
     assert {gone, failed, audited}.isdisjoint(left)
     assert {
@@ -131,7 +136,14 @@ async def test_only_finished_old_unlinked_runs_go(env, tmp_path):
         assert (
             await s.exec(select(AiAudit).where(AiAudit.run_id == audited))
         ).first() is not None
-        assert await s.get(AiRunTranscript, gone) is None
+        # the transcript row stays and says when the file went
+        tr = await s.get(AiRunTranscript, gone)
+        assert tr is not None and tr.deleted_at and tr.bytes == 0
+        # every run row stays, with its number and cost
+        assert (
+            len((await s.exec(select(AiRun).where(AiRun.project_id == pid))).all())
+            == 11
+        )
     assert not transcript.exists()
 
 
@@ -157,3 +169,80 @@ async def test_keep_forever_again_stops_the_sweep(env):
         assert row.run_retention_days is None
     assert await run_retention.sweep(NOW) == 0
     assert old in await _ids(env, pid)
+
+
+async def test_a_trimmed_run_keeps_its_cost_number_and_links(env):
+    c, pid, mid, tid = await _setup(env)
+    steps = json.dumps([{"at": _ago(200), "kind": "tool", "text": "ls"}])
+    old = await _run(
+        env,
+        pid,
+        tid,
+        mid,
+        days=200,
+        cost_usd=1.25,
+        metered=True,
+        tokens_in=100,
+        tokens_out=50,
+        summary="Fixed the login",
+        instruction="please fix the login",
+        steps=steps,
+        diagnosis=json.dumps({"cause": "x"}),
+    )
+    await c.patch(f"/projects/{pid}/ai/settings", json={"run_retention_days": 30})
+    assert await run_retention.sweep(NOW) == 1
+    async with env["maker"]() as s:
+        run = await s.get(AiRun, old)
+    assert run is not None and run.details_removed_at == NOW.isoformat()
+    assert run.cost_usd == 1.25 and run.tokens_in == 100 and run.number == 1
+    assert run.state == "finished" and run.summary == "Fixed the login"
+    assert run.steps == "[]" and run.instruction == "" and run.diagnosis is None
+    # the API still finds the run and says its details went
+    body = (await c.get(f"/ai/runs/{old}/transcript")).json()
+    assert body["run"]["details_removed_at"] == NOW.isoformat()
+    assert body["run"]["cost_usd"] == 1.25
+    # the next run on the ticket keeps counting from it
+    nxt = await _run(env, pid, tid, mid, days=1)
+    async with env["maker"]() as s:
+        assert (await s.get(AiRun, nxt)).number == 2
+
+
+async def test_this_budget_month_follows_local_time(env, monkeypatch):
+    """In a UTC+ zone the budget month starts before midnight UTC on the 1st: a run started then counts toward this
+    month's spend, so it stays."""
+    import time
+
+    c, pid, mid, tid = await _setup(env)
+    monkeypatch.setenv("TZ", "Asia/Ho_Chi_Minh")  # UTC+7
+    time.tzset()
+    try:
+        now = datetime(2026, 12, 31, 12, 0, tzinfo=UTC)
+        # 30 Nov 20:00 UTC = 1 Dec 03:00 local: this budget month, yet before 1 Dec in UTC
+        local_month = datetime(2026, 11, 30, 20, 0, tzinfo=UTC)
+        # 30 Nov 16:00 UTC = 30 Nov 23:00 local: last month
+        last_month = datetime(2026, 11, 30, 16, 0, tzinfo=UTC)
+        ids = []
+        for at in (local_month, last_month):
+            async with env["maker"]() as s:
+                run = AiRun(
+                    project_id=pid,
+                    ticket_id=tid,
+                    member_id=mid,
+                    number=len(ids) + 1,
+                    state="finished",
+                    queued_at=at.isoformat(),
+                    started_at=at.isoformat(),
+                    ended_at=(at + timedelta(minutes=5)).isoformat(),
+                )
+                s.add(run)
+                await s.commit()
+                ids.append(run.id)
+        assert run_retention.budget.month_start(now) == datetime(
+            2026, 12, 1, tzinfo=timezone(timedelta(hours=7))
+        )
+        async with env["maker"]() as s:
+            p = await run_retention.plan(s, pid, 30, now)
+        assert p["remove"] == [ids[1]] and p["kept_month"] == 1
+    finally:
+        monkeypatch.undo()
+        time.tzset()

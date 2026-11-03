@@ -256,6 +256,8 @@ def to_dict(run: AiRun, member_name: str | None = None) -> dict:
         "retries": loads(run.retries, []),
         "retry_at": run.retry_at,
         "account_id": run.account_id,
+        # OPS-7: the run history retention removed its transcript, steps and prompt (the rest is kept)
+        "details_removed_at": run.details_removed_at,
     }
 
 

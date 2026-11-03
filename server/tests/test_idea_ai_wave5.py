@@ -122,6 +122,27 @@ async def test_an_old_style_answer_still_parses_with_no_actions(env, fake):
     assert idea_ai.split_actions("Text\nACTIONS: [not json") == ("Text", [])
 
 
+def test_the_actions_line_goes_and_the_words_around_it_stay():
+    one = '[{"kind": "open_idea", "idea_id": "IDEA-1"}]'
+    # the line in the middle: the text after it is kept
+    text, actions = idea_ai.split_actions(f"Before.\nACTIONS: {one}\nAfter, still.")
+    assert text == "Before.\n\nAfter, still."
+    assert actions == [{"kind": "open_idea", "idea_id": "IDEA-1"}]
+    # a list over several lines is one block
+    block = '[\n  {"kind": "open_idea",\n   "idea_id": "IDEA-2"}\n]'
+    text, actions = idea_ai.split_actions(
+        f"Answer.\nACTIONS: {block}\nPS: one more thing"
+    )
+    assert text == "Answer.\n\nPS: one more thing" and actions[0]["idea_id"] == "IDEA-2"
+    # not JSON: only that line is dropped
+    assert idea_ai.split_actions("A\nACTIONS: nope\nB") == ("A\n\nB", [])
+    # at the end, as the prompt asks
+    assert idea_ai.split_actions(f"Done.\nACTIONS: {one}\n") == (
+        "Done.",
+        [{"kind": "open_idea", "idea_id": "IDEA-1"}],
+    )
+
+
 async def test_a_shape_request_can_be_stopped(env, fake, monkeypatch):
     c, pid = await _setup(env)
     await _on(c, pid)

@@ -328,12 +328,65 @@ def _slug_paths(pages: list[DocsPage]) -> dict[str, str]:
 
 async def slug_path(session: AsyncSession, page: DocsPage) -> str | None:
     """The page's slug path for a share link, or None when another page of the space has the same one (two pages
-    titled alike under one parent): the link then stays the page id."""
-    paths = _slug_paths(await _all_pages(session, page.project_id))
-    mine = paths.get(page.id)
-    if mine is None or sum(1 for v in paths.values() if v == mine) > 1:
+    titled alike under one parent): the link then stays the page id.
+
+    The same path `_slug_paths` gives, without loading the whole space: the page's ancestors give the path, then the
+    pages that could share it are only the top-level pages and the children of each match, level by level."""
+    chain = [page]
+    seen = {page.id}
+    cur = page
+    while cur.parent_id and cur.parent_id not in seen:
+        parent = await session.get(DocsPage, cur.parent_id)
+        if (
+            parent is None
+            or parent.deleted_at is not None
+            or parent.project_id != page.project_id
+        ):
+            break
+        chain.insert(0, parent)
+        seen.add(parent.id)
+        cur = parent
+    keys = [_path_key(p.title) for p in chain]
+    live = select(DocsPage.id).where(
+        DocsPage.project_id == page.project_id,
+        DocsPage.deleted_at.is_(None),  # type: ignore[union-attr]
+    )
+    # top level: no parent, or a parent that is deleted or gone (`_slug_paths` reads those pages as top level)
+    level = [
+        p
+        for p in (
+            await session.exec(
+                select(DocsPage).where(
+                    DocsPage.project_id == page.project_id,
+                    DocsPage.deleted_at.is_(None),  # type: ignore[union-attr]
+                    or_(
+                        DocsPage.parent_id.is_(None),  # type: ignore[union-attr]
+                        DocsPage.parent_id.not_in(live),  # type: ignore[union-attr]
+                    ),
+                )
+            )
+        ).all()
+        if _path_key(p.title) == keys[0]
+    ]
+    for key in keys[1:]:
+        if not level:
+            break
+        level = [
+            p
+            for p in (
+                await session.exec(
+                    select(DocsPage).where(
+                        DocsPage.project_id == page.project_id,
+                        DocsPage.deleted_at.is_(None),  # type: ignore[union-attr]
+                        DocsPage.parent_id.in_([x.id for x in level]),  # type: ignore[union-attr]
+                    )
+                )
+            ).all()
+            if _path_key(p.title) == key
+        ]
+    if [p.id for p in level] != [page.id]:
         return None
-    return mine
+    return "/".join(keys)
 
 
 async def page_by_path(

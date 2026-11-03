@@ -240,9 +240,10 @@ interface RetentionPreview {
 }
 
 /**
- * History (design ai-operations K, OPS-7): how long a finished run is kept. Keep forever is the default, as it always
- * was; a person who picks a number of days sees what would go first, and the hourly sweep then removes finished runs
- * older than that. Runs still going, runs of this month and runs another record works from always stay.
+ * History (design ai-operations K, OPS-7): how long a finished run keeps its details. Keep forever is the default, as it
+ * always was; a person who picks a number of days sees what would go first, and the hourly sweep then removes the
+ * details (transcript, steps, prompt and logs) of finished runs older than that. The run itself stays: its cost,
+ * status, summary and links. Runs still going, runs of this month and runs another record works from stay whole.
  */
 export function RunHistory({
   projectId,
@@ -290,15 +291,15 @@ export function RunHistory({
       <div className="to-group">
         <GroupHead
           title="History"
-          hint="Summaries, costs and the audit log are kept by their own rules. Transcripts follow Settings › Notifications."
+          hint="Every run stays in the history with its cost, status, summary and links. Transcripts also follow Settings › Notifications."
         />
         <TeamRow
-          title="Keep finished runs for"
-          hint="Runs still going, runs of this month and runs a workflow, approval or pinned transcript points at always stay. Removed runs leave their ticket comments and audit entries in place."
+          title="Keep run details for"
+          hint="Run details are the transcript, steps, prompt and logs; after this many days they are removed. Runs still going, runs of this month and runs a workflow, approval or pinned transcript points at keep theirs."
         >
           <select
             className="ai-select"
-            aria-label="Keep finished runs for"
+            aria-label="Keep run details for"
             data-testid="ops-run-retention"
             value={shown}
             onChange={(e) => {
@@ -333,11 +334,12 @@ export function RunHistory({
         {preview && (
           <div className="ai-hint" role="status" data-testid="ops-run-retention-result">
             {preview.wouldRemove
-              ? `${preview.wouldRemove} finished run${preview.wouldRemove === 1 ? '' : 's'} would go, the oldest ended ${preview.oldest?.slice(0, 10)}.`
-              : 'No run would go now.'}
+              ? `The details (transcripts and logs) of ${preview.wouldRemove} finished run${preview.wouldRemove === 1 ? '' : 's'} would go, the oldest ended ${preview.oldest?.slice(0, 10)}. Their cost, status, summary and links stay.`
+              : 'No run details would go now.'}
             {preview.keptLinked > 0 &&
-              ` ${preview.keptLinked} older run${preview.keptLinked === 1 ? '' : 's'} stay because a record points at them.`}
-            {preview.keptThisMonth > 0 && ` ${preview.keptThisMonth} stay because they ended this month.`}
+              ` ${preview.keptLinked} older run${preview.keptLinked === 1 ? '' : 's'} keep theirs because a record points at them.`}
+            {preview.keptThisMonth > 0 &&
+              ` ${preview.keptThisMonth} keep theirs because they count toward this month's budget.`}
           </div>
         )}
         {pending != null && (

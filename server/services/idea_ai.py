@@ -873,22 +873,34 @@ _ASK_ACTIONS_FORMAT = (
     'leave it out: {"kind": "create_test_ticket", "idea_id": "IDEA-n", "assumption_id": "<id of an assumption of '
     'that idea with no test>", "title": "a short ticket title"} or {"kind": "open_idea", "idea_id": "IDEA-n"}.'
 )
-_ACTIONS_LINE = re.compile(r"^[ \t]*ACTIONS:[ \t]*(.*)\Z", re.M | re.S)
+_ACTIONS_LINE = re.compile(r"^[ \t]*ACTIONS:[ \t]*", re.M)
 
 
 def split_actions(text: str) -> tuple[str, list]:
-    """The answer without its ACTIONS line, and the actions it listed. An answer with no such line (every answer
-    before IAI-3) has none; a line that is not valid JSON is dropped and gives none."""
-    m = _ACTIONS_LINE.search(text or "")
-    if not m:
-        return text or "", []
+    """The answer without its ACTIONS line (or block: the JSON list may run over several lines), and the actions it
+    listed. Only that line or block is taken out; the words before and after it stay. An answer with no such line
+    (every answer before IAI-3) has none; a line that is not valid JSON is dropped (that line only) and gives none."""
+    text = text or ""
+    found = list(_ACTIONS_LINE.finditer(text))
+    if not found:
+        return text, []
+    m = found[-1]
+    value: Any = []
     try:
-        value = json.loads(m.group(1).strip())
+        value, end = json.JSONDecoder().raw_decode(text, m.end())
+        # the rest of that line goes too when it is blank
+        line_end = text.find("\n", end)
+        line_end = len(text) if line_end == -1 else line_end
+        if not text[end:line_end].strip():
+            end = line_end
     except ValueError:
         value = []
-    return (text[: m.start()] + text[m.end() :]).rstrip(), (
-        value if isinstance(value, list) else []
-    )
+        end = text.find("\n", m.end())
+        end = len(text) if end == -1 else end
+    before = text[: m.start()].rstrip()
+    after = text[end:].strip("\n").rstrip()
+    joined = f"{before}\n\n{after}" if before and after else before or after
+    return joined, (value if isinstance(value, list) else [])
 
 
 def _ask_actions(raw: list, by_id: dict[str, IdeaTicket]) -> list[dict[str, Any]]:

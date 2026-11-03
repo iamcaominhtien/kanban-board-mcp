@@ -1,19 +1,24 @@
-"""How long a project keeps its finished AI runs (Settings › AI › Running the team › History; OPS-7).
+"""How long a project keeps the details of its finished AI runs (Settings › AI › Running the team › History; OPS-7).
 
-`AiProjectSettings.run_retention_days` is None by default: every run is kept forever, as always. Only when a person
-picks a number of days does the hourly sweep (and the first one after the server starts) remove the project's
+`AiProjectSettings.run_retention_days` is None by default: every run is kept whole forever, as always. Only when a
+person picks a number of days does the hourly sweep (and the first one after the server starts) trim the project's
 finished runs that ended longer ago than that.
 
-What is never removed:
-- a run that is not finished: queued, starting, running, waiting for an answer (needs_input) or paused;
-- a run that ended this calendar month (UTC): the monthly budgets add up the runs of the month;
-- a run another record still points at to work: a run waiting behind it, a workflow step or arbitration, an approval,
-  a lesson learned from it, a Docs proposal or an idea comment it wrote, a pinned transcript.
+Trimming keeps the run (`AiRun`) and removes only its heavy details:
+- its transcript (the compressed file; its row stays and says when it was removed, as the transcript retention does);
+- its steps log, the prompt it was given, the notes and restarts and retries of its process, the board's diagnosis.
+The row is marked `details_removed_at`, and the run detail says "details removed" where it would show them.
 
-The records that point at a run are never removed with it: audit-log entries (a hash chain, kept by their own
-retention), ticket comments and their run link, workflow steps, skill-use counts. They keep their own copy of what
-they say (the comment's text and cost, the audit entry's detail); a comment whose run is gone shows without the run
-card. A removed run's unpinned transcript (its row and file) goes with it.
+What stays, so nothing a person sees elsewhere changes: the run's number, status, times, cost and tokens (the budgets,
+usage history and Story counts sum them), its summary, report, question and answer, files, feedback, and every link
+to it (ticket comments, audit entries, workflow steps, schedule runs, decisions, Story records). Its search entry is
+rebuilt from what stays.
+
+What is never trimmed:
+- a run that is not finished: queued, starting, running, waiting for an answer (needs_input) or paused;
+- a run that started this budget month (local time, `budget.month_start`): the monthly budgets add up those runs;
+- a run another record still works from: a run waiting behind it, a workflow step or arbitration, an approval, a
+  lesson learned from it, a Docs proposal or an idea comment it wrote, a pinned transcript.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -23,7 +28,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
-from services.ai import transcripts
+from services.ai import budget, transcripts
 from models import (
     AiApproval,
     AiLesson,
@@ -36,17 +41,13 @@ from models import (
     IdeaComment,
 )
 
-# The choices of the setting; None (or 0 from the API) keeps runs forever
+# The choices of the setting; None (or 0 from the API) keeps runs whole forever
 CHOICES = (30, 90, 180, 365)
 FINISHED = ("finished", "failed", "cancelled", "timed_out")
 
 
-def _month_start(now: datetime) -> datetime:
-    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-
 async def _referenced(session: AsyncSession, ids: list[str]) -> set[str]:
-    """The run ids among `ids` that another record still points at to work."""
+    """The run ids among `ids` that another record still works from."""
     if not ids:
         return set()
     found: set[str] = set()
@@ -82,7 +83,7 @@ async def plan(
     days: int | None,
     now: datetime | None = None,
 ) -> dict:
-    """What a retention of `days` would remove now: {days, remove: [run ids], oldest, kept_linked, kept_month}.
+    """What a retention of `days` would trim now: {days, remove: [run ids], oldest, kept_linked, kept_month}.
     `days` None keeps everything."""
     now = now or datetime.now(UTC)
     out = {
@@ -95,7 +96,8 @@ async def plan(
     if not days:
         return out
     cutoff = (now - timedelta(days=days)).isoformat()
-    month = _month_start(now).isoformat()
+    # The budget month starts at local midnight on the 1st and sums spend by `started_at`: compare the same way
+    month = budget.month_start(now).isoformat()
     old = (
         await session.exec(
             select(AiRun).where(
@@ -104,11 +106,16 @@ async def plan(
                 col(AiRun.ended_at).is_not(None),
                 col(AiRun.ended_at) < cutoff,
                 AiRun.paused == False,  # noqa: E712
+                col(AiRun.details_removed_at).is_(None),
             )
         )
     ).all()
-    this_month = [r for r in old if r.ended_at >= month]
-    rest = [r for r in old if r.ended_at < month]
+
+    def in_month(r: AiRun) -> bool:
+        return (r.started_at or r.ended_at or "") >= month
+
+    this_month = [r for r in old if in_month(r)]
+    rest = [r for r in old if not in_month(r)]
     linked = await _referenced(session, [r.id for r in rest])
     gone = [r for r in rest if r.id not in linked]
     out["remove"] = [r.id for r in gone]
@@ -118,9 +125,30 @@ async def plan(
     return out
 
 
+async def trim(session: AsyncSession, run: AiRun, at: str) -> None:
+    """Remove a finished run's details and keep the run (see the module doc). The caller commits."""
+    tr = await session.get(AiRunTranscript, run.id)
+    if tr is not None and not tr.pinned and not tr.deleted_at:
+        if tr.path:
+            transcripts._existing(Path(tr.path)).unlink(missing_ok=True)
+        tr.deleted_at = at
+        tr.bytes = 0
+        session.add(tr)
+    run.steps = "[]"
+    run.instruction = ""
+    run.context_notes = "[]"
+    run.restarts = "[]"
+    run.retries = "[]"
+    run.diagnosis = None
+    run.details_removed_at = at
+    session.add(run)
+    await transcripts.index(session, run, [])
+
+
 async def sweep(now: datetime | None = None) -> int:
-    """Remove the finished runs past each project's retention (projects with none set are not touched)."""
+    """Trim the finished runs past each project's retention (projects with none set are not touched)."""
     removed = 0
+    at = (now or datetime.now(UTC)).isoformat()
     async with database.async_session() as session:
         settings = (
             await session.exec(
@@ -135,14 +163,9 @@ async def sweep(now: datetime | None = None) -> int:
             p = await plan(session, s.project_id, s.run_retention_days, now)
             for run_id in p["remove"]:
                 run = await session.get(AiRun, run_id)
-                if run is None or run.state not in FINISHED:
-                    continue  # it changed since the plan (a retry reopened nothing, but be sure)
-                tr = await session.get(AiRunTranscript, run_id)
-                if tr is not None and not tr.pinned:
-                    if tr.path and not tr.deleted_at:
-                        transcripts._existing(Path(tr.path)).unlink(missing_ok=True)
-                    await session.delete(tr)
-                await session.delete(run)
+                if run is None or run.state not in FINISHED or run.details_removed_at:
+                    continue  # it changed since the plan
+                await trim(session, run, at)
                 removed += 1
             await session.commit()
     return removed

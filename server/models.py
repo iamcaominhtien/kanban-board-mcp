@@ -1305,6 +1305,9 @@ class AiRun(SQLModel, table=True):
     # A workflow step's own model and effort for this run (review depth, Opus on a second attempt), over the member's
     model_override: Optional[str] = Field(default=None)
     effort_override: Optional[str] = Field(default=None)
+    # Set when the run history retention (OPS-7) removed the run's details: its transcript, steps, prompt and logs.
+    # The row stays with its number, cost, tokens, status, summary and links
+    details_removed_at: Optional[str] = Field(default=None)
 
 
 AI_ACTIVE_STATES = ("queued", "starting", "running", "needs_input")
