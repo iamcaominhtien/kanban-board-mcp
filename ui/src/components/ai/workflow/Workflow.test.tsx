@@ -188,6 +188,38 @@ describe('the strip of steps', () => {
     expect(card.textContent).toContain('The disk is full');
   });
 
+  it('shows a ticket taken back as waiting for the person, with Give back, not as a failure (#272)', async () => {
+    wf = view({ state: 'stopped', stopReason: 'taken_back', stopDetail: 'An Nguyen took it back.' });
+    wf.steps[1] = { ...wf.steps[1], state: 'failed', outcome: 'taken_back', noteIn: null };
+    mount(<TicketWorkflow ticket={ticket} />);
+    const card = await screen.findByTestId('taken-back-card');
+    expect(card.textContent).toContain('An Nguyen took it back.');
+    expect(card.textContent).toContain('The workflow waits at “Build”');
+    expect(card.textContent).toContain('Give back to AI, under the assignee');
+    expect(screen.queryByTestId('stop-card')).toBeNull();
+    expect(screen.queryByTestId('tdd-card')).toBeNull();
+    const row = screen.getByTestId('wf-step-build');
+    expect(row.textContent).toContain('taken back');
+    expect(row.textContent).not.toContain('failed');
+  });
+
+  it("shows a step's handoff note, Done and Left, instead of the run's whole text (#272)", async () => {
+    wf = view();
+    wf.steps[0] = {
+      ...wf.steps[0],
+      note: 'A very long final message '.repeat(20),
+      handoff: { done: 'Sorted it as a feature.', where: 'Labels', left: 'Nothing.', check: 'The depth.' },
+    };
+    wf.steps[1] = { ...wf.steps[1], noteIn: 'Read this first: the handoff note An left…' };
+    mount(<TicketWorkflow ticket={ticket} />);
+    const note = await screen.findByTestId('wf-handoff-triage');
+    expect(note.textContent).toBe('Done: Sorted it as a feature.Left: Nothing.');
+    expect(screen.getByTestId('wf-step-triage').textContent).not.toContain('A very long final message');
+    expect(screen.getByTestId('wf-note-in-build').textContent).toBe(
+      'Started from the handoff note given with it (in the comments).',
+    );
+  });
+
   it('says a blocked step has no member', async () => {
     wf = view();
     wf.steps[1] = { ...wf.steps[1], state: 'blocked' };

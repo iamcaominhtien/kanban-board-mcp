@@ -5496,11 +5496,19 @@ async def _handoff_is_free(ctx: RunContext) -> bool:
 
 
 async def record_handoff(
-    ctx: RunContext, member_ref: str, ticket_ref: str | None, instruction: str
+    ctx: RunContext,
+    member_ref: str,
+    ticket_ref: str | None,
+    instruction: str,
+    note: dict | None = None,
 ) -> dict:
     """The agent hands a ticket to a teammate AI: it assigns the ticket (a permission check like any assignment) and
-    queues a work run for them, behind this run when the ticket is this run's own. They answer on the ticket."""
+    queues a work run for them, behind this run when the ticket is this run's own. They answer on the ticket. A
+    handoff `note` goes on the ticket and is the first thing the teammate's run reads (issue #272)."""
     from . import guard
+    from . import handoff as notes
+
+    note = notes.clean(note)
 
     if ctx.narrow:
         raise ValueError(
@@ -5577,7 +5585,15 @@ async def record_handoff(
                     mode="work",
                     trigger="handoff",
                     started_by=ctx.on_behalf_of,
-                    instruction=(instruction or "").strip()[:2000],
+                    instruction=(
+                        (
+                            notes.for_prompt(note, source=f"{ctx.member_name} left")
+                            + "\n\n"
+                            if note
+                            else ""
+                        )
+                        + (instruction or "").strip()[:2000]
+                    ),
                     chain=[*ctx.chain, ctx.member_id],
                     wait_for_hold=True,
                     report_back=back,
@@ -5598,6 +5614,17 @@ async def record_handoff(
     finally:
         if tokens is not None:
             guard.leave(tokens)
+    if note:
+        async with database.async_session() as session:
+            mine = await session.get(AiRun, ctx.run_id)
+            await notes.post(
+                session,
+                ticket_id,
+                note,
+                author=ctx.member_name,
+                to=target.name,
+                run=mine,
+            )
     await audit.record(
         ctx.project_id,
         "handoff",
@@ -5732,8 +5759,12 @@ async def record_report(
     criteria: list[dict] | None,
     tests: dict | None,
     learned: list | None = None,
+    handoff: dict | None = None,
 ) -> dict:
-    """The agent's own account of what it did; shown as the AI summary (a claim, not proof)."""
+    """The agent's own account of what it did; shown as the AI summary (a claim, not proof). Its handoff note is what
+    the next role reads first (issue #272)."""
+    from . import handoff as notes
+
     report = {
         "summary": redact((summary or "").strip())[:8000],
         "criteria": [
@@ -5747,6 +5778,9 @@ async def record_report(
         ][:30],
         "tests": _clean_tests(tests),
     }
+    note = notes.clean(handoff)
+    if note:
+        report["handoff"] = note
     next_step = "End with a short final message."
     async with database.async_session() as session:
         ticket = await session.get(Ticket, ctx.ticket_id)

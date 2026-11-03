@@ -37,6 +37,7 @@ from services.ai import audit as svc_audit
 from services.ai import members as svc_members
 from services.ai import autopilot, autotrip, budget, run_retention, safety
 from services.ai import away as svc_away
+from services.ai import hold as svc_hold
 from services.ai import usage as svc_usage
 from services.ai import mentions as svc_mentions
 from services.ai import permissions as perms
@@ -1762,34 +1763,69 @@ class TakeOverBody(BaseModel):
     """A person takes the ticket from the AI."""
 
     member_id: Optional[str] = None
+    text: Optional[str] = None
 
 
 @router.post("/tickets/{ticket_id}/ai/take-over")
 async def post_take_over(ticket_id: str, body: TakeOverBody, session: Session) -> dict:
-    """Cancel the AI's run (if any) and assign the ticket to a person."""
+    """Take the ticket back from the AI team: its runs stop, a workflow pauses at its step, the ticket is the
+    person's, and a handoff note of what the AI did goes on the ticket (issue #272)."""
     await _ticket(session, ticket_id)
-    for r in await svc_runs.active_runs(session, ticket_id=ticket_id):
-        try:
-            await svc_runs.cancel(
-                r.id,
-                by=_by(),
-                reason=f"{_by()} took over the ticket",
-                revert_status=False,
-                stop_code="takeover",
-            )
-        except svc_runs.RunError:
-            pass
-    if body.member_id:
-        try:
-            await svc_tickets.update_ticket(
-                session, ticket_id, TicketUpdate(assignee=body.member_id)
-            )
-        except ValueError as exc:
-            _err(exc)
-    await board_events.publish("invalidate")
+    try:
+        out = await svc_hold.take_back(
+            ticket_id, by=_by(), member_id=body.member_id, text=body.text
+        )
+    except svc_hold.HoldError as exc:
+        _err(exc)
     ticket = await _ticket(session, ticket_id)
     await session.refresh(ticket)
-    return TicketRead.from_ticket(ticket).model_dump()
+    return {**TicketRead.from_ticket(ticket).model_dump(), "holder": out["holder"]}
+
+
+class HandOverBody(BaseModel):
+    """Give the ticket to the AI team with a handoff note."""
+
+    done: Optional[str] = None
+    where: Optional[str] = None
+    left: Optional[str] = None
+    check: Optional[str] = None
+    text: Optional[str] = None
+    member_id: Optional[str] = None
+    workflow: Optional[str] = None
+    branch: Optional[str] = None
+    pages: list[str] = []
+
+
+@router.post("/tickets/{ticket_id}/ai/hand-over")
+async def post_hand_over(ticket_id: str, body: HandOverBody, session: Session) -> dict:
+    """Give it back (or for the first time) to the AI team: the paused workflow resumes at its step, a workflow
+    starts, or an AI member takes it; whoever takes it reads the note first (issue #272)."""
+    await _ticket(session, ticket_id)
+    try:
+        return await svc_hold.hand_over(
+            ticket_id,
+            by=_by(),
+            note={
+                "done": body.done,
+                "where": body.where,
+                "left": body.left,
+                "check": body.check,
+            },
+            text=body.text,
+            member_id=body.member_id,
+            workflow=body.workflow,
+            branch=body.branch,
+            pages=body.pages,
+        )
+    except svc_hold.HoldError as exc:
+        _err(exc, 409)
+
+
+@router.get("/tickets/{ticket_id}/ai/holder")
+async def get_holder(ticket_id: str, session: Session) -> dict:
+    """Who has the ticket now: an AI, a person, or someone it waits on (issue #272)."""
+    ticket = await _ticket(session, ticket_id)
+    return await svc_hold.holder(session, ticket)
 
 
 @router.get("/ai/runs/{run_id}/revert-preview")

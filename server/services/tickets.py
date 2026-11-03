@@ -2045,8 +2045,10 @@ async def add_branch(
     behind_count: int = 0,
     create_worktree: bool = False,
     worktree_path: str | None = None,
+    adopt: bool = False,
 ) -> Ticket | None:
-    """Record a branch on a ticket, creating it (and optionally a worktree) in the linked repo.
+    """Record a branch on a ticket, creating it (and optionally a worktree) in the linked repo. `adopt`: a branch
+    that already exists in the repo (an outside agent's work) is recorded as it is instead of refused.
 
     Args:
         ticket_id: Ticket to add to.
@@ -2088,6 +2090,8 @@ async def add_branch(
         def _create() -> tuple[git_repo.BranchInfo, str]:
             repo = git_repo.open_repo(repo_path)
             base = git_repo.resolve_base(repo, branch_from)
+            if adopt and git_repo.branch_exists(repo, name):
+                return git_repo.branch_info(repo, name, base), base
             return git_repo.create_branch(repo, name, base), base
 
         info, branch_from = await asyncio.to_thread(_create)

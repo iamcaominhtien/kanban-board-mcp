@@ -114,6 +114,8 @@ export function stepStateLabel(
     case 'blocked':
       return { text: 'blocked', tone: 'bad' };
     case 'failed':
+      // a person took the ticket back at this step: not a failure, it waits for them (#272)
+      if (s.outcome === 'taken_back') return { text: 'taken back', tone: 'you' };
       return { text: 'failed', tone: 'bad' };
     case 'skipped':
       return { text: 'skipped', tone: 'pending' };

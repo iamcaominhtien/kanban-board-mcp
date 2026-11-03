@@ -22,6 +22,7 @@ export const aiKeys = {
   usage: (id: string) => ['ai', 'usage', id] as const,
   permissions: (id: string) => ['ai', 'permissions', id] as const,
   ticketRuns: (ticketId: string) => ['ai', 'ticket-runs', ticketId] as const,
+  ticketHolder: (ticketId: string) => ['ai', 'ticket-holder', ticketId] as const,
   run: (id: string) => ['ai', 'run', id] as const,
   approvals: (projectId: string, status?: string) => ['ai', 'approvals', projectId, status ?? 'all'] as const,
   audit: (projectId: string, filters: object) => ['ai', 'audit', projectId, filters] as const,
@@ -153,6 +154,44 @@ export function useTicketRuns(ticketId: string | undefined) {
     enabled: !!ticketId,
     refetchInterval: (q) =>
       q.state.data?.some((r) => ['queued', 'starting', 'running'].includes(r.state)) ? LIVE_POLL_MS : SAFETY_POLL_MS,
+  });
+}
+
+/** Who has a ticket now: an AI, a person, or someone it waits on (issue #272). */
+export interface TicketHolder {
+  kind: 'ai' | 'person' | 'waiting' | 'nobody';
+  name: string | null;
+  memberId: string | null;
+  state: string | null;
+  waitingOn: string | null;
+  step: string | null;
+  since: string | null;
+  text: string;
+}
+
+/** The fixed-form note a hand-over carries: what was done, where it is, what is left, what to check first. */
+export interface HandoffFields {
+  done?: string;
+  where?: string;
+  left?: string;
+  check?: string;
+}
+
+export interface HandOverResult {
+  ticketId: string;
+  route: 'resumed' | 'workflow' | 'told' | 'member';
+  step?: string | null;
+  member?: string;
+  holder: TicketHolder;
+}
+
+/** Who has the ticket now, polled faster while an AI holds it. */
+export function useTicketHolder(ticketId: string | undefined) {
+  return useQuery({
+    queryKey: aiKeys.ticketHolder(ticketId ?? ''),
+    queryFn: async () => (await client.get<TicketHolder>(`/tickets/${ticketId}/ai/holder`)).data,
+    enabled: !!ticketId,
+    refetchInterval: (q) => (q.state.data?.kind === 'ai' ? LIVE_POLL_MS : SAFETY_POLL_MS),
   });
 }
 
@@ -363,8 +402,12 @@ export const aiApi = {
   answer: async (runId: string, text: string) => (await client.post<AiRun>(`/ai/runs/${runId}/answer`, { text })).data,
   requestChanges: async (ticketId: string, text: string, continueSession: boolean) =>
     (await client.post<AiRun>(`/tickets/${ticketId}/ai/request-changes`, { text, continueSession })).data,
-  takeOver: async (ticketId: string, memberId?: string) =>
-    (await client.post<Ticket>(`/tickets/${ticketId}/ai/take-over`, { memberId })).data,
+  takeOver: async (ticketId: string, memberId?: string, text?: string) =>
+    (await client.post<Ticket & { holder: TicketHolder }>(`/tickets/${ticketId}/ai/take-over`, { memberId, text }))
+      .data,
+  /** Give the ticket (back) to the AI team with a handoff note; a workflow taken back resumes at its step. */
+  handOver: async (ticketId: string, body: HandoffFields & { memberId?: string; workflow?: string }) =>
+    (await client.post<HandOverResult>(`/tickets/${ticketId}/ai/hand-over`, body)).data,
   revertPreview: async (runId: string) => (await client.get<RevertRow[]>(`/ai/runs/${runId}/revert-preview`)).data,
   revertRun: async (runId: string) =>
     (await client.post<{ entryId: string; result: string; reason?: string }[]>(`/ai/runs/${runId}/revert`)).data,

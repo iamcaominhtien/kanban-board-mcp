@@ -61,7 +61,8 @@ export function TakeOverButton({
   const [pick, setPick] = useState<string | null>(null);
   const chosen = pick ?? people.find((p) => p.name === me)?.id ?? people[0]?.id ?? null;
   const toast = useToast();
-  const takeOver = useAiMutation((memberId: string) => aiApi.takeOver(ticketId, memberId));
+  const [why, setWhy] = useState('');
+  const takeOver = useAiMutation((memberId: string) => aiApi.takeOver(ticketId, memberId, why.trim() || undefined));
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
       <button
@@ -80,7 +81,8 @@ export function TakeOverButton({
           <div role="dialog" aria-label="Take over" data-testid="take-over-pop" style={{ padding: 8 }}>
             <b style={{ fontSize: 13.5 }}>Who takes {ticketId}?</b>
             <div className="ai-hint" style={{ margin: '2px 0 8px' }}>
-              The AI’s run ends and the ticket is assigned to them. Files stay on the branch.
+              The AI’s run ends, its workflow waits at this step, and the ticket is assigned to them. A handoff note of
+              what the AI did goes on the ticket. Files stay on the branch.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 220, overflow: 'auto' }}>
               {people.map((p) => (
@@ -103,6 +105,24 @@ export function TakeOverButton({
               ))}
               {people.length === 0 && <span className="ai-muted">No people in this project.</span>}
             </div>
+            <label className="ai-hint" style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 8 }}>
+              Why (goes in the handoff note, optional)
+              <textarea
+                rows={2}
+                value={why}
+                data-testid="take-over-why"
+                placeholder="What you will do instead, so the AI knows when it gets it back"
+                onChange={(e) => setWhy(e.target.value)}
+                style={{
+                  font: 'inherit',
+                  fontSize: 13,
+                  border: '1px solid #DFE5E0',
+                  borderRadius: 8,
+                  padding: '6px 8px',
+                  resize: 'vertical',
+                }}
+              />
+            </label>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
               <button type="button" className="ai-btn ai-btn-sm" onClick={() => setOpen(false)}>
                 Cancel

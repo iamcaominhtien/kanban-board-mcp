@@ -31,6 +31,7 @@ import type { SuggestMember } from './docs/RefSuggester';
 import { getAvatarColors } from './MemberAvatar';
 import { CommentAiFlag } from './ai/AiTicketSafety';
 import { AiTalkFold } from './ai/talk/AiTalkFold';
+import { HandoffCard } from './ai/handoff/Handoff';
 import { talkRuns, type AiLookup, type TalkRun } from './ai/talk/aiTalk';
 import {
   UNDO_MS,
@@ -621,6 +622,8 @@ export function CommentsSection({
               run={aiRuns.find((r) => r.id === c.ai?.runId)}
               onDismiss={() => void remove(c, index)}
             />
+          ) : c.handoff ? (
+            <HandoffCard note={c.handoff} />
           ) : (
             <div style={{ fontSize: 13.5, lineHeight: 1.65, color: '#3A4A3E' }}>
               <Collapsible text={c.text} />

@@ -296,3 +296,86 @@ async def override(decision_id: str, text: str | None = None) -> dict:
             raise ValueError(str(exc)) from exc
     await board_events.publish("invalidate")
     return _decision_row(d)
+
+
+# ---------------------------------------------------------------------------
+# Handing work over and talking to a running AI (issue #272)
+# ---------------------------------------------------------------------------
+
+
+async def take_back(ticket_id: str, text: str | None = None) -> dict:
+    """Take the ticket back from the AI team for the person: its runs stop, its workflow pauses at the step it was
+    on, the ticket is the person's, and a handoff note of what the AI did goes on the ticket."""
+    from services.ai import hold
+
+    async with common.async_session() as session:
+        ticket = await _ticket(session, ticket_id)
+        _in_run_project(ticket.project_id)
+    try:
+        return await hold.take_back(ticket_id, by=_by(), text=text)
+    except hold.HoldError as exc:
+        raise ValueError(str(exc)) from exc
+
+
+async def hand_over(
+    ticket_id: str,
+    fields: dict | None = None,
+    text: str | None = None,
+    member_id: str | None = None,
+    workflow: str | None = None,
+) -> dict:
+    """Give the ticket to the AI team with a handoff note, in one call: fields {done, where, left, check, branch,
+    pages}. A workflow paused by take_back resumes at its step; `workflow` starts one; a workflow going on tells its
+    running AI; else `member_id` (default: the AI that held it last) takes it. Whoever takes it reads the note first."""
+    from services.ai import hold
+
+    fields = dict(fields or {})
+    pages = fields.get("pages") or []
+    if isinstance(pages, str):
+        pages = [pages]
+    async with common.async_session() as session:
+        ticket = await _ticket(session, ticket_id)
+        _in_run_project(ticket.project_id)
+    try:
+        return await hold.hand_over(
+            ticket_id,
+            by=_by(),
+            note={k: fields.get(k) for k in ("done", "where", "left", "check")},
+            text=text,
+            member_id=member_id,
+            workflow=workflow,
+            branch=fields.get("branch"),
+            pages=[str(p) for p in pages],
+        )
+    except hold.HoldError as exc:
+        raise ValueError(str(exc)) from exc
+
+
+async def tell(run_id: str, text: str) -> dict:
+    """Send a message to an AI while it works (Live commentary's reply box): it reaches the run at its next turn, or
+    with its next board call; one that ends first goes to the ticket's next run."""
+    from models import AiRun
+    from services.ai import runs as svc_runs
+
+    text = (text or "").strip()
+    if not text:
+        raise ValueError("tell needs text: the message for the AI.")
+    async with common.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None:
+            raise ValueError(
+                f"Run '{run_id}' not found: ai_team(runs, active_only=true) lists the runs going on."
+            )
+        _in_run_project(run.project_id)
+        if run.state in svc_runs.ENDED:
+            raise ValueError(
+                f"Run #{run.number} already ended ({run.state}): hand the ticket over instead (ai_team(hand_over))."
+            )
+    how = await svc_runs.tell(run_id, text, by=_by())
+    return {
+        "run_id": run_id,
+        "delivered": how,
+        "note": "It reached the running AI now."
+        if how == "input"
+        else "The AI reads it with its next board call.",
+    }

@@ -14,6 +14,15 @@ _CRITERION = {
     },
     "required": ["text", "met"],
 }
+_HANDOFF = {
+    "type": "object",
+    "properties": {
+        "done": {"type": "string"},
+        "where": {"type": "string"},
+        "left": {"type": "string"},
+        "check": {"type": "string"},
+    },
+}
 _LEARNED = {
     "type": "object",
     "properties": {
@@ -51,6 +60,10 @@ def _tests_schema(schema: dict) -> None:
     _spell_out(schema, _TESTS, array=False)
 
 
+def _handoff_schema(schema: dict) -> None:
+    _spell_out(schema, _HANDOFF, array=False)
+
+
 async def ai_run(
     action: Literal["ask", "report", "handoff", "decide", "answer"],
     question: Annotated[str | None, Field(description="ask: the question.")] = None,
@@ -70,6 +83,13 @@ async def ai_run(
         Field(
             description="report: test counts.",
             json_schema_extra=_tests_schema,
+        ),
+    ] = None,
+    handoff: Annotated[
+        dict | None,
+        Field(
+            description="report, handoff: your handoff note; the next role reads it first.",
+            json_schema_extra=_handoff_schema,
         ),
     ] = None,
     learned: Annotated[
@@ -99,8 +119,8 @@ async def ai_run(
     approve: Annotated[bool | None, Field(description="decide: yes or no.")] = None,
 ) -> dict:
     """Only inside a run the board started. ask: question the person you act for, then stop; the board resumes you
-    with the answer. report: record your summary before the final message. handoff: assign a ticket to a teammate AI
-    and queue their work run. decide/answer: only in an Autopilot brief, for the person's pending requests."""
+    with the answer. report: record your summary and your handoff note before the final message. handoff: assign a
+    ticket to a teammate AI and queue their work run, with your handoff note. decide/answer: only in an Autopilot brief, for the person's pending requests."""
     from services.ai import guard, runs
 
     ctx = await guard.resolve()
@@ -122,5 +142,9 @@ async def ai_run(
         except autopilot.AutopilotError as exc:
             raise ValueError(str(exc)) from exc
     if action == "handoff":
-        return await runs.record_handoff(ctx, member or "", ticket, instruction or "")
-    return await runs.record_report(ctx, summary or "", criteria, tests, learned)
+        return await runs.record_handoff(
+            ctx, member or "", ticket, instruction or "", note=handoff
+        )
+    return await runs.record_report(
+        ctx, summary or "", criteria, tests, learned, handoff=handoff
+    )

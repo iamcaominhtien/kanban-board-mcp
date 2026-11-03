@@ -283,6 +283,7 @@ async def get_ticket(
     `docs`: the Docs pages tied to the ticket (its spec, design notes): [{page_id, title, path, sections, why}]; read
     the ones that matter with docs_read(action='get', page_id) before you work.
     `files`: uploads the ticket mentions, with absolute `path` to read.
+    `held_by`: who has it now. A comment with `handoff` is a handoff note: read the newest first.
     Sub-item ids (comment, test case, branch, ...) used by the other tools come from here.
     `activity_log`: the latest changes (who, what, when); `activity_total`: how many there are in all (activity_limit
     and activity_since widen or narrow).
@@ -332,6 +333,10 @@ async def get_ticket(
         docs = await _linked_docs(session, ticket)
         if docs:
             data["docs"] = docs
+        from services.ai import hold as svc_hold
+
+        # who has it now: an AI (doing what), a person, or someone it waits on (issue #272)
+        data["held_by"] = await svc_hold.holder(session, ticket)
     log = data.get("activity_log") or []
     data["activity_total"] = len(log)
     if since is not None:
