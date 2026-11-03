@@ -15,7 +15,8 @@ Also found by the #274 live check: neither Dev ran the repository's own tests, a
 ### Fixed
 - **A run is told the project's own checks by name** (Settings › AI › Commands): "This project's own checks, allowed in every run: tests `./test.sh`…". They were already allowed, but the prompt only said "the project's test command", so a live Dev ran `python3 -m unittest` (refused) and never `./test.sh`.
 - **`python -m unittest` and `python3 -m unittest` are allowed** wherever pytest is (a Dev's, QA's and Reviewer's tests, and the default allow list).
-- **A run that commits, without a worktree, can reach the ticket's branch**: `git switch` and `git checkout -b` are allowed (`git switch -f`, `--force` and `--discard-changes` are not), and the prompt says how. A live Dev's `git checkout <branch>` was refused and its work stayed uncommitted on `main`. Plain `git checkout` stays refused: it also throws away changes.
+- **A run that commits, without a worktree, can reach the ticket's branch**: `git switch` and `git checkout -b` are allowed (`git switch -f`, `--force` and `--discard-changes` are not), and the prompt says how. A live Dev's `git checkout <branch>` was refused and its work stayed uncommitted on `main`. Plain `git checkout` stays refused: it also throws away changes. The prompt says to make the branch from the base, not from another ticket's branch (a live Dev branched SHOP-2 off SHOP-1, where the checkout stood).
+- Checked live (sonnet): Dev An ran `./test.sh`, met its watch mode, ran `./test.sh --once`, kept that in its notes and committed on its branch; Dev Binh, given the note on another ticket, ran `./test.sh --once` the first time.
 
 ## [3.34.1] - 2026-11-03
 

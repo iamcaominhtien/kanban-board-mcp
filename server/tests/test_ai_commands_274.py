@@ -81,7 +81,10 @@ async def test_a_dev_without_a_worktree_may_run_unittest_and_reach_the_tickets_b
     assert set(tool_rules.BRANCH_DENY) <= set(denied)
     # plain `git checkout <path>` throws away changes: it stays refused
     assert "Bash(git checkout:*)" not in allowed
-    assert "git switch <branch>" in _flag(args, "--append-system-prompt")
+    system = _flag(args, "--append-system-prompt")
+    assert "git switch <branch>" in system
+    # a live Dev made SHOP-2's branch from SHOP-1's, where the checkout stood
+    assert "never from another ticket's branch" in system
 
 
 async def test_a_run_that_does_not_commit_gets_no_branch_switching(

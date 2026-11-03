@@ -4056,7 +4056,8 @@ async def workspace_line(
         f"Code goes in the worktree {worktree.path}, committed; leave nothing else there."
         if worktree is not None
         else "Code goes in the repository, committed on the ticket's branch (move to it with `git switch <branch>`, "
-        "or `git switch -c <branch>` to make it)."
+        "or make it from the base branch with `git switch -c <branch> <base>`, never from another ticket's branch "
+        "unless this ticket builds on it)."
     )
     if ws is None or not ws.get("enabled"):
         return (
