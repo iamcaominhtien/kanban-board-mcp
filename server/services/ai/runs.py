@@ -2468,6 +2468,11 @@ async def _execute_cli_held(
                 f"touch the main checkout. If you start a server, use the port {worktree.port} (the PORT environment "
                 "variable) and run it in the background."
             )
+        known = commands_line(cfg_ops)
+        if known:
+            # the project's own checks, by name: they were allowed, but a live Dev never learned which they were and
+            # ran `python3 -m unittest`, refused, instead of the repository's `./test.sh` (issue #274)
+            system = f"{system}\n\n{known}"
         if config.get("permission_mode") != "bypass":
             # A live Reviewer typed `git -C <worktree> log` and `cd <worktree> && …`: an allow rule matches the start of
             # the command, so both were refused, it took the shell for switched off and never ran the tests (issue #269)
@@ -2556,6 +2561,15 @@ async def _execute_cli_held(
                 ),
             )
             edits = False
+            if (
+                worktree is None
+                and not safe
+                and not narrow
+                and "Bash(git commit:*)" in allowed
+            ):
+                # no worktree: a run that commits must be able to reach the ticket's branch (issue #274)
+                allowed += [r for r in tool_rules.BRANCH_SWITCH if r not in denied]
+                denied += [r for r in tool_rules.BRANCH_DENY if r not in denied]
         # An owner's "Bypass permissions" (Claude Code and Antigravity): work runs only, never in safe mode. Deny
         # rules and the board's own checks (status ceiling, approvals) still apply. The web is open as in a person's
         # own Claude Code (references, docs, fonts): the blanket web denial the allow list adds is lifted, a deny
@@ -4000,6 +4014,25 @@ SHELL_LINE = (
 )
 
 
+def commands_line(cfg_ops: dict) -> str:
+    """The project's own checks (Settings › AI › Commands) for a run's prompt, or "" when none is set."""
+    names = {"test": "tests", "lint": "lint", "build": "build"}
+    off = set(cfg_ops.get("checks_off") or [])
+    parts = [
+        f"{names.get(k, k)} `{' '.join(str(v).split())}`"
+        + (" (saved, not yet a required check)" if k in off else "")
+        for k, v in (cfg_ops.get("commands") or {}).items()
+        if str(v or "").strip()
+    ]
+    if not parts:
+        return ""
+    return (
+        "This project's own checks, allowed in every run: "
+        + "; ".join(parts)
+        + ". Run them as they are, from your working folder, before you try another runner."
+    )
+
+
 def project_command_rules(cfg_ops: dict) -> list[str]:
     """Claude Code allow rules for the project's own checks (Settings › AI › Commands): ``Bash(<command>:*)``."""
     out = []
@@ -4022,7 +4055,8 @@ async def workspace_line(
     code = (
         f"Code goes in the worktree {worktree.path}, committed; leave nothing else there."
         if worktree is not None
-        else "Code goes in the repository, committed on the ticket's branch."
+        else "Code goes in the repository, committed on the ticket's branch (move to it with `git switch <branch>`, "
+        "or `git switch -c <branch>` to make it)."
     )
     if ws is None or not ws.get("enabled"):
         return (

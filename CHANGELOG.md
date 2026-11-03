@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.34.2] - 2026-11-03
+
+Also found by the #274 live check: neither Dev ran the repository's own tests, and their work stayed on `main`, so both tickets went to Review with nothing run.
+
+### Fixed
+- **A run is told the project's own checks by name** (Settings › AI › Commands): "This project's own checks, allowed in every run: tests `./test.sh`…". They were already allowed, but the prompt only said "the project's test command", so a live Dev ran `python3 -m unittest` (refused) and never `./test.sh`.
+- **`python -m unittest` and `python3 -m unittest` are allowed** wherever pytest is (a Dev's, QA's and Reviewer's tests, and the default allow list).
+- **A run that commits, without a worktree, can reach the ticket's branch**: `git switch` and `git checkout -b` are allowed (`git switch -f`, `--force` and `--discard-changes` are not), and the prompt says how. A live Dev's `git checkout <branch>` was refused and its work stayed uncommitted on `main`. Plain `git checkout` stays refused: it also throws away changes.
+
 ## [3.34.1] - 2026-11-03
 
 Found by the live check of #274 (real Claude Code runs, sonnet): two Devs kept no memory at all, though the rule was in their prompt and the `keeping-memory` skill was there. Dev An wrote in Vietnamese as a person asked in a comment, and had `python3 -m unittest` and `git checkout` refused, and kept none of it; Dev Binh, the next Dev, wrote in English and ran the same refused commands.
