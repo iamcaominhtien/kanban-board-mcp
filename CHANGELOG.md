@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.36.2] - 2026-11-03
+
+### Changed
+- **The server starts faster: about 1.5 s sooner to answer, the MCP stdio server about 0.3 s.** Measured from launch to the first answer, against 3.36.1: the HTTP server went from 4.4 s to 2.9 s and the stdio server from 1.7 s to 1.4 s. Each API route is now built once instead of twice; pydantic builds a model's schema the first time it is used rather than at startup; and a database that is already up to date no longer loads the migration tool at each start. The API itself is unchanged, except that the Docs AI endpoints now list their `docs-ai` tag once in the OpenAPI spec instead of twice.
+
 ## [3.36.1] - 2026-11-03
 
 ### Fixed
