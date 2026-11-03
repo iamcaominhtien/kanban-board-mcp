@@ -25,7 +25,9 @@ Talk to the AI team from the screen and over MCP, and hand work between an AI, a
 
 ### Checked
 - A scripted session as an outside agent, over MCP only: gives a goal (`give_story`), follows it with `board_wait`, answers the PM's question and approves the plan; the Story runs to done (fake CLI).
-- A three-step workflow (BA → Dev → QA) leaves a note at each step, and each next step's prompt opens with the one before (fake CLI, and a live run on sonnet).
+- A three-step workflow (BA → Dev → QA) leaves a note at each step, and each next step's prompt opens with the one before (fake CLI, and a live run on sonnet: the Dev followed the BA's Check, the QA ran the command the Dev gave in Where, 6 of 6 cases passed with proof, 6 of 6 criteria ticked).
+- Live, take over then give back: the Dev's task opened with the person's note, it noticed one line of the note was wrong (the language of WTH-1) and asked instead of following it. An outside agent on the board's MCP server alone gave a ticket back with `ai_team(hand_over)` and followed it with `board_wait` and `held_by`.
+- Fixed before release, found in those live runs: a ticket given back counted as a second attempt, so its Dev was moved up to Opus; the take-back note said "user" for the person and copied refused tool calls; the workflow strip showed a ticket taken back as "It stopped going round" with a red Failed step.
 
 
 

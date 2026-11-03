@@ -3,7 +3,7 @@
 Read from the design sources themselves (`design/source/*.dc.html`), one table per screen, one row per lettered
 section. *Design* is what the source draws, *code today* what `main` (3.32.0) did before this change, *gap* the
 difference, *fix* what this change does. Screenshots: `docs/screenshots/272/` (before: the UI of `main` on the same
-board; after: this branch). The demo video is `docs/demo/ai-team-handoff-272.mp4`.
+board; after: this branch).
 
 Where the issue asks for more than a design draws (a handoff note, giving a ticket back, who has it while nobody
 runs), the code follows the issue and the design's words and chips; that is said in the row.
