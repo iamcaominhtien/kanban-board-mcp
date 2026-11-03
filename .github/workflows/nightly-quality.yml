@@ -7,9 +7,11 @@ name: Nightly quality
 # A night with no new commit on main is skipped (SonarQube already analysed that commit). Run it by hand from the
 # Actions tab ("Run workflow"); tick "force" to analyse again anyway.
 
+# DISABLED: the nightly schedule is turned off (tests and SonarQube no longer run on their own). It can still be run
+# by hand. To turn it back on, restore the schedule below.
 on:
-  schedule:
-    - cron: "17 19 * * *" # 02:17 in Vietnam (UTC+7)
+  # schedule:
+  #   - cron: "17 19 * * *" # 02:17 in Vietnam (UTC+7)
   workflow_dispatch:
     inputs:
       force:
