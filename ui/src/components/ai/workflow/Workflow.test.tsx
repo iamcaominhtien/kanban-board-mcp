@@ -11,7 +11,6 @@ vi.mock('../../../api/client', () => ({ client: http }));
 const runLink = vi.hoisted(() => ({ openRun: vi.fn() }));
 vi.mock('../../aiteam/runLink', () => runLink);
 
-import { ToastProvider } from '../../Toast';
 import { AiBoardContext } from '../aiUi';
 import { TicketWorkflow } from './TicketWorkflow';
 import { WorkflowsSection } from './WorkflowsSection';
@@ -192,15 +191,11 @@ describe('the strip of steps', () => {
   it('shows a ticket taken back as waiting for the person, with Give back, not as a failure (#272)', async () => {
     wf = view({ state: 'stopped', stopReason: 'taken_back', stopDetail: 'An Nguyen took it back.' });
     wf.steps[1] = { ...wf.steps[1], state: 'failed', outcome: 'taken_back', noteIn: null };
-    mount(
-      <ToastProvider>
-        <TicketWorkflow ticket={ticket} />
-      </ToastProvider>,
-    );
+    mount(<TicketWorkflow ticket={ticket} />);
     const card = await screen.findByTestId('taken-back-card');
     expect(card.textContent).toContain('An Nguyen took it back.');
     expect(card.textContent).toContain('The workflow waits at “Build”');
-    expect(within(card).getByTestId('give-back')).toBeTruthy();
+    expect(card.textContent).toContain('Give back to AI, under the assignee');
     expect(screen.queryByTestId('stop-card')).toBeNull();
     expect(screen.queryByTestId('tdd-card')).toBeNull();
     const row = screen.getByTestId('wf-step-build');

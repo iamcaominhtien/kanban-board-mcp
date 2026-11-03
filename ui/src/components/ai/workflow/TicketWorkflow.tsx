@@ -31,7 +31,6 @@ import {
 import { RoleChip } from './WfUi';
 import { WorkflowPicker, triageChose } from './WorkflowPicker';
 import { CapStoppedCard } from '../limits/CapStoppedCard';
-import { GiveBackButton } from '../handoff/Handoff';
 import './workflow.css';
 
 function StepRow({
@@ -322,7 +321,7 @@ function DesignApproval({ step, view, ticketId }: { step: ViewStep; view: Workfl
 }
 
 /** A person took the ticket back (#272): the workflow waits at its step, and Give back goes on from there. */
-function TakenBackCard({ view, ticketId }: { view: WorkflowView; ticketId: string }) {
+function TakenBackCard({ view }: { view: WorkflowView }) {
   const at = view.steps.find((s) => s.outcome === 'taken_back');
   return (
     <div className="wf-card" data-testid="taken-back-card" role="status">
@@ -331,11 +330,8 @@ function TakenBackCard({ view, ticketId }: { view: WorkflowView; ticketId: strin
         <span className="wf-pill wf-pill-you">Waits for you</span>
       </div>
       <div className="wf-note">
-        The workflow waits at {at ? `“${at.label}”` : 'its step'}. Give it back with a short note and it goes on from
-        there; the AI reads your note first.
-      </div>
-      <div className="wf-actions">
-        <GiveBackButton ticketId={ticketId} />
+        The workflow waits at {at ? `“${at.label}”` : 'its step'}. Give it back with a short note (Give back to AI,
+        under the assignee) and it goes on from there; the AI reads your note first.
       </div>
     </div>
   );
@@ -576,7 +572,7 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
         (view.stopReason === 'quota_cap' ? (
           <CapStoppedCard ticket={ticket} view={view} />
         ) : view.stopReason === 'taken_back' ? (
-          <TakenBackCard view={view} ticketId={ticket.id} />
+          <TakenBackCard view={view} />
         ) : (
           <StopCard view={view} ticketId={ticket.id} />
         ))}
