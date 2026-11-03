@@ -152,9 +152,7 @@ async def test_a_fast_quick_fix_skips_triage_and_runs_lower(env):
     assert "Fast mode" in fix.instruction
 
 
-async def test_fast_mode_unblocks_a_step_with_no_member_and_normal_puts_back_what_is_ahead(
-    env,
-):
+async def test_fast_mode_skips_a_blocked_step_and_starts_nothing_by_itself(env):
     c = env["c"]
     pid, _ = await _project(c)
     await _team(
@@ -175,10 +173,20 @@ async def test_fast_mode_unblocks_a_step_with_no_member_and_normal_puts_back_wha
     assert skipped == ["triage", "shape", "test"]
     flags = (await c.get(f"/tickets/{tid}/ai/flags")).json()
     assert not any(f["kind"] == "no_member" and f["open"] for f in flags)
-    # the Build starts; back to the normal pace, only the steps still ahead come back (Test), not Triage or Shape
+    # turning it on started nothing: the Build waits to be started
+    assert _current(view)["key"] == "build" and _current(view)["state"] == "pending"
+    assert (await c.get(f"/tickets/{tid}/ai/runs")).json() == []
+    r = await c.post(f"/tickets/{tid}/ai/workflow/start")
+    assert r.status_code == 200, r.text
     await _until(
-        c, tid, lambda v: _current(v)["key"] in ("build", "checks", "review", "done")
+        c,
+        tid,
+        lambda v: (
+            _current(v)["key"] in ("build", "checks", "review", "done")
+            and _current(v)["state"] != "pending"
+        ),
     )
+    # back to the normal pace, only the steps still ahead come back (Test), not Triage or Shape
     r = await c.patch(f"/tickets/{tid}/ai/workflow/pace", json={"pace": "normal"})
     assert r.status_code == 200, r.text
     steps = {s["key"]: s for s in r.json()["steps"]}
@@ -188,14 +196,107 @@ async def test_fast_mode_unblocks_a_step_with_no_member_and_normal_puts_back_wha
     assert r.json()["pace"] == "normal"
 
 
+async def test_the_pace_is_set_on_a_ticket_without_running_anything(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    await _team(c, pid, env["repo"], roles=("triage", "dev", "reviewer"))
+    tid = await _ticket(c, pid)
+    assert (await c.get(f"/tickets/{tid}/ai/pace")).json()["pace"] == "normal"
+    r = await c.put(f"/tickets/{tid}/ai/pace", json={"pace": "fast"})
+    assert r.status_code == 200, r.text
+    assert r.json()["pace"] == "fast"
+    assert r.json()["set_by"]
+    assert (await c.get(f"/tickets/{tid}/ai/runs")).json() == []
+    assert (await c.get(f"/tickets/{tid}/ai/workflow")).json() is None
+    # a workflow put on it later takes the ticket's pace
+    r = await c.post(f"/tickets/{tid}/ai/workflow", json={"template_key": "quick_fix"})
+    assert r.json()["pace"] == "fast"
+    assert r.json()["steps"][0]["outcome"] == "fast"
+    # and ticking Normal there sets the ticket's pace back
+    tid2 = await _ticket(c, pid)
+    await c.put(f"/tickets/{tid2}/ai/pace", json={"pace": "fast"})
+    await c.post(
+        f"/tickets/{tid2}/ai/workflow",
+        json={"template_key": "quick_fix", "pace": "normal"},
+    )
+    assert (await c.get(f"/tickets/{tid2}/ai/pace")).json()["pace"] == "normal"
+
+
+async def _mention_run(c, env, tid, pill, **extra):
+    r = await c.post(
+        f"/tickets/{tid}/comments",
+        json={
+            "text": f"{pill} what does total() return?",
+            "author": "An Nguyen",
+            **extra,
+        },
+    )
+    assert r.status_code in (200, 201), r.text
+    runs = (await c.get(f"/tickets/{tid}/ai/runs")).json()
+    async with env["maker"]() as s:
+        return await s.get(AiRun, runs[0]["id"])
+
+
+async def test_an_ai_tagged_in_a_comment_follows_the_ticket_pace_or_the_comment(env):
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _team(c, pid, env["repo"], roles=("dev",))
+    members = (await c.get(f"/projects/{pid}/members")).json()
+    dev = next(m for m in members if m["id"] == team["dev"])
+    pill = f"@[{dev['name']}](member:{dev['id']})"
+    # a normal ticket: the member's own effort
+    normal = await _ticket(c, pid)
+    run = await _mention_run(c, env, normal, pill)
+    assert run.effort_override is None
+    assert "Fast mode" not in run.instruction
+    # a fast ticket: one level lower, and told so
+    fast = await _ticket(c, pid)
+    await c.put(f"/tickets/{fast}/ai/pace", json={"pace": "fast"})
+    run = await _mention_run(c, env, fast, pill)
+    assert run.effort_override == "low"  # the Dev pack runs at medium
+    assert "Fast mode: the person wants a quick answer" in run.instruction
+    # Fast ticked on one comment of a normal ticket
+    once = await _ticket(c, pid)
+    run = await _mention_run(c, env, once, pill, ai_fast=True)
+    assert run.effort_override == "low"
+    assert (await c.get(f"/tickets/{once}/ai/pace")).json()["pace"] == "normal"
+
+
+async def test_a_retry_on_a_fast_ticket_runs_at_full_effort(env):
+    from services.ai import runs
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _team(c, pid, env["repo"], roles=("dev",))
+    tid = await _ticket(c, pid)
+    await c.put(f"/tickets/{tid}/ai/pace", json={"pace": "fast"})
+    async with env["maker"]() as s:
+        retry = await runs.create_run(
+            s, ticket_id=tid, member_id=team["dev"], mode="ask", trigger="retry"
+        )
+        higher = await runs.create_run(
+            s,
+            ticket_id=tid,
+            member_id=team["dev"],
+            mode="ask",
+            trigger="ask",
+            effort_override="high",
+        )
+    assert retry.effort_override is None
+    assert higher.effort_override == "high"
+
+
 async def test_the_pace_is_normal_or_fast(env):
     c = env["c"]
     pid, _ = await _project(c)
     tid = await _ticket(c, pid)
-    r = await c.patch(f"/tickets/{tid}/ai/workflow/pace", json={"pace": "fast"})
-    assert r.status_code == 409  # no workflow
+    r = await c.put(f"/tickets/{tid}/ai/pace", json={"pace": "slow"})
+    assert r.status_code == 422
     r = await c.post(
         f"/tickets/{tid}/ai/workflow",
         json={"template_key": "quick_fix", "pace": "slow"},
     )
     assert r.status_code == 422
+    assert (
+        await c.put("/tickets/NOPE-1/ai/pace", json={"pace": "fast"})
+    ).status_code == 404

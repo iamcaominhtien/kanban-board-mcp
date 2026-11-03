@@ -1902,8 +1902,7 @@ async def _apply_team_op(
         await ai_workflow.set_depth(session, tid, ch["to"], by=person)
         return {"op": op, "ticket": tid, "before": before, "after": ch["to"]}
     if op == "pace":
-        wf = await ai_workflow.of_ticket(session, tid)
-        before = (wf.pace if wf else None) or "normal"
+        before = await ai_workflow.ticket_pace(session, tid)
         await ai_workflow.set_pace(session, tid, ch["to"], by=person)
         return {"op": op, "ticket": tid, "before": before, "after": ch["to"]}
     if op in ("pause_member", "resume_member"):
@@ -1977,8 +1976,7 @@ async def _undo_team_op(session: AsyncSession, a: dict, person: str) -> str | No
             await ai_workflow.set_depth(session, a["ticket"], a["before"], by=person)
         return None
     if op == "pace":
-        wf = await ai_workflow.of_ticket(session, a["ticket"])
-        if wf is None or (wf.pace or "normal") != a.get("after"):
+        if await ai_workflow.ticket_pace(session, a["ticket"]) != a.get("after"):
             return f"{a['ticket']}: the pace was changed since"
         try:
             await ai_workflow.set_pace(session, a["ticket"], a["before"], by=person)

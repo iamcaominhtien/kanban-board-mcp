@@ -1572,6 +1572,19 @@ class AiTicketWorkflow(SQLModel, table=True):
     updated_at: str = Field(default_factory=_now_iso)
 
 
+class AiTicketPace(SQLModel, table=True):
+    """A ticket's pace, set by a person whether or not an AI works on it yet (table). Setting it runs nothing: it
+    applies when an AI starts on the ticket (a workflow step, an @mention, an assignment, a schedule)."""
+
+    __tablename__ = "ai_ticket_pace"
+
+    ticket_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    pace: str = Field(default="normal")  # normal | fast
+    set_by: Optional[str] = Field(default=None)
+    set_at: str = Field(default_factory=_now_iso)
+
+
 class AiTicketStep(SQLModel, table=True):
     """One step of a ticket's workflow, one row per attempt: who did it, its run, what it handed in (table). Never
     overwritten: a send-back adds a new attempt."""

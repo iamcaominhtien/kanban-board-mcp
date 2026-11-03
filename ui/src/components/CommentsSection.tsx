@@ -61,6 +61,8 @@ interface CommentsSectionProps {
   onFocusHandled?: () => void;
   /** Acceptance criteria of the ticket (the “Context sent” chips of the Ask button). */
   criteriaCount?: number;
+  /** The ticket is in fast mode: every AI a comment wakes is fast already. */
+  ticketFast?: boolean;
   /** Resolve with the saved comment id, reject when the server could not be reached. */
   onAdd: (text: string, opts?: SendOpts) => Promise<unknown>;
   onEdit: (id: string, text: string) => Promise<unknown>;
@@ -206,6 +208,7 @@ export function CommentsSection({
   focusCommentId,
   onFocusHandled,
   criteriaCount = 0,
+  ticketFast = false,
   onAdd,
   onEdit,
   onDelete,
@@ -387,6 +390,7 @@ export function CommentsSection({
     prefill,
     replyTo,
     replyLabel: replyTo ? comments.find((x) => x.id === replyTo)?.author : undefined,
+    ticketFast,
   };
 
   // ---- delete with 10 s undo ---------------------------------------------

@@ -1463,6 +1463,7 @@ class AskBody(BaseModel):
     question: str
     source: Literal["comment", "test_case"] = "comment"
     ref: Optional[str] = None  # e.g. the test case code
+    fast: Optional[bool] = None  # Fast for this answer; otherwise the ticket's pace
 
 
 @router.post("/tickets/{ticket_id}/ai/ask")
@@ -1489,6 +1490,7 @@ async def post_ask(ticket_id: str, body: AskBody, session: Session) -> dict:
             started_by=_by(),
             instruction=f"{prefix}{question}",
             source_comment_id=comment_id,
+            pace="fast" if body.fast else None,
         )
     except svc_runs.RunError as exc:
         _err(exc, 422)

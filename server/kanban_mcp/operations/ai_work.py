@@ -117,7 +117,8 @@ async def start_workflow(
 
 
 async def set_pace(ticket_id: str, pace: str) -> dict:
-    """Turn fast mode on or off for a ticket on a workflow: the steps not reached yet are skipped or put back."""
+    """Turn fast mode on or off for a ticket; it starts nothing. Every AI run on the ticket follows it from then on;
+    on a workflow the steps not reached yet are skipped or put back."""
     async with common.async_session() as session:
         await _ticket(session, ticket_id)
         try:
@@ -126,7 +127,11 @@ async def set_pace(ticket_id: str, pace: str) -> dict:
             raise ValueError(str(exc)) from exc
         out = _workflow_row(await svc_workflow.view(session, ticket_id))
     await board_events.publish("invalidate")
-    return {**(out or {}), "changed_steps": changed}
+    return {
+        **(out or {"ticket_id": ticket_id}),
+        "pace": pace,
+        "changed_steps": changed,
+    }
 
 
 async def _ticket(session, ticket_id: str) -> Ticket:

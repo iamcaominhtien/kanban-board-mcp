@@ -16,11 +16,13 @@ D8–D14, D24).
   under 5% between the last two, or the reviewer repeated an objection it already made), a board fault, or a quota cap
   the person turned on. No progress goes to the **coordinator** (a PM member, D12/D24), whose ruling gets one chance:
   if it comes back again it goes to a person, with the ruling attached.
-- **Fast** (a ticket's pace, set by a person): a quick result of about the same quality. The steps a quick result can do
+- **Fast** (a ticket's pace, set by a person, with or without a workflow; setting it runs nothing): a quick result of
+  about the same quality. The steps a quick result can do
   without are skipped (Triage, the BA's Shape, QA's Test, the User tester's Try; a template's step may say `"fast":
   "skip"` or `"keep"`), every AI step runs one effort level lower and the review one depth lower (unless a person set
   it). What keeps the quality: the Checks by code and the Review still run, and a step sent back runs again at its full
-  effort and model.
+  effort and model. Any other run on a fast ticket (an @mention, an assignment, a schedule) runs one effort level
+  lower too, with the same instruction (runs.create_run).
 """
 
 import asyncio
@@ -39,6 +41,7 @@ import database
 from models import (
     AiMember,
     AiRun,
+    AiTicketPace,
     AiTicketStep,
     AiTicketWorkflow,
     AiWorkflowTemplate,
@@ -482,6 +485,12 @@ async def attach(
     mode does without."""
     if pace not in (None, *PACES):
         raise WorkflowError("The pace is normal or fast.")
+    if pace is None:
+        pace = await ticket_pace(
+            session, ticket.id
+        )  # the pace the person set on the ticket
+    else:
+        await _keep_pace(session, ticket, pace, by=by)
     existing = await session.get(AiTicketWorkflow, ticket.id)
     if existing is not None and existing.template_key and existing.state != "detached":
         raise WorkflowError(f"{ticket.id} already follows a workflow.")
@@ -576,6 +585,36 @@ async def detach(session, ticket_id: str, *, by: str) -> None:
 
 def _template_steps(wf: AiTicketWorkflow) -> list[dict]:
     return json.loads(wf.steps or "[]")
+
+
+async def ticket_pace(session, ticket_id: str) -> str:
+    """The pace a person set on the ticket: fast or normal (no row)."""
+    row = await session.get(AiTicketPace, ticket_id)
+    return row.pace if row is not None and row.pace in PACES else "normal"
+
+
+async def _keep_pace(session, ticket: Ticket, pace: str, *, by: str) -> None:
+    """Store the ticket's pace (the caller commits)."""
+    row = await session.get(AiTicketPace, ticket.id)
+    if row is None:
+        row = AiTicketPace(ticket_id=ticket.id, project_id=ticket.project_id)
+    row.pace, row.set_by, row.set_at = pace, by, _now()
+    session.add(row)
+
+
+def fast_run_text(mode: str) -> str:
+    """What fast mode adds to a run outside a workflow step (an @mention, an assignment, a schedule)."""
+    if mode == "ask":
+        return (
+            "Fast mode: the person wants a quick answer of about the same quality. Answer from what this needs "
+            "to read, briefly; say what you did not check instead of checking everything."
+        )
+    return (
+        "Fast mode: the person wants a quick result of about the same quality, not a perfect one. Go straight to "
+        "the simplest thing that meets the ticket and its criteria; read and run only what this work needs; no "
+        "side improvements; a passing run of the project's checks is enough (no failing run first); keep the "
+        "handoff note short."
+    )
 
 
 def is_fast(wf: AiTicketWorkflow | None) -> bool:
@@ -2638,28 +2677,36 @@ async def set_depth(session, ticket_id: str, depth: str, *, by: str) -> None:
 
 
 async def set_pace(session, ticket_id: str, pace: str, *, by: str) -> list[str]:
-    """A person turns fast mode on or off for this ticket: the steps not reached yet are skipped or put back, and the
-    next step starts. Returns the labels of the steps that changed."""
+    """A person turns fast mode on or off for this ticket, with or without a workflow. It runs nothing: on a workflow
+    the steps not reached yet are skipped or put back, and a step that waits (one skipped while blocked) starts when
+    the person says so (`start_waiting`) or when the step before it ends. Returns the labels of the steps that
+    changed."""
     if pace not in PACES:
         raise WorkflowError("The pace is normal or fast.")
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise WorkflowError(f"No ticket {ticket_id}.")
+    await _keep_pace(session, ticket, pace, by=by)
     wf = await session.get(AiTicketWorkflow, ticket_id)
-    if wf is None or not wf.template_key:
-        raise WorkflowError("This ticket follows no workflow.")
-    if wf.state in ("done", "detached"):
-        raise WorkflowError("This ticket's workflow is over.")
-    wf.pace = "fast" if pace == "fast" else None
-    wf.updated_at = _now()
-    session.add(wf)
-    changed = await _apply_pace(session, wf)
+    changed: list[str] = []
+    if wf is not None and wf.template_key and wf.state not in ("done", "detached"):
+        wf.pace = "fast" if pace == "fast" else None
+        wf.updated_at = _now()
+        session.add(wf)
+        changed = await _apply_pace(session, wf)
     await session.commit()
-    if changed and is_fast(wf):
-        # a step skipped while blocked (no member for its role) no longer waits
+    if changed and pace == "fast":
+        # a step skipped while blocked (no member for its role) no longer waits for one
         for kind in BLOCKS:
             await flags.resolve(
                 session, ticket_id, kind, by=by, how="Skipped: fast mode"
             )
-    await advance(ticket_id)
     return changed
+
+
+async def start_waiting(ticket_id: str) -> None:
+    """Start the workflow's current step when it waits to be started (after a pace change skipped the one before)."""
+    await advance(ticket_id)
 
 
 async def metrics(session, project_id: str, days: int = 30) -> list[dict]:

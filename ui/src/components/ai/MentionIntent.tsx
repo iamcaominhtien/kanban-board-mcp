@@ -12,6 +12,8 @@ export interface SendOpts {
   askMemberId?: string;
   /** The comment this one answers; under an AI's comment it asks that AI again. */
   replyTo?: string;
+  /** Fast for the AI this comment wakes: a quick answer or result of about the same quality. */
+  fast?: boolean;
 }
 
 const MENTION = /@\[([^\][\n]{1,100})\]\(member:([\w.-]{1,64})\)/g;

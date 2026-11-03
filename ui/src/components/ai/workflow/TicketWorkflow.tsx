@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useAiBoardState, LoadError, ago } from '../aiUi';
 import {
   useOddJobReviewer,
+  useSetPace,
+  useTicketPace,
   useWorkflowMutation,
   useWorkflowTemplates,
   useTicketWorkflow,
@@ -12,7 +14,7 @@ import { extractError } from '../../../api/extractError';
 import { useTicketFlags } from '../../../api/aiCode';
 import type { Ticket } from '../../../types';
 import type { TicketFlag } from '../../../types/aiCode';
-import type { Pace, ReviewDepth, ViewStep, WorkflowView } from '../../../types/aiWorkflow';
+import type { ReviewDepth, ViewStep, WorkflowView } from '../../../types/aiWorkflow';
 import { openRun } from '../../aiteam/runLink';
 import { ArbitrationCard } from './ArbitrationCard';
 import { TddCard } from './TddCard';
@@ -204,13 +206,17 @@ export function Bolt({ size = 12 }: { size?: number }) {
   );
 }
 
-/** Fast mode on this ticket: what it skips and lowers, and the switch (a person's call, per ticket). */
+/** Fast mode on this ticket: what it skips and lowers, and the switch (a person's call, per ticket). Switching runs
+ * nothing; a step left waiting by it (the one before was skipped) gets a Start button. */
 function PaceRow({ view, ticketId }: { view: WorkflowView; ticketId: string }) {
   const [error, setError] = useState<string | null>(null);
-  const set = useWorkflowMutation(ticketId, (p: Pace) => workflowApi.pace(ticketId, p));
+  const set = useSetPace(ticketId);
+  const start = useWorkflowMutation(ticketId, (_: void) => workflowApi.start(ticketId));
   if (view.pace === undefined || view.state === 'done') return null;
   const fast = view.pace === 'fast';
   const skipped = view.steps.filter((s) => s.state === 'skipped' && s.outcome === 'fast').map((s) => s.label);
+  const current = view.steps.find((s) => ['pending', 'active', 'waiting', 'blocked', 'failed'].includes(s.state));
+  const waits = view.state === 'active' && current?.state === 'pending' && current.kind !== 'person' && !set.isPending;
   return (
     <div className="wf-line" data-testid="pace-row">
       <span className="wf-h">Pace</span>
@@ -244,8 +250,23 @@ function PaceRow({ view, ticketId }: { view: WorkflowView; ticketId: string }) {
           ? `${skipped.length ? `Skips ${skipped.join(', ')}; ` : ''}each AI step one effort level lower${
               view.reviewRunsAt ? `, review ${cap(view.reviewRunsAt)}` : ''
             }. Checks and Review still run; a step sent back runs at full effort.`
-          : 'Fast: a quick result of about the same quality. Skips the steps it can do without and runs a level lower.'}
+          : 'Fast: a quick result of about the same quality. Skips the steps it can do without and runs a level lower.'}{' '}
+        Switching starts nothing.
       </span>
+      {waits && current && (
+        <button
+          type="button"
+          className="ai-btn ai-btn-primary ai-btn-sm"
+          data-testid="pace-start"
+          disabled={start.isPending}
+          onClick={() => {
+            setError(null);
+            start.mutate(undefined, { onError: (e) => setError(extractError(e)) });
+          }}
+        >
+          Start {current.label}
+        </button>
+      )}
       {error && (
         <div className="ai-error-text" role="alert" style={{ flexBasis: '100%' }}>
           {error}
@@ -460,10 +481,13 @@ function StopCard({ view, ticketId }: { view: WorkflowView; ticketId: string }) 
 function PutOnWorkflow({ ticket, onDone }: { ticket: Ticket; onDone?: () => void }) {
   const templates = useWorkflowTemplates(ticket.projectId);
   const [key, setKey] = useState('');
-  const [fast, setFast] = useState(false);
+  // ticked when the ticket is in fast mode already; ticking it here sets the ticket's pace too
+  const ticketPace = useTicketPace(ticket.id);
+  const [fastPick, setFastPick] = useState<boolean | null>(null);
+  const fast = fastPick ?? ticketPace.data?.pace === 'fast';
   const [error, setError] = useState<string | null>(null);
   const put = useWorkflowMutation(ticket.id, async (k: string) => {
-    return workflowApi.attach(ticket.id, k, undefined, fast ? 'fast' : undefined);
+    return workflowApi.attach(ticket.id, k, undefined, fast ? 'fast' : 'normal');
   });
   const { members } = useAiBoardState();
   const reviewer = useOddJobReviewer(ticket.id);
@@ -515,7 +539,7 @@ function PutOnWorkflow({ ticket, onDone }: { ticket: Ticket; onDone?: () => void
         ))}
       </select>
       <label className="wf-line" style={{ gap: 5, fontSize: 12.5 }} title="A quick result of about the same quality">
-        <input type="checkbox" checked={fast} onChange={(e) => setFast(e.target.checked)} data-testid="put-fast" />
+        <input type="checkbox" checked={fast} onChange={(e) => setFastPick(e.target.checked)} data-testid="put-fast" />
         <Bolt /> Fast
       </label>
       <button

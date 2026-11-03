@@ -61,6 +61,30 @@
   gap: 4px;
   align-items: center;
 }
+/* Fast for the AI a comment wakes (a quick answer or result of about the same quality) */
+.tw-fast {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #dce6df;
+  background: #fff;
+  color: #5b6b60;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tw-fast-on {
+  background: #fef3d9;
+  border-color: #f0d68a;
+  color: #7a5a06;
+}
+span.tw-fast {
+  cursor: default;
+}
 .tw-split {
   display: inline-flex;
   align-items: stretch;

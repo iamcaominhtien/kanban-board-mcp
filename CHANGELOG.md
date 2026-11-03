@@ -13,19 +13,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 Fast mode for the AI team: a quick result of about the same quality, on the tickets you choose.
 
 ### Added
-- **⚡ Fast, per ticket.** Tick Fast when you put a ticket on a workflow, or switch the ticket's **Pace** between Normal and Fast at any time. Fast mode:
-  - skips the steps a quick result can do without: Triage, the BA's Shape, QA's Test and the User tester's Try (a template's step may say `"fast": "skip"` or `"keep"`; a workflow is never left without an AI step to do the work). The strip shows them as "skipped · fast", and a step blocked for want of a member (no BA on the team, say) is skipped too, so the ticket moves on;
+- **⚡ Fast, per ticket, and turning it on runs nothing.** The ticket header has a ⚡ Fast switch, with or without a workflow and before any AI is on the ticket; it only sets the ticket's pace. It applies when an AI starts on the ticket, whichever way: a workflow step, an @mention in a comment, an assignment, a schedule, an AI tagging another. Ticking Fast when you put a ticket on a workflow, or the workflow's **Pace** row, sets the same thing.
+- **On a workflow**, fast mode:
+  - skips the steps a quick result can do without: Triage, the BA's Shape, QA's Test and the User tester's Try (a template's step may say `"fast": "skip"` or `"keep"`; a workflow is never left without an AI step to do the work). The strip shows them as "skipped · fast"; a step blocked for want of a member (no BA on the team, say) is skipped too;
   - runs every AI step one effort level lower (medium → low) and the review one depth lower (standard → light, on Haiku), unless a person set the depth;
-  - tells each step to go straight to the simplest thing that meets the criteria, and the reviewer to send work back only for what breaks a criterion or the build (smaller points go in its comment). A failing test run first is not asked for; a passing run of the project's checks is.
-- What keeps the quality: the **Checks** by code and the **Review** always run, and a step sent back runs again at its full effort and model (a Dev's second attempt is still Opus at high). Back to Normal, the skipped steps still ahead come back.
-- `PATCH /tickets/{id}/ai/workflow/pace`, `pace` on `POST /tickets/{id}/ai/workflow`; the workflow view has `pace` and `review_runs_at`. Over MCP: `ai_team(start_workflow, ..., pace='fast')` and `ai_team(set_pace)`; the team guide says when. The Board AI can turn it on or off (`pace`, with an Undo).
+  - tells each step to go straight to the simplest thing that meets the criteria, and the reviewer to send work back only for what breaks a criterion or the build. A failing test run first is not asked for; a passing run of the project's checks is.
+  - Switching the pace never starts a step by itself: a step it leaves waiting (the one before was skipped) gets a **Start** button.
+- **Tagging an AI in a comment.** On a fast ticket the run it starts is fast (one effort level lower, told to answer or work straight to the point, and to say what it did not check). On any ticket, **⚡ Fast** in the comment box makes that one answer or piece of work fast and leaves the ticket's pace alone; on a fast ticket the box says "Fast · ticket" instead. The Ask button and a reply to an AI's comment take it too.
+- What keeps the quality: the **Checks** by code and the **Review** always run, and a step sent back, a retry or an explicit higher effort run at their full effort and model (a Dev's second attempt is still Opus at high).
+- API: `GET`/`PUT /tickets/{id}/ai/pace`, `POST /tickets/{id}/ai/workflow/start`, `pace` on `POST /tickets/{id}/ai/workflow` (and `PATCH .../workflow/pace`), `ai_fast` on a comment, `fast` on `POST /tickets/{id}/ai/ask`; the workflow view has `pace` and `review_runs_at`. Over MCP: `ai_team(set_pace)` (works without a workflow, runs nothing) and `pace` on `start_workflow` and `ask`; the team guide says when. The Board AI can turn it on or off (`pace`, with an Undo).
 
 ### Changed
-- Tool list: about 185 characters more (`pace` on `ai_team`).
+- Tool list: about 190 characters more (`pace` on `ai_team`).
 
 ### Checked
 - Live, real Claude Code runs on the board (`docs/demo/fast-mode/record_demo.js`, screenshots in `docs/screenshots/fast-mode/`): the same ticket twice on "Standard feature" (discount codes at checkout, four criteria), at the same time, each in its own worktree. Normal: Triage (Haiku), Shape, Build and Test (Sonnet), Review deep (Opus at high, as Triage chose), ready for the person after 4m 23s, 2.59M tokens. Fast: Build (Sonnet at low) and Review light (Haiku at low), ready after 0m 55s, 0.46M tokens. Both passed review first time, and both passed 6 of 6 acceptance tests written beforehand and never shown to the AIs.
 - A fast quick fix, live: Triage skipped, Fix, Checks and Review ran, ready in about 45 s; the Dev said in its note that fast mode let it skip the red run.
+- Live, comments (`docs/demo/fast-mode/record_comments_demo.js`, screenshots `c*.png`): turning Fast on in the header started no run; @Dev An on the fast ticket ran at low effort, was told so, and said what it had not checked; Fast ticked on one comment of a normal ticket ran at low effort and left the ticket normal. Then "Do the work" from a comment on the fast and the normal ticket, each in its own worktree: both changes passed 3 of 3 hidden acceptance tests, in two recordings. On work this small one run is within noise: the question took 11–20 s at either pace, the change 29 s and 31 s fast against 43 s and 27 s normal. What fast mode reliably saves is the steps a workflow skips (above); on a single run it is one effort level and a shorter brief.
 
 ## [3.35.1] - 2026-11-03
 

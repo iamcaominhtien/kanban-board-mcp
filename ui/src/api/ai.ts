@@ -377,8 +377,10 @@ export const aiApi = {
   /** `queue`: wait for the AI's current run to end instead of starting beside it (Run menu: Queue for next free slot). */
   run: async (ticketId: string, body: { memberId?: string; instruction?: string; queue?: boolean } = {}) =>
     (await client.post<AiRun>(`/tickets/${ticketId}/ai/run`, body)).data,
-  ask: async (ticketId: string, body: { memberId: string; question: string; source?: string; ref?: string }) =>
-    (await client.post<AiRun>(`/tickets/${ticketId}/ai/ask`, body)).data,
+  ask: async (
+    ticketId: string,
+    body: { memberId: string; question: string; source?: string; ref?: string; fast?: boolean },
+  ) => (await client.post<AiRun>(`/tickets/${ticketId}/ai/ask`, body)).data,
   cancel: async (runId: string, reason?: string) =>
     (await client.post<AiRun>(`/ai/runs/${runId}/cancel`, { reason })).data,
   /** Run again as run #n+1; `limitMin` gives that run a longer time limit ("Raise limit"). */

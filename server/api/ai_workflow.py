@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import events as board_events
 import services.activity as svc_activity
 from database import get_session
 from models import AiTicketWorkflow, Project, Ticket
@@ -185,15 +186,56 @@ class PaceBody(BaseModel):
     pace: Literal["normal", "fast"]
 
 
-@router.patch("/tickets/{ticket_id}/ai/workflow/pace")
-async def patch_pace(ticket_id: str, body: PaceBody, session: Session) -> dict:
-    """Fast mode on or off for this ticket: the steps not reached yet are skipped or put back, every AI step runs one
-    effort level lower and the review one depth lower; a step sent back runs at its full effort."""
+async def _pace_view(session, ticket_id: str) -> dict:
+    from models import AiTicketPace
+
+    row = await session.get(AiTicketPace, ticket_id)
+    return {
+        "ticket_id": ticket_id,
+        "pace": await svc_workflow.ticket_pace(session, ticket_id),
+        "set_by": row.set_by if row else None,
+        "set_at": row.set_at if row else None,
+    }
+
+
+@router.get("/tickets/{ticket_id}/ai/pace")
+async def get_pace(ticket_id: str, session: Session) -> dict:
+    """The ticket's pace: fast or normal."""
+    await _ticket(session, ticket_id)
+    return await _pace_view(session, ticket_id)
+
+
+@router.put("/tickets/{ticket_id}/ai/pace")
+async def put_pace(ticket_id: str, body: PaceBody, session: Session) -> dict:
+    """Fast mode on or off for this ticket, with or without a workflow; it starts nothing. Every AI run on the ticket
+    follows it (one effort level lower, told to go straight to the point); on a workflow the steps not reached yet
+    are skipped or put back."""
     await _ticket(session, ticket_id)
     try:
         await svc_workflow.set_pace(session, ticket_id, body.pace, by=_by())
     except svc_workflow.WorkflowError as exc:
         _fail(exc, 409)
+    await board_events.publish("invalidate")
+    return await _pace_view(session, ticket_id)
+
+
+@router.patch("/tickets/{ticket_id}/ai/workflow/pace")
+async def patch_pace(ticket_id: str, body: PaceBody, session: Session) -> dict:
+    """The same as PUT /tickets/{id}/ai/pace, answered with the workflow (it starts nothing either)."""
+    await _ticket(session, ticket_id)
+    try:
+        await svc_workflow.set_pace(session, ticket_id, body.pace, by=_by())
+    except svc_workflow.WorkflowError as exc:
+        _fail(exc, 409)
+    await board_events.publish("invalidate")
+    return await svc_workflow.view(session, ticket_id)
+
+
+@router.post("/tickets/{ticket_id}/ai/workflow/start")
+async def post_start(ticket_id: str, session: Session) -> dict | None:
+    """Start the workflow's current step when it waits to be started (a pace change skipped the step before it)."""
+    await _ticket(session, ticket_id)
+    await svc_workflow.start_waiting(ticket_id)
     return await svc_workflow.view(session, ticket_id)
 
 

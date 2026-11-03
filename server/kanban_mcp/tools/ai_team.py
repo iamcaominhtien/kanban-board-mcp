@@ -23,7 +23,7 @@ AI_TEAM_OPS: dict[str, Op] = {
     "ask": Op(
         ops.ask,
         ("member_id", "text"),
-        ("ticket_id", "page_id", "thread_id", "intent"),
+        ("ticket_id", "page_id", "thread_id", "intent", "pace"),
     ),
     "resources": Op(ops.resources, ("project_id",)),
     "restart": Op(ops.restart, ("run_id",)),
@@ -146,7 +146,7 @@ async def ai_team(
     ] = None,
     pace: Annotated[
         Literal["normal", "fast"] | None,
-        Field(description="start_workflow, set_pace: fast = quick, about as good."),
+        Field(description="set_pace, start_workflow, ask: fast = quick, about as good."),
     ] = None,
     decision_id: Annotated[str | None, Field(description="override.")] = None,
     page_id: Annotated[str | None, Field(description="Docs page.")] = None,
