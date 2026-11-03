@@ -4,7 +4,7 @@ import { useDocsAiState } from '../../api/docsAi';
 import { usePageProposals } from '../../api/docsAiProposals';
 import { aiGate } from '../../utils/docsAiRules';
 import { proposedLines, REVIEW_PROPOSAL_EVENT } from '../../utils/docsProposalRules';
-import { absoluteTime, actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
+import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { DocsMarkdown, type DocsMarkdownProps } from './DocsMarkdown';
 import { OfflineBanner } from './DocsStates';
 import { DocsAiBanners } from './ai/DocsAiBanners';
@@ -23,6 +23,8 @@ import { useCommentsController } from './comments/useCommentsController';
 import { useCommentHighlights } from './comments/useCommentHighlights';
 import './comments/comments.css';
 import { avatarColors, pageFullTime } from './docsUi';
+import { useMembers } from '../../api/members';
+import { getAvatarColors } from '../MemberAvatar';
 import { Icon } from './Icon';
 import { PageInfoPopover } from './PageInfoPopover';
 import { PageMenu, type PageMenuAction } from './PageMenu';
@@ -105,6 +107,7 @@ export function DocsPageView({
   onBodyRef,
 }: Props) {
   const since = useSinceViewed(page, !offline);
+  const { data: members = [] } = useMembers(projectId);
   const [menu, setMenu] = useState(false);
   const [share, setShare] = useState(false);
   const [info, setInfo] = useState(false);
@@ -226,7 +229,10 @@ export function DocsPageView({
   const who = showDraft ? page.draft!.author : page.updatedBy;
   const whenIso = showDraft ? page.draft!.updatedAt : page.updatedAt;
   const lead = showDraft ? 'Draft edited by' : published ? 'Edited by' : 'Created by';
-  const av = avatarColors(actorName(who));
+  // a member's own colour, as their comments and the rest of the board show them; a hashed one for anyone else
+  const member = members.find((m) => m.name.toLowerCase() === actorName(who).toLowerCase());
+  const mc = member?.color ? getAvatarColors(member.color) : null;
+  const av = mc ? { background: mc.bg, color: mc.color } : avatarColors(actorName(who));
   const canShare = published && !offline;
 
   const tocList = (
@@ -510,7 +516,6 @@ export function DocsPageView({
                         <span
                           onMouseEnter={() => setTimeTip(true)}
                           onMouseLeave={() => setTimeTip(false)}
-                          title={absoluteTime(whenIso)}
                           style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
                         >
                           {relativeTime(whenIso)}

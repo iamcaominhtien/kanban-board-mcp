@@ -20,7 +20,8 @@ import {
   askView,
   copyText,
   defaultScope,
-  footerLine,
+  footerParts,
+  textBeforeCite,
   justEdited,
   openTarget,
   reportTarget,
@@ -303,10 +304,8 @@ export function AskPanel({
     const sources = sourcesOf(r);
     const target = reportTarget(r);
     const longLine = tooLongLine(r);
-    const line = footerLine(r, j?.cost ?? 0, j?.metered ?? true);
-    const cut = line.indexOf(' · Index updated');
-    const right = (cut >= 0 ? line.slice(cut + 3) : '') + (j?.endedAt ? ` · answered ${relativeTime(j.endedAt)}` : '');
-    footer = [cut >= 0 ? line.slice(0, cut) : line, right];
+    const [left, right] = footerParts(r, j?.cost ?? 0, j?.metered ?? true);
+    footer = [left, right + (j?.endedAt ? ` · answered ${relativeTime(j.endedAt)}` : '')];
     body = (
       <div
         style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}
@@ -322,11 +321,7 @@ export function AskPanel({
             {view.kind === 'disagree' && !/disagree/i.test(r.answer.slice(0, 40)) && <b>Two pages disagree. </b>}
             {view.kind === 'not_covered' && !/do not say/i.test(r.answer) && <b>The docs do not say. </b>}
             {answerParts(r.answer, r.citations).map((p, i, all) =>
-              p.type === 'text' ? (
-                <span key={i}>{all[i + 1]?.type === 'cite' ? p.text.replace(/\s+$/, '') : p.text}</span>
-              ) : (
-                <Cite key={i} n={p.n} />
-              ),
+              p.type === 'text' ? <span key={i}>{textBeforeCite(all, i)}</span> : <Cite key={i} n={p.n} />,
             )}
           </div>
         </div>

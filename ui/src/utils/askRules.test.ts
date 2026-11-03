@@ -9,6 +9,8 @@ import {
   copyText,
   defaultScope,
   footerLine,
+  footerParts,
+  textBeforeCite,
   indexAge,
   justEdited,
   reportTarget,
@@ -136,5 +138,16 @@ describe('two pages disagree', () => {
 describe('copy', () => {
   it('drops the markers and lists the sources', () => {
     expect(copyText(result())).toBe('Rotate it.\n\nSources:\n1. Requirements › Auth › # Rotation');
+  });
+  it('splits the footer into what was read and the index age with the cost', () => {
+    expect(footerParts(result(), 0.012, true, new Date('2026-10-30T10:02:00Z').getTime())).toEqual([
+      'Read 4 pages, cited 2, all visible to you',
+      'Index updated 2 min ago · $0.01',
+    ]);
+  });
+  it('puts a citation marker right after the word', () => {
+    const parts = answerParts('Tokens last 24 hours [1]. Done.', [{ n: 1 }]);
+    expect(textBeforeCite(parts, 0)).toBe('Tokens last 24 hours');
+    expect(textBeforeCite(parts, 2)).toBe('. Done.');
   });
 });

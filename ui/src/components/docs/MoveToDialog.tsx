@@ -404,7 +404,14 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
             setTarget(atGap(r.parentId, r.afterId));
             setError(null);
           }}
-          style={{ position: 'relative', height: 4, flexShrink: 0, margin: `-2.5px 4px -2.5px ${ml}px`, cursor: 'pointer', zIndex: 1 }}
+          style={{
+            position: 'relative',
+            height: 4,
+            flexShrink: 0,
+            margin: `-2.5px 4px -2.5px ${ml}px`,
+            cursor: 'pointer',
+            zIndex: 1,
+          }}
         >
           <div
             className="mv-line"
