@@ -2,6 +2,7 @@
 schedule that runs them now and then (services/ai/evals.py). No model is called: the fake CLI plays the AI."""
 
 import asyncio
+import os
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -15,7 +16,14 @@ from tests.test_ai import _project, _runner, env  # noqa: F401
 def _dirs(tmp_path, monkeypatch):
     monkeypatch.setenv("KANBAN_AI_RUNS_DIR", str(tmp_path / "ai-runs"))
     monkeypatch.setenv("KANBAN_AI_EVALS_DIR", str(tmp_path / "evals"))
-    monkeypatch.setenv("KANBAN_AI_ROOTS", str(tmp_path))
+    # added to the roots conftest allows (the repository holds the fake CLI), not in their place: a checkout outside
+    # the home folder would refuse the fake CLI and fail every eval run
+    monkeypatch.setenv(
+        "KANBAN_AI_ROOTS",
+        os.pathsep.join(
+            filter(None, [str(tmp_path), os.environ.get("KANBAN_AI_ROOTS")])
+        ),
+    )
 
 
 def _suite(key):
