@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.32.1] - 2026-11-03
+
+Found by the live check of #268 (real Claude Code runs, sonnet and haiku): a BA writes a spec on a Docs page, the Dev on the ticket reads it and builds from it.
+
+### Fixed
+- **An AI member wrote its Docs page at the top of the tree.** A BA (sonnet) asked to "write the spec as a Docs page" wrote a good page, but never opened the `docs-pages` skill: a run's prompt named its role's skill and the shared ones, not the Docs guide, so the page did not go under Requirements as the guide says. Every run is now told to open `docs-pages` (outside Claude Code: `docs_read(action='docs_guide')`) before it creates or changes a page, unless a project switched the skill off, and the BA's skill says where a spec page goes. Run again: the BA opened the guide, searched and listed the tree, read the existing spec and put the new page under Requirements.
+
 ## [3.32.0] - 2026-11-03
 
 Docs for every AI, and Docs in a window of its own (#268): an AI, on the board or outside it, works in Docs as a person does, and a person can move Docs out of the board into its own window and dock it back.
