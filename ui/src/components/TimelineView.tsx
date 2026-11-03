@@ -24,7 +24,7 @@ const MIN_BAR_PX = 18;
 function parseDate(s: string | null | undefined): Date | null {
   if (!s) return null;
   const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function daysBetween(a: Date, b: Date): number {

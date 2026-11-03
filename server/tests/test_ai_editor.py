@@ -7,7 +7,8 @@ import json
 
 from sqlmodel import select
 
-from models import AiUsage
+import database
+from models import AiUsage, Ticket
 from services.ai import llm
 from services.ai.store import now_iso
 from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
@@ -276,6 +277,43 @@ async def test_criteria_list_draft_adds_what_the_person_keeps(env, fake):
     ]
     log = [e for e in t["activity_log"] if e["field"] == "acceptance_criterion"]
     assert log[-1]["suggested_by"] == m["name"] and log[-1]["actor"] == "An Nguyen"
+
+
+async def test_criteria_list_refuses_a_too_long_item_and_adds_none(env, fake):
+    c, pid, an, m = await _setup(env)
+    tid = await _ticket(c, pid, "T", description="Show the cost on the run card.")
+    fake.queue.append(json.dumps({"items": ["A cost shows on the card", "Second"]}))
+    d = await _editor_draft(
+        c,
+        pid,
+        {"surface": "ticket_description", "action": "criteria", "ticket_id": tid},
+    )
+    r = await c.post(
+        f"/ai/editor/drafts/{d['id']}/accept",
+        json={"items": ["Fine", "x" * 1001]},
+        headers=H,
+    )
+    assert r.status_code == 422, r.text
+    assert "longer than 1,000" in r.text
+    t = (await c.get(f"/tickets/{tid}")).json()
+    assert t["acceptance_criteria"] == []
+
+
+async def test_criteria_list_on_a_deleted_ticket_says_so(env, fake):
+    c, pid, an, m = await _setup(env)
+    tid = await _ticket(c, pid, "T", description="Show the cost on the run card.")
+    fake.queue.append(json.dumps({"items": ["A cost shows on the card"]}))
+    d = await _editor_draft(
+        c,
+        pid,
+        {"surface": "ticket_description", "action": "criteria", "ticket_id": tid},
+    )
+    async with database.async_session() as session:
+        await session.delete(await session.get(Ticket, tid))
+        await session.commit()
+    r = await c.post(f"/ai/editor/drafts/{d['id']}/accept", json={}, headers=H)
+    assert r.status_code == 404, r.text
+    assert "no longer exists" in r.text
 
 
 async def test_diagram_draft_is_valid_drawio(env, fake):

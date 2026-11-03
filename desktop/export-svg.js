@@ -10,7 +10,7 @@
  * save) and writes the file. It reuses the Chromium that Electron already ships, so nothing extra is installed.
  */
 
-const fs = require('fs');
+const fs = require('node:fs');
 
 const EXPORT_TIMEOUT_MS = 60000;
 

@@ -44,7 +44,7 @@ function readString(buf: Uint8Array, start: number, len: number): string {
 
 function readOctal(buf: Uint8Array, start: number, len: number): number {
   const s = readString(buf, start, len).trim();
-  return s ? parseInt(s, 8) || 0 : 0;
+  return s ? Number.parseInt(s, 8) || 0 : 0;
 }
 
 function listTar(buf: Uint8Array): Listing {

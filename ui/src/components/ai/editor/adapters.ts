@@ -61,7 +61,7 @@ export function textareaRect(el: HTMLTextAreaElement | HTMLInputElement, index: 
   mirror.appendChild(mark);
   document.body.appendChild(mirror);
   const box = el.getBoundingClientRect();
-  const line = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.4 || 18;
+  const line = Number.parseFloat(cs.lineHeight) || Number.parseFloat(cs.fontSize) * 1.4 || 18;
   const top = box.top + mark.offsetTop - el.scrollTop;
   const left = box.left + mark.offsetLeft - el.scrollLeft;
   document.body.removeChild(mirror);

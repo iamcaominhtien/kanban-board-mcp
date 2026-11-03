@@ -65,7 +65,7 @@ export const pickKey = (p: Pick | null) => (p ? `${p.type}:${p.id}` : '');
 function rgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
   const f = h.length === 3 ? [...h].map((c) => c + c).join('') : h.padEnd(6, '0');
-  return [parseInt(f.slice(0, 2), 16), parseInt(f.slice(2, 4), 16), parseInt(f.slice(4, 6), 16)];
+  return [Number.parseInt(f.slice(0, 2), 16), Number.parseInt(f.slice(2, 4), 16), Number.parseInt(f.slice(4, 6), 16)];
 }
 function mix(hex: string, other: string, share: number): string {
   const a = rgb(hex);

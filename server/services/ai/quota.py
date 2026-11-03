@@ -47,9 +47,8 @@ async def state(session, key: str) -> AiAccountState:
     """The account's row, created on first use."""
     row = await session.get(AiAccountState, key)
     if row is None:
-        row = AiAccountState(key=key)
-        session.add(row)
-        await session.flush()
+        await database.insert_missing(session, AiAccountState, key=key)
+        row = await session.get(AiAccountState, key)
     return row
 
 

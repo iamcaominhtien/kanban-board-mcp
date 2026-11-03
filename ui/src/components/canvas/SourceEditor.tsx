@@ -75,7 +75,7 @@ export function SourceEditor({
   // take the lock, then read the source
   useEffect(() => {
     let off = false;
-    (async () => {
+    void (async () => {
       try {
         await lockBoard(canvasId, board.id);
         has.current = true;

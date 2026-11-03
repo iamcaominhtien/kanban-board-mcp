@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { aiApi, useAiApprovals, useAiMutation, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AiMember, AiRun } from '../../types/ai';
-import type { Member, Ticket } from '../../types';
+import type { Ticket } from '../../types';
 import { useToast } from '../Toast';
 import { useScheduleList } from '../../api/schedules';
 import { useSchedules } from '../schedules/SchedulesContext';
@@ -255,15 +255,7 @@ export function RunHeaderChip({ ticket }: { ticket: Ticket }) {
 // ---------------------------------------------------------------------------
 
 /** Run in progress, the AI's question, its summary in Review, failures and pending approvals for this ticket. */
-export function TicketAiPanel({
-  ticket,
-  members,
-  onOpenRun,
-}: {
-  ticket: Ticket;
-  members: Member[];
-  onOpenRun: () => void;
-}) {
+export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun: () => void }) {
   const runs = useTicketRuns(ticket.id);
   const { projectId, members: aiMembers, runsByTicket, settings } = useAiBoardState();
   const approvals = useAiApprovals(projectId, 'pending');
@@ -376,7 +368,6 @@ export function TicketAiPanel({
       {ticketApprovals.map((a) => (
         <ApprovalCard key={a.id} approval={a} />
       ))}
-      {members.length < 0 && null}
       {resumeOpen && (
         <ResumeAllDialog
           projectId={projectId}

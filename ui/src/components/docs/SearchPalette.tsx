@@ -321,7 +321,7 @@ export function SearchPalette({
     const known = new Set(data.pages.map((p) => p.pageId));
     for (const n of nodes) {
       const age =
-        (Date.now() - new Date(/Z|[+-]\d\d:?\d\d$/.test(n.updatedAt) ? n.updatedAt : n.updatedAt + 'Z').getTime()) /
+        (Date.now() - new Date(/(?:Z|[+-]\d\d:?\d\d)$/.test(n.updatedAt) ? n.updatedAt : n.updatedAt + 'Z').getTime()) /
         1000;
       if (age >= 0 && age < 10 && !known.has(n.id) && words.some((w) => n.title.toLowerCase().includes(w)))
         return { title: n.title, age: Math.max(1, Math.round(age)) };

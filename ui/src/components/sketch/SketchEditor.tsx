@@ -153,7 +153,7 @@ export function SketchEditor({ request, onClose }: Props) {
   useEffect(() => {
     if (!sketcher) return;
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const draft = await getDraft(key);
         if (cancelled) return;

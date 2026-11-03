@@ -253,7 +253,7 @@ def _drafts(
 
 
 def _json_of(text: str) -> Any:
-    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", (text or "").strip())
+    text = re.sub(r"(?:^```(?:json)?\s*)|(?:\s*```$)", "", (text or "").strip())
     starts = [i for i in (text.find("["), text.find("{")) if i >= 0]
     if not starts:
         return None

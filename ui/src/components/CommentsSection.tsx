@@ -329,7 +329,7 @@ export function CommentsSection({
   useEffect(() => {
     if (!online || queue.length === 0 || flushing.current) return;
     flushing.current = true;
-    (async () => {
+    void (async () => {
       let rest = [...queue];
       for (const item of queue) {
         try {

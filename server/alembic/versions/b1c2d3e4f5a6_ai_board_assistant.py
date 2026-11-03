@@ -5,15 +5,15 @@ Revises: a9b8c7d6e5f4
 Create Date: 2026-10-29
 """
 
-from typing import Sequence, Union
+from typing import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "b1c2d3e4f5a6"
-down_revision: Union[str, Sequence[str], None] = "a9b8c7d6e5f4"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "a9b8c7d6e5f4"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def _s(name: str, *args, **kw) -> sa.Column:

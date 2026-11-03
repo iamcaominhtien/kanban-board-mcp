@@ -855,12 +855,23 @@ async def accept(
         )
         if not picked:
             raise AssistError("invalid", "Pick at least one criterion.")
+        # Checked before the first one is added, so a refused list adds none of them
+        too_long = sum(len(x) > svc_tickets.MAX_AC_TEXT for x in picked)
+        if too_long:
+            raise AssistError(
+                "invalid",
+                f"{too_long} of the criteria are longer than {svc_tickets.MAX_AC_TEXT:,} characters. Shorten them first.",
+            )
+        if await session.get(Ticket, ticket_id) is None:
+            raise AssistError("not_found", "The ticket no longer exists.")
         ids: list[str] = []
         with svc_drafts._As(person, d.member_name):
             for text in picked:
                 t = await svc_tickets.add_acceptance_criterion(session, ticket_id, text)
-                if t is not None:
-                    ids.append(loads(t.acceptance_criteria, [])[-1]["id"])
+                added = loads(t.acceptance_criteria, []) if t is not None else []
+                if not added:  # the ticket went away in the meantime
+                    raise AssistError("not_found", "The ticket no longer exists.")
+                ids.append(added[-1]["id"])
         out["created"] = ids
     elif ticket_id and surface in TICKET_SURFACES:
         t = await session.get(Ticket, ticket_id)

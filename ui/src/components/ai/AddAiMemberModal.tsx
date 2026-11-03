@@ -302,8 +302,8 @@ export function AddAiMemberModal({
     }
   }
 
-  const daily = parseFloat(dailyBudget);
-  const monthly = monthlyCap.trim() === '' ? null : parseFloat(monthlyCap);
+  const daily = Number.parseFloat(dailyBudget);
+  const monthly = monthlyCap.trim() === '' ? null : Number.parseFloat(monthlyCap);
   const amountOk = (v: string) => v.trim() !== '' && Number.isFinite(Number(v)) && Number(v) >= 0;
   const dailyError = apiKey && !amountOk(dailyBudget) ? 'Enter an amount of 0 or more' : null;
   const monthlyError =
@@ -1314,7 +1314,7 @@ export function Stepper({
         aria-label="Value"
         onChange={(e) => {
           const digits = e.target.value.replace(/\D/g, '');
-          onChange(digits === '' ? NaN : Number(digits));
+          onChange(digits === '' ? Number.NaN : Number(digits));
         }}
         onBlur={() => onChange(Number.isFinite(value) ? clamp(value) : min)}
         style={{

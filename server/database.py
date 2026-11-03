@@ -40,6 +40,19 @@ def get_db_path() -> Path:
     return _DB_PATH
 
 
+async def insert_missing(session: AsyncSession, model, **values) -> None:
+    """INSERT OR IGNORE one row, in the session's transaction: how a row is made on first use.
+
+    Two requests that both find the row missing can both try to make it. With a plain add and commit, the second
+    one's commit fails and it has to roll back, and a rollback expires everything that session had loaded: reading
+    any of it afterwards is lazy IO outside the async context (MissingGreenlet), a 500. With this, the second insert
+    does nothing and both read the row back. The model's column defaults fill what ``values`` leaves out.
+    """
+    from sqlalchemy.dialects.sqlite import insert
+
+    await session.exec(insert(model).values(**values).on_conflict_do_nothing())
+
+
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Yield a database session (FastAPI dependency)."""
     async with async_session() as session:

@@ -95,7 +95,10 @@ export function useDeleteLesson(projectId: string) {
 /** A person writes a note into an AI memory (a correction for a role, say). */
 export function useAddNote(projectId: string) {
   const invalidate = useInvalidate(projectId);
-  return useMutation({ mutationFn: (body: NoteBody) => aiKnowledgeApi.addNote(projectId, body), onSuccess: invalidate });
+  return useMutation({
+    mutationFn: (body: NoteBody) => aiKnowledgeApi.addNote(projectId, body),
+    onSuccess: invalidate,
+  });
 }
 
 /** Edit a note an AI wrote. */

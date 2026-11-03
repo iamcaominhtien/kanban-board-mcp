@@ -345,7 +345,7 @@ function ClientRow({ def, folder, onFolder, onToast, onToolCount }: RowProps) {
         disabled={busy || folderMissing || !status}
         onClick={() => {
           setExpanded(true);
-          run('install');
+          void run('install');
         }}
       >
         {installLabel}

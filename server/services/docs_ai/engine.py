@@ -225,14 +225,12 @@ async def call(
     async with database.async_session() as session:
         row = await assist.get(session)
     max_tokens = assist.max_tokens_for(row, profile, max_tokens)
-    scope = None
+    session_key = None
     if profile.connection == "local" and profile.provider == "claude-code":
-        scope = scope or await _session_scope(job_id, page_id)
-    else:
-        scope = None
-    if scope:
+        session_key = scope or await _session_scope(job_id, page_id)
+    if session_key:
         prompt = sessions.asked_by(person, prompt)
-        async with sessions.exclusive(scope, who.member.id):
+        async with sessions.exclusive(session_key, who.member.id):
             out, use = await _complete(
                 profile,
                 system,
@@ -240,10 +238,10 @@ async def call(
                 max_tokens,
                 timeout,
                 on_delta,
-                await sessions.lookup(scope, who.member.id),
+                await sessions.lookup(session_key, who.member.id),
             )
             if use is not None:
-                await sessions.remember(scope, who.member.id, project_id, use.id)
+                await sessions.remember(session_key, who.member.id, project_id, use.id)
     else:
         out, use = await _complete(
             profile, system, prompt, max_tokens, timeout, on_delta, None

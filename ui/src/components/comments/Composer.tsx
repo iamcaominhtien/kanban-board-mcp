@@ -608,7 +608,7 @@ export function Composer({
                     width: 28,
                     height: 28,
                     borderRadius: 6,
-                    background: c.isImage ? '#E8F1FB' : '#E8F1FB',
+                    background: '#E8F1FB',
                     color: '#2F6FB0',
                     display: 'flex',
                     alignItems: 'center',

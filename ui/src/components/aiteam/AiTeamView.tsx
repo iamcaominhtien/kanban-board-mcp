@@ -234,7 +234,12 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
           ))}
         </div>
         <span style={{ flex: 1 }} />
-        {!(tab === 'resources' || tab === 'history' || tab === 'memory' || (tab === 'flow' && flowView === 'timeline')) && (
+        {!(
+          tab === 'resources' ||
+          tab === 'history' ||
+          tab === 'memory' ||
+          (tab === 'flow' && flowView === 'timeline')
+        ) && (
           // Flow › Timeline has its own range in its toolbar: a second one here disagreed with it
           <MenuSelect<TeamRange | 'life'>
             variant="button"
