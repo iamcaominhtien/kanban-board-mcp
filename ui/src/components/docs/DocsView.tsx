@@ -43,6 +43,7 @@ import {
   TreeSkeleton,
 } from './DocsStates';
 import { PopOutIcon } from './DocsWindowIcons';
+import { GivePageDialog } from './GivePageDialog';
 import { DocsTree } from './DocsTree';
 import { DuplicateDialog } from './DuplicateDialog';
 import { HistoryDrawer } from './HistoryDrawer';
@@ -263,6 +264,8 @@ export function DocsView({
   const [dupFor, setDupFor] = useState<DocsPage | null>(null);
   const [history, setHistory] = useState<{ compare?: { from: number; to: number } } | null>(null);
   const [deleteFor, setDeleteFor] = useState<{ id: string; title: string } | null>(null);
+  // a page given to an AI member to write or review (#268)
+  const [giveFor, setGiveFor] = useState<{ id: string; title: string } | null>(null);
   const [renameFor, setRenameFor] = useState<{ node: { id: string; title: string }; newTitle: string } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [narrow, setNarrow] = useState(() => window.innerWidth < NARROW_PX);
@@ -421,6 +424,9 @@ export function DocsView({
       case 'delete':
         setDeleteFor({ id: target.id, title: target.title });
         return;
+      case 'give-ai':
+        setGiveFor({ id: target.id, title: target.title });
+        return;
       case 'history':
         select(target.id);
         setHistory({});
@@ -440,7 +446,7 @@ export function DocsView({
       download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(full.markdown))}\n`);
   }
 
-  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor);
+  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor || giveFor);
   usePageShortcuts(
     (a) => {
       if (page) void runAction(a, page);
@@ -990,6 +996,17 @@ export function DocsView({
                 setSelectedId(null);
                 setEditing(false);
               }
+            }}
+          />
+        )}
+        {giveFor && (
+          <GivePageDialog
+            projectId={projectId}
+            page={giveFor}
+            onClose={() => setGiveFor(null)}
+            onGiven={(ticketId, member) => {
+              setGiveFor(null);
+              toast.success(`${member} has the page`, `${ticketId} is linked to it; its work shows on the page.`);
             }}
           />
         )}

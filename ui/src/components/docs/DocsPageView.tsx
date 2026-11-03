@@ -28,6 +28,7 @@ import { getAvatarColors } from '../MemberAvatar';
 import { Icon } from './Icon';
 import { PageInfoPopover } from './PageInfoPopover';
 import { PageMenu, type PageMenuAction } from './PageMenu';
+import { PageWork } from './PageWork';
 import { ReferencedBy } from './ReferencedBy';
 import { SharePopover } from './SharePopover';
 import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
@@ -656,6 +657,11 @@ export function DocsPageView({
               <div style={{ marginTop: 16 }}>
                 <SummaryBlock view={aiView} />
                 <TranslateBanner view={aiView} markdown={published ? page.markdown : (page.draft?.markdown ?? '')} />
+              </div>
+            )}
+            {!offline && published && (
+              <div style={{ marginTop: 16 }}>
+                <PageWork pageId={page.id} onOpenTicket={onOpenTicket} />
               </div>
             )}
             <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
