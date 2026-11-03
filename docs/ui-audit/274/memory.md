@@ -81,12 +81,12 @@ projects are not checked; every cause below is in the code and holds for any pro
   | 2 (`learned` on the report) | 1 note (pytest missing, `python3 -m unittest` refused); not the request for Vietnamese | that note | Vietnamese, but it cannot be told from the note's language; still tried `unittest` |
   | 3 (the board's pass after every run) | 2 notes itself; the board added 3: **An's request for Vietnamese (feedback)**, the refused `git checkout`, the values `ticket_items` takes | 4 role notes, listed in What it was given | wrote in **Vietnamese** on a ticket with no comment from An, and **did not run pytest** (the note says it is missing) where Dev An had |
   | 4 (3.34.2: the prompt names `./test.sh`, the Dev may `git switch`) | ran `./test.sh` (watch mode, gave up), then `./test.sh --once`, and kept that; switched to its branch and committed. The board kept the request for Vietnamese | that note and the feedback | ran **`./test.sh --once` the first time**, wrote in Vietnamese, made its branch and committed |
+  | 5 (3.34.2, branch from the base; the memory tells an outside agent a lesson is only a proposal) | read `test.sh` first and ran `./test.sh --once`; made its branch from `main` (`git switch -c … main`); kept 3 notes itself, the request for Vietnamese among them | those notes | ran `./test.sh --once` the first time; branched from SHOP-1's branch **on purpose** (main lacks SHOP-1's quoting) and kept that reason as a note. The outside agent, **haiku**, proposed 2 lessons on the board without asking |
 
   So a model does not keep memory on its own initiative, even told to: the report's `learned` and the board's pass
   after the run are what make it reliable (3.34.1). Round 4 met the trap the check was built around: Dev An paid for
   `./test.sh` once and kept the fix, and Dev Binh, on another ticket, did not pay for it again (3.34.2 named the
   project's test command in the prompt and let a Dev without a worktree reach its branch; before, neither Dev ran the
   repository's tests or left `main`). Dev Binh made its branch from Dev An's, where the checkout stood: the prompt now
-  says to branch from the base. The outside agent (haiku) read the memory and the notes each time and wrote good
-  lessons, but asked before proposing them on the board, even after the tool said a project lesson is only a
-  proposal; the MCP write path itself is covered by the tests and the demo.
+  says to branch from the base, and in round 5 Dev An did, and Dev Binh branched from SHOP-1 only with a reason. The outside agent (haiku) asked before proposing its lessons until the memory itself said a project lesson is
+  only a proposal; in round 5 it proposed two on its own.
