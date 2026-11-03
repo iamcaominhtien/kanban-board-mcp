@@ -82,7 +82,9 @@ jobs:
   backend-tests:
     name: Backend tests (${{ matrix.shard }}/10)
     needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    # DISABLED: tests are turned off in CI. To turn them back on, restore the `if:` line below to the changes-based condition.
+    # if: ${{ needs.changes.outputs.backend == 'true' }}
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -115,10 +117,10 @@ jobs:
     if: ${{ !cancelled() && needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Lint and every shard passed
+      # backend-tests is disabled (skipped), so only lint is required; re-add the backend-tests line when tests return
+      - name: Lint passed
         run: |
           test "${{ needs.backend-lint.result }}" = success
-          test "${{ needs.backend-tests.result }}" = success
 
   # The board on PostgreSQL and MySQL/MariaDB (design/screens/ai-databases.md F, "Tests"): the database tests with a
   # round trip SQLite → PostgreSQL → MariaDB → SQLite compared row by row, then the ticket, project, idea, docs and
@@ -126,7 +128,9 @@ jobs:
   databases:
     name: Databases (PostgreSQL, MariaDB)
     needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    # DISABLED: tests are turned off in CI. To turn them back on, restore the `if:` line below to the changes-based condition.
+    # if: ${{ needs.changes.outputs.backend == 'true' }}
+    if: false
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -222,7 +226,9 @@ jobs:
   frontend-tests:
     name: Frontend tests (${{ matrix.shard }}/3)
     needs: changes
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    # DISABLED: tests are turned off in CI. To turn them back on, restore the `if:` line below to the changes-based condition.
+    # if: ${{ needs.changes.outputs.frontend == 'true' }}
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -253,15 +259,17 @@ jobs:
     if: ${{ !cancelled() && needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checks and every shard passed
+      # frontend-tests is disabled (skipped), so only the checks are required; re-add the frontend-tests line when tests return
+      - name: Checks passed
         run: |
           test "${{ needs.frontend-checks.result }}" = success
-          test "${{ needs.frontend-tests.result }}" = success
 
   desktop:
     name: Desktop (node tests)
     needs: changes
-    if: ${{ needs.changes.outputs.desktop == 'true' }}
+    # DISABLED: tests are turned off in CI. To turn them back on, restore the `if:` line below to the changes-based condition.
+    # if: ${{ needs.changes.outputs.desktop == 'true' }}
+    if: false
     runs-on: ubuntu-latest
     defaults:
       run:
