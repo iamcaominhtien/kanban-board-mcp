@@ -268,7 +268,17 @@ async def test_a_person_takes_a_ticket_back_mid_run_and_gives_it_back(
     assert "- Left: The tests for negative numbers." in build
     view = (await c.get(f"/tickets/{tid}/ai/workflow")).json()
     builds = [s for s in view["steps"] if s["key"] == "build"]
-    assert builds[-1]["state"] == "done" and builds[-1]["attempt"] == 2
+    # given back is not a second try: same attempt, and the Dev is not moved up to Opus
+    assert builds[-1]["state"] == "done" and builds[-1]["attempt"] == 1
+    async with env["maker"]() as s:
+        last = (
+            await s.exec(
+                select(AiRun)
+                .where(AiRun.ticket_id == tid)
+                .order_by(AiRun.number.desc())
+            )
+        ).first()
+    assert last.number == 2 and "haiku" in last.model, last.model
     held = (await c.get(f"/tickets/{tid}/ai/holder")).json()
     assert held["kind"] == "waiting" and held["text"] == "Waits for a person: Done"
 

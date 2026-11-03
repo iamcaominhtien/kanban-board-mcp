@@ -478,7 +478,9 @@ async def hand_over(
                             label=prev.label,
                             kind=prev.kind,
                             role=prev.role,
-                            attempt=prev.attempt + 1 if mine else prev.attempt,
+                            # a take-back is not a failed attempt: the step keeps its attempt, so it is not moved
+                            # up a model as a second try would be (workflow._model_for)
+                            attempt=prev.attempt,
                             note_in=prompt if mine else None,
                             member_id=prev.member_id if mine else None,
                         )
