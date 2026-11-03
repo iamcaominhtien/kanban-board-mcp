@@ -444,6 +444,10 @@ async def test_index_writes_are_noops_without_fts5_and_catch_up_afterwards(
         return False
 
     real = docs_search.ensure_fts
+    # the index exists before it is switched off: on a database that has no index yet, the first search creates it
+    # and fills it from every page, the one published while off included (that held only when an earlier test in the
+    # same process had made the index)
+    assert titles(await search(c, pid, "capybara")) == []
     monkeypatch.setattr(docs_search, "ensure_fts", off)
     await publish(c, await mk(c, pid, "While off"), "capybara")  # not indexed
     monkeypatch.setattr(docs_search, "ensure_fts", real)
