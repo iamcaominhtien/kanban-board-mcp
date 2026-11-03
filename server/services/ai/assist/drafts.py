@@ -121,11 +121,13 @@ async def project_lead(session: AsyncSession, project_id: str) -> str | None:
     """The first admin of the project (who a viewer asks to apply a draft)."""
     row = (
         await session.exec(
-            select(Member).where(
+            select(Member)
+            .where(
                 Member.project_id == project_id,
                 Member.kind == "human",
                 Member.role == "admin",
             )
+            .order_by(Member.created_at, Member.id)
         )
     ).first()
     return row.name if row else None

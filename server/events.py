@@ -80,50 +80,84 @@ def mark_own_change() -> None:
 
 
 async def watch_database(
-    path: Path, interval: float = 0.4, grace: float = 0.15
+    path: Path | None = None, interval: float = 0.4, grace: float = 0.15
 ) -> None:
     """Announce changes that another process made to the database.
 
     The stdio MCP server (`mcp_stdio.py`, what the desktop app and editors launch) is a separate process from the
-    API: its own `publish` reaches nobody, so the board only showed the change after a restart. SQLite counts the
-    commits of *other* connections (`PRAGMA data_version`), so this loop notices them and publishes one
-    invalidation. A change this process published itself (a REST call, an MCP call over HTTP) is not repeated.
+    API: its own `publish` reaches nobody, so the board only showed the change after a restart. This loop notices
+    such changes and publishes one invalidation. A change this process published itself (a REST call, an MCP call
+    over HTTP) is not repeated.
+
+    On SQLite it reads the commit counter of *other* connections (`PRAGMA data_version`); on PostgreSQL and MySQL it
+    reads the newest row another process added to the change log (`dbkit.changes`). It follows the database in use,
+    so a switch in Settings needs no restart.
 
     Args:
-        path: The SQLite file.
+        path: The SQLite file to watch; None follows the database in use.
         interval: Seconds between checks.
         grace: Seconds to wait after a change, for this process's own `publish` to land.
     """
+    import database
+
     conn: sqlite3.Connection | None = None
+    conn_path: Path | None = None
     seen: int | None = None
+    watching = None  # the engine (server database) or the path (SQLite) the last value came from
+    trimmed_at = 0.0
     # What this process had announced when the version was last read: an announcement since then explains a change
     seen_published = _published
 
-    def check() -> int:
-        nonlocal conn
-        if conn is None:
-            conn = sqlite3.connect(path, timeout=1, check_same_thread=False)
+    def close() -> None:
+        nonlocal conn, conn_path
+        if conn is not None:
+            conn.close()
+        conn = conn_path = None
+
+    def check(db_path: Path) -> int:
+        nonlocal conn, conn_path
+        if conn is None or conn_path != db_path:
+            close()
+            conn = sqlite3.connect(db_path, timeout=1, check_same_thread=False)
+            conn_path = db_path
         return conn.execute("PRAGMA data_version").fetchone()[0]
 
     while True:
         try:
             await asyncio.sleep(interval)
-            version = await asyncio.to_thread(check)
+            if path is not None or database.is_sqlite():
+                db_path = path or database.get_db_path()
+                source = db_path
+                version = await asyncio.to_thread(check, db_path)
+                server = False
+            else:
+                close()
+                from dbkit import changes
+
+                source = database.engine
+                version = await changes.latest_from_others(source)
+                server = True
+            if source != watching:
+                seen, watching = (
+                    None,
+                    source,
+                )  # another database: start over, nothing to announce yet
             if seen is not None and version != seen:
                 await asyncio.sleep(grace)
                 # Counted from the last read, not from now: this process announces right after it commits, usually
-                # before the watcher looks, and a change it announced must not be announced a second time
-                if _published == seen_published:
+                # before the watcher looks, and a change it announced must not be announced a second time. The
+                # change log of a server database names the writer, so only other processes' rows are counted.
+                if server or _published == seen_published:
                     await publish(INVALIDATE)
             seen = version
             seen_published = _published
+            if server and asyncio.get_running_loop().time() - trimmed_at > 300:
+                trimmed_at = asyncio.get_running_loop().time()
+                await changes.trim(source)
         except asyncio.CancelledError:
-            if conn is not None:
-                conn.close()
+            close()
             raise
         except Exception:
             logger.debug("Database watcher could not read the version", exc_info=True)
-            if conn is not None:
-                conn.close()
-            conn = None
+            close()
             seen = None

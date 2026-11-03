@@ -19,7 +19,13 @@ _DEFAULT_COLORS = [
 
 async def list_members(session: AsyncSession, project_id: str) -> list[Member]:
     """Return the members of a project."""
-    result = await session.exec(select(Member).where(Member.project_id == project_id))
+    result = await session.exec(
+        select(Member)
+        .where(Member.project_id == project_id)
+        .order_by(
+            Member.created_at, Member.id
+        )  # SQLite's insertion order, on every engine
+    )
     return list(result.all())
 
 

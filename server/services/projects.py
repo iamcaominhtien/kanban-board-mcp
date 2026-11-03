@@ -11,8 +11,12 @@ from services.members import create_member as _create_member
 
 
 async def list_projects(session: AsyncSession) -> list[Project]:
-    """Return all projects."""
-    result = await session.exec(select(Project))
+    """Return all projects (in the order they were made on SQLite; by name elsewhere, where a table has no order of
+    its own and projects have no creation time)."""
+    stmt = select(Project)
+    if session.get_bind().dialect.name != "sqlite":
+        stmt = stmt.order_by(Project.name, Project.id)
+    result = await session.exec(stmt)
     return list(result.all())
 
 

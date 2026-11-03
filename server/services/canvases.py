@@ -546,8 +546,6 @@ async def create_canvas(
         created_by=actor,
         updated_by=actor,
     )
-    session.add(c)
-    await session.flush()
     doc = blank_doc()
     doc["pages"][0]["rev"] = 1
     if start == "blank":
@@ -560,7 +558,10 @@ async def create_canvas(
             }
         )  # fmt: skip
     c.board_count, c.total_bytes = _totals(doc)
+    # The file (and its overview picture) first: the row's insert takes the database's write lock until the commit,
+    # and other writers wait meanwhile. The id is made in Python, so it is known already.
     write_doc(c.id, doc)
+    session.add(c)
     await session.commit()
     await _version(session, c, "create", note="Created")
     await session.commit()
@@ -1790,8 +1791,6 @@ async def copy_canvas(
         created_by=actor,
         updated_by=actor,
     )
-    session.add(c)
-    await session.flush()
     for k in KINDS:
         for item in doc[k]:
             item["rev"] = 1
@@ -1815,6 +1814,9 @@ async def copy_canvas(
             )
     c.board_count, c.total_bytes = _totals(doc)
     write_doc(c.id, doc)
+    # Every frame's files (up to the canvas's size cap) and the overview are written before the row is inserted, so
+    # the database's write lock is held for the insert only
+    session.add(c)
     await session.commit()
     await _version(session, c, "create", note=f"Copy of {src.title}")
     await session.commit()

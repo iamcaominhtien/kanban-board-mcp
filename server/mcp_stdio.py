@@ -22,8 +22,12 @@ if "--bridge" in sys.argv:
 import app_logging
 from mcp.server.fastmcp import FastMCP
 
+import database
 import kanban_mcp
 from database import init_db
+from dbkit import targets as db_targets
+
+db_targets.ROLE = "mcp"  # its connections are named "kanban-board mcp …" on PostgreSQL
 
 mcp = FastMCP("kanban-mcp", instructions=kanban_mcp.MCP_INSTRUCTIONS)
 kanban_mcp.register(mcp)
@@ -33,7 +37,17 @@ async def _startup() -> None:
     await init_db()
 
 
+async def _main() -> None:
+    await _startup()
+    # Follow the database setting: when the board switches to another database, this process does too, so the
+    # board and the editors always talk to one database (design/screens/ai-databases.md B3)
+    follow = asyncio.create_task(database.follow_settings())
+    try:
+        await mcp.run_stdio_async()
+    finally:
+        follow.cancel()
+
+
 if __name__ == "__main__":
     app_logging.setup_logging(stdio=True)
-    asyncio.run(_startup())
-    mcp.run(transport="stdio")
+    asyncio.run(_main())

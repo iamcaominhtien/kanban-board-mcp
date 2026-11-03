@@ -114,10 +114,12 @@ async def _ask_light(
     async with database.async_session() as session:
         prof = (
             await session.exec(
-                select(AiMember).where(
+                select(AiMember)
+                .where(
                     AiMember.project_id == project_id,
                     AiMember.provider == "claude-code",
                 )
+                .order_by(AiMember.created_at, AiMember.id)
             )
         ).first()
         account = (

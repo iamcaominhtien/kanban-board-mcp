@@ -336,9 +336,10 @@ async def create_sketch(
         created_by=actor,
         updated_by=actor,
     )
-    session.add(s)
-    await session.flush()
+    # Both files (up to 10 MB each) are staged before the row is inserted, so the database's write lock is held for
+    # the insert only; the id is made in Python
     staged = _stage(s.id, png, source)
+    session.add(s)
     try:
         await session.commit()
     except Exception:

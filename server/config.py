@@ -48,6 +48,22 @@ def set_data_folder(path: Path) -> None:
     _save(data)
 
 
+def get_section(name: str) -> dict:
+    """A saved group of settings (for example "database"); empty when never saved."""
+    value = _load().get(name)
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def set_section(name: str, value: dict | None) -> None:
+    """Save a group of settings, or remove it with None."""
+    data = _load()
+    if value is None:
+        data.pop(name, None)
+    else:
+        data[name] = value
+    _save(data)
+
+
 def get_flag(name: str) -> bool:
     """Whether the app-wide switch `name` is on (off when never set)."""
     return _load().get(name) is True

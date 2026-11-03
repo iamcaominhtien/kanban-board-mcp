@@ -25,6 +25,7 @@ from api.tickets import router as tickets_router
 from api.members import router as members_router
 from api.settings import router as settings_router
 from api.data import router as data_router
+from api.database import router as database_router
 from api.logs import router as logs_router
 from api.idea_ai import router as idea_ai_router
 from api.idea_space import router as idea_space_router
@@ -80,7 +81,6 @@ from services.ai import signin as ai_signin
 from services.docs_text import DocsError
 import database
 from version import version_info
-from database import init_db
 from services import activity as svc_activity
 from services import idea_ai as svc_idea_ai
 from services import workspace as svc_workspace
@@ -127,7 +127,8 @@ async def lifespan(app: FastAPI):
     # "RuntimeError: Task group is not initialized. Make sure to use run()."
     """Run the MCP session manager, DB init and background sweeper for the app's lifetime."""
     async with mcp.session_manager.run():
-        await init_db()
+        await database.init_db_or_wait()
+        follow = asyncio.create_task(database.follow_settings())
         logger.info("Server started (version %s)", version_info().get("version"))
         sweeper = asyncio.create_task(
             svc_workspace.sweep_loop(lambda: database.async_session())
@@ -135,9 +136,7 @@ async def lifespan(app: FastAPI):
         digests = asyncio.create_task(
             svc_idea_ai.digest_loop(lambda: database.async_session())
         )
-        db_watcher = asyncio.create_task(
-            board_events.watch_database(database.get_db_path())
-        )
+        db_watcher = asyncio.create_task(board_events.watch_database())
         await ai_runs.start_scheduler()
         await assist_chat.recover()
         await docs_ai_jobs.recover()
@@ -171,6 +170,7 @@ async def lifespan(app: FastAPI):
             sweeper.cancel()
             digests.cancel()
             db_watcher.cancel()
+            follow.cancel()
             # Wait for them to stop; their CancelledError is collected, while a cancellation of
             # the shutdown itself still propagates
             await asyncio.gather(sweeper, digests, db_watcher, return_exceptions=True)
@@ -197,6 +197,55 @@ app.add_middleware(
         "X-Kanban-Secret",
     ],
 )
+
+
+_DB_FREE_PATHS = (
+    "/database",
+    "/version",
+    "/settings",
+    "/events",
+    "/logs",
+    "/mcp-clients",
+    "/assets",
+    "/drawio",
+)
+
+
+@app.middleware("http")
+async def database_unreachable(request: Request, call_next):
+    """While the database does not answer, every request that needs it gets one quick 503 the app turns into its
+    reconnect screen (design/screens/ai-databases.md E), instead of waiting for a connection timeout each."""
+    path = request.url.path
+    is_file = (
+        "." in path.rsplit("/", 1)[-1]
+    )  # the app's own files (the built UI) need no database
+    if (
+        database.UNREACHABLE is not None
+        and not is_file
+        and not path.startswith(_DB_FREE_PATHS)
+    ):
+        if path == "/" or request.headers.get("accept", "").startswith("text/html"):
+            return await call_next(request)
+        return JSONResponse(
+            {"detail": {"code": "database_unreachable", **database.UNREACHABLE}},
+            status_code=503,
+        )
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        if not database.is_sqlite() and database._is_connection_error(exc):
+            await database.check_reachable(timeout=3)
+            if database.UNREACHABLE is not None:
+                return JSONResponse(
+                    {
+                        "detail": {
+                            "code": "database_unreachable",
+                            **database.UNREACHABLE,
+                        }
+                    },
+                    status_code=503,
+                )
+        raise
 
 
 # AI endpoints check the person's project role first (api/ai_roles.py)
@@ -340,6 +389,7 @@ app.add_exception_handler(ScheduleError, schedule_error_handler)
 app.include_router(tickets_router)
 app.include_router(members_router)
 app.include_router(settings_router)
+app.include_router(database_router)
 app.include_router(data_router)
 app.include_router(idea_ai_router)
 app.include_router(idea_space_router)

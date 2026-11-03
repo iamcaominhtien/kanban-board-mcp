@@ -40,14 +40,15 @@
 - **MCP server for AI agents**: 12 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
 - **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
 - **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
+- **Or your own database**: PostgreSQL 14+ or MySQL 8 / MariaDB 10.6+, chosen in Settings › Storage & backup, with a move between them that copies, verifies and switches without a restart ([guide](docs/guideline/databases.md)).
 
 ## What's Inside
 
 | | |
 |---|---|
 | **UI** | React 18 + Vite + TypeScript, CSS Modules, drag-and-drop (`@dnd-kit`) |
-| **Server** | Python, FastAPI, MCP (Model Context Protocol), SQLite via SQLModel |
-| **Storage** | Local-first — SQLite, no external services |
+| **Server** | Python, FastAPI, MCP (Model Context Protocol), SQLModel on SQLite, PostgreSQL or MySQL/MariaDB |
+| **Storage** | Local-first — SQLite by default, no external services; PostgreSQL or MySQL/MariaDB when you want one |
 
 ## Screenshots
 

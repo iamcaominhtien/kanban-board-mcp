@@ -72,7 +72,11 @@ async def get_plugins(project_id: str, session: Session) -> list[dict]:
     await _project(session, project_id)
     used = await svc_plugins.usage(session, project_id)
     rows = (
-        await session.exec(select(AiPlugin).where(AiPlugin.project_id == project_id))
+        await session.exec(
+            select(AiPlugin)
+            .where(AiPlugin.project_id == project_id)
+            .order_by(AiPlugin.installed_at, AiPlugin.id)
+        )
     ).all()
     return [svc_plugins.to_dict(r, used.get(r.name)) for r in rows]
 
