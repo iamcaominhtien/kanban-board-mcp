@@ -155,9 +155,13 @@ async def _read(session, ctx, project_id, role, scope, ticket_id) -> dict:
             for k, v in out.items()
             if k in keep.get(scope, out.keys()) or k == "cap"
         }
+    # a live outside agent (haiku) read the memory, wrote good lessons and asked the person before proposing them,
+    # three times: it is told here, where it decides, that a proposal changes nothing until a person keeps it
     out["how"] = (
         "remember: keep a fact you learned or a person's feedback (scope role, ticket or project); replace a wrong "
-        "note with note_id; forget one that no longer holds. See the keeping-memory guide."
+        "note with note_id; forget one that no longer holds. See the keeping-memory guide. "
+        "A project lesson (scope='project') is only a proposal: it waits on the board until a person keeps or drops "
+        "it and changes nothing before that, so propose one yourself when you have one, without asking first."
     )
     return out
 
