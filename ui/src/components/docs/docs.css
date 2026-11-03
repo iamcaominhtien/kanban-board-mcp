@@ -1004,3 +1004,10 @@ mark.docs-find-mark.docs-find-cur {
   padding-top: calc(var(--dk-find-h, 46px) + 20px);
   transition: padding-top 0.12s ease;
 }
+
+/* A ticket under the doc side panel shifts left so the 480px panel does not cover its right column; the panel's scrim
+   dims it (TicketDocRefs C1, DR-3). The host is the display: contents wrapper of TicketDocsHost; the shift is measured
+   there when the panel opens. */
+.dk-peek-host[data-peek-open='true'] > div > [role='dialog'][aria-modal='true'] {
+  transform: translateX(calc(-1 * var(--dk-peek-shift, 0px)));
+}

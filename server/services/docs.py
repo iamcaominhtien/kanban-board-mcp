@@ -2094,9 +2094,18 @@ async def link_ticket_doc(
                 snippet="",
             )
         )
+        _ticket_activity(ticket, "doc_ref_added", None, page.title)
         await session.commit()
     rows = await docs_for_ticket(session, ticket_id)
     return next(r for r in rows if r["page_id"] == page.id and r["origin"] == "manual")
+
+
+def _ticket_activity(ticket, field: str, from_: str | None, to: str | None) -> None:
+    """A Linked docs change in the ticket's Activity, as a [[reference]] added or removed by hand (TicketDocRefs E)."""
+    from services import activity as act
+
+    act.record(ticket, field, from_, to, ref="Linked docs")
+    ticket.updated_at = datetime.now(UTC).isoformat()
 
 
 async def unlink_ticket_doc(
@@ -2111,7 +2120,7 @@ async def unlink_ticket_doc(
     Returns:
         `{removed: n}` with the number of links removed.
     """
-    await _ticket_or_404(session, ticket_id)
+    ticket = await _ticket_or_404(session, ticket_id)
     rows = await session.exec(
         select(DocsLink).where(
             DocsLink.source_page_id == page_id,
@@ -2123,6 +2132,11 @@ async def unlink_ticket_doc(
     for link in rows.all():
         await session.delete(link)
         removed += 1
+    if removed:
+        page = await session.get(DocsPage, page_id)
+        _ticket_activity(
+            ticket, "doc_ref_removed", page.title if page else page_id, None
+        )
     await session.commit()
     return {"removed": removed}
 

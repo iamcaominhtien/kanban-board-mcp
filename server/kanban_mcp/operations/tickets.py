@@ -389,6 +389,7 @@ _CLEARABLE_FIELDS = frozenset(
         "repo_path",
         "wont_do_reason",
         "wave_pin",
+        "review_requested_from",
     }
 )
 
@@ -463,6 +464,12 @@ async def update_ticket(
             description="Pin this sub-ticket to an execution wave; clear_fields=['wave_pin'] computes it from blocked_by again.",
         ),
     ] = None,
+    review_requested_from: Annotated[
+        str | None,
+        Field(
+            description="Member id (person or AI) whose review the ticket waits for in Review."
+        ),
+    ] = None,
     clear_fields: Annotated[
         list[
             Literal[
@@ -474,6 +481,7 @@ async def update_ticket(
                 "repo_path",
                 "wont_do_reason",
                 "wave_pin",
+                "review_requested_from",
             ]
         ]
         | None,
@@ -502,6 +510,7 @@ async def update_ticket(
         "block_done_if_acs_incomplete": block_done_if_acs_incomplete,
         "block_done_if_tcs_incomplete": block_done_if_tcs_incomplete,
         "wave_pin": wave_pin,
+        "review_requested_from": review_requested_from,
     }
     update_data = {k: v for k, v in fields.items() if v is not None}
     for name in clear_fields or []:

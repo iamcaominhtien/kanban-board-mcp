@@ -72,8 +72,20 @@
   box-sizing: border-box;
 }
 
+/* The compact box (New Ticket, test cases): a #C7D2CB border at rest, the green border and ring while you type in it
+   (NewTicket description) */
 .editContainerCompact {
-  border-radius: 8px;
+  border-radius: 7px;
+  border-color: #c7d2cb;
+  box-shadow: none;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.editContainerCompact:focus-within {
+  border-color: var(--color-forest);
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.1);
 }
 
 .toolbarHeader {
@@ -92,7 +104,19 @@
 .toolbarHeaderCompact {
   padding: 4px 6px;
   gap: 3px;
-  border-radius: 7px 7px 0 0;
+  border-radius: 6px 6px 0 0;
+}
+
+/* "MARKDOWN" on the right of the compact toolbar: 9.5/700 uppercase #9AA8A0 (NewTicket description) */
+.formatLabel {
+  margin-left: auto;
+  padding-right: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9aa8a0;
+  user-select: none;
 }
 
 .tabs {

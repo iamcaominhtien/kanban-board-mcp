@@ -211,10 +211,11 @@ async def test_the_tool_list_stays_compact():
     # #273) about 150; manage_ticket's wave_pin (a sub-ticket's wave pinned by hand, TDP-1) about 160; the ticket guide,
     # attachments, criteria on create and what get_ticket says about the Workspace and the worktree (issue #269) about
     # 750
-    assert default < 49_600, (
+    # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150
+    assert default < 49_800, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 52_500, (
+    assert full < 52_700, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
