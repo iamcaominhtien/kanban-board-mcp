@@ -93,10 +93,21 @@ function agent(url, step) {
   await win.evaluate((p) => {
     localStorage.setItem('activeProjectId', p);
     localStorage.setItem('kanbanActor', 'An Nguyen');
+    window.location.search = `?proj=${p}`; // the app keeps the open project; the address names the one to show
   }, project);
-  await win.reload();
-  await sleep(6000);
+  await sleep(8000);
   const port = await win.evaluate(() => window.electronAPI.getBackendPort());
+  // bring a heading of the open page into view (the page body scrolls, not the window)
+  const scrollTo = (text) =>
+    win.evaluate((t) => {
+      const h = [...document.querySelectorAll('[data-testid="page-body"] h2, [data-testid="page-body"] h3')].find(
+        (e) => e.textContent.trim().startsWith(t),
+      );
+      h?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, text);
+  // the app's own way to open a page from elsewhere (as the Approvals list does)
+  const openPage = (id) =>
+    win.evaluate((id) => window.dispatchEvent(new CustomEvent('kanban:open-doc', { detail: { pageId: id } })), id);
   const MCP = `http://127.0.0.1:${port}/mcp/`;
 
   const rec = spawn('ffmpeg', [
@@ -117,20 +128,23 @@ function agent(url, step) {
   agent(MCP, 'setup');
   agent(MCP, 'spec');
   await sleep(2500);
-  await win.getByText('Sign-in — spec', { exact: true }).first().click();
+  await openPage(JSON.parse(fs.readFileSync(path.join(WORK, 'state.json'), 'utf8')).page_id);
   await sleep(3500);
   caption('A highlight, a table, a warning callout, a task list, and two tickets linked by key (KAN-5, KAN-6)');
-  await win.mouse.wheel(0, 500);
+  await scrollTo('Rules');
   await sleep(4500);
-  await win.mouse.wheel(0, -500);
+  await scrollTo('Goal');
 
   // 3. A picture, one section, a passage
   caption('docs_write(upload): the sign-in design goes into the "Screens" section of the page');
   agent(MCP, 'picture');
-  await sleep(4500);
+  await sleep(1200);
+  await scrollTo('Screens');
+  await sleep(3500);
   caption('docs_write(edit, section="Rules"): one section changes; the rest of the page is not sent back');
   agent(MCP, 'edit');
-  await win.mouse.wheel(0, 700);
+  await sleep(1000);
+  await scrollTo('Rules');
   await sleep(5000);
   caption('docs_write(comment, quote=...): a comment on one passage, highlighted where it is');
   agent(MCP, 'comment');
@@ -153,12 +167,13 @@ function agent(url, step) {
   // 5. Tickets from the checklist
   caption('docs_write(tickets): the open tasks become tickets, linked to the page, their keys put on their lines');
   agent(MCP, 'tickets');
-  await win.mouse.wheel(0, 600);
+  await sleep(1000);
+  await scrollTo('Work');
   await sleep(5500);
 
   // 6. Give the page to an AI member, see it work on the page
   caption('A person gives the page to the AI member "Reviewer" to review it (page menu › Give to an AI member)');
-  await win.mouse.wheel(0, -2000);
+  await scrollTo('Goal');
   await sleep(800);
   await win.getByRole('button', { name: /More actions|Page actions|More/ }).first().click();
   await sleep(1200);
@@ -189,7 +204,7 @@ function agent(url, step) {
   await bounds(0, { x: 0, y: 0, width: W, height: H });
   await docsWin.getByTestId('docs-dock-back').click();
   await sleep(5000);
-  caption('Server: 12 new tests · desktop: 131 tests · checked in this desktop app with Playwright');
+  caption('Recorded in the desktop app (Electron) with Playwright · the AI member\'s CLI is scripted (no model), its MCP calls are real');
   await sleep(4000);
   const total = (Date.now() - t0) / 1000;
   if (current) current.end = total;

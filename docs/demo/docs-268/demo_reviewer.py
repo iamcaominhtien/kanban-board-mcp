@@ -90,7 +90,11 @@ async def work():
                 None,
             )
             if quote:
-                quote = quote.replace("==", "").split(". ")[0]
+                # the sentence about the attempts, as plain text (the highlight marks are not part of what is read)
+                quote = next(
+                    (x for x in quote.replace("==", "").split(". ") if "attempts" in x),
+                    quote,
+                ).rstrip(".")
                 tool("c1", "docs_write", {"action": "comment", "page_id": page_id, "quote": quote})
                 await call(
                     "docs_write",

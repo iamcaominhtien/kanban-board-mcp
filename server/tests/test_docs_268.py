@@ -358,3 +358,15 @@ async def test_a_person_gives_a_page_to_an_ai_and_sees_its_work_on_the_page(env)
         f"/docs/pages/{page['id']}/assign", json={"member_id": "nope", "kind": "write"}
     )
     assert bad.status_code == 422
+
+
+def test_a_quote_of_highlighted_text_is_found_and_headings_drop_the_marks():
+    from services import docs_anchors
+    from services.docs_text import heading_anchors
+
+    md = "## The ==key== rule\n\nA person signs in. ==Five failed attempts lock the account.==\n"
+    hit = docs_anchors.find_anchor(
+        docs_anchors.blocks_of(md), "Five failed attempts lock the account."
+    )
+    assert hit is not None and hit.exact
+    assert heading_anchors(md)[0]["text"] == "The key rule"
