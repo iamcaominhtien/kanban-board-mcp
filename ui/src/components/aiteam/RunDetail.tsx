@@ -140,7 +140,9 @@ export function memoryUsedLabel(used: MemoryUsed | null | undefined): string {
   const l = used.lessons.length;
   const n = used.notes.length;
   if (!l && !n) return 'none: no kept lessons or notes yet';
-  const parts = [l ? `${l} lesson${l === 1 ? '' : 's'}` : '', n ? `${n} note${n === 1 ? '' : 's'}` : ''].filter(Boolean);
+  const parts = [l ? `${l} lesson${l === 1 ? '' : 's'}` : '', n ? `${n} note${n === 1 ? '' : 's'}` : ''].filter(
+    Boolean,
+  );
   return `Used ${parts.join(' and ')}${used.tokens ? `, ${used.tokens.toLocaleString('en-US')} tokens` : ''}`;
 }
 

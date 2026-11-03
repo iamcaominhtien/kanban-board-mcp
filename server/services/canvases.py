@@ -19,6 +19,7 @@ import asyncio
 import difflib
 import functools
 import io
+import math
 import json
 import os
 import re
@@ -278,7 +279,7 @@ def _num(value: Any, default: float, lo: float, hi: float) -> float:
         v = float(value)
     except (TypeError, ValueError):
         return default
-    if v != v:  # NaN
+    if math.isnan(v):
         return default
     return max(lo, min(hi, v))
 

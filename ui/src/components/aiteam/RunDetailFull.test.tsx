@@ -229,7 +229,7 @@ describe('RunDetail (full)', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     await screen.findByText('This run changed no files.');
     fireEvent.click(screen.getByRole('tab', { name: 'Report' }));
-    await screen.findByText('This run left no report.');
+    expect(await screen.findByText('This run left no report.')).toBeTruthy();
   });
 
   it('pins and unpins, and shows a refusal', async () => {

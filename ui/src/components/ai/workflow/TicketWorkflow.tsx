@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useAiBoardState, LoadError, ago } from '../aiUi';
 import {
   useOddJobReviewer,
+  useSetPace,
+  useTicketPace,
   useWorkflowMutation,
   useWorkflowTemplates,
   useTicketWorkflow,
@@ -63,7 +65,8 @@ function StepRow({
           ? 'wf-step-waiting-you'
           : '';
   const failedChecks = (s.result?.checks ?? []).filter((c) => !c.ok);
-  const label = s.role === 'reviewer' && view.reviewDepth ? `${s.label} · ${cap(view.reviewDepth)}` : s.label;
+  const depthShown = view.pace === 'fast' ? (view.reviewRunsAt ?? view.reviewDepth) : view.reviewDepth;
+  const label = s.role === 'reviewer' && depthShown ? `${s.label} · ${cap(depthShown)}` : s.label;
   return (
     <div className={`wf-step ${cls}`} data-testid={`wf-step-${s.key}`} data-state={s.state}>
       {/* F: a tile per step: number, a check or a clock, the step; then who holds it; then its state */}
@@ -190,6 +193,85 @@ function StepRow({
         )}
       </div>
       <span className={`wf-state ${STATE_CLASS[st.tone]}`}>{st.text}</span>
+    </div>
+  );
+}
+
+/** A lightning bolt: fast mode. */
+export function Bolt({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M13.5 2 4 13.6h6.6L9.5 22 20 9.9h-6.7L13.5 2Z" />
+    </svg>
+  );
+}
+
+/** Fast mode on this ticket: what it skips and lowers, and the switch (a person's call, per ticket). Switching runs
+ * nothing; a step left waiting by it (the one before was skipped) gets a Start button. */
+function PaceRow({ view, ticketId }: { view: WorkflowView; ticketId: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const set = useSetPace(ticketId);
+  const start = useWorkflowMutation(ticketId, (_: void) => workflowApi.start(ticketId));
+  if (view.pace === undefined || view.state === 'done') return null;
+  const fast = view.pace === 'fast';
+  const skipped = view.steps.filter((s) => s.state === 'skipped' && s.outcome === 'fast').map((s) => s.label);
+  const current = view.steps.find((s) => ['pending', 'active', 'waiting', 'blocked', 'failed'].includes(s.state));
+  const waits = view.state === 'active' && current?.state === 'pending' && current.kind !== 'person' && !set.isPending;
+  return (
+    <div className="wf-line" data-testid="pace-row">
+      <span className="wf-h">Pace</span>
+      <div className="wf-seg" role="group" aria-label="Pace">
+        {(['normal', 'fast'] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            className={p === view.pace ? 'on' : ''}
+            aria-pressed={p === view.pace}
+            data-testid={`pace-${p}`}
+            disabled={set.isPending}
+            onClick={() => {
+              if (p === view.pace) return;
+              setError(null);
+              set.mutate(p, { onError: (e) => setError(extractError(e)) });
+            }}
+          >
+            {p === 'fast' ? (
+              <span className="wf-line" style={{ gap: 4 }}>
+                <Bolt /> Fast
+              </span>
+            ) : (
+              'Normal'
+            )}
+          </button>
+        ))}
+      </div>
+      <span className="wf-hint" data-testid="pace-hint" style={{ flex: 1, minWidth: 200 }}>
+        {fast
+          ? `${skipped.length ? `Skips ${skipped.join(', ')}; ` : ''}each AI step one effort level lower${
+              view.reviewRunsAt ? `, review ${cap(view.reviewRunsAt)}` : ''
+            }. Checks and Review still run; a step sent back runs at full effort.`
+          : 'Fast: a quick result of about the same quality. Skips the steps it can do without and runs a level lower.'}{' '}
+        Switching starts nothing.
+      </span>
+      {waits && current && (
+        <button
+          type="button"
+          className="ai-btn ai-btn-primary ai-btn-sm"
+          data-testid="pace-start"
+          disabled={start.isPending}
+          onClick={() => {
+            setError(null);
+            start.mutate(undefined, { onError: (e) => setError(extractError(e)) });
+          }}
+        >
+          Start {current.label}
+        </button>
+      )}
+      {error && (
+        <div className="ai-error-text" role="alert" style={{ flexBasis: '100%' }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -399,9 +481,13 @@ function StopCard({ view, ticketId }: { view: WorkflowView; ticketId: string }) 
 function PutOnWorkflow({ ticket, onDone }: { ticket: Ticket; onDone?: () => void }) {
   const templates = useWorkflowTemplates(ticket.projectId);
   const [key, setKey] = useState('');
+  // ticked when the ticket is in fast mode already; ticking it here sets the ticket's pace too
+  const ticketPace = useTicketPace(ticket.id);
+  const [fastPick, setFastPick] = useState<boolean | null>(null);
+  const fast = fastPick ?? ticketPace.data?.pace === 'fast';
   const [error, setError] = useState<string | null>(null);
   const put = useWorkflowMutation(ticket.id, async (k: string) => {
-    return workflowApi.attach(ticket.id, k);
+    return workflowApi.attach(ticket.id, k, undefined, fast ? 'fast' : 'normal');
   });
   const { members } = useAiBoardState();
   const reviewer = useOddJobReviewer(ticket.id);
@@ -452,6 +538,10 @@ function PutOnWorkflow({ ticket, onDone }: { ticket: Ticket; onDone?: () => void
           </option>
         ))}
       </select>
+      <label className="wf-line" style={{ gap: 5, fontSize: 12.5 }} title="A quick result of about the same quality">
+        <input type="checkbox" checked={fast} onChange={(e) => setFastPick(e.target.checked)} data-testid="put-fast" />
+        <Bolt /> Fast
+      </label>
       <button
         type="button"
         className="ai-btn ai-btn-primary ai-btn-sm"
@@ -509,6 +599,11 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
         {triageChose(view) && (
           <span className="wf-pill" data-testid="chosen-by-triage">
             Chosen by Triage
+          </span>
+        )}
+        {view.pace === 'fast' && (
+          <span className="wf-pill wf-pill-you" data-testid="fast-pill">
+            <Bolt size={11} /> Fast
           </span>
         )}
         <span className="wf-pill wf-pill-blue" data-testid="step-position">
@@ -582,6 +677,7 @@ export function TicketWorkflow({ ticket }: { ticket: Ticket }) {
           The last step is you: the ticket sits in Review until you move it to Done.
         </div>
       )}
+      <PaceRow view={view} ticketId={ticket.id} />
       <DepthRow view={view} ticketId={ticket.id} />
       <ArbitrationCard ticketId={ticket.id} view={view} flagOpen={arbitrationOpen} />
       <TddCard ticketId={ticket.id} view={view} />

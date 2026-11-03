@@ -102,7 +102,7 @@ export function BoardFrame({
     return (
       <div style={box}>
         <img
-          src={pic + (rev ? '' : '')}
+          src={pic}
           alt={board.name}
           draggable={false}
           loading="lazy"

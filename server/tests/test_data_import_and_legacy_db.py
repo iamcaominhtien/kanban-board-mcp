@@ -112,3 +112,37 @@ async def test_database_stamped_with_a_removed_migration_still_upgrades(
     assert version != "f6a7b8c9d0e1"
     assert projects == ["Old project"]
     assert "idea_ticket" in tables
+
+
+async def test_database_missing_docs_ai_ignore_is_repaired_and_a_project_deletes(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """A pre-release build ran the docs_ai migration without docs_ai_ignore: deleting a project was a 500."""
+    from sqlmodel.ext.asyncio.session import AsyncSession
+
+    from models import Project
+    from services import projects as projects_service
+
+    db_file = tmp_path / "kanban.db"
+    url = f"sqlite+aiosqlite:///{db_file}"
+    engine = create_async_engine(url)
+    monkeypatch.setattr(database, "engine", engine)
+    monkeypatch.setattr(database, "DATABASE_URL", url)
+
+    await database.init_db()
+    async with engine.begin() as conn:
+        await conn.execute(text("DROP TABLE docs_ai_ignore"))
+        await conn.execute(
+            text("UPDATE alembic_version SET version_num = 'a3c5e7f9b1d4'")
+        )
+
+    await database.init_db()
+
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        project = Project(name="Doomed", prefix="DOO", color="#2E6F40")
+        session.add(project)
+        await session.commit()
+        assert await projects_service.delete_project(session, project.id) is True
+        left = await session.execute(text("SELECT COUNT(*) FROM project"))
+        assert left.scalar_one() == 0
+    await engine.dispose()

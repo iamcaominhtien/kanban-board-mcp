@@ -93,7 +93,7 @@ describe('BoardAiSection', () => {
     http.patch.mockRejectedValue({ response: { data: { detail: 'Done stays in the last tier.' } } });
     render(wrap(<BoardAiSection projectId="p1" />));
     fireEvent.click(await screen.findByTestId('board-ai-acts'));
-    await screen.findByTestId('board-ai-error');
+    expect((await screen.findByTestId('board-ai-error')).textContent).toContain('Done stays in the last tier.');
   });
 });
 

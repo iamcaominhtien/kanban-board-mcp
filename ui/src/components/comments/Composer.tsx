@@ -53,6 +53,17 @@ interface Props {
   commentCount?: number;
   /** The AI member the Ask button asks first (the ticket's AI assignee). */
   defaultAskId?: string | null;
+  /** The ticket is in fast mode: the AI this comment wakes is fast already. */
+  ticketFast?: boolean;
+}
+
+/** A lightning bolt: fast mode. */
+function FastBolt() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M13.5 2 4 13.6h6.6L9.5 22 20 9.9h-6.7L13.5 2Z" />
+    </svg>
+  );
 }
 
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -124,6 +135,7 @@ export function Composer({
   criteriaCount = 0,
   commentCount = 0,
   defaultAskId,
+  ticketFast = false,
 }: Props) {
   // the box shows a mention as @PM; the comment is saved with the member's id (`stored`)
   const [start] = useState(() => (editing ? initial : (prefill ?? readJson<string>(draftKey(ticketId), ''))));
@@ -134,6 +146,8 @@ export function Composer({
   const mentioned = useMemo(() => mentionedAi(stored, aiMap), [stored, aiMap]);
   // What a mention of an AI means: Ask only is the default, so a question never starts a run by accident
   const [intent, setIntent] = useState<MentionIntent>('ask');
+  // Fast for the AI this comment wakes (the ticket's pace otherwise)
+  const [fast, setFast] = useState(false);
   useEffect(() => {
     if (mentioned.length === 0) setIntent('ask');
   }, [mentioned.length]);
@@ -286,7 +300,9 @@ export function Composer({
     // a comment that mentions an AI always says what the mention means (no dialog at send time)
     const chosen: SendOpts | undefined =
       !editing && mentioned.length > 0 && !how?.askMemberId ? { intent, ...how } : how;
-    const opts = replyTo || chosen ? { ...chosen, replyTo } : undefined;
+    const wakes = !editing && (mentioned.length > 0 || !!how?.askMemberId || !!replyTo);
+    const base = replyTo || chosen ? { ...chosen, replyTo } : undefined;
+    const opts = fast && wakes ? { ...base, fast: true } : base;
     if (!editing) {
       if (draftTimer.current) clearTimeout(draftTimer.current);
       draftTimer.current = null;
@@ -592,7 +608,7 @@ export function Composer({
                     width: 28,
                     height: 28,
                     borderRadius: 6,
-                    background: c.isImage ? '#E8F1FB' : '#E8F1FB',
+                    background: '#E8F1FB',
                     color: '#2F6FB0',
                     display: 'flex',
                     alignItems: 'center',
@@ -772,6 +788,28 @@ export function Composer({
             </span>
           )}
           <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {!editing &&
+              ((mentioned.length > 0 && intent !== 'notify') || (mentioned.length === 0 && !!asking)) &&
+              (ticketFast ? (
+                <span
+                  className="tw-fast tw-fast-on"
+                  data-testid="comment-fast-ticket"
+                  title="This ticket is in fast mode: the AI answers or works one effort level lower, straight to the point"
+                >
+                  <FastBolt /> Fast · ticket
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className={`tw-fast${fast ? ' tw-fast-on' : ''}`}
+                  data-testid="comment-fast"
+                  aria-pressed={fast}
+                  title="Fast for this comment: a quick answer or result of about the same quality"
+                  onClick={() => setFast((f) => !f)}
+                >
+                  <FastBolt /> Fast
+                </button>
+              ))}
             {!editing && mentioned.length === 0 && asking && (
               <AskSplit
                 member={asking}

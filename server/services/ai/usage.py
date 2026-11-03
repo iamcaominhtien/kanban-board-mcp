@@ -28,7 +28,7 @@ def _local(iso: str | None) -> datetime | None:
         dt = datetime.fromisoformat(iso)
     except ValueError:
         return None
-    return dt.astimezone() if dt.tzinfo else dt.astimezone()
+    return dt.astimezone()
 
 
 def resolve_range(

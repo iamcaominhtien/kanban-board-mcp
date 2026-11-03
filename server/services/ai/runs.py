@@ -379,6 +379,11 @@ async def runs_to_dicts(session, runs: list[AiRun]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
+# runs that keep their full effort on a fast ticket: a workflow step sets its own, and running again (a retry), a
+# coordinator's ruling and an eval are not where a quick result is wanted
+FULL_EFFORT_TRIGGERS = {"workflow", "retry", "arbitration", "eval"}
+
+
 async def create_run(
     session,
     *,
@@ -400,9 +405,14 @@ async def create_run(
     allow_self_hold: bool = False,
     model_override: str | None = None,
     effort_override: str | None = None,
+    pace: str | None = None,
 ) -> AiRun:
     """Queue a run; the scheduler starts it when it can. `model_override`/`effort_override`: a workflow step's own
     model and effort for this run (review depth, a second attempt), over the member's.
+
+    `pace`: "fast" for this run (a person ticked Fast on the comment), "normal" for its full effort; None follows the
+    ticket's pace. A fast run is one effort level lower and told so (workflow.fast_run_text). A workflow step sets its
+    own (workflow._model_for); a retry, an arbitration and an explicit effort run at their full effort.
 
     `allow_self_hold` lets a run queue behind another run of the same member on the ticket (a report-back to a PM
     that is still working on it): it starts when that run ends.
@@ -435,6 +445,17 @@ async def create_run(
         raise RunError(f"{member.name} is being removed; it takes no new runs.")
     if mode not in ("work", "ask"):
         raise RunError("mode must be work or ask")
+    if effort_override is None and trigger not in FULL_EFFORT_TRIGGERS:
+        from . import workflow as ai_workflow
+
+        if pace == "fast" or (
+            pace is None and await ai_workflow.ticket_pace(session, ticket_id) == "fast"
+        ):
+            base = merged_config(loads(profile.config, {})).get("effort") or "medium"
+            effort_override = ai_workflow.EFFORT_DOWN.get(base, base)
+            instruction = "\n\n".join(
+                t for t in (instruction, ai_workflow.fast_run_text(mode)) if t
+            )
     queued = [
         r
         for r in await active_runs(session, member_id=member_id)
@@ -1214,13 +1235,13 @@ async def _requeue(run_id: str, step: dict, fresh: bool = False, **fields) -> No
     await _publish(force=True)
 
 
-async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -> bool:
+async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -> None:
     """The plan's usage window is used up: not a failure and not a try. The run waits for the reset; urgent work
     moves to an account with room when the account says so, otherwise it becomes a Needs you row (design E)."""
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None or run.state in ENDED:
-            return True
+            return
         ticket = await session.get(Ticket, run.ticket_id)
         urgent = (ticket.priority if ticket else "") in ("high", "critical", "urgent")
         state_row = await quota.state(session, quota_key)
@@ -1252,7 +1273,7 @@ async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -
             account_id=target["account_id"],
             session_id=None,
         )
-        return True
+        return
     await _requeue(
         run_id,
         {
@@ -1265,7 +1286,6 @@ async def _hold_for_window(run_id: str, until: str, said: str, quota_key: str) -
         from services import notifications as centre
 
         await centre.on_window_urgent(run_id, until=until, room=room)
-    return True
 
 
 async def _retry_later(
@@ -1399,7 +1419,8 @@ async def _recover(
             wait = cli.reset_wait(said) or 3600.0
             until = (datetime.now(UTC) + timedelta(seconds=wait)).isoformat()
         await quota.hold_until(quota_key, until, (watch.quota or {}).get("type"))
-        return await _hold_for_window(run_id, until, said, quota_key), kind, said
+        await _hold_for_window(run_id, until, said, quota_key)
+        return True, kind, said
     if kind in ("network", "board_fault", "crash", "compact"):
         return await _retry_later(run_id, kind, said), kind, said
     return False, kind, said

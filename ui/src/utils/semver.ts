@@ -9,7 +9,7 @@ export function compareSemver(a: string, b: string): number {
       .replace(/^v/, '')
       .split(/[.+-]/)
       .slice(0, 3)
-      .map((p) => parseInt(p, 10) || 0);
+      .map((p) => Number.parseInt(p, 10) || 0);
   const pa = parse(a);
   const pb = parse(b);
   for (let i = 0; i < 3; i++) {

@@ -61,7 +61,7 @@ export function WorkflowPicker({
   const [error, setError] = useState<string | null>(null);
   const change = useWorkflowMutation(ticketId, async (k: string) => {
     await workflowApi.detach(ticketId);
-    return workflowApi.attach(ticketId, k);
+    return workflowApi.attach(ticketId, k, undefined, view.pace); // a fast ticket stays fast on its new workflow
   });
   const teamRoles = new Set(
     [...members.values()]

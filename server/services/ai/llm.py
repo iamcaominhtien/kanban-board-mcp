@@ -15,6 +15,7 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 import httpx
 
@@ -378,8 +379,7 @@ async def _claude_cli(
             names = []
             for n, img in enumerate(images, 1):
                 name = f"picture-{n}.{image_type(img)[1]}"
-                with open(os.path.join(folder, name), "wb") as fh:
-                    fh.write(img)
+                await asyncio.to_thread(Path(folder, name).write_bytes, img)
                 names.append(name)
             note = (
                 (

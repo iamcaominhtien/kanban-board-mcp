@@ -187,10 +187,13 @@ export function TextBody({
   }
 
   function copy() {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    });
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      })
+      .catch(() => undefined);
   }
 
   const hitSet = useMemo(() => new Set(hits), [hits]);

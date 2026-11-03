@@ -221,11 +221,12 @@ async def test_the_tool_list_stays_compact():
     # fields, so a run that keeps nothing by itself still hands it over: the #274 live check), about 360; handing work
     # over with nothing lost (issue #272): ai_run's handoff note (its four fields spelled out for Antigravity),
     # ai_team's take_back, hand_over and tell, and get_ticket's held_by, about 480; manage_ticket's description
-    # "name a file or cause only once you have read it" (#269 live run) about 50
-    assert default < 54_560, (
+    # "name a file or cause only once you have read it" (#269 live run) about 50; fast mode on a ticket (ai_team's
+    # `pace` on start_workflow and set_pace) about 185
+    assert default < 54_745, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 57_410, (
+    assert full < 57_595, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full

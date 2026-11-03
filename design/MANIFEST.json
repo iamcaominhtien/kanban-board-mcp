@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1793629780-1b20",
+  "canvas_version": "1793693225-d839",
   "exported": "2026-11-02",
   "files": {
     "AccountMenu.dc.html": {
@@ -659,6 +659,14 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 10231
+    },
+    "AiDatabases.dc.html": {
+      "bytes": 167340,
+      "sha256": "2744187998cf03ebf72e6faa1213e68ad9ff9fcd111dc4314b9d80ed3617689a",
+      "title": "Choose your database",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 10602
     }
   }
 }

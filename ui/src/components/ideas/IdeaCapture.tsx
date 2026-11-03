@@ -241,7 +241,7 @@ function QuickAdd({
         body: [title.trim(), description.trim()].filter(Boolean).join('\n\n'),
       });
       await vote.mutateAsync({ id: match.id });
-      qc.invalidateQueries({ queryKey: ideaKeys.all });
+      void qc.invalidateQueries({ queryKey: ideaKeys.all });
       toast.success(`Added to ${match.id}`, 'Your text is a comment there and you count as +1.');
       onClose();
     } catch (e) {
@@ -312,7 +312,7 @@ function QuickAdd({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                add();
+                void add();
               }
             }}
           />

@@ -98,6 +98,7 @@ the answer with ONE fenced block in exactly this form:
   {"op": "stop_run", "ticket": "KAN-1"}
   {"op": "workflow", "ticket": "KAN-1", "to": "quick_fix|standard|feature_ui|research|docs|chore"}
   {"op": "depth", "ticket": "KAN-1", "to": "light|standard|deep"}
+  {"op": "pace", "ticket": "KAN-1", "to": "fast|normal"}  (fast: a quick result of about the same quality)
   {"op": "pause_member", "member": "<exact AI member name>"}  /  {"op": "resume_member", "member": "..."}
   {"op": "create", "title": "a new ticket", "description": "what and why", "parent": "KAN-1 or null",
    "criteria": ["testable criterion"], "workflow": "quick_fix|standard|feature_ui|research|docs|chore or null"}
@@ -454,6 +455,13 @@ def check_changes(
                 problems.append(f"{tid}: review depth {ch.get('to')!r}")
                 continue
             out.append({"op": "depth", "ticket": tid, "to": to})
+            continue
+        if op == "pace":
+            to = str(ch.get("to") or "").strip().lower()
+            if to not in ("fast", "normal"):
+                problems.append(f"{tid}: pace {ch.get('to')!r}")
+                continue
+            out.append({"op": "pace", "ticket": tid, "to": to})
             continue
         if op == "comment":
             text = str(ch.get("text") or "").strip()

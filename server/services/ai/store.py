@@ -3,10 +3,10 @@
 import json
 from datetime import UTC, datetime
 
-from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import database
 from models import AiMember, AiProjectSettings, AiRun, Member
 
 
@@ -49,15 +49,9 @@ async def get_settings(session: AsyncSession, project_id: str) -> AiProjectSetti
     """The project's AI settings, created with defaults on first use."""
     settings = await session.get(AiProjectSettings, project_id)
     if settings is None:
-        settings = AiProjectSettings(project_id=project_id)
-        session.add(settings)
-        try:
-            await session.commit()
-        except IntegrityError:
-            # Two first requests raced to create it: use the row the other one wrote
-            await session.rollback()
-            return await session.get(AiProjectSettings, project_id)
-        await session.refresh(settings)
+        await database.insert_missing(session, AiProjectSettings, project_id=project_id)
+        await session.commit()
+        settings = await session.get(AiProjectSettings, project_id)
     return settings
 
 

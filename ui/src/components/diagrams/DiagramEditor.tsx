@@ -135,7 +135,7 @@ export function DiagramEditor({ request, onClose }: Props) {
   // what we start from: the saved diagram, an imported file or a blank drawing, or a local draft of it
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       let xml = request.initialXml ?? EMPTY_DIAGRAM_XML;
       let version = 0;
       if (request.diagramId) {

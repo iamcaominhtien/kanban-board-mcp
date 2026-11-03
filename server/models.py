@@ -1389,7 +1389,9 @@ class AiMemoryNote(SQLModel, table=True):
     )
     project_id: str = Field(index=True)
     scope: str = Field(default="role", index=True)  # role | member | ticket
-    scope_key: str = Field(default="", index=True)  # the role key, the member id or the ticket id
+    scope_key: str = Field(
+        default="", index=True
+    )  # the role key, the member id or the ticket id
     text: str = Field(default="")
     kind: str = Field(default="learned")  # learned | feedback (a person told the AI)
     written_by: Optional[str] = Field(default=None)  # a member's name or a person's
@@ -1555,6 +1557,8 @@ class AiTicketWorkflow(SQLModel, table=True):
     review_depth: Optional[str] = Field(default=None)  # light | standard | deep
     depth_by: Optional[str] = Field(default=None)  # triage | person
     depth_note: Optional[str] = Field(default=None)
+    # fast: a quick result of about the same quality, set by a person on this ticket (None is the normal pace)
+    pace: Optional[str] = Field(default=None)
     rounds: str = Field(default="{}")  # {"dev|reviewer": n}
     objections: str = Field(default="[]")  # [{at, by, role, text, diff}]
     rulings: str = Field(default="[]")  # [{at, by, verdict, reason, run_id}]
@@ -1568,6 +1572,19 @@ class AiTicketWorkflow(SQLModel, table=True):
     meta: str = Field(default="{}")
     created_at: str = Field(default_factory=_now_iso)
     updated_at: str = Field(default_factory=_now_iso)
+
+
+class AiTicketPace(SQLModel, table=True):
+    """A ticket's pace, set by a person whether or not an AI works on it yet (table). Setting it runs nothing: it
+    applies when an AI starts on the ticket (a workflow step, an @mention, an assignment, a schedule)."""
+
+    __tablename__ = "ai_ticket_pace"
+
+    ticket_id: str = Field(primary_key=True)
+    project_id: str = Field(index=True)
+    pace: str = Field(default="normal")  # normal | fast
+    set_by: Optional[str] = Field(default=None)
+    set_at: str = Field(default_factory=_now_iso)
 
 
 class AiTicketStep(SQLModel, table=True):

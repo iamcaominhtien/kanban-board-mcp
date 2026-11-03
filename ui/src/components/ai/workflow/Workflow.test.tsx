@@ -13,6 +13,7 @@ vi.mock('../../aiteam/runLink', () => runLink);
 
 import { AiBoardContext } from '../aiUi';
 import { TicketWorkflow } from './TicketWorkflow';
+import { PaceButton } from './PaceButton';
 import { WorkflowsSection } from './WorkflowsSection';
 
 const ok = (data: unknown) => Promise.resolve({ data });
@@ -71,6 +72,7 @@ const view = (o: Partial<WorkflowView> = {}): WorkflowView => ({
 });
 
 let wf: WorkflowView | null;
+let ticketPace: 'normal' | 'fast' = 'normal';
 let tdd: TddEvidence = { proven: false, why: 'every run passed', runsSeen: 3 };
 let flags: unknown[] = [];
 
@@ -132,6 +134,7 @@ beforeEach(() => {
   wf = view();
   tdd = { proven: false, why: 'every run passed', runsSeen: 3 };
   flags = [];
+  ticketPace = 'normal';
   http.get.mockImplementation((url: string) => {
     if (url.endsWith('/ai/workflow')) return ok(wf);
     if (url.endsWith('/ai/workflows')) return ok(templates);
@@ -149,12 +152,15 @@ beforeEach(() => {
     if (url.endsWith('/ai/tdd')) return ok(tdd);
     if (url.endsWith('/ai/ticket-flags')) return ok(flags);
     if (url.endsWith('/ai/packs')) return ok([]);
+    if (url.endsWith('/ai/pace')) return ok({ ticketId: 'KAN-213', pace: ticketPace, setBy: null, setAt: null });
     return Promise.reject(new Error(`unexpected GET ${url}`));
   });
   http.post.mockImplementation(() => ok(view()));
   http.patch.mockImplementation(() => ok(view()));
-  http.put.mockImplementation((_u: string, b: { name: string }) =>
-    ok({ ...templates[0], name: b.name, version: 2, warning: null }),
+  http.put.mockImplementation((u: string, b: { name: string; pace?: string }) =>
+    u.endsWith('/ai/pace')
+      ? ok({ ticketId: 'KAN-213', pace: b.pace, setBy: 'An', setAt: null })
+      : ok({ ...templates[0], name: b.name, version: 2, warning: null }),
   );
   http.delete.mockImplementation(() => ok(null));
 });
@@ -247,6 +253,7 @@ describe('the strip of steps', () => {
       expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow', {
         template_key: 'quick_fix',
         depth: undefined,
+        pace: 'normal',
       }),
     );
   });
@@ -275,6 +282,80 @@ describe('the review depth chip', () => {
     await waitFor(() =>
       expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow/depth', { depth: 'deep' }),
     );
+  });
+});
+
+describe('fast mode', () => {
+  it('turns fast mode on for the ticket', async () => {
+    wf = view({ pace: 'normal', reviewRunsAt: 'standard' });
+    mount(<TicketWorkflow ticket={ticket} />);
+    expect((await screen.findByTestId('pace-hint')).textContent).toContain('about the same quality');
+    expect(screen.queryByTestId('fast-pill')).toBeNull();
+    expect(screen.getByTestId('pace-normal').getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByTestId('pace-fast'));
+    await waitFor(() => expect(http.put).toHaveBeenCalledWith('/tickets/KAN-213/ai/pace', { pace: 'fast' }));
+  });
+
+  it('shows what a fast ticket skips and the review it runs', async () => {
+    const v = view({ pace: 'fast', reviewDepth: null, depthBy: null, reviewRunsAt: 'light' });
+    v.steps[0] = { ...v.steps[0], state: 'skipped', outcome: 'fast', memberName: null };
+    wf = v;
+    mount(<TicketWorkflow ticket={ticket} />);
+    expect((await screen.findByTestId('fast-pill')).textContent).toContain('Fast');
+    const hint = screen.getByTestId('pace-hint').textContent ?? '';
+    expect(hint).toContain('Skips Triage');
+    expect(hint).toContain('review Light');
+    expect(within(screen.getByTestId('wf-step-triage')).getByText('skipped · fast')).toBeTruthy();
+    expect(within(screen.getByTestId('wf-step-review')).getByText('Review · Light')).toBeTruthy();
+    expect(screen.getByTestId('pace-fast').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('puts a ticket on a workflow in fast mode', async () => {
+    wf = null;
+    mount(<TicketWorkflow ticket={ticket} />);
+    const box = await screen.findByTestId('put-on-workflow');
+    await waitFor(() => expect(within(box).getByRole('option', { name: 'Quick fix' })).toBeTruthy());
+    fireEvent.change(within(box).getByLabelText('Workflow'), { target: { value: 'quick_fix' } });
+    fireEvent.click(within(box).getByTestId('put-fast'));
+    fireEvent.click(within(box).getByRole('button', { name: 'Put on a workflow' }));
+    await waitFor(() =>
+      expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow', {
+        template_key: 'quick_fix',
+        depth: undefined,
+        pace: 'fast',
+      }),
+    );
+  });
+
+  it('ticks Fast already when the ticket is in fast mode', async () => {
+    wf = null;
+    ticketPace = 'fast';
+    mount(<TicketWorkflow ticket={ticket} />);
+    const box = await screen.findByTestId('put-on-workflow');
+    await waitFor(() => expect((within(box).getByTestId('put-fast') as HTMLInputElement).checked).toBe(true));
+  });
+
+  it('starts a step a pace change left waiting, and only when asked', async () => {
+    const v = view({ pace: 'fast', reviewRunsAt: 'light' });
+    v.steps[0] = { ...v.steps[0], state: 'skipped', outcome: 'fast', memberName: null };
+    v.steps[1] = { ...v.steps[1], state: 'pending', attempt: 1 };
+    wf = v;
+    mount(<TicketWorkflow ticket={ticket} />);
+    expect((await screen.findByTestId('pace-hint')).textContent).toContain('Switching starts nothing');
+    expect(http.post).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('pace-start'));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-213/ai/workflow/start'));
+  });
+
+  it('turns fast mode on from the ticket header without a workflow', async () => {
+    wf = null;
+    mount(<PaceButton ticketId="KAN-213" />);
+    const btn = await screen.findByTestId('ticket-pace');
+    await waitFor(() => expect(btn.getAttribute('aria-pressed')).toBe('false'));
+    fireEvent.click(btn);
+    await waitFor(() => expect(http.put).toHaveBeenCalledWith('/tickets/KAN-213/ai/pace', { pace: 'fast' }));
+    await waitFor(() => expect(btn.getAttribute('aria-pressed')).toBe('true'));
+    expect(http.post).not.toHaveBeenCalled(); // nothing runs
   });
 });
 

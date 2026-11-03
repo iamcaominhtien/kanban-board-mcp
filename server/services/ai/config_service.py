@@ -8,6 +8,7 @@ from pathlib import Path
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import database
 from models import AiConfigState, AiMember, Member
 
 from . import audit
@@ -28,10 +29,9 @@ async def get_state(session: AsyncSession, member_id: str) -> AiConfigState:
     """The member's config state row (created on first use)."""
     state = await session.get(AiConfigState, member_id)
     if state is None:
-        state = AiConfigState(member_id=member_id)
-        session.add(state)
+        await database.insert_missing(session, AiConfigState, member_id=member_id)
         await session.commit()
-        await session.refresh(state)
+        state = await session.get(AiConfigState, member_id)
     return state
 
 

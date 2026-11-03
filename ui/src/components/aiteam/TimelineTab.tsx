@@ -87,7 +87,7 @@ function dateValue(t: number): string {
 /** Local midnight of a date input's value, in ms (NaN when empty). */
 function midnightOf(value: string): number {
   const [y, m, d] = value.split('-').map(Number);
-  return y && m && d ? new Date(y, m - 1, d).getTime() : NaN;
+  return y && m && d ? new Date(y, m - 1, d).getTime() : Number.NaN;
 }
 
 /**
@@ -741,10 +741,7 @@ export function TimelineTab({
         </div>
       )}
       <Legend />
-      <span className="tl-keyhint at-hint-sm">
-        Tab moves between marks · Enter opens the inspector · Esc closes it
-        {pickKey(selected) ? '' : ''}
-      </span>
+      <span className="tl-keyhint at-hint-sm">Tab moves between marks · Enter opens the inspector · Esc closes it</span>
     </div>
   );
 }

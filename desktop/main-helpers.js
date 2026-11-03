@@ -1,6 +1,6 @@
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
 
 function resolveConfiguredUploadsDir(userDataPath, configPath = null) {
   if (configPath) {
@@ -121,7 +121,7 @@ function parseReadyPort(output) {
   // Split on newlines so we match individual log lines, not the full accumulated buffer.
   for (const line of output.split('\n')) {
     const match = line.match(/READY port=(\d+)/);
-    if (match) return parseInt(match[1], 10);
+    if (match) return Number.parseInt(match[1], 10);
   }
   return null;
 }
@@ -343,12 +343,15 @@ function createPowerKeeper(opts) {
     return action;
   }
 
+  // A check that throws (the system refused the blocker) is logged and the next one tries again
+  const safeTick = () => tick().catch((err) => console.error('[power] check failed:', err));
+
   return {
     tick,
     start() {
       if (timer) return;
-      tick();
-      timer = setIntervalFn(tick, POWER_POLL_MS);
+      safeTick();
+      timer = setIntervalFn(safeTick, POWER_POLL_MS);
       if (timer && timer.unref) timer.unref();
     },
     stop() {

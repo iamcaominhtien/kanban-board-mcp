@@ -1,3 +1,4 @@
+import asyncio
 import io
 import logging
 import shutil
@@ -24,6 +25,19 @@ def _remove_wal_files(db_path: Path) -> None:
     """
     for suffix in ("-wal", "-shm"):
         Path(str(db_path) + suffix).unlink(missing_ok=True)
+
+
+def _extract_db_member(zf: zipfile.ZipFile, dest: Path, max_bytes: int) -> None:
+    """Copy kanban.db out of the ZIP into dest, refusing more than max_bytes."""
+    with zf.open("kanban.db") as src, dest.open("wb") as dst:
+        copied = 0
+        while chunk := src.read(1024 * 1024):
+            copied += len(chunk)
+            if copied > max_bytes:
+                raise HTTPException(
+                    status_code=400, detail="ZIP content too large (max 2 GB)"
+                )
+            dst.write(chunk)
 
 
 def _check_sqlite_file(path: Path) -> str | None:
@@ -117,15 +131,9 @@ async def import_data(file: UploadFile = File(...)):
         # backup is rejected before anything on disk is touched.
         incoming_db = db_path.with_suffix(".import")
         try:
-            with zf.open("kanban.db") as src, incoming_db.open("wb") as dst:
-                copied = 0
-                while chunk := src.read(1024 * 1024):
-                    copied += len(chunk)
-                    if copied > MAX_UNCOMPRESSED:
-                        raise HTTPException(
-                            status_code=400, detail="ZIP content too large (max 2 GB)"
-                        )
-                    dst.write(chunk)
+            await asyncio.to_thread(
+                _extract_db_member, zf, incoming_db, MAX_UNCOMPRESSED
+            )
             problem = _check_sqlite_file(incoming_db)
             _remove_wal_files(incoming_db)  # the check can leave -wal/-shm files behind
         except Exception:
