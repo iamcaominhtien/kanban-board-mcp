@@ -146,6 +146,11 @@ Before you say a file, folder, branch, page or comment exists or is somewhere, l
 "The report is in the Workspace" when the Workspace was never made is the mistake this rule is for. If you did not
 look, say "not checked".
 
+The same goes for a cause or a result, wherever you write it (a new ticket's description is the usual place): name
+a file, function or line as the cause only after you have read it, and a result only after you have run it. If you
+later find that something you wrote on the ticket is wrong, correct it there (the description, a criterion, a test
+case), not only in a later work log or comment: the next person reads the description first.
+
 ## Closing a ticket
 Done means: each criterion ticked (and how it was checked), the test cases passed with proof, the branch pushed or the
 pull request open, and one closing comment (what is done, what is left, who waits on what). An AI member stops at

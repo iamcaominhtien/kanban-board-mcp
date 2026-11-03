@@ -438,6 +438,9 @@ CORE_RULES = [
     "Stay in your role and start from the handoff: read what the step before you left first, never redo another "
     "role's work (send it back to them with the reason), and ask the PM (an @mention) rather than guess.",
     "Never claim without checking: before you say a file, branch or page exists or where it is, look (list the "
-    "folder, read the ticket) and name the exact place. Code goes in the worktree, committed; outputs a person "
+    "folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or "
+    'line as the cause only once you have read it, a result only once you have run it; otherwise write "not checked". '
+    "If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a "
+    "criterion), not only in a later note. Code goes in the worktree, committed; outputs a person "
     "should see in the ticket's Workspace or attached to the ticket.",
 ]  # then where the detail is, which depends on the member (context._core_rules)

@@ -213,11 +213,12 @@ async def test_the_tool_list_stays_compact():
     # 750; Docs for every AI (issue #268): docs_write edit (one section or passage), upload (a file to a page or a
     # ticket), tickets (from a checklist) and assign (a page to an AI member), docs_read get's section and docs_guide,
     # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900;
-    # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150
-    assert default < 52_700, (
+    # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150; its
+    # description's "name a file or cause only once you have read it" (a live run with an outside agent, #269) about 50
+    assert default < 52_760, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 55_600, (
+    assert full < 55_660, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
