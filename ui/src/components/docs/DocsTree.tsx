@@ -967,10 +967,10 @@ export function DocsTree({
       )}
       {aiOn && (
         <div
-          style={{ padding: '0 8px 6px', display: 'flex', flexDirection: 'column', gap: 1 }}
+          style={{ padding: '0 10px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}
           data-testid="docs-ai-rows"
         >
-          <button type="button" className="dk-tree-airow" onClick={onAskDocs} data-testid="tree-ask-docs">
+          <button type="button" className="dk-tree-airow is-ask" onClick={onAskDocs} data-testid="tree-ask-docs">
             <Icon name="comment" size={14} strokeWidth={1.9} />
             <span style={{ flex: 1, textAlign: 'left' }}>Ask the docs</span>
           </button>
@@ -983,7 +983,7 @@ export function DocsTree({
           >
             <Icon name="check" size={14} strokeWidth={1.9} />
             <span style={{ flex: 1, textAlign: 'left' }}>Docs health</span>
-            {!!healthCount && <span className="dc-btn-count">{healthCount}</span>}
+            {!!healthCount && <span className="dk-tree-count">{healthCount}</span>}
           </button>
         </div>
       )}

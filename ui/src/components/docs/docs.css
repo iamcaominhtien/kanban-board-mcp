@@ -960,14 +960,14 @@ mark.docs-find-mark.docs-find-cur {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 6px 8px;
-  border: none;
-  border-radius: 7px;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: none;
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
-  color: #3d5a47;
+  color: #3a4a3e;
   cursor: pointer;
 }
 .dk-tree-airow:hover,
@@ -976,6 +976,28 @@ mark.docs-find-mark.docs-find-cur {
 }
 .dk-tree-airow svg {
   color: #6b5bd2;
+}
+/* DocsAi B: "Ask the docs" is an outlined purple row, "Docs health" carries a yellow count */
+.dk-tree-airow.is-ask {
+  padding: 7px 9px;
+  border-color: #d9ccf3;
+  background: #faf7ff;
+  color: #5b3aa6;
+}
+.dk-tree-airow.is-ask:hover {
+  background: #f3edff;
+}
+.dk-tree-airow.is-ask svg {
+  color: #5b3aa6;
+}
+.dk-tree-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #253d2c;
+  background: #e8b93a;
+  padding: 1px 6px;
+  border-radius: 999px;
 }
 
 /* Needs input markers an AI draft leaves (editor decoration and reader chip) */
