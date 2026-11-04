@@ -105,3 +105,36 @@ def _agent_key(run_id: str, claude_id: str, agent_type: str | None) -> str:
     if key:
         return key
     return claude_id
+
+
+@router.post("/internal/ai/events")
+async def post_internal_event(
+    request: Request, x_kanban_internal: str | None = Header(default=None)
+) -> JSONResponse:
+    """An event from the runner process, broadcast to the SSE subscribers of this API."""
+    import hmac
+
+    import events as board_events
+    from services.ai import runner_link
+
+    if not x_kanban_internal or not hmac.compare_digest(
+        x_kanban_internal, runner_link.TOKEN
+    ):
+        return JSONResponse({"detail": "Not the runner"}, status_code=403)
+    try:
+        body = await request.json()
+    except ValueError:
+        return JSONResponse({"ignored": "not json"})
+    event = body.get("event") if isinstance(body, dict) else None
+    if not isinstance(event, str):
+        return JSONResponse({"ignored": "no event"})
+    board_events.broadcast_raw(event)
+    return JSONResponse({"ok": True})
+
+
+@router.get("/ai/runner")
+async def get_runner_status() -> dict:
+    """Where the CLIs run (this process or the runner process) and whether the runner is alive."""
+    from services.ai import runner_link
+
+    return runner_link.status()

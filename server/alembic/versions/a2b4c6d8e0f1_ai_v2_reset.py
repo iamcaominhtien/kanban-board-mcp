@@ -196,6 +196,8 @@ def upgrade() -> None:
         sa.Column("account_id", _S(), nullable=True),
         sa.Column("debug_log", LongText(), nullable=True),
         sa.Column("steps_count", sa.Integer(), nullable=False),
+        sa.Column("waiting_reason", LongText(), nullable=True),
+        sa.Column("live", sa.Boolean(), nullable=False),
         sa.Column("details_removed_at", LongText(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )

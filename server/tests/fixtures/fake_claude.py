@@ -469,6 +469,68 @@ if mode == "wait_question":
     )
     while time.time() < end and not (gate and os.path.exists(gate)):
         time.sleep(0.02)
+if mode == "assistant":
+    # an assistant turn (AI v2 stage 7): one board read, then the answer; FAKE_CLAUDE_ASSISTANT_JSON is the structured
+    # answer, FAKE_CLAUDE_ASSISTANT_TEXT the plain one; FAKE_CLAUDE_PROMPTS keeps each prompt it was given
+    if os.environ.get("FAKE_CLAUDE_PROMPTS"):
+        with open(os.environ["FAKE_CLAUDE_PROMPTS"], "a") as fh:
+            fh.write(json.dumps({"prompt": prompt_text, "args": args}) + "\n")
+    emit(
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "as1",
+                        "name": "mcp__kanban__docs_read",
+                        "input": {"action": "list"},
+                    }
+                ]
+            },
+        }
+    )
+    emit(
+        {
+            "type": "user",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "as1",
+                        "is_error": False,
+                        "content": "[]",
+                    }
+                ]
+            },
+        }
+    )
+    if os.environ.get("FAKE_CLAUDE_ASSISTANT_WAIT"):
+        time.sleep(float(os.environ["FAKE_CLAUDE_ASSISTANT_WAIT"]))
+    structured = None
+    by_skill = os.environ.get("FAKE_CLAUDE_ASSISTANT_BY_SKILL")
+    if by_skill:
+        table = json.loads(by_skill)
+        for key, value in table.items():
+            if f":{key}`" in prompt_text:
+                structured = value
+                break
+    if structured is None and os.environ.get("FAKE_CLAUDE_ASSISTANT_JSON"):
+        structured = json.loads(os.environ["FAKE_CLAUDE_ASSISTANT_JSON"])
+    answer = os.environ.get("FAKE_CLAUDE_ASSISTANT_TEXT", "Here is the answer.")
+    emit(
+        {
+            "type": "result",
+            "subtype": "success",
+            "is_error": False,
+            "result": json.dumps(structured) if structured is not None else answer,
+            **({"structured_output": structured} if structured is not None else {}),
+            "total_cost_usd": 0.02,
+            "usage": {"input_tokens": 200, "output_tokens": 40},
+            "session_id": session,
+        }
+    )
+    sys.exit(0)
 v2_report = None
 if mode.startswith("v2"):
     # AI v2: the lead runs a command, asks a subagent (its events carry parent_tool_use_id), and ends with the

@@ -6,7 +6,7 @@ Runs are counted on the day they started; spend is the metered cost of those run
 
 import csv
 import io
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -16,20 +16,16 @@ from models import AiTeam, AiRun, Member, Ticket
 from . import budget
 
 
-def _secs(run) -> int:
-    """Seconds a run took (so far)."""
-    from datetime import UTC, datetime
-
-    from .store import parse_iso
-
-    a, b = parse_iso(run.started_at), parse_iso(run.ended_at) or datetime.now(UTC)
-    return int((b - a).total_seconds()) if a else 0
-
-
 from .providers import PRICES, PRICES_UPDATED
-from .store import get_settings, loads
+from .store import get_settings, loads, parse_iso
 
 RANGES = ("today", "7d", "month", "custom")
+
+
+def _secs(run) -> int:
+    """Seconds a run took (so far)."""
+    a, b = parse_iso(run.started_at), parse_iso(run.ended_at) or datetime.now(UTC)
+    return int((b - a).total_seconds()) if a else 0
 
 
 def _local(iso: str | None) -> datetime | None:

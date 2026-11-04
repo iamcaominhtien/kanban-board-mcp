@@ -24,8 +24,11 @@ async def after_wake(session) -> dict:
     """Check each run the board thinks is running. Returns {"checked": n, "alive": [...], "dead": [...], "orphans":
     [...]}: `dead` had a CLI process of the board's that is gone (it is stopped so the run is resumed or ended by its
     kind), `orphans` have no process or task at all (ended as after a crash)."""
-    from . import cli, runs
+    from . import cli, runner_link, runs
 
+    if runner_link.mode() == "process" and not runner_link.in_runner():
+        await runner_link.command("*", "wake", {}, wait=False)
+        return {"checked": 0, "alive": [], "dead": [], "orphans": [], "deferred": True}
     rows = (
         await session.exec(
             select(AiRun).where(col(AiRun.state).in_(["starting", "running"]))

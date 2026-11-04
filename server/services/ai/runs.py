@@ -23,6 +23,7 @@ from models import AiAccount, AiRun, AiRunMessage, AiTeam, Member, Ticket, Ticke
 
 from . import (
     accounts,
+    runner_link,
     audit,
     budget,
     cli,
@@ -77,8 +78,16 @@ RT = _Runtime()
 
 
 def set_board_url(url: str) -> None:
-    """Where the CLI reaches the board (its MCP endpoint and the hook endpoint)."""
+    """Where the CLI reaches the board (its MCP endpoint and the hook endpoint). In process mode the API also
+    starts the runner once it knows the URL."""
     RT.board_url = url
+    if not runner_link.in_runner():
+        runner_link.ensure_started(url)
+
+
+def defers_to_runner() -> bool:
+    """True in the API process when a runner process owns the CLIs."""
+    return runner_link.mode() == "process" and not runner_link.in_runner()
 
 
 def _url() -> str:
@@ -88,6 +97,15 @@ def _url() -> str:
 # ---------------------------------------------------------------------------
 # Describing
 # ---------------------------------------------------------------------------
+
+
+def _is_live(run: AiRun) -> bool:
+    """Can a message reach the CLI of this run right now? This process knows when it runs the CLI itself; with the
+    runner process the row says it."""
+    proc = RT.procs.get(run.id)
+    if proc is not None:
+        return bool(proc.live and proc.input_open)
+    return bool(run.live) and run.state in ("starting", "running")
 
 
 def to_dict(run: AiRun) -> dict:
@@ -137,10 +155,10 @@ def to_dict(run: AiRun) -> dict:
         "retries": loads(run.retries, []),
         "account_id": run.account_id,
         "steps_count": run.steps_count,
-        "live": run.id in RT.procs
-        and RT.procs[run.id].live
-        and RT.procs[run.id].input_open,
-        "waiting_reason": RT.waiting.get(run.id) if run.state == "queued" else None,
+        "live": _is_live(run),
+        "waiting_reason": (RT.waiting.get(run.id) or run.waiting_reason)
+        if run.state == "queued"
+        else None,
     }
 
 
@@ -352,11 +370,15 @@ async def tick() -> None:
             settings = await get_settings(session, run.project_id)
             reason = await _blocking_reason(session, run, profile, member, settings)
             if reason:
-                if RT.waiting.get(run.id) != reason:
+                if run.waiting_reason != reason:
+                    run.waiting_reason = reason
                     RT.waiting[run.id] = reason
+                    session.add(run)
+                    await session.commit()
                     await board_events.publish_typed("ai.run", {"run": to_dict(run)})
                 continue
             RT.waiting.pop(run.id, None)
+            run.waiting_reason = None
             await _start(session, run)
 
 
@@ -382,7 +404,11 @@ async def _loop() -> None:
 
 
 async def start_scheduler() -> None:
-    """Recover what the last start left, then start what waits."""
+    """Recover what the last start left, then start what waits. The API process in `process` mode starts the runner
+    instead (it owns the CLIs)."""
+    if defers_to_runner():
+        runner_link.ensure_started(RT.board_url)
+        return
     await recover_on_startup()
     if RT.scheduler is None or RT.scheduler.done():
         RT.scheduler = asyncio.create_task(_loop())
@@ -390,6 +416,9 @@ async def start_scheduler() -> None:
 
 async def stop_scheduler() -> None:
     """The board is closing: stop the scheduler and the CLIs; their runs are ended as board_closed."""
+    if defers_to_runner():
+        runner_link.stop()
+        return
     if RT.scheduler is not None:
         RT.scheduler.cancel()
         try:
@@ -618,6 +647,7 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
         cur = await session.get(AiRun, run_id)
         if cur is not None:
             cur.pid = pid
+            cur.live = bool(prepared.live)
             session.add(cur)
             await session.commit()
     async with database.async_session() as session:
@@ -691,6 +721,7 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
             result = parsed["result"]
             if proc.live:
                 proc.end_input()
+                fields["live"] = False
             answered_at = time.monotonic()
         if parsed["rows"] or parsed["agents"] or parsed["files"] or fields:
             if run_id in RT.cancelled:
@@ -1097,6 +1128,8 @@ async def _end(
         run.token_hash = None
         run.pid = None
         run.paused = False
+        run.live = False
+        run.waiting_reason = None
         for key, value in fields.items():
             setattr(run, key, value)
         session.add(run)
@@ -1195,6 +1228,12 @@ async def cancel(
             raise RunError(f"Run #{run.number} already ended ({run.state}).")
         was = run.state
         ticket_id = run.ticket_id
+    if defers_to_runner() and was != "queued":
+        await runner_link.command(
+            run_id, "cancel", {"by": by, "reason": reason, "stop_code": stop_code}
+        )
+        async with database.async_session() as session:
+            return await session.get(AiRun, run_id)
     RT.cancelled.add(run_id)
     proc = RT.procs.get(run_id)
     if proc:
@@ -1227,6 +1266,7 @@ async def cancel(
 async def cancel_for_ticket(
     ticket_id: str, *, by: str, reason: str, stop_code: str | None = None
 ) -> int:
+    """Stop every active run on a ticket; returns how many."""
     n = 0
     async with database.async_session() as session:
         rows = await active_runs(session, ticket_id=ticket_id)
@@ -1244,6 +1284,16 @@ async def answer(run_id: str, *, by: str, text: str) -> AiRun:
     text = (text or "").strip()
     if not text:
         raise RunError("Write an answer first.")
+    if defers_to_runner():
+        async with database.async_session() as session:
+            run = await session.get(AiRun, run_id)
+            if run is None:
+                raise RunError("Run not found.")
+            if run.state != "needs_input":
+                raise RunError("This run is not waiting for an answer.")
+        await runner_link.command(run_id, "answer", {"by": by, "text": text})
+        async with database.async_session() as session:
+            return await session.get(AiRun, run_id)
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None:
@@ -1313,6 +1363,17 @@ async def send_message(
     text = (text or "").strip()
     if not text:
         raise RunError("Write a message first.")
+    if defers_to_runner():
+        async with database.async_session() as session:
+            run = await session.get(AiRun, run_id)
+            if run is None:
+                raise RunError("Run not found.")
+            state = run.state
+        if state in ("starting", "running", "needs_input"):
+            await runner_link.command(
+                run_id, "message", {"by": by, "text": text, "peer": peer}
+            )
+            return {"delivered": "runner", "run_id": run_id}
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None:
@@ -1372,6 +1433,7 @@ async def send_message(
 
 
 async def pending_messages(run_id: str) -> list[AiRunMessage]:
+    """The messages a run has not been given yet."""
     async with database.async_session() as session:
         return list(
             (
@@ -1392,6 +1454,7 @@ async def pending_messages(run_id: str) -> list[AiRunMessage]:
 
 
 def question_options(options: list | None) -> tuple[list[str], list[dict]]:
+    """The labels and details of a question\'s options."""
     labels: list[str] = []
     details: list[dict] = []
     for o in options or []:

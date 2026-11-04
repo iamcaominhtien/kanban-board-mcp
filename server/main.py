@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sys
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -42,6 +43,13 @@ from api.ai_tools import router as ai_tools_router
 from api.ai_board import router as ai_board_router
 from api.ai_power import router as ai_power_router
 from api.ai_accounts import router as ai_accounts_router
+from api.assist import assist_error_handler
+from api.assist import router as assist_router
+from api.ai_editor import router as ai_editor_router
+from api.ai_sketch import router as ai_sketch_router
+from api.idea_ai import router as idea_ai_router
+from services.assistant import AssistError
+from services.assistant import chat as assistant_chat
 from api.docs_ai import docs_ai_error_handler
 from api.docs_ai import router as docs_ai_router
 from api.notifications import router as notifications_router
@@ -114,6 +122,7 @@ async def lifespan(app: FastAPI):
         db_watcher = asyncio.create_task(board_events.watch_database())
         await ai_runs.start_scheduler()
         await docs_ai_jobs.recover()
+        await assistant_chat.recover()
         ai_schedules.start_scheduler()
         svc_notifications.start()
         ai_github.start()
@@ -360,6 +369,11 @@ app.include_router(ai_code_router)
 app.include_router(ai_tools_router)
 app.include_router(ai_board_router)
 app.include_router(ai_power_router)
+app.add_exception_handler(AssistError, assist_error_handler)
+app.include_router(assist_router)
+app.include_router(ai_editor_router)
+app.include_router(ai_sketch_router)
+app.include_router(idea_ai_router)
 app.add_exception_handler(DocsError, docs_error_handler)
 
 
@@ -581,9 +595,16 @@ async def serve_spa(full_path: str):
     raise HTTPException(status_code=404, detail="Not found")
 
 
+if __name__ == "__main__" and "--runner" in sys.argv:
+    from runner.main import main as _runner_main
+
+    _runner_main()
+
 if __name__ == "__main__":
     import multiprocessing
     import time as _time
+
+    os.environ.setdefault("KANBAN_RUNNER", "process")
 
     _t0 = _time.monotonic()
 
@@ -615,6 +636,8 @@ if __name__ == "__main__":
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
         _startup_mark(f"socket-bound-port={port}")
+        os.environ["KANBAN_BOARD_URL"] = f"http://127.0.0.1:{port}"
+        ai_runs.set_board_url(os.environ["KANBAN_BOARD_URL"])
 
         config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
         server = SignalServer(config)

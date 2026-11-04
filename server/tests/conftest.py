@@ -124,6 +124,11 @@ def _app_config_in_a_temp_folder(monkeypatch, tmp_path_factory):
     folder = tmp_path_factory.mktemp("app-config")
     monkeypatch.setattr(config, "_CONFIG_DIR", folder)
     monkeypatch.setattr(config, "_CONFIG_FILE", folder / "config.json")
+    # A process a test starts (the real MCP server, the AI runner) reads its config folder from the environment. Without
+    # this it reads the developer's own config.json, opens the database named there and runs this branch's migrations
+    # on it: on 2026-11-05 that emptied the AI tables of a real board. Its log goes to a temp folder too.
+    monkeypatch.setenv("KANBAN_CONFIG_DIR", str(folder))
+    monkeypatch.setenv("KANBAN_LOG_DIR", str(tmp_path_factory.mktemp("app-logs")))
 
 
 @pytest.fixture(autouse=True)
