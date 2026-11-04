@@ -434,6 +434,7 @@ async def _plan_run(session, story: Story, *, note: str | None) -> None:
             wait_for_hold=True,
         )
     except runs.RunError as exc:
+        await session.refresh(story)  # a hold conflict rolled the session back
         set_meta(
             story, blocked={"kind": "plan", "text": f"The PM could not start: {exc}"}
         )

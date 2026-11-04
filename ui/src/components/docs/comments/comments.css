@@ -899,3 +899,153 @@ kbd {
   height: 20px;
   font-size: 12px;
 }
+
+/* Send comments to the AI of a ticket (docs_ai/handoff.py) */
+.dc-sendai-open {
+  font-size: 12px;
+  padding: 4px 9px;
+  gap: 5px;
+}
+.dc-sendai {
+  margin: 0 16px 12px;
+  padding: 12px;
+  border: 1px solid #dce6df;
+  border-radius: 10px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+.dc-sendai-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #1e2a22;
+}
+.dc-sendai-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #5b6b60;
+}
+.dc-sendai-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dc-sendai-list label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #3a4a3e;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.dc-sendai-list input {
+  margin-top: 3px;
+  accent-color: #2e6f40;
+}
+.dc-sendai-list q {
+  color: #1e2a22;
+  font-style: italic;
+}
+.dc-sendai-body {
+  color: #5b6b60;
+}
+.dc-sendai-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3a4a3e;
+}
+.dc-sendai-ticket select {
+  font: inherit;
+  font-weight: 400;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid #dce6df;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e2a22;
+}
+.dc-sendai-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.dc-sendai-done {
+  margin: 0 16px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #eef6f0;
+  color: #2e6f40;
+  font-size: 12.5px;
+  line-height: 1.45;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.dc-card .dc-sendai-done {
+  margin: 8px 0 0;
+}
+.dc-sendai-to {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.dc-page-comments > .dc-sendai,
+.dc-page-comments > .dc-sendai-done {
+  margin: 0 0 12px;
+}
+/* a line the board wrote in the thread (where it was sent), not a comment */
+.dc-board-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 2px 0 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #f4f7f5;
+  color: #5b6b60;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.dc-board-note > svg {
+  flex: none;
+  margin-top: 2px;
+}
+.dc-board-note-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.dc-board-note-meta {
+  color: #9aa69d;
+  white-space: nowrap;
+}
+.dc-sendai-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.dc-link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+}

@@ -44,6 +44,7 @@ def test_new_tickets_are_checked_and_count_toward_a_bulk_action():
     assert out[0] == {
         "op": "create",
         "title": "Login page",
+        "type": "task",
         "description": "",
         "parent": "KAN-1",
         "criteria": ["a"],
@@ -55,6 +56,60 @@ def test_new_tickets_are_checked_and_count_toward_a_bulk_action():
     assert tiers.decide(four)["act"] is False
     assert tiers.decide(four[:3])["act"] is True
     assert tiers.tier_of({"op": "message", "ticket": "KAN-1"}) == tiers.FREE
+
+
+def test_a_new_ticket_takes_a_type_and_a_story_no_parent_or_workflow():
+    tickets = {"KAN-1": {"status": "todo"}}
+    out, problems = prompts.check_changes(
+        [
+            {"op": "create", "title": "Crash on save", "type": "Bug"},
+            {
+                "op": "create",
+                "title": "Learn code graphs",
+                "type": "story",
+                "workflow": "research",
+            },
+            {"op": "create", "title": "Nested", "type": "story", "parent": "KAN-1"},
+            {"op": "create", "title": "Odd", "type": "epic"},
+        ],
+        tickets,
+        {},
+    )
+    assert [(c["title"], c["type"], c["workflow"]) for c in out] == [
+        ("Crash on save", "bug", None),
+        ("Learn code graphs", "story", None),  # the PM plans a Story: no workflow
+    ]
+    assert len(problems) == 2
+    assert any("cannot have a parent" in p for p in problems)
+    assert any("'epic'" in p for p in problems)
+
+
+async def test_the_board_ai_makes_a_story_as_a_draft_and_undo_removes_it(env, fake):
+    c, pid, an, m = await _setup(env, acts=True)
+    fake.queue.append(
+        _block(
+            {
+                "op": "create",
+                "title": "Learn code knowledge graphs",
+                "type": "story",
+                "description": "As a builder, I want to understand the stack, so that I can rebuild it.",
+                "criteria": ["Each part of the stack is explained with a source"],
+            }
+        )
+    )
+    chat = (await c.post(f"/projects/{pid}/ai/assist/chats", json={}, headers=H)).json()
+    msg = await _answer(c, chat["id"], "Make a user story for it")
+    assert msg["draft"]["status"] == "applied", msg["draft"]
+    sid = msg["draft"]["result"]["applied"][0]["created"]
+    ticket = (await c.get(f"/tickets/{sid}")).json()
+    assert ticket["type"] == "story" and ticket["status"] == "backlog"
+    assert ticket["acceptance_criteria"]
+    story = (await c.get(f"/stories/{sid}")).json()
+    assert story["state"] == "draft"  # the person hands it to the PM on its page
+    r = await c.post(f"/ai/assist/drafts/{msg['draft']['id']}/undo", headers=H)
+    assert r.status_code == 200, r.text
+    assert (await c.get(f"/tickets/{sid}")).status_code == 404
+    assert (await c.get(f"/stories/{sid}")).status_code == 404
 
 
 async def test_the_board_ai_splits_a_ticket_and_undo_deletes_the_untouched_pieces(

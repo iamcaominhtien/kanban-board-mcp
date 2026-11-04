@@ -608,9 +608,40 @@ async def _deliver_ai(
         )
     except DocsAiError as exc:
         delivered = [{"result": "not_delivered", "reason": str(exc)}]
-    if any(d["result"] in ("job", "refused") for d in delivered):
+    if any(d["result"] in ("job", "refused", "sent") for d in delivered):
         out = await docs_comments.get_thread(session, out["id"])
     return {**out, "ai_delivery": delivered}
+
+
+class SendToAiBody(BaseModel):
+    """Open threads of a page to send to the AI of a ticket."""
+
+    thread_ids: list[str]
+    ticket_id: str
+    # which AI on the ticket (default: the one holding it, else its AI assignee)
+    member_id: str | None = None
+
+
+@router.get("/docs/pages/{page_id}/send-to-ai")
+async def get_send_to_ai(page_id: str, session: Session) -> dict[str, Any]:
+    """The tickets the page names with the AI each would send to, and each open thread's default ticket."""
+    from services.docs_ai import handoff
+
+    return await handoff.targets(session, page_id)
+
+
+@router.post("/docs/pages/{page_id}/send-to-ai")
+async def post_send_to_ai(
+    page_id: str, body: SendToAiBody, session: Session
+) -> dict[str, Any]:
+    """Send open threads to the AI of a ticket: a message to the run holding it, else a new work run."""
+    from services.docs_ai import handoff
+
+    out = await handoff.send(
+        session, page_id, body.thread_ids, body.ticket_id, body.member_id
+    )
+    await board_events.publish("invalidate")
+    return out
 
 
 class AnchorPreviewBody(BaseModel):

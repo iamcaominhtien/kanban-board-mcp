@@ -15,6 +15,8 @@ type Field = HTMLElement | HTMLTextAreaElement | HTMLInputElement;
 export interface SuggestMember {
   id: string;
   name: string;
+  /** The text of the mention when it differs from the name ("Dev · RES-1": that AI in its conversation on RES-1). */
+  label?: string;
   group?: string;
   note?: string;
   bg?: string;
@@ -233,7 +235,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
     const mem = (members ?? []).filter((m) => !q || m.name.toLowerCase().includes(q));
     const TONE = { ok: '#2E6F40', warn: '#B4791E', off: '#9AA8A0' } as const;
     return mem.slice(0, 12).map((m) => ({
-      key: m.id,
+      key: m.id + (m.label ?? ''),
       disabled: m.ai ? !m.ai.usable : false,
       subNode: m.ai ? (
         m.ai.sub ? (
@@ -289,8 +291,8 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
       title: m.name,
       hint: m.note,
       group: m.group,
-      insert: `@[${m.name}](member:${m.id})`,
-      plain: `@${m.name} `,
+      insert: `@[${m.label ?? m.name}](member:${m.id})`,
+      plain: `@${m.label ?? m.name} `,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, tree.data, tickets.data, page.data, members]);

@@ -395,7 +395,12 @@ export function DocsMarkdown({
         // a table is one block: a row a waiting proposal would change (or one edited since last viewed) marks the whole
         // table. The mark sits on a wrapper because the table clips its own overflow.
         const own = changedProps(node);
-        const table = <table className="dk-table">{inner}</table>;
+        // a table wider than the page (a column it cannot wrap) scrolls instead of being cut off
+        const table = (
+          <div className="dk-table-wrap">
+            <table className="dk-table">{inner}</table>
+          </div>
+        );
         return own.className ? <div {...own}>{table}</div> : table;
       },
       th: ({ node: _n, children: inner, style }) => {

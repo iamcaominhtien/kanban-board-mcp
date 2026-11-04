@@ -186,11 +186,11 @@ function RunsAtOnce({
           title="At once on this project"
           hint={
             <>
-              Runs of this project's AI members that may work at the same time.
+              Runs of this project's API key members that may work at the same time.
               {onManageAccounts && (
                 <>
                   {' '}
-                  Each Claude account has its own limit too:{' '}
+                  Members on a Claude Code login are held by their account's limit instead:{' '}
                   <button type="button" className="ai-link" onClick={onManageAccounts}>
                     AI accounts
                   </button>

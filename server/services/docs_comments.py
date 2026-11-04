@@ -568,6 +568,23 @@ async def add_reply(
     return await _one(session, thread)
 
 
+async def add_board_note(
+    session: AsyncSession, thread_id: str, body: str, meta: dict[str, Any]
+) -> None:
+    """A line the board writes in a thread for the person who acted ("Sent to PM on RES-1"): shown as a small note,
+    not a comment of theirs, and it notifies nobody. ``meta`` carries its ``kind`` (for example ``sent``)."""
+    thread = await _thread(session, thread_id)
+    session.add(
+        DocsComment(
+            thread_id=thread.id,
+            author=activity.current_actor(),
+            body=_clean_body(body),
+            ai=json.dumps(meta),
+        )
+    )
+    await session.commit()
+
+
 async def edit_comment(
     session: AsyncSession, comment_id: str, body: str
 ) -> dict[str, Any]:

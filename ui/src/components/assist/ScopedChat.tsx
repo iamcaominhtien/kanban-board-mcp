@@ -12,6 +12,7 @@ import './assist.css';
 import './scopedChat.css';
 import { ContextMeter } from './ContextMeter';
 import { LineIcon } from '../ui/LineIcon';
+import { ReplyTray, SelectToReply, UserText, composeReplies, useQuoteReplies } from './quoteReplies';
 
 /** Props of the chat panel. The panel is generic over what the chat is about; see `ChatScope`. */
 export interface ScopedChatProps {
@@ -250,6 +251,9 @@ export function ScopedChat({
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const input = useRef<HTMLTextAreaElement | null>(null);
   const scopeKey = `${scope.kind}:${scope.id}`;
+  const quotes = useQuoteReplies();
+  const outgoing = composeReplies(quotes.replies, text);
+  const clearQuotes = quotes.clear;
 
   // a different ticket or idea is a different conversation
   useEffect(() => {
@@ -259,7 +263,8 @@ export function ScopedChat({
     setText('');
     setError(null);
     setTab('chat');
-  }, [scopeKey]);
+    clearQuotes();
+  }, [scopeKey, clearQuotes]);
   useEffect(() => {
     if (!chatId && state?.chatId) setChatId(state.chatId);
   }, [chatId, state?.chatId]);
@@ -288,9 +293,10 @@ export function ScopedChat({
     if (chatId) await qc.invalidateQueries({ queryKey: assistKeys.chat(chatId) });
   };
 
-  const send = async (raw: string, opts?: { draft?: boolean; mode?: 'ask' | 'work' }) => {
+  /** Sends one message; true once the server has it. */
+  const send = async (raw: string, opts?: { draft?: boolean; mode?: 'ask' | 'work' }): Promise<boolean> => {
     const q = raw.trim();
-    if (!q || sending || !canAsk) return;
+    if (!q || sending || !canAsk) return false;
     const how = opts?.mode ?? mode;
     setSending(true);
     setError(null);
@@ -308,14 +314,21 @@ export function ScopedChat({
       if (how === 'work') {
         await qc.invalidateQueries({ queryKey: ['ai'] });
       }
+      return true;
     } catch (e) {
       const body = assistError(e);
       setError(body?.detail ?? extractError(e));
       if (body && ['viewer', 'ai_off', 'over_budget', 'not_configured', 'unavailable'].includes(body.code))
         void refresh();
+      return false;
     } finally {
       setSending(false);
     }
+  };
+
+  /** The composer's message with the passages waiting in the tray; they leave the tray once it is sent. */
+  const sendComposed = async () => {
+    if (await send(outgoing)) quotes.clear();
   };
 
   const panel = useMemo<AnswerPanel>(
@@ -457,7 +470,7 @@ export function ScopedChat({
               messages.map((m) =>
                 m.role === 'user' ? (
                   <div key={m.id} className="as-user">
-                    {m.text}
+                    <UserText text={m.text} />
                   </div>
                 ) : (
                   <AnswerBlock
@@ -474,6 +487,7 @@ export function ScopedChat({
               <Blocked state={state} onMembers={onOpenAiMembers} onUsage={onOpenUsage} />
             )}
           </div>
+          <SelectToReply containerRef={bodyRef} onReply={quotes.add} disabled={!canAsk} />
           <div className="sc-composer">
             {availability?.code === 'viewer' && state ? (
               <Blocked state={state} />
@@ -517,31 +531,38 @@ export function ScopedChat({
                     as an assignment: it stops at Review and asks you before risky steps.
                   </div>
                 )}
+                <ReplyTray
+                  replies={quotes.replies}
+                  focusId={quotes.focusId}
+                  onChange={quotes.update}
+                  onRemove={quotes.remove}
+                  onDone={() => input.current?.focus()}
+                />
                 <div className="sc-box">
                   <textarea
                     ref={input}
                     rows={1}
                     value={text}
                     disabled={!canAsk}
-                    placeholder={placeholder}
+                    placeholder={quotes.replies.length ? 'Anything else? (optional)' : placeholder}
                     aria-label="Ask the AI"
                     data-testid="chat-input"
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                         e.preventDefault();
-                        void send(text);
+                        void sendComposed();
                       }
                     }}
                   />
                   <button
                     type="button"
                     className="as-send"
-                    disabled={!canAsk || sending || !text.trim()}
+                    disabled={!canAsk || sending || !outgoing.trim()}
                     aria-label={mode === 'work' ? 'Start a run' : 'Send'}
                     title={mode === 'work' ? 'Start a run' : 'Send'}
                     data-testid="chat-send"
-                    onClick={() => void send(text)}
+                    onClick={() => void sendComposed()}
                   >
                     {mode === 'work' ? (
                       <LineIcon name="play" size={14} />

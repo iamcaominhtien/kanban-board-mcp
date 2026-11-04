@@ -309,6 +309,10 @@
 .dk-editor td p {
   margin: 0;
 }
+.dk-editor th,
+.dk-editor td {
+  overflow-wrap: anywhere;
+}
 .dk-editor .selectedCell {
   background: rgba(46, 111, 64, 0.1) !important;
 }

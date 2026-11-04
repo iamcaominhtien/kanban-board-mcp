@@ -188,8 +188,10 @@ The save answer lists `problems` (links to nothing, shapes on top of each other)
 - `docs_write(diagram_create, project_id, title, path)` (or `diagram_save`) and put the returned `markdown` line,
   `[Name](diagram:dg_…)`, **on its own line** in the Docs page or ticket the diagram explains, beside the words it
   illustrates. Give it a one-sentence `summary`.
-- In the ticket, a comment with the picture: the `markdown` that `docs_read(picture)` returned
-  (`![Sign-up flow](/uploads/…)`), what the diagram shows in one sentence, and the open questions.
+- On the board that line is the picture: it shows the diagram itself, always the latest version. Do not post the
+  PNG of `docs_read(picture)` beside it (the same diagram twice); the PNG is for checking (section 8) and for places
+  where the line cannot show, such as a pull request. In the ticket's comment, say what the diagram shows in one
+  sentence and the open questions.
 - A diagram that goes with a design links both ways: the Canvas embed line on the diagram's page or ticket, and the
   diagram's line where the screens are specified.
 """

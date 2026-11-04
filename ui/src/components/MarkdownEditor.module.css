@@ -516,6 +516,7 @@
   padding: 5px 9px;
   text-align: left;
   min-width: 40px;
+  overflow-wrap: anywhere;
 }
 
 .wysiwygArea th {

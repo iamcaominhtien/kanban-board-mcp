@@ -121,6 +121,28 @@ async def test_a_folder_that_is_not_a_repository_falls_back_to_the_shared_folder
     assert (await c.get(f"/tickets/{tid}/ai/worktree")).json() is None
 
 
+async def test_a_repository_with_no_commit_stops_the_run_at_once_and_says_what_to_do(
+    env,
+):
+    c = env["c"]
+    _git(
+        env["repo"], "init", "-q", "-b", "main"
+    )  # no commit: the branch has nothing to start from
+    pid, _ = await _project(c)
+    await _on(c, pid)
+    m = await _runner(c, pid, env["repo"])
+    tid, run = await _run_ticket(c, pid, m)
+    assert run["state"] == "failed"
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, run["id"])
+    assert json.loads(row.retries or "[]") == []  # trying again cannot help
+    diag = json.loads(row.diagnosis)
+    assert diag["cause"] == "setup" and diag["board_fault"] is True
+    assert (
+        "no commit yet" in diag["what"] and "git commit --allow-empty" in diag["what"]
+    )
+
+
 async def test_a_person_moving_the_ticket_to_done_merges_and_removes_the_worktree(
     env, repo, monkeypatch
 ):

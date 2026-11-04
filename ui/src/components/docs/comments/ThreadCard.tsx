@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DocsCommentItem, DocsCommentsResult, DocsCommentThread } from '../../../types/docs';
 import { relativeTime, absoluteTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
 import { CommentBox } from './CommentBox';
 import { CommentText } from './CommentText';
 import { personOf, threadLink, type CommentPerson } from './people';
-import { useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
+import { sentWords, useSendToAi, useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
 import type { SuggestMember } from '../RefSuggester';
 import { aiCostLabel, aiReplyKind, canSuggestEdit, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
 import { REVIEW_PROPOSAL_EVENT } from '../../../utils/docsProposalRules';
@@ -31,6 +31,57 @@ interface Props {
 }
 
 const FOLD_AFTER = 4;
+
+/**
+ * The @ list of a thread's reply box: an AI that answered here from a ticket (or was sent the thread) is offered once
+ * per conversation, "Dev · RES-1" (its conversation on the ticket, which remembers the work) next to "Dev · this page".
+ */
+export function threadMembers(thread: DocsCommentThread, base: SuggestMember[]): SuggestMember[] {
+  const onTickets = new Map<string, string[]>();
+  for (const c of thread.comments) {
+    const kind = c.ai?.kind;
+    if ((kind === 'sent' || kind === 'ticket') && c.ai?.memberId && c.ai.ticketId) {
+      const list = onTickets.get(c.ai.memberId) ?? [];
+      if (!list.includes(c.ai.ticketId)) list.push(c.ai.ticketId);
+      onTickets.set(c.ai.memberId, list);
+    }
+  }
+  if (onTickets.size === 0) return base;
+  return base.flatMap((m) => {
+    const tickets = onTickets.get(m.id);
+    const ai = m.ai;
+    if (!tickets || !ai) return [m];
+    return [
+      ...tickets.map((t) => ({
+        ...m,
+        name: `${m.name} · ${t}`,
+        label: `${m.name} · ${t}`,
+        ai: { ...ai, sub: `Its conversation on ${t}: remembers the work there` },
+      })),
+      {
+        ...m,
+        name: `${m.name} · this page`,
+        label: `${m.name} · this page`,
+        ai: { ...ai, sub: 'Its conversation on this page' },
+      },
+    ];
+  });
+}
+
+/** Where an AI's reply comes from: its conversation on a ticket, or its own one on this page. */
+export function aiWhere(c: DocsCommentItem): { label: string; title: string } {
+  if (c.ai?.kind === 'ticket' && c.ai.ticketId)
+    return {
+      label: ` · ${c.ai.ticketId}`,
+      title: `Answered from its conversation on ${c.ai.ticketId}: it remembers the work there`,
+    };
+  if (c.ai?.jobId)
+    return {
+      label: ' · this page',
+      title: 'Answered from its conversation on this page: it does not remember its ticket work',
+    };
+  return { label: '', title: '' };
+}
 
 /** Replies only between AIs (ai-story-flow P): an AI member's reply whose mentions are all AI members. */
 export function aiToAiReply(c: DocsCommentItem, members: DocsCommentsResult['members'], me: string): boolean {
@@ -139,6 +190,9 @@ export function ThreadCard({
   const { me, members } = data;
   const docsAi = !!data.docsAi;
   const ai = useThreadAiActions(thread.pageId);
+  const replyMembers = useMemo(() => threadMembers(thread, suggestMembers), [thread, suggestMembers]);
+  const handOff = useSendToAi(thread.pageId);
+  const [notice, setNotice] = useState<string | null>(null);
   const working = thinking(thread);
   const orphaned = thread.anchor?.state === 'orphaned';
   const resolved = thread.status === 'resolved';
@@ -199,6 +253,22 @@ export function ThreadCard({
         ))}
         <span className="dc-ai-cost">{aiCostLabel(c.ai.cost)}</span>
         <span style={{ flex: 1 }} />
+        {c.ai.handoff?.ticketId && !resolved && thread.canReply && (
+          <button
+            type="button"
+            className="dc-ai-suggest"
+            data-testid="ai-handoff"
+            disabled={handOff.isPending}
+            title="The AI working on that ticket does it, in the ticket's own conversation"
+            onClick={(e) => {
+              e.stopPropagation();
+              const ticketId = c.ai!.handoff!.ticketId;
+              void run(handOff.mutateAsync({ threadIds: [thread.id], ticketId }).then((r) => setNotice(sentWords(r))));
+            }}
+          >
+            <Icon name="send" size={13} strokeWidth={1.9} /> Send to {c.ai.handoff.ticketId}
+          </button>
+        )}
         {canSuggestEdit(c, thread, docsAi) && (
           <button
             type="button"
@@ -219,6 +289,20 @@ export function ThreadCard({
 
   function renderComment(c: DocsCommentItem, first: boolean) {
     const p = personOf(c.author, members, me);
+    if (c.ai?.kind === 'sent') {
+      // the board's line, not a comment: where the thread went, and who sent it
+      return (
+        <div key={c.id} className="dc-board-note" data-testid="board-note">
+          <Icon name="send" size={12} strokeWidth={1.9} />
+          <span className="dc-board-note-text">
+            {c.body}{' '}
+            <span className="dc-board-note-meta" title={absoluteTime(c.createdAt)}>
+              by {p.name} · {relativeTime(c.createdAt)}
+            </span>
+          </span>
+        </div>
+      );
+    }
     if (editing === c.id) {
       return (
         <div key={c.id} className="dc-comment" data-testid="comment-editing">
@@ -248,7 +332,7 @@ export function ThreadCard({
     return (
       <div
         key={c.id}
-        className={`dc-comment${c.ai && aiReplyKind(c) !== 'answer' && aiReplyKind(c) !== 'proposal' ? ' dc-ai-note' : ''}`}
+        className={`dc-comment${c.ai && !['answer', 'proposal', 'ticket'].includes(aiReplyKind(c) ?? '') ? ' dc-ai-note' : ''}`}
         data-testid="comment-item"
       >
         <Avatar p={p} />
@@ -256,8 +340,8 @@ export function ThreadCard({
           <div className="dc-meta">
             <b>{p.name}</b>
             {(c.ai || p.ai) && (
-              <span className="dc-ai-badge" data-testid="ai-badge">
-                <LineIcon name="sparkle" size={11} /> AI
+              <span className="dc-ai-badge" data-testid="ai-badge" title={aiWhere(c).title}>
+                <LineIcon name="sparkle" size={11} /> AI{aiWhere(c).label}
               </span>
             )}
             {aiToAiReply(c, members, me) && (
@@ -623,6 +707,11 @@ export function ThreadCard({
           {thread.resolvedAt && <> · {relativeTime(thread.resolvedAt)}</>}
         </div>
       )}
+      {notice && (
+        <div className="dc-sendai-done" role="status" data-testid="thread-handoff-done">
+          {notice}
+        </div>
+      )}
       {error && (
         <div className="dc-failed" role="alert" data-testid="thread-error">
           {error}
@@ -636,7 +725,7 @@ export function ThreadCard({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <CommentBox
                   projectId={projectId}
-                  members={suggestMembers}
+                  members={replyMembers}
                   compact
                   placeholder="Reply…"
                   submitLabel="Reply"

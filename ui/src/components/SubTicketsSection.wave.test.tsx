@@ -119,3 +119,48 @@ describe('wave badge popover (Ticket Detail with Sub-tickets 7, TDP-1)', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('between 1 and 99');
   });
 });
+
+describe('Make this a Story', () => {
+  it('is offered on a ticket with no children too, and on one with children', () => {
+    const onMakeStory = vi.fn();
+    const { rerender } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <SubTicketsSection
+          childTickets={[]}
+          allTickets={[]}
+          currentTicketId="KAN-1"
+          projectId="p"
+          onOpenTicket={() => {}}
+          onLinkChild={() => {}}
+          onUnlinkChild={() => {}}
+          onMakeStory={onMakeStory}
+        />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByTestId('make-story'));
+    expect(onMakeStory).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('make-story').getAttribute('title')).toBe(
+      'The PM plans it into tickets and owns it to Done',
+    );
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <SubTicketsSection
+          childTickets={[child('KAN-2')]}
+          allTickets={[child('KAN-2')]}
+          currentTicketId="KAN-1"
+          projectId="p"
+          onOpenTicket={() => {}}
+          onLinkChild={() => {}}
+          onUnlinkChild={() => {}}
+          onMakeStory={onMakeStory}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByTestId('make-story').getAttribute('title')).toContain('the children stay, in order');
+  });
+
+  it('is not offered when the ticket view gives no action (a Story, or a ticket inside another one)', () => {
+    mount([]);
+    expect(screen.queryByTestId('make-story')).toBeNull();
+  });
+});

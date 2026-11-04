@@ -40,7 +40,8 @@ in the text. Before you draw or change one, load the `drawio-diagrams` skill in 
 - Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); \
 what to do with one: the `sketches` skill, else docs_read(diagram_guide).
 - Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or \
-frame folder, and returns `markdown` (a copy on the board) for a comment.
+frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its \
+`[Name](diagram:dg_…)` line: post that, not its PNG as well.
 - Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. \
 docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). \
 docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) \

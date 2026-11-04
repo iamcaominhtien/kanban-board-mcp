@@ -1201,20 +1201,26 @@ class AiLibraryItem(SQLModel, table=True):
     updated_at: str = Field(default_factory=_now_iso)
 
 
+# The runs that hold their ticket (ux_ai_run_ticket_hold); a finished run, an answer or one queued behind holds nothing
+RUN_HOLD_WHERE = (
+    "mode = 'work' AND behind_run_id IS NULL "
+    "AND state IN ('queued', 'starting', 'running', 'needs_input')"
+)
+
+
 class AiRun(SQLModel, table=True):
     """One run of an AI member on a ticket: a piece of work (`work`) or an answer (`ask`) (table)."""
 
     __tablename__ = "ai_run"
-    # One agent holds a ticket at a time: at most one active work run per ticket (also under concurrent requests)
+    # One agent holds a ticket at a time: at most one active work run per ticket (also under concurrent requests).
+    # MySQL has no partial index: there it is a plain one and create_run's own check holds the line.
     __table_args__ = (
         Index(
             "ux_ai_run_ticket_hold",
             "ticket_id",
             unique=True,
-            sqlite_where=text(
-                "mode = 'work' AND behind_run_id IS NULL "
-                "AND state IN ('queued', 'starting', 'running', 'needs_input')"
-            ),
+            sqlite_where=text(RUN_HOLD_WHERE),
+            postgresql_where=text(RUN_HOLD_WHERE),
         ),
     )
 

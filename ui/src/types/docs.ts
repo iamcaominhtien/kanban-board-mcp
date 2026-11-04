@@ -220,10 +220,46 @@ export interface DocsCommentAi {
   /** The answer says something on the page is wrong or out of date: "Suggest an edit" is offered. */
   canSuggest?: boolean;
   /** `note` (paused, over budget, hidden page), `error` (couldn't answer), `proposal` (Suggest an edit made one). */
-  kind?: 'note' | 'error' | 'proposal';
+  /** `sent`: the board's line that the thread was sent to an AI on a ticket (not a comment of the person's). */
+  kind?: 'note' | 'error' | 'proposal' | 'sent' | 'ticket';
+  /** `ticket`/`sent`: the ticket whose conversation the AI answers from. */
+  ticketId?: string;
   code?: string;
   proposalId?: string;
   problems?: string[];
+  /** The answer says the request is a ticket's work: the thread can be sent to the AI on that ticket. */
+  handoff?: { ticketId: string } | null;
+}
+
+/** A ticket a page names, as a place to send its comments, with the AIs that can get them (the default first). */
+export interface SendToAiTicket {
+  id: string;
+  title: string;
+  status: string;
+  /** The AI holding it, its AI assignee, then the others that ran on it. `working`: its run is on the ticket now. */
+  ais: { id: string; name: string; working: boolean }[];
+  /** The AI whose run holds the ticket: another AI's run waits for it. */
+  heldBy: string | null;
+}
+
+export interface SendToAiTargets {
+  tickets: SendToAiTicket[];
+  /** Each open inline thread's default ticket (the one the page names in the thread's section, or above it). */
+  defaults: Record<string, string | null>;
+  /** The most threads one send takes. */
+  maxThreads?: number;
+}
+
+export interface SendToAiResult {
+  /** `run`: a new work run started; `input` / `next_board_call`: a message to the run holding the ticket. */
+  delivered: 'run' | 'input' | 'next_board_call';
+  runId: string;
+  runNumber: number;
+  ticketId: string;
+  memberName: string;
+  /** The new run waits for this AI's run on the ticket. */
+  after?: string | null;
+  threads: number;
 }
 
 /** AI work going on in a thread (the "thinking" placeholder). */

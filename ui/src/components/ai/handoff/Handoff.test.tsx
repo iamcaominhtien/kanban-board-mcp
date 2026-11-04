@@ -97,6 +97,21 @@ describe('Who has the ticket', () => {
     await waitFor(() => expect(screen.queryByTestId('give-back-pop')).toBeNull());
   });
 
+  it('keeps a blocked step to a one-line chip and says why under it', async () => {
+    http.get.mockResolvedValue({
+      data: {
+        kind: 'waiting',
+        state: 'blocked',
+        text: 'Blocked at Investigate: KAN-7 is already held by another AI run. Only one agent works on a ticket at a time.',
+      },
+    });
+    render(wrap(<WhoHasIt ticket={ticket} />));
+    expect((await screen.findByTestId('who-has-it-chip')).textContent).toBe('Blocked at Investigate');
+    expect(screen.getByTestId('who-has-it-why').textContent).toBe(
+      'KAN-7 is already held by another AI run. Only one agent works on a ticket at a time.',
+    );
+  });
+
   it('shows nothing when nobody has it', async () => {
     http.get.mockResolvedValue({ data: { kind: 'nobody', text: 'Nobody has it.' } });
     const { container } = render(wrap(<WhoHasIt ticket={ticket} />));

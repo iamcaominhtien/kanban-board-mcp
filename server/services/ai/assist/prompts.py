@@ -18,6 +18,8 @@ TONE_RULES = {
 STATUSES = ("backlog", "todo", "in-progress", "review", "testing", "done")
 PRIORITIES = ("low", "medium", "high", "critical")
 TYPES = ("bug", "feature", "task", "chore")
+# what the Board AI's create change may make: the ticket types and a Story (a parent ticket the PM plans)
+CREATE_TYPES = (*TYPES, "story")
 ESTIMATES = (1, 2, 3, 5, 8, 13)
 
 
@@ -100,8 +102,11 @@ the answer with ONE fenced block in exactly this form:
   {"op": "depth", "ticket": "KAN-1", "to": "light|standard|deep"}
   {"op": "pace", "ticket": "KAN-1", "to": "fast|normal"}  (fast: a quick result of about the same quality)
   {"op": "pause_member", "member": "<exact AI member name>"}  /  {"op": "resume_member", "member": "..."}
-  {"op": "create", "title": "a new ticket", "description": "what and why", "parent": "KAN-1 or null",
-   "criteria": ["testable criterion"], "workflow": "quick_fix|standard|feature_ui|research|docs|chore or null"}
+  {"op": "create", "title": "a new ticket", "type": "bug|feature|task|chore|story (task when unsure)",
+   "description": "what and why", "parent": "KAN-1 or null", "criteria": ["testable criterion"],
+   "workflow": "quick_fix|standard|feature_ui|research|docs|chore or null"}
+   (type story when the person asks for a Story or a user story: a parent ticket the PM plans into tickets. It
+   starts as a Draft that the person hands to the PM on its page; it takes no workflow and no parent)
   {"op": "message", "ticket": "KAN-1", "text": "what to tell the AI working on it now"}
   {"op": "schedule_create", "ticket": "KAN-1", "member": "<exact AI member name>", "kind": "once|repeat",
    "run_at": "YYYY-MM-DDTHH:MM (once, in tz)", "days": [0,1,2,3,4], "time": "HH:MM (repeat; Mon=0)",
@@ -392,10 +397,22 @@ def check_changes(
             if ch.get("parent") and not parent:
                 problems.append(f"Unknown parent ticket {ch.get('parent')!r}")
                 continue
+            kind = str(ch.get("type") or "task").strip().lower()
+            if kind not in CREATE_TYPES:
+                problems.append(
+                    f"Type must be one of {', '.join(CREATE_TYPES)}, not {ch.get('type')!r}"
+                )
+                continue
+            if kind == "story" and parent:
+                problems.append(
+                    "A Story holds tickets, never Stories: it cannot have a parent"
+                )
+                continue
             out.append(
                 {
                     "op": "create",
                     "title": title,
+                    "type": kind,
                     "description": str(ch.get("description") or "")[:4000],
                     "parent": parent,
                     "criteria": [
@@ -403,7 +420,10 @@ def check_changes(
                         for x in (ch.get("criteria") or [])[:8]
                         if str(x or "").strip()
                     ],
-                    "workflow": str(ch.get("workflow") or "").strip().lower() or None,
+                    # a Story is planned by the PM, never put on a workflow
+                    "workflow": None
+                    if kind == "story"
+                    else str(ch.get("workflow") or "").strip().lower() or None,
                 }
             )
             continue

@@ -56,7 +56,9 @@ def _empty(sync_conn) -> None:
         else:
             from dbkit.types import server_metadata
 
-            server_metadata(SQLModel.metadata).create_all(sync_conn)
+            server_metadata(SQLModel.metadata, sync_conn.dialect.name).create_all(
+                sync_conn
+            )
         return
     for table in reversed(SQLModel.metadata.sorted_tables):
         sync_conn.execute(table.delete())

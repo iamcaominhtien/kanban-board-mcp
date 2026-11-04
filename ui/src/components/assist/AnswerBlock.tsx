@@ -259,7 +259,10 @@ export function AnswerBlock({
     body = (
       <div data-testid="answer-done">
         {msg.text && (
-          <MarkdownRenderer docs={{ projectId, onOpenTicket: ctx?.onOpenTicket }}>{msg.text}</MarkdownRenderer>
+          // a passage selected here can be replied to (quoteReplies.tsx)
+          <div className="as-quotable">
+            <MarkdownRenderer docs={{ projectId, onOpenTicket: ctx?.onOpenTicket }}>{msg.text}</MarkdownRenderer>
+          </div>
         )}
         {msg.state === 'stopped' && <div className="ai-muted">Stopped · the partial answer is kept.</div>}
         {ctxInfo.cutShort && (

@@ -98,7 +98,7 @@ export function PermissionsCard({ projectId }: { projectId: string }) {
             onChange={(v) => set({ webSearch: v })}
             options={[
               ['off', 'Off'],
-              ['roles', `By role (${p.webSearchRoles.map(roleName).join(', ')})`],
+              ['roles', 'By role'],
               ['on', 'Every role'],
             ]}
           />

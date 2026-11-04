@@ -12,6 +12,7 @@ import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 import { ContextMeter } from './ContextMeter';
 import { LineIcon } from '../ui/LineIcon';
+import { ReplyTray, SelectToReply, UserText, composeReplies, useQuoteReplies } from './quoteReplies';
 
 /** `size` is said in the description; `warn` is the one cost that is drawn as an orange chip (design B8). */
 const SCOPES: { key: AssistScope; label: string; reads: string; size: string; warn?: boolean }[] = [
@@ -210,13 +211,19 @@ export function AssistDock() {
   const [docPicker, setDocPicker] = useState(false);
   const tree = useDocsTree(projectId);
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const scope = ctx?.scope ?? 'project';
   const panel = useResizablePanel('board-ai', 420, { min: 340 });
+  const quotes = useQuoteReplies();
+  const outgoing = composeReplies(quotes.replies, text);
+  const clearQuotes = quotes.clear;
+  useEffect(() => clearQuotes(), [ctx?.chatId, clearQuotes]); // the passages belong to the chat they were picked in
 
-  const send = async (raw: string, opts?: { draft?: boolean; sendAll?: boolean }) => {
-    if (!ctx || !projectId) return;
+  /** Sends one message; true once the server has it. */
+  const send = async (raw: string, opts?: { draft?: boolean; sendAll?: boolean }): Promise<boolean> => {
+    if (!ctx || !projectId) return false;
     const q = raw.trim();
-    if (!q) return;
+    if (!q) return false;
     setSending(true);
     setError(null);
     try {
@@ -246,12 +253,19 @@ export function AssistDock() {
       });
       setText('');
       await qc.invalidateQueries({ queryKey: ['assist', 'chat', id] });
+      return true;
     } catch (e) {
       const body = assistError(e);
       setError(body?.detail ?? extractError(e));
+      return false;
     } finally {
       setSending(false);
     }
+  };
+
+  /** The composer's message with the passages waiting in the tray; they leave the tray once it is sent. */
+  const sendComposed = async () => {
+    if (await send(outgoing)) quotes.clear();
   };
 
   // A request from an entry point ("Ask about this ticket", "Draft first ticket with AI"…)
@@ -672,13 +686,14 @@ export function AssistDock() {
                   </div>
                 ) : m.role === 'user' ? (
                   <div key={m.id} className="as-user">
-                    {m.text}
+                    <UserText text={m.text} />
                   </div>
                 ) : (
                   <AnswerBlock key={m.id} msg={m} chat={chat.data!} state={state} onSend={(t, o) => void send(t, o)} />
                 ),
               )}
           </div>
+          <SelectToReply containerRef={bodyRef} onReply={quotes.add} disabled={overBudget || disabled} />
           <div className="as-composer">
             {overBudget ? (
               <div className="as-composer-box" style={{ background: '#F6F7F7' }} data-testid="assist-composer-paused">
@@ -688,32 +703,42 @@ export function AssistDock() {
                 </div>
               </div>
             ) : (
-              <div className="as-composer-box">
-                <textarea
-                  rows={1}
-                  value={text}
-                  placeholder={placeholder}
-                  disabled={disabled}
-                  aria-label="Ask the Board AI"
-                  data-testid="assist-input"
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      void send(text);
-                    }
-                  }}
+              <>
+                <ReplyTray
+                  replies={quotes.replies}
+                  focusId={quotes.focusId}
+                  onChange={quotes.update}
+                  onRemove={quotes.remove}
+                  onDone={() => inputRef.current?.focus()}
                 />
-                <button
-                  type="button"
-                  className="as-send"
-                  disabled={disabled || sending || !text.trim()}
-                  aria-label="Send"
-                  onClick={() => void send(text)}
-                >
-                  <LineIcon name="send" size={16} />
-                </button>
-              </div>
+                <div className="as-composer-box">
+                  <textarea
+                    ref={inputRef}
+                    rows={1}
+                    value={text}
+                    placeholder={quotes.replies.length ? 'Anything else? (optional)' : placeholder}
+                    disabled={disabled}
+                    aria-label="Ask the Board AI"
+                    data-testid="assist-input"
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        void sendComposed();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="as-send"
+                    disabled={disabled || sending || !outgoing.trim()}
+                    aria-label="Send"
+                    onClick={() => void sendComposed()}
+                  >
+                    <LineIcon name="send" size={16} />
+                  </button>
+                </div>
+              </>
             )}
             {error && (
               <div className="ai-error-text" style={{ marginTop: 6 }}>

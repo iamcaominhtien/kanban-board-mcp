@@ -71,6 +71,28 @@ async def test_a_draft_story_sits_in_backlog_and_never_moves_by_hand(env):
     assert r.status_code == 409 and "no PM" in r.text
 
 
+async def test_a_pm_that_cannot_start_leaves_the_story_blocked_not_an_error(
+    env, monkeypatch
+):
+    from services.ai import runs
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    await _team(c, pid, env["repo"], roles=("pm",))
+    story = await _new(c, pid, hand=False)
+
+    async def held(session, **_):
+        await session.rollback()  # as create_run does on the hold index
+        raise runs.RunConflict(f"{story['id']} is already held by another AI run.")
+
+    monkeypatch.setattr(runs, "create_run", held)
+    r = await c.post(f"/stories/{story['id']}/hand", json={})
+    assert r.status_code == 200, r.text
+    view = (await c.get(f"/stories/{story['id']}")).json()
+    assert view["state"] == "planning"
+    assert "The PM could not start" in view["blocked"]["text"]
+
+
 async def test_the_pm_plans_the_person_approves_the_children_run_by_the_plan_and_the_pm_closes_it(
     env, monkeypatch, tmp_path
 ):

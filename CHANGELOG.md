@@ -8,6 +8,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.37.1] - 2026-11-04
+
+Hotfix: fixes found while running the app on PostgreSQL, and the AI team working on Docs pages.
+
+### Fixed
+- **A ticket could have only one AI run, ever, on PostgreSQL and MySQL.** The index that keeps one agent on a ticket was made without its condition there, so a second run on a ticket failed ("already held by another AI run"), and handing a Story to the PM failed with a server error. PostgreSQL gets the partial index SQLite has, MySQL a plain one (migration `f1c3e5a7b9d2`). A PM that cannot start now leaves the Story blocked with the reason, not a server error.
+- **Give it to the PM** showed its error below the fold, so the button seemed to do nothing: the error now scrolls into view.
+- **A repository with no commit** made a ticket's worktree fail three times as a "board fault". The run now stops at once and says to make a first commit.
+- **Start now** on a run waiting to retry was refused; it now starts it.
+- **The Board AI chat** could not search the web in bypass mode or when the project's web search switch was on.
+- **Docs AI answers had no tools**, even with bypass on: a thread reply, Ask or a Docs page chat now runs with the member's own tools and rules (board tools read only), so it reads tickets, comments and work logs instead of guessing.
+- **Tables** in Docs, ticket descriptions, comments and chat answers were cut off by a long link: cells wrap long words and a wide table scrolls.
+- **A chat message asked while a run held the ticket's conversation** resumed that same conversation; it now answers from its own, and the next answer in the shared one is told what was asked meanwhile.
+- The drawio skill posted the PNG next to the diagram's embed line (the diagram twice); the blocked holder chip follows the design.
+
+### Added
+- **Send to AI** on a Docs page: send its open comments (inline ones and page comments, up to 20 at a time) to an AI on a ticket the page names. It works through them in the ticket's own conversation, changes the page, replies in each thread and resolves it. Each thread gets a quiet note saying where it went.
+- **AI on this page or on a ticket**: an AI tagged in a thread can ask the teammate who knows (the board sends them the thread) or point at the ticket whose work it is. The @ list in a thread offers an AI once per conversation ("Dev · RES-1", "Dev · this page"), and badges say where an answer came from.
+- **Every AI knows where it is**: a scope card in every prompt (runs, chats, Docs) says which conversation it is in, what it does not remember and which AIs are on the work now. Runs can look up the team (`ai_run team`) and ask a teammate (`ai_run contact`), whose answer comes back to them.
+- **Select text in a chat answer and reply to it**, several passages at once, sent in one message.
+- **The Board AI sets a ticket's type**, a Story included (made as a Draft), and **Make this a Story** shows on tickets without children.
+
 ## [3.37.0] - 2026-11-03
 
 Choose your database: SQLite (still the default), PostgreSQL or MySQL/MariaDB, and move between them (design: `design/screens/ai-databases.md`, #307). Guide: `docs/guideline/databases.md`.
