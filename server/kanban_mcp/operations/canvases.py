@@ -107,14 +107,7 @@ async def _not_in_safe_mode(session) -> None:
 
 async def _ai_may_read(session, c) -> bool:
     """A canvas that is a Docs page hidden from AI (or outside "only picked pages") is not read by any AI run."""
-    from models import DocsPage
-    from services.ai import guard
-    from services.docs_ai import access
-
-    if guard.current() is None or not c.page_id:
-        return True
-    page = await session.get(DocsPage, c.page_id)
-    return page is not None and await access.ai_can_read(session, page)
+    return True  # AI v2: an AI reads what people read
 
 
 async def design_guide() -> dict:
@@ -200,14 +193,6 @@ async def role_guide(query: str | None = None) -> dict:
     return out
 
 
-async def permissions_guide() -> dict:
-    """What an AI may do on the board, what needs a person and what to do when refused, and (inside a run) what the
-    calling AI may do right now (in Claude Code it is also the board-permissions skill)."""
-    from services import permissions_guide as guide
-
-    return await guide.for_caller()
-
-
 async def list_project_canvases(project_id: ProjectId) -> list[dict]:
     """List a project's canvases: [{id, title, owner_kind, owner_id, page_id, version, rev, boards, updated_by, updated_at, markdown}]."""
     from models import Canvas
@@ -238,7 +223,7 @@ async def read_canvas(
     ] = None,
 ) -> dict:
     """Read a canvas: {id, title, rev, version, markdown, pages, boards, notes, arrows, labels, comments, proposals, locks}."""
-    from services import canvas_comments, canvas_proposals
+    from services import canvas_comments
 
     async with common.async_session() as session:
         try:
@@ -252,7 +237,7 @@ async def read_canvas(
                 )
             doc = out["doc"]
             threads = await canvas_comments.list_threads(session, canvas_id)
-            props = await canvas_proposals.list_proposals(session, canvas_id)
+            props: list = []
             result = {
                 "id": out["id"],
                 "title": out["title"],
@@ -775,73 +760,3 @@ async def comment_on_canvas(
             )
         except svc_canvases.DocsError as exc:
             raise _error(exc) from exc
-
-
-@notify_on_success
-async def propose_canvas_change(
-    canvas_id: CanvasId,
-    board_id: Annotated[
-        str, Field(description="The HTML frame 'b_xxxxxxxx' to change.")
-    ],
-    path: Annotated[
-        str,
-        Field(
-            description="Absolute folder with the frame's new files (as written by docs_read(canvas, board_id, path)); files you leave out stay as they are."
-        ),
-    ],
-    note: Annotated[
-        str | None, Field(description="One sentence on what you changed.")
-    ] = None,
-    request: Annotated[
-        str | None, Field(description="What you were asked to do.")
-    ] = None,
-) -> dict:
-    """Propose a changed frame. Nothing changes until a person accepts it (they see before and after). Returns {id, status, boards, waiting_for}. If a person is editing the frame the proposal is kept and shown when they finish."""
-    from services import canvas_proposals
-    from services.ai import guard
-
-    root = _ai_folder(path)
-    files: dict[str, bytes] = {}
-    skipped: list[str] = []
-    total = 0
-    for p in sorted(root.rglob("*")):
-        if p.is_file():
-            if _ai_skips(root, p):
-                skipped.append(p.relative_to(root).as_posix())
-                continue
-            total += p.stat().st_size
-            if total > svc_canvases.MAX_BOARD_BYTES:
-                raise ValueError(
-                    f"That folder is over {svc_canvases.MAX_BOARD_BYTES // (1024 * 1024)} MB, the most a frame can hold."
-                )
-            files[p.relative_to(root).as_posix()] = p.read_bytes()
-    async with common.async_session() as session:
-        try:
-            c = await svc_canvases._canvas(session, canvas_id)  # noqa: SLF001
-            await _same_project(c.project_id)
-            if not await _ai_may_read(session, c):
-                raise ValueError(
-                    "That canvas is a page hidden from AI, so it was left alone."
-                )
-            ctx = guard.current()
-            out = await canvas_proposals.create(
-                session,
-                canvas_id,
-                changes=[{"board_id": board_id, "files": files}],
-                note=note or "",
-                request=request or "",
-                member_id=ctx.member_id if ctx else None,
-            )
-        except svc_canvases.DocsError as exc:
-            raise _error(exc) from exc
-    return {
-        "id": out["id"],
-        "status": out["status"],
-        "boards": [c_["name"] for c_ in out["changes"]],
-        "lines_changed": sum(c_["lines"] for c_ in out["changes"]),
-        "waiting_for": next(
-            (c_["waiting_for"] for c_ in out["changes"] if c_["waiting_for"]), None
-        ),
-        "message": "Proposed. A person sees before and after and accepts or rejects it; nothing was changed.",
-        **({"skipped": skipped[:20]} if skipped else {}),
-    }

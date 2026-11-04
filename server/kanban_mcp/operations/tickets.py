@@ -333,10 +333,6 @@ async def get_ticket(
         docs = await _linked_docs(session, ticket)
         if docs:
             data["docs"] = docs
-        from services.ai import hold as svc_hold
-
-        # who has it now: an AI (doing what), a person, or someone it waits on (issue #272)
-        data["held_by"] = await svc_hold.holder(session, ticket)
     log = data.get("activity_log") or []
     data["activity_total"] = len(log)
     if since is not None:
@@ -357,16 +353,9 @@ async def _linked_docs(session, ticket) -> list[dict]:
     """The Docs pages tied to the ticket (its spec, its design notes), as an agent should read them: a page hidden
     from AI is left out of an AI run's view. Read one with docs_read(action='get', page_id)."""
     from services import docs as svc_docs
-    from services.ai import guard
-    from services.docs_ai import access as docs_ai_access
 
     try:
-        hidden = (
-            await docs_ai_access.hidden_page_ids(session, ticket.project_id)
-            if await guard.resolve() is not None
-            else set()
-        )
-        return await svc_docs.linked_pages(session, ticket.id, hidden=hidden)
+        return await svc_docs.linked_pages(session, ticket.id, hidden=set())
     except Exception:  # noqa: BLE001 - the pages are extra context; the ticket reads without them
         return []
 

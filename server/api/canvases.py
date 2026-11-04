@@ -14,14 +14,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
-from services import activity as svc_activity
 from services import canvas_comments as comments
-from services import canvas_proposals as proposals
-from services import canvas_replies as replies
 from services import canvases as svc
-from services.docs_ai import DocsAiError, access, engine, jobs
-from services.docs_ai import settings as ai_settings
-from services.docs_text import DocsError
 
 router = APIRouter(tags=["canvases"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -538,17 +532,7 @@ async def _deliver(
     session: AsyncSession, canvas_id: str, thread: dict[str, Any], intent: str
 ) -> list[dict[str, Any]]:
     """Wake the AI members the newest comment of a thread mentions (see ``canvas_replies``)."""
-    if not thread.get("comments"):
-        return []
-    c = await svc._canvas(session, canvas_id)  # noqa: SLF001
-    return await replies.deliver(
-        session,
-        canvas=c,
-        thread=thread,
-        comment=thread["comments"][-1],
-        by=svc_activity.current_actor(),
-        intent=intent,
-    )
+    return []
 
 
 @router.post("/canvases/threads/{thread_id}/replies", status_code=201)
@@ -596,52 +580,11 @@ async def del_comment(comment_id: str, session: Session) -> dict[str, Any]:
 # --- AI proposals -----------------------------------------------------------------------------------------------
 
 
-@router.get("/canvases/{canvas_id}/proposals")
-async def get_proposals(
-    canvas_id: str, session: Session, status: Optional[str] = "open"
-) -> list[dict[str, Any]]:
-    """AI proposals (open ones by default), each with before and after."""
-    return await proposals.list_proposals(
-        session, canvas_id, status if status != "all" else None
-    )
-
-
 class Decision(BaseModel):
     """Accept and/or reject frames of a proposal."""
 
     accept: list[str] | str = "all"
     reject: list[str] | str | None = None
-
-
-@router.post("/canvases/{canvas_id}/proposals/{proposal_id}/decide")
-async def post_decide(
-    canvas_id: str, proposal_id: str, body: Decision, session: Session
-) -> dict[str, Any]:
-    """Accept (all, or some) and reject frames. Accepted frames save as one new version."""
-    out = await proposals.decide(
-        session, canvas_id, proposal_id, accept=body.accept, reject=body.reject
-    )
-    await _changed()
-    return out
-
-
-@router.get("/canvases/{canvas_id}/proposals/{proposal_id}/{board_id}/{path:path}")
-async def get_proposal_file(
-    canvas_id: str, proposal_id: str, board_id: str, path: str, session: Session
-) -> Response:
-    """A file of a proposal (the "After" preview), served like a frame."""
-    data, media = await proposals.read_file(
-        session, canvas_id, proposal_id, board_id, path
-    )
-    return Response(
-        data,
-        media_type=media.split(";")[0],
-        headers={
-            **_FRAME_HEADERS,
-            "Content-Type": media,
-            "Cache-Control": "private, no-store",
-        },
-    )
 
 
 class AskBody(BaseModel):
@@ -676,97 +619,3 @@ async def _same_ask(
         ):
             return j
     return None
-
-
-@router.get("/canvases/{canvas_id}/ai/members")
-async def get_ai_members(canvas_id: str, session: Session) -> dict[str, Any]:
-    """The AI members that can be asked about this canvas, with who answers by default and why."""
-    from models import Member
-    from services.docs_ai import threads as docs_threads
-
-    c = await svc._canvas(session, canvas_id)  # noqa: SLF001
-    if not c.project_id:
-        return {"default_member_id": None, "why": "", "members": []}
-    rows = (
-        await session.exec(
-            select(Member).where(Member.project_id == c.project_id, Member.kind == "ai")
-        )
-    ).all()
-    members = await docs_threads.member_rows(session, c.project_id, list(rows), True)
-    default, why = await proposals.likely_member(session, c)
-    return {"default_member_id": default, "why": why, "members": members}
-
-
-@router.post("/canvases/{canvas_id}/ai/ask", status_code=202)
-async def post_ask(canvas_id: str, body: AskBody, session: Session) -> dict[str, Any]:
-    """Start a Docs AI job that prepares a proposal for the frames. Nothing changes until a person accepts."""
-    c = await svc._canvas(session, canvas_id)  # noqa: SLF001
-    await svc.member_role(session, c)
-    if not c.project_id:
-        raise DocsAiError(
-            "unavailable", "AI works on canvases that belong to a project."
-        )
-    await ai_settings.require_enabled(session, c.project_id)
-    if c.page_id:
-        from models import DocsPage
-
-        page = await session.get(DocsPage, c.page_id)
-        if page is not None and not await access.ai_can_read(session, page):
-            raise DocsAiError("hidden", "This page is hidden from AI.")
-    member_id = body.member_id
-    if (
-        not member_id
-    ):  # the AI that knows this canvas answers, else the project's default
-        member_id, _ = await proposals.likely_member(session, c)
-    await engine.check_ready(
-        c.project_id, await engine.resolve(c.project_id, member_id)
-    )
-    same = await _same_ask(session, c.id, body, member_id)
-    if same is not None:  # a double Ctrl J must not pay twice
-        return jobs.to_dict(same)
-    job = await jobs.start(
-        session,
-        project_id=c.project_id,
-        kind="canvas",
-        started_by=svc_activity.current_actor(),
-        page_id=c.page_id,
-        member_id=member_id,
-        instruction=body.request[:200],
-        result={
-            "input": {
-                "canvas_id": c.id,
-                "board_ids": body.board_ids,
-                "request": body.request,
-            }
-        },
-    )
-    return jobs.to_dict(job)
-
-
-@router.post("/canvases/threads/{thread_id}/propose", status_code=202)
-async def post_propose_from_thread(thread_id: str, session: Session) -> dict[str, Any]:
-    """ "Propose a fix" on an AI comment: start the same job with the comment as the request, on its frame."""
-    t = await comments.thread_by_id(session, thread_id)
-    if not t["board_id"]:
-        raise DocsError(
-            422, "no_board", "Pin the comment to a frame to propose a fix for it."
-        )
-    thread = "\n".join(f"{c['author']}: {c['body']}" for c in t["comments"])
-    c = await svc._canvas(session, t["canvas_id"])  # noqa: SLF001
-    writer = next(
-        (c_ for c_ in t["comments"] if c_.get("is_ai")), None
-    )  # the AI that wrote the comment answers it
-    member_id = (
-        await proposals.ai_named(session, c.project_id, writer["author"])
-        if writer
-        else None
-    )
-    return await post_ask(
-        t["canvas_id"],
-        AskBody(
-            board_ids=[t["board_id"]],
-            request=f"Fix what this comment thread asks for:\n{thread}",
-            member_id=member_id,
-        ),
-        session,
-    )

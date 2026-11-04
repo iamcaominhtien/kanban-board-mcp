@@ -16,7 +16,7 @@ import database
 from database import get_session
 from main import app
 from models import AiRun
-from services.ai import api_agent, guard, runs
+from services.ai import guard, runs
 from tests.fast_db import fresh_db_file
 
 FAKE = str(Path(__file__).parent / "fixtures" / "fake_claude.py")
@@ -36,7 +36,6 @@ async def env(tmp_path, monkeypatch):
     monkeypatch.setenv("KANBAN_AI_KEY_FILE", str(tmp_path / "ai.key"))
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude-config"))
     monkeypatch.setattr(runs, "RT", runs._Runtime())
-    monkeypatch.setattr(api_agent, "BACKOFF_SCALE", 0.0)
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "calc.py").write_text("def add(a, b):\n    return a - b\n")

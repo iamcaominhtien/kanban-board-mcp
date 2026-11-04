@@ -27,7 +27,6 @@ from api.settings import router as settings_router
 from api.data import router as data_router
 from api.database import router as database_router
 from api.logs import router as logs_router
-from api.idea_ai import router as idea_ai_router
 from api.idea_space import router as idea_space_router
 from api.idea_tickets import router as idea_tickets_router
 from api.workspace import router as workspace_router
@@ -35,54 +34,31 @@ from api.docs import docs_error_handler, router as docs_router
 from api.diagrams import router as diagrams_router
 from api.canvases import router as canvases_router
 from api.sketches import router as sketches_router
-from api.ai import router as ai_router
-from api.ai_history import router as ai_history_router
-from api.ai_ops import router as ai_ops_router
 from api.ai_knowledge import router as ai_knowledge_router
 from api.ai_code import router as ai_code_router
 from api.ai_tools import router as ai_tools_router
-from api.ai_workflow import router as ai_workflow_router
 from api.ai_board import router as ai_board_router
-from api.ai_live_feed import router as ai_live_feed_router
-from api.stories import router as stories_router
 from api.ai_power import router as ai_power_router
 from api.ai_accounts import router as ai_accounts_router
-from api.ai_safety import router as ai_safety_router
-from api.ai_config import router as ai_config_router
-from api.assist import assist_error_handler
 from api.docs_ai import docs_ai_error_handler
 from api.docs_ai import router as docs_ai_router
-from api.assist import router as assist_router
-from api.ai_editor import router as ai_editor_router
-from api.ai_sketch import router as ai_sketch_router
-from api import ai_roles
 from api.notifications import router as notifications_router
 from api.schedules import router as schedules_router
 from api.schedules import schedule_error_handler
-from services.ai.assist import chat as assist_chat
-from services.ai.assist import health as assist_health
-from services.ai.assist.settings import AssistError
 from services.docs_ai import DocsAiError
-from services.docs_ai import freshness as docs_ai_freshness
 from services.docs_ai import jobs as docs_ai_jobs
-from services.docs_ai import proposals as docs_ai_proposals
 from services.ai import schedules as ai_schedules
 from services.ai.schedules import ScheduleError
 from services.ai import runs as ai_runs
 from services import drawio_bundle
-from services.ai import orders as ai_orders
 from services.ai import github as ai_github
-from services.ai import evals as ai_evals
-from services.ai import manager as ai_manager
 from services.ai import repo_scan as ai_repo_scan
-from services.ai import workflow as ai_workflow
 from services import notifications as svc_notifications
 from services.ai import signin as ai_signin
 from services.docs_text import DocsError
 import database
 from version import version_info
 from services import activity as svc_activity
-from services import idea_ai as svc_idea_ai
 from services import workspace as svc_workspace
 from uploads import (
     MIME_BY_EXTENSION,
@@ -133,47 +109,29 @@ async def lifespan(app: FastAPI):
         sweeper = asyncio.create_task(
             svc_workspace.sweep_loop(lambda: database.async_session())
         )
-        digests = asyncio.create_task(
-            svc_idea_ai.digest_loop(lambda: database.async_session())
-        )
         db_watcher = asyncio.create_task(board_events.watch_database())
         await ai_runs.start_scheduler()
-        await assist_chat.recover()
         await docs_ai_jobs.recover()
-        await ai_workflow.recover()  # Checks a restart cut off run again
-        assist_health.start_scheduler()
-        docs_ai_freshness.start_scheduler()
         ai_schedules.start_scheduler()
-        docs_ai_proposals.start_scheduler()
         svc_notifications.start()
-        ai_orders.start()
         ai_github.start()
-        ai_manager.start()
-        ai_evals.start()
         rescans = asyncio.create_task(_rescan_loop())
         try:
             yield
         finally:
-            await ai_orders.stop()
             await ai_github.stop()
-            await ai_manager.stop()
-            await ai_evals.stop()
             rescans.cancel()
             # No CLI process outlives the board: cancel the AI runs and kill their process trees
             await svc_notifications.stop()
-            await assist_health.stop_scheduler()
-            await docs_ai_freshness.stop_scheduler()
-            await docs_ai_proposals.stop_scheduler()
             await ai_schedules.stop_scheduler()
             await ai_runs.stop_scheduler()
             await ai_signin.stop_all()
             sweeper.cancel()
-            digests.cancel()
             db_watcher.cancel()
             follow.cancel()
             # Wait for them to stop; their CancelledError is collected, while a cancellation of
             # the shutdown itself still propagates
-            await asyncio.gather(sweeper, digests, db_watcher, return_exceptions=True)
+            await asyncio.gather(sweeper, db_watcher, return_exceptions=True)
 
 
 app = FastAPI(title="Kanban Board MCP", lifespan=lifespan)
@@ -246,10 +204,6 @@ async def database_unreachable(request: Request, call_next):
                     status_code=503,
                 )
         raise
-
-
-# AI endpoints check the person's project role first (api/ai_roles.py)
-app.middleware("http")(ai_roles.enforce)
 
 
 @app.middleware("http")
@@ -378,10 +332,6 @@ async def serve_drawio(file_path: str):
 
 
 app.include_router(projects_router)
-app.include_router(assist_router)
-app.include_router(ai_editor_router)
-app.include_router(ai_sketch_router)
-app.add_exception_handler(AssistError, assist_error_handler)
 app.add_exception_handler(DocsAiError, docs_ai_error_handler)
 app.include_router(schedules_router)
 app.include_router(notifications_router)
@@ -391,7 +341,6 @@ app.include_router(members_router)
 app.include_router(settings_router)
 app.include_router(database_router)
 app.include_router(data_router)
-app.include_router(idea_ai_router)
 app.include_router(idea_space_router)
 app.include_router(idea_tickets_router)
 app.include_router(workspace_router)
@@ -402,19 +351,11 @@ app.include_router(sketches_router)
 app.include_router(canvases_router)
 app.include_router(logs_router)
 app.include_router(ai_accounts_router)
-app.include_router(ai_history_router)
-app.include_router(ai_ops_router)
 app.include_router(ai_knowledge_router)
 app.include_router(ai_code_router)
 app.include_router(ai_tools_router)
-app.include_router(ai_workflow_router)
 app.include_router(ai_board_router)
 app.include_router(ai_power_router)
-app.include_router(ai_live_feed_router)
-app.include_router(stories_router)
-app.include_router(ai_router)
-app.include_router(ai_safety_router)
-app.include_router(ai_config_router)
 app.add_exception_handler(DocsError, docs_error_handler)
 
 

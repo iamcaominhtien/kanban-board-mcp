@@ -12,10 +12,6 @@ that can answer. A proposal is only ever ALTER TABLE statements on the board's o
 import json
 import re
 
-from sqlmodel import select
-
-import database
-from models import Project
 
 from .move import Stop, app_tables
 
@@ -110,22 +106,8 @@ def check_statements(statements: list[str]) -> list[str]:
 
 async def pick_member():
     """(profile, name) of the AI that answers: a project's Board AI, else the first AI member that can answer."""
-    from services.ai.assist import settings as assist_settings
-
-    async with database.async_session() as session:
-        projects = (await session.exec(select(Project))).all()
-        for p in projects:
-            info = await assist_settings.board_ai(session, p.id, fallback=True)
-            if info["state"] == "ready":
-                return info["profile"], info["member"].name
-        for p in projects:
-            for cand in await assist_settings.answerers(session, p.id):
-                if cand["state"] == "ready":
-                    from models import AiMember
-
-                    return await session.get(AiMember, cand["id"]), cand["name"]
     raise AssistError(
-        "No AI member can answer: add a Claude Code or API-key member in a project (AI › Members), then ask again."
+        "The AI helper for database copies comes back with AI v2 (stage 7)."
     )
 
 
@@ -157,38 +139,6 @@ async def ask(
     member=None,
 ) -> dict:
     """Ask the AI about `stop`; returns its proposal (statements checked, `applicable` false when they were refused)."""
-    from services.ai import llm
-
-    profile, name = member or await pick_member()
-    prompt = "What the board knows about the stop:\n" + json.dumps(
-        bundle(stop, plan), indent=2
+    raise AssistError(
+        "The AI helper for database copies comes back with AI v2 (stage 7)."
     )
-    if previous:
-        prompt += "\n\nYour earlier proposal:\n" + json.dumps(
-            {k: previous.get(k) for k in ("cause", "statements", "affects")}, indent=2
-        )
-    if question:
-        prompt += f"\n\nThe person asks: {question.strip()[:1000]}"
-    try:
-        out = await llm.complete(
-            profile,
-            system=SYSTEM,
-            prompt=prompt,
-            max_tokens=1500,
-            timeout=240 if profile.connection == "local" else 90,
-        )
-    except llm.LlmError as exc:
-        raise AssistError(f"{name} could not answer: {exc}") from exc
-    proposal = _parse(out.text)
-    try:
-        proposal["statements"] = check_statements(proposal["statements"])
-        proposal["applicable"] = True
-        proposal["refused"] = None
-    except AssistError as exc:
-        proposal["applicable"] = False
-        proposal["refused"] = str(exc)
-    proposal["member"] = name
-    proposal["elapsed_s"] = out.elapsed_s
-    proposal["cost"] = out.cost
-    proposal["shown"] = bundle(stop, plan)
-    return proposal

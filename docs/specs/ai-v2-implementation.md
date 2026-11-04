@@ -269,3 +269,10 @@ Mỗi giai đoạn một hoặc vài commit; thông điệp commit nêu giai đo
 - **Windows**: hook `post.cmd` dùng `curl.exe` có sẵn từ Win10; `spill_long_args` giữ; test trên máy Windows của người dùng ở mục 4.6.
 - **Khối lượng**: giai đoạn 3, 7, 8 lớn nhất; mỗi giai đoạn nên là một phiên làm việc riêng, cùng nhánh, commit xong mới sang
   giai đoạn kế.
+
+## 6. Tiến độ
+
+| Giai đoạn | Trạng thái | Ghi chú |
+|---|---|---|
+| 0 | xong (`5ed89997`) | `tests/ai_helpers.py` |
+| 1 | backend xong | Xoá 46 module `services/ai`, `assist/`, 14 module `docs_ai`, 12 router, 4 tool MCP, stories, canvas proposals/replies, `idea_ai`, `llm`; `guard.py` cắt còn token + duplicate-write; `runs.py` là stub; `providers.py` chỉ Claude Code; 16 bảng bỏ khỏi `models.py` (migration `ai_v2_reset` ở giai đoạn 2). Test: 92 file xoá, còn 60 (825 test). Các suite cần member/run (`test_ai_accounts` phần member, `test_ai_knowledge`, `test_ai_packs`, `test_mcp_batch` 3 test) đỏ tới giai đoạn 2–3. Chưa có audit cho write của AI (guard.after cũ): giai đoạn 3. |

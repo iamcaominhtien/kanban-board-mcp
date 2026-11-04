@@ -86,7 +86,6 @@ from .canvases import (
     design_guide,
     diagram_guide,
     docs_guide,
-    permissions_guide,
     shared_guides,
     role_guide,
     ticket_guide,
@@ -94,7 +93,6 @@ from .canvases import (
     read_canvas,
     create_canvas_from_files,
     comment_on_canvas,
-    propose_canvas_change,
 )
 from .ideas import (
     list_idea_tickets,
@@ -163,7 +161,6 @@ __all__ = [
     "diagram_guide",
     "docs_guide",
     "picture",
-    "permissions_guide",
     "shared_guides",
     "role_guide",
     "ticket_guide",
@@ -171,7 +168,6 @@ __all__ = [
     "read_canvas",
     "create_canvas_from_files",
     "comment_on_canvas",
-    "propose_canvas_change",
     "list_docs_pages",
     "get_docs_page",
     "create_docs_page",

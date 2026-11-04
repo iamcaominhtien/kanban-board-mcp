@@ -85,27 +85,3 @@ async def test_only_light_actions_take_items_and_a_batch_has_a_size_limit(env):
         ticket_id=tid, item="test_case", action="add", title="Solo"
     )
     assert [t["title"] for t in one["test_cases"]] == ["Solo"]
-
-
-async def test_each_item_is_checked_by_the_guard_and_a_wait_for_a_person_stops_the_batch(
-    env,
-):
-    c = env["c"]
-    ctx, pid, an, m, tid = await _ctx(env)
-    page, threads = await _page_with_threads(c, pid, 3)
-    await c.patch(f"/projects/{pid}/ai/settings", json={"docs_edits_ask": True})
-    tokens = guard.enter(ctx)
-    try:
-        out = await docs_write(
-            action="resolve", items=[{"thread_id": t["id"]} for t in threads]
-        )
-    finally:
-        guard.leave(tokens)
-    assert out["done"] == 0
-    assert out["results"][0]["error"].startswith("NEEDS_APPROVAL")
-    assert all(r["error"].startswith("Not run") for r in out["results"][1:])
-    # one request was posted, not three
-    pending = (
-        await c.get(f"/projects/{pid}/ai/approvals", params={"status": "pending"})
-    ).json()
-    assert len(pending) == 1

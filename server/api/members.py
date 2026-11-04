@@ -36,8 +36,6 @@ async def post_member(
         raise HTTPException(status_code=422, detail="Invalid role")
     if not " ".join((data.name or "").split()):
         raise HTTPException(status_code=422, detail="Enter a name.")
-    from services.ai.members import check_name
-
     # Names are unique across people and AI in a project, so @mentions never point at two members
     found = await check_name(session, project_id, data.name)
     if not found["ok"]:
@@ -77,3 +75,41 @@ async def del_member(project_id: str, member_id: str, session: Session) -> None:
     if not found:
         raise HTTPException(status_code=404, detail="Member not found")
     await board_events.publish("invalidate")
+
+
+async def check_name(
+    session: AsyncSession, project_id: str, name: str, exclude_id: str | None = None
+) -> dict:
+    """Names are unique across people and AI in a project (case and surrounding spaces ignored)."""
+    from sqlmodel import select
+
+    from models import Member, Project
+
+    clean = " ".join((name or "").split())
+    project = await session.get(Project, project_id)
+    rows = (
+        await session.exec(select(Member).where(Member.project_id == project_id))
+    ).all()
+    low = clean.lower()
+    for m in rows:
+        if m.id == exclude_id or m.kind == "ai_removed":
+            continue
+        if m.name.strip().lower() == low:
+            if m.kind == "ai":
+                existing = {r.name.strip().lower() for r in rows}
+                n = 2
+                while f"{low} {n}" in existing:
+                    n += 1
+                return {
+                    "ok": False,
+                    "conflict": "ai",
+                    "message": f"Another AI member already uses this name. Try “{clean} {n}”.",
+                    "suggestion": f"{clean} {n}",
+                }
+            return {
+                "ok": False,
+                "conflict": "person",
+                "message": f"“{m.name}” is already a member of {project.name if project else 'this project'}.",
+                "suggestion": None,
+            }
+    return {"ok": True, "conflict": None, "message": None, "suggestion": None}

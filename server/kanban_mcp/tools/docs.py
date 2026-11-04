@@ -28,7 +28,6 @@ DocsReadAction = Literal[
     "design_guide",
     "diagram_guide",
     "picture",
-    "permissions_guide",
     "guides",
     "role_guide",
     "ticket_guide",
@@ -65,7 +64,6 @@ DOCS_READ_OPS = {
             "width",
         ),
     ),
-    "permissions_guide": Op(ops.permissions_guide, ()),
     "guides": Op(ops.shared_guides, ()),
     "role_guide": Op(ops.role_guide, (), ("query",)),
     "ticket_guide": Op(ops.ticket_guide, ()),
@@ -178,7 +176,6 @@ async def docs_read(
     - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.
     - diagram_guide: {guide, sketches}: how to draw and edit a draw.io diagram, what to do with a Sketch, which tool fits.
     - picture: diagram_id | canvas_id + board_id | sketch_id | path [, width]. A PNG to look at before you hand in: {path, drawn_by, markdown (a copy for a comment)}.
-    - permissions_guide: {guide, you}: what you may do; read it when refused.
     - guides: {name: text}: how to work a ticket, prove it, ask, work as a team, brainstorm, write for users, make office files and decks.
     - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles.
     - ticket_guide: {guide, roles}: using every part of a ticket; where files go.
@@ -191,7 +188,6 @@ DocsWriteAction = Literal[
     "update",
     "edit",
     "upload",
-    "tickets",
     "assign",
     "move",
     "duplicate",
@@ -274,17 +270,12 @@ DOCS_WRITE_OPS = {
         ("canvas_id", "body"),
         ("board_id", "thread_id", "at"),
     ),
-    "canvas_propose": Op(
-        ops.propose_canvas_change,
-        ("canvas_id", "board_id", "path"),
-        ("note",),
-    ),
 }
 
 
 # Actions made of other actions (each part checked by the AI guard as a call of its own): edit reads the page and
 # publishes it with `update`, tickets creates tickets and edits the page, assign creates a ticket and asks an AI
-DOCS_WRITE_COMPOSITE = ("edit", "tickets", "assign")
+DOCS_WRITE_COMPOSITE = ("edit", "assign")
 
 # The light actions that take `items`; page, file and diagram work is one call each
 _BATCH_ACTIONS = {"comment", "reply", "resolve", "reopen"}
@@ -514,8 +505,6 @@ async def docs_write(
         return await _edit(given)
     if action == "upload":
         return await _upload(given)
-    if action == "tickets":
-        return await _tickets(given)
     if action == "assign":
         return await _assign(given)
     for key in (
@@ -730,100 +719,6 @@ def _only(label: str, given: dict, allowed: set[str], usage: str) -> None:
         raise ValueError(
             f"docs_write(action='{label}') does not use: {', '.join(extra)}. It takes {usage}."
         )
-
-
-async def _tickets(given: dict) -> dict:
-    """docs_write(tickets): tickets from the page's open tasks (or from drafts), linked, their keys on their lines."""
-    from services.docs_ai import tickets as docs_tickets
-
-    from .tickets import manage_ticket
-
-    _only(
-        "tickets",
-        given,
-        {"page_id", "find", "items", "publish"},
-        "page_id [, find, items, publish]",
-    )
-    page_id = given.get("page_id")
-    if not page_id:
-        raise ValueError("docs_write(action='tickets') requires page_id.")
-    page = await dispatch("docs_read", DOCS_READ_OPS, "get", {"page_id": page_id})
-    drafts = given.get("items")
-    lines: list[str | None] = []
-    skipped: list[dict] = []
-    if drafts is None:
-        found = docs_tickets.extract(page["markdown"], given.get("find"))
-        if not found.items:
-            return {
-                "tickets": [],
-                "skipped": found.skipped,
-                "message": "No unchecked task or action item without a ticket"
-                + (" in that passage." if given.get("find") else " on the page."),
-            }
-        drafts = [
-            {"title": docs_tickets.clean_title(it["text"]), "text": it["text"]}
-            for it in found.items
-        ]
-        lines = [it["raw"] for it in found.items]
-        skipped = found.skipped
-    else:
-        if not isinstance(drafts, list) or not drafts or len(drafts) > 30:
-            raise ValueError(
-                "items: 1 to 30 drafts {title, text, type, status, assignee}."
-            )
-        for i, d in enumerate(drafts):
-            if not isinstance(d, dict) or not str(d.get("title") or "").strip():
-                raise ValueError(f"items[{i}]: an object with a title.")
-            bad = [
-                k for k in d if k not in ("title", "text", "type", "status", "assignee")
-            ]
-            if bad:
-                raise ValueError(f"items[{i}] does not use: {', '.join(bad)}.")
-        # a draft whose text is one line of the page gets its key on that line
-        page_lines = page["markdown"].split("\n")
-        for d in drafts:
-            text = str(d.get("text") or d["title"]).strip()
-            hit = [
-                ln
-                for ln in page_lines
-                if text and docs_tickets.line_text(ln).strip() == text
-            ]
-            lines.append(hit[0] if len(hit) == 1 else None)
-    made: list[dict] = []
-    for d in drafts:
-        text = str(d.get("text") or "").strip()
-        description = f"From the page [[{page['title']}]]" + (
-            ":\n\n> " + "\n> ".join(text.splitlines()) if text else "."
-        )
-        t = await manage_ticket(
-            action="create",
-            project_id=page["project_id"],
-            title=str(d["title"]).strip()[:200],
-            description=description,
-            type=d.get("type") or "task",
-            status=d.get("status") or None,
-            assignee=d.get("assignee") or None,
-        )
-        made.append({"id": t["id"], "title": t["title"], "status": t.get("status")})
-    for m in made:
-        await manage_ticket(action="link_doc", ticket_id=m["id"], page_id=page_id)
-    out: dict = {"tickets": made}
-    if skipped:
-        out["skipped"] = skipped
-    marks = [
-        {"find": ln, "markdown": f"{ln.rstrip()} {m['id']}", "mode": "replace"}
-        for ln, m in zip(lines, made)
-        if ln and page["markdown"].count(ln) == 1
-    ]
-    if marks and given.get("publish") is not False:
-        out["page"] = await _edit(
-            {
-                "page_id": page_id,
-                "items": marks,
-                "note": f"Tickets {', '.join(m['id'] for m in made)} made from the page",
-            }
-        )
-    return out
 
 
 async def _assign(given: dict) -> dict:

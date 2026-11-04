@@ -10,7 +10,7 @@ from sqlalchemy import or_
 from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiGrant, AiMember, AiProjectSettings, AiRun, AiUsage
+from models import AiMember, AiProjectSettings, AiRun, AiUsage
 
 
 def today_start() -> datetime:
@@ -72,10 +72,6 @@ async def spent(
     if until:
         stmt = stmt.where(col(AiRun.started_at) < until.isoformat())
     ids = [member_id] if member_id else []
-    if member_id and whole_group:
-        from .multiproject import group_ids
-
-        ids = await group_ids(session, member_id)
     if member_id:
         stmt = stmt.where(col(AiRun.member_id).in_(ids))
     if project_id:
@@ -156,18 +152,8 @@ async def runs_today(
 
 
 async def _raise_today(session: AsyncSession, member_id: str | None) -> float:
-    """Dollars added to today's cap by an approved "Raise cap" (agent, or board when `member_id` is None)."""
-    stmt = select(AiGrant).where(
-        AiGrant.kind == "cap_raise",
-        AiGrant.day == day_key(),
-        col(AiGrant.revoked_at).is_(None),
-    )
-    stmt = stmt.where(
-        AiGrant.member_id == member_id
-        if member_id
-        else col(AiGrant.member_id).is_(None)
-    )
-    return float(sum(g.amount for g in (await session.exec(stmt)).all()))
+    """AI v2: no cap raises (approvals are gone)."""
+    return 0.0
 
 
 def _hit(label: str, reason: str, scope: str, kind: str) -> dict:

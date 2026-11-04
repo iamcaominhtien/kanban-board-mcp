@@ -751,64 +751,6 @@ class DocsAiJob(SQLModel, table=True):
     ended_at: Optional[str] = Field(default=None)
 
 
-class DocsAiProposal(SQLModel, table=True):
-    """Changes an AI member proposes for a published page. Accepting puts text into the reviewer's draft."""
-
-    __tablename__ = "docs_ai_proposal"
-
-    id: str = Field(
-        default_factory=lambda: f"dp_{uuid.uuid4().hex[:10]}", primary_key=True
-    )
-    project_id: str = Field(foreign_key="project.id", index=True)
-    page_id: str = Field(foreign_key="docs_page.id", index=True)
-    member_id: str = Field(index=True)
-    run_id: Optional[str] = Field(default=None)
-    job_id: Optional[str] = Field(default=None)
-    ticket_id: Optional[str] = Field(default=None)
-    approval_id: Optional[str] = Field(
-        default=None
-    )  # the row in Approvals, when the safety rule asks for one
-    on_behalf_of: Optional[str] = Field(default=None)
-    base_version: int = Field(
-        default=0
-    )  # the page version the changes were made against
-    # waiting | accepted | partial | rejected | expired
-    status: str = Field(default="waiting", index=True)
-    summary: str = Field(default="")
-    # JSON [{n, title, reason, section, old, new, status: pending|accepted|rejected, stale: bool}]
-    changes: str = Field(default="[]")
-    created_at: str = Field(default_factory=_now_iso)
-    expires_at: Optional[str] = Field(default=None)
-    decided_by: Optional[str] = Field(default=None)
-    decided_at: Optional[str] = Field(default=None)
-    decision_note: Optional[str] = Field(default=None)
-
-
-class DocsAiCheck(SQLModel, table=True):
-    """Freshness of a page against its linked tickets and pages (one row per page)."""
-
-    __tablename__ = "docs_ai_check"
-
-    page_id: str = Field(foreign_key="docs_page.id", primary_key=True)
-    project_id: str = Field(foreign_key="project.id", index=True)
-    state: str = Field(default="ok")  # ok | stale
-    # JSON [{kind: ticket|page, ref, text, compared}]: every reason names what was compared
-    reasons: str = Field(default="[]")
-    based_on_version: int = Field(default=0)
-    deps_hash: str = Field(
-        default=""
-    )  # hash of what the page depends on, to flag again only on change
-    checked_at: str = Field(default_factory=_now_iso)
-    ok_until: Optional[str] = Field(
-        default=None
-    )  # "Still correct" hides the banner until this time
-    ok_hash: Optional[str] = Field(default=None)
-    dismissed: str = Field(
-        default="[]"
-    )  # JSON [{key, level: once|30d|never, until, by}]
-    job_id: Optional[str] = Field(default=None)
-
-
 class DocsAiHealth(SQLModel, table=True):
     """The last Docs health run of a project: missing docs, broken links, overlaps (out-of-date pages are in
     `docs_ai_check`)."""
@@ -1329,28 +1271,6 @@ class AiRun(SQLModel, table=True):
 AI_ACTIVE_STATES = ("queued", "starting", "running", "needs_input")
 
 
-class AiTicketFlag(SQLModel, table=True):
-    """An open condition on a ticket that waits for someone: a merge conflict, an arbitration, a workflow that stopped
-    (services/ai/flags.py) (table)."""
-
-    __tablename__ = "ai_ticket_flag"
-
-    id: str = Field(
-        default_factory=lambda: f"flag_{uuid.uuid4().hex[:12]}", primary_key=True
-    )
-    ticket_id: str = Field(index=True)
-    project_id: str = Field(index=True)
-    kind: str = Field(
-        index=True
-    )  # merge_conflict | arbitration | no_progress | board_fault | quota_cap
-    data: str = Field(default="{}")
-    created_at: str = Field(default_factory=_now_iso)
-    updated_at: str = Field(default_factory=_now_iso)
-    resolved_at: Optional[str] = Field(default=None)
-    resolved_by: Optional[str] = Field(default=None)
-    resolution: Optional[str] = Field(default=None)
-
-
 class AiProjectKnowledge(SQLModel, table=True):
     """A project's instructions for every AI on it (services/ai/knowledge.py) (table)."""
 
@@ -1525,117 +1445,6 @@ class AiRepoScan(SQLModel, table=True):
     created_at: str = Field(default_factory=_now_iso)
 
 
-class AiWorkflowTemplate(SQLModel, table=True):
-    """A project's own workflow template, or its changed copy of a ready-made one (services/ai/workflow.py) (table)."""
-
-    __tablename__ = "ai_workflow_template"
-
-    id: str = Field(
-        default_factory=lambda: f"wft_{uuid.uuid4().hex[:12]}", primary_key=True
-    )
-    project_id: str = Field(index=True)
-    key: str = Field(index=True)
-    name: str
-    version: int = Field(default=1)
-    body: str = Field(default="{}")  # JSON {name, description, steps: [...]}
-    history: str = Field(default="[]")
-    created_at: str = Field(default_factory=_now_iso)
-    updated_at: str = Field(default_factory=_now_iso)
-    updated_by: Optional[str] = Field(default=None)
-
-
-class AiTicketWorkflow(SQLModel, table=True):
-    """The workflow a ticket follows: the template and version it started on, the review depth, the rounds between
-    roles, the stop and the rulings (table)."""
-
-    __tablename__ = "ai_ticket_workflow"
-
-    ticket_id: str = Field(primary_key=True)
-    project_id: str = Field(index=True)
-    template_key: str
-    template_name: str
-    template_version: int = Field(default=1)
-    steps: str = Field(
-        default="[]"
-    )  # the template's steps as they were when the ticket started on it
-    state: str = Field(
-        default="active", index=True
-    )  # active | stopped | done | detached
-    stop_reason: Optional[str] = Field(
-        default=None
-    )  # no_progress | board_fault | quota_cap | split
-    stop_detail: Optional[str] = Field(default=None)
-    review_depth: Optional[str] = Field(default=None)  # light | standard | deep
-    depth_by: Optional[str] = Field(default=None)  # triage | person
-    depth_note: Optional[str] = Field(default=None)
-    # fast: a quick result of about the same quality, set by a person on this ticket (None is the normal pace)
-    pace: Optional[str] = Field(default=None)
-    rounds: str = Field(default="{}")  # {"dev|reviewer": n}
-    objections: str = Field(default="[]")  # [{at, by, role, text, diff}]
-    rulings: str = Field(default="[]")  # [{at, by, verdict, reason, run_id}]
-    arbitration_run_id: Optional[str] = Field(default=None)
-    # An odd job (no template): the optional reviewer that reviews its work when it finishes (D14)
-    reviewer_id: Optional[str] = Field(default=None)
-    # The first step row of this workflow (rows before it belong to an earlier workflow of the ticket)
-    seq_base: int = Field(default=0)
-    attached_by: Optional[str] = Field(default=None)
-    # What the board decided along the way: {"cap_base": tokens, "tdd_sent": n, "split": [ids], "retried": [step ids]}
-    meta: str = Field(default="{}")
-    created_at: str = Field(default_factory=_now_iso)
-    updated_at: str = Field(default_factory=_now_iso)
-
-
-class AiTicketPace(SQLModel, table=True):
-    """A ticket's pace, set by a person whether or not an AI works on it yet (table). Setting it runs nothing: it
-    applies when an AI starts on the ticket (a workflow step, an @mention, an assignment, a schedule)."""
-
-    __tablename__ = "ai_ticket_pace"
-
-    ticket_id: str = Field(primary_key=True)
-    project_id: str = Field(index=True)
-    pace: str = Field(default="normal")  # normal | fast
-    set_by: Optional[str] = Field(default=None)
-    set_at: str = Field(default_factory=_now_iso)
-
-
-class AiTicketStep(SQLModel, table=True):
-    """One step of a ticket's workflow, one row per attempt: who did it, its run, what it handed in (table). Never
-    overwritten: a send-back adds a new attempt."""
-
-    __tablename__ = "ai_ticket_step"
-
-    id: str = Field(
-        default_factory=lambda: f"stp_{uuid.uuid4().hex[:12]}", primary_key=True
-    )
-    ticket_id: str = Field(index=True)
-    seq: int = Field(
-        default=0
-    )  # order of the rows (attempts after a send-back follow the steps already done)
-    idx: int = Field(default=0)  # the step's place in the template
-    key: str
-    label: str
-    kind: str = Field(default="ai")  # ai | code | person
-    role: Optional[str] = Field(default=None)
-    state: str = Field(
-        default="pending", index=True
-    )  # pending | active | waiting | blocked | done | failed | skipped | superseded
-    attempt: int = Field(default=1)
-    member_id: Optional[str] = Field(default=None)
-    run_id: Optional[str] = Field(default=None, index=True)
-    note_in: Optional[str] = Field(
-        default=None
-    )  # what the step was told on top of the template (a send-back, a ruling)
-    note: Optional[str] = Field(default=None)  # what it handed in
-    outcome: Optional[str] = Field(
-        default=None
-    )  # pass | changes | approved | sent_back | failed
-    result: Optional[str] = Field(
-        default=None
-    )  # JSON: the checks' output, the test-first evidence
-    started_at: Optional[str] = Field(default=None)
-    ended_at: Optional[str] = Field(default=None)
-
-
 class Story(SQLModel, table=True):
     """A Story: a ticket of type story that the PM owns from the goal to Done (design/screens/ai-story-flow.md B).
     Its children are the tickets whose parent is the Story; its plan says their order and what waits for what
@@ -1665,79 +1474,6 @@ class Story(SQLModel, table=True):
     handed_at: Optional[str] = Field(default=None)
     started_at: Optional[str] = Field(default=None)  # the plan was approved
     closed_at: Optional[str] = Field(default=None)
-
-
-class AiDecision(SQLModel, table=True):
-    """A decision the PM took in a person's place (design/screens/ai-story-flow.md M1): what, why, on which ticket,
-    and whether it can still be overridden (table)."""
-
-    __tablename__ = "ai_decision"
-
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    project_id: str = Field(index=True)
-    ticket_id: Optional[str] = Field(default=None, index=True)
-    story_id: Optional[str] = Field(default=None, index=True)
-    member_id: Optional[str] = Field(default=None)
-    kind: str  # approve_design | send_back | split | retry | answer | permission | approve_plan
-    title: str
-    why: str = Field(default="")
-    ref: str = Field(default="{}")  # JSON: step_id, run_id, approval_id, pieces
-    state: str = Field(default="in_effect")  # in_effect | overridden
-    overridden_by: Optional[str] = Field(default=None)
-    overridden_at: Optional[str] = Field(default=None)
-    override_note: Optional[str] = Field(default=None)
-    at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat(), index=True
-    )
-
-
-class AiStandingOrder(SQLModel, table=True):
-    """A rule in a person's words, tried before it does anything (services/ai/orders.py) (table)."""
-
-    __tablename__ = "ai_standing_order"
-
-    id: str = Field(
-        default_factory=lambda: f"ord_{uuid.uuid4().hex[:12]}", primary_key=True
-    )
-    project_id: str = Field(index=True)
-    name: str
-    sentence: str = Field(default="")
-    rule: str = Field(
-        default="{}"
-    )  # JSON {when, if, then, afterwards, max_per_day, max_per_target, only_project}
-    state: str = Field(default="off", index=True)  # off | trial | on
-    trial_days: int = Field(default=3)
-    trial_started_at: Optional[str] = Field(default=None)
-    trial_fired_at: Optional[str] = Field(default=None)
-    fired: int = Field(default=0)
-    would_have: int = Field(default=0)
-    last_fired_at: Optional[str] = Field(default=None)
-    last_summary: Optional[str] = Field(default=None)
-    template: Optional[str] = Field(default=None)
-    created_by: Optional[str] = Field(default=None)
-    created_at: str = Field(default_factory=_now_iso)
-
-
-class AiOrderFiring(SQLModel, table=True):
-    """One time a standing order fired (or, in trial, would have), with its Undo (table)."""
-
-    __tablename__ = "ai_order_firing"
-
-    id: str = Field(
-        default_factory=lambda: f"fir_{uuid.uuid4().hex[:12]}", primary_key=True
-    )
-    order_id: str = Field(index=True)
-    project_id: str = Field(index=True)
-    at: str = Field(default_factory=_now_iso, index=True)
-    target: Optional[str] = Field(default=None, index=True)
-    ticket_id: Optional[str] = Field(default=None)
-    trigger: str = Field(default="{}")  # what set it off, with its numbers
-    action: str = Field(default="{}")  # what it did, or would have done
-    would: bool = Field(default=False)  # a trial firing: nothing was applied
-    result: Optional[str] = Field(default=None)
-    undo: Optional[str] = Field(default=None)  # JSON: how to put it back
-    undone_at: Optional[str] = Field(default=None)
-    undone_by: Optional[str] = Field(default=None)
 
 
 class AiWatchedPr(SQLModel, table=True):
@@ -1790,26 +1526,6 @@ class AiKnowledgeDoc(SQLModel, table=True):
     created_at: str = Field(default_factory=_now_iso)
     last_read_at: Optional[str] = Field(default=None)
     deleted_at: Optional[str] = Field(default=None)
-
-
-class AiEvalMark(SQLModel, table=True):
-    """One run of an eval suite on the sandbox project and its score (services/ai/evals.py) (table)."""
-
-    __tablename__ = "ai_eval_mark"
-
-    id: str = Field(
-        default_factory=lambda: f"evm_{uuid.uuid4().hex[:12]}", primary_key=True
-    )
-    suite: str = Field(index=True)
-    project_id: str
-    member_id: Optional[str] = Field(default=None)
-    model: Optional[str] = Field(default=None)
-    state: str = Field(default="running")  # running | done
-    score: Optional[float] = Field(default=None)
-    details: str = Field(default="[]")
-    runs: str = Field(default="[]")
-    created_at: str = Field(default_factory=_now_iso, index=True)
-    ended_at: Optional[str] = Field(default=None)
 
 
 class AiAccountState(SQLModel, table=True):
@@ -1869,39 +1585,6 @@ class AiSkillUse(SQLModel, table=True):
     name: str = Field(index=True)  # "plugin:skill" or "skill"
     plugin: Optional[str] = Field(default=None, index=True)
     at: str = Field(default_factory=_now_iso)
-
-
-class AiApproval(SQLModel, table=True):
-    """An action an AI member asked to take that waits for a person (table)."""
-
-    __tablename__ = "ai_approval"
-
-    id: str = Field(
-        default_factory=lambda: f"apr_{uuid.uuid4().hex[:10]}", primary_key=True
-    )
-    project_id: str = Field(foreign_key="project.id", index=True)
-    member_id: str = Field(foreign_key="member.id", index=True)
-    run_id: Optional[str] = Field(default=None)
-    ticket_id: Optional[str] = Field(default=None, index=True)
-    action: str  # permission action, e.g. change_assignee
-    summary: str = Field(default="")
-    payload: str = Field(default="{}")  # JSON {tool, action, params}
-    reason: Optional[str] = Field(default=None)  # the AI's own words
-    risk: str = Field(default="medium")  # low | medium | high
-    status: str = Field(
-        default="pending"
-    )  # pending | approved | denied | expired | failed | run_ended
-    on_behalf_of: Optional[str] = Field(default=None)
-    before: str = Field(
-        default="{}"
-    )  # JSON of the fields the request changes, as they were when it was asked
-    requested_at: str = Field(default_factory=_now_iso)
-    expires_at: Optional[str] = Field(default=None)
-    decided_by: Optional[str] = Field(default=None)
-    decided_at: Optional[str] = Field(default=None)
-    decision_note: Optional[str] = Field(default=None)
-    # "mcp" when a tool decided for the person (MCP full control)
-    decided_via: Optional[str] = Field(default=None)
 
 
 class AiAudit(SQLModel, table=True):
@@ -1992,63 +1675,6 @@ class AiProjectSettings(SQLModel, table=True):
     team_dismissed: str = Field(default="[]")
     # JSON: the AI team v2 settings of the project, merged over defaults (services/ai/ops.py)
     ops: str = Field(default="{}")
-
-
-class AiGrant(SQLModel, table=True):
-    """A standing decision by a person: remember an approval for a ticket, raise a cap for a day, or allow more
-    runs on a ticket (table)."""
-
-    __tablename__ = "ai_grant"
-
-    id: str = Field(
-        default_factory=lambda: f"grt_{uuid.uuid4().hex[:10]}", primary_key=True
-    )
-    project_id: str = Field(foreign_key="project.id", index=True)
-    kind: str  # approval | tool | cap_raise | extra_runs
-    member_id: Optional[str] = Field(default=None, index=True)
-    # "always for this role": every AI member of the project with this role pack key (member_id is then empty)
-    role: Optional[str] = Field(default=None, index=True)
-    ticket_id: Optional[str] = Field(default=None, index=True)
-    action: Optional[str] = Field(
-        default=None
-    )  # permission action of an `approval` grant, the CLI allow rule of a `tool` grant
-    amount: float = Field(default=0.0)  # USD of a cap raise, runs of extra_runs
-    day: Optional[str] = Field(
-        default=None
-    )  # local YYYY-MM-DD a cap raise or extra runs apply to
-    created_by: str = Field(default="user")
-    created_at: str = Field(default_factory=_now_iso)
-    revoked_at: Optional[str] = Field(default=None)
-    source_approval_id: Optional[str] = Field(default=None)
-
-
-class AiNotification(SQLModel, table=True):
-    """The record of an AI safety event (budget alerts, the Safety screens). What a person is told is the notification
-    centre's: `safety.notify` also writes the event to the NotifyEvent log (table)."""
-
-    __tablename__ = "ai_notification"
-
-    id: str = Field(
-        default_factory=lambda: f"ntf_{uuid.uuid4().hex[:10]}", primary_key=True
-    )
-    project_id: str = Field(foreign_key="project.id", index=True)
-    event: str  # approval_requested | auto_trip | budget | blocked | offline
-    title: str
-    body: str = Field(default="")
-    ref_kind: Optional[str] = Field(default=None)  # approval | member | ticket | audit
-    ref_id: Optional[str] = Field(default=None)
-    member_id: Optional[str] = Field(default=None)
-    people: str = Field(default="[]")  # JSON names who see it besides owners and admins
-    urgent: bool = Field(default=True)
-    inapp: bool = Field(default=True)
-    desktop: bool = Field(default=False)
-    data: str = Field(default="{}")  # JSON extras, e.g. the percent of a budget alert
-    created_at: str = Field(default_factory=_now_iso, index=True)
-
-
-# ---------------------------------------------------------------------------
-# Notifications (design/screens/notifications.md, docs/specs/notifications.md)
-# ---------------------------------------------------------------------------
 
 
 class NotifyEvent(SQLModel, table=True):
@@ -2159,21 +1785,6 @@ class NotifyPrefs(SQLModel, table=True):
     updated_at: str = Field(default_factory=_now_iso)
 
 
-class AiWorkspaceDefaults(SQLModel, table=True):
-    """Start values for every new AI member, one row for the whole workspace (table)."""
-
-    __tablename__ = "ai_workspace_defaults"
-
-    id: int = Field(default=1, primary_key=True)
-    template: str = Field(default="developer")
-    ceiling: str = Field(default="review")
-    delete_mode: str = Field(default="blocked")  # blocked | approval
-    daily_budget: Optional[float] = Field(default=5.0)
-    monthly_cap: Optional[float] = Field(default=120.0)
-    updated_by: Optional[str] = Field(default=None)
-    updated_at: Optional[str] = Field(default=None)
-
-
 class AiAssistSettings(SQLModel, table=True):
     """Board-wide settings of the Board AI assistant: features, language, style, data scope, limits and the
     board-health schedule (design/screens/ai-board-assistant.md, H). One row (id 1)."""
@@ -2259,38 +1870,6 @@ class AiChatMessage(SQLModel, table=True):
     feedback: str = Field(default="{}")
     created_at: str = Field(default_factory=_now_iso)
     finished_at: Optional[str] = Field(default=None)
-
-
-class AiDraft(SQLModel, table=True):
-    """Something the Board AI proposed. Nothing is written until a person accepts it; `result` keeps what
-    accepting changed so it can be undone."""
-
-    __tablename__ = "ai_draft"
-
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    project_id: str = Field(foreign_key="project.id", index=True)
-    # changes | ticket | description | split | test_cases | doc_summary | doc_section | doc_links | assignee
-    kind: str
-    owner: str
-    member_id: Optional[str] = Field(default=None)
-    member_name: str = Field(default="")
-    ticket_id: Optional[str] = Field(default=None, index=True)
-    doc_id: Optional[str] = Field(default=None)
-    chat_message_id: Optional[str] = Field(default=None)
-    insight_id: Optional[str] = Field(default=None)
-    base: str = Field(
-        default="{}"
-    )  # {ticket_id: updated_at} when drafted, for the conflict check
-    payload: str = Field(default="{}")
-    raw: str = Field(default="")
-    status: str = Field(default="open")  # open | applied | discarded | expired | undone
-    result: str = Field(default="{}")
-    cost: float = Field(default=0.0)
-    tokens: int = Field(default=0)
-    created_at: str = Field(default_factory=_now_iso)
-    expires_at: Optional[str] = Field(default=None)
-    applied_at: Optional[str] = Field(default=None)
-    applied_by: Optional[str] = Field(default=None)
 
 
 class AiUsage(SQLModel, table=True):

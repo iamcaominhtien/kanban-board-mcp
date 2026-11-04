@@ -572,37 +572,6 @@ async def post_comment(
                 }
             )
         )
-    if latest and body.ai_intent != "notify":
-        from services.ai import mentions as ai_mentions
-
-        from services import activity as act_ctx
-
-        # The person the AI acts for: the named author, else the board user sending the request (X-Actor)
-        by = (
-            body.author
-            if body.author and body.author != "user"
-            else act_ctx.current_actor()
-        )
-        delivered = await ai_mentions.deliver(
-            ticket.id,
-            body.text,
-            by=by,
-            intent=body.ai_intent or "ask",
-            source_comment_id=latest["id"],
-            fast=bool(body.ai_fast),
-        )
-        if delivered:
-            await session.refresh(ticket)
-        if body.reply_to and body.ai_intent != "notify":
-            if await ai_mentions.deliver_reply(
-                ticket.id,
-                body.text,
-                by=by,
-                reply_to=body.reply_to,
-                source_comment_id=latest["id"],
-                fast=bool(body.ai_fast),
-            ):
-                await session.refresh(ticket)
     return _read(ticket)
 
 

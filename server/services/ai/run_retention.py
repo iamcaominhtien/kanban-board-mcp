@@ -30,14 +30,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import database
 from services.ai import budget, transcripts
 from models import (
-    AiApproval,
     AiLesson,
     AiProjectSettings,
     AiRun,
     AiRunTranscript,
-    AiTicketStep,
-    AiTicketWorkflow,
-    DocsAiProposal,
     IdeaComment,
 )
 
@@ -52,12 +48,7 @@ async def _referenced(session: AsyncSession, ids: list[str]) -> set[str]:
         return set()
     found: set[str] = set()
     checks = (
-        (AiRun, AiRun.behind_run_id),
-        (AiTicketStep, AiTicketStep.run_id),
-        (AiTicketWorkflow, AiTicketWorkflow.arbitration_run_id),
-        (AiApproval, AiApproval.run_id),
         (AiLesson, AiLesson.source_run_id),
-        (DocsAiProposal, DocsAiProposal.run_id),
         (IdeaComment, IdeaComment.run_id),
     )
     for i in range(0, len(ids), 400):

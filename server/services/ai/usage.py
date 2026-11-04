@@ -14,7 +14,18 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from models import AiMember, AiRun, Member, Ticket
 
 from . import budget
-from .members import _secs
+
+
+def _secs(run) -> int:
+    """Seconds a run took (so far)."""
+    from datetime import UTC, datetime
+
+    from .store import parse_iso
+
+    a, b = parse_iso(run.started_at), parse_iso(run.ended_at) or datetime.now(UTC)
+    return int((b - a).total_seconds()) if a else 0
+
+
 from .providers import PRICES, PRICES_UPDATED
 from .store import get_settings, loads
 

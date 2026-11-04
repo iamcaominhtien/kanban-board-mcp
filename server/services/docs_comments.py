@@ -311,10 +311,8 @@ async def list_comments(
             t.created_at,
         )
     )
-    from services.docs_ai import threads as ai_threads
-
     out_threads = await _serialize(session, shown, members, actor, role, numbers)
-    docs_ai = await ai_threads.annotate(session, page, out_threads)
+    docs_ai = False  # AI v2 stage 7: the Docs assistant's availability per thread
     return {
         "threads": out_threads,
         "counts": {
@@ -329,10 +327,17 @@ async def list_comments(
         "role": role,
         "me": actor,
         # `kind` human | ai; AI members carry `ai` (status for the @ picker) only while Docs AI is on
-        "members": await ai_threads.member_rows(
-            session, page.project_id, members, docs_ai
-        ),
-        "docs_ai": docs_ai,
+        "members": [
+            {
+                "id": m.id,
+                "name": m.name,
+                "color": m.color,
+                "role": m.role,
+                "kind": m.kind or "human",
+            }
+            for m in members
+        ],
+        "docs_ai": bool(docs_ai),
     }
 
 
@@ -347,9 +352,6 @@ async def _one(session: AsyncSession, thread: DocsCommentThread) -> dict[str, An
     out = await _serialize(
         session, [thread], members, actor, role_in(members, actor), numbers
     )
-    from services.docs_ai import threads as ai_threads
-
-    await ai_threads.annotate(session, page, out)
     return out[0]
 
 

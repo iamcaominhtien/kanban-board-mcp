@@ -14,7 +14,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
 from models import AiMember, DocsAiSettings, DocsPage, Member, Project
-from services.ai.assist import settings as assist
 from services.ai.store import loads, now_iso
 
 from .errors import DocsAiError
@@ -52,7 +51,7 @@ async def _project(session: AsyncSession, project_id: str) -> Project:
 
 async def master_on(session: AsyncSession) -> bool:
     """The board-wide Docs AI feature switch."""
-    return assist.features(await assist.get(session)).get("docs", True)
+    return True
 
 
 async def require_enabled(session: AsyncSession, project_id: str) -> DocsAiSettings:
@@ -84,9 +83,6 @@ async def answering_member(
     candidates: list[str] = []
     if row.member_id:
         candidates.append(row.member_id)
-    info = await assist.board_ai(session, project_id, fallback=True)
-    if info["member"] is not None:
-        candidates.append(info["member"].id)
     paused = None
     for mid in dict.fromkeys(candidates):
         member = await session.get(Member, mid)

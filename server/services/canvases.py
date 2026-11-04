@@ -570,7 +570,7 @@ async def create_canvas(
 
 async def get_canvas(session: AsyncSession, canvas_id: str) -> dict[str, Any]:
     """The canvas with its file, the live locks and the number of open comments."""
-    from services import canvas_comments, canvas_proposals
+    from services import canvas_comments
 
     c = await _canvas(session, canvas_id)
     role = await role_for(session, c)
@@ -578,7 +578,7 @@ async def get_canvas(session: AsyncSession, canvas_id: str) -> dict[str, Any]:
     out["doc"] = read_doc(c.id)
     out["locks"] = canvas_locks.locks_of(c.id)
     out["open_comments"] = await canvas_comments.open_count(session, c.id)
-    out["proposals_open"] = await canvas_proposals.open_count(session, c.id)
+    out["proposals_open"] = 0
     return out
 
 
