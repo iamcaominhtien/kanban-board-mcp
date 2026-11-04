@@ -26,7 +26,7 @@ from sqlmodel import col, select
 import database
 import services.activity as svc_activity
 from models import (
-    AiMember,
+    AiTeam,
     AiRun,
     AiSchedule,
     AiScheduleRun,
@@ -476,7 +476,7 @@ def _apply(s: AiSchedule, data: dict) -> None:
         setattr(s, key, value)
 
 
-def _answers(profile: AiMember | None) -> bool:
+def _answers(profile: AiTeam | None) -> bool:
     """Whether this AI can give a one-shot answer (needed for review and dry run)."""
     if profile is None:
         return False
@@ -605,12 +605,6 @@ async def assess(
             add(
                 "error",
                 f"{member.name} has an inbox only: the board cannot start it at a set time.",
-                "member",
-            )
-        elif profile.template == "read_only":
-            add(
-                "error",
-                f"{member.name} is read-only: it cannot work on tickets.",
                 "member",
             )
         role = await role_of(session, s.project_id, by)

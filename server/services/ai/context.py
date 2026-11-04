@@ -324,7 +324,7 @@ def activity_block(
             )
             more = f" and {len(files) - 8} more" if len(files) > 8 else ""
             lines.append(f"  Files changed: {shown}{more}")
-        moves = json.loads(r.status_changes or "[]")
+        moves: list = []
         if moves:
             lines.append(
                 "  Status: "

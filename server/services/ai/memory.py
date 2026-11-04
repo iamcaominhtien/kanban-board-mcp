@@ -21,7 +21,7 @@ from pathlib import Path
 
 from sqlmodel import col, select
 
-from models import AiLesson, AiMember, AiMemoryNote
+from models import AiLesson, AiTeam, AiMemoryNote
 
 from .config_model import estimate_tokens
 
@@ -289,7 +289,7 @@ async def repo_roots(session, project_id: str) -> list[Path]:
     repo = (ops.get(settings).get("worktrees") or {}).get("repo")
     candidates = [repo] if repo else []
     for m in (
-        await session.exec(select(AiMember).where(AiMember.project_id == project_id))
+        await session.exec(select(AiTeam).where(AiTeam.project_id == project_id))
     ).all():
         if m.working_dir:
             candidates.append(m.working_dir)
@@ -389,7 +389,7 @@ MAX_LEARNED = 5
 
 async def keep_learned(ctx, items: list | None) -> dict:
     """The `learned` of a run's report, kept as notes: ``{kept: [...], refused: [...]}``."""
-    from models import AiMember as _AiMember
+    from models import AiTeam as _AiMember
 
     from . import ops
     from . import plugins as ai_plugins

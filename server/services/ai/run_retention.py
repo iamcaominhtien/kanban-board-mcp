@@ -125,9 +125,7 @@ async def trim(session: AsyncSession, run: AiRun, at: str) -> None:
         tr.deleted_at = at
         tr.bytes = 0
         session.add(tr)
-    run.steps = "[]"
     run.instruction = ""
-    run.context_notes = "[]"
     run.restarts = "[]"
     run.retries = "[]"
     run.diagnosis = None

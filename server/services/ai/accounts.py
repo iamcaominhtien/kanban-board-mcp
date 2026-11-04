@@ -18,7 +18,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
-from models import AiAccount, AiMember, Member
+from models import AiAccount, AiTeam, Member
 
 from . import cli, profiles
 from .providers import PROVIDERS
@@ -114,9 +114,9 @@ def env_for(account: AiAccount, base: dict[str, str]) -> dict[str, str]:
 async def config_dir_for_member(session, member_id: str) -> str | None:
     """The CLAUDE_CONFIG_DIR of the AI account a member uses (where its Claude Code sessions are kept), or None for a
     member on the login already on this computer."""
-    from models import AiMember
+    from models import AiTeam
 
-    member = await session.get(AiMember, member_id)
+    member = await session.get(AiTeam, member_id)
     if member is None or not member.account_id:
         return None
     return claude_config_dir(await session.get(AiAccount, member.account_id))
@@ -442,12 +442,12 @@ async def sign_out(session: AsyncSession, account_id: str) -> AiAccount:
     return account
 
 
-async def members_of(session: AsyncSession, account_id: str) -> list[AiMember]:
+async def members_of(session: AsyncSession, account_id: str) -> list[AiTeam]:
     """The AI members (all projects) that run as this account."""
     return list(
         (
             await session.exec(
-                select(AiMember).where(AiMember.account_id == account_id)
+                select(AiTeam).where(AiTeam.account_id == account_id)
             )
         ).all()
     )
@@ -499,9 +499,9 @@ async def remove(
 
 async def assign(
     session: AsyncSession, member_id: str, account_id: str | None
-) -> AiMember:
+) -> AiTeam:
     """Make an AI member run as an account (None: the login already on this computer)."""
-    profile = await session.get(AiMember, member_id)
+    profile = await session.get(AiTeam, member_id)
     if profile is None:
         raise AccountError("AI member not found.", "member_not_found")
     if account_id is None:
@@ -532,7 +532,7 @@ async def counts(session: AsyncSession, project_id: str | None) -> dict[str, dic
     """Per account: the members using it in this project and in others (with names, for the hover)."""
     rows = (
         await session.exec(
-            select(AiMember).where(col(AiMember.account_id).is_not(None))
+            select(AiTeam).where(col(AiTeam.account_id).is_not(None))
         )
     ).all()
     names = (

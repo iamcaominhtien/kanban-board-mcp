@@ -4,7 +4,6 @@ import pytest
 
 from kanban_mcp.tools.docs import docs_write
 from kanban_mcp.tools.items import ticket_items
-from services.ai import guard
 from tests.ai_helpers import _ctx, env  # noqa: F401
 from tests.test_docs_comments import DOC, inline, publish
 

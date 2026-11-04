@@ -63,17 +63,20 @@ async def _project(c):
 
 
 async def _runner(c, pid, repo, name="Claude Code · Backend", **extra):
+    """A team on the fake CLI (AI v2: a team is what used to be a member)."""
     body = {
         "name": name,
-        "provider": "claude-code",
         "working_dir": repo,
         "cli_path": FAKE,
         "model": "haiku",
         **extra,
     }
-    r = await c.post(f"/projects/{pid}/ai/members", json=body)
+    r = await c.post(f"/projects/{pid}/ai/teams", json=body)
     assert r.status_code == 201, r.text
     return r.json()
+
+
+_team = _runner
 
 
 async def _ticket(c, pid, title="Fix add()", status="todo", **extra):

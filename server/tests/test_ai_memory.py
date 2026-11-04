@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from models import AiLesson, AiMember, AiRun, Member
+from models import AiLesson, AiTeam, AiRun, Member
 from services import shared_skills
 from services.ai import board_skills, guard, knowledge, memory
 from services.ai.context import RunContext
@@ -157,7 +157,7 @@ async def test_an_api_key_member_gets_the_project_memory_too(env):
     tid = await _ticket(c, pid)
     ctx = await _as_run(env, m["id"], tid)
     async with env["maker"]() as s:
-        profile = await s.get(AiMember, m["id"])
+        profile = await s.get(AiTeam, m["id"])
         member = await s.get(Member, m["id"])
         from models import Project, Ticket
 
@@ -267,7 +267,7 @@ async def test_notes_switched_off_keep_them_out_of_the_prompt_and_refuse_a_write
         run = AiRun(project_id=pid, ticket_id=tid, member_id=dev["id"])
         s.add(run)
         await s.commit()
-        profile = await s.get(AiMember, dev["id"])
+        profile = await s.get(AiTeam, dev["id"])
         text = await knowledge.for_run(s, run, profile)
     assert "A Dev note." not in text
 

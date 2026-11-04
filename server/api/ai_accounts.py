@@ -214,7 +214,7 @@ class AssignBody(BaseModel):
     account_id: Optional[str] = None
 
 
-@router.put("/ai/members/{member_id}/account")
+@router.put("/ai/teams/{member_id}/account")
 async def put_member_account(
     member_id: str, body: AssignBody, session: Session
 ) -> dict:
@@ -223,7 +223,10 @@ async def put_member_account(
         await svc_accounts.assign(session, member_id, body.account_id)
     except svc_accounts.AccountError as exc:
         _fail(exc)
-    return {"id": member_id, "account_id": body.account_id}
+    from services.ai import teams as svc_teams
+
+    member, profile = await svc_teams.get_profile(session, member_id)
+    return await svc_teams.describe(session, member, profile)
 
 
 @router.get("/ai/accounts-on-this-computer")

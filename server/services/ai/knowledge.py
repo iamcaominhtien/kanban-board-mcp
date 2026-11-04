@@ -253,7 +253,6 @@ async def for_run(session, run: AiRun, profile) -> str:
         record_use=True,
         notes_on=ops.get(settings).get("ai_notes", True) is not False,
     )
-    run.memory_used = json.dumps(used)
     session.add(run)
     await session.commit()
     return text

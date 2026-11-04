@@ -11,7 +11,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import services.activity as svc_activity
 from database import get_session
-from models import AiMember, AiPlugin, Project
+from models import AiPlugin, AiTeam, Project
 from services.ai import packs as svc_packs
 from services.ai import plugins as svc_plugins
 from services.ai import repo_scan as svc_scan
@@ -166,7 +166,7 @@ async def put_member_switch(
 ) -> dict:
     """Switch a plugin on or off for one member."""
     row = await _plugin(session, plugin_id)
-    if await session.get(AiMember, member_id) is None:
+    if await session.get(AiTeam, member_id) is None:
         raise HTTPException(status_code=404, detail="AI member not found")
     return svc_plugins.to_dict(
         await svc_plugins.set_member(session, row, member_id, body.on)
@@ -301,43 +301,6 @@ def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
 
     # remembered until it ends: a run of the new member waits for it (services/ai/plugins.settled)
     svc_plugins.installing(project_id, go())
-
-
-async def get_member_pack(member_id: str, session: Session) -> dict | None:
-    """The pack a member was made from, and whether a newer version of it is out (None: not made from a pack)."""
-    if await session.get(AiMember, member_id) is None:
-        raise HTTPException(status_code=404, detail="AI member not found")
-    return await svc_packs.member_pack(session, member_id)
-
-
-async def post_member_pack_update(member_id: str, session: Session) -> dict:
-    """Bring a member up to its pack's latest version (its name, folder, account and model stay its own)."""
-    if await session.get(AiMember, member_id) is None:
-        raise HTTPException(status_code=404, detail="AI member not found")
-    try:
-        return await svc_packs.update_member(session, member_id, by=_by())
-    except ValueError as exc:
-        _fail(exc)
-
-
-async def get_member_pack_diff(member_id: str, session: Session) -> dict:
-    """What an update to the pack's latest version would change on the member (ai-story-flow Q1)."""
-    if await session.get(AiMember, member_id) is None:
-        raise HTTPException(status_code=404, detail="AI member not found")
-    try:
-        return await svc_packs.pack_diff(session, member_id)
-    except ValueError as exc:
-        _fail(exc)
-
-
-async def post_member_pack_revert(member_id: str, session: Session) -> dict:
-    """Go back to the version the member was last updated from (kept 30 days)."""
-    if await session.get(AiMember, member_id) is None:
-        raise HTTPException(status_code=404, detail="AI member not found")
-    try:
-        return await svc_packs.revert_member(session, member_id, by=_by())
-    except ValueError as exc:
-        _fail(exc)
 
 
 @router.get("/projects/{project_id}/ai/own-plugins")
@@ -480,3 +443,17 @@ async def post_scan_cancel(scan_id: str, session: Session) -> dict:
     except LookupError as exc:
         _fail(exc, 404)
     return await svc_scan.to_api(session, row)
+
+
+@router.post("/ai/scans/{scan_id}/apply")
+async def post_apply(scan_id: str, body: dict, session: Session) -> dict:
+    """Create what the person confirmed: the team, the settings and the plugins."""
+    from models import AiRepoScan
+
+    row = await session.get(AiRepoScan, scan_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    try:
+        return await svc_scan.apply(session, scan_id, body, by=_by())
+    except LookupError as exc:
+        _fail(exc, 404)

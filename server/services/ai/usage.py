@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiMember, AiRun, Member, Ticket
+from models import AiTeam, AiRun, Member, Ticket
 
 from . import budget
 
@@ -109,7 +109,7 @@ async def dashboard(
         p.id: p
         for p in (
             await session.exec(
-                select(AiMember).where(AiMember.project_id == project_id)
+                select(AiTeam).where(AiTeam.project_id == project_id)
             )
         ).all()
     }
@@ -358,9 +358,9 @@ async def limits(session: AsyncSession, project_id: str) -> dict:
     }
     profiles = (
         await session.exec(
-            select(AiMember)
-            .where(AiMember.project_id == project_id)
-            .order_by(AiMember.created_at)
+            select(AiTeam)
+            .where(AiTeam.project_id == project_id)
+            .order_by(AiTeam.created_at)
         )
     ).all()
     running = (

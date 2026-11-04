@@ -34,6 +34,7 @@ from api.docs import docs_error_handler, router as docs_router
 from api.diagrams import router as diagrams_router
 from api.canvases import router as canvases_router
 from api.sketches import router as sketches_router
+from api.ai import router as ai_router
 from api.ai_knowledge import router as ai_knowledge_router
 from api.ai_code import router as ai_code_router
 from api.ai_tools import router as ai_tools_router
@@ -351,6 +352,7 @@ app.include_router(sketches_router)
 app.include_router(canvases_router)
 app.include_router(logs_router)
 app.include_router(ai_accounts_router)
+app.include_router(ai_router)
 app.include_router(ai_knowledge_router)
 app.include_router(ai_code_router)
 app.include_router(ai_tools_router)

@@ -269,12 +269,12 @@ async def test_a_lesson_from_a_diagnosis_does_not_stop_the_ticket_end_lesson(
 async def test_a_light_model_that_never_answers_is_stopped(env, monkeypatch, tmp_path):
     import psutil
 
-    from models import AiMember
+    from models import AiTeam
 
     pidfile = tmp_path / "haiku.pid"
     monkeypatch.setenv("FAKE_CLAUDE_JSON_HANG", str(pidfile))
     monkeypatch.setattr(knowledge, "LIGHT_MODEL_TIMEOUT_S", 1)
-    profile = AiMember(id="m", project_id="p", provider="claude-code", cli_path=FAKE)
+    profile = AiTeam(id="m", project_id="p", provider="claude-code", cli_path=FAKE)
     assert await knowledge._ask_light_model("x", profile, None) is None
     child = int(pidfile.read_text())
     assert (

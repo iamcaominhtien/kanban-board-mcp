@@ -1103,7 +1103,7 @@ async def test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons
         )
     ).json()
     assert ai["created_by"] == "Designer AI"
-    from models import AiMember
+    from models import AiTeam
 
     async with test_async_session() as session:
         from sqlmodel import select
@@ -1114,7 +1114,7 @@ async def test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons
             await session.exec(select(Member).where(Member.name == "Designer AI"))
         ).first()
         session.add(
-            AiMember(
+            AiTeam(
                 id=m.id, project_id=pid, provider="claude-code", connection="local"
             )
         )

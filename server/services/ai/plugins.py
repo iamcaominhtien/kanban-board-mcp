@@ -30,7 +30,7 @@ from pathlib import Path
 from sqlmodel import col, select
 
 import database
-from models import AiMember, AiPlugin, AiSkillUse
+from models import AiTeam, AiPlugin, AiSkillUse
 
 from .store import loads
 
@@ -964,13 +964,13 @@ async def remove(session, row: AiPlugin) -> None:
     await session.commit()
 
 
-def role_of(profile: AiMember) -> str | None:
+def role_of(profile: AiTeam) -> str | None:
     """The member's role pack key (set when it was made from a pack), or None."""
     cfg = loads(profile.config, {}) or {}
     return cfg.get("role") or (cfg.get("pack") or {}).get("key")
 
 
-def on_for(row: AiPlugin, profile: AiMember) -> bool:
+def on_for(row: AiPlugin, profile: AiTeam) -> bool:
     """Whether a member gets the plugin: its own switch, else the project default, else its role."""
     overrides = loads(row.members, {}) or {}
     if profile.id in overrides:
@@ -1001,7 +1001,7 @@ def catalogue_entry_for(row: AiPlugin) -> dict | None:
     return None
 
 
-async def skills_block(session, profile: AiMember) -> str:
+async def skills_block(session, profile: AiTeam) -> str:
     """The skills a member's run loads, by the exact name the Skill tool takes and with the work each one covers. A run
     that is only handed plugin folders seldom opens one (a live Designer run had 12 and opened none of them)."""
     rows = (
@@ -1031,7 +1031,7 @@ async def skills_block(session, profile: AiMember) -> str:
     )
 
 
-async def dirs_for(session, profile: AiMember) -> list[str]:
+async def dirs_for(session, profile: AiTeam) -> list[str]:
     """The plugin folders a member's run loads."""
     rows = (
         await session.exec(

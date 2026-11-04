@@ -276,7 +276,7 @@ async def trace(session: AsyncSession, entry: AiAudit) -> list[dict]:
     run = await session.get(AiRun, entry.run_id) if entry.run_id else None
     if run is not None:
         text = _TRIGGER_TEXT.get(run.trigger, "{by} started run #{n} on {ticket}")
-        chain = loads_json(run.chain, [])
+        chain: list = []
         steps.append(
             {
                 "text": text.format(

@@ -5,7 +5,7 @@ import asyncio
 import json
 from pathlib import Path
 
-from models import AiMember, AiProjectSettings
+from models import AiTeam, AiProjectSettings
 from services import shared_skills
 from services.ai import board_skills
 from services.ai.context import RunContext, rules_block
@@ -31,7 +31,7 @@ SHARED = [
 ]
 
 
-def _block(member: AiMember, settings: AiProjectSettings, mode: str = "work") -> str:
+def _block(member: AiTeam, settings: AiProjectSettings, mode: str = "work") -> str:
     ctx = RunContext("run_1", "m1", "Dev", "p1", "KAN-1", "An Nguyen", mode)
     return rules_block(
         ctx, member, settings, project_name="Project", ticket_status="todo"
@@ -95,7 +95,7 @@ def test_the_texts_carry_what_the_live_runs_got_wrong():
 
 
 def test_every_work_run_gets_the_core_rules_and_where_the_detail_is():
-    member = AiMember(id="m1", provider="claude-code")
+    member = AiTeam(id="m1", provider="claude-code")
     block = _block(member, AiProjectSettings())
     for rule in shared_skills.CORE_RULES:
         assert rule in block
@@ -104,7 +104,7 @@ def test_every_work_run_gets_the_core_rules_and_where_the_detail_is():
         and "`kanban-board:asking-and-writing`" in block
     )
     # an agent with no Claude Code skills is pointed to docs_read
-    other = _block(AiMember(id="m2", provider="gemini"), AiProjectSettings())
+    other = _block(AiTeam(id="m2", provider="gemini"), AiProjectSettings())
     assert "docs_read(action='guides')" in other and "kanban-board:" not in other
 
 
@@ -125,7 +125,7 @@ def test_a_skill_switched_off_for_the_project_or_a_member_is_left_out():
     settings = AiProjectSettings(
         ops=json.dumps({"board_skills": [{"skill": "repo-and-machine", "on": False}]})
     )
-    block = _block(AiMember(id="designer", provider="claude-code"), settings)
+    block = _block(AiTeam(id="designer", provider="claude-code"), settings)
     assert (
         "kanban-board:repo-and-machine" not in block
         and "kanban-board:working-a-ticket" in block

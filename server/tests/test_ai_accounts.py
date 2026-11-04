@@ -285,7 +285,7 @@ async def test_a_run_that_finds_the_account_signed_out_holds_every_member_on_it(
         and now["signed_out_at"]
     )
     # one event for the account; the other member follows
-    two = (await c.get(f"/ai/members/{m2['id']}")).json()
+    two = (await c.get(f"/ai/teams/{m2['id']}")).json()
     assert two["account_ref"]["status"] == "needs_sign_in"
     # no project asked, so every member counts as "elsewhere"
     assert {x["name"] for x in now["members_elsewhere"]} == {"One", "Two"}
@@ -314,35 +314,6 @@ async def _wait_held(c, tid, timeout=15.0):
         await asyncio.sleep(0.1)
 
 
-async def test_an_account_only_fits_members_of_its_own_cli_and_runner(fake_cli):
-    c = fake_cli["c"]
-    pid, _ = await _project(c)
-    a = await _account(c)
-    m = await _runner(c, pid, fake_cli["repo"])
-    assert m["account_id"] is None
-    ok = await c.put(f"/ai/members/{m['id']}/account", json={"account_id": a["id"]})
-    assert ok.status_code == 200 and ok.json()["account_id"] == a["id"]
-    back = await c.put(f"/ai/members/{m['id']}/account", json={"account_id": None})
-    assert back.json()["account_id"] is None
-    api = await c.post(
-        f"/projects/{pid}/ai/members",
-        json={"name": "Api", "provider": "openai", "api_key": "sk-test-0000000000"},
-    )
-    assert api.status_code == 201
-    bad = await c.put(
-        f"/ai/members/{api.json()['id']}/account", json={"account_id": a["id"]}
-    )
-    assert bad.status_code == 422 and bad.json()["detail"]["code"] in (
-        "not_local",
-        "wrong_cli",
-    )
-    nope = await c.post(
-        f"/projects/{pid}/ai/members",
-        json={"name": "X", "provider": "claude-code", "account_id": "acct_missing"},
-    )
-    assert nope.status_code == 422
-
-
 @pytest.mark.parametrize(
     "policy,expect_account,expect_paused",
     [("login", None, False), ("other", "OTHER", False), ("none", None, True)],
@@ -361,7 +332,7 @@ async def test_removing_an_account_says_what_happens_to_its_members(
     r = await c.delete(f"/ai/accounts/{a['id']}", params=params)
     assert r.status_code == 200 and r.json()["members_moved"] == 1
     assert not Path(a["folder"]).exists()
-    after = (await c.get(f"/ai/members/{m['id']}")).json()
+    after = (await c.get(f"/ai/teams/{m['id']}")).json()
     assert after["account_id"] == (other["id"] if expect_account == "OTHER" else None)
     assert after["paused"] is expect_paused
     assert [x["name"] for x in (await c.get("/ai/accounts")).json()["accounts"]] == [
@@ -693,11 +664,11 @@ async def test_an_ai_can_list_accounts_and_assign_a_member_but_not_sign_in(fake_
     assert "folder" not in rows[0] and not any("token" in k for k in rows[0])
     out = await ai_team("assign_account", member_id=m["id"], account_id=a["id"])
     assert out["id"] == m["id"]
-    assert (await c.get(f"/ai/members/{m['id']}")).json()["account_id"] == a["id"]
+    assert (await c.get(f"/ai/teams/{m['id']}")).json()["account_id"] == a["id"]
     rows = await ai_team("accounts", project_id=pid)
     assert rows[0]["members"] == [m["name"]]
     await ai_team("assign_account", member_id=m["id"], account_id="none")
-    assert (await c.get(f"/ai/members/{m['id']}")).json()["account_id"] is None
+    assert (await c.get(f"/ai/teams/{m['id']}")).json()["account_id"] is None
     with pytest.raises(ValueError, match="not found"):
         await ai_team("assign_account", member_id=m["id"], account_id="acct_nope")
     # there is no action that signs in, signs out, renames or removes
@@ -793,7 +764,7 @@ async def test_signing_in_again_to_a_signed_in_account_waits_for_the_login_to_en
 async def test_the_board_ai_chat_and_docs_ai_run_under_the_members_account(
     fake_cli, monkeypatch
 ):
-    from models import AiMember
+    from models import AiTeam
     from services.ai import llm
 
     c = fake_cli["c"]
@@ -812,14 +783,14 @@ async def test_the_board_ai_chat_and_docs_ai_run_under_the_members_account(
 
     monkeypatch.setattr(cli, "CliProcess", Recorder)
     async with fake_cli["maker"]() as s:
-        profile = await s.get(AiMember, m["id"])
+        profile = await s.get(AiTeam, m["id"])
     with pytest.raises(RuntimeError, match="stop here"):
         await llm.complete(profile, system="s", prompt="hi")
     assert seen["env"]["CLAUDE_CONFIG_DIR"] == a["folder"]
     # a member on the login already on this computer keeps the person's own environment
     other = await _runner(c, pid, fake_cli["repo"], name="Plain")
     async with fake_cli["maker"]() as s:
-        profile = await s.get(AiMember, other["id"])
+        profile = await s.get(AiTeam, other["id"])
     seen.clear()
     with pytest.raises(RuntimeError, match="stop here"):
         await llm.complete(profile, system="s", prompt="hi")

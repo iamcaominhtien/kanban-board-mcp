@@ -10,7 +10,7 @@ import re
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiLibraryItem, AiMember, Member
+from models import AiLibraryItem, AiTeam, Member
 
 from . import audit
 from . import config_model as cm
@@ -113,7 +113,7 @@ def diff_lines(old: str, new: str, context: int = 3) -> list[str]:
 
 async def members_of(
     session: AsyncSession, project_id: str
-) -> list[tuple[Member, AiMember]]:
+) -> list[tuple[Member, AiTeam]]:
     """The project's AI members with their profiles."""
     rows = (
         await session.exec(
@@ -124,7 +124,7 @@ async def members_of(
     ).all()
     out = []
     for m in rows:
-        p = await session.get(AiMember, m.id)
+        p = await session.get(AiTeam, m.id)
         if p is not None:
             out.append((m, p))
     return out
@@ -132,7 +132,7 @@ async def members_of(
 
 async def _members(
     session: AsyncSession, project_id: str
-) -> list[tuple[Member, AiMember, dict]]:
+) -> list[tuple[Member, AiTeam, dict]]:
     return [
         (m, p, merged_config(loads(p.config, {})))
         for m, p in await members_of(session, project_id)
@@ -570,7 +570,7 @@ async def propagate(
     item = await get_item(session, item_id)
     done, failed = [], []
     for mid in member_ids:
-        p = await session.get(AiMember, mid)
+        p = await session.get(AiTeam, mid)
         if p is None or p.project_id != item.project_id:
             continue
         cfg = update_in(item, merged_config(loads(p.config, {})))

@@ -32,7 +32,7 @@ import database
 import events as board_events
 from models import (
     AiAccount,
-    AiMember,
+    AiTeam,
     AiProjectSettings,
     AiRun,
     AiSchedule,
@@ -1359,7 +1359,7 @@ async def _why_pause_closed(session: AsyncSession, r: Notification) -> _Why:
             return "AI was resumed", None, False
         return None
     if r.target_kind == "member" and r.target_id:
-        profile = await session.get(AiMember, r.target_id)
+        profile = await session.get(AiTeam, r.target_id)
         if profile is None:
             return "The AI member was removed.", None, True
         if not profile.paused:
@@ -1529,7 +1529,7 @@ async def _watch_accounts(session: AsyncSession) -> None:
         if await _sign_out_noted(session, acc):
             continue
         on = (
-            await session.exec(select(AiMember).where(AiMember.account_id == acc.id))
+            await session.exec(select(AiTeam).where(AiTeam.account_id == acc.id))
         ).all()
         projects = sorted({p.project_id for p in on})
         n = len(on)
@@ -1687,10 +1687,6 @@ async def on_run_ended(run_id: str) -> None:
             if notice is None:
                 return
             kind, title, body = notice
-            back = _loads(run.report_back, {}) or {}
-            if kind == "ai_finished" and back.get("member_id"):
-                # an AI waiting on this run hears of it
-                keys = [*keys, ai_key(back["member_id"])]
             await emit(
                 kind,
                 project_id=run.project_id,

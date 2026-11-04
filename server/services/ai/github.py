@@ -366,12 +366,12 @@ async def _dev_of(session, ticket_id: str) -> str | None:
             .order_by(col(AiRun.queued_at).desc())
         )
     ).all()
-    from models import AiMember
+    from models import AiTeam
 
     from . import plugins
 
     for run in last:
-        prof = await session.get(AiMember, run.member_id)
+        prof = await session.get(AiTeam, run.member_id)
         if prof is not None and plugins.role_of(prof) in ("dev", None):
             return run.member_id
     return last[0].member_id if last else None

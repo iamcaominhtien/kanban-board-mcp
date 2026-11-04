@@ -382,21 +382,21 @@ def test_every_run_is_told_to_open_the_docs_guide_before_writing_a_page():
     """A live BA run (sonnet) wrote a good spec at the top of the tree: its prompt never named the Docs guide."""
     import json as _json
 
-    from models import AiMember, AiProjectSettings
+    from models import AiTeam, AiProjectSettings
     from services import role_skills
     from tests.test_shared_skills_277 import _block
 
-    block = _block(AiMember(id="m1", provider="claude-code"), AiProjectSettings())
+    block = _block(AiTeam(id="m1", provider="claude-code"), AiProjectSettings())
     assert (
         "Before you create or change a Docs page, open `kanban-board:docs-pages`"
         in block
     )
-    other = _block(AiMember(id="m2", provider="gemini"), AiProjectSettings())
+    other = _block(AiTeam(id="m2", provider="gemini"), AiProjectSettings())
     assert "docs_read(action='docs_guide')" in other
     # switched off for the project: not named
     off = AiProjectSettings(
         ops=_json.dumps({"board_skills": [{"skill": "docs-pages", "on": False}]})
     )
-    assert "docs-pages" not in _block(AiMember(id="m3", provider="claude-code"), off)
+    assert "docs-pages" not in _block(AiTeam(id="m3", provider="claude-code"), off)
     ba = role_skills.guide("ba")
     assert "under the page it\nbelongs to" in ba and "`docs-pages` skill" in ba
