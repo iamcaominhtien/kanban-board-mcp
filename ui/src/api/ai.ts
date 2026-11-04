@@ -1,17 +1,7 @@
 import { LIVE_POLL_MS, SAFETY_POLL_MS } from './pollIntervals';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type {
-  AiApproval,
-  AiAuditEntry,
-  AiMember,
-  AiOverview,
-  AiRun,
-  AiSettings,
-  DetectResult,
-  PermissionRow,
-  RunnerInfo,
-} from '../types/ai';
+import type { AiAuditEntry, AiMember, AiOverview, AiRun, AiSettings, DetectResult, RunnerInfo } from '../types/ai';
 import type { Ticket } from '../types';
 
 export const aiKeys = {
@@ -20,11 +10,8 @@ export const aiKeys = {
   board: (projectId: string) => ['ai', 'board', projectId] as const,
   member: (id: string) => ['ai', 'member', id] as const,
   usage: (id: string) => ['ai', 'usage', id] as const,
-  permissions: (id: string) => ['ai', 'permissions', id] as const,
   ticketRuns: (ticketId: string) => ['ai', 'ticket-runs', ticketId] as const,
-  ticketHolder: (ticketId: string) => ['ai', 'ticket-holder', ticketId] as const,
   run: (id: string) => ['ai', 'run', id] as const,
-  approvals: (projectId: string, status?: string) => ['ai', 'approvals', projectId, status ?? 'all'] as const,
   audit: (projectId: string, filters: object) => ['ai', 'audit', projectId, filters] as const,
   projectUsage: (projectId: string) => ['ai', 'project-usage', projectId] as const,
 };
@@ -114,38 +101,6 @@ export function useAiUsage(id: string) {
   });
 }
 
-export interface PermissionsData {
-  template: string;
-  ceiling: string;
-  scope: string;
-  matrix: PermissionRow[];
-  history: {
-    id: string;
-    at: string;
-    by: string | null;
-    byRole: string | null;
-    kind: 'created' | 'changed';
-    diffs: { action: string; label: string; from: string | null; to: string | null }[];
-    other: { label: string; from: unknown; to: unknown }[];
-    template?: string | null;
-    ceiling?: string | null;
-  }[];
-  safeMode: boolean;
-  agentSafeMode: boolean;
-  pausedAll: boolean;
-  overrideLabels: string[];
-  me: { name: string; role: 'owner' | 'admin' | 'member' | 'viewer' };
-  projects: { id: string; name: string; checked: boolean }[];
-}
-
-/** Permissions tab. */
-export function useAiPermissions(id: string) {
-  return useQuery({
-    queryKey: aiKeys.permissions(id),
-    queryFn: async () => (await client.get<PermissionsData>(`/ai/members/${id}/permissions`)).data,
-  });
-}
-
 /** Run history of a ticket (newest first); polls while a run is active. */
 export function useTicketRuns(ticketId: string | undefined) {
   return useQuery({
@@ -154,56 +109,6 @@ export function useTicketRuns(ticketId: string | undefined) {
     enabled: !!ticketId,
     refetchInterval: (q) =>
       q.state.data?.some((r) => ['queued', 'starting', 'running'].includes(r.state)) ? LIVE_POLL_MS : SAFETY_POLL_MS,
-  });
-}
-
-/** Who has a ticket now: an AI, a person, or someone it waits on (issue #272). */
-export interface TicketHolder {
-  kind: 'ai' | 'person' | 'waiting' | 'nobody';
-  name: string | null;
-  memberId: string | null;
-  state: string | null;
-  waitingOn: string | null;
-  step: string | null;
-  since: string | null;
-  text: string;
-}
-
-/** The fixed-form note a hand-over carries: what was done, where it is, what is left, what to check first. */
-export interface HandoffFields {
-  done?: string;
-  where?: string;
-  left?: string;
-  check?: string;
-}
-
-export interface HandOverResult {
-  ticketId: string;
-  route: 'resumed' | 'workflow' | 'told' | 'member';
-  step?: string | null;
-  member?: string;
-  holder: TicketHolder;
-}
-
-/** Who has the ticket now, polled faster while an AI holds it. */
-export function useTicketHolder(ticketId: string | undefined) {
-  return useQuery({
-    queryKey: aiKeys.ticketHolder(ticketId ?? ''),
-    queryFn: async () => (await client.get<TicketHolder>(`/tickets/${ticketId}/ai/holder`)).data,
-    enabled: !!ticketId,
-    refetchInterval: (q) => (q.state.data?.kind === 'ai' ? LIVE_POLL_MS : SAFETY_POLL_MS),
-  });
-}
-
-/** Approvals of a project. */
-export function useAiApprovals(projectId: string, status?: string) {
-  return useQuery({
-    queryKey: aiKeys.approvals(projectId, status),
-    queryFn: async () =>
-      (await client.get<AiApproval[]>(`/projects/${projectId}/ai/approvals`, { params: status ? { status } : {} }))
-        .data,
-    enabled: !!projectId,
-    refetchInterval: 8000,
   });
 }
 
@@ -333,8 +238,6 @@ export const aiApi = {
   retryNow: async (id: string) => (await client.post<AiMember>(`/ai/members/${id}/retry-now`)).data,
   setProjects: async (id: string, projectIds: string[]) =>
     (await client.put(`/ai/members/${id}/projects`, { projectIds })).data,
-  decidePending: async (id: string, decision: 'confirm' | 'reject') =>
-    (await client.post<AiMember>(`/ai/members/${id}/permissions/pending/${decision}`)).data,
   test: async (id: string, full = true) =>
     (
       await client.post<{ ok: boolean; health: string; message: string; version?: string; account?: string }>(
@@ -351,14 +254,6 @@ export const aiApi = {
     ).data,
   remove: async (id: string, body: { tickets: string; reassignTo?: string; runs: string }) =>
     (await client.post<{ removed: boolean; scheduled: boolean }>(`/ai/members/${id}/remove`, body)).data,
-  testPermission: async (id: string, body: { action: string; ticketId?: string; targetStatus?: string }) =>
-    (
-      await client.post<{
-        verdict: string;
-        reason: string;
-        checks: { label: string; ok: boolean; mode: string; note?: string }[];
-      }>(`/ai/members/${id}/permissions/test`, body)
-    ).data,
   updateSettings: async (projectId: string, body: Partial<AiSettings>) =>
     (await client.patch<AiSettings>(`/projects/${projectId}/ai/settings`, body)).data,
   pauseAll: async (projectId: string, body: { reason: string; cancelRunning: boolean; revokeTokens?: boolean }) =>
@@ -402,23 +297,11 @@ export const aiApi = {
     (await client.post<AiRun>(`/ai/runs/${runId}/feedback`, { rating, reasons })).data,
   refreshContext: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/refresh-context`)).data,
   answer: async (runId: string, text: string) => (await client.post<AiRun>(`/ai/runs/${runId}/answer`, { text })).data,
-  requestChanges: async (ticketId: string, text: string, continueSession: boolean) =>
-    (await client.post<AiRun>(`/tickets/${ticketId}/ai/request-changes`, { text, continueSession })).data,
-  takeOver: async (ticketId: string, memberId?: string, text?: string) =>
-    (await client.post<Ticket & { holder: TicketHolder }>(`/tickets/${ticketId}/ai/take-over`, { memberId, text }))
-      .data,
-  /** Give the ticket (back) to the AI team with a handoff note; a workflow taken back resumes at its step. */
-  handOver: async (ticketId: string, body: HandoffFields & { memberId?: string; workflow?: string }) =>
-    (await client.post<HandOverResult>(`/tickets/${ticketId}/ai/hand-over`, body)).data,
   revertPreview: async (runId: string) => (await client.get<RevertRow[]>(`/ai/runs/${runId}/revert-preview`)).data,
   revertRun: async (runId: string) =>
     (await client.post<{ entryId: string; result: string; reason?: string }[]>(`/ai/runs/${runId}/revert`)).data,
   revertEntries: async (entryIds: string[]) =>
     (await client.post<{ entryId: string; result: string; reason?: string }[]>('/ai/audit/revert', { entryIds })).data,
-  approve: async (id: string, note?: string) =>
-    (await client.post<AiApproval & { error?: string }>(`/ai/approvals/${id}/approve`, { note })).data,
-  deny: async (id: string, note?: string, stopRun = false) =>
-    (await client.post<AiApproval>(`/ai/approvals/${id}/deny`, { note, stopRun })).data,
   verifyAudit: async (projectId: string) =>
     (
       await client.get<{ ok: boolean; brokenAt: string | null; checked: number }>(

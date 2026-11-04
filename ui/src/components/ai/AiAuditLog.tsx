@@ -2,14 +2,7 @@ import { MenuSelect } from '../ui/MenuSelect';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, useAiMutation, useAiOverview } from '../../api/ai';
-import {
-  auditExportQuery,
-  fetchAudit,
-  safetyApi,
-  type AuditFilters,
-  type RevertPreviewRow,
-  type WhyBlocked,
-} from '../../api/aiSafety';
+import { auditExportQuery, fetchAudit, safetyApi, type AuditFilters, type RevertPreviewRow } from '../../api/aiSafety';
 import { extractError } from '../../api/extractError';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import type { AiAuditEntry, AiMember } from '../../types/ai';
@@ -641,7 +634,6 @@ function AuditDrawer({
           )}
         </div>
       )}
-      {e.result === 'blocked' && d.reason && <WhyBlockedCard entryId={e.id} />}
       {e.trace.length > 0 && (
         <>
           <div className="ai-label ai-label-dark">Why it did this: prompt-source trace</div>
@@ -708,64 +700,6 @@ function AuditDrawer({
           }}
         />
       )}
-    </div>
-  );
-}
-
-/** “Why was this blocked?” (I2). */
-function WhyBlockedCard({ entryId }: { entryId: string }) {
-  const q = useQuery({ queryKey: ['ai', 'why', entryId], queryFn: () => safetyApi.why(entryId) });
-  const toast = useToast();
-  const [sent, setSent] = useState(false);
-  const w: WhyBlocked | undefined = q.data;
-  if (!w) return null;
-  return (
-    <div className="ai-card" style={{ padding: 12, borderColor: '#F0D9A8' }} data-testid="why-blocked">
-      <b>Why was this blocked?</b>
-      <div style={{ fontSize: 12.5, marginTop: 6, display: 'grid', gridTemplateColumns: '90px 1fr', gap: 4 }}>
-        <span className="ai-label">Action</span>
-        <span>{w.actionText}</span>
-        <span className="ai-label">Blocked by</span>
-        <span>{w.blockedBy}</span>
-        <span className="ai-label">Who can change</span>
-        <span>{w.whoCanChange}</span>
-        {w.switch && (
-          <>
-            <span className="ai-label">To allow it</span>
-            <span data-testid="why-switch">{w.switch}</span>
-          </>
-        )}
-        {w.instead && (
-          <>
-            <span className="ai-label">AI was told</span>
-            <span className="ai-muted">{w.instead}</span>
-          </>
-        )}
-      </div>
-      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          className="ai-btn ai-btn-sm ai-btn-primary"
-          disabled={sent}
-          onClick={async () => {
-            try {
-              const r = await safetyApi.askAccess(entryId);
-              setSent(true);
-              toast.success(
-                'Sent',
-                `${r.to ?? 'The owner'} got this context. Nothing changes until an owner confirms.`,
-              );
-            } catch (err) {
-              toast.error("Couldn't send", extractError(err));
-            }
-          }}
-        >
-          {sent ? 'Sent' : 'Ask owner for access'}
-        </button>
-        <span className="ai-muted">
-          Sends {w.owner ?? 'an owner'} this context. Nothing changes until an owner confirms.
-        </span>
-      </div>
     </div>
   );
 }

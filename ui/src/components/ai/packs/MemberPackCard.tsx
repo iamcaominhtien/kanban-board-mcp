@@ -4,7 +4,7 @@ import { extractError } from '../../../api/extractError';
 import type { MemberPackDiff } from '../../../types/aiPacks';
 import { Dialog } from '../config/parts';
 import { Ico } from '../settings/settingsUi';
-import { roleLook } from '../workflow/wfFormat';
+import { roleLook } from '../roleLook';
 import './packs.css';
 
 const time = (iso?: string | null) => {

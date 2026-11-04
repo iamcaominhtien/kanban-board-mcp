@@ -1,23 +1,16 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { aiApi, useAiMutation } from '../../api/ai';
-import type { CapNeed, CapStop } from '../../api/aiTeam';
-import { workflowApi } from '../../api/aiWorkflow';
-import { safetyApi } from '../../api/aiSafety';
 import { extractError } from '../../api/extractError';
 import type { CardMemory } from '../../types/aiResources';
-import type { Handoff, NeedsItem, TeamCard, TeamNow, TeamRange } from '../../types/aiTeam';
+import type { NeedsItem, TeamCard, TeamNow, TeamRange } from '../../types/aiTeam';
 import { useToast } from '../Toast';
-import { Badge, ICONS, Icon, KIND_LOOK, Spark, STATE_ORDER, StateChip, TicketChip, stateLine } from './teamUi';
+import { Badge, ICONS, Icon, Spark, STATE_ORDER, StateChip, TicketChip, stateLine } from './teamUi';
 import { AUTO_RESTARTS, LEVEL_COLOR, fmtMb, levelOf, limitPct } from './resourcesFormat';
-import { fmtAgo, fmtClock, fmtDuration, fmtTokens, fmtUsd, usageText } from './teamFormat';
-import { openRun } from './runLink';
-import './decided.css';
+import { fmtAgo, fmtClock, fmtDuration, fmtUsd, usageText } from './teamFormat';
 
 export interface NowActions {
   onOpenTicket: (ticketId: string) => void;
   onOpenMember: (memberId: string) => void;
-  onOpenDocsPage: (pageId: string) => void;
-  onSeeFlow: () => void;
   onSeeResources: () => void;
 }
 
@@ -54,32 +47,10 @@ function Tickets({ ids, onOpen }: { ids: string[]; onOpen: (id: string) => void 
   );
 }
 
-/** A card's stop at its ticket's token cap (O), when the server sends it. */
-function capStopOf(card: TeamCard): CapStop | null {
-  return (card as TeamCard & { capStop?: CapStop | null }).capStop ?? null;
-}
-
-const CAP_ICON = (
-  <>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v5l3 2" />
-  </>
-);
-
-function NeedCard({ item, actions }: { item: NeedsItem | CapNeed; actions: NowActions }) {
+function NeedCard({ item, actions }: { item: NeedsItem; actions: NowActions }) {
   const toast = useToast();
-  const [always, setAlways] = useState(false);
-  const decide = useAiMutation(async (v: { id: string; approve: boolean; always?: boolean }) => {
-    if (v.approve) {
-      const out = await safetyApi.approve(v.id, { always: v.always });
-      if (out.error) throw new Error(out.error);
-      return out;
-    }
-    return safetyApi.deny(v.id);
-  });
   const retry = useAiMutation((runId: string) => aiApi.retry(runId));
   const dismiss = useAiMutation((runId: string) => aiApi.dismissStop(runId));
-  const resume = useAiMutation((ticketId: string) => workflowApi.resume(ticketId));
   const wait = item.waitingS != null ? `waiting ${fmtDuration(item.waitingS)}` : '';
   const who = item.memberName ?? 'An AI';
   const open = actions.onOpenTicket;
@@ -91,54 +62,7 @@ function NeedCard({ item, actions }: { item: NeedsItem | CapNeed; actions: NowAc
   let body: ReactNode;
   let hint: string;
   let buttons: ReactNode;
-  let choice: ReactNode = null;
   switch (item.kind) {
-    case 'quota_cap': {
-      title = `${item.ticketId} reached its token cap`;
-      body =
-        item.used != null && item.cap != null ? (
-          <>
-            {who} used {item.used.toLocaleString('en-US')} of {item.cap.toLocaleString('en-US')} tokens
-            {item.ticketTitle ? (
-              <>
-                {' '}
-                on <b>{item.ticketTitle}</b>
-              </>
-            ) : null}
-            . It stopped and kept its work.
-          </>
-        ) : (
-          <>{item.text || `${who} stopped at the token cap of ${item.ticketId} and kept its work.`}</>
-        );
-      icon = CAP_ICON;
-      const waits = item.waitedBy ?? [];
-      hint = [
-        wait,
-        waits.length ? `${waits.join(', ')} wait${waits.length === 1 ? 's' : ''} for it` : null,
-        item.storyId ? `Story ${item.storyId}` : null,
-      ]
-        .filter(Boolean)
-        .join(' · ');
-      buttons = (
-        <>
-          <button
-            type="button"
-            className="st-btn st-btn-primary st-btn-sm"
-            disabled={resume.isPending}
-            onClick={() =>
-              resume.mutate(item.ticketId, { onError: (e) => toast.error("Couldn't resume it", extractError(e)) })
-            }
-          >
-            <Icon>{ICONS.play}</Icon>
-            Resume
-          </button>
-          <button type="button" className="st-btn st-btn-sm" onClick={() => open(item.ticketId)}>
-            Open ticket
-          </button>
-        </>
-      );
-      break;
-    }
     case 'question':
       title = `${who} asks a question`;
       body = (
@@ -151,56 +75,6 @@ function NeedCard({ item, actions }: { item: NeedsItem | CapNeed; actions: NowAc
         <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={() => open(item.ticketId!)}>
           Answer
         </button>
-      );
-      break;
-    case 'approval':
-      icon = ICONS.lock;
-      title = `${who} asks permission to ${item.actionLabel.toLowerCase()}`;
-      body = (
-        <>
-          <b>{who}</b> {ticket ? <>on {ticket}: </> : ': '}
-          {item.text}. Risk {item.risk}.
-        </>
-      );
-      hint = `${wait} · the run goes on, this step waits`;
-      if (item.alwaysAllowed) {
-        choice = (
-          <label className="at-check" title="Its Docs edits then go through without a request. Undo it in Approvals.">
-            <input type="checkbox" checked={always} onChange={(e) => setAlways(e.target.checked)} />
-            Don’t ask again for {who}’s Docs edits
-          </label>
-        );
-      }
-      buttons = (
-        <>
-          <button
-            type="button"
-            className="st-btn st-btn-primary st-btn-sm"
-            disabled={decide.isPending}
-            onClick={() =>
-              decide.mutate(
-                { id: item.approvalId, approve: true, always },
-                { onError: (e) => toast.error("Couldn't allow it", extractError(e)) },
-              )
-            }
-          >
-            <Icon>{ICONS.check}</Icon>
-            {always ? 'Approve, don’t ask again' : 'Approve'}
-          </button>
-          <button
-            type="button"
-            className="st-btn st-btn-sm"
-            disabled={decide.isPending}
-            onClick={() =>
-              decide.mutate(
-                { id: item.approvalId, approve: false },
-                { onError: (e) => toast.error("Couldn't deny", extractError(e)) },
-              )
-            }
-          >
-            Deny
-          </button>
-        </>
       );
       break;
     case 'offline':
@@ -265,49 +139,6 @@ function NeedCard({ item, actions }: { item: NeedsItem | CapNeed; actions: NowAc
         </>
       );
       break;
-    case 'docs_proposal':
-      icon = ICONS.page;
-      title = `${who} proposed ${item.changes} change${item.changes === 1 ? '' : 's'} to a page`;
-      body = (
-        <>
-          <b>{who}</b> on <b>{item.pageTitle ?? 'a page'}</b>
-          {item.pageVersion ? ` (Docs, v${item.pageVersion})` : ' (Docs)'}
-          {ticket ? <> for {ticket}</> : null}
-        </>
-      );
-      hint = `${wait}${item.ticketId ? ` · blocks the review of ${item.ticketId}` : ''}`;
-      buttons = (
-        <button
-          type="button"
-          className="st-btn st-btn-primary st-btn-sm"
-          onClick={() => actions.onOpenDocsPage(item.pageId)}
-        >
-          <Icon>{ICONS.eye}</Icon>Review changes
-        </button>
-      );
-      break;
-    case 'canvas_proposal':
-      icon = ICONS.page;
-      title = `${who} proposed ${item.changes} change${item.changes === 1 ? '' : 's'} to a canvas`;
-      body = (
-        <>
-          <b>{who}</b> on <b>{item.canvasTitle ?? 'a canvas'}</b>
-          {ticket ? <> for {ticket}</> : null}
-        </>
-      );
-      hint = `${wait}${item.ticketId ? ` · blocks the review of ${item.ticketId}` : ''}`;
-      buttons = (
-        <button
-          type="button"
-          className="st-btn st-btn-primary st-btn-sm"
-          onClick={() =>
-            item.pageId ? actions.onOpenDocsPage(item.pageId) : item.ticketId && actions.onOpenTicket(item.ticketId)
-          }
-        >
-          <Icon>{ICONS.eye}</Icon>Review on canvas
-        </button>
-      );
-      break;
   }
   return (
     <div className="at-need" data-testid={`needs-${item.kind}`}>
@@ -319,7 +150,6 @@ function NeedCard({ item, actions }: { item: NeedsItem | CapNeed; actions: NowAc
       </div>
       <div className="at-need-body">{body}</div>
       <div className="at-hint-sm">{hint}</div>
-      {choice}
       <div className="at-actions">{buttons}</div>
     </div>
   );
@@ -374,8 +204,6 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
   const queuedIds = [...new Set([...queued.map((r) => r.ticketId), ...card.assigned])].filter(
     (id) => id !== current?.ticketId,
   );
-  const cap = card.state === 'offline' ? null : capStopOf(card);
-  const resumeCap = useAiMutation((ticketId: string) => workflowApi.resume(ticketId));
 
   let body: ReactNode;
   if (card.state === 'offline') {
@@ -395,37 +223,6 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
         {last && (
           <div className="at-hint-sm">
             Last run {LAST_VERB[last.state]?.replace(/ on$/, '') ?? last.state} {fmtClock(last.endedAt)}
-          </div>
-        )}
-      </>
-    );
-  } else if (cap) {
-    const step = cap.step;
-    const stopped = cap.stoppedAt
-      ? fmtAgo(Math.max(0, Math.round((Date.now() - new Date(cap.stoppedAt).getTime()) / 1000)))
-      : '';
-    body = (
-      <>
-        <div>
-          On <TicketChip id={cap.ticketId} onOpen={open} /> {cap.ticketTitle && <b>{cap.ticketTitle}</b>}
-        </div>
-        <div>
-          {[
-            step
-              ? `${step.label ? `${step.label}, ` : ''}step ${step.n}${step.total ? ` of ${step.total}` : ''}`
-              : null,
-            stopped ? `stopped ${stopped}` : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </div>
-        <div className="cap-bar" />
-        <div className="at-hint-sm">
-          {fmtTokens(cap.used)} of {fmtTokens(cap.cap)} tokens for this ticket
-        </div>
-        {cap.next && (
-          <div className="at-hint">
-            Next in line: <TicketChip id={cap.next.ticketId} onOpen={open} /> (waits for {cap.next.waitsFor})
           </div>
         )}
       </>
@@ -557,16 +354,7 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
           <div className="at-card-name">{card.name}</div>
           <div className="at-hint-sm">{runnerText}</div>
         </div>
-        {cap ? (
-          <span className="at-chip" style={{ background: '#FEF3D9', color: '#7A5A06' }} data-testid="stopped-at-cap">
-            <Icon color="#B8860B" size={11}>
-              {CAP_ICON}
-            </Icon>
-            Stopped at cap
-          </span>
-        ) : (
-          <StateChip state={card.state} project={!!card.pause?.project && !card.pause.own} />
-        )}
+        <StateChip state={card.state} project={!!card.pause?.project && !card.pause.own} />
       </div>
       <div className="at-card-body">{body}</div>
       <div className="at-card-foot">
@@ -591,30 +379,6 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
         </div>
       </div>
       <div className="at-actions">
-        {cap && (
-          <>
-            <button
-              type="button"
-              className="st-btn st-btn-primary st-btn-sm"
-              disabled={resumeCap.isPending}
-              onClick={() =>
-                resumeCap.mutate(cap.ticketId, {
-                  onError: (e) => toast.error("Couldn't resume it", extractError(e)),
-                })
-              }
-            >
-              <Icon>{ICONS.play}</Icon>
-              Resume
-            </button>
-            <button
-              type="button"
-              className="st-btn st-btn-sm"
-              onClick={() => (cap.runId ? openRun(cap.runId) : open(cap.ticketId))}
-            >
-              Open run
-            </button>
-          </>
-        )}
         {card.state === 'offline' && (
           <button
             type="button"
@@ -629,7 +393,7 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
             Answer
           </button>
         )}
-        {cap ? null : current ? (
+        {current ? (
           <button type="button" className="st-btn st-btn-sm" onClick={() => open(current.ticketId)}>
             Open run
           </button>
@@ -641,7 +405,7 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
             </button>
           )
         )}
-        {!cap && current && card.state === 'working' && (
+        {current && card.state === 'working' && (
           <button
             type="button"
             className="st-btn st-btn-sm"
@@ -662,33 +426,11 @@ function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange
   );
 }
 
-function HandoffRow({ h, onOpen }: { h: Handoff; onOpen: (id: string) => void }) {
-  const look = KIND_LOOK[h.kind] ?? { bg: '#F1F3F1', fg: '#5B6B60' };
-  const text = (h.note ?? h.ticketTitle ?? '').slice(0, 70);
-  return (
-    <div className="at-handoff">
-      <Badge end={h.from} size={22} />
-      <Icon color="#9AA8A0">{ICONS.arrow}</Icon>
-      <Badge end={h.to} size={22} />
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <TicketChip id={h.ticketId} onOpen={onOpen} /> {text}
-      </span>
-      <span className="at-chip" style={{ background: look.bg, color: look.fg }}>
-        {h.kind}
-      </span>
-      <span className="at-hint-sm" style={{ whiteSpace: 'nowrap', width: 70, textAlign: 'right' }}>
-        {fmtAgo(h.agoS)}
-      </span>
-    </div>
-  );
-}
-
-/** Now: what needs a person, a card per AI, the latest hand-offs and the totals (design/screens/ai-team.md, B). */
+/** Now: what needs a person, a card per AI, and the totals (design/screens/ai-team.md, B). */
 export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRange; actions: NowActions }) {
   const t = data.totals;
   const label = RANGE_LABEL[range];
   const cap = t.dailyCap;
-  const capped = data.members.filter((c) => c.state !== 'offline' && capStopOf(c)).length;
   const working = data.counts.working ?? 0;
   const queued = data.counts.queued ?? 0;
   return (
@@ -706,14 +448,6 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
             </span>
           );
         })}
-        {capped > 0 && (
-          <span className="at-chip" style={{ background: '#FEF3D9', color: '#7A5A06' }} data-testid="capped-count">
-            <Icon color="#B8860B" size={11}>
-              {CAP_ICON}
-            </Icon>
-            Stopped at a limit {capped}
-          </span>
-        )}
         <span className="at-hint">{data.members.length} AI members</span>
         {data.pausedAll && (
           <span className="at-hint" data-testid="paused-legend">
@@ -732,7 +466,7 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
           <div className="at-needs">
             {data.needsYou.map((item) => (
               <NeedCard
-                key={`${item.kind}-${'approvalId' in item ? item.approvalId : 'proposalId' in item ? item.proposalId : 'runId' in item ? item.runId : (item.ticketId ?? item.memberId)}`}
+                key={`${item.kind}-${'runId' in item ? item.runId : (item.ticketId ?? item.memberId)}`}
                 item={item}
                 actions={actions}
               />
@@ -771,21 +505,6 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
       )}
 
       <div className="at-bottom">
-        <div className="at-panel">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-            <b style={{ fontSize: 13.5, flex: 1 }}>Recent hand-offs</b>
-            <button type="button" className="at-link" onClick={actions.onSeeFlow}>
-              See the flow
-            </button>
-          </div>
-          {data.handoffs.length ? (
-            data.handoffs.map((h) => <HandoffRow key={`${h.runId}-${h.kind}`} h={h} onOpen={actions.onOpenTicket} />)
-          ) : (
-            <div className="at-hint" style={{ padding: '8px 0' }}>
-              No work has passed between AIs in this range.
-            </div>
-          )}
-        </div>
         <div className="at-totals">
           <b style={{ fontSize: 13.5 }}>{range === 'today' ? 'Today so far' : label.head}</b>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -803,22 +522,6 @@ export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRan
                 {cap ? `of ${fmtUsd(cap)} daily cap for the team` : 'no daily cap for the team'}
               </div>
             </div>
-            <div className="at-total">
-              <div className="at-label">Needed you</div>
-              <span className="at-total-n">{t.touches}</span>
-              <div className="at-hint-sm">times {range === 'today' ? 'so far today' : label.head.toLowerCase()}</div>
-            </div>
-            {(t.autopilot.on || t.autopilot.decided > 0) && (
-              <div className="at-total" data-testid="autopilot-tile">
-                <div className="at-label">Autopilot decided</div>
-                <span className="at-total-n">{t.autopilot.decided}</span>
-                <div className="at-hint-sm">
-                  {t.autopilot.on
-                    ? `${t.autopilot.delegate ?? 'An AI'} answers after ${t.autopilot.graceMin} min`
-                    : 'now off'}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

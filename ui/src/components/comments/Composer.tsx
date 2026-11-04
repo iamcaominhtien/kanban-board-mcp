@@ -11,10 +11,8 @@ import { CanvasIcon } from '../canvas/CanvasIcon';
 import { useCanvasStarter } from '../canvas/useCanvasStarter';
 import { firstDiagramFile } from '../diagrams/diagramFile';
 import { aiAvailability } from '../ai/aiAvailability';
-import { mentionedAi, type MentionIntent, type SendOpts } from '../ai/MentionIntent';
-import { MentionPlan } from '../ai/MentionPlan';
 import { useAiBoardState } from '../ai/aiUi';
-import { AskSplit } from '../ai/ComposerAi';
+import { AskSplit, mentionedAi, type SendOpts } from '../ai/ComposerAi';
 import { EditorAiSelectionBar, useEditorAi } from '../ai/editor/useEditorAi';
 import { textareaAdapter } from '../ai/editor/adapters';
 import { mentionRefs, toFriendly, toStored } from '../../utils/mentionText';
@@ -39,31 +37,16 @@ interface Props {
   initial?: string;
   editing?: boolean;
   autoFocus?: boolean;
-  /** Called with the comment text, and how to send it when the person chose (Send menu, Ask button). */
+  /** Called with the comment text, and how to send it when the person chose (the Ask button). */
   onSubmit: (text: string, opts?: SendOpts) => void;
   onCancel: () => void;
   /** Starting text for a new comment (a mention put there by Ask on a hover card); replaces the saved draft. */
   prefill?: string;
-  /** The comment this one answers: under an AI's comment it asks that AI again. */
-  replyTo?: string;
-  /** Who wrote it, for the “Replying to …” strip. */
-  replyLabel?: string;
   /** What an AI gets as context, for the “Context sent” chips. */
   criteriaCount?: number;
   commentCount?: number;
   /** The AI member the Ask button asks first (the ticket's AI assignee). */
   defaultAskId?: string | null;
-  /** The ticket is in fast mode: the AI this comment wakes is fast already. */
-  ticketFast?: boolean;
-}
-
-/** A lightning bolt: fast mode. */
-function FastBolt() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M13.5 2 4 13.6h6.6L9.5 22 20 9.9h-6.7L13.5 2Z" />
-    </svg>
-  );
 }
 
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -111,10 +94,9 @@ const kb = {
  * @param props.initial - Starting text; used with `editing` to edit a comment in place.
  * @param props.editing - Edit mode: label "EDITING" and a Save button, no draft kept.
  * @param props.autoFocus - Focus the box on mount.
- * @param props.onSubmit - Called with the comment text and, when chosen, how to send it (Send menu, Ask button).
+ * @param props.onSubmit - Called with the comment text and, when chosen, how to send it (the Ask button).
  * @param props.onCancel - Called when the box is dismissed.
  * @param props.prefill - Starting text for a new comment (replaces the saved draft).
- * @param props.replyTo - Id of the comment this one answers (an AI's: it is asked again).
  * @param props.criteriaCount - Acceptance criteria an AI gets as context.
  * @param props.commentCount - Comments an AI gets as context.
  * @param props.defaultAskId - AI member the Ask button asks first.
@@ -130,12 +112,9 @@ export function Composer({
   onSubmit,
   onCancel,
   prefill,
-  replyTo,
-  replyLabel,
   criteriaCount = 0,
   commentCount = 0,
   defaultAskId,
-  ticketFast = false,
 }: Props) {
   // the box shows a mention as @PM; the comment is saved with the member's id (`stored`)
   const [start] = useState(() => (editing ? initial : (prefill ?? readJson<string>(draftKey(ticketId), ''))));
@@ -144,13 +123,6 @@ export function Composer({
   const stored = useMemo(() => toStored(text, people), [text, people]);
   const { members: aiMap } = useAiBoardState();
   const mentioned = useMemo(() => mentionedAi(stored, aiMap), [stored, aiMap]);
-  // What a mention of an AI means: Ask only is the default, so a question never starts a run by accident
-  const [intent, setIntent] = useState<MentionIntent>('ask');
-  // Fast for the AI this comment wakes (the ticket's pace otherwise)
-  const [fast, setFast] = useState(false);
-  useEffect(() => {
-    if (mentioned.length === 0) setIntent('ask');
-  }, [mentioned.length]);
   // AI members that can answer a question now (the Ask split button), the ticket's assignee first
   const askable = useMemo(
     () =>
@@ -161,7 +133,7 @@ export function Composer({
   );
   const [askId, setAskId] = useState<string | null>(null);
   const asking = askable.find((m) => m.id === askId) ?? askable[0];
-  const [menu, setMenu] = useState<null | 'send' | 'ask'>(null);
+  const [menu, setMenu] = useState<null | 'ask'>(null);
   const [tab, setTab] = useState<'write' | 'preview'>('write');
   const [chips, setChips] = useState<Chip[]>([]);
   const [saved, setSaved] = useState(!editing && !!readJson<string>(draftKey(ticketId), ''));
@@ -297,12 +269,7 @@ export function Composer({
       .map((c) => c.markdown)
       .join('\n\n');
     setMenu(null);
-    // a comment that mentions an AI always says what the mention means (no dialog at send time)
-    const chosen: SendOpts | undefined =
-      !editing && mentioned.length > 0 && !how?.askMemberId ? { intent, ...how } : how;
-    const wakes = !editing && (mentioned.length > 0 || !!how?.askMemberId || !!replyTo);
-    const base = replyTo || chosen ? { ...chosen, replyTo } : undefined;
-    const opts = fast && wakes ? { ...base, fast: true } : base;
+    const opts = how;
     if (!editing) {
       if (draftTimer.current) clearTimeout(draftTimer.current);
       draftTimer.current = null;
@@ -312,9 +279,9 @@ export function Composer({
     }
     onSubmit([stored.trim(), extra].filter(Boolean).join('\n\n'), opts);
   }
-  /** Ctrl+Shift+Enter: ask. With a mention it means “Ask” for it; without, the Ask button's AI gets the text. */
+  /** Ctrl+Shift+Enter: ask. The first AI mentioned gets the text as a question; without a mention, the Ask button's AI. */
   function ask() {
-    if (mentioned.length) send({ intent: 'ask' });
+    if (mentioned.length) send({ askMemberId: mentioned[0].id });
     else if (asking) send({ askMemberId: asking.id });
   }
 
@@ -503,11 +470,6 @@ export function Composer({
           )}
         </div>
 
-        {replyTo && !editing && (
-          <div className="tw-reply-strip" data-testid="comment-replying">
-            <LineIcon name="reply" size={12} /> Replying to <b>{replyLabel ?? 'an AI'}</b> · it will answer again
-          </div>
-        )}
         {tab === 'preview' && (
           <div
             data-testid="comment-preview"
@@ -661,11 +623,6 @@ export function Composer({
           </div>
         )}
 
-        {!editing && tab === 'write' && mentioned.length > 0 && (
-          <div style={{ paddingTop: 10, borderTop: '1px solid #EEF3EF' }}>
-            <MentionPlan ticketId={ticketId} members={mentioned} mode={intent} onMode={setIntent} />
-          </div>
-        )}
         {!editing && text.trim() && mentioned.length === 0 && asking && (
           <div
             data-testid="comment-context-chips"
@@ -788,28 +745,6 @@ export function Composer({
             </span>
           )}
           <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {!editing &&
-              ((mentioned.length > 0 && intent !== 'notify') || (mentioned.length === 0 && !!asking)) &&
-              (ticketFast ? (
-                <span
-                  className="tw-fast tw-fast-on"
-                  data-testid="comment-fast-ticket"
-                  title="This ticket is in fast mode: the AI answers or works one effort level lower, straight to the point"
-                >
-                  <FastBolt /> Fast · ticket
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  className={`tw-fast${fast ? ' tw-fast-on' : ''}`}
-                  data-testid="comment-fast"
-                  aria-pressed={fast}
-                  title="Fast for this comment: a quick answer or result of about the same quality"
-                  onClick={() => setFast((f) => !f)}
-                >
-                  <FastBolt /> Fast
-                </button>
-              ))}
             {!editing && mentioned.length === 0 && asking && (
               <AskSplit
                 member={asking}

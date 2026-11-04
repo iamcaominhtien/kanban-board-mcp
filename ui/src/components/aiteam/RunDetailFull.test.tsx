@@ -278,16 +278,7 @@ describe('RunDetail (full)', () => {
     expect(warn.textContent).toContain('cost, status, summary and links are kept');
   });
 
-  it('continues a failed run with a note', async () => {
-    http.post.mockResolvedValue({ data: {} });
-    setup();
-    fireEvent.click(await screen.findByRole('button', { name: 'Continue with a note' }));
-    fireEvent.change(screen.getByLabelText('Note for the AI'), { target: { value: ' go on ' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/runs/r1/continue', { note: 'go on' }));
-  });
-
-  it('offers no continue on a finished run', async () => {
+  it('offers no continue with a note, on any run', async () => {
     transcript = {
       run: row({ state: 'finished', endedReason: null, skills: ['tdd'] }),
       available: true,

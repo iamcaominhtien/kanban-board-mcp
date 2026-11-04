@@ -1,14 +1,4 @@
-import { openTimeline } from '../aiteam/timelineLink';
-
-/**
- * Links into and out of a Story: "See it in Flow" (the AI Team's Flow tab scoped to one Story) and the board's
- * "Group by: Story" switch, remembered per person.
- */
-
-/** Show the AI Team's Flow tab scoped to this Story (the Flow tab's own link: scope and view). */
-export function openStoryFlow(storyId: string): void {
-  openTimeline({ flow: { story: storyId, ticket: null, view: 'map' } });
-}
+/** The board's "Group by: Story" switch, remembered per person. */
 
 /** Who is looking: the member the app acts as, or the board's own user. */
 function personKey(): string {

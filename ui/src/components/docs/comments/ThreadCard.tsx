@@ -8,7 +8,6 @@ import { personOf, threadLink, type CommentPerson } from './people';
 import { sentWords, useSendToAi, useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
 import type { SuggestMember } from '../RefSuggester';
 import { aiCostLabel, aiReplyKind, canSuggestEdit, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
-import { REVIEW_PROPOSAL_EVENT } from '../../../utils/docsProposalRules';
 import { LineIcon } from '../../ui/LineIcon';
 
 type Actions = ReturnType<typeof useCommentActions>;
@@ -224,24 +223,6 @@ export function ThreadCard({
   function renderAiExtras(c: DocsCommentItem) {
     const kind = aiReplyKind(c);
     if (!kind || !c.ai) return null;
-    if (kind === 'proposal' && c.ai.proposalId) {
-      const id = c.ai.proposalId;
-      return (
-        <div className="dc-ai-proposal" data-testid="ai-proposal-link">
-          <span>A proposal waits for review. Nothing on the page changed.</span>
-          <button
-            type="button"
-            className="dc-plain dc-bordered"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.dispatchEvent(new CustomEvent(REVIEW_PROPOSAL_EVENT, { detail: { proposalId: id } }));
-            }}
-          >
-            <Icon name="eye" size={13} strokeWidth={1.9} /> Review
-          </button>
-        </div>
-      );
-    }
     if (kind !== 'answer') return null;
     return (
       <div className="dc-ai-chips">

@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { aiApi, useAiMutation, type RevertRow } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import { useMembers } from '../../api/members';
 import type { AiRun } from '../../types/ai';
-import { MemberAvatar } from '../MemberAvatar';
 import { useToast } from '../Toast';
-import { currentPerson } from '../assist/assistUi';
 import { FloatMenu } from './ComposerAi';
 import { STATUS_NAMES, hhmm, useAiBoardState } from './aiUi';
 import './ticketWork.css';
@@ -35,126 +32,6 @@ function usePopover() {
     };
   }, [open]);
   return { open, setOpen, ref };
-}
-
-/**
- * Take over: the AI's run ends and the ticket goes to a person (the design's review gate and failed states). It asks
- * who takes it, preselecting the person using the board, instead of leaving the ticket without an assignee.
- */
-export function TakeOverButton({
-  ticketId,
-  projectId,
-  label = 'Take over',
-  primary,
-  onDone,
-}: {
-  ticketId: string;
-  projectId: string;
-  label?: string;
-  primary?: boolean;
-  onDone?: () => void;
-}) {
-  const { open, setOpen, ref } = usePopover();
-  const btn = useRef<HTMLButtonElement>(null);
-  const people = (useMembers(projectId).data ?? []).filter((m) => (m.kind ?? 'human') === 'human');
-  const me = currentPerson();
-  const [pick, setPick] = useState<string | null>(null);
-  const chosen = pick ?? people.find((p) => p.name === me)?.id ?? people[0]?.id ?? null;
-  const toast = useToast();
-  const [why, setWhy] = useState('');
-  const takeOver = useAiMutation((memberId: string) => aiApi.takeOver(ticketId, memberId, why.trim() || undefined));
-  return (
-    <span ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
-      <button
-        ref={btn}
-        type="button"
-        className={`ai-btn ai-btn-sm ${primary ? 'ai-btn-primary' : ''}`}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        data-testid="take-over"
-        onClick={() => setOpen(!open)}
-      >
-        <LineIcon name="hand" size={13} /> {label}
-      </button>
-      {open && (
-        <FloatMenu anchor={btn.current} onClose={() => setOpen(false)} width={300}>
-          <div role="dialog" aria-label="Take over" data-testid="take-over-pop" style={{ padding: 8 }}>
-            <b style={{ fontSize: 13.5 }}>Who takes {ticketId}?</b>
-            <div className="ai-hint" style={{ margin: '2px 0 8px' }}>
-              The AI’s run ends, its workflow waits at this step, and the ticket is assigned to them. A handoff note of
-              what the AI did goes on the ticket. Files stay on the branch.
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 220, overflow: 'auto' }}>
-              {people.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`ai-mi ${chosen === p.id ? 'tw-mi-on' : ''}`}
-                  aria-pressed={chosen === p.id}
-                  onClick={() => setPick(p.id)}
-                >
-                  <MemberAvatar member={p} size={22} />
-                  {p.name}
-                  {p.name === me && <span className="ai-muted"> you</span>}
-                  {chosen === p.id && (
-                    <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>
-                      <LineIcon name="check" size={13} />
-                    </span>
-                  )}
-                </button>
-              ))}
-              {people.length === 0 && <span className="ai-muted">No people in this project.</span>}
-            </div>
-            <label className="ai-hint" style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 8 }}>
-              Why (goes in the handoff note, optional)
-              <textarea
-                rows={2}
-                value={why}
-                data-testid="take-over-why"
-                placeholder="What you will do instead, so the AI knows when it gets it back"
-                onChange={(e) => setWhy(e.target.value)}
-                style={{
-                  font: 'inherit',
-                  fontSize: 13,
-                  border: '1px solid #DFE5E0',
-                  borderRadius: 8,
-                  padding: '6px 8px',
-                  resize: 'vertical',
-                }}
-              />
-            </label>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-              <button type="button" className="ai-btn ai-btn-sm" onClick={() => setOpen(false)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm ai-btn-primary"
-                disabled={!chosen || takeOver.isPending}
-                data-testid="take-over-confirm"
-                onClick={async () => {
-                  if (!chosen) return;
-                  try {
-                    await takeOver.mutateAsync(chosen);
-                    setOpen(false);
-                    toast.success(
-                      'You took over',
-                      `${ticketId} is now ${people.find((p) => p.id === chosen)?.name}’s.`,
-                    );
-                    onDone?.();
-                  } catch (err) {
-                    toast.error("Couldn't take over", extractError(err));
-                  }
-                }}
-              >
-                Take over
-              </button>
-            </div>
-          </div>
-        </FloatMenu>
-      )}
-    </span>
-  );
 }
 
 /** Raise limit: run again with a longer time limit (a run that timed out). */

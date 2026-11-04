@@ -310,22 +310,6 @@ export interface AiSettings {
   myRole?: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
-/** Autopilot: the AI that decides requests for the owner (server/services/ai/autopilot.py). */
-export interface AiAutopilot {
-  enabled: boolean;
-  delegateId: string | null;
-  delegateName: string | null;
-  maxRisk: 'low' | 'medium' | 'high';
-  approvals: boolean;
-  questions: boolean;
-  graceMin: number;
-  perHourLimit: number;
-  fullRights: boolean;
-  enabledBy: string | null;
-  enabledAt: string | null;
-  usedLastHour: number;
-}
-
 export interface AiOverview {
   settings: AiSettings;
   members: AiMember[];
@@ -459,57 +443,6 @@ export interface AiRun {
   memoryUsed?: MemoryUsed | null;
 }
 
-export interface AiApproval {
-  id: string;
-  projectId: string;
-  memberId: string;
-  memberName: string | null;
-  runId: string | null;
-  ticketId: string | null;
-  action: string;
-  summary: string;
-  params: Record<string, unknown>;
-  reason: string | null;
-  risk: 'low' | 'medium' | 'high';
-  status: 'pending' | 'approved' | 'denied' | 'expired' | 'failed' | 'run_ended';
-  onBehalfOf: string | null;
-  /** A Docs AI proposal: the proposal and the page it changes. */
-  proposalId?: string | null;
-  pageId?: string | null;
-  requestedAt: string;
-  expiresAt: string | null;
-  decidedBy: string | null;
-  decidedAt: string | null;
-  decisionNote: string | null;
-  diff?: { field: string; label: string; from: unknown; to: unknown }[];
-  targetTitle?: string | null;
-  run?: { id: string; number: number; state: string; trigger: string; startedBy: string } | null;
-  trigger?: { label: string; trust: 'trusted' | 'data_only' | 'untrusted'; by: string | null };
-  stale?: {
-    fields: {
-      field: string;
-      label: string;
-      asked: unknown;
-      now: unknown;
-      setBy: string | null;
-      setAt: string | null;
-    }[];
-  } | null;
-  canDecide?: boolean;
-  cannotReason?: string;
-  rememberAllowed?: boolean;
-  /** "Always allow" is offered (a Docs edit that is not high risk). */
-  alwaysAllowed?: boolean;
-  /** How far an answer may reach (issue #275): once, this ticket, this project, every AI with the role. */
-  scopes?: ApprovalScope[];
-  /** A tool the CLI refused (`use_tool`): the allow rule it asks for and the call in words. */
-  toolRule?: string | null;
-  toolCall?: string | null;
-  role?: string | null;
-}
-
-export type ApprovalScope = 'once' | 'ticket' | 'project' | 'role';
-
 export interface AiAuditEntry {
   id: string;
   seq: number;
@@ -528,22 +461,6 @@ export interface AiAuditEntry {
   runNumber?: number | null;
   runCost?: number | null;
   redactions?: number;
-}
-
-export interface PermissionRow {
-  action: string;
-  label: string;
-  description: string;
-  risk: string;
-  templateMode: PermissionMode;
-  override: PermissionMode | null;
-  mode: PermissionMode;
-  lockedMin: PermissionMode | null;
-  source: string;
-  sourceBy?: string | null;
-  sourceAt?: string | null;
-  ownerEnabled?: boolean;
-  ceilingNote?: string | null;
 }
 
 export interface ProviderSpec {

@@ -5,7 +5,6 @@ import type { Decision, StoryDetail, StoryPlanItem, StoryView } from '../../type
 import { useProject } from '../../api/projects';
 import { GiveStoryDialog } from './GiveStoryDialog';
 import { PlanEditor, PlanReviewCard } from './PlanReview';
-import { openStoryFlow } from './storyLinks';
 import {
   Ico,
   PausedChip,
@@ -168,20 +167,7 @@ export function StoryPage({ ticket, allTickets = [], onClose, onOpenTicket, onOp
               <Ico name="send" size={13} color="#fff" width={1.9} />
               Give it to the PM
             </button>
-          ) : (
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSm}`}
-              onClick={() => {
-                openStoryFlow(story.id);
-                onClose();
-              }}
-              data-testid="story-page-flow"
-            >
-              <Ico name="flow" size={14} width={1.7} />
-              See it in Flow
-            </button>
-          )}
+          ) : null}
           {running && (
             <button
               type="button"

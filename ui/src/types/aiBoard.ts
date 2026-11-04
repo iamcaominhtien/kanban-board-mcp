@@ -26,7 +26,7 @@ export interface BoardAiPatch {
   tiers?: Record<string, 'free' | 'undo'>;
 }
 
-export type SignalKind = 'ai_hang' | 'ai_failing' | 'quota_near' | 'needs_queue' | 'arbitration_wait';
+export type SignalKind = 'ai_failing' | 'quota_near' | 'needs_queue';
 
 export interface AiSignal {
   kind: SignalKind;

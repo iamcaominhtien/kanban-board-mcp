@@ -8,29 +8,15 @@ import type { NotificationRow as Row } from '../../types/notifications';
 const m = vi.hoisted(() => ({
   answer: vi.fn(),
   retry: vi.fn(),
-  approve: vi.fn(),
-  deny: vi.fn(),
   dismiss: vi.fn(),
   snooze: vi.fn(),
   clear: vi.fn(),
   read: vi.fn(),
   setFollow: vi.fn(),
 }));
-const ops = vi.hoisted(() => ({
-  trouble: vi.fn(),
-  continueWith: vi.fn(),
-  handTo: vi.fn(),
-  moveAccount: vi.fn(),
-  conflict: vi.fn(),
-  arbitration: vi.fn(),
-}));
 const openRun = vi.hoisted(() => vi.fn());
-vi.mock('../../api/aiOps', () => ({ aiOpsApi: ops }));
-const wfApi = vi.hoisted(() => ({ resume: vi.fn() }));
-vi.mock('../../api/aiWorkflow', () => ({ workflowApi: wfApi }));
 vi.mock('../aiteam/runLink', () => ({ openRun }));
 vi.mock('../../api/ai', () => ({ aiApi: { answer: m.answer, retry: m.retry, cancel: vi.fn() } }));
-vi.mock('../../api/aiSafety', () => ({ safetyApi: { approve: m.approve, deny: m.deny } }));
 vi.mock('../../api/notifications', () => ({
   notificationKeys: { all: ['notifications'] },
   notificationsApi: {
@@ -110,29 +96,6 @@ describe('useNotificationActions', () => {
     expect(navigate).toHaveBeenCalledWith(expect.anything(), 'open_ticket');
   });
 
-  it('approves, warns when the board could not apply it, and denies', async () => {
-    const { act } = setup();
-    await act(row(), 'approve');
-    expect(m.approve).toHaveBeenCalledWith('run_1');
-    expect(toast.error).not.toHaveBeenCalled();
-    m.approve.mockResolvedValueOnce({ error: 'conflict' });
-    await act(row(), 'approve');
-    expect(toast.error).toHaveBeenCalledWith('Approved, but it could not be applied', 'conflict');
-    await act(row({ targetId: null }), 'approve');
-    expect(m.approve).toHaveBeenCalledTimes(2);
-    await act(row(), 'deny');
-    expect(m.deny).toHaveBeenCalledWith('run_1');
-    await act(row({ targetId: null }), 'deny');
-    expect(m.deny).toHaveBeenCalledTimes(1);
-  });
-
-  it('resumes a ticket stopped at its token cap', async () => {
-    wfApi.resume.mockResolvedValue({});
-    const { act } = setup();
-    await act(row({ kind: 'workflow_blocked', ticketId: 'KAN-305', data: { flag: 'quota_cap' } }), 'workflow:resume');
-    expect(wfApi.resume).toHaveBeenCalledWith('KAN-305');
-  });
-
   it('retries a run, only when the target is a run', async () => {
     const { act } = setup();
     await act(row(), 'retry');
@@ -199,28 +162,6 @@ describe('useNotificationActions', () => {
       expect(m.read).toHaveBeenCalledWith({ ids: ['nt_1'] });
     },
   );
-
-  it('maps the trouble, hand-over, conflict and arbitration actions to their endpoints', async () => {
-    const { act } = setup();
-    ops.trouble.mockResolvedValue({ done: true, text: 'Stopped npm run dev' });
-    await act(row(), 'trouble:stop_child');
-    expect(ops.trouble).toHaveBeenCalledWith('run_1', 'stop_child', undefined);
-    expect(toast.info).toHaveBeenCalledWith('Stopped npm run dev');
-    await act(row(), 'trouble:wait');
-    await act(row(), 'trouble:tell_ai');
-    await act(row(), 'trouble:cancel');
-    expect(ops.trouble.mock.calls.map((c) => c[1])).toEqual(['stop_child', 'wait', 'tell_ai', 'cancel']);
-    await act(row(), 'continue_note', { text: ' use the cache ' });
-    expect(ops.continueWith).toHaveBeenCalledWith('run_1', 'use the cache');
-    await act(row(), 'hand_to', { memberId: 'm2', text: 'go' });
-    expect(ops.handTo).toHaveBeenCalledWith('run_1', 'm2', 'go');
-    await act(row(), 'move_account', { accountId: 'acc2' });
-    expect(ops.moveAccount).toHaveBeenCalledWith('run_1', 'acc2');
-    await act(row({ targetKind: 'ticket', targetId: 'KAN-1' }), 'conflict:ai');
-    expect(ops.conflict).toHaveBeenCalledWith('KAN-1', 'ai');
-    await act(row(), 'arbitration:split');
-    expect(ops.arbitration).toHaveBeenCalledWith('KAN-1', 'split');
-  });
 
   it('opens a run in the run history, and the ticket when the row has no run', async () => {
     const { act, navigate } = setup();

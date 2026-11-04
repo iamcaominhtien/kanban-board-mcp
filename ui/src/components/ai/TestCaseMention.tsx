@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { aiApi, useAiMutation } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
-import { mentionedAi } from './MentionIntent';
+import { mentionedAi } from './ComposerAi';
 import { useAiBoardState } from './aiUi';
 import './ticketWork.css';
 

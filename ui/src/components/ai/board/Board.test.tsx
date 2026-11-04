@@ -35,31 +35,15 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 describe('BoardAiSection', () => {
-  it('shows the tiers, greys the locked one and lowers a middle-tier action', async () => {
+  it('turns the Board AI acting as you on and off', async () => {
     http.get.mockReturnValue(ok(view));
     http.patch.mockReturnValue(ok(view));
     render(wrap(<BoardAiSection projectId="p1" />));
-    await screen.findByTestId('board-ai-table');
-    expect(screen.getByTestId('tier-row-done').getAttribute('data-locked')).toBe('true');
-    // the reason is said once, above the fixed rows
-    expect(screen.getByTestId('tier-locked-reason').textContent).toContain('Fixed in the last tier');
-    fireEvent.click(screen.getByRole('button', { name: 'Tier of: Move a ticket to another column' }));
-    fireEvent.click(screen.getByRole('option', { name: /^Just does it/ }));
-    await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/board-ai', { tiers: { status: 'free' } }),
-    );
+    await screen.findByTestId('board-ai-section');
+    expect(screen.queryByTestId('board-ai-tiers')).toBeNull();
+    expect(screen.queryByTestId('board-ai-table')).toBeNull();
     fireEvent.click(screen.getByTestId('board-ai-acts'));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/board-ai', { acts: false }));
-  });
-
-  it('lists the real operations of each tier in its card', async () => {
-    http.get.mockReturnValue(ok(view));
-    render(wrap(<BoardAiSection projectId="p1" />));
-    await screen.findByTestId('board-ai-table');
-    expect(screen.getByTestId('tier-undo-status').textContent).toBe('Move a ticket to another column');
-    expect(screen.getByTestId('tier-free-comment').textContent).toBe('Comment on a ticket');
-    expect(screen.getByTestId('tier-ask-done').textContent).toBe('Move a ticket to Done');
-    expect(screen.queryByTestId('tier-undo-comment')).toBeNull();
   });
 
   it('turns on the Board AI managing the AI team; its actions are listed there, not in the tiers', async () => {
@@ -117,19 +101,6 @@ describe('SignalCards', () => {
     render(wrap(<SignalCards projectId="p1" />));
     fireEvent.click(await screen.findByText('Run it again'));
     await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/runs/r1/retry', undefined));
-  });
-
-  it('answers a hung AI with the first action the diagnosis allows', async () => {
-    http.get.mockReturnValue(
-      ok([sig({ kind: 'ai_hang', action: 'Stop that command', data: { actions: ['stop_child', 'wait'] } })]),
-    );
-    http.post.mockReturnValue(ok({ done: true, text: 'Stopped.' }));
-    render(wrap(<SignalCards projectId="p1" />));
-    fireEvent.click(await screen.findByText('Stop that command'));
-    await waitFor(() =>
-      expect(http.post).toHaveBeenCalledWith('/ai/runs/r1/trouble', { action: 'stop_child', note: undefined }),
-    );
-    await screen.findByTestId('signal-note');
   });
 
   it('opens the accounts page from the quota card, and Leave it puts the card away', async () => {

@@ -10,7 +10,6 @@ import { SettingsPage, type SettingsTarget } from './components/settings/Setting
 import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
 import { OPEN_RUN_EVENT } from './components/aiteam/runLink';
-import { OPEN_TIMELINE_EVENT, parseTimelineLink, setPendingTimeline } from './components/aiteam/timelineLink';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
@@ -63,14 +62,6 @@ import {
   NotificationsPageView,
 } from './components/notifications/NotificationsHost';
 import { notificationsApi, useNotificationCounts } from './api/notifications';
-import { useWorkflowBoard } from './api/aiWorkflowBoard';
-import { WorkflowBoardProvider } from './components/workflowBoard/WorkflowBoardContext';
-import {
-  NO_WORKFLOW_FILTER,
-  matchesWorkflowFilter,
-  workflowFilterOptions,
-} from './components/workflowBoard/workflowFilter';
-import type { WorkflowBoardRow, WorkflowFilterState } from './types/aiWorkflowBoard';
 import { SchedulesProvider } from './components/schedules/SchedulesContext';
 import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
 import { LineIcon } from './components/ui/LineIcon';
@@ -117,14 +108,12 @@ function BoardProviders({
   ai,
   schedules,
   ideas,
-  workflowRows,
   children,
 }: {
   ai: AiBoardState;
   schedules: Omit<Parameters<typeof SchedulesProvider>[0], 'children'>;
   /** Idea Space: Quick add (Alt+N, "Make idea") and the links from tickets to their idea. */
   ideas: { projectId: string | null; openIdea: (id: string, tab?: string) => void };
-  workflowRows: WorkflowBoardRow[] | undefined;
   children: ReactNode;
 }) {
   return (
@@ -132,7 +121,7 @@ function BoardProviders({
       <SchedulesProvider {...schedules}>
         <IdeaLinksProvider value={{ openIdea: ideas.openIdea }}>
           <IdeaCaptureProvider projectId={ideas.projectId} onOpenIdea={ideas.openIdea}>
-            <WorkflowBoardProvider rows={workflowRows}>{children}</WorkflowBoardProvider>
+            {children}
           </IdeaCaptureProvider>
         </IdeaLinksProvider>
       </SchedulesProvider>
@@ -151,18 +140,12 @@ export default function App() {
 
   const { theme, toggleTheme } = useTheme();
   const [currentProjectId, setCurrentProjectId] = useState<string>(
-    // A Timeline link names its project
     () => new URLSearchParams(window.location.search).get('proj') ?? localStorage.getItem('activeProjectId') ?? '',
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team'>(() => {
-    const link = parseTimelineLink(window.location.search);
-    if (link) {
-      setPendingTimeline(link);
-      return 'ai_team';
-    }
     return new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board';
   });
   const [docsRequest, setDocsRequest] = useState<string | null>(() =>
@@ -196,7 +179,7 @@ export default function App() {
   const [aiPage, setAiPage] = useState<{
     memberId?: string | null;
     add?: boolean;
-    tab?: 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety';
+    tab?: 'accounts' | 'approvals' | 'audit' | 'usage';
     auditMemberId?: string;
     key: number;
   } | null>(null);
@@ -270,11 +253,6 @@ export default function App() {
   const [filterPending, setFilterPending] = useState(false);
   const [filterFromIdea, setFilterFromIdea] = useState(false);
   const [hidePending, setHidePending] = useState(false);
-  const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilterState>(NO_WORKFLOW_FILTER);
-  const workflowBoard = useWorkflowBoard(currentProjectId ?? '');
-  const workflowRows = workflowBoard.data;
-  const workflowRowById = useMemo(() => new Map((workflowRows ?? []).map((r) => [r.ticketId, r])), [workflowRows]);
-  const workflowOptions = useMemo(() => workflowFilterOptions(workflowRows ?? []), [workflowRows]);
 
   const [reopenTargetTicket, setReopenTargetTicket] = useState<Ticket | null>(null);
   const [pendingTargetTicket, setPendingTargetTicket] = useState<Ticket | null>(null);
@@ -353,7 +331,6 @@ export default function App() {
       const matchesPending = !filterPending || Boolean(t.pending);
       const matchesFromIdea = !filterFromIdea || Boolean(t.fromIdeaId);
       const matchesHidePending = !hidePending || !t.pending;
-      const matchesWorkflow = matchesWorkflowFilter(workflowRowById.get(t.id), workflowFilter);
       return (
         matchesType &&
         matchesPriority &&
@@ -361,8 +338,7 @@ export default function App() {
         matchesReopened &&
         matchesPending &&
         matchesFromIdea &&
-        matchesHidePending &&
-        matchesWorkflow
+        matchesHidePending
       );
     });
 
@@ -557,22 +533,6 @@ export default function App() {
     setViewMode('schedules');
     closeModal();
   }
-
-  // "Open in Timeline" from a ticket: show the AI Team view on the Timeline, over whatever is open
-  useEffect(() => {
-    const open = () => {
-      setSettingsTarget(null);
-      setAiPage(null);
-      setActiveBoard('main');
-      setViewMode('ai_team');
-      setModalState(null);
-      const url = new URL(window.location.href);
-      url.searchParams.delete('ticket');
-      window.history.replaceState({}, '', url.toString());
-    };
-    window.addEventListener(OPEN_TIMELINE_EVENT, open);
-    return () => window.removeEventListener(OPEN_TIMELINE_EVENT, open);
-  }, []);
 
   // A link to one run (AI Team › Run history): show the AI Team view, over whatever is open
   useEffect(() => {
@@ -826,11 +786,7 @@ export default function App() {
     activeAssignee === 'all' &&
     !filterReopened &&
     !filterPending &&
-    !filterFromIdea &&
-    workflowFilter.waitingForMe === NO_WORKFLOW_FILTER.waitingForMe &&
-    workflowFilter.role === NO_WORKFLOW_FILTER.role &&
-    workflowFilter.template === NO_WORKFLOW_FILTER.template &&
-    workflowFilter.step === NO_WORKFLOW_FILTER.step;
+    !filterFromIdea;
   const laneCountsQuery = useLaneCounts(currentProjectId ?? '', ticketsPhase && noBoardFilter);
   const loadingLaneCounts = ticketsPhase && noBoardFilter ? laneCountsQuery.data : undefined;
   const lanesOverride = projectsError ? (
@@ -901,7 +857,6 @@ export default function App() {
   return (
     <BoardProviders
       ai={aiState}
-      workflowRows={workflowRows}
       schedules={{
         projectId: currentProjectId,
         tickets: allAvailableTickets,
@@ -1149,9 +1104,6 @@ export default function App() {
                           fromIdeaCount={fromIdeaCount}
                           filterFromIdea={filterFromIdea}
                           onFilterFromIdeaChange={setFilterFromIdea}
-                          workflowOptions={workflowOptions}
-                          workflowFilter={workflowFilter}
-                          onWorkflowFilterChange={setWorkflowFilter}
                           pendingCount={pendingCount}
                           totalReopens30d={totalReopens30d}
                           waitingOnTicketsCount={waitingOnTicketsCount}

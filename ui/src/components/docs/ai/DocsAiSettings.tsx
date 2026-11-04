@@ -83,39 +83,6 @@ export function DocsAiSettings({ project }: { project: Project }) {
             ))}
           </select>
         </Row>
-        <Row title="What AI may read" text="Pages hidden from AI are never read, by anyone's AI.">
-          <select
-            style={select}
-            value={d.readScope}
-            disabled={!admin || off}
-            onChange={(e) => save({ readScope: e.target.value as DocsAiSettingsPatch['readScope'] })}
-            aria-label="What AI may read"
-          >
-            <option value="all">All pages</option>
-            <option value="except_hidden">Except hidden</option>
-            <option value="picked">Only picked</option>
-          </select>
-        </Row>
-        {d.readScope === 'picked' && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }} aria-label="Picked pages">
-            {pages.map((p) => {
-              const on = d.pickedPages.includes(p.id);
-              return (
-                <label key={p.id} style={{ fontSize: 12, display: 'flex', gap: 4, alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    disabled={!admin || off}
-                    onChange={() =>
-                      save({ pickedPages: on ? d.pickedPages.filter((x) => x !== p.id) : [...d.pickedPages, p.id] })
-                    }
-                  />
-                  {p.title}
-                </label>
-              );
-            })}
-          </div>
-        )}
         <Row title="Style guide page" text="Used by Check this page and Write with AI.">
           <select
             style={select}
@@ -150,37 +117,6 @@ export function DocsAiSettings({ project }: { project: Project }) {
             disabled={!admin || off}
             onChange={(v) => save({ freshnessOn: v })}
           />
-        </Row>
-        <Row
-          title="Edits by AI members"
-          text="What happens when an AI member wants to change a page. “Make the change” follows each member’s own permissions."
-        >
-          <select
-            style={select}
-            value={d.editsMode}
-            disabled={!admin || off}
-            onChange={(e) => save({ editsMode: e.target.value as DocsAiSettingsPatch['editsMode'] })}
-            aria-label="Edits by AI members"
-          >
-            <option value="direct">Make the change</option>
-            <option value="proposal">Proposal to review</option>
-            <option value="draft">Draft only</option>
-          </select>
-        </Row>
-        <Row title="Proposals expire after" text="Nothing changes when they expire.">
-          <select
-            style={select}
-            value={d.proposalDays}
-            disabled={!admin || off || d.editsMode !== 'proposal'}
-            onChange={(e) => save({ proposalDays: Number(e.target.value) })}
-            aria-label="Proposals expire after"
-          >
-            {[3, 7, 14, 30].map((n) => (
-              <option key={n} value={n}>
-                {n} days
-              </option>
-            ))}
-          </select>
         </Row>
       </div>
       {err && (

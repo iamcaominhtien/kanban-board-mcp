@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { boardAiKeys, useSignals } from '../../../api/aiBoard';
 import { aiApi } from '../../../api/ai';
-import { aiOpsApi, type TroubleAction } from '../../../api/aiOps';
 import { extractError } from '../../../api/extractError';
 import type { AiSignal, SignalKind } from '../../../types/aiBoard';
 import { requestOpenNotifications } from '../../notifications/NotificationsHost';
@@ -11,11 +10,9 @@ import { openRun } from '../../aiteam/runLink';
 import { useAiBoardState } from '../aiUi';
 
 const LOOK: Record<SignalKind, { border: string; bg: string; dot: string }> = {
-  ai_hang: { border: '#F2C7BB', bg: '#FDECE8', dot: '#C4432A' },
   ai_failing: { border: '#F2C7BB', bg: '#FDECE8', dot: '#C4432A' },
   quota_near: { border: '#F0DBA8', bg: '#FFFBEF', dot: '#B8860B' },
   needs_queue: { border: '#F0DBA8', bg: '#FFFBEF', dot: '#B8860B' },
-  arbitration_wait: { border: '#F0DBA8', bg: '#FFFBEF', dot: '#B8860B' },
 };
 
 function SignalCard({ signal, projectId, onLeave }: { signal: AiSignal; projectId: string; onLeave: () => void }) {
@@ -46,11 +43,6 @@ function SignalCard({ signal, projectId, onLeave }: { signal: AiSignal; projectI
 
   const act = () => {
     switch (signal.kind) {
-      case 'ai_hang': {
-        const action = signal.data.actions?.[0] as TroubleAction | undefined;
-        if (!signal.runId || !action) return;
-        return run(async () => (await aiOpsApi.trouble(signal.runId!, action)).text);
-      }
       case 'ai_failing':
         if (!signal.runId) return;
         return run(async () => {
@@ -59,10 +51,6 @@ function SignalCard({ signal, projectId, onLeave }: { signal: AiSignal; projectI
         });
       case 'needs_queue':
         requestOpenNotifications('panel');
-        return;
-      case 'arbitration_wait':
-        // The ruling is a person's: open the ticket, where the arbitration is answered
-        openTicket();
         return;
       case 'quota_near':
         if (board.openAiTab) board.openAiTab('accounts');
@@ -115,9 +103,9 @@ function SignalCard({ signal, projectId, onLeave }: { signal: AiSignal; projectI
         <button type="button" className="ai-btn ai-btn-primary ai-btn-sm" disabled={busy} onClick={() => void act()}>
           {signal.kind === 'quota_near' && board.openAiTab ? 'Open AI accounts' : signal.action}
         </button>
-        {signal.runId && (signal.kind === 'ai_hang' || signal.kind === 'ai_failing') && (
+        {signal.runId && signal.kind === 'ai_failing' && (
           <button type="button" className="ai-btn ai-btn-sm" onClick={() => openRun(signal.runId!)}>
-            {signal.kind === 'ai_failing' ? 'Open the last run' : 'Open the run'}
+            Open the last run
           </button>
         )}
         {signal.kind === 'ai_failing' && signal.memberId && member && (
@@ -135,7 +123,7 @@ function SignalCard({ signal, projectId, onLeave }: { signal: AiSignal; projectI
             Pause {member.name}
           </button>
         )}
-        {signal.ticketId && signal.kind !== 'arbitration_wait' && !signal.runId && (
+        {signal.ticketId && !signal.runId && (
           <button type="button" className="ai-btn ai-btn-sm" onClick={openTicket}>
             Open {signal.ticketId}
           </button>
@@ -156,7 +144,7 @@ function SignalCard({ signal, projectId, onLeave }: { signal: AiSignal; projectI
   );
 }
 
-/** Noticing things (design/screens/ai-board-wave3.md, F): the five AI signals as cards, each with its button. The
+/** Noticing things (design/screens/ai-board-wave3.md, F): the AI signals as cards, each with its button. The
  * sixth card of the design, Stuck, is the board's own insight and stays where Board health already shows it. */
 export function SignalCards({ projectId }: { projectId: string }) {
   const q = useSignals(projectId);

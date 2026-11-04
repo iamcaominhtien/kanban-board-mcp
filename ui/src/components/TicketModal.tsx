@@ -52,11 +52,7 @@ import { TestCasesSection } from './TestCasesSection';
 import { DebugSpaceSection } from './DebugSpaceSection';
 import { WorkspaceSection } from './WorkspaceSection';
 import { AssigneePicker } from './ai/AssigneePicker';
-import { useMentionIntent } from './ai/MentionIntent';
 import { usePeopleAndAiSuggest } from './ai/useMentionList';
-import { AiCompletedBadge, HoldChips, StatusMovedBy } from './ai/TicketHold';
-import { WhoHasIt } from './ai/handoff/Handoff';
-import { TicketPlan } from './ai/TicketPlan';
 import { AiHoverHost } from './ai/MentionPill';
 import {
   ASK_AI_EVENT,
@@ -70,17 +66,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
-import { TicketWorkflow } from './ai/workflow/TicketWorkflow';
-import { useTicketPace, useTicketWorkflow } from '../api/aiWorkflow';
-import { PaceButton } from './ai/workflow/PaceButton';
-import { TimelineTab } from './aiteam/TimelineTab';
-import { openTimeline } from './aiteam/timelineLink';
-import { TicketSafetyBlocks } from './ai/AiTicketSafety';
 import { SplitBadge, SuggestCasesButton, SuggestCasesPanel, TicketAiMenu } from './assist/TicketAi';
 import { TicketChat } from './assist/TicketChat';
-import { useAiBoardState } from './ai/aiUi';
-import { DraftWithAi } from './assist/DraftWithAi';
-import { useAssist } from './assist/AssistContext';
+import { AiCompletedBadge, useAiBoardState } from './ai/aiUi';
 import { BranchesSection } from './BranchesSection';
 import { CreateBranchModal } from './CreateBranchModal';
 import { useProject } from '../api/projects';
@@ -262,7 +250,6 @@ function TicketModalInner({
     'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity' | 'ai'
   >('main');
   const [suggestCases, setSuggestCases] = useState(false);
-  const [draftActive, setDraftActive] = useState(false);
   // The ticket and the AI's work on it take turns on the main tab (a tall AI summary no longer hides the ticket)
   const [mainView, setMainView] = useState<'ticket' | 'ai'>('ticket');
   const [hasAiPane, setHasAiPane] = useState(false);
@@ -307,14 +294,8 @@ function TicketModalInner({
     }),
     [openTicketId],
   );
-  const assist = useAssist();
   // The AI chat docked in the ticket page (design/screens/ai-where-you-work.md, B); Ctrl+J opens and closes it
   const { members: aiMembers, settings: aiSettings } = useAiBoardState();
-  // A ticket on a workflow shows its step strip on the ticket itself; one that is not on a workflow keeps the
-  // "put it on a workflow" row in the AI activity view (TP-11). One instance either way.
-  const wfQuery = useTicketWorkflow(ticket?.id ?? '', aiMembers.size > 0);
-  const ticketFast = useTicketPace(ticket?.id ?? '', aiMembers.size > 0).data?.pace === 'fast';
-  const wfOnTicket = !!wfQuery.data && wfQuery.data.state !== 'detached';
   const [chatOpen, setChatOpen] = useState(false);
   const aiChatAvailable = aiSettings?.aiEnabled !== false && aiMembers.size > 0;
   const toggleChat = useCallback((open?: boolean) => setChatOpen((v) => open ?? !v), []);
@@ -331,7 +312,6 @@ function TicketModalInner({
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, [openTicketId, aiChatAvailable]);
-  const mentionIntent = useMentionIntent(ticket?.id ?? '');
   const { data: workspaceSettings } = useWorkspaceSettings();
   const workspaceEnabled = workspaceSettings?.enabled !== false;
   // Header tooltip "Workspace — 6 files · 12.4 MB" (comp-2 WS-2), from the same query the Workspace tab reads
@@ -912,249 +892,218 @@ function TicketModalInner({
                 </div>
               )}
 
-              {assist?.projectId && (
-                <DraftWithAi
-                  projectId={assist.projectId}
-                  members={members}
-                  onActive={setDraftActive}
-                  onCancel={handleClose}
-                  onCreated={(id) => {
-                    handleClose();
-                    // the board refetches the new ticket first, then opens it
-                    window.setTimeout(() => assist.onOpenTicket(id), 900);
-                  }}
-                  onUseExisting={(id) => {
-                    handleClose();
-                    assist.onOpenTicket(id);
-                  }}
-                  onFillManual={(f) => {
-                    if (f.title) setTitle(f.title);
-                    if (f.description) setDescription(f.description);
-                    if (f.type) setType(f.type as IssueType);
-                    if (f.priority) setPriority(f.priority as Priority);
-                    if (f.estimate != null) setEstimate(f.estimate);
-                    setDraftActive(false);
+              <div className={styles.ntField}>
+                <span className={styles.ntLabel}>Title</span>
+                <input
+                  ref={titleInputRef}
+                  className={styles.ntInput}
+                  placeholder="Ticket title…"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className={styles.ntField}>
+                <span className={styles.ntLabel}>Type</span>
+                <div className={styles.typeButtonsGrid}>
+                  {(['task', 'bug', 'feature', 'chore'] as IssueType[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`${styles.ntTypeBtn} ${type === t ? styles.ntTypeBtnActive : ''}`}
+                      onClick={() => setType(t)}
+                    >
+                      <TicketTypeIcon type={t} size={13} />
+                      {TYPE_CONFIG[t].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.ntField}>
+                <span className={styles.ntLabel}>Description</span>
+                {/* The boxed editor with its compact toolbar shows at rest (New Ticket 1, comp-2 NT-4) */}
+                <MarkdownEditor
+                  value={description}
+                  onChange={setDescription}
+                  startInEditMode
+                  focusOnMount={false}
+                  disableClickOutside
+                  compact
+                  onUploadFile={uploadAnyFile}
+                  onUploadImage={uploadAnyFile}
+                />
+              </div>
+
+              {/* Priority dot chips Low…Critical on their own line, Assignee dropdown on the right (comp-2 NT-1, NT-3) */}
+              <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+                <div className={styles.ntField} style={{ flex: 1 }}>
+                  <span className={styles.ntLabel}>Priority</span>
+                  <div className={styles.priorityChips} role="radiogroup" aria-label="Priority">
+                    {(['low', 'medium', 'high', 'critical'] as Priority[]).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        role="radio"
+                        aria-checked={priority === p}
+                        className={`${styles.ntPriorityChip} ${priority === p ? styles.ntPriorityChipActive : ''}`}
+                        onClick={() => setPriority(p)}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORITY_DOT[p] }}
+                        />
+                        <span style={{ textTransform: 'capitalize' }}>{p}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={styles.ntField}>
+                  <span className={styles.ntLabel}>Assignee</span>
+                  <MenuSelect<string>
+                    variant="button"
+                    label="Assignee"
+                    testId="new-ticket-assignee"
+                    // the trigger carries the chosen avatar, or the dashed one for Unassigned, in the Filter bar's
+                    // dropdown size (New Ticket 1)
+                    icon={(() => {
+                      const m = assignee ? members.find((x) => x.id === assignee) : undefined;
+                      return m ? (
+                        <MemberAvatar member={m} size={15} />
+                      ) : (
+                        <span
+                          style={{
+                            display: 'block',
+                            width: 15,
+                            height: 15,
+                            borderRadius: '50%',
+                            border: '1.4px dashed #C7D2CB',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      );
+                    })()}
+                    style={{ padding: '7px 11px', borderColor: '#E3E8E5', gap: 6 }}
+                    value={assignee ?? ''}
+                    onChange={(v) => setAssignee(v || null)}
+                    menuWidth={220}
+                    options={[
+                      {
+                        value: '',
+                        label: 'Unassigned',
+                        icon: (
+                          <span
+                            style={{
+                              display: 'block',
+                              width: 15,
+                              height: 15,
+                              borderRadius: '50%',
+                              border: '1.4px dashed #C7D2CB',
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                        ),
+                      },
+                      ...members.map((m) => ({
+                        value: m.id,
+                        label: m.name,
+                        icon: <MemberAvatar member={m} size={18} />,
+                      })),
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.ntField}>
+                <span className={styles.ntLabel}>Estimate</span>
+                <div className={styles.estimateRow}>
+                  {/* "—" is no estimate (comp-2 NT-5) */}
+                  <button
+                    type="button"
+                    aria-label="No estimate"
+                    className={`${styles.ntEstBtn} ${estimate === null ? styles.ntEstBtnActive : ''}`}
+                    onClick={() => setEstimate(null)}
+                  >
+                    —
+                  </button>
+                  {ESTIMATE_NUMBERS.map((sp) => (
+                    <button
+                      key={sp}
+                      type="button"
+                      className={`${styles.ntEstBtn} ${estimate === sp ? styles.ntEstBtnActive : ''}`}
+                      onClick={() => setEstimate(estimate === sp ? null : sp)}
+                    >
+                      {sp}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tags with a pill preview, and Start date beside Due date (New Ticket 1, comp-2 NT-2) */}
+              <div className={styles.ntField}>
+                <label className={styles.ntLabel} htmlFor="new-ticket-tags">
+                  Tags
+                </label>
+                <input
+                  id="new-ticket-tags"
+                  className={`${styles.ntInput} ${styles.ntInputPlain}`}
+                  placeholder="frontend, bug, phase-2…"
+                  value={tagsText}
+                  onChange={(e) => {
+                    setTagsText(e.target.value);
+                    setTags(parseTagList(e.target.value));
                   }}
                 />
-              )}
-              {!draftActive && (
-                <>
-                  <div className={styles.ntField}>
-                    <span className={styles.ntLabel}>Title</span>
-                    <input
-                      ref={titleInputRef}
-                      className={styles.ntInput}
-                      placeholder="Ticket title…"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      autoFocus
-                    />
+                {tags.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {tags.map((t) => (
+                      <TagPill key={t} tag={t} size="small" />
+                    ))}
                   </div>
+                )}
+              </div>
 
-                  <div className={styles.ntField}>
-                    <span className={styles.ntLabel}>Type</span>
-                    <div className={styles.typeButtonsGrid}>
-                      {(['task', 'bug', 'feature', 'chore'] as IssueType[]).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          className={`${styles.ntTypeBtn} ${type === t ? styles.ntTypeBtnActive : ''}`}
-                          onClick={() => setType(t)}
-                        >
-                          <TicketTypeIcon type={t} size={13} />
-                          {TYPE_CONFIG[t].label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <div className={styles.ntField} style={{ flex: 1 }}>
+                  <label className={styles.ntLabel} htmlFor="new-ticket-start">
+                    Start Date
+                  </label>
+                  <input
+                    id="new-ticket-start"
+                    type="date"
+                    className={`${styles.ntInput} ${styles.ntInputPlain}`}
+                    value={startDate ?? ''}
+                    max={dueDate ?? undefined}
+                    onChange={(e) => setStartDate(e.target.value || null)}
+                  />
+                </div>
 
-                  <div className={styles.ntField}>
-                    <span className={styles.ntLabel}>Description</span>
-                    {/* The boxed editor with its compact toolbar shows at rest (New Ticket 1, comp-2 NT-4) */}
-                    <MarkdownEditor
-                      value={description}
-                      onChange={setDescription}
-                      startInEditMode
-                      focusOnMount={false}
-                      disableClickOutside
-                      compact
-                      onUploadFile={uploadAnyFile}
-                      onUploadImage={uploadAnyFile}
-                    />
-                  </div>
-
-                  {/* Priority dot chips Low…Critical on their own line, Assignee dropdown on the right (comp-2 NT-1, NT-3) */}
-                  <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-                    <div className={styles.ntField} style={{ flex: 1 }}>
-                      <span className={styles.ntLabel}>Priority</span>
-                      <div className={styles.priorityChips} role="radiogroup" aria-label="Priority">
-                        {(['low', 'medium', 'high', 'critical'] as Priority[]).map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            role="radio"
-                            aria-checked={priority === p}
-                            className={`${styles.ntPriorityChip} ${priority === p ? styles.ntPriorityChipActive : ''}`}
-                            onClick={() => setPriority(p)}
-                          >
-                            <span
-                              aria-hidden="true"
-                              style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORITY_DOT[p] }}
-                            />
-                            <span style={{ textTransform: 'capitalize' }}>{p}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className={styles.ntField}>
-                      <span className={styles.ntLabel}>Assignee</span>
-                      <MenuSelect<string>
-                        variant="button"
-                        label="Assignee"
-                        testId="new-ticket-assignee"
-                        // the trigger carries the chosen avatar, or the dashed one for Unassigned, in the Filter bar's
-                        // dropdown size (New Ticket 1)
-                        icon={(() => {
-                          const m = assignee ? members.find((x) => x.id === assignee) : undefined;
-                          return m ? (
-                            <MemberAvatar member={m} size={15} />
-                          ) : (
-                            <span
-                              style={{
-                                display: 'block',
-                                width: 15,
-                                height: 15,
-                                borderRadius: '50%',
-                                border: '1.4px dashed #C7D2CB',
-                                boxSizing: 'border-box',
-                              }}
-                            />
-                          );
-                        })()}
-                        style={{ padding: '7px 11px', borderColor: '#E3E8E5', gap: 6 }}
-                        value={assignee ?? ''}
-                        onChange={(v) => setAssignee(v || null)}
-                        menuWidth={220}
-                        options={[
-                          {
-                            value: '',
-                            label: 'Unassigned',
-                            icon: (
-                              <span
-                                style={{
-                                  display: 'block',
-                                  width: 15,
-                                  height: 15,
-                                  borderRadius: '50%',
-                                  border: '1.4px dashed #C7D2CB',
-                                  boxSizing: 'border-box',
-                                }}
-                              />
-                            ),
-                          },
-                          ...members.map((m) => ({
-                            value: m.id,
-                            label: m.name,
-                            icon: <MemberAvatar member={m} size={18} />,
-                          })),
-                        ]}
-                      />
-                    </div>
-                  </div>
-
-                  <div className={styles.ntField}>
-                    <span className={styles.ntLabel}>Estimate</span>
-                    <div className={styles.estimateRow}>
-                      {/* "—" is no estimate (comp-2 NT-5) */}
-                      <button
-                        type="button"
-                        aria-label="No estimate"
-                        className={`${styles.ntEstBtn} ${estimate === null ? styles.ntEstBtnActive : ''}`}
-                        onClick={() => setEstimate(null)}
-                      >
-                        —
-                      </button>
-                      {ESTIMATE_NUMBERS.map((sp) => (
-                        <button
-                          key={sp}
-                          type="button"
-                          className={`${styles.ntEstBtn} ${estimate === sp ? styles.ntEstBtnActive : ''}`}
-                          onClick={() => setEstimate(estimate === sp ? null : sp)}
-                        >
-                          {sp}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Tags with a pill preview, and Start date beside Due date (New Ticket 1, comp-2 NT-2) */}
-                  <div className={styles.ntField}>
-                    <label className={styles.ntLabel} htmlFor="new-ticket-tags">
-                      Tags
-                    </label>
-                    <input
-                      id="new-ticket-tags"
-                      className={`${styles.ntInput} ${styles.ntInputPlain}`}
-                      placeholder="frontend, bug, phase-2…"
-                      value={tagsText}
-                      onChange={(e) => {
-                        setTagsText(e.target.value);
-                        setTags(parseTagList(e.target.value));
-                      }}
-                    />
-                    {tags.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        {tags.map((t) => (
-                          <TagPill key={t} tag={t} size="small" />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <div className={styles.ntField} style={{ flex: 1 }}>
-                      <label className={styles.ntLabel} htmlFor="new-ticket-start">
-                        Start Date
-                      </label>
-                      <input
-                        id="new-ticket-start"
-                        type="date"
-                        className={`${styles.ntInput} ${styles.ntInputPlain}`}
-                        value={startDate ?? ''}
-                        max={dueDate ?? undefined}
-                        onChange={(e) => setStartDate(e.target.value || null)}
-                      />
-                    </div>
-
-                    <div className={styles.ntField} style={{ flex: 1 }}>
-                      <label className={styles.ntLabel} htmlFor="new-ticket-due">
-                        Due Date
-                      </label>
-                      <input
-                        id="new-ticket-due"
-                        type="date"
-                        className={`${styles.ntInput} ${styles.ntInputPlain}`}
-                        value={dueDate ?? ''}
-                        min={startDate ?? undefined}
-                        onChange={(e) => setDueDate(e.target.value || null)}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+                <div className={styles.ntField} style={{ flex: 1 }}>
+                  <label className={styles.ntLabel} htmlFor="new-ticket-due">
+                    Due Date
+                  </label>
+                  <input
+                    id="new-ticket-due"
+                    type="date"
+                    className={`${styles.ntInput} ${styles.ntInputPlain}`}
+                    value={dueDate ?? ''}
+                    min={startDate ?? undefined}
+                    onChange={(e) => setDueDate(e.target.value || null)}
+                  />
+                </div>
+              </div>
             </div>
 
-            {!draftActive && (
-              <div className={styles.newModalFooter}>
-                <button type="button" className={styles.btnCancel} onClick={handleClose}>
-                  Cancel
-                </button>
-                <button type="submit" className={styles.btnSubmit}>
-                  Create Ticket
-                </button>
-              </div>
-            )}
+            <div className={styles.newModalFooter}>
+              <button type="button" className={styles.btnCancel} onClick={handleClose}>
+                Cancel
+              </button>
+              <button type="submit" className={styles.btnSubmit}>
+                Create Ticket
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -1480,7 +1429,6 @@ function TicketModalInner({
                 active={activeTab === 'ai'}
                 onClick={() => setActiveTab(activeTab === 'ai' ? 'main' : 'ai')}
               />
-              <PaceButton ticketId={ticket.id} />
               <TicketAiMenu
                 ticket={ticket}
                 chatOpen={chatOpen && aiChatAvailable}
@@ -1945,32 +1893,7 @@ function TicketModalInner({
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
                     <TicketAiPanel ticket={ticket} onOpenRun={() => setActiveTab('ai')} />
-                    {!wfOnTicket && <TicketWorkflow ticket={ticket} />}
                     <TicketHandover ticket={ticket} />
-                    {mainView === 'ai' && ticket.projectId && (
-                      <div data-testid="ticket-timeline">
-                        <button
-                          type="button"
-                          className="ai-btn ai-btn-sm"
-                          style={{ marginBottom: 8 }}
-                          data-testid="open-in-timeline"
-                          onClick={() => openTimeline({ scope: ticket.id })}
-                        >
-                          Open in Timeline
-                        </button>
-                        <TimelineTab
-                          projectId={ticket.projectId}
-                          scopeTicketId={ticket.id}
-                          compactChrome
-                          actions={{
-                            onOpenTicket: () => undefined,
-                            onOpenDocsPage: () => undefined,
-                          }}
-                        />
-                      </div>
-                    )}
-                    <TicketPlan ticket={ticket} />
-                    <TicketSafetyBlocks ticketId={ticket.id} />
                   </div>
                   <div
                     className={`${styles.detailBody} ${styles.tabFadeSlide}`}
@@ -2016,8 +1939,6 @@ function TicketModalInner({
                             <TagPicker projectTags={projectTags} currentTags={tags} onAdd={handleAddTag} />
                           </div>
                         </div>
-
-                        {wfOnTicket && <TicketWorkflow ticket={ticket} />}
 
                         {/* Description */}
                         <div
@@ -2620,22 +2541,16 @@ function TicketModalInner({
                           focusCommentId={focusCommentId}
                           onFocusHandled={() => setFocusCommentId(null)}
                           criteriaCount={ticket.acceptanceCriteria?.length ?? 0}
-                          ticketFast={ticketFast}
                           onAdd={async (t, opts) => {
                             // The Ask button sends the text as a question to one AI member (C1)
                             if (opts?.askMemberId) {
                               await aiApi.ask(ticket.id, {
                                 memberId: opts.askMemberId,
                                 question: t,
-                                ...(opts.fast ? { fast: true } : {}),
                               });
                               void queryClient.invalidateQueries({ queryKey: ['tickets'] });
                               return undefined;
                             }
-                            // Mentioning an AI member asks what the mention means (B3): ask, do the work, or notify; the
-                            // Send menu chooses it up front
-                            const intent = opts?.intent ?? (await mentionIntent.choose(t));
-                            if (intent === null) throw new Error('Sending was cancelled');
                             return addCommentMutation.mutateAsync({
                               ticketId: ticket.id,
                               text: t,
@@ -2643,9 +2558,6 @@ function TicketModalInner({
                                 assigneeMember && (assigneeMember.kind ?? 'human') === 'human'
                                   ? assigneeMember.name
                                   : 'user',
-                              aiIntent: intent,
-                              replyTo: opts?.replyTo,
-                              aiFast: opts?.fast,
                             });
                           }}
                           onEdit={(cId, t) =>
@@ -2671,9 +2583,6 @@ function TicketModalInner({
                             allowWontDo={!ticket?.parentId}
                             onReopen={() => setIsReopenOpen(true)}
                           />
-                          <span style={{ order: 9, flexBasis: '100%' }}>
-                            <StatusMovedBy ticket={ticket} />
-                          </span>
                           {(status === 'done' || status === 'wont_do') && (
                             <button
                               type="button"
@@ -3174,8 +3083,6 @@ function TicketModalInner({
                           onPickPerson={(id) => handleAssigneeChange(id)}
                           onAssignedAi={(id) => setAssignee(id)}
                         />
-                        <HoldChips ticket={ticket} />
-                        <WhoHasIt ticket={ticket} />
                       </div>
 
                       {/* Whose review it waits for: shown on the Review card ("Review requested — Name", Main Board 1);
@@ -3502,7 +3409,6 @@ function TicketModalInner({
             )}
           </div>
 
-          {mentionIntent.dialog}
           <CreateBranchModal
             isOpen={isCreateBranchModalOpen}
             onClose={() => setIsCreateBranchModalOpen(false)}

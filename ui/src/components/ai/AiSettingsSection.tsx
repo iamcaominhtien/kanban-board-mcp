@@ -1,12 +1,11 @@
 import { LineIcon } from '../ui/LineIcon';
 import { useState, type ReactNode } from 'react';
-import { PermissionsCard } from './AiPermissionsCards';
 import { aiApi, useAiOverview } from '../../api/ai';
 import { client } from '../../api/client';
 import { extractError } from '../../api/extractError';
 import type { AiSettings } from '../../types/ai';
 import { BoardAiPicker } from './AiDialogs';
-import { AiAvatar, Toggle } from './aiUi';
+import { AiAvatar } from './aiUi';
 import { LibraryModal } from './config/LibraryView';
 import { OperationsCard } from './settings/OperationsCard';
 import { GroupHead, NumberSetting, TeamRow } from './settings/settingsUi';
@@ -15,20 +14,11 @@ import { KnowledgeSection } from './knowledge/KnowledgeSection';
 import { RepositoriesSection } from './code/RepositoriesSection';
 import { SkillsPluginsSection } from './tools/SkillsPluginsSection';
 import { TeamSection } from './packs/TeamSection';
-import { WorkflowsSection } from './workflow/WorkflowsSection';
 import { BoardAiSection } from './board/BoardAiSection';
-import { StandingOrdersSection } from './board/StandingOrdersSection';
 import './aiPage.css';
 
-const EXPIRY = [
-  [1, '1 h'],
-  [4, '4 h'],
-  [24, '24 h'],
-  [72, '3 days'],
-] as const;
-
-/** Safe mode and the board-wide limits (design/screens/ai-safety-cost.md, B5, C4, D5, G). */
-function AiSafetySettings({ projectId, settings }: { projectId: string; settings: AiSettings }) {
+/** The board-wide caps and budgets. */
+function AiLimitSettings({ projectId, settings }: { projectId: string; settings: AiSettings }) {
   const [error, setError] = useState<string | null>(null);
   const save = async (body: Partial<AiSettings>) => {
     setError(null);
@@ -52,20 +42,6 @@ function AiSafetySettings({ projectId, settings }: { projectId: string; settings
   );
   return (
     <section className="to-sec" data-setting="ai-limits">
-      <div className="to-group">
-        <GroupHead title="Safety" hint="What AI members may do at all." />
-        <div data-setting="safe-mode">
-          <TeamRow title="Safe mode" hint="AI members may only read and comment; every other action is blocked.">
-            <Toggle
-              on={settings.safeMode}
-              label="Safe mode"
-              testId="ai-safe-mode"
-              onChange={(v) => void save({ safeMode: v })}
-            />
-          </TeamRow>
-        </div>
-      </div>
-      <div className="to-rule" />
       <div className="to-group">
         <GroupHead title="Limits and budgets" hint="Caps for the whole board. Changes take effect on the next run." />
         <TeamRow
@@ -91,12 +67,6 @@ function AiSafetySettings({ projectId, settings }: { projectId: string; settings
           )}
           <span className="ai-hint">dollars</span>
         </TeamRow>
-        <TeamRow title="Max chain depth" hint="How many times an AI may hand work to another AI.">
-          {num('Max chain depth', settings.maxChainDepth, (v) => void save({ maxChainDepth: Number(v) }), {
-            min: 1,
-            max: 10,
-          })}
-        </TeamRow>
         <TeamRow
           title="Scheduled and AI-started runs per ticket a day"
           hint="A loop guard: how many runs a schedule or another AI may start on one ticket in a day. A person’s runs are not counted."
@@ -110,20 +80,6 @@ function AiSafetySettings({ projectId, settings }: { projectId: string; settings
               max: 50,
             },
           )}
-        </TeamRow>
-        <TeamRow title="Approvals expire after" hint="How long an approval request waits for a person.">
-          <span className="to-seg" role="group" aria-label="Approvals expire after">
-            {EXPIRY.map(([h, label]) => (
-              <button
-                key={h}
-                type="button"
-                aria-pressed={settings.approvalExpiryHours === h}
-                onClick={() => void save({ approvalExpiryHours: h })}
-              >
-                {label}
-              </button>
-            ))}
-          </span>
         </TeamRow>
       </div>
       {error && <div className="ai-error-text">{error}</div>}
@@ -391,7 +347,7 @@ function Sub({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** Settings › AI: the Board AI selector, safe mode and the board-wide limits (A4). The board assistant has its own page. */
+/** Settings › AI: the Board AI selector and the board-wide limits (A4). The board assistant has its own page. */
 export function AiSettingsSection({
   projectId,
   onManage,
@@ -497,17 +453,11 @@ export function AiSettingsSection({
         <Sub title="What the Board AI may do by itself">
           <BoardAiSection projectId={projectId} />
         </Sub>
-        <StandingOrdersSection projectId={projectId} />
       </section>
 
-      <section className="ai-group" id="ai-safety" aria-labelledby="ai-safety-h" data-toc="Safety and limits">
-        <GroupTitle
-          id="ai-safety-h"
-          title="Safety and limits"
-          hint="Safe mode, how much the AIs do on their own, the board-wide caps and how long an approval waits."
-        />
-        {overview.data && <AiSafetySettings projectId={projectId} settings={overview.data.settings} />}
-        <PermissionsCard projectId={projectId} />
+      <section className="ai-group" id="ai-safety" aria-labelledby="ai-safety-h" data-toc="Limits">
+        <GroupTitle id="ai-safety-h" title="Limits" hint="The board-wide caps and budgets." />
+        {overview.data && <AiLimitSettings projectId={projectId} settings={overview.data.settings} />}
       </section>
 
       <section className="ai-group" id="ai-operations" aria-labelledby="ai-operations-h" data-toc="Running the team">
@@ -530,17 +480,10 @@ export function AiSettingsSection({
         )}
       </section>
 
-      <section className="ai-group" id="ai-members" aria-labelledby="ai-members-h" data-toc="Members and workflows">
-        <GroupTitle
-          id="ai-members-h"
-          title="Members and workflows"
-          hint="Who is on the team, the steps a ticket goes through, and the tools each member has."
-        />
+      <section className="ai-group" id="ai-members" aria-labelledby="ai-members-h" data-toc="Members">
+        <GroupTitle id="ai-members-h" title="Members" hint="Who is on the team and the tools each member has." />
         <Sub title="Role packs and a team for this project">
           <TeamSection projectId={projectId} />
-        </Sub>
-        <Sub title="Workflows">
-          <WorkflowsSection projectId={projectId} />
         </Sub>
         <Sub title="Skills & plugins">
           <SkillsPluginsSection projectId={projectId} />

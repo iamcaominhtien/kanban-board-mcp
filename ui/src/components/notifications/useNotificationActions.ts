@@ -1,9 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { aiApi } from '../../api/ai';
-import { safetyApi } from '../../api/aiSafety';
-import { aiOpsApi, type TroubleAction } from '../../api/aiOps';
-import { workflowApi } from '../../api/aiWorkflow';
 import { extractError } from '../../api/extractError';
 import { notificationKeys, notificationsApi } from '../../api/notifications';
 import type { DayCardData, NotificationRow } from '../../types/notifications';
@@ -42,7 +39,7 @@ const muteFollow = (c: ActionContext, scope: 'ticket' | 'project' | 'kind') => {
   if (scope === 'ticket' && row.ticketId) {
     return notificationsApi
       .setFollow({ ...base, scope, scopeId: row.ticketId, label: row.ticketId })
-      .then(() => c.toast.info(`${row.ticketId} is muted`, 'Questions and approvals still reach you.', 5000));
+      .then(() => c.toast.info(`${row.ticketId} is muted`, 'Questions still reach you.', 5000));
   }
   if (scope === 'project' && row.projectId) {
     return notificationsApi
@@ -76,25 +73,6 @@ function runIdOf(c: ActionContext): string | null {
   return c.row.targetKind === 'run' && c.row.targetId ? c.row.targetId : null;
 }
 
-const troubleAction = (action: TroubleAction): ActionHandler =>
-  withRefresh(async (c) => {
-    const id = runIdOf(c);
-    if (!id) return;
-    const r = await aiOpsApi.trouble(id, action, c.extra?.text);
-    if (r.text) c.toast.info(r.text);
-  });
-
-const arbitrate = (side: 'reviewer' | 'dev' | 'split'): ActionHandler =>
-  withRefresh(async (c) => {
-    if (c.row.ticketId) await aiOpsApi.arbitration(c.row.ticketId, side);
-  });
-
-const continueWithNote: ActionHandler = withRefresh(async (c) => {
-  const id = runIdOf(c);
-  const note = c.extra?.text?.trim();
-  if (id && note) await aiOpsApi.continueWith(id, note);
-});
-
 const HANDLERS = new Map<string, ActionHandler>(
   Object.entries<ActionHandler>({
     async answer(c) {
@@ -103,15 +81,6 @@ const HANDLERS = new Map<string, ActionHandler>(
         c.refresh();
       } else c.navigate(c.row, 'open_ticket');
     },
-    approve: withRefresh(async (c) => {
-      if (!c.row.targetId) return;
-      const r = await safetyApi.approve(c.row.targetId);
-      // the decision is kept, but the board could not apply the change (HTTP 200 with `error`)
-      if (r?.error) c.toast.error('Approved, but it could not be applied', r.error);
-    }),
-    deny: withRefresh(async (c) => {
-      if (c.row.targetId) await safetyApi.deny(c.row.targetId);
-    }),
     retry: withRefresh(async (c) => {
       if (c.row.targetKind === 'run' && c.row.targetId) await aiApi.retry(c.row.targetId);
     }),
@@ -119,33 +88,6 @@ const HANDLERS = new Map<string, ActionHandler>(
     cancel: withRefresh(async (c) => {
       const id = runIdOf(c);
       if (id) await aiApi.cancel(id);
-    }),
-    'trouble:stop_child': troubleAction('stop_child'),
-    'trouble:tell_ai': troubleAction('tell_ai'),
-    'trouble:wait': troubleAction('wait'),
-    'trouble:cancel': troubleAction('cancel'),
-    'trouble:continue_note': continueWithNote,
-    continue_note: continueWithNote,
-    hand_to: withRefresh(async (c) => {
-      const id = runIdOf(c);
-      if (id && c.extra?.memberId) await aiOpsApi.handTo(id, c.extra.memberId, c.extra.text);
-    }),
-    move_account: withRefresh(async (c) => {
-      const id = runIdOf(c);
-      if (id && c.extra?.accountId) await aiOpsApi.moveAccount(id, c.extra.accountId);
-    }),
-    'conflict:ai': withRefresh(async (c) => {
-      if (c.row.ticketId) await aiOpsApi.conflict(c.row.ticketId, 'ai');
-    }),
-    'conflict:me': withRefresh(async (c) => {
-      if (c.row.ticketId) await aiOpsApi.conflict(c.row.ticketId, 'me');
-    }),
-    'arbitration:reviewer': arbitrate('reviewer'),
-    'arbitration:dev': arbitrate('dev'),
-    'arbitration:split': arbitrate('split'),
-    // a ticket stopped at its token cap goes on with the same cap, counted from now (ai-story-flow O)
-    'workflow:resume': withRefresh(async (c) => {
-      if (c.row.ticketId) await workflowApi.resume(c.row.ticketId);
     }),
     open_run_log(c) {
       const id = runIdOf(c);
@@ -177,7 +119,7 @@ function openInApp(c: ActionContext, actionId: string) {
 
 /**
  * What a row's buttons do. The ones that change something call the API that already owns it (answer a run, decide
- * an approval, retry a run, snooze, mute, clear, dismiss); the rest go to `navigate`, and opening marks the row read.
+ * a run, retry a run, snooze, mute, clear, dismiss); the rest go to `navigate`, and opening marks the row read.
  */
 export function useNotificationActions(navigate: NavigateHandler): RowActionHandler {
   const qc = useQueryClient();

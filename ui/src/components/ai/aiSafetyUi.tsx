@@ -4,12 +4,6 @@ import { LineIcon } from '../ui/LineIcon';
 
 /** Small shared pieces of the safety and cost screens: risk and result chips, countdowns, segmented pickers. */
 
-export const RISK: Record<string, { bg: string; color: string; label: string }> = {
-  low: { bg: '#F1F8F3', color: '#2E6F40', label: 'Low risk' },
-  medium: { bg: '#FDF5E6', color: '#8A5A12', label: 'Medium risk' },
-  high: { bg: '#FBEEEA', color: '#C4432A', label: 'High risk' },
-};
-
 export const RESULT_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   allowed: { bg: '#F1F8F3', color: '#2E6F40', label: 'Allowed' },
   approved: { bg: '#E5F2E9', color: '#2E6F40', label: 'Approved' },
@@ -63,12 +57,6 @@ export const ACTION_LABEL: Record<string, string> = {
   access_requested: 'Access requested',
   workspace_defaults_updated: 'Workspace defaults',
   extra_runs_allowed: 'More runs allowed',
-};
-
-export const MODE_LABEL: Record<string, string> = {
-  allowed: 'Allowed',
-  approval: 'Needs approval',
-  blocked: 'Blocked',
 };
 
 /** "23h 58m" until an ISO time, "expired" when it has passed. */
@@ -134,16 +122,6 @@ export function Pill({
     <span className="ai-chip" title={title} style={{ background: bg, color, ...style }}>
       {children}
     </span>
-  );
-}
-
-/** Risk chip. */
-export function RiskChip({ risk }: { risk: string }) {
-  const r = RISK[risk] ?? RISK.medium;
-  return (
-    <Pill bg={r.bg} color={r.color}>
-      {r.label}
-    </Pill>
   );
 }
 

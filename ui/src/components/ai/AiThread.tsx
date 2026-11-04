@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { aiApi, useAiApprovals, useAiMutation } from '../../api/ai';
+import { aiApi, useAiMutation } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AiRun } from '../../types/ai';
 import type { Comment } from '../../types/ticket';
@@ -94,13 +94,12 @@ export function didNotStart(run: AiRun): boolean {
  * An ask that is already writing shows its text underneath.
  */
 export function AskPlaceholder({ run }: { run: AiRun }) {
-  const { members, projectId } = useAiBoardState();
+  const { members } = useAiBoardState();
   const { openRun } = useAiTicket();
   const ai = members.get(run.memberId);
   const toast = useToast();
   const cancel = useAiMutation(() => aiApi.cancel(run.id));
   const retry = useAiMutation(() => aiApi.retry(run.id));
-  const approvals = useAiApprovals(projectId, 'pending').data ?? [];
   useNow(1000, run.state === 'running' || run.state === 'starting');
   const said = run.steps.filter((s) => s.kind === 'say').map((s) => s.text);
   const all = said.join('\n\n');
@@ -108,7 +107,6 @@ export function AskPlaceholder({ run }: { run: AiRun }) {
   const live = run.state === 'queued' || run.state === 'starting' || run.state === 'running';
   const streaming = live && run.state === 'running' && run.mode === 'ask' && text.length > 0;
   const waiting = run.state === 'queued';
-  const pending = live && !waiting ? approvals.filter((a) => a.runId === run.id) : [];
   const secs = secondsSince(run.startedAt ?? run.queuedAt) ?? 0;
   const name = run.memberName ?? ai?.name ?? 'The AI';
   const act = async (fn: () => Promise<unknown>, fail: string) => {
@@ -141,26 +139,6 @@ export function AskPlaceholder({ run }: { run: AiRun }) {
     action = (
       <button type="button" className="ai-btn ai-btn-sm" onClick={stop} data-testid="ask-stop">
         Cancel
-      </button>
-    );
-  } else if (pending.length) {
-    state = 'ok';
-    label = 'NEEDS YOUR OK';
-    lead = (
-      <svg width="15" height="15" viewBox="0 0 24 24" {...IC} style={{ color: '#B4791E' }} aria-hidden="true">
-        <rect x="5" y="11" width="14" height="9" rx="2" />
-        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-      </svg>
-    );
-    body = (
-      <>
-        Wants to {pending[0].summary.replace(/^wants to\s+/i, '')}. Waiting for an approver.
-        {pending.length > 1 ? ` (${pending.length} requests)` : ''}
-      </>
-    );
-    action = (
-      <button type="button" className="ai-btn ai-btn-sm" onClick={() => openRun(run.id)} data-testid="ask-review">
-        Review
       </button>
     );
   } else if (didNotStart(run)) {
@@ -249,18 +227,7 @@ export function AskPlaceholder({ run }: { run: AiRun }) {
 }
 
 /** Rating buttons, regenerate and edit-and-re-run under an AI's answer; the run link and cost on the left (C2). */
-export function AnswerFooter({
-  comment,
-  run,
-  canAct,
-  onReply,
-}: {
-  comment: Comment;
-  run?: AiRun;
-  canAct: boolean;
-  /** "Reply": answer this comment, which asks the AI again. */
-  onReply?: () => void;
-}) {
+export function AnswerFooter({ comment, run, canAct }: { comment: Comment; run?: AiRun; canAct: boolean }) {
   const meta = comment.ai!;
   const { openRun } = useAiTicket();
   const toast = useToast();
@@ -337,11 +304,6 @@ export function AnswerFooter({
             <button type="button" className="tw-act" data-testid="answer-edit" onClick={() => setEdit(!edit)}>
               <LineIcon name="edit" size={13} /> Edit and re-run
             </button>
-            {onReply && (
-              <button type="button" className="tw-act" data-testid="answer-reply" onClick={onReply}>
-                <LineIcon name="reply" size={13} /> Reply
-              </button>
-            )}
           </span>
         )}
       </div>

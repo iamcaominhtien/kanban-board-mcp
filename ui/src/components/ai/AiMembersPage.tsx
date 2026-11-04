@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { NotificationBellButton } from '../notifications/NotificationsHost';
-import { aiApi, useAiApprovals, useAiMutation, useAiOverview, useRunnerInfo } from '../../api/ai';
+import { aiApi, useAiMutation, useAiOverview, useRunnerInfo } from '../../api/ai';
+import { useAiInbox } from '../../api/aiSafety';
 import { useAiAccounts } from '../../api/aiAccounts';
 import { useAssist } from '../assist/AssistContext';
 import { extractError } from '../../api/extractError';
@@ -10,7 +11,9 @@ import type { Member } from '../../types';
 import { MemberAvatar } from '../MemberAvatar';
 import { AddAiMemberModal } from './AddAiMemberModal';
 import { AiProfile } from './AiProfile';
-import { ApprovalsView, AuditView, SafetyView, UsageView } from './AiSafetyViews';
+import { InboxView } from './AiInbox';
+import { AuditView } from './AiAuditLog';
+import { UsageView } from './AiUsage';
 import { BoardAiPicker, PauseAllButton, RemoveAiDialog } from './AiDialogs';
 import { AccountsTab } from './accounts/AccountsTab';
 import { SignedOutBanners } from './accounts/SignedOutBanners';
@@ -30,7 +33,7 @@ import {
 } from './aiUi';
 import { LineIcon } from '../ui/LineIcon';
 
-type Tab = 'humans' | 'ai' | 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety';
+type Tab = 'humans' | 'ai' | 'accounts' | 'approvals' | 'audit' | 'usage';
 
 interface Props {
   projectId: string;
@@ -78,7 +81,7 @@ export function AiMembersPage({
   const overview = useAiOverview(projectId);
   const runner = useRunnerInfo();
   const webBuild = runner.data?.local === false;
-  const approvals = useAiApprovals(projectId, 'pending');
+  const inbox = useAiInbox(projectId);
   const members = overview.data?.members ?? [];
   const settings = overview.data?.settings;
   const boardAi = members.find((m) => m.id === settings?.boardAiId);
@@ -179,10 +182,15 @@ export function AiMembersPage({
                 label="AI accounts"
                 count={accounts.data?.accounts.length ?? 0}
               />
-              <TabBtn id="approvals" tab={tab} setTab={setTab} label="Inbox" count={approvals.data?.length ?? 0} />
+              <TabBtn
+                id="approvals"
+                tab={tab}
+                setTab={setTab}
+                label="Inbox"
+                count={inbox.data?.questions.length ?? 0}
+              />
               <TabBtn id="audit" tab={tab} setTab={setTab} label="Audit log" />
               <TabBtn id="usage" tab={tab} setTab={setTab} label="Usage" />
-              <TabBtn id="safety" tab={tab} setTab={setTab} label="Safety" />
             </div>
             <div style={{ marginTop: 18 }}>
               {tab === 'humans' && (
@@ -244,12 +252,6 @@ export function AiMembersPage({
                           <LineIcon name="warning" size={13} /> {overview.data.summary.needAttention} need attention
                         </span>
                       )}
-                      {!!overview.data?.pendingApprovals && (
-                        <button type="button" className="ai-link" onClick={() => setTab('approvals')}>
-                          {overview.data.pendingApprovals} approval{overview.data.pendingApprovals === 1 ? '' : 's'}{' '}
-                          waiting
-                        </button>
-                      )}
                     </div>
                     <SignedOutBanners projectId={projectId} members={members} />
                     <MemberTable
@@ -265,9 +267,7 @@ export function AiMembersPage({
                   </>
                 ))}
               {tab === 'accounts' && <AccountsTab projectId={projectId} />}
-              {tab === 'approvals' && (
-                <ApprovalsView projectId={projectId} humans={humans} members={members} onOpenTicket={onOpenTicket} />
-              )}
+              {tab === 'approvals' && <InboxView projectId={projectId} members={members} onOpenTicket={onOpenTicket} />}
               {tab === 'audit' && (
                 <AuditView
                   projectId={projectId}
@@ -277,9 +277,6 @@ export function AiMembersPage({
                 />
               )}
               {tab === 'usage' && <UsageView projectId={projectId} members={members} />}
-              {tab === 'safety' && (
-                <SafetyView projectId={projectId} members={members} onOpenAudit={() => setTab('audit')} />
-              )}
             </div>
           </>
         )}

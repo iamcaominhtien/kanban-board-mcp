@@ -4,22 +4,21 @@ import { extractError } from '../../api/extractError';
 import type { AiRun, RunStep } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { useToast } from '../Toast';
-import { RaiseLimitButton, TakeOverButton, UndoRunDialog } from './RunActions';
+import { RaiseLimitButton, UndoRunDialog } from './RunActions';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
-import { testsOf, TestChips } from './ReviewGate';
 import { BoardStepIcon, isBoardStep } from './trouble/stepKinds';
-import { TellBox } from './trouble/TellBox';
-import { TroubleCard } from './trouble/TroubleCard';
 import {
   ACTIVE_RUN_STATES,
   AiAvatar,
   RunStateChip,
   STATUS_NAMES,
+  TestChips,
   fmtElapsed,
   hhmm,
   money,
   secondsSince,
   shortDate,
+  testsOf,
   useAiBoardState,
   useNow,
 } from './aiUi';
@@ -331,7 +330,6 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
     }
   };
   const canUndo = run.mode === 'work' && !live && (run.statusChanges.length > 0 || run.files.length > 0);
-  const waitingForHold = run.state === 'queued' && !!run.behindRunId;
   return (
     <div className="ai-run-panel ai-root" data-testid="run-view">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -379,7 +377,7 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
             )}
           </button>
         )}
-        {run.state === 'queued' && !waitingForHold && (
+        {run.state === 'queued' && (
           <button
             type="button"
             className="ai-btn ai-btn-sm ai-btn-primary"
@@ -412,9 +410,6 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
             >
               {run.state === 'failed' || run.state === 'timed_out' ? 'Retry' : 'Run again'}
             </button>
-            {['failed', 'timed_out'].includes(run.state) && (
-              <TakeOverButton ticketId={run.ticketId} projectId={run.projectId} />
-            )}
             {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
             {canUndo && (
               <button type="button" className="ai-btn ai-btn-sm" data-testid="run-undo" onClick={() => setUndo(true)}>
@@ -469,8 +464,6 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
           {run.waitingReason}
         </div>
       )}
-      {run.state === 'running' && <TroubleCard run={run} />}
-      {run.state === 'running' && <TellBox run={run} />}
       {run.paused && (
         <div className="ai-notice ai-notice-slate" data-testid="run-paused-note">
           Paused: the agent is stopped where it was and its time limits are not running. Resume continues from here.
@@ -761,11 +754,7 @@ export function TicketRunsTab({ ticket, runId }: { ticket: Ticket; runId?: strin
   }, [runId]);
   const list = useMemo(() => runs.data ?? [], [runs.data]);
   const run = useMemo(
-    () =>
-      list.find((r) => r.id === selected) ??
-      list.find((r) => r.mode === 'work' && !r.behindRunId) ??
-      list.find((r) => r.mode === 'work') ??
-      list[0],
+    () => list.find((r) => r.id === selected) ?? list.find((r) => r.mode === 'work') ?? list[0],
     [list, selected],
   );
   if (runs.isLoading) return <span className="ai-spin" />;

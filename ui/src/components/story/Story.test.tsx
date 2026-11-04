@@ -20,7 +20,6 @@ import { StoryLanes, statusOfDropId } from './StoryLanes';
 import { readGroupByStory, writeGroupByStory } from './storyLinks';
 import { waitsWord } from './storyUi';
 import { TicketCard } from '../TicketCard';
-import { OPEN_TIMELINE_EVENT, takePendingTimeline } from '../aiteam/timelineLink';
 import type { Column, Ticket } from '../../types';
 import type { StoryDetail, StoryView } from '../../types/story';
 
@@ -391,19 +390,6 @@ describe('StoryPage', () => {
         ],
       }),
     );
-  });
-
-  it('opens Flow scoped to the Story', async () => {
-    http.get.mockReturnValue(ok(detail));
-    const onClose = vi.fn();
-    const heard = vi.fn();
-    window.addEventListener(OPEN_TIMELINE_EVENT, heard);
-    render(wrap(<StoryPage ticket={t} onClose={onClose} />));
-    fireEvent.click(await screen.findByTestId('story-page-flow'));
-    window.removeEventListener(OPEN_TIMELINE_EVENT, heard);
-    expect(heard).toHaveBeenCalled();
-    expect(takePendingTimeline()).toEqual({ flow: { story: 'KAN-301', ticket: null, view: 'map' } });
-    expect(onClose).toHaveBeenCalled();
   });
 
   it('closes on Escape', async () => {

@@ -2,9 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { IssueType, Member, Priority } from '../types';
 import { useAppCommand } from '../utils/appCommands';
 import styles from './FilterBar.module.css';
-import type { WorkflowFilterState } from '../types/aiWorkflowBoard';
-import type { WorkflowFilterOptions } from './workflowBoard/workflowFilter';
-import { WorkflowFilters } from './workflowBoard/WorkflowFilters';
 import { LineIcon } from './ui/LineIcon';
 import { TicketTypeIcon } from './icons';
 import { MemberAvatar } from './MemberAvatar';
@@ -34,10 +31,6 @@ interface FilterBarProps {
   fromIdeaCount?: number;
   filterFromIdea?: boolean;
   onFilterFromIdeaChange?: (v: boolean) => void;
-  /** Workflow filters (Waiting for me, Role, Workflow, Step); nothing is drawn while no ticket is on a workflow. */
-  workflowOptions?: WorkflowFilterOptions;
-  workflowFilter?: WorkflowFilterState;
-  onWorkflowFilterChange?: (f: WorkflowFilterState) => void;
   /** Group by: Story (ai-story-flow D); the switch shows on the Board view only (undefined hides it). */
   groupByStory?: boolean;
   onGroupByStoryChange?: (on: boolean) => void;
@@ -87,9 +80,6 @@ export function FilterBar({
   fromIdeaCount = 0,
   filterFromIdea = false,
   onFilterFromIdeaChange,
-  workflowOptions,
-  workflowFilter,
-  onWorkflowFilterChange,
   groupByStory,
   onGroupByStoryChange,
 }: FilterBarProps) {
@@ -688,10 +678,6 @@ export function FilterBar({
           </span>
           Hide pending
         </button>
-
-        {workflowOptions && workflowFilter && onWorkflowFilterChange && (
-          <WorkflowFilters options={workflowOptions} value={workflowFilter} onChange={onWorkflowFilterChange} />
-        )}
 
         {groupByStory !== undefined && onGroupByStoryChange && (
           <button

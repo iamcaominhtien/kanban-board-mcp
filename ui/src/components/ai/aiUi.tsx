@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import type { AiMember, AiProvider, AiRun, AiSettings, AiStatus, RunState } from '../../types/ai';
+import type { AiMember, AiProvider, AiRun, AiSettings, AiStatus, RunState, TestCounts } from '../../types/ai';
 import './ai.css';
 import { extractError } from '../../api/extractError';
+import type { Ticket } from '../../types';
+import { LineIcon } from '../ui/LineIcon';
 
 /** Adapters an AI member can use (mirrors server/services/ai/providers.py). */
 export const PROVIDERS: Record<
@@ -648,8 +650,8 @@ export interface AiBoardState {
   openAiPage?: (memberId?: string) => void;
   /** Open a ticket. */
   openTicket?: (ticketId: string) => void;
-  /** Open the AI page on one of its tabs (Inbox, Audit log, Usage, Safety). */
-  openAiTab?: (tab: 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety', opts?: { memberId?: string }) => void;
+  /** Open the AI page on one of its tabs (Inbox, Audit log, Usage). */
+  openAiTab?: (tab: 'accounts' | 'approvals' | 'audit' | 'usage', opts?: { memberId?: string }) => void;
 }
 
 /** AI state of the open project, provided by App. */
@@ -717,6 +719,55 @@ export function LoadError({ what, error, onRetry }: { what: string; error: unkno
       <button type="button" className="ai-link" onClick={onRetry}>
         Try again
       </button>
+    </div>
+  );
+}
+
+/** AI-completed: an AI member moved the ticket to Done, so it is never mistaken for a person's approval. */
+export function AiCompletedBadge({ ticket }: { ticket: Ticket }) {
+  const { members } = useAiBoardState();
+  if (ticket.status !== 'done' || !ticket.completedBy) return null;
+  const done = [...(ticket.activityLog ?? [])].reverse().find((e) => e.field === 'status' && e.to === 'done');
+  const byAi = done?.ai || [...members.values()].some((m) => m.name === ticket.completedBy);
+  if (!byAi) return null;
+  return (
+    <span
+      className="ai-chip"
+      style={{ background: '#E5F2E9', color: '#2E6F40' }}
+      data-testid="ai-completed-badge"
+      title={`Moved to Done by ${ticket.completedBy}`}
+    >
+      <LineIcon name="check" size={12} /> AI-completed
+    </span>
+  );
+}
+
+/** Test counts of a run: what the board read from a test command, else the agent's own claim (and which). */
+export function testsOf(run: AiRun): { counts: TestCounts; source: 'board' | 'claim' } | null {
+  if (run.tests) return { counts: run.tests, source: 'board' };
+  const claim = run.report.tests;
+  return claim ? { counts: claim, source: 'claim' } : null;
+}
+
+/** Chips “14 passed · 1 failed · lint clean” of a test summary. */
+export function TestChips({ counts }: { counts: TestCounts }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} data-testid="test-chips">
+      {(counts.passed > 0 || counts.failed === 0) && (
+        <span className="tw-test tw-test-ok">
+          <LineIcon name="check" size={12} /> {counts.passed} passed
+        </span>
+      )}
+      {counts.failed > 0 && (
+        <span className="tw-test tw-test-bad">
+          <LineIcon name="warning" size={12} /> {counts.failed} failed
+        </span>
+      )}
+      {counts.lint && (
+        <span className="tw-test tw-test-ok">
+          <LineIcon name="check" size={12} /> lint {counts.lint}
+        </span>
+      )}
     </div>
   );
 }

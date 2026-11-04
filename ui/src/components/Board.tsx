@@ -12,8 +12,6 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Column as ColumnType, IssueType, Member, Priority, Status, Ticket } from '../types';
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
-import type { WorkflowFilterState } from '../types/aiWorkflowBoard';
-import type { WorkflowFilterOptions } from './workflowBoard/workflowFilter';
 import { ListView } from './ListView';
 import { TimelineView } from './TimelineView';
 import { DocsSpace } from './docs/DocsSpace';
@@ -102,9 +100,6 @@ interface BoardProps {
   fromIdeaCount?: number;
   filterFromIdea?: boolean;
   onFilterFromIdeaChange?: (val: boolean) => void;
-  workflowOptions?: WorkflowFilterOptions;
-  workflowFilter?: WorkflowFilterState;
-  onWorkflowFilterChange?: (f: WorkflowFilterState) => void;
   onReopen?: (ticket: Ticket) => void;
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
@@ -174,9 +169,6 @@ export function Board({
   fromIdeaCount,
   filterFromIdea,
   onFilterFromIdeaChange,
-  workflowOptions,
-  workflowFilter,
-  onWorkflowFilterChange,
   totalReopens30d,
   waitingOnTicketsCount,
   waitingOnPersonsCount,
@@ -488,9 +480,6 @@ export function Board({
               fromIdeaCount={fromIdeaCount}
               filterFromIdea={filterFromIdea}
               onFilterFromIdeaChange={onFilterFromIdeaChange}
-              workflowOptions={workflowOptions}
-              workflowFilter={workflowFilter}
-              onWorkflowFilterChange={onWorkflowFilterChange}
               groupByStory={viewMode === 'board' ? groupByStory : undefined}
               onGroupByStoryChange={toggleGroupByStory}
             />
@@ -535,7 +524,6 @@ export function Board({
               if (t) onCardClick(t);
             }}
             onOpenMember={(id) => onOpenAiMember?.(id)}
-            onOpenDocsPage={(id) => onOpenDocsPage?.(id)}
           />
         ) : viewMode === 'schedules' && projectId && !loadState ? (
           <SchedulesTab projectId={projectId} tickets={allTickets} />

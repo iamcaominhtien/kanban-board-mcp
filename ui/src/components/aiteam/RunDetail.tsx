@@ -1,8 +1,4 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { aiKeys } from '../../api/ai';
-import { aiOpsApi } from '../../api/aiOps';
-import { ContinueNoteDialog } from '../ai/trouble/ContinueNoteDialog';
 import { exportRunUrl, usePinRun, useRunRecord, useTranscript } from '../../api/aiHistory';
 import { extractError } from '../../api/extractError';
 import type { Entry, HistoryRow, MemoryUsed } from '../../types/aiHistory';
@@ -259,8 +255,6 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
   const pin = usePinRun();
   const [pane, setPane] = useState<Pane>('steps');
   const [pinError, setPinError] = useState<string | null>(null);
-  const [noting, setNoting] = useState(false);
-  const qc = useQueryClient();
 
   if (t.isError) {
     return (
@@ -319,11 +313,6 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
         ) : null}
         <span style={{ flex: 1 }} />
         <div className="hs-actions">
-          {run.state === 'failed' || run.state === 'timed_out' || run.state === 'cancelled' ? (
-            <button type="button" className="tl-btn" onClick={() => setNoting(true)}>
-              Continue with a note
-            </button>
-          ) : null}
           <a className="tl-btn" href={exportRunUrl(runId, 'md')} download>
             Export as Markdown
           </a>
@@ -384,16 +373,6 @@ export function RunDetail({ runId, onBack, onOpenTicket }: Props) {
           </span>
         ) : null}
       </div>
-      {noting ? (
-        <ContinueNoteDialog
-          ended
-          onSubmit={async (note) => {
-            await aiOpsApi.continueWith(runId, note);
-            void qc.invalidateQueries({ queryKey: aiKeys.all });
-          }}
-          onClose={() => setNoting(false)}
-        />
-      ) : null}
       {pinError ? (
         <div className="hs-warn" role="alert">
           {pinError}

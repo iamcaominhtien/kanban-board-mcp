@@ -3,13 +3,12 @@ import { usePatchProjectOps, useProjectOps } from '../../../api/aiProjectOps';
 import { extractError } from '../../../api/extractError';
 import { LoadError, Toggle } from '../aiUi';
 import { GroupHead, NumberSetting, TeamRow } from './settingsUi';
-import { TeamOnItsOwn } from './TeamOnItsOwn';
 import './teamOwn.css';
 
 /**
  * Project settings for the AI team › Operations (design/screens/ai-operations.md, K): when the board looks at a
- * silent run, whether a light model may read its last steps, how messages and GitHub reach the team, and how far the
- * team goes on its own (Team on its own, design/screens/ai-story-flow.md, L). Changes take effect on the next run.
+ * silent run, whether a light model may read its last steps, and how messages and GitHub reach the team. Changes
+ * take effect on the next run.
  */
 export function OperationsCard({ projectId }: { projectId: string }) {
   const ops = useProjectOps(projectId);
@@ -105,7 +104,6 @@ export function OperationsCard({ projectId }: { projectId: string }) {
           </TeamRow>
         </div>
       </section>
-      <TeamOnItsOwn ops={ops.data} busy={patch.isPending} projectId={projectId} save={(b) => void save(b)} />
       {error && <div className="ai-error-text">{error}</div>}
     </div>
   );

@@ -46,8 +46,6 @@ interface Props {
   onHealth?: () => void;
   healthActive?: boolean;
   healthCount?: number;
-  /** Pages with a proposal from an AI member waiting (a purple dot). */
-  proposalPageIds?: Set<string>;
 }
 
 interface Row {
@@ -256,7 +254,6 @@ export function DocsTree({
   onHealth,
   healthActive,
   healthCount,
-  proposalPageIds,
 }: Props) {
   const storageKey = `docsTreeClosed:${projectId}`;
   const [closed, setClosed] = useState<Set<string>>(() => {
@@ -720,20 +717,6 @@ export function DocsTree({
               title="AI guidance: read by every AI run"
               aria-label="AI guidance"
               style={{ width: 7, height: 7, borderRadius: 2, background: '#6B5BD2', flexShrink: 0, margin: '0 3px' }}
-            />
-          )}
-          {!renaming && proposalPageIds?.has(n.id) && (
-            <span
-              title="An AI member proposed changes"
-              aria-label="Proposal waiting"
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: '50%',
-                background: '#6B5BD2',
-                flexShrink: 0,
-                margin: '0 3px',
-              }}
             />
           )}
           {!renaming && n.status === 'draft' && (

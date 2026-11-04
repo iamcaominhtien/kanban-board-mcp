@@ -4,7 +4,6 @@ import type { IssueType, Member, Ticket } from '../types';
 import { MemberAvatar } from './MemberAvatar';
 import { CardAiFooter } from './ai/RunPanel';
 import { CardInsightChip } from './assist/BoardHealth';
-import { WorkflowCardChip } from './workflowBoard/WorkflowBoardContext';
 import { ScheduleCardChip } from './schedules/ScheduleTicketBlock';
 import { TagPill } from './TagPill';
 import { TicketTypeIcon, PriorityMark } from './icons';
@@ -13,7 +12,6 @@ import { createPortal } from 'react-dom';
 import { HoverTip } from './HoverTip';
 import { STATUS_NAMES } from '../hooks/useMarkerActions';
 import { Ico, StoryChildChip } from './story/storyUi';
-import { CardCapLine, WaitsFor, WaitsForStopped } from './ai/limits/CardLimits';
 
 const TYPE_LABELS: Record<IssueType, string> = {
   bug: 'Bug',
@@ -590,21 +588,9 @@ export function TicketCard({
         {openWaits.length > 0 && !isClosed && (
           <div className={styles.waitsLine} data-testid="card-waits-for">
             <Ico name="clock" size={12} color="#5B6B60" width={2} />
-            <WaitsFor ids={openWaits} />
+            <span>waits for {openWaits.join(', ')}</span>
           </div>
         )}
-        {/* A ticket waiting for one that stopped at its token cap says so, with a click to it (ai-story-flow O) */}
-        {!storyParent && !isClosed && (
-          <WaitsForStopped
-            ids={[
-              ...(ticket.blockedBy ?? []),
-              ...(isPending && ticket.pendingReasonType === 'ticket' && ticket.pendingTicketId
-                ? [ticket.pendingTicketId]
-                : []),
-            ]}
-          />
-        )}
-
         {/* Sub-tasks progress bar for parent tickets */}
         {hasSubtasks && subtaskStats && (
           <div className={styles.subtaskProgressBar}>
@@ -760,8 +746,6 @@ export function TicketCard({
         )}
 
         {/* AI line: Run, running, queued, needs input, failed, summary ready (AI work on tickets, A4) */}
-        {!isDragging && <CardCapLine ticketId={ticket.id} />}
-        {!isDragging && <WorkflowCardChip ticketId={ticket.id} />}
         {!isDragging && <CardAiFooter ticket={ticket} />}
 
         {/* Schedule chip: "Tue 02:00", "Starts in 12 min", "Missed, waiting for runner", "Schedule paused" (AI schedules, E2) */}

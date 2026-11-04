@@ -1,10 +1,27 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { AiMember } from '../../types/ai';
-import type { MentionIntent } from './MentionIntent';
 import { AiAvatar } from './aiUi';
 import './ticketWork.css';
 import { LineIcon } from '../ui/LineIcon';
+
+/** How the composer sends a comment when the person asks an AI: ask this member the text as a question. */
+export interface SendOpts {
+  /** Ask this AI member the text as a question: a comment that mentions it, plus a short answer run. */
+  askMemberId?: string;
+}
+
+const MENTION = /@\[([^\][\n]{1,100})\]\(member:([\w.-]{1,64})\)/g;
+
+/** AI members mentioned in a text, in order. */
+export function mentionedAi(text: string, members: Map<string, AiMember>): AiMember[] {
+  const out: AiMember[] = [];
+  for (const m of text.matchAll(MENTION)) {
+    const ai = members.get(m[2]);
+    if (ai && ai.kind === 'ai' && !out.includes(ai)) out.push(ai);
+  }
+  return out;
+}
 
 const CARET = (
   <svg
@@ -77,68 +94,6 @@ export function FloatMenu({
       {children}
     </div>,
     document.body,
-  );
-}
-
-/** “Send ▾” of a comment that mentions an AI member: Send asks what the mention means, the menu picks it. */
-export function SendSplit({
-  open,
-  disabled,
-  onToggle,
-  onSend,
-  onPick,
-}: {
-  open: boolean;
-  disabled: boolean;
-  onToggle: () => void;
-  onSend: () => void;
-  onPick: (intent: MentionIntent) => void;
-}) {
-  const caret = useRef<HTMLButtonElement>(null);
-  const items: { id: MentionIntent; title: string; sub: string }[] = [
-    { id: 'ask', title: 'Ask (answer in a comment)', sub: 'A short run that replies below. Nothing changes.' },
-    { id: 'work', title: 'Do the work (assign + run)', sub: 'Assigns the ticket and starts a run.' },
-    { id: 'notify', title: 'Just notify', sub: 'Nothing runs.' },
-  ];
-  return (
-    <span className="tw-split tw-split-primary" data-testid="comment-send-split">
-      <button type="button" className="tw-split-main" data-testid="comment-send" disabled={disabled} onClick={onSend}>
-        Send
-      </button>
-      <button
-        ref={caret}
-        type="button"
-        className="tw-split-caret"
-        aria-label="Send as…"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        data-testid="comment-send-menu"
-        disabled={disabled}
-        onClick={onToggle}
-      >
-        {CARET}
-      </button>
-      {open && (
-        <FloatMenu anchor={caret.current} onClose={onToggle}>
-          <div className="ai-label" style={{ padding: '6px 10px 2px' }}>
-            Send as
-          </div>
-          {items.map((it) => (
-            <button
-              key={it.id}
-              type="button"
-              role="menuitem"
-              className="tw-menu-item"
-              data-testid={`send-as-${it.id}`}
-              onClick={() => onPick(it.id)}
-            >
-              <b>{it.title}</b>
-              <span className="ai-muted">{it.sub}</span>
-            </button>
-          ))}
-        </FloatMenu>
-      )}
-    </span>
   );
 }
 

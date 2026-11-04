@@ -7,9 +7,7 @@ import type { AiMember, AiRun } from '../../types/ai';
 import type { Member } from '../../types';
 import { useToast } from '../Toast';
 import { RemoveAiDialog } from './AiDialogs';
-import { AuditTable } from './AiSafetyViews';
-import { Permissions, PreviewDialog } from './AiPermissionsTab';
-import { SafeModeChip } from './AiKillSwitch';
+import { AuditTable } from './AiAuditLog';
 import { RunSteps } from './RunPanel';
 import { ConfigTab } from './config/ConfigTab';
 import { ConnectionStateCard, type ConfigFocus } from './ConnectionState';
@@ -22,7 +20,6 @@ import { ProjectsPicker } from './ProjectsPicker';
 import {
   AiAvatar,
   AvatarPicker,
-  CeilingChip,
   ConnectionChip,
   PROVIDERS,
   ProviderChip,
@@ -39,7 +36,7 @@ import {
 } from './aiUi';
 import { LineIcon } from '../ui/LineIcon';
 
-type Tab = 'overview' | 'configuration' | 'permissions' | 'usage' | 'activity';
+type Tab = 'overview' | 'configuration' | 'usage' | 'activity';
 
 /** One AI member's profile page. */
 export function AiProfile({
@@ -68,7 +65,6 @@ export function AiProfile({
   // A state's action can send the person to the field that fixes it (Replace key, Raise daily budget…)
   const [focus, setFocus] = useState<ConfigFocus | undefined>(undefined);
   const [testing, setTesting] = useState(false);
-  const [preview, setPreview] = useState(false);
   const [pauseDialog, setPauseDialog] = useState(false);
   const [removing, setRemoving] = useState(false);
   const toast = useToast();
@@ -87,8 +83,6 @@ export function AiProfile({
           <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
             <ProviderChip provider={member.provider} />
             <ConnectionChip connection={member.connection} />
-            <CeilingChip ceiling={member.ceiling} />
-            {member.safeMode && <SafeModeChip />}
             {member.config.permissionMode === 'bypass' && (
               <span
                 className="ai-chip"
@@ -135,9 +129,6 @@ export function AiProfile({
             <LineIcon name="pause" size={13} /> Pause
           </button>
         )}
-        <button type="button" className="ai-btn" onClick={() => setPreview(true)} data-testid="ai-preview-as">
-          <LineIcon name="eye" size={13} /> Preview as this AI
-        </button>
         <button type="button" className="ai-btn ai-btn-danger-outline" onClick={() => setRemoving(true)}>
           <LineIcon name="trash" size={13} /> Remove…
         </button>
@@ -148,7 +139,7 @@ export function AiProfile({
         </div>
       )}
       <div className="ai-tabs">
-        {(['overview', 'configuration', 'permissions', 'usage', 'activity'] as Tab[]).map((t) => (
+        {(['overview', 'configuration', 'usage', 'activity'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -166,7 +157,6 @@ export function AiProfile({
             member={member}
             onOpenTicket={onOpenTicket}
             onEdit={() => setTab('configuration')}
-            onPermissions={() => setTab('permissions')}
             onViewOnBoard={onViewOnBoard}
             onConfigure={(f) => {
               setFocus(f);
@@ -175,11 +165,9 @@ export function AiProfile({
           />
         )}
         {tab === 'configuration' && <Configuration member={member} focus={focus} />}
-        {tab === 'permissions' && <Permissions member={member} />}
         {tab === 'usage' && <Usage member={member} onOpenTicket={onOpenTicket} onOpenAudit={onOpenAudit} />}
         {tab === 'activity' && <Activity member={member} projectId={projectId} onOpenTicket={onOpenTicket} />}
       </div>
-      {preview && <PreviewDialog member={member} onClose={() => setPreview(false)} />}
       {pauseDialog && <PauseOneDialog member={member} onClose={() => setPauseDialog(false)} />}
       {removing && (
         <RemoveAiDialog member={member} humans={humans} onClose={() => setRemoving(false)} onRemoved={onRemoved} />
@@ -253,14 +241,12 @@ function Overview({
   member,
   onOpenTicket,
   onEdit,
-  onPermissions,
   onConfigure,
   onViewOnBoard,
 }: {
   member: AiMember;
   onOpenTicket: (id: string) => void;
   onEdit: () => void;
-  onPermissions: () => void;
   onConfigure: (focus: ConfigFocus) => void;
   onViewOnBoard?: (memberId: string) => void;
 }) {
@@ -510,33 +496,6 @@ function Overview({
           >
             <div className="ai-hint" style={{ whiteSpace: 'pre-wrap' }}>
               {member.persona || 'No persona yet.'}
-            </div>
-          </Card>
-          <Card
-            title="Permissions"
-            right={
-              <button type="button" className="ai-link" onClick={onPermissions}>
-                Open Permissions
-              </button>
-            }
-          >
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <CeilingChip ceiling={member.ceiling} />
-              <span className="ai-chip" style={{ background: '#EEF2F6', color: '#34455A' }}>
-                {member.template.replace('_', '-')} template
-              </span>
-            </div>
-            <div style={{ fontSize: 12.5, marginTop: 8 }} data-testid="approvals-list">
-              {member.approvals.length > 0 ? (
-                <>
-                  <b>Approval:</b> {member.approvals.map((a) => a.label.toLowerCase()).join(', ')}
-                </>
-              ) : (
-                <span className="ai-hint">Nothing waits for a person’s approval.</span>
-              )}
-            </div>
-            <div className="ai-muted" style={{ marginTop: 8 }}>
-              Editing rules, approvals and the audit log live in the AI safety & cost views.
             </div>
           </Card>
         </div>
