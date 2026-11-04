@@ -1,0 +1,271 @@
+# AI v2: kế hoạch thực hiện trong một PR
+
+Kế hoạch làm toàn bộ [`ai-v2.md`](ai-v2.md) trong **một PR**, trên nhánh `claude/ai-team-architecture-7a1efc`. Chốt ngày 2026-11-05:
+
+- **UI tối thiểu**, dựng bằng component sẵn có; thiết kế `design/source/*.dc.html` và làm đẹp ở PR sau.
+- **Xoá sạch dữ liệu AI cũ**: migration drop mọi bảng AI và tạo lại; người dùng tạo lại đội và tài khoản (thư mục đăng nhập
+  `~/.kanban-board/ai-accounts/*` trên đĩa vẫn còn, bảng tài khoản dựng lại từ "accounts on this computer").
+- **Runner tách tiến trình** và **`--permission-mode auto`** (tuỳ chọn project) đều trong PR.
+- **Xoá hết provider khác** (Antigravity, API key, Codex, OpenCode, adapter). Chỉ còn Claude Code.
+
+Khảo sát ngày 2026-11-05 (ba agent, chi tiết trong lịch sử phiên): `services/ai` 64 nghìn dòng trong 80 module cộng `assist/`
+11 nghìn; `docs_ai` 9,6 nghìn; `api/ai*` 8 nghìn; `kanban_mcp` 10 nghìn; UI `components/ai` 17,6 nghìn cộng `aiteam` 15 nghìn;
+931 test `test_ai*`, 147 test Docs AI.
+
+## 0. Nguyên tắc làm
+
+- Một PR, nhiều commit theo giai đoạn (mục 2). Mỗi giai đoạn kết thúc ở trạng thái **server khởi động được và test liên quan xanh**,
+  kể cả khi UI chưa khớp (UI khớp lại ở giai đoạn 8).
+- **Xoá trước, xây sau.** Giai đoạn 1 xoá phần lớn code cũ để phần còn lại nhỏ và rõ; không giữ "cho chắc".
+- Tên bảng mới cho những thứ đổi hình dạng (`ai_team`, `ai_run_step`, `ai_run_agent`), tên cũ cho những bảng giữ nguyên.
+- Mọi cấu hình đi theo cờ CLI từng run; không ghi gì vào repo người dùng (bỏ hẳn `config_service.sync_for_run`).
+- Test: xoá theo module xoá; viết mới cho stream, step, launcher, hook endpoint, tin nhắn, SSE, migration. Chạy test liên quan,
+  không chạy cả bộ (CLAUDE.md).
+
+## 1. Hình dạng đích
+
+### 1.1 Backend: `server/services/ai/` sau refactor
+
+```
+ai/
+  accounts.py profiles.py signin.py quota.py usage.py budget.py       # giữ, cắt phần API key
+  worktrees.py paths.py project_env.py secrets.py audit.py            # giữ
+  transcripts.py run_retention.py resources.py power.py               # giữ
+  schedules.py github.py repo_scan.py kb.py knowledge.py memory.py    # giữ, sửa import
+  library.py plugins.py packs.py board_skills.py own_claude.py mcp_sources.py  # giữ; packs → vai
+  ops.py store.py injection.py                                        # giữ
+  teams.py            # mới: đội (thay members.py): CRUD, health (runner có chạy được, tài khoản đăng nhập), pause
+  roles.py            # mới: vai của pack → agents JSON (--agents) và agents/*.md; persona, model, effort, tool cấm
+  launch.py           # mới: bộ cờ CLI (mục 5 của spec), plugin của board (hooks.json + skills), prompt files, schema báo cáo
+  stream.py           # mới: parse stream-json → step rows: tool_use/tool_result (kể cả parent_tool_use_id), text của subagent,
+                      #       hook events, rate_limit_event, result + structured_output
+  steps.py            # mới: append-only ai_run_step, ai_run_agent; đọc theo trang; counters
+  runs.py             # viết lại, nhỏ: create_run, hàng đợi, scheduler (quota theo tài khoản, không hold), start/cancel/answer,
+                      #       resume theo ticket, _end, lessons từ báo cáo
+  messaging.py        # mới: primitive "gửi tin tới ticket/trang": chen stdin nếu đang chạy, --resume nếu nghỉ; độ sâu chuỗi
+  hooks_api.py        # mới: nhận POST từ hook script (token run), ghi step/agent, SubagentStart/Stop
+  events.py (server/) # thêm publish_typed(kind, payload) cho SSE có kiểu
+  runner/             # mới: tiến trình runner (mục 2, giai đoạn 6)
+  cli.py              # giữ CliProcess, find_cli, detect, kill_tree, spill_long_args; bỏ Antigravity, bỏ claude_args cũ
+  context.py          # cắt còn RunContext + fencing
+  guard.py            # cắt còn: token → RunContext, enter/actor, duplicate-write sau resume
+  config_model.py     # cắt còn hình dạng cấu hình đội (MCP servers, skills bật, hook người dùng); bỏ permission
+  run_config.py       # gộp vào launch.py
+```
+
+Xoá: `permissions approvals tool_asks tool_rules hints blocks safety autotrip pause_log touches handoff mentions autopilot manager
+orders hold workflow flow flow_view scope decisions flags signals awareness evals health multiproject adapters api_agent api_prompt
+api_tools custom_tools mcp_remote dry_run providers live_feed history team away timeline watchdog failures comment_view
+config_service config_sync members`. (`history/team/away/timeline/live_feed` viết lại rất mỏng trên bảng step: mục 1.5.)
+
+### 1.2 Bảng dữ liệu (migration `ai_v2_reset`)
+
+Drop: `ai_approval ai_grant ai_notification ai_decision ai_standing_order ai_order_firing ai_workflow_template ai_ticket_workflow
+ai_ticket_pace ai_ticket_step ai_ticket_flag ai_eval_mark ai_workspace_defaults ai_member ai_run ai_project_settings ai_draft
+docs_ai_proposal docs_ai_check` cộng mọi index của chúng. `DELETE FROM` các bảng giữ nhưng trỏ tới member/run cũ: `ai_usage`,
+`ai_run_transcript`, `ai_skill_use`, `ai_schedule`, `ai_schedule_run`, `ai_worktree`, `ai_watched_pr`, `ai_account`,
+`ai_account_state`, `ai_chat`, `ai_chat_message`, `docs_ai_job`, `docs_ai_session`, `ai_audit` (bắt đầu chuỗi hash mới).
+
+Tạo mới:
+
+| Bảng | Cột chính |
+|---|---|
+| `ai_team` | id, project_id, name, account_id, model, effort, persona, pack_id, config JSON (mcp servers, skills bật, plugins bật, hook người dùng), permission_mode `bypass|auto`, paused, health, health_detail, created_at |
+| `ai_run` | id, project_id, team_id, kind `team|assistant|schedule`, ticket_id?, target (page id, `board`, idea id), number, state `queued|starting|running|needs_input|finished|failed|cancelled`, trigger, started_by, instruction, session_id, session_name, worktree_id?, account_id, model, effort, token_hash, pid, queued_at/started_at/ended_at/last_output_at, ended_reason, report JSON (structured_output), question, answer, tokens_in/out/cached, cost_usd, context_used/window, peak_rss_mb, restarts JSON, debug_log path |
+| `ai_run_step` | id, run_id, seq, at, agent_id? (null = lead), kind `tool|edit|create|read|command|search|skill|subagent|board|text|hook|rate_limited|start|end|error`, tool, title, detail JSON (path, added/removed, command, exit_code, tests), output TEXT (chỉ tải khi mở), parent_tool_id |
+| `ai_run_agent` | id (agent_id của Claude Code), run_id, agent_type (tên vai), started_at, ended_at, steps_count, last_text |
+| `ai_run_message` | id, run_id, direction `in|out`, peer (tên phiên hoặc người), text, at (tin AI–AI và tin người gửi vào run) |
+| `ai_project_settings` | project_id, paused_all, concurrency theo tài khoản, live_messages (mặc định bật), permission_mode mặc định, deny_list JSON, lessons_mode `auto|review`, lessons_max, caps/quota |
+
+Giữ nguyên: `ai_account*`, `ai_usage`, `ai_audit`, `ai_run_transcript`, `ai_skill_use`, `ai_worktree`, `ai_watched_pr`, `ai_plugin`,
+`ai_role_pack` (thêm cột `roles` JSON), `ai_library_item`, `ai_config_state`, `ai_project_knowledge`, `ai_lesson`, `ai_memory_note`,
+`ai_knowledge_doc`, `ai_repo_scan`, `ai_schedule*` (cột member_id → team_id), `ai_assist_settings`, `ai_chat*`, `ai_insight`,
+`ai_digest`, `docs_ai_settings` (bỏ edits_mode/read_scope), `docs_ai_session`, `docs_ai_job`, `docs_ai_health`, `docs_ai_ignore`,
+`idea_ai_settings`, `idea_advice`, `idea_digest`.
+
+Migration viết theo mẫu `alembic/versions/a7c1e3f5b9d2_ai_accounts.py` (drop) và `a3c5e7f9b1d4_ai_ticket_pace.py` (create),
+`render_as_batch` cho SQLite, head hiện tại `f1c3e5a7b9d2`. `downgrade` chỉ tạo lại bảng rỗng.
+
+### 1.3 Một run của đội
+
+1. `runs.create_run(team, ticket, instruction, trigger)` → hàng đợi. Scheduler (`tick` 2 giây hoặc wake) chỉ kiểm tra: pause
+   project/đội, tài khoản cần đăng nhập, quota (`quota.key_for`), số run song song theo tài khoản, run khác của cùng ticket.
+2. `launch.prepare(run)`:
+   - worktree theo ticket (`worktrees.ensure`), cwd = worktree;
+   - **plugin của board** (sinh một lần, cache theo version): `.claude-plugin/plugin.json`, `hooks/hooks.json` (mục 1.4),
+     `hooks/post.sh` và `hooks/post.cmd`, `skills/*` (các skill từ Python string chuyển thành thư mục `SKILL.md` thật trong
+     `server/services/skills/<name>/`, đóng gói PyInstaller);
+   - **plugin của đội**: `agents/<role>.md` từ `roles.py`, skills bật, plugin cài thêm (`plugins.dirs_for`);
+   - file `--agents` JSON (cùng nội dung agents), `--append-system-prompt-file` (persona + luật board + bài học + chỉ dẫn project),
+     `--append-subagent-system-prompt-file` (luật board cho vai), `--settings` JSON (deny rules), `--mcp-config` (kanban HTTP +
+     Bearer token + MCP của đội), `--json-schema` (schema báo cáo: `status`, `summary`, `branch`, `pr_url`, `open_items[]`,
+     `lessons[]`, `asks[]`), `--name <KEY>`, `--session-id|--resume`, `--debug-file`;
+   - env: `KANBAN_URL`, `KANBAN_RUN_TOKEN`, `CLAUDE_CONFIG_DIR` của tài khoản, `--setting-sources ""`.
+3. Chạy `cli.CliProcess` ở chế độ live (stdin mở) khi project bật `live_messages` (mặc định), prompt đầu đi qua stdin.
+4. `stream.parse(line)` → `steps.append(run, rows)` theo lô 250 ms, mỗi lô một `events.publish_typed("ai.step", ...)`.
+5. Kết thúc: `result.structured_output` → `ai_run.report`; `lessons[]` → `ai_lesson` (auto hoặc chờ duyệt); `asks[]` → câu hỏi
+   trên ticket; nhánh/PR → `worktrees.handover`; `transcripts.finish`; `events.publish_typed("ai.run", state)`.
+6. Tin đến khi run nghỉ (comment, review PR, CI đỏ, tin AI khác): `messaging.send(ticket, text)` → `create_run(..., resume=True)`.
+
+### 1.4 Hook của board (trong plugin)
+
+`hooks.json`: `PostToolUse` (Edit|Write|MultiEdit|NotebookEdit, TaskCreate|TaskUpdate|TodoWrite), `SubagentStart`, `SubagentStop`,
+`Stop`, `PreToolUse` (Bash: chặn `git push --force|-f` lên nhánh chính và `rm -rf` ngoài worktree; exit 2 kèm lý do). Mỗi hook là
+`${CLAUDE_PLUGIN_ROOT}/hooks/post.sh` (macOS/Linux) hoặc `post.cmd` (Windows), đọc stdin, `curl -s -X POST $KANBAN_URL/ai/hooks
+-H "Authorization: Bearer $KANBAN_RUN_TOKEN" --data-binary @-`. `hooks_api.py` nhận, ghi `ai_run_agent` (start/stop), step
+`edit/create` từ PostToolUse, sub-task từ TaskCreate/TaskUpdate, và publish SSE. Hook bị lỗi không chặn AI (exit 0) trừ hook cấm.
+Stream vẫn là nguồn chính; hook là nguồn thứ hai cho thứ stream không có (TaskCreate, Stop của subagent kèm transcript path).
+
+### 1.5 API
+
+Giữ: `ai_accounts.py`, `ai_code.py` (worktree, handover, conflict), `ai_tools.py` (catalogue, plugins, packs, repo scan),
+`ai_knowledge.py`, `ai_history.py` (đổi sang đọc bảng step), `schedules.py`, `ai_power.py`, phần `pulls` và `kb` của
+`ai_board.py`, phần audit và inbox (câu hỏi) của `ai_safety.py`.
+
+Viết lại `api/ai.py` còn:
+
+| Endpoint | Mục đích |
+|---|---|
+| `GET/POST /projects/{id}/ai/teams`, `GET/PATCH/DELETE /ai/teams/{id}`, `pause`, `resume`, `test` | đội |
+| `GET /projects/{id}/ai/overview` | đếm run theo trạng thái, quota, đội; **không steps** |
+| `GET /projects/{id}/ai/board` | mỗi ticket: run đang chạy (state, vai đang hoạt động, bước cuối), **không steps** |
+| `GET /tickets/{id}/ai/runs` | danh sách run của ticket, tóm tắt |
+| `GET /ai/runs/{id}` | run + agents + 50 step cuối; `GET /ai/runs/{id}/steps?after=seq&agent=` trang; `GET .../steps/{seq}/output` |
+| `POST /tickets/{id}/ai/run` `{team_id?, instruction?}`; `POST /ai/runs/{id}/{cancel,answer,message,restart,retry}` | điều khiển; `message` = gửi tin vào run |
+| `POST /ai/hooks` | từ hook script (Bearer token run) |
+| `GET /projects/{id}/ai/settings`, `PATCH` | cài đặt v2 |
+| `GET /projects/{id}/ai/lessons`, `PATCH/DELETE /ai/lessons/{id}` | memory (b) |
+| `GET /projects/{id}/ai/live` | 100 step mới nhất của mọi run đang chạy (thay live-feed) |
+
+Xoá router: `ai_workflow.py`, phần orders/signals/evals của `ai_board.py`, phần permissions/grants/chain/blocks/checklist/
+run-limit/keys của `ai_safety.py`, `ai_ops.py` (trouble/hand-to/tell/move-account: `tell` thành `message`, `move-account`
+giữ ở teams), `ai_live_feed.py`, `ai_config.py` (dry-run, prompt preview; member config chuyển vào teams).
+
+SSE: `events.publish_typed(kind, payload)` phát `{"type":"ai.step","run_id","steps":[...]}`, `{"type":"ai.run", run}`,
+`{"type":"ai.agent", ...}`, `{"type":"ai.message", ...}`; `invalidate` chỉ còn cho thay đổi ngoài AI. `runs._publish` cũ bỏ.
+
+### 1.6 MCP (`kanban_mcp`)
+
+- `ai_run`: còn `ask` (hỏi người), `report` (bỏ, thay bằng `--json-schema`), `message` (tới ticket/trang; mục 4.3 spec), `team`
+  (đọc đội mình). Bỏ `handoff contact decide answer`.
+- `ai_team`: còn `runs run cancel answer message resources restart accounts guide`. Bỏ workflow, stories, approvals, members
+  CRUD (người làm trên UI).
+- `ticket_items(comment)` thêm tham số `role`.
+- `board_wait` giữ.
+- `guard`: `guarded` chỉ còn resolve token + actor + duplicate-write sau resume; bỏ `check`, approvals, permissions, `_hide_from_ai`.
+- `instructions.py` viết lại: không còn handoff/mention/chain; nói về đội, vai, `message`, báo cáo JSON.
+- `operations/ai_work.py` xoá; `team_guide.py` viết lại.
+
+### 1.7 Trợ lý (Docs, Board, Idea)
+
+`services/assistant/` mới (thay `docs_ai` phần lớn, `assist/chat`, `idea_ai`):
+
+- `sessions.py`: phiên theo tên `docs:<page>`, `board`, `idea:<id>`, `ticket:<KEY>:chat`; lock theo tên; `--resume` theo tên.
+- `launch.py` dùng chung `ai.launch` với `kind=assistant`: quyền người dùng (token người, không token run), bypass, MCP Docs/board
+  đầy đủ, plugin board (skills: `docs-pages`, `drawio-diagrams`, `sketches`, `canvas-design`, cộng skill tính năng mới:
+  `docs-check`, `docs-write`, `docs-freshness`, `docs-tidy`, `docs-tickets`, `docs-summarise`, `docs-explain`, `docs-translate`,
+  `docs-ask`, `docs-diagram`, `docs-history`, `board-health`, `idea-triage`, `idea-shape`, `idea-ask`, `idea-prepare-ticket`).
+- Mỗi endpoint tính năng cũ giữ đường dẫn (UI không đổi) nhưng thân chỉ còn: `jobs.start(kind)` → `assistant.run(session,
+  skill, args)` → kết quả JSON theo `--json-schema` của skill → trả về như cũ. `docs_ai/{ask,check,reader,write,tickets,diagram,
+  history,freshness(model part)}.py` xoá; `tidy.py`, `health.py`, `freshness.py` phần quét máy móc, `jobs.py`, `settings.py`,
+  `threads.py` phần hiển thị, `handoff.py` giữ.
+- Sửa trực tiếp kèm Hoàn tác: `docs_write` của trợ lý ghi version mới; UI Docs đã có lịch sử version và nút revert; thêm banner
+  "AI vừa sửa · xem diff · hoàn tác" (dùng `history` của trang). Bỏ `proposals`, `access`, `tiers`, `drafts` (Board AI vẽ ticket
+  thì tạo thẳng ticket, `RevertChange` hoàn tác), `prompts.parse kanban-actions`.
+- `llm.py` xoá (không còn one-shot). `assist/settings.py` (caps, record_usage) giữ, đổi tên `assistant/usage.py`.
+
+### 1.8 Runner tách tiến trình
+
+`server/runner/` chạy như tiến trình con của API (`python main.py --runner` trong dev; PyInstaller: cùng binary `kanban-server`
+với cờ `--runner`, hoặc entry riêng `kanban-runner` thêm vào `desktop/kanban-backend.spec`):
+
+- API ghi `ai_run.state=queued` và một dòng `ai_run_command` (`start|cancel|message|answer`); runner poll bảng lệnh mỗi 0,5 giây
+  (hoặc nhận wake qua một unix socket/named pipe cục bộ).
+- Runner sở hữu mọi `CliProcess`, đọc stream, ghi `ai_run_step`/`ai_run_agent`/`ai_run` trực tiếp vào DB (SQLite WAL; Postgres/
+  MySQL cùng engine), và POST sự kiện có kiểu tới `POST /internal/ai/events` của API (token nội bộ) để API phát SSE. API chết thì
+  runner vẫn ghi DB; FE reconnect thì refetch.
+- Hook script POST tới API như cũ (API ghi DB, phát SSE).
+- Watchdog RAM (`resources.MON`) chạy trong runner; API đọc snapshot qua bảng hoặc endpoint của runner.
+- Khởi động lại: API khởi động → spawn runner; runner khởi động → `recover_on_startup` (run `running` không còn pid → requeue với
+  `--resume`).
+- Mã launcher/stream/steps viết sao cho chạy được **trong tiến trình API** (giai đoạn 3) và **trong runner** (giai đoạn 6) chỉ
+  bằng cách đổi nơi gọi `events.publish_typed` (trực tiếp hay qua HTTP).
+
+### 1.9 UI tối thiểu
+
+Xoá: `AiPermissionsTab/Cards`, `AiTicketSafety`, `AiSafetyPage/aiSafetyUi/AiSafetyViews` (giữ `AiKillSwitch`), `ReviewGate`,
+`AutopilotCard`, `MentionPlan`, `MentionIntent`, `TicketHold`, `TicketPlan`, `handoff/`, `evidence/`, `workflow/`, `talk/`,
+`board/orders`, `limits/` (trừ phần quota), `trouble/HandToDialog`, `settings/` phần autonomy, `aiteam/` các tab Flow, Timeline,
+Stepped in, Decided, Health; `api/aiSafety.ts` phần tương ứng, `aiWorkflow*.ts`, `aiOrders.ts`, `aiOps.ts`, `aiLiveFeed.ts`,
+`aiEvals.ts`; types tương ứng.
+
+Viết lại (dùng component sẵn có, không màn mới ngoài bốn màn tối thiểu):
+
+- `AiMembersPage` → `AiTeamsPage`: danh sách đội; `AddAiMemberModal` → `AddTeamModal` ba bước: tên + tài khoản, model/effort,
+  pack (chọn từ `packs`). `AiProfile` → trang đội: vai (từ pack, sửa persona/model/tool cấm từng vai = **trình sửa pack tối
+  thiểu**), skill/plugin bật (tái dùng `config/` phần skills và `tools/`), cài đặt `permission_mode`.
+- `AssigneePicker`: người hoặc đội; dòng phụ vai đang hoạt động từ `ai.agent`.
+- `RunView`/`RunPanel`: cây hai tầng (lead → agents), step tải theo trang, output mở lazily, chip skill; `CardAiFooter` đọc
+  `/ai/board` không steps.
+- `ComposerAi`: "Gửi cho đội" (POST `message` nếu run đang chạy, else tạo run); bỏ intent ask/work/notify.
+- `AiThread`: nhãn `role` trên comment của AI.
+- `QuestionCard`: chỉ câu hỏi và trả lời.
+- `LiveFeed` → `AiLivePanel` mỏng trên `/ai/live` cộng `ai.step` SSE.
+- **Memory của project**: trang danh sách bài học (sửa, xoá, duyệt) trong `knowledge/` (đã có lessons UI, mở rộng).
+- Live: `useSSEInvalidation.ts` thêm nhánh `ai.*` → `setQueryData` vào `['ai','run',id]`, `['ai','board',pid]`,
+  `['ai','overview',pid]`; `invalidationTopics` bỏ `ai`; `pollIntervals` cho AI còn 30 giây an toàn.
+- Docs/Board/Idea: giữ nguyên điểm vào; bỏ `ProposalBanner`, `ProposalReview`, `SuggestedEdits`, `PageAiFlags` (ai_hidden),
+  `DocsAiSettings` phần edits_mode/read_scope, `assist/DraftWithAi|DraftChanges|DraftAiMembers` (thay bằng tạo thẳng + revert),
+  `BoardAiSection` phần orders/tiers.
+
+## 2. Giai đoạn và commit
+
+| # | Giai đoạn | Việc chính | Test liên quan |
+|---|---|---|---|
+| 0 | Chuẩn bị | Chuyển helper `env/_project/_runner/_ticket/_wait` từ `tests/test_ai.py` sang `tests/ai_helpers.py`; ghi lại danh sách test xoá/viết lại | `tests/test_ai_accounts.py` chạy được qua helper mới |
+| 1 | Xoá | Xoá module, router, MCP action, bảng, UI, test theo mục 1; stub tạm cho import còn sót (`services/stories.py`, `services/tickets.py`, `services/notifications.py`, `main.py`); migration `ai_v2_reset` | server khởi động; `test_ai_accounts`, `test_ai_worktrees`, `test_ai_schedules`, `test_data_import_and_legacy_db` |
+| 2 | Dữ liệu và đội | Model mới (`ai_team`, `ai_run`, `ai_run_step`, `ai_run_agent`, `ai_run_message`, `ai_project_settings`); `teams.py`, `roles.py`, `packs` → vai; API teams/settings/lessons | `test_ai_teams.py` (mới), `test_ai_packs` |
+| 3 | Run v2 | `launch.py`, `stream.py`, `steps.py`, `runs.py`, `hooks_api.py`, plugin board + skill thư mục thật, schema báo cáo, lessons; MCP cắt gọn; `guard` cắt; `instructions` mới; `cli.claude_args` mới | `test_ai_launch.py`, `test_ai_stream.py` (fixture stream thật từ spike: `tests/fixtures/streams/*.jsonl`), `test_ai_steps.py`, `test_ai_hooks_api.py`, `test_ai_runners` viết lại, `test_mcp_ai_team` viết lại, `test_mcp_tool_quality` |
+| 4 | Live và tin nhắn | live mode mặc định, `messaging.py`, `/ai/runs/{id}/message`, tin AI–AI (ghi `ai_run_message` từ stream), độ sâu chuỗi, review PR/CI đỏ qua `github.py` → `messaging` | `test_ai_messaging.py`, `test_ai_github` |
+| 5 | SSE có kiểu | `events.publish_typed`, `/ai/live`, `/ai/board` không steps, trang step, output lazily | `test_events_typed.py`, `test_ai_history` |
+| 6 | Runner | `server/runner/`, bảng `ai_run_command`, `/internal/ai/events`, spawn từ `main.py`, recover, RAM watchdog trong runner; `desktop/kanban-backend.spec` | `test_runner.py` (chạy runner in-process với fake CLI), `test_ai_reliability` viết lại |
+| 7 | Trợ lý | `services/assistant/`, skill tính năng (SKILL.md), endpoint Docs/Board/Idea đổi thân, bỏ proposals/access/tiers/drafts/llm, lịch chạy gọi đội/trợ lý | `test_docs_ai_*` viết lại theo skill (fake CLI trả JSON theo schema), `test_ai_assist`, `test_idea_ai`, `test_ai_schedules` |
+| 8 | UI | Mục 1.9; `tsc`, eslint, prettier, vitest cho thư mục sửa | `ui/src/components/ai`, `aiteam`, `docs/ai`, `hooks` |
+| 9 | Auto mode và dọn | `permission_mode` project/đội; `--permission-mode auto`; xoá stub tạm; CLAUDE.md mục Tests cập nhật tên suite; `ai-v2.md` cập nhật "đã làm" | toàn bộ suite liên quan AI một lần trước khi mở PR |
+
+Mỗi giai đoạn một hoặc vài commit; thông điệp commit nêu giai đoạn. Giai đoạn 1 là commit xoá lớn nhất (dự kiến −60 nghìn dòng).
+
+## 3. Fake CLI và kiểm thử
+
+- `tests/fixtures/fake_claude.py` cắt bỏ các mode của provider khác; thêm mode `v2`: phát `system/init` (có `agents`, `plugins`),
+  tool_use của lead, `Agent` → sự kiện subagent với `parent_tool_use_id` (`tests/fixtures/streams/subagent.jsonl` ghi từ spike
+  2026-11-05), `rate_limit_event`, `result` kèm `structured_output` theo schema; mode `v2_live` đọc stdin như hiện tại; mode
+  `v2_ask` kết thúc bằng `asks[]`.
+- Hook: test gọi thẳng `POST /ai/hooks` với payload mẫu (`tests/fixtures/hooks/*.json` ghi từ spike). Fake CLI không chạy hook.
+- Stream parser test bằng file jsonl thật.
+- Migration test: DB cũ (fixture của `test_data_import_and_legacy_db`) chạy `ai_v2_reset` xong khởi động được.
+- UI: vitest cho `useSSEInvalidation` nhánh `ai.*`, `RunView` cây hai tầng, `AddTeamModal`.
+
+## 4. Kiểm tra tay trước khi mở PR
+
+1. Server demo với fake CLI mode `v2`: tạo đội, giao ticket, xem cây run, step tải theo trang, SSE vá cache (đếm request/giây bằng
+   cách đo ở `todo-ai-run-load-optimize`: mục tiêu dưới 1 request/giây khi 3 run chạy).
+2. Một run thật bằng Haiku trên project sandbox với tài khoản `cmtienc2` (thoả thuận trước): lead sinh Reviewer, hook post lên board,
+   báo cáo JSON, lesson đề xuất, worktree và nhánh.
+3. Gửi comment vào run đang chạy; gửi khi run nghỉ (resume).
+4. Docs: "Check this page" và "Write from ticket" qua trợ lý, hoàn tác.
+5. Runner: kill tiến trình runner giữa chừng, API tự spawn lại, run `--resume`.
+6. Windows: build desktop và chạy một ticket với fake CLI (hook `post.cmd`), đo POST comment bằng curl.
+
+## 5. Rủi ro và cách xử lý
+
+- **`services/stories.py`, `services/tickets.py`, `services/notifications.py`, `main.py`** dính `decisions/workflow/manager/flags/
+  safety`: cắt phần AI, giữ phần ticket. Làm ở giai đoạn 1 với stub rồi xoá stub ở giai đoạn 9.
+- **`tests/test_ai.py` là fixture của 101 module test**: giai đoạn 0 trước mọi thứ.
+- **Plugin đồng bộ của tài khoản nạp vào mọi run**: thử `--setting-sources ""` và, nếu không đủ, một `CLAUDE_CONFIG_DIR` riêng cho
+  run (symlink credentials của tài khoản); quyết ở giai đoạn 3.
+- **Trả lời của subagent được gọi lại không về lead trong lượt**: luật trong system prompt của lead ("cần câu trả lời thì sinh
+  subagent mới, đồng bộ"); board hiện text của subagent từ stream.
+- **Windows**: hook `post.cmd` dùng `curl.exe` có sẵn từ Win10; `spill_long_args` giữ; test trên máy Windows của người dùng ở mục 4.6.
+- **Khối lượng**: giai đoạn 3, 7, 8 lớn nhất; mỗi giai đoạn nên là một phiên làm việc riêng, cùng nhánh, commit xong mới sang
+  giai đoạn kế.

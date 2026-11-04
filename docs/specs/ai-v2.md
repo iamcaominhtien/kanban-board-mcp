@@ -222,6 +222,9 @@ Bỏ nhiều hơn xây. Phần AI của UI hiện ~20 nghìn dòng, 68 file cộ
 
 ## 8. Lát cắt đầu tiên và thứ tự
 
+> **2026-11-05:** chốt làm **toàn bộ trong một PR**, kế hoạch chi tiết ở [`ai-v2-implementation.md`](ai-v2-implementation.md)
+> (UI tối thiểu, xoá sạch dữ liệu AI cũ, runner tách tiến trình và auto mode đều trong PR, xoá hết provider khác).
+
 **Lát cắt 1 (chứng minh "ngon"):** một project, một đội, một ticket. Lead `-p` với bộ cờ mục 5, plugin của board, vai là subagent,
 worktree riêng, báo cáo bằng `--json-schema`, tiến trình bằng stream cộng hook, bảng step mới và SSE có kiểu. Không handoff,
 không duyệt, không ma trận quyền. Người dùng đánh giá trên lát cắt này trước khi làm tiếp.
