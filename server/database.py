@@ -233,7 +233,7 @@ def create_schema(sync_conn, alembic_cfg) -> None:
     import models  # noqa: F401 - registers every table
     from dbkit.types import server_metadata
 
-    server_metadata(SQLModel.metadata).create_all(sync_conn)
+    server_metadata(SQLModel.metadata, sync_conn.dialect.name).create_all(sync_conn)
     changes.create(sync_conn)
     alembic_cfg.attributes["connection"] = sync_conn
     command.stamp(alembic_cfg, "head")

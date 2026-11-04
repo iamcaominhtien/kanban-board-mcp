@@ -139,6 +139,32 @@ async def test_queue_waits_behind_the_members_current_run_even_with_a_free_slot(
     await c.post(f"/ai/runs/{queued['id']}/cancel", json={})
 
 
+async def test_start_now_skips_the_boards_own_wait_before_a_retry(env, monkeypatch):
+    c = env["c"]
+    monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")
+    pid, _ = await _project(c)
+    m = await _runner(c, pid, env["repo"], max_parallel=2)
+    first = await _ticket(c, pid, title="First")
+    second = await _ticket(c, pid, title="Second")
+    await _assign(c, first, m["id"])
+    running = await _wait(c, first, ("running",))
+    await _assign(c, second, m["id"], start="queue")
+    queued = (await _runs(c, second))[0]
+    async with env["maker"]() as s:
+        row = await s.get(AiRun, queued["id"])
+        # the board put it back after a fault (the person has fixed the cause since)
+        row.retry_at = (datetime.now(UTC) + timedelta(minutes=10)).isoformat()
+        s.add(row)
+        await s.commit()
+    await runs.tick()
+    assert (await _runs(c, second))[0]["waiting_reason"].startswith("Retrying in about")
+    r = await c.post(f"/ai/runs/{queued['id']}/start-now")
+    assert r.status_code == 200, r.text
+    assert r.json()["state"] in ("starting", "running") and r.json()["retry_at"] is None
+    await c.post(f"/ai/runs/{running['id']}/cancel", json={})
+    await c.post(f"/ai/runs/{queued['id']}/cancel", json={})
+
+
 async def test_a_queued_run_starts_when_the_current_run_ends(env, monkeypatch):
     c = env["c"]
     monkeypatch.setenv("FAKE_CLAUDE_MODE", "sleep")

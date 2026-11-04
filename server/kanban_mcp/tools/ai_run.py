@@ -65,7 +65,7 @@ def _handoff_schema(schema: dict) -> None:
 
 
 async def ai_run(
-    action: Literal["ask", "report", "handoff", "decide", "answer"],
+    action: Literal["ask", "report", "handoff", "contact", "team", "decide", "answer"],
     question: Annotated[str | None, Field(description="ask: the question.")] = None,
     options: Annotated[
         list[str] | None, Field(description="ask: short choices.")
@@ -104,14 +104,17 @@ async def ai_run(
         Field(description="Ignored: the run's ticket is used."),
     ] = None,
     member: Annotated[
-        str | None, Field(description="handoff: teammate AI's exact name.")
+        str | None, Field(description="handoff, contact: teammate AI's exact name.")
     ] = None,
     ticket: Annotated[
-        str | None, Field(description="handoff: ticket key (default this one).")
+        str | None,
+        Field(description="handoff, contact, team: ticket key (default this one)."),
     ] = None,
     instruction: Annotated[
         str | None,
-        Field(description="handoff: what to do. decide: reason. answer: the answer."),
+        Field(
+            description="handoff: what to do. contact: your question. decide: reason. answer: the answer."
+        ),
     ] = None,
     request: Annotated[
         str | None, Field(description="decide/answer: the id given in your brief.")
@@ -120,7 +123,8 @@ async def ai_run(
 ) -> dict:
     """Only inside a run the board started. ask: question the person you act for, then stop; the board resumes you
     with the answer. report: record your summary and your handoff note before the final message. handoff: assign a
-    ticket to a teammate AI and queue their work run, with your handoff note. decide/answer: only in an Autopilot brief, for the person's pending requests."""
+    ticket to a teammate AI and queue their work run, with your handoff note. contact: ask a teammate AI; the answer
+    comes back. team: who does what now. decide/answer: only in an Autopilot brief, for the person's pending requests."""
     from services.ai import guard, runs
 
     ctx = await guard.resolve()
@@ -141,6 +145,12 @@ async def ai_run(
             return await autopilot.answer(ctx, request or "", instruction or "")
         except autopilot.AutopilotError as exc:
             raise ValueError(str(exc)) from exc
+    if action in ("contact", "team"):
+        from services.ai import awareness
+
+        if action == "team":
+            return await awareness.team_for_run(ctx, ticket)
+        return await awareness.contact(ctx, member or "", ticket, instruction or "")
     if action == "handoff":
         return await runs.record_handoff(
             ctx, member or "", ticket, instruction or "", note=handoff

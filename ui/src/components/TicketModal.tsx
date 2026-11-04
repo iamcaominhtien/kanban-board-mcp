@@ -2316,7 +2316,8 @@ function TicketModalInner({
                             });
                           }}
                           onMakeStory={
-                            ticket.type !== 'story' && parentTicket?.type !== 'story'
+                            // a Story holds tickets, never Stories: a ticket inside another one stays a ticket
+                            ticket.type !== 'story' && !ticket.parentId
                               ? () =>
                                   makeStoryMutation.mutate(ticket.id, {
                                     onSuccess: () =>

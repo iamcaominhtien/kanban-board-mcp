@@ -218,6 +218,11 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
               p: ({ node, children: inner }) =>
                 hasDiagram(node) || hasSketch(node) || hasCanvas(node) ? <div>{inner}</div> : <p>{inner}</p>,
             }),
+        table: ({ node: _n, children: inner, ...props }) => (
+          <div className={styles.tableWrap}>
+            <table {...props}>{inner}</table>
+          </div>
+        ),
         blockquote: ({ node, children: inner, ...props }) => {
           const kind = (node?.properties as { dataCallout?: string } | undefined)?.dataCallout;
           if (!kind) return <blockquote {...props}>{inner}</blockquote>;

@@ -576,8 +576,25 @@ async def add_docs_comment(
 @notify_on_success
 async def reply_docs_comment(thread_id: DocsThreadId, body: CommentBody) -> dict:
     """Reply in a Docs comment thread. Returns the thread."""
+    from services.ai import guard
+
+    ctx = guard.current()
+    # a run on a ticket answers from its conversation there: the reply says which ticket (a chat's or a Docs
+    # answer's token has no run of its own)
+    ai = (
+        {
+            "kind": "ticket",
+            "member_id": ctx.member_id,
+            "ticket_id": ctx.ticket_id,
+            "run_id": ctx.run_id,
+        }
+        if ctx is not None and ctx.ticket_id and ctx.run_id.startswith("run_")
+        else None
+    )
     async with common.async_session() as session:
-        return await _comment_call(svc_comments.add_reply(session, thread_id, body))
+        return await _comment_call(
+            svc_comments.add_reply(session, thread_id, body, ai=ai)
+        )
 
 
 @notify_on_success

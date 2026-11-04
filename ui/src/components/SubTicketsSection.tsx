@@ -368,32 +368,37 @@ export function SubTicketsSection({
             <span className={styles.progressCount}>
               {doneCount}/{totalCount} done
             </span>
-            {onMakeStory && (
-              <button
-                type="button"
-                className={styles.makeStoryBtn}
-                onClick={onMakeStory}
-                disabled={makingStory}
-                title="The PM owns it from the plan to Done; the children stay, in order"
-                data-testid="make-story"
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#1B3A6B"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M6.5 3h11a1 1 0 0 1 1 1v17l-6.5-4.2L5.5 21V4a1 1 0 0 1 1-1z" />
-                </svg>
-                {makingStory ? 'Making it a Story…' : 'Make this a Story'}
-              </button>
-            )}
           </>
+        )}
+        {/* also on a ticket without children: it becomes a Draft Story, and the PM writes the plan */}
+        {onMakeStory && (
+          <button
+            type="button"
+            className={styles.makeStoryBtn}
+            onClick={onMakeStory}
+            disabled={makingStory}
+            title={
+              totalCount > 0
+                ? 'The PM owns it from the plan to Done; the children stay, in order'
+                : 'The PM plans it into tickets and owns it to Done'
+            }
+            data-testid="make-story"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#1B3A6B"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6.5 3h11a1 1 0 0 1 1 1v17l-6.5-4.2L5.5 21V4a1 1 0 0 1 1-1z" />
+            </svg>
+            {makingStory ? 'Making it a Story…' : 'Make this a Story'}
+          </button>
         )}
       </div>
 

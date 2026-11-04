@@ -13,6 +13,7 @@ from services.ai import cli, guard, llm, runs
 from services.ai.assist import chat_tools
 from services.ai.context import RunContext
 from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.test_ai_safety import OWNER, _people
 
 
 async def _chat_parts(env, **config):
@@ -400,7 +401,8 @@ async def test_bypass_permissions_reaches_the_chat_except_in_safe_mode(env):
     tools, token = await chat_tools.build(chat, profile, member)
     guard.revoke_chat_token(token)
     assert tools.bypass
-    assert "WebFetch" in tools.denied and "WebSearch" in tools.denied
+    # as for a run in Bypass, the web is open: no blanket denial of the web tools
+    assert "WebFetch" not in tools.denied and "WebSearch" not in tools.denied
 
     async with env["maker"]() as s:
         row = await s.get(AiMember, profile.id)
@@ -427,6 +429,35 @@ async def test_the_cli_gets_bypass_permissions_only_when_asked(monkeypatch):
     seen = _FakeProc.seen
     assert seen[seen.index("--permission-mode") + 1] == "bypassPermissions"
     assert "--dangerously-skip-permissions" not in seen
+
+
+async def _permissions(env, pid, **body):
+    r = await env["c"].put(f"/projects/{pid}/ai/permissions", json=body, headers=OWNER)
+    assert r.status_code == 200, r.text
+
+
+async def test_the_chat_follows_the_projects_web_search_switch(env):
+    chat, profile, member, pid = await _chat_parts(env)
+    await _people(env["c"], pid)  # Owen Lead is the owner
+    await _permissions(env, pid, web_search="on")
+    tools, token = await chat_tools.build(chat, profile, member)
+    guard.revoke_chat_token(token)
+    assert "WebSearch" in tools.allowed and "WebSearch" not in tools.denied
+
+    await _permissions(env, pid, web_search="off")
+    tools, token = await chat_tools.build(chat, profile, member)
+    guard.revoke_chat_token(token)
+    assert "WebSearch" not in tools.allowed and "WebSearch" in tools.denied
+
+
+async def test_the_trusted_preset_runs_the_chat_in_bypass_with_the_web_open(env):
+    chat, profile, member, pid = await _chat_parts(env)
+    await _people(env["c"], pid)
+    await _permissions(env, pid, preset="trusted")
+    tools, token = await chat_tools.build(chat, profile, member)
+    guard.revoke_chat_token(token)
+    assert tools.bypass  # the member did not choose it: the project's preset does
+    assert "WebFetch" not in tools.denied and "WebSearch" not in tools.denied
 
 
 # --------------------------------------------------------------------------- steps and the quiet limit

@@ -41,6 +41,7 @@ export function GiveStoryDialog({ projectId, story, onClose, onDone }: GiveStory
   const [budget, setBudget] = useState<number>(story?.tokens.budget || DEFAULT_BUDGET);
   const [error, setError] = useState<string | null>(null);
   const criterionRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const errorRef = useRef<HTMLDivElement | null>(null);
   const focusLast = useRef(false);
   const create = useCreateStory(projectId);
   const hand = useStoryAction(story?.id ?? '', projectId);
@@ -63,6 +64,11 @@ export function GiveStoryDialog({ projectId, story, onClose, onDone }: GiveStory
     focusLast.current = false;
     criterionRefs.current[criteria.length - 1]?.focus();
   }, [criteria.length]);
+
+  // the error sits under the fold of a long form: bring it into view, or the button seems to do nothing
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [error]);
 
   const canSubmit = handing || (title.trim().length > 0 && goal.trim().length > 0);
 
@@ -258,7 +264,7 @@ export function GiveStoryDialog({ projectId, story, onClose, onDone }: GiveStory
           </label>
 
           {error && (
-            <div className={styles.error} role="alert">
+            <div ref={errorRef} className={styles.error} role="alert">
               {error}
             </div>
           )}

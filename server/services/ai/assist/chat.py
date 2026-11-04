@@ -36,6 +36,8 @@ KEEP_DAYS = 30
 HISTORY_TOKENS = 6000
 KEEP_RECENT = 4
 MSG_CHARS = 3000
+# at most this many messages answered outside a ticket's shared session are passed back into it
+SIDE_ROWS = 12
 SUMMARY_TOKENS = 450
 TIMEOUT_S = 300.0  # an answer without tools
 # An answer that uses the member's tools ends when its CLI is quiet for IDLE_S (a tool call that waits for a person's
@@ -744,6 +746,11 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         session_use = None
         page_scope = None
         live_work = None
+        # this answer goes to a conversation of the chat's own: the ticket's shared session (held by a run) never
+        # sees it, so the next answer there is told
+        side = False
+        # what this chat said outside the shared session since it last answered there: the resumed session lacks it
+        missed: list[AiChatMessage] = []
         if profile.connection == "local" and profile.provider == "claude-code":
             # a chat about a Docs page shares the AI member's one session on that page (Ask, threads, summaries...)
             session_id = c.session_id
@@ -767,7 +774,13 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 if not docs_sessions.is_busy(shared, profile.id):
                     page_scope = shared
                     session_id = await docs_sessions.lookup(shared, profile.id)
+                    missed = _side_rows(before)
                 else:
+                    side = True
+                    if c.session_id and c.session_id == await docs_sessions.lookup(
+                        shared, profile.id
+                    ):
+                        session_id = None  # never the conversation the run is using: a new one of its own
                     # its work run holds the conversation: this answer is told what that run is doing now
                     from .. import runs as ai_runs
 
@@ -869,6 +882,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             "request": req,
             "scope": scope,
             "context_sent": send_ctx,
+            **({"side_session": True} if side else {}),
         },
         retry_at=None,
         error={},
@@ -994,10 +1008,35 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
         else ""
     )
 
+    # where this AI is, what its conversation holds and who else is on the work (services/ai/awareness)
+    from .. import awareness
+
+    surface = (
+        "ticket_chat"
+        if c.ticket_id
+        else ("docs_chat" if c.scope == "doc" and c.doc_id else "board_chat")
+    )
+    page_title = None
+    if surface == "docs_chat":
+        from models import DocsPage
+
+        async with database.async_session() as s2:
+            pg = await s2.get(DocsPage, c.doc_id)
+            page_title = pg.title if pg else None
+    scope_card = await awareness.card_for(
+        project_id=c.project_id,
+        member_id=member.id,
+        surface=surface,
+        ticket_id=c.ticket_id,
+        page_id=c.doc_id if surface == "docs_chat" else None,
+        page_title=page_title,
+    )
+
     def build_prompt(with_history: bool) -> str:
         return "\n\n".join(
             [
                 scope_line,
+                scope_card,
                 f"Members of the project: {people}",
                 open_proposal,
                 form_block,
@@ -1016,6 +1055,16 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
                 if convo and with_history
                 else "",
                 turn_in.text if turn_in else "",
+                (
+                    "Earlier in this chat, while your run on this ticket was using this conversation, these "
+                    "were answered in a separate one you do not remember:\n"
+                    + ctxb.fence(
+                        "messages answered meanwhile",
+                        "\n".join(_line(h) for h in missed),
+                    )
+                )
+                if missed and not with_history
+                else "",
                 live_work or "",
                 "The person asks:\n" + ctxb.fence("question", question),
                 ("Your answer so far:\n" + partial[-3000:]) if partial else "",
@@ -1402,6 +1451,7 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
             "request": req,
             "scope": scope,
             "context_sent": send_ctx,
+            **({"side_session": True} if side else {}),
             **({"compacted": True} if out.compacted else {}),
             **(
                 {
@@ -1446,6 +1496,19 @@ def _memory_rows(rows: list[AiChatMessage], upto: str | None) -> list[AiChatMess
                 continue
             out.append(h)
     return out
+
+
+def _side_rows(before: list[AiChatMessage]) -> list[AiChatMessage]:
+    """The questions and answers at the end of `before` that were answered outside the ticket's shared session
+    (`side_session`: a run held it), newest last; it stops at the last answer given in the shared session."""
+    out: list[AiChatMessage] = []
+    for h in reversed(_memory_rows(before, None)):
+        if h.role == "note":
+            continue
+        if h.role == "ai" and not loads(h.context, {}).get("side_session"):
+            break
+        out.append(h)
+    return list(reversed(out))[-SIDE_ROWS:]
 
 
 def _line(h: AiChatMessage, notes: dict[str, str] | None = None) -> str:

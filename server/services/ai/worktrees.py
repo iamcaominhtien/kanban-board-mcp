@@ -44,6 +44,11 @@ class WorktreeError(RuntimeError):
     """The worktree could not be made or used: a board fault, not the AI's."""
 
 
+class WorktreeNeedsYou(WorktreeError):
+    """The worktree cannot be made until a person sets the repository up (it has no commit yet): trying again
+    on its own would only fail the same way."""
+
+
 def _now() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -203,6 +208,13 @@ async def ensure(
         session.add(row)
         await session.commit()
         return row
+    if (
+        await git(repo, "rev-parse", "--verify", "--quiet", "HEAD", check=False)
+    ).returncode:
+        raise WorktreeNeedsYou(
+            f"The repository at {repo} has no commit yet, so the ticket's branch has nothing to start from. "
+            'Make a first commit there (for example git commit --allow-empty -m "Start"), then retry the run.'
+        )
     path = path_for(repo, ticket.id)
     branch = row.branch if row is not None else f"ai/{ticket.id}-{slug(ticket.title)}"
     base = (

@@ -713,7 +713,9 @@ export function DocsPageView({
                 </div>
               )}
             </div>
-            {!offline && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
+            {!offline && (
+              <PageComments pageId={page.id} projectId={projectId} data={commentsData} actions={cc.actions} />
+            )}
             <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
           </div>
         </div>

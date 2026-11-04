@@ -235,6 +235,30 @@ async def test_a_chat_does_not_wait_for_a_run_that_is_using_the_conversation(
     )  # the shared conversation is still the one remembered
 
 
+async def test_what_was_asked_while_a_run_held_the_conversation_goes_back_into_it(
+    env, fake, monkeypatch
+):
+    monkeypatch.setattr(shared, "session_exists", lambda sid, *a, **k: True)
+    monkeypatch.setattr(cli, "session_exists", lambda sid, *a, **k: True)
+    c, pid, an, m = await _setup(env)
+    tid = await _ticket(c, pid)
+    chat = await _scope_chat(c, tid)
+    await _answer(c, chat["id"], "hello")
+    kept = fake.sessions[-1].id
+    async with shared.exclusive(shared.ticket_scope(tid), m["id"]):
+        await _answer(c, chat["id"], "Use the library pydantic, please")
+        assert fake.sessions[-1].id != kept  # a conversation of its own
+    await _answer(c, chat["id"], "why not pydantic?")
+    assert fake.sessions[-1].id == kept and fake.sessions[-1].resume is True
+    prompt = fake.prompts[-1]
+    assert "while your run on this ticket was using this conversation" in prompt
+    assert "Use the library pydantic, please" in prompt
+    assert "hello" not in prompt.split("answered meanwhile")[1]  # the shared one has it
+    # told once: the next answer in the shared conversation does not repeat it
+    await _answer(c, chat["id"], "thanks")
+    assert "Use the library pydantic, please" not in fake.prompts[-1]
+
+
 def test_the_stream_tells_what_the_conversation_holds_and_the_models_window():
     line = json.dumps(
         {

@@ -155,6 +155,33 @@ def test_server_schema_keeps_tables_and_indexes_but_enforces_no_links():
     }
 
 
+def test_the_ticket_hold_index_holds_only_active_work_runs_on_every_engine():
+    from sqlalchemy.dialects import mysql, postgresql
+    from sqlalchemy.schema import CreateIndex
+    from sqlmodel import SQLModel
+
+    def ddl(dialect, name):
+        md = server_metadata(SQLModel.metadata, name)
+        (index,) = [
+            i for i in md.tables["ai_run"].indexes if i.name == "ux_ai_run_ticket_hold"
+        ]
+        return str(CreateIndex(index).compile(dialect=dialect))
+
+    pg = ddl(postgresql.dialect(), "postgresql")
+    assert pg.startswith("CREATE UNIQUE INDEX") and "WHERE mode = 'work'" in pg
+    # MySQL has no partial index: a unique one would hold every run ever made
+    my = ddl(mysql.dialect(), "mysql")
+    assert my.startswith("CREATE INDEX") and "WHERE" not in my
+    assert SQLModel.metadata.tables[
+        "ai_run"
+    ].indexes  # the shared models keep it unique
+    assert all(
+        i.unique
+        for i in SQLModel.metadata.tables["ai_run"].indexes
+        if i.name == "ux_ai_run_ticket_hold"
+    )
+
+
 async def test_counter_bump_returns_the_new_value(tmp_path):
     engine = targets.make_engine(targets.Target("sqlite", path=str(tmp_path / "c.db")))
     async with engine.begin() as conn:

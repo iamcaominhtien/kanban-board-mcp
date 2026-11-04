@@ -84,7 +84,7 @@ export function serverIntent(intent: 'ask' | 'work' | 'suggest' | 'notify'): Doc
 }
 
 /** What an AI reply is: an answer, a note (paused, over budget, hidden page), an error, or a proposal made. */
-export function aiReplyKind(c: DocsCommentItem): 'answer' | 'note' | 'error' | 'proposal' | null {
+export function aiReplyKind(c: DocsCommentItem): 'answer' | 'note' | 'error' | 'proposal' | 'sent' | 'ticket' | null {
   if (!c.ai) return null;
   return c.ai.kind ?? 'answer';
 }

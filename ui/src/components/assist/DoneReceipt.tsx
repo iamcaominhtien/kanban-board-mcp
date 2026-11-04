@@ -80,7 +80,9 @@ export function appliedWords(a: AppliedChange): string {
     case 'pace':
       return a.after === 'fast' ? 'fast mode on' : 'fast mode off';
     case 'create':
-      return 'created as a new ticket';
+      return a.type === 'story'
+        ? 'created as a Story, a Draft until you hand it to the PM'
+        : `created as a new ${a.type && a.type !== 'task' ? text(a.type) : 'ticket'}`;
     case 'message':
       return 'told the AI that is working on it';
     case 'delegate':
@@ -117,7 +119,7 @@ export function proposedWords(ch: DraftChange): ReactNode | null {
     case 'create':
       return (
         <>
-          New ticket “{ch.title}”
+          New {ch.type === 'story' ? 'Story' : ch.type && ch.type !== 'task' ? ch.type : 'ticket'} “{ch.title}”
           {ch.parent ? (
             <>
               {' '}

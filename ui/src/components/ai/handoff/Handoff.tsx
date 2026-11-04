@@ -68,12 +68,22 @@ export function WhoHasIt({ ticket }: { ticket: Ticket }) {
   const holder = useTicketHolder(ticket.id).data;
   if (!holder || holder.kind === 'nobody') return null;
   const takenBack = holder.state === 'taken_back';
+  // a blocked step or a stopped workflow says why after a colon: the chip keeps the short part (the design's chips
+  // are one line), the reason goes under it
+  const cut = holder.state === 'blocked' || holder.state === 'stopped' ? holder.text.indexOf(': ') : -1;
+  const head = cut > 0 ? holder.text.slice(0, cut) : holder.text;
+  const why = cut > 0 ? holder.text.slice(cut + 2) : null;
   return (
     <div className="ho-who" data-testid="who-has-it">
       <span className={`ho-holder ho-${holder.kind}`} data-testid="who-has-it-chip" title={holder.text}>
-        <LineIcon name={KIND_ICON[holder.kind]} size={12} />
-        <span className="ho-holder-text">{holder.text}</span>
+        <LineIcon name={KIND_ICON[holder.kind]} size={11} />
+        <span className="ho-holder-text">{head}</span>
       </span>
+      {why && (
+        <div className="ho-holder-why" data-testid="who-has-it-why">
+          {why}
+        </div>
+      )}
       {takenBack && <GiveBackButton ticketId={ticket.id} />}
       {!takenBack && ((holder.kind === 'ai' && holder.state !== 'idle') || holder.state === 'needs_input') && (
         <TakeOverButton ticketId={ticket.id} projectId={ticket.projectId} />

@@ -151,6 +151,7 @@ async def _complete(
     timeout: float,
     on_delta: Any,
     resume_id: str | None,
+    tools: llm.ChatTools | None = None,
 ) -> tuple[llm.Completion, llm.SessionUse | None]:
     """One model call. A Claude Code member always runs in a CLI session: `resume_id` continues it, else a new one
     starts; if the CLI lost the one to resume, a new one starts and the prompt carries what it needs."""
@@ -173,6 +174,7 @@ async def _complete(
                 timeout=timeout,
                 on_delta=on_delta,
                 session=use,
+                tools=tools,
             )
             return out, use
         except llm.LlmError as exc:
@@ -226,26 +228,43 @@ async def call(
         row = await assist.get(session)
     max_tokens = assist.max_tokens_for(row, profile, max_tokens)
     session_key = None
+    tools = token = None
     if profile.connection == "local" and profile.provider == "claude-code":
         session_key = scope or await _session_scope(job_id, page_id)
-    if session_key:
-        prompt = sessions.asked_by(person, prompt)
-        async with sessions.exclusive(session_key, who.member.id):
-            out, use = await _complete(
-                profile,
-                system,
-                prompt,
-                max_tokens,
-                timeout,
-                on_delta,
-                await sessions.lookup(session_key, who.member.id),
+        if person:
+            # a person asked: the member answers with its own tools (its MCP servers, its rules, bypass when it has
+            # it), its board tools reading only; what it would change goes through a proposal or a teammate
+            from services.ai.assist import chat_tools
+
+            tools, token = await chat_tools.build_for(
+                project_id=project_id,
+                ticket_id="",
+                owner=person,
+                key=f"docs_{job_id or uuid.uuid4().hex[:12]}",
+                profile=profile,
+                member=who.member,
+                acts_by_tier=True,
             )
-            if use is not None:
-                await sessions.remember(session_key, who.member.id, project_id, use.id)
-    else:
-        out, use = await _complete(
-            profile, system, prompt, max_tokens, timeout, on_delta, None
+            timeout = max(timeout, 600.0)
+    try:
+        out, use = await _call_session(
+            project_id,
+            who,
+            profile,
+            system,
+            prompt,
+            max_tokens,
+            timeout,
+            on_delta,
+            session_key,
+            person,
+            tools,
         )
+    finally:
+        if token:
+            from services.ai import guard
+
+            guard.revoke_chat_token(token)
     async with database.async_session() as session:
         await assist.record_usage(
             session, project_id, feature, who.member.id, person, out
@@ -257,6 +276,41 @@ async def call(
         if getattr(out, "compacted", False):
             await jobs.add_step(job_id, "Long session compacted")
     return out
+
+
+async def _call_session(
+    project_id: str,
+    who: Resolved,
+    profile: AiMember,
+    system: str,
+    prompt: str,
+    max_tokens: int,
+    timeout: float,
+    on_delta: Any,
+    session_key: str | None,
+    person: str | None,
+    tools: llm.ChatTools | None,
+) -> tuple[llm.Completion, llm.SessionUse | None]:
+    """The call in the (page, member) session when there is one, kept for the next call about the page."""
+    if session_key:
+        prompt = sessions.asked_by(person, prompt)
+        async with sessions.exclusive(session_key, who.member.id):
+            out, use = await _complete(
+                profile,
+                system,
+                prompt,
+                max_tokens,
+                timeout,
+                on_delta,
+                await sessions.lookup(session_key, who.member.id),
+                tools,
+            )
+            if use is not None:
+                await sessions.remember(session_key, who.member.id, project_id, use.id)
+        return out, use
+    return await _complete(
+        profile, system, prompt, max_tokens, timeout, on_delta, None, tools
+    )
 
 
 def fenced(source: str, text: str) -> str:

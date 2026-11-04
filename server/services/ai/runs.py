@@ -782,7 +782,8 @@ async def _blocking_reason(
     settings: AiProjectSettings,
     skip_queue: bool = False,
 ) -> str | None:
-    """Why a queued run cannot start yet, or None. `skip_queue` ignores "queued behind the current work" (Start now)."""
+    """Why a queued run cannot start yet, or None. `skip_queue` (Start now) ignores what a person may override:
+    "queued behind the current work" and the board's own wait before a retry."""
     if settings.paused_all:
         return "AI is paused for this project"
     if profile.paused:
@@ -808,8 +809,9 @@ async def _blocking_reason(
             "model_retired": "Model retired — choose another",
         }[profile.health]
     own_retry = parse_iso(run.retry_at)
-    if own_retry and own_retry > datetime.now(UTC):
-        # a retry the board scheduled itself (network, 5xx, a board fault): not a person's to press
+    if own_retry and own_retry > datetime.now(UTC) and not skip_queue:
+        # a retry the board scheduled itself (network, 5xx, a board fault); a person who fixed the cause may press
+        # Start now instead of waiting it out
         secs = max(1, int((own_retry - datetime.now(UTC)).total_seconds()))
         wait = f"{secs} s" if secs < 120 else f"{round(secs / 60)} min"
         last = (loads(run.retries, []) or [{}])[-1]
@@ -1391,12 +1393,14 @@ def _stop_diagnosis(kind: str, said: str, run: AiRun, stderr: list[str]) -> dict
         "board_fault": "A part of the board failed, not the AI. It is not counted against the AI.",
         "crash": failures.stderr_reading(stderr),
         "compact": "The conversation grew too long even for a fresh start with a hand-over note.",
+        "setup": "The run cannot start until the repository is set up. Nothing is wrong with the AI.",
     }.get(kind, "The CLI stopped with an error.")
     return {
         "at": now_iso(),
         "by": "code",
         "cause": kind,
-        "board_fault": kind == "board_fault",
+        "board_fault": kind
+        in ("board_fault", "setup"),  # never the AI's: a person sees to it
         "trigger": "The run stopped",
         "what": (said or "The CLI stopped.")[:400],
         "means": means,
@@ -1859,8 +1863,17 @@ async def _build_prompt_base(
         ticket_status=ticket.status,
         team=team,
     )
+    # where this run is, what its conversation holds, the AIs on the same work now and how to reach them
+    from . import awareness, knowledge
+
+    system += "\n\n" + await awareness.card(
+        session,
+        project_id=run.project_id,
+        member_id=member.id,
+        surface="run",
+        ticket_id=run.ticket_id,
+    )
     # The project's instructions and the lessons its AIs learned: every run, before the member's own persona (D18)
-    from . import knowledge
 
     # and the notes this member's role keeps and the notes on this ticket (issue #274), recorded on the run
     known = await knowledge.for_run(session, run, profile)
@@ -2355,8 +2368,14 @@ async def _execute_cli_held(
                     ):
                         worktree = existing
             except (worktrees.WorktreeError, OSError) as exc:
-                # a worktree that cannot be made is the board's fault, never the AI's (D11)
-                if await _retry_later(
+                # a worktree that cannot be made is the board's fault, never the AI's (D11); one that waits for a
+                # person to set the repository up stops at once, as trying again cannot help
+                kind = (
+                    "setup"
+                    if isinstance(exc, worktrees.WorktreeNeedsYou)
+                    else "board_fault"
+                )
+                if kind == "board_fault" and await _retry_later(
                     run_id,
                     "board_fault",
                     f"The worktree could not be made: {exc}",
@@ -2369,7 +2388,7 @@ async def _execute_cli_held(
                     async with database.async_session() as fresh:
                         stopped = await fresh.get(AiRun, run_id)
                     diag = _stop_diagnosis(
-                        "board_fault",
+                        kind,
                         f"The worktree could not be made: {exc}",
                         stopped,
                         [],
@@ -3994,6 +4013,10 @@ async def _end(
     if run.mode == "work" and state in ("finished", "failed", "timed_out"):
         await _log_work(run, state, reason)
         await _report_back(run, state, reason)
+    if run.mode == "ask" and state in ("finished", "failed", "timed_out"):
+        from . import awareness
+
+        await awareness.answer_back(run, state, reason)  # a teammate's contact
     if state == "failed":
         await _auto_trip(run.member_id)
     if profile and profile.remove_after_run:
@@ -4728,6 +4751,7 @@ async def start_now(run_id: str, *, by: str) -> AiRun:
             )
             if reason:
                 raise RunError(f"Can't start now: {reason}.")
+            run.retry_at = None  # the wait is over: a person started it
             await _start(session, run)
             await session.refresh(run)
             return run

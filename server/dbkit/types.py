@@ -80,13 +80,16 @@ def short_text_columns(metadata: MetaData) -> list[Column]:
     ]
 
 
-def server_metadata(metadata: MetaData) -> MetaData:
+def server_metadata(metadata: MetaData, dialect: str | None = None) -> MetaData:
     """The schema as it is made on PostgreSQL and MySQL: the same tables, columns and indexes, and the links between
     tables kept by the app, not enforced by the database.
 
     SQLite has never enforced them for the board (``PRAGMA foreign_keys`` stays off), and the app relies on that: it
     writes a row before the one it points at within a transaction and keeps rows whose parent was deleted (a docs
     page whose parent went to the bin). Enforcing them on one engine only would make the same action fail there.
+
+    MySQL and MariaDB have no partial index: a unique index that holds only some rows (``ux_ai_run_ticket_hold``)
+    would hold all of them there, so on ``dialect`` "mysql" it is made as a plain index.
     """
     from sqlalchemy import ForeignKeyConstraint
 
@@ -99,4 +102,11 @@ def server_metadata(metadata: MetaData) -> MetaData:
         for column in t.columns:
             column.foreign_keys.clear()
         t.foreign_keys.clear()
+        if dialect in ("mysql", "mariadb"):
+            for index in t.indexes:
+                if (
+                    index.unique
+                    and index.dialect_kwargs.get("sqlite_where") is not None
+                ):
+                    index.unique = False
     return copy

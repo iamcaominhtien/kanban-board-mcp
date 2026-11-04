@@ -186,6 +186,8 @@ export interface DraftChange {
   items?: string[];
   /** create: a new ticket (it has no `ticket` yet). */
   title?: string;
+  /** create: bug, feature, task, chore or story (a Story starts as a Draft for the PM to plan). */
+  type?: string;
   description?: string;
   parent?: string | null;
   criteria?: string[];

@@ -120,12 +120,16 @@
   margin: 4px 0 12px;
 }
 
+/* a table wider than its box (a column it cannot wrap) scrolls instead of being cut off */
+.tableWrap {
+  margin-bottom: 12px;
+  overflow-x: auto;
+}
+
 .markdown table {
   border-collapse: collapse;
   width: 100%;
-  margin-bottom: 12px;
   font-size: 13px;
-  overflow-x: auto;
 }
 
 .markdown th,
@@ -133,6 +137,8 @@
   border: 1px solid #e3e8e5;
   padding: 6px 12px;
   text-align: left;
+  /* a long link or path breaks inside its cell instead of widening the table */
+  overflow-wrap: anywhere;
 }
 
 .markdown thead tr {

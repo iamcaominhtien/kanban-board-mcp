@@ -300,13 +300,16 @@
   border: 1px dashed #e8a99b;
   color: #a5321e;
 }
+.dk-table-wrap {
+  margin: 4px 0 14px;
+  overflow-x: auto;
+}
 .dk-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13.5px;
   line-height: 1.45;
-  margin: 4px 0 14px;
   border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden;
@@ -319,6 +322,11 @@
   background: #f6faf7;
   padding: 8px 12px;
   border-bottom: 1px solid #e3e8e5;
+}
+.dk-table th,
+.dk-table td {
+  /* a long link or path breaks inside its cell instead of widening the table past the page */
+  overflow-wrap: anywhere;
 }
 .dk-table td {
   padding: 8px 12px;

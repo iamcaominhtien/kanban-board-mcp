@@ -26,6 +26,7 @@ from models import (
     DocsPage,
     Member,
     Project,
+    Story,
     Ticket,
     TicketUpdate,
 )
@@ -1819,6 +1820,7 @@ async def _apply_team_op(
     if op.startswith("schedule_"):
         return await _apply_schedule_op(session, ch, person, project_id)
     if op == "create":
+        story = ch.get("type") == "story"
         if (
             ch.get("workflow")
             and await ai_workflow.get_template(session, project_id, ch["workflow"])
@@ -1831,6 +1833,7 @@ async def _apply_team_op(
             session,
             project_id,
             ch["title"],
+            type=ch.get("type") or "task",
             status="backlog",
             description=ch.get("description") or "",
             parent_id=ch.get("parent"),
@@ -1838,10 +1841,12 @@ async def _apply_team_op(
         )
         for text in ch.get("criteria") or []:
             await svc_tickets.add_acceptance_criterion(session, t.id, text)
-        if ch.get("workflow"):
+        if ch.get("workflow") and not story:
             await ai_workflow.attach(session, t, ch["workflow"], by=person)
-        await svc_tickets.update_ticket(session, t.id, TicketUpdate(status="todo"))
-        return {"op": op, "ticket": t.id, "created": t.id}
+        if not story:
+            # a Story stays a Draft in the backlog until the person hands it to the PM (its state moves it)
+            await svc_tickets.update_ticket(session, t.id, TicketUpdate(status="todo"))
+        return {"op": op, "ticket": t.id, "created": t.id, "type": t.type}
     if op == "message":
         active = [
             r
@@ -1934,13 +1939,18 @@ async def _undo_team_op(session: AsyncSession, a: dict, person: str) -> str | No
         t = await session.get(Ticket, a["created"])
         if t is None:
             return None
+        made = "backlog" if t.type == "story" else "todo"
         if (
             t.updated_at
             and t.created_at
             and t.updated_at > t.created_at
-            and (t.assignee or t.status != "todo")
+            and (t.assignee or t.status != made)
         ):
             return f"{t.id} was worked on since, so it stays"
+        if t.type == "story":
+            story = await session.get(Story, t.id)
+            if story is not None:
+                await session.delete(story)
         await ai_workflow.detach(session, t.id, by=person)
         await svc_tickets.delete_ticket(session, t.id)
         return None

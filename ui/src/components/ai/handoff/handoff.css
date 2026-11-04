@@ -95,19 +95,21 @@
 }
 
 .ho-holder {
+  /* one line, as the ticket's hold chips in design AiTicketWork ("Held since 12:41") */
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 26px;
+  height: 22px;
   max-width: 100%;
-  padding: 3px 11px;
+  box-sizing: border-box;
+  padding: 0 9px 0 7px;
   border-radius: 999px;
   border: 1px solid #dfe5e0;
   background: #f4f6f4;
   color: #3a4a3e;
-  font-size: 12.5px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .ho-holder.ho-ai {
@@ -117,14 +119,21 @@
 }
 
 .ho-holder.ho-waiting {
-  border-color: #f0d9a8;
-  background: #fdf0e6;
+  border-color: #ebd3a4;
+  background: #fdf3e3;
   color: #b4571f;
 }
 
 .ho-holder-text {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ho-holder-why {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #5b6b60;
 }
 
 .ho-pop {
