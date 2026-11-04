@@ -49,7 +49,7 @@ async def test_a_project_goes_with_all_it_holds_and_the_other_stays(env):
     r = await c.delete(f"/projects/{gone}")
     assert r.status_code == 204, r.text
 
-    for table in ("ticket", "member", "ai_member", "docs_page", "ai_chat"):
+    for table in ("ticket", "member", "ai_team", "docs_page", "ai_chat"):
         assert (
             await _count(
                 env, f"SELECT COUNT(*) FROM {table} WHERE project_id = :p", p=gone

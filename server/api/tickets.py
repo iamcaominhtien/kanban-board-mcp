@@ -309,7 +309,15 @@ async def patch_ticket(
         by=act_ctx.current_actor(),
     )
     before = await get_ticket(session, ticket_id)
-    was = {"title": before.title, "description": before.description} if before else {}
+    was = (
+        {
+            "title": before.title,
+            "description": before.description,
+            "assignee": before.assignee,
+        }
+        if before
+        else {}
+    )
     try:
         ticket = await update_ticket(session, ticket_id, data)
     except ValueError as exc:
@@ -325,6 +333,15 @@ async def patch_ticket(
     if edited:
         await ai_runs.note_person_edit(
             ticket_id, by=act_ctx.current_actor(), what=" and ".join(edited)
+        )
+    if (
+        "assignee" in fields
+        and fields["assignee"]
+        and was.get("assignee") != fields["assignee"]
+    ):
+        # given to a team: its lead starts (AI v2)
+        await ai_runs.wake_new_assignee(
+            ticket_id, fields["assignee"], by=act_ctx.current_actor() or "user"
         )
     await board_events.publish("invalidate")
     return _read(ticket)

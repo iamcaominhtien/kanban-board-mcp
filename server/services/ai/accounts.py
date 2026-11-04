@@ -446,9 +446,7 @@ async def members_of(session: AsyncSession, account_id: str) -> list[AiTeam]:
     """The AI members (all projects) that run as this account."""
     return list(
         (
-            await session.exec(
-                select(AiTeam).where(AiTeam.account_id == account_id)
-            )
+            await session.exec(select(AiTeam).where(AiTeam.account_id == account_id))
         ).all()
     )
 
@@ -531,9 +529,7 @@ async def assign(
 async def counts(session: AsyncSession, project_id: str | None) -> dict[str, dict]:
     """Per account: the members using it in this project and in others (with names, for the hover)."""
     rows = (
-        await session.exec(
-            select(AiTeam).where(col(AiTeam.account_id).is_not(None))
-        )
+        await session.exec(select(AiTeam).where(col(AiTeam.account_id).is_not(None)))
     ).all()
     names = (
         {

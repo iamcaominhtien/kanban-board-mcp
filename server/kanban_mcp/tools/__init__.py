@@ -1,4 +1,4 @@
-"""The 12 tools the agent sees (9, plus ai_run for runs the board started, ai_schedules and ai_team). Each is a family of related operations picked with `action`.
+"""The 13 tools the agent sees (12, plus ai_run for runs the board started). Each is a family of related operations picked with `action`.
 
 Why so few: an agent pays for every tool description and schema on every session. Grouping by noun keeps all the
 capabilities while the tool list shrinks to a fraction of its size. The operations themselves live in
@@ -12,6 +12,7 @@ from collections.abc import Callable
 from mcp.types import ToolAnnotations
 
 from .. import operations as ops
+from .ai_run import ai_run
 from .branches import ticket_branches
 from .docs import docs_read, docs_write
 from .items import ticket_items
@@ -65,4 +66,8 @@ CORE_TOOL_TABLE: list[tuple[Callable, ToolAnnotations]] = [
     # the knowledge base (table of contents, search, read) and the project memory: read it, remember, forget a note
     (knowledge, _DESTRUCTIVE),
     (board_wait, _READ),  # wait until the board moves (the notification log)
+    (
+        ai_run,
+        _WRITE,
+    ),  # only inside a run the board started: ask a person, message a ticket's team, report
 ]

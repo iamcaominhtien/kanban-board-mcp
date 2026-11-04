@@ -4,7 +4,7 @@ from .routing import Op, batch, params_of, route
 from pydantic import Field
 from typing import Annotated, Literal
 from .. import operations as ops
-from ..common import TestCaseStatus, TicketId, WorkLogKind, WorkLogRole
+from ..common import TestCaseStatus, TicketId, WorkLogKind
 
 
 ItemId = Annotated[
@@ -30,7 +30,7 @@ _TEST_CASE_FIELDS = (
 )
 
 ITEM_OPS: dict[tuple[str, str], Op] = {
-    ("comment", "add"): Op(ops.add_comment, ("ticket_id", "text", "author")),
+    ("comment", "add"): Op(ops.add_comment, ("ticket_id", "text", "author"), ("role",)),
     ("attachment", "add"): Op(
         ops.attach_file, ("ticket_id", "path"), ("author", "text")
     ),
@@ -135,9 +135,9 @@ async def ticket_items(
         ),
     ] = None,
     role: Annotated[
-        WorkLogRole | None,
+        str | None,
         Field(
-            description="work_log add: your role (QA: Tester; reviewer, security, writer: Other)."
+            description="work_log add: your role (QA: Tester; reviewer, security, writer: Other). comment add: the role that speaks (Reviewer, QA, Designer...), shown on the comment."
         ),
     ] = None,
     note: Annotated[

@@ -1216,6 +1216,7 @@ class AiRunStep(SQLModel, table=True):
     )  # JSON: path, added, removed, command, exit_code, tests, tool_id ...
     output: Optional[str] = Field(default=None)
     parent_tool_id: Optional[str] = Field(default=None)
+    tool_id: Optional[str] = Field(default=None, index=True)  # the tool call's id, so its result finds the step
 
 
 class AiRunAgent(SQLModel, table=True):
@@ -1223,9 +1224,10 @@ class AiRunAgent(SQLModel, table=True):
 
     __tablename__ = "ai_run_agent"
 
-    id: str = Field(primary_key=True)  # Claude Code's agent id
+    id: str = Field(primary_key=True)  # the lead's Agent tool call id (parent_tool_use_id in the stream)
     run_id: str = Field(index=True)
     agent_type: str = Field(default="")
+    claude_id: Optional[str] = Field(default=None)  # Claude Code's own agent id (from the SubagentStart hook)
     started_at: str = Field(default_factory=_now_iso)
     ended_at: Optional[str] = Field(default=None)
     steps_count: int = Field(default=0)

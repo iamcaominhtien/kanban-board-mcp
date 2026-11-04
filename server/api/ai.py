@@ -15,6 +15,8 @@ from database import get_session
 from models import AiProjectSettings, AiRun, AiTeam, Member, Project
 from services import activity as svc_activity
 from services.ai import roles as svc_roles
+from services.ai import runs as svc_runs
+from services.ai import steps as svc_steps
 from services.ai import teams as svc_teams
 from services.ai.store import active_runs, get_settings, loads
 
@@ -433,3 +435,207 @@ async def get_board(project_id: str, session: Session) -> dict:
             "question": loads(r.question, None) if r.question else None,
         }
     return {"tickets": out}
+
+
+# --------------------------------------------------------------------------- runs
+
+
+async def _run(session: AsyncSession, run_id: str) -> AiRun:
+    run = await session.get(AiRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return run
+
+
+class RunBody(BaseModel):
+    """Start a run on a ticket, or tell its running lead something."""
+
+    team_id: Optional[str] = None
+    instruction: Optional[str] = None
+    mode: Literal["work", "ask"] = "work"
+
+
+@router.post("/tickets/{ticket_id}/ai/run", status_code=200)
+async def post_ticket_run(ticket_id: str, body: RunBody, session: Session) -> dict:
+    """Run the ticket's team on it (the assignee, the given team, or the project's only team). A lead already on the
+    ticket hears the instruction instead of a second run starting."""
+    try:
+        run = await svc_runs.start_on_ticket(
+            session,
+            ticket_id,
+            member_id=body.team_id,
+            by=_by(),
+            instruction=body.instruction or "",
+            mode=body.mode,
+        )
+    except svc_runs.RunConflict as exc:
+        _err(exc, 409)
+    except ValueError as exc:
+        _err(exc, 422)
+    await board_events.publish("invalidate")
+    return svc_runs.to_dict(run)
+
+
+@router.get("/tickets/{ticket_id}/ai/runs")
+async def get_ticket_runs(
+    ticket_id: str, session: Session, limit: int = 30
+) -> list[dict]:
+    """The ticket's runs, newest first, without steps."""
+    rows = (
+        await session.exec(
+            select(AiRun)
+            .where(AiRun.ticket_id == ticket_id)
+            .order_by(col(AiRun.queued_at).desc())
+            .limit(limit)
+        )
+    ).all()
+    return [svc_runs.to_dict(r) for r in rows]
+
+
+@router.get("/projects/{project_id}/ai/runs")
+async def get_project_runs(
+    project_id: str, session: Session, limit: int = 60, state: Optional[str] = None
+) -> list[dict]:
+    """The project's runs, newest first, without steps."""
+    await _project(session, project_id)
+    stmt = select(AiRun).where(AiRun.project_id == project_id)
+    if state:
+        stmt = stmt.where(col(AiRun.state).in_(state.split(",")))
+    rows = (
+        await session.exec(stmt.order_by(col(AiRun.queued_at).desc()).limit(limit))
+    ).all()
+    return [svc_runs.to_dict(r) for r in rows]
+
+
+@router.get("/ai/runs/{run_id}")
+async def get_run(run_id: str, session: Session, steps: int = 50) -> dict:
+    """One run with its subagents and its newest `steps` steps."""
+    run = await _run(session, run_id)
+    return {
+        **svc_runs.to_dict(run),
+        "agents": await svc_steps.agents(session, run_id),
+        "steps": await svc_steps.read(session, run_id, limit=steps, last=True),
+    }
+
+
+@router.get("/ai/runs/{run_id}/steps")
+async def get_run_steps(
+    run_id: str,
+    session: Session,
+    after: int = 0,
+    limit: int = 200,
+    agent: Optional[str] = None,
+) -> list[dict]:
+    """A page of steps after `after` (a seq); `agent` = lead or an agent id."""
+    await _run(session, run_id)
+    return await svc_steps.read(
+        session, run_id, after=after, limit=min(limit, 500), agent_id=agent
+    )
+
+
+@router.get("/ai/runs/{run_id}/steps/{seq}/output")
+async def get_step_output(run_id: str, seq: int, session: Session) -> dict:
+    """One step with what its command printed."""
+    await _run(session, run_id)
+    out = await svc_steps.output(session, run_id, seq)
+    if out is None:
+        raise HTTPException(status_code=404, detail="Step not found")
+    return out
+
+
+@router.get("/ai/runs/{run_id}/messages")
+async def get_run_messages(run_id: str, session: Session) -> list[dict]:
+    """Messages into and out of the run."""
+    from models import AiRunMessage
+
+    await _run(session, run_id)
+    rows = (
+        await session.exec(
+            select(AiRunMessage)
+            .where(AiRunMessage.run_id == run_id)
+            .order_by(col(AiRunMessage.at).asc())
+        )
+    ).all()
+    return [
+        {
+            "id": m.id,
+            "direction": m.direction,
+            "peer": m.peer,
+            "text": m.text,
+            "at": m.at,
+            "delivered_at": m.delivered_at,
+        }
+        for m in rows
+    ]
+
+
+class TextBody(BaseModel):
+    text: str = ""
+
+
+@router.post("/ai/runs/{run_id}/cancel")
+async def post_cancel(run_id: str, session: Session) -> dict:
+    """Stop the run; files stay as they are."""
+    await _run(session, run_id)
+    try:
+        run = await svc_runs.cancel(run_id, by=_by())
+    except ValueError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return svc_runs.to_dict(run)
+
+
+@router.post("/ai/runs/{run_id}/answer")
+async def post_answer(run_id: str, body: TextBody, session: Session) -> dict:
+    """Answer the lead's question; the run resumes its conversation."""
+    await _run(session, run_id)
+    try:
+        run = await svc_runs.answer(run_id, by=_by(), text=body.text)
+    except ValueError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return svc_runs.to_dict(run)
+
+
+@router.post("/ai/runs/{run_id}/message")
+async def post_message(run_id: str, body: TextBody, session: Session) -> dict:
+    """Tell the run something: live when its lead runs, else its next turn."""
+    await _run(session, run_id)
+    try:
+        return await svc_runs.send_message(run_id, body.text, by=_by())
+    except ValueError as exc:
+        _err(exc, 422)
+
+
+@router.post("/ai/runs/{run_id}/retry")
+async def post_retry(run_id: str, session: Session) -> dict:
+    """A new run on the same ticket and conversation."""
+    await _run(session, run_id)
+    try:
+        run = await svc_runs.retry(run_id, by=_by())
+    except ValueError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return svc_runs.to_dict(run)
+
+
+@router.get("/projects/{project_id}/ai/live")
+async def get_live(project_id: str, session: Session, limit: int = 100) -> dict:
+    """The newest steps of the project's active runs (the live panel)."""
+    await _project(session, project_id)
+    rows = (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.project_id == project_id,
+                col(AiRun.state).in_(["starting", "running", "needs_input"]),
+            )
+        )
+    ).all()
+    out = []
+    for r in rows:
+        for s in await svc_steps.read(
+            session, r.id, limit=max(5, limit // max(1, len(rows))), last=True
+        ):
+            out.append({**s, "ticket_id": r.ticket_id, "member_id": r.member_id})
+    out.sort(key=lambda s: s["at"])
+    return {"runs": [svc_runs.to_dict(r) for r in rows], "steps": out[-limit:]}

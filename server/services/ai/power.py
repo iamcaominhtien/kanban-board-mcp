@@ -43,12 +43,12 @@ async def after_wake(session) -> dict:
             runs.transcripts.note(
                 run.id, "sleep", "The computer woke up; the CLI did not survive."
             )
-            await runs._append(
+            await runs.steps.append(
                 run.id,
-                steps=[
+                [
                     {
                         "kind": "start",
-                        "text": "The computer woke up; the CLI did not survive.",
+                        "title": "The computer woke up; the CLI did not survive.",
                     }
                 ],
             )
@@ -75,7 +75,7 @@ async def _end_orphans(run_ids: list[str]) -> None:
     would also kill CLIs it finds by pid, and a run reached here by pid is alive)."""
     import database
 
-    from . import approvals, runs
+    from . import runs
     from .store import now_iso
 
     async with database.async_session() as session:
@@ -95,5 +95,3 @@ async def _end_orphans(run_ids: list[str]) -> None:
             run.token_hash = None
             session.add(run)
         await session.commit()
-    for run_id in run_ids:
-        await approvals.mark_run_ended(run_id)

@@ -72,6 +72,26 @@ async def publish(event: str, topics: Iterable[str] | None = None) -> None:
         q.put_nowait(event)
 
 
+async def publish_typed(kind: str, payload: dict) -> None:
+    """Broadcast a typed event (AI v2): `{"type": kind, ...payload}`. The app patches its cache from it instead of
+    refetching; `kind` is `ai.step`, `ai.run`, `ai.agent` or `ai.message`."""
+    global _published
+    _published += 1
+    for cb in _on_publish:
+        try:
+            cb()
+        except Exception:  # noqa: BLE001 - a listener never stops an announcement
+            logger.debug("A publish listener failed", exc_info=True)
+    event = json.dumps({"type": kind, **payload}, default=str)
+    for q in _subscribers:
+        if q.full():
+            try:
+                q.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        q.put_nowait(event)
+
+
 def mark_own_change() -> None:
     """Note that this process changed the database and chose not to announce it yet (a run's steps are announced at
     most once a second). The database watcher then does not take the commit for another process's."""

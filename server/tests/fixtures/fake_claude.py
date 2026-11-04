@@ -469,6 +469,172 @@ if mode == "wait_question":
     )
     while time.time() < end and not (gate and os.path.exists(gate)):
         time.sleep(0.02)
+v2_report = None
+if mode.startswith("v2"):
+    # AI v2: the lead runs a command, asks a subagent (its events carry parent_tool_use_id), and ends with the
+    # structured report (--json-schema). FAKE_CLAUDE_V2_WAIT_MESSAGE: wait for one message on stdin first.
+    emit(
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "v2cmd",
+                        "name": "Bash",
+                        "input": {"command": "pytest -q"},
+                    }
+                ]
+            },
+        }
+    )
+    emit(
+        {
+            "type": "user",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "v2cmd",
+                        "is_error": False,
+                        "content": "4 passed in 0.10s\n",
+                    }
+                ]
+            },
+        }
+    )
+    emit(
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "v2agent",
+                        "name": "Agent",
+                        "input": {
+                            "subagent_type": "reviewer",
+                            "description": "Review the diff",
+                        },
+                    }
+                ]
+            },
+        }
+    )
+    emit(
+        {
+            "type": "assistant",
+            "parent_tool_use_id": "v2agent",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "v2sub",
+                        "name": "Bash",
+                        "input": {"command": "git diff --stat"},
+                    }
+                ]
+            },
+        }
+    )
+    emit(
+        {
+            "type": "user",
+            "parent_tool_use_id": "v2agent",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "v2sub",
+                        "is_error": False,
+                        "content": " 1 file changed",
+                    }
+                ]
+            },
+        }
+    )
+    emit(
+        {
+            "type": "assistant",
+            "parent_tool_use_id": "v2agent",
+            "message": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Looks good: one small change, tests pass.",
+                    }
+                ]
+            },
+        }
+    )
+    emit(
+        {
+            "type": "user",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "v2agent",
+                        "is_error": False,
+                        "content": "Looks good.",
+                    }
+                ]
+            },
+        }
+    )
+    heard = ""
+    if live and os.environ.get("FAKE_CLAUDE_V2_WAIT_MESSAGE"):
+        end = time.time() + float(os.environ.get("FAKE_CLAUDE_WAIT", "10"))
+        import select as _select
+
+        while time.time() < end:
+            ready, _, _ = _select.select([sys.stdin], [], [], 0.05)
+            if ready:
+                try:
+                    heard = json.loads(sys.stdin.readline())["message"]["content"][0][
+                        "text"
+                    ]
+                except (ValueError, KeyError, IndexError):
+                    heard = ""
+                break
+    if mode == "v2_ask":
+        v2_report = {
+            "status": "question",
+            "summary": "I need to know the database.",
+            "asks": ["Which database: SQLite or PostgreSQL?"],
+        }
+    elif "--resume" in args and "answered your question" in prompt_text:
+        v2_report = {
+            "status": "done",
+            "summary": "Done with your answer: "
+            + prompt_text.split("answered your question", 1)[1][:120].strip(),
+            "lessons": [],
+        }
+    else:
+        v2_report = {
+            "status": "done",
+            "summary": "Fixed add(); tests pass."
+            + (f" Heard: {heard}" if heard else ""),
+            "branch": "ai/" + os.environ.get("FAKE_CLAUDE_V2_BRANCH", "test"),
+            "tests": {"passed": 4, "failed": 0, "command": "pytest -q"},
+            "lessons": ["Run pytest -q from the server folder."],
+            "open_items": [],
+        }
+    emit(
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "v2out",
+                        "name": "StructuredOutput",
+                        "input": v2_report,
+                    }
+                ]
+            },
+        }
+    )
 final_text = "Fixed add(); tests pass."
 # Workflow roles answer from their prompt: a reviewer's verdicts come in order from FAKE_CLAUDE_REVIEW_FILE (one per
 # line), a coordinator rules with FAKE_CLAUDE_RULING, Triage sets FAKE_CLAUDE_DEPTH
@@ -535,7 +701,8 @@ emit(
         "type": "result",
         "subtype": "success",
         "is_error": False,
-        "result": final_text,
+        "result": json.dumps(v2_report) if v2_report else final_text,
+        **({"structured_output": v2_report} if v2_report else {}),
         "total_cost_usd": 0.01,
         "usage": {"input_tokens": 100, "output_tokens": 20},
         "session_id": session,

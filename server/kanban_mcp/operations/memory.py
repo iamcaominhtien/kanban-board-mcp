@@ -178,16 +178,15 @@ def _short(n: dict) -> dict:
 
 async def _log_on_run(session, run_id: str, row, what: str) -> None:
     """A step on the run, so a person reading it sees what the AI chose to remember."""
-    from services.ai import runs
+    from services.ai import steps
 
-    await runs._append(
+    await steps.append(
         run_id,
-        steps=[
+        [
             {
                 "kind": "memory",
-                "text": f"{'Remembered' if what == 'added' else 'Updated a note'}: {row.text[:200]}",
-                "note_id": row.id,
-                "scope": row.scope,
+                "title": f"{'Remembered' if what == 'added' else 'Updated a note'}: {row.text[:200]}",
+                "detail": {"note_id": row.id, "scope": row.scope},
             }
         ],
     )

@@ -1114,9 +1114,7 @@ async def test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons
             await session.exec(select(Member).where(Member.name == "Designer AI"))
         ).first()
         session.add(
-            AiTeam(
-                id=m.id, project_id=pid, provider="claude-code", connection="local"
-            )
+            AiTeam(id=m.id, project_id=pid, provider="claude-code", connection="local")
         )
         await session.commit()
         with pytest.raises(Exception) as e:

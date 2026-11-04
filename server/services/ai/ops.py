@@ -20,7 +20,7 @@ DEFAULTS: dict = {
     "per_run_config": False,
     # Start Claude Code with its input open (stream-json), so a message reaches a running AI at its next turn (D20,
     # spike S6). Off: a message rides on the AI's next board call.
-    "live_messages": False,
+    "live_messages": True,
     # Load the person's own Claude Code plugins (installed for their user in ~/.claude) in every Claude Code run, so an
     # AI on the board has what the same model has in their terminal (services/ai/own_claude.py)
     "own_claude": True,

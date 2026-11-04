@@ -395,22 +395,18 @@ async def back_to_dev(finding: dict) -> str | None:
         member = await _dev_of(session, ticket_id)
         if member is None:
             return None
-        run = await runs.create_run(
-            session,
-            ticket_id=ticket_id,
-            member_id=member,
-            mode="work",
-            trigger="ci_red",
-            started_by="the board (red CI)",
-            instruction=_CI_TASK.format(
+        out = await runs.deliver_to_ticket(
+            ticket_id,
+            _CI_TASK.format(
                 number=row.number,
                 check=red.get("check"),
                 base=red.get("base") or "the base branch",
                 log=_fence(f"ci log · {red.get('check')}", log),
                 branch=row.branch,
             ),
-            wait_for_hold=True,
+            by="the board (red CI)",
         )
+        run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
         cur = await session.get(AiWatchedPr, ticket_id)
         red["handled_at"] = _now()
         red["run_id"] = run.id
@@ -440,18 +436,12 @@ async def comments_to_dev(ticket_id: str) -> str | None:
             )
             for c in pending
         )
-        run = await runs.create_run(
-            session,
-            ticket_id=ticket_id,
-            member_id=member,
-            mode="work",
-            trigger="review_comments",
-            started_by="the board (review comments)",
-            instruction=_REVIEW_TASK.format(
-                number=row.number, comments=text, branch=row.branch
-            ),
-            wait_for_hold=True,
+        out = await runs.deliver_to_ticket(
+            ticket_id,
+            _REVIEW_TASK.format(number=row.number, comments=text, branch=row.branch),
+            by="the board (review comments)",
         )
+        run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
         row.pending_comments = "[]"
         session.add(row)
         await session.commit()

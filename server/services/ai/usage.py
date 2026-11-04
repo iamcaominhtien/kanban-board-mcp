@@ -108,9 +108,7 @@ async def dashboard(
     profiles = {
         p.id: p
         for p in (
-            await session.exec(
-                select(AiTeam).where(AiTeam.project_id == project_id)
-            )
+            await session.exec(select(AiTeam).where(AiTeam.project_id == project_id))
         ).all()
     }
     runs = await _runs_between(session, project_id, a, b)

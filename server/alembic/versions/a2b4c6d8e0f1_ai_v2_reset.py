@@ -69,6 +69,18 @@ def _has(name: str) -> bool:
     return sa.inspect(op.get_bind()).has_table(name)
 
 
+def _create(name: str, *columns) -> None:
+    """Make a table unless it is there (a database made from the models already has the v2 tables)."""
+    if not _has(name):
+        op.create_table(name, *columns)
+
+
+def _index(index: str, table: str, columns: list[str], unique: bool = False) -> None:
+    existing = {ix["name"] for ix in sa.inspect(op.get_bind()).get_indexes(table)}
+    if index not in existing:
+        op.create_index(index, table, columns, unique=unique)
+
+
 def upgrade() -> None:
     """Drop the old AI tables, empty the kept ones, make the v2 tables, add ai_role_pack.roles."""
     bind = op.get_bind()
@@ -88,12 +100,14 @@ def upgrade() -> None:
                 )
             )
         bind.execute(sa.text("DELETE FROM member WHERE kind IN ('ai', 'ai_removed')"))
-    if _has("ai_role_pack"):
+    if _has("ai_role_pack") and "roles" not in {
+        c["name"] for c in sa.inspect(bind).get_columns("ai_role_pack")
+    }:
         with op.batch_alter_table("ai_role_pack") as batch_op:
             batch_op.add_column(
                 sa.Column("roles", LongText(), nullable=False, server_default="[]")
             )
-    op.create_table(
+    _create(
         "ai_team",
         sa.Column("id", _S(), nullable=False),
         sa.Column("project_id", _S(), nullable=False),
@@ -128,9 +142,9 @@ def upgrade() -> None:
         sa.Column("updated_at", LongText(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_ai_team_account_id", "ai_team", ["account_id"], unique=False)
-    op.create_index("ix_ai_team_project_id", "ai_team", ["project_id"], unique=False)
-    op.create_table(
+    _index("ix_ai_team_account_id", "ai_team", ["account_id"], unique=False)
+    _index("ix_ai_team_project_id", "ai_team", ["project_id"], unique=False)
+    _create(
         "ai_run",
         sa.Column("id", _S(), nullable=False),
         sa.Column("project_id", _S(), nullable=False),
@@ -185,14 +199,14 @@ def upgrade() -> None:
         sa.Column("details_removed_at", LongText(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_ai_run_account_id", "ai_run", ["account_id"], unique=False)
-    op.create_index("ix_ai_run_member_id", "ai_run", ["member_id"], unique=False)
-    op.create_index("ix_ai_run_project_id", "ai_run", ["project_id"], unique=False)
-    op.create_index("ix_ai_run_state", "ai_run", ["state"], unique=False)
-    op.create_index("ix_ai_run_target", "ai_run", ["target"], unique=False)
-    op.create_index("ix_ai_run_ticket_id", "ai_run", ["ticket_id"], unique=False)
-    op.create_index("ix_ai_run_token_hash", "ai_run", ["token_hash"], unique=False)
-    op.create_table(
+    _index("ix_ai_run_account_id", "ai_run", ["account_id"], unique=False)
+    _index("ix_ai_run_member_id", "ai_run", ["member_id"], unique=False)
+    _index("ix_ai_run_project_id", "ai_run", ["project_id"], unique=False)
+    _index("ix_ai_run_state", "ai_run", ["state"], unique=False)
+    _index("ix_ai_run_target", "ai_run", ["target"], unique=False)
+    _index("ix_ai_run_ticket_id", "ai_run", ["ticket_id"], unique=False)
+    _index("ix_ai_run_token_hash", "ai_run", ["token_hash"], unique=False)
+    _create(
         "ai_run_step",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("run_id", _S(), nullable=False),
@@ -205,25 +219,26 @@ def upgrade() -> None:
         sa.Column("detail", LongText(), nullable=False),
         sa.Column("output", LongText(), nullable=True),
         sa.Column("parent_tool_id", LongText(), nullable=True),
+        sa.Column("tool_id", LongText(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_ai_run_step_run_id", "ai_run_step", ["run_id"], unique=False)
-    op.create_index(
-        "ix_ai_run_step_run_seq", "ai_run_step", ["run_id", "seq"], unique=False
-    )
-    op.create_table(
+    _index("ix_ai_run_step_run_id", "ai_run_step", ["run_id"], unique=False)
+    _index("ix_ai_run_step_tool_id", "ai_run_step", ["tool_id"], unique=False)
+    _index("ix_ai_run_step_run_seq", "ai_run_step", ["run_id", "seq"], unique=False)
+    _create(
         "ai_run_agent",
         sa.Column("id", _S(), nullable=False),
         sa.Column("run_id", _S(), nullable=False),
         sa.Column("agent_type", LongText(), nullable=False),
+        sa.Column("claude_id", LongText(), nullable=True),
         sa.Column("started_at", LongText(), nullable=False),
         sa.Column("ended_at", LongText(), nullable=True),
         sa.Column("steps_count", sa.Integer(), nullable=False),
         sa.Column("last_text", LongText(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_ai_run_agent_run_id", "ai_run_agent", ["run_id"], unique=False)
-    op.create_table(
+    _index("ix_ai_run_agent_run_id", "ai_run_agent", ["run_id"], unique=False)
+    _create(
         "ai_run_message",
         sa.Column("id", _S(), nullable=False),
         sa.Column("run_id", _S(), nullable=False),
@@ -234,10 +249,8 @@ def upgrade() -> None:
         sa.Column("delivered_at", LongText(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_ai_run_message_run_id", "ai_run_message", ["run_id"], unique=False
-    )
-    op.create_table(
+    _index("ix_ai_run_message_run_id", "ai_run_message", ["run_id"], unique=False)
+    _create(
         "ai_run_command",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("run_id", _S(), nullable=False),
@@ -247,10 +260,8 @@ def upgrade() -> None:
         sa.Column("taken_at", LongText(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_ai_run_command_run_id", "ai_run_command", ["run_id"], unique=False
-    )
-    op.create_table(
+    _index("ix_ai_run_command_run_id", "ai_run_command", ["run_id"], unique=False)
+    _create(
         "ai_project_settings",
         sa.Column("project_id", _S(), nullable=False),
         sa.Column("paused_all", sa.Boolean(), nullable=False),
