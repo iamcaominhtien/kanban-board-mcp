@@ -6,7 +6,7 @@ import json
 from models import AiMember
 from services.ai import runs
 from services.ai.providers import cli_limit
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 def test_a_stored_value_is_a_limit_only_when_a_person_turned_it_on():

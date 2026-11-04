@@ -9,7 +9,7 @@ from sqlmodel import select
 from models import AiGrant, AiMember, AiRun, AiUsage, Member
 from services.ai import api_agent, budget, runs, safety
 from services.ai.store import get_settings
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     FakeChat,
     _api_member,
     _project,

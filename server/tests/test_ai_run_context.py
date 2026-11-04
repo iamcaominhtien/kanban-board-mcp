@@ -7,7 +7,7 @@ import json
 from models import AiRun
 from services.ai import cli, guard, runs
 from services.ai.context import RunContext
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 from tests.test_ai_sessions import _calls, _flag, _run
 
 MARK = "DESCRIPTION-MARK-77"

@@ -10,7 +10,7 @@ from models import AiLesson, AiMember, AiRun, Member
 from services import shared_skills
 from services.ai import board_skills, guard, knowledge, memory
 from services.ai.context import RunContext
-from tests.test_ai import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 @pytest.fixture(autouse=True)

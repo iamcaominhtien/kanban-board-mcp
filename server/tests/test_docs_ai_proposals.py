@@ -21,7 +21,7 @@ from services.ai import approvals as svc_approvals
 from services.ai import guard
 from services.docs_ai import DocsAiError, proposals
 from tests.docs_ai_helpers import H, env, page  # noqa: F401
-from tests.test_ai import _ctx
+from tests.ai_helpers import _ctx
 
 TEXT = (
     "## Endpoints\n\n"
@@ -467,7 +467,7 @@ async def test_a_viewer_cannot_always_allow(env):
 
 async def test_autopilot_decides_a_docs_proposal_for_the_owner(env):
     from services.ai import autopilot
-    from tests.test_ai import _runner
+    from tests.ai_helpers import _runner
     from tests.test_ai_autopilot import ON, _delegate_ctx, _settings
 
     c, ctx, pid, m, tid, p = await _setup(env)

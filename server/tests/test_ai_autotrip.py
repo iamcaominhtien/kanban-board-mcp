@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 from models import AiMember, AiProjectSettings, AiRun, Ticket
 from services.ai import audit, autotrip
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 
 def _ago(**kw) -> str:

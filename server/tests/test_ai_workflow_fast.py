@@ -10,7 +10,7 @@ import pytest
 from models import AiMember, AiRun, AiTicketStep, AiTicketWorkflow
 from services.ai import workflow
 from services.ai.assist import tiers
-from tests.test_ai import _project, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _ticket, env  # noqa: F401
 from tests.test_ai_workflow import _at_done, _current, _team, _until
 
 

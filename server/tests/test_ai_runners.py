@@ -15,7 +15,7 @@ import pytest
 
 import mcp_bridge
 from services.ai import accounts, adapters, cli, runs
-from tests.test_ai import _project, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _ticket, _wait, env  # noqa: F401
 
 FIX = Path(__file__).parent / "fixtures"
 REAL = FIX / "real"
@@ -873,7 +873,7 @@ def test_coloured_test_output_is_read():
 
 
 async def test_a_failing_test_command_keeps_its_exit_code_and_counts(env, monkeypatch):
-    from tests.test_ai import _runner
+    from tests.ai_helpers import _runner
 
     c = env["c"]
     monkeypatch.setenv("FAKE_CLAUDE_RED_TESTS", "1")

@@ -18,7 +18,7 @@ from models import (
 from services import notifications as centre
 from services.ai import runs, schedules
 from tests.test_notifications import _panel, _run, _set, _setup
-from tests.test_ai import env  # noqa: F401
+from tests.ai_helpers import env  # noqa: F401
 
 
 async def test_a_snooze_that_runs_out_brings_the_row_back_unread_with_a_new_event(env):

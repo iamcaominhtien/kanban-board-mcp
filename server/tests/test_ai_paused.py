@@ -4,7 +4,7 @@ waiting, and the paused time apart from the others (design/screens/ai-paused.md)
 from datetime import UTC, datetime
 
 from services.ai import pause_log
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     _project,
     _runner,
     _ticket,

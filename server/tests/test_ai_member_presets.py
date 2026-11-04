@@ -8,7 +8,7 @@ import pytest
 
 from services.ai.members import MAX_PERSONA
 from services.ai.permissions import CEILINGS, TEMPLATES
-from tests.test_ai import _project, env  # noqa: F401
+from tests.ai_helpers import _project, env  # noqa: F401
 
 PRESETS = json.loads(
     (Path(__file__).parents[2] / "ui/src/components/ai/memberPresets.json").read_text(

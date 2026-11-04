@@ -14,7 +14,7 @@ from kanban_mcp.tools.knowledge import board_wait
 from models import AiRun
 from services.ai import handoff, runs, workflow
 from services.ai.context import RunContext
-from tests.test_ai import _project, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _ticket, _wait, env  # noqa: F401
 from tests.test_ai_manager import _ops, _story
 from tests.test_ai_workflow import _at_done, _team, _until
 from tests.test_mcp_ai_team import call, team

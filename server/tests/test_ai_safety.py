@@ -12,7 +12,7 @@ from sqlmodel import select
 from models import AiApproval, AiAudit, AiMember, AiProjectSettings, AiRun, Ticket
 from services.ai import audit, guard, runs, safety
 from services.ai.context import ticket_block
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     FAKE,
     _ctx,
     _project,

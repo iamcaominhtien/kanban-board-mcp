@@ -8,7 +8,7 @@ import pytest
 
 from models import AiRun, AiTicketStep, AiTicketWorkflow
 from services.ai import live_feed
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 @pytest.fixture(autouse=True)

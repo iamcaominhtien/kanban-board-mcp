@@ -12,7 +12,7 @@ from main import mcp
 from models import AiRun, AiProjectSettings
 from services.ai import guard, runs
 from services.ai.store import now_iso
-from tests.test_ai import (  # noqa: F401  (fixtures and helpers)
+from tests.ai_helpers import (  # noqa: F401  (fixtures and helpers)
     _api_member,
     _ctx,
     _project,
@@ -378,7 +378,7 @@ async def test_cancel_and_retry_a_run(env):
 
 async def test_answer_resumes_a_run_waiting_for_input(env, monkeypatch):
     from services.ai.context import RunContext
-    from tests.test_ai import _ask_gate
+    from tests.ai_helpers import _ask_gate
 
     c = env["c"]
     _ask_gate(env, monkeypatch)

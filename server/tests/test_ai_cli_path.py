@@ -7,7 +7,7 @@ import stat
 from pathlib import Path
 
 from services.ai import cli
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 def _program(folder: Path, name: str = "claude", *, executable: bool = True) -> Path:

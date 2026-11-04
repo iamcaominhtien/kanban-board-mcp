@@ -11,7 +11,7 @@ from tests.docs_ai_helpers import H, env, fake, page, setup  # noqa: F401
 
 async def test_a_page_an_ai_member_creates_is_published_by_default(env):
     from kanban_mcp.tools import docs_write
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env, template="custom")
     c = env["c"]
@@ -28,7 +28,7 @@ async def test_a_page_an_ai_member_creates_is_published_by_default(env):
 
 async def test_a_page_an_ai_member_creates_stays_a_draft_when_edits_are_held(env):
     from kanban_mcp.tools import docs_write
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env, template="custom")
     c = env["c"]
@@ -61,7 +61,7 @@ async def test_a_page_an_ai_member_creates_stays_a_draft_when_edits_are_held(env
 
 async def test_with_docs_ai_off_an_ai_member_creates_a_published_page_as_before(env):
     from kanban_mcp.tools import docs_write
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env, template="custom")
     tokens = guard.enter(ctx)

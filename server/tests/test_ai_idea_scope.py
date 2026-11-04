@@ -10,7 +10,7 @@ from sqlmodel import select
 from models import AiUsage, IdeaTicket
 from services.ai.assist import scopes
 from services.ai.store import now_iso
-from tests.test_ai import _project, _runner, env  # noqa: F401  (fixture)
+from tests.ai_helpers import _project, _runner, env  # noqa: F401  (fixture)
 from tests.test_ai_assist import H, _get, _until, fake  # noqa: F401  (fixture)
 
 API = "/api/idea-tickets"

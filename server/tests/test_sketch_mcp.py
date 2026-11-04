@@ -10,7 +10,7 @@ import pytest
 from kanban_mcp import common
 from kanban_mcp.tools.docs import docs_read, docs_write
 from services.ai import guard
-from tests.test_ai import _ctx, _project, _ticket, env  # noqa: F401  (fixture)
+from tests.ai_helpers import _ctx, _project, _ticket, env  # noqa: F401  (fixture)
 from tests.test_ai_safety import OWNER, _people
 from tests.test_sketch_ai import png
 

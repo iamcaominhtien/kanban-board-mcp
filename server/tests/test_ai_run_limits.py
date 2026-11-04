@@ -14,7 +14,7 @@ from kanban_mcp.tools.ai_team import ai_team as ai_tool
 from models import AiMember, AiProjectSettings, AiRun
 from services.ai import guard, resources
 from services.ai.context import RunContext
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 from tests.test_ai_ticket_work import _assign, _runs, _until
 
 AN = {"X-Actor": "An Nguyen"}

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from services.ai import cli, runs
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     _project,
     _ticket,
     _wait,

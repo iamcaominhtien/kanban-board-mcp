@@ -8,7 +8,7 @@ from keyring.backend import KeyringBackend
 from keyring.errors import PasswordSetError
 
 from services.ai import secrets
-from tests.test_ai import _project, env  # noqa: F401
+from tests.ai_helpers import _project, env  # noqa: F401
 
 
 class MemoryKeyring(KeyringBackend):

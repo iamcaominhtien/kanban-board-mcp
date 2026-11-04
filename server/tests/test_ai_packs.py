@@ -1,7 +1,7 @@
 """Members made from the ready-made packs get the tools their pack's work needs."""
 
 from services.ai import packs
-from tests.test_ai import env  # noqa: F401
+from tests.ai_helpers import env  # noqa: F401
 
 
 def _pack(key: str) -> dict:
@@ -175,7 +175,7 @@ async def test_a_member_made_from_an_older_pack_is_offered_the_update_and_keeps_
     import json as _json
 
     from models import AiMember
-    from tests.test_ai import _project
+    from tests.ai_helpers import _project
 
     c = env["c"]
     pid, _ = await _project(c)
@@ -216,7 +216,7 @@ async def test_an_update_shows_what_changes_first_and_can_be_taken_back(env):
     import json as _json
 
     from models import AiMember
-    from tests.test_ai import _project
+    from tests.ai_helpers import _project
 
     c = env["c"]
     pid, _ = await _project(c)
@@ -264,7 +264,7 @@ async def test_the_owner_makes_pack_members_that_bypass_permissions_but_triage(e
     import json as _json
 
     from models import AiMember
-    from tests.test_ai import _project
+    from tests.ai_helpers import _project
 
     c = env["c"]
     pid, _ = await _project(c)

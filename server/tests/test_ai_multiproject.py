@@ -5,7 +5,7 @@ import os
 
 from models import AiMember, AiRun, Member
 from services.ai import budget
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 
 async def test_projects_add_sync_budget_and_remove(env):

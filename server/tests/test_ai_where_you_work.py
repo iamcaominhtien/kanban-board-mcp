@@ -14,7 +14,7 @@ from services.ai.assist.scopes import ScopeInfo, ScopeProvider
 from services.ai.assist import context as ctxb
 from services.ai.context import RunContext
 from services.ai.store import now_iso
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 from tests.test_ai_assist import FakeLLM, H, _answer, _get, _setup, _until, fake  # noqa: F401
 
 VIEWER = {"X-Actor": "Vi Viewer"}
@@ -716,7 +716,7 @@ async def test_an_ai_never_approves_its_own_request(env):
     """Approvals are decided by people only: an AI member's name is refused as the decider, and the request waits."""
     from kanban_mcp.tools.tickets import manage_ticket
     from services.ai import guard
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env)
     tokens = guard.enter(ctx)

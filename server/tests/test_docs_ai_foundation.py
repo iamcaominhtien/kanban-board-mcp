@@ -184,7 +184,7 @@ async def test_jobs_run_a_registered_handler_and_record_failures(env):
 async def test_ai_runs_never_see_hidden_pages_through_mcp(env):
     from kanban_mcp.tools import docs_read
     from services.ai import guard
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env)
     c = env["c"]
@@ -218,7 +218,7 @@ async def test_ai_runs_never_see_hidden_pages_through_mcp(env):
 async def test_guidance_pages_are_added_to_every_run_and_listed_as_read(env):
     from models import AiRun
     from services.ai import runs
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env)
     c = env["c"]

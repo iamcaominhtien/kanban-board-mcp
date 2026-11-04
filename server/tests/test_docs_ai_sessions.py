@@ -9,7 +9,7 @@ import database
 from models import DocsAiSession
 from services.docs_ai import sessions
 from tests.docs_ai_helpers import H, env, fake, page, setup  # noqa: F401
-from tests.test_ai import _runner
+from tests.ai_helpers import _runner
 from tests.test_docs_ai_ask import ask, reply
 from tests.test_docs_ai_threads import TEXT, _mention, _thread, _wait
 

@@ -9,7 +9,7 @@ import pytest
 
 from models import AiRun, AiTicketStep, AiTicketWorkflow, Ticket
 from services.ai import evals, runs
-from tests.test_ai import _project, _runner, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, env  # noqa: F401
 
 
 @pytest.fixture(autouse=True)

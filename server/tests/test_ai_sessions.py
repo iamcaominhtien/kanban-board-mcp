@@ -12,7 +12,7 @@ from models import AiRun
 from services.ai import budget, cli, runs
 from services.ai.store import get_settings
 from tests.test_ai_assist import _answer, _setup  # noqa: F401
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 def _calls(record) -> list[list[str]]:

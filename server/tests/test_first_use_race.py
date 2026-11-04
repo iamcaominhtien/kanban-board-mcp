@@ -22,7 +22,7 @@ from services.ai import config_service, knowledge, quota, safety, store
 from services.ai.assist import settings as assist
 from services.docs_ai import health as docs_health
 from services.docs_ai import settings as docs_ai_settings
-from tests.test_ai import _project, env  # noqa: F401
+from tests.ai_helpers import _project, env  # noqa: F401
 
 # (the function that makes the row on first use, its model, the row's key given the project id, a column the other
 # request sets to a value that is not the default, so the test can tell whose row it got)

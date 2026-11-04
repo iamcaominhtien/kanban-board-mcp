@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 from models import AiRun, AiTicketStep
 from services.ai import flow
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 BOARD = "the board (intake)"
 

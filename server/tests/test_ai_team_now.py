@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from sqlmodel import select
 
 from models import AiMember, AiRun, DocsAiProposal, DocsPage
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     _ctx,
     _runner,
     _ticket,

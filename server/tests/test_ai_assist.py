@@ -13,7 +13,7 @@ from services.ai import llm
 from services.ai.assist import context as ctxb
 from services.ai.assist import drafts as svc_drafts
 from services.ai.assist import health
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 
 class FakeLLM:

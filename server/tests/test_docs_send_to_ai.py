@@ -9,7 +9,7 @@ from sqlmodel import select
 import database
 from models import AiRun, DocsCommentEvent
 from tests.docs_ai_helpers import H, _ticket, env, fake, page, setup  # noqa: F401
-from tests.test_ai import _runner, _wait
+from tests.ai_helpers import _runner, _wait
 
 TEXT = (
     "## Tool comparison\n\nWritten under {a}.\n\n### Which project\n\nRate limits are not enforced yet.\n\n"

@@ -9,7 +9,7 @@ from kanban_mcp import operations as ops
 from models import Story, Ticket
 from services import stories, ticket_waves
 from services.ai import manager
-from tests.test_ai import _project, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _ticket, env  # noqa: F401
 
 
 def _t(tid, blocked_by=(), pin=None, status="todo"):

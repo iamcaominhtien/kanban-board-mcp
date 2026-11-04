@@ -8,7 +8,7 @@ import pytest
 import config
 from kanban_mcp.tools.ai_team import ai_team
 from services.ai import guard, runs
-from tests.test_ai import _ctx, _project, _runner, env  # noqa: F401
+from tests.ai_helpers import _ctx, _project, _runner, env  # noqa: F401
 
 
 async def _switch(c, on: bool, accept: bool = True):

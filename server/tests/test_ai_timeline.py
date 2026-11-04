@@ -5,7 +5,7 @@ import json
 from datetime import UTC, datetime, timedelta
 
 from models import AiApproval, AiRun
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 
 def _t(minutes_ago: float) -> str:

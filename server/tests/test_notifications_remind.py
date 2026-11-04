@@ -7,7 +7,7 @@ import pytest
 from models import Notification
 from services import notifications as centre
 from tests.test_notifications import _panel, _run, _set, _setup
-from tests.test_ai import env  # noqa: F401
+from tests.ai_helpers import env  # noqa: F401
 
 
 async def _no_quiet_hours(c) -> None:

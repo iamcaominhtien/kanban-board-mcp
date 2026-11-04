@@ -4,7 +4,7 @@ their messages. Another project is left alone."""
 from sqlalchemy import text
 
 from models import AiChat, AiChatMessage, DocsPage, DocsVersion
-from tests.test_ai import _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _runner, _ticket, env  # noqa: F401
 
 
 async def _count(env, sql: str, **params) -> int:

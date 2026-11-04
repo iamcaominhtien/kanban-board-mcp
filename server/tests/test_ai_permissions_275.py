@@ -18,7 +18,7 @@ from services.ai import (
     tool_asks,
     tool_rules,
 )
-from tests.test_ai import _ctx, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _ctx, _runner, _ticket, env  # noqa: F401
 from tests.test_ai_safety import OWNER, _ask_assignee, _pending, _people
 
 ADMIN = {"X-Actor": "Ada Admin"}

@@ -10,7 +10,7 @@ from sqlmodel import select
 
 from models import AiAudit, AiUsage, IdeaAdvice
 from services import idea_ai
-from tests.test_ai import env  # noqa: F401  (fixture)
+from tests.ai_helpers import env  # noqa: F401  (fixture)
 from tests.test_ai_assist import FakeLLM, _project, _runner, fake  # noqa: F401
 
 API = "/api/idea-tickets"

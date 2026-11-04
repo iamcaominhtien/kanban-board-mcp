@@ -7,7 +7,7 @@ import stat
 from models import AiKnowledgeDoc
 from services import notifications as centre
 from services.ai import accounts, safety, workflow
-from tests.test_ai import _project, _runner, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, env  # noqa: F401
 
 
 async def _page(c, **params):

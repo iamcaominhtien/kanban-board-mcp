@@ -7,7 +7,7 @@ import pytest
 
 from models import AiAccount
 from services.ai import plugins, repo_scan
-from tests.test_ai import _project, env  # noqa: F401
+from tests.ai_helpers import _project, env  # noqa: F401
 
 
 def _repo(path, *, ui=True):

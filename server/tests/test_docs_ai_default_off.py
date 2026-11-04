@@ -6,7 +6,7 @@ from models import DocsAiSettings
 from services.docs_ai import DocsAiError
 from services.docs_ai import settings as svc_settings
 from tests.docs_ai_helpers import env  # noqa: F401
-from tests.test_ai import _project
+from tests.ai_helpers import _project
 
 
 async def test_a_new_project_has_docs_ai_off_until_an_admin_turns_it_on(env):

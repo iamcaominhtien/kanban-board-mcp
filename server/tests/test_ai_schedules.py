@@ -13,7 +13,7 @@ import pytest
 from models import AiSchedule, AiScheduleRun
 from services.ai import llm
 from services.ai import schedules as svc
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 from tests.test_ai_assist import FakeLLM
 
 H = {"X-Actor": "An Nguyen"}

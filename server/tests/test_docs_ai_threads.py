@@ -246,7 +246,7 @@ async def test_injection_in_a_comment_is_fenced_and_flagged(env, fake):
 
 async def test_the_ai_cannot_resolve_a_thread_through_mcp_when_edits_are_held(env):
     from kanban_mcp.tools import docs_write
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env)
     c = env["c"]

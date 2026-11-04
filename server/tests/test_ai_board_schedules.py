@@ -9,7 +9,7 @@ import pytest
 from services.ai.assist import context as ctxb
 from services.ai.assist import prompts, tiers
 from services.ai.assist.drafts import _schedule_values
-from tests.test_ai import _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _runner, _ticket, env  # noqa: F401
 from tests.test_ai_assist import H, _answer, _setup, fake  # noqa: F401
 
 PASS = f'"{sys.executable}" -c "print(\'3 passed\')"'

@@ -11,7 +11,7 @@ import database
 from models import AiUsage, Ticket
 from services.ai import llm
 from services.ai.store import now_iso
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 from tests.test_ai_assist import H, _get, _setup, _until, fake  # noqa: F401
 from tests.test_ai_where_you_work import BO, VIEWER, _people
 

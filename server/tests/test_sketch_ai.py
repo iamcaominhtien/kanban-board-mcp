@@ -19,7 +19,7 @@ from models import AiAudit, AiChat, AiDraft, AiMember, AiUsage
 from services.ai import cli, llm, secrets
 from services.ai.assist import attachments, sketch_ai, sketch_scope
 from services.ai.store import now_iso
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401  (fixture)
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401  (fixture)
 from tests.test_ai_assist import FakeLLM, H, _get, _setup, _until  # noqa: F401
 from tests.test_ai_idea_scope import _idea, _idea_ai_on
 from tests.test_ai_idea_scope import _setup as _setup_ideas

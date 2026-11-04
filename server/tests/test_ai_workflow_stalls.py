@@ -24,7 +24,7 @@ from models import (
     Ticket,
 )
 from services.ai import flags, runs, workflow
-from tests.test_ai import _project, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _ticket, env  # noqa: F401
 from tests.test_ai_workflow import _team
 
 

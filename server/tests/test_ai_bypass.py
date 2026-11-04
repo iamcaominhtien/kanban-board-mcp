@@ -6,7 +6,7 @@ import json
 from sqlmodel import select
 
 from models import AiAudit
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     _api_member,
     _project,
     _runner,

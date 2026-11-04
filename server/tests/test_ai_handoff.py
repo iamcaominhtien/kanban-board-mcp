@@ -10,7 +10,7 @@ from sqlmodel import select
 from kanban_mcp.tools.ai_run import ai_run
 from models import AiMember, AiRun
 from services.ai import guard, runs
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     _ctx,
     _runner,
     _ticket,

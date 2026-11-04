@@ -6,7 +6,7 @@ import re
 
 from services.ai import api_agent, api_prompt
 from services.ai.providers import cheap_model, context_window
-from tests.test_ai import _api_member, _project, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _api_member, _project, _ticket, _wait, env  # noqa: F401
 
 
 class Chat:

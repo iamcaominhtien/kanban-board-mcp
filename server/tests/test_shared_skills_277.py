@@ -9,7 +9,7 @@ from models import AiMember, AiProjectSettings
 from services import shared_skills
 from services.ai import board_skills
 from services.ai.context import RunContext, rules_block
-from tests.test_ai import env  # noqa: F401
+from tests.ai_helpers import env  # noqa: F401
 
 SHARED = [
     "working-a-ticket",

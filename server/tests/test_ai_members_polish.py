@@ -10,7 +10,7 @@ import pytest
 
 from models import AiMember, AiRun
 from services.ai import api_agent, budget, cli, members, runs
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     FAKE,
     FakeChat,
     _api_member,

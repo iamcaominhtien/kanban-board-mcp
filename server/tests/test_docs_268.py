@@ -10,7 +10,7 @@ from kanban_mcp import common
 from kanban_mcp.tools.docs import docs_read, docs_write
 from services import docs_edit, docs_guide
 from services.ai import board_skills
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401  (fixture)
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401  (fixture)
 
 PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg=="

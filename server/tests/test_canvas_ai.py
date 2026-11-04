@@ -248,7 +248,7 @@ async def test_autopilot_accepts_a_canvas_proposal_and_says_so(env, fake):
 
     from models import CanvasProposal, AiRun
     from services.ai import autopilot
-    from tests.test_ai import _runner
+    from tests.ai_helpers import _runner
     from tests.test_ai_autopilot import ON, _delegate_ctx, _settings
 
     c, pid, ai, tid, cv, (sign, _) = await _canvas(env)
@@ -300,7 +300,7 @@ async def _proposal_id(env):
 
 async def test_autopilot_leaves_a_canvas_proposal_to_a_person_in_safe_mode(env, fake):
     from services.ai import autopilot
-    from tests.test_ai import _runner
+    from tests.ai_helpers import _runner
     from tests.test_ai_autopilot import ON, _settings
 
     c, pid, ai, tid, cv, (sign, _) = await _canvas(env)

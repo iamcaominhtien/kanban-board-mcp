@@ -17,7 +17,7 @@ from models import (
     AiTicketStep,
 )
 from services.ai import run_retention
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 NOW = datetime(2026, 12, 31, 12, 0, tzinfo=UTC)
 

@@ -11,7 +11,7 @@ from sqlmodel import select
 from models import AiAccountState, AiRun, AiTicketFlag, AiWatchedPr, Ticket
 from services.ai import github, kb, orders, quota, signals
 from services.ai.assist import tiers
-from tests.test_ai import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
 from tests.test_ai_assist import H, _answer, _setup, fake  # noqa: F401
 
 

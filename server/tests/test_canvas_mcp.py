@@ -12,7 +12,7 @@ from kanban_mcp import common
 from kanban_mcp.tools.docs import docs_read, docs_write
 from services import canvas_locks
 from services.ai import guard
-from tests.test_ai import _ctx, _project, _ticket, env  # noqa: F401  (fixture)
+from tests.ai_helpers import _ctx, _project, _ticket, env  # noqa: F401  (fixture)
 from tests.test_ai_safety import OWNER, _people
 
 PAGE = b"<title>Sign in</title><h1>Sign in</h1><button>Go</button>"

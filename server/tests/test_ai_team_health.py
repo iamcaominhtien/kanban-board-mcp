@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from models import AiAudit, AiMember, AiRun
 from services.ai import flow
-from tests.test_ai import _ctx, _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _ctx, _project, _runner, _ticket, env  # noqa: F401
 
 
 async def _health(c, pid, **params):

@@ -13,7 +13,7 @@ import httpx
 from models import AiMember, Ticket
 from services.ai import api_agent, custom_tools, mcp_remote
 from services.ai import members as svc_members
-from tests.test_ai import FakeChat, _api_member, _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import FakeChat, _api_member, _project, _runner, _ticket, _wait, env  # noqa: F401
 
 TOOL = {
     "name": "lookup_customer",

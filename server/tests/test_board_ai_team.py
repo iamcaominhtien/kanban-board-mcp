@@ -7,7 +7,7 @@ import pytest
 
 from models import AiAudit, AiMember
 from services.ai.assist import prompts, team_config, tiers
-from tests.test_ai import _ticket, env  # noqa: F401
+from tests.ai_helpers import _ticket, env  # noqa: F401
 from tests.test_ai_assist import H, _answer, _setup, fake  # noqa: F401
 
 

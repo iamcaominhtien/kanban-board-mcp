@@ -13,7 +13,7 @@ import pytest
 
 from models import AiAccountState, AiRun
 from services.ai import failures, guard, quota, runs, watchdog
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 @pytest.fixture(autouse=True)

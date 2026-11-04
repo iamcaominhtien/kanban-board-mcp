@@ -5,7 +5,7 @@ from models import AiMember
 from services.ai import llm
 from services.ai.assist import chat as svc_chat
 from tests.test_ai_assist import H, _answer, _get, _setup, fake  # noqa: F401
-from tests.test_ai import _ticket, env  # noqa: F401
+from tests.ai_helpers import _ticket, env  # noqa: F401
 
 SUMMARY = "Summary: they discussed the retry logs and KAN-1."
 

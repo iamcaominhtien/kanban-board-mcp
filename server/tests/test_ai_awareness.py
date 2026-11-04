@@ -11,7 +11,7 @@ import database
 from models import AiRun, Ticket
 from services.ai import awareness
 from services.ai.context import RunContext
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 from tests.test_ai_sessions import _calls, _flag
 
 

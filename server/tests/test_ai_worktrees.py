@@ -12,7 +12,7 @@ import pytest
 
 from models import AiRun, AiWorktree
 from services.ai import failures, run_config, runs, worktrees
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 def _git(cwd, *args):

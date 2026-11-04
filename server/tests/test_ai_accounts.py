@@ -14,7 +14,7 @@ from httpx import ASGITransport
 from main import app
 from models import AiAccount
 from services.ai import accounts, cli, profiles, runs, signin
-from tests.test_ai import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 @pytest.fixture
@@ -709,7 +709,7 @@ async def test_an_ai_can_list_accounts_and_assign_a_member_but_not_sign_in(fake_
 async def test_inside_an_ai_run_the_accounts_can_be_read_but_not_changed(fake_cli):
     from kanban_mcp.tools.ai_team import ai_team
     from services.ai import guard
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, _, m, _tid = await _ctx(fake_cli)
     a = await _account(fake_cli["c"])

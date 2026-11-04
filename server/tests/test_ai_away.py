@@ -8,7 +8,7 @@ import pytest
 
 from models import AiDecision, AiRun, Story, Ticket
 from services.ai import away
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 
 @pytest.fixture(autouse=True)

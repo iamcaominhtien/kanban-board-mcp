@@ -5,7 +5,7 @@ import asyncio
 
 from services import idea_ai
 from services.ai import llm
-from tests.test_ai import env  # noqa: F401  (fixture)
+from tests.ai_helpers import env  # noqa: F401  (fixture)
 from tests.test_ai_assist import fake  # noqa: F401  (fixture)
 from tests.test_idea_ai import AI, API, _answer, _idea, _on, _setup
 

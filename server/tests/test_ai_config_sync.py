@@ -9,7 +9,7 @@ from pathlib import Path
 
 from services.ai import config_sync as cs
 from services.ai import providers
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 
 SKILL = "---\nname: triage\ndescription: Label and prioritise a new ticket.\n---\n1. Read it.\n2. Label it.\n"
 

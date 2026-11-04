@@ -9,7 +9,7 @@ import pytest
 
 from models import AiRun
 from services.ai import workflow
-from tests.test_ai import FAKE, _project, _ticket, env  # noqa: F401
+from tests.ai_helpers import FAKE, _project, _ticket, env  # noqa: F401
 
 
 @pytest.fixture(autouse=True)

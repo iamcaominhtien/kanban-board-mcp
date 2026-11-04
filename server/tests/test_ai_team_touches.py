@@ -8,7 +8,7 @@ from sqlmodel import select
 
 from models import AiRun
 from services.ai import guard
-from tests.test_ai import _ctx, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _ctx, _runner, _ticket, env  # noqa: F401
 
 
 async def _steps(c, pid, **params):

@@ -12,7 +12,7 @@ from models import AiChat, AiMember, Member
 from services.ai import cli, guard, llm, runs
 from services.ai.assist import chat_tools
 from services.ai.context import RunContext
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 from tests.test_ai_safety import OWNER, _people
 
 

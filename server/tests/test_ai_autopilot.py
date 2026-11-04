@@ -8,7 +8,7 @@ from sqlmodel import select
 
 from models import AiApproval, AiAudit, AiProjectSettings, AiRun
 from services.ai import autopilot, guard, permissions, runs
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     FAKE,
     _ctx,
     _runner,

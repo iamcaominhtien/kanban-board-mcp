@@ -8,7 +8,7 @@ import pytest
 from sqlmodel import select
 
 from models import AiRun
-from tests.test_ai import _project, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _ticket, env  # noqa: F401
 from tests.test_ai_manager import _ops, _settle, _story, _wf
 from tests.test_ai_workflow import _team, _until
 

@@ -7,7 +7,7 @@ from api.ai_power import router as power_router
 from main import app
 from models import AiRun
 from services.ai import power, runs
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 if not any(getattr(r, "path", "") == "/ai/power" for r in app.routes):
     # main.py includes it; this keeps the test working before that (ahead of the page catch-all)

@@ -6,7 +6,7 @@ import json
 import pytest
 
 from services.ai.assist import prompts, tiers
-from tests.test_ai import FAKE, _project, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import FAKE, _project, _ticket, _wait, env  # noqa: F401
 from tests.test_ai_assist import H, _answer, _setup, fake  # noqa: F401
 
 

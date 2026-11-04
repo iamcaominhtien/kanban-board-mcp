@@ -8,7 +8,7 @@ from models import AiMember, AiProjectSettings
 from services import role_skills, shared_skills
 from services.ai import board_skills, packs, tool_rules
 from services.ai.context import RunContext, rules_block
-from tests.test_ai import env  # noqa: F401
+from tests.ai_helpers import env  # noqa: F401
 
 OLD_ROLES = ["triage", "pm", "ba", "designer", "dev", "reviewer", "qa", "user_tester"]
 NEW_ROLES = ["tech_writer", "devops", "security", "data_analyst"]
@@ -251,7 +251,7 @@ def test_the_step_text_sends_a_question_to_the_right_place():
 
 async def test_a_teammate_made_from_a_pack_is_listed_with_its_role(env):
     c = env["c"]
-    from tests.test_ai import _project
+    from tests.ai_helpers import _project
 
     pid, _an = await _project(c)
     made = []
@@ -357,7 +357,7 @@ def test_the_ba_picks_a_document_from_templates_it_carries():
 
 async def test_a_person_starts_a_docs_page_from_the_bas_templates(env):
     from services import ba_templates
-    from tests.test_ai import _project
+    from tests.ai_helpers import _project
 
     c = env["c"]
     tpls = {t["id"]: t for t in (await c.get("/docs/templates")).json()}

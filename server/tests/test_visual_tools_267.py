@@ -14,7 +14,7 @@ from kanban_mcp.tools.docs import docs_read, docs_write
 from services import canvas_locks, diagram_export, diagram_model, screenshots
 from services import visual_guides
 from services.ai import board_skills, guard
-from tests.test_ai import _ctx, _project, _ticket, env  # noqa: F401  (fixture)
+from tests.ai_helpers import _ctx, _project, _ticket, env  # noqa: F401  (fixture)
 
 FLOW = """<mxfile><diagram name="Sign-up"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="form" value="Fill in the form" style="rounded=1;html=1;" vertex="1" parent="1">

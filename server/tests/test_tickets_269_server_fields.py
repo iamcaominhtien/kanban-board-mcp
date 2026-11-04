@@ -3,7 +3,7 @@ case's files beside its Expected result and Notes and who started or decided it,
 anywhere on a ticket (a comment, a test case, Linked docs) written in its Activity."""
 
 from kanban_mcp import operations as ops
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 AN = {"X-Actor": "An Nguyen"}
 

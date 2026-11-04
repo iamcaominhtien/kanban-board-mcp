@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from services.ai import packs, plugins, repo_scan
-from tests.test_ai import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 def _git(cwd, *args):
@@ -725,7 +725,7 @@ async def test_a_run_is_told_its_skills_by_exact_name_and_when_to_use_each(
     import json as _json
 
     from models import AiMember, AiPlugin
-    from tests.test_ai import _project
+    from tests.ai_helpers import _project
 
     c = env["c"]
     pid, _ = await _project(c)

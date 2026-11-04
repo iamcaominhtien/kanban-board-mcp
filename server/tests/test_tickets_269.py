@@ -18,7 +18,7 @@ from kanban_mcp.tools import docs_read, ticket_items
 from models import AiWorktree
 from services import shared_skills, ticket_guide
 from services.ai import board_skills, cli, worktrees
-from tests.test_ai import _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, _wait, env  # noqa: F401
 from tests.test_ai_worktrees import _on, _runs_dir, repo  # noqa: F401
 
 

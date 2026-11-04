@@ -13,7 +13,7 @@ import pytest
 from models import AiRun, Ticket
 from services.ai import runs
 from services.ai.context import RunContext
-from tests.test_ai import (  # noqa: F401
+from tests.ai_helpers import (  # noqa: F401
     _ask_gate,
     _project,
     _runner,
@@ -835,7 +835,7 @@ async def test_a_persons_edit_is_noted_on_the_active_run(env, monkeypatch):
 async def test_an_agents_own_edits_are_not_context_notes(env):
     from kanban_mcp.tools.tickets import manage_ticket
     from services.ai import guard
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env)
     tokens = guard.enter(ctx)
@@ -857,7 +857,7 @@ async def test_an_agents_own_edits_are_not_context_notes(env):
 async def test_a_blocked_move_is_remembered_on_the_run(env):
     from kanban_mcp.tools.tickets import manage_ticket
     from services.ai import guard
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env)
     tokens = guard.enter(ctx)
@@ -875,7 +875,7 @@ async def test_a_blocked_move_is_remembered_on_the_run(env):
 async def test_the_revert_preview_names_who_edited_a_field_and_lists_what_stays(env):
     from kanban_mcp.tools.tickets import manage_ticket
     from services.ai import guard
-    from tests.test_ai import _ctx
+    from tests.ai_helpers import _ctx
 
     ctx, pid, an, m, tid = await _ctx(env)
     tokens = guard.enter(ctx)

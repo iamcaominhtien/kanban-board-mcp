@@ -18,7 +18,7 @@ from models import (
 )
 from services import notifications as centre
 from services.ai import runs, safety
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 ME = {}
 ADA = {"X-Actor": "Ada Admin"}

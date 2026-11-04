@@ -4,7 +4,7 @@ from sqlmodel import select
 
 from models import AiRun, Ticket
 from services.ai import guard, permissions, providers
-from tests.test_ai import _ctx, _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import _ctx, _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 async def test_wont_do_through_patch_and_reassign_end_the_run(env, monkeypatch):

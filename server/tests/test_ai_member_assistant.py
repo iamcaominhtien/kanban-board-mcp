@@ -8,7 +8,7 @@ from sqlmodel import select
 from models import AiAudit
 from services.ai.assist import member_drafts
 from tests.test_ai_assist import H, _answer, _setup, fake  # noqa: F401
-from tests.test_ai import _api_member, _project, _runner, env  # noqa: F401
+from tests.ai_helpers import _api_member, _project, _runner, env  # noqa: F401
 
 ADMIN = {"X-Actor": "An Nguyen"}
 

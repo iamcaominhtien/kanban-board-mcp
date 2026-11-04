@@ -2,7 +2,7 @@
 `api/ai_roles.py`, owner confirmation of an admin's permission change, and the audit log scope per role."""
 
 from api import ai_roles
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 
 async def _people(c, pid):

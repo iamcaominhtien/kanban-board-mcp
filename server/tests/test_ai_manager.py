@@ -9,7 +9,7 @@ import pytest
 
 from models import AiProjectSettings, AiRun, AiTicketStep
 from services.ai import autopilot, manager, workflow
-from tests.test_ai import FAKE, _project, _ticket, env  # noqa: F401
+from tests.ai_helpers import FAKE, _project, _ticket, env  # noqa: F401
 from tests.test_ai_workflow import _at_done, _current, _team, _until
 
 

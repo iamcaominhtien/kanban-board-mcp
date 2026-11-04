@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 from models import AiDecision, AiRun, Story
 from services.ai import flow_view, health
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 
 def _t(minutes_ago: float) -> str:

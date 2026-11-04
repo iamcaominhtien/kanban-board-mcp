@@ -4,7 +4,7 @@ import asyncio
 
 from models import AiRun
 from services.ai import runs
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 from tests.test_notifications import _run
 
 
