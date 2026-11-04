@@ -1073,6 +1073,17 @@ async def _answer(message_id: str, delay: float = 0.0) -> None:
 
     # a resumed session already holds the earlier messages
     prompt = build_prompt(not (session_use and session_use.resume))
+    if chat_tools is not None:
+        # pictures the prompt names (/uploads/…), copied where the CLI may read them
+        from .. import pictures
+
+        prompt, pictures_dir = pictures.stage(prompt, f"chat_{message_id}")
+        if pictures_dir:
+            chat_tools.extra_flags = [
+                *(chat_tools.extra_flags or []),
+                "--add-dir",
+                pictures_dir,
+            ]
     buf: list[str] = [partial] if partial else []
     last_flush = [0.0]
     loop = asyncio.get_running_loop()

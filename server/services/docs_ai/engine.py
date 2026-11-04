@@ -246,6 +246,16 @@ async def call(
                 acts_by_tier=True,
             )
             timeout = max(timeout, 600.0)
+            # pictures the prompt names (/uploads/…), copied where the CLI may read them
+            from services.ai import pictures
+
+            prompt, pictures_dir = pictures.stage(prompt, f"docs_{job_id or 'call'}")
+            if pictures_dir:
+                tools.extra_flags = [
+                    *(tools.extra_flags or []),
+                    "--add-dir",
+                    pictures_dir,
+                ]
     try:
         out, use = await _call_session(
             project_id,

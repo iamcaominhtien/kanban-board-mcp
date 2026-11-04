@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [3.37.2] - 2026-11-04
+
+Hotfix: AIs can see the pictures people paste.
+
+### Fixed
+- **An AI could not see a picture pasted in a comment** (on a ticket or a Docs page) or in a description: the prompt only had its web path (`/uploads/…`), and the uploads folder is outside what a run may read. Before a prompt goes out, every upload it names is now copied to a folder of that call that the CLI may read (`--add-dir`), and the prompt says where each one is, to open with Read. Runs (questions by comment included), the Board AI and ticket chats with tools, and Docs AI answers. Files in the uploads' private folder (people's own chat attachments) are never copied.
+
 ## [3.37.1] - 2026-11-04
 
 Hotfix: fixes found while running the app on PostgreSQL, and the AI team working on Docs pages.
