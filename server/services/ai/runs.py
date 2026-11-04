@@ -2464,6 +2464,10 @@ async def _execute_cli_held(
             )
         if fresh_with_note:
             prompt = f"{prompt}\n\n---\n\n{fresh_with_note}"
+        # pictures the prompt names (/uploads/…), copied where the CLI may read them
+        from . import pictures
+
+        prompt, pictures_dir = pictures.stage(prompt, run.id)
         live = bool(cfg_ops.get("live_messages")) and not (agy or adapter)
         # The member's own plugin folder (per-run configuration) and the plugins installed on the project that it
         # gets (design B: the project default, its role, its own switch)
@@ -2716,7 +2720,10 @@ async def _execute_cli_held(
                 plugin_dirs=plugin_dirs or None,
                 live=live,
                 # without it a run in dontAsk mode cannot write its outputs to the Workspace (outside its folder)
-                add_dirs=[ws_dir] if ws_dir and not narrow else None,
+                add_dirs=[
+                    d for d in ((ws_dir if not narrow else None), pictures_dir) if d
+                ]
+                or None,
             )
         run.session_id = session_id
         session.add(run)
