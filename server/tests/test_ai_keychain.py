@@ -64,19 +64,24 @@ def test_key_moves_from_the_file_into_the_keychain(keychain, tmp_path, monkeypat
     assert secrets.decrypt(secrets.encrypt("sk-new")) == "sk-new"
 
 
-async def test_denied_keychain_saves_nothing(env, keychain):
+def test_denied_keychain_saves_nothing(keychain):
+    """A database password is encrypted with the key in the keychain; when the keychain refuses, nothing is saved.
+
+    AI v2 has no API-key members any more: the database password of Settings is what the key protects."""
+    import config as app_config
+    from dbkit import targets
+
     keychain(deny=True)
-    c = env["c"]
-    pid, _ = await _project(c)
-    r = await c.post(
-        f"/projects/{pid}/ai/members",
-        json={
-            "name": "Reviewer (Claude API)",
-            "provider": "anthropic",
-            "api_key": "sk-ant\x2dapi03-zzzz3f9a",
-        },
+    target = targets.Target(
+        "postgresql",
+        host="127.0.0.1",
+        port=5432,
+        name="kanban_x",
+        user="u",
+        password="pw",
     )
-    assert r.status_code == 500 and r.json()["detail"].startswith(
-        "Could not store the key in the OS keychain"
-    )
-    assert (await c.get(f"/projects/{pid}/ai/members")).json() == []
+    with pytest.raises(
+        secrets.SecretStoreError, match="Could not store the key in the OS keychain"
+    ):
+        targets.save_choice(target)
+    assert app_config.get_section(targets.CONFIG_KEY) == {}

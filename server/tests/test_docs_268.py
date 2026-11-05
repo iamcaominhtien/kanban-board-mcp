@@ -264,17 +264,6 @@ async def test_a_page_and_a_ticket_see_each_other(env):
     assert page["work"]["tickets"][0]["id"] == tid
     assert page["work"]["tickets"][0]["run"] is None and page["work"]["active"] == 0
 
-    # the Docs AI answering about the page reads the tickets it links
-    from database import async_session
-    from services.docs_ai import ticket_context
-
-    async with async_session() as s:
-        linked = await ticket_context.linked_tickets(s, pid, [spec["id"]])
-    block = ticket_context.tickets_block(linked, "Tickets:")
-    assert (
-        block.startswith("Tickets:") and f"{tid} · Rate limiting · status todo" in block
-    )
-
 
 async def test_tickets_from_a_checklist_on_the_page(env):
     c = env["c"]
@@ -312,7 +301,7 @@ async def test_give_a_page_to_an_ai_member(env):
     )
     key = out["ticket"]["id"]
     assert out["ticket"]["title"] == "Review the page “Login spec”"
-    assert out["run"] and out["run"]["id"]
+    assert out["run"] and out["run"]["id"]  # assigning the team started its lead
     ticket = (await c.get(f"/tickets/{key}")).json()
     assert ticket["assignee"] == member["id"]
     assert "Review [[Login spec]]." in ticket["description"]

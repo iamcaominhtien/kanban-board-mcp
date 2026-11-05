@@ -15,9 +15,8 @@ from typing import Any
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiRun, DocsLink, Member, Ticket
+from models import AiRun, DocsLink, Member, Ticket, TicketUpdate
 from services import docs as svc_docs
-from services.ai.store import loads
 
 LIVE = ("queued", "starting", "running", "needs_input")
 KINDS = {
@@ -26,16 +25,19 @@ KINDS = {
 }
 
 
-def _doing(run: AiRun) -> str | None:
-    """The run's latest step as one sentence ("Read the ticket", "Wrote in the docs")."""
-    from services.ai.live_feed import step_sentence
+async def _doing(session: AsyncSession, run: AiRun) -> str | None:
+    """The run's latest step, as its title ("Edited api/export.py", "Asked reviewer: …")."""
+    from models import AiRunStep
 
-    for step in reversed(loads(run.steps, []) if hasattr(run, "steps") else []):
-        if isinstance(step, dict):
-            said = step_sentence(step)
-            if said:
-                return said[1]
-    return None
+    step = (
+        await session.exec(
+            select(AiRunStep)
+            .where(AiRunStep.run_id == run.id, col(AiRunStep.kind) != "hook")
+            .order_by(col(AiRunStep.seq).desc())
+            .limit(1)
+        )
+    ).first()
+    return step.title if step is not None and step.title else None
 
 
 async def _ticket_ids(session: AsyncSession, page_id: str) -> list[str]:
@@ -100,7 +102,7 @@ async def work_on_page(session: AsyncSession, page_id: str) -> dict[str, Any]:
                 "member": names[run.member_id],
                 "mode": run.mode,
                 "state": run.state,
-                "doing": _doing(run),
+                "doing": await _doing(session, run),
                 "started_at": run.started_at or run.queued_at,
                 "ended_at": run.ended_at,
             }
@@ -146,15 +148,15 @@ async def assign_page(
     *,
     created_by: str | None = None,
 ) -> dict[str, Any]:
-    """A person gives a page to an AI member from the page (the board's own path; agents use docs_write(assign)):
-    the ticket, linked to the page, then the member's work run, as `ai_team(ask, intent=work)` starts it."""
-    from kanban_mcp.operations import ai_team as ai_ops
+    """A person (or an agent, through docs_write(assign)) gives a page to an AI team: a ticket linked to the page,
+    assigned to the team, whose lead starts on it (AI v2)."""
     from services import tickets as svc_tickets
+    from services.ai import runs as ai_runs
 
     page = await svc_docs.get_page(session, page_id)
     member = await session.get(Member, member_id)
     if member is None or member.kind != "ai" or member.project_id != page.project_id:
-        raise ValueError("Pick an AI member of this project.")
+        raise ValueError("Pick an AI team of this project.")
     spec = assignment_ticket(kind, page.title, instruction)
     ticket = await svc_tickets.create_ticket(
         session,
@@ -166,18 +168,19 @@ async def assign_page(
         created_by=created_by,
     )
     await svc_docs.link_ticket_doc(session, ticket.id, page.id)
-    text = (instruction or "").strip() or spec["title"]
-    try:
-        started = await ai_ops.ask(member_id, text, ticket_id=ticket.id, intent="work")
-    except ValueError as exc:
-        return {
-            "ticket": {"id": ticket.id, "title": ticket.title},
-            "run": None,
-            "error": str(exc),
-        }
-    run = started.get("run") or {}
-    return {
-        "ticket": {"id": ticket.id, "title": ticket.title},
-        "run": {"id": run.get("id"), "state": run.get("state")} if run else None,
-        "note": started.get("note"),
+    ticket_id, ticket_title = ticket.id, ticket.title
+    await svc_tickets.update_ticket(
+        session, ticket_id, TicketUpdate(assignee=member_id)
+    )
+    run = await ai_runs.wake_new_assignee(
+        ticket_id, member_id, by=created_by, instruction=(instruction or "").strip()
+    )
+    out: dict[str, Any] = {
+        "ticket": {"id": ticket_id, "title": ticket_title},
+        "run": {"id": run.id, "state": run.state} if run else None,
     }
+    if run is None:
+        out["note"] = (
+            f"{ticket_id} is assigned to {member.name}, but nothing started: the team is paused or at its limits."
+        )
+    return out

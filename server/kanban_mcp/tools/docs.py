@@ -188,6 +188,7 @@ DocsWriteAction = Literal[
     "update",
     "edit",
     "upload",
+    "tickets",
     "assign",
     "move",
     "duplicate",
@@ -280,7 +281,7 @@ DOCS_WRITE_OPS = {
 
 # Actions made of other actions (each part checked by the AI guard as a call of its own): edit reads the page and
 # publishes it with `update`, tickets creates tickets and edits the page, assign creates a ticket and asks an AI
-DOCS_WRITE_COMPOSITE = ("edit", "assign")
+DOCS_WRITE_COMPOSITE = ("edit", "tickets", "assign")
 
 # The light actions that take `items`; page, file and diagram work is one call each
 _BATCH_ACTIONS = {"comment", "reply", "resolve", "reopen"}
@@ -510,6 +511,8 @@ async def docs_write(
         return await _edit(given)
     if action == "upload":
         return await _upload(given)
+    if action == "tickets":
+        return await _tickets(given)
     if action == "assign":
         return await _assign(given)
     for key in (
@@ -726,12 +729,105 @@ def _only(label: str, given: dict, allowed: set[str], usage: str) -> None:
         )
 
 
-async def _assign(given: dict) -> dict:
-    """docs_write(assign): a ticket that gives the page to an AI member to write or review, and its work run."""
-    from services import docs_work
+async def _tickets(given: dict) -> dict:
+    """docs_write(tickets): tickets from the page's open tasks (or from drafts), linked, their keys on their lines."""
+    from services import docs_checklist as docs_tickets
 
-    from .ai_team import ai_team
     from .tickets import manage_ticket
+
+    _only(
+        "tickets",
+        given,
+        {"page_id", "find", "items", "publish"},
+        "page_id [, find, items, publish]",
+    )
+    page_id = given.get("page_id")
+    if not page_id:
+        raise ValueError("docs_write(action='tickets') requires page_id.")
+    page = await dispatch("docs_read", DOCS_READ_OPS, "get", {"page_id": page_id})
+    drafts = given.get("items")
+    lines: list[str | None] = []
+    skipped: list[dict] = []
+    if drafts is None:
+        found = docs_tickets.extract(page["markdown"], given.get("find"))
+        if not found.items:
+            return {
+                "tickets": [],
+                "skipped": found.skipped,
+                "message": "No unchecked task or action item without a ticket"
+                + (" in that passage." if given.get("find") else " on the page."),
+            }
+        drafts = [
+            {"title": docs_tickets.clean_title(it["text"]), "text": it["text"]}
+            for it in found.items
+        ]
+        lines = [it["raw"] for it in found.items]
+        skipped = found.skipped
+    else:
+        if not isinstance(drafts, list) or not drafts or len(drafts) > 30:
+            raise ValueError(
+                "items: 1 to 30 drafts {title, text, type, status, assignee}."
+            )
+        for i, d in enumerate(drafts):
+            if not isinstance(d, dict) or not str(d.get("title") or "").strip():
+                raise ValueError(f"items[{i}]: an object with a title.")
+            bad = [
+                k for k in d if k not in ("title", "text", "type", "status", "assignee")
+            ]
+            if bad:
+                raise ValueError(f"items[{i}] does not use: {', '.join(bad)}.")
+        # a draft whose text is one line of the page gets its key on that line
+        page_lines = page["markdown"].split("\n")
+        for d in drafts:
+            text = str(d.get("text") or d["title"]).strip()
+            hit = [
+                ln
+                for ln in page_lines
+                if text and docs_tickets.line_text(ln).strip() == text
+            ]
+            lines.append(hit[0] if len(hit) == 1 else None)
+    made: list[dict] = []
+    for d in drafts:
+        text = str(d.get("text") or "").strip()
+        description = f"From the page [[{page['title']}]]" + (
+            ":\n\n> " + "\n> ".join(text.splitlines()) if text else "."
+        )
+        t = await manage_ticket(
+            action="create",
+            project_id=page["project_id"],
+            title=str(d["title"]).strip()[:200],
+            description=description,
+            type=d.get("type") or "task",
+            status=d.get("status") or None,
+            assignee=d.get("assignee") or None,
+        )
+        made.append({"id": t["id"], "title": t["title"], "status": t.get("status")})
+    for m in made:
+        await manage_ticket(action="link_doc", ticket_id=m["id"], page_id=page_id)
+    out: dict = {"tickets": made}
+    if skipped:
+        out["skipped"] = skipped
+    marks = [
+        {"find": ln, "markdown": f"{ln.rstrip()} {m['id']}", "mode": "replace"}
+        for ln, m in zip(lines, made)
+        if ln and page["markdown"].count(ln) == 1
+    ]
+    if marks and given.get("publish") is not False:
+        out["page"] = await _edit(
+            {
+                "page_id": page_id,
+                "items": marks,
+                "note": f"Tickets {', '.join(m['id'] for m in made)} made from the page",
+            }
+        )
+    return out
+
+
+async def _assign(given: dict) -> dict:
+    """docs_write(assign): a ticket that gives the page to an AI team to write or review; its lead starts on it."""
+    from services import activity, docs_work
+
+    from .. import common
 
     _only(
         "assign",
@@ -742,35 +838,12 @@ async def _assign(given: dict) -> dict:
     for key in ("page_id", "member_id", "kind"):
         if not given.get(key):
             raise ValueError(f"docs_write(action='assign') requires {key}.")
-    page = await dispatch(
-        "docs_read", DOCS_READ_OPS, "get", {"page_id": given["page_id"]}
-    )
-    spec = docs_work.assignment_ticket(given["kind"], page["title"], given.get("body"))
-    ticket = await manage_ticket(
-        action="create",
-        project_id=page["project_id"],
-        title=spec["title"],
-        description=spec["description"],
-        type="task",
-        status="todo",
-    )
-    await manage_ticket(action="link_doc", ticket_id=ticket["id"], page_id=page["id"])
-    text = (given.get("body") or "").strip() or spec["title"]
-    try:
-        started = await ai_team(
-            action="ask",
-            member_id=given["member_id"],
-            ticket_id=ticket["id"],
-            text=text,
-            intent="work",
+    async with common.async_session() as session:
+        return await docs_work.assign_page(
+            session,
+            given["page_id"],
+            given["member_id"],
+            given["kind"],
+            given.get("body"),
+            created_by=activity.current_actor(),
         )
-    except ValueError as exc:
-        raise ValueError(
-            f"{exc} The ticket {ticket['id']} was made and linked to the page; give it to the member when it can run."
-        ) from exc
-    run = started.get("run") if isinstance(started, dict) else None
-    return {
-        "ticket": {"id": ticket["id"], "title": ticket["title"]},
-        "run": {"id": run.get("id"), "state": run.get("state")} if run else None,
-        "note": started.get("note") if isinstance(started, dict) else None,
-    }

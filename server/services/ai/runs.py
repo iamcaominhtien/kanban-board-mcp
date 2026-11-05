@@ -560,11 +560,13 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
             return
         ticket = await session.get(Ticket, run.ticket_id) if run.ticket_id else None
         cwd = profile.working_dir
+        port: int | None = None
         if ticket is not None:
             try:
                 row = await worktrees.ensure(session, ticket, profile.working_dir)
                 if row is not None:
                     cwd = row.path
+                    port = row.port
             except worktrees.WorktreeError as exc:
                 await _end(
                     run_id,
@@ -606,6 +608,9 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
         except RuntimeError as exc:
             await _end(run_id, "failed", str(exc), stop_code="runner_missing")
             return
+        if port:
+            # the ticket's worktree has a port of its own: the app the AI starts there listens on $PORT
+            prepared.env["PORT"] = str(port)
     await transcripts.begin(
         run_id,
         project_id=run.project_id,
@@ -1195,6 +1200,9 @@ async def _end(
                 await worktrees.tidy_after_run(run.ticket_id, run.id)
             except Exception:  # noqa: BLE001
                 logger.debug("tidy after run failed", exc_info=True)
+    if run.ticket_id:
+        # a Review hand-over (push, pull request) that waited for this run to stop goes now
+        worktrees.after_run(run.ticket_id)
         try:
             from . import memory
 

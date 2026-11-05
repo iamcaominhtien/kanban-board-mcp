@@ -1117,13 +1117,6 @@ class AiLibraryItem(SQLModel, table=True):
     updated_at: str = Field(default_factory=_now_iso)
 
 
-# The runs that hold their ticket (ux_ai_run_ticket_hold); a finished run, an answer or one queued behind holds nothing
-RUN_HOLD_WHERE = (
-    "mode = 'work' AND behind_run_id IS NULL "
-    "AND state IN ('queued', 'starting', 'running', 'needs_input')"
-)
-
-
 class AiRun(SQLModel, table=True):
     """One Claude Code session the board started (AI v2): a team's lead on a ticket (`kind` team), an assistant on a
     page or the board (`assistant`), or a schedule's run (`schedule`). Steps are rows of `ai_run_step`. (table)"""

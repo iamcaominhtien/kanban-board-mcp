@@ -1,10 +1,9 @@
-"""Announcements with topics: a run's steady stream says only that the AI screens changed."""
+"""Announcements with topics, and the typed events of AI v2 runs."""
 
 import asyncio
 import json
 
 import events as board_events
-from services.ai import runs
 
 
 async def test_a_topic_makes_the_announcement_say_what_changed():
@@ -18,29 +17,27 @@ async def test_a_topic_makes_the_announcement_say_what_changed():
         board_events.unsubscribe(q)
 
 
-async def test_the_step_stream_names_the_ai_topic_but_a_state_change_says_anything():
+async def test_a_runs_steps_are_one_typed_event_not_a_refetch():
+    """AI v2: the app patches its cache from `ai.step`; nothing asks every screen to refetch."""
     q = board_events.subscribe()
     try:
-        runs.RT.last_publish = -1e9
-        await runs._publish()
-        assert json.loads(q.get_nowait())["topics"] == ["ai"]
-        # inside the second: nothing more is announced
-        await runs._publish()
+        await board_events.publish_typed(
+            "ai.step", {"run_id": "r1", "steps": [{"seq": 1}]}
+        )
+        got = json.loads(q.get_nowait())
+        assert got == {"type": "ai.step", "run_id": "r1", "steps": [{"seq": 1}]}
         assert q.empty()
-        await runs._publish(force=True)
-        assert q.get_nowait() == "invalidate"
     finally:
         board_events.unsubscribe(q)
         await asyncio.sleep(0)
 
 
-async def test_a_throttled_step_still_counts_as_this_process_changing_the_database():
+async def test_a_typed_event_counts_as_this_process_changing_the_database():
     before = board_events._published
-    runs.RT.last_publish = asyncio.get_running_loop().time()
     q = board_events.subscribe()
     try:
-        await runs._publish()
-        assert q.empty() and board_events._published == before + 1
+        await board_events.publish_typed("ai.run", {"run": {"id": "r1"}})
+        assert board_events._published == before + 1
     finally:
         board_events.unsubscribe(q)
 
