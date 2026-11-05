@@ -71,9 +71,12 @@ A person may be editing another part of the page while you work. Change only wha
 - **Add to the end**: `mode='append'` with no section.
 - `update` (the whole page) is for a page you are writing from scratch or rewriting on purpose, not to fix one line:
   you send the whole page back, and any line you copied wrong changes too.
-- `publish=false` keeps your change as your own draft that nobody sees; publish when it is ready.
-- In some projects an AI member's edit becomes a **proposal** a person accepts, or a private draft (Settings › Docs ›
-  AI). The answer says so; do not retry it as a different action.
+- `publish=false` keeps your change as your own draft that nobody sees; publish when it is ready. An `edit` works on
+  the published text, so publish a draft (`update` with the whole text) before you edit that page.
+- **From a file**: `docs_write(action='import', project_id, path)` turns a Markdown file (or a folder, as a tree) into
+  published pages. Write the page there when it is long; then link the ticket to it.
+- **Read it back**: after you write a page, `docs_read(get)` it once and check the headings and tables are there
+  before you tell anyone it is done.
 
 ## 5. The Markdown the editor keeps
 

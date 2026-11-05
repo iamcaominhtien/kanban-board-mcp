@@ -230,7 +230,7 @@ DOCS_WRITE_OPS = {
     "delete": Op(ops.delete_docs_page, ("page_id",)),
     "restore": Op(ops.restore_docs_page, ("page_id",)),
     "restore_version": Op(ops.restore_docs_version, ("page_id", "version")),
-    "import": Op(ops.import_docs, ("project_id", "path"), ("parent_id",)),
+    "import": Op(ops.import_docs, ("project_id", "path"), ("parent_id", "publish")),
     "comment": Op(ops.add_docs_comment, ("page_id", "body"), ("quote",)),
     "reply": Op(ops.reply_docs_comment, ("thread_id", "body")),
     "edit_comment": Op(ops.edit_docs_comment, ("comment_id", "body")),
@@ -335,7 +335,7 @@ async def docs_write(
     publish: Annotated[
         bool | None,
         Field(
-            description="update: publish a new version (default true). false only saves an agent draft nobody else sees."
+            description="update, import: publish (default true). false only saves your own draft that nobody else sees."
         ),
     ] = None,
     include_children: Annotated[
@@ -492,7 +492,7 @@ async def docs_write(
     - delete: page_id. Moves the page and its sub-pages to the Recycle Bin (30 days).
     - restore: page_id. Brings a deleted page and its sub-pages back.
     - restore_version: page_id, version. Publishes an old version again as a new one. Returns {id, title, version}.
-    - import: project_id, path [, parent_id]. Local Markdown files become draft pages, folders a tree. Returns {created, failed}.
+    - import: project_id, path [, parent_id, publish]. Local Markdown files become published pages (publish=false: your drafts), folders a tree. Returns {created, failed, published}.
     - comment: page_id, body [, quote]. A comment on quoted text or the whole page. Returns the thread.
     - reply: thread_id, body. Reply in a thread.
     - edit_comment [, body] / delete_comment: comment_id. Own comments only; deleting a thread's first comment removes it.
@@ -547,6 +547,38 @@ async def docs_write(
 _EDIT_KEYS = ("section", "find", "markdown", "mode")
 
 
+async def _no_unpublished_draft(page_id: str, page: dict) -> None:
+    """An edit works on the published text. When the caller's own draft of the page holds text that was never
+    published (an import with publish=false, say), editing would publish the old text and drop the draft: refuse."""
+    from sqlmodel import select
+
+    from models import DocsDraft
+    from services import activity
+
+    from .. import common
+
+    # the name an MCP write is made under (kanban_mcp.common.notify_on_success): the AI team's, else "agent"
+    me = (activity.current_ai() or {}).get("member_name") or activity.AGENT_ACTOR
+    async with common.async_session() as session:
+        draft = (
+            await session.exec(
+                select(DocsDraft).where(
+                    DocsDraft.page_id == page_id, DocsDraft.author == me
+                )
+            )
+        ).first()
+    if draft is None or not (draft.markdown or "").strip():
+        return
+    if draft.markdown.strip() == (page.get("markdown") or "").strip():
+        return
+    raise ValueError(
+        f"You have an unpublished draft of this page ({len(draft.markdown):,} characters, published text "
+        f"{len(page.get('markdown') or ''):,}). An edit works on the published text and would drop the draft. "
+        "Publish the whole text first with docs_write(action='update', markdown, base_version="
+        f"{page.get('version', 0)}), then edit."
+    )
+
+
 async def _edit(given: dict) -> dict:
     """docs_write(edit): read the page, change one part (or several, in order), publish it as one new version through
     `update`, so an AI run's edit goes through the same checks, proposals and history as a whole-page update."""
@@ -574,6 +606,7 @@ async def _edit(given: dict) -> dict:
     else:
         edits = [{k: given.get(k) for k in _EDIT_KEYS}]
     page = await dispatch("docs_read", DOCS_READ_OPS, "get", {"page_id": page_id})
+    await _no_unpublished_draft(page_id, page)
     base_version = given.get("base_version")
     base = None
     if base_version is not None and base_version != page["version"]:

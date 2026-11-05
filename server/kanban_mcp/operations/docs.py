@@ -403,8 +403,15 @@ async def import_docs(
     parent_id: Annotated[
         str | None, Field(description="Parent page id; omit for the top level.")
     ] = None,
+    publish: Annotated[
+        bool,
+        Field(
+            description="Publish version 1 of each page (default). false leaves your own drafts that nobody sees."
+        ),
+    ] = True,
 ) -> dict:
-    """Import local Markdown files as new Docs pages (drafts), keeping folders as a tree. Returns {created, failed}."""
+    """Import local Markdown files as new Docs pages, published (or as your drafts with publish=false), keeping folders
+    as a tree. Returns {created, failed, skipped, published}."""
     from pathlib import Path
 
     from services import docs_import
@@ -422,11 +429,18 @@ async def import_docs(
         raise ValueError("No .md or .markdown files found at that path")
     async with common.async_session() as session:
         try:
-            return await docs_import.run_import(
-                session, project_id, files, parent_id=parent_id
+            out = await docs_import.run_import(
+                session, project_id, files, parent_id=parent_id, publish=publish
             )
         except svc_docs.DocsError as exc:
             raise _docs_error(exc) from exc
+    out["published"] = publish
+    if not publish and out.get("created"):
+        out["note"] = (
+            "The pages are your drafts: their published text is still empty. Publish each with "
+            "docs_write(update, markdown, base_version=0); an edit before that works on the empty page."
+        )
+    return out
 
 
 @notify_on_success

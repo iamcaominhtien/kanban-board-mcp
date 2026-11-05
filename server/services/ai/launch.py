@@ -78,6 +78,11 @@ REPORT_SCHEMA: dict[str, Any] = {
             "items": {"type": "string"},
             "description": "Questions a person must answer before the work can continue",
         },
+        "skills": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "The skills you and your roles opened with the Skill tool, by name (kanban-board:docs-pages)",
+        },
     },
     "required": ["status", "summary"],
 }
@@ -245,9 +250,22 @@ def board_rules(
             "run the project's tests, then say in your report which branch holds it (the board opens or updates the",
             "pull request when the ticket moves).",
             "",
+            "Skills: the board's skills teach how this board wants the work done; open the one that fits with the Skill",
+            "tool before you do that work (you and your roles):",
+            "- a ticket's work, its comments, sub-tasks and work log: `kanban-board:working-a-ticket`",
+            "- writing or changing a Docs page: `kanban-board:docs-pages`",
+            "- a diagram: `kanban-board:drawio-diagrams`; a screen or a mockup: `kanban-board:canvas-design`",
+            "- a question for a person, or a long answer: `kanban-board:asking-and-writing`",
+            "- proof of what you did, and handing over: `kanban-board:evidence-and-handover`",
+            "Each role has its own guide (`kanban-board:role-<role>`); its subagent opens it.",
+            "",
+            "Check your own work: after you write a Docs page, a file or a comment meant for a person, read it back once",
+            "(docs_read get, Read) and fix what is missing before you report it done. Never report something saved that",
+            "you did not see saved.",
+            "",
             "Finish with the final report as the JSON schema asks: status, summary (Markdown, for the ticket's people),",
-            "branch, tests, open_items, lessons (one-liners worth keeping for this project), asks. Keep the summary",
-            "honest: what was done, what was not, what you could not verify.",
+            "branch, tests, open_items, lessons (one-liners worth keeping for this project), asks, skills (the ones you",
+            "and your roles opened). Keep the summary honest: what was done, what was not, what you could not verify.",
             "</board trusted>",
         ]
     )
@@ -555,8 +573,7 @@ async def prepare(
     # plugins: the board's hooks, the board's skills, the plugins installed on the project for this team
     plugin_dirs = [board_plugin_dir()]
     try:
-        role_key = None
-        skills = board_skills.enabled_for(cfg_ops, profile.id, role_key)
+        skills = board_skills.enabled_for(cfg_ops, profile.id, role_keys)
         if skills:
             plugin_dirs.append(board_skills.plugin_dir(skills))
     except Exception:  # noqa: BLE001 - the skills plugin is a convenience

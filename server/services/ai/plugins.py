@@ -1045,10 +1045,9 @@ async def skills_block(
     if not lines:
         return ""
     return (
-        "Skills installed for you. When you reach the work a skill covers, open it with the Skill tool by the exact "
-        "name below. They teach a craft (motion, 3D, a chart) or check finished work; none of them sets a design's "
-        "look: colour, type, layout and the signature come from the board's own guide (`kanban-board:canvas-design`), "
-        "which wins wherever they disagree. Your report names the skills you opened.\n"
+        "Skills the project installed for your team, beside the board's own. When you or a role reach the work one "
+        "covers, open it with the Skill tool by the exact name below. Where one disagrees with a board skill "
+        "(`kanban-board:…`), the board's wins. Your report names the skills you opened.\n"
         + "\n".join(lines)
     )
 

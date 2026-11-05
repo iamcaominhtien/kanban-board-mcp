@@ -389,3 +389,55 @@ def test_every_run_is_told_to_open_the_docs_guide_before_writing_a_page():
     assert "docs-pages" not in _block(AiTeam(id="m3", provider="claude-code"), off)
     ba = role_skills.guide("ba")
     assert "under the page it\nbelongs to" in ba and "`docs-pages` skill" in ba
+
+
+async def test_an_import_by_an_agent_is_published_and_a_draft_is_never_dropped_by_an_edit(
+    env, tmp_path
+):
+    """RES-1 (2026-11-05): an import left the page as a draft, the agent's next edit published the empty page with one
+    line and the imported text was lost. An import is published by default now, and an edit refuses while the caller
+    still has an unpublished draft of the page."""
+    from services import activity
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    await _runner(
+        c, pid, env["repo"], name="Research team"
+    )  # the agent is a member of the project
+    note = tmp_path / "RES-1-research.md"
+    note.write_text(
+        "# Research\n\n## Parsing\n\nTree-sitter for every language.\n\n## Storage\n\nSQLite and FTS5.\n"
+    )
+    token = activity.set_actor("Research team")
+    try:
+        out = await docs_write(action="import", project_id=pid, path=str(note))
+        assert out["published"] is True and out["created"]
+        page_id = out["created"][0]["page_id"]
+        page = await docs_read(action="get", page_id=page_id)
+        assert page["version"] == 1 and "## Storage" in page["markdown"]
+        edited = await docs_write(
+            action="edit",
+            page_id=page_id,
+            find="SQLite and FTS5.",
+            markdown="SQLite and FTS5, one file.",
+            mode="replace",
+        )
+        assert edited["version"] == 2
+
+        # publish=false keeps the old behaviour on request, says so, and an edit then refuses instead of losing it
+        drafted = await docs_write(
+            action="import", project_id=pid, path=str(note), publish=False
+        )
+        assert drafted["published"] is False and "drafts" in drafted["note"]
+        draft_id = drafted["created"][0]["page_id"]
+        with pytest.raises(ValueError, match="unpublished draft"):
+            await docs_write(
+                action="edit",
+                page_id=draft_id,
+                find="the end",
+                markdown="One more line.",
+            )
+        empty = await docs_read(action="get", page_id=draft_id)
+        assert empty["markdown"].strip() == ""
+    finally:
+        activity.reset_actor(token)

@@ -147,11 +147,23 @@ async def roles_for(
 
 def agents_json(roles: list[dict[str, Any]], board_rules: str = "") -> dict[str, Any]:
     """What `claude --agents` takes: {name: {description, prompt, model?, tools?}}."""
+    from services import role_skills
+
     out: dict[str, Any] = {}
     for r in roles:
+        skill = next(
+            (n for k, n, _d, _b in role_skills.ROLE_SKILLS if k == r["key"]), None
+        )
+        guide = (
+            f"Your role's guide is the skill `kanban-board:{skill}`: open it with the Skill tool before you start."
+            if skill
+            else ""
+        )
         spec: dict[str, Any] = {
             "description": r.get("description") or r["key"],
-            "prompt": "\n\n".join(x for x in (r.get("prompt") or "", board_rules) if x),
+            "prompt": "\n\n".join(
+                x for x in (r.get("prompt") or "", guide, board_rules) if x
+            ),
         }
         if r.get("model"):
             spec["model"] = r["model"]

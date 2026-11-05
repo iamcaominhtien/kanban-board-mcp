@@ -532,3 +532,46 @@ async def test_a_project_plugin_reaches_a_team_that_has_one_of_its_roles(
         and "`everyone:everyone-skill`" in prepared.system
     )
     assert "tufte-skill" not in prepared.system
+
+
+def test_board_skills_follow_the_teams_roles():
+    """A role skill reaches a team with that role; a craft skill only a team with a role that does that work; the
+    skills about the ticket, Docs and handing over reach every team."""
+    from services.ai import board_skills
+
+    research = set(board_skills.enabled_for({}, "t1", {"pm", "ba", "dev"}))
+    code = set(board_skills.enabled_for({}, "t2", {"dev", "reviewer", "qa"}))
+    assert {"role-pm", "role-ba", "role-dev", "slides", "canvas-design"} <= research
+    assert {"role-dev", "role-reviewer", "role-qa"} <= code
+    assert (
+        not {"slides", "office-files", "canvas-design", "brainstorming", "role-pm"}
+        & code
+    )
+    for every in (
+        "working-a-ticket",
+        "docs-pages",
+        "asking-and-writing",
+        "evidence-and-handover",
+    ):
+        assert every in research and every in code
+    # a project's switch still wins
+    off = [{"skill": "slides", "on": False}]
+    assert "slides" not in board_skills.enabled_for({"board_skills": off}, "t1", {"pm"})
+
+
+def test_each_role_is_told_to_open_its_guide_and_the_lead_gets_the_skill_table():
+    from services.ai import roles
+    from services.ai.context import RunContext
+
+    agents = roles.agents_json(
+        [{"key": "dev", "prompt": "Code."}, {"key": "designer", "prompt": "Draw."}]
+    )
+    assert "`kanban-board:role-dev`" in agents["dev"]["prompt"]
+    assert (
+        "role-" not in agents["designer"]["prompt"]
+    )  # no role guide of its own: canvas-design is its craft
+    rules = launch.board_rules(
+        RunContext("r", "m", "Team", "p", "KAN-1", "An", "work"), "P", [], True
+    )
+    assert "`kanban-board:docs-pages`" in rules and "read it back" in rules
+    assert "skills" in launch.REPORT_SCHEMA["properties"]

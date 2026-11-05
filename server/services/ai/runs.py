@@ -946,6 +946,9 @@ async def _finish(run_id: str, result: dict) -> None:
     lines = [summary]
     if report.get("open_items"):
         lines.append("**Open:** " + "; ".join(str(x) for x in report["open_items"][:8]))
+    skills_used = [str(x) for x in (report.get("skills") or []) if str(x).strip()][:12]
+    if skills_used:
+        lines.append("Skills: " + ", ".join(f"`{x}`" for x in skills_used))
     if report.get("branch"):
         lines.append(
             f"Branch: `{report['branch']}`"
