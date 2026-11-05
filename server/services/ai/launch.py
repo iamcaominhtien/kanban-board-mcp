@@ -22,6 +22,9 @@ from .providers import merged_config
 from .store import ai_names, get_settings, loads
 
 BOARD_PLUGIN_VERSION = "2.0.0"
+RUN_TOKEN_SHOWN = (
+    "<run token>"  # what a transcript shows in place of the run's MCP token
+)
 DEFAULT_DENY = [
     "Bash(git push --force*)",
     "Bash(git push -f *)",
@@ -93,6 +96,8 @@ class Launch:
     scratch: list[str] = field(default_factory=list)
     plugin_dirs: list[str] = field(default_factory=list)
     agents: dict[str, Any] = field(default_factory=dict)
+    # `args` as the transcript keeps them: the board's MCP header says <run token>, never the token itself
+    record_args: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -559,6 +564,9 @@ async def prepare(
     if not path:
         raise RuntimeError(cli.missing("claude", profile.cli_path))
     debug_file = str(folder / "debug.log")
+    mcp_shown = mcp_config(config, RUN_TOKEN_SHOWN, cwd, config_dir, board_url)
+    mcp_real = json.loads(json.dumps(mcp_shown))
+    mcp_real["mcpServers"]["kanban"]["headers"]["Authorization"] = f"Bearer {token}"
     args = args_for(
         path=path,
         prompt=prompt,
@@ -566,7 +574,7 @@ async def prepare(
         system_file=str(system_file),
         sub_system_file=str(sub_file),
         agents_file=str(agents_file) if agents else None,
-        mcp=mcp_config(config, token, cwd, config_dir, board_url),
+        mcp=mcp_real,
         settings=settings_json(deny),
         schema=REPORT_SCHEMA if run.kind == "team" else None,
         plugin_dirs=plugin_dirs,
@@ -592,7 +600,16 @@ async def prepare(
         run_dir=str(folder),
         plugin_dirs=plugin_dirs,
         agents=agents,
+        record_args=_with_mcp(args, mcp_shown),
     )
+
+
+def _with_mcp(args: list[str], mcp: dict) -> list[str]:
+    """`args` with another `--mcp-config` value."""
+    out = list(args)
+    if "--mcp-config" in out:
+        out[out.index("--mcp-config") + 1] = json.dumps(mcp)
+    return out
 
 
 def debug_file_of(run_id: str) -> str | None:

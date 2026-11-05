@@ -617,7 +617,7 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
         member_id=run.member_id,
         system=prepared.system,
         prompt=prepared.prompt,
-        args=prepared.args,
+        args=prepared.record_args or None,
         resume=resume,
         session_id=session_id,
         note=fresh_note,

@@ -7,6 +7,7 @@ import os
 import pytest
 
 from services.ai import launch, stream
+from tests.ai_helpers import env  # noqa: F401
 
 
 def _args(**over):
@@ -415,3 +416,48 @@ def test_a_run_folder_never_leads_out_of_the_runs_folder(tmp_path, monkeypatch):
     for bad in ("../x", "a/b", "..", "/etc"):
         with pytest.raises(ValueError):
             launch.run_dir(bad)
+
+
+async def test_the_args_a_transcript_keeps_never_hold_the_runs_token(env, monkeypatch):  # noqa: F811
+    """The CLI gets the run's token in the board's MCP header; what the transcript records says <run token>."""
+    from models import AiRun, AiTeam, Member
+    from tests.ai_helpers import _project, _runner, _ticket
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    monkeypatch.setattr(launch, "data_root", lambda: env["tmp"] / "ai-v2")
+    async with env["maker"]() as s:
+        run = AiRun(
+            project_id=pid,
+            ticket_id=tid,
+            member_id=team["id"],
+            state="starting",
+            started_by="An",
+        )
+        s.add(run)
+        await s.commit()
+        await s.refresh(run)
+        prepared = await launch.prepare(
+            s,
+            run,
+            await s.get(AiTeam, team["id"]),
+            await s.get(Member, team["id"]),
+            token="kbr_" + "q" * 20,
+            board_url="http://127.0.0.1:9",
+            cwd=env["repo"],
+            session_id="s-1",
+            resume=False,
+            note=None,
+        )
+    real = json.loads(_flag(prepared.args, "--mcp-config"))["mcpServers"]["kanban"][
+        "headers"
+    ]
+    shown = json.loads(_flag(prepared.record_args, "--mcp-config"))["mcpServers"][
+        "kanban"
+    ]["headers"]
+    assert real == {"Authorization": "Bearer kbr_" + "q" * 20}
+    assert shown == {"Authorization": f"Bearer {launch.RUN_TOKEN_SHOWN}"}
+    assert "q" * 20 not in " ".join(prepared.record_args)
+    assert prepared.args[0] == prepared.record_args[0]
