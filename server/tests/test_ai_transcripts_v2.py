@@ -84,14 +84,14 @@ async def test_a_run_is_written_line_by_line_then_compressed_and_read_back(env):
 
 async def test_secrets_are_masked_in_every_part_and_long_text_is_cut(env):  # noqa: F811
     run = await _run_row(env)
-    secret = "sk-ant-" + "abcdefgh12345678"
-    token = "kbr_" + "Zz9Yy8Xx7Ww6"
+    planted_key = "sk-ant-" + "abcdefgh12345678"
+    planted_run = "kbr_" + "Zz9Yy8Xx7Ww6"
     mcp = json.dumps(
         {
             "mcpServers": {
                 "board": {
                     "url": "http://x",
-                    "headers": {"Authorization": f"Bearer {token}"},
+                    "headers": {"Authorization": f"Bearer {planted_run}"},
                     "env": {"DB": "postgres://u:pw@h/db"},
                 }
             }
@@ -100,9 +100,9 @@ async def test_secrets_are_masked_in_every_part_and_long_text_is_cut(env):  # no
     await _begin(
         env,
         run,
-        system=f"key {secret}",
+        system=f"key {planted_key}",
         prompt="do it",
-        note=f"note with {secret}",
+        note=f"note with {planted_key}",
         args=[
             "-p",
             "the whole prompt",
@@ -111,19 +111,25 @@ async def test_secrets_are_masked_in_every_part_and_long_text_is_cut(env):  # no
             "--mcp-config",
             mcp,
             "--append-system-prompt",
-            f"x {secret}",
+            f"x {planted_key}",
         ],
     )
-    transcripts.feed(run.id, _assistant({"type": "text", "text": f"I saw {secret}"}))
-    transcripts.feed(run.id, f"raw {token}")
-    transcripts.note(run.id, "diagnosis", f"saw {secret}")
+    transcripts.feed(
+        run.id, _assistant({"type": "text", "text": f"I saw {planted_key}"})
+    )
+    transcripts.feed(run.id, f"raw {planted_run}")
+    transcripts.note(run.id, "diagnosis", f"saw {planted_key}")
     transcripts.feed(
         run.id, _assistant({"type": "text", "text": "y" * (transcripts.MAX_TEXT + 500)})
     )
     await transcripts.finish(run.id)
     with gzip.open((await _row(run.id)).path, "rt", encoding="utf-8") as fh:
         raw = fh.read()
-    assert secret not in raw and token not in raw and "postgres://u:pw" not in raw
+    assert (
+        planted_key not in raw
+        and planted_run not in raw
+        and "postgres://u:pw" not in raw
+    )
     sent = json.loads(raw.splitlines()[0])
     args = sent["args"]
     assert args[args.index("-p") + 1] == "<recorded above>"
