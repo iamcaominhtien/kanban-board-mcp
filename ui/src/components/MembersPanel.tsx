@@ -6,9 +6,8 @@ import type { AxiosError } from 'axios';
 import type { Member } from '../types/ticket';
 import { useAddMember, useRemoveMember, useSetMemberRole } from '../api/members';
 import styles from './MembersPanel.module.css';
-import { useAiOverview } from '../api/ai';
-import { AiAvatar, ConnectionChip, StatusLabel } from './ai/aiUi';
-import { BoardAiPicker } from './ai/AiDialogs';
+import { useAiTeams } from '../api/ai';
+import { AiAvatar, StatusLabel } from './ai/aiUi';
 
 const PRESET_MEMBER_COLORS = [
   '#2E6F40', // forest green
@@ -46,11 +45,8 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
   // AI members live under the AI tab; the people list stays as it was
   const members = allMembers.filter((m) => (m.kind ?? 'human') === 'human');
   const [tab, setTab] = useState<'humans' | 'ai'>('humans');
-  const ai = useAiOverview(projectId);
-  const aiMembers = ai.data?.members ?? [];
-  const boardAi = aiMembers.find((m) => m.id === ai.data?.settings.boardAiId);
-  // “Change” on the Board AI card opens the picker right here
-  const [picker, setPicker] = useState(false);
+  const ai = useAiTeams(projectId);
+  const aiMembers = ai.data ?? [];
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_MEMBER_COLORS[0]);
   const [addError, setAddError] = useState<string | null>(null);
@@ -159,37 +155,8 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                 </div>
               </div>
             )}
-            {boardAi && (
-              <div
-                className="ai-card"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: 10,
-                  background: '#F1F8F3',
-                  borderColor: '#BFDCC7',
-                }}
-              >
-                <AiAvatar provider={boardAi.provider} color={boardAi.color} glyph={boardAi.glyph} size={30} />
-                <div style={{ flex: 1 }}>
-                  <div className="ai-label" style={{ color: '#2E6F40' }}>
-                    Board AI
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{boardAi.name}</div>
-                </div>
-                <button
-                  type="button"
-                  className="ai-link"
-                  onClick={() => setPicker(true)}
-                  data-testid="members-board-ai-change"
-                >
-                  Change
-                </button>
-              </div>
-            )}
             {!ai.isLoading && !ai.isError && aiMembers.length === 0 && (
-              <div className={styles.emptyState}>No AI members yet.</div>
+              <div className={styles.emptyState}>No AI teams yet.</div>
             )}
             {aiMembers.slice(0, 4).map((m) => (
               <button
@@ -199,7 +166,7 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                 style={{ padding: '8px 4px' }}
                 onClick={() => onOpenAiPage?.({ memberId: m.id })}
               >
-                <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={30} dim={m.paused} />
+                <AiAvatar color={m.color} size={30} dim={m.paused} />
                 <span style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
                   <span>{m.name}</span>
                   {m.accountRef && (
@@ -208,13 +175,12 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                       style={{ fontSize: 11, color: m.accountRef.status === 'needs_sign_in' ? '#A5321E' : undefined }}
                       data-testid="member-account-line"
                     >
-                      Local runner · {m.accountRef.name}
+                      Claude Code · {m.accountRef.name}
                       {m.accountRef.status === 'needs_sign_in' ? ' signed out' : ''}
                     </span>
                   )}
                   <StatusLabel status={displayStatus(m)} sub={null} />
                 </span>
-                <ConnectionChip connection={m.connection} />
               </button>
             ))}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
@@ -225,7 +191,7 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
               )}
               <span style={{ flex: 1 }} />
               <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="open-ai-page">
-                Open AI members page →
+                Open AI teams page →
               </button>
             </div>
             <button
@@ -234,18 +200,9 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
               style={{ width: '100%', justifyContent: 'center' }}
               onClick={() => onOpenAiPage?.({ add: true })}
             >
-              + Add AI member
+              + Add AI team
             </button>
           </div>
-        )}
-
-        {picker && ai.data && (
-          <BoardAiPicker
-            projectId={projectId}
-            members={aiMembers}
-            currentId={ai.data.settings.boardAiId}
-            onClose={() => setPicker(false)}
-          />
         )}
 
         {/* Content */}

@@ -1,5 +1,9 @@
 # Kế hoạch AI cho Claude Code CLI: quyết định, câu hỏi, thiết kế
 
+> **2026-11-05:** phần kiến trúc được thay bằng [`ai-v2.md`](ai-v2.md) (refactor hoàn toàn: Claude Code điều phối, bypass cộng
+> danh sách cấm, đội với lead là assignee, vai là subagent). Mục 10 của tài liệu đó nói quyết định nào ở đây còn giữ. Tài liệu này
+> giữ để tham khảo hiện trạng, spike S1–S6 và các chủ đề chưa đưa sang.
+
 Tài liệu làm việc của đợt thảo luận về AI (điều phối, quy trình, skill/plugin, Board AI). **Chưa implement gì.**
 Mỗi khi chốt thêm một điểm, cập nhật mục Quyết định; khi một câu hỏi được trả lời, chuyển nó lên Quyết định.
 

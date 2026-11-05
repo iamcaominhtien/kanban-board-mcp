@@ -403,7 +403,7 @@ class Mover:
             "rows": total,
             "tickets": counts.get("ticket", 0),
             "projects": counts.get("project", 0),
-            "ai_members": counts.get("ai_member", 0),
+            "ai_members": counts.get("ai_team", 0),
             "at_head": True,
         }
         plan = Plan(

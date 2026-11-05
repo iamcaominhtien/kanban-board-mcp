@@ -4,8 +4,7 @@ import { aiPluginsApi, usePluginMutation } from '../../../api/aiPlugins';
 import { extractError } from '../../../api/extractError';
 import type { Plugin, PluginAction, PluginChanges, UpdateCheck } from '../../../types/aiPlugins';
 import { ago, Toggle, useAiBoardState } from '../aiUi';
-import { ROLES, applyFilter, buildRows, countOf, mb, roleName, type Filter, type Row } from './pluginLogic';
-import type { SkillUsage } from '../../../types/aiPlugins';
+import { ROLES, applyFilter, buildRows, countOf, mb, roleName, type Filter } from './pluginLogic';
 import { BoardSkillsCard } from './BoardSkillsCard';
 
 export const TAKES_EFFECT = 'Every change takes effect from the next run.';
@@ -17,8 +16,6 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'mcp', label: 'MCP servers' },
   { key: 'never', label: 'Never used' },
 ];
-
-const KIND_LABEL = { plugin: 'Plugin', skill: 'Skill', mcp: 'MCP server' } as const;
 
 function sourceLabel(p: Plugin) {
   return { git: 'Git URL', marketplace: 'Marketplace', folder: 'Imported from a folder' }[p.sourceKind];
@@ -210,33 +207,11 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
   );
 }
 
-function LooseRow({ r }: { r: Row }) {
-  const u = r.usage as SkillUsage;
-  return (
-    <div className="ai-card" data-testid={`loose-${r.name}`} style={{ padding: 12, display: 'flex', gap: 10 }}>
-      <b style={{ fontSize: 13.5 }}>{r.name}</b>
-      <span className="ai-chip">{KIND_LABEL[r.kind]}</span>
-      <span className="ai-hint" style={{ flex: 1 }}>
-        Attached to members · managed in each member's configuration
-      </span>
-      <span className="ai-hint">{u.uses === 0 ? `never in ${u.runs} runs` : `used ${u.uses} times`}</span>
-    </div>
-  );
-}
-
 /** The installed list with its filters (B1). */
-export function InstalledTab({
-  projectId,
-  plugins,
-  usage,
-}: {
-  projectId: string;
-  plugins: Plugin[];
-  usage: SkillUsage[];
-}) {
+export function InstalledTab({ projectId, plugins }: { projectId: string; plugins: Plugin[] }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [q, setQ] = useState('');
-  const rows = buildRows(plugins, usage);
+  const rows = buildRows(plugins);
   const needle = q.trim().toLowerCase();
   const shown = applyFilter(rows, filter).filter((r) => !needle || r.name.toLowerCase().includes(needle));
   return (
@@ -276,16 +251,10 @@ export function InstalledTab({
               : 'Nothing matches this filter.'}
         </div>
       ) : (
-        shown.map((r) =>
-          r.plugin ? <PluginRow key={r.id} p={r.plugin} projectId={projectId} /> : <LooseRow key={r.id} r={r} />,
-        )
+        shown.map((r) => <PluginRow key={r.id} p={r.plugin} projectId={projectId} />)
       )}
       {/* B: the two notes as cards (green, amber) */}
       <div className="tl-callouts">
-        <div className="tl-callout tl-callout-green">
-          <b>“Really used” is counted, not guessed.</b> The board reads the Skill and Task tool calls out of the run
-          stream, so a skill nothing has ever reached for can be found and removed. {TAKES_EFFECT}
-        </div>
         <div className="tl-callout tl-callout-amber">
           <b>No approval step, and no pretending otherwise.</b> Installing from the internet runs other people’s code on
           your machine. The board records the source and the commit, shows the diff before an update, and keeps one

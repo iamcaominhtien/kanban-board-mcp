@@ -10,13 +10,11 @@ import re
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiLibraryItem, AiMember, Member
+from models import AiLibraryItem, AiTeam, Member
 
 from . import audit
 from . import config_model as cm
-from . import config_service as svc
-from .config_sync import diff_lines
-from .providers import adapter_of, merged_config
+from .providers import merged_config
 from .store import loads, now_iso
 
 TYPES = ("skill", "snippet", "mcp_server", "tool")
@@ -94,12 +92,50 @@ def _links(cfg: dict) -> list[tuple[str, dict, dict]]:
     return out
 
 
+def adapter_of(provider: str) -> str:
+    """AI v2 has one adapter: Claude Code."""
+    return "claude-code"
+
+
+def capabilities(provider: str) -> dict[str, str]:
+    """Every option group is synced into the plugin of a run."""
+    return {}
+
+
+def diff_lines(old: str, new: str, context: int = 3) -> list[str]:
+    """A unified diff of two texts, line by line."""
+    import difflib
+
+    return list(
+        difflib.unified_diff(old.splitlines(), new.splitlines(), lineterm="", n=context)
+    )
+
+
+async def members_of(
+    session: AsyncSession, project_id: str
+) -> list[tuple[Member, AiTeam]]:
+    """The project's AI members with their profiles."""
+    rows = (
+        await session.exec(
+            select(Member).where(
+                Member.project_id == project_id, col(Member.kind) == "ai"
+            )
+        )
+    ).all()
+    out = []
+    for m in rows:
+        p = await session.get(AiTeam, m.id)
+        if p is not None:
+            out.append((m, p))
+    return out
+
+
 async def _members(
     session: AsyncSession, project_id: str
-) -> list[tuple[Member, AiMember, dict]]:
+) -> list[tuple[Member, AiTeam, dict]]:
     return [
         (m, p, merged_config(loads(p.config, {})))
-        for m, p in await svc.members_of(session, project_id)
+        for m, p in await members_of(session, project_id)
     ]
 
 
@@ -121,8 +157,6 @@ def _row(item: AiLibraryItem, users: list[dict]) -> dict:
 
 async def usage(session: AsyncSession, item: AiLibraryItem) -> list[dict]:
     """The members using an item: [{member_id, name, provider, version, mode, behind}]."""
-    from .providers import capabilities
-
     out = []
     for m, p, cfg in await _members(session, item.project_id):
         for type_, it, link in _links(cfg):
@@ -536,7 +570,7 @@ async def propagate(
     item = await get_item(session, item_id)
     done, failed = [], []
     for mid in member_ids:
-        p = await session.get(AiMember, mid)
+        p = await session.get(AiTeam, mid)
         if p is None or p.project_id != item.project_id:
             continue
         cfg = update_in(item, merged_config(loads(p.config, {})))
@@ -550,7 +584,6 @@ async def propagate(
         p.updated_at = now_iso()
         session.add(p)
         await session.commit()
-        await svc.bump_version(session, mid)
         done.append(mid)
     if done:
         await audit.record(

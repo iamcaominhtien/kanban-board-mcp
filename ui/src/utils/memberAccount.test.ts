@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AiMember } from '../types/ai';
+import type { AiTeam } from '../types/ai';
 import type { AiAccount, MemberAccountRef } from '../types/aiAccounts';
 import {
   accountCell,
@@ -57,7 +57,7 @@ const ref = (over: Partial<MemberAccountRef> = {}): MemberAccountRef => ({
   sharedBy: 1,
   ...over,
 });
-const member = (over: Partial<AiMember> = {}): AiMember =>
+const member = (over: Partial<AiTeam> = {}): AiTeam =>
   ({
     id: 'm1',
     name: 'Weekend helper',
@@ -68,7 +68,7 @@ const member = (over: Partial<AiMember> = {}): AiMember =>
     accountId: 'a1',
     queued: 1,
     ...over,
-  }) as AiMember;
+  }) as AiTeam;
 
 describe('accounts for a member type', () => {
   it('lists only the accounts of that CLI, signed-in ones first', () => {
@@ -78,13 +78,11 @@ describe('accounts for a member type', () => {
       acct({ id: 'a', name: 'A' }),
     ];
     expect(accountsFor(list, 'claude-code').map((a) => a.id)).toEqual(['a', 'b']);
-    expect(accountsFor(list, 'codex').map((a) => a.id)).toEqual(['c']);
-    expect(accountsFor(list, 'openai')).toEqual([]);
+    expect(accountsFor(list, 'claude-code').some((a) => a.cli === 'codex')).toBe(false);
   });
   it('knows which types use accounts', () => {
     expect(usesAccounts('claude-code')).toBe(true);
-    expect(usesAccounts('antigravity')).toBe(true);
-    expect(usesAccounts('anthropic')).toBe(false);
+    expect(usesAccounts('claude-code' as never)).toBe(true);
   });
 });
 
@@ -138,8 +136,6 @@ describe('the AI list', () => {
       sub: 'as before',
       warn: false,
     });
-    expect(accountCell(member({ provider: 'opencode', accountRef: null }))?.name).toBe('Free models');
-    expect(accountCell(member({ connection: 'api_key' }))).toBeNull();
   });
   it('names the account in the status of a member whose account is signed out', () => {
     expect(displayStatus(member()).label).toBe('Needs sign-in · account');
@@ -148,11 +144,9 @@ describe('the AI list', () => {
   });
   it('shows every local type as it is: all of them run, so none is Not ready', () => {
     const idle = { code: 'idle', label: 'Idle', detail: null } as const;
-    for (const provider of ['antigravity', 'codex', 'opencode', 'claude-code'] as const) {
-      expect(displayStatus(member({ provider, accountRef: null, status: idle })).label).toBe('Idle');
-    }
+    expect(displayStatus(member({ accountRef: null, status: idle })).label).toBe('Idle');
     const paused = { code: 'paused', label: 'Paused', detail: null } as const;
-    expect(displayStatus(member({ provider: 'codex', accountRef: null, status: paused })).label).toBe('Paused');
+    expect(displayStatus(member({ accountRef: null, status: paused })).label).toBe('Paused');
   });
 });
 

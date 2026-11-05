@@ -18,14 +18,14 @@ from datetime import UTC, datetime
 from sqlmodel import col, select
 
 import database
-from models import AiAccount, AiAccountState, AiMember, AiRun
+from models import AiAccount, AiAccountState, AiTeam, AiRun
 
 LOCAL = "local"
 DEFAULT_PARALLEL = 2
 NEAR = 0.8  # "quota near" signal and the bar's amber
 
 
-def key_for(profile: AiMember | None, run: AiRun | None = None) -> str:
+def key_for(profile: AiTeam | None, run: AiRun | None = None) -> str:
     """Which account a run spends: the run's own override (urgent work moved), else the member's account, else this
     computer's own login of the member's CLI."""
     if run is not None and getattr(run, "account_id", None):
@@ -146,11 +146,11 @@ async def running_on(session, key: str) -> list[AiRun]:
     """CLI runs going on an account right now."""
     rows = (
         await session.exec(
-            select(AiRun, AiMember)
-            .join(AiMember, AiMember.id == AiRun.member_id)
+            select(AiRun, AiTeam)
+            .join(AiTeam, AiTeam.id == AiRun.member_id)
             .where(
                 col(AiRun.state).in_(["starting", "running"]),
-                AiMember.connection != "api_key",
+                AiTeam.connection != "api_key",
             )
         )
     ).all()
@@ -166,7 +166,7 @@ def _local(when: str | None) -> str:
         return ""
 
 
-async def blocking(session, run: AiRun, profile: AiMember) -> str | None:
+async def blocking(session, run: AiRun, profile: AiTeam) -> str | None:
     """Why a queued CLI run waits on its account (the window or the slots), or None."""
     if profile.connection == "api_key" or profile.provider != "claude-code":
         # windows and slots are Claude's (the accounts page shows only those): another CLI is not held by them
@@ -228,10 +228,10 @@ async def overview(session) -> list[dict]:
     keys = [(a.id, a) for a in accounts]
     has_local = (
         await session.exec(
-            select(AiMember).where(
-                col(AiMember.account_id).is_(None),
-                AiMember.provider == "claude-code",
-                AiMember.connection != "api_key",
+            select(AiTeam).where(
+                col(AiTeam.account_id).is_(None),
+                AiTeam.provider == "claude-code",
+                AiTeam.connection != "api_key",
             )
         )
     ).first()
@@ -239,8 +239,8 @@ async def overview(session) -> list[dict]:
         keys.append((LOCAL, None))
     queued = (
         await session.exec(
-            select(AiRun, AiMember)
-            .join(AiMember, AiMember.id == AiRun.member_id)
+            select(AiRun, AiTeam)
+            .join(AiTeam, AiTeam.id == AiRun.member_id)
             .where(AiRun.state == "queued")
         )
     ).all()

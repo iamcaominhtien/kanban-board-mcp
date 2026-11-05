@@ -30,8 +30,10 @@ function TicketRunsList({ ticketId, onOpenRun }: { ticketId: string; onOpenRun: 
             <span>{r.mode === 'ask' ? 'Answer only' : 'Work'}</span>
             <span aria-hidden="true">·</span>
             <span className="ai-mono">
-              {r.metered ? money(r.costUsd) : 'Not metered'}
-              {r.elapsedS != null ? ` · ${fmtElapsed(r.elapsedS)}` : ''}
+              {r.costUsd > 0 ? money(r.costUsd) : 'Not metered'}
+              {r.startedAt && r.endedAt
+                ? ` · ${fmtElapsed(Math.round((Date.parse(r.endedAt) - Date.parse(r.startedAt)) / 1000))}`
+                : ''}
             </span>
             {r.contextUsed && r.contextWindow ? (
               <ContextMeter used={r.contextUsed} size={r.contextWindow} inline />

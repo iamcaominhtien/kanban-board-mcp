@@ -15,7 +15,6 @@ interface DraggableTicketCardProps {
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
   onDelete?: (ticket: Ticket) => void;
-  hideStoryChip?: boolean;
   /** Enter on the focused card opens it (defaults to onCardClick). */
   onCardOpen?: (ticket: Ticket) => void;
   /** Part of the selected parent group: the green ring (Sub-task Grouping 1). */
@@ -35,7 +34,6 @@ export function DraggableTicketCard({
   onPending,
   onResume,
   onDelete,
-  hideStoryChip,
   onCardOpen,
   groupSelected,
 }: DraggableTicketCardProps) {
@@ -107,7 +105,6 @@ export function DraggableTicketCard({
         onPending={onPending}
         onResume={onResume}
         onDelete={onDelete}
-        hideStoryChip={hideStoryChip}
       />
     </div>
   );

@@ -1,0 +1,205 @@
+import { QueryClient } from '@tanstack/react-query';
+import { describe, expect, it } from 'vitest';
+import type { AiRun, AiRunFull, RunStep } from '../types/ai';
+import { aiKeys, type AiBoardData } from './ai';
+import { applyAiEvent, mergeSteps, parseAiEvent } from './aiRunCache';
+
+const step = (seq: number, extra: Partial<RunStep> = {}): RunStep => ({
+  seq,
+  at: '2026-11-05T10:00:00Z',
+  agentId: null,
+  kind: 'tool',
+  tool: 'Bash',
+  title: `step ${seq}`,
+  detail: {},
+  hasOutput: false,
+  parentToolId: null,
+  toolId: null,
+  ...extra,
+});
+
+const run = (extra: Partial<AiRunFull> = {}): AiRunFull =>
+  ({
+    id: 'r1',
+    ticketId: 'IAM-12',
+    memberId: 't1',
+    number: 2,
+    state: 'running',
+    stepsCount: 2,
+    lastOutputAt: null,
+    startedAt: 'a',
+    endedAt: null,
+    summary: null,
+    question: null,
+    agents: [],
+    steps: [step(1), step(2)],
+    ...extra,
+  }) as unknown as AiRunFull;
+
+function setup() {
+  const qc = new QueryClient();
+  qc.setQueryData(aiKeys.run('r1'), run());
+  qc.setQueryData<AiBoardData>(aiKeys.board('p1'), {
+    tickets: {
+      'IAM-12': {
+        ticketId: 'IAM-12',
+        runId: 'r1',
+        memberId: 't1',
+        state: 'running',
+        number: 2,
+        startedAt: 'a',
+        endedAt: null,
+        lastOutputAt: null,
+        stepsCount: 2,
+        summary: null,
+        question: null,
+      },
+    },
+  });
+  qc.setQueryData<AiRun[]>(aiKeys.ticketRuns('IAM-12'), [run() as unknown as AiRun]);
+  return qc;
+}
+
+const stepEvent = (over: object = {}) =>
+  JSON.stringify({
+    type: 'ai.step',
+    run_id: 'r1',
+    state: 'running',
+    steps_count: 4,
+    last_output_at: '2026-11-05T10:05:00Z',
+    steps: [
+      {
+        seq: 3,
+        at: 'x',
+        agent_id: null,
+        kind: 'edit',
+        title: 'Edited a.ts',
+        detail: { exit_code: 0 },
+        has_output: false,
+      },
+      { seq: 4, at: 'y', agent_id: 'toolu_1', kind: 'read', title: 'Read b.ts', detail: {}, has_output: false },
+    ],
+    truncated: false,
+    agents: [{ id: 'toolu_1', run_id: 'r1', agent_type: 'reviewer', steps_count: 1 }],
+    ...over,
+  });
+
+describe('mergeSteps', () => {
+  it('keeps each seq once, in order, and lets a later copy win', () => {
+    const merged = mergeSteps([step(1), step(3)], [step(2), step(3, { title: 'newer' })]);
+    expect(merged.map((s) => s.seq)).toEqual([1, 2, 3]);
+    expect(merged[2].title).toBe('newer');
+  });
+  it('returns the same list when nothing arrives', () => {
+    const old = [step(1)];
+    expect(mergeSteps(old, [])).toBe(old);
+  });
+});
+
+describe('parseAiEvent', () => {
+  it('camel-cases an AI event, details included, and ignores everything else', () => {
+    const ev = parseAiEvent(stepEvent());
+    expect(ev?.type).toBe('ai.step');
+    expect((ev as { runId: string }).runId).toBe('r1');
+    expect((ev as { steps: RunStep[] }).steps[0].detail.exitCode).toBe(0);
+    expect(parseAiEvent('{"type":"invalidate","topics":["x"]}')).toBeNull();
+    expect(parseAiEvent('invalidate')).toBeNull();
+    expect(parseAiEvent('{broken')).toBeNull();
+  });
+});
+
+describe('ai.step', () => {
+  it('appends the steps and agents to the open run and patches the counters of the board and the ticket list', () => {
+    const qc = setup();
+    expect(applyAiEvent(qc, stepEvent())).toBe(true);
+    const cached = qc.getQueryData<AiRunFull>(aiKeys.run('r1'))!;
+    expect(cached.steps.map((s) => s.seq)).toEqual([1, 2, 3, 4]);
+    expect(cached.stepsCount).toBe(4);
+    expect(cached.agents[0].agentType).toBe('reviewer');
+    const board = qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!;
+    expect(board.tickets['IAM-12'].stepsCount).toBe(4);
+    expect(board.tickets['IAM-12'].lastOutputAt).toBe('2026-11-05T10:05:00Z');
+    expect(qc.getQueryData<AiRun[]>(aiKeys.ticketRuns('IAM-12'))![0].stepsCount).toBe(4);
+  });
+
+  it('takes nothing for a run nobody opened, but still moves the board counters', () => {
+    const qc = setup();
+    qc.removeQueries({ queryKey: aiKeys.run('r1') });
+    applyAiEvent(qc, stepEvent());
+    expect(qc.getQueryData(aiKeys.run('r1'))).toBeUndefined();
+    expect(qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12'].stepsCount).toBe(4);
+  });
+
+  it('asks the open run again when the batch left steps out or does not follow the ones held', () => {
+    const qc = setup();
+    applyAiEvent(qc, stepEvent({ truncated: true }));
+    expect(qc.getQueryState(aiKeys.run('r1'))?.isInvalidated).toBe(true);
+    const qc2 = setup();
+    applyAiEvent(qc2, stepEvent({ steps: [{ seq: 9, at: 'x', kind: 'tool', title: 'late', detail: {} }] }));
+    expect(qc2.getQueryState(aiKeys.run('r1'))?.isInvalidated).toBe(true);
+    expect(qc2.getQueryData<AiRunFull>(aiKeys.run('r1'))!.steps).toHaveLength(2);
+  });
+});
+
+describe('ai.run', () => {
+  const ev = (state: string, number = 2) =>
+    JSON.stringify({
+      type: 'ai.run',
+      run: {
+        id: 'r1',
+        ticket_id: 'IAM-12',
+        member_id: 't1',
+        number,
+        state,
+        steps_count: 7,
+        started_at: 'a',
+        ended_at: 'b',
+        last_output_at: 'b',
+        summary: 'Done it',
+        question: null,
+      },
+    });
+
+  it('replaces the run in every cache and refreshes the overview', () => {
+    const qc = setup();
+    applyAiEvent(qc, ev('finished'));
+    expect(qc.getQueryData<AiRunFull>(aiKeys.run('r1'))!.state).toBe('finished');
+    expect(qc.getQueryData<AiRunFull>(aiKeys.run('r1'))!.steps).toHaveLength(2);
+    expect(qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12']).toMatchObject({
+      state: 'finished',
+      summary: 'Done it',
+      stepsCount: 7,
+    });
+    expect(qc.getQueryData<AiRun[]>(aiKeys.ticketRuns('IAM-12'))![0].state).toBe('finished');
+  });
+
+  it('puts a new run first in the ticket list, and an older run does not take the board entry', () => {
+    const qc = setup();
+    applyAiEvent(
+      qc,
+      JSON.stringify({
+        type: 'ai.run',
+        run: { id: 'r0', ticket_id: 'IAM-12', member_id: 't1', number: 1, state: 'finished' },
+      }),
+    );
+    expect(qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12'].runId).toBe('r1');
+    applyAiEvent(
+      qc,
+      JSON.stringify({
+        type: 'ai.run',
+        run: { id: 'r3', ticket_id: 'IAM-12', member_id: 't1', number: 3, state: 'queued' },
+      }),
+    );
+    expect(qc.getQueryData<AiRun[]>(aiKeys.ticketRuns('IAM-12'))![0].id).toBe('r3');
+    expect(qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12'].runId).toBe('r3');
+  });
+});
+
+describe('ai.message', () => {
+  it('asks for the run messages again', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(aiKeys.runMessages('r1'), []);
+    applyAiEvent(qc, '{"type":"ai.message","run_id":"r1","peer":"IAM-3","text":"hi"}');
+    expect(qc.getQueryState(aiKeys.runMessages('r1'))?.isInvalidated).toBe(true);
+  });
+});

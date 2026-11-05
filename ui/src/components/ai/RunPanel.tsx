@@ -1,49 +1,38 @@
 import { useEffect, useRef, useState } from 'react';
-import { aiApi, useAiApprovals, useAiMutation, useTicketRuns } from '../../api/ai';
+import { aiApi, isActive, useAiMutation, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import type { AiMember, AiRun } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { useToast } from '../Toast';
 import { useScheduleList } from '../../api/schedules';
 import { useSchedules } from '../schedules/SchedulesContext';
-import { CalendarIcon, ChevronIcon, ClockIcon, ListIcon, PlayIcon } from '../schedules/schedulesUi';
-import { ApprovalCard } from './AiSafetyViews';
-import { ASSIGN_AI_EVENT, fireAiEvent } from './AiTicketContext';
+import { CalendarIcon, ChevronIcon, ListIcon, PlayIcon } from '../schedules/schedulesUi';
 import { QuestionCard } from './QuestionCard';
-import { SummaryCard } from './ReviewGate';
-import { RaiseLimitButton, TakeOverButton, UndoRunDialog } from './RunActions';
-import { BudgetStopBox, budgetStop } from './RunView';
+import { RunButtons } from './RunView';
 import { ResumeAllDialog } from './AiKillSwitch';
-import { FinalResources, MemoryStopNote, RestartNotice, RunResourcesStrip } from './RunResources';
 import { PAUSE_COLOR, PauseGlyph, PausedStrip, clockTime, pausedSummary } from './pausedUi';
 import { AccountNote } from './accounts/AccountBanner';
-import { ChangeAccountDialog } from './accounts/AccountPicker';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
-import { TellBox } from './trouble/TellBox';
-import { TroubleCard } from './trouble/TroubleCard';
-import { EvidenceBlock } from './evidence/EvidenceBlock';
 import './accounts/accountsMember.css';
 import {
-  ACTIVE_RUN_STATES,
   AiAvatar,
   RunStateChip,
   SparkleIcon,
   fmtElapsed,
-  hhmm,
-  inWords,
   secondsSince,
+  testsOf,
   useAiBoardState,
   useNow,
 } from './aiUi';
 import { LineIcon } from '../ui/LineIcon';
 
 // The run view, steps, history and the AI tab live in RunView.tsx
-export { RunSteps, RunView, RunHistory, TicketRunsTab } from './RunView';
+export { RunView, RunHistory, TicketRunsTab } from './RunView';
+export { RunTree as RunSteps } from './run/RunTree';
 export { QuestionCard } from './QuestionCard';
 
 /**
  * Sparkle Run button for the ticket header, with a pulsing dot while a run is active. Its menu starts a run now,
- * schedules one, or shows the ticket's schedules (AI schedules, A2).
+ * schedules one, or shows the ticket's schedules.
  */
 export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; active: boolean; onClick: () => void }) {
   const { runsByTicket, members } = useAiBoardState();
@@ -55,9 +44,8 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
   const run = runsByTicket.get(ticket.id);
   const live = run && (run.state === 'running' || run.state === 'starting');
   const assignee = ticket.assignee ? members.get(ticket.assignee) : undefined;
-  const canRun = !!assignee && assignee.connection !== 'inbox' && !(run && ACTIVE_RUN_STATES.includes(run.state));
+  const canRun = !!assignee && !(run && isActive(run.state));
   const runMut = useAiMutation(() => aiApi.run(ticket.id));
-  const queueMut = useAiMutation(() => aiApi.run(ticket.id, { queue: true }));
   const count = schedules.data?.items.length ?? 0;
   useEffect(() => {
     if (!menu) return undefined;
@@ -73,7 +61,7 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
       <button
         type="button"
         onClick={async () => {
-          // With an AI assignee and nothing running, the sparkle is the Run button; it then shows the run
+          // With a team assigned and nothing running, the sparkle is the Run button; it then shows the run
           if (canRun) {
             try {
               await runMut.mutateAsync(undefined);
@@ -136,7 +124,7 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
       >
         <ChevronIcon size={12} />
       </button>
-      {run && ACTIVE_RUN_STATES.includes(run.state) && (
+      {run && isActive(run.state) && (
         <span
           className={live ? 'ai-pulse' : undefined}
           style={{
@@ -183,26 +171,6 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
           >
             <CalendarIcon size={14} /> Schedule a run…
           </button>
-          {canRun && (
-            <button
-              type="button"
-              role="menuitem"
-              className="ai-mi"
-              data-testid="menu-queue"
-              title="Waits until the AI has finished what it is doing, then starts"
-              onClick={async () => {
-                setMenu(false);
-                try {
-                  await queueMut.mutateAsync(undefined);
-                  toast.success('Queued', `${assignee?.name} starts when it has a free slot`);
-                } catch (err) {
-                  toast.error("Couldn't queue the run", extractError(err));
-                }
-              }}
-            >
-              <ClockIcon size={14} /> Queue for next free slot
-            </button>
-          )}
           <div className="sc-menu-sep" />
           <button
             type="button"
@@ -232,18 +200,14 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
 export function RunHeaderChip({ ticket }: { ticket: Ticket }) {
   const { runsByTicket, members } = useAiBoardState();
   const run = runsByTicket.get(ticket.id);
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
-  if (!run || !ACTIVE_RUN_STATES.includes(run.state)) return null;
+  useNow(1000, !!run && isActive(run.state));
+  if (!run || !isActive(run.state)) return null;
   const ai = members.get(run.memberId);
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      {ai && <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={24} />}
+      {ai && <AiAvatar color={ai.color} size={24} />}
       <RunStateChip
-        state={run.paused ? 'paused' : run.state}
+        state={run.state}
         suffix={run.state === 'running' ? <span> · {fmtElapsed(secondsSince(run.startedAt))}</span> : undefined}
       />
     </span>
@@ -251,37 +215,22 @@ export function RunHeaderChip({ ticket }: { ticket: Ticket }) {
 }
 
 // ---------------------------------------------------------------------------
-// The AI block at the top of ticket detail: run card, question, review gate, approvals
+// The AI block at the top of ticket detail: run card, question, failures
 // ---------------------------------------------------------------------------
 
-/** Run in progress, the AI's question, its summary in Review, failures and pending approvals for this ticket. */
+/** The newest run of the ticket, the lead's question, the pause for this ticket and the sign-in the team needs. */
 export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun: () => void }) {
   const runs = useTicketRuns(ticket.id);
-  const { projectId, members: aiMembers, runsByTicket, settings } = useAiBoardState();
-  const approvals = useAiApprovals(projectId, 'pending');
-  const [keepQueued, setKeepQueued] = useState(false);
+  const { members: aiMembers, settings } = useAiBoardState();
   const [resumeOpen, setResumeOpen] = useState(false);
-  const list = runs.data ?? [];
-  const work = list.filter((r) => r.mode === 'work');
-  // The holder (or the last run when nobody holds it); a second AI waiting behind it is shown apart
-  const latest = work.find((r) => !r.behindRunId) ?? work[0];
-  const next = work.find((r) => r.behindRunId && ACTIVE_RUN_STATES.includes(r.state));
-  const ticketApprovals = (approvals.data ?? []).filter((a) => a.ticketId === ticket.id);
-  const asks = list.filter((r) => r.mode === 'ask' && ACTIVE_RUN_STATES.includes(r.state));
-  // Pause all AI: the strip opens the panel (design/screens/ai-paused.md, E2), the last run says why it ended
-  const aiAssignee = ticket.assignee ? aiMembers.get(ticket.assignee) : undefined;
-  const paused = !!settings?.pausedAll && !!aiAssignee && !['done', 'wont_do'].includes(ticket.status);
-  const stoppedByPause =
-    paused && latest?.state === 'cancelled' && (latest.endedReason ?? '').startsWith('Pause all AI');
-  const heldQueue = [...runsByTicket.values()]
-    .filter((r) => r.state === 'queued' && r.mode === 'work')
-    .sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
-  const heldPosition = latest ? heldQueue.findIndex((r) => r.id === latest.id) + 1 : 0;
-  if (!latest && !ticketApprovals.length && !asks.length && !paused) return null;
-  const queuedMember = latest?.state === 'queued' ? aiMembers.get(latest.memberId) : undefined;
-  const offline = queuedMember?.status.code === 'runner_missing' && !keepQueued;
-  const accountOut = queuedMember?.accountRef?.status === 'needs_sign_in';
-  // Fixed above the scrolling ticket body: bottom padding and a rule keep the body from looking covered.
+  const latest = (runs.data ?? [])[0];
+  const team = ticket.assignee ? aiMembers.get(ticket.assignee) : undefined;
+  const paused = !!settings?.pausedAll && !!team && !['done', 'wont_do'].includes(ticket.status);
+  useNow(1000, latest?.state === 'running');
+  if (!latest && !paused) return null;
+  const runTeam = latest ? aiMembers.get(latest.memberId) : undefined;
+  const accountOut = runTeam?.accountRef?.status === 'needs_sign_in';
+  const failed = latest && (latest.state === 'failed' || latest.state === 'timed_out');
   return (
     <div
       className="ai-root"
@@ -300,452 +249,65 @@ export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun
           {latest?.state === 'queued' ? 'Its next run is held.' : 'Nothing new starts on this ticket.'}
         </PausedStrip>
       )}
-      {stoppedByPause && latest && (
+      {latest && accountOut && runTeam?.accountRef && (
+        <AccountNote
+          tone="error"
+          title={`${runTeam.accountRef.name} is signed out`}
+          testId="account-signed-out"
+          actions={<SignInAgainButton member={runTeam} primary />}
+        >
+          {runTeam.name} cannot work until the account is signed in again.
+        </AccountNote>
+      )}
+      {latest && latest.state === 'needs_input' && latest.question && !latest.answer && <QuestionCard run={latest} />}
+      {latest && (
         <div
           className="ai-card"
           style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}
-          data-testid="run-stopped-by-pause"
+          data-testid="run-card"
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13 }}>
-            {latest.memberName} · run #{latest.number}
-            <span className="ai-chip" style={{ background: '#FDF0E6', color: PAUSE_COLOR, gap: 5 }}>
-              <PauseGlyph size={11} color={PAUSE_COLOR} />
-              Stopped by the pause
-            </span>
-          </span>
-          <span className="ai-muted" style={{ fontSize: 12.5 }}>
-            Cancelled at step {latest.stepCount ?? latest.steps?.length ?? 0}, {clockTime(latest.endedAt)}. Partial work
-            in the folder is kept.
-          </span>
-          <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {runTeam && <AiAvatar color={runTeam.color} size={24} />}
+            <b style={{ fontSize: 13 }}>
+              {runTeam?.name ?? 'Team'} · run #{latest.number}
+            </b>
+            <RunStateChip state={latest.state} />
+            {latest.state === 'running' && (
+              <span className="ai-mono ai-muted">{fmtElapsed(secondsSince(latest.startedAt))}</span>
+            )}
+            <span className="ai-muted">{latest.stepsCount} steps</span>
+            <span style={{ flex: 1 }} />
+            <RunButtons run={latest} />
+            <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun} data-testid="open-run">
               Open run
             </button>
-            <button type="button" className="ai-btn ai-btn-sm" disabled title="Available after resume">
-              Run again
-            </button>
-            <span className="ai-muted" style={{ fontSize: 12 }}>
-              Available after resume
+          </span>
+          {(latest.report?.summary || latest.summary) && !failed && (
+            <span className="ai-muted" style={{ fontSize: 12.5 }}>
+              {latest.report?.summary || latest.summary}
             </span>
-          </span>
-        </div>
-      )}
-      {paused && latest?.state === 'queued' && heldPosition > 0 && (
-        <span className="ai-muted" style={{ fontSize: 12.5 }} data-testid="run-held-position">
-          Next run for this ticket is held. It starts after resume, in order: position {heldPosition} of{' '}
-          {heldQueue.length}.
-        </span>
-      )}
-      {offline && latest && <OfflineBanner run={latest} ticketId={ticket.id} onKeep={() => setKeepQueued(true)} />}
-      {accountOut && queuedMember && <AccountHeldBanner member={queuedMember} />}
-      {latest && (latest.state === 'running' || latest.state === 'starting' || latest.state === 'queued') && (
-        <ActiveRunCard run={latest} onOpenRun={onOpenRun} />
-      )}
-      {latest?.waitingApproval && <WaitingApprovalCard run={latest} />}
-      {next && <NextInLineCard run={next} holder={latest} />}
-      {latest?.state === 'needs_input' && latest.question && <QuestionCard run={latest} />}
-      {latest &&
-        (latest.state === 'failed' || latest.state === 'timed_out') &&
-        (budgetStop(latest) ? (
-          <BudgetStopBox run={latest} />
-        ) : (
-          <FailedCard run={latest} ticket={ticket} onOpenRun={onOpenRun} />
-        ))}
-      {latest?.state === 'finished' && ['review', 'testing'].includes(ticket.status) && (
-        <SummaryCard run={latest} ticket={ticket} onOpenRun={onOpenRun} />
-      )}
-      {/* Evidence: the gate, Dev's tests and diff, the Tester's pictures and logs (ai-story-flow N) */}
-      <EvidenceBlock ticket={ticket} />
-      {asks.map((r) => (
-        <div key={r.id} className="ai-notice ai-notice-info" style={{ alignItems: 'center' }}>
-          <span className="ai-spin" />
-          <span>
-            <b>{r.memberName}</b> is {r.state === 'queued' ? 'about to answer' : 'thinking about'} “
-            {r.instruction.slice(0, 90)}”…
-          </span>
-        </div>
-      ))}
-      {ticketApprovals.map((a) => (
-        <ApprovalCard key={a.id} approval={a} />
-      ))}
-      {resumeOpen && (
-        <ResumeAllDialog
-          projectId={projectId}
-          members={[...aiMembers.values()].filter((m) => m.kind === 'ai')}
-          onClose={() => setResumeOpen(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-/** The run is held because the AI member's account is signed out: only a person can sign in (design E3). */
-function AccountHeldBanner({ member }: { member: AiMember }) {
-  const [choosing, setChoosing] = useState(false);
-  return (
-    <div className="acm-banner" style={{ marginBottom: 0 }} data-testid="account-held-banner">
-      <AccountNote
-        tone="error"
-        title={`Needs sign-in: ${member.accountRef?.name} is signed out`}
-        actions={
-          <>
-            <SignInAgainButton member={member} primary />
-            <button type="button" className="ai-btn ai-btn-sm" onClick={() => setChoosing(true)}>
-              Choose another account
-            </button>
-          </>
-        }
-      >
-        The run is held, nothing is lost. It starts by itself once the account is signed in again. An AI cannot sign in;
-        a person does it here.
-      </AccountNote>
-      {choosing && <ChangeAccountDialog members={[member]} onClose={() => setChoosing(false)} />}
-    </div>
-  );
-}
-
-/** The assigned AI is offline: the ticket is queued and starts when the runner reconnects (H3). */
-function OfflineBanner({ run, ticketId, onKeep }: { run: AiRun; ticketId: string; onKeep: () => void }) {
-  const cancel = useAiMutation(() => aiApi.cancel(run.id, 'Assigned to someone else'));
-  return (
-    <div className="ai-notice ai-notice-warn" style={{ alignItems: 'flex-start' }} data-testid="offline-banner">
-      <div style={{ flex: 1 }}>
-        <b>{run.memberName} is offline</b>
-        <div>
-          The desktop app is closed. The ticket is queued and starts when the runner reconnects. Nothing is lost.
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button type="button" className="ai-btn ai-btn-sm" onClick={onKeep}>
-            Keep queued
-          </button>
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm"
-            onClick={async () => {
-              await cancel.mutateAsync(undefined);
-              fireAiEvent(ASSIGN_AI_EVENT, ticketId, '');
-            }}
-          >
-            Assign to someone else
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** A second AI waits for the holder of the ticket: “Next”, and who it waits for (H1). */
-function NextInLineCard({ run, holder }: { run: AiRun; holder?: AiRun }) {
-  const { members } = useAiBoardState();
-  const ai = members.get(run.memberId);
-  return (
-    <div
-      className="ai-card"
-      style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10 }}
-      data-testid="next-in-line"
-    >
-      {ai && <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={24} />}
-      <b style={{ fontSize: 13 }}>{run.memberName}</b>
-      <span className="ai-muted" style={{ fontSize: 12.5 }}>
-        waits for the hold{holder ? ` of ${holder.memberName}` : ''}; it starts when it is released
-      </span>
-      <span style={{ flex: 1 }} />
-      <span className="ai-chip" style={{ background: '#F5F3FD', color: '#6D5DD3' }}>
-        Next
-      </span>
-    </div>
-  );
-}
-
-/** "Needs approval" (safety): the run's tool call waits for a person; the run goes on once someone decides. */
-function WaitingApprovalCard({ run }: { run: AiRun }) {
-  const board = useAiBoardState();
-  const w = run.waitingApproval!;
-  return (
-    <div className="as-tile as-tile-slate" data-testid="run-waiting-approval">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span className="ai-chip" style={{ background: '#EEF1F5', color: '#5B6B7A' }}>
-          <LineIcon name="hand" size={13} /> Needs approval
-        </span>
-        <span style={{ fontSize: 13, fontWeight: 600 }}>{w.summary}</span>
-      </div>
-      <div className="ai-hint">
-        {run.memberName ?? 'The AI'} waits for a decision since{' '}
-        {new Date(w.since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Approved, the board applies
-        it and the run goes on; denied, the AI is told why.
-      </div>
-      {board.openAiTab && (
-        <div>
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm ai-btn-primary"
-            onClick={() => board.openAiTab?.('approvals')}
-          >
-            Review in Inbox
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ActiveRunCard({ run, onOpenRun }: { run: AiRun; onOpenRun: () => void }) {
-  const toast = useToast();
-  useNow(1000, run.state !== 'queued');
-  const pause = useAiMutation(() => aiApi.pauseRun(run.id));
-  const resume = useAiMutation(() => aiApi.resumeRun(run.id));
-  const startNow = useAiMutation(() => aiApi.startNow(run.id));
-  const refresh = useAiMutation(() => aiApi.refreshContext(run.id));
-  const last = run.steps[run.steps.length - 1];
-  const fresh = run.contextNotes.filter((n) => !n.delivered);
-  const act = async (fn: () => Promise<unknown>, failure: string) => {
-    try {
-      await fn();
-    } catch (err) {
-      toast.error(failure, extractError(err));
-    }
-  };
-  const stepWords = run.stepEstimate
-    ? `step ${run.steps.length} of ~${Math.max(run.stepEstimate, run.steps.length)}`
-    : `step ${run.steps.length}`;
-  return (
-    <div>
-      <div
-        className="ai-card"
-        style={{
-          padding: '10px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          borderColor: '#BFDCC7',
-          background: '#F1F8F3',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <RunStateChip state={run.paused ? 'paused' : run.state} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>
-            Run #{run.number}{' '}
-            {run.state === 'queued'
-              ? 'queued'
-              : run.state === 'starting'
-                ? 'starting'
-                : run.paused
-                  ? 'paused'
-                  : 'in progress'}{' '}
-            · {run.memberName}
-          </div>
-          <div
-            className="ai-muted"
-            data-testid={run.state === 'queued' ? 'why-waiting' : undefined}
-            style={{
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              color: run.state === 'queued' ? '#B4571F' : undefined,
-            }}
-          >
-            {run.state === 'queued'
-              ? run.behindTicketId && !run.behindRunId
-                ? `Position #${run.queuePosition ?? 1} behind ${run.behindTicketId}`
-                : (run.waitingReason ?? 'Starts in a few seconds')
-              : run.state === 'starting'
-                ? 'Starting… the CLI or the agent loop is starting up'
-                : `Started ${hhmm(run.startedAt)} · ${fmtElapsed(secondsSince(run.startedAt))} · ${stepWords}${last ? ` · ${last.text}` : ''}`}
-          </div>
-        </div>
-        {run.state === 'running' && (
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm"
-            disabled={pause.isPending || resume.isPending}
-            onClick={() =>
-              act(
-                () => (run.paused ? resume : pause).mutateAsync(undefined),
-                run.paused ? "Couldn't resume" : "Couldn't pause",
-              )
-            }
-            data-testid={run.paused ? 'card-resume' : 'card-pause'}
-          >
-            {run.paused ? (
-              <>
-                <LineIcon name="play" size={12} /> Resume
-              </>
-            ) : (
-              <>
-                <LineIcon name="pause" size={12} /> Pause run
-              </>
-            )}
-          </button>
-        )}
-        {run.state === 'queued' && !run.behindRunId && (
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm"
-            disabled={startNow.isPending}
-            onClick={() => act(() => startNow.mutateAsync(undefined), "Can't start it now")}
-            data-testid="card-start-now"
-          >
-            <LineIcon name="play" size={12} /> Start now
-          </button>
-        )}
-        <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
-          Open run
-        </button>
-        {run.state === 'running' && !run.paused && <div className="ai-progress" />}
-      </div>
-      <RestartNotice run={run} />
-      <RetryLine run={run} />
-      {run.state === 'running' && <TroubleCard run={run} />}
-      {run.state === 'running' && <RunResourcesStrip run={run} />}
-      {run.state === 'running' && <TellBox run={run} />}
-      {run.state === 'running' && (
-        <div
-          className="ai-hint"
-          style={{ marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
-          data-testid="working-note"
-        >
-          <span>
-            {run.memberName} is working on this. Your edits are saved and sent to it at its next step; it will not
-            overwrite what you type.
-          </span>
-          {fresh.length > 0 && (
-            <button
-              type="button"
-              className="ai-link"
-              disabled={refresh.isPending}
-              onClick={() => act(() => refresh.mutateAsync(undefined), "Couldn't refresh")}
-            >
-              Refresh context now
-            </button>
           )}
-          {run.contextNotes.length > 0 && (
-            <span style={{ color: '#B4571F' }}>
-              {run.contextNotes[run.contextNotes.length - 1].by} edited{' '}
-              {run.contextNotes[run.contextNotes.length - 1].what}.
-              {run.contextNotes[run.contextNotes.length - 1].delivered
-                ? ` Run #${run.number} refreshed its context.`
-                : ''}
+          {failed && (
+            <span className="ai-muted" style={{ fontSize: 12.5 }}>
+              {latest.endedReason ?? 'It stopped before it finished.'}
+            </span>
+          )}
+          {latest.state === 'queued' && latest.waitingReason && (
+            <span className="ai-muted" style={{ fontSize: 12.5 }}>
+              {latest.waitingReason}
             </span>
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
-const CARDINAL = ['one', 'two', 'three', 'four', 'five', 'six'];
-
-/**
- * A run the board will try again by itself (design ai-operations L): “Lost the connection. Trying again in 2 minutes —
- * second of three.” with Stop trying, while the wait is still to come.
- */
-export function RetryLine({ run }: { run: AiRun }) {
-  const toast = useToast();
-  const cancel = useAiMutation(() => aiApi.cancel(run.id, 'Stopped trying again'));
-  const last = run.retries?.[run.retries.length - 1];
-  if (run.state !== 'queued' || !run.retryAt || !last || new Date(run.retryAt).getTime() <= Date.now()) return null;
-  const what =
-    last.kind === 'network' ? 'Lost the connection' : last.label.charAt(0).toUpperCase() + last.label.slice(1);
-  const nth = ORDINAL[last.n - 1] ?? `try ${last.n}`;
-  const of = CARDINAL[last.of - 1] ?? String(last.of);
-  return (
-    <div className="ai-retry-line" data-testid="run-retry-line" title={last.detail}>
-      <LineIcon name="refresh" size={13} />
-      <span style={{ flex: 1 }}>
-        {what}. Trying again in {inWords(run.retryAt)} — {nth} of {of}.
-      </span>
-      <button
-        type="button"
-        className="ai-link"
-        style={{ color: '#8A5A12' }}
-        disabled={cancel.isPending}
-        onClick={async () => {
-          try {
-            await cancel.mutateAsync(undefined);
-          } catch (err) {
-            toast.error("Couldn't stop it", extractError(err));
-          }
-        }}
-        data-testid="run-retry-stop"
-      >
-        Stop trying
-      </button>
-    </div>
-  );
-}
-
-function FailedCard({ run, ticket, onOpenRun }: { run: AiRun; ticket: Ticket; onOpenRun: () => void }) {
-  const retry = useAiMutation(() => aiApi.retry(run.id));
-  const toast = useToast();
-  const { members: boardMembers } = useAiBoardState();
-  // “Account signed out” fails the run; signing the account in again is what makes Retry work
-  const failedMember = boardMembers.get(run.memberId);
-  const [undo, setUndo] = useState(false);
-  const canUndo = run.statusChanges.length > 0 || run.files.length > 0;
-  return (
-    <div>
-      <div
-        className="ai-card"
-        style={{
-          padding: '10px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          flexWrap: 'wrap',
-          borderColor: '#F0C4B8',
-          background: '#FBEEEA',
-        }}
-        data-testid="failed-card"
-      >
-        <RunStateChip state={run.state} />
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>
-            Run #{run.number} · {run.memberName}
-          </div>
-          <div className="ai-muted">
-            {run.endedReason}
-            {run.files.length > 0
-              ? ` · ${run.files.length} file${run.files.length === 1 ? '' : 's'} changed so far`
-              : ''}
-          </div>
-        </div>
-        <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
-          Open run
-        </button>
-        {failedMember && <SignInAgainButton member={failedMember} primary />}
-        <button
-          type="button"
-          className="ai-btn ai-btn-sm ai-btn-primary"
-          onClick={async () => {
-            try {
-              await retry.mutateAsync(undefined);
-            } catch (err) {
-              toast.error("Couldn't retry", extractError(err));
-            }
-          }}
-        >
-          Retry
-        </button>
-        <TakeOverButton ticketId={ticket.id} projectId={ticket.projectId} />
-        {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
-        {canUndo && (
-          <button type="button" className="ai-btn ai-btn-sm" onClick={() => setUndo(true)} data-testid="failed-undo">
-            <LineIcon name="undo" size={13} /> Undo changes
-          </button>
-        )}
-        {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
-      </div>
-      <MemoryStopNote run={run} />
-      <FinalResources run={run} />
+      {resumeOpen && settings && (
+        <ResumeAllDialog projectId={settings.projectId} onClose={() => setResumeOpen(false)} />
+      )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Board card footer (A4)
+// Board card footer
 // ---------------------------------------------------------------------------
 
 /** The AI line on a board card: run, queued, needs input, failed, summary ready. */
@@ -760,17 +322,15 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   useNow(1000, !!live);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
-  // Pause all AI (ai-paused.md, E1): one chip in the banner's colour. A ticket that needs your answer keeps its
-  // amber footer: a pause does not hide it.
+  // Pause all AI: one chip in the banner's colour. A ticket that needs your answer keeps its footer.
   if (settings?.pausedAll && assignee && !['done', 'wont_do'].includes(ticket.status) && run?.state !== 'needs_input') {
-    const stopped = run?.state === 'cancelled' && (run.endedReason ?? '').startsWith('Pause all AI');
     return (
       <div className="ai-card-footer" data-testid="card-ai-paused" title={pausedSummary(settings)}>
         <span className="ai-chip" style={{ background: '#FDF0E6', color: PAUSE_COLOR, gap: 5 }}>
           <PauseGlyph size={11} color={PAUSE_COLOR} />
-          {run?.state === 'queued' && run.mode === 'work' ? 'Held until resume' : 'AI paused'}
+          {run?.state === 'queued' ? 'Held until resume' : 'AI paused'}
         </span>
-        {stopped && (
+        {run?.state === 'cancelled' && run.endedAt && (
           <span className="ai-muted" style={{ marginLeft: 'auto', fontSize: 12 }}>
             Run stopped {clockTime(run.endedAt)}
           </span>
@@ -778,17 +338,6 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
       </div>
     );
   }
-  if (run && live && run.waitingApproval)
-    return (
-      <div className="ai-card-footer ai-card-footer-slate" data-testid="card-ai-approval">
-        <span style={{ fontWeight: 800 }}>
-          <LineIcon name="hand" size={14} />
-        </span>
-        <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          Needs approval: {run.waitingApproval.summary}
-        </span>
-      </div>
-    );
   if (run && live)
     return (
       <div
@@ -796,7 +345,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
         data-testid="card-ai-running"
         style={{ position: 'relative', overflow: 'hidden' }}
       >
-        <RunStateChip state={run.paused ? 'paused' : run.state === 'starting' ? 'starting' : 'running'} />
+        <RunStateChip state={run.state === 'starting' ? 'starting' : 'running'} />
         {run.state === 'starting' ? (
           <span className="ai-muted">Starting…</span>
         ) : (
@@ -805,27 +354,17 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
           </span>
         )}
         <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="card-step-hint">
-          {run.state === 'starting'
-            ? ''
-            : run.stepEstimate
-              ? `step ${run.stepCount ?? run.steps?.length ?? 0} of ~${Math.max(run.stepEstimate, run.stepCount ?? 0)}`
-              : `step ${run.stepCount ?? run.steps?.length ?? 0}`}
+          {run.state === 'starting' ? '' : `step ${run.stepsCount}`}
         </span>
-        {run.state === 'running' && !run.paused && <div className="ai-progress" />}
+        {run.state === 'running' && <div className="ai-progress" />}
       </div>
     );
-  if (run?.state === 'queued' && run.mode === 'work')
+  if (run?.state === 'queued')
     return (
       <div className="ai-card-footer">
         <RunStateChip state="queued" />
         <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="card-queue-hint">
-          {run.behindRunId
-            ? `Next · waits for ${run.behindTicketId ?? 'the holder'}`
-            : run.behindTicketId
-              ? `#${run.queuePosition ?? 1} behind ${run.behindTicketId}`
-              : run.waitingReason
-                ? (run.queuePosition ? `#${run.queuePosition} · ` : '') + run.waitingReason.split('(')[0]
-                : 'starting soon'}
+          starting soon
         </span>
       </div>
     );
@@ -836,32 +375,26 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
           <LineIcon name="pause" size={14} />
         </span>
         <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          Asks {run.question?.to}: {run.question?.text}
+          Asks{run.question?.to ? ` ${run.question.to}` : ''}: {run.question?.text}
         </span>
-        {(run.question?.reminders?.length ?? 0) > 0 && (
-          <span
-            className="tw-dot"
-            style={{ marginLeft: 'auto' }}
-            title="Still waiting for an answer"
-            data-testid="card-reminder-dot"
-          />
-        )}
       </div>
     );
-  if (run && (run.state === 'failed' || run.state === 'timed_out') && run.mode === 'work')
+  if (run && (run.state === 'failed' || run.state === 'timed_out'))
     return (
       <div className="ai-card-footer ai-card-footer-failed" onClick={stop}>
         <RunStateChip state={run.state} />
-        <span className="ai-muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {run.exitCode != null ? `Exit code ${run.exitCode}` : ''}
-        </span>
-        <button type="button" className="ai-link" style={{ marginLeft: 'auto' }} onClick={() => retry.mutate(run.id)}>
+        <button
+          type="button"
+          className="ai-link"
+          style={{ marginLeft: 'auto' }}
+          onClick={() => retry.mutate(run.runId)}
+        >
           Retry
         </button>
       </div>
     );
-  if (run?.state === 'finished' && run.mode === 'work' && ticket.status === 'review') {
-    const t = run.tests ?? run.report.tests;
+  if (run?.state === 'finished' && ticket.status === 'review') {
+    const t = testsOf({ report: { tests: undefined } });
     const green = !!t && t.failed === 0 && t.passed > 0;
     return (
       <div
@@ -884,7 +417,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
         <LineIcon name="check" size={12} /> AI-completed
       </div>
     );
-  if (assignee && assignee.connection !== 'inbox' && !['done', 'wont_do', 'review', 'testing'].includes(ticket.status))
+  if (assignee && !['done', 'wont_do', 'review', 'testing'].includes(ticket.status))
     return (
       <div className="ai-card-footer" onClick={stop}>
         <span className="ai-muted">Assigned · not started</span>

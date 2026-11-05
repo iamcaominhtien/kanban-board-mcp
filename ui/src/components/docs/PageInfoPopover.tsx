@@ -5,7 +5,6 @@ import { useBacklinksEx } from '../../api/docsActions';
 import { useDocsVersions } from '../../api/docs';
 import { Icon } from './Icon';
 import { Avatar, displayName, fmtDate, fmtDateTime } from './docsShared';
-import { PageAiFlags } from './ai/PageAiFlags';
 
 interface PageInfoPopoverProps {
   page: DocsPage;
@@ -188,7 +187,6 @@ export function PageInfoPopover({ page, onClose, onOpenHistory, onOpenReferences
           </button>
         )}
       </Row>
-      <PageAiFlags page={page} />
     </div>
   );
 }

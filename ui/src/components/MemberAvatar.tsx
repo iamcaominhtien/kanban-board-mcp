@@ -46,9 +46,7 @@ export function MemberAvatar({ member, size = 20, title }: MemberAvatarProps) {
     // AI members are rounded squares with a sparkle badge; people stay round
     return (
       <AiAvatar
-        provider={ai?.provider ?? 'custom'}
         color={ai?.color ?? member.color}
-        glyph={ai?.glyph}
         size={size}
         title={title ?? member.name}
         dim={member.kind === 'ai_removed'}

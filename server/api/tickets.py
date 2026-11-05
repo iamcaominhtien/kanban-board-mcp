@@ -296,9 +296,10 @@ async def get_one_ticket(ticket_id: str, session: Session) -> TicketRead:
 
 @router.patch("/tickets/{ticket_id}", response_model=TicketRead)
 async def patch_ticket(
-    ticket_id: str, data: TicketUpdate, session: Session
+    ticket_id: str, data: TicketUpdate, session: Session, start: bool = True
 ) -> TicketRead:
-    """Update a ticket (archiving or reassigning it ends an AI run holding it)."""
+    """Update a ticket (archiving or reassigning it ends an AI run holding it). Giving it to an AI team starts the
+    team's lead, unless `start=false` (assign only: the team starts when someone runs it)."""
     from services.ai import runs as ai_runs
 
     fields = data.model_dump(exclude_unset=True)
@@ -309,7 +310,15 @@ async def patch_ticket(
         by=act_ctx.current_actor(),
     )
     before = await get_ticket(session, ticket_id)
-    was = {"title": before.title, "description": before.description} if before else {}
+    was = (
+        {
+            "title": before.title,
+            "description": before.description,
+            "assignee": before.assignee,
+        }
+        if before
+        else {}
+    )
     try:
         ticket = await update_ticket(session, ticket_id, data)
     except ValueError as exc:
@@ -325,6 +334,16 @@ async def patch_ticket(
     if edited:
         await ai_runs.note_person_edit(
             ticket_id, by=act_ctx.current_actor(), what=" and ".join(edited)
+        )
+    if (
+        start
+        and "assignee" in fields
+        and fields["assignee"]
+        and was.get("assignee") != fields["assignee"]
+    ):
+        # given to a team: its lead starts (AI v2)
+        await ai_runs.wake_new_assignee(
+            ticket_id, fields["assignee"], by=act_ctx.current_actor() or "user"
         )
     await board_events.publish("invalidate")
     return _read(ticket)
@@ -572,37 +591,6 @@ async def post_comment(
                 }
             )
         )
-    if latest and body.ai_intent != "notify":
-        from services.ai import mentions as ai_mentions
-
-        from services import activity as act_ctx
-
-        # The person the AI acts for: the named author, else the board user sending the request (X-Actor)
-        by = (
-            body.author
-            if body.author and body.author != "user"
-            else act_ctx.current_actor()
-        )
-        delivered = await ai_mentions.deliver(
-            ticket.id,
-            body.text,
-            by=by,
-            intent=body.ai_intent or "ask",
-            source_comment_id=latest["id"],
-            fast=bool(body.ai_fast),
-        )
-        if delivered:
-            await session.refresh(ticket)
-        if body.reply_to and body.ai_intent != "notify":
-            if await ai_mentions.deliver_reply(
-                ticket.id,
-                body.text,
-                by=by,
-                reply_to=body.reply_to,
-                source_comment_id=latest["id"],
-                fast=bool(body.ai_fast),
-            ):
-                await session.refresh(ticket)
     return _read(ticket)
 
 

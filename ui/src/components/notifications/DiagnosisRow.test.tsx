@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationRow as Row } from '../../types/notifications';
@@ -71,36 +71,5 @@ describe('a Needs you row with a diagnosis', () => {
     const on = show(stuck());
     fireEvent.click(screen.getByRole('button', { name: 'Stop that command, keep the run' }));
     expect(on).toHaveBeenCalledWith(expect.objectContaining({ id: 'nt_1' }), 'trouble:stop_child', undefined);
-  });
-
-  it('asks for a note first and sends it with the action', async () => {
-    const on = show(stuck());
-    fireEvent.click(screen.getByRole('button', { name: 'Continue with a note' }));
-    fireEvent.change(screen.getByLabelText('Note for the AI'), { target: { value: 'try port 5174' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() =>
-      expect(on).toHaveBeenCalledWith(expect.anything(), 'trouble:continue_note', { text: 'try port 5174' }),
-    );
-  });
-
-  it('keeps the dialog open with a message when the action fails', async () => {
-    show(stuck(), vi.fn().mockResolvedValue(false));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue with a note' }));
-    fireEvent.change(screen.getByLabelText('Note for the AI'), { target: { value: 'x' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('did not go through');
-  });
-
-  it('picks an account to move urgent work to', async () => {
-    const row = stuck({
-      kind: 'window_urgent',
-      data: { until: '14:00', room: [{ accountId: 'a2', name: 'Work', plan: 'Max', free: 2, used: 0 }] },
-      actions: [{ id: 'move_account', label: 'Move urgent work' }],
-    });
-    const on = show(row);
-    fireEvent.click(screen.getByRole('button', { name: 'Move urgent work' }));
-    fireEvent.click(screen.getByRole('button', { name: /Work/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Move it' }));
-    await waitFor(() => expect(on).toHaveBeenCalledWith(expect.anything(), 'move_account', { accountId: 'a2' }));
   });
 });

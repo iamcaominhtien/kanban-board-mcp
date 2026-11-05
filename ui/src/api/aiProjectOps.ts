@@ -2,8 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 
 /**
- * What a project says about how its AI team runs (GET /projects/{id}/ai/ops: the project's settings over the
- * defaults). Known keys only; the server keeps nothing else. Cards for other settings reuse this module.
+ * What a project says about how its AI team runs (`ops` of GET /projects/{id}/ai/settings, over the defaults). Known keys only; the server keeps nothing else. Cards for other settings reuse this module.
  */
 export interface ProjectOps {
   hangAfterMin: number;
@@ -58,11 +57,47 @@ export interface BoardSkillSwitch {
 
 export const opsKeys = { project: (projectId: string) => ['ai', 'ops', projectId] as const };
 
+/** What a project that never touched the settings reads (mirrors server/services/ai/ops.py DEFAULTS). */
+export const OPS_DEFAULTS: ProjectOps = {
+  hangAfterMin: 10,
+  diagnoseWithModel: true,
+  proposeLessons: true,
+  lessonsInPrompt: 20,
+  aiNotes: true,
+  worktrees: { on: false, repo: null, prepare: '', basePort: 5180, handover: 'auto', baseBranch: null },
+  commands: { test: '', lint: '', build: '' },
+  checksOff: [],
+  envPath: [],
+  liveMessages: true,
+  knowledgeShared: false,
+  ownClaude: true,
+  ownClaudeRoles: [],
+  boardSkills: [],
+  github: { on: false, pollMin: 5, auto: true },
+};
+
+/** The stored settings over the defaults, one level of nested objects merged. */
+export function mergeOps(stored: Partial<ProjectOps> | null | undefined): ProjectOps {
+  const out: Record<string, unknown> = { ...OPS_DEFAULTS };
+  for (const [k, v] of Object.entries(stored ?? {})) {
+    const base = out[k];
+    out[k] =
+      v && typeof v === 'object' && !Array.isArray(v) && base && typeof base === 'object' && !Array.isArray(base)
+        ? { ...(base as object), ...(v as object) }
+        : v;
+  }
+  return out as ProjectOps;
+}
+
+/** The ops live in the project's AI settings (`ops`): the same endpoint, the same camel-cased keys. */
 export const opsApi = {
-  get: async (projectId: string) => (await client.get<ProjectOps>(`/projects/${projectId}/ai/ops`)).data,
+  get: async (projectId: string) =>
+    mergeOps((await client.get<{ ops?: Partial<ProjectOps> }>(`/projects/${projectId}/ai/settings`)).data.ops),
   /** A partial object: nested objects merge. */
   patch: async (projectId: string, body: Partial<ProjectOps>) =>
-    (await client.patch<ProjectOps>(`/projects/${projectId}/ai/ops`, body)).data,
+    mergeOps(
+      (await client.patch<{ ops?: Partial<ProjectOps> }>(`/projects/${projectId}/ai/settings`, { ops: body })).data.ops,
+    ),
 };
 
 /** The project's AI operations settings over the defaults. */
@@ -79,6 +114,9 @@ export function usePatchProjectOps(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: Partial<ProjectOps>) => opsApi.patch(projectId, body),
-    onSuccess: (data) => qc.setQueryData(opsKeys.project(projectId), data),
+    onSuccess: (data) => {
+      qc.setQueryData(opsKeys.project(projectId), data);
+      void qc.invalidateQueries({ queryKey: ['ai', 'settings', projectId] });
+    },
   });
 }

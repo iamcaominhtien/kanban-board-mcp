@@ -20,7 +20,7 @@ import psutil
 from sqlmodel import col, select
 
 import database
-from models import AiRun, AiMember, Member, Ticket
+from models import AiRun, AiTeam, Member, Ticket
 
 from .store import get_settings, loads
 
@@ -413,7 +413,7 @@ def card_view(run: AiRun, limit_mb: int) -> dict | None:
     }
 
 
-def access_of(profile: AiMember | None) -> str:
+def access_of(profile: AiTeam | None) -> str:
     """none | view | control for an AI member (a missing or odd value is none)."""
     level = getattr(profile, "resource_access", "none")
     return level if level in ACCESS_LEVELS else "none"

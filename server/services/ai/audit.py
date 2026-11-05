@@ -269,14 +269,14 @@ _TRIGGER_TEXT = {
 
 async def trace(session: AsyncSession, entry: AiAudit) -> list[dict]:
     """Why it did this: the prompt-source trace of an entry (E1). Each step has a trust label."""
-    from models import AiApproval, AiRun
+    from models import AiRun
 
     detail = loads_json(entry.detail)
     steps: list[dict] = []
     run = await session.get(AiRun, entry.run_id) if entry.run_id else None
     if run is not None:
         text = _TRIGGER_TEXT.get(run.trigger, "{by} started run #{n} on {ticket}")
-        chain = loads_json(run.chain, [])
+        chain: list = []
         steps.append(
             {
                 "text": text.format(
@@ -308,16 +308,6 @@ async def trace(session: AsyncSession, entry: AiAudit) -> list[dict]:
         "denied": "Denied",
     }.get(entry.result, "Allowed")
     steps.append({"text": called, "trust": None, "chip": label})
-    approval_id = detail.get("approval_id")
-    if approval_id and not str(approval_id).startswith("remembered:"):
-        a = await session.get(AiApproval, approval_id)
-        if a is not None and a.decided_by:
-            steps.append(
-                {
-                    "text": f"{a.status.capitalize()} by {a.decided_by}",
-                    "trust": "trusted",
-                }
-            )
     return steps
 
 

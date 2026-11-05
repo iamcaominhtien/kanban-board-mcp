@@ -1,14 +1,12 @@
 """Project knowledge (design/screens/ai-operations.md, H): the project's instructions and the kept lessons go into
 every run's system prompt; an AI only proposes a lesson, a person keeps it."""
 
-import asyncio
 import json
 
 import pytest
 
-from models import AiLesson
 from services.ai import knowledge
-from tests.test_ai import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
+from tests.ai_helpers import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 @pytest.fixture(autouse=True)
@@ -19,47 +17,6 @@ def _runs_dir(tmp_path, monkeypatch):
 def _system_of(record) -> str:
     last = [json.loads(x) for x in record.read_text().splitlines()][-1]
     return last[last.index("--append-system-prompt") + 1]
-
-
-async def test_instructions_and_kept_lessons_reach_every_run_but_proposals_do_not(
-    env, monkeypatch, tmp_path
-):
-    c = env["c"]
-    record = tmp_path / "args.jsonl"
-    monkeypatch.setenv("FAKE_CLAUDE_RECORD", str(record))
-    pid, _ = await _project(c)
-    r = await c.put(
-        f"/projects/{pid}/ai/knowledge/instructions",
-        json={"instructions": "Tests run with npm test -- --run."},
-    )
-    assert r.status_code == 200
-    assert r.json()["instructions_tokens"] > 0
-    kept = (
-        await c.post(
-            f"/projects/{pid}/ai/lessons",
-            json={"text": "Start the dev server in the background."},
-        )
-    ).json()
-    assert kept["state"] == "kept"
-    async with env["maker"]() as s:
-        await knowledge.add_lesson(
-            s, pid, "A proposal nobody kept.", by="model", state="proposed"
-        )
-    m = await _runner(c, pid, env["repo"])
-    tid = await _ticket(c, pid)
-    await c.post(
-        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
-    )
-    await _wait(c, tid, ("finished",))
-    system = _system_of(record)
-    assert "Tests run with npm test -- --run." in system
-    assert "Start the dev server in the background." in system
-    assert "A proposal nobody kept." not in system
-    # the instructions come before the member's own persona
-    page = (await c.get(f"/projects/{pid}/ai/knowledge")).json()
-    lesson = next(x for x in page["lessons"] if x["id"] == kept["id"])
-    assert lesson["uses"] == 1
-    assert page["total_tokens"] == page["instructions_tokens"] + page["lessons_tokens"]
 
 
 async def test_lessons_are_kept_edited_dropped_and_never_duplicated(env):
@@ -121,83 +78,6 @@ async def test_lessons_over_the_cap_stay_out_of_the_prompt(env):
     assert knowledge.estimate_tokens(block) <= knowledge.LESSON_TOKEN_CAP + 200
 
 
-async def test_a_ticket_done_lets_a_light_model_propose_one_lesson_once(
-    env, monkeypatch
-):
-    c = env["c"]
-    monkeypatch.setenv(
-        "FAKE_CLAUDE_JSON_RESULT",
-        json.dumps(
-            {
-                "lesson": "pytest needs -q here; the full output floods the log.",
-                "why": "x",
-            }
-        ),
-    )
-    pid, _ = await _project(c)
-    m = await _runner(c, pid, env["repo"])
-    tid = await _ticket(c, pid)
-    await c.post(
-        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
-    )
-    await _wait(c, tid, ("finished",))
-    got = await knowledge.propose_from_ticket(tid)
-    assert got is not None
-    assert got.state == "proposed"
-    assert "pytest needs -q" in got.text
-    assert await knowledge.propose_from_ticket(tid) is None  # once per ticket
-    page = (await c.get(f"/projects/{pid}/ai/knowledge")).json()
-    assert [x["state"] for x in page["lessons"]] == ["proposed"]
-    feed = (
-        await c.get("/notifications", params={"view": "panel", "tab": "updates"})
-    ).json()
-    assert any(i["kind"] == "lesson" for i in feed["items"])
-
-
-async def test_nothing_worth_keeping_proposes_nothing(env, monkeypatch):
-    c = env["c"]
-    monkeypatch.setenv("FAKE_CLAUDE_JSON_RESULT", json.dumps({"lesson": "", "why": ""}))
-    pid, _ = await _project(c)
-    m = await _runner(c, pid, env["repo"])
-    tid = await _ticket(c, pid)
-    await c.post(
-        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
-    )
-    await _wait(c, tid, ("finished",))
-    assert await knowledge.propose_from_ticket(tid) is None
-    page = (await c.get(f"/projects/{pid}/ai/knowledge")).json()
-    assert page["lessons"] == []
-
-
-async def test_moving_a_ticket_to_done_starts_the_proposal_in_the_background(
-    env, monkeypatch
-):
-    c = env["c"]
-    monkeypatch.setenv(
-        "FAKE_CLAUDE_JSON_RESULT",
-        json.dumps({"lesson": "Run ruff before handing over.", "why": "x"}),
-    )
-    pid, _ = await _project(c)
-    m = await _runner(c, pid, env["repo"])
-    tid = await _ticket(c, pid)
-    await c.post(
-        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
-    )
-    await _wait(c, tid, ("finished",))
-    await c.patch(f"/tickets/{tid}", json={"status": "done"})
-    for _ in range(100):
-        async with env["maker"]() as s:
-            from sqlmodel import select
-
-            rows = (
-                await s.exec(select(AiLesson).where(AiLesson.source_ticket_id == tid))
-            ).all()
-        if rows:
-            break
-        await asyncio.sleep(0.1)
-    assert rows and rows[0].text == "Run ruff before handing over."
-
-
 def test_the_digest_keeps_commands_errors_and_words():
     records = [
         {
@@ -242,39 +122,15 @@ def test_the_digest_keeps_commands_errors_and_words():
     assert knowledge.parse_proposal("nothing") is None
 
 
-async def test_a_lesson_from_a_diagnosis_does_not_stop_the_ticket_end_lesson(
-    env, monkeypatch
-):
-    c = env["c"]
-    monkeypatch.setenv(
-        "FAKE_CLAUDE_JSON_RESULT",
-        json.dumps({"lesson": "Run the linter before the tests.", "why": "x"}),
-    )
-    pid, _ = await _project(c)
-    m = await _runner(c, pid, env["repo"])
-    tid = await _ticket(c, pid)
-    await c.post(
-        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
-    )
-    run = await _wait(c, tid, ("finished",))
-    # while it ran, the watchdog proposed a lesson from a diagnosis of the same ticket
-    await knowledge.propose_from_diagnosis(
-        run["id"], "Start dev servers in the background."
-    )
-    got = await knowledge.propose_from_ticket(tid)
-    assert got is not None and "linter" in got.text
-    assert await knowledge.propose_from_ticket(tid) is None
-
-
 async def test_a_light_model_that_never_answers_is_stopped(env, monkeypatch, tmp_path):
     import psutil
 
-    from models import AiMember
+    from models import AiTeam
 
     pidfile = tmp_path / "haiku.pid"
     monkeypatch.setenv("FAKE_CLAUDE_JSON_HANG", str(pidfile))
     monkeypatch.setattr(knowledge, "LIGHT_MODEL_TIMEOUT_S", 1)
-    profile = AiMember(id="m", project_id="p", provider="claude-code", cli_path=FAKE)
+    profile = AiTeam(id="m", project_id="p", provider="claude-code", cli_path=FAKE)
     assert await knowledge._ask_light_model("x", profile, None) is None
     child = int(pidfile.read_text())
     assert (

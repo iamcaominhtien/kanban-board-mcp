@@ -1,160 +1,100 @@
-"""The run tool: lets an AI member started by the board ask its person a question, report what it did or hand a ticket
-to a teammate AI."""
+"""The `ai_run` tool (AI v2): what a run started by the board does with the board beyond the ticket tools: ask a
+person, send a note to another ticket's team or a Docs page, read its own team, record a report."""
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field
 
-_CRITERION = {
-    "type": "object",
-    "properties": {
-        "text": {"type": "string"},
-        "met": {"type": "boolean"},
-        "evidence": {"type": "string"},
-    },
-    "required": ["text", "met"],
-}
-_HANDOFF = {
-    "type": "object",
-    "properties": {
-        "done": {"type": "string"},
-        "where": {"type": "string"},
-        "left": {"type": "string"},
-        "check": {"type": "string"},
-    },
-}
-_LEARNED = {
-    "type": "object",
-    "properties": {
-        "text": {"type": "string"},
-        "scope": {"type": "string", "enum": ["role", "ticket"]},
-        "kind": {"type": "string", "enum": ["learned", "feedback"]},
-    },
-    "required": ["text"],
-}
-_TESTS = {
-    "type": "object",
-    "properties": {"passed": {"type": "integer"}, "failed": {"type": "integer"}},
-}
-
-
-def _spell_out(schema: dict, shape: dict, *, array: bool) -> None:
-    """Put the fields of an object in the tool's JSON schema. A bare "object" gives some CLIs (Antigravity) nothing to
-    build, and they send nulls instead."""
-    for branch in schema.get("anyOf", [schema]):
-        if array and branch.get("type") == "array":
-            branch["items"] = shape
-        elif not array and branch.get("type") == "object":
-            branch.update(shape)
-
-
-def _criteria_schema(schema: dict) -> None:
-    _spell_out(schema, _CRITERION, array=True)
-
-
-def _learned_schema(schema: dict) -> None:
-    _spell_out(schema, _LEARNED, array=True)
-
-
-def _tests_schema(schema: dict) -> None:
-    _spell_out(schema, _TESTS, array=False)
-
-
-def _handoff_schema(schema: dict) -> None:
-    _spell_out(schema, _HANDOFF, array=False)
-
 
 async def ai_run(
-    action: Literal["ask", "report", "handoff", "contact", "team", "decide", "answer"],
-    question: Annotated[str | None, Field(description="ask: the question.")] = None,
+    action: Annotated[
+        Literal["ask", "message", "team", "runs", "report"],
+        Field(
+            description="ask: a question for the person you work for (then stop). message: a note to a ticket's AI team or a Docs page. team: your team and its roles. runs: your team's runs. report: record a report early (the final JSON report is the usual way)."
+        ),
+    ],
+    question: Annotated[
+        str | None, Field(description="ask: the question, one paragraph.")
+    ] = None,
     options: Annotated[
-        list[str] | None, Field(description="ask: short choices.")
-    ] = None,
-    summary: Annotated[str | None, Field(description="report: what you did.")] = None,
-    criteria: Annotated[
-        list[dict] | None,
+        list[Any] | None,
         Field(
-            description="report: one per acceptance criterion.",
-            json_schema_extra=_criteria_schema,
+            description="ask: up to 6 choices, strings or {label, description, recommended}."
         ),
     ] = None,
-    tests: Annotated[
-        dict | None,
-        Field(
-            description="report: test counts.",
-            json_schema_extra=_tests_schema,
-        ),
-    ] = None,
-    handoff: Annotated[
-        dict | None,
-        Field(
-            description="report, handoff: your handoff note; the next role reads it first.",
-            json_schema_extra=_handoff_schema,
-        ),
-    ] = None,
-    learned: Annotated[
-        list[dict] | None,
-        Field(
-            description="report: what the next run must not pay for again; kept as notes.",
-            json_schema_extra=_learned_schema,
-        ),
-    ] = None,
-    ticket_id: Annotated[
+    to: Annotated[
         str | None,
-        Field(description="Ignored: the run's ticket is used."),
+        Field(description="message: a ticket key (IAM-12) or docs:<page id>."),
     ] = None,
-    member: Annotated[
-        str | None, Field(description="handoff, contact: teammate AI's exact name.")
+    text: Annotated[
+        str | None, Field(description="message: the note, Markdown.")
     ] = None,
-    ticket: Annotated[
-        str | None,
-        Field(description="handoff, contact, team: ticket key (default this one)."),
-    ] = None,
-    instruction: Annotated[
-        str | None,
+    report: Annotated[
+        dict[str, Any] | None,
         Field(
-            description="handoff: what to do. contact: your question. decide: reason. answer: the answer."
+            description="report: {summary, status, branch, tests, open_items, lessons}."
         ),
     ] = None,
-    request: Annotated[
-        str | None, Field(description="decide/answer: the id given in your brief.")
-    ] = None,
-    approve: Annotated[bool | None, Field(description="decide: yes or no.")] = None,
 ) -> dict:
-    """Only inside a run the board started. ask: question the person you act for, then stop; the board resumes you
-    with the answer. report: record your summary and your handoff note before the final message. handoff: assign a
-    ticket to a teammate AI and queue their work run, with your handoff note. contact: ask a teammate AI; the answer
-    comes back. team: who does what now. decide/answer: only in an Autopilot brief, for the person's pending requests."""
+    """Only inside an AI run the board started (its bearer token says which). ask parks the run until a person
+    answers: say what you need and stop. message reaches a ticket's team live when its lead is running, else as its
+    next turn; a Docs page's assistant answers in the page's thread."""
     from services.ai import guard, runs
 
     ctx = await guard.resolve()
     if ctx is None:
         raise ValueError(
-            "ai_run only works inside a run the board started for an AI member."
+            "ai_run is for a run the board started; you are not in one. Use the ticket tools directly."
         )
     if action == "ask":
         return await runs.record_question(ctx, question or "", options)
-    if action in ("decide", "answer"):
-        from services.ai import autopilot
+    if action == "message":
+        target = (to or "").strip()
+        body = (text or "").strip()
+        if not target or not body:
+            raise ValueError(
+                "ai_run(action='message') needs `to` (a ticket key or docs:<page id>) and `text`."
+            )
+        if target.startswith("docs:"):
+            from services.ai import messaging
 
-        try:
-            if action == "decide":
-                return await autopilot.decide(
-                    ctx, request or "", bool(approve), instruction
-                )
-            return await autopilot.answer(ctx, request or "", instruction or "")
-        except autopilot.AutopilotError as exc:
-            raise ValueError(str(exc)) from exc
-    if action in ("contact", "team"):
-        from services.ai import awareness
+            return await messaging.deliver_to_page(target[5:], body, by=ctx.member_name)
+        if target == ctx.ticket_id:
+            raise ValueError(
+                "That is your own ticket: write a comment with ticket_items instead."
+            )
+        return await runs.deliver_to_ticket(target, body, by=ctx.member_name)
+    if action == "team":
+        from services.ai import teams
 
-        if action == "team":
-            return await awareness.team_for_run(ctx, ticket)
-        return await awareness.contact(ctx, member or "", ticket, instruction or "")
-    if action == "handoff":
-        return await runs.record_handoff(
-            ctx, member or "", ticket, instruction or "", note=handoff
-        )
-    return await runs.record_report(
-        ctx, summary or "", criteria, tests, learned, handoff=handoff
-    )
+        async with __import__("database").async_session() as session:
+            member, profile = await teams.get_profile(session, ctx.member_id)
+            if member is None or profile is None:
+                raise ValueError("Your team was not found.")
+            desc = await teams.describe(session, member, profile)
+        return {
+            k: desc[k]
+            for k in ("id", "name", "pack_key", "roles", "model", "effort", "status")
+        }
+    if action == "runs":
+        import database
+        from services.ai.store import active_runs
+
+        async with database.async_session() as session:
+            rows = await active_runs(session, member_id=ctx.member_id)
+        return {
+            "runs": [
+                {
+                    "id": r.id,
+                    "ticket_id": r.ticket_id,
+                    "state": r.state,
+                    "number": r.number,
+                }
+                for r in rows
+            ]
+        }
+    if action == "report":
+        if not isinstance(report, dict):
+            raise ValueError("ai_run(action='report') needs `report`.")
+        return await runs.record_report(ctx, report)
+    raise ValueError(f"Unknown action {action!r}.")

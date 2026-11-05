@@ -1,7 +1,6 @@
 import { MenuSelect } from '../../ui/MenuSelect';
 import { useState } from 'react';
-import { aiPluginsApi, useCatalogue, usePluginMutation } from '../../../api/aiPlugins';
-import { extractError } from '../../../api/extractError';
+import { useCatalogue } from '../../../api/aiPlugins';
 import type { CatalogueEntry, Plugin } from '../../../types/aiPlugins';
 import { LoadError } from '../aiUi';
 import { ROLES, roleName } from './pluginLogic';
@@ -12,39 +11,13 @@ export function isInstalled(e: CatalogueEntry, plugins: Plugin[]): boolean {
 }
 
 /** "Suggested for a role": one list per role (B1). */
-export function CatalogueTab({
-  projectId,
-  plugins,
-  mcpInstalled,
-}: {
-  projectId: string;
-  plugins: Plugin[];
-  mcpInstalled?: Set<string>;
-}) {
+export function CatalogueTab({ plugins, mcpInstalled }: { plugins: Plugin[]; mcpInstalled?: Set<string> }) {
   const q = useCatalogue();
   const [role, setRole] = useState('');
-  const [msg, setMsg] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const install = usePluginMutation(projectId, (key: string) => aiPluginsApi.installEntry(projectId, key));
 
   if (q.isLoading) return <div className="ai-skel" style={{ height: 100 }} aria-busy="true" aria-label="Loading" />;
   if (q.error || !q.data) return <LoadError what="the catalogue" error={q.error} onRetry={() => void q.refetch()} />;
   const entries = q.data.filter((e) => !role || e.roles.includes(role));
-
-  const go = async (e: CatalogueEntry) => {
-    setBusy(e.key);
-    setErr(null);
-    try {
-      const r = await install.mutateAsync(e.key);
-      const n = r.mcpAddedTo?.length;
-      setMsg((m) => ({ ...m, [e.key]: r.plugin ? 'Installed.' : `Added to ${n ?? 0} member${n === 1 ? '' : 's'}.` }));
-    } catch (x) {
-      setErr(extractError(x));
-    } finally {
-      setBusy(null);
-    }
-  };
 
   return (
     <div style={{ display: 'grid', gap: 10 }} data-testid="catalogue-tab">
@@ -63,14 +36,9 @@ export function CatalogueTab({
           ]}
         />
       </div>
-      {err && (
-        <div className="ai-notice ai-notice-error" role="alert">
-          {err}
-        </div>
-      )}
       {entries.length === 0 && <div className="ai-hint">Nothing is suggested for this role.</div>}
       {entries.map((e) => {
-        const done = e.kind === 'plugin' ? isInstalled(e, plugins) : !!mcpInstalled?.has(e.key) || !!msg[e.key];
+        const done = e.kind === 'plugin' ? isInstalled(e, plugins) : !!mcpInstalled?.has(e.key);
         return (
           <div
             key={e.key}
@@ -88,23 +56,12 @@ export function CatalogueTab({
                 Suggested for {e.roles.map(roleName).join(', ')}
                 {e.source ? ` · ${e.source}` : ''}
               </span>
-              {msg[e.key] && <span className="ai-hint">{msg[e.key]}</span>}
             </div>
-            <div>
-              {done && e.kind === 'plugin' ? (
-                <span className="ai-chip">Installed</span>
-              ) : (
-                <button className="ai-btn ai-btn-sm" disabled={busy !== null} onClick={() => void go(e)}>
-                  {busy === e.key ? 'Installing…' : 'Install'}
-                </button>
-              )}
-            </div>
+            {done && <span className="ai-chip">Installed</span>}
           </div>
         );
       })}
-      <div className="ai-hint">
-        An MCP server is added to the members of its roles. Every change takes effect from the next run.
-      </div>
+      <div className="ai-hint">These are suggestions. Add one from its source under “Add from a source”.</div>
     </div>
   );
 }

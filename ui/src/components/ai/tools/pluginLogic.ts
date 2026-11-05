@@ -1,4 +1,4 @@
-import type { Plugin, SkillUsage } from '../../../types/aiPlugins';
+import type { Plugin } from '../../../types/aiPlugins';
 
 export const ROLES: Record<string, string> = {
   triage: 'Triage',
@@ -46,31 +46,18 @@ export interface Row {
   name: string;
   kind: 'plugin' | 'skill' | 'mcp';
   uses: number;
-  plugin?: Plugin;
-  usage?: SkillUsage;
+  plugin: Plugin;
 }
 
-/** The installed plugins plus the loose skills and MCP servers the run streams have seen. */
-export function buildRows(plugins: Plugin[], usage: SkillUsage[]): Row[] {
-  const rows: Row[] = plugins.map((p) => ({
+/** The installed plugins as rows. */
+export function buildRows(plugins: Plugin[]): Row[] {
+  return plugins.map((p) => ({
     id: p.id,
     name: p.name,
     kind: 'plugin',
     uses: p.used?.uses ?? 0,
     plugin: p,
   }));
-  const names = new Set(plugins.map((p) => p.name));
-  for (const u of usage) {
-    if (u.plugin || names.has(u.name)) continue;
-    rows.push({
-      id: `${u.kind}:${u.name}`,
-      name: u.name,
-      kind: u.kind === 'mcp' ? 'mcp' : 'skill',
-      uses: u.uses,
-      usage: u,
-    });
-  }
-  return rows;
 }
 
 /** The rows a filter keeps. */

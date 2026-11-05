@@ -1,25 +1,16 @@
-import type { AiMember, AiProvider, AiStatus } from '../types/ai';
+import type { AiTeam, AiProvider, AiStatus } from '../types/ai';
 import type { AccountCli, AccountStatus, AiAccount, MemberAccountRef } from '../types/aiAccounts';
 
-/** The AI member types that start a CLI which has accounts (design/screens/ai-accounts.md, D). */
-export const ACCOUNT_PROVIDERS: AiProvider[] = ['claude-code', 'codex', 'opencode', 'antigravity'];
+/** The AI member types that start a CLI which has accounts: Claude Code only since AI v2. */
+export const ACCOUNT_PROVIDERS: AiProvider[] = ['claude-code'];
 
 /** The account CLI a member type uses. */
 export const CLI_OF_PROVIDER: Partial<Record<AiProvider, AccountCli>> = {
   'claude-code': 'claude',
-  codex: 'codex',
-  opencode: 'opencode',
-  antigravity: 'agy',
 };
 
 /** Whether a member type can use an AI account at all. */
 export const usesAccounts = (provider: AiProvider): boolean => provider in CLI_OF_PROVIDER;
-
-/** Types whose runs do not start yet; their members are made and given an account but carry a "Not ready" chip.
- * None today: Claude Code, Codex, opencode and Antigravity all run. */
-const NOT_READY: AiProvider[] = [];
-/** Whether runs of this member type do not start yet. */
-export const runsNotReady = (provider: AiProvider): boolean => NOT_READY.includes(provider);
 
 /** The accounts a member of this type can pick, signed-in ones first, then by name. */
 export function accountsFor(accounts: AiAccount[], provider: AiProvider): AiAccount[] {
@@ -100,8 +91,7 @@ export function sharedProfileHint(ref: MemberAccountRef): string | null {
 }
 
 /** What the Account column of the AI list shows for a member: the line, and the grey line under it. */
-export function accountCell(m: AiMember): { name: string; sub: string; warn: boolean } | null {
-  if (m.connection !== 'local') return null;
+export function accountCell(m: AiTeam): { name: string; sub: string; warn: boolean } | null {
   const ref = m.accountRef;
   if (ref) {
     if (ref.status === 'needs_sign_in') return { name: ref.name, sub: 'Needs sign-in', warn: true };
@@ -109,7 +99,6 @@ export function accountCell(m: AiMember): { name: string; sub: string; warn: boo
     const detail = planOrMethod(ref);
     return { name: ref.name, sub: [ref.cliLabel, detail].filter(Boolean).join(' · '), warn: false };
   }
-  if (m.provider === 'opencode') return { name: 'Free models', sub: 'no account', warn: false };
   return { name: 'Login on this computer', sub: 'as before', warn: false };
 }
 
@@ -117,13 +106,10 @@ export function accountCell(m: AiMember): { name: string; sub: string; warn: boo
  * The status to show for a member: the account's sign-in problem says so ("Needs sign-in · account"), and a type
  * whose runs do not start yet says "Not ready" unless something more blocking applies.
  */
-export function displayStatus(m: AiMember): AiStatus {
+export function displayStatus(m: AiTeam): AiStatus {
   const st = m.status;
   if (st.code === 'not_logged_in' && m.accountRef?.status === 'needs_sign_in') {
     return { ...st, label: 'Needs sign-in · account', detail: `The account ${m.accountRef.name} is signed out` };
-  }
-  if (runsNotReady(m.provider) && (st.code === 'idle' || st.code === 'online')) {
-    return { code: 'not_ready', label: 'Not ready', detail: 'Runs don’t start yet for this CLI.' };
   }
   return st;
 }
@@ -131,13 +117,13 @@ export function displayStatus(m: AiMember): AiStatus {
 /** Members held by one signed-out account, for the banner above the AI list. */
 export interface BlockedAccount {
   account: MemberAccountRef;
-  members: AiMember[];
+  members: AiTeam[];
   /** Queued runs held until the account is signed in again. */
   queued: number;
 }
 
 /** One entry per signed-out account that has members in this list, however many members it hits. */
-export function blockedAccounts(members: AiMember[]): BlockedAccount[] {
+export function blockedAccounts(members: AiTeam[]): BlockedAccount[] {
   const byId = new Map<string, BlockedAccount>();
   for (const m of members) {
     const ref = m.accountRef;

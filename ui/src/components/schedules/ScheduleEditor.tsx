@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useAiOverview } from '../../api/ai';
+import { useAiTeams } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { useMembers } from '../../api/members';
 import { scheduleApi, useScheduleDetail, useScheduleMutation } from '../../api/schedules';
 import type { Member, Ticket } from '../../types';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import type { DryRun, Schedule, ScheduleDraft, ScheduleErrorBody, ScheduleNotify } from '../../types/schedules';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
@@ -245,7 +245,7 @@ export function ScheduleEditor({
   onClose: () => void;
 }) {
   const existing = useScheduleDetail(opts.scheduleId ?? null);
-  const overview = useAiOverview(projectId);
+  const overview = useAiTeams(projectId);
   const { data: members = [] } = useMembers(projectId);
   if (opts.scheduleId && !existing.data) {
     return (
@@ -259,7 +259,7 @@ export function ScheduleEditor({
       </div>
     );
   }
-  const ais = (overview.data?.members ?? []).filter(canStart);
+  const ais = (overview.data ?? []).filter(canStart);
   return (
     <EditorForm
       key={opts.scheduleId ?? 'new'}
@@ -285,7 +285,7 @@ function EditorForm({
 }: {
   projectId: string;
   tickets: Ticket[];
-  ais: AiMember[];
+  ais: AiTeam[];
   people: Member[];
   opts: EditorOpts;
   saved?: Schedule;
@@ -361,8 +361,8 @@ function EditorForm({
   const ticket = tickets.find((t) => t.id === draft.ticketId);
   const criteria = ticket?.acceptanceCriteria?.length;
   const free = member ? Math.max(0, member.maxParallel - member.slotsInUse) : 0;
-  const slotLimited = member?.connection === 'api_key';
-  const metered = member?.connection === 'api_key';
+  const slotLimited = false;
+  const metered = false;
   const lockedTicket = saved
     ? 'Locked: a schedule stays on its ticket'
     : opts.ticketId
@@ -569,7 +569,7 @@ function EditorForm({
               </Field>
               {member && (
                 <div className="ai-muted" data-testid="member-status">
-                  {member.connection === 'local' ? 'Local runner' : 'API key'} · {member.status.label.toLowerCase()} ·{' '}
+                  Claude Code · {member.status.label.toLowerCase()} ·{' '}
                   {slotLimited
                     ? `${free} of ${member.maxParallel} slot${member.maxParallel === 1 ? '' : 's'} free`
                     : 'no limit on runs at once'}

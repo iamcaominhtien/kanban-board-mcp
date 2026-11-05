@@ -60,9 +60,8 @@ Bad: "Everything is done and polished." (when the web view is missing)
 
 
 def _handoff_form() -> tuple[str, str]:
-    from services.ai import handoff
-
-    return handoff.FORM, handoff.HOW
+    # AI v2: the lead's final report (--json-schema) replaces the hand-over note; stage 3 rewrites these skills
+    return ("", "")
 
 
 EVIDENCE_AND_HANDOVER = (

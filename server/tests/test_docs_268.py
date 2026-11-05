@@ -10,7 +10,7 @@ from kanban_mcp import common
 from kanban_mcp.tools.docs import docs_read, docs_write
 from services import docs_edit, docs_guide
 from services.ai import board_skills
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401  (fixture)
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401  (fixture)
 
 PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg=="
@@ -264,17 +264,6 @@ async def test_a_page_and_a_ticket_see_each_other(env):
     assert page["work"]["tickets"][0]["id"] == tid
     assert page["work"]["tickets"][0]["run"] is None and page["work"]["active"] == 0
 
-    # the Docs AI answering about the page reads the tickets it links
-    from database import async_session
-    from services.docs_ai import ticket_context
-
-    async with async_session() as s:
-        linked = await ticket_context.linked_tickets(s, pid, [spec["id"]])
-    block = ticket_context.tickets_block(linked, "Tickets:")
-    assert (
-        block.startswith("Tickets:") and f"{tid} · Rate limiting · status todo" in block
-    )
-
 
 async def test_tickets_from_a_checklist_on_the_page(env):
     c = env["c"]
@@ -312,7 +301,7 @@ async def test_give_a_page_to_an_ai_member(env):
     )
     key = out["ticket"]["id"]
     assert out["ticket"]["title"] == "Review the page “Login spec”"
-    assert out["run"] and out["run"]["id"]
+    assert out["run"] and out["run"]["id"]  # assigning the team started its lead
     ticket = (await c.get(f"/tickets/{key}")).json()
     assert ticket["assignee"] == member["id"]
     assert "Review [[Login spec]]." in ticket["description"]
@@ -382,21 +371,21 @@ def test_every_run_is_told_to_open_the_docs_guide_before_writing_a_page():
     """A live BA run (sonnet) wrote a good spec at the top of the tree: its prompt never named the Docs guide."""
     import json as _json
 
-    from models import AiMember, AiProjectSettings
+    from models import AiTeam, AiProjectSettings
     from services import role_skills
     from tests.test_shared_skills_277 import _block
 
-    block = _block(AiMember(id="m1", provider="claude-code"), AiProjectSettings())
+    block = _block(AiTeam(id="m1", provider="claude-code"), AiProjectSettings())
     assert (
         "Before you create or change a Docs page, open `kanban-board:docs-pages`"
         in block
     )
-    other = _block(AiMember(id="m2", provider="gemini"), AiProjectSettings())
+    other = _block(AiTeam(id="m2", provider="gemini"), AiProjectSettings())
     assert "docs_read(action='docs_guide')" in other
     # switched off for the project: not named
     off = AiProjectSettings(
         ops=_json.dumps({"board_skills": [{"skill": "docs-pages", "on": False}]})
     )
-    assert "docs-pages" not in _block(AiMember(id="m3", provider="claude-code"), off)
+    assert "docs-pages" not in _block(AiTeam(id="m3", provider="claude-code"), off)
     ba = role_skills.guide("ba")
     assert "under the page it\nbelongs to" in ba and "`docs-pages` skill" in ba

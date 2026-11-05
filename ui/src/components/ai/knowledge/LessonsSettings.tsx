@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { usePatchProjectOps, useProjectOps, type ProjectOps } from '../../../api/aiProjectOps';
+import { aiApi, useAiSettings, useAiMutation } from '../../../api/ai';
 import { extractError } from '../../../api/extractError';
+import type { AiSettings } from '../../../types/ai';
 import { Toggle } from '../aiUi';
 import { NumberSetting, SettingRow } from '../settings/settingsUi';
 
-/** How lessons are made and used (design/screens/ai-operations.md, H): proposals at the end of a ticket, and how many go in a prompt. */
+/** How lessons are kept (AI v2): a lesson the lead proposes in its report is kept at once, or waits for a person. */
 export function LessonsSettings({ projectId }: { projectId: string }) {
-  const ops = useProjectOps(projectId);
-  const patch = usePatchProjectOps(projectId);
+  const settings = useAiSettings(projectId);
+  const patch = useAiMutation((body: Partial<AiSettings>) => aiApi.updateSettings(projectId, body));
   const [error, setError] = useState<string | null>(null);
-  if (!ops.data) return null;
-  const save = async (body: Partial<ProjectOps>) => {
+  if (!settings.data) return null;
+  const save = async (body: Partial<AiSettings>) => {
     setError(null);
     try {
       await patch.mutateAsync(body);
@@ -25,37 +26,25 @@ export function LessonsSettings({ projectId }: { projectId: string }) {
       style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}
     >
       <SettingRow
-        title="Let a light model propose lessons at the end of a ticket"
-        hint="A proposal is not in any prompt until you keep it."
+        title="Keep the lessons the AIs propose without asking me"
+        hint="Off: a proposal is not in any prompt until you keep it."
       >
         <Toggle
-          on={ops.data.proposeLessons}
-          label="Let a light model propose lessons at the end of a ticket"
-          testId="ops-propose-lessons"
+          on={settings.data.lessonsMode === 'auto'}
+          label="Keep the lessons the AIs propose without asking me"
+          testId="lessons-auto"
           disabled={patch.isPending}
-          onChange={(v) => void save({ proposeLessons: v })}
-        />
-      </SettingRow>
-      <SettingRow
-        title="Let the AIs keep their own notes"
-        hint="What a run learns (its role's notes, and notes on its ticket) reaches the next run at once, without being kept by you first."
-      >
-        <Toggle
-          on={ops.data.aiNotes !== false}
-          label="Let the AIs keep their own notes"
-          testId="ops-ai-notes"
-          disabled={patch.isPending}
-          onChange={(v) => void save({ aiNotes: v })}
+          onChange={(v) => void save({ lessonsMode: v ? 'auto' : 'review' })}
         />
       </SettingRow>
       <SettingRow title="Lessons in a run's prompt" hint="At most this many kept lessons go into the prompt of a run.">
         <NumberSetting
-          value={ops.data.lessonsInPrompt}
+          value={settings.data.lessonsMax}
           min={0}
           label="Most kept lessons in a run's prompt"
-          testId="ops-lessons-in-prompt"
+          testId="lessons-max"
           disabled={patch.isPending}
-          onSave={(n) => void save({ lessonsInPrompt: n })}
+          onSave={(n) => void save({ lessonsMax: n })}
         />
       </SettingRow>
       {error && <div className="ai-error-text">{error}</div>}

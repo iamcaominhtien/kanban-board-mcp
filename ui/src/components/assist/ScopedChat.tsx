@@ -101,7 +101,7 @@ function Who({ state, onPick }: { state: ScopeState | undefined; onPick: (id: st
   return (
     <div className="sc-who">
       {ai ? (
-        <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={34} />
+        <AiAvatar provider={ai.provider} color={ai.color} size={34} />
       ) : (
         <span className="sc-who-spark">
           <SparkleIcon size={16} />

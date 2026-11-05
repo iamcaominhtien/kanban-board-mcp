@@ -1,6 +1,14 @@
-import type { AiRun } from '../../../types/ai';
+import type { RunState } from '../../../types/ai';
+
+/** What a worktree row needs of the latest run of its ticket. */
+export interface WorktreeRun {
+  state: RunState;
+  memberId?: string;
+  memberName?: string | null;
+  endedAt?: string | null;
+}
 import type { HandoverRoute, Worktree, WorktreeState } from '../../../types/aiCode';
-import { hhmm } from '../aiUi';
+import { hhmm, useAiBoardState } from '../aiUi';
 
 export const STATE_LABEL: Record<WorktreeState, string> = {
   active: 'In use',
@@ -31,12 +39,12 @@ export const ROUTE_TEXT: Record<Exclude<HandoverRoute, 'auto'>, string> = {
 };
 
 /** A run that is queued or going on this ticket. */
-export function isRunning(run: AiRun | null | undefined): boolean {
+export function isRunning(run: WorktreeRun | null | undefined): boolean {
   return !!run && ['queued', 'starting', 'running'].includes(run.state);
 }
 
 /** "Waiting for you": nothing is running and the AI left changes that are not committed (design I). */
-export function waitsForYou(w: Worktree, run: AiRun | null | undefined): boolean {
+export function waitsForYou(w: Worktree, run: WorktreeRun | null | undefined): boolean {
   return w.state === 'active' && !isRunning(run) && uncommittedCount(w) > 0;
 }
 
@@ -92,7 +100,7 @@ export function WorktreeRow({
 }: {
   w: Worktree;
   /** The latest run on the ticket, when known. */
-  run?: AiRun | null;
+  run?: WorktreeRun | null;
   busy?: boolean;
   onRemove: () => void;
   onKeep: () => void;
@@ -102,8 +110,10 @@ export function WorktreeRow({
 }) {
   const dirty = uncommittedCount(w) > 0;
   const running = isRunning(run);
-  const who = run?.memberName
-    ? `${run.memberName}${running ? '' : ` stopped${run.endedAt ? ` at ${hhmm(run.endedAt)}` : ''}`} · `
+  const known = useAiBoardState().members.get(run?.memberId ?? '')?.name;
+  const memberName = run?.memberName ?? known;
+  const who = memberName
+    ? `${memberName}${running ? '' : ` stopped${run?.endedAt ? ` at ${hhmm(run.endedAt)}` : ''}`} · `
     : '';
   return (
     <tr data-testid={`worktree-${w.ticketId}`}>
@@ -166,57 +176,5 @@ export function WorktreeRow({
         </div>
       </td>
     </tr>
-  );
-}
-
-/** The conflict card of a ticket (design J): who resolves it. Nothing was started, nothing is half-done. */
-export function ConflictCard({
-  files,
-  memberName,
-  busy,
-  error,
-  onChoose,
-}: {
-  files: string[];
-  memberName: string | null;
-  busy?: boolean;
-  error?: string | null;
-  onChoose: (choice: 'ai' | 'me' | 'later') => void;
-}) {
-  return (
-    <div className="ai-notice ai-notice-error" data-testid="conflict-card" style={{ display: 'block' }}>
-      <div style={{ fontWeight: 700 }}>Conflict: cannot be merged, main has moved</div>
-      <div style={{ margin: '4px 0 8px' }}>
-        {files.length === 0
-          ? 'Some files differ from main.'
-          : `${files.length === 1 ? 'One file differs' : `${files.length} files differ`} from main: ${files.join(', ')}.`}{' '}
-        The merge was not started, so the worktree is exactly as the AI left it.
-      </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {memberName && (
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm ai-btn-primary"
-            disabled={busy}
-            onClick={() => onChoose('ai')}
-          >
-            Give it to {memberName}
-          </button>
-        )}
-        <button type="button" className="ai-btn ai-btn-sm" disabled={busy} onClick={() => onChoose('me')}>
-          I will do it
-        </button>
-        <button type="button" className="ai-btn ai-btn-sm" disabled={busy} onClick={() => onChoose('later')}>
-          Leave it for now
-        </button>
-      </div>
-      {memberName && (
-        <div className="ai-hint" style={{ marginTop: 6 }}>
-          Handing it to an AI starts a run whose only job is the conflict. It can fail, and it lands in Needs you if it
-          does.
-        </div>
-      )}
-      {error && <div className="ai-error-text">{error}</div>}
-    </div>
   );
 }

@@ -1,12 +1,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { SignalCards } from '../ai/board/SignalCards';
 import { assistApi, useAssistState, useHealth } from '../../api/assist';
 import { extractError } from '../../api/extractError';
 import type { HealthConfig, Insight, InsightChip } from '../../types/assist';
 import { Toggle } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
 import { BoardAiAvatar, DraftTag, TicketPill, usd } from './assistUi';
-import { DraftChanges } from './DraftChanges';
 import './assist.css';
 import { toggleNumber } from '../../utils/sorted';
 import { LineIcon } from '../ui/LineIcon';
@@ -83,7 +81,7 @@ function SnoozeMenu({ onPick }: { onPick: (hours: number) => void }) {
   );
 }
 
-function InsightRow({ ins, draftId, onChanged }: { ins: Insight; draftId: string | null; onChanged: () => void }) {
+function InsightRow({ ins, onChanged }: { ins: Insight; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const k = KIND[ins.kind];
@@ -137,18 +135,6 @@ function InsightRow({ ins, draftId, onChanged }: { ins: Insight; draftId: string
             </button>
           ) : (
             <>
-              {!draftId && (
-                <button
-                  type="button"
-                  className="ai-btn ai-btn-sm"
-                  style={{ borderColor: '#BFDCC7', background: '#F6FAF7' }}
-                  disabled={busy}
-                  onClick={() => void run(() => assistApi.insight(ins.id, 'act'))}
-                  data-testid="insight-act"
-                >
-                  <LineIcon name="edit" size={13} /> {String(ins.data.action ?? 'Draft')}
-                </button>
-              )}
               <SnoozeMenu onPick={(h) => void run(() => assistApi.insight(ins.id, 'snooze', h))} />
               <button
                 type="button"
@@ -163,14 +149,6 @@ function InsightRow({ ins, draftId, onChanged }: { ins: Insight; draftId: string
             </>
           )}
         </div>
-        {draftId && !restorable && (
-          <div>
-            <DraftChanges draftId={draftId} compact />
-            <div className="ai-muted" style={{ marginTop: 4 }}>
-              Posted as the person who applies it, not as the AI.
-            </div>
-          </div>
-        )}
         {error && <div className="ai-error-text">{error}</div>}
       </div>
     </div>
@@ -325,7 +303,6 @@ export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
         aria-label="Board health"
         data-testid="board-health"
       >
-        {projectId && <SignalCards projectId={projectId} />}
         <div
           style={{
             display: 'flex',
@@ -455,7 +432,7 @@ export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
             </div>
           )}
           {list?.map((ins) => (
-            <InsightRow key={ins.id} ins={ins} draftId={ins.draftId} onChanged={() => void panel.refetch()} />
+            <InsightRow key={ins.id} ins={ins} onChanged={() => void panel.refetch()} />
           ))}
           {list && !list.length && (
             <div className="ai-muted" style={{ padding: '18px' }}>

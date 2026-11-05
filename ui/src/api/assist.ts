@@ -10,7 +10,6 @@ import type {
   Chat,
   ChatScope,
   CoverageRow,
-  DraftKind,
   HealthPanel,
   InsightChip,
   MentionEstimate,
@@ -218,21 +217,12 @@ export const assistApi = {
     (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/feedback`, { thumb, reason })).data,
   retry: async (messageId: string, sendAll = false, goOn = false) =>
     (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/retry`, { sendAll, continue: goOn })).data,
-  startDraft: async (
-    projectId: string,
-    body: { kind: DraftKind; ticketId?: string; docId?: string; data?: Record<string, unknown> },
-  ) => (await client.post<AssistDraft>(`/projects/${projectId}/ai/assist/drafts`, body)).data,
-  apply: async (id: string, body: Record<string, unknown>) =>
-    (await client.post<AssistDraft>(`/ai/assist/drafts/${id}/apply`, body)).data,
-  undo: async (id: string) => (await client.post<AssistDraft>(`/ai/assist/drafts/${id}/undo`)).data,
   discard: async (id: string) => (await client.post<AssistDraft>(`/ai/assist/drafts/${id}/discard`)).data,
   cancel: async (id: string) => (await client.post<AssistDraft>(`/ai/assist/drafts/${id}/cancel`)).data,
   regenerate: async (id: string, body: { feedback?: string; field?: string; allowMore?: boolean } = {}) =>
     (await client.post<AssistDraft>(`/ai/assist/drafts/${id}/regenerate`, body)).data,
   edit: async (id: string, payload: Record<string, unknown>) =>
     (await client.patch<AssistDraft>(`/ai/assist/drafts/${id}`, { payload })).data,
-  requestApply: async (id: string) =>
-    (await client.post<{ lead: string | null; ticketId: string }>(`/ai/assist/drafts/${id}/request-apply`)).data,
   similar: async (projectId: string, text: string) =>
     (await client.get<SimilarTicket[]>(`/projects/${projectId}/ai/assist/similar`, { params: { text } })).data,
   assignees: async (projectId: string, params: { text?: string; ticketId?: string }) =>

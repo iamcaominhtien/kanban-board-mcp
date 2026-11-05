@@ -21,7 +21,7 @@ import services.activity as svc_activity
 import services.tickets as svc_tickets
 import database
 from models import (
-    AiMember,
+    AiTeam,
     IdeaTicketRead,
     Ticket,
     TicketRead,
@@ -44,7 +44,7 @@ async def run_folder() -> list[str] | None:
         return None
     folders: list[str] = []
     async with async_session() as session:
-        member = await session.get(AiMember, ctx.member_id)
+        member = await session.get(AiTeam, ctx.member_id)
         if ctx.ticket_id:
             tree = await worktrees.for_ticket(session, ctx.ticket_id)
             if (

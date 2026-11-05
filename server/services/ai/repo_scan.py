@@ -1569,7 +1569,7 @@ def to_dict(row: AiRepoScan) -> dict:
     }
 
 
-async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) -> dict:
+async def apply(session, scan_id: str, choice: dict, *, by: str) -> dict:
     """Create what the person confirmed: the members from packs, the project's settings, the plugins.
 
     `choice` is the suggestion as the person edited it: {team: [{pack, name}], commands, prepare, base_port,
@@ -1606,28 +1606,45 @@ async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) 
     session.add(settings)
     await session.commit()
     created, skipped = [], []
-    for item in choice.get("team") or []:
-        pack = await packs.get_pack(session, row.project_id, item.get("pack") or "")
-        if pack is None:
-            skipped.append({"name": item.get("name"), "why": "no such pack"})
-            continue
-        body = packs.member_body(
-            pack,
-            name=item.get("name") or pack["name"],
-            working_dir=row.folder,
-            account_id=choice.get("account_id"),
-            plays=item.get("plays"),
+    from . import teams as svc_teams
+
+    wanted_roles = [str(item.get("pack") or "") for item in (choice.get("team") or [])]
+    pack_key = (
+        "feature_ui"
+        if "designer" in wanted_roles or "user_tester" in wanted_roles
+        else "standard"
+    )
+    team_name = (
+        next(
+            (
+                item.get("name")
+                for item in (choice.get("team") or [])
+                if item.get("name")
+            ),
+            None,
         )
-        try:
-            member = await create_member(body)
-            created.append({"id": member.id, "name": member.name, "pack": pack["key"]})
-        except ValueError as exc:
-            skipped.append({"name": item.get("name"), "why": str(exc)})
+        or "AI team"
+    )
+    try:
+        member = await svc_teams.create(
+            session,
+            row.project_id,
+            {
+                "name": team_name,
+                "working_dir": row.folder,
+                "account_id": choice.get("account_id"),
+                "pack_key": pack_key,
+            },
+            by=by,
+        )
+        created.append({"id": member.id, "name": member.name, "pack": pack_key})
+    except ValueError as exc:
+        skipped.append({"name": team_name, "why": str(exc)})
     found = json.loads(row.found or "{}")
     by_key = {c["key"]: c for c in plugins.CATALOGUE}
     wanted = list(choice.get("plugins") or [])
-    for pack_key in (c["pack"] for c in created):
-        pack = await packs.get_pack(session, row.project_id, pack_key)
+    for role_key in wanted_roles:
+        pack = await packs.get_pack(session, row.project_id, role_key)
         wanted += (pack or {}).get("plugins") or []
         wanted += (pack or {}).get("mcp") or []
     have = {

@@ -11,13 +11,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import services.activity as svc_activity
 from database import get_session
-from models import AiMember, AiPlugin, Member, Project
-from services.ai import members as svc_members
+from models import AiPlugin, AiTeam, Project
 from services.ai import packs as svc_packs
 from services.ai import plugins as svc_plugins
 from services.ai import repo_scan as svc_scan
-from services.ai.providers import merged_config
-from services.ai.store import loads
 
 logger = logging.getLogger(__name__)
 
@@ -164,13 +161,12 @@ class MemberSwitch(BaseModel):
     on: Optional[bool] = None
 
 
-@router.put("/ai/plugins/{plugin_id}/members/{member_id}")
 async def put_member_switch(
     plugin_id: str, member_id: str, body: MemberSwitch, session: Session
 ) -> dict:
     """Switch a plugin on or off for one member."""
     row = await _plugin(session, plugin_id)
-    if await session.get(AiMember, member_id) is None:
+    if await session.get(AiTeam, member_id) is None:
         raise HTTPException(status_code=404, detail="AI member not found")
     return svc_plugins.to_dict(
         await svc_plugins.set_member(session, row, member_id, body.on)
@@ -229,56 +225,6 @@ class CatalogueInstall(BaseModel):
     member_ids: Optional[list[str]] = None
 
 
-@router.post("/projects/{project_id}/ai/catalogue/{key}/install")
-async def post_catalogue_install(
-    project_id: str, key: str, body: CatalogueInstall, session: Session
-) -> dict:
-    """A plugin entry is installed for its roles; an MCP entry is added to the members of its roles."""
-    await _project(session, project_id)
-    entry = next((c for c in svc_plugins.CATALOGUE if c["key"] == key), None)
-    if entry is None:
-        raise HTTPException(status_code=404, detail="No such catalogue entry")
-    if entry["kind"] == "plugin":
-        try:
-            row = await svc_plugins.install(
-                session,
-                project_id,
-                source_kind="marketplace",
-                source=entry["source"],
-                plugin=entry.get("plugin"),
-                skills=entry.get("skills"),
-                roles=entry["roles"],
-                by=_by(),
-            )
-        except svc_plugins.PluginError as exc:
-            _fail(exc)
-        return {"plugin": svc_plugins.to_dict(row)}
-    profiles = (
-        await session.exec(select(AiMember).where(AiMember.project_id == project_id))
-    ).all()
-    targets = [
-        p
-        for p in profiles
-        if (body.member_ids and p.id in body.member_ids)
-        or (not body.member_ids and svc_plugins.role_of(p) in entry["roles"])
-    ]
-    added = []
-    for p in targets:
-        cfg = merged_config(loads(p.config, {}))
-        servers = list(cfg.get("mcp_servers") or [])
-        if any(s.get("name") == entry["server"]["name"] for s in servers):
-            continue
-        servers.append({**entry["server"], "enabled": True})
-        await svc_members.update(
-            session, p.id, {"config": {"mcp_servers": servers}}, by=_by()
-        )
-        added.append(p.id)
-    return {"mcp_added_to": added}
-
-
-# --------------------------------------------------------------------------- role packs
-
-
 @router.get("/projects/{project_id}/ai/packs")
 async def get_packs(project_id: str, session: Session) -> list[dict]:
     """The ready-made packs and the project's own."""
@@ -323,7 +269,6 @@ async def get_pack_export(project_id: str, key: str, session: Session) -> dict:
     return svc_packs.export(pack)
 
 
-@router.post("/projects/{project_id}/ai/packs/import")
 async def post_pack_import(project_id: str, body: dict, session: Session) -> dict:
     """Import a pack file; says what it could not find on this project."""
     await _project(session, project_id)
@@ -342,42 +287,6 @@ class FromPack(BaseModel):
     plays: Optional[str] = None
 
 
-async def _create_member(session, project_id: str, body: dict) -> Member:
-    try:
-        return await svc_members.create(session, project_id, body, by=_by())
-    except svc_members.AiPermissionDenied as exc:
-        await session.rollback()
-        raise ValueError(str(exc)) from exc
-
-
-@router.post("/projects/{project_id}/ai/packs/{key}/member", status_code=201)
-async def post_member_from_pack(
-    project_id: str, key: str, body: FromPack, session: Session
-) -> dict:
-    """A new AI member with everything the pack carries."""
-    await _project(session, project_id)
-    pack = await svc_packs.get_pack(session, project_id, key)
-    if pack is None:
-        raise HTTPException(status_code=404, detail="Pack not found")
-    try:
-        member = await _create_member(
-            session,
-            project_id,
-            svc_packs.member_body(
-                pack,
-                name=body.name,
-                working_dir=body.working_dir,
-                account_id=body.account_id,
-                plays=body.plays,
-            ),
-        )
-    except ValueError as exc:
-        _fail(exc)
-    _install_pack_plugins(project_id, pack, _by())
-    profile = await session.get(AiMember, member.id)
-    return await svc_members.describe(session, member, profile)
-
-
 def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
     """The pack's plugins on the project, in the background (a clone takes a while); a run waits for them to land."""
     import database
@@ -392,47 +301,6 @@ def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
 
     # remembered until it ends: a run of the new member waits for it (services/ai/plugins.settled)
     svc_plugins.installing(project_id, go())
-
-
-@router.get("/ai/members/{member_id}/pack")
-async def get_member_pack(member_id: str, session: Session) -> dict | None:
-    """The pack a member was made from, and whether a newer version of it is out (None: not made from a pack)."""
-    if await session.get(AiMember, member_id) is None:
-        raise HTTPException(status_code=404, detail="AI member not found")
-    return await svc_packs.member_pack(session, member_id)
-
-
-@router.post("/ai/members/{member_id}/pack/update")
-async def post_member_pack_update(member_id: str, session: Session) -> dict:
-    """Bring a member up to its pack's latest version (its name, folder, account and model stay its own)."""
-    if await session.get(AiMember, member_id) is None:
-        raise HTTPException(status_code=404, detail="AI member not found")
-    try:
-        return await svc_packs.update_member(session, member_id, by=_by())
-    except ValueError as exc:
-        _fail(exc)
-
-
-@router.get("/ai/members/{member_id}/pack/diff")
-async def get_member_pack_diff(member_id: str, session: Session) -> dict:
-    """What an update to the pack's latest version would change on the member (ai-story-flow Q1)."""
-    if await session.get(AiMember, member_id) is None:
-        raise HTTPException(status_code=404, detail="AI member not found")
-    try:
-        return await svc_packs.pack_diff(session, member_id)
-    except ValueError as exc:
-        _fail(exc)
-
-
-@router.post("/ai/members/{member_id}/pack/revert")
-async def post_member_pack_revert(member_id: str, session: Session) -> dict:
-    """Go back to the version the member was last updated from (kept 30 days)."""
-    if await session.get(AiMember, member_id) is None:
-        raise HTTPException(status_code=404, detail="AI member not found")
-    try:
-        return await svc_packs.revert_member(session, member_id, by=_by())
-    except ValueError as exc:
-        _fail(exc)
 
 
 @router.get("/projects/{project_id}/ai/own-plugins")
@@ -579,19 +447,13 @@ async def post_scan_cancel(scan_id: str, session: Session) -> dict:
 
 @router.post("/ai/scans/{scan_id}/apply")
 async def post_apply(scan_id: str, body: dict, session: Session) -> dict:
-    """Create: the members, the settings and the plugins, as the person confirmed them."""
+    """Create what the person confirmed: the team, the settings and the plugins."""
     from models import AiRepoScan
 
     row = await session.get(AiRepoScan, scan_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Scan not found")
-
-    async def create(member_body: dict):
-        return await _create_member(session, row.project_id, member_body)
-
     try:
-        return await svc_scan.apply(
-            session, scan_id, body, by=_by(), create_member=create
-        )
+        return await svc_scan.apply(session, scan_id, body, by=_by())
     except LookupError as exc:
         _fail(exc, 404)

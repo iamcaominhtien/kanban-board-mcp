@@ -11,7 +11,7 @@ from typing import Any
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiMember, CanvasComment, CanvasThread, Member
+from models import AiTeam, CanvasComment, CanvasThread, Member
 from services import activity, canvases
 from services.docs_text import DocsError
 
@@ -39,7 +39,7 @@ async def _is_ai(session: AsyncSession, c: Any, author: str) -> bool:
     for m in rows.all():
         if (
             m.name.casefold() == author.casefold()
-            and await session.get(AiMember, m.id) is not None
+            and await session.get(AiTeam, m.id) is not None
         ):
             return True
     return False

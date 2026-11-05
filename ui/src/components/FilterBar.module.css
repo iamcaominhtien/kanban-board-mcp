@@ -156,36 +156,3 @@
   color: var(--color-forest);
   margin-left: auto;
 }
-
-/* Group by: Story (ai-story-flow D) */
-.groupBy {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid #e3e8e5;
-  background: #ffffff;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-sec);
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.groupBy b {
-  color: var(--color-text-pri);
-}
-
-.groupBy:hover {
-  background: #f6faf7;
-}
-
-.groupByOn {
-  border-color: var(--color-forest);
-  background: #f1f8f3;
-  color: var(--color-text-pri);
-}

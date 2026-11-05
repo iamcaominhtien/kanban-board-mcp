@@ -258,9 +258,6 @@ interface SubTicketsSectionProps {
   onOpenTicket: (ticket: Ticket) => void;
   onLinkChild: (childId: string) => void;
   onUnlinkChild: (childId: string) => void;
-  /** Hand this ticket and its children to the PM as a Story (ai-story-flow B: Make this a Story). */
-  onMakeStory?: () => void;
-  makingStory?: boolean;
 }
 
 /**
@@ -281,8 +278,6 @@ export function SubTicketsSection({
   onOpenTicket,
   onLinkChild,
   onUnlinkChild,
-  onMakeStory,
-  makingStory,
 }: SubTicketsSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'new' | 'existing'>('new');
@@ -369,36 +364,6 @@ export function SubTicketsSection({
               {doneCount}/{totalCount} done
             </span>
           </>
-        )}
-        {/* also on a ticket without children: it becomes a Draft Story, and the PM writes the plan */}
-        {onMakeStory && (
-          <button
-            type="button"
-            className={styles.makeStoryBtn}
-            onClick={onMakeStory}
-            disabled={makingStory}
-            title={
-              totalCount > 0
-                ? 'The PM owns it from the plan to Done; the children stay, in order'
-                : 'The PM plans it into tickets and owns it to Done'
-            }
-            data-testid="make-story"
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#1B3A6B"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M6.5 3h11a1 1 0 0 1 1 1v17l-6.5-4.2L5.5 21V4a1 1 0 0 1 1-1z" />
-            </svg>
-            {makingStory ? 'Making it a Story…' : 'Make this a Story'}
-          </button>
         )}
       </div>
 

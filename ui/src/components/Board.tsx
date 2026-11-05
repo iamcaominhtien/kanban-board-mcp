@@ -12,8 +12,6 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Column as ColumnType, IssueType, Member, Priority, Status, Ticket } from '../types';
 import { Column } from './Column';
 import { FilterBar } from './FilterBar';
-import type { WorkflowFilterState } from '../types/aiWorkflowBoard';
-import type { WorkflowFilterOptions } from './workflowBoard/workflowFilter';
 import { ListView } from './ListView';
 import { TimelineView } from './TimelineView';
 import { DocsSpace } from './docs/DocsSpace';
@@ -22,15 +20,12 @@ import { PopOutIcon } from './docs/DocsWindowIcons';
 import { useDocsWindowHost } from './docs/useDocsWindow';
 import { useToast } from './Toast';
 import { AiTeamView } from './aiteam/AiTeamView';
-import { useTeamNow } from '../api/aiTeam';
+import { useAiOverview } from '../api/ai';
 import { SchedulesTab } from './schedules/SchedulesTab';
 import { CalendarIcon } from './schedules/schedulesUi';
 import { useScheduleList } from '../api/schedules';
 import { TicketCard } from './TicketCard';
 import { ParentGroupLinks } from './ParentGroupLinks';
-import { StoryLanes, statusOfDropId } from './story/StoryLanes';
-import { GiveStoryDialog } from './story/GiveStoryDialog';
-import { readGroupByStory, writeGroupByStory } from './story/storyLinks';
 import styles from './Board.module.css';
 import loadingStyles from './AppLoading.module.css';
 
@@ -102,9 +97,6 @@ interface BoardProps {
   fromIdeaCount?: number;
   filterFromIdea?: boolean;
   onFilterFromIdeaChange?: (val: boolean) => void;
-  workflowOptions?: WorkflowFilterOptions;
-  workflowFilter?: WorkflowFilterState;
-  onWorkflowFilterChange?: (f: WorkflowFilterState) => void;
   onReopen?: (ticket: Ticket) => void;
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
@@ -174,9 +166,6 @@ export function Board({
   fromIdeaCount,
   filterFromIdea,
   onFilterFromIdeaChange,
-  workflowOptions,
-  workflowFilter,
-  onWorkflowFilterChange,
   totalReopens30d,
   waitingOnTicketsCount,
   waitingOnPersonsCount,
@@ -210,13 +199,6 @@ export function Board({
   const [activeWidth, setActiveWidth] = useState<number | null>(null);
   // The target slot takes the lifted card's height, as the source ghost does (Drag & Drop 2)
   const [activeHeight, setActiveHeight] = useState<number | null>(null);
-  // Group by Story (ai-story-flow D): off until someone turns it on, remembered per person
-  const [groupByStory, setGroupByStory] = useState(readGroupByStory);
-  const [givingStory, setGivingStory] = useState(false);
-  const toggleGroupByStory = (on: boolean) => {
-    setGroupByStory(on);
-    writeGroupByStory(on);
-  };
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
   const dragKind: 'reopen' | 'pending' | null = !activeTicket
     ? null
@@ -268,8 +250,8 @@ export function Board({
   const { data: scheduleList } = useScheduleList(projectId ?? '');
   // The AI Team view exists for a project with AI members; its badge counts what waits for a person
   const hasAiTeam = members.some((m) => m.kind === 'ai');
-  const teamNow = useTeamNow(hasAiTeam ? (projectId ?? '') : '', 'today');
-  const waitingForYou = teamNow.data?.needsYou.length ?? 0;
+  const teamOverview = useAiOverview(hasAiTeam ? (projectId ?? '') : '');
+  const waitingForYou = teamOverview.data?.runs.needsInput ?? 0;
 
   function handleDragStart(event: DragStartEvent) {
     setSelectedParentId(null);
@@ -280,8 +262,7 @@ export function Board({
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    // A lane cell of the board grouped by Story is `lane:<lane>:<status>`
-    const status = over ? statusOfDropId(String(over.id)) : '';
+    const status = over ? String(over.id) : '';
     if (!over || !VALID_STATUSES.has(status)) {
       setActiveTicketId(null);
       return;
@@ -412,32 +393,6 @@ export function Board({
                 )}
               </button>
             </div>
-            {projectId && hasAiTeam && (
-              <button
-                type="button"
-                className={styles.storyButton}
-                onClick={() => setGivingStory(true)}
-                disabled={!!loadState}
-                title="Hand a job to the PM: it plans it, splits it into tickets and runs them"
-                data-testid="give-story"
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  style={{ display: 'block', flexShrink: 0 }}
-                >
-                  <path d="M6.5 3h11a1 1 0 0 1 1 1v17l-6.5-4.2L5.5 21V4a1 1 0 0 1 1-1z" />
-                </svg>
-                <span>Give a Story</span>
-              </button>
-            )}
             {headerActions}
             <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
               <svg
@@ -488,11 +443,6 @@ export function Board({
               fromIdeaCount={fromIdeaCount}
               filterFromIdea={filterFromIdea}
               onFilterFromIdeaChange={onFilterFromIdeaChange}
-              workflowOptions={workflowOptions}
-              workflowFilter={workflowFilter}
-              onWorkflowFilterChange={onWorkflowFilterChange}
-              groupByStory={viewMode === 'board' ? groupByStory : undefined}
-              onGroupByStoryChange={toggleGroupByStory}
             />
           )}
         </div>
@@ -535,7 +485,6 @@ export function Board({
               if (t) onCardClick(t);
             }}
             onOpenMember={(id) => onOpenAiMember?.(id)}
-            onOpenDocsPage={(id) => onOpenDocsPage?.(id)}
           />
         ) : viewMode === 'schedules' && projectId && !loadState ? (
           <SchedulesTab projectId={projectId} tickets={allTickets} />
@@ -565,18 +514,6 @@ export function Board({
           <ListView tickets={tickets} members={members} onCardClick={onCardClick} />
         ) : viewMode === 'timeline' ? (
           <TimelineView tickets={tickets} projectId={projectId ?? ''} onCardClick={onCardClick} members={members} />
-        ) : groupByStory ? (
-          <StoryLanes
-            columns={COLUMNS}
-            tickets={tickets}
-            allTickets={allTickets}
-            onCardClick={onCardClick}
-            memberMap={memberMap}
-            onReopen={onReopen}
-            onPending={onPending}
-            onResume={onResume}
-            onDelete={onDelete}
-          />
         ) : (
           <div
             ref={columnsRef}
@@ -632,7 +569,6 @@ export function Board({
           </div>
         ) : null}
       </DragOverlay>
-      {givingStory && projectId && <GiveStoryDialog projectId={projectId} onClose={() => setGivingStory(false)} />}
     </DndContext>
   );
 }

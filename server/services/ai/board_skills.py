@@ -29,7 +29,6 @@ def _skills() -> dict[str, str]:
     from services import (
         canvas_design,
         docs_guide,
-        permissions_guide,
         role_skills,
         shared_skills,
         visual_guides,
@@ -41,7 +40,6 @@ def _skills() -> dict[str, str]:
         "drawio-diagrams": visual_guides.DRAWIO_HEADER + visual_guides.DRAWIO,
         "sketches": visual_guides.SKETCH_HEADER + visual_guides.SKETCH,
         # what the AI may do, what needs a person, what to do when refused (issue #275)
-        "board-permissions": permissions_guide.SKILL_HEADER + permissions_guide.GUIDE,
         # how to work in Docs: pages vs comments, the Markdown kept, editing a part, files, comments, tickets (#268)
         "docs-pages": docs_guide.SKILL_HEADER + docs_guide.GUIDE,
         # how any role works a ticket (issue #277)

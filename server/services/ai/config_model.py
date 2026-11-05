@@ -1,6 +1,6 @@
 """The shape of an AI member's configuration: normalising, validating, masking secrets, prompt variables.
 
-Everything the Configuration tab edits lives in ``AiMember.config`` (JSON). Lists of items (skills, subagents, hooks,
+Everything the Configuration tab edits lives in ``AiTeam.config`` (JSON). Lists of items (skills, subagents, hooks,
 custom tools, remote MCP servers) are lists of objects with an ``id``; free text such as a SKILL.md, a tool schema or a
 prompt is kept as a *string*, because the UI converts JSON object keys between snake and camel case and must never see
 a user's own keys (design/screens/ai-provider-config.md).

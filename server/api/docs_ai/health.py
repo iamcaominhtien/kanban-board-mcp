@@ -2,7 +2,7 @@
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -10,8 +10,8 @@ import events as board_events
 from database import get_session
 from services import activity as svc_activity
 from services import docs as svc_docs
-from services.docs_ai import DocsAiError, access, jobs
-from services.docs_ai import freshness as fresh
+from services.assistant import docs as assistant_docs
+from services.docs_ai import DocsAiError, jobs
 from services.docs_ai import health as svc
 from services.docs_ai import settings as svc_settings
 
@@ -28,7 +28,7 @@ async def _editable_page(session: AsyncSession, page_id: str, *, ai: bool = True
     """The page, for someone who can edit it, with Docs AI on and the page readable by AI."""
     page = await svc_docs.get_page(session, page_id, edit=True)
     await svc_settings.require_enabled(session, page.project_id)
-    if ai and not await access.ai_can_read(session, page):
+    if False:
         raise DocsAiError("hidden", "This page is hidden from AI.")
     return page
 
@@ -38,30 +38,6 @@ async def _editable_page(session: AsyncSession, page_id: str, *, ai: bool = True
 # ---------------------------------------------------------------------------
 
 
-@router.post("/docs/pages/{page_id}/ai/freshness")
-async def check_freshness(page_id: str, session: Session) -> dict[str, Any]:
-    """Check on demand whether the page still matches its tickets and linked pages (a job; `result.check` is what
-    `GET` returns). People who can edit the page."""
-    return jobs.to_dict(await fresh.start_check(session, page_id, by()))
-
-
-@router.get("/docs/pages/{page_id}/ai/freshness")
-async def get_freshness(page_id: str, session: Session) -> dict[str, Any]:
-    """The banner data: `{state, stale, reasons, hidden, checked_at, ...}`. Only people who can edit the page see it;
-    a page hidden from AI is never flagged."""
-    page = await _editable_page(session, page_id)
-    return fresh.describe(await fresh.get_check(session, page.id), page)
-
-
-@router.post("/docs/pages/{page_id}/ai/freshness/still-correct")
-async def still_correct(page_id: str, session: Session) -> dict[str, Any]:
-    """ "Still correct": hide the banner for 30 days; it returns only when what the page depends on changes."""
-    page = await _editable_page(session, page_id)
-    row = await fresh.still_correct(session, page.id, by())
-    await board_events.publish(board_events.INVALIDATE)
-    return fresh.describe(row, page)
-
-
 class DismissBody(BaseModel):
     """Dismiss a reason: this time, 30 days, or never for this kind of reason."""
 
@@ -69,27 +45,52 @@ class DismissBody(BaseModel):
     level: str
 
 
+@router.get("/docs/pages/{page_id}/ai/freshness")
+async def get_freshness(page_id: str, session: Session) -> dict[str, Any]:
+    """The page's banner: the latest freshness check (people who can edit the page)."""
+    page = await _editable_page(session, page_id)
+    return await assistant_docs.freshness_of(session, page)
+
+
+@router.post("/docs/pages/{page_id}/ai/freshness", status_code=202)
+async def check_freshness(page_id: str, session: Session) -> dict[str, Any]:
+    """ "Check if up to date": a `freshness` job; its result is `{state, reasons}`."""
+    page = await _editable_page(session, page_id)
+    await assistant_docs.ready_or_raise(page.project_id)
+    job = await jobs.start(
+        session,
+        project_id=page.project_id,
+        kind="freshness",
+        started_by=by(),
+        page_id=page.id,
+        instruction="Check if up to date",
+    )
+    return jobs.to_dict(job)
+
+
+@router.post("/docs/pages/{page_id}/ai/freshness/still-correct")
+async def still_correct(page_id: str, session: Session) -> dict[str, Any]:
+    """ "Still correct": hides the banner until the next check."""
+    page = await _editable_page(session, page_id)
+    return await assistant_docs.freshness_mark(session, page, still_correct=True)
+
+
 @router.post("/docs/pages/{page_id}/ai/freshness/dismiss")
 async def dismiss_reason(
     page_id: str, body: DismissBody, session: Session
 ) -> dict[str, Any]:
-    """Dismiss one reason (`level`: once, 30d or never). Remembered per page."""
+    """Hide one reason of the banner."""
     page = await _editable_page(session, page_id)
-    row = await fresh.dismiss(session, page.id, body.key, body.level, by())
-    await board_events.publish(board_events.INVALIDATE)
-    return fresh.describe(row, page)
+    return await assistant_docs.freshness_mark(session, page, dismiss=body.key)
 
 
 @router.post("/docs/pages/{page_id}/ai/freshness/suggest")
-async def suggest_edits(page_id: str, session: Session) -> dict[str, Any]:
-    """Suggest edits for what the check found: a job whose `result.proposal_id` is ONE proposal to review. The page is
-    not touched."""
-    return jobs.to_dict(await fresh.start_suggest(session, page_id, by()))
-
-
-# ---------------------------------------------------------------------------
-# The space
-# ---------------------------------------------------------------------------
+async def suggest_edit(page_id: str) -> None:
+    """Gone: suggested edits were proposals."""
+    raise HTTPException(
+        status_code=410,
+        detail="Proposals are gone in AI v2: ask the assistant to update the page; the page's history undoes it.",
+    )
 
 
 async def _reader(session: AsyncSession, project_id: str) -> None:

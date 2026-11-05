@@ -3,7 +3,7 @@
 import pytest
 
 from services.ai import guard
-from tests.test_ai import _ctx, env  # noqa: F401
+from tests.ai_helpers import _ctx, env  # noqa: F401
 from tests.test_docs_comments import DOC, inline, publish
 
 

@@ -81,30 +81,6 @@ if _CONFIG_FROM_TESTS:
 import pytest  # noqa: E402
 
 
-@pytest.fixture(autouse=True)
-def _approvals_do_not_wait(monkeypatch):
-    """A tool call that needs approval waits for the decision; tests that want the wait set it themselves."""
-    from services.ai import guard
-
-    monkeypatch.setattr(guard, "APPROVAL_WAIT_S", 0)
-
-
-@pytest.fixture(autouse=True)
-def _story_touches_are_fresh(monkeypatch):
-    """A Story's count of touches is cached for a while; a test reads what it just changed."""
-    from services import stories
-
-    monkeypatch.setattr(stories, "TOUCHES_TTL_S", 0)
-
-
-@pytest.fixture(autouse=True)
-def _feed_needs_you_is_fresh(monkeypatch):
-    """The live column's Needs you list is cached for a few seconds; a test reads what it just changed."""
-    from services.ai import live_feed
-
-    monkeypatch.setattr(live_feed, "NEEDS_TTL_S", 0)
-
-
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
@@ -148,6 +124,11 @@ def _app_config_in_a_temp_folder(monkeypatch, tmp_path_factory):
     folder = tmp_path_factory.mktemp("app-config")
     monkeypatch.setattr(config, "_CONFIG_DIR", folder)
     monkeypatch.setattr(config, "_CONFIG_FILE", folder / "config.json")
+    # A process a test starts (the real MCP server, the AI runner) reads its config folder from the environment. Without
+    # this it reads the developer's own config.json, opens the database named there and runs this branch's migrations
+    # on it: on 2026-11-05 that emptied the AI tables of a real board. Its log goes to a temp folder too.
+    monkeypatch.setenv("KANBAN_CONFIG_DIR", str(folder))
+    monkeypatch.setenv("KANBAN_LOG_DIR", str(tmp_path_factory.mktemp("app-logs")))
 
 
 @pytest.fixture(autouse=True)

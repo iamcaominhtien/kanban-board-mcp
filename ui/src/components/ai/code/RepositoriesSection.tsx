@@ -98,14 +98,14 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
   const patch = usePatchProjectOps(projectId);
   const list = useWorktrees(projectId);
   const board = useAiBoard(projectId);
-  const runOf = new Map((board.data?.runs ?? []).map((r) => [r.ticketId, r]));
+  const runOf = new Map(Object.entries(board.data?.tickets ?? {}));
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const remove = useCodeMutation((id: string) => codeApi.remove(id));
   const keep = useCodeMutation((id: string) => codeApi.keep(id));
   const cleanup = useCodeMutation(() => codeApi.cleanup(projectId));
-  const stop = useCodeMutation((runId: string) => aiApi.cancel(runId, 'Stopped from Repositories'));
+  const stop = useCodeMutation((runId: string) => aiApi.cancel(runId));
   const open = useCodeMutation((id: string) => codeApi.open(id));
 
   if (ops.isLoading) return <div className="ai-skel" style={{ height: 120 }} aria-busy="true" aria-label="Loading" />;
@@ -392,7 +392,7 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
                     onOpen={() => void act(() => open.mutateAsync(w.ticketId))}
                     onStop={() => {
                       const r = runOf.get(w.ticketId);
-                      if (r) void act(() => stop.mutateAsync(r.id));
+                      if (r) void act(() => stop.mutateAsync(r.runId));
                     }}
                     onRemove={() => void act(() => remove.mutateAsync(w.ticketId))}
                     onKeep={() => void act(() => keep.mutateAsync(w.ticketId))}

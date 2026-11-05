@@ -28,7 +28,6 @@ DocsReadAction = Literal[
     "design_guide",
     "diagram_guide",
     "picture",
-    "permissions_guide",
     "guides",
     "role_guide",
     "ticket_guide",
@@ -65,7 +64,6 @@ DOCS_READ_OPS = {
             "width",
         ),
     ),
-    "permissions_guide": Op(ops.permissions_guide, ()),
     "guides": Op(ops.shared_guides, ()),
     "role_guide": Op(ops.role_guide, (), ("query",)),
     "ticket_guide": Op(ops.ticket_guide, ()),
@@ -174,11 +172,10 @@ async def docs_read(
     - sketches: project_id. Freehand sketches: [{id, title, owner_kind, owner_id, version, width, height, layers, updated_by, updated_at, markdown}]. A text shows one as `![Name](sketch:sk_xxxxxxxx)`.
     - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.
     - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
-    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
+    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_update)).
     - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.
     - diagram_guide: {guide, sketches}: how to draw and edit a draw.io diagram, what to do with a Sketch, which tool fits.
     - picture: diagram_id | canvas_id + board_id | sketch_id | path [, width]. A PNG to look at before you hand in: {path, drawn_by, markdown (a copy for a comment)}.
-    - permissions_guide: {guide, you}: what you may do; read it when refused.
     - guides: {name: text}: how to work a ticket, prove it, ask, work as a team, brainstorm, write for users, make office files and decks.
     - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles.
     - ticket_guide: {guide, roles}: using every part of a ticket; where files go.
@@ -213,7 +210,7 @@ DocsWriteAction = Literal[
     "sketch_save",
     "canvas_create",
     "canvas_comment",
-    "canvas_propose",
+    "canvas_update",
 ]
 
 DOCS_WRITE_OPS = {
@@ -274,8 +271,8 @@ DOCS_WRITE_OPS = {
         ("canvas_id", "body"),
         ("board_id", "thread_id", "at"),
     ),
-    "canvas_propose": Op(
-        ops.propose_canvas_change,
+    "canvas_update": Op(
+        ops.update_canvas_frame,
         ("canvas_id", "board_id", "path"),
         ("note",),
     ),
@@ -332,7 +329,7 @@ async def docs_write(
     note: Annotated[
         str | None,
         Field(
-            description="update: change note for the page history. canvas_propose: what you changed."
+            description="update: change note for the page history. canvas_update: what you changed."
         ),
     ] = None,
     publish: Annotated[
@@ -373,7 +370,7 @@ async def docs_write(
     path: Annotated[
         str | None,
         Field(
-            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). upload: absolute path of the file. diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB). canvas_propose: folder with the frame's files."
+            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). upload: absolute path of the file. diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB). canvas_update: folder with the frame's changed files."
         ),
     ] = None,
     diagram_id: Annotated[
@@ -417,13 +414,13 @@ async def docs_write(
     canvas_id: Annotated[
         str | None,
         Field(
-            description="canvas_comment, canvas_propose: canvas id. canvas_create: add frames to it instead of making a new canvas."
+            description="canvas_comment, canvas_update: canvas id. canvas_create: add frames to it instead of making a new canvas."
         ),
     ] = None,
     board_id: Annotated[
         str | None,
         Field(
-            description="canvas_propose: the HTML frame to change. canvas_comment: pin to this frame."
+            description="canvas_update: the HTML frame to change. canvas_comment: pin to this frame."
         ),
     ] = None,
     at: Annotated[
@@ -507,7 +504,7 @@ async def docs_write(
     - sketch_save: sketch_id, path, base_version [, source_path, title]. Saves the PNG and source as a new version; base_version is the `version` from docs_read(sketch), a stale one is rejected. Returns {id, title, version}. The PNG is what the text shows, so keep it the flattened picture of the source.
     - canvas_create: path [, owner_kind (ticket|doc|idea), owner_id, title | canvas_id]. A new canvas, or frames added to canvas_id, from a folder: one sub-folder with an .html page per frame (name order); optional frame.json, canvas.json (see the design guide). Returns {id, markdown, boards}: put `markdown` on its own line in the text.
     - canvas_comment: canvas_id, body [, board_id, at, thread_id]. Comment under your own name: pin on an element (at) of a frame, the plane, or reply. You never resolve a person's thread.
-    - canvas_propose: canvas_id, board_id, path [, note]. Offer a changed HTML frame from a folder (see docs_read(canvas)). Nothing changes until a person accepts; a frame being edited waits.
+    - canvas_update: canvas_id, board_id, path [, note]. Change an HTML frame from a folder (see docs_read(canvas)); files left out stay. A frame a person is editing is locked: try again later.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     given = params_of(locals())
     if action == "edit":
@@ -734,7 +731,7 @@ def _only(label: str, given: dict, allowed: set[str], usage: str) -> None:
 
 async def _tickets(given: dict) -> dict:
     """docs_write(tickets): tickets from the page's open tasks (or from drafts), linked, their keys on their lines."""
-    from services.docs_ai import tickets as docs_tickets
+    from services import docs_checklist as docs_tickets
 
     from .tickets import manage_ticket
 
@@ -827,11 +824,10 @@ async def _tickets(given: dict) -> dict:
 
 
 async def _assign(given: dict) -> dict:
-    """docs_write(assign): a ticket that gives the page to an AI member to write or review, and its work run."""
-    from services import docs_work
+    """docs_write(assign): a ticket that gives the page to an AI team to write or review; its lead starts on it."""
+    from services import activity, docs_work
 
-    from .ai_team import ai_team
-    from .tickets import manage_ticket
+    from .. import common
 
     _only(
         "assign",
@@ -842,35 +838,12 @@ async def _assign(given: dict) -> dict:
     for key in ("page_id", "member_id", "kind"):
         if not given.get(key):
             raise ValueError(f"docs_write(action='assign') requires {key}.")
-    page = await dispatch(
-        "docs_read", DOCS_READ_OPS, "get", {"page_id": given["page_id"]}
-    )
-    spec = docs_work.assignment_ticket(given["kind"], page["title"], given.get("body"))
-    ticket = await manage_ticket(
-        action="create",
-        project_id=page["project_id"],
-        title=spec["title"],
-        description=spec["description"],
-        type="task",
-        status="todo",
-    )
-    await manage_ticket(action="link_doc", ticket_id=ticket["id"], page_id=page["id"])
-    text = (given.get("body") or "").strip() or spec["title"]
-    try:
-        started = await ai_team(
-            action="ask",
-            member_id=given["member_id"],
-            ticket_id=ticket["id"],
-            text=text,
-            intent="work",
+    async with common.async_session() as session:
+        return await docs_work.assign_page(
+            session,
+            given["page_id"],
+            given["member_id"],
+            given["kind"],
+            given.get("body"),
+            created_by=activity.current_actor(),
         )
-    except ValueError as exc:
-        raise ValueError(
-            f"{exc} The ticket {ticket['id']} was made and linked to the page; give it to the member when it can run."
-        ) from exc
-    run = started.get("run") if isinstance(started, dict) else None
-    return {
-        "ticket": {"id": ticket["id"], "title": ticket["title"]},
-        "run": {"id": run.get("id"), "state": run.get("state")} if run else None,
-        "note": started.get("note") if isinstance(started, dict) else None,
-    }

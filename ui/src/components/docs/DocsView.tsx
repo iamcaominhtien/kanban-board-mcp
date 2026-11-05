@@ -15,7 +15,6 @@ import { useProject } from '../../api/projects';
 import { useDocsAccess, useRequestDocsAccess } from '../../api/docsAccess';
 import { useDocsAiState } from '../../api/docsAi';
 import { useDocsHealthCount } from '../../api/docsAiCare';
-import { useWaitingProposalPages } from '../../api/docsAiProposals';
 import { DocsHealthView } from './ai/DocsHealthView';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
@@ -344,7 +343,6 @@ export function DocsView({
   const aiOn = aiState.data?.state === 'ready' || aiState.data?.state === 'no_member';
   const healthCount = useDocsHealthCount(projectId, aiState.data?.state === 'ready');
   const [healthOpen, setHealthOpen] = useState(false);
-  const proposalPageIds = useWaitingProposalPages(projectId);
   const requestAccess = useRequestDocsAccess(projectId);
   const readOnly =
     access.data && access.data.access && !access.data.canEdit
@@ -621,7 +619,6 @@ export function DocsView({
       onHealth={() => setHealthOpen(true)}
       healthActive={healthOpen}
       healthCount={healthCount}
-      proposalPageIds={proposalPageIds}
       renderMenu={(node, close) => (
         <TreePageMenu
           node={node}

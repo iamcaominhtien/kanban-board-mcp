@@ -13,8 +13,7 @@ from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
-from models import AiMember, DocsAiSettings, DocsPage, Member, Project
-from services.ai.assist import settings as assist
+from models import AiTeam, DocsAiSettings, DocsPage, Member, Project
 from services.ai.store import loads, now_iso
 
 from .errors import DocsAiError
@@ -52,7 +51,7 @@ async def _project(session: AsyncSession, project_id: str) -> Project:
 
 async def master_on(session: AsyncSession) -> bool:
     """The board-wide Docs AI feature switch."""
-    return assist.features(await assist.get(session)).get("docs", True)
+    return True
 
 
 async def require_enabled(session: AsyncSession, project_id: str) -> DocsAiSettings:
@@ -67,7 +66,7 @@ async def require_enabled(session: AsyncSession, project_id: str) -> DocsAiSetti
     return row
 
 
-def _can_answer(profile: AiMember | None) -> bool:
+def _can_answer(profile: AiTeam | None) -> bool:
     if profile is None or profile.paused:
         return False
     if profile.connection == "local":
@@ -77,20 +76,17 @@ def _can_answer(profile: AiMember | None) -> bool:
 
 async def answering_member(
     session: AsyncSession, project_id: str
-) -> tuple[Member, AiMember]:
+) -> tuple[Member, AiTeam]:
     """The AI member that answers and checks: the one chosen in Settings, else the Board AI, else any AI member that
     can answer. Raises `no_member` when there is none."""
     row = await get(session, project_id)
     candidates: list[str] = []
     if row.member_id:
         candidates.append(row.member_id)
-    info = await assist.board_ai(session, project_id, fallback=True)
-    if info["member"] is not None:
-        candidates.append(info["member"].id)
     paused = None
     for mid in dict.fromkeys(candidates):
         member = await session.get(Member, mid)
-        profile = await session.get(AiMember, mid)
+        profile = await session.get(AiTeam, mid)
         if member and member.project_id == project_id and _can_answer(profile):
             return member, profile
         if member and profile and profile.paused and paused is None:
@@ -115,7 +111,7 @@ async def candidates(session: AsyncSession, project_id: str) -> list[dict[str, A
     ).all()
     out = []
     for m in members:
-        profile = await session.get(AiMember, m.id)
+        profile = await session.get(AiTeam, m.id)
         if _can_answer(profile):
             out.append(
                 {
@@ -197,7 +193,7 @@ async def update(
     if "member_id" in data:
         mid = data["member_id"]
         if mid:
-            profile = await session.get(AiMember, mid)
+            profile = await session.get(AiTeam, mid)
             member = await session.get(Member, mid)
             if member is None or member.project_id != project_id or profile is None:
                 raise DocsAiError("invalid", "Pick an AI member of this project.")

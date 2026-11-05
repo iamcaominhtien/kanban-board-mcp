@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { docsAiError, useDocsAiState } from '../../../api/docsAi';
-import { useDismissReason, useFreshness, useStillCorrect, useSuggestEdits } from '../../../api/docsAiCare';
+import { useDismissReason, useFreshness, useStillCorrect } from '../../../api/docsAiCare';
 import type { DocsPage } from '../../../types/docs';
 import {
   checkedLabel,
@@ -10,11 +9,9 @@ import {
   showFreshnessBanner,
   type CareReason,
 } from '../../../utils/careRules';
-import { costLabel } from '../../../utils/docsAiRules';
 import { useDocsRefs } from '../DocsRefsContext';
 import { Icon } from '../Icon';
 import '../docs.css';
-import { SuggestedEdits } from './SuggestedEdits';
 import { LineIcon } from '../../ui/LineIcon';
 
 const btn: CSSProperties = {
@@ -131,7 +128,7 @@ function Reason({
 }
 
 /**
- * "This page may be out of date" with the reasons, Review suggested edits, Still correct and Open KAN-12
+ * "This page may be out of date" with the reasons, Still correct and Open KAN-12
  * (docs-ai-care A1). Shown only to people who can edit the page, when Docs AI is on and the check flagged the page.
  */
 export function FreshnessBanner({
@@ -151,14 +148,12 @@ export function FreshnessBanner({
   const q = useFreshness(page.id, canEdit && aiOn && !hiddenFromAi && page.version > 0);
   const still = useStillCorrect(page.id);
   const dismiss = useDismissReason(page.id);
-  const suggest = useSuggestEdits(page.id);
   const refs = useDocsRefs();
-  const [proposalId, setProposalId] = useState<string | null>(null);
   const check = q.data;
   if (!showFreshnessBanner({ canEdit, aiOn, stale: !!check?.stale, hiddenFromAi }) || !check) return null;
   const open = onOpenTicket ?? refs?.openTicket;
   const ticket = firstTicketRef(check.reasons);
-  const err = [still.error, dismiss.error, suggest.error].map((e) => (e ? docsAiError(e)?.detail : null)).find(Boolean);
+  const err = [still.error, dismiss.error].map((e) => (e ? docsAiError(e)?.detail : null)).find(Boolean);
   return (
     <section
       aria-label="This page may be out of date"
@@ -209,16 +204,6 @@ export function FreshnessBanner({
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <button
           type="button"
-          disabled={suggest.isPending}
-          onClick={() => suggest.mutate(undefined, { onSuccess: (d) => setProposalId(d.proposalId || null) })}
-          style={{ ...btn, background: '#7c5cd6', borderColor: '#7c5cd6', color: '#fff' }}
-          data-testid="freshness-suggest"
-        >
-          <LineIcon name="sparkle" size={12} />{' '}
-          {suggest.isPending ? 'Writing suggested edits…' : proposalId ? 'Suggested edits' : 'Review suggested edits'}
-        </button>
-        <button
-          type="button"
           disabled={still.isPending}
           onClick={() => still.mutate()}
           style={btn}
@@ -231,12 +216,8 @@ export function FreshnessBanner({
             <Icon name="i38" size={13} /> Open {ticket}
           </button>
         )}
-        <span style={{ fontSize: 11.5, color: '#5B6B60' }}>
-          “Still correct” hides this for 30 days
-          {suggest.data ? ` · ${costLabel(suggest.data.cost, suggest.data.metered)}` : ''}
-        </span>
+        <span style={{ fontSize: 11.5, color: '#5B6B60' }}>“Still correct” hides this for 30 days</span>
       </div>
-      {proposalId && <SuggestedEdits pageId={page.id} proposalId={proposalId} />}
       {err && (
         <div role="alert" style={{ fontSize: 12.5, color: '#C4432A', marginTop: 8 }}>
           {err}

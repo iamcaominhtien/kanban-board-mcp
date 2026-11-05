@@ -30,14 +30,23 @@ async def add_comment(
             description="Name shown next to the comment: use your agent name (e.g. 'Claude')."
         ),
     ],
+    role: Annotated[
+        str | None,
+        Field(
+            description="The role that speaks (Reviewer, QA, Designer...), shown on the comment."
+        ),
+    ] = None,
 ) -> dict:
     """Post a comment on a ticket: progress reports, findings, questions for the humans. Returns the updated ticket
     (the new comment is last in `comments`). In an AI run a picture or a document (an Excel sheet, a PDF) named by
     its path in your working folder is attached: ![shot](qa/evidence/TC-1.png), [sample](ba_work/sample.xlsx)."""
     text = await common.attach_from_run(text)
+    meta = {"role": role.strip()[:40]} if role and role.strip() else None
     return await _edit_ticket(
         ticket_id,
-        lambda s: svc_tickets.add_comment(s, ticket_id, text=text, author=author),
+        lambda s: svc_tickets.add_comment(
+            s, ticket_id, text=text, author=author, meta=meta
+        ),
     )
 
 
