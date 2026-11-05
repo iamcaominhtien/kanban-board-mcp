@@ -57,6 +57,9 @@ def test_a_new_run_gets_the_whole_flag_set():
     assert _flag(a, "--append-system-prompt-file") == "/r/system.md"
     assert _flag(a, "--append-subagent-system-prompt-file") == "/r/sub.md"
     assert _flag(a, "--system-prompt-snapshot") == "off"
+    assert (
+        _flag(a, "--setting-sources") == "project,local"
+    )  # the account's own plugins and skills stay out
     assert _flag(a, "--agents") == "/r/agents.json"
     assert json.loads(_flag(a, "--json-schema"))["required"] == ["status", "summary"]
     assert json.loads(_flag(a, "--settings")) == {
@@ -461,3 +464,71 @@ async def test_the_args_a_transcript_keeps_never_hold_the_runs_token(env, monkey
     assert shown == {"Authorization": f"Bearer {launch.RUN_TOKEN_SHOWN}"}
     assert "q" * 20 not in " ".join(prepared.record_args)
     assert prepared.args[0] == prepared.record_args[0]
+
+
+async def test_a_project_plugin_reaches_a_team_that_has_one_of_its_roles(
+    env, monkeypatch, tmp_path
+):  # noqa: F811
+    """AI v2: a team has several roles (its subagents). A plugin meant for `dev` loads for a team with a dev role; one
+    meant only for `designer` does not; a team's own switch and the project default still win. The run's prompt names
+    the installed skills by the name the Skill tool takes."""
+    from models import AiPlugin, AiRun, AiTeam, Member
+    from tests.ai_helpers import _project, _runner, _ticket
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _runner(c, pid, env["repo"])  # the standard pack: dev, reviewer, qa
+    tid = await _ticket(c, pid)
+    monkeypatch.setattr(launch, "data_root", lambda: env["tmp"] / "ai-v2")
+
+    def plugin(name, roles, **over):
+        folder = tmp_path / name
+        (folder / ".claude-plugin").mkdir(parents=True)
+        return AiPlugin(
+            project_id=pid,
+            name=name,
+            source=f"https://example.com/{name}",
+            path=str(folder),
+            skills=json.dumps([f"{name}-skill"]),
+            roles=json.dumps(roles),
+            **over,
+        )
+
+    async with env["maker"]() as s:
+        for p in (
+            plugin("flow", ["pm", "dev"]),
+            plugin("tufte", ["designer"]),
+            plugin("everyone", [], default_on=True),
+            plugin("off-here", ["dev"], members=json.dumps({team["id"]: False})),
+        ):
+            s.add(p)
+        run = AiRun(
+            project_id=pid,
+            ticket_id=tid,
+            member_id=team["id"],
+            state="starting",
+            started_by="An",
+        )
+        s.add(run)
+        await s.commit()
+        await s.refresh(run)
+        prepared = await launch.prepare(
+            s,
+            run,
+            await s.get(AiTeam, team["id"]),
+            await s.get(Member, team["id"]),
+            token="kbr_" + "w" * 20,
+            board_url="http://127.0.0.1:9",
+            cwd=env["repo"],
+            session_id="s-2",
+            resume=False,
+            note=None,
+        )
+    loaded = {d.rsplit("/", 1)[-1] for d in prepared.plugin_dirs}
+    assert {"flow", "everyone"} <= loaded
+    assert not {"tufte", "off-here"} & loaded
+    assert (
+        "`flow:flow-skill`" in prepared.system
+        and "`everyone:everyone-skill`" in prepared.system
+    )
+    assert "tufte-skill" not in prepared.system

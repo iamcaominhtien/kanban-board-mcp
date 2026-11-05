@@ -6,6 +6,7 @@ team's agents (`--agents`), its system prompt files, the report schema and the d
 """
 
 import json
+import logging
 import os
 import shutil
 import sys
@@ -20,6 +21,8 @@ from . import accounts, board_skills, cli, knowledge, mcp_sources, ops, pictures
 from .context import RunContext, instruction_block, ticket_block
 from .providers import merged_config
 from .store import ai_names, get_settings, loads
+
+logger = logging.getLogger("kanban.ai.launch")
 
 BOARD_PLUGIN_VERSION = "2.0.0"
 RUN_TOKEN_SHOWN = (
@@ -467,6 +470,11 @@ def args_for(
         sub_system_file,
         "--system-prompt-snapshot",
         "off",
+        # the user's own settings stay out: the plugins and skills of the person's Claude Code account (60 of them on
+        # one machine) pushed the skill list past the CLI's budget and cut the board's skills' descriptions. Project
+        # and local settings of the repository still apply; sign-in does not come from settings.
+        "--setting-sources",
+        "project,local",
     ]
     if agents_file:
         args += ["--agents", agents_file]
@@ -524,6 +532,18 @@ async def prepare(
     )
     # pictures the prompt names (/uploads/…), copied where the CLI may read them (hotfix 3.37.2)
     prompt, pictures_dir = pictures.stage(prompt, run.id)
+    role_keys = {r["key"] for r in team_roles}
+    try:
+        from . import plugins as ai_plugins
+
+        project_plugin_dirs = await ai_plugins.dirs_for(session, profile, role_keys)
+        installed = await ai_plugins.skills_block(session, profile, role_keys)
+    except Exception:  # noqa: BLE001 - the project's plugins are a convenience
+        logger.debug("project plugins not resolved", exc_info=True)
+        project_plugin_dirs, installed = [], ""
+    if installed:
+        # a run that is only handed plugin folders seldom opens one: name what is installed for this team
+        system = f"{system}\n\n{installed}"
     folder = run_dir(run.id)
     system_file = folder / "system.md"
     sub_file = folder / "subagent-system.md"
@@ -541,12 +561,7 @@ async def prepare(
             plugin_dirs.append(board_skills.plugin_dir(skills))
     except Exception:  # noqa: BLE001 - the skills plugin is a convenience
         pass
-    try:
-        from . import plugins as ai_plugins
-
-        plugin_dirs += await ai_plugins.dirs_for(session, profile)
-    except Exception:  # noqa: BLE001
-        pass
+    plugin_dirs += project_plugin_dirs
     account = (
         await session.get(AiAccount, run.account_id or profile.account_id)
         if (run.account_id or profile.account_id)

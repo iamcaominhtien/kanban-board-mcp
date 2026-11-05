@@ -970,14 +970,32 @@ def role_of(profile: AiTeam) -> str | None:
     return cfg.get("role") or (cfg.get("pack") or {}).get("key")
 
 
-def on_for(row: AiPlugin, profile: AiTeam) -> bool:
-    """Whether a member gets the plugin: its own switch, else the project default, else its role."""
+def on_for(row: AiPlugin, profile: AiTeam, role_keys: set[str] | None = None) -> bool:
+    """Whether a team gets the plugin: its own switch, else the project default, else one of its roles (AI v2: a team
+    has several roles, its subagents; `role_keys` are their keys). Without `role_keys`, the team's own role key."""
     overrides = loads(row.members, {}) or {}
     if profile.id in overrides:
         return bool(overrides[profile.id])
     if row.default_on:
         return True
-    return role_of(profile) in (loads(row.roles, []) or [])
+    wanted = set(loads(row.roles, []) or [])
+    if role_keys is not None:
+        return bool(wanted & role_keys)
+    return role_of(profile) in wanted
+
+
+async def team_role_keys(session, profile: AiTeam) -> set[str]:
+    """The keys of the team's roles (its pack's, with the team's own changes)."""
+    from . import roles
+    from .providers import merged_config
+
+    config = merged_config(loads(profile.config, {}))
+    return {
+        r["key"]
+        for r in await roles.roles_for(
+            session, profile.project_id, profile.pack_key, config
+        )
+    }
 
 
 def _norm_source(source: str) -> str:
@@ -1001,7 +1019,9 @@ def catalogue_entry_for(row: AiPlugin) -> dict | None:
     return None
 
 
-async def skills_block(session, profile: AiTeam) -> str:
+async def skills_block(
+    session, profile: AiTeam, role_keys: set[str] | None = None
+) -> str:
     """The skills a member's run loads, by the exact name the Skill tool takes and with the work each one covers. A run
     that is only handed plugin folders seldom opens one (a live Designer run had 12 and opened none of them)."""
     rows = (
@@ -1009,9 +1029,11 @@ async def skills_block(session, profile: AiTeam) -> str:
             select(AiPlugin).where(AiPlugin.project_id == profile.project_id)
         )
     ).all()
+    if role_keys is None:
+        role_keys = await team_role_keys(session, profile)
     lines = []
     for r in rows:
-        if not (r.path and Path(r.path).is_dir() and on_for(r, profile)):
+        if not (r.path and Path(r.path).is_dir() and on_for(r, profile, role_keys)):
             continue
         names = loads(r.skills, []) or []
         if not names:
@@ -1031,15 +1053,21 @@ async def skills_block(session, profile: AiTeam) -> str:
     )
 
 
-async def dirs_for(session, profile: AiTeam) -> list[str]:
-    """The plugin folders a member's run loads."""
+async def dirs_for(
+    session, profile: AiTeam, role_keys: set[str] | None = None
+) -> list[str]:
+    """The plugin folders a team's run loads."""
+    if role_keys is None:
+        role_keys = await team_role_keys(session, profile)
     rows = (
         await session.exec(
             select(AiPlugin).where(col(AiPlugin.project_id).in_([profile.project_id]))
         )
     ).all()
     return [
-        r.path for r in rows if r.path and Path(r.path).is_dir() and on_for(r, profile)
+        r.path
+        for r in rows
+        if r.path and Path(r.path).is_dir() and on_for(r, profile, role_keys)
     ]
 
 
