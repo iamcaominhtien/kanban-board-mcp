@@ -213,6 +213,30 @@ def forget_run_dir(run_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+CODE_ROLES = {"dev", "devops"}  # roles that change the repository's code
+
+
+def _files_rules(team_roles: list[dict]) -> list[str]:
+    """The lines on the folder's files: a team that writes code works on the ticket's branch; any other team leaves
+    the folder alone unless the ticket asks for a file."""
+    keep = (
+        "commit as you go with clear messages; never force-push, never rewrite history on a shared branch, never "
+        "leave the folder."
+    )
+    if not team_roles or any(r.get("key") in CODE_ROLES for r in team_roles):
+        return [
+            "Code: you work in the ticket's own git worktree and branch; " + keep,
+            "When the work is done, run the project's tests, then say in your report which branch holds it (the board",
+            "opens or updates the pull request when the ticket moves).",
+        ]
+    return [
+        "Files: your team does not write code. Change the folder's files only when the ticket asks for a file; then",
+        "you work on the ticket's own branch: "
+        + keep
+        + " Leave `branch` and `tests` empty otherwise.",
+    ]
+
+
 def board_rules(
     ctx: RunContext, project_name: str, team_roles: list[dict], live: bool
 ) -> str:
@@ -245,10 +269,12 @@ def board_rules(
             + (" Messages people send you arrive while you work." if live else ""),
             "Send a note to another ticket's AI or to a Docs page with ai_run(action='message').",
             "",
-            "Code: you work in the ticket's own git worktree and branch; commit as you go with clear messages; never",
-            "force-push, never rewrite history on a shared branch, never leave the folder. When the work is done,",
-            "run the project's tests, then say in your report which branch holds it (the board opens or updates the",
-            "pull request when the ticket moves).",
+            "Where the work goes: writing for people that is the result of the work (research, a comparison, a spec,",
+            "a decision, a guide) is a Docs page linked to the ticket, never a Markdown file in the folder, unless the",
+            "ticket asks for a file; the ticket gets a comment that says what the page holds and links it. A short",
+            "answer is that comment alone. A lesson you keep never overrules this.",
+            "",
+            *_files_rules(team_roles),
             "",
             "Skills: the board's skills teach how this board wants the work done; open the one that fits with the Skill",
             "tool before you do that work (you and your roles):",

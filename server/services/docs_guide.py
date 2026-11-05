@@ -10,7 +10,7 @@ have written it in the editor, and a person's later edit in the editor does not 
 
 SKILL_HEADER = r"""---
 name: docs-pages
-description: Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, format text the editor keeps (headings, tables, highlights, callouts, task lists, code, pictures and files), edit one part of a page safely without rewriting it, comment on a passage and answer a thread, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page or in a ticket comment.
+description: Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, format text the editor keeps (headings, tables, highlights, callouts, task lists, code, pictures and files), edit one part of a page safely without rewriting it, comment on a passage and answer a thread, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page, in a ticket comment or in a file of the repository.
 ---
 
 """
@@ -21,7 +21,7 @@ Docs is the project's wiki: a tree of Markdown pages beside the board. People re
 them in a rich-text editor; what is stored is Markdown. You read and write the same pages over MCP with `docs_read`
 and `docs_write`.
 
-## 1. A page or a ticket comment?
+## 1. A page, a ticket comment, or a file?
 
 | It is… | Put it… |
 |---|---|
@@ -29,8 +29,11 @@ and `docs_write`.
 | About this piece of work only: progress, a question, a finding, proof that it works, a hand-over | a **ticket comment** |
 | A spec written for a ticket | a **page**, linked to the ticket; the ticket gets one comment that says what the page decides and links it |
 | A question about one sentence of a page | an **inline comment** on that sentence (`quote`) |
+| Writing for people that is the result of the work (research, a comparison, a spec, a decision, a guide), even when you work in a git folder | a **page**, not a Markdown file in the repository |
+| Developer docs that change with the code (a README, the docs the repository keeps beside its code), or a file the ticket asks for | a **file** on the ticket's branch |
 
-Do not paste a page into a comment, or a comment thread into a page. Link instead.
+Do not paste a page into a comment, or a comment thread into a page. Link instead. A text you already wrote as a file
+goes onto a page with `docs_write(action='import')`; then the page is the one people read and change.
 
 ## 2. How pages are organised
 

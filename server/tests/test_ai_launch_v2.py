@@ -575,3 +575,29 @@ def test_each_role_is_told_to_open_its_guide_and_the_lead_gets_the_skill_table()
     )
     assert "`kanban-board:docs-pages`" in rules and "read it back" in rules
     assert "skills" in launch.REPORT_SCHEMA["properties"]
+
+
+def test_written_results_go_to_docs_and_only_a_code_team_gets_the_branch_rules():
+    from services.ai.context import RunContext
+
+    ctx = RunContext("r", "m", "Team", "p", "KAN-1", "An", "work")
+    research = launch.board_rules(
+        ctx, "P", [{"key": "ba"}, {"key": "data_analyst"}], False
+    )
+    assert "is a Docs page linked to the ticket, never a Markdown file" in research
+    assert "Files: your team does not write code" in research
+    assert "run the project's tests" not in research
+    code = launch.board_rules(ctx, "P", [{"key": "dev"}, {"key": "reviewer"}], False)
+    assert "is a Docs page linked to the ticket" in code
+    assert "Code: you work in the ticket's own git worktree" in code
+    assert "run the project's tests" in code
+    alone = launch.board_rules(ctx, "P", [], False)  # a lead with no roles may code
+    assert "Code: you work in the ticket's own git worktree" in alone
+
+
+def test_the_docs_skill_says_a_written_result_is_a_page_not_a_repository_file():
+    from services import docs_guide
+
+    assert "## 1. A page, a ticket comment, or a file?" in docs_guide.GUIDE
+    assert "not a Markdown file in the repository" in docs_guide.GUIDE
+    assert "in a file of the repository" in docs_guide.SKILL_HEADER
