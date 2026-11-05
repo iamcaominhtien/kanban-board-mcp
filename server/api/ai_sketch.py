@@ -237,12 +237,17 @@ async def get_sketch_ai_file(
         folder = launch.run_dir(run.id, create=False)
     except ValueError as exc:
         raise AssistError("not_found", "File not found.") from exc
-    path = (folder / Path(file).name).resolve()
-    if (
-        path.parent != folder
-        or not path.is_file()
-        or path.suffix.lower() in (".md", ".log", ".json")
-    ):
+    # the file is picked from what the run's folder holds, never built from the request
+    wanted = Path(file).name
+    path = next(
+        (
+            p
+            for p in (folder.iterdir() if folder.is_dir() else [])
+            if p.name == wanted and p.is_file()
+        ),
+        None,
+    )
+    if path is None or path.suffix.lower() in (".md", ".log", ".json"):
         raise AssistError("not_found", "File not found.")
     image = path.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif")
     return FileResponse(
