@@ -32,8 +32,6 @@ interface FilterBarProps {
   filterFromIdea?: boolean;
   onFilterFromIdeaChange?: (v: boolean) => void;
   /** Group by: Story (ai-story-flow D); the switch shows on the Board view only (undefined hides it). */
-  groupByStory?: boolean;
-  onGroupByStoryChange?: (on: boolean) => void;
 }
 
 const TYPE_OPTIONS: { value: IssueType | 'all'; label: string }[] = [
@@ -80,8 +78,6 @@ export function FilterBar({
   fromIdeaCount = 0,
   filterFromIdea = false,
   onFilterFromIdeaChange,
-  groupByStory,
-  onGroupByStoryChange,
 }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<'type' | 'priority' | 'assignee' | null>(null);
   const selectedMember = members.find((m) => m.id === activeAssignee);
@@ -678,36 +674,6 @@ export function FilterBar({
           </span>
           Hide pending
         </button>
-
-        {groupByStory !== undefined && onGroupByStoryChange && (
-          <button
-            type="button"
-            className={`${styles.groupBy} ${groupByStory ? styles.groupByOn : ''}`}
-            aria-pressed={groupByStory}
-            onClick={() => onGroupByStoryChange(!groupByStory)}
-            title={
-              groupByStory ? 'Show the board without Story lanes' : 'One lane per Story, its tickets in the columns'
-            }
-            data-testid="group-by-story"
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              style={{ flexShrink: 0 }}
-            >
-              <path d="M3.5 6h17M3.5 12h17M3.5 18h17" />
-              <path d="M8 4v4M14 10v4M10 16v4" strokeWidth="2.4" />
-            </svg>
-            Group by: <b>{groupByStory ? 'Story' : 'None'}</b>
-          </button>
-        )}
       </div>
     </div>
   );

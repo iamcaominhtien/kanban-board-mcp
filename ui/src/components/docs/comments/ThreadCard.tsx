@@ -5,7 +5,7 @@ import { Icon } from '../Icon';
 import { CommentBox } from './CommentBox';
 import { CommentText } from './CommentText';
 import { personOf, threadLink, type CommentPerson } from './people';
-import { sentWords, useSendToAi, useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
+import { useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
 import type { SuggestMember } from '../RefSuggester';
 import { aiCostLabel, aiReplyKind, canSuggestEdit, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
 import { LineIcon } from '../../ui/LineIcon';
@@ -190,8 +190,6 @@ export function ThreadCard({
   const docsAi = !!data.docsAi;
   const ai = useThreadAiActions(thread.pageId);
   const replyMembers = useMemo(() => threadMembers(thread, suggestMembers), [thread, suggestMembers]);
-  const handOff = useSendToAi(thread.pageId);
-  const [notice, setNotice] = useState<string | null>(null);
   const working = thinking(thread);
   const orphaned = thread.anchor?.state === 'orphaned';
   const resolved = thread.status === 'resolved';
@@ -234,22 +232,6 @@ export function ThreadCard({
         ))}
         <span className="dc-ai-cost">{aiCostLabel(c.ai.cost)}</span>
         <span style={{ flex: 1 }} />
-        {c.ai.handoff?.ticketId && !resolved && thread.canReply && (
-          <button
-            type="button"
-            className="dc-ai-suggest"
-            data-testid="ai-handoff"
-            disabled={handOff.isPending}
-            title="The AI working on that ticket does it, in the ticket's own conversation"
-            onClick={(e) => {
-              e.stopPropagation();
-              const ticketId = c.ai!.handoff!.ticketId;
-              void run(handOff.mutateAsync({ threadIds: [thread.id], ticketId }).then((r) => setNotice(sentWords(r))));
-            }}
-          >
-            <Icon name="send" size={13} strokeWidth={1.9} /> Send to {c.ai.handoff.ticketId}
-          </button>
-        )}
         {canSuggestEdit(c, thread, docsAi) && (
           <button
             type="button"
@@ -686,11 +668,6 @@ export function ThreadCard({
           <Icon name="i17" size={14} strokeWidth={1.8} /> Resolved by{' '}
           <b>{personOf(thread.resolvedBy, members, me).name}</b>
           {thread.resolvedAt && <> · {relativeTime(thread.resolvedAt)}</>}
-        </div>
-      )}
-      {notice && (
-        <div className="dc-sendai-done" role="status" data-testid="thread-handoff-done">
-          {notice}
         </div>
       )}
       {error && (

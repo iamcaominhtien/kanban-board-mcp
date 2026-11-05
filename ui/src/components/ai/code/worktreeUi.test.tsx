@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { Worktree } from '../../../types/aiCode';
 import type { AiRun } from '../../../types/ai';
-import { ConflictCard, STATE_LABEL, WorktreeRow, canRemove, mbText } from './worktreeUi';
+import { STATE_LABEL, WorktreeRow, canRemove, mbText } from './worktreeUi';
 
 const wt = (over: Partial<Worktree> = {}, uncommitted: string[] = []): Worktree => ({
   ticketId: 'KAN-1',
@@ -87,23 +87,5 @@ describe('worktree row, run and folder', () => {
     expect(html).toContain('Waiting for you');
     expect(html).toContain('Dev An stopped at');
     expect(html).not.toContain('>Stop<');
-  });
-});
-
-describe('ConflictCard', () => {
-  it('lists the files and the three choices, naming the member', () => {
-    const html = renderToStaticMarkup(
-      <ConflictCard files={['a.py', 'b.ts']} memberName="Dev An" onChoose={() => {}} />,
-    );
-    expect(html).toContain('2 files differ from main: a.py, b.ts');
-    expect(html).toContain('Give it to Dev An');
-    expect(html).toContain('I will do it');
-    expect(html).toContain('Leave it for now');
-  });
-
-  it('offers no AI hand-over when nobody is named', () => {
-    const html = renderToStaticMarkup(<ConflictCard files={[]} memberName={null} onChoose={() => {}} />);
-    expect(html).not.toContain('Give it to');
-    expect(html).toContain('I will do it');
   });
 });

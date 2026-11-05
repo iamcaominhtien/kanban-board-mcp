@@ -55,22 +55,3 @@ export interface CleanupResult {
   removed: string[];
   kept: { ticketId: string; why: string }[];
 }
-
-export interface TicketFlag {
-  id: string;
-  kind: string;
-  data: Record<string, unknown>;
-  open: boolean;
-  createdAt: string;
-  resolvedAt: string | null;
-  resolvedBy: string | null;
-  resolution: string | null;
-}
-
-export type ConflictChoice = 'ai' | 'me' | 'later';
-
-export interface ConfigMigration {
-  memberId: string;
-  folder: string;
-  files: { path: string; unchanged: boolean; blockOnly: boolean }[];
-}

@@ -66,15 +66,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
-import { SplitBadge, SuggestCasesButton, SuggestCasesPanel, TicketAiMenu } from './assist/TicketAi';
+import { TicketAiMenu } from './assist/TicketAi';
 import { TicketChat } from './assist/TicketChat';
 import { AiCompletedBadge, useAiBoardState } from './ai/aiUi';
 import { BranchesSection } from './BranchesSection';
 import { CreateBranchModal } from './CreateBranchModal';
 import { useProject } from '../api/projects';
 import { SubTicketsSection } from './SubTicketsSection';
-import { StoryPage } from './story/StoryPage';
-import { useMakeStory } from '../api/stories';
 import { SubTasksSection } from './SubTasksSection';
 import { TicketTypeIcon, PriorityMark } from './icons';
 import { StatusMenu, STATUS_OPTIONS } from './StatusMenu';
@@ -249,7 +247,6 @@ function TicketModalInner({
   const [activeTab, setActiveTab] = useState<
     'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity' | 'ai'
   >('main');
-  const [suggestCases, setSuggestCases] = useState(false);
   // The ticket and the AI's work on it take turns on the main tab (a tall AI summary no longer hides the ticket)
   const [mainView, setMainView] = useState<'ticket' | 'ai'>('ticket');
   const [hasAiPane, setHasAiPane] = useState(false);
@@ -373,7 +370,6 @@ function TicketModalInner({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const toast = useToast();
-  const makeStoryMutation = useMakeStory(ticket?.projectId ?? '');
   const updateTicketMutation = useUpdateTicket();
   const addCommentMutation = useAddComment();
   const updateCommentMutation = useUpdateComment();
@@ -1433,10 +1429,6 @@ function TicketModalInner({
                 ticket={ticket}
                 chatOpen={chatOpen && aiChatAvailable}
                 onToggleChat={aiChatAvailable ? toggleChat : undefined}
-                onOpenTestCases={() => {
-                  setActiveTab('test_cases');
-                  setSuggestCases(true);
-                }}
               />
             </div>
 
@@ -2216,7 +2208,6 @@ function TicketModalInner({
                         />
 
                         {/* Sub-tickets (child tickets) */}
-                        <SplitBadge ticketId={ticket.id} />
                         <SubTicketsSection
                           members={members}
                           childTickets={childTickets}
@@ -2236,18 +2227,6 @@ function TicketModalInner({
                               data: { parentId: null },
                             });
                           }}
-                          onMakeStory={
-                            // a Story holds tickets, never Stories: a ticket inside another one stays a ticket
-                            ticket.type !== 'story' && !ticket.parentId
-                              ? () =>
-                                  makeStoryMutation.mutate(ticket.id, {
-                                    onSuccess: () =>
-                                      toast.success('Now a Story', `${ticket.id} waits in Backlog for the PM.`),
-                                    onError: (err) => toast.error("Couldn't make it a Story", extractError(err)),
-                                  })
-                              : undefined
-                          }
-                          makingStory={makeStoryMutation.isPending}
                         />
 
                         {/* Acceptance Criteria */}
@@ -3285,13 +3264,7 @@ function TicketModalInner({
                     <TestCasesSection
                       ticketId={ticket.id}
                       testCases={ticket.testCases ?? []}
-                      aiActions={<SuggestCasesButton ticket={ticket} onOpen={() => setSuggestCases(true)} />}
                       criteria={ticket.acceptanceCriteria ?? []}
-                      aiPanel={
-                        suggestCases ? (
-                          <SuggestCasesPanel ticket={ticket} onClose={() => setSuggestCases(false)} />
-                        ) : null
-                      }
                       childTestCaseSources={childTickets.map((st) => ({
                         ticketId: st.id,
                         ticketTitle: st.title,
@@ -3508,20 +3481,7 @@ export function TicketModal(props: TicketModalProps) {
   const updateTicket = useUpdateTicket();
   const latestTicket = useRef(ticket);
   latestTicket.current = ticket; // a drawing can take minutes: add it to the description as it is by then
-  // A Story opens as the Story page (ai-story-flow E); its menu can still show it as a ticket
-  const [storyAsTicket, setStoryAsTicket] = useState(false);
   if (!ticket) return <TicketModalInner {...props} />;
-  if (ticket.type === 'story' && !storyAsTicket) {
-    return (
-      <StoryPage
-        ticket={ticket}
-        allTickets={allTickets}
-        onClose={props.onClose}
-        onOpenTicket={onOpenTicket}
-        onOpenAsTicket={() => setStoryAsTicket(true)}
-      />
-    );
-  }
   // "Draw on it" in the file viewer saves the drawing to this ticket and adds it to the description, as an attachment is
   const sketchOwner = {
     ownerKind: 'ticket' as const,

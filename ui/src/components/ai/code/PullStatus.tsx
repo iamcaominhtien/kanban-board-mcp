@@ -1,31 +1,25 @@
 import { useState } from 'react';
-import { useAiBoardState } from '../aiUi';
 import { extractError } from '../../../api/extractError';
 import { pullApi, usePullMutation, usePulls } from '../../../api/aiPulls';
 import { useProjectOps } from '../../../api/aiProjectOps';
 import { useTicket } from '../../../api/tickets';
 import { ago } from '../aiUi';
-import { BRANCH, BUBBLE, CI_TEXT, EXTERNAL, PullRules, SPARKLE } from './pullParts';
+import { BRANCH, BUBBLE, CI_TEXT, EXTERNAL, PullRules } from './pullParts';
 
-/** A pull request the board opened (design/screens/ai-board-wave3.md, J): CI state, red CI and review comments back to
- * the AI. */
+/** A pull request the board opened (design/screens/ai-board-wave3.md, J): CI state, red CI and review comments. */
 export function PullStatus({ ticketId }: { ticketId: string }) {
   const ticket = useTicket(ticketId);
   const projectId = ticket.data?.projectId;
   const pulls = usePulls(projectId);
   const ops = useProjectOps(projectId ?? '');
-  const dev = useAiBoardState().members.get(ticket.data?.assignee ?? '');
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
   const poll = usePullMutation(projectId, () => pullApi.poll(projectId as string));
-  const ci = usePullMutation(projectId, () => pullApi.ciToDev(ticketId));
-  const comments = usePullMutation(projectId, () => pullApi.commentsToDev(ticketId));
 
   const p = pulls.data?.find((x) => x.ticketId === ticketId);
   if (!p) return null;
 
-  const who = dev ? dev.name : 'the Dev';
   const red = p.ci === 'red' && p.red;
   const checked = p.checkedAt ? `checked ${ago(p.checkedAt)}` : 'not checked yet';
   const unreachable = !!p.lastError;
@@ -137,26 +131,12 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
           )}
           {red.handledAt && <div className="ai-hint">Already given back {ago(red.handledAt)}.</div>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="ai-btn"
-              disabled={ci.isPending || !red.blamed}
-              onClick={() => void run(() => ci.mutateAsync(undefined), `Given back to ${who}.`)}
-            >
-              {SPARKLE}
-              Give it back to {who}
-            </button>
             {red.url && (
               <a className="ai-btn" href={red.url} target="_blank" rel="noreferrer">
                 {EXTERNAL}
                 Open the run on GitHub
               </a>
             )}
-          </div>
-          <div className="ai-hint" style={{ fontSize: 11.5 }}>
-            It starts a normal run on the ticket’s worktree with the failing log attached, and that run may push to this
-            pull request’s branch and reply on its threads without asking. Same no-progress rule, same quota, same run
-            history.
           </div>
         </div>
       )}
@@ -204,23 +184,9 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
             </div>
           ))}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="ai-btn"
-              disabled={comments.isPending}
-              onClick={() => void run(() => comments.mutateAsync(undefined), `Handed to ${who}.`)}
-            >
-              {SPARKLE}
-              {nComments === 1 ? `Hand the comment to ${who}` : `Hand the comments to ${who}`}
-            </button>
             <a className="ai-btn" href={p.url} target="_blank" rel="noreferrer">
               {EXTERNAL}I will answer them
             </a>
-          </div>
-          <div className="ai-hint" style={{ fontSize: 11.5 }}>
-            The AI gets the comment text and the exact lines, and replies on the thread when it has changed something —
-            which is a post outside the board it may make without asking, because it is this pull request’s own thread.
-            It never resolves a person’s thread itself.
           </div>
         </div>
       )}

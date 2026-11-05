@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Plugin, SkillUsage } from '../../../types/aiPlugins';
+import type { Plugin } from '../../../types/aiPlugins';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('../../../api/client', () => ({ client: http }));
@@ -76,22 +76,11 @@ describe('effective switch', () => {
 });
 
 describe('filters', () => {
-  const usage: SkillUsage[] = [
-    { name: 'tdd', kind: 'skill', plugin: null, uses: 61, runs: 5, members: [], last: null },
-    { name: 'release-notes', kind: 'skill', plugin: null, uses: 0, runs: 1104, members: [], last: null },
-    { name: 'inner', kind: 'skill', plugin: 'design', uses: 2, runs: 2, members: [], last: null },
-    { name: 'playwright', kind: 'mcp', plugin: null, uses: 0, runs: 3, members: [], last: null },
-  ];
-  const rows = buildRows(
-    [plugin(), plugin({ id: 'p2', name: 'idle', used: { uses: 0, byMember: [], last: null } })],
-    usage,
-  );
+  const rows = buildRows([plugin(), plugin({ id: 'p2', name: 'idle', used: { uses: 0, byMember: [], last: null } })]);
   it('splits by kind and never used', () => {
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(2);
     expect(applyFilter(rows, 'plugins').map((r) => r.name)).toEqual(['design', 'idle']);
-    expect(applyFilter(rows, 'skills').map((r) => r.name)).toEqual(['tdd', 'release-notes']);
-    expect(applyFilter(rows, 'mcp').map((r) => r.name)).toEqual(['playwright']);
-    expect(applyFilter(rows, 'never').map((r) => r.name)).toEqual(['idle', 'release-notes', 'playwright']);
+    expect(applyFilter(rows, 'never').map((r) => r.name)).toEqual(['idle']);
   });
   it('the filter buttons narrow the installed list', () => {
     render(
@@ -99,7 +88,6 @@ describe('filters', () => {
         <InstalledTab
           projectId="pr"
           plugins={[plugin(), plugin({ id: 'p2', name: 'idle', used: { uses: 0, byMember: [], last: null } })]}
-          usage={usage}
         />,
       ),
     );

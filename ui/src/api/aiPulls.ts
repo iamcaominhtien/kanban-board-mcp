@@ -8,10 +8,6 @@ export const pullApi = {
   list: async (projectId: string) => (await client.get<Pull[]>(`/projects/${projectId}/ai/pulls`)).data,
   poll: async (projectId: string) =>
     (await client.post<{ changes: number }>(`/projects/${projectId}/ai/pulls/poll`)).data,
-  ciToDev: async (ticketId: string) =>
-    (await client.post<{ runId: string }>(`/tickets/${ticketId}/ai/pull/ci-to-dev`)).data,
-  commentsToDev: async (ticketId: string) =>
-    (await client.post<{ runId: string }>(`/tickets/${ticketId}/ai/pull/comments-to-dev`)).data,
 };
 
 /** The watched pull requests of a project; polled gently while one is open. */

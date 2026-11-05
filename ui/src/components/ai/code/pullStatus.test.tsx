@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -45,21 +45,17 @@ describe('PullStatus', () => {
     expect(container.textContent).toBe('');
   });
 
-  it('gives red CI and the comments back, and shows a 409 message', async () => {
+  it('shows red CI and the review comments, and links out', async () => {
     wire([pull]);
-    http.post.mockRejectedValueOnce({ response: { data: { detail: 'Nothing to hand back.' } } });
-    http.post.mockResolvedValueOnce({ data: { runId: 'r1' } });
     mount();
-    fireEvent.click(await screen.findByText(/Give it back to/));
-    expect(await screen.findByText('Nothing to hand back.')).toBeTruthy();
-    fireEvent.click(screen.getByText(/Hand the comment to/));
-    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-1/ai/pull/comments-to-dev'));
+    expect(await screen.findByTestId('pull-red-card')).toBeTruthy();
+    expect(screen.getByTestId('pull-comments-card')).toBeTruthy();
+    expect(screen.queryByText(/Give it back to/)).toBeNull();
   });
 
   it('does not send anyone back when the base is red too', async () => {
     wire([{ ...pull, red: { ...pull.red, blamed: false } }]);
     mount();
     expect(await screen.findByTestId('pull-not-ours')).toBeTruthy();
-    expect((screen.getByText(/Give it back to/).closest('button') as HTMLButtonElement).disabled).toBe(true);
   });
 });

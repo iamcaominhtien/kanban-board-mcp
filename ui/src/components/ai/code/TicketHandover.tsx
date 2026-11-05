@@ -1,25 +1,18 @@
 import { useState } from 'react';
 import { PullStatus } from './PullStatus';
-import { codeApi, useCodeMutation, useTicketFlags, useTicketWorktree } from '../../../api/aiCode';
+import { codeApi, useCodeMutation, useTicketWorktree } from '../../../api/aiCode';
 import { extractError } from '../../../api/extractError';
-import { useAiBoardState } from '../aiUi';
 import type { Ticket } from '../../../types';
 import type { HandoverRoute, MergeResult } from '../../../types/aiCode';
-import { ConflictCard, ROUTE_TEXT, ROUTE_TITLE, StateChip, mbText, uncommittedText } from './worktreeUi';
+import { ROUTE_TEXT, ROUTE_TITLE, StateChip, mbText, uncommittedText } from './worktreeUi';
 
 /** A ticket's worktree and hand-over (design/screens/ai-operations.md, J): ready to hand over, merge, a conflict. */
 export function TicketHandover({ ticket }: { ticket: Ticket }) {
   const wt = useTicketWorktree(ticket.id);
-  const hasWt = !!wt.data && wt.data.state !== 'removed';
-  const flags = useTicketFlags(ticket.id, hasWt);
-  const assignee = useAiBoardState().members.get(ticket.assignee ?? '');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResult | null>(null);
   const merge = useCodeMutation(() => codeApi.merge(ticket.id));
   const handover = useCodeMutation((r: HandoverRoute) => codeApi.handover(ticket.id, r));
-  const conflict = useCodeMutation((v: { choice: 'ai' | 'me' | 'later'; memberId?: string }) =>
-    codeApi.conflict(ticket.id, v.choice, v.memberId),
-  );
   const moveOutputs = useCodeMutation(() => codeApi.moveOutputs(ticket.id));
   const commit = useCodeMutation(() => codeApi.commit(ticket.id));
   const discard = useCodeMutation(() => codeApi.discard(ticket.id));
@@ -29,11 +22,9 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
   const w = wt.data;
   if (!w || w.state === 'removed') return null;
 
-  const openConflict = flags.data?.some((f) => f.kind === 'merge_conflict' && f.open) || w.state === 'conflict';
   const route = (w as { route?: HandoverRoute }).route ?? w.handover ?? 'auto';
   const eff: Exclude<HandoverRoute, 'auto'> = route === 'auto' ? 'pr' : route;
   const dirty = (w.live?.uncommitted.length ?? 0) > 0;
-  const lastMember = assignee && assignee.kind === 'ai' ? assignee : null;
   const run = async (fn: () => Promise<unknown>) => {
     setError(null);
     try {
@@ -104,17 +95,7 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
         </div>
       )}
 
-      {openConflict ? (
-        <ConflictCard
-          files={w.conflictFiles}
-          memberName={lastMember?.name ?? null}
-          busy={conflict.isPending}
-          error={error}
-          onChoose={(choice) =>
-            void run(() => conflict.mutateAsync({ choice, memberId: choice === 'ai' ? lastMember?.id : undefined }))
-          }
-        />
-      ) : w.state === 'merged' ? (
+      {w.state === 'merged' ? (
         <div className="ai-hint">Merged. The worktree is removed and its port is given back.</div>
       ) : (
         <div className="ai-notice ai-notice-info" style={{ display: 'block' }} data-testid="ready-to-hand-over">
@@ -163,7 +144,7 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
           Pull request
         </a>
       )}
-      {!openConflict && error && <div className="ai-error-text">{error}</div>}
+      {error && <div className="ai-error-text">{error}</div>}
       <PullStatus ticketId={ticket.id} />
     </div>
   );

@@ -5,7 +5,6 @@ import type { DocsCommentItem, DocsCommentsResult, DocsCommentThread } from '../
 
 vi.mock('../../../api/docsComments', () => ({
   useThreadAiActions: () => ({ suggestEdit: { isPending: false }, summarise: { isPending: false } }),
-  useSendToAi: () => ({ mutateAsync: vi.fn(), isPending: false }),
   sentWords: () => '',
 }));
 vi.mock('./CommentText', () => ({ CommentText: ({ text }: { text: string }) => <p>{text}</p> }));

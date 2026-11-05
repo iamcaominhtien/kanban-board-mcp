@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { SignalCards } from '../ai/board/SignalCards';
 import { assistApi, useAssistState, useHealth } from '../../api/assist';
 import { extractError } from '../../api/extractError';
 import type { HealthConfig, Insight, InsightChip } from '../../types/assist';
@@ -304,7 +303,6 @@ export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
         aria-label="Board health"
         data-testid="board-health"
       >
-        {projectId && <SignalCards projectId={projectId} />}
         <div
           style={{
             display: 'flex',

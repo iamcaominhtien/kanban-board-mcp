@@ -6,7 +6,6 @@ import { ToastProvider } from '../Toast';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
 vi.mock('../../api/client', () => ({ client: http }));
-vi.mock('./ResourcesTab', () => ({ ResourcesTab: () => <div>resources</div> }));
 
 import { AiTeamView } from './AiTeamView';
 import { AiBoardContext } from '../ai/aiUi';

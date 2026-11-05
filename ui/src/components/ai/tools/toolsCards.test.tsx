@@ -83,7 +83,7 @@ describe('CatalogueTab', () => {
 
   it('shows a skeleton, then entries; filters by role; shows empty state', async () => {
     http.get.mockResolvedValue({ data: catalogue });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[]} />));
+    render(wrap(<CatalogueTab plugins={[]} />));
     expect(screen.getByLabelText('Loading')).toBeTruthy();
     expect(await screen.findByTestId('cat-tdd')).toBeTruthy();
     expect(screen.getByText('MCP server')).toBeTruthy();
@@ -97,45 +97,23 @@ describe('CatalogueTab', () => {
 
   it('shows an error with Try again', async () => {
     http.get.mockRejectedValue({ response: { data: { detail: 'catalogue offline' } } });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[]} />));
+    render(wrap(<CatalogueTab plugins={[]} />));
     expect(await screen.findByText(/Couldn't load the catalogue: catalogue offline/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(http.get).toHaveBeenCalledTimes(2));
   });
 
-  it('installs a plugin and says so', async () => {
+  it('shows plain Installed for an installed plugin and nothing to press', async () => {
     http.get.mockResolvedValue({ data: catalogue });
-    http.post.mockResolvedValue({ data: { plugin: plugin({ name: 'tdd-kit' }) } });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[]} />));
-    const card = await screen.findByTestId('cat-tdd');
-    fireEvent.click(card.querySelector('button') as HTMLButtonElement);
-    expect(await screen.findByText('Installed.')).toBeTruthy();
-    expect(http.post).toHaveBeenCalledWith('/projects/pr/ai/catalogue/tdd/install', {});
-  });
-
-  it('adds an MCP server to members and counts them', async () => {
-    http.get.mockResolvedValue({ data: catalogue });
-    http.post.mockResolvedValue({ data: { mcpAddedTo: ['m1'] } });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[]} />));
-    const card = await screen.findByTestId('cat-figma');
-    fireEvent.click(card.querySelector('button') as HTMLButtonElement);
-    expect(await screen.findByText('Added to 1 member.')).toBeTruthy();
-  });
-
-  it('shows plain Installed for an installed plugin, and the error of a failed install', async () => {
-    http.get.mockResolvedValue({ data: catalogue });
-    http.post.mockRejectedValue({ response: { data: { detail: 'clone failed' } } });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[plugin({ name: 'tdd-kit' })]} />));
+    render(wrap(<CatalogueTab plugins={[plugin({ name: 'tdd-kit' })]} />));
     const done = await screen.findByTestId('cat-tdd');
     expect(done.textContent).toContain('Installed');
     expect(done.querySelector('button')).toBeNull();
-    fireEvent.click(screen.getByTestId('cat-figma').querySelector('button') as HTMLButtonElement);
-    expect((await screen.findByRole('alert')).textContent).toBe('clone failed');
   });
 });
 
 describe('InstalledTab actions', () => {
-  const renderIt = (plugins: Plugin[]) => render(wrap(<InstalledTab projectId="pr" plugins={plugins} usage={[]} />));
+  const renderIt = (plugins: Plugin[]) => render(wrap(<InstalledTab projectId="pr" plugins={plugins} />));
 
   it('says nothing is installed, and when a filter matches nothing', () => {
     renderIt([]);

@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 import { NowTab, type NowActions } from './NowTab';
-import { ResourcesTab } from './ResourcesTab';
 import { HistoryTab } from './HistoryTab';
 import { useKnowledge } from '../../api/aiKnowledge';
 import { KnowledgeSection, memoryWaiting } from '../ai/knowledge/KnowledgeSection';
 import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
 import './aiTeam.css';
 
-type Tab = 'now' | 'resources' | 'history' | 'memory';
+type Tab = 'now' | 'history' | 'memory';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'now', label: 'Now' },
-  { id: 'resources', label: 'Resources' },
   { id: 'history', label: 'Run history' },
   // what the AIs remember, and what waits for a person there (issue #274)
   { id: 'memory', label: 'Memory' },
@@ -80,8 +78,6 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
         <div style={{ padding: '4px 0 24px', maxWidth: 920 }} data-testid="at-memory">
           <KnowledgeSection projectId={projectId} initialTab="memory" />
         </div>
-      ) : tab === 'resources' ? (
-        <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} />
       ) : (
         <NowTab projectId={projectId} actions={actions} />
       )}

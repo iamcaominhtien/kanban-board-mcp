@@ -1,4 +1,3 @@
-import type { RestartEntry } from './aiResources';
 import type { MemberAccountRef } from './aiAccounts';
 
 /** AI v2: Claude Code only. A "team" is the assignee of a ticket; its lead runs the ticket, its roles are subagents. */
@@ -314,7 +313,6 @@ export interface AiRun {
   stopCode: string | null;
   peakRssMb: number | null;
   lastRssMb: number | null;
-  restarts: RestartEntry[];
   diagnosis: RunDiagnosis | null;
   retries: RunRetry[];
   accountId: string | null;

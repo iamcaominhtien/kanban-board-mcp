@@ -23,7 +23,7 @@ import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
 import { PublishDialog } from './PublishDialog';
 import { lineDiffCounts } from '../../utils/lineDiff';
 import './docs.css';
-import { DocsAi, startSelectionDraft } from '../assist/DocsAi';
+import { DocsAi, docPrompt } from '../assist/DocsAi';
 import { useAssist } from '../assist/AssistContext';
 import { useDocsAiState } from '../../api/docsAi';
 import { aiGate } from '../../utils/docsAiRules';
@@ -32,7 +32,6 @@ import { AiDraftChip, AiDraftPanel, goToText } from './ai/NeedsInput';
 import { stripCitations } from '../../utils/writeRules';
 import { consumeAiOnEdit } from './ai/editIntent';
 import type { AiSlashId } from './editor/slashItems';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
   projectId: string;
@@ -78,7 +77,6 @@ export function DocsEditScreen({
 }: Props) {
   const toast = useToast();
   const assist = useAssist();
-  const qc = useQueryClient();
   const [aiMenu, setAiMenu] = useState(false);
   const [aiCommand, setAiCommand] = useState<{ id: AiSlashId; n: number } | null>(null);
   const [ticketsFrom, setTicketsFrom] = useState<string | null>(null);
@@ -633,17 +631,7 @@ export function DocsEditScreen({
                   onSlash: (id) => setAiCommand((c) => ({ id, n: (c?.n ?? 0) + 1 })),
                   docsAi: docsAiOn,
                   onSelection: (action, text) => {
-                    if (action === 'ask') {
-                      assist?.ask({
-                        scope: 'doc',
-                        docId: page.id,
-                        text: `About this passage of the page: “${text.slice(0, 600)}” — what does it mean, and is anything missing?`,
-                      });
-                      return;
-                    }
-                    void startSelectionDraft(projectId, page.id, action, text)
-                      .then(() => qc.invalidateQueries({ queryKey: ['assist', 'doc-drafts', projectId, page.id] }))
-                      .catch((e: unknown) => toast.error('Board AI', extractError(e)));
+                    assist?.ask({ scope: 'doc', docId: page.id, text: docPrompt(action, text) });
                   },
                 }}
                 header={

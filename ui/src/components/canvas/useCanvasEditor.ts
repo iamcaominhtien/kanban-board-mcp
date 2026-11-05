@@ -230,7 +230,6 @@ export function useCanvasEditor(canvasId: string) {
             ? {
                 ...cur,
                 openComments: c.openComments,
-                proposalsOpen: c.proposalsOpen,
                 title: c.title,
                 version: c.version,
               }

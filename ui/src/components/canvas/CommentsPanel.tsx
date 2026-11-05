@@ -6,7 +6,6 @@ import {
   canvasKeys,
   canvasMarkdown,
   deleteComment,
-  proposeFixFromThread,
   replyThread,
   setThreadStatus,
   type CanvasBoard,
@@ -31,10 +30,6 @@ interface Props {
   canComment: boolean;
   /** Who is looking, for "Only mine" and delete. */
   me: string;
-  /** AI is available here, so "Propose a fix" is offered on an AI member's comment. */
-  aiAvailable?: boolean;
-  /** Called with the job once "Propose a fix" started. */
-  onProposeStarted?: (jobId: string) => void;
   /** Start a new thread on the board in view (the large view has no pin tool). */
   newOnBoard?: boolean;
   filters?: CommentFilter[];
@@ -182,30 +177,6 @@ export function CommentsPanel(props: Props) {
             >
               Comment
             </button>
-            {props.aiAvailable && /@\S/.test(draft) && (
-              <button
-                type="button"
-                className={`${styles.btn} ${styles.btnSm} ${styles.btnAi}`}
-                disabled={!draft.trim()}
-                title="The AI you mention answers and prepares the change for this frame"
-                onClick={() =>
-                  void run(async () => {
-                    const out = await addThread(canvasId, {
-                      body: draft.trim(),
-                      boardId,
-                      x: 0.5,
-                      y: 0.5,
-                      aiIntent: 'suggest',
-                    });
-                    setDraft('');
-                    return out;
-                  })
-                }
-                data-testid="canvas-comment-propose"
-              >
-                <CanvasIcon name="spark" size={13} /> Send &amp; propose
-              </button>
-            )}
           </div>
         </div>
       )}
@@ -248,27 +219,6 @@ export function CommentsPanel(props: Props) {
                   <span className={styles.commentTime}>{relativeTime(c.createdAt)}</span>
                 </div>
                 <div className={styles.commentText}>{mentioned(c.body)}</div>
-                {((c.isAi && c.ai?.canPropose) || (!c.isAi && t.comments[0]?.id === c.id)) &&
-                  props.aiAvailable &&
-                  t.boardId &&
-                  t.status === 'open' && (
-                    <div className={styles.threadActions}>
-                      <button
-                        type="button"
-                        className={`${styles.btn} ${styles.btnSm} ${styles.btnAi}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void run(async () => {
-                            const job = await proposeFixFromThread(t.id);
-                            props.onProposeStarted?.(job.id);
-                          });
-                        }}
-                        data-testid="canvas-propose-fix"
-                      >
-                        <CanvasIcon name="spark" size={13} /> Propose a fix
-                      </button>
-                    </div>
-                  )}
                 {c.author === me && t.comments[0]?.id === c.id && (
                   <button
                     type="button"

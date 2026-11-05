@@ -34,10 +34,9 @@ const wt = (over: Partial<Worktree & { route: string }> = {}, uncommitted: strin
     ...over,
   }) as Worktree;
 
-function setup(worktree: Worktree | null, flags: unknown[] = []) {
+function setup(worktree: Worktree | null) {
   http.get.mockImplementation((url: string) => {
     if (url.endsWith('/ai/worktree')) return Promise.resolve({ data: worktree });
-    if (url.endsWith('/ai/ticket-flags')) return Promise.resolve({ data: flags });
     return Promise.reject(new Error(`unexpected GET ${url}`));
   });
 }
@@ -135,27 +134,6 @@ describe('TicketHandover', () => {
     renderIt();
     expect(await screen.findByText(/Merged\. The worktree is removed and its port is given back\./)).toBeTruthy();
     expect(screen.queryByTestId('ready-to-hand-over')).toBeNull();
-  });
-
-  it('shows the conflict card and gives it to the AI, to me, or for later', async () => {
-    setup(wt({ state: 'conflict', conflictFiles: ['a.py', 'b.py'] }));
-    http.post.mockResolvedValue({ data: { ok: true } });
-    renderIt();
-    expect(await screen.findByTestId('conflict-card')).toBeTruthy();
-    expect(screen.getByText(/2 files differ from main: a\.py, b\.py/)).toBeTruthy();
-    await screen.findByRole('button', { name: 'Give it to Dev An' });
-    fireEvent.click(screen.getByRole('button', { name: 'Give it to Dev An' }));
-    await waitFor(() =>
-      expect(http.post).toHaveBeenCalledWith('/tickets/KAN-1/ai/conflict', { choice: 'ai', memberId: 'dev1' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'I will do it' }));
-    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/tickets/KAN-1/ai/conflict', { choice: 'me' }));
-  });
-
-  it('treats an open merge_conflict flag as a conflict', async () => {
-    setup(wt(), [{ id: 'f1', kind: 'merge_conflict', data: {}, open: true }]);
-    renderIt();
-    expect(await screen.findByTestId('conflict-card')).toBeTruthy();
   });
 
   it('says what keeps the worktree and lets a person move the outputs, commit the code or discard', async () => {

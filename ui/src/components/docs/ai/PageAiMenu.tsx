@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { assistApi, assistError } from '../../../api/assist';
 import { useTickets } from '../../../api/tickets';
 import { useDocsAiState, useSetPageAiFlags } from '../../../api/docsAi';
 import { freshnessUnavailable, useCheckFreshness } from '../../../api/docsAiPage';
@@ -15,6 +14,7 @@ import {
   type MenuRow,
 } from '../../../utils/pageAiRules';
 import { useAssist } from '../../assist/AssistContext';
+import { docPrompt } from '../../assist/DocsAi';
 import { useToast } from '../../Toast';
 import { Icon } from '../Icon';
 import { CreateTicketsDialog } from './CreateTicketsDialog';
@@ -110,14 +110,7 @@ export function PageAiMenu({
         },
       });
     else if (id === 'tickets') setTickets(true);
-    else if (id === 'links')
-      void assistApi
-        .startDraft(projectId, { kind: 'doc_links', docId: page.id, data: { markdown: page.markdown } })
-        .then(() => {
-          requestAiOnEdit(page.id);
-          onEdit?.();
-        })
-        .catch((e: unknown) => toast.error('Suggest links', assistError(e)?.detail ?? extractError(e)));
+    else if (id === 'links') assist?.ask({ scope: 'doc', docId: page.id, text: docPrompt('doc_links') });
     else if (id === 'edit') {
       requestAiOnEdit(page.id);
       onEdit?.();
