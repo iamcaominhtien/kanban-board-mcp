@@ -1,4 +1,7 @@
-import { RunStateChip } from './aiUi';
+import { AiAvatar, RunStateChip, fmtElapsed, secondsSince, useAiBoardState, useNow } from './aiUi';
+import { aiApi, useAiMutation, useAiRun } from '../../api/ai';
+import { extractError } from '../../api/extractError';
+import { useToast } from '../Toast';
 import './ticketWork.css';
 import type { AiRun } from '../../types/ai';
 import { LineIcon } from '../ui/LineIcon';
@@ -74,6 +77,60 @@ export function AnswerTransitions({ run }: { run?: Pick<AiRun, 'state'> }) {
       <div className="tw-tick">
         <LineIcon name="check" size={12} /> Answer sent to the lead
       </div>
+    </div>
+  );
+}
+
+/**
+ * The team at work, in the comment thread (design C3 of the AI v2 thread): who, how long, the step it is on, and Stop.
+ * Queued runs say why they wait; a run that asks a question points to the AI activity view.
+ */
+export function RunWorkingRow({ run }: { run: AiRun }) {
+  const { members } = useAiBoardState();
+  const full = useAiRun(run.id).data;
+  const cancel = useAiMutation(() => aiApi.cancel(run.id));
+  const toast = useToast();
+  const live = run.state === 'running' || run.state === 'starting';
+  useNow(1000, live);
+  const team = members.get(run.memberId);
+  const name = team?.name ?? 'The team';
+  const last = [...(full?.steps ?? [])].reverse().find((s) => s.kind !== 'hook' && s.kind !== 'start');
+  const stop = async () => {
+    try {
+      await cancel.mutateAsync(undefined);
+    } catch (err) {
+      toast.error("Couldn't stop it", extractError(err));
+    }
+  };
+  const label = run.state === 'queued' ? 'QUEUED' : run.state === 'needs_input' ? 'ASKS YOU' : 'WORKING';
+  return (
+    <div className="ai-root tw-working" data-testid="run-working" data-state={run.state}>
+      <span className="tw-working-face">
+        {team ? <AiAvatar color={team.color} size={26} /> : null}
+        {live && <span className="tw-working-pulse" aria-hidden="true" />}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <b style={{ fontSize: 13 }}>{name}</b>
+          <span className="tw-working-label">{label}</span>
+          {live && <span className="ai-mono ai-muted">{fmtElapsed(secondsSince(run.startedAt ?? run.queuedAt))}</span>}
+        </div>
+        <div className="ai-muted" style={{ fontSize: 12.5, marginTop: 2 }} data-testid="run-working-text">
+          {run.state === 'queued'
+            ? (run.waitingReason ?? 'Waiting to start…')
+            : run.state === 'needs_input'
+              ? 'It asks you a question: answer it in AI activity.'
+              : last
+                ? last.title
+                : `${name} is reading the ticket…`}
+          {live && <span className="tw-working-dots" aria-hidden="true" />}
+        </div>
+      </div>
+      {run.state !== 'needs_input' && (
+        <button type="button" className="ai-btn ai-btn-sm" onClick={() => void stop()} data-testid="run-working-stop">
+          {run.state === 'queued' ? 'Cancel' : 'Stop'}
+        </button>
+      )}
     </div>
   );
 }

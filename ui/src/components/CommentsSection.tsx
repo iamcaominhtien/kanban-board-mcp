@@ -8,7 +8,7 @@ import { useTicketRuns } from '../api/ai';
 import { ASK_AI_EVENT } from './ai/AiTicketContext';
 import type { SendOpts } from './ai/ComposerAi';
 import { useAiSuggest } from './ai/useMentionList';
-import { AnswerTransitions, ThreadChip, AiBadge, RoleChip, type ThreadState } from './ai/AiThread';
+import { AnswerTransitions, ThreadChip, AiBadge, RoleChip, RunWorkingRow, type ThreadState } from './ai/AiThread';
 import type { AiRun } from '../types/ai';
 
 const AI_KIND: Record<string, string> = {
@@ -201,6 +201,8 @@ export function CommentsSection({
   const { members: aiMembers } = useAiBoardState();
   const aiRunsData = useTicketRuns(ticketId).data;
   const aiRuns: AiRun[] = useMemo(() => aiRunsData ?? [], [aiRunsData]);
+  // the team at work on this ticket, shown in the thread while its run is queued, working or asking
+  const working = aiRuns.find((r) => ['queued', 'starting', 'running', 'needs_input'].includes(r.state));
   const rootRef = useRef<HTMLDivElement>(null);
   const [composing, setComposing] = useState(false);
   // A mention put in the box by Ask on a hover card
@@ -983,7 +985,9 @@ export function CommentsSection({
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {working && sortOrder === 'newest' && <RunWorkingRow run={working} />}
             {rows}
+            {working && sortOrder === 'oldest' && <RunWorkingRow run={working} />}
             {sortOrder === 'oldest' && (
               <>
                 {queue.map((q) => (

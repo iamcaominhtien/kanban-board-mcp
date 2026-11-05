@@ -2526,11 +2526,24 @@ function TicketModalInner({
                           onFocusHandled={() => setFocusCommentId(null)}
                           criteriaCount={ticket.acceptanceCriteria?.length ?? 0}
                           onAdd={async (t, opts) => {
-                            // "Send to team" gives the text to that team's lead as an instruction
+                            // "Send to team": the comment is saved like any other, then the team's lead gets its text
+                            // (a lead already working hears it at once; otherwise a run starts with it)
                             if (opts?.askMemberId) {
-                              await aiApi.run(ticket.id, { teamId: opts.askMemberId, instruction: t });
-                              void queryClient.invalidateQueries({ queryKey: ['tickets'] });
-                              return undefined;
+                              const saved = await addCommentMutation.mutateAsync({
+                                ticketId: ticket.id,
+                                text: t,
+                                author:
+                                  assigneeMember && (assigneeMember.kind ?? 'human') === 'human'
+                                    ? assigneeMember.name
+                                    : 'user',
+                              });
+                              try {
+                                await aiApi.run(ticket.id, { teamId: opts.askMemberId, instruction: t });
+                              } catch (err) {
+                                toast.error('The comment is saved, but the team did not get it', extractError(err));
+                              }
+                              void queryClient.invalidateQueries({ queryKey: ['ai'] });
+                              return saved;
                             }
                             return addCommentMutation.mutateAsync({
                               ticketId: ticket.id,
