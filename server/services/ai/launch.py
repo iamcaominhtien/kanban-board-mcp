@@ -16,7 +16,7 @@ from typing import Any
 import database
 from models import AiAccount, AiRun, AiTeam, Member, Project, Ticket
 
-from . import accounts, board_skills, cli, knowledge, mcp_sources, ops, roles
+from . import accounts, board_skills, cli, knowledge, mcp_sources, ops, pictures, roles
 from .context import RunContext, instruction_block, ticket_block
 from .providers import merged_config
 from .store import ai_names, get_settings, loads
@@ -179,12 +179,14 @@ def board_plugin_dir() -> str:
 
 
 def run_dir(run_id: str) -> Path:
+    """The folder of one run (its prompts, agents and debug log)."""
     folder = data_root() / "runs" / run_id
     folder.mkdir(parents=True, exist_ok=True)
     return folder
 
 
 def forget_run_dir(run_id: str) -> None:
+    """Remove a run's folder."""
     shutil.rmtree(data_root() / "runs" / run_id, ignore_errors=True)
 
 
@@ -239,6 +241,7 @@ def board_rules(
 
 
 def subagent_rules(ctx: RunContext) -> str:
+    """The trusted rules every role (subagent) of a run gets."""
     return "\n".join(
         [
             "<board trusted>",
@@ -403,6 +406,7 @@ def mcp_config(
 
 
 def settings_json(deny: list[str]) -> dict:
+    """The `--settings` of a run: the deny list, without repeats."""
     return {"permissions": {"deny": list(dict.fromkeys(deny))}}
 
 
@@ -508,6 +512,8 @@ async def prepare(
         team_roles=team_roles,
         live=live,
     )
+    # pictures the prompt names (/uploads/…), copied where the CLI may read them (hotfix 3.37.2)
+    prompt, pictures_dir = pictures.stage(prompt, run.id)
     folder = run_dir(run.id)
     system_file = folder / "system.md"
     sub_file = folder / "subagent-system.md"
@@ -567,7 +573,7 @@ async def prepare(
         model=run.model or profile.model,
         effort=run.effort or profile.effort or config.get("effort"),
         debug_file=debug_file,
-        add_dirs=[workspace] if workspace else None,
+        add_dirs=[d for d in (workspace, pictures_dir) if d] or None,
     )
     return Launch(
         args=args,
@@ -585,6 +591,7 @@ async def prepare(
 
 
 def debug_file_of(run_id: str) -> str | None:
+    """The CLI's debug log of a run, if it wrote one."""
     p = data_root() / "runs" / run_id / "debug.log"
     return str(p) if p.exists() else None
 

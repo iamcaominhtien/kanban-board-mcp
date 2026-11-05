@@ -17,7 +17,16 @@ from typing import Any
 import database
 import events as board_events
 from models import AiAccount, AiRun, Project
-from services.ai import accounts, board_skills, cli, guard, launch, steps, stream
+from services.ai import (
+    accounts,
+    board_skills,
+    cli,
+    guard,
+    launch,
+    pictures,
+    steps,
+    stream,
+)
 from services.ai.context import RunContext
 from services.ai.secrets import redact
 from services.ai.store import now_iso
@@ -344,6 +353,8 @@ async def _run(
     board_url = ai_runs._url()  # noqa: SLF001
     use_schema = skills.schema_for(skill) if schema is True else (schema or None)
     prompt = render_inputs(skill, inputs, by)
+    # pictures the prompt names (/uploads/…), copied where the CLI may read them (hotfix 3.37.2)
+    prompt, pictures_dir = pictures.stage(prompt, f"assistant_{run.id}")
     args = launch.args_for(
         path=path,
         prompt=prompt,
@@ -363,7 +374,8 @@ async def _run(
         model=run.model,
         effort=run.effort,
         debug_file=str(folder / "debug.log"),
-        add_dirs=[str(folder)] if saved else None,
+        add_dirs=[d for d in ((str(folder) if saved else None), pictures_dir) if d]
+        or None,
     )
     env = (
         accounts.env_for(account, cli.child_env()) if account else dict(cli.child_env())

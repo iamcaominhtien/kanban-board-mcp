@@ -380,3 +380,32 @@ def test_secrets_in_commands_are_redacted_and_lines_that_are_not_json_are_ignore
         and "abcdefghijkl123" not in row["title"]
     )
     assert p.parse("not json")["rows"] == [] and p.parse("{broken")["rows"] == []
+
+
+def test_pictures_a_prompt_names_are_copied_where_the_cli_may_read_them(
+    tmp_path, monkeypatch
+):
+    """Hotfix 3.37.2 in v2: a pasted picture is a web path; the run gets a copy in a folder it may read (--add-dir)."""
+    from services.ai import pictures
+
+    uploads = tmp_path / "uploads"
+    (uploads / "comments").mkdir(parents=True)
+    (uploads / "_private").mkdir()
+    (uploads / "comments" / "shot.png").write_bytes(b"\x89PNG")
+    (uploads / "_private" / "secret.png").write_bytes(b"\x89PNG")
+    monkeypatch.setenv("KANBAN_UPLOADS_DIR", str(uploads))
+    monkeypatch.setattr(pictures, "folder_for", lambda key: tmp_path / "staged" / key)
+    text = "See ![s](/uploads/comments/shot.png) and ![p](/uploads/_private/secret.png)"
+    out, folder = pictures.stage(text, "run_x")
+    assert folder == str(tmp_path / "staged" / "run_x")
+    assert (tmp_path / "staged" / "run_x" / "shot.png").read_bytes() == b"\x89PNG"
+    assert not (tmp_path / "staged" / "run_x" / "secret.png").exists()
+    assert (
+        out.startswith(text)
+        and "open each with Read" in out
+        and "shot.png" in out.split(text)[1]
+    )
+    assert pictures.stage("no pictures here", "run_y") == ("no pictures here", None)
+    # and the CLI is allowed to read that folder
+    a = _args(add_dirs=[d for d in (None, folder) if d])
+    assert _flag(a, "--add-dir") == folder
