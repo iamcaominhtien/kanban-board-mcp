@@ -64,7 +64,8 @@ def executable(a, name):
 server_a = analysis(
     'server/main.py',
     'kanban-server',
-    submodules('uvicorn') + submodules('fastapi') + submodules('starlette'),
+    # runner: the AI runner process is this same program started with --runner (server/runner, AI v2)
+    submodules('uvicorn') + submodules('fastapi') + submodules('starlette') + ['runner', 'runner.main'],
     copy_metadata('fastapi') + copy_metadata('starlette') + copy_metadata('uvicorn'),
 )
 stdio_a = analysis(
