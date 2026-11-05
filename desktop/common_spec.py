@@ -67,6 +67,8 @@ def get_base_analysis_args(entry_point, app_name):
         (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'slides_skill'), os.path.join('services', 'slides_skill')),
         # the BA's document templates, which its role-ba skill and the Docs page templates read (services/ba_templates)
         (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'ba_templates'), os.path.join('services', 'ba_templates')),
+        # the assistants' feature skills (SKILL.md files), shipped to every assistant turn as a plugin (services/assistant/skills.py)
+        (os.path.join(_WORKSPACE_ROOT, 'server', 'services', 'assistant', 'skills'), os.path.join('services', 'assistant', 'skills')),
     ]
 
     hidden_imports = (

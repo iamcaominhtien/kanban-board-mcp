@@ -593,7 +593,20 @@ async def _deliver_ai(
 ) -> dict[str, Any]:
     """Deliver the AI members mentioned in the comment just saved (Docs AI); the thread comes back with
     `ai_delivery` and any note an AI member posted."""
-    return out  # AI v2 stage 7: the Docs assistant answers @mentions in threads
+    from services import activity
+    from services.assistant import docs as assistant_docs
+
+    if not out.get("comments"):
+        return out
+    intent = {"work": "ask", "suggest": "ask", None: "ask", "": "ask"}.get(
+        intent, intent
+    )
+    delivered = await assistant_docs.deliver(
+        session, thread=out, by=activity.current_actor(), intent=intent or "ask"
+    )
+    if any(d["result"] == "job" for d in delivered):
+        out = await docs_comments.get_thread(session, out["id"])
+    return {**out, "ai_delivery": delivered}
 
 
 class SendToAiBody(BaseModel):

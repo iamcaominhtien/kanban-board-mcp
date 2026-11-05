@@ -11,21 +11,55 @@ async def deliver_to_ticket(ticket_id: str, text: str, *, by: str) -> dict:
 
 
 async def deliver_to_page(page_id: str, text: str, *, by: str) -> dict:
-    """A note to a Docs page: the page's assistant answers in the page's thread (stage 7); until then the note is
-    kept as a comment thread on the page."""
-    import database
-    from services import docs_comments
+    """A note to a Docs page: it is kept as a page comment thread written by `by`, and the page's assistant answers
+    in that thread on the page's own conversation (a `thread_reply` job) when Docs AI is on for the project.
 
-    async with database.async_session() as session:
-        try:
-            thread = await docs_comments.create_thread(
-                session, page_id, body=text, author=by, kind="page"
+    Returns:
+        `{delivered: "page_assistant" | "page_comment", thread_id, job_id?}`.
+
+    Raises:
+        ValueError: the note could not be left on the page.
+    """
+    import database
+    from services import activity, docs_comments
+    from services.assistant import docs as assistant_docs
+    from services.docs_ai import jobs
+
+    token = activity.set_actor(by)
+    try:
+        async with database.async_session() as session:
+            try:
+                thread = await docs_comments.create_thread(
+                    session, page_id, kind="page", body=text
+                )
+            except Exception as exc:  # noqa: BLE001 - the page may not take comments from this sender
+                raise ValueError(
+                    f"The note could not be left on the page: {exc}"
+                ) from exc
+            project_id = thread["project_id"] if "project_id" in thread else None
+            if project_id is None:
+                from models import DocsPage
+
+                page = await session.get(DocsPage, page_id)
+                project_id = page.project_id if page else None
+            out = {"delivered": "page_comment", "thread_id": thread["id"]}
+            if project_id is None or not await assistant_docs.docs_ai_on(
+                session, project_id
+            ):
+                return out
+            from services.assistant import engine
+
+            if (await engine.ready(project_id))["state"] != "ready":
+                return out
+            job = await jobs.start(
+                session,
+                project_id=project_id,
+                kind="thread_reply",
+                started_by=by,
+                page_id=page_id,
+                thread_id=thread["id"],
+                instruction=text[:300],
             )
-        except TypeError:
-            thread = None
-        except Exception as exc:  # noqa: BLE001 - the page may not take comments
-            raise ValueError(f"The note could not be left on the page: {exc}") from exc
-    return {
-        "delivered": "page_comment",
-        "thread_id": (thread or {}).get("id") if isinstance(thread, dict) else None,
-    }
+            return {**out, "delivered": "page_assistant", "job_id": job.id}
+    finally:
+        activity.reset_actor(token)

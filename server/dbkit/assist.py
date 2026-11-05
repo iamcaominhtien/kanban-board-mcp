@@ -105,10 +105,15 @@ def check_statements(statements: list[str]) -> list[str]:
 
 
 async def pick_member():
-    """(profile, name) of the AI that answers: a project's Board AI, else the first AI member that can answer."""
-    raise AssistError(
-        "The AI helper for database copies comes back with AI v2 (stage 7)."
-    )
+    """(None, name) of who answers: the board's assistant, when Claude Code is on this computer."""
+    from services.assistant import engine
+
+    path, _account = await engine.any_cli()
+    if not path:
+        raise AssistError(
+            "No AI can answer: install Claude Code on this computer (or add an AI team in a project), then ask again."
+        )
+    return None, "Board AI"
 
 
 def _parse(text: str) -> dict:
@@ -138,7 +143,37 @@ async def ask(
     previous: dict | None = None,
     member=None,
 ) -> dict:
-    """Ask the AI about `stop`; returns its proposal (statements checked, `applicable` false when they were refused)."""
-    raise AssistError(
-        "The AI helper for database copies comes back with AI v2 (stage 7)."
-    )
+    """Ask the AI about `stop`; returns its proposal (statements checked, `applicable` false when they were refused).
+
+    One answer of the board's assistant with the `db-fix` skill: no tools, and nothing written to the database that
+    is being moved."""
+    from services.assistant import engine
+    from services.assistant.errors import AssistError as EngineError
+
+    _profile, name = member or await pick_member()
+    inputs = {
+        "stop": bundle(stop, plan),
+        "previous": {k: previous.get(k) for k in ("cause", "statements", "affects")}
+        if previous
+        else None,
+        "question": question.strip()[:1000] if question else None,
+    }
+    try:
+        out = await engine.oneshot("db-fix", inputs)
+    except EngineError as exc:
+        raise AssistError(f"{name} could not answer: {exc}") from exc
+    if out.state != "finished":
+        raise AssistError(f"{name} could not answer: {out.error or 'no answer'}")
+    proposal = _parse(json.dumps(out.structured) if out.structured else out.text)
+    try:
+        proposal["statements"] = check_statements(proposal["statements"])
+        proposal["applicable"] = True
+        proposal["refused"] = None
+    except AssistError as exc:
+        proposal["applicable"] = False
+        proposal["refused"] = str(exc)
+    proposal["member"] = name
+    proposal["elapsed_s"] = out.elapsed_s
+    proposal["cost"] = out.cost
+    proposal["shown"] = bundle(stop, plan)
+    return proposal

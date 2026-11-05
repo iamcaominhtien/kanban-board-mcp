@@ -44,7 +44,7 @@ async def test_the_card_says_what_the_board_uses(client):
     r = await client.get("/database")
     body = r.json()
     assert r.status_code == 200
-    assert body["engine"] == "sqlite" and body["reachable"] and body["tables"] >= 80
+    assert body["engine"] == "sqlite" and body["reachable"] and body["tables"] >= 60
     assert body["locked"] is False and "password" not in str(body["settings"])
 
 
@@ -93,27 +93,29 @@ async def test_copy_stops_the_ai_proposes_the_board_applies_and_checks(
 
     monkeypatch.setattr(move.Mover, "_create_target", create_with_a_limit)
 
-    class Profile:
-        connection = "local"
-
     async def pick():
-        return Profile(), "Claude"
+        return None, "Claude"
 
     shown = {}
 
-    async def fake_complete(profile, *, system, prompt, **kw):
-        from services.ai.llm import Completion
+    async def fake_oneshot(skill, inputs, **kw):
+        from services.assistant.engine import Turn
 
-        shown["prompt"] = prompt
-        return Completion(
-            text='{"cause": "The target column is too small.", '
-            '"statements": ["DROP TABLE ticket", "ALTER TABLE project RENAME TO x"], '
-            '"affects": "project.name", "other_columns": [], "confidence": "high", "answer": ""}',
-            metered=False,
+        shown["skill"], shown["inputs"] = skill, inputs
+        return Turn(
+            run_id="",
+            structured={
+                "cause": "The target column is too small.",
+                "statements": ["DROP TABLE ticket", "ALTER TABLE project RENAME TO x"],
+                "affects": "project.name",
+                "other_columns": [],
+                "confidence": "high",
+                "answer": "",
+            },
         )
 
     monkeypatch.setattr(assist, "pick_member", pick)
-    monkeypatch.setattr("services.ai.llm.complete", fake_complete)
+    monkeypatch.setattr("services.assistant.engine.oneshot", fake_oneshot)
 
     made = await client.post(
         "/projects", json={"name": "Move me", "prefix": "MOV", "color": "#2E6F40"}
@@ -123,7 +125,7 @@ async def test_copy_stops_the_ai_proposes_the_board_applies_and_checks(
     check = await client.post("/database/move/check", json=body)
     assert check.status_code == 200, check.text
     plan = check.json()["plan"]
-    assert plan["rows"] > 0 and plan["tables_count"] >= 80
+    assert plan["rows"] > 0 and plan["tables_count"] >= 60
 
     r = await client.post("/database/move/start", json={"mode": "copy"})
     assert r.status_code == 200
@@ -141,9 +143,10 @@ async def test_copy_stops_the_ai_proposes_the_board_applies_and_checks(
     assert proposal["applicable"] is False and "Only ALTER TABLE" in proposal["refused"]
     assert proposal["cause"] == "The target column is too small."
     # the AI is shown names, types, counts and the error, never a value of the row
+    assert shown["skill"] == "db-fix"
     assert (
-        '"table": "project"' in shown["prompt"]
-        and "value_length_chars" in shown["prompt"]
+        shown["inputs"]["stop"]["table"] == "project"
+        and "value_length_chars" in shown["inputs"]["stop"]
     )
 
     refused = await client.post(

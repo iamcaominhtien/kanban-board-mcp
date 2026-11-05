@@ -936,7 +936,7 @@ async def create(session, project_id: str, data: dict, by: str) -> AiSchedule:
         f"created a schedule for {s.ticket_id}: {when_label(s)[0].lower() + when_label(s)[1:]}",
         by,
     )
-    await svc_runs._publish(force=True)
+    await _publish_board()
     return s
 
 
@@ -963,7 +963,7 @@ async def update(session, schedule_id: str, data: dict, by: str) -> AiSchedule:
     session.add(s)
     await session.commit()
     await session.refresh(s)
-    await svc_runs._publish(force=True)
+    await _publish_board()
     return s
 
 
@@ -989,7 +989,7 @@ async def set_paused(
     session.add(s)
     await session.commit()
     await session.refresh(s)
-    await svc_runs._publish(force=True)
+    await _publish_board()
     return s
 
 
@@ -1006,7 +1006,7 @@ async def delete(session, schedule_id: str, by: str) -> None:
     await session.delete(s)
     await session.commit()
     await _activity(s.ticket_id, f"deleted the schedule for {s.ticket_id}", by)
-    await svc_runs._publish(force=True)
+    await _publish_board()
 
 
 async def get_or_404(session, schedule_id: str) -> AiSchedule:
@@ -1652,6 +1652,34 @@ async def _try_start(
     )
 
 
+async def _publish_board() -> None:
+    """Tell open pages that schedules changed."""
+    import events as board_events
+
+    await board_events.publish(board_events.INVALIDATE)
+
+
+async def _move_to_review(run: AiRun) -> bool:
+    """Move the run's ticket to Review when it is still before it. Returns whether it moved."""
+    from models import TicketUpdate
+    from services import tickets as svc_tickets
+
+    if not run.ticket_id:
+        return False
+    async with database.async_session() as session:
+        ticket = await session.get(Ticket, run.ticket_id)
+        if ticket is None or ticket.status not in ("backlog", "todo", "in-progress"):
+            return False
+        try:
+            await svc_tickets.update_ticket(
+                session, ticket.id, TicketUpdate(status="review")
+            )
+        except ValueError:
+            return False
+    await _publish_board()
+    return True
+
+
 async def _set(srun_id: str, **fields) -> None:
     async with database.async_session() as session:
         srun = await session.get(AiScheduleRun, srun_id)
@@ -1662,7 +1690,7 @@ async def _set(srun_id: str, **fields) -> None:
         srun.updated_at = now_iso()
         session.add(srun)
         await session.commit()
-    await svc_runs._publish(force=True)
+    await _publish_board()
 
 
 async def _close(
@@ -1770,7 +1798,7 @@ async def _close(
             srun_id=srun_id,
             action="open",
         )
-    await svc_runs._publish(force=True)
+    await _publish_board()
 
 
 async def _follow(srun_id: str, now: datetime) -> None:
@@ -2083,7 +2111,7 @@ async def _pass(
     srun_id: str, s: AiSchedule, run: AiRun, results: list[dict], reviewer: str | None
 ) -> None:
     """All checks passed: move the ticket to Review (within the AI's ceiling) and tell people."""
-    moved = await svc_runs.move_status(run.id, "review")
+    moved = await _move_to_review(run)
     note = "Finished · passed"
     if reviewer:
         rounds = (loads((await _get(srun_id)).review, {}) or {}).get("rounds", 1)
@@ -2190,8 +2218,164 @@ async def _review(srun_id: str) -> None:
 
 
 async def _review_inner(srun_id: str) -> None:
-    # AI v2 stage 7: the reviewer becomes a role of the team
-    await _close(srun_id, "partly", "Reviewer runs come back with AI v2 (stage 7).")
+    """The review is one turn of the board's assistant with the `schedule-review` skill: it reads the ticket, the
+    run's summary and the diff, judges the points, and never changes anything."""
+    from services import tickets as svc_tickets
+    from services.assistant import engine
+    from services.assistant.errors import AssistError
+
+    srun = await _get(srun_id)
+    if srun is None or srun.state != "reviewing":
+        return
+    async with database.async_session() as session:
+        s = await session.get(AiSchedule, srun.schedule_id)
+        rv = review_of(s)
+        run_ids = loads(srun.run_ids, [])
+        run = await session.get(AiRun, run_ids[-1]) if run_ids else None
+        ticket = await session.get(Ticket, s.ticket_id)
+        names = await _names(session, [rv.get("reviewer_id")])
+    results = loads(srun.results, [])
+    if run is None:
+        return await _close_with(
+            srun_id,
+            s,
+            "partly",
+            "Checks passed, but there is no run to review. A person decides.",
+            results,
+        )
+    reviewer_name = names.get(rv.get("reviewer_id") or "", "Board AI")
+    checks = checks_of(s)
+    acs = loads(ticket.acceptance_criteria, []) if ticket else []
+    inputs = {
+        "ticket_id": s.ticket_id,
+        "title": ticket.title if ticket else "",
+        "description": ((ticket.description or "") if ticket else "")[:6000],
+        "acceptance_criteria": [
+            f"[{'x' if a.get('done') else ' '}] {a.get('text')}" for a in acs
+        ],
+        "run_summary": (run.summary or "")[:6000],
+        "diff": await _diff_of(s, run),
+        "machine_checks": [
+            f"{r['label']}: {'pass' if r['ok'] else 'FAIL'} ({r['detail']})"
+            for r in results
+        ],
+        "points": checks["ai_checks"],
+    }
+    try:
+        out = await engine.turn(
+            s.project_id,
+            name=f"schedule:{s.id}:review",
+            skill="schedule-review",
+            inputs=inputs,
+            by=s.created_by or "user",
+            feature="schedule_review",
+            ticket_id=s.ticket_id,
+            fresh=True,
+        )
+    except AssistError as exc:
+        return await _close_with(
+            srun_id,
+            s,
+            "partly",
+            f"Checks passed, but the review could not run: {_short(exc)}. A person decides.",
+            results,
+        )
+    if out.state != "finished":
+        return await _close_with(
+            srun_id,
+            s,
+            "partly",
+            f"Checks passed, but the review failed: {_short(out.error)}. A person decides.",
+            results,
+        )
+    data = out.data()
+    verdict = (
+        "pass" if str(data.get("verdict", "")).lower().startswith("pass") else "changes"
+    )
+    judged = []
+    given = [c for c in data.get("checks") or [] if isinstance(c, dict)]
+    for i, t in enumerate(checks["ai_checks"]):
+        got = next(
+            (c for c in given if str(c.get("text", "")).strip().lower() == t.lower()),
+            given[i] if i < len(given) else None,
+        )
+        passed = bool(got and got.get("pass"))
+        judged.append(
+            {
+                "key": f"ai_{i}",
+                "label": t,
+                "kind": "ai",
+                "ok": passed,
+                "detail": f"Judged by {reviewer_name}: {'pass' if passed else 'not met'}"
+                + (f" · {got.get('note')}" if got and got.get("note") else ""),
+            }
+        )
+    if any(not j["ok"] for j in judged):
+        verdict = "changes"
+    srun = await _get(srun_id)
+    prev = loads(srun.review, {}) or {}
+    review = {
+        "reviewer_id": rv.get("reviewer_id"),
+        "verdict": verdict,
+        "notes": str(data.get("notes") or "").strip()[:2000],
+        "fixes": [str(f)[:300] for f in data.get("fixes") or []][:8],
+        "rounds": int(prev.get("rounds") or 0) + 1,
+        "cost": round(float(prev.get("cost") or 0) + out.cost, 4),
+        "metered": False,
+    }
+    all_results = [r for r in results if r["kind"] == "machine"] + judged
+    await _set(srun_id, review=json.dumps(review), results=json.dumps(all_results))
+
+    async def comment(text: str) -> None:
+        async with database.async_session() as session:
+            await svc_tickets.add_comment(
+                session,
+                s.ticket_id,
+                text,
+                author=reviewer_name,
+                meta={
+                    "ai": {
+                        "kind": "review",
+                        "run_id": run.id,
+                        "schedule_id": s.id,
+                        "verdict": verdict,
+                        "member": reviewer_name,
+                    }
+                },
+            )
+
+    text = f"Review of run #{run.number}: {'passed' if verdict == 'pass' else 'needs changes'}. {review['notes']}".strip()
+    if review["fixes"] and verdict != "pass":
+        text += "\n\n" + "\n".join(f"- {f}" for f in review["fixes"])
+    await comment(text)
+    if verdict == "pass":
+        await _activity(
+            s.ticket_id, f"passed {s.ticket_id} after review", reviewer_name
+        )
+        return await _pass(srun_id, s, run, all_results, reviewer_name)
+    await _activity(
+        s.ticket_id,
+        f"asked for changes on {s.ticket_id} (round {review['rounds']})",
+        reviewer_name,
+    )
+    if srun.fix_round < int(rv.get("fix_rounds") or 0):
+        fixes = "\n".join(f"- {f}" for f in review["fixes"]) or review["notes"]
+        await _restart(
+            srun_id,
+            s,
+            run,
+            f"A reviewer ({reviewer_name}) asked for changes (round {srun.fix_round + 1} of {rv.get('fix_rounds')}):\n{fixes}",
+            state="fixing",
+        )
+        return
+    await comment(
+        f"@{s.created_by} the review still asks for changes after {srun.fix_round} fix round{'s' if srun.fix_round != 1 else ''}. A person decides."
+    )
+    await _close(
+        srun_id,
+        "partly",
+        f"Review asked for changes after {srun.fix_round} fix rounds. {s.created_by} decides.",
+    )
 
 
 async def _after_fix(
@@ -2203,8 +2387,49 @@ async def _after_fix(
 async def dry_run(
     session, schedule_id: str | None, project_id: str, data: dict, by: str
 ) -> dict:
-    """What the AI would do, without doing it (C "Dry run"): a plan from the AI itself, or the Board AI."""
-    raise ScheduleError("unavailable", "Dry runs come back with AI v2 (stage 7).")
+    """What the AI would do, without doing it (C "Dry run"): a plan from the board's assistant (the
+    `schedule-dry-run` skill). Nothing is changed."""
+    from services.assistant import engine
+    from services.assistant.errors import AssistError
+
+    s = AiSchedule(project_id=project_id, ticket_id="", member_id="", created_by=by)
+    if schedule_id:
+        existing = await get_or_404(session, schedule_id)
+        s = AiSchedule(**existing.model_dump())
+    _apply(s, data)
+    ticket = await session.get(Ticket, s.ticket_id)
+    if ticket is None:
+        raise ScheduleError("invalid", "Pick a ticket first.")
+    acs = loads(ticket.acceptance_criteria, [])
+    names = await _names(session, [s.member_id])
+    try:
+        out = await engine.turn(
+            project_id,
+            name=f"schedule:{s.id or 'new'}:dry-run",
+            skill="schedule-dry-run",
+            inputs={
+                "ticket_id": ticket.id,
+                "title": ticket.title,
+                "description": (ticket.description or "")[:6000],
+                "acceptance_criteria": [a.get("text") for a in acs],
+                "instruction": _instruction(s),
+            },
+            by=by,
+            feature="schedule_dry_run",
+            ticket_id=ticket.id,
+            fresh=True,
+            timeout_s=300.0,
+        )
+    except AssistError as exc:
+        raise ScheduleError("unavailable", f"The dry run failed: {exc}") from exc
+    if out.state != "finished":
+        raise ScheduleError("unavailable", f"The dry run failed: {out.error}")
+    return {
+        "text": (out.data().get("text") or out.text).strip(),
+        "member_name": names.get(s.member_id) or out.member,
+        "cost": round(out.cost, 4),
+        "metered": False,
+    }
 
 
 async def for_tickets(session, project_id: str) -> dict[str, dict]:
