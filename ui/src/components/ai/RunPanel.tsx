@@ -6,8 +6,6 @@ import { useToast } from '../Toast';
 import { useScheduleList } from '../../api/schedules';
 import { useSchedules } from '../schedules/SchedulesContext';
 import { CalendarIcon, ChevronIcon, ListIcon, PlayIcon } from '../schedules/schedulesUi';
-import { QuestionCard } from './QuestionCard';
-import { RunButtons } from './RunView';
 import { ResumeAllDialog } from './AiKillSwitch';
 import { PAUSE_COLOR, PauseGlyph, PausedStrip, clockTime, pausedSummary } from './pausedUi';
 import { AccountNote } from './accounts/AccountBanner';
@@ -219,18 +217,17 @@ export function RunHeaderChip({ ticket }: { ticket: Ticket }) {
 // ---------------------------------------------------------------------------
 
 /** The newest run of the ticket, the lead's question, the pause for this ticket and the sign-in the team needs. */
-export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun: () => void }) {
+export function TicketAiPanel({ ticket }: { ticket: Ticket }) {
   const runs = useTicketRuns(ticket.id);
   const { members: aiMembers, settings } = useAiBoardState();
   const [resumeOpen, setResumeOpen] = useState(false);
   const latest = (runs.data ?? [])[0];
   const team = ticket.assignee ? aiMembers.get(ticket.assignee) : undefined;
   const paused = !!settings?.pausedAll && !!team && !['done', 'wont_do'].includes(ticket.status);
-  useNow(1000, latest?.state === 'running');
-  if (!latest && !paused) return null;
   const runTeam = latest ? aiMembers.get(latest.memberId) : undefined;
-  const accountOut = runTeam?.accountRef?.status === 'needs_sign_in';
-  const failed = latest && (latest.state === 'failed' || latest.state === 'timed_out');
+  const accountOut = !!latest && runTeam?.accountRef?.status === 'needs_sign_in';
+  // the runs themselves (question, report, steps) are shown below this panel, by TicketRunsTab
+  if (!paused && !accountOut) return null;
   return (
     <div
       className="ai-root"
@@ -258,46 +255,6 @@ export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun
         >
           {runTeam.name} cannot work until the account is signed in again.
         </AccountNote>
-      )}
-      {latest && latest.state === 'needs_input' && latest.question && !latest.answer && <QuestionCard run={latest} />}
-      {latest && (
-        <div
-          className="ai-card"
-          style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}
-          data-testid="run-card"
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            {runTeam && <AiAvatar color={runTeam.color} size={24} />}
-            <b style={{ fontSize: 13 }}>
-              {runTeam?.name ?? 'Team'} · run #{latest.number}
-            </b>
-            <RunStateChip state={latest.state} />
-            {latest.state === 'running' && (
-              <span className="ai-mono ai-muted">{fmtElapsed(secondsSince(latest.startedAt))}</span>
-            )}
-            <span className="ai-muted">{latest.stepsCount} steps</span>
-            <span style={{ flex: 1 }} />
-            <RunButtons run={latest} />
-            <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun} data-testid="open-run">
-              Open run
-            </button>
-          </span>
-          {(latest.report?.summary || latest.summary) && !failed && (
-            <span className="ai-muted" style={{ fontSize: 12.5 }}>
-              {latest.report?.summary || latest.summary}
-            </span>
-          )}
-          {failed && (
-            <span className="ai-muted" style={{ fontSize: 12.5 }}>
-              {latest.endedReason ?? 'It stopped before it finished.'}
-            </span>
-          )}
-          {latest.state === 'queued' && latest.waitingReason && (
-            <span className="ai-muted" style={{ fontSize: 12.5 }}>
-              {latest.waitingReason}
-            </span>
-          )}
-        </div>
       )}
       {resumeOpen && settings && (
         <ResumeAllDialog projectId={settings.projectId} onClose={() => setResumeOpen(false)} />

@@ -286,7 +286,7 @@ function TicketModalInner({
       },
       openRun: (runId) => {
         setAiRunId(runId);
-        setActiveTab('ai');
+        setMainView('ai');
       },
     }),
     [openTicketId],
@@ -1885,8 +1885,12 @@ function TicketModalInner({
                     </div>
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
-                    <TicketAiPanel ticket={ticket} onOpenRun={() => setActiveTab('ai')} />
+                    <TicketAiPanel ticket={ticket} />
                     <TicketHandover ticket={ticket} />
+                    {/* every run of the ticket and the chosen one whole: its report, messages and steps as a tree */}
+                    <div style={{ padding: '12px 24px' }}>
+                      <TicketRunsTab ticket={ticket} runId={aiRunId} />
+                    </div>
                   </div>
                   <div
                     className={`${styles.detailBody} ${styles.tabFadeSlide}`}
