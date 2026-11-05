@@ -100,8 +100,14 @@ export async function updateTicket(
     /** Member whose review the ticket waits for; null clears it (issue #269). */
     reviewRequestedFrom?: string | null;
   },
+  /** start: false gives the ticket to an AI team without starting its lead (it starts when someone runs it). */
+  opts?: { start?: boolean },
 ): Promise<Ticket> {
-  const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);
+  const res = await client.patch<Ticket>(
+    `/tickets/${ticketId}`,
+    data,
+    opts?.start === false ? { params: { start: false } } : undefined,
+  );
   return res.data;
 }
 
@@ -741,8 +747,15 @@ export function useCreateTicket(projectId: string) {
 export function useUpdateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ ticketId, data }: { ticketId: string; data: Parameters<typeof updateTicket>[1] }) =>
-      updateTicket(ticketId, data),
+    mutationFn: ({
+      ticketId,
+      data,
+      start,
+    }: {
+      ticketId: string;
+      data: Parameters<typeof updateTicket>[1];
+      start?: boolean;
+    }) => updateTicket(ticketId, data, { start }),
     onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
       queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', ticket.projectId] });

@@ -356,3 +356,21 @@ async def test_a_subagents_hooks_land_on_the_row_the_stream_made(env):
         agents["toolu_rev"].claude_id == "claude-rev-1" and agents["toolu_rev"].ended_at
     )
     assert agents["toolu_dev"].claude_id is None and not agents["toolu_dev"].ended_at
+
+
+async def test_a_team_can_be_assigned_without_starting(env):
+    """PATCH /tickets/{id}?start=false gives the ticket to the team; nothing runs until someone starts it."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    r = await c.patch(
+        f"/tickets/{tid}", params={"start": "false"}, json={"assignee": team["id"]}
+    )
+    assert r.status_code == 200 and r.json()["assignee"] == team["id"]
+    assert (await c.get(f"/tickets/{tid}/ai/runs")).json() == []
+    # the person starts it later: the assigned team runs
+    r = await c.post(f"/tickets/{tid}/ai/run", json={})
+    assert r.status_code == 200, r.text
+    assert r.json()["member_id"] == team["id"]
+    await c.post(f"/ai/runs/{r.json()['id']}/cancel")

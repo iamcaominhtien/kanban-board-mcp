@@ -543,10 +543,10 @@ function TicketModalInner({
   }, [currentTicketId]);
 
   // Fast inline update for properties in View mode
-  function autoSaveField<K extends keyof Ticket>(field: K, val: Ticket[K]) {
+  function autoSaveField<K extends keyof Ticket>(field: K, val: Ticket[K], opts?: { start?: boolean }) {
     if (!ticket) return;
     updateTicketMutation.mutate(
-      { ticketId: ticket.id, data: { [field]: val } },
+      { ticketId: ticket.id, data: { [field]: val }, start: opts?.start },
       {
         onError: (err) => {
           toast.error("Couldn't save changes", extractError(err));
@@ -737,9 +737,10 @@ function TicketModalInner({
     autoSaveField('type', newType);
   }
 
-  function handleAssigneeChange(newAssignee: string | null) {
+  /** `start: false`: an AI team gets the ticket without its lead starting. */
+  function handleAssigneeChange(newAssignee: string | null, start = true) {
     setAssignee(newAssignee);
-    autoSaveField('assignee', newAssignee);
+    autoSaveField('assignee', newAssignee, { start });
   }
 
   function handleEstimateChange(newEst: number | null) {
@@ -3056,7 +3057,7 @@ function TicketModalInner({
                           ticket={ticket}
                           members={members}
                           value={assignee}
-                          onPickPerson={(id) => handleAssigneeChange(id)}
+                          onPickPerson={(id, start) => handleAssigneeChange(id, start)}
                           onAssignedAi={(id) => setAssignee(id)}
                         />
                       </div>

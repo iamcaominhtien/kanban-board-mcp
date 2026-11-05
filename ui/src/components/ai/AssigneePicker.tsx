@@ -30,7 +30,7 @@ function aiNote(m: AiTeam): { disabled: boolean; note: string; tag?: string; gre
 
 /**
  * Assignee picker with people and a separate group of AI teams (live status, reasons for disabled teams). Picking a
- * team assigns it, which starts its lead on the ticket.
+ * team asks whether to start its lead now or only assign it.
  */
 export function AssigneePicker({
   ticket,
@@ -42,7 +42,8 @@ export function AssigneePicker({
   ticket: Ticket;
   members: Member[];
   value: string | null;
-  onPickPerson: (id: string | null) => void;
+  /** `start` is false when an AI team is assigned without starting. */
+  onPickPerson: (id: string | null, start?: boolean) => void;
   onAssignedAi: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -211,8 +212,8 @@ export function AssigneePicker({
         <AssignStartPopover
           ticket={ticket}
           member={pending}
-          onDone={() => {
-            onPickPerson(pending.id);
+          onDone={(start) => {
+            onPickPerson(pending.id, start);
             onAssignedAi(pending.id);
             setPending(null);
             setOpen(false);
@@ -224,7 +225,7 @@ export function AssigneePicker({
   );
 }
 
-/** Assigning a team starts its lead on the ticket (the server does it when the assignee changes): say so first. */
+/** Assign a team: start its lead now (the server does it when the assignee changes), or only assign it. */
 export function AssignStartPopover({
   ticket,
   member,
@@ -233,7 +234,7 @@ export function AssignStartPopover({
 }: {
   ticket: Ticket;
   member: AiTeam;
-  onDone: () => void;
+  onDone: (start: boolean) => void;
   onCancel: () => void;
 }) {
   const { runsByTicket, members } = useAiBoardState();
@@ -249,8 +250,9 @@ export function AssignStartPopover({
         {ticket.title}
       </div>
       <div className="ai-notice ai-notice-info">
-        The team's lead starts on the ticket as soon as it is assigned
+        Start now: the team's lead begins at once
         {member.roles.length ? `, with ${member.roles.map((r) => r.name ?? r.key).join(', ')} as its roles` : ''}.
+        Assign only: the team holds the ticket and starts when you run it.
         {heldByName ? ` ${heldByName} is working on it now; that run is cancelled.` : ''}
       </div>
       <div className="ai-muted" style={{ marginTop: 8 }}>
@@ -260,7 +262,15 @@ export function AssignStartPopover({
         <button type="button" className="ai-btn ai-btn-sm" onClick={onCancel}>
           Cancel
         </button>
-        <button type="button" className="ai-btn ai-btn-sm ai-btn-primary" onClick={onDone} data-testid="assign-confirm">
+        <button type="button" className="ai-btn ai-btn-sm" onClick={() => onDone(false)} data-testid="assign-only">
+          Assign only
+        </button>
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm ai-btn-primary"
+          onClick={() => onDone(true)}
+          data-testid="assign-confirm"
+        >
           Assign & start
         </button>
       </div>

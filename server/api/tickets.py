@@ -296,9 +296,10 @@ async def get_one_ticket(ticket_id: str, session: Session) -> TicketRead:
 
 @router.patch("/tickets/{ticket_id}", response_model=TicketRead)
 async def patch_ticket(
-    ticket_id: str, data: TicketUpdate, session: Session
+    ticket_id: str, data: TicketUpdate, session: Session, start: bool = True
 ) -> TicketRead:
-    """Update a ticket (archiving or reassigning it ends an AI run holding it)."""
+    """Update a ticket (archiving or reassigning it ends an AI run holding it). Giving it to an AI team starts the
+    team's lead, unless `start=false` (assign only: the team starts when someone runs it)."""
     from services.ai import runs as ai_runs
 
     fields = data.model_dump(exclude_unset=True)
@@ -335,7 +336,8 @@ async def patch_ticket(
             ticket_id, by=act_ctx.current_actor(), what=" and ".join(edited)
         )
     if (
-        "assignee" in fields
+        start
+        and "assignee" in fields
         and fields["assignee"]
         and was.get("assignee") != fields["assignee"]
     ):
