@@ -297,3 +297,62 @@ async def test_the_lead_can_ask_through_the_tool_and_message_another_ticket(env)
     )  # the other ticket has no team yet: the note is a comment
     ticket = (await c.get(f"/tickets/{other}")).json()
     assert ticket["comments"][-1]["text"] == "FYI the API changed."
+
+
+async def test_a_subagents_hooks_land_on_the_row_the_stream_made(env):
+    """The stream names a subagent by the lead's Agent call; its hooks carry Claude's own id. Both must end on one row."""
+    from services.ai import steps as run_steps
+
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _runner(c, pid, env["repo"])
+    tid = await _ticket(c, pid)
+    token = guard.new_token()
+    async with env["maker"]() as s:
+        run = AiRun(
+            project_id=pid,
+            ticket_id=tid,
+            member_id=team["id"],
+            state="running",
+            started_by="An Nguyen",
+            token_hash=guard.token_hash(token),
+        )
+        s.add(run)
+        await s.commit()
+        await s.refresh(run)
+    await run_steps.append(
+        run.id,
+        [],
+        agents=[
+            {"id": "toolu_dev", "agent_type": "dev"},
+            {"id": "toolu_rev", "agent_type": "reviewer"},
+        ],
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+    for event in ("SubagentStart", "SubagentStop"):
+        r = await c.post(
+            "/ai/hooks",
+            json={
+                "hook_event_name": event,
+                "agent_id": "claude-rev-1",
+                "agent_type": "reviewer",
+            },
+            headers=headers,
+        )
+        assert r.json() == {"ok": True}
+    async with env["maker"]() as s:
+        agents = {
+            a.id: a
+            for a in (
+                await s.exec(
+                    __import__("sqlmodel")
+                    .select(AiRunAgent)
+                    .where(AiRunAgent.run_id == run.id)
+                )
+            ).all()
+        }
+    assert set(agents) == {"toolu_dev", "toolu_rev"}
+    assert (
+        agents["toolu_rev"].claude_id == "claude-rev-1" and agents["toolu_rev"].ended_at
+    )
+    assert agents["toolu_dev"].claude_id is None and not agents["toolu_dev"].ended_at

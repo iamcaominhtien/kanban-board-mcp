@@ -50,7 +50,7 @@ async def post_hook(
         # the stream names subagents by the lead's Agent call; the hook knows Claude's own id for the role
         agents.append(
             {
-                "id": _agent_key(ctx.run_id, agent_id, agent_type),
+                "id": await _agent_key(ctx.run_id, agent_id, agent_type),
                 "agent_type": agent_type or "",
                 "claude_id": agent_id,
             }
@@ -58,7 +58,7 @@ async def post_hook(
     elif name == "SubagentStop" and agent_id:
         agents.append(
             {
-                "id": _agent_key(ctx.run_id, agent_id, agent_type),
+                "id": await _agent_key(ctx.run_id, agent_id, agent_type),
                 "agent_type": agent_type or "",
                 "claude_id": agent_id,
                 "ended": True,
@@ -98,13 +98,41 @@ async def post_hook(
 _CLAUDE_IDS: dict[tuple[str, str], str] = {}
 
 
-def _agent_key(run_id: str, claude_id: str, agent_type: str | None) -> str:
-    """The row the stream made for this subagent (keyed by the lead's Agent call), when it can be matched: the newest
-    agent of the same type without a Claude id; else the Claude id itself."""
+async def _agent_key(run_id: str, claude_id: str, agent_type: str | None) -> str:
+    """The row the stream made for this subagent (keyed by the lead's Agent call), when it can be matched: the row
+    that already has this Claude id, else the oldest open agent of the same type without one; else the Claude id
+    itself (the hook came first, or the role was started some other way)."""
     key = _CLAUDE_IDS.get((run_id, claude_id))
     if key:
         return key
-    return claude_id
+    import database
+    from models import AiRunAgent
+    from sqlmodel import col, select
+
+    async with database.async_session() as session:
+        rows = (
+            await session.exec(
+                select(AiRunAgent)
+                .where(AiRunAgent.run_id == run_id)
+                .order_by(col(AiRunAgent.started_at).asc())
+            )
+        ).all()
+    found = next((a.id for a in rows if a.claude_id == claude_id), None)
+    if found is None and agent_type:
+        found = next(
+            (
+                a.id
+                for a in rows
+                if not a.claude_id and not a.ended_at and a.agent_type == agent_type
+            ),
+            None,
+        )
+    if found is None:
+        return claude_id
+    if len(_CLAUDE_IDS) > 5000:
+        _CLAUDE_IDS.clear()
+    _CLAUDE_IDS[(run_id, claude_id)] = found
+    return found
 
 
 @router.post("/internal/ai/events")
