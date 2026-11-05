@@ -8,6 +8,7 @@ của [`ai-claude-code-plan.md`](ai-claude-code-plan.md); các quyết định c
 - **Người dùng ở gói subscription:** tối ưu cho quota, không phải tiền.
 - **"Ngon" hay không do người dùng đánh giá.** Không có bộ bài kiểm tra tự động trong v2.
 - **Không cờ sống chung:** v2 thay hẳn đường cũ. Có git.
+- **Trạng thái (2026-11-05):** đã làm xong 9 giai đoạn trong một PR; chi tiết, giới hạn và những gì chưa kiểm ở bảng tiến độ của [`ai-v2-implementation.md`](ai-v2-implementation.md#6-tiến-độ).
 
 ## 1. Vì sao làm lại
 
