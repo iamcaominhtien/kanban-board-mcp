@@ -172,7 +172,7 @@ async def docs_read(
     - sketches: project_id. Freehand sketches: [{id, title, owner_kind, owner_id, version, width, height, layers, updated_by, updated_at, markdown}]. A text shows one as `![Name](sketch:sk_xxxxxxxx)`.
     - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.
     - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.
-    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_propose)).
+    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, proposals, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_update)).
     - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.
     - diagram_guide: {guide, sketches}: how to draw and edit a draw.io diagram, what to do with a Sketch, which tool fits.
     - picture: diagram_id | canvas_id + board_id | sketch_id | path [, width]. A PNG to look at before you hand in: {path, drawn_by, markdown (a copy for a comment)}.
@@ -209,7 +209,7 @@ DocsWriteAction = Literal[
     "sketch_save",
     "canvas_create",
     "canvas_comment",
-    "canvas_propose",
+    "canvas_update",
 ]
 
 DOCS_WRITE_OPS = {
@@ -270,6 +270,11 @@ DOCS_WRITE_OPS = {
         ("canvas_id", "body"),
         ("board_id", "thread_id", "at"),
     ),
+    "canvas_update": Op(
+        ops.update_canvas_frame,
+        ("canvas_id", "board_id", "path"),
+        ("note",),
+    ),
 }
 
 
@@ -323,7 +328,7 @@ async def docs_write(
     note: Annotated[
         str | None,
         Field(
-            description="update: change note for the page history. canvas_propose: what you changed."
+            description="update: change note for the page history. canvas_update: what you changed."
         ),
     ] = None,
     publish: Annotated[
@@ -364,7 +369,7 @@ async def docs_write(
     path: Annotated[
         str | None,
         Field(
-            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). upload: absolute path of the file. diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB). canvas_propose: folder with the frame's files."
+            description="import: absolute path of a .md/.markdown file or a folder (folders become a page tree). upload: absolute path of the file. diagram_create, diagram_save: absolute path of a .drawio file. sketch_create, sketch_save: absolute path of the .png (at most 4096 px and 10 MB). canvas_update: folder with the frame's changed files."
         ),
     ] = None,
     diagram_id: Annotated[
@@ -408,13 +413,13 @@ async def docs_write(
     canvas_id: Annotated[
         str | None,
         Field(
-            description="canvas_comment, canvas_propose: canvas id. canvas_create: add frames to it instead of making a new canvas."
+            description="canvas_comment, canvas_update: canvas id. canvas_create: add frames to it instead of making a new canvas."
         ),
     ] = None,
     board_id: Annotated[
         str | None,
         Field(
-            description="canvas_propose: the HTML frame to change. canvas_comment: pin to this frame."
+            description="canvas_update: the HTML frame to change. canvas_comment: pin to this frame."
         ),
     ] = None,
     at: Annotated[
@@ -498,7 +503,7 @@ async def docs_write(
     - sketch_save: sketch_id, path, base_version [, source_path, title]. Saves the PNG and source as a new version; base_version is the `version` from docs_read(sketch), a stale one is rejected. Returns {id, title, version}. The PNG is what the text shows, so keep it the flattened picture of the source.
     - canvas_create: path [, owner_kind (ticket|doc|idea), owner_id, title | canvas_id]. A new canvas, or frames added to canvas_id, from a folder: one sub-folder with an .html page per frame (name order); optional frame.json, canvas.json (see the design guide). Returns {id, markdown, boards}: put `markdown` on its own line in the text.
     - canvas_comment: canvas_id, body [, board_id, at, thread_id]. Comment under your own name: pin on an element (at) of a frame, the plane, or reply. You never resolve a person's thread.
-    - canvas_propose: canvas_id, board_id, path [, note]. Offer a changed HTML frame from a folder (see docs_read(canvas)). Nothing changes until a person accepts; a frame being edited waits.
+    - canvas_update: canvas_id, board_id, path [, note]. Change an HTML frame from a folder (see docs_read(canvas)); files left out stay. A frame a person is editing is locked: try again later.
     Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown."""
     given = params_of(locals())
     if action == "edit":

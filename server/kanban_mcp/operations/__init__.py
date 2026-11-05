@@ -93,6 +93,7 @@ from .canvases import (
     read_canvas,
     create_canvas_from_files,
     comment_on_canvas,
+    update_canvas_frame,
 )
 from .ideas import (
     list_idea_tickets,
@@ -168,6 +169,7 @@ __all__ = [
     "read_canvas",
     "create_canvas_from_files",
     "comment_on_canvas",
+    "update_canvas_frame",
     "list_docs_pages",
     "get_docs_page",
     "create_docs_page",

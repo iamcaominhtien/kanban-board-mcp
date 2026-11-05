@@ -30,8 +30,8 @@ MAX_INLINE = 60_000
 
 def _error(exc: "svc_canvases.DocsError") -> ValueError:
     hint = {
-        "board_locked": " A person is editing that frame; your proposal is kept for them to accept once they save.",
-        "proposal_stale": " Read the canvas again and propose against the new version.",
+        "board_locked": " A person is editing that frame; try again once they have saved.",
+        "board_conflict": " Read the frame again and change the new version.",
     }.get(exc.code, "")
     return ValueError(f"{exc.message}{hint}")
 
@@ -87,22 +87,6 @@ def _at(anchor: dict | None) -> str | None:
     if anchor.get("sel"):
         return str(anchor["sel"])
     return f"text={anchor['text']}" if anchor.get("text") else None
-
-
-async def _not_in_safe_mode(session) -> None:
-    """Writing files to a folder is a write: an AI run in safe mode only reads."""
-    from services.ai import guard
-    from services.ai.store import get_profile
-
-    ctx = guard.current()
-    if ctx is None:
-        return
-    _, profile = await get_profile(session, ctx.member_id)
-    settings = await guard._settings_for(session, ctx)  # noqa: SLF001
-    if settings.safe_mode or (profile is not None and profile.safe_mode):
-        raise ValueError(
-            "Safe mode is on, so nothing is written to a folder. Read the frame inline instead (leave out `path`)."
-        )
 
 
 async def _ai_may_read(session, c) -> bool:
@@ -218,7 +202,7 @@ async def read_canvas(
     path: Annotated[
         str | None,
         Field(
-            description="With board_id: an absolute folder to write the frame's files to (edit them, then docs_write(canvas_propose))."
+            description="With board_id: an absolute folder to write the frame's files to (edit them, then docs_write(canvas_update))."
         ),
     ] = None,
 ) -> dict:
@@ -342,7 +326,6 @@ async def read_canvas(
                 }
                 if path:
                     root = _ai_folder(path, create=True)
-                    await _not_in_safe_mode(session)
                     written = []
                     content = board.get("content")
                     if content:
@@ -686,6 +669,63 @@ async def create_canvas_from_files(
         "boards": boards,
         **({"pages": list(pages)} if pages else {}),
         **counts,
+    }
+
+
+async def update_canvas_frame(
+    canvas_id: CanvasId,
+    board_id: Annotated[
+        str, Field(description="The HTML frame 'b_xxxxxxxx' to change.")
+    ],
+    path: Annotated[
+        str,
+        Field(
+            description="Absolute folder with the frame's changed files (as written by docs_read(canvas, board_id, path)); files you leave out stay as they are."
+        ),
+    ],
+    note: Annotated[
+        str | None, Field(description="One sentence on what you changed.")
+    ] = None,
+) -> dict:
+    """Change an HTML frame from a folder; the canvas keeps the version before it. Returns {board_id, name, content_rev, files, note}. A frame a person is editing is locked: the error names them, try again later."""
+    root = _ai_folder(path)
+    files = _read_folder(root)
+    if not files:
+        raise ValueError(f"{root} holds no files to put in the frame.")
+    async with common.async_session() as session:
+        try:
+            c = await svc_canvases._canvas(session, canvas_id)  # noqa: SLF001
+            await _same_project(c.project_id)
+            if not await _ai_may_read(session, c):
+                raise ValueError(
+                    "That canvas is a page hidden from AI, so it was left alone."
+                )
+            board = svc_canvases.board_of(svc_canvases.read_doc(c.id), board_id)
+            content = board.get("content") or {}
+            current: dict[str, bytes] = {}
+            if content:
+                folder = svc_canvases.board_dir(c.id, board_id, content["rev"])
+                for f in content.get("files") or []:
+                    file = svc_canvases.file_in(folder, f["path"])
+                    if file.is_file():
+                        current[f["path"]] = file.read_bytes()
+            out = await svc_canvases.put_board_content(
+                session,
+                canvas_id,
+                board_id,
+                files={**current, **files},
+                entry=content.get("entry"),
+                reason="ai",
+            )
+        except svc_canvases.DocsError as exc:
+            raise _error(exc) from exc
+    changed = out["board"]
+    return {
+        "board_id": board_id,
+        "name": changed["name"],
+        "content_rev": changed["content"]["rev"],
+        "files": sorted(files),
+        **({"note": note} if note else {}),
     }
 
 

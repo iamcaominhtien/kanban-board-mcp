@@ -1,0 +1,496 @@
+"""Guards the quality of the MCP tool list: what the AI reads (descriptions, schemas, annotations) and how
+the tools behave for the cases the descriptions promise."""
+
+import json
+
+import pytest
+from kanban_mcp import operations as ops
+import kanban_mcp
+import services.tickets as svc_tickets
+from main import mcp
+from kanban_mcp.tools import CORE_TOOL_TABLE
+from kanban_mcp.tools.branches import BRANCH_OPS
+from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_COMPOSITE, DOCS_WRITE_OPS
+from kanban_mcp.tools.items import ITEM_OPS
+from kanban_mcp.tools.projects import PROJECT_OPS
+from kanban_mcp.tools.tickets import TICKET_OPS
+from models import IDEA_STAGES
+from tests.test_activity import _ticket, client, setup_db  # noqa: F401  (fixtures)
+
+
+def _full_mcp():
+    """A server with every tool, including the Idea Space ones that are hidden by default."""
+    from mcp.server.fastmcp import FastMCP
+
+    full = FastMCP("kanban-test", instructions=kanban_mcp.build_instructions(True))
+    kanban_mcp.register(full, include_ideas=True)
+    return full
+
+
+async def _tools(server=None):
+    """The tools of the server (default: the real one with the default switches), or of `server`."""
+    return {t.name: t for t in await (server or mcp).list_tools()}
+
+
+def _enum_of(schema: dict) -> list | None:
+    if "enum" in schema:
+        return schema["enum"]
+    for sub in schema.get("anyOf", []):
+        if "enum" in sub:
+            return sub["enum"]
+    return None
+
+
+# --------------------------------------------------------------------------- the tool list itself
+
+
+async def test_every_registered_tool_is_in_the_table_and_vice_versa():
+    core = {f.__name__ for f, _ in CORE_TOOL_TABLE}
+    ideas = {f.__name__ for f, _ in kanban_mcp.IDEA_TOOL_TABLE}
+    assert not core & ideas
+    assert set(await _tools()) == core
+    assert set(await _tools(_full_mcp())) == core | ideas
+    assert len(core) == 13 and len(ideas) == 5
+
+
+async def test_every_operation_is_reachable_through_a_tool():
+    """Folding 56 tools into 9 must not drop a capability: each former tool is an action of one of them."""
+    routed = {
+        op.impl.__name__
+        for table in (
+            PROJECT_OPS,
+            TICKET_OPS,
+            ITEM_OPS,
+            BRANCH_OPS,
+            DOCS_READ_OPS,
+            DOCS_WRITE_OPS,
+        )
+        for op in table.values()
+    }
+    direct = {f.__name__ for f, _ in CORE_TOOL_TABLE} & {
+        "list_tickets",
+        "get_ticket",
+    }
+    # list_projects/list_members -> get_projects, list_comments -> get_ticket(view='comments'),
+    # create_child_ticket -> manage_ticket(create, parent_id), update_ticket_status -> manage_ticket(update, status)
+    folded = {
+        "list_projects",
+        "list_members",
+        "list_comments",
+        "create_child_ticket",
+        "update_ticket_status",
+        # knowledge(memory | remember | forget), issue #274
+        "memory_action",
+    }
+    former = {
+        n
+        for n in ops.__all__
+        if callable(getattr(ops, n))
+        if "idea" not in n and "assumption" not in n and "microthought" not in n
+    }
+    assert former - routed - direct - folded == set()
+    assert routed <= former
+
+
+async def test_idea_space_tools_are_hidden_by_default_and_can_be_switched_on(
+    monkeypatch,
+):
+    from mcp.server.fastmcp import FastMCP
+
+    ideas = {f.__name__ for f, _ in kanban_mcp.IDEA_TOOL_TABLE}
+    assert len(ideas) == 5
+    assert not ideas & set(await _tools())  # the real server: hidden
+    assert (
+        "IDEA-N" not in (mcp.instructions or "")
+        and "idea" not in (mcp.instructions or "").lower()
+    )
+
+    monkeypatch.setenv("KANBAN_MCP_IDEA_TOOLS", "1")
+    assert kanban_mcp.ideas_enabled()
+    server = FastMCP("t", instructions=kanban_mcp.build_instructions())
+    kanban_mcp.register(server)
+    assert ideas <= set(await _tools(server))
+    assert "IDEA-N" in kanban_mcp.build_instructions()
+
+    monkeypatch.setenv("KANBAN_MCP_IDEA_TOOLS", "0")
+    assert not kanban_mcp.ideas_enabled()
+
+
+async def test_every_tool_has_annotations_that_match_its_name():
+    reads = {
+        "get_projects",
+        "list_tickets",
+        "get_ticket",
+        "docs_read",
+        "board_wait",
+    }
+    for name, tool in (await _tools(_full_mcp())).items():
+        a = tool.annotations
+        assert a is not None, name
+        if name in reads or name.startswith(("list_idea", "get_idea")):
+            assert a.readOnlyHint is True, name
+        else:
+            assert a.readOnlyHint is False, name
+        # a tool that has a `delete` / `remove` / `unlink` action is destructive as a whole
+        if name.startswith("delete_") or name in {
+            "manage_project",
+            "manage_ticket",
+            "ticket_items",
+            "ticket_branches",
+            "docs_write",
+            "ai_schedules",
+            "knowledge",  # forget removes a note (issue #274)
+        }:  # ai_run asks, messages and reports but never deletes: not destructive
+            assert a.destructiveHint is True, name
+        else:
+            assert a.destructiveHint is not True, name
+        assert a.openWorldHint is False, name
+
+
+async def test_descriptions_are_present_and_free_of_stale_conventions():
+    for name, tool in (await _tools(_full_mcp())).items():
+        desc = tool.description or ""
+        assert len(desc) >= 40, f"{name}: description too short"
+        assert "Args:" not in desc, f"{name}: parameter docs belong in the schema"
+        assert "or None" not in desc and '{"error"' not in desc, (
+            f"{name}: failures are raised, not returned"
+        )
+
+
+async def test_every_parameter_is_described_unless_its_enum_or_flag_explains_itself():
+    self_explanatory = {
+        "title",
+        "description",
+        "expected_result",
+        "notes",
+        "idea_emoji",
+    }
+    for name, tool in (await _tools(_full_mcp())).items():
+        for pname, schema in tool.inputSchema.get("properties", {}).items():
+            if schema.get("description"):
+                continue
+            is_flag = schema.get("type") == "boolean" or any(
+                s.get("type") == "boolean" for s in schema.get("anyOf", [])
+            )
+            assert _enum_of(schema) or is_flag or pname in self_explanatory, (
+                f"{name}.{pname} has no description"
+            )
+
+
+async def test_schemas_carry_no_redundant_titles():
+    for name, tool in (await _tools(_full_mcp())).items():
+        for pname, schema in tool.inputSchema.get("properties", {}).items():
+            assert "title" not in schema, f"{name}.{pname}"
+    # ...but a parameter that is itself called "title" survives
+    assert "title" in (await _tools())["manage_ticket"].inputSchema["properties"]
+
+
+async def test_the_tool_list_stays_compact():
+    def size(tools):
+        return sum(
+            len(t.description or "")
+            + len(json.dumps(t.inputSchema, separators=(",", ":")))
+            for t in tools.values()
+        )
+
+    default, full = size(await _tools()), size(await _tools(_full_mcp()))
+    # AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is five actions
+    # (ask, message, team, runs, report). Measured after that: 49,074 / 51,904 characters. The bounds
+    # leave about 3 % of room; raise them on purpose, with what was added, never by reflex.
+    assert default < 50_500, (
+        f"default tool list is {default} characters (about {default // 4} tokens)"
+    )
+    assert full < 53_400, (
+        f"full tool list is {full} characters (about {full // 4} tokens)"
+    )
+    assert default < full
+
+
+async def test_server_instructions_explain_the_ids_and_conventions():
+    for text, musts in (
+        (
+            mcp.instructions or "",
+            ("IAM-12", "clear_fields", "workspace", "AI agent"),
+        ),
+        (
+            kanban_mcp.build_instructions(True),
+            ("IAM-12", "IDEA-N", "Inbox", "cannot move"),
+        ),
+    ):
+        for must in musts:
+            assert must in text, must
+
+
+async def test_schema_enums_match_the_services():
+    tools = await _tools(_full_mcp())
+
+    def enum(tool, param):
+        return set(_enum_of(tools[tool].inputSchema["properties"][param]))
+
+    assert enum("ticket_items", "log_kind") == set(svc_tickets.WORK_LOG_KINDS)
+    # `role` is also the role that speaks in a comment (AI v2: Reviewer, QA…), so it is free text in the schema; the
+    # work log still refuses a role it does not know (services.tickets.WORK_LOG_ROLES)
+    assert _enum_of(tools["ticket_items"].inputSchema["properties"]["role"]) is None
+    assert enum("ticket_items", "status") == {"pending", "running", "pass", "fail"}
+    assert enum("manage_ticket", "relation_type") == set(
+        svc_tickets.VALID_RELATION_TYPES
+    )
+    assert enum("ticket_branches", "status") == set(svc_tickets.VALID_BRANCH_STATUSES)
+    assert enum("list_idea_tickets", "stage") == set(IDEA_STAGES)
+    assert enum("manage_ticket", "status") == {
+        "backlog",
+        "todo",
+        "in-progress",
+        "review",
+        "testing",
+        "done",
+        "wont_do",
+    }
+    # every action name in a description is a real choice, and the other way round
+    for tool, table in (
+        ("manage_project", PROJECT_OPS),
+        ("manage_ticket", TICKET_OPS),
+        ("ticket_branches", BRANCH_OPS),
+        ("docs_read", DOCS_READ_OPS),
+        ("docs_write", {**DOCS_WRITE_OPS, **dict.fromkeys(DOCS_WRITE_COMPOSITE)}),
+    ):
+        assert enum(tool, "action") == set(table), tool
+    assert enum("ai_run", "action") == {"ask", "message", "team", "runs", "report"}
+    pairs = set(ITEM_OPS)
+    assert enum("ticket_items", "item") == {i for i, _ in pairs}
+    assert enum("ticket_items", "action") == {a for _, a in pairs}
+
+
+async def test_invalid_enum_values_are_rejected_before_any_work():
+    from mcp.server.fastmcp.exceptions import ToolError
+
+    with pytest.raises(ToolError):
+        await _full_mcp().call_tool(
+            "create_idea_ticket",
+            {"project_id": "x", "title": "t", "idea_energy": "low"},
+        )
+    with pytest.raises(ToolError):
+        await mcp.call_tool("list_tickets", {"project_id": "x", "status": "bogus"})
+
+
+# --------------------------------------------------------------------------- behaviour the descriptions promise
+
+
+async def test_list_tickets_is_paginated_and_compact(client):
+    async with client as c:
+        p, first = await _ticket(c, title="first")
+        for n in range(4):
+            await c.post(
+                f"/projects/{p['id']}/tickets",
+                json={"title": f"t{n}", "description": "long " * 50},
+            )
+    page = await ops.list_tickets(p["id"], limit=2)
+    assert (page["total"], page["count"], page["offset"], page["has_more"]) == (
+        5,
+        2,
+        0,
+        True,
+    )
+    rest = await ops.list_tickets(p["id"], limit=2, offset=4)
+    assert (rest["count"], rest["has_more"]) == (1, False)
+    summary = page["tickets"][0]
+    assert {
+        "id",
+        "title",
+        "status",
+        "priority",
+        "blocked_by",
+        "acceptance_criteria",
+        "test_cases",
+    } <= set(summary)
+    assert "description" not in summary and "activity_log" not in summary
+    full = await ops.list_tickets(p["id"], detail=True, limit=1)
+    assert (
+        "description" in full["tickets"][0] and "activity_log" not in full["tickets"][0]
+    )
+
+
+async def test_activity_log_is_opt_in_and_branches_have_no_camel_case_twins(client):
+    async with client as c:
+        _, t = await _ticket(c)
+        await c.patch(f"/tickets/{t['id']}", json={"priority": "high"})
+        await c.post(
+            f"/tickets/{t['id']}/branches",
+            json={"name": "feat/a", "branch_from": "main"},
+        )
+    plain = await ops.get_ticket(t["id"])
+    assert (
+        len(plain["activity_log"]) <= ops.DEFAULT_ACTIVITY_ENTRIES
+    )  # recent entries only
+    assert (
+        len((await ops.get_ticket(t["id"], activity_limit=-1))["activity_log"])
+        == plain["activity_total"]
+    )
+    assert "activity_log" not in await ops.add_comment(t["id"], "hi", "Claude")
+    branch = plain["branches"][0]
+    assert "pr_url" in branch and "prUrl" not in branch and "branchFrom" not in branch
+
+
+async def test_sub_item_errors_list_the_valid_ids(client):
+    async with client as c:
+        _, t = await _ticket(c)
+    created = await ops.add_comment(t["id"], "hello", "Claude")
+    cid = created["comments"][0]["id"]
+    with pytest.raises(ValueError) as exc:
+        await ops.delete_comment(t["id"], "wrong-id")  # used to "succeed" silently
+    assert cid in str(exc.value) and "get_ticket" in str(exc.value)
+    assert len((await ops.get_ticket(t["id"]))["comments"]) == 1
+    with pytest.raises(ValueError, match="not found"):
+        await ops.toggle_acceptance_criterion(t["id"], "nope")
+
+
+async def test_test_cases_and_branches_can_be_addressed_by_code_and_name(client):
+    async with client as c:
+        _, t = await _ticket(c)
+    i = t["id"]
+    await ops.add_test_case(i, "works")
+    updated = await ops.update_test_case(i, "TC-1", status="pass")  # by code, not UUID
+    assert updated["test_cases"][0]["status"] == "pass"
+    await ops.add_branch(i, "feat/x")
+    renamed = await ops.update_branch(
+        i, "feat/x", pr_url="https://example.com/pr/1"
+    )  # by name
+    assert renamed["branches"][0]["pr_url"] == "https://example.com/pr/1"
+    after = await ops.delete_branch(i, "feat/x")
+    assert after["branches"] == []
+
+
+async def test_failures_are_raised_for_idea_tools_too():
+    with pytest.raises(ValueError, match="not found"):
+        await ops.get_idea_ticket("IDEA-999")
+    with pytest.raises(ValueError, match="not found"):
+        await ops.list_idea_assumptions("IDEA-999")
+    with pytest.raises(ValueError, match="not found"):
+        await ops.get_idea_activity_trail("IDEA-999")
+
+
+async def test_create_ticket_and_update_project_cover_what_the_descriptions_offer(
+    client,
+):
+    async with client as c:
+        p, _ = await _ticket(c)
+    member = await ops.add_member(p["id"], "Bao")
+    created = await ops.create_ticket(
+        p["id"],
+        "with owner",
+        assignee=member["id"],
+        start_date="2026-01-02",
+        due_date="2026-02-01",
+    )
+    assert created["assignee"] == member["id"] and created["start_date"] == "2026-01-02"
+    project = await ops.update_project(p["id"], name="Renamed")
+    assert project["name"] == "Renamed"
+    with pytest.raises(ValueError, match="not found"):
+        await ops.update_project("no-such-project", name="x")
+
+
+async def test_unlink_explains_that_each_side_of_a_link_has_its_own_id(client):
+    async with client as c:
+        p, a = await _ticket(c)
+        b = (await c.post(f"/projects/{p['id']}/tickets", json={"title": "b"})).json()[
+            "id"
+        ]
+    link = await ops.link_tickets(a["id"], b, "relates_to")
+    with pytest.raises(ValueError, match="different id on each"):
+        await ops.unlink_tickets(b, link["id"])  # the other side of the link
+    assert await ops.unlink_tickets(a["id"], link["id"]) == {"removed": link["id"]}
+
+
+async def test_get_ticket_can_return_only_the_recent_activity(client):
+    import asyncio
+
+    async with client as c:
+        _, t = await _ticket(c)
+        i = t["id"]
+        for n in range(5):
+            await c.patch(f"/tickets/{i}", json={"title": f"t{n}"})
+            await asyncio.sleep(0.01)
+    plain = await ops.get_ticket(i)  # default: the most recent entries
+    assert 0 < len(plain["activity_log"]) <= ops.DEFAULT_ACTIVITY_ENTRIES
+    assert plain["activity_total"] >= 6 and plain["activity_log"][-1]["to"] == "t4"
+
+    everything = await ops.get_ticket(i, activity_limit=-1)
+    total = len(everything["activity_log"])
+    assert total >= 6 and everything["activity_total"] == total
+
+    latest = await ops.get_ticket(i, activity_limit=2)
+    assert [e["to"] for e in latest["activity_log"]] == [
+        "t3",
+        "t4",
+    ]  # the newest two, oldest first
+    assert latest["activity_total"] == total
+
+    assert (await ops.get_ticket(i, activity_limit=0))[
+        "activity_log"
+    ] == []  # leave it out entirely
+
+    cutoff = everything["activity_log"][-3][
+        "at"
+    ]  # entries strictly after the third-from-last
+    newer = await ops.get_ticket(i, activity_since=cutoff)
+    assert [e["to"] for e in newer["activity_log"]] == ["t3", "t4"]
+    both = await ops.get_ticket(
+        i, activity_since=everything["activity_log"][0]["at"], activity_limit=1
+    )
+    assert [e["to"] for e in both["activity_log"]] == ["t4"]
+    assert (await ops.get_ticket(i, activity_since="2999-01-01"))["activity_log"] == []
+    with pytest.raises(ValueError, match="ISO"):
+        await ops.get_ticket(i, activity_since="yesterday")
+
+
+async def test_activity_limit_is_validated_by_the_schema():
+    from mcp.server.fastmcp.exceptions import ToolError
+
+    with pytest.raises(ToolError):
+        await mcp.call_tool("get_ticket", {"ticket_id": "X-1", "activity_limit": -1})
+    props = (await _tools())["get_ticket"].inputSchema["properties"]
+    assert {"activity_limit", "activity_since"} <= set(
+        props
+    ) and "include_activity" not in props
+
+
+async def test_default_activity_is_capped_and_long_texts_are_shortened(client):
+    async with client as c:
+        _, t = await _ticket(c)
+        i = t["id"]
+        for n in range(15):
+            await c.patch(f"/tickets/{i}", json={"priority": ["low", "high"][n % 2]})
+        await c.patch(f"/tickets/{i}", json={"description": "x" * 5000})
+    recent = await ops.get_ticket(i)
+    assert len(recent["activity_log"]) == ops.DEFAULT_ACTIVITY_ENTRIES
+    assert recent["activity_total"] > ops.DEFAULT_ACTIVITY_ENTRIES
+    desc = [e for e in recent["activity_log"] if e["field"] == "description"][0]
+    assert (
+        len(desc["to"]) < 400 and "more chars" in desc["to"]
+    )  # shortened by default...
+    full = await ops.get_ticket(i, activity_limit=-1)
+    assert (
+        len([e for e in full["activity_log"] if e["field"] == "description"][0]["to"])
+        == 5000
+    )  # ...whole with include_activity
+    assert len(full["activity_log"]) == full["activity_total"]
+    # a negative limit with `since` = everything after that moment, in full
+    cutoff = full["activity_log"][-2]["at"]
+    tail = await ops.get_ticket(i, activity_limit=-5, activity_since=cutoff)
+    assert tail["activity_log"] == [e for e in full["activity_log"] if e["at"] > cutoff]
+
+
+async def test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own():
+    tools = await _tools(_full_mcp())
+    assert not [n for n in tools if "sketch" in n]  # the tool count stays the same
+    read, write = tools["docs_read"], tools["docs_write"]
+    for action in ("sketches", "sketch"):
+        assert action in DOCS_READ_OPS and f"- {action}:" in read.description
+    for action in ("sketch_create", "sketch_save"):
+        assert action in DOCS_WRITE_OPS and f"- {action}:" in write.description
+    # the limits an agent must respect are in front of it
+    assert "base_version" in write.description and "stale" in write.description
+    props = write.inputSchema["properties"]
+    assert "10 layers" in props["source_path"]["description"]
+    assert "4096" in props["path"]["description"]
+    assert "sketch_id" in read.inputSchema["properties"]
