@@ -72,6 +72,9 @@ class _Runtime:
     board_url: str | None = None
     scheduler: asyncio.Task | None = None
     last_health: float = 0.0
+    db_ready: bool = (
+        False  # the API brought the database up to date (the runner may start)
+    )
 
 
 RT = _Runtime()
@@ -81,7 +84,8 @@ def set_board_url(url: str) -> None:
     """Where the CLI reaches the board (its MCP endpoint and the hook endpoint). In process mode the API also
     starts the runner once it knows the URL."""
     RT.board_url = url
-    if not runner_link.in_runner():
+    # the runner opens the database too: it starts once the API has brought it up to date (start_scheduler)
+    if RT.db_ready and not runner_link.in_runner():
         runner_link.ensure_started(url)
 
 
@@ -406,6 +410,7 @@ async def _loop() -> None:
 async def start_scheduler() -> None:
     """Recover what the last start left, then start what waits. The API process in `process` mode starts the runner
     instead (it owns the CLIs)."""
+    RT.db_ready = True
     if defers_to_runner():
         runner_link.ensure_started(RT.board_url)
         return
