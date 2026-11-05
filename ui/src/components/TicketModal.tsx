@@ -295,9 +295,9 @@ function TicketModalInner({
     [openTicketId],
   );
   // The AI chat docked in the ticket page (design/screens/ai-where-you-work.md, B); Ctrl+J opens and closes it
-  const { members: aiMembers, settings: aiSettings } = useAiBoardState();
+  const { members: aiMembers } = useAiBoardState();
   const [chatOpen, setChatOpen] = useState(false);
-  const aiChatAvailable = aiSettings?.aiEnabled !== false && aiMembers.size > 0;
+  const aiChatAvailable = aiMembers.size > 0;
   const toggleChat = useCallback((open?: boolean) => setChatOpen((v) => open ?? !v), []);
   useEffect(() => {
     if (!openTicketId || !aiChatAvailable) return undefined;
@@ -2542,12 +2542,9 @@ function TicketModalInner({
                           onFocusHandled={() => setFocusCommentId(null)}
                           criteriaCount={ticket.acceptanceCriteria?.length ?? 0}
                           onAdd={async (t, opts) => {
-                            // The Ask button sends the text as a question to one AI member (C1)
+                            // "Send to team" gives the text to that team's lead as an instruction
                             if (opts?.askMemberId) {
-                              await aiApi.ask(ticket.id, {
-                                memberId: opts.askMemberId,
-                                question: t,
-                              });
+                              await aiApi.run(ticket.id, { teamId: opts.askMemberId, instruction: t });
                               void queryClient.invalidateQueries({ queryKey: ['tickets'] });
                               return undefined;
                             }

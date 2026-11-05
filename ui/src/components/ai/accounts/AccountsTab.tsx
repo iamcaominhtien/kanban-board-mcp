@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAiOverview, useRunnerInfo } from '../../../api/ai';
+import { useAiTeams, useRunnerInfo } from '../../../api/ai';
 import { useAccountActions, useAiAccounts, useComputerLogins } from '../../../api/aiAccounts';
 import { extractError } from '../../../api/extractError';
 import type { AccountCli, AiAccount } from '../../../types/aiAccounts';
@@ -46,7 +46,7 @@ type Dialog =
 export function AccountsTab({ projectId }: { projectId: string }) {
   const accounts = useAiAccounts(projectId);
   const runner = useRunnerInfo();
-  const overview = useAiOverview(projectId);
+  const teams = useAiTeams(projectId);
   const desktop = runner.data?.local !== false;
   const logins = useComputerLogins();
   const actions = useAccountActions();
@@ -110,8 +110,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
 
   // Members of this project on the login that is already on this computer, per CLI
   const onComputer = (provider: string) =>
-    (overview.data?.members ?? []).filter((m) => m.connection === 'local' && m.provider === provider && !m.accountId)
-      .length;
+    (teams.data ?? []).filter((m) => m.provider === provider && !m.accountId).length;
 
   let body;
   if (accounts.isLoading) {

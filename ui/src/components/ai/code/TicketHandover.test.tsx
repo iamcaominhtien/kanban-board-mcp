@@ -9,6 +9,7 @@ const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), post: vi.fn(), patc
 vi.mock('../../../api/client', () => ({ client: http }));
 
 import { TicketHandover } from './TicketHandover';
+import { AiBoardContext } from '../aiUi';
 
 const wt = (over: Partial<Worktree & { route: string }> = {}, uncommitted: string[] = []): Worktree =>
   ({
@@ -37,7 +38,6 @@ function setup(worktree: Worktree | null, flags: unknown[] = []) {
   http.get.mockImplementation((url: string) => {
     if (url.endsWith('/ai/worktree')) return Promise.resolve({ data: worktree });
     if (url.endsWith('/ai/ticket-flags')) return Promise.resolve({ data: flags });
-    if (url.startsWith('/ai/members/')) return Promise.resolve({ data: { id: 'dev1', kind: 'ai', name: 'Dev An' } });
     return Promise.reject(new Error(`unexpected GET ${url}`));
   });
 }
@@ -45,7 +45,16 @@ const ticket = { id: 'KAN-1', assignee: 'dev1' } as unknown as Ticket;
 const renderIt = () =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <TicketHandover ticket={ticket} />
+      <AiBoardContext.Provider
+        value={{
+          projectId: 'p',
+          members: new Map([['dev1', { id: 'dev1', kind: 'ai', name: 'Dev An' }]]) as never,
+          runsByTicket: new Map(),
+          settings: null,
+        }}
+      >
+        <TicketHandover ticket={ticket} />
+      </AiBoardContext.Provider>
     </QueryClientProvider>,
   );
 

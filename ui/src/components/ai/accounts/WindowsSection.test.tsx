@@ -34,7 +34,8 @@ function setup(overview: WindowsOverview | Error) {
       if (overview instanceof Error) throw overview;
       return { data: overview };
     }
-    return { data: { runs: [], settings: {}, members: [], summary: {} } };
+    if (url.endsWith('/ai/board')) return { data: { tickets: {} } };
+    return { data: [] };
   });
   http.patch.mockResolvedValue({ data: {} });
   render(

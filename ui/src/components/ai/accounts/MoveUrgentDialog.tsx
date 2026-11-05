@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useAiBoard, useAiOverview } from '../../../api/ai';
+import { useAiBoard, useAiTeams } from '../../../api/ai';
 import { useMoveRun } from '../../../api/aiWindows';
 import { extractError } from '../../../api/extractError';
 import type { AccountWindow, RoomAccount } from '../../../types/aiWindows';
@@ -23,7 +23,7 @@ export function MoveUrgentDialog({
   onClose: () => void;
 }) {
   const board = useAiBoard(projectId);
-  const overview = useAiOverview(projectId);
+  const teams = useAiTeams(projectId);
   const move = useMoveRun();
   const targets = room.filter((r) => r.accountId !== account.key);
   const [target, setTarget] = useState<string | null>(targets[0]?.accountId ?? null);
@@ -31,17 +31,24 @@ export function MoveUrgentDialog({
   const [error, setError] = useState<string | null>(null);
 
   const queued = useMemo(() => {
-    const members = new Map((overview.data?.members ?? []).map((m) => [m.id, m]));
-    return (board.data?.runs ?? []).filter((r) => {
-      if (r.state !== 'queued') return false;
-      const accountId = members.get(r.memberId)?.accountId ?? null;
-      return (account.key === 'local' ? accountId == null : accountId === account.key) && !r.paused;
-    });
-  }, [board.data, overview.data, account.key]);
+    const members = new Map((teams.data ?? []).map((m) => [m.id, m]));
+    return Object.values(board.data?.tickets ?? {})
+      .filter((r) => {
+        if (r.state !== 'queued') return false;
+        const accountId = members.get(r.memberId)?.accountId ?? null;
+        return account.key === 'local' ? accountId == null : accountId === account.key;
+      })
+      .map((r) => ({
+        id: r.runId,
+        ticketId: r.ticketId,
+        memberName: members.get(r.memberId)?.name ?? null,
+        queuedAt: r.startedAt,
+      }));
+  }, [board.data, teams.data, account.key]);
 
   const chosen = picked ?? queued.map((r) => r.id);
   const hidden = Math.max(0, account.waiting - queued.length);
-  const loading = board.isLoading || overview.isLoading;
+  const loading = board.isLoading || teams.isLoading;
 
   const submit = async () => {
     if (!target) return;

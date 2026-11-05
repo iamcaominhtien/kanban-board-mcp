@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { accountKeys, useAccountActions, useAiAccounts, useComputerLogins } from '../../../api/aiAccounts';
 import { extractError } from '../../../api/extractError';
-import type { AiMember, AiProvider } from '../../../types/ai';
+import type { AiTeam, AiProvider } from '../../../types/ai';
 import type { AiAccount } from '../../../types/aiAccounts';
 import { CLI_OF_PROVIDER, accountReady, accountSub, accountsFor, sharedHint } from '../../../utils/memberAccount';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../Toast';
-import { PROVIDERS } from '../aiUi';
 import { AddAccountModal } from './AddAccountModal';
 import { AccountNote } from './AccountBanner';
 import { AccountStatusChip, GreyChip } from './AccountChip';
@@ -43,12 +42,12 @@ export function AccountPicker({
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [signing, setSigning] = useState<AiAccount | null>(null);
-  const spec = PROVIDERS[provider];
+  const spec = { label: 'Claude Code', binary: 'claude' };
   const cli = CLI_OF_PROVIDER[provider];
   const list = accountsFor(accounts.data?.accounts ?? [], provider);
   const chosen = list.find((a) => a.id === value) ?? null;
   const own = logins.data?.find((l) => l.cli === cli);
-  const free = provider === 'opencode';
+  const free = false;
   const hint = chosen ? sharedHint(chosen, chosen.id === currentAccountId) : null;
   const refresh = () => void qc.invalidateQueries({ queryKey: accountKeys.all });
 
@@ -202,7 +201,7 @@ export function AccountPicker({
  * Change the account of one or several AI members (profile “Change”, the banner's “Choose another account”): the same
  * list as when creating a member, then Save.
  */
-export function ChangeAccountDialog({ members, onClose }: { members: AiMember[]; onClose: () => void }) {
+export function ChangeAccountDialog({ members, onClose }: { members: AiTeam[]; onClose: () => void }) {
   const first = members[0];
   const [value, setValue] = useState<string | null>(first.accountId);
   const accounts = useAiAccounts(first.projectId);

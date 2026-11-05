@@ -115,7 +115,7 @@ function SignalCard({ signal, projectId, onLeave }: { signal: AiSignal; projectI
             disabled={busy}
             onClick={() =>
               void run(async () => {
-                await aiApi.pause(signal.memberId!, { reason: 'Paused from an AI signal' });
+                await aiApi.pauseTeam(signal.memberId!, { reason: 'Paused from an AI signal' });
                 return `${member.name} is paused. Resume it from the AI members page.`;
               })
             }

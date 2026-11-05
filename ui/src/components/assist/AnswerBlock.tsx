@@ -515,7 +515,7 @@ export function AnswerBlock({
   return (
     <div className="as-ai">
       {answerer ? (
-        <AiAvatar provider={answerer.provider} color={answerer.color} glyph={answerer.glyph} size={26} />
+        <AiAvatar provider={answerer.provider} color={answerer.color} size={26} />
       ) : (
         <BoardAiAvatar provider={state?.boardAi.provider} size={26} />
       )}

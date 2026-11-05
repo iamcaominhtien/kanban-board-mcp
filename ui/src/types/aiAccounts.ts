@@ -63,7 +63,7 @@ export interface AccountsOverview {
   terminal: boolean;
 }
 
-/** The account an AI member runs as (in AiMember.accountRef). */
+/** The account an AI member runs as (in AiTeam.accountRef). */
 export interface MemberAccountRef {
   id: string;
   name: string;

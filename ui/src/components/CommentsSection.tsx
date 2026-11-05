@@ -3,22 +3,12 @@ import type { Comment, Member } from '../types/ticket';
 import { useToast } from './Toast';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { Composer } from './comments/Composer';
-import { AiAvatar, fmtElapsed, useAiBoardState } from './ai/aiUi';
+import { AiAvatar, useAiBoardState } from './ai/aiUi';
 import { useTicketRuns } from '../api/ai';
 import { ASK_AI_EVENT } from './ai/AiTicketContext';
 import type { SendOpts } from './ai/ComposerAi';
 import { useAiSuggest } from './ai/useMentionList';
-import {
-  AnswerFooter,
-  AnswerTransitions,
-  AskErrorCard,
-  AskPlaceholder,
-  ThreadChip,
-  AiBadge,
-  askRunOf,
-  didNotStart,
-  type ThreadState,
-} from './ai/AiThread';
+import { AnswerTransitions, ThreadChip, AiBadge, RoleChip, type ThreadState } from './ai/AiThread';
 import type { AiRun } from '../types/ai';
 
 const AI_KIND: Record<string, string> = {
@@ -422,33 +412,18 @@ export function CommentsSection({
 
   // ---- layout of the thread --------------------------------------------------
   const visible = useMemo(() => {
-    const live: ({ kind: 'c'; c: Comment; i: number } | { kind: 'g'; g: Ghost } | { kind: 'p'; run: AiRun })[] =
-      comments.map((c, i) => ({
-        kind: 'c',
-        c,
-        i,
-      }));
+    const live: ({ kind: 'c'; c: Comment; i: number } | { kind: 'g'; g: Ghost })[] = comments.map((c, i) => ({
+      kind: 'c',
+      c,
+      i,
+    }));
     for (const g of [...ghosts].sort((a, b) => a.index - b.index))
       live.splice(Math.min(g.index, live.length), 0, { kind: 'g', g });
-    // the state of a run a comment started shows right under that comment: queued, reading, needs your OK, did not
-    // start, and (for a work run) ready for review (design C3)
-    aiRuns.forEach((r, i) => {
-      const active = ['queued', 'starting', 'running'].includes(r.state);
-      const show =
-        active ||
-        (r.mode === 'work' && didNotStart(r)) ||
-        (r.mode === 'work' && r.state === 'finished' && i === 0 && !!r.sourceCommentId);
-      if (!show) return;
-      if (!active && !r.sourceCommentId) return;
-      const at = live.findIndex((x) => x.kind === 'c' && x.c.id === r.sourceCommentId);
-      if (at < 0 && !active) return;
-      live.splice(at >= 0 ? at + 1 : live.length, 0, { kind: 'p', run: r });
-    });
     if (sortOrder === 'newest') {
       live.reverse();
     }
     return live;
-  }, [comments, ghosts, sortOrder, aiRuns]);
+  }, [comments, ghosts, sortOrder]);
   const collapseMiddle = !expandedMiddle && comments.length > THREAD_COLLAPSE_OVER;
   const hiddenCount = collapseMiddle ? comments.length - 1 - TAIL : 0;
 
@@ -460,22 +435,9 @@ export function CommentsSection({
       (authorMember ? aiMembers.get(authorMember.id) : undefined) ??
       (c.ai ? [...aiMembers.values()].find((a) => a.name === c.author) : undefined);
     const mine = isMine(c);
-    // where this comment stands in an ask thread: the question, the answer, an error, a reply that asks again
-    const asked = askRunOf(c, aiRuns);
+    // where this comment stands in a thread: an answer to the lead's question, a blocked move
     const threadState: { state: ThreadState; label?: string } | null =
-      c.ai?.kind === 'answer'
-        ? { state: 'answered' }
-        : c.ai?.kind === 'ask_failed'
-          ? { state: 'error' }
-          : c.ai?.kind === 'move_blocked'
-            ? { state: 'blocked' }
-            : c.asksAgain
-              ? { state: 'asks_again' }
-              : c.answerToRun
-                ? { state: 'answer' }
-                : asked
-                  ? { state: 'asked', label: `Asked ${asked.memberName ?? 'AI'}` }
-                  : null;
+      c.ai?.kind === 'move_blocked' ? { state: 'blocked' } : c.answerToRun ? { state: 'answer' } : null;
     if (editingId === c.id) {
       return (
         <div key={c.id} data-comment-id={c.id} style={{ padding: '6px 0' }}>
@@ -511,17 +473,7 @@ export function CommentsSection({
           borderRadius: 10,
         }}
       >
-        {aiAuthor ? (
-          <AiAvatar
-            provider={aiAuthor.provider}
-            color={aiAuthor.color}
-            glyph={aiAuthor.glyph}
-            size={28}
-            title={aiAuthor.name}
-          />
-        ) : (
-          <Avatar person={p} />
-        )}
+        {aiAuthor ? <AiAvatar color={aiAuthor.color} size={28} title={aiAuthor.name} /> : <Avatar person={p} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>{p.name}</span>
@@ -530,6 +482,7 @@ export function CommentsSection({
                 <AiBadge />
               </span>
             )}
+            {c.role && (aiAuthor || c.ai || c.role) && <RoleChip role={c.role} />}
             {c.ai && AI_KIND[c.ai.kind] && (
               <span
                 className="ai-chip"
@@ -569,38 +522,17 @@ export function CommentsSection({
               </span>
             )}
           </div>
-          {c.ai?.kind === 'ask_failed' ? (
-            <AskErrorCard
-              comment={c}
-              run={aiRuns.find((r) => r.id === c.ai?.runId)}
-              onDismiss={() => void remove(c, index)}
-            />
-          ) : (
-            <div style={{ fontSize: 13.5, lineHeight: 1.65, color: '#3A4A3E' }}>
-              <Collapsible text={c.text} />
-            </div>
-          )}
-          {c.ai?.kind === 'answer' && (
-            <AnswerFooter comment={c} run={aiRuns.find((r) => r.id === c.ai?.runId)} canAct />
-          )}
-          {c.ai?.kind === 'chat_answer' && (
-            <div className="ai-muted" style={{ display: 'flex', gap: 8 }} data-testid="chat-answer-meta">
-              <span>Answer from the AI chat · asked by {c.ai.askedBy ?? 'a teammate'}</span>
-              <span>· {c.ai.metered ? `$${(c.ai.costUsd ?? 0).toFixed(2)}` : 'Not metered'}</span>
-              {c.ai.model && <span className="ai-mono">· {c.ai.model}</span>}
-            </div>
-          )}
+          <div style={{ fontSize: 13.5, lineHeight: 1.65, color: '#3A4A3E' }}>
+            <Collapsible text={c.text} />
+          </div>
           {c.answerToRun && <AnswerTransitions run={aiRuns.find((r) => r.id === c.answerToRun)} />}
-          {c.ai?.runNumber && c.ai.kind !== 'answer' && c.ai.kind !== 'ask_failed' && c.ai.kind !== 'chat_answer' && (
+          {c.ai?.runNumber && (
             <div
               className="ai-muted"
               style={{ display: 'flex', gap: 8, alignItems: 'center' }}
               data-testid="ai-comment-meta"
             >
               <span>Run #{c.ai.runNumber}</span>
-              {c.ai.durationS != null && <span>· {fmtElapsed(c.ai.durationS)}</span>}
-              <span>· {c.ai.metered ? `$${(c.ai.costUsd ?? 0).toFixed(2)}` : 'Not metered'}</span>
-              {c.ai.model && <span className="ai-mono">· {c.ai.model}</span>}
             </div>
           )}
           {confirmId === c.id && (
@@ -720,10 +652,6 @@ export function CommentsSection({
           <span style={{ flex: 1, height: 1, background: '#E3E8E5' }} />
         </div>,
       );
-      return;
-    }
-    if (it.kind === 'p') {
-      rows.push(<AskPlaceholder key={`ask-${it.run.id}`} run={it.run} />);
       return;
     }
     const { c, i } = it;

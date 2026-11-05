@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAiOverview, useTicketRuns } from '../../api/ai';
+import { useAiTeams, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { scheduleApi, useScheduleDetail, useScheduleMutation } from '../../api/schedules';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import type { CheckResult, ScheduleDetail as Detail, ScheduleRun } from '../../types/schedules';
 import { AiAvatar, SparkleIcon, money, useAiBoardState } from '../ai/aiUi';
 import { useToast } from '../Toast';
@@ -81,7 +81,7 @@ function SlotActions({
   onDone,
 }: {
   run: ScheduleRun;
-  ais: AiMember[];
+  ais: AiTeam[];
   /** The schedule's backup AI (F: "Use backup AI"), when it has one other than the AI that was due. */
   backup?: { id: string; name: string } | null;
   onDone: () => void;
@@ -181,7 +181,7 @@ function SlotRow({
   detail: Detail;
   open: boolean;
   onToggle: () => void;
-  ais: AiMember[];
+  ais: AiTeam[];
   runNumber: (id: string) => number | undefined;
   onOpenTicket: (ticketId: string) => void;
 }) {
@@ -302,8 +302,8 @@ export function ScheduleDetailLayer({
   const toast = useToast();
   const q = useScheduleDetail(scheduleId);
   const d = q.data;
-  const overview = useAiOverview(projectId);
-  const ais = (overview.data?.members ?? []).filter(canStart);
+  const teams = useAiTeams(projectId);
+  const ais = (teams.data ?? []).filter(canStart);
   const ticketRuns = useTicketRuns(d?.ticketId);
   const { openAiTab } = useAiBoardState();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');

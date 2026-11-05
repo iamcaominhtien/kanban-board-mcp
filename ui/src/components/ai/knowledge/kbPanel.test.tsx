@@ -45,7 +45,7 @@ function wire(documents: unknown[]) {
         ],
       });
     if (url.includes('/ai/kb/d1')) return Promise.resolve({ data: detail });
-    if (url.endsWith('/ai/ops')) return Promise.resolve({ data: { knowledgeShared: true } });
+    if (url.endsWith('/ai/settings')) return Promise.resolve({ data: { ops: { knowledgeShared: true } } });
     return Promise.resolve({ data: { stores: ['project'], documents } });
   });
 }
@@ -87,7 +87,7 @@ describe('KnowledgeBasePanel', () => {
 
   it('has a Shared tab that lists the shared store while this project does not search it (WV-7)', async () => {
     http.get.mockImplementation((url: string) => {
-      if (url.endsWith('/ai/ops')) return Promise.resolve({ data: { knowledgeShared: false } });
+      if (url.endsWith('/ai/settings')) return Promise.resolve({ data: { ops: { knowledgeShared: false } } });
       return Promise.resolve({
         data: {
           stores: ['project'],

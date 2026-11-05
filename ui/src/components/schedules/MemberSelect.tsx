@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { AiAvatar } from '../ai/aiUi';
 import { CheckCircleIcon, ChevronIcon, LockIcon } from './schedulesUi';
@@ -29,7 +29,7 @@ export function MemberSelect({
   testId,
   disabled,
 }: {
-  members: AiMember[];
+  members: AiTeam[];
   value: string;
   onChange: (id: string) => void;
   /** Label of the empty choice ("None. Skip when unavailable."); without it a member must be picked. */

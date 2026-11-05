@@ -5,10 +5,8 @@ import { agoText, canResume, pausedSummary, spanText } from './pausedUi';
 const settings = (extra: Partial<AiSettings>): AiSettings =>
   ({
     pausedAll: true,
-    pausedBy: 'An Nguyen',
     pausedAt: '2026-10-31T10:41:00',
-    pausedCancelled: 2,
-    pausedHeld: 3,
+    pausedReason: null,
     ...extra,
   }) as AiSettings;
 
@@ -21,20 +19,14 @@ describe('paused state helpers', () => {
     expect(spanText(66 * 60000)).toBe('1 h 06');
   });
 
-  it('lets only owners and admins resume, and leaves an old server to decide', () => {
-    expect(canResume(settings({ myRole: 'owner' }))).toBe(true);
-    expect(canResume(settings({ myRole: 'admin' }))).toBe(true);
-    expect(canResume(settings({ myRole: 'member' }))).toBe(false);
-    expect(canResume(settings({ myRole: 'viewer' }))).toBe(false);
+  it('leaves the decision to resume to the server', () => {
     expect(canResume(settings({}))).toBe(true);
+    expect(canResume(null)).toBe(true);
   });
 
-  it('says who paused, what it did and who resumes, with no zero counts', () => {
-    const text = pausedSummary(settings({}));
-    expect(text).toContain('Paused by An Nguyen');
-    expect(text).toContain('2 runs cancelled, 3 queued runs held');
-    expect(text).toContain('until an owner or admin resumes');
-    expect(pausedSummary(settings({ pausedCancelled: 0, pausedHeld: 1 }))).toContain('1 queued run held.');
-    expect(pausedSummary(settings({ pausedCancelled: 0, pausedHeld: 0 }))).not.toMatch(/0 (queued )?runs?/);
+  it('says when the pause began and the reason it was given', () => {
+    expect(pausedSummary(settings({}))).toContain('Paused at');
+    expect(pausedSummary(settings({}))).toContain('Nothing new starts until it is resumed.');
+    expect(pausedSummary(settings({ pausedReason: 'Over budget' }))).toContain('“Over budget”');
   });
 });

@@ -1049,7 +1049,7 @@ export function TicketAiMenu({
   onToggleChat?: (open?: boolean) => void;
 }) {
   const ctx = useAssist();
-  const { members: aiMembers, settings: aiSettings } = useAiBoardState();
+  const { members: aiMembers } = useAiBoardState();
   const st = useAssistState(ticket.projectId);
   const [open, setOpen] = useState(false);
   const [improve, setImprove] = useState<string | null>(null);
@@ -1108,7 +1108,6 @@ export function TicketAiMenu({
     [drafting, splitting, cases, chat, isChild, sd, ticket.id, onOpenTestCases, ctx, onToggleChat],
   );
   // AI helpers appear when AI is on for the project and an AI member exists (design E)
-  if (aiSettings?.aiEnabled === false) return null;
   if (!onToggleChat && (!st.data || st.data.boardAi.state === 'not_configured')) return null;
   if (onToggleChat && aiMembers.size === 0 && (!st.data || st.data.boardAi.state === 'not_configured')) return null;
   return (

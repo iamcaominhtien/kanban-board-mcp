@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import type { Schedule, ScheduleRun, SlotState } from '../../types/schedules';
 import '../ai/ai.css';
 import './schedules.css';
@@ -483,8 +483,8 @@ export function CheckChips({
 }
 
 /** What a member can be picked for: the board can start it. */
-export function canStart(m: AiMember): boolean {
-  return m.kind === 'ai' && m.connection !== 'inbox';
+export function canStart(m: AiTeam): boolean {
+  return m.kind === 'ai';
 }
 
 /** The slot the person most likely wants to see first: waiting, then the newest. */

@@ -38,10 +38,12 @@ beforeEach(() => {
   ops = { ownClaude: true, ownClaudeRoles: [{ plugin: 'frontend-design', roles: ['designer', 'dev'] }] };
   http.get.mockImplementation((url: string) => {
     if (url === '/projects/p1/ai/own-plugins') return ok({ on: ops.ownClaude, plugins: PLUGINS });
-    if (url === '/projects/p1/ai/ops') return ok(ops);
+    if (url === '/projects/p1/ai/settings') return ok({ ops });
     return Promise.reject(new Error(`unexpected GET ${url}`));
   });
-  http.patch.mockImplementation((_u: string, body: Record<string, unknown>) => ok({ ...ops, ...body }));
+  http.patch.mockImplementation((_u: string, body: { ops: Record<string, unknown> }) =>
+    ok({ ops: { ...ops, ...body.ops } }),
+  );
 });
 afterEach(cleanup);
 
@@ -109,26 +111,28 @@ describe('OwnPluginsCard', () => {
     await waitFor(() => expect(box('superpowers', 'Designer').disabled).toBe(false));
     fireEvent.click(box('superpowers', 'Designer'));
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/ops', {
-        ownClaudeRoles: [
-          { plugin: 'frontend-design', roles: ['designer', 'dev'] },
-          {
-            plugin: 'superpowers',
-            roles: [
-              'triage',
-              'pm',
-              'ba',
-              'dev',
-              'qa',
-              'user_tester',
-              'reviewer',
-              'tech_writer',
-              'devops',
-              'security',
-              'data_analyst',
-            ],
-          },
-        ],
+      expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/settings', {
+        ops: {
+          ownClaudeRoles: [
+            { plugin: 'frontend-design', roles: ['designer', 'dev'] },
+            {
+              plugin: 'superpowers',
+              roles: [
+                'triage',
+                'pm',
+                'ba',
+                'dev',
+                'qa',
+                'user_tester',
+                'reviewer',
+                'tech_writer',
+                'devops',
+                'security',
+                'data_analyst',
+              ],
+            },
+          ],
+        },
       }),
     );
   });
@@ -139,12 +143,14 @@ describe('OwnPluginsCard', () => {
     await waitFor(() => expect((sw as HTMLButtonElement).disabled).toBe(false));
     expect(sw.getAttribute('aria-checked')).toBe('true');
     fireEvent.click(sw);
-    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/ops', { ownClaude: false }));
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/settings', { ops: { ownClaude: false } }),
+    );
   });
 
   it('says when the Claude Code folder cannot be read', async () => {
     http.get.mockImplementation((url: string) =>
-      url.endsWith('/ai/ops') ? ok(ops) : Promise.reject({ response: { data: { detail: 'No folder' } } }),
+      url.endsWith('/ai/settings') ? ok({ ops }) : Promise.reject({ response: { data: { detail: 'No folder' } } }),
     );
     mount();
     expect((await screen.findByTestId('own-plugins-error')).textContent).toContain('No folder');

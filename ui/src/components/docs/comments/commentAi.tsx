@@ -26,7 +26,7 @@ export function useCommentSuggest(data: DocsCommentsResult | undefined): Suggest
           name: r.name,
           group: 'AI',
           ai: {
-            avatar: <AiAvatar provider={provider} color={m?.color ?? r.color} glyph={m?.glyph} size={22} />,
+            avatar: <AiAvatar provider={provider} color={m?.color ?? r.color} size={22} />,
             status: r.status ?? '',
             note: r.note ?? '',
             tone: r.tone ?? 'off',

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { aiApi, useAiBoard, useAiMutation } from '../../api/ai';
+import { aiApi, useAiMutation } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
 import { useRestartRun, useResourcesStream } from '../../api/aiResources';
@@ -191,7 +191,7 @@ function RowActions({ run, canAct, onDone }: { run: ResourceRun; canAct: boolean
   const [asking, setAsking] = useState<'stop' | 'restart' | null>(null);
   const restart = useRestartRun();
   const toast = useToast();
-  const stop = useAiMutation((id: string) => aiApi.cancel(id, 'Stopped from the Resources tab'));
+  const stop = useAiMutation((id: string) => aiApi.cancel(id));
   if (!run.live) return null;
   const who = `${run.memberName ?? 'This AI'}’s run on ${run.ticketId}`;
   const tip = canAct ? undefined : 'You can look, not act';
@@ -326,9 +326,7 @@ function RunRow({
 /** AI Team › Resources (design/screens/ai-resources.md, B): the machine, RAM of every run and Stop / Restart. */
 export function ResourcesTab({ projectId, onOpenTicket }: Props) {
   const { data: snap, live } = useResourcesStream(projectId);
-  const board = useAiBoard(projectId);
-  const role = board.data?.settings.myRole;
-  const canAct = !!live && role !== 'viewer';
+  const canAct = !!live;
   if (!snap) {
     return (
       <div className="rs-root" aria-busy="true">

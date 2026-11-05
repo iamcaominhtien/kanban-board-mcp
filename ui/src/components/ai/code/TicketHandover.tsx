@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PullStatus } from './PullStatus';
 import { codeApi, useCodeMutation, useTicketFlags, useTicketWorktree } from '../../../api/aiCode';
 import { extractError } from '../../../api/extractError';
-import { useAiMember } from '../../../api/ai';
+import { useAiBoardState } from '../aiUi';
 import type { Ticket } from '../../../types';
 import type { HandoverRoute, MergeResult } from '../../../types/aiCode';
 import { ConflictCard, ROUTE_TEXT, ROUTE_TITLE, StateChip, mbText, uncommittedText } from './worktreeUi';
@@ -12,7 +12,7 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
   const wt = useTicketWorktree(ticket.id);
   const hasWt = !!wt.data && wt.data.state !== 'removed';
   const flags = useTicketFlags(ticket.id, hasWt);
-  const assignee = useAiMember(ticket.assignee ?? null);
+  const assignee = useAiBoardState().members.get(ticket.assignee ?? '');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResult | null>(null);
   const merge = useCodeMutation(() => codeApi.merge(ticket.id));
@@ -33,7 +33,7 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
   const route = (w as { route?: HandoverRoute }).route ?? w.handover ?? 'auto';
   const eff: Exclude<HandoverRoute, 'auto'> = route === 'auto' ? 'pr' : route;
   const dirty = (w.live?.uncommitted.length ?? 0) > 0;
-  const lastMember = assignee.data && assignee.data.kind === 'ai' ? assignee.data : null;
+  const lastMember = assignee && assignee.kind === 'ai' ? assignee : null;
   const run = async (fn: () => Promise<unknown>) => {
     setError(null);
     try {

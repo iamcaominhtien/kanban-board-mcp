@@ -40,6 +40,8 @@ export interface Comment {
   notified?: { id: string; name: string }[];
   /** Set on comments an AI member posted: its run and what the comment is. */
   ai?: AiCommentMeta;
+  /** The role of the AI team that wrote the comment (Reviewer, QA...): "Reviewer · Team An". */
+  role?: string;
   /** A note the board itself posted (e.g. a mention that was not delivered). */
   boardNote?: boolean;
   /** The comment this one answers; set under an AI's comment, which then asks that AI again (`asksAgain`). */

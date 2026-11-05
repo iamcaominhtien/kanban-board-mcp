@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAiMember } from '../../../api/ai';
+import { useAiBoardState } from '../aiUi';
 import { extractError } from '../../../api/extractError';
 import { pullApi, usePullMutation, usePulls } from '../../../api/aiPulls';
 import { useProjectOps } from '../../../api/aiProjectOps';
@@ -14,7 +14,7 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
   const projectId = ticket.data?.projectId;
   const pulls = usePulls(projectId);
   const ops = useProjectOps(projectId ?? '');
-  const dev = useAiMember(ticket.data?.assignee ?? null);
+  const dev = useAiBoardState().members.get(ticket.data?.assignee ?? '');
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
@@ -25,7 +25,7 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
   const p = pulls.data?.find((x) => x.ticketId === ticketId);
   if (!p) return null;
 
-  const who = dev.data && dev.data.kind === 'ai' ? dev.data.name : 'the Dev';
+  const who = dev ? dev.name : 'the Dev';
   const red = p.ci === 'red' && p.red;
   const checked = p.checkedAt ? `checked ${ago(p.checkedAt)}` : 'not checked yet';
   const unreachable = !!p.lastError;

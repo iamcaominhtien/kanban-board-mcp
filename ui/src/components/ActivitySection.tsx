@@ -1,5 +1,4 @@
 import { AiAvatar, useAiBoardState } from './ai/aiUi';
-import { RevertChangeDialog } from './ai/RevertChange';
 import { useMemo, useState } from 'react';
 import type { ActivityEntry, Member } from '../types';
 import { getAvatarColors } from './MemberAvatar';
@@ -31,20 +30,6 @@ type FilterGroup =
   | 'ai'
   | 'agent'
   | `ai:${string}`;
-
-/** Fields an AI changed that a person can revert one at a time. */
-const REVERTIBLE = new Set([
-  'status',
-  'estimate',
-  'priority',
-  'title',
-  'description',
-  'assignee',
-  'tags',
-  'due_date',
-  'start_date',
-  'type',
-]);
 
 const isReopenField = (field: string) => field === 'reopen' || field.startsWith('reopen_child');
 const isPendingField = (field: string) =>
@@ -690,8 +675,7 @@ export function ActivitySection({
     return out;
   }, [rawEntries]);
   const [filter, setFilter] = useState<FilterGroup>('all');
-  const { members: aiMembers, projectId: aiProjectId } = useAiBoardState();
-  const [revert, setRevert] = useState<ActivityEntry | null>(null);
+  const { members: aiMembers } = useAiBoardState();
   const [expandedDiffs, setExpandedDiffs] = useState<Record<string, boolean>>({});
   const [visibleCount, setVisibleCount] = useState<number>(20);
 
@@ -1349,13 +1333,7 @@ export function ActivitySection({
                             style={{ flexShrink: 0, width: 28, display: 'inline-flex', justifyContent: 'center' }}
                             data-testid="activity-ai-bubble"
                           >
-                            <AiAvatar
-                              provider={aiMembers.get(entry.memberId)!.provider}
-                              color={aiMembers.get(entry.memberId)!.color}
-                              glyph={aiMembers.get(entry.memberId)!.glyph}
-                              size={26}
-                              title={entry.actor}
-                            />
+                            <AiAvatar color={aiMembers.get(entry.memberId)!.color} size={26} title={entry.actor} />
                           </span>
                         ) : (
                           renderBubble(entry.field)
@@ -1516,17 +1494,6 @@ export function ActivitySection({
                             </span>
                           )}
                           {isToday ? formatRelative(entry.at) : formatClockTime(entry.at)}
-                          {entry.ai && entry.runId && REVERTIBLE.has(entry.field) && (
-                            <button
-                              type="button"
-                              className={styles.acToggle}
-                              style={{ marginLeft: 8 }}
-                              data-testid="activity-revert"
-                              onClick={() => setRevert(entry)}
-                            >
-                              Revert
-                            </button>
-                          )}
                           <span className={styles.acTt}>
                             {fullDate}
                             {age && (
@@ -1545,7 +1512,6 @@ export function ActivitySection({
             );
           })}
 
-          {revert && <RevertChangeDialog entry={revert} projectId={aiProjectId} onClose={() => setRevert(null)} />}
           {filteredEntries.length > visibleCount && (
             <button type="button" className={styles.acMore} onClick={() => setVisibleCount((prev) => prev + 20)}>
               Show {filteredEntries.length - visibleCount} earlier{' '}

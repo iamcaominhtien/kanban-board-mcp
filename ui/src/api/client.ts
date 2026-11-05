@@ -4,6 +4,13 @@ import snakecaseKeys from 'snakecase-keys';
 import { reportDatabaseUnreachable, unreachableOf } from './databaseDown';
 import { resolveOrigin } from './resolveOrigin';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Leave the keys of the response as the server sent them (a dict keyed by ids such as "IAM-12"). */
+    keepKeys?: boolean;
+  }
+}
+
 /** Axios instance that converts keys between snake_case (API) and camelCase (UI). */
 export const client = axios.create();
 
@@ -28,7 +35,7 @@ function isFormDataPayload(value: unknown): value is FormData {
 // Transform response keys: snake_case → camelCase. A 503 "database_unreachable" opens the reconnect screen.
 client.interceptors.response.use(
   (response) => {
-    if (response.data && typeof response.data === 'object') {
+    if (response.data && typeof response.data === 'object' && !response.config?.keepKeys) {
       response.data = camelcaseKeys(response.data, { deep: true });
     }
     return response;

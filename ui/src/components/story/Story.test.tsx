@@ -134,7 +134,7 @@ describe('StoryCard', () => {
               tokens: { used: 0, budget: 0 },
             }),
           ])
-        : ok({ autonomy: { approve: 'pm' } }),
+        : ok({ ops: { autonomy: { approve: 'pm' } } }),
     );
     http.post.mockReturnValue(ok(story({ id: 'KAN-315', state: 'planning' })));
     const onOpen = vi.fn();
@@ -241,7 +241,7 @@ describe('StoryCard', () => {
 
 describe('GiveStoryDialog', () => {
   it('pre-selects Show me the plan first when designs are approved by a person, and creates the Story', async () => {
-    http.get.mockReturnValue(ok({ autonomy: { approve: 'person' } }));
+    http.get.mockReturnValue(ok({ ops: { autonomy: { approve: 'person' } } }));
     http.post.mockReturnValue(ok(story({ id: 'KAN-320', state: 'planning' })));
     const onClose = vi.fn();
     render(wrap(<GiveStoryDialog projectId="p1" onClose={onClose} />));

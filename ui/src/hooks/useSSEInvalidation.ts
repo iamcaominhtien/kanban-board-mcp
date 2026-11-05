@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { resolveOrigin } from '../api/resolveOrigin';
+import { applyAiEvent } from '../api/aiRunCache';
 import { createBatcher } from './invalidationBatcher';
 import { keysFor, topicsOf } from './invalidationTopics';
 
-/** Subscribe to server events and invalidate React Query caches, reconnecting on failure. */
+/**
+ * Subscribe to server events, reconnecting on failure. The AI's typed events (`ai.step`, `ai.run`, `ai.message`)
+ * patch the cache (api/aiRunCache.ts); every other announcement invalidates React Query caches.
+ */
 export function useSSEInvalidation() {
   const queryClient = useQueryClient();
 
@@ -21,6 +25,8 @@ export function useSSEInvalidation() {
       else keys.forEach((queryKey) => void queryClient.invalidateQueries({ queryKey }));
     });
     function handleMessage(event: MessageEvent<string>) {
+      // A run's steps, states and messages carry their data: patch the cache instead of refetching.
+      if (applyAiEvent(queryClient, event.data)) return;
       batcher.push(topicsOf(event.data));
     }
 

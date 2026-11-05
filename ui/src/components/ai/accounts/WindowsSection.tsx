@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useAiOverview } from '../../../api/ai';
+import { useAiTeams } from '../../../api/ai';
 import { useAiWindows, usePatchWindow } from '../../../api/aiWindows';
 import { extractError } from '../../../api/extractError';
 import type { AccountWindow, RoomAccount } from '../../../types/aiWindows';
 import { useToast } from '../../Toast';
 import { LoadError, Toggle } from '../aiUi';
-import type { AiMember } from '../../../types/ai';
+import type { AiTeam } from '../../../types/ai';
 import { AccountBadge } from './AccountParts';
 import { MoveUrgentDialog } from './MoveUrgentDialog';
 import { WindowBar } from './WindowBar';
@@ -102,7 +102,7 @@ function WindowCard({
   onMove: () => void;
   canMove: boolean;
   /** This project's AI members, for the MEMBERS column and the member on each running run. */
-  members: AiMember[];
+  members: AiTeam[];
 }) {
   const patch = usePatchWindow();
   const toast = useToast();
@@ -193,8 +193,8 @@ function WindowCard({
 /** “This window” of each Claude account, above the account list (design/screens/ai-operations.md, E). */
 export function WindowsSection({ projectId }: { projectId: string }) {
   const windows = useAiWindows();
-  const overview = useAiOverview(projectId);
-  const members = useMemo(() => overview.data?.members ?? [], [overview.data]);
+  const teams = useAiTeams(projectId);
+  const members = useMemo(() => teams.data ?? [], [teams.data]);
   const [moving, setMoving] = useState<AccountWindow | null>(null);
   const [now] = useState(() => Date.now());
   const nowMs = windows.dataUpdatedAt || now;

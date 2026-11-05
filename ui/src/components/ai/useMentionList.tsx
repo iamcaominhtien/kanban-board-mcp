@@ -7,8 +7,8 @@ import { AiAvatar, useAiBoardState } from './aiUi';
 
 /** The project's AI members as rows of the @ list: avatar, status in words, greyed when they cannot be used now. */
 export function useAiSuggest(): SuggestMember[] {
-  const { members, settings } = useAiBoardState();
-  const on = settings?.aiEnabled !== false; // AI turned off for the project: no AI in the @ list
+  const { members } = useAiBoardState();
+  const on = true;
   return useMemo(
     () =>
       on
@@ -20,9 +20,9 @@ export function useAiSuggest(): SuggestMember[] {
               return {
                 id: m.id,
                 name: m.name,
-                group: 'AI members',
+                group: 'AI teams',
                 ai: {
-                  avatar: <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={22} />,
+                  avatar: <AiAvatar color={m.color} size={22} />,
                   status: av.label,
                   note: av.note,
                   tone: av.tone,

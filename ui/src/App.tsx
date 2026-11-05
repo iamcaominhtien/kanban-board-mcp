@@ -41,14 +41,14 @@ import { useLoadingPill } from './hooks/useLoadingPill';
 import { Splash } from './components/Splash';
 import { UpdateNotice } from './components/UpdateNotice';
 import { DesktopMenuHost, type MenuView } from './components/desktop/DesktopMenuHost';
-import { useAiBoard, useAiOverview, aiApi } from './api/ai';
+import { useAiBoard, useAiSettings, useAiTeams, aiApi } from './api/ai';
 import { AiBoardContext, type AiBoardState } from './components/ai/aiUi';
 import { AiMembersPage } from './components/ai/AiMembersPage';
 import { OPEN_DOC_EVENT } from './utils/openDoc';
 import { AiPausedBanner, PauseAllButton } from './components/ai/AiDialogs';
 import { DragConfirm } from './components/ai/DragConfirm';
 import { AiHoverHost } from './components/ai/MentionPill';
-import type { AiRun } from './types/ai';
+import type { BoardRun } from './types/ai';
 import { AssistProvider, useAssist, useAssistShortcut } from './components/assist/AssistContext';
 import { AssistDock } from './components/assist/AssistDock';
 import { AskAiButton, BoardHealthChip } from './components/assist/AssistEntry';
@@ -168,7 +168,7 @@ export default function App() {
   const ideaInbox = useIdeaCounts().data?.totalInbox ?? 0;
   // The card of an AI's ticket was dropped on another column: a dialog asks before its run is cancelled
   const [dragConfirm, setDragConfirm] = useState<{
-    run: AiRun;
+    run: BoardRun;
     to: string;
     resolve: (move: boolean) => void;
   } | null>(null);
@@ -179,22 +179,22 @@ export default function App() {
   const [aiPage, setAiPage] = useState<{
     memberId?: string | null;
     add?: boolean;
-    tab?: 'accounts' | 'approvals' | 'audit' | 'usage';
-    auditMemberId?: string;
+    tab?: 'accounts';
     key: number;
   } | null>(null);
-  const aiOverview = useAiOverview(currentProjectId ?? '');
+  const aiTeams = useAiTeams(currentProjectId ?? '');
+  const aiSettings = useAiSettings(currentProjectId ?? '');
   const aiBoard = useAiBoard(currentProjectId ?? '');
   const aiState = useMemo<AiBoardState>(
     () => ({
       projectId: currentProjectId ?? '',
-      members: new Map((aiOverview.data?.members ?? []).map((m) => [m.id, m])),
-      runsByTicket: new Map((aiBoard.data?.runs ?? []).map((r) => [r.ticketId, r])),
-      settings: aiBoard.data?.settings ?? aiOverview.data?.settings ?? null,
+      members: new Map((aiTeams.data ?? []).map((m) => [m.id, m])),
+      runsByTicket: new Map(Object.entries(aiBoard.data?.tickets ?? {})),
+      settings: aiSettings.data ?? null,
       openAiPage: (memberId?: string) => setAiPage({ memberId, key: Date.now() }),
-      openAiTab: (tab, opts) => setAiPage({ tab, auditMemberId: opts?.memberId, key: Date.now() }),
+      openAiTab: (tab) => setAiPage({ tab: tab === 'accounts' ? 'accounts' : undefined, key: Date.now() }),
     }),
-    [currentProjectId, aiOverview.data, aiBoard.data],
+    [currentProjectId, aiTeams.data, aiSettings.data, aiBoard.data],
   );
   // All notifications page (a view of its own, like Settings)
   const [notifPage, setNotifPage] = useState(false);
@@ -574,7 +574,6 @@ export default function App() {
     const heldBy = aiState.runsByTicket.get(ticketId);
     if (
       heldBy &&
-      heldBy.mode === 'work' &&
       ['queued', 'starting', 'running', 'needs_input'].includes(heldBy.state) &&
       dragged?.status !== newStatus &&
       !confirmed
@@ -583,7 +582,7 @@ export default function App() {
       const move = await new Promise<boolean>((resolve) => setDragConfirm({ run: heldBy, to: newStatus, resolve }));
       if (!move) return;
       try {
-        await aiApi.cancel(heldBy.id, 'The card was moved by a person');
+        await aiApi.cancel(heldBy.runId);
       } catch {
         /* it ended meanwhile */
       }
@@ -810,7 +809,7 @@ export default function App() {
     />
   );
 
-  const aiMemberCount = aiOverview.data?.members.length ?? 0;
+  const aiMemberCount = aiTeams.data?.length ?? 0;
   const insightChips = useInsightChips(currentProjectId);
   const humanMembers = members.filter((m) => (m.kind ?? 'human') === 'human');
 
@@ -845,9 +844,7 @@ export default function App() {
     );
   }
   // the AI paused banner (ai-2 AP-2): under the top bar. The board has its top bar inside, so it draws the banner
-  const pausedBanner = aiState.settings?.pausedAll ? (
-    <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
-  ) : null;
+  const pausedBanner = aiState.settings?.pausedAll ? <AiPausedBanner settings={aiState.settings} /> : null;
   const boardShown =
     !overlayPage &&
     !(aiPage && currentProjectId && !noProjects) &&
@@ -895,7 +892,7 @@ export default function App() {
               setSettingsTarget(null);
               setNotifPage(false);
               switchToProject(projectId);
-              setAiPage({ tab, key: Date.now() });
+              setAiPage({ tab: tab === 'accounts' ? 'accounts' : undefined, key: Date.now() });
             }}
             onOpenAiMember={(memberId, projectId) => {
               setSettingsTarget(null);
@@ -1008,7 +1005,6 @@ export default function App() {
                         initialMemberId={aiPage.memberId}
                         initialAdd={aiPage.add}
                         initialTab={aiPage.tab}
-                        initialAuditMemberId={aiPage.auditMemberId}
                         onBack={() => setAiPage(null)}
                         onOpenTicket={(id) => {
                           setAiPage(null);
@@ -1082,7 +1078,7 @@ export default function App() {
                               <PauseAllButton
                                 projectId={currentProjectId}
                                 settings={aiState.settings}
-                                members={aiOverview.data?.members ?? []}
+                                members={aiTeams.data ?? []}
                               />
                             ) : null
                           }

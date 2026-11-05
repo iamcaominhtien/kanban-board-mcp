@@ -20,7 +20,7 @@ import { PopOutIcon } from './docs/DocsWindowIcons';
 import { useDocsWindowHost } from './docs/useDocsWindow';
 import { useToast } from './Toast';
 import { AiTeamView } from './aiteam/AiTeamView';
-import { useTeamNow } from '../api/aiTeam';
+import { useAiOverview } from '../api/ai';
 import { SchedulesTab } from './schedules/SchedulesTab';
 import { CalendarIcon } from './schedules/schedulesUi';
 import { useScheduleList } from '../api/schedules';
@@ -260,8 +260,8 @@ export function Board({
   const { data: scheduleList } = useScheduleList(projectId ?? '');
   // The AI Team view exists for a project with AI members; its badge counts what waits for a person
   const hasAiTeam = members.some((m) => m.kind === 'ai');
-  const teamNow = useTeamNow(hasAiTeam ? (projectId ?? '') : '', 'today');
-  const waitingForYou = teamNow.data?.needsYou.length ?? 0;
+  const teamOverview = useAiOverview(hasAiTeam ? (projectId ?? '') : '');
+  const waitingForYou = teamOverview.data?.runs.needsInput ?? 0;
 
   function handleDragStart(event: DragStartEvent) {
     setSelectedParentId(null);

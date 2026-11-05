@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react';
 import { PauseGlyph } from '../ai/pausedUi';
 import { roleCode } from '../ai/roleLook';
-import type { CardState, HandoffEnd } from '../../types/aiTeam';
+/** What a team card shows. */
+export type CardState = 'working' | 'waiting' | 'queued' | 'paused' | 'offline' | 'idle';
+
+/** One end of a hand-off as a badge draws it: a person or an AI, by name and colour. */
+export interface HandoffEnd {
+  kind?: 'person' | 'ai';
+  name?: string;
+  color?: string | null;
+}
 import './aiTeam.css';
 import '../docs/docs.css';
 

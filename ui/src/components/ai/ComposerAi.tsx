@@ -1,21 +1,21 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import { AiAvatar } from './aiUi';
 import './ticketWork.css';
 import { LineIcon } from '../ui/LineIcon';
 
-/** How the composer sends a comment when the person asks an AI: ask this member the text as a question. */
+/** How the composer sends a comment to a team: the text goes to that team's lead as an instruction. */
 export interface SendOpts {
-  /** Ask this AI member the text as a question: a comment that mentions it, plus a short answer run. */
+  /** Send the text to this team (`POST /tickets/{key}/ai/run {instruction}`); a lead already working hears it. */
   askMemberId?: string;
 }
 
 const MENTION = /@\[([^\][\n]{1,100})\]\(member:([\w.-]{1,64})\)/g;
 
 /** AI members mentioned in a text, in order. */
-export function mentionedAi(text: string, members: Map<string, AiMember>): AiMember[] {
-  const out: AiMember[] = [];
+export function mentionedAi(text: string, members: Map<string, AiTeam>): AiTeam[] {
+  const out: AiTeam[] = [];
   for (const m of text.matchAll(MENTION)) {
     const ai = members.get(m[2]);
     if (ai && ai.kind === 'ai' && !out.includes(ai)) out.push(ai);
@@ -97,7 +97,7 @@ export function FloatMenu({
   );
 }
 
-/** The Ask shortcut: “Ask Claude Code · Backend ▾” sends the text as a question to that AI member. */
+/** The Send shortcut: “Send to Backend ▾” sends the text to that team's lead. */
 export function AskSplit({
   member,
   options,
@@ -107,8 +107,8 @@ export function AskSplit({
   onPick,
   onAsk,
 }: {
-  member: AiMember;
-  options: AiMember[];
+  member: AiTeam;
+  options: AiTeam[];
   open: boolean;
   disabled: boolean;
   onToggle: () => void;
@@ -119,14 +119,14 @@ export function AskSplit({
   return (
     <span className="tw-split tw-split-ask" data-testid="comment-ask-split">
       <button type="button" className="tw-split-main" data-testid="comment-ask" disabled={disabled} onClick={onAsk}>
-        <AiAvatar provider={member.provider} color={member.color} glyph={member.glyph} size={18} />
-        Ask {member.name}
+        <AiAvatar color={member.color} size={18} />
+        Send to {member.name}
       </button>
       <button
         ref={caret}
         type="button"
         className="tw-split-caret"
-        aria-label="Pick which AI to ask"
+        aria-label="Pick which team to send to"
         aria-haspopup="menu"
         aria-expanded={open}
         data-testid="comment-ask-menu"
@@ -137,7 +137,7 @@ export function AskSplit({
       {open && (
         <FloatMenu anchor={caret.current} onClose={onToggle} width={280}>
           <div className="ai-label" style={{ padding: '6px 10px 2px' }}>
-            Ask
+            Send to
           </div>
           {options.map((m) => (
             <button
@@ -148,7 +148,7 @@ export function AskSplit({
               className="tw-menu-item tw-menu-row"
               onClick={() => onPick(m.id)}
             >
-              <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={22} />
+              <AiAvatar color={m.color} size={22} />
               <span style={{ flex: 1, fontWeight: 600 }}>{m.name}</span>
               {m.id === member.id && (
                 <span style={{ color: '#2E6F40' }}>

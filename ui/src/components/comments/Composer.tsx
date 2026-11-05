@@ -123,11 +123,11 @@ export function Composer({
   const stored = useMemo(() => toStored(text, people), [text, people]);
   const { members: aiMap } = useAiBoardState();
   const mentioned = useMemo(() => mentionedAi(stored, aiMap), [stored, aiMap]);
-  // AI members that can answer a question now (the Ask split button), the ticket's assignee first
+  // AI teams that can take a message now (the Send to split button), the ticket's assignee first
   const askable = useMemo(
     () =>
       [...aiMap.values()]
-        .filter((m) => m.kind === 'ai' && m.connection !== 'inbox' && aiAvailability(m).usable)
+        .filter((m) => m.kind === 'ai' && aiAvailability(m).usable)
         .sort((a, b) => Number(b.id === defaultAskId) - Number(a.id === defaultAskId)),
     [aiMap, defaultAskId],
   );
@@ -279,7 +279,7 @@ export function Composer({
     }
     onSubmit([stored.trim(), extra].filter(Boolean).join('\n\n'), opts);
   }
-  /** Ctrl+Shift+Enter: ask. The first AI mentioned gets the text as a question; without a mention, the Ask button's AI. */
+  /** Ctrl+Shift+Enter: send to the team. The first AI mentioned gets the text; without a mention, the Send button's team. */
   function ask() {
     if (mentioned.length) send({ askMemberId: mentioned[0].id });
     else if (asking) send({ askMemberId: asking.id });

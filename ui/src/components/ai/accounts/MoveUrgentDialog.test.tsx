@@ -29,29 +29,25 @@ const room: RoomAccount[] = [
   { accountId: 'a2', name: 'work', email: 'an.work@example.com', plan: 'Pro', used: 0.41, free: 1 },
 ];
 const run = (id: string, memberId: string, state = 'queued') => ({
-  id,
+  runId: id,
   state,
   memberId,
-  memberName: `M-${id}`,
   ticketId: `KAN-${id}`,
-  queuedAt: new Date().toISOString(),
-  paused: false,
+  startedAt: new Date().toISOString(),
 });
 
 function setup(onClose = vi.fn(), roomList = room) {
   c.get.mockImplementation(async (url: string) => {
-    if (url.endsWith('/ai/board'))
-      return { data: { runs: [run('1', 'm1'), run('2', 'm2'), run('3', 'm3')], settings: {} } };
+    if (url.endsWith('/ai/board')) {
+      const runs = [run('1', 'm1'), run('2', 'm2'), run('3', 'm3')];
+      return { data: { tickets: Object.fromEntries(runs.map((r) => [r.ticketId, r])) } };
+    }
     return {
-      data: {
-        members: [
-          { id: 'm1', accountId: 'a1' },
-          { id: 'm2', accountId: 'a2' },
-          { id: 'm3', accountId: 'a1' },
-        ],
-        summary: {},
-        settings: {},
-      },
+      data: [
+        { id: 'm1', name: 'M-1', accountId: 'a1' },
+        { id: 'm2', name: 'M-2', accountId: 'a2' },
+        { id: 'm3', name: 'M-3', accountId: 'a1' },
+      ],
     };
   });
   c.post.mockResolvedValue({ data: {} });
