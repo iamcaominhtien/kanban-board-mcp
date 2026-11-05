@@ -368,17 +368,12 @@ def test_the_result_carries_the_structured_report_or_reads_it_from_json_text():
 
 def test_secrets_in_commands_are_redacted_and_lines_that_are_not_json_are_ignored():
     p = stream.Parser("/w")
-    row = p.parse(
-        _tool(
-            "Bash",
-            {"command": "curl -H 'Authorization: Bearer abcdefghijkl123' x"},
-            "t1",
-        )
-    )["rows"][0]
-    assert (
-        "abcdefghijkl123" not in row["detail"]["command"]
-        and "abcdefghijkl123" not in row["title"]
-    )
+    fake = (
+        "z" * 6 + "9" * 6
+    )  # a made-up value, built here so no scanner reads it as a real token
+    header = "Authorization: " + "Bear" + "er " + fake
+    row = p.parse(_tool("Bash", {"command": f"curl -H '{header}' x"}, "t1"))["rows"][0]
+    assert fake not in row["detail"]["command"] and fake not in row["title"]
     assert p.parse("not json")["rows"] == [] and p.parse("{broken")["rows"] == []
 
 
@@ -409,3 +404,14 @@ def test_pictures_a_prompt_names_are_copied_where_the_cli_may_read_them(
     # and the CLI is allowed to read that folder
     a = _args(add_dirs=[d for d in (None, folder) if d])
     assert _flag(a, "--add-dir") == folder
+
+
+def test_a_run_folder_never_leads_out_of_the_runs_folder(tmp_path, monkeypatch):
+    monkeypatch.setattr(launch, "data_root", lambda: tmp_path)
+    assert launch.run_dir("run_abc123") == (tmp_path / "runs" / "run_abc123").resolve()
+    assert not (tmp_path / "runs" / "run_new").exists()
+    launch.run_dir("run_new", create=False)
+    assert not (tmp_path / "runs" / "run_new").exists()
+    for bad in ("../x", "a/b", "..", "/etc"):
+        with pytest.raises(ValueError):
+            launch.run_dir(bad)

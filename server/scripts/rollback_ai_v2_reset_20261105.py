@@ -66,7 +66,10 @@ def _work(sync, apply: bool) -> int:
         rows = sync.execute(text(f'SELECT count(*) FROM "{name}"')).scalar()
         if rows:
             problems.append(f"{name}: has {rows} rows; it would be lost")
-    missing = sorted(set(meta.tables) - set(insp.get_table_names()) | {n for n, _ in drop if n in meta.tables})
+    missing = sorted(
+        set(meta.tables) - set(insp.get_table_names())
+        | {n for n, _ in drop if n in meta.tables}
+    )
     print("Drop (empty) tables:")
     for name, why in drop:
         print(f"  {name}  ({why})")
@@ -92,24 +95,34 @@ def _work(sync, apply: bool) -> int:
     from dbkit.types import server_metadata
 
     server_metadata(meta, sync.dialect.name).create_all(sync, checkfirst=True)
-    sync.execute(text("UPDATE alembic_version SET version_num = :new"), {"new": MAIN_HEAD})
+    sync.execute(
+        text("UPDATE alembic_version SET version_num = :new"), {"new": MAIN_HEAD}
+    )
     print("Done.")
     return 0
 
 
 async def main() -> int:
     """Open the database this checkout resolves (KANBAN_DATABASE_URL) and run in one transaction."""
-    sys.path.insert(0, os.getcwd())  # the checkout this is run from, not the folder of this file
+    sys.path.insert(
+        0, os.getcwd()
+    )  # the checkout this is run from, not the folder of this file
     import database
     from alembic.script import ScriptDirectory
 
     head = ScriptDirectory.from_config(database.alembic_config()).get_current_head()
-    print(f"Code: {os.path.dirname(os.path.abspath(database.__file__))} (migration head {head})")
+    print(
+        f"Code: {os.path.dirname(os.path.abspath(database.__file__))} (migration head {head})"
+    )
     if head != MAIN_HEAD:
-        print(f"Run this from a checkout of main (head {MAIN_HEAD}); this one would give the wrong schema.")
+        print(
+            f"Run this from a checkout of main (head {MAIN_HEAD}); this one would give the wrong schema."
+        )
         return 2
     if database.engine.dialect.name != "postgresql":
-        print(f"This is for PostgreSQL; the database resolved here is {database.DATABASE_URL}")
+        print(
+            f"This is for PostgreSQL; the database resolved here is {database.DATABASE_URL}"
+        )
         return 2
     print(f"Database: {database.DATABASE_URL}")
     async with database.engine.begin() as conn:

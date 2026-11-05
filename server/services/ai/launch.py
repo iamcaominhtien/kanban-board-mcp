@@ -178,10 +178,15 @@ def board_plugin_dir() -> str:
     return str(root)
 
 
-def run_dir(run_id: str) -> Path:
-    """The folder of one run (its prompts, agents and debug log)."""
-    folder = data_root() / "runs" / run_id
-    folder.mkdir(parents=True, exist_ok=True)
+def run_dir(run_id: str, *, create: bool = True) -> Path:
+    """The folder of one run (its prompts, agents and debug log). A run id that would lead out of the runs folder
+    is refused (ValueError)."""
+    root = (data_root() / "runs").resolve()
+    folder = (root / run_id).resolve()
+    if folder.parent != root:
+        raise ValueError(f"Not a run id: {run_id!r}")
+    if create:
+        folder.mkdir(parents=True, exist_ok=True)
     return folder
 
 

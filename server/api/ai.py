@@ -570,6 +570,8 @@ async def get_run_messages(run_id: str, session: Session) -> list[dict]:
 
 
 class TextBody(BaseModel):
+    """A message or an answer."""
+
     text: str = ""
 
 

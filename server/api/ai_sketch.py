@@ -233,8 +233,16 @@ async def get_sketch_ai_file(
         or run.target != f"chat:{chat_id}"
     ):
         raise AssistError("not_found", "File not found.")
-    path = launch.run_dir(turn_id) / Path(file).name
-    if not path.is_file() or path.suffix.lower() in (".md", ".log", ".json"):
+    try:
+        folder = launch.run_dir(run.id, create=False)
+    except ValueError as exc:
+        raise AssistError("not_found", "File not found.") from exc
+    path = (folder / Path(file).name).resolve()
+    if (
+        path.parent != folder
+        or not path.is_file()
+        or path.suffix.lower() in (".md", ".log", ".json")
+    ):
         raise AssistError("not_found", "File not found.")
     image = path.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif")
     return FileResponse(

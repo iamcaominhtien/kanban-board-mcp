@@ -24,6 +24,7 @@ class Parser:
     """Stateful: one per run (a resumed run keeps a new one; the agents it knew come back from the rows)."""
 
     def __init__(self, cwd: str, agent_types: dict[str, str] | None = None):
+        """`agent_types`: the roles of the subagents a resumed run already knows, by Agent call id."""
         self.cwd = cwd
         self.agent_types: dict[str, str] = dict(agent_types or {})
 

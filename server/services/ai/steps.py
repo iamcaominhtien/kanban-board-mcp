@@ -54,6 +54,7 @@ def to_dict(step: AiRunStep, with_output: bool = False) -> dict[str, Any]:
 
 
 def agent_dict(agent: AiRunAgent) -> dict[str, Any]:
+    """A subagent row as the API shows it."""
     return {
         "id": agent.id,
         "run_id": agent.run_id,
@@ -201,6 +202,7 @@ class StepWriter:
     """Gathers a run's steps as its stream yields them and writes them in batches."""
 
     def __init__(self, run_id: str):
+        """Batch the steps of `run_id`."""
         self.run_id = run_id
         self.rows: list[dict[str, Any]] = []
         self.agents: list[dict[str, Any]] = []
@@ -218,6 +220,7 @@ class StepWriter:
         files: list[dict[str, Any]] | None = None,
         fields: dict[str, Any] | None = None,
     ) -> None:
+        """Queue rows (and agents, fields, files) for the next flush."""
         if rows:
             self.rows.extend(rows)
         if agents:
@@ -234,6 +237,7 @@ class StepWriter:
         await self.flush()
 
     async def flush(self) -> None:
+        """Write what is queued now."""
         async with self._lock:
             rows, agents, files, fields = (
                 self.rows,
@@ -253,6 +257,7 @@ class StepWriter:
                 logger.exception("Could not write the steps of run %s", self.run_id)
 
     async def close(self) -> None:
+        """Write what is left and stop the timer."""
         if self._task and not self._task.done():
             self._task.cancel()
         await self.flush()
@@ -326,6 +331,7 @@ async def output(session: AsyncSession, run_id: str, seq: int) -> dict[str, Any]
 
 
 async def agents(session: AsyncSession, run_id: str) -> list[dict[str, Any]]:
+    """The subagents of a run, oldest first."""
     rows = (
         await session.exec(
             select(AiRunAgent)
