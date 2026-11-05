@@ -163,3 +163,20 @@ def test_roles_become_agents_json_and_markdown():
 async def test_every_team_pack_resolves_to_known_roles(pack):
     out = await roles.roles_for(None, "p", pack, {})
     assert out and all(r["prompt"] for r in out), pack
+
+
+async def test_the_check_says_ok_and_why(env, tmp_path):
+    """The UI reads `ok` and `message` of POST /ai/teams/{id}/test (it said "check failed" for a healthy team)."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    team = await _runner(c, pid, env["repo"])
+    r = (await c.post(f"/ai/teams/{team['id']}/test")).json()
+    assert r["ok"] is True and r["health"] == "ok" and "Claude Code" in r["message"]
+    gone = tmp_path / "no-such" / "claude"
+    await c.patch(f"/ai/teams/{team['id']}", json={"cli_path": str(gone)})
+    r = (await c.post(f"/ai/teams/{team['id']}/test")).json()
+    assert (
+        r["ok"] is False
+        and r["health"] == "runner_missing"
+        and r["message"] == r["health_detail"]
+    )

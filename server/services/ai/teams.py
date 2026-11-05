@@ -433,7 +433,22 @@ async def test_connection(session: AsyncSession, member_id: str) -> dict:
     profile.checked_at = now_iso()
     session.add(profile)
     await session.commit()
-    return {**info, "health": profile.health, "health_detail": profile.health_detail}
+    ok = profile.health == "ok"
+    if ok:
+        version = info.get("version")
+        message = "Claude Code " + (f"{version} " if version else "") + "is installed"
+        message += (
+            f" and signed in ({info['account']})." if info.get("account") else "."
+        )
+    else:
+        message = profile.health_detail or "Claude Code cannot run for this team."
+    return {
+        **info,
+        "ok": ok,
+        "message": message,
+        "health": profile.health,
+        "health_detail": profile.health_detail,
+    }
 
 
 def _apply_health(profile: AiTeam, info: dict) -> None:
