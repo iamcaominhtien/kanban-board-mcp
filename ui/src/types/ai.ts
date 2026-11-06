@@ -1,4 +1,5 @@
 import type { MemberAccountRef } from './aiAccounts';
+import type { RestartEntry } from './aiResources';
 
 /** AI v2: Claude Code only. A "team" is the assignee of a ticket; its lead runs the ticket, its roles are subagents. */
 export type AiProvider = 'claude-code';
@@ -313,6 +314,8 @@ export interface AiRun {
   stopCode: string | null;
   peakRssMb: number | null;
   lastRssMb: number | null;
+  /** The CLI started again inside this run (the system, over the RAM limit; or a person). */
+  restarts?: RestartEntry[];
   diagnosis: RunDiagnosis | null;
   retries: RunRetry[];
   accountId: string | null;

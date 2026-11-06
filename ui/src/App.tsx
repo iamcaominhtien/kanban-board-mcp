@@ -10,6 +10,7 @@ import { SettingsPage, type SettingsTarget } from './components/settings/Setting
 import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
 import { OPEN_RUN_EVENT } from './components/aiteam/runLink';
+import { OPEN_TIMELINE_EVENT } from './components/aiteam/timelineLink';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
@@ -547,7 +548,11 @@ export default function App() {
       window.history.replaceState({}, '', url.toString());
     };
     window.addEventListener(OPEN_RUN_EVENT, open);
-    return () => window.removeEventListener(OPEN_RUN_EVENT, open);
+    window.addEventListener(OPEN_TIMELINE_EVENT, open);
+    return () => {
+      window.removeEventListener(OPEN_RUN_EVENT, open);
+      window.removeEventListener(OPEN_TIMELINE_EVENT, open);
+    };
   }, []);
 
   function closeModal() {

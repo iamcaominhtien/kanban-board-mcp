@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { aiApi, isActive, useAiMutation, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { Ticket } from '../../types';
+import type { AiRun } from '../../types/ai';
 import { useToast } from '../Toast';
 import { useScheduleList } from '../../api/schedules';
 import { useSchedules } from '../schedules/SchedulesContext';
@@ -11,11 +12,13 @@ import { PAUSE_COLOR, PauseGlyph, PausedStrip, clockTime, pausedSummary } from '
 import { AccountNote } from './accounts/AccountBanner';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
 import './accounts/accountsMember.css';
+import { RestartNotice, RunResourcesStrip } from './RunResources';
 import {
   AiAvatar,
   RunStateChip,
   SparkleIcon,
   fmtElapsed,
+  hhmm,
   secondsSince,
   testsOf,
   useAiBoardState,
@@ -217,7 +220,62 @@ export function RunHeaderChip({ ticket }: { ticket: Ticket }) {
 // ---------------------------------------------------------------------------
 
 /** The newest run of the ticket, the lead's question, the pause for this ticket and the sign-in the team needs. */
-export function TicketAiPanel({ ticket }: { ticket: Ticket }) {
+/** The run now going on a ticket: who, since when, which step, and a bar moving while it works (as on main). */
+function ActiveRunCard({ run, who, onOpenRun }: { run: AiRun; who: string; onOpenRun: () => void }) {
+  useNow(1000, run.state !== 'queued');
+  const queued = run.state === 'queued';
+  const state = run.state === 'starting' ? 'starting' : queued ? 'queued' : 'in progress';
+  return (
+    <div>
+      <div
+        className="ai-card"
+        style={{
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          borderColor: '#BFDCC7',
+          background: '#F1F8F3',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+        data-testid="active-run-card"
+      >
+        <RunStateChip state={run.state} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>
+            Run #{run.number} {state} · {who}
+          </div>
+          <div
+            className="ai-muted"
+            data-testid={queued ? 'why-waiting' : undefined}
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              color: queued ? '#B4571F' : undefined,
+            }}
+          >
+            {queued
+              ? (run.waitingReason ?? 'Starts in a few seconds')
+              : run.state === 'starting'
+                ? 'Starting… the CLI is starting up'
+                : `Started ${hhmm(run.startedAt)} · ${fmtElapsed(secondsSince(run.startedAt))} · step ${run.stepsCount}`}
+          </div>
+        </div>
+        <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
+          Open run
+        </button>
+        {run.state === 'running' && <div className="ai-progress" />}
+      </div>
+      <RestartNotice run={run} />
+      {run.state === 'running' && <RunResourcesStrip run={run} />}
+    </div>
+  );
+}
+
+/** The top of a ticket's AI activity: the run going now, the pause and sign-in notices. The finished runs are below it. */
+export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun: () => void }) {
   const runs = useTicketRuns(ticket.id);
   const { members: aiMembers, settings } = useAiBoardState();
   const [resumeOpen, setResumeOpen] = useState(false);
@@ -226,8 +284,9 @@ export function TicketAiPanel({ ticket }: { ticket: Ticket }) {
   const paused = !!settings?.pausedAll && !!team && !['done', 'wont_do'].includes(ticket.status);
   const runTeam = latest ? aiMembers.get(latest.memberId) : undefined;
   const accountOut = !!latest && runTeam?.accountRef?.status === 'needs_sign_in';
-  // the runs themselves (question, report, steps) are shown below this panel, by TicketRunsTab
-  if (!paused && !accountOut) return null;
+  const active = latest && ['running', 'starting', 'queued'].includes(latest.state) ? latest : undefined;
+  // the finished runs (question, report, steps) are shown below this panel, by TicketRunsTab
+  if (!paused && !accountOut && !active) return null;
   return (
     <div
       className="ai-root"
@@ -256,6 +315,7 @@ export function TicketAiPanel({ ticket }: { ticket: Ticket }) {
           {runTeam.name} cannot work until the account is signed in again.
         </AccountNote>
       )}
+      {active && <ActiveRunCard run={active} who={runTeam?.name ?? 'The AI'} onOpenRun={onOpenRun} />}
       {resumeOpen && settings && (
         <ResumeAllDialog projectId={settings.projectId} onClose={() => setResumeOpen(false)} />
       )}

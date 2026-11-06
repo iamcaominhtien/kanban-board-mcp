@@ -66,6 +66,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
+import { TimelineTab } from './aiteam/TimelineTab';
+import { openTimeline } from './aiteam/timelineLink';
 import { TicketAiMenu } from './assist/TicketAi';
 import { TicketChat } from './assist/TicketChat';
 import { AiCompletedBadge, useAiBoardState } from './ai/aiUi';
@@ -252,6 +254,7 @@ function TicketModalInner({
   const [hasAiPane, setHasAiPane] = useState(false);
   const [aiNeedsYou, setAiNeedsYou] = useState(false);
   const aiPaneRef = useRef<HTMLDivElement>(null);
+  const runsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = aiPaneRef.current;
     if (!el) {
@@ -1885,10 +1888,33 @@ function TicketModalInner({
                     </div>
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
-                    <TicketAiPanel ticket={ticket} />
+                    <TicketAiPanel ticket={ticket} onOpenRun={() => runsRef.current?.scrollIntoView({ block: 'start' })} />
                     <TicketHandover ticket={ticket} />
+                    {/* the team's work on this ticket as a sequence diagram, as on main: one column per AI */}
+                    {mainView === 'ai' && ticket.projectId && (
+                      <div data-testid="ticket-timeline" style={{ padding: '0 24px' }}>
+                        <button
+                          type="button"
+                          className="ai-btn ai-btn-sm"
+                          style={{ marginBottom: 8 }}
+                          data-testid="open-in-timeline"
+                          onClick={() => openTimeline({ scope: ticket.id })}
+                        >
+                          Open in Timeline
+                        </button>
+                        <TimelineTab
+                          projectId={ticket.projectId}
+                          scopeTicketId={ticket.id}
+                          compactChrome
+                          actions={{
+                            onOpenTicket: () => undefined,
+                            onOpenDocsPage: () => undefined,
+                          }}
+                        />
+                      </div>
+                    )}
                     {/* every run of the ticket and the chosen one whole: its report, messages and steps as a tree */}
-                    <div style={{ padding: '12px 24px' }}>
+                    <div ref={runsRef} style={{ padding: '12px 24px' }}>
                       <TicketRunsTab ticket={ticket} runId={aiRunId} />
                     </div>
                   </div>
