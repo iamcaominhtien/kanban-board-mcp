@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Notice, StatePanel } from './StatePanel';
 import { AsyncBody } from './TextReader';
 import { useFileData } from './useFileData';
 import { OfficeError, parseDocx, parsePptx, type Slide, type WordBlock } from './office';
+import { renderPptx, type RenderedSlide } from './pptxRender';
+import { SlideCanvas } from './SlideCanvas';
 import type { ReaderProps } from './readerTypes';
 import styles from './PreviewViewer.module.css';
 
@@ -128,6 +130,22 @@ function WordView({
   );
 }
 
+/** The width of an element, followed as it is resized. */
+function useWidth() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setWidth(el.clientWidth);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
+
 function SlidesView({
   item,
   bytes,
@@ -140,6 +158,25 @@ function SlidesView({
   onFacts: ReaderProps['onFacts'];
 }) {
   const [at, setAt] = useState(0);
+  const [mode, setMode] = useState<'slides' | 'outline'>('slides');
+  const [stageRef, stageWidth] = useWidth();
+  // The slides drawn from the file; their pictures are object URLs that are given back when the file is closed.
+  const [drawn, setDrawn] = useState<RenderedSlide[] | null>(null);
+  useEffect(() => {
+    const urls: string[] = [];
+    try {
+      setDrawn(
+        renderPptx(bytes, (data, mime) => {
+          const url = URL.createObjectURL(new Blob([data as BlobPart], { type: mime }));
+          urls.push(url);
+          return url;
+        }),
+      );
+    } catch {
+      setDrawn(null);
+    }
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [bytes]);
   const parsed = useMemo(() => {
     try {
       return { ok: true as const, slides: parsePptx(bytes) as Slide[] };
@@ -153,11 +190,39 @@ function SlidesView({
   if (!parsed.ok) return <Problem reason={parsed.error} name={item.name} actions={actions} />;
   const { slides } = parsed;
   const slide = slides[Math.min(at, slides.length - 1)];
+  const drawing = drawn && drawn.length === slides.length ? drawn : null;
+  const showSlides = mode === 'slides' && !!drawing;
+  const canvasWidth = Math.max(0, Math.min(stageWidth - 40, 1100));
+  const toggle = drawing ? (
+    <button
+      type="button"
+      className={styles.btn}
+      data-testid="slides-mode"
+      onClick={() => setMode(showSlides ? 'outline' : 'slides')}
+    >
+      {showSlides ? 'Show the outline' : 'Show the slides'}
+    </button>
+  ) : null;
   return (
     <div className={styles.slidesReader}>
-      <Notice actions={actions}>
-        <strong>Showing the outline.</strong> Slide pictures are not available here, so text and speaker notes are shown
-        instead.
+      <Notice
+        actions={
+          <>
+            {toggle}
+            {actions}
+          </>
+        }
+      >
+        {showSlides ? (
+          <>
+            <strong>Showing the slides.</strong> Text, shapes and pictures are drawn from the file; charts, tables and
+            effects may look different. Open the original for the exact look.
+          </>
+        ) : (
+          <>
+            <strong>Showing the outline.</strong> Text and speaker notes are shown instead of the slides.
+          </>
+        )}
       </Notice>
       <div className={styles.slidesBody}>
         <div className={styles.slideRail} aria-label="Slides">
@@ -167,26 +232,37 @@ function SlidesView({
               type="button"
               data-active={i === at || undefined}
               onClick={() => setAt(i)}
-              aria-label={`Slide ${i + 1}`}
+              aria-label={`Slide ${i + 1}: ${s.title || s.lines[0] || ''}`}
+              title={s.title || s.lines[0]}
             >
               <span>{i + 1}</span>
-              <span className={styles.slideThumbTitle} title={s.title || s.lines[0]}>
-                {s.title || s.lines[0] || 'Slide'}
-              </span>
+              {showSlides && drawing ? (
+                <span className={styles.slideThumb}>
+                  <SlideCanvas slide={drawing[i]} width={104} />
+                </span>
+              ) : (
+                <span className={styles.slideThumbTitle}>{s.title || s.lines[0] || 'Slide'}</span>
+              )}
             </button>
           ))}
         </div>
-        <div className={styles.slideMain}>
-          <div className={styles.slideCard}>
-            {slide.kicker && <div className={styles.slideKicker}>{slide.kicker}</div>}
-            <h2>{slide.title || `Slide ${at + 1}`}</h2>
-            <ul>
-              {slide.lines.map((l, i) => (
-                <li key={i}>{l}</li>
-              ))}
-            </ul>
-          </div>
-          <div className={styles.slideNotes}>
+        <div className={styles.slideMain} ref={stageRef}>
+          {showSlides && drawing ? (
+            <div className={styles.slideStage}>
+              <SlideCanvas slide={drawing[Math.min(at, drawing.length - 1)]} width={canvasWidth || 640} />
+            </div>
+          ) : (
+            <div className={styles.slideCard}>
+              {slide.kicker && <div className={styles.slideKicker}>{slide.kicker}</div>}
+              <h2>{slide.title || `Slide ${at + 1}`}</h2>
+              <ul>
+                {slide.lines.map((l, i) => (
+                  <li key={i}>{l}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className={styles.slideNotes} style={showSlides && canvasWidth ? { width: canvasWidth } : undefined}>
             <strong>Speaker notes</strong>
             <p>{slide.notes || 'No notes on this slide.'}</p>
           </div>
@@ -207,7 +283,7 @@ function SlidesView({
   );
 }
 
-/** Word (simplified reading view) and PowerPoint (slide outline with notes). Read only; nothing in the file runs. */
+/** Word (simplified reading view) and PowerPoint (the slides drawn from the file, or their outline, with notes). Read only; nothing in the file runs. */
 export default function OfficeReader(props: ReaderProps & { which: 'word' | 'powerpoint' }) {
   const [state, retry] = useFileData(props.item.src, OFFICE_LIMIT);
   return (

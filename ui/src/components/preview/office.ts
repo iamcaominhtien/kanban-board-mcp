@@ -28,7 +28,8 @@ export class OfficeError extends Error {
   }
 }
 
-function open(bytes: Uint8Array, wanted: RegExp): Record<string, Uint8Array> {
+/** The parts of an Office file whose names match, unzipped; throws OfficeError for a protected or damaged file. */
+export function open(bytes: Uint8Array, wanted: RegExp): Record<string, Uint8Array> {
   if (bytes[0] === 0xd0 && bytes[1] === 0xcf) throw new OfficeError('protected');
   try {
     return unzipSync(bytes, { filter: (f) => wanted.test(f.name) && f.originalSize <= PART_LIMIT });
@@ -37,7 +38,8 @@ function open(bytes: Uint8Array, wanted: RegExp): Record<string, Uint8Array> {
   }
 }
 
-function xml(bytes: Uint8Array | undefined): Document | null {
+/** An XML part as a document, or null when it is missing or not XML. */
+export function xml(bytes: Uint8Array | undefined): Document | null {
   if (!bytes) return null;
   const doc = new DOMParser().parseFromString(new TextDecoder().decode(bytes), 'application/xml');
   return doc.getElementsByTagName('parsererror').length ? null : doc;
