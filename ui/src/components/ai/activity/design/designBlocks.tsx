@@ -6,7 +6,7 @@ import './designBlocks.css';
 export function RunPanelDesign() {
   return (
     <div className="dz dz-tw">
-      <div style={{ padding: '14px 20px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '15px', color: '#1E2A22', fontWeight: '700', lineHeight: '1.5' }}>Run #3</span>
           <span className="ai-chip" style={{ background: '#F1F8F3', color: '#2E6F40', border: '1px solid #BFDCC7' }}>
@@ -1360,7 +1360,7 @@ export function RunHistoryDesign() {
 export function NowAndTimelineDesign() {
   return (
     <div className="dz dz-tl">
-      <div style={{ padding: '10px 12px' }}>
+      <div style={{ padding: 0 }}>
         <div
           style={{
             padding: '6px 10px',

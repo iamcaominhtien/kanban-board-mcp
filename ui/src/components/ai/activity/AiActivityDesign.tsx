@@ -31,7 +31,8 @@ export function AiActivityDesign({
       </div>
       <RestartNoticeDesign />
       <ResourcesDesign />
-      <div data-testid="ticket-timeline">
+      {/* the button belongs to the Timeline under it: close to it, apart from the Resources card above */}
+      <div data-testid="ticket-timeline" style={{ marginTop: 10 }}>
         <button
           type="button"
           className="ai-btn ai-btn-sm"
