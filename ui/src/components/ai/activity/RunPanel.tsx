@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { aiApi, isActive, useAiMutation, useAiRun, useLoadSteps } from '../../../api/ai';
 import { extractError } from '../../../api/extractError';
 import type { AiRunFull, RunStep } from '../../../types/ai';
@@ -203,6 +203,51 @@ const Chip = ({ ok, children }: { ok: boolean; children: ReactNode }) => (
     {children}
   </span>
 );
+
+/**
+ * The steps of one run, whole, for the ticket's full history: it loads the steps the run's first answer left out (the
+ * newest 50 come first) and shows each one like the run panel does. `allOpen` opens every step.
+ */
+export function RunStepsBlock({ runId, allOpen }: { runId: string; allOpen: boolean }) {
+  const run = useAiRun(runId).data;
+  const loadSteps = useLoadSteps(runId);
+  const [opened, setOpened] = useState<Record<number, boolean>>({});
+  const asked = useRef(false);
+  const missing = !!run && run.steps.filter((s) => s.kind !== 'role').length < run.stepsCount;
+  useEffect(() => {
+    if (!missing || asked.current) return;
+    asked.current = true;
+    void (async () => {
+      let after = 0;
+      for (;;) {
+        const page = await loadSteps({ after, limit: 500 });
+        if (page.length < 500) break;
+        after = page[page.length - 1].seq;
+      }
+    })().catch(() => {
+      asked.current = false;
+    });
+  }, [missing, loadSteps]);
+  if (!run) return <span className="ai-spin" />;
+  const steps = run.steps.filter((s) => !['hook', 'start', 'end', 'role'].includes(s.kind));
+  const roleOf = (id: string | null) => (id ? (run.agents.find((a) => a.id === id)?.agentType ?? 'role') : null);
+  if (!steps.length) return <span style={{ fontSize: '12px', color: '#9AA8A0' }}>No steps.</span>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {steps.map((s, i) => (
+        <StepRow
+          key={s.seq}
+          run={run}
+          step={s}
+          role={roleOf(s.agentId)}
+          open={opened[s.seq] ?? allOpen}
+          onToggle={() => setOpened((o) => ({ ...o, [s.seq]: !(o[s.seq] ?? allOpen) }))}
+          last={i === steps.length - 1}
+        />
+      ))}
+    </div>
+  );
+}
 
 /**
  * One run, whole, in the canvas design's look ("2. Run panel in ticket detail"): its title, state and actions; who ran
