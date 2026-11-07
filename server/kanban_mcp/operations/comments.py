@@ -66,10 +66,18 @@ async def attach_file(
         str | None,
         Field(description="What the file shows or why it is here (one line)."),
     ] = None,
+    post: Annotated[
+        bool,
+        Field(
+            description="False: keep the copy and return its markdown without a comment of its own, for a file you "
+            "put in your closing report (one comment for all your files, not one each)."
+        ),
+    ] = True,
 ) -> dict:
     """Attach a file (a screenshot, a log, a report, a PDF, a spreadsheet) to a ticket: the board keeps a copy and posts
     it in a comment, so it shows in the ticket's Attachments with the comment it came from. Returns the ticket with
-    `attached: {url, markdown}`; put `markdown` in a test case's proof or the description to show it there too."""
+    `attached: {url, markdown}`; put `markdown` in a test case's proof or the description to show it there too. With
+    `post=false` no comment is posted: the file shows in the Attachments once a comment (your report) holds `markdown`."""
     import os
 
     import uploads
@@ -94,12 +102,18 @@ async def attach_file(
         raise ValueError(
             f"{path}: not attached. Name a file in your working folder (in an AI run) or by its absolute path."
         )
+    url = stored[stored.rindex("](") + 2 : -1]
+    if not post:
+        return {
+            "ticket_id": ticket_id,
+            "attached": {"url": url, "markdown": stored},
+            "note": "No comment was posted: put `markdown` in your closing report, it shows the file there.",
+        }
     body = f"{text.strip()}\n\n{stored}" if text and text.strip() else stored
     ticket = await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.add_comment(s, ticket_id, text=body, author=author),
     )
-    url = stored[stored.rindex("](") + 2 : -1]
     return {**ticket, "attached": {"url": url, "markdown": stored}}
 
 

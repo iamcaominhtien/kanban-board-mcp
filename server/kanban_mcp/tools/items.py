@@ -32,7 +32,7 @@ _TEST_CASE_FIELDS = (
 ITEM_OPS: dict[tuple[str, str], Op] = {
     ("comment", "add"): Op(ops.add_comment, ("ticket_id", "text", "author"), ("role",)),
     ("attachment", "add"): Op(
-        ops.attach_file, ("ticket_id", "path"), ("author", "text")
+        ops.attach_file, ("ticket_id", "path"), ("author", "text", "post")
     ),
     ("comment", "update"): Op(
         ops.update_comment,
@@ -205,6 +205,12 @@ async def ticket_items(
             description="attachment: the file (absolute path; in a board run, a working-folder path)."
         ),
     ] = None,
+    post: Annotated[
+        bool | None,
+        Field(
+            description="attachment: false keeps the file and returns its markdown without a comment of its own; put the markdown in your closing report so all your files arrive in one comment (default true: one comment per file)."
+        ),
+    ] = None,
     items: Annotated[
         list[dict] | None,
         Field(
@@ -218,7 +224,7 @@ async def ticket_items(
     - work_log, the ticket's debug journal (Debug Space tab): what you investigated, tried and found, for humans and later sessions. add (author, role, note [, log_kind, pinned, linked_branch, linked_test_case]) | update (item_id [, note, log_kind, pinned, linked_branch, linked_test_case]; to record a fix add a new 'resolved' entry rather than editing an old one) | delete (item_id, permanent).
     - criterion, acceptance criteria (the ticket's definition of done): add (text) | toggle (item_id; flips done/not done, see `acceptance_criteria[].done` in the result) | delete (item_id).
     - sub_task, small checklist steps inside the ticket (not tickets; for real child tickets use manage_ticket with parent_id): add (text) | toggle (item_id) | delete (item_id).
-    - attachment: add (path [, text, author]): a file posted in a comment (`text`: what it shows); `attached.markdown` reuses it in a proof.
+    - attachment: add (path [, text, author, post]): a file posted in a comment (`text`: what it shows); `attached.markdown` reuses it in a proof. Several files for one hand-in: `post=false` on each, then link them all in ONE closing report.
     - test_case: add (title [, status, description, expected_result, notes, proof, assignee]) gets a code 'TC-<n>' | update (item_id [, same fields + title]; typically status and proof after running it) | delete (item_id). With the ticket's 'Done requires: all test cases passed' guard on, it cannot move to 'done' until every test case is 'pass'."""
     given = params_of(locals())
     many = given.pop("items", None)

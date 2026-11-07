@@ -123,6 +123,9 @@ requested and all tests are passing."
   or a document named that way in a comment, work log, proof or Docs page is attached too.
   **Link it in your report** with that markdown, and say what it shows: a person opens the ticket, not your disk, so a
   path on your machine alone is not a delivery. A video or a picture plays or shows right in the comment.
+  **One hand-in, one comment**: files you made for a person go in your closing report, not in a comment each. Call
+  `attachment` with `post=false` for each file (no comment of its own), then put the returned markdown lines in the
+  report. Do not post a comment to say "uploaded X" and then a report that says it again.
 - **Tick a criterion** (`ticket_items item='criterion' action='toggle'`) only when it was checked, and say how. In a
   team the QA ticks them, once the cases that prove each one passed: a claim in a report ticks nothing on the ticket.
 
