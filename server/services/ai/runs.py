@@ -1036,6 +1036,8 @@ async def _finish(run_id: str, result: dict) -> None:
         asks = [a for a in report["asks"] if isinstance(a, str) and a.strip()]
         async with database.async_session() as session:
             run = await session.get(AiRun, run_id)
+            from . import touches
+
             run.question = json.dumps(
                 {
                     "text": asks[0][:1000],
@@ -1043,6 +1045,7 @@ async def _finish(run_id: str, result: dict) -> None:
                     "to": run.started_by,
                     "asked_at": now_iso(),
                     "more": asks[1:6],
+                    "previous": touches.carry_answer(run.question, run.answer),
                 }
             )
             session.add(run)
@@ -1624,6 +1627,9 @@ async def record_question(ctx: RunContext, text: str, options: list | None) -> d
         run = await session.get(AiRun, ctx.run_id)
         if run is None:
             raise ValueError("Run not found.")
+        from . import touches
+
+        q["previous"] = touches.carry_answer(run.question, run.answer)
         run.question = json.dumps(q)
         session.add(run)
         await session.commit()

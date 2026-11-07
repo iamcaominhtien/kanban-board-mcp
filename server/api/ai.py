@@ -16,7 +16,6 @@ from database import get_session
 from models import AiProjectSettings, AiRun, AiTeam, Member, Project
 from services import activity as svc_activity
 from services.ai import activity as svc_activity_roles
-from services.ai import audit
 from services.ai import roles as svc_roles
 from services.ai import runs as svc_runs
 from services.ai import steps as svc_steps
@@ -334,12 +333,8 @@ async def post_pause_all(project_id: str, body: PauseAllBody, session: Session) 
     settings.paused_reason = body.reason or f"Paused by {_by()}"
     session.add(settings)
     await session.commit()
-    await audit.record(
-        project_id,
-        "project_paused",
-        "info",
-        on_behalf_of=_by(),
-        detail={"reason": settings.paused_reason},
+    await svc_touches.record_pause(
+        project_id, "project_paused", _by(), {"reason": settings.paused_reason}
     )
     if body.cancel_running and hasattr(svc_runs, "cancel"):
         for r in await active_runs(session):
@@ -368,7 +363,7 @@ async def post_resume_all(project_id: str, session: Session) -> dict:
     settings.paused_reason = None
     session.add(settings)
     await session.commit()
-    await audit.record(project_id, "project_resumed", "info", on_behalf_of=_by())
+    await svc_touches.record_pause(project_id, "project_resumed", _by())
     svc_runs.RT.wake.set()
     await board_events.publish("invalidate")
     return settings_dict(settings)

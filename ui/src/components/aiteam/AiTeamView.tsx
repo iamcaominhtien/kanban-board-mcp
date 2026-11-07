@@ -88,6 +88,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
               aria-selected={tab === t.id}
               className={tab === t.id ? 'on' : ''}
               onClick={() => {
+                setSteppedMark(undefined);
                 setTab(t.id);
                 if (t.id === 'now') setTeamId(null);
               }}

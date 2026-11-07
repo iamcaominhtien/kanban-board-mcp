@@ -10,6 +10,7 @@ import {
   type TouchMark,
   type TouchRange,
 } from '../../api/aiTouches';
+import { extractError } from '../../api/extractError';
 import { LoadError } from '../ai/aiUi';
 import { openRun } from './runLink';
 import { CalendarIcon, TicketChip } from './teamUi';
@@ -98,7 +99,7 @@ function Row({
               type="button"
               className={m}
               aria-pressed={t.mark === m}
-              disabled={busy}
+              disabled={busy || !!t.lessonId}
               title={m === 'needed' ? 'Only a person could supply this' : 'A rule, a note or a setting could remove it'}
               onClick={() => pick(m)}
             >
@@ -106,6 +107,11 @@ function Row({
             </button>
           ))}
         </div>
+        {mark.isError && (
+          <div className="at-hint-sm" style={{ color: '#A5321E', marginTop: 4 }} role="alert">
+            {extractError(mark.error)}
+          </div>
+        )}
         {t.mark === 'avoidable' &&
           (t.lessonId ? (
             <div className="at-hint-sm" style={{ marginTop: 4 }} data-testid="lesson-made">
@@ -183,6 +189,7 @@ export function SteppedInTab({
     );
   }
   const t = d.totals;
+  const stale = q.isError ? <LoadError what="the touches" error={q.error} onRetry={() => void q.refetch()} /> : null;
   const maxKind = Math.max(...d.kinds.map((k) => k.total), 1);
   const maxPer = Math.max(...d.teams.map((r) => r.per10Runs ?? 0), 1);
   const rangeLabel = RANGES.find((r) => r.value === range)?.label.toLowerCase() ?? '';
@@ -199,6 +206,7 @@ export function SteppedInTab({
   );
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }} data-testid="at-stepped">
+      {stale}
       <div className="at-tiles">
         <div className="at-tile">
           <div className="at-label">Touches</div>

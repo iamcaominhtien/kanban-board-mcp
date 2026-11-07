@@ -216,6 +216,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
   const hasPrev = p.runs > 0;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }} data-testid="at-health">
+      {q.isError && <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />}
       <div
         className={`at-banner ${bannerClass}`}
         data-testid="health-banner"

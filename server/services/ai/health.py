@@ -11,7 +11,7 @@ each team (cost exists per run only, so there is no row per role):
   2 watch, over 2 fix. The share of tickets with no touch at all is shown beside it.
 - **speed**: median run duration and median time from the assignment to Review. The design gives it no thresholds, so it
   has no verdict.
-- **quality**: how often work the AI finished is sent back: tickets with a finished run whose `reopen_count` is above 0.
+- **quality**: how often work the AI finished is sent back: tickets a run finished that a person reopened afterwards (from the ticket's reopen history).
   Under 10% good, 10 to 20% watch, over 20% fix (the design's "sent back" terms). A Reviewer's findings are counted
   where a run's report carries `findings`.
 - **cost**: money and tokens against the team's caps: this range's spend, the average per run, runs over the cap of one
@@ -84,6 +84,32 @@ def _ticket_times(t: Ticket | None) -> tuple[list[tuple[str, str]], list[str]]:
     return assigned, review
 
 
+def _reopens_after(
+    t: Ticket | None, after: str | None, until: str | None = None
+) -> int:
+    """How many times the ticket was reopened after this time (and before `until`), from its reopen history."""
+    if t is None or not after:
+        return 0
+    return sum(
+        1
+        for e in loads(t.reopen_history, [])
+        if isinstance(e, dict)
+        and e.get("at")
+        and e["at"] >= after
+        and (until is None or e["at"] < until)
+    )
+
+
+def _first_finish(runs: list[AiRun]) -> dict[str, str]:
+    """For each ticket, when the first run of these that finished OK on it ended."""
+    out: dict[str, str] = {}
+    for r in runs:
+        if r.ticket_id and r.state == "finished" and r.ended_at:
+            if r.ticket_id not in out or r.ended_at < out[r.ticket_id]:
+                out[r.ticket_id] = r.ended_at
+    return out
+
+
 def measures(
     runs: list[AiRun],
     tks: list[dict],
@@ -92,6 +118,7 @@ def measures(
     team: AiTeam | None,
     month_spend: float,
     judged: bool,
+    until: str | None = None,
 ) -> dict:
     """The five measures of a set of runs (one team's, or the project's) and of the touches that belong to it."""
     ended = [r for r in runs if r.state in ENDED and r.stop_code not in NOT_THE_TEAM]
@@ -100,7 +127,9 @@ def measures(
 
     ticket_ids = {r.ticket_id for r in runs if r.ticket_id}
     touched = {t["ticket_id"] for t in tks if t["ticket_id"]}
-    per_ticket = round(len(tks) / len(ticket_ids), 1) if ticket_ids else None
+    on_tickets = sum(1 for t in tks if t["ticket_id"] in ticket_ids)
+    raw_per_ticket = on_tickets / len(ticket_ids) if ticket_ids else None
+    per_ticket = None if raw_per_ticket is None else round(raw_per_ticket, 1)
     clean = len(ticket_ids - touched)
 
     durations = [
@@ -109,8 +138,12 @@ def measures(
         if r.state in ENDED and (d := _secs(r.started_at, r.ended_at)) is not None
     ]
     to_review: list[float] = []
+    queued_by_ticket: dict[str, list[str]] = defaultdict(list)
+    for r in runs:
+        if r.ticket_id:
+            queued_by_ticket[r.ticket_id].append(r.queued_at)
     for tid in ticket_ids:
-        mine = sorted(r.queued_at for r in runs if r.ticket_id == tid)
+        mine = sorted(queued_by_ticket[tid])
         assigned, review = _ticket_times(tickets.get(tid))
         start = mine[0] if mine else None
         if team is not None:
@@ -124,11 +157,13 @@ def measures(
         if start and after and (d := _secs(start, min(after))) is not None:
             to_review.append(d)
 
-    done_tickets = {r.ticket_id for r in ok if r.ticket_id}
+    # work the AI finished that a person then reopened (reopens after the first finish, not the ticket's whole life)
+    first_finish = _first_finish(ok)
+    done_tickets = set(first_finish)
     reopened = [
         tid
-        for tid in done_tickets
-        if (tickets[tid].reopen_count or 0) > 0 and tid in tickets
+        for tid, at in first_finish.items()
+        if _reopens_after(tickets.get(tid), at, until) > 0
     ]
     quality = len(reopened) / len(done_tickets) if done_tickets else None
     findings = [
@@ -163,8 +198,9 @@ def measures(
         },
         "autonomy": {
             "value": per_ticket,
-            "verdict": v(per_ticket, 1, 2, False),
-            "touches": len(tks),
+            "verdict": v(raw_per_ticket, 1, 2, False),
+            "touches": on_tickets,
+            "touches_all": len(tks),
             "tickets": len(ticket_ids),
             "clean": clean,
             "avoidable": sum(t["mark"] == "avoidable" for t in tks),
@@ -210,10 +246,6 @@ def _state_of(m: dict) -> str:
     return "fix" if "fix" in vs else "watch" if "watch" in vs else "good"
 
 
-def _ticket(tid: str | None) -> list[str]:
-    return [tid] if tid else []
-
-
 async def _fixes(
     session: AsyncSession,
     project_id: str,
@@ -224,6 +256,7 @@ async def _fixes(
     rows: dict[str, dict],
     tickets: dict[str, Ticket],
     memory_limit: int,
+    since_iso: str,
 ) -> list[dict]:
     """What to fix, worked out from rules, worst first, at most five."""
     out: list[dict] = []
@@ -246,7 +279,7 @@ async def _fixes(
             peak = max((r.peak_rss_mb or 0 for r in memory), default=0)
             out.append(
                 {
-                    "id": f"memory:{tid}",
+                    "id": f"memory:{tid}:{team_id}",
                     "severity": "fix",
                     "weight": len(memory),
                     "title": f"{tid} failed {len(memory)} times, stopped for memory",
@@ -272,7 +305,7 @@ async def _fixes(
             ][0]
             out.append(
                 {
-                    "id": f"failing:{tid}",
+                    "id": f"failing:{tid}:{team_id}",
                     "severity": "fix",
                     "weight": len(rs),
                     "title": f"{tid} failed {len(rs)} times",
@@ -315,31 +348,35 @@ async def _fixes(
                 }
             )
 
-    # the same question again and again
-    asked: dict[str, list[AiRun]] = defaultdict(list)
+    # the same question again and again (every answered question of the range counts, also a run's earlier ones)
+    asked: dict[str, list[tuple[AiRun, dict]]] = defaultdict(list)
     for r in runs:
-        q = loads(r.question, {}) or {}
-        text = " ".join(str(q.get("text") or "").lower().split())
-        if text and r.answer:
-            asked[text].append(r)
-    for rs in asked.values():
-        if len(rs) >= MIN_CASES:
-            q = loads(rs[0].question, {}).get("text", "")
+        for a in touches.answers_of(r):
+            text = " ".join(str(a["text"] or "").lower().split())
+            if text and a["at"] and a["at"] >= since_iso:
+                asked[text].append((r, a))
+    for pairs in asked.values():
+        if len(pairs) >= MIN_CASES:
+            pairs.sort(key=lambda p: p[1]["at"])
+            q = pairs[0][1]["text"]
+            team_id = Counter(r.member_id for r, _ in pairs).most_common(1)[0][0]
             answers = Counter(
-                " ".join((r.answer or "").split())[:80] for r in rs
+                " ".join((a["answer"] or "").split())[:80] for _, a in pairs
             ).most_common(1)[0]
             out.append(
                 {
-                    "id": f"asked:{rs[0].id}",
+                    "id": f"asked:{pairs[0][0].id}:{pairs[0][1]['index']}",
                     "severity": "watch",
-                    "weight": len(rs),
-                    "title": f"{name(rs[0].member_id)} asks the same question again and again",
-                    "evidence": f"Asked “{q[:120]}” {len(rs)} times; the answer was “{answers[0]}” {answers[1]} "
+                    "weight": len(pairs),
+                    "title": f"{name(team_id)} asks the same question again and again",
+                    "evidence": f"Asked “{q[:120]}” {len(pairs)} times; the answer was “{answers[0]}” {answers[1]} "
                     f"time{'s' if answers[1] != 1 else ''}.",
                     "suggestion": "Write the answer down once as a lesson, so the team stops asking.",
-                    "tickets": sorted({r.ticket_id for r in rs if r.ticket_id})[:4],
-                    "team_id": rs[0].member_id,
-                    "run_id": rs[-1].id,
+                    "tickets": sorted({r.ticket_id for r, _ in pairs if r.ticket_id})[
+                        :4
+                    ],
+                    "team_id": team_id,
+                    "run_id": pairs[-1][0].id,
                     "action": {
                         "type": "tab",
                         "label": "Add a lesson in Memory",
@@ -375,17 +412,18 @@ async def _fixes(
             }
         )
 
-    # work that came back
-    for tid in sorted({r.ticket_id for r in runs if r.ticket_id}):
+    # work the AI finished that came back (reopened after the first finish, at least twice)
+    for tid, at in sorted(_first_finish(runs).items()):
         t = tickets.get(tid)
-        if t is not None and (t.reopen_count or 0) >= 2:
+        n = _reopens_after(t, at)
+        if t is not None and n >= 2:
             out.append(
                 {
                     "id": f"reopened:{tid}",
                     "severity": "watch",
-                    "weight": t.reopen_count,
-                    "title": f"{tid} was reopened {t.reopen_count} times",
-                    "evidence": f"Work the AI finished on {tid} was sent back {t.reopen_count} times: “{t.title[:100]}”.",
+                    "weight": n,
+                    "title": f"{tid} was reopened {n} times after the AI finished it",
+                    "evidence": f"A run finished {tid} and a person reopened it {n} times since: “{t.title[:100]}”.",
                     "suggestion": "Rewrite the acceptance criteria so the team and the reviewer read them the same way.",
                     "tickets": [tid],
                     "team_id": None,
@@ -586,11 +624,26 @@ async def health(session: AsyncSession, project_id: str, range_key: str = "7d") 
         else None
     )
     prev_total = measures(
-        prev_runs, prev_tks, tickets, team=None, month_spend=0, judged=False
+        prev_runs,
+        prev_tks,
+        tickets,
+        team=None,
+        month_spend=0,
+        judged=False,
+        until=iso,
     )
     fixes = (
         await _fixes(
-            session, project_id, runs, tks, teams, profiles, rows, tickets, memory_limit
+            session,
+            project_id,
+            runs,
+            tks,
+            teams,
+            profiles,
+            rows,
+            tickets,
+            memory_limit,
+            iso,
         )
         if runs or tks
         else []
