@@ -19,9 +19,9 @@ def _header(name: str, description: str) -> str:
 
 WORKING_A_TICKET = (
     "working-a-ticket",
-    "How to work a ticket on this board from the first read to the report: read the project first, plan, stay in your "
-    "role, review your own work, and report only what you did and saw. Use at the start of any ticket and before your "
-    "report.",
+    "REQUIRED for every AI member (the lead and each role) before any work on a ticket: how to work it from the first "
+    "read to the report, and how to leave the ticket (status, criteria, closing comment) so a person sees what "
+    "happened. Read the project first, plan, stay in your role, review your own work, report only what you did and saw.",
     r"""# Working a ticket
 
 ## Before you change anything
@@ -44,6 +44,21 @@ WORKING_A_TICKET = (
 - **Review your own work** as the next person will: open what you made (the screen, the page, the diff), check each
   criterion against it, and fix what you would send back yourself.
 - **Check the language**: the copy, titles and labels are in the project's language, all of them.
+
+## Leave the ticket as a person finds it
+A person opens the ticket, not your run. When you finish, the ticket itself must show what happened:
+- **Status**: move it to `in-progress` when you start (if it is in `backlog` or `todo`), and to `review` when you hand
+  in (`manage_ticket` action `update`, `status`). An AI member stops at `review`: a person moves it to `done`. Work
+  that will not be done is `wont_do`, with the reason in a comment.
+- **Criteria**: tick each acceptance criterion you checked yourself (`ticket_items item='criterion' action='toggle'`) and
+  say how you checked it, in the closing comment. Leave the others open, with a word why. When your team has a QA
+  role, QA ticks them from its test cases; when it has none, the lead does it.
+- **One closing comment** (or your report, when the board posts it as one): what is done, what is left, who waits on
+  what, with the files you made linked in it. Not one comment per file.
+- If you could not do one of these (no permission, nothing to check, the status is not yours to move), say so in the
+  report: silence reads as "the ticket is up to date".
+The board does not do these for you and does not stop you; a report that says done over a ticket still in `todo` with
+every criterion open is the first thing a person notices.
 
 ## The report: only what is true
 Your report and final message are read as fact. Write only what you did and what you saw yourself.
