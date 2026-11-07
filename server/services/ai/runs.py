@@ -257,6 +257,14 @@ async def create_run(
     if ticket_id and ticket is None:
         raise RunError(f"Ticket {ticket_id} not found.")
     member, profile = await get_profile(session, member_id)
+    if resume_session and ticket_id:
+        from . import session_history
+
+        # a conversation a person started over is closed: the new run starts a new one
+        if resume_session in await session_history.closed_session_ids(
+            session, ticket_id
+        ):
+            resume_session = None
     project_id = (
         ticket.project_id if ticket else (profile.project_id if profile else None)
     )
@@ -569,6 +577,13 @@ async def _session_for(
 ) -> tuple[str | None, str | None]:
     """The CLI session this run continues: its own, else the team's last one on this ticket. (session id, note)."""
     wanted = run.session_id
+    closed: set[str] = set()
+    if run.ticket_id:
+        from . import session_history
+
+        closed = await session_history.closed_session_ids(session, run.ticket_id)
+    if wanted in closed:
+        wanted = None
     if not wanted and run.ticket_id:
         prev = (
             await session.exec(
@@ -584,7 +599,7 @@ async def _session_for(
                 .limit(1)
             )
         ).first()
-        wanted = prev.session_id if prev else None
+        wanted = prev.session_id if prev and prev.session_id not in closed else None
     if wanted and cli.session_exists(wanted, config_dir, "claude-code"):
         return wanted, None
     if wanted:

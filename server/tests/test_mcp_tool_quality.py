@@ -194,7 +194,7 @@ async def test_the_tool_list_stays_compact():
         )
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    # AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is six actions
+    # AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is seven actions
     # (ask, message, reply, team, runs, report). Measured after that: 49,074 / 51,904 characters. The bounds
     # leave about 3 % of room; raise them on purpose, with what was added, never by reflex.
     assert default < 50_500, (
@@ -259,6 +259,7 @@ async def test_schema_enums_match_the_services():
         "ask",
         "message",
         "reply",
+        "history",
         "team",
         "runs",
         "report",

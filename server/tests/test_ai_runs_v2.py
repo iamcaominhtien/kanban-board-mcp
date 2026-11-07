@@ -49,7 +49,8 @@ async def test_assigning_a_ticket_to_a_team_runs_its_lead_and_records_the_report
     assert lead_cmd["has_output"]
     assert lead_cmd["detail"]["tests"]["passed"] == 4
     sub = [s for s in rows if s["agent_id"] == "v2agent"]
-    assert [s["kind"] for s in sub] == ["command", "text"]
+    # the board also marks a role's stretches of work with `role` steps (the run panel hides them)
+    assert [s["kind"] for s in sub if s["kind"] != "role"] == ["command", "text"]
     detail = (await c.get(f"/ai/runs/{run['id']}")).json()
     assert detail["agents"][0]["agent_type"] == "reviewer" and detail["agents"][0][
         "last_text"

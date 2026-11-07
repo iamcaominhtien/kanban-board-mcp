@@ -252,6 +252,22 @@ export interface RunAgent {
   spans?: { start: string; end: string | null }[];
 }
 
+/** A closed conversation of a team on a ticket: title and summary of what its lead was asked and did. */
+export interface AiSessionHistory {
+  id: string;
+  ticketId: string;
+  memberId: string;
+  title: string;
+  summary: string;
+  sessionIds: string[];
+  runIds: string[];
+  startedAt: string | null;
+  endedAt: string;
+  createdBy: string;
+  /** The model that wrote the summary, or "digest" when no AI could be asked. */
+  summarisedBy: string;
+}
+
 export interface RunQuestion {
   text: string;
   options: string[];

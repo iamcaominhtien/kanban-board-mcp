@@ -8,9 +8,9 @@ from pydantic import Field
 
 async def ai_run(
     action: Annotated[
-        Literal["ask", "message", "reply", "team", "runs", "report"],
+        Literal["ask", "message", "reply", "history", "team", "runs", "report"],
         Field(
-            description="ask: a question for the person you work for (then stop). message: a note to a ticket's AI team or a Docs page. reply: your answer to a person who wrote to you in the ticket chat (use the message id they gave). team: your team and its roles. runs: your team's runs. report: record a report early (the final JSON report is the usual way)."
+            description="ask: a question for the person you work for (then stop). message: a note to a ticket's AI team or a Docs page. reply: your answer to a person who wrote to you in the ticket chat (use the message id they gave). history: the closed conversations of a ticket's team (title, summary, session ids), `to` = the ticket key, default your own. team: your team and its roles. runs: your team's runs. report: record a report early (the final JSON report is the usual way)."
         ),
     ],
     question: Annotated[
@@ -24,7 +24,9 @@ async def ai_run(
     ] = None,
     to: Annotated[
         str | None,
-        Field(description="message: a ticket key (IAM-12) or docs:<page id>."),
+        Field(
+            description="message: a ticket key (IAM-12) or docs:<page id>. history: a ticket key."
+        ),
     ] = None,
     text: Annotated[
         str | None,
@@ -69,6 +71,16 @@ async def ai_run(
                 "That is your own ticket: write a comment with ticket_items instead."
             )
         return await runs.deliver_to_ticket(target, body, by=ctx.member_name)
+    if action == "history":
+        from services.ai import session_history
+
+        key = (to or ctx.ticket_id or "").strip()
+        if not key:
+            raise ValueError(
+                "ai_run(action='history') needs `to`: a ticket key such as IAM-12."
+            )
+        rows = await session_history.list_for_ticket(key, 10)
+        return {"ticket_id": key, "conversations": rows}
     if action == "reply":
         from services.assistant import chat as ticket_chat
 

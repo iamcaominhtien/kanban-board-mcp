@@ -94,6 +94,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     ),
     "docs-fix": _obj({"old": _S, "new": _S}, ["old", "new"]),
     "docs-summarise": _obj({"text": _S, "title": _S}, ["text"]),
+    "session-summary": _obj({"title": _S, "summary": _S}, ["title", "summary"]),
     "docs-explain": _obj({"text": _S}, ["text"]),
     "docs-translate": _obj({"markdown": _S, "language": _S}, ["markdown"]),
     "docs-ask": _obj(

@@ -587,6 +587,27 @@ async def post_cancel(run_id: str, session: Session) -> dict:
     return svc_runs.to_dict(run)
 
 
+@router.get("/tickets/{ticket_id}/ai/sessions")
+async def get_sessions(ticket_id: str, session: Session) -> list[dict]:
+    """The closed conversations of the ticket's team, newest first."""
+    from services.ai import session_history
+
+    return await session_history.list_for_ticket(ticket_id)
+
+
+@router.post("/tickets/{ticket_id}/ai/sessions/new")
+async def post_new_session(ticket_id: str, session: Session) -> dict:
+    """Start the team over on this ticket: its conversation is closed into the history, the next run begins anew."""
+    from services.ai import session_history
+
+    try:
+        row = await session_history.start_over(ticket_id, by=_by())
+    except (ValueError, svc_runs.RunError) as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return row
+
+
 @router.post("/tickets/{ticket_id}/ai/compact")
 async def post_compact(ticket_id: str, session: Session) -> dict:
     """`/compact` in the ticket chat: the lead's conversation is summarised (when it is working, after its step)."""

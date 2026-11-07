@@ -17,6 +17,7 @@ import type {
   RunStep,
   TeamPack,
   AiTeamRole,
+  AiSessionHistory,
 } from '../types/ai';
 import { ACTIVE_STATES } from '../types/ai';
 
@@ -151,6 +152,15 @@ export function useTicketRuns(ticketId: string | undefined) {
     queryFn: async () => (await client.get<AiRun[]>(`/tickets/${ticketId}/ai/runs`)).data,
     enabled: !!ticketId,
     refetchInterval: (q) => (q.state.data?.some((r) => isActive(r.state)) ? LIVE_POLL_MS : SAFETY_POLL_MS),
+  });
+}
+
+/** The closed conversations of a ticket's team (History in the ticket chat), newest first. */
+export function useTicketSessions(ticketId: string | undefined) {
+  return useQuery({
+    queryKey: ['ai', 'ticket-sessions', ticketId ?? ''],
+    queryFn: async () => (await client.get<AiSessionHistory[]>(`/tickets/${ticketId}/ai/sessions`)).data,
+    enabled: !!ticketId,
   });
 }
 
@@ -289,6 +299,9 @@ export const aiApi = {
         `/tickets/${ticketId}/ai/compact`,
       )
     ).data,
+  /** Start the team over on a ticket: its conversation is closed into the history; the next run begins anew. */
+  newSession: async (ticketId: string) =>
+    (await client.post<AiSessionHistory>(`/tickets/${ticketId}/ai/sessions/new`)).data,
   stepOutput: async (runId: string, seq: number) =>
     (await client.get<RunStep>(`/ai/runs/${runId}/steps/${seq}/output`)).data,
 };

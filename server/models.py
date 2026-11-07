@@ -1239,6 +1239,35 @@ class AiRunAgent(SQLModel, table=True):
     last_text: Optional[str] = Field(default=None)
 
 
+class AiSessionHistory(SQLModel, table=True):
+    """A closed conversation of an AI team on a ticket: what its lead was asked and did, in a title and a summary, with
+    the Claude Code session ids and the runs it spanned. Made when a person starts the team over; read by any AI that
+    works on the ticket or on the board (table)."""
+
+    __tablename__ = "ai_session_history"
+
+    id: str = Field(
+        default_factory=lambda: f"ses_{uuid.uuid4().hex[:12]}", primary_key=True
+    )
+    project_id: str = Field(index=True)
+    ticket_id: str = Field(index=True)
+    member_id: str  # the team
+    title: str = Field(default="")
+    summary: str = Field(default="")
+    session_ids: str = Field(
+        default="[]"
+    )  # JSON list, oldest first (a compaction or a resume may change the id)
+    run_ids: str = Field(default="[]")  # JSON list of run ids, oldest first
+    started_at: Optional[str] = Field(default=None)
+    ended_at: str = Field(
+        default_factory=_now_iso
+    )  # the boundary: later runs start a new conversation
+    created_by: str = Field(default="")
+    summarised_by: str = Field(
+        default=""
+    )  # the model, or "digest" when no AI could be asked
+
+
 class AiRunMessage(SQLModel, table=True):
     """A message into or out of a run: a person's note to the running lead, a message from or to another AI
     session (table)."""

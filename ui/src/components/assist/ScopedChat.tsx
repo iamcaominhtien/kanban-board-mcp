@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { assistApi, assistError, assistKeys, useChat, useScopeState } from '../../api/assist';
-import { aiApi, isActive, useTicketRuns } from '../../api/ai';
+import { aiApi, isActive, useTicketRuns, useTicketSessions } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AssistDraft, ChatMessage, ChatScope, ScopeMember, ScopeState, StartingPoint } from '../../types/assist';
 import { AiAvatar, SparkleIcon, useAiBoardState } from '../ai/aiUi';
@@ -251,6 +251,11 @@ export function ScopedChat({
   const liveRun = teamRuns.find((r) => isActive(r.state));
   const fillRun = teamRuns.find((r) => r.contextWindow && r.contextUsed != null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [plusOpen, setPlusOpen] = useState(false);
+  const [confirmOver, setConfirmOver] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [overBusy, setOverBusy] = useState(false);
+  const history = useTicketSessions(scope.kind === 'ticket' && state?.members.length ? scope.id : undefined).data ?? [];
   const [slashAt, setSlashAt] = useState(0);
   const [chatId, setChatId] = useState<string | null>(null);
   const [tab, setTab] = useState<'chat' | 'runs'>('chat');
@@ -341,6 +346,33 @@ export function ScopedChat({
     if (await send(outgoing.startsWith('//') ? outgoing.slice(1) : outgoing)) quotes.clear();
   };
 
+  const newChat = async () => {
+    setPlusOpen(false);
+    try {
+      const c = await assistApi.scopeChat(scope, true);
+      setChatId(c.id);
+      setTab('chat');
+      await refresh();
+    } catch (e) {
+      setError(extractError(e));
+    }
+  };
+  const startOver = async () => {
+    setOverBusy(true);
+    try {
+      const row = await aiApi.newSession(scope.id);
+      setConfirmOver(false);
+      setShowHistory(true);
+      setNotice(`Started over. Kept in History: “${row.title}”.`);
+      await qc.invalidateQueries({ queryKey: ['ai'] });
+    } catch (e) {
+      setError(extractError(e));
+      setConfirmOver(false);
+    } finally {
+      setOverBusy(false);
+    }
+  };
+
   const panel = useMemo<AnswerPanel>(
     () => ({
       onPostComment:
@@ -371,9 +403,7 @@ export function ScopedChat({
     ? [
         {
           name: 'compact',
-          hint: liveRun
-            ? 'Summarise its older conversation; it runs when the lead finishes its step'
-            : 'Summarise the lead’s conversation to make room',
+          hint: liveRun ? 'Summarise its conversation; runs after this run' : 'Summarise the lead’s conversation',
           enabled: !!(liveRun || fillRun),
           run: async () => {
             const r = await aiApi.compact(scope.id);
@@ -386,8 +416,24 @@ export function ScopedChat({
           },
         },
         {
+          name: 'new',
+          hint: 'Start over; a summary stays in History',
+          enabled: !liveRun && teamRuns.length > 0,
+          run: async () => {
+            setConfirmOver(true);
+          },
+        },
+        {
+          name: 'history',
+          hint: 'Closed conversations of this team',
+          enabled: true,
+          run: async () => {
+            setShowHistory((v) => !v);
+          },
+        },
+        {
           name: 'report',
-          hint: 'Ask the lead for a short report; it answers here and keeps working',
+          hint: 'A short report, answered here',
           enabled: true,
           run: async () => {
             await send(REPORT_REQUEST);
@@ -395,7 +441,7 @@ export function ScopedChat({
         },
         {
           name: 'stop',
-          hint: 'Stop the run that is working now',
+          hint: 'Stop the working run',
           enabled: !!liveRun,
           run: async () => {
             if (liveRun) await aiApi.cancel(liveRun.id);
@@ -405,7 +451,7 @@ export function ScopedChat({
         },
         {
           name: 'cost',
-          hint: 'What the team has spent on this ticket',
+          hint: 'What the team spent here',
           enabled: teamRuns.length > 0,
           run: async () => {
             const spent = teamRuns.reduce((n, r) => n + (r.costUsd || 0), 0);
@@ -474,24 +520,70 @@ export function ScopedChat({
             </button>
           </div>
         )}
-        <button
-          type="button"
-          className="ai-icobtn"
-          title="New chat"
-          aria-label="New chat"
-          onClick={async () => {
-            try {
-              const c = await assistApi.scopeChat(scope, true);
-              setChatId(c.id);
-              setTab('chat');
-              await refresh();
-            } catch (e) {
-              setError(extractError(e));
-            }
-          }}
-        >
-          +
-        </button>
+        {team ? (
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="ai-icobtn"
+              title="New chat, start the team over, history"
+              aria-label="Chat menu"
+              aria-haspopup="menu"
+              aria-expanded={plusOpen}
+              data-testid="chat-plus"
+              onClick={() => setPlusOpen((v) => !v)}
+            >
+              +
+            </button>
+            {plusOpen && (
+              <div
+                className="as-menu"
+                role="menu"
+                data-testid="chat-plus-menu"
+                style={{ position: 'absolute', right: 0, top: '100%', zIndex: 8, width: 280 }}
+              >
+                <button type="button" role="menuitem" className="as-action" onClick={() => void newChat()}>
+                  New chat <span className="ai-muted">the lead still remembers</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="as-action"
+                  disabled={!!liveRun}
+                  title={liveRun ? 'The team is working: stop the run first' : undefined}
+                  data-testid="chat-start-over"
+                  onClick={() => {
+                    setPlusOpen(false);
+                    setConfirmOver(true);
+                  }}
+                >
+                  Start the team over <span className="ai-muted">the lead forgets</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="as-action"
+                  data-testid="chat-history-toggle"
+                  onClick={() => {
+                    setPlusOpen(false);
+                    setShowHistory((v) => !v);
+                  }}
+                >
+                  History <span className="ai-muted">{history.length}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="ai-icobtn"
+            title="New chat"
+            aria-label="New chat"
+            onClick={() => void newChat()}
+          >
+            +
+          </button>
+        )}
         <PanelMaxButton panel={size} />
         <button type="button" className="ai-icobtn" aria-label="Close" title="Close" onClick={onClose}>
           <LineIcon name="close" size={14} />
@@ -517,6 +609,52 @@ export function ScopedChat({
             {!reading.length && !st.isLoading && <span className="ai-muted">{info?.title}</span>}
           </div>
           <div className="sc-body" ref={bodyRef}>
+            {team && confirmOver && (
+              <div className="as-tile as-tile-warn" data-testid="chat-start-over-confirm">
+                <div className="as-tile-title">Start {memberName} over?</div>
+                <div className="ai-hint">
+                  The lead will not remember this conversation. A title and a summary are kept in History, and the
+                  ticket, its comments and the Workspace stay as they are. The next message starts a new conversation.
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="ai-btn ai-btn-sm ai-btn-primary"
+                    disabled={overBusy}
+                    data-testid="chat-start-over-yes"
+                    onClick={() => void startOver()}
+                  >
+                    {overBusy ? 'Summarising…' : 'Start over'}
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-btn ai-btn-sm"
+                    disabled={overBusy}
+                    onClick={() => setConfirmOver(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {team && showHistory && (
+              <div className="as-tile" data-testid="chat-history">
+                <div className="as-tile-title">History of {memberName} on this ticket</div>
+                {history.length === 0 && <div className="ai-muted">Nothing closed yet.</div>}
+                {history.map((h) => (
+                  <details key={h.id} data-testid="chat-history-item">
+                    <summary style={{ cursor: 'pointer' }}>
+                      <b>{h.title || 'Untitled'}</b> <span className="ai-muted">{h.endedAt.slice(0, 10)}</span>
+                    </summary>
+                    <div style={{ whiteSpace: 'pre-wrap', fontSize: 12.5, margin: '4px 0 6px 12px' }}>{h.summary}</div>
+                    <div className="ai-muted" style={{ fontSize: 11, marginLeft: 12 }}>
+                      {h.runIds.length} run{h.runIds.length === 1 ? '' : 's'}
+                      {h.sessionIds.length ? ` · session ${h.sessionIds.join(', ')}` : ''}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            )}
             {st.isError && (
               <div className="ai-notice ai-notice-error" data-testid="chat-load-error">
                 The AI chat could not load: {extractError(st.error)}
@@ -638,10 +776,25 @@ export function ScopedChat({
                             background: i === slashPick ? '#EEF4F0' : 'transparent',
                             opacity: c.enabled ? 1 : 0.45,
                             cursor: c.enabled ? 'pointer' : 'default',
+                            font: 'inherit',
+                            fontSize: 12,
+                            alignItems: 'baseline',
+                            color: 'inherit',
                           }}
                         >
-                          <b style={{ fontFamily: 'JetBrains Mono, monospace' }}>/{c.name}</b>
-                          <span className="ai-muted">{c.hint}</span>
+                          <b
+                            style={{
+                              fontFamily: 'JetBrains Mono, monospace',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              flexShrink: 0,
+                            }}
+                          >
+                            /{c.name}
+                          </b>
+                          <span className="ai-muted" style={{ fontSize: 12 }}>
+                            {c.hint}
+                          </span>
                         </button>
                       ))}
                     </div>

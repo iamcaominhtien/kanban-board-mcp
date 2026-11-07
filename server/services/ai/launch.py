@@ -459,6 +459,12 @@ async def build_prompt(
                     sub_tickets=None,
                 )
             )
+    if ticket is not None and not resume:
+        from . import session_history
+
+        earlier = await session_history.prompt_block(session, ticket.id)
+        if earlier:
+            parts.append(earlier)
     if note:
         parts.append(note)
     parts.append(
