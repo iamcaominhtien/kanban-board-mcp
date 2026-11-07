@@ -434,6 +434,27 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
         <LineIcon name="check" size={12} /> AI-completed
       </div>
     );
+  // A run that ended (and the ticket still open) is not "not started": say how it ended, and offer another run.
+  if (
+    run &&
+    (run.state === 'finished' || run.state === 'cancelled') &&
+    assignee &&
+    !['done', 'wont_do', 'review', 'testing'].includes(ticket.status)
+  )
+    return (
+      <div className="ai-card-footer" onClick={stop} data-testid="card-ai-ended">
+        <RunStateChip state={run.state} />
+        {run.endedAt && <span className="ai-muted">{clockTime(run.endedAt)}</span>}
+        <button
+          type="button"
+          className="ai-link"
+          style={{ marginLeft: 'auto' }}
+          onClick={() => retry.mutate(run.runId)}
+        >
+          Run again
+        </button>
+      </div>
+    );
   if (assignee && !['done', 'wont_do', 'review', 'testing'].includes(ticket.status))
     return (
       <div className="ai-card-footer" onClick={stop}>

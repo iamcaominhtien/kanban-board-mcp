@@ -50,6 +50,10 @@ BOARD_CLOSED = "board_closed"
 STARTING_TIMEOUT_S = 180.0
 WATCH_EVERY_S = 5.0
 RESULT_GRACE_S = 20.0
+# A role the lead called runs in the background: the lead's turn can end while it still works, and the CLI wakes the lead
+# when the role reports. Closing the CLI at the lead's first result would kill the role (a run lost a dev's UI work
+# that way). The board waits for the roles instead, at most this long after the lead's result.
+ROLES_WAIT_MAX_S = 1800.0
 _UNSET = object()
 
 
@@ -666,6 +670,12 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
     result: dict | None = None
     ready = False
     answered_at: float | None = None
+    holding_since: float | None = (
+        None  # the lead answered while a role still works: the CLI stays open
+    )
+    quiet_since: float | None = (
+        None  # since when no role works (and the lead has not answered again)
+    )
     lingered = False
     timed_out: str | None = None
     held_tokens: int | None = None
@@ -692,6 +702,21 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
                 pending.cancel()
                 proc.kill()
                 break
+            if holding_since is not None and answered_at is None:
+                now_m = time.monotonic()
+                release = now_m - holding_since > ROLES_WAIT_MAX_S
+                if not release and not await _open_roles(run_id):
+                    quiet_since = quiet_since or now_m
+                    release = now_m - quiet_since >= RESULT_GRACE_S
+                elif not release:
+                    quiet_since = None
+                if release:
+                    if proc.live:
+                        proc.end_input()
+                        writer.add([], fields={"live": False})
+                    holding_since = None
+                    answered_at = now_m
+                continue
             if ready:
                 continue
             timed_out = "Claude Code did not start in time."
@@ -726,12 +751,24 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
             await _record_messages(
                 run_id, parsed["messages_in"], parsed["messages_out"]
             )
+        if parsed["messages_out"]:
+            await _wake_roles(
+                run_id,
+                [str(m.get("peer") or "") for m in parsed["messages_out"]],
+                writer,
+            )
         if parsed["result"]:
             result = parsed["result"]
-            if proc.live:
-                proc.end_input()
-                fields["live"] = False
-            answered_at = time.monotonic()
+            if proc.live and not await _asking(run_id) and await _open_roles(run_id):
+                holding_since = holding_since or time.monotonic()
+                quiet_since = None
+                answered_at = None
+            else:
+                if proc.live:
+                    proc.end_input()
+                    fields["live"] = False
+                holding_since = None
+                answered_at = time.monotonic()
         if parsed["rows"] or parsed["agents"] or parsed["files"] or fields:
             if run_id in RT.cancelled:
                 proc.kill()
@@ -875,6 +912,32 @@ async def _post_comment(
         )
         comments = loads(ticket.comments, []) if ticket else []
         return comments[-1].get("id") if comments else None
+
+
+async def _open_roles(run_id: str) -> list[dict]:
+    """The roles of the run that were called and have not reported yet."""
+    async with database.async_session() as session:
+        return [a for a in await steps.agents(session, run_id) if not a["ended_at"]]
+
+
+async def _asking(run_id: str) -> bool:
+    """The lead has asked a person something that is not answered yet (the run then waits for the answer, not for roles)."""
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        asked = loads(run.question, None) if run is not None and run.question else None
+    return bool(asked and not asked.get("answered_at"))
+
+
+async def _wake_roles(
+    run_id: str, peers: list[str], writer: "steps.StepWriter"
+) -> None:
+    """The lead sent a message to a role that had finished: the role works again until it stops again."""
+    async with database.async_session() as session:
+        known = await steps.agents(session, run_id)
+    for peer in peers:
+        for a in known:
+            if a["ended_at"] and peer in (a["claude_id"], a["id"]):
+                writer.add([], agents=[{"id": a["id"], "reopen": True}])
 
 
 async def _finish(run_id: str, result: dict) -> None:
