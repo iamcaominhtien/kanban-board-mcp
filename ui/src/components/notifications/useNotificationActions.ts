@@ -1,3 +1,4 @@
+import { requestAnswerFocus } from '../ai/answerFocus';
 import { useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { aiApi } from '../../api/ai';
@@ -79,7 +80,11 @@ const HANDLERS = new Map<string, ActionHandler>(
       if (c.extra?.text && c.row.targetId) {
         await aiApi.answer(c.row.targetId, c.extra.text);
         c.refresh();
-      } else c.navigate(c.row, 'open_ticket');
+      } else {
+        // the ticket may be open already: bring its question forward, where the answer box is
+        c.navigate(c.row, 'open_ticket');
+        requestAnswerFocus(c.row.ticketId);
+      }
     },
     retry: withRefresh(async (c) => {
       if (c.row.targetKind === 'run' && c.row.targetId) await aiApi.retry(c.row.targetId);

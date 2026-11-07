@@ -36,6 +36,8 @@ export interface ScopedChatProps {
   onPosted?: (ticketId: string, commentId: string) => void;
   /** Shown as the heading; defaults to the answering AI member's name. */
   title?: string;
+  /** Something to show above the chat (a team's question waiting for an answer on this ticket). */
+  banner?: ReactNode;
 }
 
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
@@ -236,6 +238,7 @@ export function ScopedChat({
   onOpenUsage,
   onPosted,
   title,
+  banner,
 }: ScopedChatProps) {
   const qc = useQueryClient();
   const st = useScopeState(scope);
@@ -426,6 +429,7 @@ export function ScopedChat({
         </div>
       ) : (
         <>
+          {banner}
           <div className="sc-reading" data-testid="chat-reading">
             <span className="sc-reading-label">Reading</span>
             {st.isLoading && <span className="as-skel" style={{ height: 22, width: 160 }} />}

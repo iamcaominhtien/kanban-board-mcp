@@ -1,3 +1,6 @@
+import { useRef } from 'react';
+import { QuestionCard } from './QuestionCard';
+import { useAnswerFocus } from './answerFocus';
 import { AiAvatar, RunStateChip, fmtElapsed, secondsSince, useAiBoardState, useNow } from './aiUi';
 import { aiApi, useAiMutation, useAiRun } from '../../api/ai';
 import { extractError } from '../../api/extractError';
@@ -102,6 +105,17 @@ export function RunWorkingRow({ run }: { run: AiRun }) {
       toast.error("Couldn't stop it", extractError(err));
     }
   };
+  const asking = run.state === 'needs_input' && !!run.question;
+  const askRef = useRef<HTMLDivElement>(null);
+  useAnswerFocus(asking ? run.ticketId : null, askRef);
+  if (asking) {
+    // the question is answered here, where the person is reading the thread
+    return (
+      <div ref={askRef} data-testid="run-working-question">
+        <QuestionCard run={run} />
+      </div>
+    );
+  }
   const label = run.state === 'queued' ? 'QUEUED' : run.state === 'needs_input' ? 'ASKS YOU' : 'WORKING';
   return (
     <div className="ai-root tw-working" data-testid="run-working" data-state={run.state}>

@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useTicketRuns } from '../../api/ai';
 import type { Ticket } from '../../types/ticket';
+import { QuestionCard } from '../ai/QuestionCard';
+import { useAnswerFocus } from '../ai/answerFocus';
 import { RunStateChip, fmtElapsed, money, useAiBoardState } from '../ai/aiUi';
 import { ScopedChat } from './ScopedChat';
 import { ContextMeter } from './ContextMeter';
@@ -45,6 +47,20 @@ function TicketRunsList({ ticketId, onOpenRun }: { ticketId: string; onOpenRun: 
   );
 }
 
+/** A team's question waiting for this person on this ticket: answered here, in the chat the person is using. */
+function AskBanner({ ticketId }: { ticketId: string }) {
+  const runs = useTicketRuns(ticketId).data ?? [];
+  const asking = runs.find((r) => r.state === 'needs_input' && r.question);
+  const ref = useRef<HTMLDivElement>(null);
+  useAnswerFocus(asking ? ticketId : null, ref);
+  if (!asking) return null;
+  return (
+    <div ref={ref} style={{ padding: '10px 12px 0' }} data-testid="chat-ask-banner">
+      <QuestionCard run={asking} />
+    </div>
+  );
+}
+
 /**
  * The AI chat docked in the ticket page (design/screens/ai-where-you-work.md, B): scoped to the ticket, it shows
  * what it reads, keeps the conversation private to the asker, and has the Runs of the ticket in a second tab.
@@ -67,6 +83,7 @@ export function TicketChat({
   return (
     <ScopedChat
       scope={scope}
+      banner={<AskBanner ticketId={ticket.id} />}
       onClose={onClose}
       onOpenRun={onOpenRun}
       onOpenAiMembers={() => openAiPage?.()}
