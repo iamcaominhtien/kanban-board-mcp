@@ -9,7 +9,7 @@
  *
  *   design block          | old UI (ui/src/...)                               | old server (server/...)
  *   ----------------------|---------------------------------------------------|------------------------------------
- *   RunCardDesign         | components/ai/RunPanel.tsx  ActiveRunCard,        | api/ai.py  GET /tickets/{id}/ai/runs
+ *   RunCardDesign         | DONE: RunCard.tsx (data). Old: components/ai/RunPanel.tsx  ActiveRunCard,        | api/ai.py  GET /tickets/{id}/ai/runs
  *                         |   RetryLine, TroubleCard (components/ai/trouble/) |
  *   RestartNoticeDesign   | components/ai/RunResources.tsx  RestartNotice,    | services/ai/resources.py  restarts_of
  *                         |   MemoryStopNote                                  |   (still in the tree)
@@ -18,9 +18,11 @@
  *   NowAndTimelineDesign  | DONE: replaced by activity/TicketTimeline.tsx, drawn from the ticket's runs (useTicketRuns +
  *                         |   useAiRuns, activity/timelineModel.ts): lanes You, Lead and each role; no server route needed.
  *                         |   The project-wide Timeline (aiteam/TimelineTab.tsx and the old route) is still to be done.
- *   RunPanelDesign        | components/ai/RunView.tsx  RunView, RunSteps,     | api/ai.py  GET /ai/runs/{id}
+ *   RunPanelDesign        | DONE: RunPanel.tsx (data). Old: components/ai/RunView.tsx  RunView, RunSteps,     | api/ai.py  GET /ai/runs/{id}
  *                         |   components/ai/trouble/stepKinds.tsx             |   (v2 has /ai/runs/{id}, the steps by page)
- *   RunHistoryDesign      | components/ai/RunView.tsx  RunHistory             | api/ai.py  GET /tickets/{id}/ai/runs
+ *   RunHistoryDesign      | DONE: RunHistoryTable.tsx (data). Old: components/ai/RunView.tsx  RunHistory             | api/ai.py  GET /tickets/{id}/ai/runs
+ *
+ * Still static and left out of the view: RestartNoticeDesign and ResourcesDesign (the runner process holds the RAM readings).
  *
  * What v2 does not have any more, so the old code uses it in vain: approvals, Pause/Resume, workflow, status changes,
  * context notes. The v2 pieces to keep: the lead's report, a role's steps (`RunTree`), messages to a running lead.
