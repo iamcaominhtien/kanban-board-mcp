@@ -17,14 +17,24 @@ from typing import Any
 import database
 from models import AiAccount, AiRun, AiTeam, Member, Project, Ticket
 
-from . import accounts, board_skills, cli, knowledge, mcp_sources, ops, pictures, roles
+from . import (
+    accounts,
+    board_skills,
+    cli,
+    hook_guard,
+    knowledge,
+    mcp_sources,
+    ops,
+    pictures,
+    roles,
+)
 from .context import RunContext, instruction_block, ticket_block
 from .providers import merged_config
 from .store import ai_names, get_settings, loads
 
 logger = logging.getLogger("kanban.ai.launch")
 
-BOARD_PLUGIN_VERSION = "2.0.0"
+BOARD_PLUGIN_VERSION = "2.1.0"
 RUN_TOKEN_SHOWN = (
     "<run token>"  # what a transcript shows in place of the run's MCP token
 )
@@ -171,8 +181,21 @@ def board_plugin_dir() -> str:
         else "${CLAUDE_PLUGIN_ROOT}/hooks/post.sh"
     )
     one = [{"type": "command", "command": script, "timeout": 10}]
+    # the one safety rule (docs/specs/ai-v2.md section 2): no force push to the main branch, no recursive rm outside
+    # the run's folder. It answers with JSON and never fails the run (services/ai/hook_guard.py)
+    guard = (
+        'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/hooks/guard.ps1"'
+        if win
+        else 'sh "${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"'
+    )
     hooks = {
         "hooks": {
+            "PreToolUse": [
+                {
+                    "matcher": "Bash|PowerShell",
+                    "hooks": [{"type": "command", "command": guard, "timeout": 10}],
+                }
+            ],
             "PostToolUse": [
                 {
                     "matcher": "Edit|Write|MultiEdit|NotebookEdit|TaskCreate|TaskUpdate|TodoWrite",
@@ -191,6 +214,8 @@ def board_plugin_dir() -> str:
     sh.write_text(_hook_script_posix(), encoding="utf-8")
     sh.chmod(0o755)
     (root / "hooks" / "post.cmd").write_text(_hook_script_windows(), encoding="utf-8")
+    (root / "hooks" / "guard.sh").write_text(hook_guard.POSIX, encoding="utf-8")
+    (root / "hooks" / "guard.ps1").write_text(hook_guard.POWERSHELL, encoding="utf-8")
     stamp.write_text("ok", encoding="utf-8")
     return str(root)
 
@@ -618,7 +643,12 @@ async def prepare(
     base_env = cli.child_env()
     env = accounts.env_for(account, base_env) if account else dict(base_env)
     env.update(
-        {"KANBAN_URL": board_url, "KANBAN_RUN_TOKEN": token, "KANBAN_RUN_ID": run.id}
+        {
+            "KANBAN_URL": board_url,
+            "KANBAN_RUN_TOKEN": token,
+            "KANBAN_RUN_ID": run.id,
+            "KANBAN_WORKTREE": cwd,  # the PreToolUse hook keeps `rm -r` inside it
+        }
     )
     deny = list(DEFAULT_DENY) + [str(r) for r in loads(settings.deny_list, []) if r]
     mode = profile.permission_mode or settings.permission_mode or "bypass"

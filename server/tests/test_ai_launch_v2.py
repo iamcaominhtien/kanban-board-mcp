@@ -159,7 +159,9 @@ def test_the_board_server_comes_first_with_the_runs_token_and_cannot_be_replaced
 # --------------------------------------------------------------------------- the board's plugin
 
 
-def test_the_board_plugin_reports_hook_events_and_never_blocks(tmp_path, monkeypatch):
+def test_the_board_plugin_reports_hook_events_and_only_the_guard_refuses(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr(launch, "data_root", lambda: tmp_path)
     root = launch.board_plugin_dir()
     assert launch.board_plugin_dir() == root  # written once per version
@@ -171,7 +173,13 @@ def test_the_board_plugin_reports_hook_events_and_never_blocks(tmp_path, monkeyp
         and manifest["version"] == launch.BOARD_PLUGIN_VERSION
     )
     hooks = json.loads(open(os.path.join(root, "hooks", "hooks.json")).read())["hooks"]
-    assert set(hooks) == {"PostToolUse", "SubagentStart", "SubagentStop", "Stop"}
+    assert set(hooks) == {
+        "PreToolUse",
+        "PostToolUse",
+        "SubagentStart",
+        "SubagentStop",
+        "Stop",
+    }
     assert (
         "Edit" in hooks["PostToolUse"][0]["matcher"]
         and "TaskCreate" in hooks["PostToolUse"][0]["matcher"]

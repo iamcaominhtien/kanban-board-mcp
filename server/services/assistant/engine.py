@@ -381,7 +381,12 @@ async def _run(
         accounts.env_for(account, cli.child_env()) if account else dict(cli.child_env())
     )
     env.update(
-        {"KANBAN_URL": board_url, "KANBAN_RUN_TOKEN": token, "KANBAN_RUN_ID": run.id}
+        {
+            "KANBAN_URL": board_url,
+            "KANBAN_RUN_TOKEN": token,
+            "KANBAN_RUN_ID": run.id,
+            "KANBAN_WORKTREE": cwd,
+        }
     )
     proc = cli.CliProcess(args, cwd, env=env)
     writer = steps.StepWriter(run.id)
