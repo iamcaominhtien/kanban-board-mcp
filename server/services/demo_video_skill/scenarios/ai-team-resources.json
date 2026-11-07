@@ -1,0 +1,216 @@
+{
+ "name": "ai-team-resources",
+ "voice": "vi-VN-HoaiMyNeural",
+ "tempo": 1.08,
+ "bpm": 76,
+ "ready": "text:Fix add() in calc.py",
+ "intro": {
+  "title": "Sau: tab Resources",
+  "subtitle": "Máy, các run đang chạy, giới hạn bộ nhớ",
+  "chips": [
+   "RAM",
+   "Stop / Restart",
+   "Giới hạn"
+  ],
+  "say": "Sau. Tab Resources mới."
+ },
+ "scenes": [
+  {
+   "kind": "app",
+   "cap": "Thẻ đội có chip RAM: vàng từ 65%, đỏ từ 90%, luôn ghi số",
+   "say": "Trên thẻ đội ở tab Now, mỗi run có chip RAM. Vàng từ sáu mươi lăm phần trăm giới hạn, đỏ từ chín mươi, và luôn ghi số.",
+   "steps": [
+    {
+     "do": "click",
+     "target": "testid:view-ai-team",
+     "settle": 1.5
+    },
+    {
+     "do": "cam",
+     "target": "testid:team-card-Core team",
+     "scale": 1.5,
+     "ms": 900
+    },
+    {
+     "do": "spot",
+     "target": "testid:team-card-Core team",
+     "grow": {
+      "left": 8,
+      "right": 8,
+      "top": 8,
+      "bottom": 8
+     }
+    }
+   ]
+  },
+  {
+   "kind": "app",
+   "cap": "Tab Resources: máy, tiến trình AI, biểu đồ 5 phút",
+   "say": "Tab Resources cho biết máy có ổn không: RAM, tải, tiến trình AI, và đường RAM của từng run trong năm phút.",
+   "steps": [
+    {
+     "do": "spot"
+    },
+    {
+     "do": "cam"
+    },
+    {
+     "do": "click",
+     "target": "css:[role=tab]:has-text(\"Resources\")",
+     "settle": 1.5
+    },
+    {
+     "do": "spot",
+     "target": "testid:rs-verdict",
+     "grow": {
+      "left": 8,
+      "right": 8,
+      "top": 8,
+      "bottom": 8
+     }
+    },
+    {
+     "do": "until",
+     "frac": 0.35
+    },
+    {
+     "do": "spot",
+     "target": "css:.at-tiles",
+     "grow": {
+      "left": 6,
+      "right": 6,
+      "top": 6,
+      "bottom": 6
+     }
+    },
+    {
+     "do": "until",
+     "frac": 0.6
+    },
+    {
+     "do": "spot",
+     "target": "testid:rs-chart",
+     "grow": {
+      "left": 6,
+      "right": 6,
+      "top": 6,
+      "bottom": 6
+     }
+    }
+   ]
+  },
+  {
+   "kind": "app",
+   "cap": "Mỗi run một dòng, nhóm theo đội",
+   "say": "Mỗi run đang chạy một dòng, nhóm theo đội: ticket, ai đang làm, từ lúc nào, RAM hiện tại và đỉnh.",
+   "steps": [
+    {
+     "do": "spot",
+     "target": "testid:rs-table",
+     "grow": {
+      "left": 6,
+      "right": 6,
+      "top": 6,
+      "bottom": 6
+     }
+    }
+   ]
+  },
+  {
+   "kind": "app",
+   "cap": "Restart: Claude Code chạy lại trong cùng run",
+   "say": "Bấm Restart rồi xác nhận: Claude Code chạy lại ngay trong run đó, bộ nhớ được giải phóng.",
+   "steps": [
+    {
+     "do": "spot"
+    },
+    {
+     "do": "click",
+     "target": "css:[data-testid=\"rs-run-KAN-5\"] [data-testid=\"rs-restart\"]",
+     "settle": 1.2
+    },
+    {
+     "do": "click",
+     "target": "testid:rs-confirm",
+     "settle": 2.5
+    },
+    {
+     "do": "spot",
+     "target": "testid:rs-run-KAN-5",
+     "grow": {
+      "left": 4,
+      "right": 4,
+      "top": 4,
+      "bottom": 4
+     }
+    }
+   ]
+  },
+  {
+   "kind": "app",
+   "cap": "Hệ thống tự restart hai lần, rồi dừng run và ghi lên dòng",
+   "say": "Khi một run vượt giới hạn, hệ thống tự khởi động lại hai lần, lần thứ ba thì dừng run. Cả hai đều ghi ngay trên dòng của run.",
+   "steps": [
+    {
+     "do": "spot"
+    },
+    {
+     "do": "spot",
+     "target": "testid:rs-note-restarted",
+     "grow": {
+      "left": 4,
+      "right": 4,
+      "top": 4,
+      "bottom": 4
+     }
+    },
+    {
+     "do": "until",
+     "frac": 0.5
+    },
+    {
+     "do": "spot",
+     "target": "testid:rs-note-stopped",
+     "grow": {
+      "left": 4,
+      "right": 4,
+      "top": 4,
+      "bottom": 4
+     }
+    }
+   ]
+  },
+  {
+   "kind": "app",
+   "cap": "Giới hạn: bộ nhớ một run, số run cùng lúc, ước tính",
+   "say": "Cuối cùng là giới hạn: bộ nhớ của một run, số run cùng lúc, và ước tính có vừa máy này không.",
+   "steps": [
+    {
+     "do": "spot"
+    },
+    {
+     "do": "spot",
+     "target": "testid:rs-limits",
+     "grow": {
+      "left": 6,
+      "right": 6,
+      "top": 6,
+      "bottom": 6
+     }
+    }
+   ]
+  }
+ ],
+ "outro": {
+  "title": "Resources",
+  "tagline": "Máy có ổn không. Run nào đang ăn RAM. Stop và Restart tại chỗ.",
+  "say": "Máy có ổn không, run nào đang ăn RAM, và Stop hay Restart ngay tại chỗ.",
+  "caption": "Máy có ổn không. Run nào đang ăn RAM. Stop và Restart tại chỗ",
+  "steps": [
+   {
+    "do": "key",
+    "key": "Escape"
+   }
+  ]
+ }
+}
