@@ -215,8 +215,9 @@ function SlidesView({
       >
         {showSlides ? (
           <>
-            <strong>Showing the slides.</strong> Text, shapes and pictures are drawn from the file; charts, tables and
-            effects may look different. Open the original for the exact look.
+            <strong>Showing the slides.</strong> Drawn from the file: text, shapes, pictures, tables and charts. 3-D,
+            animation and special effects are not drawn, and fonts follow this computer. Open the original for the exact
+            look.
           </>
         ) : (
           <>
