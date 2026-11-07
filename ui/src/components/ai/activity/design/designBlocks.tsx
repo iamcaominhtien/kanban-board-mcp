@@ -1,7 +1,5 @@
 // Converted from the canvas design: AiTimelineCases, AiResources and AiTicketWork (design/source/*.dc.html).
 // Static markup with the design's own mock numbers; to be made data-driven when it is connected to the board.
-// TODO(connect to data): do not rewrite the logic, port it from `main`: which old file feeds which block is in ../mock.ts.
-// Fixed sizes to revisit: the Timeline svg is 420px wide, as in the design's 520px modal.
 import './designBlocks.css';
 
 /** RunPanelDesign: a block of the canvas design, as drawn (mock data). */
@@ -753,7 +751,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px 196px 214px 104px 70px 96px 1fr',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -773,7 +771,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px 196px 214px 104px 70px 96px 1fr',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -895,7 +893,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px 196px 214px 104px 70px 96px 1fr',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -1049,7 +1047,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px 196px 214px 104px 70px 96px 1fr',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -1194,7 +1192,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px 196px 214px 104px 70px 96px 1fr',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -1376,10 +1374,13 @@ export function NowAndTimelineDesign() {
         </div>
         <div style={{ border: '1px solid #E3E8E5', borderRadius: '10px', overflow: 'hidden' }}>
           <svg
-            width="420"
-            height="242"
-            viewBox="0 0 420 242"
-            style={{ display: 'block', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}
+            viewBox="0 0 860 242"
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+            }}
             role="img"
           >
             <defs>
@@ -1560,9 +1561,9 @@ export function NowAndTimelineDesign() {
                 <path d="M0 0L10 5L0 10z" fill="#B8860B" />
               </marker>
             </defs>
-            <line x1="119.0" y1="46" x2="119.0" y2="236.0" stroke="#D5DED8" strokeWidth="1.4" strokeDasharray="2 4" />
-            <line x1="237.0" y1="46" x2="237.0" y2="236.0" stroke="#D5DED8" strokeWidth="1.4" strokeDasharray="2 4" />
-            <line x1="355.0" y1="46" x2="355.0" y2="236.0" stroke="#D5DED8" strokeWidth="1.4" strokeDasharray="2 4" />
+            <line x1="192.3" y1="46" x2="192.3" y2="236.0" stroke="#D5DED8" strokeWidth="1.4" strokeDasharray="2 4" />
+            <line x1="457" y1="46" x2="457" y2="236.0" stroke="#D5DED8" strokeWidth="1.4" strokeDasharray="2 4" />
+            <line x1="721.7" y1="46" x2="721.7" y2="236.0" stroke="#D5DED8" strokeWidth="1.4" strokeDasharray="2 4" />
             <text x="46" y="67.5" fontSize="10" fill="#6B7A70" textAnchor="end">
               10:00
             </text>
@@ -1573,41 +1574,41 @@ export function NowAndTimelineDesign() {
               10:30
             </text>
             <g>
-              <rect x="68.0" y="4" width="102" height="40" rx="9" fill="#E6F2EA" stroke="#2E6F40" strokeWidth="1.5" />
-              <text x="81.0" y="28" fontSize="10" fontWeight="800" fill="#1F5A31" textAnchor="middle">
+              <rect x="141.3" y="4" width="102" height="40" rx="9" fill="#E6F2EA" stroke="#2E6F40" strokeWidth="1.5" />
+              <text x="154.3" y="28" fontSize="10" fontWeight="800" fill="#1F5A31" textAnchor="middle">
                 DV
               </text>
-              <text x="94.0" y="29" fontSize="12" fontWeight="700" fill="#1F5A31">
+              <text x="167.3" y="29" fontSize="12" fontWeight="700" fill="#1F5A31">
                 Dev
               </text>
-              <circle cx="161.0" cy="16" r="4" fill="#2E6F40" />
-              <circle cx="161.0" cy="16" r="4" fill="none" stroke="#2E6F40" strokeWidth="1.5" className="tl-anim">
+              <circle cx="234.3" cy="16" r="4" fill="#2E6F40" />
+              <circle cx="234.3" cy="16" r="4" fill="none" stroke="#2E6F40" strokeWidth="1.5" className="tl-anim">
                 <animate attributeName="r" values="4;9" dur="1.6s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.7;0" dur="1.6s" repeatCount="indefinite" />
               </circle>
             </g>
             <g>
-              <rect x="186.0" y="4" width="102" height="40" rx="9" fill="#FEF3D9" stroke="#B8860B" strokeWidth="1.5" />
-              <text x="199.0" y="28" fontSize="10" fontWeight="800" fill="#7A5A06" textAnchor="middle">
+              <rect x="406" y="4" width="102" height="40" rx="9" fill="#FEF3D9" stroke="#B8860B" strokeWidth="1.5" />
+              <text x="419" y="28" fontSize="10" fontWeight="800" fill="#7A5A06" textAnchor="middle">
                 TS
               </text>
-              <text x="212.0" y="29" fontSize="12" fontWeight="700" fill="#7A5A06">
+              <text x="432" y="29" fontSize="12" fontWeight="700" fill="#7A5A06">
                 Tester
               </text>
-              <circle cx="279.0" cy="16" r="4" fill="#5B6B60" />
+              <circle cx="499" cy="16" r="4" fill="#5B6B60" />
             </g>
             <g>
-              <rect x="304.0" y="4" width="102" height="40" rx="9" fill="#E9EAF7" stroke="#5B5FA8" strokeWidth="1.5" />
-              <text x="317.0" y="28" fontSize="10" fontWeight="800" fill="#3F4390" textAnchor="middle">
+              <rect x="670.7" y="4" width="102" height="40" rx="9" fill="#E9EAF7" stroke="#5B5FA8" strokeWidth="1.5" />
+              <text x="683.7" y="28" fontSize="10" fontWeight="800" fill="#3F4390" textAnchor="middle">
                 RV
               </text>
-              <text x="330.0" y="29" fontSize="12" fontWeight="700" fill="#3F4390">
+              <text x="696.7" y="29" fontSize="12" fontWeight="700" fill="#3F4390">
                 Reviewer
               </text>
-              <circle cx="397.0" cy="16" r="4" fill="#C7D2CB" />
+              <circle cx="763.7" cy="16" r="4" fill="#C7D2CB" />
             </g>
             <rect
-              x="110.0"
+              x="183.3"
               y="64.0"
               width="18"
               height="54.6"
@@ -1616,22 +1617,22 @@ export function NowAndTimelineDesign() {
               stroke="#2E6F40"
               strokeWidth="1.5"
             />
-            <text x="134.0" y="75.0" fontSize="10" fontWeight="700" fill="#1F5A31">
+            <text x="207.3" y="75.0" fontSize="10" fontWeight="700" fill="#1F5A31">
               run 1
             </text>
             <path
-              d="M129.0 118.6 L227.0 122.8"
+              d="M 202.3 118.6 L 447 122.8"
               stroke="#2E6F40"
               strokeWidth="1.7"
               fill="none"
               markerEnd="url(#ah_handoff)"
             />
-            <circle cx="178.0" cy="120.7" r="7.5" fill="#fff" stroke="#2E6F40" strokeWidth="1.4" />
-            <text x="178.0" y="124.3" fontSize="10" fontWeight="800" fill="#2E6F40" textAnchor="middle">
+            <circle cx="324.7" cy="120.7" r="7.5" fill="#fff" stroke="#2E6F40" strokeWidth="1.4" />
+            <text x="324.7" y="124.3" fontSize="10" fontWeight="800" fill="#2E6F40" textAnchor="middle">
               &rsaquo;
             </text>
             <rect
-              x="228.0"
+              x="448"
               y="122.8"
               width="18"
               height="109.2"
@@ -1642,7 +1643,7 @@ export function NowAndTimelineDesign() {
               strokeDasharray="4 3"
             />
             <rect
-              x="110.0"
+              x="183.3"
               y="156.4"
               width="18"
               height="75.6"
@@ -1652,22 +1653,22 @@ export function NowAndTimelineDesign() {
               strokeWidth="1.5"
             />
             <g className="tl-anim">
-              <rect x="113.0" y="159.4" width="12" height="69.6" rx="3" fill="#2E6F40" opacity="0.18">
+              <rect x="186.3" y="159.4" width="12" height="69.6" rx="3" fill="#2E6F40" opacity="0.18">
                 <animate attributeName="opacity" values="0.1;0.32;0.1" dur="1.8s" repeatCount="indefinite" />
               </rect>
-              <circle cx="119.0" cy="232.0" r="4" fill="#2E6F40">
+              <circle cx="192.3" cy="232.0" r="4" fill="#2E6F40">
                 <animate attributeName="r" values="3;6;3" dur="1.4s" repeatCount="indefinite" />
               </circle>
             </g>
             <g className="tl-still">
-              <circle cx="119.0" cy="232.0" r="4" fill="#2E6F40" />
+              <circle cx="192.3" cy="232.0" r="4" fill="#2E6F40" />
             </g>
-            <text x="134.0" y="167.4" fontSize="10" fontWeight="700" fill="#1F5A31">
+            <text x="207.3" y="167.4" fontSize="10" fontWeight="700" fill="#1F5A31">
               run 2
             </text>
             <g className="tl-anim">
               <path
-                d="M129.0 190.0 L227.0 194.2"
+                d="M 202.3 190.0 L 447 194.2"
                 stroke="#2E6F40"
                 strokeWidth="1.7"
                 fill="none"
@@ -1679,7 +1680,7 @@ export function NowAndTimelineDesign() {
             </g>
             <g className="tl-still">
               <path
-                d="M129.0 190.0 L227.0 194.2"
+                d="M 202.3 190.0 L 447 194.2"
                 stroke="#2E6F40"
                 strokeWidth="1.7"
                 fill="none"
@@ -1688,19 +1689,19 @@ export function NowAndTimelineDesign() {
               />
             </g>
             <g>
-              <line x1="52" y1="232.0" x2="414" y2="232.0" stroke="#2E6F40" strokeWidth="1.4" strokeDasharray="3 3" />
+              <line x1="52" y1="232.0" x2="854" y2="232.0" stroke="#2E6F40" strokeWidth="1.4" strokeDasharray="3 3" />
               <rect x="-2" y="223.0" width="56" height="18" rx="9" fill="#2E6F40" />
               <text x="26" y="236.0" fontSize="10" fontWeight="800" fill="#fff" textAnchor="middle">
                 now 10:40
               </text>
               <g className="tl-anim">
-                <circle cx="406" cy="232.0" r="4" fill="#2E6F40">
+                <circle cx="846" cy="232.0" r="4" fill="#2E6F40">
                   <animate attributeName="r" values="3;7;3" dur="1.6s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="1;0.2;1" dur="1.6s" repeatCount="indefinite" />
                 </circle>
               </g>
               <g className="tl-still">
-                <circle cx="406" cy="232.0" r="4" fill="#2E6F40" />
+                <circle cx="846" cy="232.0" r="4" fill="#2E6F40" />
               </g>
             </g>
           </svg>
@@ -1746,7 +1747,8 @@ export function ResourcesDesign() {
         <div style={{ display: 'flex', gap: '10px' }}>
           <div
             style={{
-              width: '170px',
+              flex: '1 1 0',
+              minWidth: '120px',
               border: '1px solid #E3E8E5',
               borderRadius: '12px',
               background: '#fff',
@@ -1768,7 +1770,8 @@ export function ResourcesDesign() {
           </div>
           <div
             style={{
-              width: '130px',
+              flex: '1 1 0',
+              minWidth: '120px',
               border: '1px solid #E3E8E5',
               borderRadius: '12px',
               background: '#fff',
@@ -1787,7 +1790,8 @@ export function ResourcesDesign() {
           </div>
           <div
             style={{
-              width: '120px',
+              flex: '1 1 0',
+              minWidth: '120px',
               border: '1px solid #E3E8E5',
               borderRadius: '12px',
               background: '#fff',
@@ -1806,7 +1810,8 @@ export function ResourcesDesign() {
           </div>
           <div
             style={{
-              width: '120px',
+              flex: '1 1 0',
+              minWidth: '120px',
               border: '1px solid #E3E8E5',
               borderRadius: '12px',
               background: '#fff',
@@ -1825,10 +1830,13 @@ export function ResourcesDesign() {
           </div>
         </div>
         <svg
-          width="640"
-          height="150"
           viewBox="0 0 640 150"
-          style={{ display: 'block', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}
+          style={{
+            width: '100%',
+            height: 'auto',
+            display: 'block',
+            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+          }}
           role="img"
           aria-label="RAM of each run over the last 5 minutes"
         >
