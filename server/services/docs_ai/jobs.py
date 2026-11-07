@@ -2,8 +2,7 @@
 
 A feature module registers a handler for its job kind (`HANDLERS["check"] = handler`). `start()` creates the row and
 runs the handler in the background; the handler returns a result dict and calls `engine.call(job_id=...)`, which adds
-tokens, cost, the session and the pages read to the row. Jobs are what the Activity view, the "Read" chips and the
-MCP `ai_team` tool report.
+tokens, cost, the session and the pages read to the row. Jobs are what the Activity view and the "Read" chips report.
 """
 
 import asyncio
