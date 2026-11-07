@@ -67,7 +67,7 @@ import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
 import { TimelineTab } from './aiteam/TimelineTab';
-import { AiActivityDesign } from './ai/activity/AiActivityDesign';
+import { AiActivityDesign, AiRunPanelDesign } from './ai/activity/AiActivityDesign';
 import { MOCK_AI_ACTIVITY } from './ai/activity/mock';
 import { openTimeline } from './aiteam/timelineLink';
 import { TicketAiMenu } from './assist/TicketAi';
@@ -1890,7 +1890,15 @@ function TicketModalInner({
                     </div>
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
-                    {MOCK_AI_ACTIVITY && <AiActivityDesign onOpenTimeline={() => openTimeline({ scope: ticket.id })} />}
+                    {MOCK_AI_ACTIVITY && (
+                      <AiActivityDesign
+                        onOpenTimeline={() => openTimeline({ scope: ticket.id })}
+                        onOpenRun={() => {
+                          setMainView('ticket');
+                          setActiveTab('ai');
+                        }}
+                      />
+                    )}
                     {!MOCK_AI_ACTIVITY && (
                       <>
                         <TicketAiPanel
@@ -3409,7 +3417,8 @@ function TicketModalInner({
                       <WorkspaceNotSetUp onOpenSettings={onOpenSettings} />
                     ))}
                   {activeTab === 'branches' && <BranchesSection ticketId={ticket.id} />}
-                  {activeTab === 'ai' && <TicketRunsTab ticket={ticket} runId={aiRunId} />}
+                  {activeTab === 'ai' &&
+                    (MOCK_AI_ACTIVITY ? <AiRunPanelDesign /> : <TicketRunsTab ticket={ticket} runId={aiRunId} />)}
                   {activeTab === 'activity' && (
                     <ActivitySection
                       ticketId={ticket.id}
