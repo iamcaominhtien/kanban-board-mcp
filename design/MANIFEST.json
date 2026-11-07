@@ -93,12 +93,12 @@
       "h": 8283
     },
     "AiTicketWork.dc.html": {
-      "bytes": 354189,
-      "sha256": "86b4da1099d22f28b73588fcbfbf7a3960f9b2a694fdebd80928692565c8fe3a",
+      "bytes": 365094,
+      "sha256": "c599eb1411052f7dc8bc6eed78374effdc405ee0917c8cd4e49175cf4de0e4a5",
       "title": "AI work on tickets",
       "page": "components_collab",
       "w": 1380,
-      "h": 15142
+      "h": 15006
     },
     "AppLoading.dc.html": {
       "bytes": 94480,
