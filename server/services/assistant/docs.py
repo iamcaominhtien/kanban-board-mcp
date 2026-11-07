@@ -767,6 +767,23 @@ async def thread_summary_job(job: DocsAiJob) -> dict[str, Any]:
     }
 
 
+async def _posted_since(
+    session: AsyncSession, job: DocsAiJob, author: str | None
+) -> bool:
+    """Whether `author` (or the board's agent) commented in the job's thread after the job started."""
+    from services import docs_comments
+
+    thread = await docs_comments.get_thread(session, job.thread_id)
+    since = job.started_at or job.queued_at or ""
+    names = {n for n in (author, "agent") if n}
+    return any(
+        c.get("author") in names
+        and (c.get("created_at") or "") >= since
+        and (c.get("ai") or {}).get("kind") != "sent"
+        for c in thread.get("comments") or []
+    )
+
+
 @jobs.handler("thread_reply")
 async def thread_reply_job(job: DocsAiJob) -> dict[str, Any]:
     """An @mention of the AI in a thread: the assistant answers in the thread."""
@@ -782,11 +799,14 @@ async def thread_reply_job(job: DocsAiJob) -> dict[str, Any]:
     data = out.data()
     reply = (data.get("reply") or out.text or "").strip()
     comment_id = None
-    if reply and not data.get("posted"):
-        async with database.async_session() as session:
-            team, _profile = await svc_assist.answering_team(
-                session, job.project_id, "docs"
-            )
+    async with database.async_session() as session:
+        team, _profile = await svc_assist.answering_team(
+            session, job.project_id, "docs"
+        )
+        # the assistant often posts its answer itself (docs_write reply) and then forgets `posted: true` in its JSON:
+        # a comment of the answering team since the job began means it is already in the thread
+        already = await _posted_since(session, job, team.name if team else None)
+    if reply and not data.get("posted") and not already:
         token = activity.set_actor(team.name if team else activity.AGENT_ACTOR)
         try:
             async with database.async_session() as session:
@@ -827,6 +847,8 @@ async def docs_route_job(job: DocsAiJob) -> dict[str, Any]:
     data = out.data()
     decision = (data.get("decision") or "").strip().lower()
     ticket = (data.get("ticket_id") or "").strip()
+    if ticket.lower() in ("null", "none", "-"):
+        ticket = ""
     reason = (data.get("reason") or "").strip()
     line = {
         "sent": f"The Board AI sent this to {ticket or 'a ticket'}'s team.",

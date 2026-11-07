@@ -16,6 +16,7 @@ from typing import Any
 
 import database
 import events as board_events
+import services.activity as svc_activity
 from models import AiAccount, AiRun, Project
 from services.ai import (
     accounts,
@@ -258,7 +259,9 @@ async def turn(
     ctx = RunContext(
         run_id=run.id,
         member_id=team.id if team else sessions.MEMBER,
-        member_name=member_name,
+        # the turn's tool calls act as a member of the project (the answering team, else the board's own agent): the
+        # label "Docs AI" / "Board AI" is not a member, and Docs refuses a name it does not know
+        member_name=team.name if team else svc_activity.AGENT_ACTOR,
         project_id=project_id,
         ticket_id=ticket_id,
         on_behalf_of=by,

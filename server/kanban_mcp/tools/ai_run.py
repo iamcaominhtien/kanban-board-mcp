@@ -64,6 +64,8 @@ async def ai_run(
             raise ValueError(
                 "ai_run(action='message') needs `to` (a ticket key or docs:<page id>) and `text`."
             )
+        # an assistant's calls act as a team of the project (so Docs lets them in), but the note is from the assistant
+        sender = "Board AI" if ctx.trigger == "assistant" else ctx.member_name
         if ctx.depth >= runs.MAX_DEPTH:
             raise ValueError(
                 f"Too many hand-offs between AIs ({ctx.depth}): this note came through {ctx.depth} of them already. "
@@ -73,7 +75,7 @@ async def ai_run(
             from services.ai import messaging
 
             return await messaging.deliver_to_page(
-                target[5:], body, by=ctx.member_name, depth=ctx.depth + 1
+                target[5:], body, by=sender, depth=ctx.depth + 1
             )
         if target == ctx.ticket_id:
             raise ValueError(
@@ -82,7 +84,7 @@ async def ai_run(
         from services.ai import messaging
 
         return await messaging.deliver_to_ticket(
-            target, body, by=ctx.member_name, depth=ctx.depth + 1
+            target, body, by=sender, depth=ctx.depth + 1
         )
     if action == "history":
         from services.ai import session_history
