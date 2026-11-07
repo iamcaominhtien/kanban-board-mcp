@@ -10,6 +10,4 @@ export interface ReaderProps {
   actions: ReactNode;
   /** Go to the next (1) or previous (-1) file; used by swipe. */
   onNavigate?: (dir: -1 | 1) => void;
-  /** All the files of the gallery this one is in (a deck looks for its PDF among them). */
-  related?: PreviewItem[];
 }

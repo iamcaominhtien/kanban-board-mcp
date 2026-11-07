@@ -278,7 +278,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
   );
 
   const reader = useMemo(() => {
-    const props = { item, onFacts, actions, onNavigate: go, related: items };
+    const props = { item, onFacts, actions, onNavigate: go };
     switch (kind) {
       case 'image':
         return <ImageReader {...props} />;
@@ -347,7 +347,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
         );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item, items, kind, desktop, go, onFacts, size]);
+  }, [item, kind, desktop, go, onFacts, size]);
 
   const detailRows: [string, string][] = [
     ['Type', kindLabel(item.name, meta.label)],
