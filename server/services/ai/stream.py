@@ -82,6 +82,18 @@ class Parser:
                 out["rows"].append(
                     {"kind": "compact", "title": title, "agent_id": agent_id}
                 )
+            elif sub == "task_notification":
+                # A background task of the lead ended: a role reports (its task id is the role's own Claude id), or a
+                # background command does (no role has that id: the board ignores it). The SubagentStop hook says the
+                # same, and this does not depend on a hook.
+                task = ev.get("task_id")
+                if task and ev.get("status") in (
+                    "completed",
+                    "failed",
+                    "killed",
+                    "stopped",
+                ):
+                    out["agents"].append({"claude_id": str(task), "ended": True})
             elif sub in ("hook_event", "hook") or ev.get("hook_event_name"):
                 out["rows"].append(self._hook_row(ev, agent_id))
         elif kind == "rate_limit_event":

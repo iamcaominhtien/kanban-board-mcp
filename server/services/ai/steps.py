@@ -91,7 +91,7 @@ async def append(
     """Write steps (and subagent starts/stops, run fields, changed files) in one commit and announce them.
 
     Each row: {kind, title, tool?, detail?, output?, agent_id?, parent_tool_id?, at?}.
-    Each agent: {id, agent_type?, claude_id?, ended?: bool, reopen?: bool, last_text?}.
+    Each agent: {id | claude_id, agent_type?, claude_id?, ended?: bool, reopen?: bool, last_text?}.
     """
     if not rows and not agents and not fields and not files:
         return []
@@ -125,6 +125,23 @@ async def append(
         if rows:
             run.last_output_at = now_iso()
         for a in agents or []:
+            if not a.get("id"):
+                # named by Claude's own id only (a task notification): the role's row, if the run has one
+                found = (
+                    (
+                        await session.exec(
+                            select(AiRunAgent).where(
+                                AiRunAgent.run_id == run_id,
+                                AiRunAgent.claude_id == a.get("claude_id"),
+                            )
+                        )
+                    ).first()
+                    if a.get("claude_id")
+                    else None
+                )
+                if found is None:
+                    continue
+                a = {**a, "id": found.id}
             agent = await session.get(AiRunAgent, a["id"])
             if agent is None:
                 agent = AiRunAgent(
@@ -342,6 +359,14 @@ async def agents(session: AsyncSession, run_id: str) -> list[dict[str, Any]]:
         )
     ).all()
     return [agent_dict(a) for a in rows]
+
+
+async def close_roles(run_id: str) -> None:
+    """The CLI is gone: a role that never reported (its hook was lost, or it was stopped with the CLI) ends now."""
+    async with database.async_session() as session:
+        open_ = [a["id"] for a in await agents(session, run_id) if not a["ended_at"]]
+    if open_:
+        await append(run_id, [], agents=[{"id": i, "ended": True} for i in open_])
 
 
 async def all_rows(session: AsyncSession, run_id: str) -> list[AiRunStep]:

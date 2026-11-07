@@ -785,6 +785,7 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
     if lingered:
         code = 0
     await writer.close()
+    await steps.close_roles(run_id)
     RT.writers.pop(run_id, None)
     await resources.MON.untrack(run_id)
     if run_id in RT.cancelled:
