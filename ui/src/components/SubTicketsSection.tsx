@@ -8,7 +8,7 @@ import { MemberAvatar } from './MemberAvatar';
 import styles from './SubTicketsSection.module.css';
 import { LineIcon } from './ui/LineIcon';
 
-interface SubTicketRow {
+export interface SubTicketRow {
   ticket: Ticket;
   /** Execution wave: the wave pinned by hand, else 1 + the deepest chain of sibling blockers. */
   wave: number;
@@ -23,7 +23,7 @@ interface SubTicketRow {
  * as it is, and the tickets it blocks count from it (the server does the same:
  * `server/services/ticket_waves.py`). Ties keep their original order.
  */
-function buildRows(children: Ticket[]): SubTicketRow[] {
+export function buildRows(children: Ticket[]): SubTicketRow[] {
   const byId = new Map(children.map((t) => [t.id, t]));
   const waves = new Map<string, number>();
 
