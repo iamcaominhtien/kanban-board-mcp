@@ -1,5 +1,7 @@
 // Converted from the canvas design: AiTimelineCases, AiResources and AiTicketWork (design/source/*.dc.html).
 // Static markup with the design's own mock numbers; to be made data-driven when it is connected to the board.
+// TODO(connect to data): do not rewrite the logic, port it from `main`: which old file feeds which block is in ../mock.ts.
+// Fixed sizes to revisit: the Timeline svg is 420px wide, as in the design's 520px modal.
 import './designBlocks.css';
 
 /** RunPanelDesign: a block of the canvas design, as drawn (mock data). */

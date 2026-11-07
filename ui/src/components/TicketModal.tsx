@@ -1890,6 +1890,7 @@ function TicketModalInner({
                     </div>
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
+                    {/* TODO(connect to data): the design's mock for now; port the real logic from main (table in ai/activity/mock.ts) */}
                     {MOCK_AI_ACTIVITY && (
                       <AiActivityDesign
                         onOpenTimeline={() => openTimeline({ scope: ticket.id })}
