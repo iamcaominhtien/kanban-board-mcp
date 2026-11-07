@@ -243,7 +243,6 @@ async def turn(
         ticket_id=ticket_id,
         on_behalf_of=by,
         mode="ask",
-        chain=[],
         trigger="assistant",
     )
     token = guard.issue_chat_token(ctx)

@@ -17,7 +17,7 @@ import services.activity as svc_activity
 from models import AiRun
 
 from .context import RunContext
-from .store import get_profile, get_settings, loads, now_iso
+from .store import get_profile, get_settings, now_iso
 
 _ctx: ContextVar[RunContext | None] = ContextVar("ai_run_ctx", default=None)
 
@@ -130,7 +130,6 @@ async def context_for_token(token: str) -> RunContext:
             ticket_id=run.ticket_id,
             on_behalf_of=run.started_by,
             mode=getattr(run, "mode", "work") or "work",
-            chain=loads(getattr(run, "chain", None), []),
             trigger=run.trigger or "",
         )
 

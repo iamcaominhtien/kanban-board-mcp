@@ -6,7 +6,7 @@ risk, and the run's short deny list and its own worktree limit what a fooled mod
 """
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .injection import trust_of
 from .secrets import redact
@@ -34,7 +34,6 @@ class RunContext:
     ticket_id: str
     on_behalf_of: str
     mode: str  # work | ask
-    chain: list[str] = field(default_factory=list)
     trigger: str = ""
     # A Board AI chat answer that acts by risk tier (D23): its board tools only read, and its changes go through the
     # chat's actions block, where the board applies them by tier with one Undo

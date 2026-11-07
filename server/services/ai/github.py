@@ -12,8 +12,8 @@
 - On a pull request the board opened, pushing to that branch and replying on its threads are part of the work: they
   happen inside the run without asking, and are recorded in it. Anything else that leaves the board still asks.
 
-A project turns this on in its settings (``ops.github.on``); the ready-made standing order "Red CI → back to its Dev"
-does the hand-back by itself once turned on, and the two buttons on the card do it by hand.
+A project turns this on in its settings (``ops.github.on``); the board sends the failure back to the ticket's team by
+itself once turned on (``github.auto``), and the two buttons on the card do it by hand.
 """
 
 import asyncio
@@ -309,7 +309,7 @@ async def tick_project(project_id: str) -> list[dict]:
 
 
 async def signals(session, project_id: str) -> list[dict]:
-    """Red CI on a pull request the board opened, as a signal standing orders fire on (and a card)."""
+    """Red CI on a pull request the board opened, as a signal the board acts on (and a card)."""
     out = []
     for row in (
         await session.exec(
@@ -388,7 +388,7 @@ async def back_to_dev(finding: dict) -> str | None:
             return None
         red = loads(row.red, {}) or {}
         if red.get("handled_at"):
-            return None  # already with the Dev (by itself, or a standing order got there first)
+            return None  # already with the Dev (by itself, or by hand first)
         check = {"name": red.get("check"), "detailsUrl": red.get("url")}
     log = await failure_log(row, check)
     async with database.async_session() as session:

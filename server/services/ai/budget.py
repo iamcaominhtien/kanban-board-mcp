@@ -1,7 +1,7 @@
 """Budget checks shared by the scheduler, the API loop and the member status: the agent's daily budget, monthly cap
 and tokens per day, the board's daily cap, monthly budget and tokens, and the run counts of automatic runs: the
-board's runs per day (scheduled and AI-to-AI runs) and the runners' scheduled runs per day. A run a person starts
-(a mention, an assignment, a question) is never counted against a run limit. "Today" starts at local midnight and the month on the 1st, local time (design/screens/ai-safety-cost.md, C).
+board's runs per day (scheduled runs) and the runners' scheduled runs per day. A run a person starts
+(an assignment, a question, a message) is never counted against a run limit. "Today" starts at local midnight and the month on the 1st, local time (design/screens/ai-safety-cost.md, C).
 A person can raise today's cap (an approved "Raise cap"); the raise ends at midnight."""
 
 from datetime import UTC, date, datetime, time, timedelta
@@ -120,7 +120,7 @@ async def tokens_since(
 
 
 def run_kind(run) -> str:
-    """`schedule` for a run a schedule starts, `ai` for a hop of an AI-to-AI @mention chain, else `person`."""
+    """`schedule` for a run a schedule starts, else `person`."""
     if run.trigger == "schedule":
         return "schedule"
     return "person"

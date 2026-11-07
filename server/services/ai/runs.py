@@ -506,7 +506,6 @@ async def _ctx_for(session, run: AiRun) -> RunContext:
         ticket_id=run.ticket_id,
         on_behalf_of=run.started_by,
         mode=run.mode,
-        chain=[],
         trigger=run.trigger or "",
     )
 

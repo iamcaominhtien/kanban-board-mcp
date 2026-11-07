@@ -382,7 +382,6 @@ async def build_prompt(
         ticket_id=run.ticket_id,
         on_behalf_of=run.started_by,
         mode=run.mode,
-        chain=[],
         trigger=run.trigger or "",
     )
     system = board_rules(ctx, project.name if project else "", team_roles, live)
