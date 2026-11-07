@@ -451,7 +451,9 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…`
 // ---------------------------------------------------------------------------
 
 /** The time labels down the left edge, with the real clock on both sides of every folded stretch. */
-export function TimelineGutter({ axis }: { axis: Axis }) {
+export function TimelineGutter({ axis, now }: { axis: Axis; now?: number }) {
+  // a tick under the "now" pill would be half hidden by it: the pill says the time already
+  const nowY = now == null ? null : axis.y(now);
   return (
     <svg width={GUTTER} height={bodyHeight(axis)} role="presentation" style={{ display: 'block' }} className="tl-svg">
       {axis.breaks.map((b) => (
@@ -465,19 +467,21 @@ export function TimelineGutter({ axis }: { axis: Axis }) {
           opacity={b.paused ? 0.75 : 1}
         />
       ))}
-      {axis.ticks.map((t) => (
-        <text
-          key={t.t}
-          x={64}
-          y={TOP + t.y + 3.5}
-          fontSize={10}
-          fill={t.midnight ? '#1E2A22' : '#6B7A70'}
-          fontWeight={t.midnight ? 700 : 400}
-          textAnchor="end"
-        >
-          {t.label}
-        </text>
-      ))}
+      {axis.ticks
+        .filter((t) => nowY == null || Math.abs(t.y - nowY) >= 14)
+        .map((t) => (
+          <text
+            key={t.t}
+            x={64}
+            y={TOP + t.y + 3.5}
+            fontSize={10}
+            fill={t.midnight ? '#1E2A22' : '#6B7A70'}
+            fontWeight={t.midnight ? 700 : 400}
+            textAnchor="end"
+          >
+            {t.label}
+          </text>
+        ))}
     </svg>
   );
 }

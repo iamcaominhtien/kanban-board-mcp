@@ -707,7 +707,7 @@ export function TimelineTab({
               />
             </div>
             <div className="tl-gutter" style={{ width: GUTTER }}>
-              <TimelineGutter axis={axis} />
+              <TimelineGutter axis={axis} now={now} />
               <NowPill axis={axis} now={now} paused={paused} />
             </div>
             <div className="tl-bodywrap">
