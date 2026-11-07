@@ -36,12 +36,12 @@ export function tokenWords(n: number): string {
 }
 
 /** What the lead handed in at the end: summary, branch, PR, what is left, the tests. */
-export function RunReportCard({ run }: { run: Pick<AiRun, 'report' | 'summary' | 'files'> }) {
+export function RunReportCard({ run }: { run: Pick<AiRun, 'report' | 'summary'> }) {
   const report: RunReport = run.report ?? {};
   const summary = report.summary || run.summary;
   const tests = testsOf(run);
   const open = report.openItems ?? [];
-  if (!summary && !report.branch && !report.prUrl && !open.length && !tests && !run.files.length) return null;
+  if (!summary && !report.branch && !report.prUrl && !open.length && !tests) return null;
   return (
     <div className="tw-card" data-testid="run-report">
       <div className="ai-label ai-label-dark" style={{ marginBottom: 6 }}>
@@ -76,21 +76,6 @@ export function RunReportCard({ run }: { run: Pick<AiRun, 'report' | 'summary' |
             ))}
           </ul>
         </div>
-      )}
-      {run.files.length > 0 && (
-        <details style={{ marginTop: 8 }}>
-          <summary className="ai-muted" style={{ cursor: 'pointer' }}>
-            {run.files.length} file{run.files.length === 1 ? '' : 's'} changed
-          </summary>
-          <div style={{ marginTop: 4 }}>
-            {run.files.map((f) => (
-              <div key={f.path} className="ai-mono" style={{ fontSize: 11.5 }}>
-                {f.path} <span style={{ color: '#2E6F40' }}>+{f.added}</span>
-                {f.removed > 0 && <span style={{ color: '#C4432A' }}> −{f.removed}</span>}
-              </div>
-            ))}
-          </div>
-        </details>
       )}
     </div>
   );
@@ -162,7 +147,7 @@ function RunMessages({ runId }: { runId: string }) {
   );
 }
 
-/** Cancel while it is going, Run again when it ended without a finish. */
+/** Cancel while it is going; Retry when it failed, Run again when it ended another way. */
 export function RunButtons({ run }: { run: Pick<AiRun, 'id' | 'state'> }) {
   const toast = useToast();
   const cancel = useAiMutation(() => aiApi.cancel(run.id));
@@ -174,101 +159,254 @@ export function RunButtons({ run }: { run: Pick<AiRun, 'id' | 'state'> }) {
       toast.error(fail, extractError(err));
     }
   };
+  const failed = run.state === 'failed' || run.state === 'timed_out';
   return (
-    <span style={{ display: 'inline-flex', gap: 8 }}>
+    <>
       {isActive(run.state) && (
         <button
           type="button"
-          className="ai-btn ai-btn-sm"
+          className="ai-btn ai-btn-sm ai-btn-danger-outline"
           disabled={cancel.isPending}
           data-testid="run-cancel"
           onClick={() => void act(() => cancel.mutateAsync(undefined), "Couldn't cancel the run")}
         >
-          <LineIcon name="stop" size={12} /> {run.state === 'queued' ? 'Cancel' : 'Stop'}
+          <LineIcon name="square" size={13} /> {run.state === 'queued' ? 'Cancel run' : 'Stop run'}
         </button>
       )}
       {['failed', 'cancelled', 'timed_out', 'finished'].includes(run.state) && (
         <button
           type="button"
-          className="ai-btn ai-btn-sm"
+          className={`ai-btn ai-btn-sm ${failed ? 'ai-btn-primary' : ''}`}
           disabled={retry.isPending}
           data-testid="run-retry"
-          onClick={() => void act(() => retry.mutateAsync(undefined), "Couldn't run it again")}
+          onClick={() => void act(() => retry.mutateAsync(undefined), "Couldn't start a new run")}
         >
-          <LineIcon name="refresh" size={12} /> Run again
+          {failed ? 'Retry' : 'Run again'}
         </button>
       )}
-    </span>
+    </>
   );
 }
 
-/** The facts line: model, tokens, cost, time. */
-function RunFacts({ run }: { run: AiRunFull | AiRun }) {
-  const secs = runSeconds(run);
-  const bits = [
-    run.model,
-    run.effort,
-    run.tokensIn + run.tokensOut > 0 ? `${tokenWords(run.tokensIn + run.tokensOut)} tokens` : null,
-    run.costUsd > 0 ? money(run.costUsd) : null,
-    secs != null ? fmtElapsed(secs) : null,
-    run.startedAt ? `started ${shortDate(run.startedAt)} ${hhmm(run.startedAt)}` : null,
-  ].filter(Boolean);
+/** Tokens, cost and the run's size, as on main's Usage card. */
+export function UsageCard({ run, who }: { run: AiRun; who: string }) {
   return (
-    <div className="ai-muted" data-testid="run-facts">
-      {bits.join(' · ')}
+    <div className="tw-usage" data-testid="usage-card">
+      <div className="ai-label">Usage</div>
+      <div style={{ fontSize: 12, color: '#5B6B60', margin: '2px 0 8px' }}>
+        {who} · run #{run.number} on <span className="ai-mono">{run.ticketId}</span>
+      </div>
+      {run.costUsd > 0 || run.tokensIn + run.tokensOut > 0 ? (
+        <div className="tw-usage-grid">
+          <div>
+            <div className="ai-muted">Tokens in</div>
+            <b className="ai-mono">{tokenWords(run.tokensIn)}</b>
+          </div>
+          <div>
+            <div className="ai-muted">Tokens out</div>
+            <b className="ai-mono">{tokenWords(run.tokensOut)}</b>
+          </div>
+          <div>
+            <div className="ai-muted">Cost</div>
+            <b className="ai-mono">{money(run.costUsd)}</b>
+          </div>
+        </div>
+      ) : (
+        <div className="ai-hint">Not metered: a local runner uses your signed-in CLI.</div>
+      )}
+    </div>
+  );
+}
+
+/** The last commands the run ran, each with its exit code (the newest, still going, says "now"). */
+function CommandsBlock({ run, running }: { run: AiRunFull; running: boolean }) {
+  const commands = run.steps.filter((s) => s.kind === 'command').slice(-6);
+  return (
+    <div data-testid="run-commands">
+      <span className="ai-label">Commands</span>
+      {commands.length === 0 && <div className="ai-muted">None.</div>}
+      {commands.map((c, i) => {
+        const code = typeof c.detail?.exitCode === 'number' ? c.detail.exitCode : null;
+        const now = i === commands.length - 1 && running && code == null;
+        const good = now || code === 0;
+        return (
+          <div key={c.seq} className="tw-cmd">
+            <span
+              className="tw-exit"
+              style={good ? { background: '#F1F8F3', color: '#2E6F40' } : { background: '#FBEEEA', color: '#C4432A' }}
+            >
+              {now ? (
+                '● now'
+              ) : code != null ? (
+                <>
+                  {code === 0 && (
+                    <>
+                      <LineIcon name="check" size={12} />{' '}
+                    </>
+                  )}
+                  exit {code}
+                </>
+              ) : (
+                '—'
+              )}
+            </span>
+            <span className="ai-mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {c.title.replace(/^Ran /, '')}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 /**
- * One run, whole: who and what state, the lead's question, the report, a message box while it works, and the steps
- * as a tree. Steps arrive live (SSE patches the cache); a role's steps and the earlier ones are fetched on request.
+ * One run, whole, as on main: its title and actions, who ran it and for how long, what it was asked, then the steps
+ * (a tree: the lead and its roles) beside the files, commands, test results and usage. The lead's report is the one
+ * addition of v2. Steps arrive live (SSE patches the cache); a role's steps and the earlier ones are fetched on request.
  */
 export function RunView({ runId }: { runId: string }) {
   const q = useAiRun(runId);
   const { members } = useAiBoardState();
   const run = q.data;
-  const active = isActive(run?.state);
-  useNow(1000, run?.state === 'running');
+  const live = isActive(run?.state);
+  const running = run?.state === 'running' || run?.state === 'starting';
+  useNow(1000, running);
   if (q.isError) return <LoadError what="the run" error={q.error} onRetry={() => void q.refetch()} />;
   if (!run) return <span className="ai-spin" />;
   const team = members.get(run.memberId);
-  const ended = run.endedReason && !active ? run.endedReason : null;
+  const who = team?.name ?? 'Team';
+  const ended = run.endedReason && !live ? run.endedReason : null;
+  const tests = testsOf(run);
+  const secs = runSeconds(run);
+  const tokens = run.tokensIn + run.tokensOut;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="run-view">
+    <div className="ai-run-panel ai-root" data-testid="run-view">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        {team && <AiAvatar color={team.color} size={30} />}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>
-            {team?.name ?? 'Team'} · Run #{run.number}
-          </div>
-          <RunFacts run={run} />
-        </div>
+        <span style={{ fontSize: 18, fontWeight: 800 }}>
+          {run.mode === 'ask' ? 'Answer' : 'Run'} #{run.number}
+        </span>
         <RunStateChip state={run.paused ? 'paused' : run.state} />
+        <span style={{ flex: 1 }} />
         <RunButtons run={run} />
       </div>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#5B6B60', flexWrap: 'wrap' }}
+        data-testid="run-facts"
+      >
+        {team && <AiAvatar color={team.color} size={20} />}
+        <b style={{ color: '#1E2A22' }}>{who}</b>·
+        <span>
+          {run.startedAt ? `started ${hhmm(run.startedAt)}` : `queued ${hhmm(run.queuedAt)}`} by {run.startedBy}
+        </span>
+        {secs != null && (
+          <>
+            ·
+            <span className="ai-mono" style={{ color: '#2E6F40', fontWeight: 600 }}>
+              {fmtElapsed(secs)}
+            </span>
+          </>
+        )}
+        {tokens > 0 && <>· {tokenWords(tokens)} tokens</>}
+        {run.costUsd > 0 && <>· {money(run.costUsd)}</>}
+        {run.model && (
+          <>
+            · <span className="ai-mono">{run.model}</span>
+          </>
+        )}
+        {run.effort && <>· {run.effort}</>}
+      </div>
       {run.instruction && (
-        <div className="tw-card" style={{ fontSize: 13 }} data-testid="run-instruction">
-          <div className="ai-label">Asked</div>
-          <div style={{ whiteSpace: 'pre-wrap' }}>{run.instruction}</div>
+        <div className="ai-notice ai-notice-info" style={{ fontSize: 12 }} data-testid="run-instruction">
+          <b>{run.mode === 'ask' ? 'Question' : 'Instruction'}:</b> {run.instruction}
         </div>
       )}
       {run.state === 'queued' && run.waitingReason && (
-        <div className="ai-notice ai-notice-info">{run.waitingReason}</div>
+        <div className="ai-notice ai-notice-warn" data-testid="why-waiting">
+          {run.waitingReason}
+        </div>
       )}
       {ended && (
-        <div className={`ai-notice ${run.state === 'finished' ? 'ai-notice-info' : 'ai-notice-warn'}`}>{ended}</div>
+        <div
+          className={`ai-notice ${run.state === 'finished' ? 'ai-notice-info' : run.state === 'cancelled' ? 'ai-notice-slate' : 'ai-notice-error'}`}
+        >
+          {ended}
+        </div>
       )}
       {run.state === 'needs_input' && run.question && !run.answer && <QuestionCard run={{ ...run }} />}
       <RunReportCard run={run} />
       <RunMessageBox run={run} />
-      <RunTree run={run} />
+      <div className="tw-runcols">
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+            <span className="ai-label">Steps</span>
+            <span className="ai-muted" data-testid="step-count">
+              {run.stepsCount}
+            </span>
+          </div>
+          <RunTree run={run} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span className="ai-label">Files touched</span>
+              <span className="ai-muted">{run.files.length} changed</span>
+            </div>
+            {run.files.length === 0 && <div className="ai-muted">None yet.</div>}
+            {run.files.map((f) => (
+              <div key={f.path} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '4px 0' }}>
+                <span className="ai-mono" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {f.path}
+                </span>
+                <span className="ai-mono" style={{ color: '#2E6F40' }}>
+                  +{f.added}
+                </span>
+                {f.new ? (
+                  <span className="ai-mono" style={{ color: '#2E6F40' }}>
+                    new
+                  </span>
+                ) : (
+                  f.removed > 0 && (
+                    <span className="ai-mono" style={{ color: '#C4432A' }}>
+                      −{f.removed}
+                    </span>
+                  )
+                )}
+              </div>
+            ))}
+          </div>
+          <CommandsBlock run={run} running={!!running} />
+          {tests && (
+            <div data-testid="run-tests">
+              <span className="ai-label">Test results</span>
+              <div style={{ margin: '6px 0' }}>
+                <TestChips counts={tests} />
+              </div>
+              {(tests.failing?.length ?? 0) > 0 && (
+                <div style={{ fontSize: 12.5, color: '#5B6B60' }}>
+                  Failing:{' '}
+                  {tests.failing!.map((f) => (
+                    <span key={f} className="ai-code" style={{ marginRight: 6 }}>
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <UsageCard run={run} who={who} />
+        </div>
+      </div>
       <RunMessages runId={run.id} />
+      <div className="ai-muted">
+        <LineIcon name="shield" size={13} /> Secrets, tokens and key-like strings are masked before the log is stored or
+        shown.
+      </div>
     </div>
   );
 }
 
-/** A row of the ticket's runs, newest first; a click opens that run. */
+/** Every run on this ticket, newest first; a click opens that run (the table of main's run history). */
 export function RunHistory({
   runs,
   selected,
@@ -278,25 +416,58 @@ export function RunHistory({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
+  const { members } = useAiBoardState();
   return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} data-testid="run-history">
-      {runs.map((r) => (
-        <button
-          key={r.id}
-          type="button"
-          className={`tw-chipbtn ${selected === r.id ? 'tw-chipbtn-on' : ''}`}
-          aria-pressed={selected === r.id}
-          onClick={() => onSelect(r.id)}
-          data-testid="run-history-item"
-        >
-          #{r.number} · {r.state.replace('_', ' ')} · {shortDate(r.queuedAt)}
-        </button>
-      ))}
-    </div>
+    <table className="ai-table" data-testid="run-history">
+      <thead>
+        <tr>
+          <th>Run</th>
+          <th>Team</th>
+          <th>Started by</th>
+          <th>State</th>
+          <th>Time</th>
+          <th>Usage</th>
+          <th>Changes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {runs.map((r) => (
+          <tr
+            key={r.id}
+            onClick={() => onSelect(r.id)}
+            style={{ cursor: 'pointer', background: selected === r.id ? '#F6FAF7' : undefined }}
+            data-testid="run-history-item"
+            aria-selected={selected === r.id}
+          >
+            <td style={{ fontWeight: 700 }}>#{r.number}</td>
+            <td>{members.get(r.memberId)?.name ?? 'Team'}</td>
+            <td className="ai-muted">
+              {r.mode === 'ask' ? 'Ask' : r.trigger === 'assign' ? 'Assigned' : (r.trigger ?? '').replace(/_/g, ' ')} by{' '}
+              {r.startedBy},{' '}
+              {r.queuedAt && new Date(r.queuedAt).toDateString() !== new Date().toDateString()
+                ? shortDate(r.queuedAt)
+                : hhmm(r.queuedAt)}
+            </td>
+            <td>
+              <RunStateChip state={r.paused ? 'paused' : r.state} />
+            </td>
+            <td>{fmtElapsed(runSeconds(r))}</td>
+            <td className="ai-muted">{r.costUsd > 0 ? money(r.costUsd) : 'Not metered'}</td>
+            <td className="ai-muted">
+              {r.mode === 'ask'
+                ? 'no changes (answer only)'
+                : r.files.length
+                  ? `${r.files.length} file${r.files.length === 1 ? '' : 's'}`
+                  : '—'}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
-/** The ticket's AI tab: the newest run in full, the older ones one click away. */
+/** The ticket's AI tab: the newest run in full, then the table of every run (a click opens that one). */
 export function TicketRunsTab({ ticket, runId }: { ticket: Ticket; runId?: string | null }) {
   const q = useTicketRuns(ticket.id);
   const runs = q.data ?? [];
@@ -308,19 +479,23 @@ export function TicketRunsTab({ ticket, runId }: { ticket: Ticket; runId?: strin
   if (q.isLoading) return <span className="ai-spin" />;
   if (!runs.length)
     return (
-      <div className="ai-muted" data-testid="no-runs">
-        No run on this ticket yet. Assign it to a team, or use Run.
+      <div className="ai-card ai-root" style={{ padding: 20 }} data-testid="no-runs">
+        <b>No AI runs on this ticket yet</b>
+        <div className="ai-hint">Assign it to a team, or use Run.</div>
       </div>
     );
   const current = runs.find((r) => r.id === picked) ?? runs[0];
   return (
     <div
       className="ai-root"
-      style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 2px' }}
       data-testid="ticket-runs-tab"
     >
-      {runs.length > 1 && <RunHistory runs={runs} selected={current.id} onSelect={setPicked} />}
       <RunView key={current.id} runId={current.id} />
+      <div className="ai-card" style={{ padding: 12 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 6 }}>Run history for {ticket.id}</div>
+        <RunHistory runs={runs} selected={current.id} onSelect={setPicked} />
+      </div>
     </div>
   );
 }

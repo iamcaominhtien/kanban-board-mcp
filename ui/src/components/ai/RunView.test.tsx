@@ -18,6 +18,9 @@ const run = (over: Partial<AiRunFull> = {}): AiRunFull =>
     ticketId: 'KAN-1',
     memberId: 't1',
     number: 2,
+    mode: 'work',
+    trigger: 'assign',
+    startedBy: 'An',
     state: 'running',
     instruction: 'Fix the login bug',
     report: {},
@@ -75,9 +78,13 @@ describe('the run on a ticket', () => {
   it('shows the newest run with its instruction, state and facts', async () => {
     setup(run());
     expect(await screen.findByTestId('run-view')).toBeTruthy();
-    expect(screen.getByText('Team An · Run #2')).toBeTruthy();
-    expect(screen.getByTestId('run-instruction').textContent).toContain('Fix the login bug');
-    expect(screen.getByTestId('run-facts').textContent).toContain('1.5k tokens');
+    expect(screen.getByText('Run #2')).toBeTruthy();
+    expect(screen.getByTestId('run-instruction').textContent).toContain('Instruction: Fix the login bug');
+    const facts = screen.getByTestId('run-facts').textContent ?? '';
+    expect(facts).toContain('Team An');
+    expect(facts).toContain('by An');
+    expect(facts).toContain('1.5k tokens');
+    expect(screen.getByTestId('usage-card').textContent).toContain('Tokens in');
   });
 
   it('sends a note to the running lead', async () => {
@@ -133,5 +140,30 @@ describe('the run on a ticket', () => {
     expect(screen.getByTestId('report-branch').textContent).toContain('kan-1-login');
     expect((screen.getByTestId('report-pr') as HTMLAnchorElement).href).toBe('https://example.test/pr/1');
     expect(screen.getByTestId('report-open-items').textContent).toContain('Add a test');
+  });
+
+  it('lays the run out as on main: steps beside files, commands, tests and usage, then the history table', async () => {
+    setup(
+      run({
+        state: 'finished',
+        endedAt: '2026-11-05T10:30:00Z',
+        live: false,
+        files: [{ path: 'src/login.ts', added: 12, removed: 3 }],
+        report: { tests: { passed: 14, failed: 1, failing: ['login.test'] } },
+        steps: [
+          { seq: 1, kind: 'command', title: 'Ran npm test', detail: { exitCode: 1 }, agentId: null },
+          { seq: 2, kind: 'command', title: 'Ran npm run lint', detail: { exitCode: 0 }, agentId: null },
+        ] as never,
+      }),
+      [run({ id: 'r1', number: 1, state: 'cancelled', files: [] })],
+    );
+    await screen.findByTestId('run-view');
+    expect(screen.getByText('Files touched')).toBeTruthy();
+    expect(screen.getByText('src/login.ts')).toBeTruthy();
+    expect(screen.getByTestId('run-commands').textContent).toContain('npm run lint');
+    expect(screen.getByTestId('run-commands').textContent).toContain('exit 1');
+    expect(screen.getByTestId('run-tests').textContent).toContain('login.test');
+    expect(screen.getByText('Run history for KAN-1')).toBeTruthy();
+    expect(screen.getAllByTestId('run-history-item')).toHaveLength(2);
   });
 });
