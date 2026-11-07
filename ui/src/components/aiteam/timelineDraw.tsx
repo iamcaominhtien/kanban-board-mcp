@@ -271,7 +271,8 @@ const MOTION_BUDGET = 20;
 
 /** Height of the diagram body: the axis, its padding and room for the now pill. */
 export function bodyHeight(axis: Axis) {
-  return axis.height + TOP * 2 + 34;
+  // below the "now" line: room for its pill and a bar's head, no more (it was 34 more)
+  return axis.height + TOP * 2 + 6;
 }
 
 /** A live element moves; with reduced motion it shows its still picture instead (timeline.css). */
