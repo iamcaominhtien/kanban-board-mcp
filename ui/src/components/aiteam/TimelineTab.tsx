@@ -938,7 +938,7 @@ function EventTable({
       at: b.startedAt ?? b.queuedAt ?? '',
       from: names.get(b.memberId) ?? b.memberId,
       to: '',
-      kind: `run #${b.number} ${b.state.replace('_', ' ')}`,
+      kind: `${b.label ?? `run #${b.number}`} ${b.state.replace('_', ' ')}`,
       ticket: b.ticketId,
       dur: durationOf(b),
       pick: { type: 'bar', id: b.id } as Pick,
@@ -1026,6 +1026,7 @@ function barTone(b: TimelineBar): Tone {
 }
 
 function tokensLine(b: TimelineBar): { text: string; strong?: string }[] {
+  if (b.role) return []; // a role's tokens are part of the run's
   if (!b.tokensIn && !b.tokensOut)
     return b.metered ? [] : [{ strong: 'Not metered', text: ': a local runner reports no cost' }];
   const t = `${Math.round(b.tokensIn / 1000)}k tokens in, ${Math.round(b.tokensOut / 1000)}k out`;
@@ -1068,7 +1069,7 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
     if (b.endedReason && b.endKind !== 'ok') lines.push({ text: b.endedReason });
     return {
       who: people.get(b.memberId),
-      title: `${who(b.memberId)} · run #${b.number}`,
+      title: `${who(b.memberId)} · ${b.label ?? `run #${b.number}`}`,
       chip: { text: cap1(endWord(b)), tone: barTone(b) },
       ticketId: b.ticketId,
       ticketText: ticketTitle(b.ticketId),
@@ -1355,7 +1356,7 @@ function stepClock(at: string, runStart: number | null): string {
 
 /** The newest steps of a run, read when the inspector opens (they are not part of the Timeline's data). */
 function LatestSteps({ bar }: { bar: TimelineBar }) {
-  const q = useAiRun(bar.id);
+  const q = useAiRun(bar.runId);
   const run = q.data;
   if (!run) return q.isLoading ? <div className="at-hint">Reading the steps…</div> : null;
   const steps = [...run.steps].reverse().slice(0, 5);
@@ -1471,7 +1472,7 @@ function Inspector({
               </Icon>
               step {b.steps}
             </span>
-            {(b.tokensIn > 0 || b.tokensOut > 0) && (
+            {!b.role && (b.tokensIn > 0 || b.tokensOut > 0) && (
               <span className="tl-fact">
                 <Icon size={12} color="#5B6B60">
                   <path d="M13 3L5 13h6l-1 8 8-10h-6z" />
@@ -1479,7 +1480,7 @@ function Inspector({
                 {Math.round(b.tokensIn / 1000)}k in / {Math.round(b.tokensOut / 1000)}k out
               </span>
             )}
-            <span className="tl-fact">
+            <span className="tl-fact" hidden={!!b.role}>
               <Icon size={12} color="#5B6B60">
                 <path d="M3 12V4h8l10 10-8 8z" />
                 <circle cx="7.5" cy="8.5" r="1.2" />
@@ -1586,7 +1587,7 @@ function Inspector({
           </button>
         )}
         {b && (
-          <button type="button" className="tl-btn primary" onClick={() => openRun(b.id)} data-testid="tl-open-run">
+          <button type="button" className="tl-btn primary" onClick={() => openRun(b.runId)} data-testid="tl-open-run">
             Open the run
           </button>
         )}

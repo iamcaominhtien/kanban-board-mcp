@@ -3,6 +3,7 @@
 Runs themselves (start, cancel, answer, message, steps) are in stage 3 of docs/specs/ai-v2-implementation.md.
 """
 
+from datetime import datetime
 from typing import Annotated, Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -18,6 +19,7 @@ from services.ai import roles as svc_roles
 from services.ai import runs as svc_runs
 from services.ai import steps as svc_steps
 from services.ai import teams as svc_teams
+from services.ai import timeline as svc_timeline
 from services.ai.store import active_runs, get_settings, loads
 
 router = APIRouter(tags=["ai"])
@@ -639,3 +641,24 @@ async def get_live(project_id: str, session: Session, limit: int = 100) -> dict:
             out.append({**s, "ticket_id": r.ticket_id, "member_id": r.member_id})
     out.sort(key=lambda s: s["at"])
     return {"runs": [svc_runs.to_dict(r) for r in rows], "steps": out[-limit:]}
+
+
+@router.get("/projects/{project_id}/ai/team/timeline")
+async def get_timeline(
+    project_id: str,
+    session: Session,
+    range: str = "today",
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
+    ticket_id: Optional[str] = None,
+) -> dict:
+    """The Timeline: a sequence diagram of the teams' runs in a window (the whole project, or one ticket)."""
+    await _project(session, project_id)
+    return await svc_timeline.timeline(
+        session,
+        project_id,
+        range_key=range,
+        since=since,
+        until=until,
+        ticket_id=ticket_id,
+    )

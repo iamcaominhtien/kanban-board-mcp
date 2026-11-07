@@ -3,7 +3,7 @@ import { RunCard } from './RunCard';
 import { RunHistoryTable } from './RunHistoryTable';
 import { RunPanel } from './RunPanel';
 import { useTicketRuns } from '../../../api/ai';
-import { TicketTimeline } from './TicketTimeline';
+import { TimelineTab } from '../../aiteam/TimelineTab';
 import type { Ticket } from '../../../types';
 
 /**
@@ -15,10 +15,12 @@ import type { Ticket } from '../../../types';
  */
 export function AiActivityDesign({
   ticketId,
+  projectId,
   onOpenTimeline,
   onOpenRun,
 }: {
   ticketId: string;
+  projectId: string;
   onOpenTimeline?: () => void;
   onOpenRun?: () => void;
 }) {
@@ -41,7 +43,12 @@ export function AiActivityDesign({
         >
           Open in Timeline
         </button>
-        <TicketTimeline ticketId={ticketId} />
+        <TimelineTab
+          projectId={projectId}
+          scopeTicketId={ticketId}
+          compactChrome
+          actions={{ onOpenTicket: () => undefined, onOpenDocsPage: () => undefined }}
+        />
       </div>
     </div>
   );

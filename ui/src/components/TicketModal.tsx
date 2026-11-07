@@ -1894,6 +1894,7 @@ function TicketModalInner({
                     {MOCK_AI_ACTIVITY && (
                       <AiActivityDesign
                         ticketId={ticket.id}
+                        projectId={ticket.projectId}
                         onOpenTimeline={() => openTimeline({ scope: ticket.id })}
                         onOpenRun={() => {
                           setMainView('ticket');

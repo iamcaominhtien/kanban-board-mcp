@@ -15,9 +15,8 @@
  *                         |   MemoryStopNote                                  |   (still in the tree)
  *   ResourcesDesign       | components/ai/RunResources.tsx  RunResourcesStrip,| api/ai.py  GET /projects/{id}/ai/resources
  *                         |   api/aiResources.ts, types/aiResources.ts        |   and /resources/stream; services/ai/resources.py
- *   NowAndTimelineDesign  | DONE: replaced by activity/TicketTimeline.tsx, drawn from the ticket's runs (useTicketRuns +
- *                         |   useAiRuns, activity/timelineModel.ts): lanes You, Lead and each role; no server route needed.
- *                         |   The project-wide Timeline (aiteam/TimelineTab.tsx and the old route) is still to be done.
+ *   NowAndTimelineDesign  | DONE: replaced by aiteam/TimelineTab (the full Timeline, scoped to the ticket), read from
+ *                         |   GET /projects/{id}/ai/team/timeline (services/ai/timeline.py): lanes You, Lead and each role.
  *   RunPanelDesign        | DONE: RunPanel.tsx (data). Old: components/ai/RunView.tsx  RunView, RunSteps,     | api/ai.py  GET /ai/runs/{id}
  *                         |   components/ai/trouble/stepKinds.tsx             |   (v2 has /ai/runs/{id}, the steps by page)
  *   RunHistoryDesign      | DONE: RunHistoryTable.tsx (data). Old: components/ai/RunView.tsx  RunHistory             | api/ai.py  GET /tickets/{id}/ai/runs

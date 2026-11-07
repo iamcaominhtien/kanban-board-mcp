@@ -926,7 +926,7 @@ export function TimelineBody(props: DrawProps) {
   // 4. runs: the ticket key (or "run 3" for one ticket), and how long a queue has waited
   for (const g of [...bars].sort((p, q) => p.top - q.top || p.x - q.x)) {
     const h = g.bottom - g.top;
-    const text = props.scoped ? `run ${g.b.number}` : ticketOf(g.b.ticketId);
+    const text = props.scoped ? (g.b.label ?? `run ${g.b.number}`) : ticketOf(g.b.ticketId);
     if (text && (h >= 14 || detailed)) {
       const right: Spot = { x: g.x + g.w + 6, y: g.top + 11, anchor: 'start' };
       const left: Spot = { x: g.x - 6, y: g.top + 11, anchor: 'end' };
@@ -1164,7 +1164,7 @@ export function TimelineBody(props: DrawProps) {
       {bars.map((g) => {
         const { b, x, w, top, bottom, qy, queued, live, look } = g;
         const end = endLook(b, look);
-        const label = `${props.ticketOf(b.ticketId)} · run ${b.number}`;
+        const label = `${props.ticketOf(b.ticketId)} · ${b.label ?? `run ${b.number}`}`;
         const mid = (top + bottom) / 2;
         const r = Math.min(5, (bottom - top) / 2);
         return (
