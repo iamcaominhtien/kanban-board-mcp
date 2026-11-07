@@ -206,7 +206,7 @@ export function RunPanel({ runId }: { runId: string }) {
   };
   const team = members.get(run.memberId);
   const roleOf = (id: string | null) => (id ? (run.agents.find((a) => a.id === id)?.agentType ?? 'role') : null);
-  const steps = run.steps.filter((s) => s.kind !== 'hook' && s.kind !== 'start' && s.kind !== 'end');
+  const steps = run.steps.filter((s) => !['hook', 'start', 'end', 'role'].includes(s.kind));
   const commands = run.steps.filter((s) => s.kind === 'command').slice(-6);
   const tests = testsOf(run);
   const tokens = run.tokensIn + run.tokensOut;
@@ -358,7 +358,9 @@ export function RunPanel({ runId }: { runId: string }) {
                 style={{ fontSize: '11px', color: '#9AA8A0', fontWeight: 400, lineHeight: 1.5 }}
                 data-testid="step-count"
               >
-                {run.steps.length >= run.stepsCount ? steps.length : `${steps.length} of ${run.stepsCount}`}
+                {run.steps.filter((s) => s.kind !== 'role').length >= run.stepsCount
+                  ? steps.length
+                  : `${steps.length} of ${run.stepsCount}`}
               </span>
               <span style={{ flex: 1 }} />
               <button type="button" className="mc-link" onClick={() => setOpened({})}>

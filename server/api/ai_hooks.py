@@ -57,6 +57,10 @@ async def post_hook(
         entry = {"id": key, "agent_type": agent_type or "", "claude_id": agent_id}
         if name == "SubagentStop":
             entry["ended"] = True
+        else:
+            entry["reopen"] = (
+                True  # a role that was woken again starts another stretch of work
+            )
         agents.append(entry)
     elif name == "PostToolUse" and tool in ("TaskCreate", "TaskUpdate", "TodoWrite"):
         rows.append(

@@ -17,7 +17,7 @@ import database
 import events as board_events
 from models import AiRun, AiRunAgent, AiRunStep
 
-from .store import now_iso
+from .store import loads, now_iso
 
 logger = logging.getLogger("kanban.ai.steps")
 
@@ -53,8 +53,28 @@ def to_dict(step: AiRunStep, with_output: bool = False) -> dict[str, Any]:
     return out
 
 
-def agent_dict(agent: AiRunAgent) -> dict[str, Any]:
-    """A subagent row as the API shows it."""
+def agent_dict(
+    agent: AiRunAgent, marks: list[AiRunStep] | None = None
+) -> dict[str, Any]:
+    """A subagent row as the API shows it. `spans` are its stretches of work: from its start to its first stop, then
+    from each time it was woken again to its next stop (the markers the board wrote), the last one open while it works."""
+    spans: list[dict[str, Any]] = []
+    for m in marks or []:
+        event = (loads(m.detail, {}) or {}).get("event")
+        if event == "stop":
+            if not spans:
+                spans.append({"start": agent.started_at, "end": m.at})
+            elif spans[-1]["end"] is None:
+                spans[-1]["end"] = m.at
+        elif event == "start":
+            if not spans:
+                spans.append({"start": agent.started_at, "end": None})
+            elif spans[-1]["end"] is not None:
+                spans.append({"start": m.at, "end": None})
+    if not spans:
+        spans.append({"start": agent.started_at, "end": agent.ended_at})
+    elif agent.ended_at and spans[-1]["end"] is None:
+        spans[-1]["end"] = agent.ended_at
     return {
         "id": agent.id,
         "run_id": agent.run_id,
@@ -64,6 +84,7 @@ def agent_dict(agent: AiRunAgent) -> dict[str, Any]:
         "ended_at": agent.ended_at,
         "steps_count": agent.steps_count,
         "last_text": agent.last_text,
+        "spans": spans,
     }
 
 
@@ -153,10 +174,29 @@ async def append(
                 agent.claude_id = a["claude_id"]
             if a.get("last_text"):
                 agent.last_text = a["last_text"][:400]
-            if a.get("reopen"):
-                agent.ended_at = None  # the lead sent it a message: it works again
+            marks: list[str] = []
+            if a.get("reopen") and agent.ended_at:
+                agent.ended_at = None  # the lead sent it a message, or its hook says so: it works again
+                marks.append("start")
             if a.get("ended") and not agent.ended_at:
                 agent.ended_at = now_iso()
+                marks.append("stop")
+            for event in marks:
+                # a marker row per change, so the stretches of work of a role that was woken again can be told apart
+                # (not counted in the run's steps; the screens leave `role` rows out of the list)
+                name = agent.agent_type or "role"
+                marker = AiRunStep(
+                    run_id=run_id,
+                    seq=seq,
+                    at=now_iso(),
+                    agent_id=agent.id,
+                    kind="role",
+                    title=f"{name} {'works again' if event == 'start' else 'finished'}",
+                    detail=json.dumps({"event": event}),
+                )
+                session.add(marker)
+                written.append(marker)
+                seq += 1
             agent.steps_count += per_agent.pop(a["id"], 0)
             session.add(agent)
         for agent_id, n in per_agent.items():
@@ -191,16 +231,7 @@ async def append(
             "last_output_at": run.last_output_at,
         }
         agent_rows = (
-            [
-                agent_dict(a)
-                for a in (
-                    await session.exec(
-                        select(AiRunAgent).where(AiRunAgent.run_id == run_id)
-                    )
-                ).all()
-            ]
-            if agents or per_agent
-            else None
+            await _run_agents(session, run_id) if (agents or per_agent) else None
         )
     if announce:
         payload = {
@@ -358,7 +389,17 @@ async def agents(session: AsyncSession, run_id: str) -> list[dict[str, Any]]:
             .order_by(col(AiRunAgent.started_at).asc())
         )
     ).all()
-    return [agent_dict(a) for a in rows]
+    marks = (
+        await session.exec(
+            select(AiRunStep)
+            .where(AiRunStep.run_id == run_id, AiRunStep.kind == "role")
+            .order_by(col(AiRunStep.seq).asc())
+        )
+    ).all()
+    by_agent: dict[str, list[AiRunStep]] = {}
+    for m in marks:
+        by_agent.setdefault(m.agent_id or "", []).append(m)
+    return [agent_dict(a, by_agent.get(a.id)) for a in rows]
 
 
 async def close_roles(run_id: str) -> None:
@@ -367,6 +408,9 @@ async def close_roles(run_id: str) -> None:
         open_ = [a["id"] for a in await agents(session, run_id) if not a["ended_at"]]
     if open_:
         await append(run_id, [], agents=[{"id": i, "ended": True} for i in open_])
+
+
+_run_agents = agents  # `append` has a parameter of the same name
 
 
 async def all_rows(session: AsyncSession, run_id: str) -> list[AiRunStep]:

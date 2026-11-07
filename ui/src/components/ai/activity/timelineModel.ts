@@ -119,19 +119,23 @@ export function buildTimeline(runs: AiRunFull[], now: number): TimelineModel {
         code: roleCode(agent.agentType),
         working: false,
       }));
-      const from = time(agent.startedAt) ?? start;
-      const to = time(agent.endedAt) ?? (active ? null : (end ?? from));
-      calls[key] = (calls[key] ?? 0) + 1;
-      bars.push({
-        lane: key,
-        start: from,
-        end: to,
-        label: `call ${calls[key]}`,
-        state: to === null ? 'live' : 'done',
-        runId: run.id,
-      });
-      arrows.push({ from: LEAD, to: key, at: from, kind: 'handoff' });
-      if (to !== null && agent.endedAt) arrows.push({ from: key, to: LEAD, at: to, kind: 'return' });
+      // each stretch of work is a call: a role the lead woke again has more than one
+      const spans = agent.spans?.length ? agent.spans : [{ start: agent.startedAt, end: agent.endedAt }];
+      for (const span of spans) {
+        const from = time(span.start) ?? start;
+        const to = time(span.end) ?? (active ? null : (end ?? from));
+        calls[key] = (calls[key] ?? 0) + 1;
+        bars.push({
+          lane: key,
+          start: from,
+          end: to,
+          label: `call ${calls[key]}`,
+          state: to === null ? 'live' : 'done',
+          runId: run.id,
+        });
+        arrows.push({ from: LEAD, to: key, at: from, kind: 'handoff' });
+        if (to !== null && span.end) arrows.push({ from: key, to: LEAD, at: to, kind: 'return' });
+      }
     }
     const asked = time(run.question?.askedAt);
     const answered = time(run.question?.answeredAt);

@@ -248,6 +248,8 @@ export interface RunAgent {
   endedAt: string | null;
   stepsCount: number;
   lastText: string | null;
+  /** Its stretches of work, oldest first: one more each time the lead woke it again; the last has no end while it works. */
+  spans?: { start: string; end: string | null }[];
 }
 
 export interface RunQuestion {

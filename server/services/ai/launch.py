@@ -34,7 +34,7 @@ from .store import ai_names, get_settings, loads
 
 logger = logging.getLogger("kanban.ai.launch")
 
-BOARD_PLUGIN_VERSION = "2.1.0"
+BOARD_PLUGIN_VERSION = "2.1.1"
 RUN_TOKEN_SHOWN = (
     "<run token>"  # what a transcript shows in place of the run's MCP token
 )
@@ -175,10 +175,12 @@ def board_plugin_dir() -> str:
         encoding="utf-8",
     )
     win = sys.platform == "win32"
+    # quoted: the plugin lives under the data folder, whose path may hold spaces ("Application Support" on macOS, a
+    # user name with a space on Windows); an unquoted path made every hook fail with exit 127 and nothing reached the board
     script = (
-        "${CLAUDE_PLUGIN_ROOT}/hooks/post.cmd"
+        '"${CLAUDE_PLUGIN_ROOT}/hooks/post.cmd"'
         if win
-        else "${CLAUDE_PLUGIN_ROOT}/hooks/post.sh"
+        else 'sh "${CLAUDE_PLUGIN_ROOT}/hooks/post.sh"'
     )
     one = [{"type": "command", "command": script, "timeout": 10}]
     # the one safety rule (docs/specs/ai-v2.md section 2): no force push to the main branch, no recursive rm outside
