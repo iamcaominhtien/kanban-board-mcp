@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as pdfjs from 'pdfjs-dist';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+// The legacy build: the plain one needs `Map.prototype.getOrInsertComputed` (Chromium 145+), which the desktop app's
+// Electron does not have yet; every page then failed to draw and showed white.
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type { PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { StatePanel } from './StatePanel';
 import { AsyncBody } from './TextReader';
 import { useFileData } from './useFileData';
@@ -20,6 +22,7 @@ function Page({ pdf, n, scale, root }: { pdf: PDFDocumentProxy; n: number; scale
   const boxRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [near, setNear] = useState(n <= 2);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const el = boxRef.current;
@@ -53,7 +56,13 @@ function Page({ pdf, n, scale, root }: { pdf: PDFDocumentProxy; n: number; scale
         viewport,
         transform: ratio !== 1 ? [ratio, 0, 0, ratio, 0, 0] : undefined,
       });
-      task.promise.catch(() => {});
+      // a page that could not be drawn says so; a cancelled one (the person scrolled on) is not a failure
+      task.promise.then(
+        () => !cancelled && setFailed(false),
+        (err: unknown) => {
+          if (!cancelled && (err as { name?: string } | null)?.name !== 'RenderingCancelledException') setFailed(true);
+        },
+      );
     });
     return () => {
       cancelled = true;
@@ -69,6 +78,11 @@ function Page({ pdf, n, scale, root }: { pdf: PDFDocumentProxy; n: number; scale
       style={size ? { width: size.w, height: size.h } : { width: 600 * scale, height: 780 * scale }}
     >
       <canvas ref={canvasRef} style={size ? { width: size.w, height: size.h } : undefined} aria-label={`Page ${n}`} />
+      {failed && (
+        <div className={styles.pdfPageFailed} role="alert">
+          This page could not be drawn. Download the file to read it.
+        </div>
+      )}
     </div>
   );
 }

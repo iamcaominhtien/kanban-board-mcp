@@ -3,23 +3,24 @@ import { Notice, StatePanel } from './StatePanel';
 import { AsyncBody } from './TextReader';
 import { decodeText, looksLikeText, useFileData } from './useFileData';
 import { useViewerKeys } from './useViewerKeys';
-import { ROW_LIMIT, SheetError, csvToSheet, parseXlsx, type Sheet } from './tables';
+import { ROW_LIMIT, csvToSheet, type Sheet } from './tables';
+import { XlsxReader } from './XlsxReader';
 import { getFileExtension, formatFileSize } from '../../utils/fileIcons';
 import type { ReaderProps } from './readerTypes';
 import styles from './PreviewViewer.module.css';
 
 const CSV_LIMIT = 8 * 1024 * 1024;
-const XLSX_LIMIT = 25 * 1024 * 1024;
 
-type Parsed =
-  | { ok: true; sheets: Sheet[]; delimiter?: string }
-  | { ok: false; reason: 'protected' | 'too-large' | 'damaged' | 'binary' };
+type Parsed = { ok: true; sheets: Sheet[]; delimiter?: string } | { ok: false; reason: 'too-large' | 'binary' };
 
-/** CSV, TSV and Excel: a table with sheets, search and a frozen header. Values only; no formulas run. */
-export function TableReader({ item, onFacts, actions }: ReaderProps) {
+/** CSV and TSV as a table with search and a frozen header; Excel files are drawn by `XlsxReader`. */
+export function TableReader(props: ReaderProps) {
+  return getFileExtension(props.item.name) === 'xlsx' ? <XlsxReader {...props} /> : <DelimitedReader {...props} />;
+}
+
+function DelimitedReader({ item, onFacts, actions }: ReaderProps) {
   const ext = getFileExtension(item.name);
-  const isXlsx = ext === 'xlsx';
-  const [state, retry] = useFileData(item.src, isXlsx ? XLSX_LIMIT : CSV_LIMIT);
+  const [state, retry] = useFileData(item.src, CSV_LIMIT);
   const [active, setActive] = useState(0);
   const [query, setQuery] = useState('');
   const [current, setCurrent] = useState(0);
@@ -28,19 +29,11 @@ export function TableReader({ item, onFacts, actions }: ReaderProps) {
 
   const parsed: Parsed | null = useMemo(() => {
     if (state.status !== 'ready') return null;
-    if (isXlsx) {
-      if (state.truncated) return { ok: false, reason: 'too-large' };
-      try {
-        return { ok: true, sheets: parseXlsx(state.bytes) };
-      } catch (err) {
-        return { ok: false, reason: err instanceof SheetError ? err.reason : 'damaged' };
-      }
-    }
     if (!looksLikeText(state.bytes)) return { ok: false, reason: 'binary' };
     const { sheet, delimiter } = csvToSheet(decodeText(state.bytes), ext);
     if (state.truncated) sheet.totalRows = Math.max(sheet.totalRows, ROW_LIMIT + 1);
     return { ok: true, sheets: [sheet], delimiter };
-  }, [state, isXlsx, ext]);
+  }, [state, ext]);
 
   useEffect(() => setActive(0), [item.src]);
   useEffect(() => setCurrent(0), [query, active]);
@@ -49,11 +42,10 @@ export function TableReader({ item, onFacts, actions }: ReaderProps) {
     if (!parsed?.ok) return;
     const s = parsed.sheets;
     const facts: Record<string, string> = {};
-    if (isXlsx) facts.Sheets = String(s.length);
-    else if (parsed.delimiter) facts.Delimiter = parsed.delimiter;
+    if (parsed.delimiter) facts.Delimiter = parsed.delimiter;
     facts.Columns = String(s[0].columns);
     onFacts(facts);
-  }, [parsed, isXlsx, onFacts]);
+  }, [parsed, onFacts]);
 
   useViewerKeys((e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
@@ -89,22 +81,14 @@ export function TableReader({ item, onFacts, actions }: ReaderProps) {
     if (!parsed) return null;
     if (!parsed.ok) {
       const copy = {
-        protected: [
-          'This file needs a password',
-          'Previews cannot open protected files. Download it and open it in an app.',
-        ],
         'too-large': ['Too large to preview', `${item.name} is too large to read here. Download it to see everything.`],
-        damaged: [
-          'Could not make a preview',
-          'The file may be damaged or in a format we cannot read. Nothing was changed.',
-        ],
         binary: [
           'Not readable as text',
           'This file has a text name but contains binary data. Showing the file facts instead.',
         ],
       }[parsed.reason];
       return (
-        <StatePanel tone={parsed.reason === 'damaged' ? 'error' : 'warn'} title={copy[0]} actions={actions}>
+        <StatePanel tone="warn" title={copy[0]} actions={actions}>
           {copy[1]}
         </StatePanel>
       );
@@ -192,18 +176,6 @@ export function TableReader({ item, onFacts, actions }: ReaderProps) {
               ))}
             </tbody>
           </table>
-        </div>
-        <div className={styles.sheetFooter}>
-          {isXlsx && parsed.sheets.length > 1 && (
-            <div className={styles.sheetTabs} role="tablist" aria-label="Sheets">
-              {parsed.sheets.map((s, i) => (
-                <button key={i} type="button" role="tab" aria-selected={i === active} onClick={() => setActive(i)}>
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
-          {isXlsx && <span className={styles.readerLabel}>Values only. Formulas show their last saved result.</span>}
         </div>
       </div>
     );
