@@ -29,11 +29,9 @@ const TOP = 12;
 export const lanesWidth = (n: number, col: number = COL) => n * col + 2 * PAD;
 /** Centre of lane `i`. */
 const laneXAt = (i: number, col: number = COL) => PAD + col / 2 + i * col;
-/** The widest a lane gets when the lanes spread over a wide window. */
-export const MAX_COL = 240;
-/** The width of one lane: the room shared by `n` lanes, never less than COL nor more than MAX_COL. */
+/** The width of one lane: the room shared by `n` lanes, never less than COL (no upper limit: they fill the window). */
 export const columnFor = (n: number, room: number): number =>
-  Math.min(MAX_COL, Math.max(COL, Math.floor((room - 2 * PAD) / Math.max(n, 1))));
+  Math.max(COL, Math.floor((room - 2 * PAD) / Math.max(n, 1)));
 
 /** One label per cluster of marks that sit closer than a mark is tall: "Changed settings ×3", not three texts on top of each other. */
 export function touchLabels<T extends { what: string; at: string }>(
