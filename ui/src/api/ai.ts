@@ -18,6 +18,8 @@ import type {
   TeamPack,
   AiTeamRole,
   AiSessionHistory,
+  AiRecent,
+  TeamActivity,
 } from '../types/ai';
 import { ACTIVE_STATES } from '../types/ai';
 
@@ -33,6 +35,9 @@ export const aiKeys = {
   ticketRuns: (ticketId: string) => ['ai', 'ticketRuns', ticketId] as const,
   projectRuns: (projectId: string, state?: string) => ['ai', 'runs', projectId, state ?? ''] as const,
   live: (projectId: string) => ['ai', 'live', projectId] as const,
+  activity: (projectId: string) => ['ai', 'activity', projectId] as const,
+  teamActivity: (teamId: string) => ['ai', 'activity', 'team', teamId] as const,
+  recent: (projectId: string, teamId?: string) => ['ai', 'recent', projectId, teamId ?? ''] as const,
   packs: ['ai', 'packs', 'teams'] as const,
   roles: ['ai', 'packs', 'roles'] as const,
 };
@@ -216,6 +221,49 @@ export function useAiLive(projectId: string) {
     queryFn: async () => (await client.get<AiLive>(`/projects/${projectId}/ai/live`)).data,
     enabled: !!projectId,
     refetchInterval: (q) => (q.state.data?.runs.length ? LIVE_POLL_MS : SAFETY_POLL_MS),
+  });
+}
+
+/** What each team's lead and roles do now and did today, by team id (AI Team › Now). */
+export function useTeamsActivity(projectId: string) {
+  return useQuery({
+    queryKey: aiKeys.activity(projectId),
+    queryFn: async () =>
+      (
+        await client.get<{ teams: Record<string, TeamActivity> }>(`/projects/${projectId}/ai/team/activity`, {
+          keepKeys: true,
+        })
+      ).data,
+    enabled: !!projectId,
+    select: (raw): Record<string, TeamActivity> =>
+      Object.fromEntries(
+        Object.entries(raw.teams ?? {}).map(([id, a]) => [
+          id,
+          camelcaseKeys(a as never, { deep: true }) as TeamActivity,
+        ]),
+      ),
+    refetchInterval: LIVE_POLL_MS,
+  });
+}
+
+/** One team's lead and roles: now, last worked, steps and runs today (the team page). */
+export function useTeamActivity(teamId: string | null) {
+  return useQuery({
+    queryKey: aiKeys.teamActivity(teamId ?? ''),
+    queryFn: async () => (await client.get<TeamActivity>(`/ai/teams/${teamId}/activity`)).data,
+    enabled: !!teamId,
+    refetchInterval: LIVE_POLL_MS,
+  });
+}
+
+/** Runs that just ended with the first line of their report, and the latest notes into and out of runs. */
+export function useAiRecent(projectId: string, teamId?: string) {
+  return useQuery({
+    queryKey: aiKeys.recent(projectId, teamId),
+    queryFn: async () =>
+      (await client.get<AiRecent>(`/projects/${projectId}/ai/recent`, { params: { team_id: teamId, limit: 8 } })).data,
+    enabled: !!projectId,
+    refetchInterval: SAFETY_POLL_MS,
   });
 }
 

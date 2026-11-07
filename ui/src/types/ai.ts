@@ -440,3 +440,77 @@ export interface RunnerInfo {
   appVersion: string;
   platform: string;
 }
+
+/** Where a lead or a role is working now (`GET .../ai/team/activity`). */
+export interface ActivityNow {
+  runId: string;
+  ticketId: string | null;
+  ticketTitle: string | null;
+  number: number;
+  since: string | null;
+  /** The newest thing it did (a tool call, an edit, a command), or null before its first step. */
+  step: { title: string; kind: string; at: string } | null;
+  stepsCount?: number;
+  state?: RunState;
+  contextUsed?: number | null;
+  contextWindow?: number | null;
+}
+
+export interface ActivityLast {
+  runId: string;
+  ticketId: string | null;
+  ticketTitle: string | null;
+  number: number;
+  at: string;
+  stepsCount?: number;
+  state?: RunState;
+  /** The first line of what the role said last. */
+  text?: string | null;
+}
+
+/** What the lead, or one role of a team, does now, did last, and how much it worked today. Never money. */
+export interface RoleActivity {
+  /** `key` is the role key; the lead has none. */
+  key?: string;
+  working: ActivityNow | null;
+  lastWorked: ActivityLast | null;
+  stepsToday: number;
+  runsToday: number;
+}
+
+export interface TeamActivity {
+  teamId: string;
+  day: string;
+  lead: RoleActivity;
+  roles: (RoleActivity & { key: string })[];
+}
+
+export interface RecentRun {
+  runId: string;
+  ticketId: string | null;
+  ticketTitle: string | null;
+  memberId: string;
+  number: number;
+  state: RunState;
+  endedAt: string;
+  stepsCount: number;
+  /** The first line of its report. */
+  line: string;
+}
+
+export interface RecentNote {
+  id: string;
+  runId: string;
+  ticketId: string | null;
+  ticketTitle: string | null;
+  memberId: string;
+  direction: 'in' | 'out';
+  peer: string;
+  text: string;
+  at: string;
+}
+
+export interface AiRecent {
+  runs: RecentRun[];
+  notes: RecentNote[];
+}

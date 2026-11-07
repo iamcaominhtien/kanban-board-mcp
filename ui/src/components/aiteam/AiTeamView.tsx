@@ -4,6 +4,7 @@ import { HistoryTab } from './HistoryTab';
 import { useKnowledge } from '../../api/aiKnowledge';
 import { KnowledgeSection, memoryWaiting } from '../ai/knowledge/KnowledgeSection';
 import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
+import { TeamPage } from './TeamPage';
 import { TimelineTab } from './TimelineTab';
 import { OPEN_TIMELINE_EVENT, takePendingTimeline, type TimelineLink } from './timelineLink';
 import './aiTeam.css';
@@ -56,7 +57,9 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
     return () => window.removeEventListener(OPEN_RUN_EVENT, open);
   }, []);
   const knowledge = useKnowledge(projectId);
-  const actions: NowActions = { onOpenTicket, onOpenMember };
+  // A team page (its roles) replaces tab Now until the person goes back
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const actions: NowActions = { onOpenTicket, onOpenMember, onOpenTeam: setTeamId };
 
   return (
     <div className="at-root" data-testid="ai-team-view">
@@ -73,7 +76,10 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
               role="tab"
               aria-selected={tab === t.id}
               className={tab === t.id ? 'on' : ''}
-              onClick={() => setTab(t.id)}
+              onClick={() => {
+                setTab(t.id);
+                if (t.id === 'now') setTeamId(null);
+              }}
             >
               {t.label}
               {t.id === 'memory' && knowledge.data && memoryWaiting(knowledge.data) > 0 ? (
@@ -103,6 +109,14 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
         <div style={{ padding: '4px 0 24px', maxWidth: 920 }} data-testid="at-memory">
           <KnowledgeSection projectId={projectId} initialTab="memory" />
         </div>
+      ) : teamId ? (
+        <TeamPage
+          projectId={projectId}
+          teamId={teamId}
+          onBack={() => setTeamId(null)}
+          onOpenTicket={onOpenTicket}
+          onOpenMember={onOpenMember}
+        />
       ) : (
         <NowTab projectId={projectId} actions={actions} />
       )}

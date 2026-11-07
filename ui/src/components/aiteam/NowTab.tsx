@@ -1,21 +1,65 @@
-import { useAiLive, useAiOverview, useAiTeams, useProjectRuns } from '../../api/ai';
-import type { AiLive, AiRun, AiTeam } from '../../types/ai';
+import { useAiLive, useAiOverview, useAiSettings, useAiTeams, useProjectRuns, useTeamsActivity } from '../../api/ai';
+import type { AiLive, AiRun, AiTeam, TeamActivity } from '../../types/ai';
 import { AiAvatar, LoadError, RunStateChip, StatusLabel, fmtElapsed, hhmm, secondsSince, useNow } from '../ai/aiUi';
-import { QuestionCard } from '../ai/QuestionCard';
 import { RoleChips } from '../ai/AiMembersPage';
+import { roleLook } from '../ai/roleLook';
 import { StepIcon } from '../ai/run/StepIcon';
+import { ContextMeter } from '../assist/ContextMeter';
+import { NeedsYou } from './NeedsYou';
+import { RecentList, SpendToday } from './RecentSpend';
 import { openRun } from './runLink';
 import { TicketChip } from './teamUi';
 
 export interface NowActions {
   onOpenTicket: (ticketId: string) => void;
   onOpenMember: (memberId: string) => void;
+  /** Open the team's page: its roles, what each does, its recent runs. */
+  onOpenTeam: (teamId: string) => void;
 }
 
 const ACTIVE = 'queued,starting,running,needs_input';
 
-/** One card per team: its status, its roles, what it is working on. */
-function TeamCard({ team, actions }: { team: AiTeam; actions: NowActions }) {
+/** What a team does right now: the roles working, the step they are on, how full the lead's conversation is. */
+function WorkingNow({ team, activity }: { team: AiTeam; activity?: TeamActivity }) {
+  const lead = activity?.lead.working;
+  if (!lead) return null;
+  const workers = (activity?.roles ?? []).filter((r) => r.working);
+  const roleName = (key: string) => team.roles.find((r) => r.key === key)?.name ?? key;
+  // the most specific step: the role that works now, else the lead
+  const step = workers.find((r) => r.working?.step)?.working?.step ?? lead.step;
+  return (
+    <div className="at-quote" style={{ background: '#F4F9F5', borderColor: '#D6E8DB' }} data-testid="working-now">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        <span className="at-label">Working</span>
+        {workers.length === 0 && <span className="at-chip">Lead</span>}
+        {workers.map((r) => {
+          const look = roleLook(r.key);
+          return (
+            <span
+              key={r.key}
+              className="at-chip"
+              style={{ background: look.bg, color: look.fg, border: `1px solid ${look.border}` }}
+            >
+              <span className="at-dot at-dot-live" style={{ background: look.border }} />
+              {roleName(r.key)}
+            </span>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 4 }} data-testid="working-step">
+        {step ? step.title : 'Starting…'}
+      </div>
+      {lead.contextUsed != null && lead.contextWindow ? (
+        <div style={{ marginTop: 4 }}>
+          <ContextMeter used={lead.contextUsed} size={lead.contextWindow} inline />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** One card per team: its status, its roles, what it is working on. The name opens the team's page. */
+function TeamCard({ team, activity, actions }: { team: AiTeam; activity?: TeamActivity; actions: NowActions }) {
   return (
     <div
       className="ai-card"
@@ -29,7 +73,7 @@ function TeamCard({ team, actions }: { team: AiTeam; actions: NowActions }) {
             type="button"
             className="ai-link"
             style={{ fontWeight: 700, fontSize: 14 }}
-            onClick={() => actions.onOpenMember(team.id)}
+            onClick={() => actions.onOpenTeam(team.id)}
           >
             {team.name}
           </button>
@@ -38,6 +82,7 @@ function TeamCard({ team, actions }: { team: AiTeam; actions: NowActions }) {
         <StatusLabel status={team.status} sub={null} />
       </div>
       <RoleChips team={team} />
+      <WorkingNow team={team} activity={activity} />
       <div className="ai-muted">
         {team.slotsInUse} of {team.maxParallel} running · {team.queued} queued · {team.usage.runsToday} run
         {team.usage.runsToday === 1 ? '' : 's'} today
@@ -51,6 +96,11 @@ function TeamCard({ team, actions }: { team: AiTeam; actions: NowActions }) {
           <RunStateChip state={r.state} />
         </div>
       ))}
+      <div>
+        <button type="button" className="ai-link" onClick={() => actions.onOpenTeam(team.id)}>
+          See the roles →
+        </button>
+      </div>
     </div>
   );
 }
@@ -99,12 +149,14 @@ function LivePanel({ live, teams }: { live: AiLive; teams: Map<string, AiTeam> }
   );
 }
 
-/** AI Team › Now: the teams, what waits for a person, the active runs and what they do right now. */
+/** AI Team › Now: what waits for a person, the teams and who works in them, the active runs, what ended, the spend. */
 export function NowTab({ projectId, actions }: { projectId: string; actions: NowActions }) {
   const teamsQ = useAiTeams(projectId);
   const overview = useAiOverview(projectId);
   const activeQ = useProjectRuns(projectId, { state: ACTIVE, limit: 40 });
   const liveQ = useAiLive(projectId);
+  const activityQ = useTeamsActivity(projectId);
+  const settingsQ = useAiSettings(projectId);
   useNow(
     1000,
     (activeQ.data ?? []).some((r) => r.state === 'running'),
@@ -119,7 +171,7 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
   const counts = overview.data?.runs ?? {};
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }} data-testid="at-now">
-      <div style={{ display: 'flex', gap: 24, fontSize: 13 }} data-testid="at-counts">
+      <div style={{ display: 'flex', gap: 24, fontSize: 13, flexWrap: 'wrap' }} data-testid="at-counts">
         <span>
           <b>{(counts.running ?? 0) + (counts.starting ?? 0)}</b> running
         </span>
@@ -136,14 +188,14 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
           <b>{counts.failed ?? 0}</b> failed
         </span>
       </div>
-      {asking.length > 0 && (
-        <section data-testid="at-needs-you" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <h2 className="ai-label ai-label-dark">Needs you</h2>
-          {asking.map((r) => (
-            <QuestionCard key={r.id} run={r} />
-          ))}
-        </section>
-      )}
+      <NeedsYou
+        projectId={projectId}
+        teams={teams}
+        active={active}
+        asking={asking}
+        onOpenTicket={actions.onOpenTicket}
+        onOpenMember={actions.onOpenMember}
+      />
       <section>
         <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
           Teams
@@ -153,7 +205,7 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
             {teams.map((t) => (
-              <TeamCard key={t.id} team={t} actions={actions} />
+              <TeamCard key={t.id} team={t} activity={activityQ.data?.[t.id]} actions={actions} />
             ))}
           </div>
         )}
@@ -172,6 +224,8 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
           </div>
         )}
       </section>
+      <RecentList projectId={projectId} teams={teams} onOpenTicket={actions.onOpenTicket} />
+      <SpendToday teams={teams} settings={settingsQ.data} />
       <section>
         <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
           Live
