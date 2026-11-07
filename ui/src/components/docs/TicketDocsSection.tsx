@@ -3,6 +3,8 @@ import { useTicketDocs } from '../../api/docs';
 import { useProjects } from '../../api/projects';
 import { useDocsSuggest, useLinkTicketDoc } from '../../api/docsActions';
 import { extractError } from '../../api/extractError';
+import { useAiTeams } from '../../api/ai';
+import { sendErrorCode, useSendTicketComments, useTicketDocComments } from '../../api/docsSendToAi';
 import type { DocsSuggestItem, TicketDocOrigin, TicketDocRow } from '../../types/docsActions';
 import { useToast } from '../Toast';
 import { SuggestRows } from './DocsSuggest';
@@ -347,6 +349,99 @@ function LinkPopover({
   );
 }
 
+/** The teams of a project to choose from when a ticket has none; mounted only then so the list is not polled. */
+function GiveTeam({
+  projectId,
+  busy,
+  onGive,
+}: {
+  projectId?: string;
+  busy: boolean;
+  onGive: (teamId: string) => void;
+}) {
+  const teams = (useAiTeams(projectId ?? '').data ?? []).filter((t) => t.kind === 'ai');
+  const [teamId, setTeamId] = useState('');
+  const chosen = teams.find((t) => t.id === teamId) ?? teams[0];
+  if (teams.length === 0)
+    return (
+      <span style={{ fontSize: 12, color: '#5B6B60' }} data-testid="ticket-comments-no-team">
+        This ticket has no AI team, and neither has the project: add one in Members.
+      </span>
+    );
+  return (
+    <div
+      data-testid="ticket-comments-give"
+      style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: 12, color: '#5B6B60' }}
+    >
+      <span>This ticket has no team.</span>
+      <select
+        aria-label="Team"
+        value={chosen?.id ?? ''}
+        onChange={(e) => setTeamId(e.target.value)}
+        style={{ font: 'inherit', padding: '4px 6px', borderRadius: 6, border: '1px solid #DCE6DF' }}
+      >
+        {teams.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        className="st-btn st-btn-sm st-btn-primary"
+        disabled={busy || !chosen}
+        onClick={() => chosen && onGive(chosen.id)}
+      >
+        {busy ? 'Sending…' : 'Give it to a team and send'}
+      </button>
+    </div>
+  );
+}
+
+/** "Ask the team to apply the comments (3)": the open comment threads of the ticket's linked pages go to its team. */
+function ApplyComments({ ticketId, projectId }: { ticketId: string; projectId?: string }) {
+  const toast = useToast();
+  const info = useTicketDocComments(ticketId);
+  const send = useSendTicketComments(ticketId);
+  const [needTeam, setNeedTeam] = useState(false);
+  const n = info.data?.threads ?? 0;
+  if (n === 0) return null;
+
+  async function go(giveTeamId?: string) {
+    try {
+      const r = await send.mutateAsync({ giveTeamId });
+      setNeedTeam(false);
+      toast.success('Sent to the team', r.note);
+    } catch (err) {
+      if (sendErrorCode(err) === 'no_team') setNeedTeam(true);
+      else toast.error("Couldn't send the comments", extractError(err));
+    }
+  }
+
+  const pages = info.data?.pages ?? [];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="ticket-comments-send">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className="st-btn st-btn-sm"
+          disabled={send.isPending}
+          onClick={() => void go()}
+          title={pages.map((p) => `${p.title} (${p.threads})`).join(', ')}
+          data-testid="ticket-comments-send-btn"
+        >
+          <Icon name="send" size={13} strokeWidth={1.9} />
+          {send.isPending && !needTeam ? 'Sending…' : `Ask the team to apply the comments (${n})`}
+        </button>
+        <span style={{ fontSize: 11.5, color: '#9AA8A0' }}>
+          Open comments on {pages.length === 1 ? pages[0].title : `${pages.length} linked pages`}
+        </span>
+      </div>
+      {needTeam && <GiveTeam projectId={projectId} busy={send.isPending} onGive={(id) => void go(id)} />}
+    </div>
+  );
+}
+
 /**
  * "Linked docs" on a ticket: mentioned / linked manually / pages that mention it, plus "+ Link a doc".
  * @param props.ticketId - Ticket whose linked docs are shown.
@@ -440,6 +535,7 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
       {group('Mentioned in this ticket', groups.mentioned)}
       {group('Linked manually', groups.manual)}
       {group('Pages that mention this ticket', groups.pages)}
+      <ApplyComments ticketId={ticketId} projectId={projectId} />
       <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
         <button
           type="button"

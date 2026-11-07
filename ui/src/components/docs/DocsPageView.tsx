@@ -29,6 +29,7 @@ import { PageMenu, type PageMenuAction } from './PageMenu';
 import { PageWork } from './PageWork';
 import { ReferencedBy } from './ReferencedBy';
 import { SharePopover } from './SharePopover';
+import { AiChangedBar } from './AiChangedBar';
 import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
 import { useCommentSuggest } from './comments/commentAi';
 
@@ -304,6 +305,15 @@ export function DocsPageView({
           }}
         >
           <div style={{ maxWidth: 'min(100%, clamp(640px, 62vw, 1120px))', margin: '0 auto' }}>
+            {!offline && (
+              <AiChangedBar
+                page={page}
+                projectId={projectId}
+                members={members}
+                canEdit={!readOnly}
+                onCompare={onCompare}
+              />
+            )}
             {!offline && (
               <div style={{ marginBottom: 16 }}>
                 <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />

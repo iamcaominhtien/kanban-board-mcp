@@ -9,6 +9,7 @@ import { useThreadAiActions, type useCommentActions } from '../../../api/docsCom
 import type { SuggestMember } from '../RefSuggester';
 import { aiCostLabel, aiReplyKind, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
 import { LineIcon } from '../../ui/LineIcon';
+import { ThreadSendButton } from './SendToAi';
 
 type Actions = ReturnType<typeof useCommentActions>;
 
@@ -661,6 +662,7 @@ export function ThreadCard({
           {error}
         </div>
       )}
+      {!resolved && thread.canReply && <ThreadSendButton pageId={thread.pageId} threadId={thread.id} />}
       {!resolved && (
         <div id={`dc-reply-${thread.id}`} className="dc-reply" onClick={(e) => e.stopPropagation()}>
           {thread.canReply ? (

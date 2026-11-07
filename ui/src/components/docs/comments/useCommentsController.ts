@@ -4,6 +4,7 @@ import type { DocsCommentsResult, DocsCommentThread } from '../../../types/docs'
 import { mentionedAi, type DocsMentionIntent } from '../../../utils/docsThreadAiRules';
 import type { CommentTab } from './CommentsPanel';
 import { askDocsMentionIntent } from './DocsMentionIntent';
+import { useSendToAiRequest } from './sendToAiRequest';
 
 /** Raised when the person went back from "What does the mention mean?": the comment box keeps the text. */
 export class MentionCancelled extends Error {
@@ -91,6 +92,15 @@ export function useCommentsController(pageId: string) {
     setActiveId(null);
     setReattachId(null);
   }, [pageId]);
+
+  // a thread's "choose where to send it" button opens the panel, where the Send to AI box takes the request
+  const sendRequest = useSendToAiRequest(pageId);
+  useEffect(() => {
+    if (sendRequest) {
+      setOpen(true);
+      setTab((cur) => (cur === 'resolved' ? 'open' : cur));
+    }
+  }, [sendRequest]);
 
   const created = useCallback((t: DocsCommentThread) => {
     setOpen(true);
