@@ -8,7 +8,10 @@ của [`ai-claude-code-plan.md`](ai-claude-code-plan.md); các quyết định c
 - **Người dùng ở gói subscription:** tối ưu cho quota, không phải tiền.
 - **"Ngon" hay không do người dùng đánh giá.** Không có bộ bài kiểm tra tự động trong v2.
 - **Không cờ sống chung:** v2 thay hẳn đường cũ. Có git.
-- **Trạng thái (2026-11-05):** đã làm xong 9 giai đoạn trong một PR; chi tiết, giới hạn và những gì chưa kiểm ở bảng tiến độ của [`ai-v2-implementation.md`](ai-v2-implementation.md#6-tiến-độ).
+- **Trạng thái (2026-11-08):** đã làm xong 9 giai đoạn trong một PR (2026-11-05), rồi người dùng thử tay trên dữ liệu thật và sửa
+  tiếp. Phần đã xây **khác hoặc thêm** so với bản thiết kế dưới đây nằm ở [mục 11](#11-đã-xây-khác-hoặc-thêm-so-với-thiết-kế);
+  khi một câu ở mục 1 đến 10 mâu thuẫn với mục 11 thì mục 11 đúng. Chi tiết, giới hạn và những gì chưa kiểm ở bảng tiến độ của
+  [`ai-v2-implementation.md`](ai-v2-implementation.md#6-tiến-độ).
 
 ## 1. Vì sao làm lại
 
@@ -117,14 +120,18 @@ Ba kênh, rẻ nhất trước, không cần pub/sub mới:
    (kế hoạch của chính Claude Code thành sub-task trên ticket). Script hook chỉ `curl` API board với token run từ biến môi trường.
    Không tốn token.
 3. **Tool MCP**, cắt còn năm sáu: comment (có `role`), work log, hỏi người, gửi tin tới ticket/trang, `board_wait`, Docs.
+   *(Đã xây: các tool ticket và Docs như cũ cộng một tool `ai_run` chỉ chạy trong run do board mở, với bảy action `ask`, `message`,
+   `reply`, `history`, `team`, `runs`, `report`; không có tool `ai_team`. Xem mục 11.2.)*
 
-Báo cáo cuối của run bằng `--json-schema` (trạng thái, tóm tắt, nhánh, PR, việc dở, bài học đề xuất). Hết bóc text.
+Báo cáo cuối của run bằng `--json-schema` (trạng thái, tóm tắt, nhánh, PR, việc dở, bài học đề xuất, và `comment_needed`: có cần
+bình luận trên ticket không). Hết bóc text. Báo cáo cuối **chính là bình luận đóng của ticket** (mục 11.1).
 
 ### 4.6 Memory (kiểu b, board sở hữu)
 
 Ba lớp của D18 giữ nguyên: chỉ dẫn project (luôn trong prompt), **bài học** (ngắn, người sửa được, nạp vào prompt), kho kiến thức
 (tool tìm khi cần, không embedding mặc định). Bài học do lead đề xuất trong JSON báo cáo cuối (hoặc tool `remember`), người duyệt
-hoặc tự nhận theo cài đặt project, có giới hạn độ dài. Dùng `--system-prompt-snapshot off` để bài học mới nạp được vào ticket đang
+hoặc tự nhận theo cài đặt project, có giới hạn độ dài (`lessons_max` là số bài học giữ cùng lúc). Board **không** gọi model nhẹ sau
+mỗi run để rút ghi chú (đã bỏ, commit `8d65b684`). Dùng `--system-prompt-snapshot off` để bài học mới nạp được vào ticket đang
 chạy mà không mất hội thoại.
 
 ### 4.7 Trợ lý (Docs AI, Board AI, Idea AI)
@@ -221,6 +228,10 @@ Bỏ nhiều hơn xây. Phần AI của UI hiện ~20 nghìn dòng, 68 file cộ
 - **Mới, cần thiết kế:** trình sửa pack (vai, persona, model, skill, lệnh cấm); trang Skills & plugins theo project (D3, một
   phần đã có trong `ai-provider-config`); trang memory của project; cây tiến trình trong run. Làm từ `design/source/*.dc.html`.
 
+> **Đã xây khác (2026-11-08):** danh sách "Bỏ" ở trên là kế hoạch đầu. Khi thử tay, **Timeline đã quay lại** (dựng từ run, vai và
+> câu hỏi của v2), cùng trang **AI Team** (bốn tab Now, Timeline, Run history, Memory), trang **Story** và nhóm **Group by Story**. Các tab Flow,
+> You stepped in, Health và Resources của trang AI Team chưa quay lại, đã mở ticket KBM-19 đến KBM-22. Xem mục 11.4.
+
 ## 8. Lát cắt đầu tiên và thứ tự
 
 > **2026-11-05:** chốt làm **toàn bộ trong một PR**, kế hoạch chi tiết ở [`ai-v2-implementation.md`](ai-v2-implementation.md)
@@ -237,7 +248,9 @@ tách tiến trình; (8) thử `--permission-mode auto` và hàng rào an toàn 
 ## 9. Còn mở
 
 - Hai tài khoản khác `CLAUDE_CONFIG_DIR` có nhắn được cho nhau không. Nếu không, liên hệ giữa đội khác tài khoản luôn đi tầng 2.
-- Cách tắt plugin đã đồng bộ của tài khoản trong run của board (hiện nạp 7 plugin vào mọi run).
+- ~~Cách tắt plugin đã đồng bộ của tài khoản trong run của board~~ **Đã xử lý:** run chạy với `--setting-sources ""` (không đọc file
+  settings nào; `CLAUDE.md` và skill của `--plugin-dir` vẫn nạp, đã đo; commit `1e49b572`) và plugin riêng của tài khoản không vào
+  run (`873a51c6`, `087bd152`).
 - `--permission-mode auto` thực sự chặn gì.
 - Trả lời của subagent được gọi lại không về lead trong lượt: board có nên đưa nó vào lượt kế của lead qua stdin không.
 - Đo độ trễ trên Windows với team thật (lệnh curl ở mục 6).
@@ -253,3 +266,105 @@ Bỏ hoặc đổi: D8 (quy trình gắn ticket: Claude Code tự điều phối
 và vai tự xử; chỉ giữ "không tiến triển thì hỏi người"), D14 (vai theo bước: thay bằng vai đang hoạt động từ hook), D22 (đánh giá
 đội AI: người dùng tự đánh giá), ma trận quyền và duyệt của `ai-safety-cost`, handoff/mention/autopilot/manager/orders, `proposals`
 và `access` của Docs AI.
+
+## 11. Đã xây khác hoặc thêm so với thiết kế
+
+Từ 2026-11-05 đến 2026-11-08 người dùng thử tay trên dữ liệu thật và sửa tiếp (khoảng 110 commit sau giai đoạn 9). Mục này liệt
+kê **từng điểm khác với mục 1 đến 10**, kèm commit (`abcd1234`) hoặc ticket board (KBM-n). Mỗi dòng đã đối chiếu với code ở đầu
+nhánh `claude/ai-team-architecture-7a1efc`; chỗ chưa kiểm được ghi rõ.
+
+### 11.1 Ticket chat, báo cáo và bình luận
+
+| Thiết kế ban đầu | Đã xây |
+|---|---|
+| Không nói về chat trên ticket (Board AI trả lời một lượt) | **Chat trên ticket nói với đội của ticket**, không có chế độ (`1904ec7f`). Lead đang chạy thì trả lời trong chat rồi làm tiếp (tin đến qua stdin); đội đang nghỉ thì tin là việc kế của nó: board mở run với `trigger="message"`. Lead trả lời bằng `ai_run(action="reply")`, lời đáp điền vào tin chat đang chờ. |
+| Phiên của ticket chạy mãi | Người dùng có thể **làm lại từ đầu**: `POST /tickets/{id}/ai/sessions/new` đóng cuộc trò chuyện hiện tại thành một dòng **History** (`ai_session_history`: tiêu đề, tóm tắt, các session id, các run; migration `c4e6a8b0d2f3`), `GET /tickets/{id}/ai/sessions` liệt kê, mọi AI đọc bằng `ai_run(action="history")` (`5821b996`). `POST /tickets/{id}/ai/compact` nén phiên; cài đặt project có mức tự nén (`auto_compact_pct`, đặt qua env của CLI) và chat có thanh ngữ cảnh (`348aa0fe`). |
+| (không có) | Lệnh gạch chéo trong khung chat của đội: `/compact`, `/new`, `/history`, `/report`, `/stop`, `/cost` (sáu lệnh trong `ScopedChat.tsx`; `/cost` cộng tiền các run của đội). |
+| Bình luận do vai viết | **Báo cáo cuối của lead là bình luận đóng của ticket**; AI được dặn không viết bình luận thứ hai (`a41f9a7c`). |
+| (không có) | Chat dùng để nói chuyện, bình luận dùng cho tin về công việc. Báo cáo có trường **`comment_needed`**; với run do một tin chat mở, nếu đội báo `false`, run không bị `blocked`, không tạo nhánh và đã thật sự trả lời trong chat thì board **không** đăng bình luận đóng (`6d2bba47`, `runs._chat_was_enough`). Mọi run khác vẫn đăng. |
+| Thông báo "AI finished" cho mọi run | Với run do tin chat mở, **không báo** khi người đó đang mở và nhìn khung chat của ticket. Trang chat báo `POST /ai/assist/chats/{id}/seen` mỗi 15 giây (cột `ai_chat.seen_at`, migration `d5f7b9c1e3a4`); run kết thúc trong 45 giây kể từ nhịp cuối thì không báo. Chat đóng, cửa sổ ở nền, hoặc run lỗi thì vẫn báo (`cf5b6da6`). |
+| Câu hỏi của đội hiện ở thread | Câu hỏi hiện **ở chỗ người đang ở**: trong thread bình luận và trong chat AI của ticket; nút Answer của thông báo đưa thẻ câu hỏi ra trước, kể cả khi ticket đang mở ở tab khác (`82b29e19`, KBM-3 `bd13d662`). |
+| Gửi tin cho đội | Một bình luận gửi cho đội được giữ lại và thread hiện đội đang làm (`4098008b`). |
+
+### 11.2 Tool MCP và luật cho AI
+
+- **`ai_run`** (chỉ trong run do board mở, nhận ra qua bearer token): `ask` (hỏi người rồi dừng), `message` (tới ticket `IAM-12` hoặc
+  `docs:<page id>`; ticket chính mình thì bị từ chối), `reply` (trả lời tin chat), `history`, `team`, `runs`, `report` (ghi báo cáo
+  sớm; báo cáo JSON cuối vẫn là đường chính). Kế hoạch triển khai mục 1.6 nói bỏ `report`; thực tế còn.
+- **Không có tool `ai_team`** (`4c5c831b`): danh sách tool của spec không có nó, và mọi chỗ nhắc tới đã bị xoá.
+- `ticket_branches add` có `adopt` để ghi một nhánh đã có sẵn trong repo (`0f769197`). `ticket_items attachment post=false` giữ file mà
+  không tạo bình luận riêng, để AI gom file vào một báo cáo (`92f1e037`). Kết quả đính kèm có kích thước và `sha256` của bản board
+  giữ, nên AI không đi tìm file trên đĩa (`5154e62a`); từ KBM-18 nó còn có `stored_in` (file nằm ở đâu) và `warning` khi file rơi vào
+  thư mục dự phòng.
+- Mọi AI được báo **Workspace của ticket** ở đâu (`35645a14`). Skill `working-a-ticket` bắt buộc cho lead và mọi vai, và nói cách
+  rời ticket: trạng thái, tiêu chí, bình luận đóng (`68cf6700`). Kết quả viết cho người (nghiên cứu, spec, quyết định, hướng dẫn) là
+  **một trang Docs gắn vào ticket**, không phải file Markdown trong thư mục; chỉ đội có vai dev hoặc devops (hoặc lead không có vai)
+  nhận luật nhánh, commit, test (`7a0b7392`). Lệnh trong skill dùng `${CLAUDE_SKILL_DIR}` (`5db2acbd`).
+- Skill **demo-video** là skill của board (`kanban-board:demo-video`) cho mọi đội có vai làm việc (`524f72d1`, `f1bb02b7`); video đăng
+  trên ticket phát ngay trong bình luận (`15013500`). Hotfix 3.37.2 (`fcece3a9`, vào nhánh qua `ba693dbc`): AI nhìn được ảnh dán trong
+  bình luận và mô tả.
+
+### 11.3 Run, vai, lịch chạy
+
+- **Tài khoản chỉ Claude Code** (`7d1324ba`, `cf714b55`): không còn mã Codex, opencode, Antigravity, màn tài khoản chỉ nói Claude Code.
+- **Vai không có allow-list tool**, giữ mọi tool của run (`50b5887e`); một vai bị giới hạn vài tool vẫn có `Skill` để mở hướng dẫn của
+  nó. Pack không còn mẫu quyền, trần trạng thái, allow list hay permission mode (`defda10a`).
+- **Một vai là một dòng**, nối với id của Claude Code qua kết quả của lệnh `Agent` ("Async agent launched … agentId"); vai chạy
+  foreground kết thúc ngay ở đó; hook `SubagentStart/Stop` không khớp dòng nào thì bỏ (`2f4a6669`). Kết thúc của vai còn đọc được từ
+  task notification, và vai còn mở khi CLI thoát thì được đóng (`76f9b6b2`). Vòng đời của run lấy từ chính stream của CLI
+  (`750311cb`); board **chờ các vai xong rồi mới đóng CLI** (`b4751888`); một lượt trống khi resume không tính là câu trả lời của lead
+  (`31c50bcd`).
+- Hook của board chạy được khi thư mục dữ liệu có dấu cách (`025562cb`); hook `PreToolUse` cấm `git push --force` lên nhánh chính (kể cả
+  khi cờ nằm cuối) và `rm -rf` ngoài thư mục của run (`22496c58`, `459ebe81`).
+- **Lịch chạy** chỉ mở một run; lead tự quyết và báo cáo. Board không còn kiểm "done when", chạy lệnh test, nhờ AI khác review hay
+  chạy lại ở trạng thái "fixing"; còn giữ giới hạn thời gian, thử lại khi chết, tự tạm dừng sau ba lần lỗi, và luật bù giờ
+  (`66f65774`). Các cột `checks`, `review` còn trong bảng nhưng không ai đọc ghi.
+- **Giao mà chưa chạy** (Assign only): `PATCH /tickets/{id}?start=false` (`6f936276`).
+- **Runner** là tiến trình riêng, bản chạy thật mặc định `KANBAN_RUNNER=process`; API chỉ xếp hàng, runner đọc stream và ghi thẳng DB
+  (giai đoạn 6, không đổi). Migration sửa bù `b3d5f7a9c1e4` thêm cột cho DB đã chạy bản `ai_v2_reset` sớm (`4aa43dbf`); API khởi động
+  runner sau khi DB đã lên đời (`40c8797d`).
+- Đã bỏ: `run_retention.py` cùng cài đặt của nó; `lessons_max` giờ là số bài học giữ cùng lúc (`aa4cbf44`); `propose_from_diagnosis`
+  (`d71c0337`); mọi nhắc tới chuỗi mention, standing orders, handoff, workflow trong text AI đọc (`9352034b`, `9502d062`); nhánh
+  prompt cũ ở `context.py` (`ebefa3b6`); thẻ "own plugins" của tài khoản (`087bd152`).
+
+### 11.4 Giao diện
+
+- **Timeline quay lại**, dựng từ `ai_run`, `ai_run_agent` (kèm marker của `ai_run_step`) và `ai_run_message`: một đường cho người,
+  một cho lead, một cho mỗi vai, thanh cho mỗi run và mỗi đoạn làm việc, mũi tên cho bàn giao, câu hỏi và trả lời, khoảng project bị
+  tạm dừng. Route `GET /projects/{id}/ai/team/timeline`, `services/ai/timeline.py`, `TicketTimeline` trên ticket (`d1383bed`,
+  `fd98bde9`, `2f4a6669`). Spec mục 7 đã đánh dấu Timeline là "bỏ"; điều đó không còn đúng.
+- **Tab AI activity của ticket** vẽ từ run của ticket: thẻ run, panel run (mở một bước ra toàn bộ lệnh hay câu, tải các bước trước
+  50 bước mới nhất), lịch sử run (mỗi run bắt đầu bằng yêu cầu đã mở nó và kết thúc bằng báo cáo; "Full history" xếp mọi run liền
+  nhau), cụm bước của subagent gập dưới dòng đã giao việc (`ab4837a6`, `b5d04a6d`, `a7348bc3`, `ffb8733a`, `e2767c3c`); thẻ Resources và
+  thông báo khởi động lại của ticket đã nối dữ liệu thật (`59260fba`). Mock theo canvas (`MOCK_AI_ACTIVITY`) đã thay bằng dữ liệu thật.
+- **Trang AI Team** (KBM-17 và các commit `7e2205b1`, `23175f0f`, `4ba20799`): tab **Now** có dải **Needs you**, thẻ đội với thẻ cho
+  từng vai (đang làm gì, lần làm gần nhất, số bước và run hôm nay), Recent (run vừa xong kèm dòng đầu của báo cáo) và Spend today.
+  Dữ liệu từ `services/ai/activity.py`, tính từ `ai_run`, `ai_run_agent`, `ai_run_step`, `ai_run_message`, không migration, **không có
+  tiền theo từng vai** (tiền thuộc về run). Route `GET /ai/teams/{id}/activity`, `GET /projects/{id}/ai/team/activity`,
+  `GET /projects/{id}/ai/recent`. Còn bốn tab: Now, Timeline, Run history, Memory.
+- **Story**: một Story mở thành **trang Story** (tiến độ, ticket con theo thứ tự đợt kèm đội đang giữ và run, tiêu chí, token và tiền,
+  "Open in Timeline" giới hạn vào Story; menu ⋯ có "Open as ticket") (`fa173822`, `8a73b0a3`, `2ce08974`); bảng đặt **Group by Story**
+  trở lại, mỗi Story một làn (`610a91df`). Thẻ ticket cha có lại thanh sub-task (KBM-16, `0b4f2863`). Phần PM của v1 (Run by PM, Flow,
+  Pause, phiên bản kế hoạch, Decided for you, Autonomy, ngân sách token) vẫn ra ngoài.
+- **Chưa quay lại**, mỗi cái một ticket: Resources của trang AI Team (KBM-19), Flow (KBM-20), You stepped in (KBM-21), Health
+  (KBM-22). Các ticket này đang giao cho phiên cloud; khi nhánh của chúng gộp vào thì mục này đổi.
+- Chat `+` có biểu tượng cho mục menu; thẻ History có đồng hồ (`0e1cddde`).
+
+### 11.5 Nơi lưu file và thứ ngoài AI
+
+- **Thư mục uploads** tìm theo thứ tự: `KANBAN_UPLOADS_DIR`, `data_folder` trong config, thư mục của `KANBAN_DB_PATH`, `uploads_dir` do
+  app desktop ghi vào config lúc khởi động, rồi `server/uploads` cạnh code (kèm cảnh báo và `stored_in` trong kết quả đính kèm) (KBM-18,
+  `34cdd4c3`, `17a7b02d`). Nguyên nhân gốc: phiên MCP stdio của AI ngoài app lưu file vào worktree của nó chứ không vào thư mục app
+  phục vụ.
+- Xem trước file: PowerPoint, PDF, Excel được vẽ như chúng hiện (`8b0dcef8`, `0902f491`, `132e1e8a`, gộp qua `75cdcc94`). Không thuộc
+  AI, nằm trong cùng PR.
+
+### 11.6 Còn mở và chưa kiểm
+
+- Tất cả mục trên được đối chiếu với code ở đầu nhánh, **không** chạy lại test (vòng này không chạy pytest hay vitest theo yêu cầu
+  của người dùng). Test cũ có thể còn đòi hành vi cũ (`test_mcp_tool_quality`, `test_ai_launch_v2`, thứ tự thư mục uploads).
+- Các run thật bằng Haiku và Sonnet đã chạy trên bảng tạm cho chat, bình luận đóng và thông báo; **chưa** đo số request mỗi giây với
+  3 run cùng lúc, **chưa** thử hook trên Windows, **chưa** kiểm bản đóng gói PyInstaller chạy `--runner`.
+- Giới hạn độ sâu chuỗi AI gửi AI (mục 4.3) **chưa có**: `ai_run message` không đếm độ sâu.
+- Các mục "Còn mở" ở mục 9 khác (hai tài khoản có nhắn nhau không, `--permission-mode auto` chặn gì, đưa trả lời của subagent vào lượt
+  kế của lead, `--bg`) chưa được thử lại.
