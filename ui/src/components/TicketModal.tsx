@@ -52,6 +52,7 @@ import { TestCasesSection } from './TestCasesSection';
 import { DebugSpaceSection } from './DebugSpaceSection';
 import { WorkspaceSection } from './WorkspaceSection';
 import { AssigneePicker } from './ai/AssigneePicker';
+import { useAnswerRequest } from './ai/answerFocus';
 import { usePeopleAndAiSuggest } from './ai/useMentionList';
 import { AiHoverHost } from './ai/MentionPill';
 import {
@@ -274,6 +275,11 @@ function TicketModalInner({
     return () => watch.disconnect();
   }, [activeTab, ticket?.id]);
   useEffect(() => setMainView('ticket'), [ticket?.id]);
+  // the notice's Answer on a question of this ticket: the card is in the thread, on the main tab
+  useAnswerRequest(ticket?.id, () => {
+    setActiveTab('main');
+    setMainView('ticket');
+  });
   // Which run the AI tab shows (set by the run links of the thread and the hover cards)
   const queryClient = useQueryClient();
   const mentionList = usePeopleAndAiSuggest(members);

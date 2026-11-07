@@ -667,6 +667,7 @@ def _stored(name: str, content: bytes) -> dict:
         "size": len(content),
         "type": uploads.MIME_BY_EXTENSION[suffix],
         "markdown": f"![{label}]({url})" if image else f"[{label}]({url})",
+        **uploads.storage_info(),
     }
 
 
@@ -688,7 +689,7 @@ async def upload_file(
         Field(description="File name with its extension (needed with data)."),
     ] = None,
 ) -> dict:
-    """Store a file (a picture, a PDF, a sheet, a log…) on the board. Returns {url, name, size, type, markdown}:
+    """Store a file (a picture, a PDF, a sheet, a log…) on the board. Returns {url, name, size, type, markdown, stored_in} (`stored_in`: the folder; a `warning` there means the app does not serve it):
     put `markdown` in a page, a description or a comment to show it (a picture shows inline, another file as a link)."""
     import base64
     import binascii
@@ -732,4 +733,5 @@ async def upload_file(
         "size": size,
         "type": uploads.MIME_BY_EXTENSION.get(suffix, "application/octet-stream"),
         "markdown": f"![{label}]({url})" if image else f"[{label}]({url})",
+        **uploads.storage_info(),
     }

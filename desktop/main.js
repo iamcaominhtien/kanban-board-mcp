@@ -13,6 +13,8 @@ const { buildMenuTemplate, buildDiagnosticsText, resolveCommand, VIEWS } = requi
 const {
   StartupProfiler,
   buildBackendLaunchSpec,
+  recordUploadsDir,
+  resolveConfigPath,
   buildExportCommand,
   createPowerKeeper,
   getLegacyMcpStdioBinaryPath,
@@ -57,6 +59,7 @@ let powerKeeper = null;
 function startBackend() {
   profiler.mark('backend-spawn-start');
   return new Promise((resolve, reject) => {
+    const configPath = resolveConfigPath(process.env, app.getPath('home'));
     const spec = buildBackendLaunchSpec({
       isPackaged: app.isPackaged,
       platform: process.platform,
@@ -66,9 +69,10 @@ function startBackend() {
       baseEnv: process.env,
       exportCommand: buildExportCommand({ isPackaged: app.isPackaged, execPath: process.execPath, desktopDir: __dirname }),
       devPythonExists: fs.existsSync(path.join(__dirname, '..', 'server', '.venv', 'bin', 'python')),
-      configPath: path.join(app.getPath('home'), '.kanban-board', 'config.json'),
+      configPath,
       apiSecret,
     });
+    recordUploadsDir(configPath, spec.options.env.KANBAN_UPLOADS_DIR);
 
     // Strip macOS quarantine attribute from packaged binary so it can be spawned
     if (process.platform === 'darwin' && app.isPackaged) {
