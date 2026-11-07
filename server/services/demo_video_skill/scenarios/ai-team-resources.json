@@ -118,8 +118,8 @@
   },
   {
    "kind": "app",
-   "cap": "Restart: Claude Code chạy lại trong cùng run",
-   "say": "Bấm Restart rồi xác nhận: Claude Code chạy lại ngay trong run đó, bộ nhớ được giải phóng.",
+   "cap": "Restart: Claude Code chạy lại trong cùng run, tiếp tục cuộc trò chuyện",
+   "say": "Bấm Restart rồi xác nhận: Claude Code chạy lại ngay trong run đó và tiếp tục cuộc trò chuyện cũ, bộ nhớ được giải phóng.",
    "steps": [
     {
      "do": "spot"
