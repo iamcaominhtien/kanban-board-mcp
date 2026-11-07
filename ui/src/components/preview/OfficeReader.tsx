@@ -170,12 +170,15 @@ function SlidesView({
               aria-label={`Slide ${i + 1}`}
             >
               <span>{i + 1}</span>
-              <span className={styles.slideThumbTitle}>{s.title || s.lines[0] || 'Slide'}</span>
+              <span className={styles.slideThumbTitle} title={s.title || s.lines[0]}>
+                {s.title || s.lines[0] || 'Slide'}
+              </span>
             </button>
           ))}
         </div>
         <div className={styles.slideMain}>
           <div className={styles.slideCard}>
+            {slide.kicker && <div className={styles.slideKicker}>{slide.kicker}</div>}
             <h2>{slide.title || `Slide ${at + 1}`}</h2>
             <ul>
               {slide.lines.map((l, i) => (

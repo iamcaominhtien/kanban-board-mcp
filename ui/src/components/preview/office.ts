@@ -13,6 +13,8 @@ export type WordBlock =
 /** One slide of a presentation: its text and speaker notes. */
 export interface Slide {
   title: string;
+  /** A short label above the title ("THE PROBLEM"), when the slide has one. */
+  kicker?: string;
   lines: string[];
   notes: string;
 }
@@ -115,7 +117,8 @@ export function parseDocx(bytes: Uint8Array): WordBlock[] {
 }
 
 /**
- * Read a .pptx as text per slide plus speaker notes. Slide pictures need a converter, so this is the outline view.
+ * Read a .pptx as text per slide plus speaker notes. Slide pictures need a converter, so this is the outline view. A slide
+ * without a title placeholder gets the biggest text as its title; repeated footers and page numbers are left out.
  * @param bytes - The file.
  */
 export function parsePptx(bytes: Uint8Array): Slide[] {
@@ -140,20 +143,44 @@ export function parsePptx(bytes: Uint8Array): Slide[] {
     }
     notes.set(num(n), lines.join('\n'));
   }
-  return slideNames.map((n) => {
+  // Every paragraph of every slide with its biggest font size (in 1/100 pt; 0 = inherited from the layout).
+  const sizeOf = (p: Element) =>
+    Math.max(0, ...Array.from(p.getElementsByTagNameNS('*', 'rPr')).map((r) => Number(r.getAttribute('sz')) || 0));
+  type Para = { text: string; size: number; placeholderTitle: boolean };
+  const perSlide: Para[][] = slideNames.map((n) => {
     const doc = xml(files[n]);
-    let title = '';
-    const lines: string[] = [];
+    const paras: Para[] = [];
     for (const sp of Array.from(doc?.getElementsByTagNameNS('*', 'sp') ?? [])) {
       const ph = Array.from(sp.getElementsByTagNameNS('*', 'ph'))[0];
-      const isTitle = ph && /title|ctrTitle/i.test(ph.getAttribute('type') ?? '');
+      const placeholderTitle = !!ph && /title|ctrTitle/i.test(ph.getAttribute('type') ?? '');
       for (const p of Array.from(sp.getElementsByTagNameNS('*', 'p'))) {
-        const t = runText(p).trim();
-        if (!t) continue;
-        if (isTitle && !title) title = t;
-        else lines.push(t);
+        const text = runText(p).trim();
+        if (text) paras.push({ text, size: sizeOf(p), placeholderTitle });
       }
     }
-    return { title, lines, notes: notes.get(num(n)) ?? '' };
+    return paras;
+  });
+  // What every slide repeats (a footer, a deck name) or numbers (a page number) is not the slide's own text.
+  const seen = new Map<string, number>();
+  for (const paras of perSlide) for (const t of new Set(paras.map((q) => q.text))) seen.set(t, (seen.get(t) ?? 0) + 1);
+  const repeated = (t: string) => perSlide.length >= 4 && t.length >= 3 && (seen.get(t) ?? 0) >= perSlide.length * 0.6;
+  // A big number ("12", "50%") is a figure to look at, not a title.
+  const figure = (t: string) => t.length <= 6 && /^[\d\s.,:%+\-–×x/]+$/i.test(t);
+
+  return perSlide.map((all, index) => {
+    const paras = all.filter((q) => !repeated(q.text) && !(figure(q.text) && Number(q.text) === index + 1));
+    // A deck made without title placeholders (most generated ones): the title is the biggest text that is not a figure.
+    let at = paras.findIndex((q) => q.placeholderTitle);
+    if (at < 0) {
+      const best = Math.max(0, ...paras.filter((q) => !figure(q.text)).map((q) => q.size));
+      at = paras.findIndex((q) => !figure(q.text) && q.size === best);
+    }
+    const title = at >= 0 ? paras[at].text : '';
+    // A short, smaller line just before the title is its label ("THE PROBLEM"), shown above it.
+    const before =
+      at > 0 ? paras.findIndex((q, i) => i < at && q.size > 0 && q.size < paras[at].size && q.text.length <= 40) : -1;
+    const kicker = before >= 0 ? paras[before].text : '';
+    const lines = paras.filter((_, i) => i !== at && i !== before).map((q) => q.text);
+    return { title, kicker, lines, notes: notes.get(num(slideNames[index])) ?? '' };
   });
 }

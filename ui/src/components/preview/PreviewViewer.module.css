@@ -275,6 +275,10 @@
 .stage[data-kind='pdf'] .navPrev {
   left: 132px;
 }
+/* so has the slide outline (its rail is 170px wide) */
+.stage[data-kind='powerpoint'] .navPrev {
+  left: 182px;
+}
 
 /* ── Thumbnail strip ──────────────────────────────────── */
 .strip {
@@ -1252,6 +1256,13 @@
   margin: 0 0 12px;
   font-size: 22px;
 }
+.slideKicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pv-muted);
+}
 .slideNotes {
   width: min(720px, 100%);
   color: var(--pv-muted);
@@ -1326,5 +1337,9 @@
   .pdfRail,
   .slideRail {
     display: none;
+  }
+  /* no rail on a phone: the arrow goes back to the edge */
+  .stage[data-kind='powerpoint'] .navPrev {
+    left: 10px;
   }
 }
