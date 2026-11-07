@@ -26,6 +26,7 @@ import { CalendarIcon } from './schedules/schedulesUi';
 import { useScheduleList } from '../api/schedules';
 import { TicketCard } from './TicketCard';
 import { ParentGroupLinks } from './ParentGroupLinks';
+import { StoryLanes, readGroupByStory, statusOfDropId, writeGroupByStory } from './StoryLanes';
 import styles from './Board.module.css';
 import loadingStyles from './AppLoading.module.css';
 
@@ -199,6 +200,12 @@ export function Board({
   const [activeWidth, setActiveWidth] = useState<number | null>(null);
   // The target slot takes the lifted card's height, as the source ghost does (Drag & Drop 2)
   const [activeHeight, setActiveHeight] = useState<number | null>(null);
+  // Group by Story: off until someone turns it on, remembered per person
+  const [groupByStory, setGroupByStory] = useState(readGroupByStory);
+  const toggleGroupByStory = (on: boolean) => {
+    setGroupByStory(on);
+    writeGroupByStory(on);
+  };
   const activeTicket = allTickets.find((t) => t.id === activeTicketId) ?? null;
   const dragKind: 'reopen' | 'pending' | null = !activeTicket
     ? null
@@ -262,7 +269,8 @@ export function Board({
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    const status = over ? String(over.id) : '';
+    // A lane cell of the board grouped by Story is `lane:<lane>:<status>`
+    const status = over ? statusOfDropId(String(over.id)) : '';
     if (!over || !VALID_STATUSES.has(status)) {
       setActiveTicketId(null);
       return;
@@ -443,6 +451,8 @@ export function Board({
               fromIdeaCount={fromIdeaCount}
               filterFromIdea={filterFromIdea}
               onFilterFromIdeaChange={onFilterFromIdeaChange}
+              groupByStory={viewMode === 'board' ? groupByStory : undefined}
+              onGroupByStoryChange={toggleGroupByStory}
             />
           )}
         </div>
@@ -514,6 +524,18 @@ export function Board({
           <ListView tickets={tickets} members={members} onCardClick={onCardClick} />
         ) : viewMode === 'timeline' ? (
           <TimelineView tickets={tickets} projectId={projectId ?? ''} onCardClick={onCardClick} members={members} />
+        ) : groupByStory ? (
+          <StoryLanes
+            columns={COLUMNS}
+            tickets={tickets}
+            allTickets={allTickets}
+            onCardClick={onCardClick}
+            memberMap={memberMap}
+            onReopen={onReopen}
+            onPending={onPending}
+            onResume={onResume}
+            onDelete={onDelete}
+          />
         ) : (
           <div
             ref={columnsRef}
