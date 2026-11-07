@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Notice, StatePanel } from './StatePanel';
 import { AsyncBody } from './TextReader';
 import { useFileData } from './useFileData';
 import { OfficeError, parseDocx, parsePptx, type Slide, type WordBlock } from './office';
+import { pdfOfDeck } from './kinds';
+import type { PreviewItem } from './types';
 import type { ReaderProps } from './readerTypes';
 import styles from './PreviewViewer.module.css';
 
 const OFFICE_LIMIT = 40 * 1024 * 1024;
+const PdfReader = lazy(() => import('./PdfReader'));
 
 function Problem({ reason, name, actions }: { reason: OfficeError['reason']; name: string; actions: React.ReactNode }) {
   if (reason === 'protected')
@@ -133,11 +136,16 @@ function SlidesView({
   bytes,
   actions,
   onFacts,
+  pdf,
+  onShowPdf,
 }: {
   item: ReaderProps['item'];
   bytes: Uint8Array;
   actions: React.ReactNode;
   onFacts: ReaderProps['onFacts'];
+  /** The PDF of this deck found among the files shown with it. */
+  pdf?: PreviewItem;
+  onShowPdf: () => void;
 }) {
   const [at, setAt] = useState(0);
   const parsed = useMemo(() => {
@@ -155,9 +163,21 @@ function SlidesView({
   const slide = slides[Math.min(at, slides.length - 1)];
   return (
     <div className={styles.slidesReader}>
-      <Notice actions={actions}>
+      <Notice
+        actions={
+          <>
+            {pdf && (
+              <button type="button" className={styles.btn} onClick={onShowPdf} data-testid="show-deck-pdf">
+                View slides ({pdf.name})
+              </button>
+            )}
+            {actions}
+          </>
+        }
+      >
         <strong>Showing the outline.</strong> Slide pictures are not available here, so text and speaker notes are shown
         instead.
+        {pdf && ' A PDF of this deck is attached: it shows the slides as they look.'}
       </Notice>
       <div className={styles.slidesBody}>
         <div className={styles.slideRail} aria-label="Slides">
@@ -210,6 +230,27 @@ function SlidesView({
 /** Word (simplified reading view) and PowerPoint (slide outline with notes). Read only; nothing in the file runs. */
 export default function OfficeReader(props: ReaderProps & { which: 'word' | 'powerpoint' }) {
   const [state, retry] = useFileData(props.item.src, OFFICE_LIMIT);
+  const deckPdf = props.which === 'powerpoint' ? pdfOfDeck(props.item, props.related) : null;
+  // the deck's own PDF (same name) is shown at once; a PDF that only looks like its copy is offered
+  const [wantPdf, setWantPdf] = useState<boolean | null>(null);
+  const showPdf = !!deckPdf && (wantPdf ?? deckPdf.exact);
+  if (deckPdf && showPdf)
+    return (
+      <div className={styles.slidesReader}>
+        <Notice
+          actions={
+            <button type="button" className={styles.btn} onClick={() => setWantPdf(false)} data-testid="show-outline">
+              Show the outline
+            </button>
+          }
+        >
+          <strong>Showing {deckPdf.item.name}</strong>, the PDF of this deck: the slides as they look.
+        </Notice>
+        <Suspense fallback={<StatePanel tone="loading" title={`Opening ${deckPdf.item.name}…`} />}>
+          <PdfReader {...props} item={deckPdf.item as PreviewItem} />
+        </Suspense>
+      </div>
+    );
   return (
     <AsyncBody state={state} retry={retry} actions={props.actions} name={props.item.name}>
       {state.status === 'ready' &&
@@ -218,7 +259,14 @@ export default function OfficeReader(props: ReaderProps & { which: 'word' | 'pow
         ) : props.which === 'word' ? (
           <WordView item={props.item} bytes={state.bytes} actions={props.actions} onFacts={props.onFacts} />
         ) : (
-          <SlidesView item={props.item} bytes={state.bytes} actions={props.actions} onFacts={props.onFacts} />
+          <SlidesView
+            item={props.item}
+            bytes={state.bytes}
+            actions={props.actions}
+            onFacts={props.onFacts}
+            pdf={deckPdf?.item as PreviewItem | undefined}
+            onShowPdf={() => setWantPdf(true)}
+          />
         ))}
     </AsyncBody>
   );

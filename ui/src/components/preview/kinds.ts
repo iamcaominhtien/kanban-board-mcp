@@ -103,3 +103,26 @@ export function kindLabel(name: string, fallback: string): string {
   if (CODE.has(ext)) return languageLabel(name);
   return fallback;
 }
+
+/** A deck's name without its extension, its "-office-fonts" copy and case: "Deck-office-fonts.pptx" and "deck.pdf" share it. */
+const deckName = (name: string) =>
+  name
+    .replace(/\.[^.]+$/, '')
+    .toLowerCase()
+    .replace(/-office-fonts$/, '');
+
+/**
+ * The PDF that goes with a deck among the files shown with it. `exact` is the same file name with .pdf (the
+ * deck's own PDF); otherwise only the name of its Office-font copy matches, so the person is asked, not told.
+ */
+export function pdfOfDeck(
+  deck: { id: string; name: string },
+  related: { id: string; name: string }[] = [],
+): { item: (typeof related)[number]; exact: boolean } | null {
+  const pdfs = related.filter((it) => it.id !== deck.id && getFileExtension(it.name) === 'pdf');
+  const stem = (n: string) => n.replace(/\.[^.]+$/, '').toLowerCase();
+  const same = pdfs.find((it) => stem(it.name) === stem(deck.name));
+  if (same) return { item: same, exact: true };
+  const near = pdfs.find((it) => deckName(it.name) === deckName(deck.name));
+  return near ? { item: near, exact: false } : null;
+}
