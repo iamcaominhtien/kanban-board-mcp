@@ -1836,6 +1836,9 @@ class AiChat(SQLModel, table=True):
     summary: str = Field(default="")
     summary_upto: Optional[str] = Field(default=None)
     compactions: int = Field(default=0)
+    # The last time its owner had this chat open and in front of them (the page tells every ~15 s): a run that ends
+    # while it is fresh does not send an "AI finished" notice, the answer is on the screen
+    seen_at: Optional[str] = Field(default=None)
     created_at: str = Field(default_factory=_now_iso)
     updated_at: str = Field(default_factory=_now_iso)
 

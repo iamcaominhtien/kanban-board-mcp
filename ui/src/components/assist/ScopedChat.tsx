@@ -284,6 +284,25 @@ export function ScopedChat({
     if (!chatId && state?.chatId) setChatId(state.chatId);
   }, [chatId, state?.chatId]);
 
+  // While a ticket's chat is open and in front of the person, tell the board: a run their message started that ends
+  // now needs no "AI finished" notice, the answer is on their screen. A closed chat or a window nobody looks at
+  // does get the notice.
+  useEffect(() => {
+    if (!chatId || scope.kind !== 'ticket') return undefined;
+    const beat = () => {
+      if (document.visibilityState === 'visible' && document.hasFocus()) {
+        void assistApi.seen(chatId).catch(() => undefined);
+      }
+    };
+    beat();
+    const timer = setInterval(beat, 15_000);
+    window.addEventListener('focus', beat);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', beat);
+    };
+  }, [chatId, scope.kind]);
+
   const chat = useChat(chatId);
   const messages = chat.data?.messages ?? [];
   // how full the shared CLI conversation is, as of the newest answer that says so

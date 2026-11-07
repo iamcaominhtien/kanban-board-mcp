@@ -32,6 +32,7 @@ import database
 import events as board_events
 from models import (
     AiAccount,
+    AiChat,
     AiTeam,
     AiProjectSettings,
     AiRun,
@@ -1665,6 +1666,38 @@ async def _close_passed_question(
     await _resolve_rows(session, list(stale), f"Passed to {passed_to}", by)
 
 
+# The chat page tells the board every ~15 s while it is open and in front of the person (api `/ai/assist/chats/{id}/seen`);
+# a missed beat or two still counts as open.
+CHAT_OPEN_FOR = timedelta(seconds=45)
+
+
+async def _chat_in_front(session: AsyncSession, run: AiRun) -> bool:
+    """A run that a message in the ticket chat started ended while its person had that chat open and in front of
+    them (Chat open: the answer is on their screen, so "AI finished" would tell them what they are reading). The
+    notice stays for a chat that is closed, or in a window nobody looks at: the answer waits there."""
+    if (
+        run.state
+        != "finished"  # a failure or a timeout is a Needs you: the open chat does not make it less so
+        or run.trigger != "message"
+        or not run.ticket_id
+        or not run.started_by
+    ):
+        return False
+    chat = (
+        await session.exec(
+            select(AiChat).where(
+                AiChat.scope == "ticket",
+                AiChat.scope_id == run.ticket_id,
+                AiChat.owner == run.started_by,
+            )
+        )
+    ).first()
+    from services.ai.store import parse_iso
+
+    seen = parse_iso(chat.seen_at) if chat is not None else None
+    return seen is not None and datetime.now(UTC) - seen <= CHAT_OPEN_FOR
+
+
 async def on_run_ended(run_id: str) -> None:
     """A run ended: finished work (for information, grouped), failed or timed out (Needs you), or cancelled
     because its ticket was archived (for information). A scheduled run is told by its schedule instead."""
@@ -1676,6 +1709,14 @@ async def on_run_ended(run_id: str) -> None:
             member = await session.get(Member, run.member_id)
             name = member.name if member else _AN_AI_MEMBER
             keys = await _run_people(session, run)
+            if await _chat_in_front(session, run):
+                # the answer is on the screen of the person who asked: no notice for them; the others still hear
+                asker = set(
+                    await recipient_keys(session, run.project_id, [run.started_by])
+                )
+                keys = [k for k in keys if k not in asker]
+                if not keys:
+                    return
             notice = _run_end_notice(run, name)
             if notice is None:
                 return

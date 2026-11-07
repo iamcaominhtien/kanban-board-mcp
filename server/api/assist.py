@@ -209,6 +209,12 @@ async def patch_chat(chat_id: str, body: ChatPatch, session: Session) -> dict:
     return await svc_chat.detail(session, chat_id, _by())
 
 
+@router.post("/ai/assist/chats/{chat_id}/seen", status_code=204)
+async def chat_seen(chat_id: str, session: Session) -> None:
+    """The page tells the board that its owner has this chat open and in front of them."""
+    await svc_chat.mark_seen(session, chat_id, _by())
+
+
 @router.delete("/ai/assist/chats/{chat_id}", status_code=204)
 async def del_chat(chat_id: str, session: Session) -> None:
     """Delete a chat."""

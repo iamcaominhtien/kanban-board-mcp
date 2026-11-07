@@ -481,6 +481,14 @@ async def update_chat(
     return chat
 
 
+async def mark_seen(session: AsyncSession, chat_id: str, by: str) -> None:
+    """The owner has this chat open and in front of them now (the page tells every ~15 s)."""
+    chat = await _chat(session, chat_id, by)
+    chat.seen_at = now_iso()
+    session.add(chat)
+    await session.commit()
+
+
 async def delete_chat(session: AsyncSession, chat_id: str, by: str) -> None:
     """Delete a chat, its messages and its conversation."""
     chat = await _chat(session, chat_id, by)

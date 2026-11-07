@@ -188,6 +188,10 @@ export const assistApi = {
   deleteChat: async (id: string) => {
     await client.delete(`/ai/assist/chats/${id}`);
   },
+  /** Tell the board this chat is open and in front of its owner (every ~15 s): a run that ends meanwhile sends no "AI finished". */
+  seen: async (id: string) => {
+    await client.post(`/ai/assist/chats/${id}/seen`);
+  },
   /** The person's saved chat about one thing (created on first use), or a fresh one. Private to the asker. */
   scopeChat: async (scope: ChatScope, fresh = false) =>
     (await client.post<ChatDetail>(`/ai/scopes/${scope.kind}/${scope.id}/chat`, { fresh })).data,
