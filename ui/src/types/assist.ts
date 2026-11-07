@@ -79,6 +79,8 @@ export interface ContextSummary {
   cutShort?: boolean;
   /** Claude Code only: tokens the chat's CLI session holds after this answer, and the model's context window. */
   contextWindow?: { used: number; size: number };
+  /** The name of the AI team a message went to: its lead answers in the chat (a ticket with a team). */
+  team?: string;
   /** Set once the answer was posted as a comment. */
   posted?: { commentId: string; at: string; by: string };
 }

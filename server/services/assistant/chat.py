@@ -204,6 +204,106 @@ async def scope_chat(
     )
 
 
+async def ticket_team(session: AsyncSession, ticket_id: str) -> dict[str, Any] | None:
+    """The AI team that works a ticket: its AI assignee, else the team of its newest run. None: no team yet."""
+    from models import AiRun, Member
+    from services.ai.store import active_runs
+
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        return None
+    team = None
+    if ticket.assignee:
+        m = await session.get(Member, ticket.assignee)
+        team = m if (m is not None and m.kind == "ai") else None
+    if team is None:
+        last = (
+            await session.exec(
+                select(AiRun)
+                .where(AiRun.ticket_id == ticket_id)
+                .order_by(col(AiRun.queued_at).desc())
+                .limit(1)
+            )
+        ).first()
+        team = await session.get(Member, last.member_id) if last else None
+    if team is None:
+        return None
+    working = bool(await active_runs(session, ticket_id=ticket_id))
+    return {"id": team.id, "name": team.name, "working": working}
+
+
+TEAM_NOTE = (
+    "{by} writes to you in the ticket chat (chat message {mid}):\n\n{text}\n\n"
+    "Do what they ask. Answer them in the chat with ai_run(action='reply', message_id='{mid}', text='…'): short, in "
+    "Markdown. Then carry on with what you were doing: this message is not a reason to stop, hand in or change course, "
+    "unless {by} tells you to stop. If you were not working on anything, this message is the whole task."
+)
+
+
+async def reply_from_team(
+    ticket_id: str, text: str, *, member_id: str, message_id: str | None = None
+) -> dict[str, Any]:
+    """The lead's answer to a person's message in the ticket chat (`ai_run(action='reply')`): it fills the chat
+    message that waits for it (the one named, else the newest on this ticket)."""
+    text = (text or "").strip()
+    if not text:
+        raise ValueError("ai_run(action='reply') needs `text`.")
+    async with database.async_session() as session:
+        stmt = (
+            select(AiChatMessage)
+            .join(AiChat, AiChat.id == AiChatMessage.chat_id)
+            .where(
+                AiChat.scope == "ticket",
+                AiChat.scope_id == ticket_id,
+                AiChatMessage.role == "ai",
+                AiChatMessage.member_id == member_id,
+                col(AiChatMessage.state).in_(ACTIVE),
+            )
+            .order_by(col(AiChatMessage.created_at).desc())
+        )
+        if message_id:
+            stmt = stmt.where(AiChatMessage.id == message_id)
+        m = (await session.exec(stmt)).first()
+        if m is None:
+            raise ValueError(
+                "No message in this ticket's chat waits for an answer: write a comment with ticket_items instead."
+            )
+        m.text = text[:20000]
+        m.state = "done"
+        m.finished_at = now_iso()
+        session.add(m)
+        await session.commit()
+        mid = m.id
+    await board_events.publish(board_events.INVALIDATE)
+    return {"replied": True, "message_id": mid}
+
+
+async def settle_team_messages(session: AsyncSession, chat: AiChat) -> None:
+    """A message to the team that nobody answered, and the team has stopped: say so, so the chat does not wait forever."""
+    if chat.scope != "ticket" or not chat.scope_id:
+        return
+    from services.ai.store import active_runs
+
+    waiting = (
+        await session.exec(
+            select(AiChatMessage).where(
+                AiChatMessage.chat_id == chat.id,
+                AiChatMessage.role == "ai",
+                col(AiChatMessage.state).in_(ACTIVE),
+                col(AiChatMessage.member_id).is_not(None),
+            )
+        )
+    ).all()
+    if not waiting or await active_runs(session, ticket_id=chat.scope_id):
+        return
+    for m in waiting:
+        m.text = "The team stopped before it answered here. What it did is in its report on the ticket."
+        m.state = "done"
+        m.finished_at = now_iso()
+        session.add(m)
+    await session.commit()
+
+
 async def scope_state(
     session: AsyncSession, kind: str, scope_id: str, by: str
 ) -> dict[str, Any]:
@@ -285,6 +385,25 @@ async def scope_state(
             },
         ],
     }[kind]
+    members: list[dict[str, Any]] = []
+    member_id = None
+    if kind == "ticket":
+        team = await ticket_team(session, scope_id)
+        if team:
+            member_id = team["id"]
+            members = [
+                {
+                    "id": team["id"],
+                    "name": team["name"],
+                    "board_ai": False,
+                    "provider": "claude-code",
+                    "connection": "local",
+                    "metered": False,
+                    "ready": True,
+                    "status_code": None,
+                    "status": "Working on this ticket" if team["working"] else "Idle",
+                }
+            ]
     return {
         "scope": {
             "kind": kind,
@@ -300,8 +419,8 @@ async def scope_state(
             "draft_kinds": [],
         },
         "availability": availability,
-        "members": [],
-        "member_id": None,
+        "members": members,
+        "member_id": member_id,
         "estimate": None,
         "work": {"allowed": False, "estimate": None},
         "chat_id": chat.id if chat else None,
@@ -311,6 +430,7 @@ async def scope_state(
 async def detail(session: AsyncSession, chat_id: str, by: str) -> dict[str, Any]:
     """A chat with its messages."""
     chat = await _chat(session, chat_id, by)
+    await settle_team_messages(session, chat)
     rows = (
         await session.exec(
             select(AiChatMessage)
@@ -445,11 +565,38 @@ async def send(
     if first and chat.title in ("New chat", ""):
         chat.title = " ".join(text.split())[:60]
     chat.updated_at = now_iso()
+    team = (
+        await ticket_team(session, chat.scope_id)
+        if chat.scope == "ticket" and chat.scope_id and not files
+        else None
+    )
+    if team:
+        ai.member_id = team["id"]  # the team's lead answers, not the board's assistant
     session.add_all([user, ai, chat])
     await session.commit()
     await session.refresh(user)
     await session.refresh(ai)
-    spawn(ai.id, by, files=files)
+    if team:
+        from services.ai import runs as ai_runs
+
+        sent = await ai_runs.deliver_to_ticket(
+            chat.scope_id,
+            TEAM_NOTE.format(by=by, mid=ai.id, text=text),
+            by=by,
+        )
+        ai.context = json.dumps(
+            {
+                "scope": chat.scope,
+                "label": chat.title,
+                "team": team["name"],
+                "delivered": sent,
+            }
+        )
+        session.add(ai)
+        await session.commit()
+        await session.refresh(ai)
+    else:
+        spawn(ai.id, by, files=files)
     return {"user": msg_out(user), "ai": msg_out(ai)}
 
 

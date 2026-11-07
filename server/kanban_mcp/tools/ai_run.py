@@ -8,9 +8,9 @@ from pydantic import Field
 
 async def ai_run(
     action: Annotated[
-        Literal["ask", "message", "team", "runs", "report"],
+        Literal["ask", "message", "reply", "team", "runs", "report"],
         Field(
-            description="ask: a question for the person you work for (then stop). message: a note to a ticket's AI team or a Docs page. team: your team and its roles. runs: your team's runs. report: record a report early (the final JSON report is the usual way)."
+            description="ask: a question for the person you work for (then stop). message: a note to a ticket's AI team or a Docs page. reply: your answer to a person who wrote to you in the ticket chat (use the message id they gave). team: your team and its roles. runs: your team's runs. report: record a report early (the final JSON report is the usual way)."
         ),
     ],
     question: Annotated[
@@ -27,7 +27,12 @@ async def ai_run(
         Field(description="message: a ticket key (IAM-12) or docs:<page id>."),
     ] = None,
     text: Annotated[
-        str | None, Field(description="message: the note, Markdown.")
+        str | None,
+        Field(description="message / reply: the note or the answer, Markdown."),
+    ] = None,
+    message_id: Annotated[
+        str | None,
+        Field(description="reply: the chat message id the person's message gave you."),
     ] = None,
     report: Annotated[
         dict[str, Any] | None,
@@ -64,6 +69,14 @@ async def ai_run(
                 "That is your own ticket: write a comment with ticket_items instead."
             )
         return await runs.deliver_to_ticket(target, body, by=ctx.member_name)
+    if action == "reply":
+        from services.assistant import chat as ticket_chat
+
+        if not ctx.ticket_id:
+            raise ValueError("ai_run(action='reply') is for a run on a ticket.")
+        return await ticket_chat.reply_from_team(
+            ctx.ticket_id, text or "", member_id=ctx.member_id, message_id=message_id
+        )
     if action == "team":
         from services.ai import teams
 

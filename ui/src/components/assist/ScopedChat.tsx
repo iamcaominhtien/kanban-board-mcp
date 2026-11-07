@@ -5,7 +5,6 @@ import { extractError } from '../../api/extractError';
 import type { AssistDraft, ChatMessage, ChatScope, ScopeMember, ScopeState, StartingPoint } from '../../types/assist';
 import { AiAvatar, SparkleIcon, useAiBoardState } from '../ai/aiUi';
 import { AnswerBlock, type AnswerPanel } from './AnswerBlock';
-import { usd } from './assistUi';
 import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
@@ -41,14 +40,6 @@ export interface ScopedChatProps {
 }
 
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
-
-function costLine(state: ScopeState | undefined, mode: 'ask' | 'work'): string {
-  const est = mode === 'work' ? state?.work.estimate : state?.estimate;
-  if (!est) return '';
-  if (!est.metered) return 'Not metered';
-  const usdText = est.usd == null ? '' : est.usd < 0.01 ? 'less than $0.01' : usd(est.usd, 2);
-  return mode === 'work' ? `About ${usdText} or more, up to its limits` : `About ${usdText} per answer`;
-}
 
 /** The small icon of a "Reading" chip, as the design draws it (Description, comments, linked Docs, branch). */
 const CHIP_ICONS: Record<string, ReactNode> = {
@@ -246,7 +237,6 @@ export function ScopedChat({
   const [chatId, setChatId] = useState<string | null>(null);
   const [tab, setTab] = useState<'chat' | 'runs'>('chat');
   const size = useResizablePanel(`chat-${scope.kind}`, 400, { min: 340 });
-  const [mode, setMode] = useState<'ask' | 'work'>('ask');
   const [memberId, setMemberId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -261,7 +251,6 @@ export function ScopedChat({
   // a different ticket or idea is a different conversation
   useEffect(() => {
     setChatId(null);
-    setMode('ask');
     setMemberId(null);
     setText('');
     setError(null);
@@ -289,7 +278,6 @@ export function ScopedChat({
   const availability = state?.availability;
   const canAsk = availability?.code === 'ok';
   const chosen = memberId ?? state?.memberId ?? null;
-  const workOk = !!state?.work.allowed && canAsk;
   const info = state?.scope;
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: assistKeys.scope(scope.kind, scope.id) });
@@ -297,10 +285,9 @@ export function ScopedChat({
   };
 
   /** Sends one message; true once the server has it. */
-  const send = async (raw: string, opts?: { draft?: boolean; mode?: 'ask' | 'work' }): Promise<boolean> => {
+  const send = async (raw: string, opts?: { draft?: boolean }): Promise<boolean> => {
     const q = raw.trim();
     if (!q || sending || !canAsk) return false;
-    const how = opts?.mode ?? mode;
     setSending(true);
     setError(null);
     try {
@@ -310,13 +297,9 @@ export function ScopedChat({
         id = c.id;
         setChatId(id);
       }
-      await assistApi.send(id, { text: q, draft: opts?.draft, mode: how, memberId: chosen });
+      await assistApi.send(id, { text: q, draft: opts?.draft, mode: 'ask', memberId: chosen });
       setText('');
-      setMode('ask'); // Do the work is chosen on purpose, once
       await qc.invalidateQueries({ queryKey: assistKeys.chat(id) });
-      if (how === 'work') {
-        await qc.invalidateQueries({ queryKey: ['ai'] });
-      }
       return true;
     } catch (e) {
       const body = assistError(e);
@@ -355,7 +338,9 @@ export function ScopedChat({
   const points = [...(startingPoints ?? []), ...(info?.startingPoints ?? [])];
   const reading = info?.reading ?? [];
   const placeholder = info?.placeholder ?? 'Ask…';
-  const memberName = state?.members.find((m) => m.id === chosen)?.name ?? 'the AI';
+  const team = state?.members.find((m) => m.id === chosen);
+  const memberName = team?.name ?? 'the AI';
+  const teamWorking = !!team && team.status.startsWith('Working');
   const runsHere = !!runsTab;
   const sizing = panelSizing(size);
 
@@ -452,9 +437,10 @@ export function ScopedChat({
             )}
             {state && !messages.length && canAsk && (
               <div className="sc-welcome" data-testid="chat-welcome">
-                <div className="ai-hint" style={{ fontSize: 13 }}>
-                  I read {info?.title ?? 'this'} and what is listed above. I propose changes as drafts and never change
-                  anything until you press Add or Apply.
+                <div className="ai-hint" style={{ fontSize: 13 }} data-testid="chat-hint">
+                  {team
+                    ? `Write to ${memberName}, the team on this ticket. Working, it reads your message at its next step, answers here and carries on; idle, your message is its next task.`
+                    : `I read ${info?.title ?? 'this'} and what is listed above. I propose changes as drafts and never change anything until you press Add or Apply.`}
                 </div>
                 {points.length > 0 && <div className="as-label">Try asking</div>}
                 {points.map((p) => (
@@ -463,7 +449,7 @@ export function ScopedChat({
                     type="button"
                     className="as-action"
                     style={{ justifyContent: 'flex-start' }}
-                    onClick={() => void send(p.request, { draft: p.draft, mode: 'ask' })}
+                    onClick={() => void send(p.request, { draft: p.draft })}
                   >
                     <LineIcon name={p.draft ? 'edit' : 'chat'} size={13} /> {p.label}
                   </button>
@@ -483,7 +469,7 @@ export function ScopedChat({
                     chat={chat.data!}
                     state={undefined}
                     panel={panel}
-                    onSend={(t, o) => void send(t, { draft: o?.draft, mode: 'ask' })}
+                    onSend={(t, o) => void send(t, { draft: o?.draft })}
                   />
                 ),
               )}
@@ -498,43 +484,17 @@ export function ScopedChat({
             ) : (
               <>
                 <div className="sc-modebar">
-                  <div className="sc-mode" role="radiogroup" aria-label="What the AI should do">
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={mode === 'ask'}
-                      className={mode === 'ask' ? 'sc-mode-on' : ''}
-                      onClick={() => setMode('ask')}
-                      data-testid="chat-mode-ask"
-                    >
-                      Ask only
-                    </button>
-                    {info?.work && (
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={mode === 'work'}
-                        className={mode === 'work' ? 'sc-mode-on sc-mode-work' : ''}
-                        disabled={!workOk}
-                        title={workOk ? undefined : 'Start a run needs an AI member that can work on this ticket'}
-                        onClick={() => setMode('work')}
-                        data-testid="chat-mode-work"
-                      >
-                        Do the work
-                      </button>
-                    )}
-                  </div>
-                  <span style={{ flex: 1 }} />
-                  <span className="ai-muted" data-testid="chat-private">
-                    Private to you
-                  </span>
+                  {team ? (
+                    <span className="ai-muted" data-testid="chat-team-note">
+                      To {memberName}
+                      {teamWorking ? ': it answers here and keeps working unless you tell it to stop' : ''}
+                    </span>
+                  ) : (
+                    <span className="ai-muted" data-testid="chat-private">
+                      Private to you
+                    </span>
+                  )}
                 </div>
-                {mode === 'work' && (
-                  <div className="sc-worknote" data-testid="chat-work-note">
-                    Starts a run of <b>{memberName}</b> on {scope.id} with your message as the instruction. Same limits
-                    as an assignment: it stops at Review and asks you before risky steps.
-                  </div>
-                )}
                 <ReplyTray
                   replies={quotes.replies}
                   focusId={quotes.focusId}
@@ -563,28 +523,24 @@ export function ScopedChat({
                     type="button"
                     className="as-send"
                     disabled={!canAsk || sending || !outgoing.trim()}
-                    aria-label={mode === 'work' ? 'Start a run' : 'Send'}
-                    title={mode === 'work' ? 'Start a run' : 'Send'}
+                    aria-label="Send"
+                    title="Send"
                     data-testid="chat-send"
                     onClick={() => void sendComposed()}
                   >
-                    {mode === 'work' ? (
-                      <LineIcon name="play" size={14} />
-                    ) : (
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M4 12l16-8-6 16-3-7-7-1z" />
-                      </svg>
-                    )}
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 12l16-8-6 16-3-7-7-1z" />
+                    </svg>
                   </button>
                 </div>
                 {error && (
@@ -593,7 +549,6 @@ export function ScopedChat({
                   </div>
                 )}
                 <div className="sc-foot">
-                  <span data-testid="chat-cost">{costLine(state, mode)}</span>
                   {sessionFill && <ContextMeter used={sessionFill.used} size={sessionFill.size} inline />}
                   <span style={{ flex: 1 }} />
                   <span>

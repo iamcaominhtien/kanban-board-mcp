@@ -13,7 +13,7 @@ function TicketRunsList({ ticketId, onOpenRun }: { ticketId: string; onOpenRun: 
   if (!runs.length)
     return (
       <div className="ai-muted" data-testid="chat-runs-empty">
-        No AI has worked on this ticket yet. Choose <b>Do the work</b> in the chat to start a run.
+        No AI team has worked on this ticket yet. Assign it to a team, or use <b>Run</b>.
       </div>
     );
   return (

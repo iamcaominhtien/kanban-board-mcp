@@ -199,7 +199,7 @@ export const assistApi = {
       sendAll?: boolean;
       docIds?: string[];
       filters?: Record<string, unknown>;
-      /** "ask" only answers (the default); "work" starts a run on the chat's ticket. */
+      /** Kept for the old API shape: the chat no longer has modes (a ticket's team answers, the assistant answers otherwise). */
       mode?: 'ask' | 'work';
       memberId?: string | null;
       memberForm?: Record<string, unknown>;

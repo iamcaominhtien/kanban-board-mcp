@@ -99,7 +99,18 @@ export function AnswerBlock({
   const usingTool = lastStep.startsWith('Using ');
 
   let body;
-  if (msg.state === 'thinking' || msg.state === 'queued') {
+  if ((msg.state === 'thinking' || msg.state === 'queued') && ctxInfo.team) {
+    // a message to the team: its lead answers here when it reaches it, and keeps working meanwhile
+    body = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="answer-waiting-team">
+        <div style={{ fontWeight: 700, fontSize: 13 }}>Waiting for {ctxInfo.team}…</div>
+        <div className="ai-muted">
+          It reads your message at its next step, answers here and carries on with its work. Tell it to stop if you want
+          it to.
+        </div>
+      </div>
+    );
+  } else if (msg.state === 'thinking' || msg.state === 'queued') {
     const slow = elapsed >= SLOW_AFTER_S && !keepWaiting;
     body = (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="answer-thinking">

@@ -315,6 +315,8 @@ def board_rules(
             "Ask a person with ai_run(action='ask') and stop; the board resumes you with the answer."
             + (" Messages people send you arrive while you work." if live else ""),
             "Send a note to another ticket's AI or to a Docs page with ai_run(action='message').",
+            "A person may write to you in the ticket chat while you work. Do what they ask, answer them there with",
+            "ai_run(action='reply', message_id=…, text=…) and carry on with your work; stop only if they tell you to stop.",
             "",
             "Where the work goes: writing for people that is the result of the work (research, a comparison, a spec,",
             "a decision, a guide) is a Docs page linked to the ticket, never a Markdown file in the folder, unless the",

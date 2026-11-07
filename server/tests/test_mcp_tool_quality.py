@@ -194,8 +194,8 @@ async def test_the_tool_list_stays_compact():
         )
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    # AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is five actions
-    # (ask, message, team, runs, report). Measured after that: 49,074 / 51,904 characters. The bounds
+    # AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is six actions
+    # (ask, message, reply, team, runs, report). Measured after that: 49,074 / 51,904 characters. The bounds
     # leave about 3 % of room; raise them on purpose, with what was added, never by reflex.
     assert default < 50_500, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
@@ -255,7 +255,14 @@ async def test_schema_enums_match_the_services():
         ("docs_write", {**DOCS_WRITE_OPS, **dict.fromkeys(DOCS_WRITE_COMPOSITE)}),
     ):
         assert enum(tool, "action") == set(table), tool
-    assert enum("ai_run", "action") == {"ask", "message", "team", "runs", "report"}
+    assert enum("ai_run", "action") == {
+        "ask",
+        "message",
+        "reply",
+        "team",
+        "runs",
+        "report",
+    }
     pairs = set(ITEM_OPS)
     assert enum("ticket_items", "item") == {i for i, _ in pairs}
     assert enum("ticket_items", "action") == {a for _, a in pairs}
