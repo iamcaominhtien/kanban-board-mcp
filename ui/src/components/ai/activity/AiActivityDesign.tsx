@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { Resources, RestartNotice } from './Resources';
 import { RunCard } from './RunCard';
 import { RunHistoryTable } from './RunHistoryTable';
@@ -54,21 +55,30 @@ export function AiActivityDesign({
   );
 }
 
-/** The run panel and the table of runs, as the canvas design draws them: the ticket's AI tab, opened by Open run. */
+/**
+ * The run panel and the table of runs, as the canvas design draws them: the ticket's AI tab, opened by Open run. The
+ * panel shows the newest run; a click on a row of the table shows that run instead (any run, from its first step).
+ */
 export function AiRunPanelDesign({ ticket }: { ticket: Ticket }) {
+  const runs = (useTicketRuns(ticket.id).data ?? []).filter((r) => r.kind === 'team');
+  const [picked, setPicked] = useState<string | null>(null);
+  const panelTop = useRef<HTMLDivElement>(null);
+  // a run that is gone (another ticket, a deleted run) falls back to the newest
+  const shown = runs.find((r) => r.id === picked) ?? runs[0];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 2px' }} data-testid="ai-run-panel">
-      <NewestRunPanel ticketId={ticket.id} />
+      <div ref={panelTop}>{shown && <RunPanel key={shown.id} runId={shown.id} />}</div>
       <div style={{ overflowX: 'auto' }}>
-        <RunHistoryTable ticket={ticket} />
+        <RunHistoryTable
+          ticket={ticket}
+          selectedId={shown?.id}
+          onSelect={(id) => {
+            setPicked(id);
+            // the panel is above the table: bring it into view so the click shows something
+            panelTop.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+          }}
+        />
       </div>
     </div>
   );
-}
-
-/** The ticket's newest run in full (a click in the table below picks another one). */
-function NewestRunPanel({ ticketId }: { ticketId: string }) {
-  const runs = (useTicketRuns(ticketId).data ?? []).filter((r) => r.kind === 'team');
-  if (!runs.length) return null;
-  return <RunPanel key={runs[0].id} runId={runs[0].id} />;
 }

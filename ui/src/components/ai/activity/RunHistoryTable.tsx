@@ -141,7 +141,17 @@ function ChangeCell({ ticket, run }: { ticket: Ticket; run: AiRun }) {
  * The ticket's runs as a table, in the canvas design's look ("5. Run history for KAN-142"): number, team, who started
  * it and when, state, time, usage and what the run did to the ticket's column.
  */
-export function RunHistoryTable({ ticket }: { ticket: Ticket }) {
+export function RunHistoryTable({
+  ticket,
+  selectedId,
+  onSelect,
+}: {
+  ticket: Ticket;
+  /** The run the panel above shows, marked in the table. */
+  selectedId?: string;
+  /** A click on a row asks the panel to show that run. */
+  onSelect?: (runId: string) => void;
+}) {
   const runs = (useTicketRuns(ticket.id).data ?? []).filter((r) => r.kind === 'team');
   const { members } = useAiBoardState();
   const now = useNow(
@@ -164,8 +174,28 @@ export function RunHistoryTable({ ticket }: { ticket: Ticket }) {
           return (
             <div
               key={r.id}
-              style={{ ...ROW, borderBottom: '1px solid #EEF3EF', background: i % 2 ? '#FBFDFC' : undefined }}
+              style={{
+                ...ROW,
+                borderBottom: '1px solid #EEF3EF',
+                background: r.id === selectedId ? '#EAF4EC' : i % 2 ? '#FBFDFC' : undefined,
+                cursor: onSelect ? 'pointer' : undefined,
+              }}
               data-testid="run-history-item"
+              data-selected={r.id === selectedId ? 'true' : undefined}
+              role={onSelect ? 'button' : undefined}
+              tabIndex={onSelect ? 0 : undefined}
+              aria-label={onSelect ? `Show run #${r.number}` : undefined}
+              onClick={onSelect ? () => onSelect(r.id) : undefined}
+              onKeyDown={
+                onSelect
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelect(r.id);
+                      }
+                    }
+                  : undefined
+              }
             >
               <span
                 style={{
