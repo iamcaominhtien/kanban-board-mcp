@@ -32,6 +32,10 @@ DEFAULT_DENY = [
     "Bash(git push --force*)",
     "Bash(git push -f *)",
     "Bash(git push -f)",
+    # the flag after the remote and the branch: `git push origin main --force`
+    "Bash(git push * --force*)",
+    "Bash(git push * -f)",
+    "Bash(git push * -f *)",
     "Bash(rm -rf /*)",
     "Bash(rm -rf ~*)",
 ]

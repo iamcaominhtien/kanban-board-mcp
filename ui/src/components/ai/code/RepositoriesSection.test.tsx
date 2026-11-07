@@ -241,24 +241,6 @@ describe('RepositoriesSection settings', () => {
     );
   });
 
-  it('toggles per-run configuration when worktrees are off, and locks it on when they are on', async () => {
-    setup({ ops: { worktrees: { on: false }, perRunConfig: false } });
-    const { unmount } = renderIt();
-    const sw = await screen.findByTestId('wt-per-run');
-    expect(sw.getAttribute('aria-checked')).toBe('false');
-    fireEvent.click(sw);
-    await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', { ops: { perRunConfig: true } }),
-    );
-    unmount();
-    setup({ ops: { worktrees: { on: true } } });
-    renderIt();
-    const locked = await screen.findByTestId('wt-per-run');
-    expect(locked.getAttribute('aria-checked')).toBe('true');
-    expect((locked as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/Always on while worktrees are on/)).toBeTruthy();
-  });
-
   it('shows the error when a save fails', async () => {
     setup({ ops: { worktrees: { on: false } } });
     http.patch.mockRejectedValue({ response: { data: { detail: 'read-only' } } });

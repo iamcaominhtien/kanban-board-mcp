@@ -1087,7 +1087,6 @@ def _group_title(kind: str, items: list[dict], count: int) -> str:
 
 
 def _group_body(items: list[dict], count: int | None = None) -> str:
-
     total = count or len(items)
     if total > GROUP_NAMES_MAX:
         return f"{total} in 10 minutes"

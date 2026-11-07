@@ -5,9 +5,6 @@ import { client } from './client';
  * What a project says about how its AI team runs (`ops` of GET /projects/{id}/ai/settings, over the defaults). Known keys only; the server keeps nothing else. Cards for other settings reuse this module.
  */
 export interface ProjectOps {
-  hangAfterMin: number;
-  diagnoseWithModel: boolean;
-  proposeLessons: boolean;
   lessonsInPrompt: number;
   /** A run keeps its own notes (its role's, and on its ticket) and reads them back (issue #274). */
   aiNotes?: boolean;
@@ -17,23 +14,6 @@ export interface ProjectOps {
   checksOff?: string[];
   /** Extra folders put in front of the PATH for everything this project runs. */
   envPath?: string[];
-  /** A workflow template key, or "" for none. */
-  workflowDefault?: string | null;
-  /** The PM member that arbitrates and runs the team; null: the first PM. */
-  coordinatorId?: string | null;
-  /** The Triage that takes new tickets; null: any member with the Triage role. */
-  triageId?: string | null;
-  /** New tickets in `status`, assigned to nobody, are taken by the team (`since`: when it was turned on). */
-  intake?: { on?: boolean; status?: string; since?: string | null };
-  /** How far the team goes without a person: Done is a person's move, or the board's once everything passed; the
-   * step that waits for a person before the last one (the design) is approved by a person or by the PM. */
-  autonomy?: { done?: 'person' | 'after_review'; approve?: 'person' | 'pm' };
-  /** The coordinator runs the team: what it may decide before a person is asked. */
-  manager?: { on?: boolean; graceMin?: number; maxRisk?: 'low' | 'medium' | 'high'; perHourLimit?: number };
-  /** A Dev step hands in a failing test run and a passing one. */
-  tdd?: { required?: boolean };
-  /** Tokens one ticket's workflow may use before it stops for a person; 0: no cap. */
-  ticketTokenCap?: number;
   /** A message reaches a running AI at its next turn (off: at its next board call). */
   liveMessages?: boolean;
   knowledgeShared?: boolean;
@@ -59,9 +39,6 @@ export const opsKeys = { project: (projectId: string) => ['ai', 'ops', projectId
 
 /** What a project that never touched the settings reads (mirrors server/services/ai/ops.py DEFAULTS). */
 export const OPS_DEFAULTS: ProjectOps = {
-  hangAfterMin: 10,
-  diagnoseWithModel: true,
-  proposeLessons: true,
   lessonsInPrompt: 20,
   aiNotes: true,
   worktrees: { on: false, repo: null, prepare: '', basePort: 5180, handover: 'auto', baseBranch: null },

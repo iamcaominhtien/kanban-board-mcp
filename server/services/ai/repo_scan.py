@@ -1573,7 +1573,7 @@ async def apply(session, scan_id: str, choice: dict, *, by: str) -> dict:
     """Create what the person confirmed: the members from packs, the project's settings, the plugins.
 
     `choice` is the suggestion as the person edited it: {team: [{pack, name}], commands, prepare, base_port,
-    workflow_default, handover, worktrees, plugins: [catalogue keys], account_id, env_path: [folders],
+    handover, worktrees, plugins: [catalogue keys], account_id, env_path: [folders],
     checks_off: [commands saved but not checks yet]}. `create_member(body)` makes one AI
     member through the member service and returns it.
     """
@@ -1593,7 +1593,6 @@ async def apply(session, scan_id: str, choice: dict, *, by: str) -> dict:
             for p in (choice.get("env_path") or [])
             if str(p or "").strip()
         ],
-        "workflow_default": choice.get("workflow_default") or "standard",
         "worktrees": {
             "on": bool(choice.get("worktrees")),
             "repo": row.folder,

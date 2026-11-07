@@ -93,7 +93,7 @@ async def test_creating_a_team_and_running_it_leave_audit_entries(env):  # noqa:
 
 def test_get_reads_the_defaults_for_a_project_that_never_set_any():
     out = ops.get(None)
-    assert out["worktrees"]["on"] is False and out["hang_after_min"] == 10
+    assert out["worktrees"]["on"] is False and out["live_messages"] is True
     assert ops.get(AiProjectSettings(project_id="p", ops="not json")) == out
     assert ops.get(AiProjectSettings(project_id="p", ops="[1, 2]")) == out
     out["worktrees"]["on"] = True  # a copy: the defaults are not touched
@@ -103,9 +103,9 @@ def test_get_reads_the_defaults_for_a_project_that_never_set_any():
 def test_update_merges_nested_keys_and_ignores_unknown_ones():
     s = AiProjectSettings(project_id="p")
     ops.update(s, {"worktrees": {"on": True, "prepare": "uv sync"}, "bogus": 1})
-    full = ops.update(s, {"worktrees": {"base_port": 6000}, "hang_after_min": 3})
+    full = ops.update(s, {"worktrees": {"base_port": 6000}, "live_messages": False})
     assert full["worktrees"]["on"] is True and full["worktrees"]["prepare"] == "uv sync"
-    assert full["worktrees"]["base_port"] == 6000 and full["hang_after_min"] == 3
+    assert full["worktrees"]["base_port"] == 6000 and full["live_messages"] is False
     assert full["worktrees"]["handover"] == "auto"  # a default under the stored keys
     stored = json.loads(s.ops)
     assert "bogus" not in stored and stored["worktrees"]["base_port"] == 6000

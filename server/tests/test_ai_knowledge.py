@@ -118,8 +118,6 @@ def test_the_digest_keeps_commands_errors_and_words():
     assert "tool Bash: npm test" in text
     assert "error: watch mode never ends" in text
     assert "[board] Stopped" in text
-    assert knowledge.parse_proposal('{"lesson": "  a  b  "}') == "a b"
-    assert knowledge.parse_proposal("nothing") is None
 
 
 async def test_a_light_model_that_never_answers_is_stopped(env, monkeypatch, tmp_path):

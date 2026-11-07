@@ -138,7 +138,6 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
     }
   };
   const repoName = wt.repo || 'the member’s working folder';
-  const perRun = on ? true : !!ops.data.perRunConfig;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="repositories-section">
@@ -298,23 +297,6 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
           changeNote="Saved for this project. The next run of a command or a ticket uses it."
           disabled={patch.isPending}
         />
-        <div className="ai-divider" />
-        <Row
-          title="Load each member's configuration per run"
-          hint={
-            on
-              ? 'Always on while worktrees are on: nothing is written into the repository.'
-              : 'Skills, hooks and MCP servers are passed when a run starts instead of being written into the member’s folder.'
-          }
-        >
-          <Toggle
-            on={perRun}
-            label="Load each member's configuration per run"
-            testId="wt-per-run"
-            disabled={on || patch.isPending}
-            onChange={(v) => void save({ perRunConfig: v })}
-          />
-        </Row>
         {!on && (
           <div className="ai-hint" data-testid="wt-off-note">
             Worktrees are off: every member of the project shares {repoName}, the way it works today. Not a git
