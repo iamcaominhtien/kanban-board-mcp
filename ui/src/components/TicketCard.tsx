@@ -571,6 +571,23 @@ export function TicketCard({
           </div>
         )}
 
+        {/* Sub-tasks progress bar for parent tickets */}
+        {hasSubtasks && subtaskStats && (
+          <div className={styles.subtaskProgressBar}>
+            <div className={styles.subtaskTrack}>
+              <div
+                className={styles.subtaskFill}
+                style={{
+                  width: `${Math.round((subtaskStats.completed / subtaskStats.total) * 100)}%`,
+                }}
+              />
+            </div>
+            <span className={styles.subtaskText}>
+              {subtaskStats.completed}/{subtaskStats.total} sub-tasks
+            </span>
+          </div>
+        )}
+
         {/* Pending reason strip matching TicketPending.dc.html C1 */}
         {isPending && (
           <HoverTip as="div" className={styles.pendingStrip} tip={pendingTip}>
