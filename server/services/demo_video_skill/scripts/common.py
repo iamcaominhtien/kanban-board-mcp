@@ -6,7 +6,7 @@ from pathlib import Path
 SKILL = Path(__file__).resolve().parent.parent
 HOME = Path(os.environ.get("KB_DEMO_HOME", Path.home() / ".cache" / "kanban-demo-video"))
 LIB = HOME / "pylib"
-ASSETS = Path(os.environ.get("KB_DEMO_ASSETS", SKILL / "assets"))
+ASSETS = Path(os.environ.get("KB_DEMO_ASSETS", HOME / "assets"))   # outside the skill folder: the board rewrites that folder
 sys.path.insert(0, str(LIB))
 
 def ensure_deps():

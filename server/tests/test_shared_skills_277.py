@@ -25,6 +25,8 @@ SHARED = [
     "office-files",
     # decks, asked for by the owner after the first office-files run (themes, templates, pictures)
     "slides",
+    # a narrated demo video of the app, built with code
+    "demo-video",
 ]
 
 

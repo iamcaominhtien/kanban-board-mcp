@@ -10,11 +10,15 @@ from pathlib import Path
 import common
 common.ensure_deps()
 
-def repo_root() -> Path:
-    return Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=common.SKILL, capture_output=True, text=True, check=True).stdout.strip())
+def repo_root(given=None) -> Path:
+    """The board's repository: --repo, or KANBAN_REPO, or the git repository of the folder you run this from."""
+    root = Path(given or os.environ.get("KANBAN_REPO") or subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or ".").resolve()
+    if not (root / "server" / "main.py").exists(): sys.exit(f"{root} is not the board's repository (no server/main.py): run from it or pass --repo")
+    return root
 
 def start(a):
     import httpx
+    repo_root(a.repo)
     T = Path(a.dir).expanduser().resolve()
     if T.exists() and any(T.iterdir()): sys.exit(f"{T} is not empty: pick a new folder or run `stop` and delete it")
     for sub in ("cfg", "logs", "repo"): (T / sub).mkdir(parents=True, exist_ok=True)
@@ -27,7 +31,7 @@ def start(a):
     env.update(KANBAN_CONFIG_DIR=str(T / "cfg"), KANBAN_DB_PATH=str(T / "board.db"), KANBAN_LOG_DIR=str(T / "logs"),
                KANBAN_AI_ACCOUNTS_HOME=str(T / "accounts"), KANBAN_AI_KEY_FILE=str(T / "ai.key"))
     out = open(T / "server.out", "w"); err = open(T / "server.err", "w")
-    srv = subprocess.Popen(["uv", "run", "python", "main.py"], cwd=repo_root() / "server", env=env, stdout=out, stderr=err, start_new_session=True)
+    srv = subprocess.Popen(["uv", "run", "python", "main.py"], cwd=repo_root(a.repo) / "server", env=env, stdout=out, stderr=err, start_new_session=True)
     (T / "pid").write_text(str(srv.pid))
     port = None
     for _ in range(120):
@@ -78,7 +82,7 @@ def stop(a):
     print("stopped")
 
 ap = argparse.ArgumentParser(); sp = ap.add_subparsers(dest="cmd", required=True)
-s = sp.add_parser("start"); s.add_argument("--dir", required=True); s.add_argument("--account-folder"); s.add_argument("--no-run", action="store_true"); s.add_argument("--timeout", type=int, default=420)
+s = sp.add_parser("start"); s.add_argument("--dir", required=True); s.add_argument("--account-folder"); s.add_argument("--no-run", action="store_true"); s.add_argument("--timeout", type=int, default=420); s.add_argument("--repo")
 t = sp.add_parser("stop"); t.add_argument("--dir", required=True)
 a = ap.parse_args()
 {"start": start, "stop": stop}[a.cmd](a)

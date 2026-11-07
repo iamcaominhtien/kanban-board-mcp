@@ -21,13 +21,12 @@ The same scenario always gives the same video, so changing a sentence or a step 
 
 ## Steps
 
-1. **Setup, once**: `python3 .claude/skills/demo-video/scripts/setup.py`. It installs numpy, playwright, imageio-ffmpeg and edge-tts
+1. **Setup, once**: `python3 scripts/setup.py` (from the skill's folder; its path is shown when the skill opens). It installs numpy, playwright, imageio-ffmpeg and edge-tts
    into `~/.cache/kanban-demo-video` (never into the repo), finds the headless Chromium Playwright has (if there is none:
-   `python3 -m playwright install chromium-headless-shell`) and fetches the two stock sounds (Mixkit, free) into `assets/`
-   (git-ignored). Edge TTS needs the network and sends only the narration text.
+   `python3 -m playwright install chromium-headless-shell`) and fetches the two stock sounds (Mixkit, free) into `~/.cache/kanban-demo-video/assets`. Edge TTS needs the network and sends only the narration text.
 2. **Start a throwaway board**:
    `python3 scripts/start_board.py start --dir <empty folder> --account-folder ~/.kanban-board/ai-accounts/<board account>`
-   It starts the board with its own config, database, logs and key file (never the person's real board), creates the project
+   Run it from the board's repository (it finds `server/` from the folder you are in, or pass `--repo <path>`). It starts the board with its own config, database, logs and key file (never the person's real board), creates the project
    KAN with a ticket in every column, an AI team, and lets the team fix a small bug (KAN-7) with Haiku, so the AI activity, the
    Timeline and the comments are real. It prints the board's URL and leaves it running. The run costs a little: use the board's
    own Claude account and ask which one if you do not know. `--no-run` skips the run (the AI scenes then have nothing in them).
@@ -85,5 +84,5 @@ somewhere else. Keep a sentence of narration to one idea, and keep the caption s
 - Captions never cover the app: they live in the band under it, so do not try to put text over the UI.
 - If a scene shows an empty area (no run, no comment) the board has no data for it: fix the data, not the scenario.
 - Do not invent features. Every scene must show something that works in the board now.
-- The sound is stock and the music is made by code; if the person wants other sounds, replace `assets/mk_click.wav` and
-  `assets/mk_typing.wav` (mono, 44.1 kHz) and nothing else changes.
+- The sound is stock and the music is made by code; if the person wants other sounds, put your own `mk_click.wav` and
+  `mk_typing.wav` (mono, 44.1 kHz) in `~/.cache/kanban-demo-video/assets` and nothing else changes.

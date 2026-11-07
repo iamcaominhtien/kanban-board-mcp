@@ -86,6 +86,17 @@ CRAFT_ROLES: dict[str, set[str]] = {
     "office-files": {"pm", "ba", "tech_writer", "data_analyst"},
     "end-user-eyes": {"designer", "qa", "user_tester", "pm", "ba"},
     "brainstorming": {"pm", "ba", "designer"},
+    "demo-video": {
+        "pm",
+        "ba",
+        "designer",
+        "dev",
+        "qa",
+        "user_tester",
+        "tech_writer",
+        "devops",
+        "data_analyst",
+    },
 }
 
 

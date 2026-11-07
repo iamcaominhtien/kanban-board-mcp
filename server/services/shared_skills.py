@@ -451,6 +451,19 @@ def _slides() -> tuple[str, str, str]:
 
 SLIDES = _slides()
 
+
+def _demo_video() -> tuple[str, str, str]:
+    from services import demo_video_skill
+
+    return (
+        demo_video_skill.NAME,
+        demo_video_skill.DESCRIPTION,
+        demo_video_skill.body(),
+    )
+
+
+DEMO_VIDEO = _demo_video()
+
 SKILLS: list[tuple[str, str, str]] = [
     WORKING_A_TICKET,
     TICKETS,
@@ -465,6 +478,8 @@ SKILLS: list[tuple[str, str, str]] = [
     END_USER_EYES,
     OFFICE_FILES,
     SLIDES,
+    # a narrated demo video of the app, built with code (asked for by the owner)
+    DEMO_VIDEO,
 ]
 
 
@@ -475,9 +490,12 @@ def skill_files() -> dict[str, str]:
 
 def extra_files() -> dict[str, dict[str, bytes]]:
     """The files a shared skill carries beside its SKILL.md: ``{skill: {relative path: bytes}}``."""
-    from services import slides_skill
+    from services import demo_video_skill, slides_skill
 
-    return {slides_skill.NAME: slides_skill.files()}
+    return {
+        slides_skill.NAME: slides_skill.files(),
+        demo_video_skill.NAME: demo_video_skill.files(),
+    }
 
 
 def guides() -> dict[str, str]:
