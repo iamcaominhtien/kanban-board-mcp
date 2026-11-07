@@ -23,6 +23,7 @@ const ACTIVE = 'queued,starting,running,needs_input';
 function WorkingNow({ team, activity }: { team: AiTeam; activity?: TeamActivity }) {
   const lead = activity?.lead.working;
   if (!lead) return null;
+  const waiting = lead.state === 'needs_input';
   const workers = (activity?.roles ?? []).filter((r) => r.working);
   const roleName = (key: string) => team.roles.find((r) => r.key === key)?.name ?? key;
   // the most specific step: the role that works now, else the lead
@@ -30,9 +31,9 @@ function WorkingNow({ team, activity }: { team: AiTeam; activity?: TeamActivity 
   return (
     <div className="at-quote" style={{ background: '#F4F9F5', borderColor: '#D6E8DB' }} data-testid="working-now">
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-        <span className="at-label">Working</span>
-        {workers.length === 0 && <span className="at-chip">Lead</span>}
-        {workers.map((r) => {
+        <span className="at-label">{waiting ? 'Waiting for your answer' : 'Working'}</span>
+        {workers.length === 0 && !waiting && <span className="at-chip">Lead</span>}
+        {(waiting ? [] : workers).map((r) => {
           const look = roleLook(r.key);
           return (
             <span
@@ -46,7 +47,7 @@ function WorkingNow({ team, activity }: { team: AiTeam; activity?: TeamActivity 
           );
         })}
       </div>
-      <div style={{ marginTop: 4 }} data-testid="working-step">
+      <div className="at-step" style={{ marginTop: 4 }} title={step?.title} data-testid="working-step">
         {step ? step.title : 'Starting…'}
       </div>
       {lead.contextUsed != null && lead.contextWindow ? (

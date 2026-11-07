@@ -26,7 +26,7 @@ def _day_start() -> str:
 def first_line(text: str | None, limit: int = 200) -> str:
     """The first non-empty line of a report, cleaned of Markdown marks and cut short."""
     for raw in (text or "").splitlines():
-        line = raw.strip().lstrip("#>*-• ").strip()
+        line = raw.strip().lstrip("#>*-• ").replace("**", "").replace("`", "").strip()
         if line:
             return line if len(line) <= limit else line[: limit - 1].rstrip() + "…"
     return ""
@@ -174,6 +174,7 @@ async def team_activity(
                         "since": (a.get("spans") or [{}])[-1].get("start")
                         or a["started_at"],
                         "steps_count": a["steps_count"],
+                        "state": run.state,
                         "step": await _newest_step(session, rid, a["id"]),
                         "_agent": a["id"],
                     }

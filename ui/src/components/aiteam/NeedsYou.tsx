@@ -87,7 +87,11 @@ function fromRow(row: NotificationRow, act: (r: NotificationRow, id: string) => 
 /** A team that is held by a limit: its queued runs wait for a reason that is not "a slot is busy". */
 function heldBy(runs: AiRun[], teamId: string): { reason: string; runs: AiRun[] } | null {
   const held = runs.filter(
-    (r) => r.memberId === teamId && r.state === 'queued' && r.waitingReason && !/free slot/i.test(r.waitingReason),
+    (r) =>
+      r.memberId === teamId &&
+      r.state === 'queued' &&
+      r.waitingReason &&
+      /budget|cap\b|limit|quota|window|per day|used up/i.test(r.waitingReason),
   );
   return held.length ? { reason: held[0].waitingReason as string, runs: held } : null;
 }
@@ -185,7 +189,9 @@ export function NeedsYou({
         icon: 'clock',
         red: false,
         title: `${t.name} is held by a limit`,
-        body: `${held.reason}. ${held.runs.length} run${held.runs.length === 1 ? '' : 's'} wait${held.runs.length === 1 ? 's' : ''} and start by themselves when it clears.`,
+        body: `${held.reason.replace(/\.$/, '')}. ${
+          held.runs.length === 1 ? '1 run waits and starts' : `${held.runs.length} runs wait and start`
+        } by itself when it clears.`,
         ticketId: held.runs[0].ticketId,
         actions: [{ label: 'Change the limits', run: () => onOpenMember(t.id) }],
       });

@@ -37,7 +37,7 @@ function Card({ name, sub, badge, activity, meter, blocked, onOpenTicket, testId
           <div className="at-hint-sm">{sub}</div>
         </div>
         {working ? (
-          <StateChip state="working" />
+          <StateChip state={working.state === 'needs_input' ? 'waiting' : 'working'} />
         ) : blocked ? (
           <StateChip state="paused" label={blocked} />
         ) : (
@@ -51,7 +51,7 @@ function Card({ name, sub, badge, activity, meter, blocked, onOpenTicket, testId
               On {working.ticketId && <TicketChip id={working.ticketId} onOpen={onOpenTicket} />}{' '}
               <b>{working.ticketTitle ?? ''}</b>
             </div>
-            <div style={{ color: '#3A4A3E' }} data-testid="role-step">
+            <div className="at-step" style={{ color: '#3A4A3E' }} title={working.step?.title} data-testid="role-step">
               {working.step ? working.step.title : 'Starting…'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

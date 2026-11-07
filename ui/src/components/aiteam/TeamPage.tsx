@@ -137,6 +137,10 @@ export function TeamPage({
         </h2>
         {activityQ.isError ? (
           <LoadError what="what the roles do" error={activityQ.error} onRetry={() => void activityQ.refetch()} />
+        ) : !act ? (
+          <div className="ai-muted" data-testid="role-cards-loading">
+            Loading what the roles do…
+          </div>
         ) : (
           <div className="at-cards" data-testid="role-cards">
             <LeadCard team={team} activity={act?.lead ?? NO_ACTIVITY} onOpenTicket={onOpenTicket} />

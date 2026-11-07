@@ -45,7 +45,7 @@ export function RecentList({
                 key={r.runId}
                 className="ai-row"
                 data-testid="recent-run"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', fontSize: 13 }}
               >
                 <span
                   title={look.word}
@@ -80,7 +80,7 @@ export function RecentList({
               <div
                 key={n.id}
                 className="ai-row"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', fontSize: 13 }}
               >
                 <span className="ai-muted" style={{ whiteSpace: 'nowrap' }}>
                   {n.direction === 'in'
