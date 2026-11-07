@@ -1374,7 +1374,7 @@ export function NowAndTimelineDesign() {
         </div>
         <div style={{ border: '1px solid #E3E8E5', borderRadius: '10px', overflow: 'hidden' }}>
           <svg
-            viewBox="0 0 860 270"
+            viewBox="0 0 860 253"
             style={{
               width: '100%',
               height: 'auto',
@@ -1689,9 +1689,9 @@ export function NowAndTimelineDesign() {
               />
             </g>
             <g>
-              <line x1="64" y1="232.0" x2="854" y2="232.0" stroke="#2E6F40" strokeWidth="1.4" strokeDasharray="3 3" />
-              <rect x="8" y="223.0" width="56" height="18" rx="9" fill="#2E6F40" />
-              <text x="36" y="236.0" fontSize="10" fontWeight="800" fill="#fff" textAnchor="middle">
+              <line x1="83" y1="232.0" x2="854" y2="232.0" stroke="#2E6F40" strokeWidth="1.4" strokeDasharray="3 3" />
+              <rect x="10" y="221" width="73" height="22" rx="11" fill="#2E6F40" />
+              <text x="46.5" y="236" fontSize="10" fontWeight="800" fill="#fff" textAnchor="middle">
                 now 10:40
               </text>
               <g className="tl-anim">
