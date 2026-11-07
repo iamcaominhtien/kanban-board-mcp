@@ -19,7 +19,7 @@ import logging
 from collections import Counter
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import or_
+from sqlalchemy import or_, update
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -64,6 +64,8 @@ MACHINE = {
 EDIT_ACTION = "ticket_edited_during_run"
 SIGNIN_ACTION = "account_signin"
 PAUSE_ACTIONS = ("team_paused", "team_resumed", "project_paused", "project_resumed")
+# the lesson_id of a touch while its lesson is being made (a second request finds the touch taken)
+CLAIMED = "pending"
 RUN_ENDED = ("finished", "failed", "cancelled", "timed_out")
 # a stop that comes with a pause or a removal of the team by the same person is part of it, not a touch of its own
 STOP_WITH_PAUSE_S = 60
@@ -270,38 +272,66 @@ def _touch(
 
 
 async def collect(
-    session: AsyncSession, project_id: str, since: datetime
+    session: AsyncSession,
+    project_id: str,
+    since: datetime,
+    *,
+    key: str | None = None,
 ) -> list[dict]:
-    """Every touch of the project since this time, newest first (team ids, not names: the caller adds them)."""
+    """Every touch of the project since this time, newest first (team ids, not names: the caller adds them).
+
+    With `key` only the rows that touch can come from are read (its run, its message, its audit entry): marking a
+    touch or making a lesson from it does not read the whole range again."""
     iso = since.isoformat()
     ai = await ai_names(session, project_id)
     out: list[dict] = []
+    # where a keyed touch comes from: a run, a message (and its run) or an audit entry
+    src, _, rest = (key or "").partition(":")
+    run_id = rest.split(":")[0] if key and src not in ("msg", "audit") else None
+    msg_id = rest if src == "msg" else None
+    audit_id = rest if src == "audit" else None
+    audit_iso = iso
+    if msg_id:
+        m = await session.get(AiRunMessage, msg_id)
+        run_id = m.run_id if m else "-"
+    if key:
+        iso = ""  # the key says what to read: no window
+        audit_iso = ""
+        if src == "stop" and run_id:
+            r = await session.get(AiRun, run_id)
+            ended = parse_iso(r.ended_at) if r else None
+            # a stop is judged against the pauses made around the time it ended
+            audit_iso = (
+                (ended - timedelta(seconds=STOP_WITH_PAUSE_S + 1)).isoformat()
+                if ended
+                else "~"
+            )
 
-    runs = (
-        await session.exec(
-            select(AiRun).where(
-                AiRun.project_id == project_id,
-                AiRun.kind == "team",
-                or_(
-                    AiRun.queued_at >= iso,
-                    col(AiRun.ended_at) >= iso,
-                    col(AiRun.ended_at).is_(None),
-                ),
+    run_where = [AiRun.project_id == project_id, AiRun.kind == "team"]
+    if key:
+        run_where.append(AiRun.id == (run_id or "-"))
+    else:
+        run_where.append(
+            or_(
+                AiRun.queued_at >= iso,
+                col(AiRun.ended_at) >= iso,
+                col(AiRun.ended_at).is_(None),
             )
         )
-    ).all()
+    runs = (await session.exec(select(AiRun).where(*run_where))).all()
     by_id = {r.id: r for r in runs}
-    rows = (
-        await session.exec(
-            select(AiAudit).where(
-                AiAudit.project_id == project_id,
-                AiAudit.created_at >= iso,
-                col(AiAudit.action).in_(
-                    [EDIT_ACTION, SIGNIN_ACTION, "team_removed", *PAUSE_ACTIONS]
-                ),
-            )
-        )
-    ).all()
+    audit_where = [
+        AiAudit.project_id == project_id,
+        AiAudit.created_at >= audit_iso,
+        col(AiAudit.action).in_(
+            [EDIT_ACTION, SIGNIN_ACTION, "team_removed", *PAUSE_ACTIONS]
+        ),
+    ]
+    if audit_id:
+        audit_where.append(AiAudit.id == audit_id)
+    elif key and src != "stop":
+        audit_where.append(AiAudit.id == "-")  # a run's touch needs no audit entry
+    rows = (await session.exec(select(AiAudit).where(*audit_where))).all()
     # when a person paused or removed a team: the runs they stopped with it are part of that
     pauses = [
         (e.on_behalf_of, parse_iso(e.created_at))
@@ -389,17 +419,18 @@ async def collect(
             )
 
     # a message into a run, not from an AI session
-    msgs = (
-        await session.exec(
-            select(AiRunMessage).where(
-                AiRunMessage.direction == "in",
-                AiRunMessage.at >= iso,
-                col(AiRunMessage.run_id).in_(
-                    select(AiRun.id).where(AiRun.project_id == project_id)
-                ),
-            )
-        )
-    ).all()
+    msg_where = [
+        AiRunMessage.direction == "in",
+        AiRunMessage.at >= iso,
+        col(AiRunMessage.run_id).in_(
+            select(AiRun.id).where(AiRun.project_id == project_id)
+        ),
+    ]
+    if msg_id:
+        msg_where.append(AiRunMessage.id == msg_id)
+    elif key:
+        msg_where.append(AiRunMessage.id == "-")  # only a message touch reads messages
+    msgs = (await session.exec(select(AiRunMessage).where(*msg_where))).all()
     missing = [m.run_id for m in msgs if m.run_id not in by_id]
     if missing:
         for r in (
@@ -485,13 +516,12 @@ async def collect(
             )
 
     out.sort(key=lambda t: t["at"] or "", reverse=True)
+    mark_where = [AiTouchMark.project_id == project_id]
+    if key:
+        mark_where.append(AiTouchMark.key == key)
     marks = {
         m.key: m
-        for m in (
-            await session.exec(
-                select(AiTouchMark).where(AiTouchMark.project_id == project_id)
-            )
-        ).all()
+        for m in (await session.exec(select(AiTouchMark).where(*mark_where))).all()
     }
     for t in out:
         m = marks.get(t["id"])
@@ -609,8 +639,8 @@ class TouchError(ValueError):
 
 
 async def _find(session: AsyncSession, project_id: str, key: str) -> dict:
-    """The touch with this key, anywhere in the last 90 days."""
-    for t in await collect(session, project_id, since_of("90d")):
+    """The touch with this key, read from the rows it comes from (any age)."""
+    for t in await collect(session, project_id, since_of("90d"), key=key):
         if t["id"] == key:
             return t
     raise TouchError("This touch is no longer in the list.")
@@ -684,24 +714,36 @@ async def make_lesson(
     if touch["lesson_id"]:
         raise TouchError("A lesson was already made from this touch.")
     body = (text or "").strip() or draft_lesson(touch)
-    lesson = await knowledge.add_lesson(
-        session,
-        project_id,
-        body,
-        by=by,
-        state="proposed",
-        source_ticket_id=touch["ticket_id"],
-        source_run_id=touch["run_id"],
-        proposed_by=by,
+    # claim the touch first, in one statement: a second request at the same time finds it taken
+    claimed = await session.execute(
+        update(AiTouchMark)
+        .where(col(AiTouchMark.key) == key, col(AiTouchMark.lesson_id).is_(None))
+        .values(lesson_id=CLAIMED)
     )
+    await session.commit()
+    if not claimed.rowcount:
+        raise TouchError("A lesson was already made from this touch.")
+    lesson = None
+    try:
+        lesson = await knowledge.add_lesson(
+            session,
+            project_id,
+            body,
+            by=by,
+            state="proposed",
+            source_ticket_id=touch["ticket_id"],
+            source_run_id=touch["run_id"],
+            proposed_by=by,
+        )
+    finally:
+        await session.execute(
+            update(AiTouchMark)
+            .where(col(AiTouchMark.key) == key)
+            .values(lesson_id=lesson.id if lesson is not None else None)
+        )
+        await session.commit()
     if lesson is None:
         raise TouchError("Memory already has a lesson with this text.")
-    row = await session.get(AiTouchMark, key)
-    if row is None:
-        raise TouchError("The mark was taken away. Mark the touch Avoidable again.")
-    row.lesson_id = lesson.id
-    session.add(row)
-    await session.commit()
     return {"id": key, "lesson": knowledge.lesson_dict(lesson), "lesson_id": lesson.id}
 
 
