@@ -1,11 +1,11 @@
 import {
-  NowAndTimelineDesign,
   ResourcesDesign,
   RestartNoticeDesign,
   RunCardDesign,
   RunHistoryDesign,
   RunPanelDesign,
 } from './design/designBlocks';
+import { TicketTimeline } from './TicketTimeline';
 
 /**
  * The ticket's AI activity view as the canvas design draws it (design/source/AiTicketWork, AiResources and
@@ -15,9 +15,11 @@ import {
  * TODO(connect to data): the old code on `main` does this for real; port from it, see the table in `./mock.ts`.
  */
 export function AiActivityDesign({
+  ticketId,
   onOpenTimeline,
   onOpenRun,
 }: {
+  ticketId: string;
   onOpenTimeline?: () => void;
   onOpenRun?: () => void;
 }) {
@@ -42,7 +44,7 @@ export function AiActivityDesign({
         >
           Open in Timeline
         </button>
-        <NowAndTimelineDesign />
+        <TicketTimeline ticketId={ticketId} />
       </div>
     </div>
   );

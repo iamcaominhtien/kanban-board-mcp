@@ -46,24 +46,18 @@ async def post_hook(
     inp = body.get("tool_input") if isinstance(body.get("tool_input"), dict) else {}
     rows: list[dict] = []
     agents: list[dict] = []
-    if name == "SubagentStart" and agent_id:
-        # the stream names subagents by the lead's Agent call; the hook knows Claude's own id for the role
-        agents.append(
-            {
-                "id": await _agent_key(ctx.run_id, agent_id, agent_type),
-                "agent_type": agent_type or "",
-                "claude_id": agent_id,
-            }
-        )
-    elif name == "SubagentStop" and agent_id:
-        agents.append(
-            {
-                "id": await _agent_key(ctx.run_id, agent_id, agent_type),
-                "agent_type": agent_type or "",
-                "claude_id": agent_id,
-                "ended": True,
-            }
-        )
+    if name in ("SubagentStart", "SubagentStop") and agent_id:
+        # The stream names a subagent by the lead's Agent call; the hook knows Claude's own id for the role. The hook
+        # often comes first (before the stream's Agent step), and a row made from it alone would be a second row for
+        # the same role: so a hook that matches no row is dropped. The stream's Agent result names Claude's id, and
+        # that links the two; the Stop hook, which comes later, then finds its row.
+        key = await _agent_key(ctx.run_id, agent_id, agent_type)
+        if key is None:
+            return JSONResponse({"ignored": f"{name}: no row yet"})
+        entry = {"id": key, "agent_type": agent_type or "", "claude_id": agent_id}
+        if name == "SubagentStop":
+            entry["ended"] = True
+        agents.append(entry)
     elif name == "PostToolUse" and tool in ("TaskCreate", "TaskUpdate", "TodoWrite"):
         rows.append(
             {
@@ -98,10 +92,10 @@ async def post_hook(
 _CLAUDE_IDS: dict[tuple[str, str], str] = {}
 
 
-async def _agent_key(run_id: str, claude_id: str, agent_type: str | None) -> str:
+async def _agent_key(run_id: str, claude_id: str, agent_type: str | None) -> str | None:
     """The row the stream made for this subagent (keyed by the lead's Agent call), when it can be matched: the row
-    that already has this Claude id, else the oldest open agent of the same type without one; else the Claude id
-    itself (the hook came first, or the role was started some other way)."""
+    that already has this Claude id, else the oldest open agent of the same type without one; else None (the hook
+    came first: the stream's row does not exist yet)."""
     key = _CLAUDE_IDS.get((run_id, claude_id))
     if key:
         return key
@@ -128,7 +122,7 @@ async def _agent_key(run_id: str, claude_id: str, agent_type: str | None) -> str
             None,
         )
     if found is None:
-        return claude_id
+        return None
     if len(_CLAUDE_IDS) > 5000:
         _CLAUDE_IDS.clear()
     _CLAUDE_IDS[(run_id, claude_id)] = found

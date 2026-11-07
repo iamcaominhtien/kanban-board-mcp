@@ -1,5 +1,5 @@
 import { LIVE_POLL_MS, SAFETY_POLL_MS } from './pollIntervals';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import camelcaseKeys from 'camelcase-keys';
 import { client } from './client';
 import { mergeSteps } from './aiRunCache';
@@ -176,6 +176,17 @@ export function useAiRun(id: string | null | undefined) {
     queryFn: async () => (await client.get<AiRunFull>(`/ai/runs/${id}`, { params: { steps: 50 } })).data,
     enabled: !!id,
     refetchInterval: (q) => (isActive(q.state.data?.state) ? LIVE_POLL_MS : false),
+  });
+}
+
+/** Several runs with their subagents and newest steps at once (the ticket's Timeline); the same cache as `useAiRun`. */
+export function useAiRuns(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: aiKeys.run(id),
+      queryFn: async () => (await client.get<AiRunFull>(`/ai/runs/${id}`, { params: { steps: 50 } })).data,
+      refetchInterval: (q: { state: { data?: AiRunFull } }) => (isActive(q.state.data?.state) ? LIVE_POLL_MS : false),
+    })),
   });
 }
 

@@ -169,6 +169,10 @@ def agents_json(roles: list[dict[str, Any]], board_rules: str = "") -> dict[str,
             spec["model"] = r["model"]
         if r.get("tools"):
             spec["tools"] = list(r["tools"])
+            if skill and "Skill" not in spec["tools"]:
+                # a role that is limited to a few tools still has to open its own guide (a live run showed the
+                # reviewer failing with "No such tool available: Skill")
+                spec["tools"].append("Skill")
         out[r["key"]] = spec
     return out
 

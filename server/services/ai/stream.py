@@ -15,6 +15,7 @@ from .secrets import redact
 _CROSS = re.compile(
     r'<cross-session-message\s+from="([^"]*)"[^>]*>(.*?)</cross-session-message>', re.S
 )
+_AGENT_ID = re.compile(r"agentId:\s*([A-Za-z0-9_-]+)")
 _RELAY_TOOLS = (
     "ToolSearch",
 )  # the CLI loading its own deferred tools: not a step of the work
@@ -277,6 +278,19 @@ class Parser:
                     "agent_id": agent_id,
                 }
                 out["results"].append(res)
+                call = block.get("tool_use_id")
+                if call in self.agent_types and agent_id is None:
+                    # The lead's Agent call came back. The CLI runs a role in the background: the result then only says
+                    # "Async agent launched" and names the role's own id (the one the SubagentStart/Stop hooks carry),
+                    # and the role's end comes from the SubagentStop hook. A role that ran in the foreground returns its
+                    # answer here, and that is its end.
+                    named = _AGENT_ID.search(text)
+                    entry: dict[str, Any] = {"id": call}
+                    if named:
+                        entry["claude_id"] = named.group(1)
+                    if not text.lstrip().startswith("Async agent launched"):
+                        entry["ended"] = True
+                    out["agents"].append(entry)
                 if block.get("is_error"):
                     out["rows"].append(
                         {

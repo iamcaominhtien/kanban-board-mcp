@@ -136,7 +136,7 @@ async def append(
                 agent.claude_id = a["claude_id"]
             if a.get("last_text"):
                 agent.last_text = a["last_text"][:400]
-            if a.get("ended"):
+            if a.get("ended") and not agent.ended_at:
                 agent.ended_at = now_iso()
             agent.steps_count += per_agent.pop(a["id"], 0)
             session.add(agent)
