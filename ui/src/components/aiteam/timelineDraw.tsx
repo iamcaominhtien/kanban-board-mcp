@@ -681,7 +681,9 @@ export function TimelineBody(props: DrawProps) {
     data.docs.find((n) => n.memberId === a.from && Math.abs((ms(n.at) ?? 0) - (ms(a.at) ?? 0)) < 5000);
   const arrows: ArrowGeo[] = visible.map((a, i) => {
     const r = raw[i];
-    const d = shift.get(a.id) ?? 0;
+    // an arrow level with the now line would run along it and read as one line: it sits a little above
+    const onNow = Math.abs(r.y1 - nowY) < 10 && Math.abs(r.y2 - nowY) < 10;
+    const d = (shift.get(a.id) ?? 0) + (onNow ? -16 : 0);
     const recv = a.runId ? barById.get(a.runId)?.b : undefined;
     const question = data.waits.find((w) => w.runId === a.runId && w.kind === 'question');
     const askOpen = a.kind === 'ask' && !!question && !question.to;
