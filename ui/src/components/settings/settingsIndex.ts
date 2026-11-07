@@ -167,8 +167,9 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     page: 'docs',
     section: 'AI in Docs',
     name: 'AI in Docs',
-    description: 'Ask the docs, check pages and write drafts: who answers, what AI may read, edits by AI members.',
-    keywords: 'ai ask hide guidance style guide freshness proposal',
+    description:
+      'Ask the docs, check pages and write drafts: which AI team answers, the style guide page, freshness checks.',
+    keywords: 'ai ask answers style guide freshness digest',
   },
   {
     id: 'board-ai',

@@ -122,7 +122,7 @@ export function DocsPageView({
   const cc = useCommentsController(page.id);
   const aiView = usePageAiView(page.id);
   const aiState = useDocsAiState(projectId);
-  const aiNow = aiGate(aiState.data, { hidden: !!page.aiHidden });
+  const aiNow = aiGate(aiState.data);
   const aiOn = !offline && page.version > 0 && aiNow.show && aiNow.reason === null;
   const translated = useTranslatedMarkdown(aiView);
   const commentsData = cc.query.data;

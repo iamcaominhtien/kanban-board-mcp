@@ -32,10 +32,10 @@ _UNDO: dict[str, dict[str, Any]] = {}
 
 
 async def ready_or_raise(project_id: str) -> None:
-    """Docs AI can answer now, or `no_member` (the UI's "nobody can answer" state)."""
-    info = await engine.ready(project_id)
+    """Docs AI can answer now (with the team chosen in Settings), or `paused` / `no_member` (the UI's states)."""
+    info = await engine.ready(project_id, feature="docs")
     if info["state"] != "ready":
-        raise DocsAiError("no_member", info["message"])
+        raise DocsAiError(info.get("code") or "no_member", info["message"])
 
 
 async def _turn(
@@ -776,7 +776,9 @@ async def thread_reply_job(job: DocsAiJob) -> dict[str, Any]:
     comment_id = None
     if reply and not data.get("posted"):
         async with database.async_session() as session:
-            team, _profile = await svc_assist.first_team(session, job.project_id)
+            team, _profile = await svc_assist.answering_team(
+                session, job.project_id, "docs"
+            )
         token = activity.set_actor(team.name if team else activity.AGENT_ACTOR)
         try:
             async with database.async_session() as session:
@@ -957,7 +959,7 @@ async def deliver(
         ]
     if intent == "notify":
         return [{"member_id": m, "result": "notified"} for m in mentioned]
-    info = await engine.ready(page.project_id)
+    info = await engine.ready(page.project_id, feature="docs")
     if info["state"] != "ready":
         return [
             {"member_id": m, "result": "not_delivered", "reason": info["message"]}

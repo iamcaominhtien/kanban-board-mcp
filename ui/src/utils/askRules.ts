@@ -68,14 +68,6 @@ export function askError(code: string, detail: string): AskView {
       };
     case 'paused':
       return { kind: 'error', code, title: 'AI is paused', detail, action: 'members' };
-    case 'hidden':
-      return {
-        kind: 'error',
-        code,
-        title: 'This page is hidden from AI',
-        detail: 'Ask, summaries and AI runs skip it. People can still read and edit it.',
-        action: null,
-      };
     default:
       return { kind: 'error', code, title: 'Couldn’t answer', detail, action: 'retry' };
   }

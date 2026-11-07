@@ -7,7 +7,7 @@ import { CommentText } from './CommentText';
 import { personOf, threadLink, type CommentPerson } from './people';
 import { useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
 import type { SuggestMember } from '../RefSuggester';
-import { aiCostLabel, aiReplyKind, canSuggestEdit, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
+import { aiCostLabel, aiReplyKind, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
 import { LineIcon } from '../../ui/LineIcon';
 
 type Actions = ReturnType<typeof useCommentActions>;
@@ -84,7 +84,7 @@ export function aiWhere(c: DocsCommentItem): { label: string; title: string } {
 
 /** Replies only between AIs (ai-story-flow P): an AI member's reply whose mentions are all AI members. */
 export function aiToAiReply(c: DocsCommentItem, members: DocsCommentsResult['members'], me: string): boolean {
-  if (c.ai?.kind) return false; // a note, an error or a proposal speaks to the person
+  if (c.ai?.kind) return false; // a note or an error speaks to the person
   if (!personOf(c.author, members, me).ai || c.mentions.length === 0) return false;
   return c.mentions.every((m) => members.some((x) => x.id === m.id && x.kind === 'ai'));
 }
@@ -232,20 +232,6 @@ export function ThreadCard({
         ))}
         <span className="dc-ai-cost">{aiCostLabel(c.ai.cost)}</span>
         <span style={{ flex: 1 }} />
-        {canSuggestEdit(c, thread, docsAi) && (
-          <button
-            type="button"
-            className="dc-ai-suggest"
-            data-testid="ai-suggest-edit"
-            disabled={ai.suggestEdit.isPending}
-            onClick={(e) => {
-              e.stopPropagation();
-              void run(ai.suggestEdit.mutateAsync({ threadId: thread.id, commentId: c.id }));
-            }}
-          >
-            <Icon name="i15" size={13} strokeWidth={1.9} /> Suggest an edit
-          </button>
-        )}
       </div>
     );
   }
@@ -295,7 +281,7 @@ export function ThreadCard({
     return (
       <div
         key={c.id}
-        className={`dc-comment${c.ai && !['answer', 'proposal', 'ticket'].includes(aiReplyKind(c) ?? '') ? ' dc-ai-note' : ''}`}
+        className={`dc-comment${c.ai && !['answer', 'ticket'].includes(aiReplyKind(c) ?? '') ? ' dc-ai-note' : ''}`}
         data-testid="comment-item"
       >
         <Avatar p={p} />
@@ -606,7 +592,7 @@ export function ThreadCard({
               </span>
             </div>
             <div className="dc-ai-dots">
-              {w.kind === 'suggest_edit' ? 'Writing a suggested edit' : (w.step ?? 'Reading the page and the thread')}
+              {w.step ?? 'Reading the page and the thread'}
               <span>…</span>
             </div>
           </div>

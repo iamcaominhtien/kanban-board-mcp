@@ -133,9 +133,7 @@ async def create_docs_page(
         str | None, Field(description="Parent page id; omit for a top-level page.")
     ] = None,
 ) -> dict:
-    """Create a Docs page and publish it as v1. Returns {id, title, slug, status, version}. When the project holds AI
-    edits (Settings > Docs > AI: proposal or draft), an AI member's page is not published: it stays a private draft
-    of the person it works for."""
+    """Create a Docs page and publish it as v1. Returns {id, title, slug, status, version}."""
     async with common.async_session() as session:
         try:
             markdown = await _with_pictures(session, markdown)

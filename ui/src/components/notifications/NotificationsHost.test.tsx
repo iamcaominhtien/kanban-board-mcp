@@ -155,8 +155,6 @@ describe('NotificationsHost navigation', () => {
     expect(cb.onOpenTicket).toHaveBeenLastCalledWith('K-7');
     nav({}, 'sign_in');
     expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('accounts', 'p1');
-    nav({ kind: 'page_proposal', pageId: 'pg2' }, 'review');
-    expect(cb.onOpenDoc).toHaveBeenLastCalledWith('pg2', 'p1');
     nav({}, 'review');
     expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('approvals', 'p1');
     nav({ projectId: 'p2' }, 'review');

@@ -123,10 +123,21 @@ def render_inputs(skill: str, inputs: dict[str, Any], by: str) -> str:
     return sessions.asked_by(by, "\n".join(lines))
 
 
-async def ready(project_id: str) -> dict[str, Any]:
-    """Whether an assistant can answer in this project now: {state: ready | not_configured, message, member}."""
+async def ready(project_id: str, feature: str = "chat") -> dict[str, Any]:
+    """Whether an assistant can answer in this project now: {state: ready | not_configured, message, member, code?}.
+    `feature` picks the team that answers (Docs AI: the one chosen in its settings)."""
     async with database.async_session() as session:
-        member, profile = await svc_settings.first_team(session, project_id)
+        try:
+            member, profile = await svc_settings.answering_team(
+                session, project_id, feature
+            )
+        except AssistError as exc:
+            return {
+                "state": "not_configured",
+                "code": exc.code,
+                "message": str(exc),
+                "member": None,
+            }
     path, _ = cli.find_cli("claude", profile.cli_path if profile else None)
     if not path:
         return {
@@ -181,7 +192,7 @@ async def turn(
         project = await session.get(Project, project_id)
         if project is None:
             raise AssistError("not_found", "Project not found.")
-        team, profile = await svc_settings.first_team(session, project_id)
+        team, profile = await svc_settings.answering_team(session, project_id, feature)
         account = (
             await session.get(AiAccount, profile.account_id)
             if (profile and profile.account_id)

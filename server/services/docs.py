@@ -217,8 +217,6 @@ async def list_tree(session: AsyncSession, project_id: str) -> list[dict[str, An
             "version": p.version,
             "has_draft": p.id in drafted,
             "updated_at": p.updated_at,
-            "ai_hidden": p.ai_hidden,
-            "ai_guidance": p.ai_guidance,
             "kind": p.kind,
         }
         for p in pages
@@ -463,8 +461,6 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
         "created_at": page.created_at,
         "stats": await page_stats(session, page, markdown),
         "has_unpublished_changes": unpublished,
-        "ai_hidden": page.ai_hidden,
-        "ai_guidance": page.ai_guidance,
         "kind": page.kind,
         "draft": (
             {
@@ -782,7 +778,7 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
         rows = await session.exec(select(model).where(col.in_(ids)))
         for row in rows.all():
             await session.delete(row)
-    # Docs AI rows that belong to the pages (proposals and the freshness check have a foreign key to the page)
+    # Docs AI rows that belong to the pages (the freshness check and the ignored findings have a foreign key to the page)
     from models import DocsAiIgnore, DocsAiJob
 
     for ai_model in (DocsAiIgnore, DocsAiJob):

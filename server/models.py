@@ -497,9 +497,6 @@ class DocsPage(SQLModel, table=True):
     deleted_at: Optional[str] = Field(default=None)
     deleted_by: Optional[str] = Field(default=None)
     deleted_root_id: Optional[str] = Field(default=None)
-    # Docs AI: a page hidden from every AI, and a page every AI run in the project reads (guidance)
-    ai_hidden: bool = Field(default=False)
-    ai_guidance: bool = Field(default=False)
     # page | canvas: a canvas page opens the Canvas editor instead of the text editor
     kind: str = Field(default="page")
 
@@ -680,17 +677,8 @@ class DocsAiSettings(SQLModel, table=True):
     member_id: Optional[str] = Field(
         default=None
     )  # the AI member that answers and checks
-    read_scope: str = Field(default="except_hidden")  # all | except_hidden | picked
-    picked_pages: str = Field(default="[]")  # JSON page ids, for read_scope "picked"
     style_page_id: Optional[str] = Field(default=None)
-    edits_mode: str = Field(
-        default="direct"
-    )  # direct | proposal | draft: what an AI member's page edit becomes (direct: the edit is made)
-    proposal_days: int = Field(default=7)
     freshness_on: bool = Field(default=True)
-    guidance_limit: int = Field(
-        default=8000
-    )  # tokens of guidance pages read by every run
     digest_on: bool = Field(default=True)
     updated_by: Optional[str] = Field(default=None)
     updated_at: str = Field(default_factory=_now_iso)

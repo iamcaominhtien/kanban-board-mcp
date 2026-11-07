@@ -31,7 +31,7 @@ function Row({ title, text, children }: { title: string; text: string; children:
   );
 }
 
-/** Settings › Docs › AI (docs-ai-care F1): the switch, who answers, what AI may read, style guide, edits by AI members. */
+/** Settings › Docs › AI (docs-ai-care F1): the switch, which AI team answers, the style guide page, freshness checks. */
 export function DocsAiSettings({ project }: { project: Project }) {
   const state = useDocsAiState(project.id);
   const update = useUpdateDocsAi(project.id);
@@ -67,7 +67,10 @@ export function DocsAiSettings({ project }: { project: Project }) {
       )}
       {!admin && <div style={hint}>Only project admins change these settings.</div>}
       <div style={{ opacity: off ? 0.55 : 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Row title="AI that answers" text="Answers and checks are made by this AI member. It counts toward its budget.">
+        <Row
+          title="AI that answers"
+          text="Docs answers and checks run with this AI team (its account and model, and its budget). Default: the first AI team of the project that is not paused."
+        >
           <select
             style={select}
             value={d.memberId ?? ''}
@@ -75,7 +78,7 @@ export function DocsAiSettings({ project }: { project: Project }) {
             onChange={(e) => save({ memberId: e.target.value || null })}
             aria-label="AI that answers"
           >
-            <option value="">Board AI (default)</option>
+            <option value="">First AI team (default)</option>
             {d.candidates.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -98,14 +101,6 @@ export function DocsAiSettings({ project }: { project: Project }) {
               </option>
             ))}
           </select>
-        </Row>
-        <Row
-          title="Pages AI should always read"
-          text={`Architecture, naming, rules. Read by AI members on every run in this project. Limit ${d.guidanceLimit.toLocaleString()} tokens. Mark a page in its info (AI › Use as AI guidance).`}
-        >
-          <span style={{ fontSize: 12.5, fontWeight: 600 }}>
-            {d.guidancePages.length ? d.guidancePages.map((p) => p.title).join(', ') : 'None'}
-          </span>
         </Row>
         <Row
           title="Freshness checks"

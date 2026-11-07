@@ -12,7 +12,7 @@ export const NEEDS_FILTERS: { id: NeedsFilter; label: string }[] = [
   { id: 'accounts', label: 'Accounts' },
 ];
 
-const ASKED = new Set(['question', 'approval', 'page_proposal', 'access_request', 'mention']);
+const ASKED = new Set(['question', 'approval', 'access_request', 'mention']);
 const CODE = new Set(['merge_conflict']);
 const ACCOUNTS = new Set(['account_signed_out', 'window_urgent', 'offline']);
 

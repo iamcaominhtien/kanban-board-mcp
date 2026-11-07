@@ -168,7 +168,7 @@ def _comment_out(
         "mentions": [{"id": m.id, "name": m.name} for m in mentioned],
         "created_at": c.created_at,
         "edited_at": c.edited_at,
-        # set on an AI member's reply: {member_id, job_id, cost, sources, can_suggest, kind?, proposal_id?}
+        # set on an AI member's reply: {member_id, job_id, cost, sources, kind?}
         "ai": _json_obj(c.ai),
         "can_edit": mine and role != "viewer" and not c.ai,
         "can_delete": role != "viewer" and (mine or role == "admin"),
