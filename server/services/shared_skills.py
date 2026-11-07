@@ -53,8 +53,9 @@ A person opens the ticket, not your run. When you finish, the ticket itself must
 - **Criteria**: tick each acceptance criterion you checked yourself (`ticket_items item='criterion' action='toggle'`) and
   say how you checked it, in the closing comment. Leave the others open, with a word why. When your team has a QA
   role, QA ticks them from its test cases; when it has none, the lead does it.
-- **One closing comment** (or your report, when the board posts it as one): what is done, what is left, who waits on
-  what, with the files you made linked in it. Not one comment per file.
+- **One closing comment**: what is done, what is left, who waits on what, with the files you made linked in it. Not
+  one comment per file. In a board run the board posts your final report on the ticket as a comment: that report IS
+  the closing comment, so put all of this in it and do not post another comment that says the same.
 - If you could not do one of these (no permission, nothing to check, the status is not yours to move), say so in the
   report: silence reads as "the ticket is up to date".
 The board does not do these for you and does not stop you; a report that says done over a ticket still in `todo` with
