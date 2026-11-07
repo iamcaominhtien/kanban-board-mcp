@@ -10,6 +10,7 @@ The monitor runs only while a CLI runs or someone watches, so an idle board cost
 
 import asyncio
 import json
+import logging
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
@@ -20,10 +21,12 @@ import psutil
 from sqlmodel import col, select
 
 import database
+import events as board_events
 from models import AiRun, AiTeam, Member, Ticket
 
 from .store import get_settings, loads
 
+logger = logging.getLogger("kanban.ai.resources")
 MB = 1024 * 1024
 SAMPLE_S = 2.0  # how often every CLI is read
 HISTORY_EVERY_S = 5.0  # a history point every 5 s, 60 points = the last 5 minutes
@@ -282,6 +285,17 @@ class Monitor:
                 if queue.full():
                     queue.get_nowait()
                 queue.put_nowait(snap)
+        # The CLIs run in the runner process and so does this monitor: the people's app lives in another one, so the
+        # same snapshot goes out as a typed event (`ai.resources`) over the event stream, for each project with a live CLI.
+        for project_id in {p for _, (_, p) in self.live().items()}:
+            try:
+                await board_events.publish_typed(
+                    "ai.resources", await snapshot(project_id)
+                )
+            except Exception:  # noqa: BLE001 - numbers for a screen never stop a run
+                logger.debug(
+                    "Could not announce the resources of %s", project_id, exc_info=True
+                )
 
 
 MON = Monitor()

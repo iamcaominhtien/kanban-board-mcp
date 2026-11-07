@@ -1,3 +1,4 @@
+import { Resources, RestartNotice } from './Resources';
 import { RunCard } from './RunCard';
 import { RunHistoryTable } from './RunHistoryTable';
 import { RunPanel } from './RunPanel';
@@ -27,11 +28,8 @@ export function AiActivityDesign({
       data-testid="ai-activity"
     >
       <RunCard ticketId={ticketId} onOpenRun={onOpenRun} />
-      {/* TODO(resources): the restart notice and the Resources card (RestartNoticeDesign, ResourcesDesign in
-          ./design/designBlocks) show the design's mock numbers, so they are left out until they have data. The CLIs run in
-          the runner process, which the API cannot read RAM from (resources.MON lives in the runner): the runner has to
-          send its readings, or the API read them by pid; then restore GET /projects/{id}/ai/resources(/stream) and
-          POST /ai/runs/{id}/restart. */}
+      <RestartNotice ticketId={ticketId} onOpenRun={onOpenRun} />
+      <Resources ticketId={ticketId} />
       {/* the button belongs to the Timeline under it: close to it, apart from the Resources card above */}
       <div data-testid="ticket-timeline" style={{ marginTop: 10 }}>
         <button
