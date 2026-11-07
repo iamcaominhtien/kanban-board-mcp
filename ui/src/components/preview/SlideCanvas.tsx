@@ -230,7 +230,11 @@ function transformOf(s: RenderedShape): string | undefined {
   );
 }
 
-function Shape({ s }: { s: RenderedShape }) {
+/**
+ * One shape of a slide, at its place inside a positioned parent: its fill, line, text, picture, table or chart.
+ * @param props.s - The shape read by `renderPptx` (or by a spreadsheet's drawing).
+ */
+export function Shape({ s }: { s: RenderedShape }) {
   const radius =
     s.geometry === 'ellipse' ? '50%' : s.geometry === 'roundRect' ? Math.min(s.w, s.h) * s.radius : undefined;
   const css = s.geometry === 'rect' || s.geometry === 'roundRect' || s.geometry === 'ellipse';

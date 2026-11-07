@@ -1143,6 +1143,7 @@
   outline: none;
 }
 .pdfPage {
+  position: relative;
   flex-shrink: 0;
   background: #fff;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
@@ -1351,4 +1352,39 @@
   .stage[data-kind='powerpoint'] .navPrev {
     left: 10px;
   }
+}
+
+/* ── Excel sheets (XlsxReader) ────────────────────────── */
+.xlsxScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #ffffff;
+  color: #000000;
+}
+.xlsxTable {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+.xlsxTable td[data-hit] {
+  outline: 2px solid rgba(245, 166, 35, 0.7);
+  outline-offset: -2px;
+}
+.xlsxTable td[data-current] {
+  outline: 3px solid #f5a623;
+  outline-offset: -3px;
+}
+
+.pdfPageFailed {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
+  color: #8a3b2a;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
 }

@@ -1,6 +1,6 @@
 import { OfficeError, open, xml } from './office';
 import { BOX_PRESETS, customPaths, linePath, presetPaths, type PathPart } from './pptxGeometry';
-import { parseChart, type ChartModel } from './pptxChart';
+import { parseChart, type ChartModel, type RefLookup } from './pptxChart';
 
 /**
  * Read a .pptx into what is needed to draw its slides: boxes with a place, a fill, a line, text, pictures, groups,
@@ -111,8 +111,8 @@ export interface RenderedSlide {
   shapes: RenderedShape[];
 }
 
-type Theme = { colors: Map<string, string>; major: string; minor: string };
-type Rels = Map<string, string>;
+export type Theme = { colors: Map<string, string>; major: string; minor: string };
+export type Rels = Map<string, string>;
 
 /** One level of a text style (what a master, a layout or a shape says about the text of that indent level). */
 interface Level {
@@ -144,7 +144,16 @@ interface TableStylePart {
 /** How a picture of the file becomes a URL; the viewer makes object URLs and takes them back when it is closed. */
 export type MakeUrl = (bytes: Uint8Array, mime: string) => string;
 
-interface Ctx {
+/** A place and size in px. */
+export interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** What reading a drawing needs: the parts of the file, its theme and how to make URLs for its pictures. */
+export interface Ctx {
   files: Record<string, Uint8Array>;
   theme: Theme;
   makeUrl: MakeUrl;
@@ -152,6 +161,8 @@ interface Ctx {
   presentationStyle: Level[];
   masterStyles: { title: Level[]; body: Level[]; other: Level[] };
   tableStyles: Map<string, Record<string, TableStylePart>>;
+  /** Values of a chart's cell references, when the chart holds none (a spreadsheet's charts). */
+  refValues?: RefLookup;
 }
 
 /** Where a shape of a slide may look for what it does not say: the layout's and the master's shapes. */
@@ -162,7 +173,7 @@ interface Holders {
 
 const attr = (el: Element | null | undefined, name: string) => el?.getAttribute(name) ?? '';
 /** A relationship id such as r:embed (it has its own namespace). */
-const rid = (el: Element | null | undefined, name: string) =>
+export const rid = (el: Element | null | undefined, name: string) =>
   el?.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', name) ||
   el?.getAttribute(`r:${name}`) ||
   '';
@@ -177,7 +188,8 @@ const first = (el: Element | null | undefined, tag: string): Element | null => k
 const all = (el: Document | Element, tag: string) => Array.from(el.getElementsByTagNameNS('*', tag));
 const textOf = (el: Element | null | undefined) => el?.textContent?.trim() ?? '';
 
-function rels(files: Record<string, Uint8Array>, partName: string): Rels {
+/** The relationships of a part: id to the part's path inside the file. */
+export function rels(files: Record<string, Uint8Array>, partName: string): Rels {
   const dir = partName.slice(0, partName.lastIndexOf('/'));
   const file = `${dir}/_rels/${partName.slice(partName.lastIndexOf('/') + 1)}.rels`;
   const out: Rels = new Map();
@@ -202,7 +214,8 @@ function clamp(v: number) {
   return Math.max(0, Math.min(255, Math.round(v)));
 }
 
-function hslAdjust(hex: string, lumMod: number, lumOff: number): string {
+/** A colour (hex without #) with its lightness scaled by `lumMod` and then offset by `lumOff`. */
+export function hslAdjust(hex: string, lumMod: number, lumOff: number): string {
   const r = parseInt(hex.slice(0, 2), 16) / 255;
   const g = parseInt(hex.slice(2, 4), 16) / 255;
   const b = parseInt(hex.slice(4, 6), 16) / 255;
@@ -321,7 +334,12 @@ function shadowOf(spPr: Element | null | undefined, theme: Theme): string | unde
   return `drop-shadow(${r(dist * Math.cos(dir))}px ${r(dist * Math.sin(dir))}px ${r(blur)}px ${color})`;
 }
 
-function readTheme(files: Record<string, Uint8Array>, name: string | undefined): Theme {
+/**
+ * The colours and fonts of a theme part.
+ * @param files - The unzipped file.
+ * @param name - The theme part's path.
+ */
+export function readTheme(files: Record<string, Uint8Array>, name: string | undefined): Theme {
   const theme: Theme = { colors: new Map(), major: 'Calibri', minor: 'Calibri' };
   const doc = name ? xml(files[name]) : null;
   if (!doc) return theme;
@@ -527,7 +545,7 @@ function holderFor(holders: Holders, key: { type: string; idx: string }): Elemen
   return found;
 }
 
-function readShape(el: Element, ctx: Ctx, rel: Rels, holders: Holders | null): RenderedShape | null {
+function readShape(el: Element, ctx: Ctx, rel: Rels, holders: Holders | null, at?: Box): RenderedShape | null {
   const isPic = el.localName === 'pic';
   const isLine = el.localName === 'cxnSp';
   const spPr = first(el, 'spPr');
@@ -535,11 +553,11 @@ function readShape(el: Element, ctx: Ctx, rel: Rels, holders: Holders | null): R
   const above = key && holders ? holderFor(holders, key) : []; // layout placeholder, then master placeholder
   let xfrm = first(spPr, 'xfrm');
   for (const h of above) xfrm = xfrm ?? first(first(h, 'spPr'), 'xfrm');
-  if (!xfrm) return null;
+  if (!xfrm && !at) return null;
   const off = first(xfrm, 'off');
   const ext = first(xfrm, 'ext');
-  const w = num(ext, 'cx') * PX;
-  const h = num(ext, 'cy') * PX;
+  const w = at ? at.w : num(ext, 'cx') * PX;
+  const h = at ? at.h : num(ext, 'cy') * PX;
   const prst = attr(first(spPr, 'prstGeom'), 'prst') || (isLine ? 'line' : 'rect');
   const adj: Record<string, number> = {};
   for (const gd of all(spPr ?? el, 'gd')) {
@@ -589,8 +607,8 @@ function readShape(el: Element, ctx: Ctx, rel: Rels, holders: Holders | null): R
         }
       : undefined;
   const shape: RenderedShape = {
-    x: num(off, 'x') * PX,
-    y: num(off, 'y') * PX,
+    x: at ? at.x : num(off, 'x') * PX,
+    y: at ? at.y : num(off, 'y') * PX,
     w,
     h,
     rotation: num(xfrm, 'rot') / 60000,
@@ -747,16 +765,16 @@ function readTable(tbl: Element, ctx: Ctx): RenderedTable {
   return { cols, rows };
 }
 
-function readFrame(el: Element, ctx: Ctx, rel: Rels): RenderedShape | null {
+function readFrame(el: Element, ctx: Ctx, rel: Rels, at?: Box): RenderedShape | null {
   const xfrm = first(el, 'xfrm');
-  if (!xfrm) return null;
+  if (!xfrm && !at) return null;
   const off = first(xfrm, 'off');
   const ext = first(xfrm, 'ext');
   const shape: RenderedShape = {
-    x: num(off, 'x') * PX,
-    y: num(off, 'y') * PX,
-    w: num(ext, 'cx') * PX,
-    h: num(ext, 'cy') * PX,
+    x: at ? at.x : num(off, 'x') * PX,
+    y: at ? at.y : num(off, 'y') * PX,
+    w: at ? at.w : num(ext, 'cx') * PX,
+    h: at ? at.h : num(ext, 'cy') * PX,
     rotation: 0,
     flipH: false,
     flipV: false,
@@ -806,6 +824,7 @@ function readFrame(el: Element, ctx: Ctx, rel: Rels): RenderedShape | null {
     doc,
     (spPr) => (fillOf(spPr, ctx.theme) ?? fillOf(first(spPr, 'ln'), ctx.theme))?.color ?? '',
     accents,
+    ctx.refValues,
   );
   if (!model) return null;
   shape.chart = model;
@@ -937,4 +956,44 @@ export function renderPptx(bytes: Uint8Array, makeUrl: MakeUrl): RenderedSlide[]
       ],
     };
   });
+}
+
+/** The context for reading the drawings of a spreadsheet: its parts, its theme part and how to make picture URLs. */
+export function drawingContext(
+  files: Record<string, Uint8Array>,
+  themePart: string | undefined,
+  makeUrl: MakeUrl,
+  refValues?: RefLookup,
+): Ctx {
+  const theme = readTheme(files, themePart);
+  return {
+    files,
+    theme,
+    makeUrl,
+    urls: new Map(),
+    presentationStyle: levelsOf(null, theme),
+    masterStyles: { title: [], body: [], other: [] },
+    tableStyles: new Map(),
+    refValues,
+  };
+}
+
+/**
+ * A shape, picture or chart of a spreadsheet drawing, put at the place its anchor gives.
+ * @param el - The `sp`, `pic`, `cxnSp` or `graphicFrame` element.
+ * @param ctx - From `drawingContext`.
+ * @param rel - The relationships of the drawing part.
+ * @param at - Where it goes, in px.
+ */
+export function readAnchored(el: Element, ctx: Ctx, rel: Rels, at: Box): RenderedShape | null {
+  switch (el.localName) {
+    case 'sp':
+    case 'pic':
+    case 'cxnSp':
+      return readShape(el, ctx, rel, null, at);
+    case 'graphicFrame':
+      return readFrame(el, ctx, rel, at);
+    default:
+      return null;
+  }
 }

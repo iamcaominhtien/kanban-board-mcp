@@ -33,9 +33,16 @@ const kids = (el: Element | null | undefined, tag: string) =>
   Array.from(el?.children ?? []).filter((c) => c.localName === tag);
 const first = (el: Element | null | undefined, tag: string): Element | null => kids(el, tag)[0] ?? null;
 
-function cache(ref: Element | null | undefined): string[] {
+/** The values of a chart's reference by its formula (`Sheet1!$B$2:$B$5`), for a chart that carries no cached values. */
+export type RefLookup = (formula: string) => string[];
+
+function cache(ref: Element | null | undefined, lookup?: RefLookup): string[] {
   if (!ref) return [];
   const pts = all(ref, 'pt');
+  if (!pts.length && lookup) {
+    const f = all(ref, 'f')[0]?.textContent?.trim();
+    if (f) return lookup(f);
+  }
   const count = Number(attr(all(ref, 'ptCount')[0], 'val')) || pts.length;
   const out: string[] = Array.from({ length: count }, () => '');
   for (const p of pts) out[Number(attr(p, 'idx'))] = first(p, 'v')?.textContent ?? '';
@@ -65,6 +72,7 @@ export function parseChart(
   doc: Document,
   fillOf: (spPr: Element | null | undefined) => string,
   palette: string[],
+  lookup?: RefLookup,
 ): ChartModel | null {
   const plot = all(doc, 'plotArea')[0];
   if (!plot) return null;
@@ -79,23 +87,23 @@ export function parseChart(
   const series: ChartSeries[] = kids(type, 'ser').map((ser, i) => {
     const catRef = first(ser, 'cat') ?? first(ser, 'xVal');
     const valRef = first(ser, 'val') ?? first(ser, 'yVal');
-    const values = cache(valRef).map((v) => Number(v) || 0);
+    const values = cache(valRef, lookup).map((v) => Number(v) || 0);
     const color = fillOf(first(ser, 'spPr')) || palette[i % palette.length];
     const pointColors: string[] = [];
     for (const dPt of kids(ser, 'dPt'))
       pointColors[Number(attr(first(dPt, 'idx'), 'val'))] = fillOf(first(dPt, 'spPr'));
     const dl = first(ser, 'dLbls') ?? first(type, 'dLbls');
     return {
-      name: cache(first(ser, 'tx')).join('') || richText(first(ser, 'tx')) || `Series ${i + 1}`,
+      name: cache(first(ser, 'tx'), lookup).join('') || richText(first(ser, 'tx')) || `Series ${i + 1}`,
       values,
-      xs: kind === 'scatter' ? cache(catRef).map((v) => Number(v) || 0) : undefined,
+      xs: kind === 'scatter' ? cache(catRef, lookup).map((v) => Number(v) || 0) : undefined,
       color,
       pointColors,
       labels: attr(first(dl, 'showVal'), 'val') === '1',
     };
   });
   const firstSer = kids(type, 'ser')[0];
-  const categories = kind === 'scatter' ? [] : cache(first(firstSer, 'cat'));
+  const categories = kind === 'scatter' ? [] : cache(first(firstSer, 'cat'), lookup);
   const valAx = all(plot, 'valAx')[0];
   const scaling = first(valAx, 'scaling');
   const min = first(scaling, 'min');
