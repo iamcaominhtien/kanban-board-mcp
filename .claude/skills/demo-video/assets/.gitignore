@@ -1,0 +1,3 @@
+# the stock sounds are fetched by scripts/fetch_assets.py, not committed
+*
+!.gitignore
