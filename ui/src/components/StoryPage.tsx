@@ -9,6 +9,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { MemberAvatar } from './MemberAvatar';
 import { buildRows } from './SubTicketsSection';
 import { TicketTypeIcon } from './icons';
+import { openTimeline } from './aiteam/timelineLink';
 import styles from './StoryPage.module.css';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -163,6 +164,32 @@ export function StoryPage({ ticket, allTickets = [], onClose, onOpenTicket, onOp
           <h2 className={styles.title}>{ticket.title}</h2>
         </div>
         <span style={{ flex: 1 }} />
+        <button
+          type="button"
+          className={styles.btn}
+          data-testid="story-open-timeline"
+          onClick={() => openTimeline({ scope: ticket.id })}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <circle cx="4.5" cy="5.5" r="1.8" />
+            <circle cx="19.5" cy="5.5" r="1.8" />
+            <circle cx="4.5" cy="18.5" r="1.8" />
+            <circle cx="19.5" cy="18.5" r="1.8" />
+            <path d="M6 7l4 3.5M18 7l-4 3.5M6 17l4-3.5M18 17l-4-3.5" />
+          </svg>
+          Open in Timeline
+        </button>
         <div ref={menuRef} style={{ position: 'relative' }}>
           <button
             type="button"
@@ -256,9 +283,9 @@ export function StoryPage({ ticket, allTickets = [], onClose, onOpenTicket, onOp
 
           <section className={styles.panel} data-testid="story-children">
             <div className={styles.panelHead}>
-              <span className={styles.idh}>Sub-tickets</span>
+              <span className={styles.idh}>Plan</span>
               <span style={{ flex: 1 }} />
-              <span className={styles.hint}>{children.length} · in the order of their waves</span>
+              <span className={styles.hint}>{children.length} sub-tickets · in the order of their waves</span>
             </div>
             {children.length === 0 ? (
               <div className={styles.empty}>No sub-tickets yet.</div>
