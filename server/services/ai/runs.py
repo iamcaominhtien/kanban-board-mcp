@@ -625,7 +625,9 @@ async def _execute(run_id: str, token: str, note: str | None = None) -> None:
         RT.restart_requests.pop(run_id, None)
 
 
-async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
+async def _execute_cli(
+    run_id: str, token: str, note: str | None, restart_why: str | None = None
+) -> None:
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None or run.state in ENDED:
@@ -662,6 +664,11 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
         config_dir = accounts.claude_config_dir(account) if account else None
         session_id, fresh_note = await _session_for(session, run, config_dir)
         resume = session_id is not None
+        if restart_why:
+            # what the AI is told depends on whether its conversation could be continued
+            note = (RESTART_NOTE if resume else RESTART_FRESH_NOTE).format(
+                why=restart_why
+            )
         session_id = session_id or str(uuid.uuid4())
         run.session_id = session_id
         run.session_name = run.session_name or run.ticket_id or run.target
@@ -1427,6 +1434,12 @@ RESTART_NOTE = (
     "Your process was restarted ({why}). The conversation and every file are as you left them. Look at "
     "`git status` and the last steps, then carry on with the task from where you stopped; do not start over."
 )
+# the CLI's conversation was not found on this computer: the files are there, the memory of the talk is not
+RESTART_FRESH_NOTE = (
+    "Your process was restarted ({why}) and its earlier conversation could not be continued, so you start a new "
+    "one. Every file is as it was left. Read the ticket and its comments, look at `git status` and `git log`, then "
+    "carry on with the task from where the work stopped; do not start over."
+)
 
 
 async def _memory_breach(run_id: str, rss_mb: float, limit_mb: int) -> None:
@@ -1586,7 +1599,7 @@ async def _restart_inside_run(run_id: str, token: str, request: dict) -> None:
     await steps.append(run_id, [{"kind": "start", "title": text}])
     transcripts.note(run_id, "restart", text)
     await _publish_run(run_id)
-    await _execute_cli(run_id, token, RESTART_NOTE.format(why=why))
+    await _execute_cli(run_id, token, None, restart_why=why)
 
 
 async def answer(run_id: str, *, by: str, text: str) -> AiRun:

@@ -224,7 +224,7 @@ function RowActions({ run, canAct, teamName }: { run: ResourceRun; canAct: boole
           <span>
             {asking === 'stop'
               ? 'Ends the run now. Partial work in the folder is kept; Retry on the run starts it again.'
-              : 'Claude Code starts again inside the same run and picks up its conversation. Memory is released.'}
+              : 'Claude Code starts again inside the same run and continues its conversation. If that conversation is gone from this computer, it starts a new one and is told to read the ticket and the git history. Memory is released.'}
           </span>
           <div className="rs-pop-btns">
             <button type="button" className="st-btn st-btn-sm" onClick={() => setAsking(null)}>

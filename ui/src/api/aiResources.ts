@@ -52,7 +52,35 @@ export function useResourcesStream(projectId: string): {
     };
   }, [projectId]);
   const fresh = pushed != null && Date.now() - pushed.at < PUSH_FRESH_MS;
-  const data = fresh ? pushed.snap : (polled.data ?? null);
+  const base = polled.data ?? null;
+  let data: ResourceSnapshot | null = base;
+  if (pushed && fresh) {
+    // What a run is (running, stopped, ended) is the server's word and changes the moment a person presses Stop; the
+    // runner's push adds the live readings and the 5-minute history of the runs the server calls live.
+    data = base
+      ? {
+          ...base,
+          runs: base.runs.map((r) => {
+            const p = r.live ? pushed.snap.runs.find((x) => x.runId === r.runId && x.live) : undefined;
+            return p
+              ? {
+                  ...r,
+                  readable: p.readable,
+                  cliRssMb: p.cliRssMb,
+                  extraMb: p.extraMb,
+                  cpuPct: p.cpuPct,
+                  peakRssMb: p.peakRssMb ?? r.peakRssMb,
+                  history: p.history,
+                }
+              : r;
+          }),
+          machine:
+            pushed.snap.machine.cliCount === base.runs.filter((r) => r.live).length
+              ? pushed.snap.machine
+              : base.machine,
+        }
+      : pushed.snap;
+  }
   return { data, live: fresh || (polled.isSuccess && !polled.isError), pushed: fresh };
 }
 
