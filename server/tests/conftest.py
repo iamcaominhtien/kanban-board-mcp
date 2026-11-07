@@ -81,25 +81,6 @@ if _CONFIG_FROM_TESTS:
 import pytest  # noqa: E402
 
 
-def pytest_configure(config):
-    config.addinivalue_line(
-        "markers",
-        "memory_extraction: let a run's end start the light model that keeps notes (services/ai/memory.after_run)",
-    )
-
-
-@pytest.fixture(autouse=True)
-def _no_notes_kept_after_runs(request, monkeypatch):
-    """When a run ends, the board starts a light model in the background to keep notes from it: with the fake CLI
-    that is one more Python process per run, half of what the run tests spent. Only a test marked
-    `memory_extraction` gets it; the extraction itself is tested by calling it (tests/test_ai_memory.py)."""
-    if request.node.get_closest_marker("memory_extraction"):
-        return
-    from services.ai import memory
-
-    monkeypatch.setattr(memory, "after_run", lambda run_id: None)
-
-
 @pytest.fixture(autouse=True)
 def _claude_account_is_empty(monkeypatch, tmp_path_factory):
     """The MCP servers of the machine's own `~/.claude.json`, and the plugins of its `~/.claude`, must not leak into

@@ -1211,12 +1211,6 @@ async def _end(
     if run.ticket_id:
         # a Review hand-over (push, pull request) that waited for this run to stop goes now
         worktrees.after_run(run.ticket_id)
-        try:
-            from . import memory
-
-            memory.after_run(run.id)
-        except Exception:  # noqa: BLE001
-            logger.debug("memory after run failed", exc_info=True)
     RT.wake.set()
     await _publish_run(run_id)
     return run

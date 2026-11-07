@@ -209,15 +209,3 @@ async def test_a_lesson_proposed_by_a_diagnosis_tells_a_person(env, monkeypatch)
     )
     assert isinstance(row, AiLesson) and row.state == "proposed"
     assert sent and sent[0][0] == "lesson"
-
-
-# --- kept without the AI's initiative (the live check: two sonnet runs kept nothing by themselves) ---
-
-
-def test_parse_notes_keeps_at_most_three_clean_notes():
-    text = 'x {"notes": [{"text": " a  b "}, {"text": ""}, {"text": "c", "kind": "feedback"}, {"text": "d"}, {"text": "e"}]} y'
-    assert memory.parse_notes(text) == [
-        {"text": "a b", "kind": "learned"},
-        {"text": "c", "kind": "feedback"},
-    ]
-    assert memory.parse_notes("no json") == []
