@@ -115,6 +115,15 @@ const STATE_DOT: Record<string, string> = {
   // the whole team paused: every header goes grey (ai-team-timeline-cases.md, I)
   paused: '#9AA8A0',
 };
+/** The same dots on the dark boxes (You, the Lead): lighter, so they read on #1E2A22. */
+const STATE_DOT_DARK: Record<string, string> = {
+  working: '#6FCF8E',
+  waiting: '#F2B84B',
+  queued: '#B8C4BC',
+  offline: '#F07A63',
+  idle: '#7C8A82',
+  paused: '#9AA8A0',
+};
 export const STATE_WORD: Record<string, string> = {
   working: 'working',
   waiting: 'waiting for you',
@@ -351,15 +360,20 @@ export function TimelineHeader({
             {l.kind === 'autopilot' && <DelegateLine x={cx - 20} delegate={l.delegate ?? null} color={look.text} />}
             {state && (
               <>
-                <circle cx={cx + 37} cy={16} r={4} fill={STATE_DOT[state] ?? '#C7D2CB'} />
-                {state === 'working' && (
+                <circle
+                  cx={cx + 37}
+                  cy={16}
+                  r={4}
+                  fill={(look.fill === '#1E2A22' ? STATE_DOT_DARK : STATE_DOT)[state] ?? '#C7D2CB'}
+                />
+                {(state === 'working' || state === 'waiting') && (
                   <Pulse still={null}>
                     <circle
                       cx={cx + 37}
                       cy={16}
                       r={4}
                       fill="none"
-                      stroke="#2E6F40"
+                      stroke={(look.fill === '#1E2A22' ? STATE_DOT_DARK : STATE_DOT)[state]}
                       strokeWidth={1.5}
                       data-testid="tl-head-ring"
                     >
