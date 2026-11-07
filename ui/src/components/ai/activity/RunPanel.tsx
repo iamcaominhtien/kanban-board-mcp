@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import { aiApi, isActive, useAiMutation, useAiRun } from '../../../api/ai';
+import { aiApi, isActive, useAiMutation, useAiRun, useLoadSteps } from '../../../api/ai';
 import { extractError } from '../../../api/extractError';
 import type { AiRunFull, RunStep } from '../../../types/ai';
 import { useToast } from '../../Toast';
@@ -77,6 +77,9 @@ function StepRow({
   const added = step.detail?.added;
   const removed = step.detail?.removed;
   const code = step.detail?.exitCode;
+  // the row is one line; the whole command (or the whole sentence) shows when it is opened
+  const fullText = step.kind === 'command' ? (step.detail?.command ?? step.title) : step.title;
+  const expandable = step.hasOutput || (typeof fullText === 'string' && fullText.length > 70);
   const toggle = () => {
     onToggle();
     if (!open && step.hasOutput && output == null && !loading) {
@@ -91,8 +94,8 @@ function StepRow({
   return (
     <div style={{ borderBottom: '1px solid #EEF3EF', padding: '6px 4px' }} data-testid="run-step" data-kind={step.kind}>
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: step.hasOutput ? 'pointer' : undefined }}
-        onClick={step.hasOutput ? toggle : undefined}
+        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: expandable ? 'pointer' : undefined }}
+        onClick={expandable ? toggle : undefined}
       >
         <Svg size={12} stroke="#9AA8A0" w={2.2}>
           <path d={open ? 'M6 9L12 15L18 9' : 'M9 6L15 12L9 18'} />
@@ -162,9 +165,25 @@ function StepRow({
           })}
         </span>
       </div>
-      {open && step.hasOutput && (
-        <div className="mc-code" style={{ margin: '6px 0 4px 22px', fontSize: '11px', padding: '8px 10px' }}>
-          {loading ? 'Loading…' : (output ?? '')}
+      {open && expandable && (
+        <div
+          className="mc-code"
+          style={{
+            margin: '6px 0 4px 22px',
+            fontSize: '11px',
+            padding: '8px 10px',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+          data-testid="step-full"
+        >
+          {fullText}
+          {step.hasOutput && (
+            <>
+              {'\n\n'}
+              {loading ? 'Loading…' : (output ?? '')}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -193,6 +212,8 @@ const Chip = ({ ok, children }: { ok: boolean; children: ReactNode }) => (
 export function RunPanel({ runId }: { runId: string }) {
   const q = useAiRun(runId);
   const run = q.data;
+  const loadSteps = useLoadSteps(runId);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
   const { members } = useAiBoardState();
   const toast = useToast();
   const cancel = useAiMutation(() => aiApi.cancel(runId));
@@ -215,6 +236,22 @@ export function RunPanel({ runId }: { runId: string }) {
   const commands = run.steps.filter((s) => s.kind === 'command').slice(-6);
   const tests = testsOf(run);
   const tokens = run.tokensIn + run.tokensOut;
+  const earlierMissing = run.steps.filter((s) => s.kind !== 'role').length < run.stepsCount;
+  const showEarlier = async () => {
+    setLoadingEarlier(true);
+    try {
+      let after = 0;
+      for (;;) {
+        const page = await loadSteps({ after, limit: 500 });
+        if (page.length < 500) break;
+        after = page[page.length - 1].seq;
+      }
+    } catch (err) {
+      toast.error('The earlier steps could not be loaded', extractError(err));
+    } finally {
+      setLoadingEarlier(false);
+    }
+  };
   const stateLabel: Record<string, string> = {
     queued: 'Queued',
     starting: 'Starting',
@@ -368,6 +405,17 @@ export function RunPanel({ runId }: { runId: string }) {
                   : `${steps.length} of ${run.stepsCount}`}
               </span>
               <span style={{ flex: 1 }} />
+              {earlierMissing && (
+                <button
+                  type="button"
+                  className="mc-link"
+                  onClick={showEarlier}
+                  disabled={loadingEarlier}
+                  data-testid="show-earlier-steps"
+                >
+                  {loadingEarlier ? 'Loading…' : 'Show earlier steps'}
+                </button>
+              )}
               <button type="button" className="mc-link" onClick={() => setOpened({})}>
                 Collapse all
               </button>
