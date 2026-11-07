@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { aiApi, useAiMutation } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { RunQuestion } from '../../types/ai';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
 import { AiAvatar, fmtElapsed, hhmm, secondsSince, useAiBoardState, useNow } from './aiUi';
 import './ticketWork.css';
@@ -54,7 +55,9 @@ export function QuestionCard({ run }: { run: QuestionRun }) {
           </span>
         )}
       </div>
-      <div style={{ fontSize: 14, margin: '12px 0', lineHeight: 1.55 }}>{q.text}</div>
+      <div style={{ fontSize: 14, margin: '12px 0', lineHeight: 1.55 }}>
+        <MarkdownRenderer plain>{q.text}</MarkdownRenderer>
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {details.map((o) => (
           <button

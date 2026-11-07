@@ -39,6 +39,11 @@ const Svg = ({
   </svg>
 );
 
+/** A step's title is one line of plain text: the lead's `**bold**` and `code` marks would show as stray characters. */
+function plainTitle(title: string): string {
+  return title.replace(/\*\*(.+?)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1');
+}
+
 /** "Ran npm test" → ["Ran ", "npm test"]: the verb in plain text and the thing it acted on as code. */
 function splitTitle(title: string): [string, string] | null {
   const m = /^(Ran|Edited|Created|Read|Searched|Deleted|Running) (.+)$/.exec(title);
@@ -138,7 +143,7 @@ function StepRow({
               <span className="m-code">{parts[1]}</span>
             </>
           ) : (
-            step.title
+            plainTitle(step.title)
           )}
           {step.kind === 'command' && typeof code === 'number' && ` · exit ${code}`}
         </span>

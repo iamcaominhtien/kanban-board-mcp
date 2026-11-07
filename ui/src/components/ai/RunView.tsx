@@ -4,6 +4,7 @@ import { extractError } from '../../api/extractError';
 import type { AiRun, AiRunFull, RunReport } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { useToast } from '../Toast';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 import { QuestionCard } from './QuestionCard';
 import { RunTree } from './run/RunTree';
 import {
@@ -47,7 +48,11 @@ export function RunReportCard({ run }: { run: Pick<AiRun, 'report' | 'summary'> 
       <div className="ai-label ai-label-dark" style={{ marginBottom: 6 }}>
         Report
       </div>
-      {summary && <div style={{ fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{summary}</div>}
+      {summary && (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }} data-testid="run-report-text">
+          <MarkdownRenderer plain>{summary}</MarkdownRenderer>
+        </div>
+      )}
       {(report.branch || report.prUrl) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8, fontSize: 12.5 }}>
           {report.branch && (
