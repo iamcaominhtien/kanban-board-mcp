@@ -16,11 +16,13 @@ from database import get_session
 from models import AiProjectSettings, AiRun, AiTeam, Member, Project
 from services import activity as svc_activity
 from services.ai import activity as svc_activity_roles
+from services.ai import audit
 from services.ai import roles as svc_roles
 from services.ai import runs as svc_runs
 from services.ai import steps as svc_steps
 from services.ai import teams as svc_teams
 from services.ai import timeline as svc_timeline
+from services.ai import touches as svc_touches
 from services.ai.store import active_runs, get_settings, loads
 
 router = APIRouter(tags=["ai"])
@@ -331,6 +333,13 @@ async def post_pause_all(project_id: str, body: PauseAllBody, session: Session) 
     settings.paused_reason = body.reason or f"Paused by {_by()}"
     session.add(settings)
     await session.commit()
+    await audit.record(
+        project_id,
+        "project_paused",
+        "info",
+        on_behalf_of=_by(),
+        detail={"reason": settings.paused_reason},
+    )
     if body.cancel_running and hasattr(svc_runs, "cancel"):
         for r in await active_runs(session):
             if r.project_id == project_id and r.state in (
@@ -358,6 +367,7 @@ async def post_resume_all(project_id: str, session: Session) -> dict:
     settings.paused_reason = None
     session.add(settings)
     await session.commit()
+    await audit.record(project_id, "project_resumed", "info", on_behalf_of=_by())
     svc_runs.RT.wake.set()
     await board_events.publish("invalidate")
     return settings_dict(settings)
@@ -724,3 +734,66 @@ async def get_timeline(
         until=until,
         ticket_id=ticket_id,
     )
+
+
+# --------------------------------------------------------------------------- You stepped in
+
+
+class MarkBody(BaseModel):
+    """The mark a person gives to one touch."""
+
+    key: str
+    mark: Optional[Literal["needed", "avoidable"]] = None
+
+
+class TouchLessonBody(BaseModel):
+    """The lesson a person writes from an avoidable touch (empty: a draft)."""
+
+    key: str
+    text: Optional[str] = None
+
+
+@router.get("/projects/{project_id}/ai/team/touches")
+async def get_touches(
+    project_id: str,
+    session: Session,
+    range: str = "7d",
+    team_id: Optional[str] = None,
+    kind: Optional[str] = None,
+    mark: Optional[str] = None,
+) -> dict:
+    """Every time a person had to touch the work of the project's AI teams, newest first, in a range."""
+    await _project(session, project_id)
+    return await svc_touches.stepped_in(
+        session, project_id, range_key=range, team_id=team_id, kind=kind, mark=mark
+    )
+
+
+@router.put("/projects/{project_id}/ai/team/touches/mark")
+async def put_touch_mark(project_id: str, body: MarkBody, session: Session) -> dict:
+    """Mark a touch needed or avoidable (mark null takes the mark away). The mark stays."""
+    await _project(session, project_id)
+    try:
+        out = await svc_touches.set_mark(
+            session, project_id, body.key, body.mark, by=_by()
+        )
+    except svc_touches.TouchError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.post("/projects/{project_id}/ai/team/touches/lesson", status_code=201)
+async def post_touch_lesson(
+    project_id: str, body: TouchLessonBody, session: Session
+) -> dict:
+    """“Make a lesson” from an avoidable touch: a proposed lesson in Memory."""
+    await _project(session, project_id)
+    try:
+        out = await svc_touches.make_lesson(
+            session, project_id, body.key, body.text, by=_by()
+        )
+    except svc_touches.TouchError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return out

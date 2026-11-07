@@ -1,0 +1,118 @@
+/* AI Team › You stepped in and Health (v2). Builds on the .at-* look of aiTeam.css. */
+.st-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.st-grid {
+  display: grid;
+  grid-template-columns: 96px 120px 190px 200px minmax(200px, 1fr) 250px;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #eef3ef;
+  align-items: start;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.st-grid.head {
+  background: #fbfcfb;
+  padding: 9px 16px;
+}
+.st-grid:last-child {
+  border-bottom: none;
+}
+.st-table {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #fff;
+}
+.st-table > .st-grid {
+  min-width: 1020px;
+}
+.st-details {
+  color: #3a4a3e;
+  word-break: break-word;
+}
+.st-mark {
+  display: inline-flex;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.st-mark button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  border: 0;
+  background: #fff;
+  color: #5b6b60;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.st-mark button + button {
+  border-left: 1px solid #e3e8e5;
+}
+.st-mark button:hover {
+  background: #f6faf7;
+}
+.st-mark button.needed[aria-pressed='true'] {
+  background: #fef3d9;
+  color: #7a5a06;
+}
+.st-mark button.avoidable[aria-pressed='true'] {
+  background: #fdece8;
+  color: #a5321e;
+}
+.st-lesson {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.st-lesson textarea {
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  padding: 6px 8px;
+  resize: vertical;
+  min-height: 62px;
+}
+.st-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: #efe8fb;
+  color: #5b3aa6;
+  margin-left: 4px;
+}
+.st-kind {
+  font-weight: 600;
+}
+.st-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.st-kindrow {
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.st-kindrow:hover span {
+  text-decoration: underline;
+}

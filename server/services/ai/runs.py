@@ -1699,7 +1699,15 @@ async def before_ticket_change(
 async def note_person_edit(
     ticket_id: str, *, by: str | None = None, what: str = ""
 ) -> None:
-    """A person edited the ticket while a lead works on it: the lead hears it on its live input."""
+    """A person edited the ticket while a lead works on it: the lead hears it on its live input, and the edit is
+    recorded as a touch (tab "You stepped in")."""
+    async with database.async_session() as session:
+        try:
+            from . import touches
+
+            await touches.record_edit(session, ticket_id, by=by, what=what)
+        except Exception:  # noqa: BLE001 - a note about the edit must never fail the edit
+            logger.exception("Could not record the edit of %s as a touch", ticket_id)
     async with database.async_session() as session:
         rows = [
             r
