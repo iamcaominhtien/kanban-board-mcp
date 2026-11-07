@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import unicodedata
@@ -118,26 +119,67 @@ SUPPORTED_IMAGE_MIME_TYPES = tuple(
 )
 
 
-def get_uploads_dir(*, create: bool = True) -> Path:
-    """Return the uploads directory, creating it when `create` is true."""
+# Where `resolve_uploads_dir` found the folder. Only "code" is a folder the desktop app does not serve.
+SOURCE_ENV = "env"  # KANBAN_UPLOADS_DIR (the app sets it for its own processes)
+SOURCE_DATA_FOLDER = (
+    "data_folder"  # `data_folder` of the config file: <data folder>/uploads
+)
+SOURCE_CONFIG = "config"  # `uploads_dir` of the config file, written by the desktop app at its start
+SOURCE_DB_PATH = "db_path"  # next to KANBAN_DB_PATH
+SOURCE_CODE = "code"  # `server/uploads` next to the code: the last resort
+
+_logger = logging.getLogger(__name__)
+_fallback_logged = False
+
+
+def resolve_uploads_dir() -> tuple[Path, str]:
+    """The uploads folder and where it came from (a SOURCE_* name). Order: KANBAN_UPLOADS_DIR, `data_folder` of the
+    config file, `uploads_dir` of the config file, the folder of KANBAN_DB_PATH, then `server/uploads` next to the code."""
     env_value = os.environ.get(UPLOADS_DIR_ENV_VAR)
     if env_value:
-        candidate = Path(env_value)
-    else:
-        import config as app_config
+        return Path(env_value), SOURCE_ENV
+    import config as app_config
 
-        configured = app_config.get_data_folder()
-        if configured:
-            candidate = configured / "uploads"
-        else:
-            db_env = os.environ.get("KANBAN_DB_PATH")
-            if db_env:
-                candidate = Path(db_env).resolve().parent / "uploads"
-            else:
-                candidate = Path(__file__).resolve().parent / "uploads"
+    configured = app_config.get_data_folder()
+    if configured:
+        return configured / "uploads", SOURCE_DATA_FOLDER
+    recorded = app_config.get_uploads_dir()
+    if recorded:
+        return recorded, SOURCE_CONFIG
+    db_env = os.environ.get("KANBAN_DB_PATH")
+    if db_env:
+        return Path(db_env).resolve().parent / "uploads", SOURCE_DB_PATH
+    return Path(__file__).resolve().parent / "uploads", SOURCE_CODE
+
+
+def get_uploads_dir(*, create: bool = True) -> Path:
+    """Return the uploads directory, creating it when `create` is true."""
+    global _fallback_logged
+    candidate, source = resolve_uploads_dir()
+    if source == SOURCE_CODE and not _fallback_logged:
+        _fallback_logged = True
+        _logger.warning(
+            "No uploads folder is configured (no KANBAN_UPLOADS_DIR, no data folder or uploads_dir in the config "
+            "file, no KANBAN_DB_PATH): files are kept in %s, next to the code, which the desktop app does not serve.",
+            candidate,
+        )
     if create:
         candidate.mkdir(parents=True, exist_ok=True)
     return candidate.resolve()
+
+
+def storage_info() -> dict:
+    """Where a stored file went, for the result of a tool that stores one: `{"stored_in": folder}`, plus a `warning`
+    when the folder is the one next to the code (the desktop app serves another, so the link would not open there)."""
+    folder, source = resolve_uploads_dir()
+    info: dict = {"stored_in": str(folder.resolve())}
+    if source == SOURCE_CODE:
+        info["warning"] = (
+            f"The file is stored in {info['stored_in']}, which the app does not serve: no uploads folder is "
+            "configured for this MCP server. Start the desktop app once (it records its uploads folder in the "
+            "config file) or set KANBAN_UPLOADS_DIR in the environment of this MCP server, then attach the file again."
+        )
+    return info
 
 
 def resolve_upload_path(file_path: str) -> Path | None:

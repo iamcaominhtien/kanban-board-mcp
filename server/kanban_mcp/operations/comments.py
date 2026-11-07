@@ -90,7 +90,7 @@ async def attach_file(
 ) -> dict:
     """Attach a file (a screenshot, a log, a report, a PDF, a spreadsheet) to a ticket: the board keeps a copy and posts
     it in a comment, so it shows in the ticket's Attachments with the comment it came from. Returns the ticket with
-    `attached: {url, markdown, size, sha256}` (the copy is byte for byte: compare `sha256` with `shasum -a 256` of your file, never search the disk for it); put `markdown` in a test case's proof or the description to show it there too. With
+    `attached: {url, markdown, size, sha256, stored_in}` (`stored_in` is the folder the copy went to; a `warning` there means the app does not serve that folder, so the file will not open in it; the copy is byte for byte: compare `sha256` with `shasum -a 256` of your file, never search the disk for it); put `markdown` in a test case's proof or the description to show it there too. With
     `post=false` no comment is posted: the file shows in the Attachments once a comment (your report) holds `markdown`."""
     import os
 
@@ -117,7 +117,12 @@ async def attach_file(
             f"{path}: not attached. Name a file in your working folder (in an AI run) or by its absolute path."
         )
     url = stored[stored.rindex("](") + 2 : -1]
-    attached = {"url": url, "markdown": stored, **_stored_fingerprint(url)}
+    attached = {
+        "url": url,
+        "markdown": stored,
+        **_stored_fingerprint(url),
+        **uploads.storage_info(),
+    }
     if not post:
         return {
             "ticket_id": ticket_id,
