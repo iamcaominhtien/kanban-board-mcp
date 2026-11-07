@@ -15,6 +15,7 @@ import events as board_events
 from database import get_session
 from models import AiProjectSettings, AiRun, AiTeam, Member, Project
 from services import activity as svc_activity
+from services.ai import activity as svc_activity_roles
 from services.ai import roles as svc_roles
 from services.ai import runs as svc_runs
 from services.ai import steps as svc_steps
@@ -673,6 +674,35 @@ async def get_live(project_id: str, session: Session, limit: int = 100) -> dict:
             out.append({**s, "ticket_id": r.ticket_id, "member_id": r.member_id})
     out.sort(key=lambda s: s["at"])
     return {"runs": [svc_runs.to_dict(r) for r in rows], "steps": out[-limit:]}
+
+
+@router.get("/projects/{project_id}/ai/team/activity")
+async def get_project_activity(project_id: str, session: Session) -> dict:
+    """What each team's lead and roles do now, when they last worked, runs and steps today (no money: cost is per run)."""
+    await _project(session, project_id)
+    teams = await svc_teams.list_teams(session, project_id)
+    return {"teams": await svc_activity_roles.project_activity(session, teams)}
+
+
+@router.get("/ai/teams/{member_id}/activity")
+async def get_team_activity(member_id: str, session: Session) -> dict:
+    """One team's lead and roles: now, last worked, runs and steps today."""
+    member, profile = await _team(session, member_id)
+    team = await svc_teams.describe(session, member, profile)
+    return await svc_activity_roles.team_activity(
+        session, member_id, [r["key"] for r in team["roles"]]
+    )
+
+
+@router.get("/projects/{project_id}/ai/recent")
+async def get_recent(
+    project_id: str, session: Session, team_id: Optional[str] = None, limit: int = 8
+) -> dict:
+    """Runs that just ended with the first line of their report, and the latest notes into and out of runs."""
+    await _project(session, project_id)
+    return await svc_activity_roles.recent(
+        session, project_id, team_id=team_id, limit=max(1, min(limit, 50))
+    )
 
 
 @router.get("/projects/{project_id}/ai/team/timeline")
