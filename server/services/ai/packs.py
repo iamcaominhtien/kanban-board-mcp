@@ -1,9 +1,9 @@
 """Role packs: everything that makes an AI a role, in one object you can export, import and version
 (design/screens/ai-team-process.md, C; plan D15).
 
-A pack is: who it is (persona), model and effort, its tools (allow rules, plugins, MCP servers from the catalog), its
-permission template and status ceiling, where it may write, what it must hand in, and its limits. Eight are
-ready-made; the four presets of ``memberPresets.json`` are the first four. A project can add its own, and every edit
+A pack is: who it is (persona), model and effort, its plugins and MCP servers from the catalog, where it may write,
+what it must hand in, and its limits. There is no permission template, status ceiling or tool list (AI v2: bypass
+plus a short deny list). Twelve are ready-made; the four presets of ``memberPresets.json`` are the first four. A project can add its own, and every edit
 makes a new version so a member keeps the version it was made from until someone updates it.
 """
 
@@ -38,19 +38,8 @@ BUILTIN: list[dict] = [
         "tagline": "Reads a new ticket and sorts it",
         "model": "haiku",
         "effort": "low",
-        # Developer narrowed to the fields it sorts: labels and the like without asking, nothing else it could make
-        "template": "developer",
-        "permissions": {
-            "change_assignee": "blocked",
-            "create_tickets": "blocked",
-            "edit_docs": "blocked",
-            "delete_docs": "blocked",
-            "create_branches": "blocked",
-        },
-        "ceiling": "todo",
         "writes": "nothing",
         "hands_in": "Labels and the review depth: a ticket sorted for the team",
-        "allow": ["Read", "Glob", "Grep"],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 2, "max_runs_per_day": 40},
@@ -69,21 +58,8 @@ BUILTIN: list[dict] = [
         "tagline": "PM: plans, splits, and settles disagreements",
         "model": "opus",
         "effort": "high",
-        "template": "developer",
-        "ceiling": "todo",
         "writes": "nothing",
         "hands_in": "A plan, or a verdict",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            "Bash(git status:*)",
-            "Bash(git diff:*)",
-            "Bash(git log:*)",
-            # the files of a draw.io Diagram of a plan (no other shell)
-            "Write",
-            "Edit",
-        ],
         "plugins": [],
         "mcp": ["playwright"],  # to look at a design before deciding it
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -104,18 +80,8 @@ BUILTIN: list[dict] = [
         "tagline": "Turns a wish into criteria",
         "model": "sonnet",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "todo",
         "writes": "ticket",
         "hands_in": "Acceptance criteria",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            # the files of a draw.io Diagram or a Sketch, written before docs_write makes it (no shell)
-            "Write",
-            "Edit",
-        ],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -137,11 +103,8 @@ BUILTIN: list[dict] = [
         "tagline": "Draws before anyone builds",
         "model": "opus",
         "effort": "high",
-        "template": "developer",
-        "ceiling": "todo",
         "writes": "canvas",
         "hands_in": "A mock-up for you to approve",
-        "allow": ["Read", "Glob", "Grep"],
         # not Anthropic's canvas-design (poster art as a PNG; its name hides the board's own guide), nor Figma (it signs
         # in through a browser, which a run cannot do): both stay in the catalogue for a person to add
         # only skills for work the guide does not teach (motion, charts) and checks run on drawn boards: rule sets
@@ -176,11 +139,8 @@ BUILTIN: list[dict] = [
         "model": "sonnet",
         "retry_model": "opus",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "review",
         "writes": "worktree",
         "hands_in": "A run where the test failed, and a later run where it passed",
-        "allow": [],
         "plugins": ["tdd"],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
@@ -203,26 +163,8 @@ BUILTIN: list[dict] = [
         "model": "sonnet",
         "effort": "medium",
         "depth_models": {"light": "haiku", "standard": "sonnet", "deep": "opus"},
-        "template": "reviewer",
-        "ceiling": "review",
         "writes": "nothing",
         "hands_in": "Pass, or what to change",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            "Bash(git status:*)",
-            "Bash(git diff:*)",
-            "Bash(git log:*)",
-            "Bash(npm test:*)",
-            "Bash(npm run test:*)",
-            "Bash(npm run lint:*)",
-            "Bash(pytest:*)",
-            "Bash(python -m pytest:*)",
-            "Bash(python3 -m pytest:*)",
-            "Bash(uv run pytest:*)",
-            "Bash(uvx pytest:*)",
-        ],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 2, "max_runs_per_day": 30},
@@ -240,11 +182,8 @@ BUILTIN: list[dict] = [
         "tagline": "Runs it, does not read it",
         "model": "sonnet",
         "effort": "low",
-        "template": "developer",
-        "ceiling": "review",
         "writes": "tests",
         "hands_in": "What passed, what did not",
-        "allow": [],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -262,30 +201,8 @@ BUILTIN: list[dict] = [
         "tagline": "Plays one kind of person",
         "model": "sonnet",
         "effort": "medium",
-        "template": "reviewer",
-        "ceiling": "review",
         "writes": "nothing",
         "hands_in": "What it tried, and where it got stuck",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            # start the app it tries (in the background) and drive it with the browser; no other shell
-            "Bash(npm ci:*)",
-            "Bash(npm install:*)",
-            "Bash(npm run dev:*)",
-            "Bash(npm run build:*)",
-            "Bash(npm run preview:*)",
-            "Bash(npm start:*)",
-            "Bash(npx vite:*)",
-            "Bash(uv run:*)",
-            "Bash(python3 -m http.server:*)",
-            "Bash(curl:*)",
-            "Bash(lsof:*)",
-            "Bash(kill:*)",
-            # screenshots and notes for a demo or a report
-            "Write",
-        ],
         "plugins": [],
         "mcp": ["playwright"],
         "personas": ["in a hurry", "first time here", "keyboard only", "on a phone"],
@@ -307,12 +224,9 @@ BUILTIN: list[dict] = [
         "tagline": "Docs a reader can follow, every step tried",
         "model": "sonnet",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "review",
         # developer docs live beside the code, on the ticket's branch; team and user docs are Docs pages
         "writes": "worktree",
         "hands_in": "A guide or page whose every step was tried, with the commands and their output",
-        "allow": [],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
@@ -331,11 +245,8 @@ BUILTIN: list[dict] = [
         "tagline": "CI and environments that run the same every time",
         "model": "sonnet",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "review",
         "writes": "worktree",
         "hands_in": "The config on a branch, a local run of the commands it runs, and what a person must switch on",
-        "allow": [],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
@@ -355,28 +266,8 @@ BUILTIN: list[dict] = [
         "tagline": "Finds what an attacker could use, and proves it",
         "model": "sonnet",
         "effort": "high",
-        "template": "reviewer",
-        "ceiling": "review",
         "writes": "nothing",
         "hands_in": "Findings rated by severity, each with a local proof and a fix, and a verdict",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            "Bash(git status:*)",
-            "Bash(git diff:*)",
-            "Bash(git log:*)",
-            "Bash(git show:*)",
-            # a proof test in the ticket's scratch folder, run and thrown away (never committed)
-            "Write",
-            "Bash(pytest:*)",
-            "Bash(python -m pytest:*)",
-            "Bash(python3 -m pytest:*)",
-            "Bash(uv run pytest:*)",
-            "Bash(npm test:*)",
-            "Bash(npm audit:*)",
-            "Bash(pip-audit:*)",
-        ],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -396,22 +287,8 @@ BUILTIN: list[dict] = [
         "tagline": "Answers questions with numbers people can trust",
         "model": "sonnet",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "review",
         "writes": "ticket",
         "hands_in": "The answer with its numbers, a chart, the definitions and caveats, and a script that reruns it",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            # an analysis script, run with the machine's Python; its chart and output beside it
-            "Write",
-            "Edit",
-            "Bash(mkdir:*)",
-            "Bash(python3:*)",
-            "Bash(python:*)",
-            "Bash(uv run:*)",
-        ],
         "plugins": ["tufte-data-viz"],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -461,7 +338,7 @@ def to_dict(row: AiRolePack) -> dict:
     """A stored pack for the API."""
     body = json.loads(row.body or "{}")
     return {
-        **body,
+        **{k: v for k, v in body.items() if k in _FIELDS},
         "id": row.id,
         "key": row.key,
         "name": row.name,
@@ -523,13 +400,8 @@ _FIELDS = (
     "retry_model",
     "effort",
     "depth_models",
-    "template",
-    "permissions",
-    "permission_mode",
-    "ceiling",
     "writes",
     "hands_in",
-    "allow",
     "plugins",
     "mcp",
     "personas",
@@ -557,7 +429,7 @@ def clean(body: dict) -> dict:
         "max",
     ):
         raise ValueError("The effort is low, medium, high, xhigh or max.")
-    for key in ("allow", "plugins", "mcp", "personas"):
+    for key in ("plugins", "mcp", "personas"):
         if key in out and out[key] is None:
             # the edit dialog sends `personas: null` for every pack without personas (all but the User tester):
             # nothing to change, not a bad value (it refused every save of the PM pack with a 422)
@@ -664,32 +536,6 @@ async def import_pack(session, project_id: str, data: dict, *, by: str) -> dict:
     }
     missing = [p for p in pack.get("plugins") or [] if p not in installed]
     return {"pack": pack, "missing": missing}
-
-
-_WRITES_CODE = ("worktree", "tests")
-_WRITE_TOOLS = ["Read", "Glob", "Grep", "Edit", "Write", "MultiEdit", "Bash"]
-# a canvas is made from a folder of HTML frames the Designer writes first (docs_write canvas_create): files, no shell
-_FILE_TOOLS = ["Edit", "Write", "MultiEdit"]
-
-
-HISTORY_DAYS = 30  # a member can go back to the version it was updated from for this long (ai-story-flow Q1)
-_LABELS = {
-    "persona": "Instructions",
-    "template": "Template",
-    "ceiling": "Ceiling",
-    "permissions": "Permissions",
-    "max_parallel": "Runs at a time",
-    "max_runs_per_day": "Runs a day",
-    "description": "Description",
-    "permission_mode": "Permission mode",
-    "effort": "Effort",
-    "allow_rules": "Allow list",
-    "retry_model": "Model for a second attempt",
-    "depth_models": "Models per review depth",
-    "hands_in": "What it hands in",
-    "pack_plugins": "Plugins",
-    "mcp_servers": "MCP servers",
-}
 
 
 def plugins_catalogue() -> list[dict]:

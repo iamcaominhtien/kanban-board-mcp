@@ -63,9 +63,6 @@ def test_key_for_picks_the_override_then_the_account_then_the_local_login():
     )
     assert quota.key_for(team, AiRun(project_id="p", member_id="t")) == "acct_team"
     assert quota.key_for(AiTeam(id="t", project_id="p")) == "local"
-    assert (
-        quota.key_for(AiTeam(id="t", project_id="p", provider="codex")) == "local:codex"
-    )
     assert quota.key_for(None) == "local"
 
 

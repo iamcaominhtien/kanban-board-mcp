@@ -3,8 +3,8 @@
 1. **Scan by code, no quota**: ``package.json`` scripts and frameworks, ``pyproject.toml``/``uv.lock``, ``go.mod``,
    ``Cargo.toml``, ``Makefile``, a ``Dockerfile``, the CI workflows (the commands CI really runs win over the
    README), ``CLAUDE.md``/``AGENTS.md``, an existing ``.claude/``, a monorepo, test folders, a web UI, the git remote.
-2. **Suggest**: test, lint and build commands, the prepare command for a worktree, a port, the default workflow, the
-   team (every role the suggested workflow has a step for, plus a Designer and a User tester when there is a UI), the
+2. **Suggest**: test, lint and build commands, the prepare command for a worktree, a port, the
+   team (the usual roles, plus a Designer and a User tester when there is a UI), the
    plugins of the catalogue for those roles, and the hand-over route.
 3. **Try**: the prepare and test commands run once in a scratch worktree; a command that fails is shown failing.
 4. **Create** only when a person presses it: the members from the packs, the project's AI team settings, the plugins.
@@ -394,7 +394,6 @@ def suggest(found: dict) -> dict:
         tests.append("go test ./...")
     if "rust" in found["languages"] and not tests:
         tests.append("cargo test")
-    workflow = "feature_ui" if found["ui"] else "standard"
     roles = ["triage", "pm", "ba", "dev", "qa", "reviewer"]
     if found["ui"]:
         roles[3:3] = ["designer"]
@@ -418,14 +417,13 @@ def suggest(found: dict) -> dict:
         },
         "prepare": " && ".join(dict.fromkeys(prepares)),
         "base_port": 5180,
-        "workflow_default": workflow,
         "team": team,
         "plugins": suggested_plugins,
         "handover": handover,
         "worktrees": bool(found.get("git")),
         "why": {
             "commands": "Taken from the CI workflow when there is one, else from the package scripts.",
-            "team": "Every role the suggested workflow has a step for"
+            "team": "The usual roles of a team"
             + (
                 ", plus a Designer and a User tester because it has a UI."
                 if found["ui"]

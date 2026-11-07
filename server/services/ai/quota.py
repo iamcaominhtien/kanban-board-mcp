@@ -27,13 +27,12 @@ NEAR = 0.8  # "quota near" signal and the bar's amber
 
 def key_for(profile: AiTeam | None, run: AiRun | None = None) -> str:
     """Which account a run spends: the run's own override (urgent work moved), else the member's account, else this
-    computer's own login of the member's CLI."""
+    computer's own Claude Code login."""
     if run is not None and getattr(run, "account_id", None):
         return run.account_id
     if profile is not None and profile.account_id:
         return profile.account_id
-    provider = (profile.provider if profile else None) or "claude-code"
-    return LOCAL if provider == "claude-code" else f"{LOCAL}:{provider}"
+    return LOCAL
 
 
 def _iso(epoch) -> str | None:

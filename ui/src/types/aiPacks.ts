@@ -2,9 +2,7 @@
 
 export type PackModel = 'haiku' | 'sonnet' | 'opus';
 export type PackWrites = 'nothing' | 'ticket' | 'worktree' | 'tests' | 'canvas';
-export type WorkflowKey = 'standard' | 'feature_ui' | 'quick_fix' | 'research' | 'docs' | 'chore';
 export type HandoverKind = 'local' | 'pr' | 'branch';
-export type PackPermissionMode = 'allowlist' | 'bypass';
 
 export interface Pack {
   /** "builtin:dev" for a ready-made one. */
@@ -17,18 +15,13 @@ export interface Pack {
   retryModel?: PackModel | null;
   effort: string;
   depthModels?: { light: PackModel; standard: PackModel; deep: PackModel } | null;
-  template: string;
-  ceiling: string;
   writes: PackWrites;
   handsIn: string;
-  allow: string[];
   plugins: string[];
   mcp: string[];
   personas?: string[] | null;
   limits: { maxParallel: number; maxRunsPerDay: number };
   persona: string;
-  /** How a member made from the pack runs; unset: Bypass permissions, except Triage (the allow list). */
-  permissionMode?: PackPermissionMode | null;
   version: number;
   builtin: boolean;
   projectId?: string | null;
@@ -44,17 +37,14 @@ export type PackDraft = Pick<
   | 'model'
   | 'retryModel'
   | 'effort'
-  | 'template'
-  | 'ceiling'
   | 'writes'
   | 'handsIn'
-  | 'allow'
   | 'plugins'
   | 'mcp'
   | 'limits'
   | 'persona'
 > &
-  Partial<Pick<Pack, 'depthModels' | 'personas' | 'glyph' | 'permissionMode'>>;
+  Partial<Pick<Pack, 'depthModels' | 'personas' | 'glyph'>>;
 
 export interface PackExport {
   format: 'kanban-role-pack/1';
@@ -123,7 +113,6 @@ export interface Suggestion {
   commands: { test?: string | null; lint?: string | null; build?: string | null };
   prepare: string | null;
   basePort: number | null;
-  workflowDefault: WorkflowKey;
   team: SuggestedMember[];
   plugins: string[];
   handover: HandoverKind;
@@ -215,7 +204,6 @@ export interface ApplyBody {
   commands: Suggestion['commands'];
   prepare: string | null;
   basePort: number | null;
-  workflowDefault: WorkflowKey;
   handover: HandoverKind;
   worktrees: boolean;
   team: SuggestedMember[];
