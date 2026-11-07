@@ -45,18 +45,10 @@ TEAM_PACKS: dict[str, dict[str, Any]] = {
 }
 DEFAULT_TEAM_PACK = "standard"
 
-# Tools a role may use, by what it writes (None = every tool the run has)
-_READ_ONLY = ["Read", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"]
-
 
 def role_from_pack(pack: dict[str, Any]) -> dict[str, Any]:
     """A role (subagent definition) from a ready-made or project role pack."""
     writes = pack.get("writes") or "nothing"
-    tools = (
-        None
-        if writes in ("worktree", "canvas", "tests", "ticket")
-        else list(_READ_ONLY)
-    )
     prompt = (pack.get("persona") or "").strip()
     return {
         "key": pack["key"],
@@ -65,7 +57,9 @@ def role_from_pack(pack: dict[str, Any]) -> dict[str, Any]:
         "prompt": prompt,
         "model": pack.get("model"),
         "effort": pack.get("effort"),
-        "tools": tools,
+        # no tool list: a role has every tool of the run (bypass plus a short deny list, docs/specs/ai-v2.md §2). A list
+        # here cut a role off from the Skill tool (its own guide) and the board's MCP tools.
+        "tools": None,
         "writes": writes,
     }
 
@@ -169,10 +163,6 @@ def agents_json(roles: list[dict[str, Any]], board_rules: str = "") -> dict[str,
             spec["model"] = r["model"]
         if r.get("tools"):
             spec["tools"] = list(r["tools"])
-            if skill and "Skill" not in spec["tools"]:
-                # a role that is limited to a few tools still has to open its own guide (a live run showed the
-                # reviewer failing with "No such tool available: Skill")
-                spec["tools"].append("Skill")
         out[r["key"]] = spec
     return out
 

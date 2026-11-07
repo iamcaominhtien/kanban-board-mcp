@@ -145,16 +145,9 @@ def test_roles_become_agents_json_and_markdown():
     for key, spec in agents.items():
         assert spec["description"] and spec["prompt"].endswith("Report on the board.")
     reviewer = next(r for r in rs if r["key"] == "reviewer")
-    assert reviewer["tools"] == [
-        "Read",
-        "Glob",
-        "Grep",
-        "Bash",
-        "WebFetch",
-        "WebSearch",
-    ]
+    assert reviewer["tools"] is None  # no allow-list: bypass plus a short deny list
     md = roles.agent_markdown(reviewer)
-    assert md.startswith("---\nname: reviewer\n") and "tools: Read, Glob" in md
+    assert md.startswith("---\nname: reviewer\n") and "tools:" not in md
     dev = next(r for r in rs if r["key"] == "dev")
     assert dev["tools"] is None  # writes code: every tool of the run
 
