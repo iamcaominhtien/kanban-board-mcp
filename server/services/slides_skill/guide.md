@@ -9,7 +9,7 @@ slide, and look made for its subject, not filled in from a template. Three kinds
 | A deck in the person's own template (they gave a .pptx or .potx) | `scripts/pptx_template.py`: inventory, outline, build |
 | Changes to a deck that exists | `pptx_template.py inventory`, then `copy`/`replace` its slides, or python-pptx for a small edit |
 
-Everything is in this skill's folder: `scripts/`, `themes/` (each with `sample.html`, `sample.pptx`, `preview.jpg`) and
+Everything is in this skill's folder, `${CLAUDE_SKILL_DIR}` (your working folder is somewhere else: run the scripts by their full path as the commands below show, and never search the disk for them): `scripts/`, `themes/` (each with `sample.html`, `sample.pptx`, `preview.jpg`) and
 `examples/`. Install what the scripts need once: `pip install python-pptx playwright pillow` (the browser is the system
 Chrome or Edge; else `playwright install chromium`).
 
@@ -55,21 +55,21 @@ no stock-photo look.
 **A face of its own.** Each deck has one visual idea that only its subject has: a calendar for a month of data, the
 product drawn, a route on a map, a material, a motif from the brand. Put it on the cover and let it come back.
 
-Then: `python scripts/html_to_pptx.py deck.html -o deck.pptx --previews look/` (text stays editable; pictures, SVG and
+Then: `python "${CLAUDE_SKILL_DIR}/scripts/html_to_pptx.py" deck.html -o deck.pptx --previews look/` (text stays editable; pictures, SVG and
 CSS art become a picture behind it; `data-pptx="picture"` makes one movable; `<video>` plays). For people who do not
 have the theme's web fonts, also write a copy with Office fonts: `--fonts "Fraunces=Georgia,Inter=Calibri"` (each
 theme names its pair).
 
 ## 3. The person's own template
-1. `python scripts/pptx_template.py inventory template.pptx > inv.json`, and look at it:
-   `python scripts/render.py template.pptx --out tpl/` then open `tpl/sheet.png`. Note its fonts, colours, which layout
+1. `python "${CLAUDE_SKILL_DIR}/scripts/pptx_template.py" inventory template.pptx > inv.json`, and look at it:
+   `python "${CLAUDE_SKILL_DIR}/scripts/render.py" template.pptx --out tpl/` then open `tpl/sheet.png`. Note its fonts, colours, which layout
    or sample slide is for a title, a section, text, two columns, a picture, a chart, a closing, and how it writes
    titles (case, length, where).
 2. Write an outline JSON: each slide either from a layout (`fill` its placeholders) or a copy of one of the template's
    own slides (`replace` its shapes by name). Copy a sample slide whenever the template has one for that job: it keeps
    decoration the layouts do not have.
-3. `python scripts/pptx_template.py build template.pptx outline.json -o deck.pptx`, then
-   `python scripts/render.py deck.pptx --out look/ --compare template.pptx` and compare each slide with its source.
+3. `python "${CLAUDE_SKILL_DIR}/scripts/pptx_template.py" build template.pptx outline.json -o deck.pptx`, then
+   `python "${CLAUDE_SKILL_DIR}/scripts/render.py" deck.pptx --out look/ --compare template.pptx` and compare each slide with its source.
 4. Do as the template does: its fonts, colours, title style, density and picture style. Do not add colours, fonts or
    decoration it does not have; text that does not fit is shortened, not shrunk below the template's sizes. A
    picture on a copied slide that belongs to the template's own subject (a shield on a security deck's cover) is
@@ -93,7 +93,7 @@ A slide with a picture that carries the point beats a slide of text. Every pictu
 - Render pictures at twice their size on the slide, so they stay sharp on a projector.
 
 ## 5. Look at every slide before you hand in
-`python scripts/render.py deck.pptx --out look/` renders the .pptx itself (LibreOffice, or PowerPoint from a script) and
+`python "${CLAUDE_SKILL_DIR}/scripts/render.py" deck.pptx --out look/` renders the .pptx itself (LibreOffice, or PowerPoint from a script) and
 makes `look/sheet.png`; it prints which way it used and exits 2 when it could not. Open the pictures, never assume:
 - text cut off, wrapping where it should not (a title's last word alone, "11/31" on two lines), or overlapping;
 - anything off the slide or too close to its edge; a picture stretched or blurred;

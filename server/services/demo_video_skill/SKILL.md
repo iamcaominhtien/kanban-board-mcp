@@ -21,25 +21,25 @@ The same scenario always gives the same video, so changing a sentence or a step 
 
 ## Steps
 
-1. **Setup, once**: `python3 scripts/setup.py` (from the skill's folder; its path is shown when the skill opens). It installs numpy, playwright, imageio-ffmpeg and edge-tts
+1. **Setup, once**: `python3 "${CLAUDE_SKILL_DIR}/scripts/setup.py"` (run it by that full path: the skill's folder is `${CLAUDE_SKILL_DIR}`, not your working folder). It installs numpy, playwright, imageio-ffmpeg and edge-tts
    into `~/.cache/kanban-demo-video` (never into the repo), finds the headless Chromium Playwright has (if there is none:
    `python3 -m playwright install chromium-headless-shell`) and fetches the two stock sounds (Mixkit, free) into `~/.cache/kanban-demo-video/assets`. Edge TTS needs the network and sends only the narration text.
 2. **Start a throwaway board**:
-   `python3 scripts/start_board.py start --dir <empty folder> --account-folder ~/.kanban-board/ai-accounts/<board account>`
+   `python3 "${CLAUDE_SKILL_DIR}/scripts/start_board.py" start --dir <empty folder> --account-folder ~/.kanban-board/ai-accounts/<board account>`
    Run it from the board's repository (it finds `server/` from the folder you are in, or pass `--repo <path>`). It starts the board with its own config, database, logs and key file (never the person's real board), creates the project
    KAN with a ticket in every column, an AI team, and lets the team fix a small bug (KAN-7) with Haiku, so the AI activity, the
    Timeline and the comments are real. It prints the board's URL and leaves it running. The run costs a little: use the board's
    own Claude account and ask which one if you do not know. `--no-run` skips the run (the AI scenes then have nothing in them).
 3. **Write or adapt the scenario** (below). Start from `scenarios/kanban-tour.json`.
-4. **Build**: `python3 scripts/build.py scenarios/<scenario>.json --url <the board's URL> --out <output folder>`.
+4. **Build**: `python3 "${CLAUDE_SKILL_DIR}/scripts/build.py" "${CLAUDE_SKILL_DIR}/scenarios/<scenario>.json" --url <the board's URL> --out <output folder>`.
    About 3 minutes. The video is `<out>/<name>.mp4`.
 5. **Look before you hand it over**: cut a contact sheet and read it, one frame every 3 seconds:
    `ffmpeg -i video.mp4 -vf "fps=1/3,scale=640:-1,tile=4x4" -frames:v 1 sheet.png`
    (use the ffmpeg in `~/.cache/kanban-demo-video/pylib/imageio_ffmpeg/binaries/`). Check that each caption matches what is on
    screen, the spotlight sits on its target, and the zoom shows what the voice talks about. You cannot hear the video, so say so.
-6. **Stop the board**: `python3 scripts/start_board.py stop --dir <folder>`.
-7. **Hand it over**: attach the MP4 to the ticket with `ticket_items(item='attachment', path=<the mp4>)` and link the markdown it returns
-   in your report; the board plays a video right in the comment. Never give only a path on your disk.
+6. **Stop the board**: `python3 "${CLAUDE_SKILL_DIR}/scripts/start_board.py" stop --dir <folder>`.
+7. **Hand it over**: attach the MP4 to the ticket with `ticket_items(item='attachment', path=<the mp4>, post=false)` and link the markdown it
+   returns in your report (one comment, not one for the file and one for the report); the board plays a video right in the comment. Never give only a path on your disk.
 
 ## The scenario file
 
