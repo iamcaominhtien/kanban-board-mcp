@@ -16,7 +16,7 @@ DESCRIPTION = (
     "How to use every part of a ticket on this board: a title, description and acceptance criteria a person can "
     "check, when to use a sub-task, a sub-ticket, a Story, a block or a link, how to keep the work log, a comment read "
     "in ten seconds, test cases and attachments as evidence, where files go (the worktree for code, the Workspace for "
-    "outputs), and what each role writes. Use when you create, split, update, hand over or close a ticket."
+    "outputs), and what each role writes. Use when you create, split, update, hand over or close a ticket, and when you make anything a person should see: a report, screenshots, logs, test cases and their proof."
 )
 
 # What each ready-made role writes on a ticket (packs' keys, services/ai/packs.py)

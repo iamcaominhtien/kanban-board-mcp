@@ -104,8 +104,9 @@ waits for your accept".
 REPO_AND_MACHINE = (
     "repo-and-machine",
     "How to work in the repository and on the machine without leaving a mess: branches, worktrees, commits and PRs, "
-    "stopping the servers and watchers you started, ports, and writing only inside your working folder. Use before you "
-    "change code, start a server or a watcher, or commit.",
+    "stopping the servers and watchers you started, ports, writing only inside your working folder, and where outputs "
+    "for people go (the ticket's Workspace). Use before you change code, start a server or a watcher, write a file, or "
+    "commit.",
     r"""# The repository and the machine
 
 ## Git
@@ -129,7 +130,7 @@ holds a port and uses the machine after you are gone.
 
 ## Files
 - **Write only inside your working folder** (or the worktree), and outputs a person should see (reports,
-  screenshots, logs) in the ticket's Workspace. Never edit the person's own config, dotfiles or other projects, and
+  screenshots, logs) in the ticket's Workspace (its path is in your prompt, or `manage_ticket(action='workspace')`). Never edit the person's own config, dotfiles or other projects, and
   never delete what you did not create.
 - Do not commit generated files, build output, secrets or large binaries; check `git status` before each commit.
 """,

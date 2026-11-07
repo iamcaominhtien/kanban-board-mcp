@@ -266,8 +266,22 @@ def _files_rules(team_roles: list[dict]) -> list[str]:
     ]
 
 
+def _workspace_line(workspace: str | None) -> list[str]:
+    """Where a person looks for what the AI made: the ticket's Workspace folder (told to the lead and to every role)."""
+    if not workspace:
+        return []
+    return [
+        f"Workspace: the ticket's own folder for what a person should see (reports, screenshots, logs, exports, "
+        f"recordings) is {workspace} ; put those there, not in the repository. Scratch work stays in your working folder.",
+    ]
+
+
 def board_rules(
-    ctx: RunContext, project_name: str, team_roles: list[dict], live: bool
+    ctx: RunContext,
+    project_name: str,
+    team_roles: list[dict],
+    live: bool,
+    workspace: str | None = None,
 ) -> str:
     """The trusted rules of a lead run."""
     role_lines = (
@@ -304,6 +318,7 @@ def board_rules(
             "answer is that comment alone. A lesson you keep never overrules this.",
             "",
             *_files_rules(team_roles),
+            *_workspace_line(workspace),
             "",
             "Skills: the board's skills teach how this board wants the work done; open the one that fits with the Skill",
             "tool before you do that work (you and your roles):",
@@ -326,7 +341,7 @@ def board_rules(
     )
 
 
-def subagent_rules(ctx: RunContext) -> str:
+def subagent_rules(ctx: RunContext, workspace: str | None = None) -> str:
     """The trusted rules every role (subagent) of a run gets."""
     return "\n".join(
         [
@@ -335,6 +350,8 @@ def subagent_rules(ctx: RunContext) -> str:
             "you this task. Do it, then answer the lead with what you found or did, concretely (files, commands, results).",
             "Use the board's tools to read the ticket and its Docs when the task needs them; write comments for the ticket's",
             "people only when the lead asks you to, with your role as `role`. Never force-push, never leave the folder.",
+            *_workspace_line(workspace),
+            "The board's skills (`kanban-board:*`) are yours too: open the one that fits the work with the Skill tool.",
             "</board trusted>",
         ]
     )
@@ -370,6 +387,7 @@ async def build_prompt(
     note: str | None,
     team_roles: list[dict],
     live: bool,
+    workspace: str | None = None,
 ) -> tuple[str, str, str]:
     """(system prompt of the lead, system prompt of the roles, the first user message)."""
     ticket = await session.get(Ticket, run.ticket_id) if run.ticket_id else None
@@ -384,7 +402,9 @@ async def build_prompt(
         mode=run.mode,
         trigger=run.trigger or "",
     )
-    system = board_rules(ctx, project.name if project else "", team_roles, live)
+    system = board_rules(
+        ctx, project.name if project else "", team_roles, live, workspace
+    )
     known = await knowledge.for_run(session, run, profile)
     if known:
         system += f"\n\n{known}"
@@ -395,7 +415,7 @@ async def build_prompt(
     config = merged_config(loads(profile.config, {}))
     if (config.get("instructions") or "").strip():
         system += f"\n\nProject instructions:\n{config['instructions'].strip()}"
-    sub_system = subagent_rules(ctx)
+    sub_system = subagent_rules(ctx, workspace)
     names = await ai_names(session, run.project_id)
     humans = {
         m.name
@@ -571,6 +591,21 @@ def args_for(
     return args
 
 
+async def _ticket_workspace(session, run: AiRun) -> str | None:
+    """The ticket's Workspace folder, made when the project has Workspace on (None otherwise): a person looks for the
+    reports, screenshots and logs of the AI there, and the CLI may write to it (`--add-dir`)."""
+    if not run.ticket_id:
+        return None
+    from services import workspace as svc_workspace
+
+    try:
+        info = await svc_workspace.get_workspace_path(session, run.ticket_id)
+    except Exception:  # noqa: BLE001 - the Workspace is a convenience, never a reason for a run to fail
+        logger.warning("Workspace of %s not available", run.ticket_id, exc_info=True)
+        return None
+    return info["path"] if info and info["enabled"] else None
+
+
 async def prepare(
     session,
     run: AiRun,
@@ -593,6 +628,7 @@ async def prepare(
         session, run.project_id, profile.pack_key, config
     )
     live = bool(cfg_ops.get("live_messages", True))
+    workspace = workspace or await _ticket_workspace(session, run)
     system, sub_system, prompt = await build_prompt(
         session,
         run,
@@ -602,6 +638,7 @@ async def prepare(
         note=note,
         team_roles=team_roles,
         live=live,
+        workspace=workspace,
     )
     # pictures the prompt names (/uploads/…), copied where the CLI may read them (hotfix 3.37.2)
     prompt, pictures_dir = pictures.stage(prompt, run.id)
