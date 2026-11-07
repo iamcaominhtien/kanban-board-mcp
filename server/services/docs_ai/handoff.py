@@ -733,6 +733,12 @@ async def send(
                 ticket.id, note, by=by, trigger=TRIGGER, depth=0
             )
         except runs.RunError as exc:
+            if result.get(
+                "gave_team"
+            ):  # do not leave the ticket given away when nothing was sent
+                await svc_tickets.update_ticket(
+                    session, ticket.id, TicketUpdate(assignee=None)
+                )
             raise DocsError(409, "not_started", str(exc)) from exc
         run = await session.get(AiRun, out["run_id"]) if out.get("run_id") else None
         number = run.number if run else None

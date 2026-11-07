@@ -1875,6 +1875,11 @@ async def deliver_to_ticket(
             raise RunError("Ticket not found.")
         active = [r for r in await active_runs(session, ticket_id=ticket_id)]
         if active:
+            if depth and (active[0].depth or 0) < depth:
+                # a note that reaches a run already going counts as a hand-off too: its next note starts one deeper
+                active[0].depth = depth
+                session.add(active[0])
+                await session.commit()
             return await send_message(
                 active[0].id, text, by=by, answers=trigger == "message"
             )

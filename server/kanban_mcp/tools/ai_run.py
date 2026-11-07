@@ -74,8 +74,9 @@ async def ai_run(
         if target.startswith("docs:"):
             from services.ai import messaging
 
+            # the note is posted as a member of the project (Docs lets in only those): the team, or the board's agent
             return await messaging.deliver_to_page(
-                target[5:], body, by=sender, depth=ctx.depth + 1
+                target[5:], body, by=ctx.member_name, depth=ctx.depth + 1
             )
         if target == ctx.ticket_id:
             raise ValueError(
