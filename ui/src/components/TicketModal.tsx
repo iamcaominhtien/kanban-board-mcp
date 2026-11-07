@@ -3420,7 +3420,11 @@ function TicketModalInner({
                     ))}
                   {activeTab === 'branches' && <BranchesSection ticketId={ticket.id} />}
                   {activeTab === 'ai' &&
-                    (MOCK_AI_ACTIVITY ? <AiRunPanelDesign /> : <TicketRunsTab ticket={ticket} runId={aiRunId} />)}
+                    (MOCK_AI_ACTIVITY ? (
+                      <AiRunPanelDesign ticket={ticket} />
+                    ) : (
+                      <TicketRunsTab ticket={ticket} runId={aiRunId} />
+                    ))}
                   {activeTab === 'activity' && (
                     <ActivitySection
                       ticketId={ticket.id}
