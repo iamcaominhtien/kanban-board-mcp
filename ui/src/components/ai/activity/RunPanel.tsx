@@ -205,6 +205,160 @@ const Chip = ({ ok, children }: { ok: boolean; children: ReactNode }) => (
   </span>
 );
 
+const ROLE_COLORS = ['#2E6F40', '#3A5FA8', '#9C5B16', '#7A4B9C', '#B0457A', '#2A7F86'];
+const roleColor = (type: string): string => {
+  let h = 0;
+  for (const ch of type) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return ROLE_COLORS[h % ROLE_COLORS.length];
+};
+
+/** The steps in the order they happened: a subagent's stretch of work (the same agent, one step after the other) is one group. */
+type StepItem = { kind: 'step'; step: RunStep } | { kind: 'group'; agentId: string; steps: RunStep[] };
+
+function groupSteps(steps: RunStep[]): StepItem[] {
+  const items: StepItem[] = [];
+  for (const step of steps) {
+    const last = items[items.length - 1];
+    if (!step.agentId) items.push({ kind: 'step', step });
+    else if (last?.kind === 'group' && last.agentId === step.agentId) last.steps.push(step);
+    else items.push({ kind: 'group', agentId: step.agentId, steps: [step] });
+  }
+  return items;
+}
+
+/**
+ * The steps of a run as the lead tells them, with what each subagent did folded under the line that handed it the
+ * work: "dev · 12 steps · 1m 20s" and its last words. A group that is working is open, a finished one is closed;
+ * `opened` holds the clicks (a step by its seq, a group by minus the seq of its first step) and `allOpen` is "Expand all".
+ */
+function StepList({
+  run,
+  steps,
+  opened,
+  allOpen,
+  onToggle,
+}: {
+  run: AiRunFull;
+  steps: RunStep[];
+  opened: Record<number, boolean>;
+  allOpen: boolean;
+  onToggle: (key: number, wasOpen: boolean) => void;
+}) {
+  const items = groupSteps(steps);
+  const lastSeq = steps.length ? steps[steps.length - 1].seq : -1;
+  return (
+    <>
+      {items.map((item) => {
+        if (item.kind === 'step')
+          return (
+            <StepRow
+              key={item.step.seq}
+              run={run}
+              step={item.step}
+              role={null}
+              open={opened[item.step.seq] ?? allOpen}
+              onToggle={() => onToggle(item.step.seq, opened[item.step.seq] ?? allOpen)}
+              last={item.step.seq === lastSeq}
+            />
+          );
+        const first = item.steps[0];
+        const end = item.steps[item.steps.length - 1];
+        const agent = run.agents.find((a) => a.id === item.agentId);
+        const type = agent?.agentType ?? 'role';
+        const color = roleColor(type);
+        const span = agent?.spans?.[agent.spans.length - 1];
+        const working = isActive(run.state) && end.seq === lastSeq && (span ? span.end == null : !agent?.endedAt);
+        const key = -first.seq;
+        const open = opened[key] ?? (allOpen || working);
+        const failedCount = item.steps.filter(stepFailed).length;
+        const said = [...item.steps].reverse().find((x) => x.kind === 'text');
+        return (
+          <div key={key} data-testid="step-group" data-open={open ? 'true' : 'false'}>
+            <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={open}
+              onClick={() => onToggle(key, open)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onToggle(key, open);
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 4px 6px 8px',
+                margin: '4px 0 2px 0',
+                cursor: 'pointer',
+                borderLeft: `3px solid ${color}`,
+                background: '#F6FAF7',
+                borderRadius: '0 6px 6px 0',
+              }}
+            >
+              <Svg size={12} stroke="#9AA8A0" w={2.2}>
+                <path d={open ? 'M6 9L12 15L18 9' : 'M9 6L15 12L9 18'} />
+              </Svg>
+              {working ? (
+                <span className="ai-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+              ) : (
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              )}
+              <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1E2A22' }}>{type}</span>
+              <span style={{ fontSize: '11.5px', color: '#5B6B60', whiteSpace: 'nowrap' }}>
+                {item.steps.length} step{item.steps.length === 1 ? '' : 's'} ·{' '}
+                {elapsedWords({ startedAt: first.at, endedAt: working ? null : end.at }, Date.now())}
+                {failedCount > 0 && <span style={{ color: '#C4432A' }}> · {failedCount} failed</span>}
+                {working && ' · working'}
+              </span>
+              {!open && said && (
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: '#5B6B60',
+                    flex: 1,
+                    minWidth: 0,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  “{plainTitle(said.title)}”
+                </span>
+              )}
+              {open && <span style={{ flex: 1 }} />}
+              <span style={{ fontFamily: MONO, fontSize: '10.5px', color: '#9AA8A0' }}>
+                {new Date(first.at).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false,
+                })}
+              </span>
+            </div>
+            {open && (
+              <div style={{ marginLeft: '6px', paddingLeft: '10px', borderLeft: `3px solid ${color}33` }}>
+                {item.steps.map((x) => (
+                  <StepRow
+                    key={x.seq}
+                    run={run}
+                    step={x}
+                    role={null}
+                    open={opened[x.seq] ?? allOpen}
+                    onToggle={() => onToggle(x.seq, opened[x.seq] ?? allOpen)}
+                    last={x.seq === lastSeq}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 /**
  * The steps of one run, whole, for the ticket's full history: the request that started it, its steps and its report. It loads the steps the run's first answer left out (the
  * newest 50 come first) and shows each one like the run panel does. `allOpen` opens every step.
@@ -231,7 +385,6 @@ export function RunStepsBlock({ runId, allOpen }: { runId: string; allOpen: bool
   }, [missing, loadSteps]);
   if (!run) return <span className="ai-spin" />;
   const steps = run.steps.filter((s) => !['hook', 'start', 'end', 'role'].includes(s.kind));
-  const roleOf = (id: string | null) => (id ? (run.agents.find((a) => a.id === id)?.agentType ?? 'role') : null);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {run.instruction.trim() && (
@@ -246,17 +399,13 @@ export function RunStepsBlock({ runId, allOpen }: { runId: string; allOpen: bool
       )}
       <RunMessages runId={runId} />
       {!steps.length && <span style={{ fontSize: '12px', color: '#9AA8A0' }}>No steps.</span>}
-      {steps.map((s, i) => (
-        <StepRow
-          key={s.seq}
-          run={run}
-          step={s}
-          role={roleOf(s.agentId)}
-          open={opened[s.seq] ?? allOpen}
-          onToggle={() => setOpened((o) => ({ ...o, [s.seq]: !(o[s.seq] ?? allOpen) }))}
-          last={i === steps.length - 1}
-        />
-      ))}
+      <StepList
+        run={run}
+        steps={steps}
+        opened={opened}
+        allOpen={allOpen}
+        onToggle={(key, wasOpen) => setOpened((o) => ({ ...o, [key]: !wasOpen }))}
+      />
       <RunReportCard run={run} />
     </div>
   );
@@ -297,7 +446,6 @@ export function RunPanel({ runId }: { runId: string }) {
     }
   };
   const team = members.get(run.memberId);
-  const roleOf = (id: string | null) => (id ? (run.agents.find((a) => a.id === id)?.agentType ?? 'role') : null);
   const steps = run.steps.filter((s) => !['hook', 'start', 'end', 'role'].includes(s.kind));
   const commands = run.steps.filter((s) => s.kind === 'command').slice(-6);
   const tests = testsOf(run);
@@ -507,17 +655,13 @@ export function RunPanel({ runId }: { runId: string }) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {steps.length === 0 && <span style={{ fontSize: '12px', color: '#9AA8A0' }}>No steps yet.</span>}
-              {steps.map((s, i) => (
-                <StepRow
-                  key={s.seq}
-                  run={run}
-                  step={s}
-                  role={roleOf(s.agentId)}
-                  open={opened[s.seq] ?? allOpen}
-                  onToggle={() => setOpened((o) => ({ ...o, [s.seq]: !(o[s.seq] ?? allOpen) }))}
-                  last={i === steps.length - 1}
-                />
-              ))}
+              <StepList
+                run={run}
+                steps={steps}
+                opened={opened}
+                allOpen={allOpen}
+                onToggle={(key, wasOpen) => setOpened((o) => ({ ...o, [key]: !wasOpen }))}
+              />
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '236px', flexShrink: 0 }}>
