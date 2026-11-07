@@ -561,7 +561,7 @@ export function ScopedChat({
                 style={{ position: 'absolute', right: 0, top: '100%', zIndex: 8, width: 280 }}
               >
                 <button type="button" role="menuitem" className="as-action" onClick={() => void newChat()}>
-                  New chat <span className="ai-muted">the lead still remembers</span>
+                  <LineIcon name="plus" size={14} /> New chat <span className="ai-muted">the lead still remembers</span>
                 </button>
                 <button
                   type="button"
@@ -575,7 +575,8 @@ export function ScopedChat({
                     setConfirmOver(true);
                   }}
                 >
-                  Start the team over <span className="ai-muted">the lead forgets</span>
+                  <LineIcon name="refresh" size={14} /> Start the team over{' '}
+                  <span className="ai-muted">the lead forgets</span>
                 </button>
                 <button
                   type="button"
@@ -587,7 +588,7 @@ export function ScopedChat({
                     setShowHistory((v) => !v);
                   }}
                 >
-                  History <span className="ai-muted">{history.length}</span>
+                  <LineIcon name="clock" size={14} /> History <span className="ai-muted">{history.length}</span>
                 </button>
               </div>
             )}
@@ -658,7 +659,9 @@ export function ScopedChat({
             )}
             {team && showHistory && (
               <div className="as-tile" data-testid="chat-history">
-                <div className="as-tile-title">History of {memberName} on this ticket</div>
+                <div className="as-tile-title">
+                  <LineIcon name="clock" size={13} /> History of {memberName} on this ticket
+                </div>
                 {history.length === 0 && <div className="ai-muted">Nothing closed yet.</div>}
                 {history.map((h) => (
                   <details key={h.id} data-testid="chat-history-item">
