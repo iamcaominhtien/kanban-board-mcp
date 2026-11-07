@@ -303,26 +303,6 @@ def _install_pack_plugins(project_id: str, pack: dict, by: str) -> None:
     svc_plugins.installing(project_id, go())
 
 
-@router.get("/projects/{project_id}/ai/own-plugins")
-async def get_own_plugins(project_id: str, session: Session) -> dict:
-    """The person's own Claude Code plugins, whether a run loads each, and which roles it is narrowed to (Q2).
-    Read from their Claude Code folder; nothing there is changed."""
-    from services.ai import ops as svc_ops
-    from services.ai import own_claude
-    from services.ai.store import get_settings
-
-    cfg = svc_ops.get(await get_settings(session, project_id))
-    roles = {
-        r.get("plugin"): r.get("roles") or []
-        for r in cfg.get("own_claude_roles") or []
-        if isinstance(r, dict)
-    }
-    return {
-        "on": bool(cfg.get("own_claude", True)),
-        "plugins": [{**p, "roles": roles.get(p["name"])} for p in own_claude.plugins()],
-    }
-
-
 # --------------------------------------------------------------------------- the repository scan
 
 

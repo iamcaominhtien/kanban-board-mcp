@@ -13,12 +13,6 @@ DEFAULTS: dict = {
     # Start Claude Code with its input open (stream-json), so a message reaches a running AI at its next turn (D20,
     # spike S6). Off: a message rides on the AI's next board call.
     "live_messages": True,
-    # Load the person's own Claude Code plugins (installed for their user in ~/.claude) in every Claude Code run, so an
-    # AI on the board has what the same model has in their terminal (services/ai/own_claude.py)
-    "own_claude": True,
-    # Which roles load each of those plugins (ai-story-flow Q2): [{plugin, roles}]; a plugin not listed loads for
-    # every role. A list, not a dict keyed by plugin name: the UI camel-cases keys.
-    "own_claude_roles": [],
     # The board's own skills (services/ai/board_skills.py) switched off for every member or for one (issue #277):
     # [{skill, on, members_on, members_off}]; a skill not listed is on for everyone. A list, as above.
     "board_skills": [],

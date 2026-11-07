@@ -17,10 +17,6 @@ export interface ProjectOps {
   /** A message reaches a running AI at its next turn (off: at its next board call). */
   liveMessages?: boolean;
   knowledgeShared?: boolean;
-  /** Claude Code runs load the person's own Claude Code plugins (ai-story-flow Q2). */
-  ownClaude?: boolean;
-  /** Which roles load each of those plugins; a plugin not listed loads for every role. */
-  ownClaudeRoles?: { plugin: string; roles: string[] }[];
   /** The board's own skills switched off for the project or switched for one member; a skill not listed is on. */
   boardSkills?: BoardSkillSwitch[];
   github?: { on?: boolean; pollMin?: number; auto?: boolean };
@@ -47,8 +43,6 @@ export const OPS_DEFAULTS: ProjectOps = {
   envPath: [],
   liveMessages: true,
   knowledgeShared: false,
-  ownClaude: true,
-  ownClaudeRoles: [],
   boardSkills: [],
   github: { on: false, pollMin: 5, auto: true },
 };

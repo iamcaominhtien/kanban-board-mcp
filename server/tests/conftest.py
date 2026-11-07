@@ -86,7 +86,6 @@ def _claude_account_is_empty(monkeypatch, tmp_path_factory):
     """The MCP servers of the machine's own `~/.claude.json`, and the plugins of its `~/.claude`, must not leak into
     a test."""
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path_factory.mktemp("claude-home")))
-    monkeypatch.setenv("KANBAN_CLAUDE_HOME", str(tmp_path_factory.mktemp("own-claude")))
 
 
 @pytest.fixture(autouse=True)

@@ -5,12 +5,11 @@ import { LoadError } from '../aiUi';
 import { AddFromSource } from './AddFromSource';
 import { CatalogueTab } from './CatalogueTab';
 import { InstalledTab, TAKES_EFFECT } from './InstalledTab';
-import { OwnPluginsCard } from './OwnPluginsCard';
 
 type Tab = 'suggested' | 'source' | 'installed';
 
 /** Skills and plugins of the project (design/screens/ai-team-process.md, B): suggested for a role, add from a source,
- * installed; and the person's own Claude Code plugins per role (ai-story-flow.md, Q2). */
+ * installed. */
 export function SkillsPluginsSection({ projectId }: { projectId: string }) {
   const [tab, setTab] = useState<Tab>('installed');
   const plugins = usePlugins(projectId);
@@ -109,7 +108,6 @@ export function SkillsPluginsSection({ projectId }: { projectId: string }) {
         ))}
       </div>
       {body}
-      <OwnPluginsCard projectId={projectId} />
     </div>
   );
 }
