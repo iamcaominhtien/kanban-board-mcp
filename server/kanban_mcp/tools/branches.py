@@ -30,6 +30,7 @@ BRANCH_OPS = {
             "behind_count",
             "create_worktree",
             "worktree_path",
+            "adopt",
         ),
     ),
     "update": Op(
@@ -116,6 +117,12 @@ async def ticket_branches(
             description="add: worktree location or template; implies create_worktree. Default: the project's worktree_template."
         ),
     ] = None,
+    adopt: Annotated[
+        bool | None,
+        Field(
+            description="add: the branch already exists in the linked repo; record it as it is instead of refusing it as 'already exists'."
+        ),
+    ] = None,
     remove_worktree: Annotated[
         bool | None,
         Field(
@@ -138,7 +145,7 @@ async def ticket_branches(
     """Branches of a ticket. If the project (update via manage_project's repo_path) or the ticket has a linked git repo, the
     real git branch is created / renamed / deleted and commit, ahead and behind come from git; otherwise only the board
     record changes. Returns the updated ticket (without its activity log). `action`:
-    - add: ticket_id, name [, branch_from, status, pr_url, commit_hash, linked_ticket_id, ahead_count, behind_count, create_worktree, worktree_path]. Creates the git branch from branch_from.
+    - add: ticket_id, name [, branch_from, status, pr_url, commit_hash, linked_ticket_id, ahead_count, behind_count, create_worktree, worktree_path, adopt]. Creates the git branch from branch_from; with adopt=true a branch that already exists in the repo is recorded as it is.
     - update: ticket_id, branch [, name, status, branch_from, pr_url, commit_hash, linked_ticket_id, ahead_count, behind_count]. Omitted fields are unchanged.
     - delete: ticket_id, branch [, remove_worktree, delete_git_branch, force]. By default only the board record is removed and git is left alone.
     - checkout: ticket_id, branch. Runs `git checkout` in the linked repository's main working tree (fails if uncommitted changes conflict)."""

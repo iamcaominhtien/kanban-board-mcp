@@ -54,10 +54,17 @@ async def add_branch(
             description="Worktree location or template; implies create_worktree. Default comes from the project's worktree_template."
         ),
     ] = None,
+    adopt: Annotated[
+        bool,
+        Field(
+            description="The branch already exists in the linked repo (your own work, another agent's): record it as it is instead of refusing it as 'already exists'."
+        ),
+    ] = False,
 ) -> dict:
     """Attach a branch to a ticket. If the project/ticket has a linked git repo (project `repo_path`, see update_project),
-    this CREATES the real git branch from `branch_from` and takes commit/ahead/behind from git; otherwise it only
-    records the branch on the board. Returns the updated ticket."""
+    this CREATES the real git branch from `branch_from` and takes commit/ahead/behind from git (with `adopt`, a branch that
+    already exists is recorded as it is, not created); otherwise it only records the branch on the board. Returns the
+    updated ticket."""
     return await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.add_branch(
@@ -73,6 +80,7 @@ async def add_branch(
             behind_count=behind_count,
             create_worktree=create_worktree,
             worktree_path=worktree_path,
+            adopt=adopt,
         ),
     )
 
