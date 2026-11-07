@@ -96,6 +96,7 @@ import { SetPendingDialog } from './SetPendingDialog';
 import { ResumeDialog } from './ResumeDialog';
 import styles from './TicketModal.module.css';
 import { LineIcon } from './ui/LineIcon';
+import { StoryPage } from './StoryPage';
 
 const ESTIMATE_NUMBERS = [1, 2, 3, 5, 8, 13] as const;
 
@@ -3551,7 +3552,20 @@ export function TicketModal(props: TicketModalProps) {
   const updateTicket = useUpdateTicket();
   const latestTicket = useRef(ticket);
   latestTicket.current = ticket; // a drawing can take minutes: add it to the description as it is by then
+  // A Story opens as the Story page; its menu can still show it as a ticket (the choice holds for that Story only)
+  const [asTicketId, setAsTicketId] = useState<string | null>(null);
   if (!ticket) return <TicketModalInner {...props} />;
+  if (ticket.type === 'story' && asTicketId !== ticket.id) {
+    return (
+      <StoryPage
+        ticket={ticket}
+        allTickets={allTickets}
+        onClose={props.onClose}
+        onOpenTicket={onOpenTicket}
+        onOpenAsTicket={() => setAsTicketId(ticket.id)}
+      />
+    );
+  }
   // "Draw on it" in the file viewer saves the drawing to this ticket and adds it to the description, as an attachment is
   const sketchOwner = {
     ownerKind: 'ticket' as const,
