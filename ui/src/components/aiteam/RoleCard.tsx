@@ -17,13 +17,15 @@ interface CardProps {
   activity: RoleActivity;
   /** The lead's card shows how full its conversation is. */
   meter?: boolean;
+  /** The RAM chip of the process the lead and its roles share. */
+  ram?: ReactNode;
   /** The whole team is paused or cannot start: an idle card says so instead of "Idle". */
   blocked?: string | null;
   onOpenTicket: (ticketId: string) => void;
   testId: string;
 }
 
-function Card({ name, sub, badge, activity, meter, blocked, onOpenTicket, testId }: CardProps) {
+function Card({ name, sub, badge, activity, meter, ram, blocked, onOpenTicket, testId }: CardProps) {
   const { working, lastWorked: last } = activity;
   const open = working?.runId ?? last?.runId ?? null;
   return (
@@ -62,6 +64,7 @@ function Card({ name, sub, badge, activity, meter, blocked, onOpenTicket, testId
                 <ContextMeter used={working.contextUsed} size={working.contextWindow} inline />
               ) : null}
             </div>
+            {ram && <div>{ram}</div>}
           </>
         ) : last ? (
           <>
@@ -101,10 +104,12 @@ export function LeadCard({
   team,
   activity,
   onOpenTicket,
+  ram,
 }: {
   team: AiTeam;
   activity: RoleActivity;
   onOpenTicket: (id: string) => void;
+  ram?: ReactNode;
 }) {
   return (
     <Card
@@ -114,6 +119,7 @@ export function LeadCard({
       badge={<Badge name={team.name} color={team.color} role="lead" size={36} />}
       activity={activity}
       meter
+      ram={ram}
       blocked={team.paused ? 'Paused' : null}
       onOpenTicket={onOpenTicket}
     />

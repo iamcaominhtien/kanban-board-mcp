@@ -123,6 +123,8 @@ class _Runtime:
     writers: dict[str, steps.StepWriter] = field(default_factory=dict)
     cancelled: set[str] = field(default_factory=set)
     waiting: dict[str, str] = field(default_factory=dict)
+    # a CLI that was stopped on purpose (the memory limit, or a person's Restart): who asked and the numbers
+    restart_requests: dict[str, dict] = field(default_factory=dict)
     board_url: str | None = None
     scheduler: asyncio.Task | None = None
     last_health: float = 0.0
@@ -620,6 +622,7 @@ async def _execute(run_id: str, token: str, note: str | None = None) -> None:
         RT.tasks.pop(run_id, None)
         RT.procs.pop(run_id, None)
         RT.cancelled.discard(run_id)
+        RT.restart_requests.pop(run_id, None)
 
 
 async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
@@ -816,6 +819,12 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
     RT.writers.pop(run_id, None)
     await resources.MON.untrack(run_id)
     if run_id in RT.cancelled:
+        return
+    request = RT.restart_requests.pop(run_id, None)
+    if request is not None:
+        # the CLI was stopped on purpose (over the memory limit, or a person pressed Restart): the run goes on in a
+        # new CLI that resumes the conversation, or ends when the system already restarted it too often
+        await _restart_inside_run(run_id, token, request)
         return
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
@@ -1412,6 +1421,172 @@ async def cancel_for_ticket(
         except RunError:
             pass
     return n
+
+
+RESTART_NOTE = (
+    "Your process was restarted ({why}). The conversation and every file are as you left them. Look at "
+    "`git status` and the last steps, then carry on with the task from where you stopped; do not start over."
+)
+
+
+async def _memory_breach(run_id: str, rss_mb: float, limit_mb: int) -> None:
+    """The monitor saw a run's CLI pass the memory limit: stop it; the run goes on in a new CLI (or ends)."""
+    proc = RT.procs.get(run_id)
+    if proc is None:
+        return
+    RT.restart_requests[run_id] = {
+        "by": "system",
+        "rss_mb": rss_mb,
+        "limit_mb": limit_mb,
+    }
+    proc.kill()
+
+
+resources.MON.on_breach = _memory_breach
+
+
+async def restart_run(run_id: str, *, by: str) -> AiRun:
+    """Start a running run's CLI again inside the same run (it resumes its conversation); memory is released.
+
+    Raises:
+        RunError: The run is not running a CLI.
+    """
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+    if run is None:
+        raise RunError("Run not found.")
+    if run.state != "running":
+        raise RunError("Only a running run can be restarted.")
+    if defers_to_runner():
+        await runner_link.command(run_id, "restart", {"by": by})
+        return run
+    proc = RT.procs.get(run_id)
+    if proc is None or proc.proc is None:
+        raise RunError("Only a running run can be restarted.")
+    reading = resources.MON.readings.get(run_id) or {}
+    RT.restart_requests[run_id] = {
+        "by": by,
+        "rss_mb": reading.get("cli_rss_mb"),
+        "limit_mb": await resources.MON.limit_mb(run.project_id),
+    }
+    proc.kill()
+    return run
+
+
+async def _tell_memory(
+    kind: str, run: AiRun, title: str, body: str, data: dict
+) -> None:
+    """The board's notice of a restart or a stop for memory (one row per run; restarts merge: "restarted 2 times")."""
+    from services import notifications as centre
+
+    try:
+        async with database.async_session() as session:
+            await centre.emit(
+                kind,
+                project_id=run.project_id,
+                recipients=await centre.owners_and_admins(session, run.project_id),
+                title=title,
+                body=body,
+                target_kind="run",
+                target_id=run.id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                data=data,
+                session=session,
+            )
+    except Exception:  # noqa: BLE001 - the notice never stops the run
+        logger.exception(
+            "Could not tell anyone that run %s used too much memory", run.id
+        )
+
+
+async def _restart_inside_run(run_id: str, token: str, request: dict) -> None:
+    """The CLI was stopped on purpose: log it and start a new CLI in the same run. After `AUTO_RESTARTS` restarts by
+    the system, the next breach ends the run instead (stop code `memory`)."""
+    by = request["by"]
+    rss, limit = request.get("rss_mb"), request.get("limit_mb")
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.state in ENDED:
+            return
+        log = resources.restarts_of(run)
+        by_system = sum(1 for r in log if r.get("by") == "system")
+        if by == "system" and by_system >= resources.AUTO_RESTARTS:
+            stop_run = run
+        else:
+            stop_run = None
+            entry = {
+                "at": now_iso(),
+                "rss_mb": rss,
+                "limit_mb": limit,
+                "by": by,
+                "n": len(log) + 1,
+            }
+            run.restarts = resources.dump(log + [entry])
+            session.add(run)
+            await session.commit()
+            await session.refresh(run)
+    ticket = run.ticket_id or "A run"
+    if stop_run is not None:
+        gb = f"{rss / 1024:.2f} GB" if rss else "too much memory"
+        lim = f"{limit / 1024:.1f} GB" if limit else "the limit"
+        await audit.record(
+            run.project_id,
+            "run_stopped_memory",
+            "info",
+            member_name="System",
+            member_id=run.member_id,
+            run_id=run_id,
+            target=run.ticket_id,
+            detail={"rss_mb": rss, "limit_mb": limit, "restarts": len(log)},
+        )
+        await _tell_memory(
+            "run_stopped_memory",
+            run,
+            f"{ticket}: stopped, out of memory",
+            f"The CLI went over {lim} again after {resources.AUTO_RESTARTS} restarts. Partial work is kept; retry it or raise the limit.",
+            {"rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
+        )
+        await _end(
+            run_id,
+            "failed",
+            f"Stopped automatically: the CLI went over the memory limit ({gb} of {lim}) again after "
+            f"{resources.AUTO_RESTARTS} restarts. Partial work in the folder is kept.",
+            stop_code="memory",
+        )
+        return
+    await audit.record(
+        run.project_id,
+        "run_restarted",
+        "info",
+        member_name="System" if by == "system" else by,
+        member_id=run.member_id,
+        run_id=run_id,
+        target=run.ticket_id,
+        detail=entry,
+    )
+    if by == "system":
+        gb = f"{rss / 1024:.2f} GB" if rss else "too much memory"
+        lim = f"{limit / 1024:.1f} GB" if limit else "the limit"
+        text = (
+            f"Restarted automatically: the CLI reached {gb}, over the {lim} limit "
+            f"(restart {by_system + 1} of {resources.AUTO_RESTARTS})"
+        )
+        why = f"it used {gb} of memory, over the {lim} limit"
+        await _tell_memory(
+            "run_restarted",
+            run,
+            f"{ticket}: restarted (memory)",
+            f"The CLI reached {gb}, over the {lim} limit, and started again in the same run.",
+            {"rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
+        )
+    else:
+        text = f"Restarted by {by}"
+        why = f"{by} restarted it"
+    await steps.append(run_id, [{"kind": "start", "title": text}])
+    transcripts.note(run_id, "restart", text)
+    await _publish_run(run_id)
+    await _execute_cli(run_id, token, RESTART_NOTE.format(why=why))
 
 
 async def answer(run_id: str, *, by: str, text: str) -> AiRun:

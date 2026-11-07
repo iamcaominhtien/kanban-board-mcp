@@ -495,6 +495,7 @@ export function Board({
               if (t) onCardClick(t);
             }}
             onOpenMember={(id) => onOpenAiMember?.(id)}
+            onOpenSettings={onOpenSettings}
           />
         ) : viewMode === 'schedules' && projectId && !loadState ? (
           <SchedulesTab projectId={projectId} tickets={allTickets} />

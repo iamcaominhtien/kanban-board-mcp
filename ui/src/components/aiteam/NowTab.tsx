@@ -5,7 +5,10 @@ import { RoleChips } from '../ai/AiMembersPage';
 import { roleLook } from '../ai/roleLook';
 import { StepIcon } from '../ai/run/StepIcon';
 import { ContextMeter } from '../assist/ContextMeter';
+import { useResourcesStream } from '../../api/aiResources';
+import type { ResourceSnapshot } from '../../types/aiResources';
 import { NeedsYou } from './NeedsYou';
+import { RamChip, rowsByRun } from './RamChip';
 import { RecentList, SpendToday } from './RecentSpend';
 import { openRun } from './runLink';
 import { TicketChip } from './teamUi';
@@ -15,6 +18,8 @@ export interface NowActions {
   onOpenMember: (memberId: string) => void;
   /** Open the team's page: its roles, what each does, its recent runs. */
   onOpenTeam: (teamId: string) => void;
+  /** Open the Resources tab (the RAM chip of a running team). */
+  onOpenResources?: () => void;
 }
 
 const ACTIVE = 'queued,starting,running,needs_input';
@@ -60,7 +65,19 @@ function WorkingNow({ team, activity }: { team: AiTeam; activity?: TeamActivity 
 }
 
 /** One card per team: its status, its roles, what it is working on. The name opens the team's page. */
-function TeamCard({ team, activity, actions }: { team: AiTeam; activity?: TeamActivity; actions: NowActions }) {
+function TeamCard({
+  team,
+  activity,
+  actions,
+  resources,
+}: {
+  team: AiTeam;
+  activity?: TeamActivity;
+  actions: NowActions;
+  resources: ResourceSnapshot | null;
+}) {
+  const rows = rowsByRun(resources);
+  const limitMb = resources?.limits.runMemoryLimitMb ?? 0;
   return (
     <div
       className="ai-card"
@@ -89,11 +106,20 @@ function TeamCard({ team, activity, actions }: { team: AiTeam; activity?: TeamAc
         {team.usage.runsToday === 1 ? '' : 's'} today
       </div>
       {team.running.map((r) => (
-        <div key={r.runId} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5 }}>
+        <div key={r.runId} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12.5 }}>
           <TicketChip id={r.ticketId} onOpen={actions.onOpenTicket} />
-          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span
+            style={{
+              flex: '1 1 90px',
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {r.ticketTitle}
           </span>
+          <RamChip run={rows.get(r.runId)} limitMb={limitMb} onOpen={actions.onOpenResources} />
           <RunStateChip state={r.state} />
         </div>
       ))}
@@ -158,6 +184,7 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
   const liveQ = useAiLive(projectId);
   const activityQ = useTeamsActivity(projectId);
   const settingsQ = useAiSettings(projectId);
+  const { data: resources } = useResourcesStream(projectId);
   useNow(
     1000,
     (activeQ.data ?? []).some((r) => r.state === 'running'),
@@ -206,7 +233,7 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
             {teams.map((t) => (
-              <TeamCard key={t.id} team={t} activity={activityQ.data?.[t.id]} actions={actions} />
+              <TeamCard key={t.id} team={t} activity={activityQ.data?.[t.id]} actions={actions} resources={resources} />
             ))}
           </div>
         )}
