@@ -2,8 +2,7 @@
 
 - **Instructions**: one text per project, written by a person, in the system prompt of every run on the project
   (before the member's own persona). Project-wide, so it is not copied into each member's CLAUDE.md.
-- **Memory (lessons)**: short facts learned the hard way. An AI proposes one (a light model reading a finished ticket's
-  run, or a diagnosis such as "the dev server must run in the background"); a person keeps, edits or drops it. Only
+- **Memory (lessons)**: short facts learned the hard way. An AI proposes one (the lead in its final report, or an outside agent); a person keeps, edits or drops it. Only
   kept lessons go into the prompt, capped at ``LESSON_TOKEN_CAP``.
 
 The system prompt is fixed at the first request of a conversation, so a change takes effect on the next run (the
@@ -444,22 +443,3 @@ async def propose(
     except Exception:  # noqa: BLE001 - the proposal stands even if nobody could be told
         logger.exception("Could not tell anyone about lesson %s", row.id)
     return row
-
-
-async def propose_from_diagnosis(run_id: str, text: str) -> AiLesson | None:
-    """A diagnosis named something the project will meet again (a dev server that hung): propose it. A person is told,
-    as for a proposal at the end of a ticket (it used to wait unseen)."""
-    async with database.async_session() as session:
-        run = await session.get(AiRun, run_id)
-        if run is None:
-            return None
-        return await propose(
-            session,
-            run.project_id,
-            text,
-            by="the board",
-            proposed_by="diagnosis",
-            source_ticket_id=run.ticket_id,
-            source_run_id=run_id,
-            member_id=run.member_id,
-        )

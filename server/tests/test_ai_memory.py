@@ -6,9 +6,9 @@ import json
 
 import pytest
 
-from models import AiLesson, AiRun, Member
+from models import Member
 from services import shared_skills
-from services.ai import board_skills, knowledge, memory
+from services.ai import board_skills, memory
 from services.ai.context import RunContext
 from tests.ai_helpers import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
 
@@ -184,28 +184,3 @@ def test_the_keeping_memory_skill_is_shared_by_every_role_and_served_to_outside_
         shared_skills.guides()["keeping-memory"]
     )
     assert any("knowledge(action='remember'" in r for r in shared_skills.CORE_RULES)
-
-
-async def test_a_lesson_proposed_by_a_diagnosis_tells_a_person(env, monkeypatch):
-    from services import notifications as centre
-
-    c = env["c"]
-    pid, _ = await _project(c)
-    m = await _runner(c, pid, env["repo"])
-    tid = await _ticket(c, pid)
-    async with env["maker"]() as s:
-        run = AiRun(project_id=pid, ticket_id=tid, member_id=m["id"])
-        s.add(run)
-        await s.commit()
-        run_id = run.id
-    sent = []
-
-    async def emit(kind, **kw):
-        sent.append((kind, kw.get("title")))
-
-    monkeypatch.setattr(centre, "emit", emit)
-    row = await knowledge.propose_from_diagnosis(
-        run_id, "Run the dev server in the background."
-    )
-    assert isinstance(row, AiLesson) and row.state == "proposed"
-    assert sent and sent[0][0] == "lesson"
