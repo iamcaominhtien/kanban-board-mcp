@@ -546,6 +546,7 @@ async def timeline(
             {
                 "id": tid,
                 "kind": "ai",
+                "lead": True,
                 "name": lane_name(tid, None),
                 "color": m.color,
                 "state": state_of(tid, None),

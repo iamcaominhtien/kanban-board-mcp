@@ -307,7 +307,8 @@ export function TimelineHeader({
   return (
     <svg width={w} height={HEAD_H} role="presentation" style={{ display: 'block' }} className="tl-svg">
       {lifelines.map((l, i) => {
-        const look = lookOf(l);
+        // the team's lead has a dark box like You: it is the one who talks to the person
+        const look = l.lead ? { fill: '#1E2A22', stroke: '#1E2A22', text: '#FFFFFF' } : lookOf(l);
         const cx = laneX(i);
         const state = paused && l.kind === 'ai' ? 'paused' : l.state;
         const word = state ? STATE_WORD[state] : '';
@@ -652,13 +653,15 @@ export function TimelineBody(props: DrawProps) {
     const r = raw[i];
     const d = shift.get(a.id) ?? 0;
     const recv = a.runId ? barById.get(a.runId)?.b : undefined;
-    const underWay =
-      ['assign', 'mention', 'handoff', 'skip'].includes(a.kind) &&
-      !!recv &&
-      (recv.state === 'queued' || recv.state === 'starting') &&
-      !pausedNow;
     const question = data.waits.find((w) => w.runId === a.runId && w.kind === 'question');
     const askOpen = a.kind === 'ask' && !!question && !question.to;
+    // not delivered yet: the run waits to start, or the question waits for its answer (dashed and moving)
+    const underWay =
+      !pausedNow &&
+      (askOpen ||
+        (['assign', 'mention', 'handoff', 'skip'].includes(a.kind) &&
+          !!recv &&
+          (recv.state === 'queued' || recv.state === 'starting')));
     const doc = a.kind === 'doc' ? docVersion(a) : undefined;
     const label = arrowLabel(
       a,

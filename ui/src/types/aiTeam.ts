@@ -493,6 +493,8 @@ export interface TimelineLifeline {
   /** Header dot: working, waiting for you, queued, offline, idle or paused (AIs only). */
   state: 'working' | 'waiting' | 'queued' | 'offline' | 'idle' | 'paused' | null;
   delegate?: string | null;
+  /** The team's lead (its box is drawn dark, like You). */
+  lead?: boolean;
   /** No event in the window: folded into the "N quiet AIs" strip on a narrow window. */
   quiet?: boolean;
 }
