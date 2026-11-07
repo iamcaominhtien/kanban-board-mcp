@@ -535,7 +535,18 @@ async def timeline(
         return "queued" if mine else "idle"
 
     lifelines: list[dict[str, Any]] = [
-        {"id": "you", "kind": "you", "name": "You", "color": "#1E2A22", "state": None}
+        {
+            "id": "you",
+            "kind": "you",
+            "name": "You",
+            "color": "#1E2A22",
+            # a dot like the AIs': amber while a run waits for your answer, grey otherwise
+            "state": (
+                "waiting"
+                if any(r.state == "needs_input" for r in live_runs)
+                else "idle"
+            ),
+        }
     ]
     shown = list(used)
     if scope_ids is None:
