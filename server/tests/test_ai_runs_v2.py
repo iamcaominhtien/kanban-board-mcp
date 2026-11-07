@@ -207,12 +207,13 @@ async def test_hooks_record_subagents_and_plans(env):
         await s.commit()
         await s.refresh(run)
     headers = {"Authorization": f"Bearer {token}"}
+    # a role's start and end come from the stream's task events, not from a hook: the hooks are ignored
     r = await c.post(
         "/ai/hooks",
         json={"hook_event_name": "SubagentStart", "agent_id": "a1", "agent_type": "qa"},
         headers=headers,
     )
-    assert r.json() == {"ok": True}
+    assert r.json() == {"ignored": "roles come from the stream"}
     r = await c.post(
         "/ai/hooks",
         json={
@@ -228,7 +229,7 @@ async def test_hooks_record_subagents_and_plans(env):
         json={"hook_event_name": "SubagentStop", "agent_id": "a1", "agent_type": "qa"},
         headers=headers,
     )
-    assert r.json() == {"ok": True}
+    assert r.json() == {"ignored": "roles come from the stream"}
     assert (
         await c.post(
             "/ai/hooks",
@@ -251,12 +252,7 @@ async def test_hooks_record_subagents_and_plans(env):
                 .where(AiRunStep.run_id == run.id, AiRunStep.kind == "plan")
             )
         ).all()
-    assert (
-        len(agents) == 1
-        and agents[0].agent_type == "qa"
-        and agents[0].claude_id == "a1"
-        and agents[0].ended_at
-    )
+    assert agents == []  # the hooks made no role row
     assert len(plans) == 1 and plans[0].title == "Write the tests"
 
 
@@ -299,7 +295,7 @@ async def test_the_lead_can_ask_through_the_tool_and_message_another_ticket(env)
     assert ticket["comments"][-1]["text"] == "FYI the API changed."
 
 
-async def test_a_subagents_hooks_land_on_the_row_the_stream_made(env):
+async def test_a_subagents_task_events_land_on_the_row_the_stream_made(env):
     """The stream names a subagent by the lead's Agent call; its hooks carry Claude's own id. Both must end on one row."""
     from services.ai import steps as run_steps
 
@@ -328,18 +324,16 @@ async def test_a_subagents_hooks_land_on_the_row_the_stream_made(env):
             {"id": "toolu_rev", "agent_type": "reviewer"},
         ],
     )
-    headers = {"Authorization": f"Bearer {token}"}
-    for event in ("SubagentStart", "SubagentStop"):
-        r = await c.post(
-            "/ai/hooks",
-            json={
-                "hook_event_name": event,
-                "agent_id": "claude-rev-1",
-                "agent_type": "reviewer",
-            },
-            headers=headers,
-        )
-        assert r.json() == {"ok": True}
+    # what the parser makes of the stream's `task_started` / `task_updated` of the reviewer's task: both name the role by
+    # Claude's own task id (`task_started` also carries the lead's Agent call)
+    await run_steps.append(
+        run.id,
+        [],
+        agents=[
+            {"id": "toolu_rev", "claude_id": "claude-rev-1", "reopen": True},
+            {"claude_id": "claude-rev-1", "ended": True},
+        ],
+    )
     async with env["maker"]() as s:
         agents = {
             a.id: a

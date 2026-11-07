@@ -1,8 +1,8 @@
 """What a run's hooks tell the board (AI v2): `POST /ai/hooks` with the run's bearer token and the hook's JSON.
 
-The board's plugin (services/ai/launch.py) runs on PostToolUse (edits, plans), SubagentStart, SubagentStop and
-Stop; each posts the hook input here. The stream is the main source of steps; hooks add what it lacks (a subagent's
-own Claude id, the plan the lead keeps) and never block the AI.
+The board's plugin (services/ai/launch.py) runs on PreToolUse (the one safety rule), PostToolUse (the plan the lead
+keeps) and Stop; each posts the hook input here. The stream is the source of steps and of the roles' starts and ends
+(its `task_*` events); hooks add what it lacks and never block the AI.
 """
 
 import logging
@@ -40,28 +40,13 @@ async def post_hook(
     if not isinstance(body, dict):
         return JSONResponse({"ignored": "not an object"})
     name = str(body.get("hook_event_name") or "")
-    agent_id = body.get("agent_id")
-    agent_type = body.get("agent_type")
     tool = body.get("tool_name")
     inp = body.get("tool_input") if isinstance(body.get("tool_input"), dict) else {}
     rows: list[dict] = []
     agents: list[dict] = []
-    if name in ("SubagentStart", "SubagentStop") and agent_id:
-        # The stream names a subagent by the lead's Agent call; the hook knows Claude's own id for the role. The hook
-        # often comes first (before the stream's Agent step), and a row made from it alone would be a second row for
-        # the same role: so a hook that matches no row is dropped. The stream's Agent result names Claude's id, and
-        # that links the two; the Stop hook, which comes later, then finds its row.
-        key = await _agent_key(ctx.run_id, agent_id, agent_type)
-        if key is None:
-            return JSONResponse({"ignored": f"{name}: no row yet"})
-        entry = {"id": key, "agent_type": agent_type or "", "claude_id": agent_id}
-        if name == "SubagentStop":
-            entry["ended"] = True
-        else:
-            entry["reopen"] = (
-                True  # a role that was woken again starts another stretch of work
-            )
-        agents.append(entry)
+    if name in ("SubagentStart", "SubagentStop"):
+        # A role's start, work and end come from the stream's own task events (services/ai/stream.py), which need no hook.
+        return JSONResponse({"ignored": "roles come from the stream"})
     elif name == "PostToolUse" and tool in ("TaskCreate", "TaskUpdate", "TodoWrite"):
         rows.append(
             {
@@ -91,46 +76,6 @@ async def post_hook(
     except Exception:  # noqa: BLE001 - a hook never fails the run
         logger.exception("hook of run %s not recorded", ctx.run_id)
     return JSONResponse({"ok": True})
-
-
-_CLAUDE_IDS: dict[tuple[str, str], str] = {}
-
-
-async def _agent_key(run_id: str, claude_id: str, agent_type: str | None) -> str | None:
-    """The row the stream made for this subagent (keyed by the lead's Agent call), when it can be matched: the row
-    that already has this Claude id, else the oldest open agent of the same type without one; else None (the hook
-    came first: the stream's row does not exist yet)."""
-    key = _CLAUDE_IDS.get((run_id, claude_id))
-    if key:
-        return key
-    import database
-    from models import AiRunAgent
-    from sqlmodel import col, select
-
-    async with database.async_session() as session:
-        rows = (
-            await session.exec(
-                select(AiRunAgent)
-                .where(AiRunAgent.run_id == run_id)
-                .order_by(col(AiRunAgent.started_at).asc())
-            )
-        ).all()
-    found = next((a.id for a in rows if a.claude_id == claude_id), None)
-    if found is None and agent_type:
-        found = next(
-            (
-                a.id
-                for a in rows
-                if not a.claude_id and not a.ended_at and a.agent_type == agent_type
-            ),
-            None,
-        )
-    if found is None:
-        return None
-    if len(_CLAUDE_IDS) > 5000:
-        _CLAUDE_IDS.clear()
-    _CLAUDE_IDS[(run_id, claude_id)] = found
-    return found
 
 
 @router.post("/internal/ai/events")

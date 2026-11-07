@@ -112,7 +112,7 @@ async def append(
     """Write steps (and subagent starts/stops, run fields, changed files) in one commit and announce them.
 
     Each row: {kind, title, tool?, detail?, output?, agent_id?, parent_tool_id?, at?}.
-    Each agent: {id | claude_id, agent_type?, claude_id?, ended?: bool, reopen?: bool, last_text?}.
+    Each agent: {id | claude_id, agent_type?, claude_id?, ended?: bool, at?: when it ended, reopen?: bool, last_text?}.
     """
     if not rows and not agents and not fields and not files:
         return []
@@ -179,7 +179,7 @@ async def append(
                 agent.ended_at = None  # the lead sent it a message, or its hook says so: it works again
                 marks.append("start")
             if a.get("ended") and not agent.ended_at:
-                agent.ended_at = now_iso()
+                agent.ended_at = a.get("at") or now_iso()
                 marks.append("stop")
             for event in marks:
                 # a marker row per change, so the stretches of work of a role that was woken again can be told apart
@@ -188,7 +188,7 @@ async def append(
                 marker = AiRunStep(
                     run_id=run_id,
                     seq=seq,
-                    at=now_iso(),
+                    at=(a.get("at") if event == "stop" else None) or now_iso(),
                     agent_id=agent.id,
                     kind="role",
                     title=f"{name} {'works again' if event == 'start' else 'finished'}",

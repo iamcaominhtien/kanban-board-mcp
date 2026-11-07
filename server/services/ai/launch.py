@@ -34,7 +34,7 @@ from .store import ai_names, get_settings, loads
 
 logger = logging.getLogger("kanban.ai.launch")
 
-BOARD_PLUGIN_VERSION = "2.1.1"
+BOARD_PLUGIN_VERSION = "2.1.2"
 RUN_TOKEN_SHOWN = (
     "<run token>"  # what a transcript shows in place of the run's MCP token
 )
@@ -204,8 +204,6 @@ def board_plugin_dir() -> str:
                     "hooks": one,
                 }
             ],
-            "SubagentStart": [{"hooks": one}],
-            "SubagentStop": [{"hooks": one}],
             "Stop": [{"hooks": one}],
         }
     }

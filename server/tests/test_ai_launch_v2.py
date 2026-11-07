@@ -174,8 +174,6 @@ def test_the_board_plugin_reports_hook_events_and_only_the_guard_refuses(
     assert set(hooks) == {
         "PreToolUse",
         "PostToolUse",
-        "SubagentStart",
-        "SubagentStop",
         "Stop",
     }
     assert (

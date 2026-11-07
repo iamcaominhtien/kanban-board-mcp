@@ -7,6 +7,7 @@ carries the structured report (`--json-schema`); messages between sessions and h
 
 import json
 import re
+from datetime import UTC, datetime
 from typing import Any
 
 from . import cli, quota
@@ -15,7 +16,7 @@ from .secrets import redact
 _CROSS = re.compile(
     r'<cross-session-message\s+from="([^"]*)"[^>]*>(.*?)</cross-session-message>', re.S
 )
-_AGENT_ID = re.compile(r"agentId:\s*([A-Za-z0-9_-]+)")
+_TASK_ENDED = ("completed", "failed", "killed", "stopped")
 _RELAY_TOOLS = (
     "ToolSearch",
 )  # the CLI loading its own deferred tools: not a step of the work
@@ -35,6 +36,7 @@ class Parser:
         out: dict[str, Any] = {
             "rows": [],
             "agents": [],
+            "tasks": [],
             "files": [],
             "results": [],
             "result": None,
@@ -82,18 +84,8 @@ class Parser:
                 out["rows"].append(
                     {"kind": "compact", "title": title, "agent_id": agent_id}
                 )
-            elif sub == "task_notification":
-                # A background task of the lead ended: a role reports (its task id is the role's own Claude id), or a
-                # background command does (no role has that id: the board ignores it). The SubagentStop hook says the
-                # same, and this does not depend on a hook.
-                task = ev.get("task_id")
-                if task and ev.get("status") in (
-                    "completed",
-                    "failed",
-                    "killed",
-                    "stopped",
-                ):
-                    out["agents"].append({"claude_id": str(task), "ended": True})
+            elif sub in ("task_started", "task_updated", "task_notification"):
+                self._task(ev, sub, out)
             elif sub in ("hook_event", "hook") or ev.get("hook_event_name"):
                 out["rows"].append(self._hook_row(ev, agent_id))
         elif kind == "rate_limit_event":
@@ -127,6 +119,40 @@ class Parser:
         return out
 
     # ---------------------------------------------------------------- pieces
+
+    def _task(self, ev: dict, sub: str | None, out: dict) -> None:
+        """The CLI keeps a book of every background task of the lead: `task_started` (a role is `local_agent`, a command
+        `local_bash`; a role carries its `subagent_type` and the lead's Agent call in `tool_use_id`), `task_updated`
+        with the end, and `task_notification`. A role woken again starts the same task id once more. This is the board's
+        source for when a role starts, works and ends: it needs no hook."""
+        task = ev.get("task_id")
+        if not task:
+            return
+        task = str(task)
+        if sub == "task_started":
+            kind = ev.get("task_type")
+            out["tasks"].append({"id": task, "type": kind, "event": "started"})
+            if kind == "local_agent":
+                call = ev.get("tool_use_id")
+                out["agents"].append(
+                    {
+                        "id": call if call in self.agent_types else None,
+                        "claude_id": task,
+                        "agent_type": str(ev.get("subagent_type") or ""),
+                        "reopen": True,
+                    }
+                )
+            return
+        patch = ev.get("patch") if sub == "task_updated" else None
+        status = (patch or {}).get("status") if patch else ev.get("status")
+        if status not in _TASK_ENDED:
+            return
+        out["tasks"].append({"id": task, "type": None, "event": "ended"})
+        entry: dict[str, Any] = {"claude_id": task, "ended": True}
+        end = (patch or {}).get("end_time") if patch else None
+        if isinstance(end, (int, float)):
+            entry["at"] = datetime.fromtimestamp(end / 1000, UTC).isoformat()
+        out["agents"].append(entry)
 
     def _hook_row(self, ev: dict, agent_id: str | None) -> dict:
         name = ev.get("hook_event_name") or ev.get("event") or "hook"
@@ -301,19 +327,6 @@ class Parser:
                     "agent_id": agent_id,
                 }
                 out["results"].append(res)
-                call = block.get("tool_use_id")
-                if call in self.agent_types and agent_id is None:
-                    # The lead's Agent call came back. The CLI runs a role in the background: the result then only says
-                    # "Async agent launched" and names the role's own id (the one the SubagentStart/Stop hooks carry),
-                    # and the role's end comes from the SubagentStop hook. A role that ran in the foreground returns its
-                    # answer here, and that is its end.
-                    named = _AGENT_ID.search(text)
-                    entry: dict[str, Any] = {"id": call}
-                    if named:
-                        entry["claude_id"] = named.group(1)
-                    if not text.lstrip().startswith("Async agent launched"):
-                        entry["ended"] = True
-                    out["agents"].append(entry)
                 if block.get("is_error"):
                     out["rows"].append(
                         {
