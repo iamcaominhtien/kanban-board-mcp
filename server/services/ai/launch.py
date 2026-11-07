@@ -97,9 +97,25 @@ REPORT_SCHEMA: dict[str, Any] = {
             "items": {"type": "string"},
             "description": "The skills you and your roles opened with the Skill tool, by name (kanban-board:docs-pages)",
         },
+        "comment_needed": {
+            "type": "boolean",
+            "description": "Set it in a run a person's chat message started. false: your chat answer (ai_run reply) is enough and you changed nothing, so the board does not post this report as a comment. true: you did something worth a trace (a file, a status, a result) or left something open for people, so the board posts it. Leave it out in other runs: the board always posts the report.",
+        },
     },
     "required": ["status", "summary"],
 }
+
+
+# After the request of a run a message started (the ticket chat): how to answer it, and when the ticket needs a comment.
+CHAT_RUN_NOTE = (
+    "<board trusted>\n"
+    "This run began with a message from the ticket chat. Answer it there with ai_run(action='reply').\n"
+    "Chat is for talking; a ticket comment is for news of the work, results and what others must read later.\n"
+    "If your chat answer is enough and you changed nothing, set comment_needed to false in your final report:\n"
+    "the board then posts no comment. If you did anything worth a trace (a file, a status, a result), or left\n"
+    "something open for people, set comment_needed to true: the board posts your report as the ticket's comment.\n"
+    "</board trusted>"
+)
 
 
 @dataclass
@@ -317,6 +333,10 @@ def board_rules(
             "Send a note to another ticket's AI or to a Docs page with ai_run(action='message').",
             "A person may write to you in the ticket chat while you work. Do what they ask, answer them there with",
             "ai_run(action='reply', message_id=…, text=…) and carry on with your work; stop only if they tell you to stop.",
+            "Chat and comments do different jobs. Chat is for talking with a person. A comment is for news of the work,",
+            "results and what others on the ticket must read later. When a person's chat message started your run and",
+            "your answer in the chat is enough (you changed nothing), set comment_needed to false in your report: the board",
+            "then posts no comment. If you did anything worth a trace, or left something open, set it to true.",
             "",
             "Where the work goes: writing for people that is the result of the work (research, a comparison, a spec,",
             "a decision, a guide) is a Docs page linked to the ticket, never a Markdown file in the folder, unless the",
@@ -344,7 +364,8 @@ def board_rules(
             "",
             "Before the report, leave the ticket as `kanban-board:working-a-ticket` says (status, criteria you checked);",
             "your team's QA role, if it has one, ticks the criteria from its test cases. The board posts your final",
-            "report on the ticket as a comment: it is the closing comment, so do not post a second one that repeats it.",
+            "report on the ticket as a comment (unless comment_needed is false): it is the closing comment, so do not post a",
+            "second one that repeats it.",
             "Finish with the final report as the JSON schema asks: status, summary (Markdown, for the ticket's people),",
             "branch, tests, open_items, lessons (one-liners worth keeping for this project), asks, skills (the ones you",
             "and your roles opened). Keep the summary honest: what was done, what was not, what you could not verify.",
@@ -472,6 +493,8 @@ async def build_prompt(
             ctx, run.instruction, person_trusted=run.started_by not in names
         )
     )
+    if run.trigger == "message":
+        parts.append(CHAT_RUN_NOTE)
     return system, sub_system, "\n\n".join(p for p in parts if p)
 
 

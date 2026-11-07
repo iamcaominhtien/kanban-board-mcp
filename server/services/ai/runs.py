@@ -942,6 +942,45 @@ async def _post_comment(
         return comments[-1].get("id") if comments else None
 
 
+async def _chat_was_enough(run_id: str, report: dict, status: str) -> bool:
+    """A run a person's chat message started, and the team says in its report that the chat answer is enough
+    (`comment_needed: false`) and did answer with `ai_run reply` while it ran: its report stays on the run and the
+    ticket gets no closing comment that only says "I replied in the chat". (Any status but `blocked`: a team often
+    says `partial` after a chat answer because the ticket's own work is still open.) A report that does not say so, a run
+    that did not answer in the chat, and any run that is not a chat message get the comment, so work never goes
+    unreported. (Not used as a sign: the run's workspace files can be empty after real work; the open items repeat
+    "a person moves the ticket to done" in every report.)"""
+    if (
+        status == "blocked"
+        or report.get("comment_needed") is not False
+        or report.get("branch")
+    ):
+        return False
+    from models import AiChat, AiChatMessage
+
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.trigger != "message" or not run.ticket_id:
+            return False
+        since = run.started_at or run.queued_at or ""
+        answered = (
+            await session.exec(
+                select(AiChatMessage.id)
+                .join(AiChat, AiChat.id == AiChatMessage.chat_id)
+                .where(
+                    AiChat.scope == "ticket",
+                    AiChat.scope_id == run.ticket_id,
+                    AiChatMessage.role == "ai",
+                    AiChatMessage.member_id == run.member_id,
+                    AiChatMessage.state == "done",
+                    col(AiChatMessage.finished_at) >= since,
+                )
+                .limit(1)
+            )
+        ).first()
+        return answered is not None
+
+
 async def _finish(run_id: str, result: dict) -> None:
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
@@ -1033,18 +1072,22 @@ async def _finish(run_id: str, result: dict) -> None:
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         text = "\n\n".join(lines) + _usage_line(run)
-    reply_id = await _post_comment(
-        ticket_id,
-        name,
-        redact(text),
-        {
-            "kind": "summary",
-            "run_id": run_id,
-            "run_number": number,
-            "member_id": run.member_id,
-            "status": status,
-        },
-    )
+    if await _chat_was_enough(run_id, report, status):
+        # the answer is in the ticket chat (with its "Post as comment"): a closing comment would say it twice
+        reply_id = None
+    else:
+        reply_id = await _post_comment(
+            ticket_id,
+            name,
+            redact(text),
+            {
+                "kind": "summary",
+                "run_id": run_id,
+                "run_number": number,
+                "member_id": run.member_id,
+                "status": status,
+            },
+        )
     state = "finished"
     reason = None
     if status == "blocked":
