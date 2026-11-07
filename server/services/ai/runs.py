@@ -1272,6 +1272,12 @@ async def _end(
     if run.ticket_id:
         # a Review hand-over (push, pull request) that waited for this run to stop goes now
         worktrees.after_run(run.ticket_id)
+        try:
+            from . import compact
+
+            compact.after_run(run.ticket_id, run.id)
+        except Exception:  # noqa: BLE001 - a compaction asked for in the chat is a convenience
+            logger.debug("compact after run failed", exc_info=True)
     RT.wake.set()
     await _publish_run(run_id)
     return run

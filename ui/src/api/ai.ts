@@ -281,6 +281,14 @@ export const aiApi = {
         params: { after: opts.after || undefined, agent: opts.agent, limit: opts.limit },
       })
     ).data,
+  /** `/compact` in the ticket chat: "queued" when the lead is working (it compacts after its step), "done" with the
+   * tokens before and after when the lead was idle. */
+  compact: async (ticketId: string) =>
+    (
+      await client.post<{ state: 'queued' | 'done'; runId?: string; before?: number; after?: number }>(
+        `/tickets/${ticketId}/ai/compact`,
+      )
+    ).data,
   stepOutput: async (runId: string, seq: number) =>
     (await client.get<RunStep>(`/ai/runs/${runId}/steps/${seq}/output`)).data,
 };

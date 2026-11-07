@@ -152,6 +152,20 @@ function LimitSettings({ projectId, settings }: { projectId: string; settings: A
           />
           <span className="ai-hint">MB</span>
         </TeamRow>
+        <TeamRow
+          title="Auto-compact at"
+          hint="When a session's context is this full, Claude Code summarizes the older part by itself and the AI carries on (it pauses a few seconds between two steps). 0 is Claude Code's own level."
+        >
+          <NumberSetting
+            value={typeof settings.ops.autoCompactPct === 'number' ? settings.ops.autoCompactPct : 0}
+            min={0}
+            width={90}
+            label="Auto-compact at (%)"
+            testId="settings-auto-compact"
+            onSave={(n) => void save({ ops: { autoCompactPct: n > 0 ? Math.max(30, Math.min(95, n)) : null } })}
+          />
+          <span className="ai-hint">% of the context</span>
+        </TeamRow>
       </div>
       {error && <div className="ai-error-text">{error}</div>}
     </section>

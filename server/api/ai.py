@@ -587,6 +587,17 @@ async def post_cancel(run_id: str, session: Session) -> dict:
     return svc_runs.to_dict(run)
 
 
+@router.post("/tickets/{ticket_id}/ai/compact")
+async def post_compact(ticket_id: str, session: Session) -> dict:
+    """`/compact` in the ticket chat: the lead's conversation is summarised (when it is working, after its step)."""
+    from services.ai import compact
+
+    try:
+        return await compact.compact_ticket(ticket_id, by=_by())
+    except (ValueError, svc_runs.RunError) as exc:
+        _err(exc, 409)
+
+
 @router.post("/ai/runs/{run_id}/answer")
 async def post_answer(run_id: str, body: TextBody, session: Session) -> dict:
     """Answer the lead's question; the run resumes its conversation."""

@@ -691,7 +691,7 @@ async def prepare(
         else None
     )
     config_dir = accounts.claude_config_dir(account) if account else None
-    base_env = cli.child_env()
+    base_env = cli.child_env(ops.auto_compact_pct(cfg_ops))
     env = accounts.env_for(account, base_env) if account else dict(base_env)
     env.update(
         {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { assistApi, assistError, assistKeys, useChat, useScopeState } from '../../api/assist';
+import { aiApi, isActive, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AssistDraft, ChatMessage, ChatScope, ScopeMember, ScopeState, StartingPoint } from '../../types/assist';
 import { AiAvatar, SparkleIcon, useAiBoardState } from '../ai/aiUi';
@@ -9,7 +10,7 @@ import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 import './scopedChat.css';
-import { ContextMeter } from './ContextMeter';
+import { ContextMeter, shortTokens } from './ContextMeter';
 import { LineIcon } from '../ui/LineIcon';
 import { ReplyTray, SelectToReply, UserText, composeReplies, useQuoteReplies } from './quoteReplies';
 
@@ -38,6 +39,17 @@ export interface ScopedChatProps {
   /** Something to show above the chat (a team's question waiting for an answer on this ticket). */
   banner?: ReactNode;
 }
+
+/** A command typed after "/" in the box of a ticket chat that talks to a team. */
+interface SlashCommand {
+  name: string;
+  hint: string;
+  enabled: boolean;
+  run: () => Promise<void>;
+}
+
+const REPORT_REQUEST =
+  'Give me a short report: what is done, what you are doing now, and what is blocking you. Answer here, then carry on.';
 
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
 
@@ -234,6 +246,12 @@ export function ScopedChat({
   const qc = useQueryClient();
   const st = useScopeState(scope);
   const state = st.data;
+  // the team of a ticket: its runs say how full the lead's conversation is and whether it is working now
+  const teamRuns = useTicketRuns(scope.kind === 'ticket' && state?.members.length ? scope.id : undefined).data ?? [];
+  const liveRun = teamRuns.find((r) => isActive(r.state));
+  const fillRun = teamRuns.find((r) => r.contextWindow && r.contextUsed != null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [slashAt, setSlashAt] = useState(0);
   const [chatId, setChatId] = useState<string | null>(null);
   const [tab, setTab] = useState<'chat' | 'runs'>('chat');
   const size = useResizablePanel(`chat-${scope.kind}`, 400, { min: 340 });
@@ -266,6 +284,11 @@ export function ScopedChat({
   // how full the shared CLI conversation is, as of the newest answer that says so
   const sessionFill = [...messages].reverse().find((m) => m.role === 'ai' && m.context.contextWindow)
     ?.context.contextWindow;
+  const fill = state?.members.length
+    ? fillRun
+      ? { used: fillRun.contextUsed as number, size: fillRun.contextWindow as number }
+      : undefined
+    : sessionFill;
   const lastLen = messages.length ? (messages[messages.length - 1]?.text.length ?? 0) : 0;
   useEffect(() => {
     const el = bodyRef.current;
@@ -314,7 +337,8 @@ export function ScopedChat({
 
   /** The composer's message with the passages waiting in the tray; they leave the tray once it is sent. */
   const sendComposed = async () => {
-    if (await send(outgoing)) quotes.clear();
+    // `//` starts a message that really begins with a slash
+    if (await send(outgoing.startsWith('//') ? outgoing.slice(1) : outgoing)) quotes.clear();
   };
 
   const panel = useMemo<AnswerPanel>(
@@ -341,6 +365,72 @@ export function ScopedChat({
   const team = state?.members.find((m) => m.id === chosen);
   const memberName = team?.name ?? 'the AI';
   const teamWorking = !!team && team.status.startsWith('Working');
+
+  // "/" at the start of the box opens the commands of a ticket's team
+  const slashCommands: SlashCommand[] = team
+    ? [
+        {
+          name: 'compact',
+          hint: liveRun
+            ? 'Summarise its older conversation; it runs when the lead finishes its step'
+            : 'Summarise the lead’s conversation to make room',
+          enabled: !!(liveRun || fillRun),
+          run: async () => {
+            const r = await aiApi.compact(scope.id);
+            setNotice(
+              r.state === 'queued'
+                ? 'Compacting once the lead finishes the step it is on. It is not stopped.'
+                : `Compacted: ${shortTokens(r.before ?? 0)} → ${shortTokens(r.after ?? 0)} tokens.`,
+            );
+            await qc.invalidateQueries({ queryKey: ['ai'] });
+          },
+        },
+        {
+          name: 'report',
+          hint: 'Ask the lead for a short report; it answers here and keeps working',
+          enabled: true,
+          run: async () => {
+            await send(REPORT_REQUEST);
+          },
+        },
+        {
+          name: 'stop',
+          hint: 'Stop the run that is working now',
+          enabled: !!liveRun,
+          run: async () => {
+            if (liveRun) await aiApi.cancel(liveRun.id);
+            setNotice('Stopped.');
+            await qc.invalidateQueries({ queryKey: ['ai'] });
+          },
+        },
+        {
+          name: 'cost',
+          hint: 'What the team has spent on this ticket',
+          enabled: teamRuns.length > 0,
+          run: async () => {
+            const spent = teamRuns.reduce((n, r) => n + (r.costUsd || 0), 0);
+            const tokens = teamRuns.reduce((n, r) => n + r.tokensIn + r.tokensOut, 0);
+            setNotice(
+              `${teamRuns.length} run${teamRuns.length === 1 ? '' : 's'} · ${shortTokens(tokens)} tokens${spent > 0 ? ` · $${spent.toFixed(2)}` : ' · not metered'}`,
+            );
+          },
+        },
+      ]
+    : [];
+  const slashOpen = !!team && /^\/[a-z]*$/i.test(text);
+  const slashMatches = slashOpen ? slashCommands.filter((c) => c.name.startsWith(text.slice(1).toLowerCase())) : [];
+  const slashPick = Math.min(slashAt, Math.max(0, slashMatches.length - 1));
+  const runSlash = async (c: SlashCommand) => {
+    if (!c.enabled || sending) return;
+    setText('');
+    setError(null);
+    setNotice(null);
+    try {
+      await c.run();
+    } catch (e) {
+      setError(extractError(e));
+    }
+  };
   const runsHere = !!runsTab;
   const sizing = panelSizing(size);
 
@@ -502,7 +592,60 @@ export function ScopedChat({
                   onRemove={quotes.remove}
                   onDone={() => input.current?.focus()}
                 />
-                <div className="sc-box">
+                {notice && (
+                  <div className="ai-muted" style={{ marginBottom: 6 }} data-testid="chat-notice">
+                    {notice}
+                  </div>
+                )}
+                <div className="sc-box" style={{ position: 'relative' }}>
+                  {slashMatches.length > 0 && (
+                    <div
+                      role="listbox"
+                      aria-label="Commands"
+                      data-testid="chat-slash-menu"
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: '100%',
+                        marginBottom: 6,
+                        background: 'var(--bg, #fff)',
+                        border: '1px solid #DCE3DE',
+                        borderRadius: 10,
+                        boxShadow: '0 6px 20px rgba(0,0,0,.08)',
+                        padding: 4,
+                        zIndex: 6,
+                      }}
+                    >
+                      {slashMatches.map((c, i) => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          role="option"
+                          aria-selected={i === slashPick}
+                          aria-disabled={!c.enabled}
+                          data-testid={`chat-slash-${c.name}`}
+                          onMouseEnter={() => setSlashAt(i)}
+                          onClick={() => void runSlash(c)}
+                          style={{
+                            display: 'flex',
+                            gap: 10,
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '6px 8px',
+                            border: 0,
+                            borderRadius: 6,
+                            background: i === slashPick ? '#EEF4F0' : 'transparent',
+                            opacity: c.enabled ? 1 : 0.45,
+                            cursor: c.enabled ? 'pointer' : 'default',
+                          }}
+                        >
+                          <b style={{ fontFamily: 'JetBrains Mono, monospace' }}>/{c.name}</b>
+                          <span className="ai-muted">{c.hint}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <textarea
                     ref={input}
                     rows={1}
@@ -511,9 +654,32 @@ export function ScopedChat({
                     placeholder={quotes.replies.length ? 'Anything else? (optional)' : placeholder}
                     aria-label="Ask the AI"
                     data-testid="chat-input"
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(e) => {
+                      setText(e.target.value);
+                      setSlashAt(0);
+                      setNotice(null);
+                    }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      if (e.nativeEvent.isComposing) return;
+                      if (slashMatches.length) {
+                        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          const n = slashMatches.length;
+                          setSlashAt((slashPick + (e.key === 'ArrowDown' ? 1 : n - 1)) % n);
+                          return;
+                        }
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setText('');
+                          return;
+                        }
+                        if (e.key === 'Enter' || e.key === 'Tab') {
+                          e.preventDefault();
+                          void runSlash(slashMatches[slashPick]);
+                          return;
+                        }
+                      }
+                      if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         void sendComposed();
                       }
@@ -526,7 +692,7 @@ export function ScopedChat({
                     aria-label="Send"
                     title="Send"
                     data-testid="chat-send"
-                    onClick={() => void sendComposed()}
+                    onClick={() => (slashMatches.length ? void runSlash(slashMatches[slashPick]) : void sendComposed())}
                   >
                     <svg
                       width="15"
@@ -549,7 +715,7 @@ export function ScopedChat({
                   </div>
                 )}
                 <div className="sc-foot">
-                  {sessionFill && <ContextMeter used={sessionFill.used} size={sessionFill.size} inline />}
+                  {fill && <ContextMeter used={fill.used} size={fill.size} inline />}
                   <span style={{ flex: 1 }} />
                   <span>
                     <kbd>Enter</kbd> send · <kbd>{MOD}</kbd>

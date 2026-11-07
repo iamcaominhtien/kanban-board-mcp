@@ -13,6 +13,9 @@ DEFAULTS: dict = {
     # Start Claude Code with its input open (stream-json), so a message reaches a running AI at its next turn (D20,
     # spike S6). Off: a message rides on the AI's next board call.
     "live_messages": True,
+    # The share (%) of a session's context window at which Claude Code compacts it by itself, while the AI keeps
+    # working (it pauses a few seconds between two steps). None: Claude Code's own level.
+    "auto_compact_pct": None,
     # The board's own skills (services/ai/board_skills.py) switched off for every member or for one (issue #277):
     # [{skill, on, members_on, members_off}]; a skill not listed is on for everyone. A list, as above.
     "board_skills": [],
@@ -41,6 +44,15 @@ DEFAULTS: dict = {
     # auto: red CI the PR's own change caused, and review comments on it, go to the ticket's Dev by themselves (D21)
     "github": {"on": False, "poll_min": 5, "auto": True},
 }
+
+
+def auto_compact_pct(cfg: dict) -> int | None:
+    """The auto-compact level of `get()`'s result as a whole percent between 30 and 95, or None for the CLI's own."""
+    try:
+        value = int(cfg.get("auto_compact_pct") or 0)
+    except (TypeError, ValueError):
+        return None
+    return min(95, max(30, value)) if value else None
 
 
 def _merge(base: dict, over: dict) -> dict:
