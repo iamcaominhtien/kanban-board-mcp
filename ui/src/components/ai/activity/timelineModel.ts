@@ -49,6 +49,7 @@ export interface TimelineModel {
 export const YOU = 'you';
 export const LEAD = 'lead';
 const MAX_RUNS = 3;
+const QUEUE_GAP_MS = 1500; // a wait shorter than this shares the row of the start
 const PERSON_TRIGGERS = ['assign', 'run_button', 'message', 'retry'];
 
 const time = (iso: string | null | undefined): number | null => {
@@ -100,6 +101,11 @@ export function buildTimeline(runs: AiRunFull[], now: number): TimelineModel {
     const queued = time(run.queuedAt) ?? now;
     const start = time(run.startedAt) ?? queued;
     const end = time(run.endedAt) ?? (active ? null : (time(run.lastOutputAt) ?? start));
+    // The wait before the run started is part of the picture: a hatched bar the person's arrow lands on, and the run's
+    // own bar goes on from where it started (as the design draws a queued role).
+    if (run.startedAt && start - queued > QUEUE_GAP_MS) {
+      bars.push({ lane: LEAD, start: queued, end: start, label: '', state: 'queued', runId: run.id });
+    }
     bars.push({ lane: LEAD, start, end, label: `run ${run.number}`, state: stateOf(run.state), runId: run.id });
     if (PERSON_TRIGGERS.includes(run.trigger) || run.startedBy === 'user') {
       arrows.push({

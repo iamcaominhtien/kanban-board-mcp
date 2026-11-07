@@ -355,9 +355,11 @@ function Bar({ bar, x, y1, y2, palette }: { bar: TimelineBar; x: number; y1: num
           <circle cx={x + BAR_W / 2} cy={y2} r="4" fill={palette.stroke} />
         </g>
       )}
-      <text x={x + BAR_W + 6} y={y1 + 11} fontSize="10" fontWeight="700" fill={palette.text}>
-        {bar.label}
-      </text>
+      {bar.label && (
+        <text x={x + BAR_W + 6} y={y1 + 11} fontSize="10" fontWeight="700" fill={palette.text}>
+          {bar.label}
+        </text>
+      )}
     </g>
   );
 }

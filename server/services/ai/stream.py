@@ -103,7 +103,18 @@ class Parser:
         elif kind == "user":
             self._user(ev, agent_id, out)
         elif kind == "result":
-            out["result"] = self._result(ev)
+            res = self._result(ev)
+            if (
+                res["turns"] == 0
+                and not res["text"]
+                and not res["structured"]
+                and not res["is_error"]
+            ):
+                # An empty turn the CLI ran by itself when a session was resumed (it handled a notification left by a
+                # role of the earlier run): it is not the lead's answer. Taking it for the answer closed the CLI 20 s
+                # later, in the middle of the lead's real work, and the run ended with "Finished." (RES-9, runs 2 and 3).
+                res = None
+            out["result"] = res
             out["session_id"] = ev.get("session_id")
             windows = [
                 int(m.get("contextWindow") or 0)
