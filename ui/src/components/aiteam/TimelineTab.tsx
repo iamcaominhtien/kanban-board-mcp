@@ -22,6 +22,7 @@ import {
   arrowStroke,
   arrowWord,
   lanesWidth,
+  columnFor,
   lookOf,
   pickKey,
   type Pick,
@@ -289,6 +290,8 @@ export function TimelineTab({
   const narrow = width - GUTTER < lanesWidth(all.length) && width < 900;
   const quiet = narrow && !openQuiet ? all.filter((l) => l.kind === 'ai' && l.quiet) : [];
   const lifelines: TimelineLifeline[] = all.filter((l) => !quiet.includes(l));
+  // the lanes fill the window (to a limit) instead of leaving the right half empty
+  const col = columnFor(lifelines.length, width - GUTTER - (quiet.length ? 100 : 0));
   const axis = useMemo(() => (data ? buildAxis(data, mode, now) : null), [data, mode, now]);
 
   // Following: stay at the bottom unless the person scrolled up, and count what arrived meanwhile
@@ -698,6 +701,7 @@ export function TimelineTab({
               <TimelineHeader
                 lifelines={lifelines}
                 folded={quiet.length}
+                col={col}
                 onOpenFolded={() => setOpenQuiet(true)}
                 paused={paused}
               />
@@ -711,6 +715,7 @@ export function TimelineTab({
                 data={data}
                 axis={axis}
                 lifelines={lifelines}
+                col={col}
                 now={now}
                 detailed={detailed}
                 selected={selected}

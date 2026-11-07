@@ -26,9 +26,14 @@ export const PAD = 8;
 const TOP = 12;
 
 /** Width of the diagram for `n` lanes. */
-export const lanesWidth = (n: number) => n * COL + 2 * PAD;
+export const lanesWidth = (n: number, col: number = COL) => n * col + 2 * PAD;
 /** Centre of lane `i`. */
-const laneX = (i: number) => PAD + COL / 2 + i * COL;
+const laneXAt = (i: number, col: number = COL) => PAD + col / 2 + i * col;
+/** The widest a lane gets when the lanes spread over a wide window. */
+export const MAX_COL = 240;
+/** The width of one lane: the room shared by `n` lanes, never less than COL nor more than MAX_COL. */
+export const columnFor = (n: number, room: number): number =>
+  Math.min(MAX_COL, Math.max(COL, Math.floor((room - 2 * PAD) / Math.max(n, 1))));
 
 /** One label per cluster of marks that sit closer than a mark is tall: "Changed settings ×3", not three texts on top of each other. */
 export function touchLabels<T extends { what: string; at: string }>(
@@ -251,6 +256,8 @@ export interface DrawProps {
   data: Timeline;
   axis: Axis;
   lifelines: TimelineLifeline[];
+  /** Width of one lane (the lanes spread over a wide window). */
+  col?: number;
   now: number;
   detailed: boolean;
   selected: Pick | null;
@@ -296,15 +303,19 @@ export function TimelineHeader({
   folded,
   onOpenFolded,
   paused = false,
+  col = COL,
 }: {
   lifelines: TimelineLifeline[];
+  /** Width of one lane. */
+  col?: number;
   /** Quiet AIs folded into one thin strip at the right. */
   folded: number;
   onOpenFolded: () => void;
   /** The whole team is paused: every dot is grey and nothing moves. */
   paused?: boolean;
 }) {
-  const w = lanesWidth(lifelines.length) + (folded ? 100 : 0);
+  const w = lanesWidth(lifelines.length, col) + (folded ? 100 : 0);
+  const laneX = (i: number) => laneXAt(i, col);
   return (
     <svg width={w} height={HEAD_H} role="presentation" style={{ display: 'block' }} className="tl-svg">
       {lifelines.map((l, i) => {
@@ -367,7 +378,7 @@ export function TimelineHeader({
       {folded > 0 && (
         <g className="tl-folded" onClick={onOpenFolded} style={{ cursor: 'pointer' }} role="button" tabIndex={0}>
           <rect
-            x={lanesWidth(lifelines.length) + 4}
+            x={lanesWidth(lifelines.length, col) + 4}
             y={4}
             width={92}
             height={40}
@@ -377,7 +388,7 @@ export function TimelineHeader({
             strokeDasharray="4 3"
           />
           <text
-            x={lanesWidth(lifelines.length) + 50}
+            x={lanesWidth(lifelines.length, col) + 50}
             y={28}
             fontSize={11}
             fontWeight={700}
@@ -524,10 +535,12 @@ export function TimelineBody(props: DrawProps) {
   const may = () => motion.left-- > 0;
   const pausedNow = data.pausedAll;
   const index = new Map(lifelines.map((l, i) => [l.id, i]));
+  const col = props.col ?? COL;
+  const laneX = (i: number) => laneXAt(i, col);
   const cx = (id: string): number => (index.has(id) ? laneX(index.get(id) as number) : -1);
   const yy = (iso: string | null | undefined, fallback = now): number => TOP + axis.y(ms(iso) ?? fallback);
   const nowY = TOP + axis.y(now);
-  const W = lanesWidth(lifelines.length);
+  const W = lanesWidth(lifelines.length, col);
   const H = bodyHeight(axis);
   const lookById = new Map(lifelines.map((l) => [l.id, lookOf(l)]));
   const sel = (type: Pick['type'], id: string) => selected?.type === type && selected.id === id;
