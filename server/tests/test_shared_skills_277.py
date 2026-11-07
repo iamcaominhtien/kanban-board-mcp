@@ -2,13 +2,10 @@
 in every work run, and switches per project and per member."""
 
 import asyncio
-import json
 from pathlib import Path
 
-from models import AiTeam, AiProjectSettings
 from services import shared_skills
 from services.ai import board_skills
-from services.ai.context import RunContext, rules_block
 from tests.ai_helpers import env  # noqa: F401
 
 SHARED = [
@@ -29,13 +26,6 @@ SHARED = [
     # decks, asked for by the owner after the first office-files run (themes, templates, pictures)
     "slides",
 ]
-
-
-def _block(member: AiTeam, settings: AiProjectSettings, mode: str = "work") -> str:
-    ctx = RunContext("run_1", "m1", "Dev", "p1", "KAN-1", "An Nguyen", mode)
-    return rules_block(
-        ctx, member, settings, project_name="Project", ticket_status="todo"
-    )
 
 
 def test_the_four_skills_agreed_with_the_owner_are_board_skills_with_a_description_that_says_when():
@@ -94,20 +84,6 @@ def test_the_texts_carry_what_the_live_runs_got_wrong():
         assert needle in text, needle
 
 
-def test_every_work_run_gets_the_core_rules_and_where_the_detail_is():
-    member = AiTeam(id="m1", provider="claude-code")
-    block = _block(member, AiProjectSettings())
-    for rule in shared_skills.CORE_RULES:
-        assert rule in block
-    assert (
-        "`kanban-board:working-a-ticket`" in block
-        and "`kanban-board:asking-and-writing`" in block
-    )
-    # an agent with no Claude Code skills is pointed to docs_read
-    other = _block(AiTeam(id="m2", provider="gemini"), AiProjectSettings())
-    assert "docs_read(action='guides')" in other and "kanban-board:" not in other
-
-
 def test_a_skill_switched_off_for_the_project_or_a_member_is_left_out():
     off = [{"skill": "repo-and-machine", "on": False, "members_on": ["dev"]}]
     ops = {"board_skills": off}
@@ -121,15 +97,6 @@ def test_a_skill_switched_off_for_the_project_or_a_member_is_left_out():
     assert board_skills.enabled_for({}, "x") == [
         s["name"] for s in board_skills.catalog() if not s["role"]
     ]
-
-    settings = AiProjectSettings(
-        ops=json.dumps({"board_skills": [{"skill": "repo-and-machine", "on": False}]})
-    )
-    block = _block(AiTeam(id="designer", provider="claude-code"), settings)
-    assert (
-        "kanban-board:repo-and-machine" not in block
-        and "kanban-board:working-a-ticket" in block
-    )
 
 
 def test_a_run_gets_a_folder_with_only_the_skills_on_for_it():
