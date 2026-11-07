@@ -7,11 +7,12 @@ import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
 import { TeamPage } from './TeamPage';
 import { TimelineTab } from './TimelineTab';
 import { SteppedInTab } from './SteppedInTab';
+import { HealthTab } from './HealthTab';
 import { useTouches } from '../../api/aiTouches';
 import { OPEN_TIMELINE_EVENT, takePendingTimeline, type TimelineLink } from './timelineLink';
 import './aiTeam.css';
 
-type Tab = 'now' | 'timeline' | 'history' | 'stepped' | 'memory';
+type Tab = 'now' | 'timeline' | 'history' | 'stepped' | 'health' | 'memory';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'now', label: 'Now' },
@@ -19,6 +20,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'history', label: 'Run history' },
   // every time a person had to touch the work (KBM-21)
   { id: 'stepped', label: 'You stepped in' },
+  // is the AI team healthy, per team (KBM-22)
+  { id: 'health', label: 'Health' },
   // what the AIs remember, and what waits for a person there (issue #274)
   { id: 'memory', label: 'Memory' },
 ];
@@ -60,6 +63,9 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
     window.addEventListener(OPEN_RUN_EVENT, open);
     return () => window.removeEventListener(OPEN_RUN_EVENT, open);
   }, []);
+  // Health sends a person to the avoidable touches: the tab opens with that mark chosen
+  const [steppedMark, setSteppedMark] = useState<'avoidable' | undefined>(undefined);
+  const [steppedKey, setSteppedKey] = useState(0);
   const knowledge = useKnowledge(projectId);
   const touches = useTouches(projectId, '7d');
   // A team page (its roles) replaces tab Now until the person goes back
@@ -120,7 +126,23 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
       ) : tab === 'history' ? (
         <HistoryTab projectId={projectId} runId={runId} onRunChange={setRunId} onOpenTicket={onOpenTicket} />
       ) : tab === 'stepped' ? (
-        <SteppedInTab projectId={projectId} onOpenTicket={onOpenTicket} />
+        <SteppedInTab key={steppedKey} projectId={projectId} onOpenTicket={onOpenTicket} initialMark={steppedMark} />
+      ) : tab === 'health' ? (
+        <HealthTab
+          projectId={projectId}
+          actions={{
+            onOpenTicket,
+            onOpenTeam: (id) => {
+              setTeamId(id);
+              setTab('now');
+            },
+            onOpenTab: (t, mark) => {
+              setSteppedMark(mark);
+              setSteppedKey((k) => k + 1);
+              setTab(t);
+            },
+          }}
+        />
       ) : tab === 'memory' ? (
         <div style={{ padding: '4px 0 24px', maxWidth: 920 }} data-testid="at-memory">
           <KnowledgeSection projectId={projectId} initialTab="memory" />

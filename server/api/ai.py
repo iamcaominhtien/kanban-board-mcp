@@ -21,6 +21,7 @@ from services.ai import roles as svc_roles
 from services.ai import runs as svc_runs
 from services.ai import steps as svc_steps
 from services.ai import teams as svc_teams
+from services.ai import health as svc_health
 from services.ai import timeline as svc_timeline
 from services.ai import touches as svc_touches
 from services.ai.store import active_runs, get_settings, loads
@@ -797,3 +798,13 @@ async def post_touch_lesson(
         _err(exc, 409)
     await board_events.publish("invalidate")
     return out
+
+
+# --------------------------------------------------------------------------- Health
+
+
+@router.get("/projects/{project_id}/ai/team/health")
+async def get_health(project_id: str, session: Session, range: str = "7d") -> dict:
+    """Is the AI team healthy: a verdict, five measures, a row per team and what to fix (last 7 or 30 days)."""
+    await _project(session, project_id)
+    return await svc_health.health(session, project_id, range)

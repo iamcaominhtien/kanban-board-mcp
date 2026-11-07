@@ -164,12 +164,15 @@ function Row({
 export function SteppedInTab({
   projectId,
   onOpenTicket,
+  initialMark,
 }: {
   projectId: string;
   onOpenTicket: (ticketId: string) => void;
+  /** The mark the tab opens on (Health sends a person to the avoidable touches). */
+  initialMark?: TouchMark;
 }) {
   const [range, onRange] = useState<TouchRange>('7d');
-  const [filters, setFilters] = useState<TouchFilters>({});
+  const [filters, setFilters] = useState<TouchFilters>(initialMark ? { mark: initialMark } : {});
   const q = useTouches(projectId, range, filters);
   const d: SteppedIn | undefined = q.data;
   if (!d) {

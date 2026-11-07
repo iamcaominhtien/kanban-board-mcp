@@ -116,3 +116,35 @@
 .st-kindrow:hover span {
   text-decoration: underline;
 }
+
+/* Health */
+.hl-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.3fr) 60px 90px 100px 100px 110px 130px minmax(110px, 1fr);
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #eef3ef;
+  align-items: center;
+  font-size: 12.5px;
+}
+.hl-grid.head {
+  background: #fbfcfb;
+  padding: 9px 16px;
+}
+.hl-grid:last-child {
+  border-bottom: none;
+}
+.hl-table {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #fff;
+}
+.hl-table > .hl-grid {
+  min-width: 900px;
+}
+.hl-sub {
+  display: block;
+  font-size: 11px;
+  color: #5b6b60;
+}
