@@ -29,6 +29,7 @@ import {
 } from './timelineDraw';
 import { buildAxis, clock, lengthText, type AxisMode } from './timelineLayout';
 import { TimelineStrip } from './TimelineStrip';
+import { TimelineGroups } from './TimelineGroups';
 import { buildTimelineLink, type TimelineLink } from './timelineLink';
 import './timeline.css';
 import { LineIcon } from '../ui/LineIcon';
@@ -184,6 +185,9 @@ export function TimelineTab({
   compactChrome = false,
   scopeBar = false,
   initial = null,
+  teamId = null,
+  groups = false,
+  scopeLabel = null,
 }: {
   projectId: string;
   actions: TimelineActions;
@@ -192,6 +196,12 @@ export function TimelineTab({
   scopeTicketId?: string | null;
   compactChrome?: boolean;
   scopeBar?: boolean;
+  /** Draw only this team (and the teams that wrote to it): Flow's scope "one team". */
+  teamId?: string | null;
+  /** A header per team over its lead and roles, foldable (Flow). */
+  groups?: boolean;
+  /** What the scope is called, for the empty state ("Team Alpha", "KBM-7"). */
+  scopeLabel?: string | null;
 }) {
   const [preset, setPreset] = useState<Preset>(() => initial?.range ?? readRange(projectId));
   const [day, setDay] = useState<{ since: string; until: string } | null>(
@@ -207,6 +217,8 @@ export function TimelineTab({
   const [menu, setMenu] = useState<'scope' | 'show' | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [openQuiet, setOpenQuiet] = useState(false);
+  // Flow: the teams whose roles are folded away under the team's header
+  const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
   const [width, setWidth] = useState(1100);
   const [pinned, setPinned] = useState(true);
   const [missed, setMissed] = useState(0);
@@ -235,9 +247,9 @@ export function TimelineTab({
   const query = useMemo(
     () =>
       day
-        ? { range: 'custom' as const, since: day.since, until: day.until, ticketId: scope }
-        : { range: preset, ticketId: scope },
-    [preset, day, scope],
+        ? { range: 'custom' as const, since: day.since, until: day.until, ticketId: scope, teamId }
+        : { range: preset, ticketId: scope, teamId },
+    [preset, day, scope, teamId],
   );
   const q = useTimeline(projectId, query);
   const data = q.data;
@@ -289,7 +301,23 @@ export function TimelineTab({
   const all = useMemo(() => data?.lifelines ?? [], [data]);
   const narrow = width - GUTTER < lanesWidth(all.length) && width < 900;
   const quiet = narrow && !openQuiet ? all.filter((l) => l.kind === 'ai' && l.quiet) : [];
-  const lifelines: TimelineLifeline[] = all.filter((l) => !quiet.includes(l));
+  const foldedLanes = useMemo(
+    () => new Set(groups ? all.filter((l) => !l.lead && l.teamId && folded.has(l.teamId)).map((l) => l.id) : []),
+    [all, folded, groups],
+  );
+  const lifelines: TimelineLifeline[] = all.filter((l) => !quiet.includes(l) && !foldedLanes.has(l.id));
+  // a folded team draws its lead only: the roles' bars and every arrow that touches a role are left out
+  const drawn = useMemo(
+    () =>
+      data && foldedLanes.size
+        ? {
+            ...data,
+            bars: data.bars.filter((b) => !foldedLanes.has(b.memberId)),
+            arrows: data.arrows.filter((a) => !foldedLanes.has(a.from) && !foldedLanes.has(a.to)),
+          }
+        : data,
+    [data, foldedLanes],
+  );
   // the lanes fill the window (to a limit) instead of leaving the right half empty
   const col = columnFor(lifelines.length, width - GUTTER - (quiet.length ? 100 : 0));
   const axis = useMemo(() => (data ? buildAxis(data, mode, now) : null), [data, mode, now]);
@@ -427,7 +455,8 @@ export function TimelineTab({
         </div>
       )}
       {!paused && (
-        <LiveStripLite live={scope ? data.live.filter((x) => x.ticketId === scope) : data.live} onPick={focusRun} />
+        // the server already drew only the scope (a Story's runs are its children's): nothing to filter here
+        <LiveStripLite live={data.live} onPick={focusRun} />
       )}
 
       <div className="tl-toolbar">
@@ -646,7 +675,13 @@ export function TimelineTab({
       ) : table ? (
         <EventTable data={data} names={names} onPick={(p) => setSelected(p)} />
       ) : empty ? (
-        <EmptyRange data={data} lifelines={lifelines} onWiden={() => choose('7d')} onMap={actions.onSeeMap} />
+        <EmptyRange
+          data={data}
+          lifelines={lifelines}
+          who={scopeLabel}
+          onWiden={() => choose('7d')}
+          onMap={actions.onSeeMap}
+        />
       ) : (
         <div className="tl-stage">
           {scope && !scopeBar && (
@@ -698,6 +733,22 @@ export function TimelineTab({
           >
             <div className="tl-corner" style={{ width: GUTTER }} />
             <div className="tl-head">
+              {groups && (
+                <TimelineGroups
+                  lifelines={lifelines}
+                  all={all}
+                  col={col}
+                  folded={folded}
+                  onToggle={(id) =>
+                    setFolded((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(id)) next.delete(id);
+                      else next.add(id);
+                      return next;
+                    })
+                  }
+                />
+              )}
               <TimelineHeader
                 lifelines={lifelines}
                 folded={quiet.length}
@@ -712,7 +763,7 @@ export function TimelineTab({
             </div>
             <div className="tl-bodywrap">
               <TimelineBody
-                data={data}
+                data={drawn ?? data}
                 axis={axis}
                 lifelines={lifelines}
                 col={col}
@@ -812,11 +863,14 @@ function LiveStripLite({ live, onPick }: { live: Timeline['live']; onPick: (tick
 function EmptyRange({
   data,
   lifelines,
+  who,
   onWiden,
   onMap,
 }: {
   data: Timeline;
   lifelines: TimelineLifeline[];
+  /** What the scope is called: the empty state says whose work is missing. */
+  who?: string | null;
   onWiden: () => void;
   onMap?: () => void;
 }) {
@@ -829,7 +883,9 @@ function EmptyRange({
           </span>
         ))}
       </div>
-      <b>No AI work between {clock(ms(data.since) ?? 0)} and now</b>
+      <b>
+        {who ? `No work by ${who}` : 'No AI work'} between {clock(ms(data.since) ?? 0)} and now
+      </b>
       <span className="at-hint">
         The lifelines stay so you can see who is on the team, all idle.
         {data.lastEndedAt ? ` The last run ended at ${clock(ms(data.lastEndedAt) ?? 0)}.` : ''}
@@ -840,7 +896,7 @@ function EmptyRange({
         </button>
         {onMap && (
           <button type="button" className="tl-btn" onClick={onMap}>
-            Open the team map
+            Open the map
           </button>
         )}
       </span>
@@ -1601,6 +1657,7 @@ function Legend() {
   const items: { k: Parameters<typeof arrowColor>[0]; t: string; c?: string }[] = [
     { k: 'assign', t: 'assigned' },
     { k: 'handoff', t: 'hand-off (dashed and moving while under way)' },
+    { k: 'note', t: 'note from one team to another' },
     { k: 'report', t: 'report back (dotted)', c: '#5B6B60' },
     { k: 'ask', t: 'asks you' },
     { k: 'answer', t: 'your answer' },

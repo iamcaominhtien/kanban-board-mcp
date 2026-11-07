@@ -28,7 +28,7 @@ const TOP = 12;
 /** Width of the diagram for `n` lanes. */
 export const lanesWidth = (n: number, col: number = COL) => n * col + 2 * PAD;
 /** Centre of lane `i`. */
-const laneXAt = (i: number, col: number = COL) => PAD + col / 2 + i * col;
+export const laneXAt = (i: number, col: number = COL) => PAD + col / 2 + i * col;
 /** The width of one lane: the room shared by `n` lanes, never less than COL (no upper limit: they fill the window). */
 export const columnFor = (n: number, room: number): number =>
   Math.max(COL, Math.floor((room - 2 * PAD) / Math.max(n, 1)));
@@ -137,6 +137,7 @@ const ARROW: Record<ArrowKind, { color: string; dash?: string; glyph: string; wo
   assign: { color: '#2F6FB0', glyph: '+', word: 'assigned', label: '#244E78' },
   mention: { color: '#7C5CD6', glyph: '@', word: '@mention', label: '#5B3AA6' },
   handoff: { color: '#2E6F40', glyph: '›', word: 'hand-off', label: '#1F5A31' },
+  note: { color: '#0F8B8D', glyph: '↔', word: 'note to a team', label: '#0B6264' },
   report: { color: '#9AA8A0', dash: '1.5 3', glyph: '↵', word: 'report back', label: '#3A4A3E' },
   returned: { color: '#8A6A12', dash: '5 3', glyph: '↵', word: 'returned (round 1)', label: '#8A6A12' },
   sent_back: { color: '#C4432A', dash: '5 3', glyph: '↵', word: 'sent back', label: '#A5321E' },
@@ -157,6 +158,7 @@ const HANDOFF_KINDS: ReadonlySet<ArrowKind> = new Set([
   'assign',
   'mention',
   'handoff',
+  'note',
   'skip',
   'report',
   'returned',
@@ -691,7 +693,7 @@ export function TimelineBody(props: DrawProps) {
     const underWay =
       !pausedNow &&
       (askOpen ||
-        (['assign', 'mention', 'handoff', 'skip'].includes(a.kind) &&
+        (['assign', 'mention', 'handoff', 'note', 'skip'].includes(a.kind) &&
           !!recv &&
           (recv.state === 'queued' || recv.state === 'starting')));
     const doc = a.kind === 'doc' ? docVersion(a) : undefined;

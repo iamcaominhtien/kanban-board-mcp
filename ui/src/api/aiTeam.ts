@@ -10,6 +10,8 @@ export interface TimelineQuery {
   since?: string;
   until?: string;
   ticketId?: string | null;
+  /** One team: only its lead and roles (and the teams that wrote to it). */
+  teamId?: string | null;
   /** One Story: a row per child ticket, the PM first. */
   story?: string | null;
 }
@@ -53,6 +55,7 @@ export function useTimeline(projectId: string, q: TimelineQuery, live = true) {
               since: q.since,
               until: q.until,
               ticket_id: q.ticketId ?? undefined,
+              team_id: q.teamId ?? undefined,
               story: q.story ?? undefined,
             },
           })

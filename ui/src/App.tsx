@@ -147,7 +147,9 @@ export default function App() {
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team'>(() => {
-    return new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board';
+    const params = new URLSearchParams(window.location.search);
+    // a link to Flow (`?aiteam=flow` or the old `?aiteam=timeline`) opens the AI Team page
+    return params.has('docs') ? 'docs' : params.has('aiteam') ? 'ai_team' : 'board';
   });
   const [docsRequest, setDocsRequest] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get('docs'),

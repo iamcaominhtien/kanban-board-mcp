@@ -22,6 +22,8 @@ export interface TimelineLink {
 export interface FlowLink {
   story: string | null;
   ticket: string | null;
+  /** One team (the scope "one team"); at most one of `team`, `story` and `ticket` is set. */
+  team?: string | null;
   view: 'map' | 'timeline';
 }
 
@@ -29,7 +31,7 @@ export interface FlowLink {
  * The query names of a Flow link. The ticket of the scope is `flow_ticket`, not `ticket`: the app opens the ticket
  * modal on `?ticket=`.
  */
-export const FLOW_PARAMS = ['aiteam', 'story', 'flow_ticket', 'view'] as const;
+export const FLOW_PARAMS = ['aiteam', 'story', 'flow_ticket', 'team', 'view'] as const;
 
 export const OPEN_TIMELINE_EVENT = 'kanban:open-timeline';
 
@@ -63,6 +65,7 @@ export function parseTimelineLink(search: string): TimelineLink | null {
       flow: {
         story: params.get('story') || null,
         ticket: params.get('flow_ticket') || null,
+        team: params.get('team') || null,
         view: params.get('view') === 'timeline' ? 'timeline' : 'map',
       },
     };
@@ -111,7 +114,8 @@ export function buildFlowLink(projectId: string, link: FlowLink, base: { href: s
   url.searchParams.set('aiteam', 'flow');
   if (link.story) url.searchParams.set('story', link.story);
   if (link.ticket) url.searchParams.set('flow_ticket', link.ticket);
-  if (link.view === 'timeline') url.searchParams.set('view', 'timeline');
+  if (link.team) url.searchParams.set('team', link.team);
+  url.searchParams.set('view', link.view);
   return url.toString();
 }
 
