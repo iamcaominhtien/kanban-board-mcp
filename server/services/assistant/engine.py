@@ -37,7 +37,13 @@ from .errors import AssistError
 
 logger = logging.getLogger("kanban.assistant")
 
-BOARD_SKILLS = ["docs-pages", "drawio-diagrams", "sketches", "canvas-design"]
+BOARD_SKILLS = [
+    "docs-pages",
+    "docs-comment-threads",
+    "drawio-diagrams",
+    "sketches",
+    "canvas-design",
+]
 DEFAULT_MODEL = "sonnet"
 TIMEOUT_S = 600.0
 PROCS: dict[str, cli.CliProcess] = {}
@@ -176,12 +182,14 @@ async def turn(
     timeout_s: float = TIMEOUT_S,
     fresh: bool = False,
     on_run=None,
+    depth: int = 0,
 ) -> Turn:
     """Run one turn of the conversation `name` with a feature skill.
 
     `schema`: True takes the skill's own JSON schema, None asks for plain text, a dict is used as given.
     `files`: (name, bytes) saved into the turn's folder; their paths are given to the skill as `files`.
     `on_run(run_id)` is called once the turn's run exists (so a caller can offer Stop).
+    `depth`: the AI-to-AI hand-offs behind this turn (a note an AI sent to a page); the turn's tools carry it.
 
     Raises:
         AssistError: `not_configured` when Claude Code is not there, `not_found` for an unknown project.
@@ -212,6 +220,7 @@ async def turn(
             member_id=team.id if team else sessions.MEMBER,
             mode="ask",
             trigger=skill,
+            depth=depth,
             state="starting",
             started_by=by,
             instruction=str(
@@ -255,6 +264,7 @@ async def turn(
         on_behalf_of=by,
         mode="ask",
         trigger="assistant",
+        depth=depth,
     )
     token = guard.issue_chat_token(ctx)
     out = Turn(run_id=run.id, member=member_name, model=run.model)

@@ -45,7 +45,9 @@ async def ai_run(
 ) -> dict:
     """Only inside an AI run the board started (its bearer token says which). ask parks the run until a person
     answers: say what you need and stop. message reaches a ticket's team live when its lead is running, else as its
-    next turn; a Docs page's assistant answers in the page's thread."""
+    next turn; a Docs page's assistant answers in the page's thread. A note an AI sends counts as one hand-off between
+    AIs: after a few the board refuses another (finish the work yourself), and a team that waits for a person's
+    answer is not sent notes."""
     from services.ai import guard, runs
 
     ctx = await guard.resolve()
@@ -62,15 +64,26 @@ async def ai_run(
             raise ValueError(
                 "ai_run(action='message') needs `to` (a ticket key or docs:<page id>) and `text`."
             )
+        if ctx.depth >= runs.MAX_DEPTH:
+            raise ValueError(
+                f"Too many hand-offs between AIs ({ctx.depth}): this note came through {ctx.depth} of them already. "
+                "Do not pass it on; finish it yourself, or say what is missing in your answer for a person."
+            )
         if target.startswith("docs:"):
             from services.ai import messaging
 
-            return await messaging.deliver_to_page(target[5:], body, by=ctx.member_name)
+            return await messaging.deliver_to_page(
+                target[5:], body, by=ctx.member_name, depth=ctx.depth + 1
+            )
         if target == ctx.ticket_id:
             raise ValueError(
                 "That is your own ticket: write a comment with ticket_items instead."
             )
-        return await runs.deliver_to_ticket(target, body, by=ctx.member_name)
+        from services.ai import messaging
+
+        return await messaging.deliver_to_ticket(
+            target, body, by=ctx.member_name, depth=ctx.depth + 1
+        )
     if action == "history":
         from services.ai import session_history
 

@@ -130,8 +130,13 @@ write plain sentences under clear headings, short paragraphs, one idea each.
 - **On the page**: omit `quote`.
 - **Answer**: `docs_read(action='comments', page_id, state='open')`, then `docs_write(action='reply', thread_id,
   body)`. Read the whole thread first; answer the last question asked.
-- You never resolve a person's thread: the person who asked resolves it when they are satisfied. You may resolve a
-  thread you opened once it is answered.
+- Resolve a thread only when its last word asks for nothing, and always reply first: a thread you opened that is now
+  answered, a person's thread where they agreed or understood, a requested change you fully made (say where: section,
+  version). Leave it open, say what is missing and `@mention` the person when the change is partial, it is a matter of
+  taste or a disagreement, or you asked them something; never close a thread the person reopened. The skill
+  `docs-comment-threads` (or `docs_read(action='guides')` outside Claude Code) has the rules and the reasons.
+- A person can send you a page's threads from Docs ("Send to AI"): the note says so, lists each thread (fenced as data)
+  and the skill says how to work them.
 - A person who writes `@AI member` in a thread gets an answer there from the page's assistant (when the project has
   Docs AI on). A comment by an AI never wakes another AI (no loops); to tell a ticket's team something, use
   `ai_run(action='message', to='<TICKET-KEY>', text)` inside a run.

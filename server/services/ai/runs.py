@@ -45,6 +45,10 @@ from .store import active_runs, get_profile, get_settings, loads, now_iso, parse
 logger = logging.getLogger("kanban.ai.runs")
 
 ENDED = ("finished", "failed", "cancelled")
+# How many AI-to-AI hand-offs may lie behind a run: a note an AI sends (ai_run message, the Board AI routing Docs
+# threads, a ticket's team writing to a page) starts a run one deeper; at this depth the send is refused, so two AIs
+# (or a ticket and a page) cannot keep each other busy.
+MAX_DEPTH = 3
 ACTIVE = ("queued", "starting", "running", "needs_input")
 BOARD_CLOSED = "board_closed"
 STARTING_TIMEOUT_S = 180.0
@@ -245,6 +249,7 @@ async def create_run(
     resume_session: str | None = None,
     kind: str = "team",
     target: str | None = None,
+    depth: int = 0,
     **_ignored,
 ) -> AiRun:
     """Queue a run of a team on a ticket; the scheduler starts it when it can.
@@ -320,6 +325,7 @@ async def create_run(
         number=(last.number + 1) if last else 1,
         mode=mode,
         trigger=trigger,
+        depth=depth,
         started_by=started_by,
         instruction=instruction or "",
         session_id=resume_session,
@@ -569,6 +575,7 @@ async def _ctx_for(session, run: AiRun) -> RunContext:
         on_behalf_of=run.started_by,
         mode=run.mode,
         trigger=run.trigger or "",
+        depth=run.depth or 0,
     )
 
 
@@ -1490,14 +1497,38 @@ async def retry(run_id: str, *, by: str) -> AiRun:
         )
 
 
+NEEDS_INPUT_BLOCK = (
+    "The team is asking a person a question (run #{number} is waiting for an answer): answer it first, in the "
+    "ticket or from Needs you. A note sent now would be taken as that answer."
+)
+
+
 async def send_message(
-    run_id: str, text: str, *, by: str, peer: str | None = None
+    run_id: str,
+    text: str,
+    *,
+    by: str,
+    peer: str | None = None,
+    answers: bool = True,
 ) -> dict:
     """A note to a run: into the running lead's input when it is live; else kept for its next turn (a run that ended
-    gets a new run on the same conversation)."""
+    gets a new run on the same conversation).
+
+    A run in `needs_input` takes the text as the answer to its question. That is right for the person answering it
+    (`answers=True`, the default: the ticket chat and the run's own message box); a note from anything else (another
+    AI, a Docs page, CI) must not be mistaken for it, so with `answers=False` the send is refused.
+
+    Raises:
+        RunError: Empty text, an unknown run, or `answers=False` to a run that waits for an answer.
+    """
     text = (text or "").strip()
     if not text:
         raise RunError("Write a message first.")
+    if not answers:
+        async with database.async_session() as session:
+            waiting = await session.get(AiRun, run_id)
+            if waiting is not None and waiting.state == "needs_input":
+                raise RunError(NEEDS_INPUT_BLOCK.format(number=waiting.number))
     if defers_to_runner():
         async with database.async_session() as session:
             run = await session.get(AiRun, run_id)
@@ -1819,16 +1850,34 @@ async def start_on_ticket(
     )
 
 
-async def deliver_to_ticket(ticket_id: str, text: str, *, by: str) -> dict:
+async def deliver_to_ticket(
+    ticket_id: str,
+    text: str,
+    *,
+    by: str,
+    trigger: str = "message",
+    depth: int = 0,
+) -> dict:
     """The one primitive of AI-to-AI and person-to-AI contact: a note to the ticket's team. Live when its lead runs,
-    else a new turn on its conversation; a ticket with no team gets the note as a comment."""
+    else a new turn on its conversation; a ticket with no team gets the note as a comment.
+
+    `trigger` says where the note came from, and the run it starts carries it (the lead is told how to answer):
+    `message` the ticket chat (the default), `ai_message` another AI, `docs_threads` comment threads from Docs,
+    `ci_red` and `review_comments` GitHub. Only the chat's text can answer a question the team asked
+    (`needs_input`): the others are refused while it waits. `depth` is the hand-off depth of the run it starts.
+
+    Raises:
+        RunError: The ticket is not there, the team asks a person something (non-chat), or its run cannot start.
+    """
     async with database.async_session() as session:
         ticket = await session.get(Ticket, ticket_id)
         if ticket is None:
             raise RunError("Ticket not found.")
         active = [r for r in await active_runs(session, ticket_id=ticket_id)]
         if active:
-            return await send_message(active[0].id, text, by=by)
+            return await send_message(
+                active[0].id, text, by=by, answers=trigger == "message"
+            )
         last = (
             await session.exec(
                 select(AiRun)
@@ -1851,7 +1900,8 @@ async def deliver_to_ticket(ticket_id: str, text: str, *, by: str) -> dict:
             session,
             ticket_id=ticket_id,
             member_id=team_id,
-            trigger="message",
+            trigger=trigger,
+            depth=depth,
             started_by=by,
             instruction=f"{by} says:\n{text}",
             resume_session=last.session_id

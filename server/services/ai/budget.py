@@ -139,7 +139,10 @@ async def runs_today(
         col(AiRun.started_at) >= today_start().isoformat()
     )
     scheduled = AiRun.trigger == "schedule"
-    chained = AiRun.trigger == "message"
+    # a run another AI, a Docs page or GitHub started: nobody sat there either
+    chained = col(AiRun.trigger).in_(
+        ["message", "ai_message", "docs_threads", "ci_red", "review_comments"]
+    )
     if kinds == ("schedule",):
         stmt = stmt.where(scheduled)
     else:

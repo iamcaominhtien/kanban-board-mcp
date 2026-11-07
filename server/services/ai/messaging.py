@@ -5,14 +5,26 @@ conversation; a receiver with no session yet gets a new one."""
 from . import runs
 
 
-async def deliver_to_ticket(ticket_id: str, text: str, *, by: str) -> dict:
-    """A note to the ticket's team (see runs.deliver_to_ticket)."""
-    return await runs.deliver_to_ticket(ticket_id, text, by=by)
+async def deliver_to_ticket(
+    ticket_id: str,
+    text: str,
+    *,
+    by: str,
+    trigger: str = "ai_message",
+    depth: int = 1,
+) -> dict:
+    """A note to the ticket's team from another AI (see runs.deliver_to_ticket)."""
+    return await runs.deliver_to_ticket(
+        ticket_id, text, by=by, trigger=trigger, depth=depth
+    )
 
 
-async def deliver_to_page(page_id: str, text: str, *, by: str) -> dict:
+async def deliver_to_page(page_id: str, text: str, *, by: str, depth: int = 1) -> dict:
     """A note to a Docs page: it is kept as a page comment thread written by `by`, and the page's assistant answers
     in that thread on the page's own conversation (a `thread_reply` job) when Docs AI is on for the project.
+
+    `depth` is how many AI hand-offs lie behind this note: the assistant's turn on the page carries it, so a note it
+    sends on (to a ticket) is counted from there.
 
     Returns:
         `{delivered: "page_assistant" | "page_comment", thread_id, job_id?}`.
@@ -59,6 +71,7 @@ async def deliver_to_page(page_id: str, text: str, *, by: str) -> dict:
                 page_id=page_id,
                 thread_id=thread["id"],
                 instruction=text[:300],
+                result={"input": {"depth": depth}},
             )
             return {**out, "delivered": "page_assistant", "job_id": job.id}
     finally:

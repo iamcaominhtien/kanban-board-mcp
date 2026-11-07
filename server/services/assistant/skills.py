@@ -141,6 +141,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         ["state"],
     ),
     "docs-thread": _obj({"reply": _S, "posted": {"type": "boolean"}}, ["reply"]),
+    "docs-route": _obj({"decision": _S, "ticket_id": _S, "reason": _S}, ["decision"]),
     "board-health": _obj(
         {
             "insights": {

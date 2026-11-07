@@ -1122,8 +1122,11 @@ class AiRun(SQLModel, table=True):
     member_id: str = Field(foreign_key="member.id", index=True)  # the team
     number: int = Field(default=1)  # per ticket
     mode: str = Field(default="work")  # work | ask
-    # assign | run_button | message | retry | schedule | github | api
+    # assign | run_button | message (the ticket chat) | ai_message (another AI's note) | docs_threads (comment threads
+    # sent from Docs) | ci_red | review_comments | retry | schedule | github | api
     trigger: str = Field(default="assign")
+    # How many AI-to-AI hand-offs lie behind this run (0: a person started it). `ai_run message` stops at MAX_DEPTH.
+    depth: int = Field(default=0)
     # queued | starting | running | needs_input | finished | failed | cancelled
     state: str = Field(default="queued", index=True)
     started_by: str = Field(default="user")

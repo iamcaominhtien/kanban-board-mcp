@@ -6,6 +6,7 @@ The job kinds and their results keep the shapes the Docs UI reads (`docs_ai_job.
 
 import hashlib
 import json
+import logging
 import re
 import uuid
 from typing import Any
@@ -24,6 +25,8 @@ from services.docs_ai import settings as svc_settings
 from . import engine, sessions
 from . import settings as svc_assist
 from .errors import AssistError
+
+logger = logging.getLogger("kanban.assistant")
 
 MAX_QUESTION = 1000
 SCOPES = ("space", "page", "all")
@@ -770,7 +773,12 @@ async def thread_reply_job(job: DocsAiJob) -> dict[str, Any]:
     from services import activity, docs_comments
 
     _page_row, inputs = await _thread_inputs(job.thread_id)
-    out = await _turn(job, "docs-thread", {"task": "reply", **inputs})
+    out = await _turn(
+        job,
+        "docs-thread",
+        {"task": "reply", **inputs},
+        depth=int(_input(job).get("depth") or 0),
+    )
     data = out.data()
     reply = (data.get("reply") or out.text or "").strip()
     comment_id = None
@@ -794,6 +802,101 @@ async def thread_reply_job(job: DocsAiJob) -> dict[str, Any]:
     if comment_id:
         await jobs.update(job.id, reply_comment_id=comment_id)
     return {"reply": reply, "posted": True, **_cost(out)}
+
+
+@jobs.handler("docs_route")
+async def docs_route_job(job: DocsAiJob) -> dict[str, Any]:
+    """Comment threads sent to the Board AI: it finds the ticket whose team should work them and hands over the note
+    (`ai_run message`), or answers them itself. Each thread gets a line saying what it did."""
+    from services import activity, docs_comments
+
+    inp = _input(job)
+    out = await _turn(
+        job,
+        "docs-route",
+        {
+            "page_id": job.page_id,
+            "thread_ids": inp.get("thread_ids"),
+            "tickets": inp.get("tickets"),
+            "teams": inp.get("teams"),
+            "note": inp.get("note"),
+        },
+        name=sessions.board_name(job.project_id),
+        depth=0,
+    )
+    data = out.data()
+    decision = (data.get("decision") or "").strip().lower()
+    ticket = (data.get("ticket_id") or "").strip()
+    reason = (data.get("reason") or "").strip()
+    line = {
+        "sent": f"The Board AI sent this to {ticket or 'a ticket'}'s team.",
+        "answered": "The Board AI worked on this itself.",
+    }.get(decision, "The Board AI left this for a person.")
+    token = activity.set_actor("Board AI")
+    try:
+        async with database.async_session() as session:
+            for tid in inp.get("thread_ids") or []:
+                try:
+                    await docs_comments.add_board_note(
+                        session,
+                        tid,
+                        line + (f" {reason}" if reason else ""),
+                        {
+                            "kind": "sent",
+                            "ticket_id": ticket or None,
+                            "via": "board_ai",
+                        },
+                    )
+                except Exception:  # noqa: BLE001 - the thread may be gone; the job's result still says it
+                    logger.debug("no note on thread %s", tid, exc_info=True)
+    finally:
+        activity.reset_actor(token)
+    return {
+        "decision": decision,
+        "ticket_id": ticket or None,
+        "reason": reason,
+        **_cost(out),
+    }
+
+
+async def start_route_job(
+    session: AsyncSession, groups: list, by: str, note: str
+) -> DocsAiJob:
+    """Start the Board AI on threads a person sent to it (`groups`: [(page, [thread])]; `note`: the fenced note)."""
+    from services.docs_ai import handoff
+
+    page = groups[0][0]
+    await svc_settings.require_enabled(session, page.project_id)
+    await ready_or_raise(page.project_id)
+    info = await handoff.targets(session, page.id)
+    tickets = [
+        {
+            "id": t["id"],
+            "title": t["title"],
+            "status": t["status"],
+            "team": (t["team"] or {}).get("name"),
+            "state": (t["team"] or {}).get("state", "none"),
+            "relations": [r["label"] for r in t["relations"]],
+        }
+        for t in info["tickets"]
+    ]
+    thread_ids = [th.id for _p, ts in groups for th in ts]
+    return await jobs.start(
+        session,
+        project_id=page.project_id,
+        kind="docs_route",
+        started_by=by,
+        page_id=page.id,
+        instruction="Route the threads sent from the page"[:300],
+        result={
+            "input": {
+                "note": note,
+                "thread_ids": thread_ids,
+                "tickets": tickets,
+                "teams": info["teams"],
+            }
+        },
+    )
 
 
 async def start_thread_job(
