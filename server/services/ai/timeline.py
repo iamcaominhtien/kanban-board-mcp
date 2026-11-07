@@ -298,6 +298,27 @@ async def _last_steps(session: AsyncSession, run_ids: list[str]) -> dict[str, st
     return out
 
 
+async def name_map(
+    session: AsyncSession, project_id: str, teams: dict[str, tuple[Member, AiTeam]]
+) -> dict[str, str]:
+    """Lower-cased name -> team id, for the names that mean exactly one team: a note's sender is known by its name, so
+    a name shared by two teams, or with a person of the project, is left out (it would draw the wrong team)."""
+    people = {
+        (m.name or "").strip().lower()
+        for m in (
+            await session.exec(
+                select(Member).where(
+                    Member.project_id == project_id, Member.kind != "ai"
+                )
+            )
+        ).all()
+    }
+    seen: dict[str, list[str]] = defaultdict(list)
+    for tid, (m, _t) in teams.items():
+        seen[m.name.strip().lower()].append(tid)
+    return {n: ids[0] for n, ids in seen.items() if len(ids) == 1 and n not in people}
+
+
 async def timeline(
     session: AsyncSession,
     project_id: str,
@@ -354,7 +375,7 @@ async def timeline(
         teams[m.id] = (m, t)
     used = [m for m in dict.fromkeys(r.member_id for r in runs) if m in teams]
     held = bool(settings.paused_all)
-    by_name = {m.name.strip().lower(): tid for tid, (m, _t) in teams.items()}
+    by_name = await name_map(session, project_id, teams)
 
     def sender_team(name: str | None, receiver: str) -> str | None:
         """The team a note came from, when `name` is one of the project's teams (and not the receiver itself)."""
@@ -581,6 +602,7 @@ async def timeline(
                 "kind": "ai",
                 "lead": True,
                 "team_id": tid,
+                "team_name": m.name,
                 "name": lane_name(tid, None),
                 "color": m.color,
                 "state": state_of(tid, None),

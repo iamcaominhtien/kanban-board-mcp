@@ -497,6 +497,8 @@ export interface TimelineLifeline {
   lead?: boolean;
   /** The team a lead or a role belongs to (the group header of the Flow timeline); absent for You. */
   teamId?: string;
+  /** The team's own name (a lead's lane is called "Lead" when only one team is drawn). */
+  teamName?: string;
   /** No event in the window: folded into the "N quiet AIs" strip on a narrow window. */
   quiet?: boolean;
 }

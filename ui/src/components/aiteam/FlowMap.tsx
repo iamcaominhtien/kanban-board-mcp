@@ -339,6 +339,11 @@ export function FlowMap({
           )}
         </div>
       </div>
+      {data.runsTruncated && (
+        <div className="at-hint" style={{ marginTop: 8 }} data-testid="flow-runs-truncated">
+          Only the newest runs are drawn: the oldest ones of this range are not on the map. Pick a shorter range.
+        </div>
+      )}
       {data.truncated && (
         <div className="at-hint" style={{ marginTop: 8 }}>
           Showing the first tickets only. Narrow the range or look at one team or one ticket to see the rest.

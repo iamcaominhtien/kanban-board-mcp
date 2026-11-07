@@ -17,10 +17,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from models import AiRun, AiRunAgent, AiRunMessage, AiTeam, Member, Ticket
 
 from .store import get_settings, loads, parse_iso
-from .timeline import ACTIVE, MAX_RUNS, _role_color, role_label, window
+from .timeline import ACTIVE, MAX_RUNS, _role_color, name_map, role_label, window
 
 # The tickets the scope picker lists, and the tickets a map draws before it says "narrow the range"
-MAX_PICKER_TICKETS = 80
+MAX_PICKER_TICKETS = 200
 MAX_MAP_TICKETS = 60
 
 
@@ -152,14 +152,14 @@ async def flow_map(
         e["asked"] += 1
         if q.get("answered_at"):
             e["answered"] += 1
-        else:
-            e["open"] += 1
+        elif r.state == "needs_input":
+            e["open"] += 1  # a question of a run that ended unanswered waits for nobody
         if r.ticket_id and r.ticket_id not in e["tickets"]:
             e["tickets"].append(r.ticket_id)
         e["text"] = (q.get("text") or "")[:160]
 
     # notes between teams: a team's note to a ticket's team arrives as a message from the sender's name
-    by_name = {m.name.strip().lower(): tid for tid, (m, _t) in teams.items()}
+    by_name = await name_map(session, project_id, teams)
     notes: dict[tuple[str, str], dict[str, Any]] = {}
 
     def add_note(
@@ -176,7 +176,11 @@ async def flow_map(
 
     for r in runs:
         sender = by_name.get((r.started_by or "").strip().lower())
-        if r.trigger == "message" and sender and sender != r.member_id:
+        queued = parse_iso(r.queued_at)
+        in_window = queued is not None and (
+            (a is None or queued >= a) and (b is None or queued <= b)
+        )
+        if r.trigger == "message" and sender and sender != r.member_id and in_window:
             add_note(sender, r.member_id, r.ticket_id, "", r.queued_at)
     if run_ids:
         for m in (
@@ -232,9 +236,10 @@ async def flow_map(
     live_by_ticket: dict[str, str] = {}
     for r in runs:
         if r.ticket_id and r.state in ACTIVE:
-            live_by_ticket[r.ticket_id] = (
-                "waiting" if r.state == "needs_input" else "working"
-            )
+            if live_by_ticket.get(r.ticket_id) != "waiting":
+                live_by_ticket[r.ticket_id] = (
+                    "waiting" if r.state == "needs_input" else "working"
+                )
     teams_of: dict[str, list[str]] = defaultdict(list)
     for tid, ticket in takes:
         teams_of[ticket].append(tid)
@@ -246,7 +251,11 @@ async def flow_map(
             "status": t.status,
             "type": t.type,
             "parent_id": t.parent_id if t.parent_id in edge_ids else None,
-            "blocked_by": [x for x in _ids(t.blocked_by) if x in edge_ids],
+            "blocked_by": list(
+                dict.fromkeys(
+                    x for x in _ids(t.blocked_by) if x in edge_ids and x != t.id
+                )
+            ),
             "context": t.id not in worked,
             "live": live_by_ticket.get(t.id),
             "teams": teams_of.get(t.id, []),
@@ -254,6 +263,18 @@ async def flow_map(
         for t in rows.values()
     ]
 
+    # a team's state is about everything it does now, not only the runs of the scope
+    live_now: dict[str, list[AiRun]] = defaultdict(list)
+    for r in (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.project_id == project_id,
+                AiRun.kind == "team",
+                col(AiRun.state).in_(ACTIVE),
+            )
+        )
+    ).all():
+        live_now[r.member_id].append(r)
     team_nodes = []
     for tid, (m, tm) in teams.items():
         if (
@@ -268,7 +289,7 @@ async def flow_map(
                 "id": tid,
                 "name": m.name,
                 "color": m.color,
-                "state": _team_state(tm, [r for r in mine if r.state in ACTIVE], held),
+                "state": _team_state(tm, live_now.get(tid, []), held),
                 "runs": len(mine),
                 "tickets": len({r.ticket_id for r in mine if r.ticket_id}),
                 "roles": [
@@ -379,6 +400,8 @@ async def flow_map(
         "edges": edges,
         "runs": len(runs),
         "truncated": truncated,
+        # the newest runs only were read: an old range or "all time" may be missing the oldest ones
+        "runs_truncated": len(candidates) >= MAX_RUNS,
         "all_teams": len(teams),
     }
 

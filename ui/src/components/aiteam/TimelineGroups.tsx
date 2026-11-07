@@ -27,7 +27,7 @@ function groupsOf(lifelines: TimelineLifeline[], all: TimelineLifeline[]): Group
     const lead = all.find((x) => x.teamId === l.teamId && x.lead) ?? l;
     out.push({
       teamId: l.teamId,
-      name: (lead.name || l.name).replace(/ \(.*\)$/, ''),
+      name: lead.teamName ?? lead.name,
       color: lead.color ?? '#5B6B60',
       from: i,
       to: i,

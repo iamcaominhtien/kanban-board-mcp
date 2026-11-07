@@ -72,6 +72,8 @@ export function FlowScopeBar({
   const [q, setQ] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
 
   // "/" opens the picker (unless the person is typing somewhere), Esc closes it, a click outside closes it
   useEffect(() => {
@@ -95,7 +97,11 @@ export function FlowScopeBar({
   }, []);
   useEffect(() => {
     if (open) input.current?.focus();
-    else setQ('');
+    else {
+      setQ('');
+      if (wasOpen.current) button.current?.focus();
+    }
+    wasOpen.current = open;
   }, [open]);
 
   const crumbs = useMemo<Crumb[]>(() => {
@@ -177,6 +183,7 @@ export function FlowScopeBar({
             aria-haspopup="dialog"
             aria-expanded={open}
             onClick={() => setOpen(!open)}
+            ref={button}
             data-testid="flow-picker-button"
           >
             Go to a team, Story or ticket
@@ -196,7 +203,7 @@ export function FlowScopeBar({
                 placeholder="code or words"
                 aria-label="Search teams, Stories and tickets"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && first) pick(first);
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing && q.trim() && first) pick(first);
                 }}
               />
               <button

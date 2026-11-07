@@ -95,14 +95,23 @@ export function orderTickets(tickets: FlowTicketNode[], teamOrder: string[]): Fl
     else roots.push(t);
   }
   // a parent sorts with its first child: a Story that no team took sits beside the team that took its children
-  const rank = (t: FlowTicketNode): number => Math.min(own(t), ...(kids.get(t.id) ?? []).map(rank));
+  const rank = (t: FlowTicketNode, path: ReadonlySet<string> = new Set()): number =>
+    path.has(t.id)
+      ? Infinity // a parent loop: do not go round again
+      : Math.min(own(t), ...(kids.get(t.id) ?? []).map((c) => rank(c, new Set([...path, t.id]))));
   const sorted = (list: FlowTicketNode[]) => [...list].sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id));
   const out: FlowTicketNode[] = [];
+  const seen = new Set<string>();
   const walk = (t: FlowTicketNode) => {
+    if (seen.has(t.id)) return;
+    seen.add(t.id);
     out.push(t);
     for (const c of sorted(kids.get(t.id) ?? [])) walk(c);
   };
   for (const r of sorted(roots)) walk(r);
+  // tickets in a parent loop (A under B under A) have no root: they are drawn after the rest, never dropped
+  const drawn = new Set(out.map((t) => t.id));
+  for (const t of sorted(tickets)) if (!drawn.has(t.id)) walk(t);
   return out;
 }
 

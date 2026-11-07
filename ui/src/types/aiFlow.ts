@@ -61,6 +61,8 @@ export interface FlowMapData {
   edges: FlowEdge[];
   runs: number;
   truncated: boolean;
+  /** Only the newest runs were read: the oldest ones of a long range are missing. */
+  runsTruncated?: boolean;
   allTeams: number;
 }
 
