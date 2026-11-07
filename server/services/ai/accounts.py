@@ -10,7 +10,6 @@ import asyncio
 import os
 import re
 import shutil
-import sys
 import time
 from pathlib import Path
 
@@ -27,33 +26,13 @@ from .store import now_iso, parse_iso
 ROOT_ENV = "KANBAN_AI_ACCOUNTS_HOME"
 
 # account CLI -> what it is called, which provider it serves and whether runs of that provider start today
+# (AI v2: Claude Code is the only CLI)
 ACCOUNT_CLIS: dict[str, dict] = {
     "claude": {
         "label": "Claude Code",
         "provider": "claude-code",
         "binary": "claude",
         "blurb": "Anthropic · subscription (Pro, Max, Team)",
-        "runnable": True,
-    },
-    "codex": {
-        "label": "Codex",
-        "provider": "codex",
-        "binary": "codex",
-        "blurb": "OpenAI · ChatGPT login",
-        "runnable": True,
-    },
-    "opencode": {
-        "label": "opencode",
-        "provider": "opencode",
-        "binary": "opencode",
-        "blurb": "Paid providers only · free models need no account",
-        "runnable": True,
-    },
-    "agy": {
-        "label": "Antigravity",
-        "provider": "antigravity",
-        "binary": "agy",
-        "blurb": "Google · the agy command",
         "runnable": True,
     },
 }
@@ -132,14 +111,8 @@ def cli_for_provider(provider: str) -> str | None:
     return CLI_OF_PROVIDER.get(provider)
 
 
-def _windows() -> bool:
-    return sys.platform == "win32"
-
-
 def available(cli_name: str) -> str | None:
     """Why an account of this CLI cannot be made on this computer, or None."""
-    if cli_name == "agy" and _windows():
-        return "Not available on Windows"
     return None
 
 

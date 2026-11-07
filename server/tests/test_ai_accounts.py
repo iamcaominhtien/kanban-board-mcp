@@ -152,7 +152,7 @@ async def test_create_check_rename_and_list(fake_cli):
     ] == "Main"
     listing = (await c.get("/ai/accounts")).json()
     assert [x["name"] for x in listing["accounts"]] == ["Main"]
-    assert {x["cli"] for x in listing["clis"]} == {"claude", "codex", "opencode", "agy"}
+    assert {x["cli"] for x in listing["clis"]} == {"claude"}
     assert listing["terminal"] is (sys.platform != "win32")
 
 
@@ -175,16 +175,11 @@ async def test_names_are_unique_per_computer_and_checked_before_saving(fake_cli)
     assert unknown.status_code == 422
 
 
-async def test_antigravity_accounts_are_refused_on_windows(fake_cli, monkeypatch):
+async def test_other_clis_than_claude_code_are_refused(fake_cli):
     c = fake_cli["c"]
-    monkeypatch.setattr(accounts, "_windows", lambda: True)
-    r = await c.post("/ai/accounts", json={"name": "Google", "cli": "agy"})
-    assert (
-        r.status_code == 422
-        and r.json()["detail"]["message"] == "Not available on Windows"
-    )
-    cards = {x["cli"]: x for x in (await c.get("/ai/accounts")).json()["clis"]}
-    assert cards["agy"]["unavailable"] == "Not available on Windows"
+    for other in ("agy", "codex", "opencode"):
+        r = await c.post("/ai/accounts", json={"name": "Other", "cli": other})
+        assert r.status_code == 422, other
 
 
 async def test_a_missing_cli_makes_no_account(fake_cli, monkeypatch):
