@@ -134,7 +134,8 @@ _fallback_logged = False
 
 def resolve_uploads_dir() -> tuple[Path, str]:
     """The uploads folder and where it came from (a SOURCE_* name). Order: KANBAN_UPLOADS_DIR, `data_folder` of the
-    config file, `uploads_dir` of the config file, the folder of KANBAN_DB_PATH, then `server/uploads` next to the code."""
+    config file, the folder of KANBAN_DB_PATH, `uploads_dir` of the config file (recorded by the desktop app), then
+    `server/uploads` next to the code."""
     env_value = os.environ.get(UPLOADS_DIR_ENV_VAR)
     if env_value:
         return Path(env_value), SOURCE_ENV
@@ -143,12 +144,14 @@ def resolve_uploads_dir() -> tuple[Path, str]:
     configured = app_config.get_data_folder()
     if configured:
         return configured / "uploads", SOURCE_DATA_FOLDER
+    db_env = os.environ.get("KANBAN_DB_PATH")
+    if db_env:
+        # an instance that names its own database keeps its files beside it (a throwaway board, a test): the folder the
+        # desktop app recorded must not take its files
+        return Path(db_env).resolve().parent / "uploads", SOURCE_DB_PATH
     recorded = app_config.get_uploads_dir()
     if recorded:
         return recorded, SOURCE_CONFIG
-    db_env = os.environ.get("KANBAN_DB_PATH")
-    if db_env:
-        return Path(db_env).resolve().parent / "uploads", SOURCE_DB_PATH
     return Path(__file__).resolve().parent / "uploads", SOURCE_CODE
 
 
