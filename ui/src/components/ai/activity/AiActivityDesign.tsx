@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Resources, RestartNotice } from './Resources';
 import { RunCard } from './RunCard';
 import { RunHistoryTable } from './RunHistoryTable';
@@ -62,22 +62,13 @@ export function AiActivityDesign({
 export function AiRunPanelDesign({ ticket }: { ticket: Ticket }) {
   const runs = (useTicketRuns(ticket.id).data ?? []).filter((r) => r.kind === 'team');
   const [picked, setPicked] = useState<string | null>(null);
-  const panelTop = useRef<HTMLDivElement>(null);
   // a run that is gone (another ticket, a deleted run) falls back to the newest
   const shown = runs.find((r) => r.id === picked) ?? runs[0];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 2px' }} data-testid="ai-run-panel">
-      <div ref={panelTop}>{shown && <RunPanel key={shown.id} runId={shown.id} />}</div>
+      {shown && <RunPanel key={shown.id} runId={shown.id} />}
       <div style={{ overflowX: 'auto' }}>
-        <RunHistoryTable
-          ticket={ticket}
-          selectedId={shown?.id}
-          onSelect={(id) => {
-            setPicked(id);
-            // the panel is above the table: bring it into view so the click shows something
-            panelTop.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
-          }}
-        />
+        <RunHistoryTable ticket={ticket} selectedId={shown?.id} onSelect={(id) => setPicked(id)} />
       </div>
     </div>
   );

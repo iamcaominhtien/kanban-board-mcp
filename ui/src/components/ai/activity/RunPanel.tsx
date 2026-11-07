@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { aiApi, isActive, useAiMutation, useAiRun, useLoadSteps } from '../../../api/ai';
 import { extractError } from '../../../api/extractError';
 import type { AiRunFull, RunStep } from '../../../types/ai';
@@ -80,17 +80,17 @@ function StepRow({
   // the row is one line; the whole command (or the whole sentence) shows when it is opened
   const fullText = step.kind === 'command' ? (step.detail?.command ?? step.title) : step.title;
   const expandable = step.hasOutput || (typeof fullText === 'string' && fullText.length > 70);
-  const toggle = () => {
-    onToggle();
-    if (!open && step.hasOutput && output == null && !loading) {
-      setLoading(true);
-      aiApi
-        .stepOutput(run.id, step.seq)
-        .then((r) => setOutput(r.output ?? ''))
-        .catch(() => setOutput('(the output could not be loaded)'))
-        .finally(() => setLoading(false));
-    }
-  };
+  // a step's output loads when the row is open, by a click or by "Expand all"
+  useEffect(() => {
+    if (!open || !step.hasOutput || output != null || loading) return;
+    setLoading(true);
+    aiApi
+      .stepOutput(run.id, step.seq)
+      .then((r) => setOutput(r.output ?? ''))
+      .catch(() => setOutput('(the output could not be loaded)'))
+      .finally(() => setLoading(false));
+  }, [open, step.hasOutput, step.seq, run.id, output, loading]);
+  const toggle = onToggle;
   return (
     <div style={{ borderBottom: '1px solid #EEF3EF', padding: '6px 4px' }} data-testid="run-step" data-kind={step.kind}>
       <div
@@ -218,11 +218,19 @@ export function RunPanel({ runId }: { runId: string }) {
   const toast = useToast();
   const cancel = useAiMutation(() => aiApi.cancel(runId));
   const retry = useAiMutation(() => aiApi.retry(runId));
+  // `opened` is what a click changed; every other row follows `allOpen` ("Expand all")
   const [opened, setOpened] = useState<Record<number, boolean>>({});
+  const [allOpen, setAllOpen] = useState(false);
   const live = !!run && isActive(run.state);
   const now = useNow(1000, run?.state === 'running');
   if (q.isError) return <div className="ai-muted">The run could not be loaded.</div>;
-  if (!run) return <span className="ai-spin" />;
+  // a tall placeholder: a short one shrinks the page while another run loads and the browser scrolls it to the top
+  if (!run)
+    return (
+      <div style={{ minHeight: '640px' }}>
+        <span className="ai-spin" />
+      </div>
+    );
   const act = async (fn: () => Promise<unknown>, fail: string) => {
     try {
       await fn();
@@ -416,7 +424,26 @@ export function RunPanel({ runId }: { runId: string }) {
                   {loadingEarlier ? 'Loading…' : 'Show earlier steps'}
                 </button>
               )}
-              <button type="button" className="mc-link" onClick={() => setOpened({})}>
+              <button
+                type="button"
+                className="mc-link"
+                data-testid="expand-all-steps"
+                onClick={async () => {
+                  setOpened({});
+                  setAllOpen(true);
+                  if (earlierMissing) await showEarlier();
+                }}
+              >
+                Expand all
+              </button>
+              <button
+                type="button"
+                className="mc-link"
+                onClick={() => {
+                  setOpened({});
+                  setAllOpen(false);
+                }}
+              >
                 Collapse all
               </button>
             </div>
@@ -428,8 +455,8 @@ export function RunPanel({ runId }: { runId: string }) {
                   run={run}
                   step={s}
                   role={roleOf(s.agentId)}
-                  open={!!opened[s.seq]}
-                  onToggle={() => setOpened((o) => ({ ...o, [s.seq]: !o[s.seq] }))}
+                  open={opened[s.seq] ?? allOpen}
+                  onToggle={() => setOpened((o) => ({ ...o, [s.seq]: !(o[s.seq] ?? allOpen) }))}
                   last={i === steps.length - 1}
                 />
               ))}
