@@ -32,6 +32,8 @@ export interface TimelineArrow {
   to: string;
   at: number;
   kind: ArrowKind;
+  /** Not delivered yet: the run waits to start, or the question waits for its answer. Drawn dashed and moving. */
+  live?: boolean;
 }
 
 export interface TimelineModel {
@@ -100,7 +102,13 @@ export function buildTimeline(runs: AiRunFull[], now: number): TimelineModel {
     const end = time(run.endedAt) ?? (active ? null : (time(run.lastOutputAt) ?? start));
     bars.push({ lane: LEAD, start, end, label: `run ${run.number}`, state: stateOf(run.state), runId: run.id });
     if (PERSON_TRIGGERS.includes(run.trigger) || run.startedBy === 'user') {
-      arrows.push({ from: YOU, to: LEAD, at: queued, kind: 'assign' });
+      arrows.push({
+        from: YOU,
+        to: LEAD,
+        at: queued,
+        kind: 'assign',
+        live: run.state === 'queued' || run.state === 'starting',
+      });
     }
     for (const agent of [...(run.agents ?? [])].sort((a, b) => a.startedAt.localeCompare(b.startedAt))) {
       const key = `role:${agent.agentType || 'agent'}`;
@@ -126,8 +134,16 @@ export function buildTimeline(runs: AiRunFull[], now: number): TimelineModel {
       if (to !== null && agent.endedAt) arrows.push({ from: key, to: LEAD, at: to, kind: 'return' });
     }
     const asked = time(run.question?.askedAt);
-    if (asked !== null) arrows.push({ from: LEAD, to: YOU, at: asked, kind: 'ask' });
     const answered = time(run.question?.answeredAt);
+    if (asked !== null) {
+      arrows.push({
+        from: LEAD,
+        to: YOU,
+        at: asked,
+        kind: 'ask',
+        live: run.state === 'needs_input' && answered === null,
+      });
+    }
     if (answered !== null) arrows.push({ from: YOU, to: LEAD, at: answered, kind: 'answer' });
     if (run.state === 'finished' && end !== null) arrows.push({ from: LEAD, to: YOU, at: end, kind: 'report' });
   }

@@ -210,17 +210,29 @@ function Picture({ model, now }: { model: ReturnType<typeof buildTimeline>; now:
         const dir = cx(a.to) > cx(a.from) ? 1 : -1;
         const y1 = y + n * 6;
         const style = ARROW[a.kind];
-        return (
+        const arrow = (moving: boolean) => (
           <path
-            key={`a${i}`}
             d={`M ${cx(a.from) + dir * (BAR_W / 2 + 1)} ${y1} L ${cx(a.to) - dir * (BAR_W / 2 + 2)} ${y1 + 3}`}
             stroke={style.color}
             strokeWidth="1.7"
             fill="none"
-            strokeDasharray={style.dash}
+            strokeDasharray={a.live ? '5 4' : style.dash}
             markerEnd={`url(#tt_ah_${a.kind})`}
             data-arrow={a.kind}
-          />
+          >
+            {moving && (
+              <animate attributeName="stroke-dashoffset" from="18" to="0" dur="0.9s" repeatCount="indefinite" />
+            )}
+          </path>
+        );
+        // a waiting arrow moves; under "reduce motion" the design shows the still copy (tl-still) instead
+        return a.live ? (
+          <g key={`a${i}`}>
+            <g className="tl-anim">{arrow(true)}</g>
+            <g className="tl-still">{arrow(false)}</g>
+          </g>
+        ) : (
+          <g key={`a${i}`}>{arrow(false)}</g>
         );
       })}
       {active && (
