@@ -14,16 +14,12 @@ import { CheckLine, MemberSelect, TicketPicker, ZoneSelect } from './MemberSelec
 import { MenuSelect } from '../ui/MenuSelect';
 import { SCHEDULE_TEMPLATES } from './scheduleTemplates';
 import {
-  BranchIcon,
   CalendarIcon,
   CheckCircleIcon,
   ClockIcon,
   CloseIcon,
   DAY_NAMES,
-  DocIcon,
   FlaskIcon,
-  PlusIcon,
-  TargetIcon,
   TimeField,
   canStart,
   zoneLabel,
@@ -97,8 +93,6 @@ function newDraft(ticketId: string, memberId: string): ScheduleDraft {
     endsAfter: null,
     endsOn: '',
     windowEnd: '',
-    checks: { criteria: true, tests: { on: false, command: '', cwd: '' }, summary: true, branch: false, aiChecks: [] },
-    review: { on: false, reviewerId: null, fixRounds: 2 },
     limits: { stopAfterMin: 45, retries: 1, maxCost: null },
     catchUp: 'run',
     catchUpHours: 2,
@@ -123,8 +117,6 @@ function draftOf(s: Schedule): ScheduleDraft {
     endsAfter: s.endsAfter,
     endsOn: s.endsOn ?? '',
     windowEnd: s.windowEnd ?? '',
-    checks: s.checks,
-    review: { on: s.review.on, reviewerId: s.review.reviewerId, fixRounds: s.review.fixRounds },
     limits: s.limits,
     catchUp: s.catchUp,
     catchUpHours: s.catchUpHours,
@@ -196,39 +188,6 @@ function Seg<T extends string>({
   );
 }
 
-/** One "done when" row: checkbox, icon, title and a line of detail. */
-function CheckOption({
-  on,
-  onChange,
-  icon,
-  title,
-  sub,
-  children,
-  testId,
-}: {
-  on: boolean;
-  onChange: (v: boolean) => void;
-  icon: ReactNode;
-  title: string;
-  sub?: ReactNode;
-  children?: ReactNode;
-  testId?: string;
-}) {
-  return (
-    <div className={`sc-opt ${on ? 'sc-opt-on' : ''}`}>
-      <label className="sc-opt-row">
-        <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} data-testid={testId} />
-        <span className="sc-opt-icon">{icon}</span>
-        <span>
-          <span className="sc-opt-title">{title}</span>
-          {sub && <span className="sc-opt-sub">{sub}</span>}
-        </span>
-      </label>
-      {on && children}
-    </div>
-  );
-}
-
 /**
  * Create or edit a schedule as a layer (C). The right side always shows the plain-language summary, the next
  * runs and the checks from the server (debounced), and "Dry run" shows what the AI would do.
@@ -295,13 +254,10 @@ function EditorForm({
   const [draft, setDraft] = useState<ScheduleDraft>(() =>
     saved ? draftOf(saved) : newDraft(opts.ticketId ?? '', opts.memberId ?? ais[0]?.id ?? ''),
   );
-  const [aiCheck, setAiCheck] = useState('');
   const [problems, setProblems] = useState<string[]>([]);
   const [dry, setDry] = useState<DryRun | null>(null);
   const [dryError, setDryError] = useState<string | null>(null);
   const set = (patch: Partial<ScheduleDraft>) => setDraft((d) => ({ ...d, ...patch }));
-  const setChecks = (patch: Partial<ScheduleDraft['checks']>) =>
-    setDraft((d) => ({ ...d, checks: { ...d.checks, ...patch } }));
   const zones = useZones(draft.tz);
   const me = currentPerson();
 
@@ -358,8 +314,6 @@ function EditorForm({
   }
 
   const member = ais.find((m) => m.id === draft.memberId);
-  const ticket = tickets.find((t) => t.id === draft.ticketId);
-  const criteria = ticket?.acceptanceCriteria?.length;
   const free = member ? Math.max(0, member.maxParallel - member.slotsInUse) : 0;
   const slotLimited = false;
   const metered = false;
@@ -369,13 +323,6 @@ function EditorForm({
       ? 'Locked: opened from the ticket'
       : undefined;
   const addPeople = people.filter((p) => p.name !== me && !draft.notifyPeople.includes(p.name));
-
-  function addAiCheck() {
-    const text = aiCheck.trim();
-    if (!text || draft.checks.aiChecks.includes(text)) return;
-    setChecks({ aiChecks: [...draft.checks.aiChecks, text] });
-    setAiCheck('');
-  }
 
   return (
     <div className="ai-overlay" style={{ zIndex: 1000 }} data-testid="schedule-editor">
@@ -593,163 +540,6 @@ function EditorForm({
               </Field>
               {errAt('backup') && <div className="ai-error-text">{errAt('backup')}</div>}
               <div className="ai-hint">Used if the first is paused, over budget or offline.</div>
-            </Section>
-
-            <Section title="Done when" sub="All checked items must pass." id="sec-done">
-              <CheckOption
-                on={draft.checks.criteria}
-                onChange={(criteriaOn) => setChecks({ criteria: criteriaOn })}
-                icon={<CheckCircleIcon size={14} />}
-                title="All acceptance criteria ticked"
-                sub={criteria == null ? undefined : `${criteria} criteri${criteria === 1 ? 'on' : 'a'} on the ticket`}
-                testId="check-criteria"
-              />
-              <CheckOption
-                on={draft.checks.tests.on}
-                onChange={(on) => setChecks({ tests: { ...draft.checks.tests, on } })}
-                icon={<FlaskIcon size={14} />}
-                title="Tests pass"
-                sub={
-                  draft.checks.tests.command.trim() ? (
-                    <>
-                      Runs <code className="ai-code">{draft.checks.tests.command}</code>
-                      {draft.checks.tests.cwd ? ` in ${draft.checks.tests.cwd}` : ''}; exit code 0
-                    </>
-                  ) : (
-                    'Runs a command; exit code 0 is a pass'
-                  )
-                }
-                testId="check-tests"
-              >
-                <div className="sc-row" style={{ padding: '0 12px 12px 42px' }}>
-                  <Field label="COMMAND" grow>
-                    <input
-                      className={`ai-input ai-mono ${errAt('tests') ? 'ai-input-error' : ''}`}
-                      placeholder="npm run test"
-                      value={draft.checks.tests.command}
-                      onChange={(e) => setChecks({ tests: { ...draft.checks.tests, command: e.target.value } })}
-                      data-testid="tests-command"
-                    />
-                  </Field>
-                  <Field label="FOLDER" grow>
-                    <input
-                      className="ai-input ai-mono"
-                      placeholder="/server (the AI's working folder when empty)"
-                      value={draft.checks.tests.cwd}
-                      onChange={(e) => setChecks({ tests: { ...draft.checks.tests, cwd: e.target.value } })}
-                      data-testid="tests-cwd"
-                    />
-                  </Field>
-                </div>
-              </CheckOption>
-              <CheckOption
-                on={draft.checks.summary}
-                onChange={(summary) => setChecks({ summary })}
-                icon={<DocIcon size={14} />}
-                title="Summary comment posted on the ticket"
-                testId="check-summary"
-              />
-              <CheckOption
-                on={draft.checks.branch}
-                onChange={(branch) => setChecks({ branch })}
-                icon={<BranchIcon size={14} />}
-                title="Branch or PR linked to the ticket"
-                testId="check-branch"
-              />
-              {draft.checks.aiChecks.map((c) => (
-                <div key={c} className="sc-opt sc-opt-on">
-                  <div className="sc-opt-row">
-                    <input type="checkbox" checked readOnly disabled />
-                    <span className="sc-opt-icon">
-                      <TargetIcon size={14} />
-                    </span>
-                    <span className="sc-grow">
-                      <span className="sc-opt-title">Judged by the reviewer</span>
-                      <span className="sc-opt-sub">{c}</span>
-                    </span>
-                    <span className="sc-aitag">AI check</span>
-                    <button
-                      type="button"
-                      className="ai-icobtn"
-                      aria-label={`Remove check: ${c}`}
-                      onClick={() => setChecks({ aiChecks: draft.checks.aiChecks.filter((x) => x !== c) })}
-                    >
-                      <CloseIcon size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <div className="sc-inline">
-                <input
-                  className="ai-input"
-                  style={{ flex: 1, maxWidth: 520 }}
-                  placeholder="Add your own check, in plain words"
-                  value={aiCheck}
-                  onChange={(e) => setAiCheck(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addAiCheck();
-                    }
-                  }}
-                  data-testid="ai-check-input"
-                />
-                <button
-                  type="button"
-                  className="ai-btn"
-                  onClick={addAiCheck}
-                  disabled={!aiCheck.trim()}
-                  data-testid="ai-check-add"
-                >
-                  <PlusIcon size={13} /> Add
-                </button>
-              </div>
-              {errAt('tests') && <div className="ai-error-text">{errAt('tests')}</div>}
-              {errAt('ai_checks') && <div className="ai-error-text">{errAt('ai_checks')}</div>}
-            </Section>
-
-            <Section title="AI review" sub="A second AI checks the result." id="sec-review">
-              <label className="sc-toggle-row">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={draft.review.on}
-                  aria-label="Review automatically when the run ends"
-                  className={`ai-toggle ${draft.review.on ? 'ai-toggle-on' : ''}`}
-                  onClick={() => set({ review: { ...draft.review, on: !draft.review.on } })}
-                  data-testid="review-on"
-                />
-                <b>Review automatically when the run ends</b>
-              </label>
-              {draft.review.on && (
-                <div className="sc-row">
-                  <Field label="REVIEWER" grow>
-                    <MemberSelect
-                      members={ais}
-                      value={draft.review.reviewerId ?? ''}
-                      onChange={(id) => set({ review: { ...draft.review, reviewerId: id || null } })}
-                      invalid={!!errAt('reviewer')}
-                      testId="reviewer"
-                    />
-                  </Field>
-                  <Field label="FIX ROUNDS">
-                    <MenuSelect
-                      label="Fix rounds"
-                      testId="fix-rounds"
-                      style={{ width: 90 }}
-                      value={String(draft.review.fixRounds)}
-                      options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
-                      onChange={(v) => set({ review: { ...draft.review, fixRounds: Number(v) } })}
-                    />
-                  </Field>
-                </div>
-              )}
-              {errAt('reviewer') && <div className="ai-error-text">{errAt('reviewer')}</div>}
-              <div className="ai-hint">
-                Passed → ticket moves to <b>Review</b> and people are told. Needs changes → sent back to the AI, up to{' '}
-                {draft.review.fixRounds} round{draft.review.fixRounds === 1 ? '' : 's'}, then it asks a person.{' '}
-                <b>Done</b> is always a person.
-              </div>
             </Section>
 
             <Section title="Limits" sub="Stops the run if reached." id="sec-limits">

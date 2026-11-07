@@ -112,9 +112,7 @@
 }
 .sc-grid {
   display: grid;
-  grid-template-columns:
-    minmax(240px, 2.4fr) minmax(150px, 1.5fr) minmax(130px, 1.1fr) minmax(170px, 1.7fr) minmax(110px, 1fr)
-    minmax(110px, 0.9fr) 44px;
+  grid-template-columns: minmax(240px, 2.4fr) minmax(150px, 1.5fr) minmax(130px, 1.1fr) minmax(110px, 0.9fr) 44px;
   column-gap: 16px;
   align-items: center;
   padding: 10px 18px;
@@ -692,7 +690,7 @@
 }
 .sc-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 14px;
 }
 .sc-stat {
@@ -765,7 +763,7 @@
 }
 .sc-slot-cols {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 32px;
 }
 .sc-result {

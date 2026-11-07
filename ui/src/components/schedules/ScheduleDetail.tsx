@@ -3,23 +3,20 @@ import { useAiTeams, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { scheduleApi, useScheduleDetail, useScheduleMutation } from '../../api/schedules';
 import type { AiTeam } from '../../types/ai';
-import type { CheckResult, ScheduleDetail as Detail, ScheduleRun } from '../../types/schedules';
-import { AiAvatar, SparkleIcon, money, useAiBoardState } from '../ai/aiUi';
+import type { ScheduleDetail as Detail, ScheduleRun } from '../../types/schedules';
+import { money, useAiBoardState } from '../ai/aiUi';
 import { useToast } from '../Toast';
 import { TicketLine } from './MemberSelect';
 import {
   CatchUpChip,
   ChevronIcon,
-  CheckCircleIcon,
   CloseIcon,
   PauseIcon,
   PencilIcon,
   PlayIcon,
-  Pill,
   ScheduleStateChip,
   SkipIcon,
   SlotChip,
-  TargetIcon,
   WarnIcon,
   InfoIcon,
   canStart,
@@ -44,31 +41,6 @@ function Tile({ label, value, sub }: { label: string; value: string; sub: string
       <div className="ai-label">{label}</div>
       <div className="sc-stat-v">{value}</div>
       <div className="ai-hint">{sub}</div>
-    </div>
-  );
-}
-
-/** One "done when" line of a slot: machine facts and the reviewer's judgement look different. */
-function ResultLine({ r, reviewer }: { r: CheckResult; reviewer?: string | null }) {
-  const ai = r.kind === 'ai';
-  return (
-    <div className={`sc-result ${r.ok ? 'sc-result-ok' : 'sc-result-bad'}`} data-testid={`result-${r.key}`}>
-      <span className="sc-result-ico">{r.ok ? <CheckCircleIcon size={16} /> : <WarnIcon size={16} />}</span>
-      <div>
-        <div>{r.label}</div>
-        <div className={`ai-muted ${ai ? 'sc-judged' : ''}`}>
-          {ai ? (
-            <>
-              <TargetIcon size={11} />{' '}
-              {r.detail.startsWith('Judged by')
-                ? r.detail
-                : `Judged by ${reviewer ?? 'the reviewer'}: ${r.ok ? 'pass' : 'not met'}`}
-            </>
-          ) : (
-            r.detail
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -186,11 +158,8 @@ function SlotRow({
   onOpenTicket: (ticketId: string) => void;
 }) {
   const waiting = run.state === 'waiting' || run.state === 'ask';
-  const reviewer = run.review.reviewerName ?? detail.review.reviewerName ?? null;
-  const reviewerAi = ais.find((m) => m.id === run.review.reviewerId);
   const lastRunId = run.runIds[run.runIds.length - 1];
   const num = lastRunId ? runNumber(lastRunId) : undefined;
-  const hasReview = !!run.review.verdict;
   return (
     <div className={`sc-slot ${open ? 'sc-slot-open' : ''}`} data-testid="slot" data-state={run.state}>
       <button type="button" className="sc-slot-head" onClick={onToggle} aria-expanded={open}>
@@ -215,53 +184,8 @@ function SlotRow({
           )}
           <div className="sc-slot-cols">
             <div>
-              <div className="ai-label ai-label-dark">DONE WHEN</div>
-              {run.results.length ? (
-                run.results.map((r) => <ResultLine key={r.key} r={r} reviewer={reviewer} />)
-              ) : (
-                <div className="ai-muted" style={{ marginTop: 6 }}>
-                  {run.state === 'skipped' || waiting
-                    ? 'Nothing ran, so nothing was checked.'
-                    : 'No checks were evaluated.'}
-                </div>
-              )}
-            </div>
-            <div>
-              <div className="ai-label ai-label-dark">AI REVIEW</div>
-              {hasReview ? (
-                <>
-                  <div className="sc-reviewer">
-                    {reviewerAi ? <AiAvatar provider={reviewerAi.provider} size={26} /> : <SparkleIcon size={16} />}
-                    <b>{reviewer ?? 'Reviewer'}</b>
-                    {run.review.verdict === 'pass' ? (
-                      <Pill tone="green" icon={<CheckCircleIcon size={11} />}>
-                        Passed
-                      </Pill>
-                    ) : (
-                      <Pill tone="amber" icon={<WarnIcon size={11} />}>
-                        Needs changes
-                      </Pill>
-                    )}
-                  </div>
-                  {run.review.notes && <div className="sc-review-notes">{run.review.notes}</div>}
-                  {run.review.fixes && run.review.fixes.length > 0 && (
-                    <ul className="sc-fixes">
-                      {run.review.fixes.map((f) => (
-                        <li key={f}>{f}</li>
-                      ))}
-                    </ul>
-                  )}
-                </>
-              ) : (
-                <div className="ai-muted" style={{ marginTop: 6 }}>
-                  {detail.review.on ? 'No review for this run.' : 'AI review is off for this schedule.'}
-                </div>
-              )}
               <div className="ai-hint" style={{ marginTop: 8 }}>
                 {run.memberName ? `Run by ${run.memberName}. ` : ''}
-                {hasReview
-                  ? `${run.review.rounds ?? 1} review round${(run.review.rounds ?? 1) === 1 ? '' : 's'}. `
-                  : ''}
                 {run.costUsd ? `${money(run.costUsd)}. ` : ''}
                 {lastRunId && (
                   <button
@@ -283,8 +207,8 @@ function SlotRow({
 }
 
 /**
- * One schedule and its history (D): stats, problems and every slot with how each "done when" check turned out
- * and what the reviewer said. Waiting slots offer the actions of F.
+ * One schedule and its history (D): stats, problems and every slot with how it ended (the lead's own report).
+ * Waiting slots offer the actions of F.
  */
 export function ScheduleDetailLayer({
   scheduleId,
@@ -565,11 +489,6 @@ export function ScheduleDetailLayer({
               label="AVERAGE TIME"
               value={fmtMinutes(d.stats.avgS)}
               sub={d.stats.metered ? money(d.stats.cost) : 'Not metered'}
-            />
-            <Tile
-              label="REVIEW ROUNDS"
-              value={d.stats.reviewRounds == null ? '–' : String(d.stats.reviewRounds)}
-              sub="per run"
             />
           </div>
 

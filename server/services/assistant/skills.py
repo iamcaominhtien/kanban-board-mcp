@@ -220,18 +220,6 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         },
         ["cause", "statements"],
     ),
-    "schedule-review": _obj(
-        {
-            "verdict": {"type": "string", "enum": ["pass", "changes"]},
-            "notes": _S,
-            "checks": {
-                "type": "array",
-                "items": _obj({"text": _S, "pass": {"type": "boolean"}, "note": _S}),
-            },
-            "fixes": _A,
-        },
-        ["verdict"],
-    ),
     "schedule-dry-run": _obj({"text": _S}, ["text"]),
 }
 

@@ -15,13 +15,11 @@ import { TicketLine } from './MemberSelect';
 import { useSchedules } from './SchedulesContext';
 import {
   CalendarIcon,
-  CheckChips,
   ChevronIcon,
   GridIcon,
   InfoIcon,
   ListIcon,
   PlusIcon,
-  ReviewIcon,
   SlotChip,
   WarnIcon,
   clock,
@@ -62,11 +60,10 @@ function EmptyState({ onNew }: { onNew: () => void }) {
   );
 }
 
-function ListRow({ s, criteria, risk, onOpen }: { s: Schedule; criteria?: number; risk?: string; onOpen: () => void }) {
+function ListRow({ s, risk, onOpen }: { s: Schedule; risk?: string; onOpen: () => void }) {
   const toast = useToast();
   const { members } = useAiBoardState();
   const ai = members.get(s.memberId);
-  const reviewer = s.review.reviewerId ? members.get(s.review.reviewerId) : undefined;
   const toggle = useScheduleMutation((on: boolean) => (on ? scheduleApi.resume(s.id) : scheduleApi.pause(s.id)));
   const dim = s.state !== 'active';
   const last = s.lastRun;
@@ -121,21 +118,6 @@ function ListRow({ s, criteria, risk, onOpen }: { s: Schedule; criteria?: number
           </>
         )}
       </div>
-      <div className="sc-pills">
-        <CheckChips schedule={s} criteria={criteria} />
-      </div>
-      <div className="sc-inline" style={{ gap: 7 }}>
-        {s.review.on && s.review.reviewerName ? (
-          <>
-            {reviewer ? <AiAvatar provider={reviewer.provider} size={20} /> : <ReviewIcon size={14} />}
-            <span className="sc-ellipsis">{s.review.reviewerName}</span>
-          </>
-        ) : (
-          <span className="ai-muted" style={{ fontSize: 12.5 }}>
-            Off
-          </span>
-        )}
-      </div>
       <div>
         {last ? (
           <SlotChip state={last.state} failures={last.state === 'failed' ? s.failuresInRow : undefined} />
@@ -172,8 +154,6 @@ function ListHeader() {
       <span>SCHEDULE</span>
       <span>AI</span>
       <span>NEXT RUN</span>
-      <span>DONE WHEN</span>
-      <span>AI REVIEW</span>
       <span>LAST RUN</span>
       <span />
     </div>
@@ -281,22 +261,14 @@ function WeekChip({ item, onOpen }: { item: WeekItem; onOpen: () => void }) {
     skipped: 'Skipped',
     cancelled: 'Cancelled',
     running: 'Running',
-    reviewing: 'In review',
-    fixing: 'Fixing',
     waiting: 'Waiting for runner',
     ask: 'Late: run it?',
   };
   return (
     <button type="button" className={`sc-wi ${tone}`} onClick={onOpen} data-testid="week-item" data-kind={item.kind}>
-      {item.kind === 'review' ? (
-        <span>
-          <span className="ai-mono">after run</span> Review {item.ticketId}
-        </span>
-      ) : (
-        <span>
-          <span className="ai-mono">{clock(item.at)}</span> {item.ticketId}
-        </span>
-      )}
+      <span>
+        <span className="ai-mono">{clock(item.at)}</span> {item.ticketId}
+      </span>
       {item.paused && <span className="sc-wi-sub">Paused</span>}
       {!item.paused && item.overlap && <span className="sc-wi-sub">Overlaps: will queue</span>}
       {!item.paused && item.risk && <span className="sc-wi-sub">{item.risk}</span>}
@@ -313,12 +285,7 @@ function weekItems(week: ScheduleWeek, now: number): WeekItem[] {
     if (i.kind === 'past') return true;
     const at = new Date(i.at).getTime();
     if (at < now - 60000) return false;
-    if (i.kind === 'run') return !ranAt.has(`${i.scheduleId}|${at}`);
-    // a review follows its run by up to 30 min: hide it when that run already has a record
-    return !past.some(
-      (p) =>
-        p.scheduleId === i.scheduleId && at - new Date(p.at).getTime() <= 31 * 60000 && at >= new Date(p.at).getTime(),
-    );
+    return !ranAt.has(`${i.scheduleId}|${at}`);
   });
 }
 
@@ -375,7 +342,6 @@ function WeekView({
       </div>
       {rows.map((m) => {
         const ai = aiMap.get(m.id);
-        const reviewerOnly = !items.some((i) => i.memberId === m.id && i.kind !== 'review');
         return (
           <div key={m.id} className="sc-wgrid sc-wrow" data-testid="week-row">
             <div className="sc-wlabel">
@@ -385,7 +351,6 @@ function WeekView({
               </span>
               <span className="ai-hint">
                 {m.connection === 'local' ? 'Local runner' : m.connection === 'api_key' ? 'API key' : ''}
-                {reviewerOnly ? ' · reviewer' : ''}
               </span>
             </div>
             {days.map((d) => (
@@ -622,7 +587,6 @@ export function SchedulesTab({ projectId, tickets }: { projectId: string; ticket
                 <ListRow
                   key={s.id}
                   s={s}
-                  criteria={ticketMap.get(s.ticketId)?.acceptanceCriteria?.length}
                   risk={riskOf.get(s.id) ?? s.offlineRisk ?? undefined}
                   onOpen={() => openDetail(s.id)}
                 />
