@@ -57,9 +57,7 @@ def test_a_new_run_gets_the_whole_flag_set():
     assert _flag(a, "--append-system-prompt-file") == "/r/system.md"
     assert _flag(a, "--append-subagent-system-prompt-file") == "/r/sub.md"
     assert _flag(a, "--system-prompt-snapshot") == "off"
-    assert (
-        _flag(a, "--setting-sources") == "project,local"
-    )  # the account's own plugins and skills stay out
+    assert _flag(a, "--setting-sources") == ""  # no settings file is read
     assert _flag(a, "--agents") == "/r/agents.json"
     assert json.loads(_flag(a, "--json-schema"))["required"] == ["status", "summary"]
     assert json.loads(_flag(a, "--settings")) == {

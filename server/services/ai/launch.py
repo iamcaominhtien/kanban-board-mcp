@@ -542,11 +542,12 @@ def args_for(
         sub_system_file,
         "--system-prompt-snapshot",
         "off",
-        # the user's own settings stay out: the plugins and skills of the person's Claude Code account (60 of them on
-        # one machine) pushed the skill list past the CLI's budget and cut the board's skills' descriptions. Project
-        # and local settings of the repository still apply; sign-in does not come from settings.
+        # no settings file is read (the person's, the repository's, the local one): nothing of them leaks into a run, and
+        # the configuration goes by flags (--settings, --plugin-dir, --mcp-config). Measured with CLI 2.1.316 (haiku): an
+        # empty value still loads the repository's CLAUDE.md and the --plugin-dir skills, while the repository's hooks
+        # and "env" no longer apply. Sign-in does not come from settings.
         "--setting-sources",
-        "project,local",
+        "",
     ]
     if agents_file:
         args += ["--agents", agents_file]
