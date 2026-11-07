@@ -751,7 +751,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(160px, 2fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -771,7 +771,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(160px, 2fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -884,7 +884,7 @@ export function RunHistoryDesign() {
           >
             Not metered
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px 8px', flexWrap: 'wrap', minWidth: '0' }}>
             <span style={{ fontSize: '11.5px', color: '#9AA8A0', fontWeight: '400', lineHeight: '1.5' }}>
               no changes (answer only)
             </span>
@@ -893,7 +893,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(160px, 2fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -998,7 +998,7 @@ export function RunHistoryDesign() {
           >
             Not metered
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px 8px', flexWrap: 'wrap', minWidth: '0' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span className="ac-chip" style={{ fontSize: '11px', padding: '1px 8px' }}>
                 To Do
@@ -1047,7 +1047,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(160px, 2fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -1161,7 +1161,7 @@ export function RunHistoryDesign() {
           >
             Not metered
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px 8px', flexWrap: 'wrap', minWidth: '0' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span className="ac-chip" style={{ fontSize: '11px', padding: '1px 8px' }}>
                 To Do
@@ -1192,7 +1192,7 @@ export function RunHistoryDesign() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(120px, 1fr)',
+            gridTemplateColumns: '46px minmax(150px, 1.2fr) minmax(170px, 1.4fr) 104px 70px 96px minmax(160px, 2fr)',
             columnGap: '14px',
             alignItems: 'center',
             padding: '9px 16px',
@@ -1306,7 +1306,7 @@ export function RunHistoryDesign() {
           >
             Not metered
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px 8px', flexWrap: 'wrap', minWidth: '0' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span className="ac-chip" style={{ fontSize: '11px', padding: '1px 8px' }}>
                 To Do
