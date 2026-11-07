@@ -272,7 +272,10 @@ def _workspace_line(workspace: str | None) -> list[str]:
         return []
     return [
         f"Workspace: the ticket's own folder for what a person should see (reports, screenshots, logs, exports, "
-        f"recordings) is {workspace} ; put those there, not in the repository. Scratch work stays in your working folder.",
+        f"recordings) is {workspace} ; put those there, not in the repository. Scratch work stays in your working folder. "
+        "A person opens the ticket, not your disk: what you made for them (a video, a screenshot, a report file) is "
+        "also attached to the ticket with ticket_items(item='attachment', path=...), and your report links it with "
+        "the markdown that call returns. Never give only a path on your machine.",
     ]
 
 

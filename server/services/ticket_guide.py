@@ -121,6 +121,8 @@ requested and all tests are passing."
   it shows in the ticket's Attachments. In a board run, `path` is a path in your working folder; outside one, the
   file's absolute path. The result's `attached.markdown` puts the same file in a proof or the description. A picture
   or a document named that way in a comment, work log, proof or Docs page is attached too.
+  **Link it in your report** with that markdown, and say what it shows: a person opens the ticket, not your disk, so a
+  path on your machine alone is not a delivery. A video or a picture plays or shows right in the comment.
 - **Tick a criterion** (`ticket_items item='criterion' action='toggle'`) only when it was checked, and say how. In a
   team the QA ticks them, once the cases that prove each one passed: a claim in a report ticks nothing on the ticket.
 
