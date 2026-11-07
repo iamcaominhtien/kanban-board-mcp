@@ -32,16 +32,33 @@ function originLabel(d: { origin?: TicketDocOrigin; detail?: string }): string {
   return `${WHERE[o] ?? `Mentioned in ${o}`}${o === 'test_case' && d.detail ? ` ${d.detail}` : ''}`;
 }
 
-type Grouped = TicketDocRow & { labels: string[] };
+type Chip = { label: string; manual: boolean };
+type Grouped = TicketDocRow & {
+  /** One chip per place the ticket and the page are tied: a mention, "From docs", "Manual link". */
+  chips: Chip[];
+  /** The sections of the page the ticket is named in. */
+  sections: string[];
+  /** Tied by hand (`link_doc`, "Link a doc"): the only part the remove button can undo. */
+  manual: boolean;
+  /** Named in a field of the ticket (description, comment, ...). */
+  mentioned: boolean;
+};
 
-/** One row per page+section, however many places mention it. */
-function groupByPage(list: TicketDocRow[]): Grouped[] {
+/**
+ * One row per page, however many places tie it to the ticket: a mention in a field, the page naming the ticket, a
+ * manual link. The AI often does two of them, and a page must not be drawn twice.
+ */
+function mergeByPage(list: TicketDocRow[]): Grouped[] {
   const out = new Map<string, Grouped>();
   for (const d of list) {
-    const key = `${d.pageId}#${d.section ?? ''}`;
-    const row = out.get(key) ?? { ...d, labels: [] };
+    const key = `${d.kind ?? 'page'}:${d.pageId}:${d.canvasId ?? ''}`;
+    const o = d.origin ?? 'page';
+    const row = out.get(key) ?? { ...d, chips: [], sections: [], manual: false, mentioned: false };
     const label = originLabel(d);
-    if (!row.labels.includes(label)) row.labels.push(label);
+    if (!row.chips.some((c) => c.label === label)) row.chips.push({ label, manual: o === 'manual' });
+    if (d.section && !row.sections.includes(d.section)) row.sections.push(d.section);
+    if (o === 'manual') row.manual = true;
+    else if (o !== 'page') row.mentioned = true;
     out.set(key, row);
   }
   return [...out.values()];
@@ -52,26 +69,27 @@ const card: React.CSSProperties = { border: '1px solid #E3E8E5', borderRadius: 8
 
 function Row({
   doc,
-  origin,
   last,
   onOpen,
   onRemove,
 }: {
   doc: Grouped;
-  origin: TicketDocOrigin;
   last: boolean;
   onOpen: () => void;
   onRemove?: () => void;
 }) {
   const path = doc.path ?? [];
   const endsWithTitle = path[path.length - 1] === doc.title;
-  const sub = doc.section
-    ? (endsWithTitle ? path : [...path, doc.title]).join(' › ')
-    : (endsWithTitle ? path.slice(0, -1) : path).join(' › ');
+  const oneSection = doc.sections.length === 1 ? doc.sections[0] : null;
+  const where = [...(oneSection || !doc.sections.length ? [] : [`in ${doc.sections.join(', ')}`])];
+  const trail = (
+    oneSection ? (endsWithTitle ? path : [...path, doc.title]) : endsWithTitle ? path.slice(0, -1) : path
+  ).join(' › ');
+  const sub = [trail, ...where].filter(Boolean).join(' · ');
   return (
     <div
       className={`tdoc-row ${onRemove ? 'tdoc-manual' : ''}`}
-      data-testid={`ticket-doc-${origin}`}
+      data-testid={`ticket-doc-${onRemove ? 'manual' : doc.mentioned ? 'mention' : 'page'}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -101,7 +119,7 @@ function Row({
         <span style={{ display: 'flex', color: '#2E6F40' }}>
           {doc.kind === 'canvas' ? (
             <Icon name="canvas" size={16} strokeWidth={1.8} />
-          ) : doc.section ? (
+          ) : doc.sections.length ? (
             <Icon name="i04" size={16} strokeWidth={1.8} />
           ) : (
             <Icon name="i00" size={16} strokeWidth={1.8} />
@@ -109,28 +127,28 @@ function Row({
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>
-            {doc.section ? `${doc.title} › ${doc.section}` : doc.title}
+            {oneSection ? `${doc.title} › ${oneSection}` : doc.title}
           </span>
           {sub && <span style={{ fontSize: 11.5, color: '#9AA8A0' }}>{sub}</span>}
         </span>
       </button>
       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-        {doc.labels.map((l) => (
+        {doc.chips.map((c) => (
           <span
-            key={l}
+            key={c.label}
             data-testid="ticket-doc-origin"
             style={{
               fontSize: 11.5,
               fontWeight: 600,
               // "Mentioned in …" (and From docs) chips are blue, only "Manual link" is grey (TicketDocRefs F, board DR-4)
-              color: origin === 'manual' ? '#5B6B60' : '#1F5A8E',
+              color: c.manual ? '#5B6B60' : '#1F5A8E',
               padding: '2px 8px',
               borderRadius: 999,
-              background: origin === 'manual' ? '#F1F3F1' : '#E8F1FB',
+              background: c.manual ? '#F1F3F1' : '#E8F1FB',
               whiteSpace: 'nowrap',
             }}
           >
-            {l}
+            {c.label}
           </span>
         ))}
       </span>
@@ -341,15 +359,14 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
   const { data } = useTicketDocs(ticketId);
   const { link, unlink } = useLinkTicketDoc(ticketId);
   const [adding, setAdding] = useState(false);
-  const docs = (data ?? []) as unknown as TicketDocRow[];
+  const docs = useMemo(() => (data ?? []) as unknown as TicketDocRow[], [data]);
 
   const groups = useMemo(() => {
-    const originOf = (d: TicketDocRow): TicketDocOrigin => d.origin ?? 'page';
+    const merged = mergeByPage(docs);
     return {
-      mentioned: groupByPage(docs.filter((d) => originOf(d) !== 'manual' && originOf(d) !== 'page')),
-      manual: groupByPage(docs.filter((d) => originOf(d) === 'manual')),
-      pages: groupByPage(docs.filter((d) => originOf(d) === 'page')),
-      originOf,
+      mentioned: merged.filter((d) => d.mentioned),
+      manual: merged.filter((d) => !d.mentioned && d.manual),
+      pages: merged.filter((d) => !d.mentioned && !d.manual),
     };
   }, [docs]);
   const linked = useMemo(() => new Set(docs.map((d) => d.pageId)), [docs]);
@@ -371,23 +388,22 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
     }
   }
 
-  const section = (label: string, list: Grouped[]) =>
+  const group = (label: string, list: Grouped[]) =>
     list.length > 0 && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={groupLabel}>{label}</div>
         <div style={card}>
           {list.map((d, i) => (
             <Row
-              key={`${d.pageId}-${d.section ?? ''}-${i}`}
+              key={`${d.kind ?? 'page'}-${d.pageId}-${d.canvasId ?? ''}`}
               doc={d}
-              origin={groups.originOf(d)}
               last={i === list.length - 1}
               onOpen={() =>
                 d.kind === 'canvas' && d.canvasId && canvas.available
                   ? canvas.openViewer({ id: d.canvasId })
                   : onOpenPage(d.pageId, d.projectId)
               }
-              onRemove={groups.originOf(d) === 'manual' ? () => void remove(d) : undefined}
+              onRemove={d.manual ? () => void remove(d) : undefined}
             />
           ))}
         </div>
@@ -421,9 +437,9 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
           {groups.mentioned.length + groups.manual.length + groups.pages.length}
         </span>
       </div>
-      {section('Mentioned in this ticket', groups.mentioned)}
-      {section('Linked manually', groups.manual)}
-      {section('Pages that mention this ticket', groups.pages)}
+      {group('Mentioned in this ticket', groups.mentioned)}
+      {group('Linked manually', groups.manual)}
+      {group('Pages that mention this ticket', groups.pages)}
       <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
         <button
           type="button"

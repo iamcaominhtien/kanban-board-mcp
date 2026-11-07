@@ -139,7 +139,9 @@ write plain sentences under clear headings, short paragraphs, one idea each.
 ## 8. Pages and tickets, both ways
 
 - **Link** a page and a ticket: write the key on the page (`KAN-12`), or `[[Page]]` in the ticket, or
-  `manage_ticket(action='link_doc', ticket_id, page_id)`. Do one; both sides then show the link.
+  `manage_ticket(action='link_doc', ticket_id, page_id)`. Do one; both sides then show the link. Read `get_ticket().docs`
+  first: a page that is already there (named by the ticket or naming it) is linked, and `link_doc` on it answers
+  "already linked" and adds nothing. Link by hand only a page the text does not name.
 - **A spec for a ticket**: write the page under the feature's page, put the ticket key in it where the work is
   described, link it, and comment on the ticket: "The spec is [[Login — spec]]: what it decides in one line." The Dev
   on the ticket sees it in `get_ticket().docs` and in its run's prompt.

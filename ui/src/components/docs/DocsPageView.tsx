@@ -114,6 +114,7 @@ export function DocsPageView({
   const [timeTip, setTimeTip] = useState(false);
   const [editTip, setEditTip] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const tocNavRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const [bodyEl, setBodyEl] = useState<HTMLDivElement | null>(null);
@@ -200,6 +201,17 @@ export function DocsPageView({
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
   }, [page.id, page.markdown]);
+
+  // a long "On this page" list scrolls on its own: keep the section in view visible in it
+  useEffect(() => {
+    const nav = tocNavRef.current;
+    const cur = nav?.querySelector<HTMLElement>('[aria-current="location"]');
+    if (!nav || !cur) return;
+    const top = cur.offsetTop - nav.offsetTop;
+    if (top < nav.scrollTop + 40) nav.scrollTop = Math.max(0, top - 40);
+    else if (top + cur.offsetHeight > nav.scrollTop + nav.clientHeight - 24)
+      nav.scrollTop = top + cur.offsetHeight - nav.clientHeight + 24;
+  }, [activeSlug]);
 
   function jump(slug: string) {
     document.getElementById(`docs-${slug}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -382,6 +394,9 @@ export function DocsPageView({
                           zIndex: 40,
                           width: 220,
                           padding: '10px 12px',
+                          // a long list scrolls inside the popover instead of running off the window
+                          maxHeight: 'min(60vh, 420px)',
+                          overflowY: 'auto',
                         }}
                       >
                         <span
@@ -725,9 +740,19 @@ export function DocsPageView({
           <nav
             aria-label="On this page"
             className="dk-toc"
-            style={{ width: 200, flexShrink: 0, padding: '30px 20px 0 8px', boxSizing: 'border-box' }}
+            ref={tocNavRef}
+            // as tall as the pane (a flex child of it): a list taller than that scrolls here, so its end can be reached
+            style={{
+              width: 200,
+              flexShrink: 0,
+              padding: '30px 20px 24px 8px',
+              boxSizing: 'border-box',
+              maxHeight: '100%',
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
+            }}
           >
-            <div style={{ position: 'sticky', top: 0 }}>
+            <div>
               <span
                 style={{
                   display: 'block',
