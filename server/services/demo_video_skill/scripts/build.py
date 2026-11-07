@@ -65,6 +65,10 @@ async def main(a):
             if kind == "css": return fl.locator(val).first
             raise SystemExit(f"unknown target {spec!r}: use testid:, text:, exact:, re: or css:")
         async def rect(spec): return await loc(spec).evaluate("e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height]}")
+        async def vis(spec):
+            """Scroll the target into view (at once, and only when it is not fully visible) before the step acts on it."""
+            moved = await loc(spec).evaluate("e=>{const r=e.getBoundingClientRect(); if(r.top>=0&&r.bottom<=innerHeight) return false; e.scrollIntoView({block: r.height>innerHeight*0.8?'start':'center', behavior:'instant'}); return true}")
+            if moved: await pg.wait_for_timeout(400)
         async def stage(x, y): return await pg.evaluate("([x,y])=>__toStage(x,y)", [x, y])
         async def until(t):
             d = t - now()
@@ -73,26 +77,28 @@ async def main(a):
             if r is None: await js(f"__cam({W/2},{VH/2},1,{ms})")
             else: await js(f"__cam({r[0]+r[2]/2},{r[1]+r[3]/2},{s},{ms})")
             await pg.wait_for_timeout(ms + 100)
-        async def move(r, click=False):
+        async def move(r, click=False, spec=None):
             sx, sy = await stage(r[0] + r[2] / 2, r[1] + r[3] / 2)
             await js(f"__cursor({sx - 13},{sy - 3})"); await pg.wait_for_timeout(850)
             await pg.mouse.move(sx, sy)
             if click:
                 sfx_ev.append(("click", now())); await js(f"__ripple({sx},{sy})")
-                await pg.mouse.down(); await pg.wait_for_timeout(90); await pg.mouse.up()
+                if spec: await loc(spec).click(timeout=8000)   # lands on the element even if the page moved while the hand travelled
+                else: await pg.mouse.down(); await pg.wait_for_timeout(90); await pg.mouse.up()
 
         async def run_step(st, t_scene, d_scene):
             do = st["do"]
             if do == "cam":
+                if st.get("target"): await vis(st["target"])
                 r = await rect(st["target"]) if st.get("target") else None
                 await cam_to(r, st.get("scale", 1.4), st.get("ms", 1100))
             elif do == "spot":
                 if not st.get("target"): await js("__spot()"); return
-                r = await rect(st["target"]); g = st.get("grow", {})
+                await vis(st["target"]); r = await rect(st["target"]); g = st.get("grow", {})
                 r = [r[0] - g.get("left", 0), r[1] - g.get("top", 0), r[2] + g.get("left", 0) + g.get("right", 0), r[3] + g.get("top", 0) + g.get("bottom", 0)]
                 await js(f"__spot({r[0]},{r[1]},{r[2]},{r[3]},{st.get('pad', 10)})")
             elif do in ("hover", "click"):
-                await move(await rect(st["target"]), click=(do == "click"))
+                await vis(st["target"]); await move(await rect(st["target"]), click=(do == "click"), spec=st["target"])
                 if do == "click": await pg.wait_for_timeout(int(st.get("settle", 1.0) * 1000))
             elif do == "type":
                 if st.get("target"): await move(await rect(st["target"]), click=True); await pg.wait_for_timeout(600)
