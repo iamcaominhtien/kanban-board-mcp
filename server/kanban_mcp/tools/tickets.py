@@ -113,8 +113,7 @@ async def manage_ticket(
     type: Annotated[
         TicketType | None,
         Field(
-            description="Kind of work (default 'task'). 'story' is a Draft the PM owns: to have it planned and run use "
-            "ai_team(give_story)."
+            description="Kind of work (default 'task'). 'story' is a goal bigger than a few tickets, split into sub-tickets."
         ),
     ] = None,
     priority: Annotated[Priority | None, Field(description="Default 'medium'.")] = None,
@@ -150,7 +149,7 @@ async def manage_ticket(
         str | None,
         Field(
             description="Member id (UUID) of a member of the ticket's project; see get_projects(project_id). An AI "
-            "member set here is not started: ai_team(ask, intent='work') assigns it and starts it."
+            "team set here is only assigned: a person starts it in the app."
         ),
     ] = None,
     acceptance_criteria: Annotated[

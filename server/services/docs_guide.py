@@ -132,9 +132,9 @@ write plain sentences under clear headings, short paragraphs, one idea each.
   body)`. Read the whole thread first; answer the last question asked.
 - You never resolve a person's thread: the person who asked resolves it when they are satisfied. You may resolve a
   thread you opened once it is answered.
-- A person who writes `@AI member` in a thread gets an answer there from that member (when the project has Docs AI
-  on). A comment by an AI never wakes another AI (no loops); to ask another AI member, use `ai_team(action='ask',
-  page_id, member_id, text)` or, inside a run, `ai_run(action='handoff')`.
+- A person who writes `@AI member` in a thread gets an answer there from the page's assistant (when the project has
+  Docs AI on). A comment by an AI never wakes another AI (no loops); to tell a ticket's team something, use
+  `ai_run(action='message', to='<TICKET-KEY>', text)` inside a run.
 
 ## 8. Pages and tickets, both ways
 
