@@ -896,25 +896,37 @@ async def _finish(run_id: str, result: dict) -> None:
         session.add(run)
         await session.commit()
         lessons_mode = settings.lessons_mode
+        lessons_max = settings.lessons_max
         ticket_id = run.ticket_id
         number = run.number
-    # lessons the lead proposes go to the project's memory (kept at once, or for a person to review)
+    # lessons the lead proposes go to the project's memory: kept at once while the project has room for them
+    # (`lessons_max`), else for a person to review
+    from . import knowledge
+
+    try:
+        async with database.async_session() as session:
+            room = lessons_max - len(
+                await knowledge.lessons(session, run.project_id, "kept")
+            )
+    except Exception:  # noqa: BLE001 - a lesson is a bonus
+        room = 0
     for text in (report.get("lessons") or [])[:5]:
         if isinstance(text, str) and text.strip():
+            keep = lessons_mode == "auto" and room > 0
             try:
-                from . import knowledge
-
                 async with database.async_session() as session:
                     await knowledge.add_lesson(
                         session,
                         run.project_id,
                         text.strip()[:300],
                         by=name,
-                        state="kept" if lessons_mode == "auto" else "proposed",
+                        state="kept" if keep else "proposed",
                         proposed_by=name,
                         source_ticket_id=ticket_id,
                         source_run_id=run_id,
                     )
+                if keep:
+                    room -= 1
             except Exception:  # noqa: BLE001 - a lesson is a bonus
                 logger.debug("lesson not kept", exc_info=True)
     if status == "question" and (report.get("asks") or []):

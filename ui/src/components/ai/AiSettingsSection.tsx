@@ -158,48 +158,6 @@ function LimitSettings({ projectId, settings }: { projectId: string; settings: A
   );
 }
 
-const RUN_KEEP = [
-  [0, 'Keep forever'],
-  [30, '30 days'],
-  [90, '90 days'],
-  [180, '180 days'],
-  [365, '1 year'],
-] as const;
-
-/** How long a finished run keeps its details (transcript, steps); the run itself stays. */
-function RunRetention({ projectId, settings }: { projectId: string; settings: AiSettings }) {
-  const { save, error } = useSave(projectId);
-  return (
-    <section className="to-sec" data-testid="ops-history">
-      <div className="to-group">
-        <GroupHead
-          title="History"
-          hint="Every run stays in the history with its cost, state and report. The steps and transcript can go earlier."
-        />
-        <TeamRow
-          title="Keep run details for"
-          hint="After this many days the steps and transcript of finished runs are removed."
-        >
-          <select
-            className="ai-select"
-            aria-label="Keep run details for"
-            data-testid="ops-run-retention"
-            value={settings.runRetentionDays ?? 0}
-            onChange={(e) => void save({ runRetentionDays: Number(e.target.value) })}
-          >
-            {RUN_KEEP.map(([v, label]) => (
-              <option key={v} value={v}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </TeamRow>
-      </div>
-      {error && <div className="ai-error-text">{error}</div>}
-    </section>
-  );
-}
-
 /** The title of one of the groups of the page, with what it decides. */
 function GroupTitle({ id, title, hint, actions }: { id: string; title: string; hint: string; actions?: ReactNode }) {
   return (
@@ -291,7 +249,6 @@ export function AiSettingsSection({
             </section>
             <RunRules projectId={projectId} settings={settings.data} />
             <LimitSettings projectId={projectId} settings={settings.data} />
-            <RunRetention projectId={projectId} settings={settings.data} />
           </>
         )}
       </section>

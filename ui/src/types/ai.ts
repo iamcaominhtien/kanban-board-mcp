@@ -136,7 +136,6 @@ export interface AiSettings {
   /** RAM (MB) a run's CLI may use before the system restarts it; 0 = no limit. */
   runMemoryLimitMb: number;
   auditRetentionDays: number | null;
-  runRetentionDays: number | null;
   permissionMode: PermissionMode;
   denyList: string[];
   lessonsMode: 'auto' | 'review';

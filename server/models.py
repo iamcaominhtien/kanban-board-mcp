@@ -1631,7 +1631,9 @@ class AiProjectSettings(SQLModel, table=True):
     board_at_cap: str = Field(default="pause")  # pause | stop
     run_memory_limit_mb: int = Field(default=4096)
     audit_retention_days: Optional[int] = Field(default=90)
-    run_retention_days: Optional[int] = Field(default=None)
+    run_retention_days: Optional[int] = Field(
+        default=None
+    )  # not used any more (AI v2); the column stays
     permission_mode: str = Field(
         default="bypass"
     )  # bypass | auto (a team may override)

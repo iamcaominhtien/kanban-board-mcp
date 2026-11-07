@@ -230,7 +230,6 @@ def settings_dict(s: AiProjectSettings) -> dict:
         "board_at_cap": s.board_at_cap,
         "run_memory_limit_mb": s.run_memory_limit_mb,
         "audit_retention_days": s.audit_retention_days,
-        "run_retention_days": s.run_retention_days,
         "permission_mode": s.permission_mode,
         "deny_list": loads(s.deny_list, []),
         "lessons_mode": s.lessons_mode,
@@ -257,7 +256,6 @@ class SettingsBody(BaseModel):
     board_at_cap: Optional[str] = None
     run_memory_limit_mb: Optional[int] = None
     audit_retention_days: Optional[int] = None
-    run_retention_days: Optional[int] = None
     permission_mode: Optional[str] = None
     deny_list: Optional[list[str]] = None
     lessons_mode: Optional[str] = None
