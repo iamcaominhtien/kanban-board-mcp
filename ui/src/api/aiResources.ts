@@ -51,7 +51,7 @@ export function useResourcesStream(projectId: string): {
       clearInterval(timer);
     };
   }, [projectId]);
-  const fresh = pushed != null && Date.now() - pushed.at < PUSH_FRESH_MS;
+  const fresh = pushed != null && pushed.snap.projectId === projectId && Date.now() - pushed.at < PUSH_FRESH_MS;
   const base = polled.data ?? null;
   let data: ResourceSnapshot | null = base;
   if (pushed && fresh) {
@@ -61,18 +61,20 @@ export function useResourcesStream(projectId: string): {
       ? {
           ...base,
           runs: base.runs.map((r) => {
-            const p = r.live ? pushed.snap.runs.find((x) => x.runId === r.runId && x.live) : undefined;
-            return p
-              ? {
-                  ...r,
-                  readable: p.readable,
-                  cliRssMb: p.cliRssMb,
-                  extraMb: p.extraMb,
-                  cpuPct: p.cpuPct,
-                  peakRssMb: p.peakRssMb ?? r.peakRssMb,
-                  history: p.history,
-                }
-              : r;
+            if (!r.live) return r;
+            const p = pushed.snap.runs.find((x) => x.runId === r.runId && x.live);
+            // a run the server calls live that the runner does not read yet has a CLI that is starting again (after a
+            // restart): its saved value is the old CLI's, so show none until the first reading
+            if (!p) return { ...r, cliRssMb: null, extraMb: null, cpuPct: null };
+            return {
+              ...r,
+              readable: p.readable,
+              cliRssMb: p.cliRssMb,
+              extraMb: p.extraMb,
+              cpuPct: p.cpuPct,
+              peakRssMb: p.peakRssMb ?? r.peakRssMb,
+              history: p.history,
+            };
           }),
           machine:
             pushed.snap.machine.cliCount === base.runs.filter((r) => r.live).length

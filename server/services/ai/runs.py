@@ -728,6 +728,9 @@ async def _execute_cli(
         await _end(run_id, "failed", f"Could not start Claude Code: {exc}")
         return
     RT.procs[run_id] = proc
+    RT.restart_requests.pop(
+        run_id, None
+    )  # one aimed at the CLI that just ended does not apply to this one
     if resume:
         guard.mark_resumed(run_id)
     resources.MON.track(run_id, proc, run.project_id)
@@ -828,9 +831,18 @@ async def _execute_cli(
     if run_id in RT.cancelled:
         return
     request = RT.restart_requests.pop(run_id, None)
-    if request is not None:
+    if request is not None and not result:
         # the CLI was stopped on purpose (over the memory limit, or a person pressed Restart): the run goes on in a
-        # new CLI that resumes the conversation, or ends when the system already restarted it too often
+        # new CLI that resumes the conversation, or ends when the system already restarted it too often. (A CLI that
+        # already gave its answer and only lingers is not restarted: the normal ending below takes it.)
+        if held_tokens:
+            async with database.async_session() as session:
+                cur = await session.get(AiRun, run_id)
+                if cur is not None:
+                    cur.context_used = held_tokens
+                    cur.context_window = window_tokens or cur.context_window
+                    session.add(cur)
+                    await session.commit()
         await _restart_inside_run(run_id, token, request)
         return
     async with database.async_session() as session:
@@ -1445,7 +1457,9 @@ RESTART_FRESH_NOTE = (
 async def _memory_breach(run_id: str, rss_mb: float, limit_mb: int) -> None:
     """The monitor saw a run's CLI pass the memory limit: stop it; the run goes on in a new CLI (or ends)."""
     proc = RT.procs.get(run_id)
-    if proc is None:
+    if proc is None or proc.proc is None or proc.proc.returncode is not None:
+        return
+    if run_id in RT.restart_requests:
         return
     RT.restart_requests[run_id] = {
         "by": "system",
@@ -1471,11 +1485,15 @@ async def restart_run(run_id: str, *, by: str) -> AiRun:
     if run.state != "running":
         raise RunError("Only a running run can be restarted.")
     if defers_to_runner():
-        await runner_link.command(run_id, "restart", {"by": by})
+        row = await runner_link.command(run_id, "restart", {"by": by})
+        if row is None or not row.taken_at:
+            raise RunError("The runner did not answer. Try again in a moment.")
         return run
     proc = RT.procs.get(run_id)
-    if proc is None or proc.proc is None:
-        raise RunError("Only a running run can be restarted.")
+    if proc is None or proc.proc is None or proc.proc.returncode is not None:
+        raise RunError("This run has no Claude Code process to restart right now.")
+    if run_id in RT.restart_requests:
+        raise RunError("This run is already being restarted.")
     reading = resources.MON.readings.get(run_id) or {}
     RT.restart_requests[run_id] = {
         "by": by,
@@ -1539,6 +1557,8 @@ async def _restart_inside_run(run_id: str, token: str, request: dict) -> None:
             session.add(run)
             await session.commit()
             await session.refresh(run)
+    if run_id in RT.cancelled:
+        return  # stopped while the restart was being written: say nothing more about a run that ended
     ticket = run.ticket_id or "A run"
     if stop_run is not None:
         gb = f"{rss / 1024:.2f} GB" if rss else "too much memory"
