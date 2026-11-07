@@ -224,7 +224,7 @@ export function SignInWindow({
     onClose(result, extra);
   }
 
-  const signedView = view === 'done' || view === 'fallback_signed' || view === 'trust_folder';
+  const signedView = view === 'done' || view === 'fallback_signed';
 
   function requestClose() {
     if (signedView) void close('signed_in');

@@ -18,7 +18,7 @@ function Radio({ on }: { on: boolean }) {
 
 /**
  * “Which account should this AI member use?” (design D2–D6): the accounts of the member type's CLI, the login that
- * is already on this computer (kept last, as before; for opencode the free models), and “New account…”, which opens
+ * is already on this computer (kept last, as before), and “New account…”, which opens
  * the same window as Add an account. A signed-out choice offers “Sign in again” and, while it is chosen, the parent
  * keeps Next off (`accountReady`). `value` is an account id, or null for the CLI's own login.
  */
@@ -47,7 +47,6 @@ export function AccountPicker({
   const list = accountsFor(accounts.data?.accounts ?? [], provider);
   const chosen = list.find((a) => a.id === value) ?? null;
   const own = logins.data?.find((l) => l.cli === cli);
-  const free = false;
   const hint = chosen ? sharedHint(chosen, chosen.id === currentAccountId) : null;
   const refresh = () => void qc.invalidateQueries({ queryKey: accountKeys.all });
 
@@ -55,23 +54,6 @@ export function AccountPicker({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="account-picker">
       <div style={{ fontSize: 12.5, color: '#3A4A3E' }}>Which account should this AI member use?</div>
       <div className="acm-choices" role="radiogroup" aria-label="AI account">
-        {free && (
-          <button
-            type="button"
-            role="radio"
-            aria-checked={value === null}
-            className={`acm-choice ${value === null ? 'acm-choice-on' : ''}`}
-            onClick={() => onChange(null, null)}
-            data-testid="account-choice-none"
-          >
-            <Radio on={value === null} />
-            <div className="acm-choice-main">
-              <div className="acm-choice-name">Free models · no account</div>
-              <div className="acm-choice-sub">opencode/*-free: no sign-in needed</div>
-            </div>
-            <GreyChip>no login</GreyChip>
-          </button>
-        )}
         {list.map((a) => (
           <button
             key={a.id}
@@ -90,7 +72,7 @@ export function AccountPicker({
             <AccountStatusChip status={a.status} />
           </button>
         ))}
-        {!free && (
+        {
           <button
             type="button"
             role="radio"
@@ -106,7 +88,7 @@ export function AccountPicker({
             </div>
             <GreyChip>as before</GreyChip>
           </button>
-        )}
+        }
         <button type="button" className="acm-new" onClick={() => setAdding(true)} data-testid="account-new">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M12 5V19M5 12H19" strokeLinecap="round" />
@@ -120,7 +102,7 @@ export function AccountPicker({
           {hint.text}
         </AccountNote>
       )}
-      {!free && list.length === 0 && (
+      {list.length === 0 && (
         <AccountNote
           title={`No account for ${spec.label} yet`}
           testId="account-none-yet"
@@ -164,13 +146,6 @@ export function AccountPicker({
               : 'Pick another account, or sign in again now. Next stays off until this account works.'}
         </AccountNote>
       )}
-      {free && value === null && (
-        <AccountNote tone="warn" title="Free models may use your prompts" testId="opencode-privacy">
-          Some free models (for example Big Pickle, MiMo, Flint) may use prompts to improve the model. Keep confidential
-          data out of them; others say they do not train on data. Check the model’s page before you use it.
-        </AccountNote>
-      )}
-
       {adding && cli && (
         <AddAccountModal
           initialCli={cli}

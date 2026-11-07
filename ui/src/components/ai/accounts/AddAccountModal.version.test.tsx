@@ -24,15 +24,11 @@ afterEach(() => {
 });
 
 describe('AddAccountModal CLI cards (ACC-5)', () => {
-  it('shows the version after "found" when the server knows it, and "found" alone otherwise', async () => {
+  it('shows the version after "found" when the server knows it', async () => {
     http.get.mockResolvedValue({
       data: {
         accounts: [],
-        clis: [
-          card('claude', { version: '2.1.4' }),
-          card('codex', { version: null }),
-          card('opencode', { found: false }),
-        ],
+        clis: [card('claude', { version: '2.1.4' })],
       },
     });
     render(
@@ -41,8 +37,5 @@ describe('AddAccountModal CLI cards (ACC-5)', () => {
       </QueryClientProvider>,
     );
     expect((await screen.findByTestId('cli-card-claude')).textContent).toContain('found · v2.1.4');
-    expect(screen.getByTestId('cli-card-codex').textContent).toContain('found');
-    expect(screen.getByTestId('cli-card-codex').textContent).not.toContain('found ·');
-    expect(screen.getByTestId('cli-card-opencode').textContent).toContain('not installed');
   });
 });

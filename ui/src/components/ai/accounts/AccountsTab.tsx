@@ -273,7 +273,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {logins.data?.map((l) => {
-              const n = onComputer(l.cli === 'claude' ? 'claude-code' : l.cli === 'agy' ? 'antigravity' : l.cli);
+              const n = onComputer('claude-code');
               return (
                 <span key={l.cli} className="acc-login">
                   <AccountBadge cli={l.cli} label={l.label} size={22} />

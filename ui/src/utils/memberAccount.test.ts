@@ -71,14 +71,9 @@ const member = (over: Partial<AiTeam> = {}): AiTeam =>
   }) as AiTeam;
 
 describe('accounts for a member type', () => {
-  it('lists only the accounts of that CLI, signed-in ones first', () => {
-    const list = [
-      acct({ id: 'b', name: 'B', status: 'needs_sign_in' }),
-      acct({ id: 'c', name: 'Codex', cli: 'codex' }),
-      acct({ id: 'a', name: 'A' }),
-    ];
+  it('lists the accounts of that CLI, signed-in ones first', () => {
+    const list = [acct({ id: 'b', name: 'B', status: 'needs_sign_in' }), acct({ id: 'a', name: 'A' })];
     expect(accountsFor(list, 'claude-code').map((a) => a.id)).toEqual(['a', 'b']);
-    expect(accountsFor(list, 'claude-code').some((a) => a.cli === 'codex')).toBe(false);
   });
   it('knows which types use accounts', () => {
     expect(usesAccounts('claude-code')).toBe(true);

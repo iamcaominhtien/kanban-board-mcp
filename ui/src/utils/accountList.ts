@@ -2,20 +2,14 @@ import type { AccountCli, AccountMemberRef, AiAccount, RemoveMembersPolicy } fro
 
 /** Rules behind the AI accounts tab (design/screens/ai-accounts.md, B1, B2, F): what each row, banner and dialog says. */
 
-/** The two-letter badge of each CLI (design B1: CC, CX, OC, AG). */
+/** The two-letter badge of each CLI (design B1: CC). */
 export const CLI_BADGE: Record<AccountCli, { short: string; bg: string; color: string }> = {
   claude: { short: 'CC', bg: '#FBEFE6', color: '#B4571F' },
-  codex: { short: 'CX', bg: '#E8F1FA', color: '#244E78' },
-  opencode: { short: 'OC', bg: '#EFE8FB', color: '#5B3AA6' },
-  agy: { short: 'AG', bg: '#E6F2EA', color: '#1F5A31' },
 };
 
 /** Where each CLI is installed from (mirrors guide_url in server/services/ai/providers.py). */
 export const GUIDE_URL: Record<AccountCli, string> = {
   claude: 'https://docs.claude.com/en/docs/claude-code/setup',
-  codex: 'https://developers.openai.com/codex/cli',
-  opencode: 'https://opencode.ai/docs',
-  agy: 'https://antigravity.google',
 };
 
 /** Why Add account and Sign in are off in the web build (the sentence is the tooltip). */
@@ -121,7 +115,6 @@ export function signedInWith(a: AiAccount): { primary: string; secondary: string
   const plan = a.plan ? a.plan.charAt(0).toUpperCase() + a.plan.slice(1) : null;
   let method = a.method;
   if (a.cli === 'claude' && method) method = method.charAt(0).toUpperCase() + method.slice(1);
-  if (a.cli === 'codex' && method && !/login/i.test(method)) method = `${method} login`;
   const primary = [method, plan].filter(Boolean).join(' · ') || (a.status === 'signed_in' ? 'Signed in' : '—');
   return { primary, secondary: a.email };
 }

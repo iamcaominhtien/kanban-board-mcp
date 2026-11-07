@@ -1,6 +1,6 @@
 /** AI accounts: separate logins of one AI CLI that AI members can share (design/screens/ai-accounts.md). */
 
-export type AccountCli = 'claude' | 'codex' | 'opencode' | 'agy';
+export type AccountCli = 'claude';
 
 /** signing_in comes from the open sign-in window; checking and not_ready are drawn by the UI, never stored. */
 export type AccountStatus = 'signed_in' | 'needs_sign_in' | 'cli_missing' | 'signing_in';
@@ -16,17 +16,17 @@ export interface AiAccount {
   name: string;
   cli: AccountCli;
   cliLabel: string;
-  /** The AI member type this account serves (claude-code, codex, opencode, antigravity). */
+  /** The AI member type this account serves (claude-code). */
   provider: string;
   status: AccountStatus;
   statusDetail: string | null;
   /** Only Claude Code says who is signed in. */
   email: string | null;
   plan: string | null;
-  /** Subscription, ChatGPT login, Google sign-in, ... */
+  /** Subscription login, ... */
   method: string | null;
   folder: string;
-  /** Runs of members on this account start today (false would show "Not ready"; all four CLIs run now). */
+  /** Runs of members on this account start today (false would show "Not ready"). */
   runnable: boolean;
   /** Why an account of this CLI cannot be made here ("Not available on Windows"), else null. */
   unavailable: string | null;
@@ -85,7 +85,7 @@ export interface ComputerLogin {
   signedInWith: string | null;
 }
 
-export type SignInPhase = 'waiting' | 'choose_method' | 'browser' | 'paste_code' | 'trust_folder' | 'error';
+export type SignInPhase = 'waiting' | 'choose_method' | 'browser' | 'paste_code' | 'error';
 
 /** What the sign-in window shows besides the terminal (the "state" message of the terminal socket). */
 export interface SignInState {
