@@ -3,8 +3,9 @@ import { aiApi, isActive, useAiMutation, useAiRun, useLoadSteps } from '../../..
 import { extractError } from '../../../api/extractError';
 import type { AiRunFull, RunStep } from '../../../types/ai';
 import { useToast } from '../../Toast';
+import { MarkdownRenderer } from '../../MarkdownRenderer';
 import { QuestionCard } from '../QuestionCard';
-import { RunMessageBox, RunReportCard } from '../RunView';
+import { RunMessageBox, RunMessages, RunReportCard } from '../RunView';
 import { hhmm, money, testsOf, useAiBoardState, useNow } from '../aiUi';
 import { elapsedWords } from './runFormat';
 import './design/designBlocks.css';
@@ -205,7 +206,7 @@ const Chip = ({ ok, children }: { ok: boolean; children: ReactNode }) => (
 );
 
 /**
- * The steps of one run, whole, for the ticket's full history: it loads the steps the run's first answer left out (the
+ * The steps of one run, whole, for the ticket's full history: the request that started it, its steps and its report. It loads the steps the run's first answer left out (the
  * newest 50 come first) and shows each one like the run panel does. `allOpen` opens every step.
  */
 export function RunStepsBlock({ runId, allOpen }: { runId: string; allOpen: boolean }) {
@@ -231,9 +232,20 @@ export function RunStepsBlock({ runId, allOpen }: { runId: string; allOpen: bool
   if (!run) return <span className="ai-spin" />;
   const steps = run.steps.filter((s) => !['hook', 'start', 'end', 'role'].includes(s.kind));
   const roleOf = (id: string | null) => (id ? (run.agents.find((a) => a.id === id)?.agentType ?? 'role') : null);
-  if (!steps.length) return <span style={{ fontSize: '12px', color: '#9AA8A0' }}>No steps.</span>;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {run.instruction.trim() && (
+        <div className="tw-card" data-testid="run-request">
+          <div className="ai-label ai-label-dark" style={{ marginBottom: 6 }}>
+            Request
+          </div>
+          <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+            <MarkdownRenderer plain>{run.instruction}</MarkdownRenderer>
+          </div>
+        </div>
+      )}
+      <RunMessages runId={runId} />
+      {!steps.length && <span style={{ fontSize: '12px', color: '#9AA8A0' }}>No steps.</span>}
       {steps.map((s, i) => (
         <StepRow
           key={s.seq}
@@ -245,6 +257,7 @@ export function RunStepsBlock({ runId, allOpen }: { runId: string; allOpen: bool
           last={i === steps.length - 1}
         />
       ))}
+      <RunReportCard run={run} />
     </div>
   );
 }

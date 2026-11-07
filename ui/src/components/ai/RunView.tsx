@@ -131,7 +131,7 @@ export function RunMessageBox({ run }: { run: Pick<AiRun, 'id' | 'live' | 'state
 }
 
 /** Messages that went into and out of the run (a person's notes, other AI sessions). */
-function RunMessages({ runId }: { runId: string }) {
+export function RunMessages({ runId }: { runId: string }) {
   const q = useRunMessages(runId);
   const list = q.data ?? [];
   if (!list.length) return null;
