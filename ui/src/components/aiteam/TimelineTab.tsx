@@ -167,8 +167,8 @@ function readRange(projectId: string): Preset {
 }
 
 /**
- * Flow › Timeline: a sequence diagram of the AI team. Each AI (and you, Autopilot and Docs) is a lifeline, time runs
- * down, a bar is a run and an arrow is a hand-off, a question, an approval or a decision
+ * Flow › Timeline: a sequence diagram of the AI teams. You, each team's lead and each role it called is a lifeline, time
+ * runs down, a bar is a run or one call of a role and an arrow is a hand-off, a question or an answer
  * (design/screens/ai-team-timeline.md).
  * @param props.projectId - The project to draw.
  * @param props.actions - Open a ticket or a Docs page; go back to the team map.
@@ -196,7 +196,7 @@ export function TimelineTab({
   const [day, setDay] = useState<{ since: string; until: string } | null>(
     initial?.since && initial.until ? { since: initial.since, until: initial.until } : null,
   );
-  const [scope, setScope] = useState<string | null>(scopeTicketId);
+  const [scope, setScope] = useState<string | null>(scopeTicketId ?? initial?.scope ?? null);
   const [detailed, setDetailed] = useState(!!initial?.detailed);
   const [mode, setMode] = useState<AxisMode>(initial?.real ? 'real' : 'compact');
   const [hidden, setHidden] = useState<Set<string>>(new Set(initial?.hidden ?? []));
@@ -227,7 +227,8 @@ export function TimelineTab({
   const toast = useToast();
 
   useEffect(() => {
-    setScope(scopeTicketId);
+    // a ticket asked for (the modal's tab) wins; the team view keeps the scope it opened on (a link) or was given
+    if (scopeTicketId) setScope(scopeTicketId);
   }, [scopeTicketId]);
 
   const query = useMemo(
@@ -507,8 +508,7 @@ export function TimelineTab({
             <div className="tl-menu" role="menu" data-testid="tl-show-menu">
               {[
                 ['handoffs', 'Hand-offs'],
-                ['questions', 'Questions and approvals'],
-                ['touches', 'Your marks'],
+                ['questions', 'Questions and answers'],
               ].map(([key, label]) => (
                 <label key={key} className="tl-check">
                   <input
@@ -1009,8 +1009,6 @@ interface Facts {
   pageId?: string;
   /** A Docs proposal still waiting for a person: the page opens to review it. */
   review?: boolean;
-  /** An approval still waiting for a person (its id): the inspector can approve or deny it. */
-  approvalId?: string;
   bar?: TimelineBar;
   question?: { runId: string; text: string; options: string[]; from: number; to: number | null; open: boolean };
   note?: string;
@@ -1076,7 +1074,6 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
       lines,
       hint: 'Click for the steps',
       bar: b,
-      note: b.trigger === 'autopilot' ? 'A short run by the Autopilot delegate to look at a request.' : undefined,
     };
   }
   if (pick.type === 'wait') {
@@ -1107,7 +1104,6 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
       hint: q && open ? 'Click for the full question and Answer' : 'Click for details',
       question:
         q && w.runId ? { runId: w.runId, text: w.text, options: w.options ?? [], from, to: ms(w.to), open } : undefined,
-      approvalId: !q && open ? w.id.replace(/:p$/, '') : undefined,
     };
   }
   if (pick.type === 'arrow') {
@@ -1117,28 +1113,6 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
     const landed = ms(a.toAt);
     const waitMin = a.waitS != null ? a.waitS / 60 : landed ? (landed - at) / 60000 : 0;
     const lines: Facts['lines'] = [];
-    if (a.kind === 'auto') {
-      const asked =
-        data.waits.find((w) => w.runId === a.runId && w.kind === 'approval' && w.to === a.at) ??
-        data.waits.find((w) => w.runId === a.runId && w.kind === 'approval');
-      const run = data.bars.find((b) => b.autopilot && Math.abs((ms(b.startedAt) ?? 0) - at) < 5 * 60000);
-      if (asked)
-        lines.push({ text: `${who(asked.memberId)} asked: ${asked.text}${a.risk ? ` · risk ${a.risk}` : ''}` });
-      if (a.by)
-        lines.push({
-          text: `Decided by ${a.by}, the delegate${run ? `, in a short run at ${clock(ms(run.startedAt) ?? 0)}` : ''}`,
-        });
-      if (a.label) lines.push({ text: `Its reason: “${a.label}”` });
-      return {
-        icon: ICONS.lock,
-        iconColor: '#5B3AA6',
-        title: `${a.denied ? 'Refused' : 'Approved'} by Autopilot · after ${lengthText(Math.max(waitMin, 1) * 60000)}`,
-        ticketId: a.ticketId,
-        ticketText: ticketTitle(a.ticketId),
-        lines,
-        hint: 'Click for details',
-      };
-    }
     lines.push({
       text:
         landed && landed - at > 60000 ? `Sent ${clock(at)} · ${who(a.to)} started ${clock(landed)}` : `At ${clock(at)}`,
@@ -1346,6 +1320,7 @@ function HoverCard({
 
 /** A step's time is stored as hh:mm:ss in UTC without a date: put it on the run's day, in the person's time zone. */
 function stepClock(at: string, runStart: number | null): string {
+  if (/^\d{4}-\d{2}-\d{2}T/.test(at)) return clock(ms(at) ?? 0); // v2 writes the whole time
   const m = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(at);
   if (!m || runStart == null) return at.slice(0, 5);
   const d = new Date(runStart);
@@ -1359,7 +1334,10 @@ function LatestSteps({ bar }: { bar: TimelineBar }) {
   const q = useAiRun(bar.runId);
   const run = q.data;
   if (!run) return q.isLoading ? <div className="at-hint">Reading the steps…</div> : null;
-  const steps = [...run.steps].reverse().slice(0, 5);
+  const steps = run.steps
+    .filter((s) => s.kind !== 'role')
+    .reverse()
+    .slice(0, 5);
   if (!steps.length) return null;
   const start = ms(bar.startedAt);
   return (
@@ -1414,7 +1392,9 @@ function Inspector({
     }
   };
   const b = f.bar;
-  const started = b ? data.arrows.find((a) => a.runId === b.id && a.to === b.memberId) : undefined;
+  const started = b
+    ? data.arrows.find((a) => a.runId === b.id && a.to === b.memberId && (a.kind === 'assign' || a.kind === 'handoff'))
+    : undefined;
   const who = (id: string) => people.get(id)?.name ?? (id === 'you' ? 'You' : id);
   const q = f.question;
   return (
@@ -1615,13 +1595,10 @@ function Legend() {
   // the glyph takes the colour the design gives it in the legend (report back is the darker grey here)
   const items: { k: Parameters<typeof arrowColor>[0]; t: string; c?: string }[] = [
     { k: 'assign', t: 'assigned' },
-    { k: 'mention', t: '@mention' },
     { k: 'handoff', t: 'hand-off (dashed and moving while under way)' },
     { k: 'report', t: 'report back (dotted)', c: '#5B6B60' },
-    { k: 'sent_back', t: 'sent back (red dashed)' },
-    { k: 'skip', t: 'a workflow step skipped' },
     { k: 'ask', t: 'asks you' },
-    { k: 'auto', t: 'Autopilot decided' },
+    { k: 'answer', t: 'your answer' },
   ];
   return (
     <div className="tl-legend" data-testid="tl-legend">
