@@ -3,8 +3,8 @@
 1. **Scan by code, no quota**: ``package.json`` scripts and frameworks, ``pyproject.toml``/``uv.lock``, ``go.mod``,
    ``Cargo.toml``, ``Makefile``, a ``Dockerfile``, the CI workflows (the commands CI really runs win over the
    README), ``CLAUDE.md``/``AGENTS.md``, an existing ``.claude/``, a monorepo, test folders, a web UI, the git remote.
-2. **Suggest**: test, lint and build commands, the prepare command for a worktree, a port, the default workflow, the
-   team (every role the suggested workflow has a step for, plus a Designer and a User tester when there is a UI), the
+2. **Suggest**: test, lint and build commands, the prepare command for a worktree, a port, the
+   team (the usual roles, plus a Designer and a User tester when there is a UI), the
    plugins of the catalogue for those roles, and the hand-over route.
 3. **Try**: the prepare and test commands run once in a scratch worktree; a command that fails is shown failing.
 4. **Create** only when a person presses it: the members from the packs, the project's AI team settings, the plugins.
@@ -394,7 +394,6 @@ def suggest(found: dict) -> dict:
         tests.append("go test ./...")
     if "rust" in found["languages"] and not tests:
         tests.append("cargo test")
-    workflow = "feature_ui" if found["ui"] else "standard"
     roles = ["triage", "pm", "ba", "dev", "qa", "reviewer"]
     if found["ui"]:
         roles[3:3] = ["designer"]
@@ -418,14 +417,13 @@ def suggest(found: dict) -> dict:
         },
         "prepare": " && ".join(dict.fromkeys(prepares)),
         "base_port": 5180,
-        "workflow_default": workflow,
         "team": team,
         "plugins": suggested_plugins,
         "handover": handover,
         "worktrees": bool(found.get("git")),
         "why": {
             "commands": "Taken from the CI workflow when there is one, else from the package scripts.",
-            "team": "Every role the suggested workflow has a step for"
+            "team": "The usual roles of a team"
             + (
                 ", plus a Designer and a User tester because it has a UI."
                 if found["ui"]
@@ -1569,11 +1567,11 @@ def to_dict(row: AiRepoScan) -> dict:
     }
 
 
-async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) -> dict:
+async def apply(session, scan_id: str, choice: dict, *, by: str) -> dict:
     """Create what the person confirmed: the members from packs, the project's settings, the plugins.
 
     `choice` is the suggestion as the person edited it: {team: [{pack, name}], commands, prepare, base_port,
-    workflow_default, handover, worktrees, plugins: [catalogue keys], account_id, env_path: [folders],
+    handover, worktrees, plugins: [catalogue keys], account_id, env_path: [folders],
     checks_off: [commands saved but not checks yet]}. `create_member(body)` makes one AI
     member through the member service and returns it.
     """
@@ -1593,7 +1591,6 @@ async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) 
             for p in (choice.get("env_path") or [])
             if str(p or "").strip()
         ],
-        "workflow_default": choice.get("workflow_default") or "standard",
         "worktrees": {
             "on": bool(choice.get("worktrees")),
             "repo": row.folder,
@@ -1606,28 +1603,45 @@ async def apply(session, scan_id: str, choice: dict, *, by: str, create_member) 
     session.add(settings)
     await session.commit()
     created, skipped = [], []
-    for item in choice.get("team") or []:
-        pack = await packs.get_pack(session, row.project_id, item.get("pack") or "")
-        if pack is None:
-            skipped.append({"name": item.get("name"), "why": "no such pack"})
-            continue
-        body = packs.member_body(
-            pack,
-            name=item.get("name") or pack["name"],
-            working_dir=row.folder,
-            account_id=choice.get("account_id"),
-            plays=item.get("plays"),
+    from . import teams as svc_teams
+
+    wanted_roles = [str(item.get("pack") or "") for item in (choice.get("team") or [])]
+    pack_key = (
+        "feature_ui"
+        if "designer" in wanted_roles or "user_tester" in wanted_roles
+        else "standard"
+    )
+    team_name = (
+        next(
+            (
+                item.get("name")
+                for item in (choice.get("team") or [])
+                if item.get("name")
+            ),
+            None,
         )
-        try:
-            member = await create_member(body)
-            created.append({"id": member.id, "name": member.name, "pack": pack["key"]})
-        except ValueError as exc:
-            skipped.append({"name": item.get("name"), "why": str(exc)})
+        or "AI team"
+    )
+    try:
+        member = await svc_teams.create(
+            session,
+            row.project_id,
+            {
+                "name": team_name,
+                "working_dir": row.folder,
+                "account_id": choice.get("account_id"),
+                "pack_key": pack_key,
+            },
+            by=by,
+        )
+        created.append({"id": member.id, "name": member.name, "pack": pack_key})
+    except ValueError as exc:
+        skipped.append({"name": team_name, "why": str(exc)})
     found = json.loads(row.found or "{}")
     by_key = {c["key"]: c for c in plugins.CATALOGUE}
     wanted = list(choice.get("plugins") or [])
-    for pack_key in (c["pack"] for c in created):
-        pack = await packs.get_pack(session, row.project_id, pack_key)
+    for role_key in wanted_roles:
+        pack = await packs.get_pack(session, row.project_id, role_key)
         wanted += (pack or {}).get("plugins") or []
         wanted += (pack or {}).get("mcp") or []
     have = {

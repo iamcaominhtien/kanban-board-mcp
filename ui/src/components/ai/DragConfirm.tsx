@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { AiRun } from '../../types/ai';
+import type { BoardRun } from '../../types/ai';
 import { STATUS_NAMES, useAiBoardState, AiAvatar } from './aiUi';
 import './ticketWork.css';
 
@@ -13,7 +13,7 @@ export function DragConfirm({
   onCancel,
   onConfirm,
 }: {
-  run: AiRun;
+  run: BoardRun;
   to: string;
   onCancel: () => void;
   onConfirm: () => void;
@@ -44,13 +44,13 @@ export function DragConfirm({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="ai-modal-head" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {ai && <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={34} />}
+          {ai && <AiAvatar color={ai.color} size={34} />}
           <div>
             <h2 className="ai-modal-title" style={{ fontSize: 16 }}>
               Move {run.ticketId} anyway?
             </h2>
             <div className="ai-hint">
-              {run.memberName} {stateWords} (run #{run.number}).
+              {ai?.name ?? 'The team'} {stateWords} (run #{run.number}).
             </div>
           </div>
         </div>

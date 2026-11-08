@@ -1,827 +1,238 @@
-import { useState, type ReactNode } from 'react';
-import { aiApi, useAiMutation } from '../../api/ai';
-import type { CapNeed, CapStop } from '../../api/aiTeam';
-import { workflowApi } from '../../api/aiWorkflow';
-import { safetyApi } from '../../api/aiSafety';
-import { extractError } from '../../api/extractError';
-import type { CardMemory } from '../../types/aiResources';
-import type { Handoff, NeedsItem, TeamCard, TeamNow, TeamRange } from '../../types/aiTeam';
-import { useToast } from '../Toast';
-import { Badge, ICONS, Icon, KIND_LOOK, Spark, STATE_ORDER, StateChip, TicketChip, stateLine } from './teamUi';
-import { AUTO_RESTARTS, LEVEL_COLOR, fmtMb, levelOf, limitPct } from './resourcesFormat';
-import { fmtAgo, fmtClock, fmtDuration, fmtTokens, fmtUsd, usageText } from './teamFormat';
+import { useAiLive, useAiOverview, useAiSettings, useAiTeams, useProjectRuns, useTeamsActivity } from '../../api/ai';
+import type { AiLive, AiRun, AiTeam, TeamActivity } from '../../types/ai';
+import { AiAvatar, LoadError, RunStateChip, StatusLabel, fmtElapsed, hhmm, secondsSince, useNow } from '../ai/aiUi';
+import { RoleChips } from '../ai/AiMembersPage';
+import { roleLook } from '../ai/roleLook';
+import { StepIcon } from '../ai/run/StepIcon';
+import { ContextMeter } from '../assist/ContextMeter';
+import { NeedsYou } from './NeedsYou';
+import { RecentList, SpendToday } from './RecentSpend';
 import { openRun } from './runLink';
-import './decided.css';
+import { TicketChip } from './teamUi';
 
 export interface NowActions {
   onOpenTicket: (ticketId: string) => void;
   onOpenMember: (memberId: string) => void;
-  onOpenDocsPage: (pageId: string) => void;
-  onSeeFlow: () => void;
-  onSeeResources: () => void;
+  /** Open the team's page: its roles, what each does, its recent runs. */
+  onOpenTeam: (teamId: string) => void;
 }
 
-const RANGE_LABEL: Record<TeamRange, { head: string; runs: string; spent: string }> = {
-  today: { head: 'Today', runs: 'Runs today', spent: 'Spent today' },
-  '7d': { head: 'Last 7 days', runs: 'Runs, last 7 days', spent: 'Spent, last 7 days' },
-  '30d': { head: 'Last 30 days', runs: 'Runs, last 30 days', spent: 'Spent, last 30 days' },
-};
+const ACTIVE = 'queued,starting,running,needs_input';
 
-const OFFLINE_TEXT: Record<string, string> = {
-  not_logged_in: 'Not logged in to the local runner',
-  key_invalid: 'The API key is not accepted',
-  runner_missing: 'The local runner was not found',
-  model_retired: 'The model is retired',
-};
-
-const LAST_VERB: Record<string, string> = {
-  finished: 'finished',
-  failed: 'failed',
-  timed_out: 'timed out on',
-  cancelled: 'was stopped on',
-};
-
-function Tickets({ ids, onOpen }: { ids: string[]; onOpen: (id: string) => void }) {
+/** What a team does right now: the roles working, the step they are on, how full the lead's conversation is. */
+function WorkingNow({ team, activity }: { team: AiTeam; activity?: TeamActivity }) {
+  const lead = activity?.lead.working;
+  if (!lead) return null;
+  const waiting = lead.state === 'needs_input';
+  const workers = (activity?.roles ?? []).filter((r) => r.working);
+  const roleName = (key: string) => team.roles.find((r) => r.key === key)?.name ?? key;
+  // the most specific step: the role that works now, else the lead
+  const step = workers.find((r) => r.working?.step)?.working?.step ?? lead.step;
   return (
-    <>
-      {ids.map((id, i) => (
-        <span key={id}>
-          {i > 0 ? ', ' : ''}
-          <TicketChip id={id} onOpen={onOpen} />
-        </span>
-      ))}
-    </>
-  );
-}
-
-/** A card's stop at its ticket's token cap (O), when the server sends it. */
-function capStopOf(card: TeamCard): CapStop | null {
-  return (card as TeamCard & { capStop?: CapStop | null }).capStop ?? null;
-}
-
-const CAP_ICON = (
-  <>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v5l3 2" />
-  </>
-);
-
-function NeedCard({ item, actions }: { item: NeedsItem | CapNeed; actions: NowActions }) {
-  const toast = useToast();
-  const [always, setAlways] = useState(false);
-  const decide = useAiMutation(async (v: { id: string; approve: boolean; always?: boolean }) => {
-    if (v.approve) {
-      const out = await safetyApi.approve(v.id, { always: v.always });
-      if (out.error) throw new Error(out.error);
-      return out;
-    }
-    return safetyApi.deny(v.id);
-  });
-  const retry = useAiMutation((runId: string) => aiApi.retry(runId));
-  const dismiss = useAiMutation((runId: string) => aiApi.dismissStop(runId));
-  const resume = useAiMutation((ticketId: string) => workflowApi.resume(ticketId));
-  const wait = item.waitingS != null ? `waiting ${fmtDuration(item.waitingS)}` : '';
-  const who = item.memberName ?? 'An AI';
-  const open = actions.onOpenTicket;
-  const ticket = item.ticketId ? <TicketChip id={item.ticketId} onOpen={open} /> : null;
-
-  let icon: ReactNode = ICONS.question;
-  let red = false;
-  let title: string;
-  let body: ReactNode;
-  let hint: string;
-  let buttons: ReactNode;
-  let choice: ReactNode = null;
-  switch (item.kind) {
-    case 'quota_cap': {
-      title = `${item.ticketId} reached its token cap`;
-      body =
-        item.used != null && item.cap != null ? (
-          <>
-            {who} used {item.used.toLocaleString('en-US')} of {item.cap.toLocaleString('en-US')} tokens
-            {item.ticketTitle ? (
-              <>
-                {' '}
-                on <b>{item.ticketTitle}</b>
-              </>
-            ) : null}
-            . It stopped and kept its work.
-          </>
-        ) : (
-          <>{item.text || `${who} stopped at the token cap of ${item.ticketId} and kept its work.`}</>
-        );
-      icon = CAP_ICON;
-      const waits = item.waitedBy ?? [];
-      hint = [
-        wait,
-        waits.length ? `${waits.join(', ')} wait${waits.length === 1 ? 's' : ''} for it` : null,
-        item.storyId ? `Story ${item.storyId}` : null,
-      ]
-        .filter(Boolean)
-        .join(' · ');
-      buttons = (
-        <>
-          <button
-            type="button"
-            className="st-btn st-btn-primary st-btn-sm"
-            disabled={resume.isPending}
-            onClick={() =>
-              resume.mutate(item.ticketId, { onError: (e) => toast.error("Couldn't resume it", extractError(e)) })
-            }
-          >
-            <Icon>{ICONS.play}</Icon>
-            Resume
-          </button>
-          <button type="button" className="st-btn st-btn-sm" onClick={() => open(item.ticketId)}>
-            Open ticket
-          </button>
-        </>
-      );
-      break;
-    }
-    case 'question':
-      title = `${who} asks a question`;
-      body = (
-        <>
-          <b>{who}</b> on {ticket} “{item.text}”
-        </>
-      );
-      hint = `${wait} · blocks ${item.ticketId}`;
-      buttons = (
-        <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={() => open(item.ticketId!)}>
-          Answer
-        </button>
-      );
-      break;
-    case 'approval':
-      icon = ICONS.lock;
-      title = `${who} asks permission to ${item.actionLabel.toLowerCase()}`;
-      body = (
-        <>
-          <b>{who}</b> {ticket ? <>on {ticket}: </> : ': '}
-          {item.text}. Risk {item.risk}.
-        </>
-      );
-      hint = `${wait} · the run goes on, this step waits`;
-      if (item.alwaysAllowed) {
-        choice = (
-          <label className="at-check" title="Its Docs edits then go through without a request. Undo it in Approvals.">
-            <input type="checkbox" checked={always} onChange={(e) => setAlways(e.target.checked)} />
-            Don’t ask again for {who}’s Docs edits
-          </label>
-        );
-      }
-      buttons = (
-        <>
-          <button
-            type="button"
-            className="st-btn st-btn-primary st-btn-sm"
-            disabled={decide.isPending}
-            onClick={() =>
-              decide.mutate(
-                { id: item.approvalId, approve: true, always },
-                { onError: (e) => toast.error("Couldn't allow it", extractError(e)) },
-              )
-            }
-          >
-            <Icon>{ICONS.check}</Icon>
-            {always ? 'Approve, don’t ask again' : 'Approve'}
-          </button>
-          <button
-            type="button"
-            className="st-btn st-btn-sm"
-            disabled={decide.isPending}
-            onClick={() =>
-              decide.mutate(
-                { id: item.approvalId, approve: false },
-                { onError: (e) => toast.error("Couldn't deny", extractError(e)) },
-              )
-            }
-          >
-            Deny
-          </button>
-        </>
-      );
-      break;
-    case 'offline':
-      icon = ICONS.plug;
-      red = true;
-      title = `${who} is offline`;
-      body = (
-        <>
-          <b>{who}</b>: {item.text}
-          {item.since ? ` (since ${fmtClock(item.since)})` : ''}.
-        </>
-      );
-      hint = `offline ${fmtDuration(item.waitingS)} · ${item.ticketsWaiting.length} ticket${item.ticketsWaiting.length === 1 ? '' : 's'} waiting`;
-      buttons = (
-        <button
-          type="button"
-          className="st-btn st-btn-primary st-btn-sm"
-          onClick={() => actions.onOpenMember(item.memberId)}
-        >
-          Fix connection
-        </button>
-      );
-      break;
-    case 'memory_stop':
-      icon = ICONS.plug;
-      red = true;
-      title = `${who}’s run was stopped: memory`;
-      body = (
-        <>
-          <b>{who}</b> on {ticket}: the CLI went over {item.limitMb ? `its ${fmtMb(item.limitMb)}` : 'the memory'} limit
-          again after {AUTO_RESTARTS} restarts{item.peakRssMb ? ` (peak ${fmtMb(item.peakRssMb)})` : ''}. Partial work
-          in the folder is kept.
-        </>
-      );
-      hint = `stopped ${fmtDuration(item.waitingS)} ago · the ticket stays assigned to ${who}`;
-      buttons = (
-        <>
-          <button
-            type="button"
-            className="st-btn st-btn-primary st-btn-sm"
-            disabled={retry.isPending}
-            onClick={() => retry.mutate(item.runId, { onError: (e) => toast.error("Couldn't retry", extractError(e)) })}
-          >
-            Retry
-          </button>
-          <button type="button" className="st-btn st-btn-sm" onClick={() => open(item.ticketId!)}>
-            Open run
-          </button>
-          <button type="button" className="st-btn st-btn-sm" onClick={actions.onSeeResources}>
-            See resources
-          </button>
-          <button
-            type="button"
-            className="st-btn st-btn-sm"
-            disabled={dismiss.isPending}
-            onClick={() =>
-              dismiss.mutate(item.runId, { onError: (e) => toast.error("Couldn't dismiss it", extractError(e)) })
-            }
-          >
-            Dismiss
-          </button>
-        </>
-      );
-      break;
-    case 'docs_proposal':
-      icon = ICONS.page;
-      title = `${who} proposed ${item.changes} change${item.changes === 1 ? '' : 's'} to a page`;
-      body = (
-        <>
-          <b>{who}</b> on <b>{item.pageTitle ?? 'a page'}</b>
-          {item.pageVersion ? ` (Docs, v${item.pageVersion})` : ' (Docs)'}
-          {ticket ? <> for {ticket}</> : null}
-        </>
-      );
-      hint = `${wait}${item.ticketId ? ` · blocks the review of ${item.ticketId}` : ''}`;
-      buttons = (
-        <button
-          type="button"
-          className="st-btn st-btn-primary st-btn-sm"
-          onClick={() => actions.onOpenDocsPage(item.pageId)}
-        >
-          <Icon>{ICONS.eye}</Icon>Review changes
-        </button>
-      );
-      break;
-    case 'canvas_proposal':
-      icon = ICONS.page;
-      title = `${who} proposed ${item.changes} change${item.changes === 1 ? '' : 's'} to a canvas`;
-      body = (
-        <>
-          <b>{who}</b> on <b>{item.canvasTitle ?? 'a canvas'}</b>
-          {ticket ? <> for {ticket}</> : null}
-        </>
-      );
-      hint = `${wait}${item.ticketId ? ` · blocks the review of ${item.ticketId}` : ''}`;
-      buttons = (
-        <button
-          type="button"
-          className="st-btn st-btn-primary st-btn-sm"
-          onClick={() =>
-            item.pageId ? actions.onOpenDocsPage(item.pageId) : item.ticketId && actions.onOpenTicket(item.ticketId)
-          }
-        >
-          <Icon>{ICONS.eye}</Icon>Review on canvas
-        </button>
-      );
-      break;
-  }
-  return (
-    <div className="at-need" data-testid={`needs-${item.kind}`}>
-      <div className="at-need-head">
-        <span className={`at-need-ico${red ? ' red' : ''}`}>
-          <Icon color={red ? '#C4432A' : '#B8860B'}>{icon}</Icon>
-        </span>
-        <b>{title}</b>
-      </div>
-      <div className="at-need-body">{body}</div>
-      <div className="at-hint-sm">{hint}</div>
-      {choice}
-      <div className="at-actions">{buttons}</div>
-    </div>
-  );
-}
-
-/** The RAM and CPU chip on a working AI's card (design/screens/ai-resources.md, C1). */
-function MemoryChip({ memory, onOpen }: { memory: CardMemory; onOpen: () => void }) {
-  if (!memory.readable || memory.cliRssMb == null) return null;
-  const pct = limitPct(memory.cliRssMb, memory.limitMb);
-  const level = levelOf(pct);
-  const look = { ok: '#E6F2EA', warn: '#FEF3D9', bad: '#FDF3F0' }[level];
-  const title = [
-    `CLI ${fmtMb(memory.cliRssMb)}${memory.limitMb > 0 ? ` of ${fmtMb(memory.limitMb)} (${pct}%)` : ''}`,
-    memory.peakRssMb != null ? `peak ${fmtMb(memory.peakRssMb)}` : null,
-    memory.extraMb ? `+${fmtMb(memory.extraMb)} from what it started` : null,
-    memory.restarts ? `${memory.restarts} restart${memory.restarts === 1 ? '' : 's'}` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <button
-        type="button"
-        className="rs-chip"
-        style={{ background: look, color: LEVEL_COLOR[level].text, border: 'none', cursor: 'pointer' }}
-        title={title}
-        onClick={onOpen}
-      >
-        <span className="rs-chip-bar">
-          <i style={{ width: `${Math.min(100, pct)}%`, background: LEVEL_COLOR[level].bar }} />
-        </span>
-        RAM {fmtMb(memory.cliRssMb)}
-        {memory.cpuPct != null && <span style={{ fontWeight: 500 }}>· CPU {Math.round(memory.cpuPct)}%</span>}
-      </button>
-      {memory.limitMb > 0 && level !== 'ok' && <span className="at-hint-sm">{pct}% of its limit</span>}
-    </div>
-  );
-}
-
-function MemberCard({ card, range, actions }: { card: TeamCard; range: TeamRange; actions: NowActions }) {
-  const toast = useToast();
-  const pause = useAiMutation((v: { runId: string; resume: boolean }) =>
-    v.resume ? aiApi.resumeRun(v.runId) : aiApi.pauseRun(v.runId),
-  );
-  const { current, last, queued } = card;
-  const open = actions.onOpenTicket;
-  const apiKey = card.connection === 'api_key';
-  const runnerText = `${card.model ?? card.providerLabel} · ${apiKey ? 'API key' : card.connection === 'inbox' ? 'MCP inbox' : 'local runner'}`;
-  const u = card.usage;
-  const budget = u.metered ? (u.dailyBudget ?? null) : null;
-  const nearCap = budget != null && (u.costUsd ?? 0) >= budget * 0.8;
-  const queuedIds = [...new Set([...queued.map((r) => r.ticketId), ...card.assigned])].filter(
-    (id) => id !== current?.ticketId,
-  );
-  const cap = card.state === 'offline' ? null : capStopOf(card);
-  const resumeCap = useAiMutation((ticketId: string) => workflowApi.resume(ticketId));
-
-  let body: ReactNode;
-  if (card.state === 'offline') {
-    body = (
-      <>
-        <div style={{ color: '#A5321E', fontWeight: 600 }}>{OFFLINE_TEXT[card.status.code] ?? card.status.label}</div>
-        <div className="at-hint">
-          {card.status.detail ? `${card.status.detail}. ` : ''}
-          {queuedIds.length ? (
-            <>
-              Queued: <Tickets ids={queuedIds} onOpen={open} />.
-            </>
-          ) : (
-            'Nothing is waiting for it.'
-          )}
-        </div>
-        {last && (
-          <div className="at-hint-sm">
-            Last run {LAST_VERB[last.state]?.replace(/ on$/, '') ?? last.state} {fmtClock(last.endedAt)}
-          </div>
-        )}
-      </>
-    );
-  } else if (cap) {
-    const step = cap.step;
-    const stopped = cap.stoppedAt
-      ? fmtAgo(Math.max(0, Math.round((Date.now() - new Date(cap.stoppedAt).getTime()) / 1000)))
-      : '';
-    body = (
-      <>
-        <div>
-          On <TicketChip id={cap.ticketId} onOpen={open} /> {cap.ticketTitle && <b>{cap.ticketTitle}</b>}
-        </div>
-        <div>
-          {[
-            step
-              ? `${step.label ? `${step.label}, ` : ''}step ${step.n}${step.total ? ` of ${step.total}` : ''}`
-              : null,
-            stopped ? `stopped ${stopped}` : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </div>
-        <div className="cap-bar" />
-        <div className="at-hint-sm">
-          {fmtTokens(cap.used)} of {fmtTokens(cap.cap)} tokens for this ticket
-        </div>
-        {cap.next && (
-          <div className="at-hint">
-            Next in line: <TicketChip id={cap.next.ticketId} onOpen={open} /> (waits for {cap.next.waitsFor})
-          </div>
-        )}
-      </>
-    );
-  } else if (current) {
-    const asked = current.question;
-    const limit = apiKey && current.limitMin ? current.limitMin : null;
-    const elapsedMin = Math.round((current.elapsedS ?? 0) / 60);
-    body = (
-      <>
-        <div>
-          On <TicketChip id={current.ticketId} onOpen={open} /> <b>{current.ticketTitle}</b>
-        </div>
-        {asked ? (
-          <>
-            <div className="at-quote">“{asked.text}”</div>
-            <div className="at-hint-sm">
-              Asked{' '}
-              {fmtAgo(Math.max(0, Math.round((Date.now() - new Date(asked.askedAt ?? Date.now()).getTime()) / 1000)))} ·
-              run is paused, nothing is lost
-            </div>
-          </>
-        ) : card.state === 'waiting' ? (
-          <div className="at-hint">Waiting for your approval before it goes on.</div>
-        ) : (
-          <>
-            {current.step && (
-              <div style={{ color: '#3A4A3E' }}>
-                Step {current.step.n}: {current.step.text}
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {limit ? (
-                <>
-                  <div className="at-bar">
-                    <i style={{ width: `${Math.min(100, (elapsedMin / limit) * 100)}%`, background: '#2E6F40' }} />
-                  </div>
-                  <span className="at-hint-sm" style={{ whiteSpace: 'nowrap' }}>
-                    {elapsedMin} min of {limit}
-                  </span>
-                </>
-              ) : (
-                <span className="at-hint-sm">
-                  {current.paused ? 'Paused · ' : ''}
-                  {fmtDuration(current.elapsedS)} so far
-                </span>
-              )}
-            </div>
-            {current.memory && <MemoryChip memory={current.memory} onOpen={actions.onSeeResources} />}
-            {queued[0] && (
-              <div className="at-hint-sm">
-                Next in line: <TicketChip id={queued[0].ticketId} onOpen={open} /> (queued behind this run)
-              </div>
-            )}
-          </>
-        )}
-      </>
-    );
-  } else {
-    body = (
-      <>
-        {card.state === 'queued' && queuedIds.length ? (
-          <div>
-            Queued: <Tickets ids={queuedIds} onOpen={open} />
-          </div>
-        ) : card.state === 'paused' ? (
-          <>
-            {card.pause?.project && !card.pause.own && !card.pause.cancelled && !queuedIds.length && (
-              <div className="at-hint">Paused for the project.</div>
-            )}
-            {card.pause?.cancelled && (
-              <div>
-                On <TicketChip id={card.pause.cancelled.ticketId} onOpen={open} /> cancelled at step{' '}
-                {card.pause.cancelled.step}
-                {card.pause.cancelled.at ? ` (${fmtClock(card.pause.cancelled.at)})` : ''}.{' '}
-                <span className="at-hint">Partial work is kept.</span>
-              </div>
-            )}
-            {card.pause?.own && (
-              <div className="at-hint">
-                {card.pause.ownLabel || card.status.label}
-                {card.pause.project ? '. Paused on its own, not only by the project: Resume will not start it.' : ''}
-              </div>
-            )}
-            {!card.pause && <div className="at-hint">{card.status.detail || card.status.label}</div>}
-            {card.pause?.project && queuedIds.length > 0 && (
-              <div>
-                Held: <Tickets ids={queuedIds} onOpen={open} />{' '}
-                <span className="at-hint">{queuedIds.length === 1 ? 'starts' : 'start'} on resume</span>
-              </div>
-            )}
-          </>
-        ) : queuedIds.length ? (
-          <div className="at-hint">
-            Assigned: <Tickets ids={queuedIds} onOpen={open} />
-          </div>
-        ) : (
-          <div className="at-hint">Nothing assigned.</div>
-        )}
-        {last && (
-          <>
-            <div>
-              Last: {LAST_VERB[last.state] ?? last.state} <TicketChip id={last.ticketId} onOpen={open} />{' '}
-              {last.summary ? <i>{last.summary.split('\n')[0].slice(0, 60)}</i> : null}
-            </div>
-            <div className="at-hint-sm">
-              {fmtAgo(last.agoS)} · {usageText(last.usage, { verbose: true })}
-            </div>
-          </>
-        )}
-        {card.connectionUnknown && (
-          <span className="at-chip" style={{ background: '#F1F3F1', color: '#5B6B60', width: 'max-content' }}>
-            <Icon color="#5B6B60" size={11}>
-              {ICONS.info}
-            </Icon>
-            Connection unknown
-          </span>
-        )}
-      </>
-    );
-  }
-
-  const lastRunTicket = last?.ticketId;
-  return (
-    <div className="at-card" data-testid={`team-card-${card.state}`}>
-      <div className="at-card-head">
-        <Badge name={card.name} color={card.color} role={card.role} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="at-card-name">{card.name}</div>
-          <div className="at-hint-sm">{runnerText}</div>
-        </div>
-        {cap ? (
-          <span className="at-chip" style={{ background: '#FEF3D9', color: '#7A5A06' }} data-testid="stopped-at-cap">
-            <Icon color="#B8860B" size={11}>
-              {CAP_ICON}
-            </Icon>
-            Stopped at cap
-          </span>
-        ) : (
-          <StateChip state={card.state} project={!!card.pause?.project && !card.pause.own} />
-        )}
-      </div>
-      <div className="at-card-body">{body}</div>
-      <div className="at-card-foot">
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <div className="at-label">{RANGE_LABEL[range].head}</div>
-            <Spark values={card.spark} color={stateLine(card.state)} />
-          </div>
-          <div style={{ fontSize: 12 }}>
-            {u.runs} run{u.runs === 1 ? '' : 's'} · {u.ok} ok
-            {u.failed ? ` · ${u.failed} failed` : ''} ·{' '}
-            {nearCap ? (
-              <b style={{ color: '#A5321E' }}>
-                {fmtUsd(u.costUsd ?? 0)} / {fmtUsd(budget!)}
-              </b>
-            ) : (
-              <span title={u.tokensCached != null ? usageText({ ...u, costUsd: 0, metered: false }) : undefined}>
-                {usageText(u)}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="at-actions">
-        {cap && (
-          <>
-            <button
-              type="button"
-              className="st-btn st-btn-primary st-btn-sm"
-              disabled={resumeCap.isPending}
-              onClick={() =>
-                resumeCap.mutate(cap.ticketId, {
-                  onError: (e) => toast.error("Couldn't resume it", extractError(e)),
-                })
-              }
-            >
-              <Icon>{ICONS.play}</Icon>
-              Resume
-            </button>
-            <button
-              type="button"
-              className="st-btn st-btn-sm"
-              onClick={() => (cap.runId ? openRun(cap.runId) : open(cap.ticketId))}
-            >
-              Open run
-            </button>
-          </>
-        )}
-        {card.state === 'offline' && (
-          <button
-            type="button"
-            className="st-btn st-btn-primary st-btn-sm"
-            onClick={() => actions.onOpenMember(card.id)}
-          >
-            Fix connection
-          </button>
-        )}
-        {card.state === 'waiting' && current?.question && (
-          <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={() => open(current.ticketId)}>
-            Answer
-          </button>
-        )}
-        {cap ? null : current ? (
-          <button type="button" className="st-btn st-btn-sm" onClick={() => open(current.ticketId)}>
-            Open run
-          </button>
-        ) : (
-          lastRunTicket &&
-          card.state !== 'offline' && (
-            <button type="button" className="st-btn st-btn-sm" onClick={() => open(lastRunTicket)}>
-              Open last run
-            </button>
-          )
-        )}
-        {!cap && current && card.state === 'working' && (
-          <button
-            type="button"
-            className="st-btn st-btn-sm"
-            disabled={pause.isPending}
-            onClick={() =>
-              pause.mutate(
-                { runId: current.runId, resume: current.paused },
-                { onError: (e) => toast.error("Couldn't change the run", extractError(e)) },
-              )
-            }
-          >
-            <Icon>{current.paused ? ICONS.play : ICONS.pause}</Icon>
-            {current.paused ? 'Resume' : 'Pause'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function HandoffRow({ h, onOpen }: { h: Handoff; onOpen: (id: string) => void }) {
-  const look = KIND_LOOK[h.kind] ?? { bg: '#F1F3F1', fg: '#5B6B60' };
-  const text = (h.note ?? h.ticketTitle ?? '').slice(0, 70);
-  return (
-    <div className="at-handoff">
-      <Badge end={h.from} size={22} />
-      <Icon color="#9AA8A0">{ICONS.arrow}</Icon>
-      <Badge end={h.to} size={22} />
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <TicketChip id={h.ticketId} onOpen={onOpen} /> {text}
-      </span>
-      <span className="at-chip" style={{ background: look.bg, color: look.fg }}>
-        {h.kind}
-      </span>
-      <span className="at-hint-sm" style={{ whiteSpace: 'nowrap', width: 70, textAlign: 'right' }}>
-        {fmtAgo(h.agoS)}
-      </span>
-    </div>
-  );
-}
-
-/** Now: what needs a person, a card per AI, the latest hand-offs and the totals (design/screens/ai-team.md, B). */
-export function NowTab({ data, range, actions }: { data: TeamNow; range: TeamRange; actions: NowActions }) {
-  const t = data.totals;
-  const label = RANGE_LABEL[range];
-  const cap = t.dailyCap;
-  const capped = data.members.filter((c) => c.state !== 'offline' && capStopOf(c)).length;
-  const working = data.counts.working ?? 0;
-  const queued = data.counts.queued ?? 0;
-  return (
-    <>
-      <div className="at-states">
-        {STATE_ORDER.filter((s) => data.counts[s]).map((s) => {
-          if (s !== 'paused' || !data.pausedAll) return <StateChip key={s} state={s} count={data.counts[s]} />;
-          // While the project is paused, two kinds of paused: orange for the project, grey for the AI's own
-          const own = data.members.filter((c) => c.state === 'paused' && c.pause?.own).length;
-          const proj = (data.counts[s] ?? 0) - own;
+    <div className="at-quote" style={{ background: '#F4F9F5', borderColor: '#D6E8DB' }} data-testid="working-now">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        <span className="at-label">{waiting ? 'Waiting for your answer' : 'Working'}</span>
+        {workers.length === 0 && !waiting && <span className="at-chip">Lead</span>}
+        {(waiting ? [] : workers).map((r) => {
+          const look = roleLook(r.key);
           return (
-            <span key={s} style={{ display: 'inline-flex', gap: 8 }}>
-              {proj > 0 && <StateChip state="paused" project count={proj} />}
-              {own > 0 && <StateChip state="paused" count={own} />}
+            <span
+              key={r.key}
+              className="at-chip"
+              style={{ background: look.bg, color: look.fg, border: `1px solid ${look.border}` }}
+            >
+              <span className="at-dot at-dot-live" style={{ background: look.border }} />
+              {roleName(r.key)}
             </span>
           );
         })}
-        {capped > 0 && (
-          <span className="at-chip" style={{ background: '#FEF3D9', color: '#7A5A06' }} data-testid="capped-count">
-            <Icon color="#B8860B" size={11}>
-              {CAP_ICON}
-            </Icon>
-            Stopped at a limit {capped}
-          </span>
-        )}
-        <span className="at-hint">{data.members.length} AI members</span>
-        {data.pausedAll && (
-          <span className="at-hint" data-testid="paused-legend">
-            <b style={{ color: '#B4571F' }}>Orange</b>: paused for the whole project.{' '}
-            <b style={{ color: '#5B6B60' }}>Grey</b>: paused on its own (budget, rate limit, or by a person).
-          </span>
-        )}
       </div>
+      <div className="at-step" style={{ marginTop: 4 }} title={step?.title} data-testid="working-step">
+        {step ? step.title : 'Starting…'}
+      </div>
+      {lead.contextUsed != null && lead.contextWindow ? (
+        <div style={{ marginTop: 4 }}>
+          <ContextMeter used={lead.contextUsed} size={lead.contextWindow} inline />
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
-      {data.needsYou.length > 0 && (
-        <div id="at-needs-you">
-          <div className="at-section-head">
-            <b>Needs you · {data.needsYou.length}</b>
-            <span className="at-hint">Oldest first. Each one is something an AI cannot continue without.</span>
-          </div>
-          <div className="at-needs">
-            {data.needsYou.map((item) => (
-              <NeedCard
-                key={`${item.kind}-${'approvalId' in item ? item.approvalId : 'proposalId' in item ? item.proposalId : 'runId' in item ? item.runId : (item.ticketId ?? item.memberId)}`}
-                item={item}
-                actions={actions}
-              />
+/** One card per team: its status, its roles, what it is working on. The name opens the team's page. */
+function TeamCard({ team, activity, actions }: { team: AiTeam; activity?: TeamActivity; actions: NowActions }) {
+  return (
+    <div
+      className="ai-card"
+      style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}
+      data-testid={`team-card-${team.name}`}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <AiAvatar color={team.color} size={32} dim={team.paused} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <button
+            type="button"
+            className="ai-link"
+            style={{ fontWeight: 700, fontSize: 14 }}
+            onClick={() => actions.onOpenTeam(team.id)}
+          >
+            {team.name}
+          </button>
+          <div className="ai-muted">{team.packName ?? team.packKey}</div>
+        </div>
+        <StatusLabel status={team.status} sub={null} />
+      </div>
+      <RoleChips team={team} />
+      <WorkingNow team={team} activity={activity} />
+      <div className="ai-muted">
+        {team.slotsInUse} of {team.maxParallel} running · {team.queued} queued · {team.usage.runsToday} run
+        {team.usage.runsToday === 1 ? '' : 's'} today
+      </div>
+      {team.running.map((r) => (
+        <div key={r.runId} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5 }}>
+          <TicketChip id={r.ticketId} onOpen={actions.onOpenTicket} />
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {r.ticketTitle}
+          </span>
+          <RunStateChip state={r.state} />
+        </div>
+      ))}
+      <div>
+        <button type="button" className="ai-link" onClick={() => actions.onOpenTeam(team.id)}>
+          See the roles →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** A row of an active run: ticket, team, state, how far. */
+function ActiveRow({ run, team, actions }: { run: AiRun; team?: AiTeam; actions: NowActions }) {
+  return (
+    <div
+      className="ai-row"
+      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}
+      data-testid="active-run"
+    >
+      {run.ticketId && <TicketChip id={run.ticketId} onOpen={actions.onOpenTicket} />}
+      <span style={{ fontWeight: 600 }}>{team?.name ?? 'Team'}</span>
+      <span className="ai-muted">run #{run.number}</span>
+      <RunStateChip state={run.state} />
+      <span className="ai-muted">{run.stepsCount} steps</span>
+      {run.state === 'running' && <span className="ai-mono ai-muted">{fmtElapsed(secondsSince(run.startedAt))}</span>}
+      <span style={{ flex: 1 }} />
+      <button type="button" className="ai-link" onClick={() => openRun(run.id)}>
+        Open run
+      </button>
+    </div>
+  );
+}
+
+/** The newest steps of every active run, from the live endpoint and the typed events that patch it. */
+function LivePanel({ live, teams }: { live: AiLive; teams: Map<string, AiTeam> }) {
+  const steps = live.steps.slice(-30).reverse();
+  if (!steps.length) return <div className="ai-muted">Nothing is running.</div>;
+  return (
+    <div className="ai-steps" data-testid="live-steps">
+      {steps.map((s) => (
+        <div key={`${s.runId}-${s.seq}`} className="ai-step-row">
+          <StepIcon step={s} />
+          <span className="ai-mono ai-muted" style={{ whiteSpace: 'nowrap' }}>
+            {s.ticketId ?? ''} · {teams.get(s.memberId)?.name ?? ''}
+          </span>
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {s.title}
+          </span>
+          <span className="ai-step-time">{hhmm(s.at)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** AI Team › Now: what waits for a person, the teams and who works in them, the active runs, what ended, the spend. */
+export function NowTab({ projectId, actions }: { projectId: string; actions: NowActions }) {
+  const teamsQ = useAiTeams(projectId);
+  const overview = useAiOverview(projectId);
+  const activeQ = useProjectRuns(projectId, { state: ACTIVE, limit: 40 });
+  const liveQ = useAiLive(projectId);
+  const activityQ = useTeamsActivity(projectId);
+  const settingsQ = useAiSettings(projectId);
+  useNow(
+    1000,
+    (activeQ.data ?? []).some((r) => r.state === 'running'),
+  );
+  if (teamsQ.isError)
+    return <LoadError what="the AI teams" error={teamsQ.error} onRetry={() => void teamsQ.refetch()} />;
+  if (teamsQ.isLoading || !teamsQ.data) return <div className="at-hint">Loading the AI team…</div>;
+  const teams = teamsQ.data;
+  const byId = new Map(teams.map((t) => [t.id, t]));
+  const active = activeQ.data ?? [];
+  const asking = active.filter((r) => r.state === 'needs_input' && r.question && !r.answer);
+  const counts = overview.data?.runs ?? {};
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }} data-testid="at-now">
+      <div style={{ display: 'flex', gap: 24, fontSize: 13, flexWrap: 'wrap' }} data-testid="at-counts">
+        <span>
+          <b>{(counts.running ?? 0) + (counts.starting ?? 0)}</b> running
+        </span>
+        <span>
+          <b>{counts.queued ?? 0}</b> queued
+        </span>
+        <span>
+          <b>{counts.needsInput ?? 0}</b> waiting for you
+        </span>
+        <span>
+          <b>{counts.finished ?? 0}</b> finished
+        </span>
+        <span>
+          <b>{counts.failed ?? 0}</b> failed
+        </span>
+      </div>
+      <NeedsYou
+        projectId={projectId}
+        teams={teams}
+        active={active}
+        asking={asking}
+        onOpenTicket={actions.onOpenTicket}
+        onOpenMember={actions.onOpenMember}
+      />
+      <section>
+        <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
+          Teams
+        </h2>
+        {teams.length === 0 ? (
+          <div className="ai-muted">No AI team yet. Add one from the Members page.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+            {teams.map((t) => (
+              <TeamCard key={t.id} team={t} activity={activityQ.data?.[t.id]} actions={actions} />
             ))}
           </div>
-        </div>
-      )}
-
-      {data.needsYou.length === 0 && (
-        <div id="at-needs-you" data-testid="needs-you-empty">
-          <div className="at-section-head">
-            <b>Needs you · 0</b>
+        )}
+      </section>
+      <section>
+        <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
+          Active runs
+        </h2>
+        {active.length === 0 ? (
+          <div className="ai-muted">No run is active.</div>
+        ) : (
+          <div className="ai-card">
+            {active.map((r) => (
+              <ActiveRow key={r.id} run={r} team={byId.get(r.memberId)} actions={actions} />
+            ))}
           </div>
-          <div className="at-hint">
-            Nothing is waiting on you.
-            {working + queued > 0
-              ? ` ${[
-                  working ? `${working} ${working === 1 ? 'AI is' : 'AIs are'} working` : '',
-                  queued ? `${queued} ${queued === 1 ? 'is' : 'are'} queued` : '',
-                ]
-                  .filter(Boolean)
-                  .join(', ')}.`
-              : ''}
-          </div>
-        </div>
-      )}
-
-      {data.members.length === 0 ? (
-        <div className="at-empty">This project has no AI members yet. Add one in Members to see its work here.</div>
-      ) : (
-        <div className="at-cards">
-          {data.members.map((c) => (
-            <MemberCard key={c.id} card={c} range={range} actions={actions} />
-          ))}
-        </div>
-      )}
-
-      <div className="at-bottom">
-        <div className="at-panel">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-            <b style={{ fontSize: 13.5, flex: 1 }}>Recent hand-offs</b>
-            <button type="button" className="at-link" onClick={actions.onSeeFlow}>
-              See the flow
-            </button>
-          </div>
-          {data.handoffs.length ? (
-            data.handoffs.map((h) => <HandoffRow key={`${h.runId}-${h.kind}`} h={h} onOpen={actions.onOpenTicket} />)
-          ) : (
-            <div className="at-hint" style={{ padding: '8px 0' }}>
-              No work has passed between AIs in this range.
-            </div>
-          )}
-        </div>
-        <div className="at-totals">
-          <b style={{ fontSize: 13.5 }}>{range === 'today' ? 'Today so far' : label.head}</b>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <div className="at-total">
-              <div className="at-label">{label.runs}</div>
-              <span className="at-total-n">{t.runs}</span>
-              <div className="at-hint-sm">
-                {t.ok} ok · {t.failed} failed · {t.running} running
-              </div>
-            </div>
-            <div className="at-total">
-              <div className="at-label">{label.spent}</div>
-              <span className="at-total-n">{fmtUsd(t.spentUsd)}</span>
-              <div className="at-hint-sm">
-                {cap ? `of ${fmtUsd(cap)} daily cap for the team` : 'no daily cap for the team'}
-              </div>
-            </div>
-            <div className="at-total">
-              <div className="at-label">Needed you</div>
-              <span className="at-total-n">{t.touches}</span>
-              <div className="at-hint-sm">times {range === 'today' ? 'so far today' : label.head.toLowerCase()}</div>
-            </div>
-            {(t.autopilot.on || t.autopilot.decided > 0) && (
-              <div className="at-total" data-testid="autopilot-tile">
-                <div className="at-label">Autopilot decided</div>
-                <span className="at-total-n">{t.autopilot.decided}</span>
-                <div className="at-hint-sm">
-                  {t.autopilot.on
-                    ? `${t.autopilot.delegate ?? 'An AI'} answers after ${t.autopilot.graceMin} min`
-                    : 'now off'}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+        )}
+      </section>
+      <RecentList projectId={projectId} teams={teams} onOpenTicket={actions.onOpenTicket} />
+      <SpendToday teams={teams} settings={settingsQ.data} />
+      <section>
+        <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
+          Live
+        </h2>
+        {liveQ.data ? <LivePanel live={liveQ.data} teams={byId} /> : <div className="ai-muted">Loading…</div>}
+      </section>
+    </div>
   );
 }

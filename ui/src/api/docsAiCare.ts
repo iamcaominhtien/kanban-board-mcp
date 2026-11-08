@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { DocsAiJob } from './docsAi';
-import type { CareChange, CareReason, DismissLevel, HealthCounts, TicketDraft } from '../utils/careRules';
+import type { CareReason, DismissLevel, HealthCounts, TicketDraft } from '../utils/careRules';
 import { ascendingCodeUnits } from '../utils/sorted';
 
 /** Keeping pages true, Docs health and tickets from a page (docs-ai-care A and C). */
@@ -31,7 +31,6 @@ export async function waitForJob(id: string, timeoutMs = 180000): Promise<DocsAi
 
 export const careKeys = {
   freshness: (pageId: string) => ['docs-ai', 'freshness', pageId] as const,
-  proposals: (pageId: string) => ['docs-ai', 'care-proposals', pageId] as const,
   health: (projectId: string) => ['docs-ai', 'health', projectId] as const,
   healthCount: (projectId: string) => ['docs-ai', 'health-count', projectId] as const,
 };
@@ -99,71 +98,6 @@ export function useDismissReason(pageId: string) {
     onSuccess: (data) => {
       qc.setQueryData(careKeys.freshness(pageId), data);
       void qc.invalidateQueries({ queryKey: ['docs-ai', 'health'] });
-    },
-  });
-}
-
-/** "Review suggested edits": the AI writes ONE proposal; resolves with its id. */
-export function useSuggestEdits(pageId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const job = (await client.post<DocsAiJob>(`/docs/pages/${pageId}/ai/freshness/suggest`)).data;
-      const done = await waitForJob(job.id);
-      return {
-        proposalId: String(done.result.proposalId ?? ''),
-        cost: Number(done.result.cost ?? 0),
-        metered: done.metered,
-      };
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: careKeys.proposals(pageId) });
-      void qc.invalidateQueries({ queryKey: ['docs-ai', 'proposal-pages'] });
-    },
-  });
-}
-
-export interface CareProposal {
-  id: string;
-  memberName: string | null;
-  status: string;
-  summary: string;
-  changes: CareChange[];
-  changedSince: boolean;
-  canDecide: boolean;
-  expiresInDays: number | null;
-}
-
-/** The proposals of a page (accept / skip / edit go through the proposal endpoints). */
-export function useCareProposals(pageId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: careKeys.proposals(pageId),
-    queryFn: async () =>
-      (await client.get<{ proposals: CareProposal[]; canReview: boolean }>(`/docs/pages/${pageId}/ai/proposals`)).data,
-    enabled: enabled && !!pageId,
-    retry: false,
-  });
-}
-
-/** Accept, skip (reject), edit one change, or accept all, then refresh the proposal and the page's draft. */
-export function useChangeAction(pageId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (a: {
-      proposalId: string;
-      n?: number;
-      action: 'accept' | 'reject' | 'edit' | 'acceptAll';
-      text?: string;
-    }) => {
-      const base = `/docs/ai/proposals/${a.proposalId}`;
-      if (a.action === 'acceptAll') return (await client.post(`${base}/accept-all`)).data;
-      if (a.action === 'edit') return (await client.post(`${base}/changes/${a.n}`, { new: a.text ?? '' })).data;
-      return (await client.post(`${base}/changes/${a.n}/${a.action}`)).data;
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: careKeys.proposals(pageId) });
-      void qc.invalidateQueries({ queryKey: ['docs'] });
-      void qc.invalidateQueries({ queryKey: ['docs-ai', 'proposal-pages'] });
     },
   });
 }

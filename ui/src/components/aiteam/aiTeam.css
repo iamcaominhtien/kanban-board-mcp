@@ -185,6 +185,7 @@
 }
 .at-card-body {
   min-height: 78px;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -651,4 +652,13 @@
   .at-breathe {
     animation: none;
   }
+}
+
+/* the step a role or the lead is on: at most two lines, the whole text in the tooltip */
+.at-step {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }

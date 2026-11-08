@@ -30,15 +30,38 @@ async def add_comment(
             description="Name shown next to the comment: use your agent name (e.g. 'Claude')."
         ),
     ],
+    role: Annotated[
+        str | None,
+        Field(
+            description="The role that speaks (Reviewer, QA, Designer...), shown on the comment."
+        ),
+    ] = None,
 ) -> dict:
     """Post a comment on a ticket: progress reports, findings, questions for the humans. Returns the updated ticket
     (the new comment is last in `comments`). In an AI run a picture or a document (an Excel sheet, a PDF) named by
     its path in your working folder is attached: ![shot](qa/evidence/TC-1.png), [sample](ba_work/sample.xlsx)."""
     text = await common.attach_from_run(text)
+    meta = {"role": role.strip()[:40]} if role and role.strip() else None
     return await _edit_ticket(
         ticket_id,
-        lambda s: svc_tickets.add_comment(s, ticket_id, text=text, author=author),
+        lambda s: svc_tickets.add_comment(
+            s, ticket_id, text=text, author=author, meta=meta
+        ),
     )
+
+
+def _stored_fingerprint(url: str) -> dict:
+    """Size and sha256 of the board's copy of an attached file. The copy is made byte for byte, so the AI can compare
+    them with its own file (`shasum -a 256`) instead of searching the disk for the copy."""
+    import hashlib
+
+    import uploads
+
+    try:
+        data = (uploads.get_uploads_dir() / url.rsplit("/", 1)[-1]).read_bytes()
+    except OSError:
+        return {}
+    return {"size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
 
 @notify_on_success
@@ -57,10 +80,18 @@ async def attach_file(
         str | None,
         Field(description="What the file shows or why it is here (one line)."),
     ] = None,
+    post: Annotated[
+        bool,
+        Field(
+            description="False: keep the copy and return its markdown without a comment of its own, for a file you "
+            "put in your closing report (one comment for all your files, not one each)."
+        ),
+    ] = True,
 ) -> dict:
     """Attach a file (a screenshot, a log, a report, a PDF, a spreadsheet) to a ticket: the board keeps a copy and posts
     it in a comment, so it shows in the ticket's Attachments with the comment it came from. Returns the ticket with
-    `attached: {url, markdown}`; put `markdown` in a test case's proof or the description to show it there too."""
+    `attached: {url, markdown, size, sha256, stored_in}` (`stored_in` is the folder the copy went to; a `warning` there means the app does not serve that folder, so the file will not open in it; the copy is byte for byte: compare `sha256` with `shasum -a 256` of your file, never search the disk for it); put `markdown` in a test case's proof or the description to show it there too. With
+    `post=false` no comment is posted: the file shows in the Attachments once a comment (your report) holds `markdown`."""
     import os
 
     import uploads
@@ -85,13 +116,25 @@ async def attach_file(
         raise ValueError(
             f"{path}: not attached. Name a file in your working folder (in an AI run) or by its absolute path."
         )
+    url = stored[stored.rindex("](") + 2 : -1]
+    attached = {
+        "url": url,
+        "markdown": stored,
+        **_stored_fingerprint(url),
+        **uploads.storage_info(),
+    }
+    if not post:
+        return {
+            "ticket_id": ticket_id,
+            "attached": attached,
+            "note": "No comment was posted: put `markdown` in your closing report, it shows the file there.",
+        }
     body = f"{text.strip()}\n\n{stored}" if text and text.strip() else stored
     ticket = await _edit_ticket(
         ticket_id,
         lambda s: svc_tickets.add_comment(s, ticket_id, text=body, author=author),
     )
-    url = stored[stored.rindex("](") + 2 : -1]
-    return {**ticket, "attached": {"url": url, "markdown": stored}}
+    return {**ticket, "attached": attached}
 
 
 @notify_on_success

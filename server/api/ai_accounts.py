@@ -27,10 +27,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import services.activity as svc_activity
 from database import get_session
-from models import AiMember, Member
 from services.ai import accounts as svc_accounts
 from services.ai import cli
-from services.ai import members as svc_members
 from services.ai import signin
 
 logger = logging.getLogger("kanban.ai.accounts")
@@ -216,7 +214,7 @@ class AssignBody(BaseModel):
     account_id: Optional[str] = None
 
 
-@router.put("/ai/members/{member_id}/account")
+@router.put("/ai/teams/{member_id}/account")
 async def put_member_account(
     member_id: str, body: AssignBody, session: Session
 ) -> dict:
@@ -225,9 +223,10 @@ async def put_member_account(
         await svc_accounts.assign(session, member_id, body.account_id)
     except svc_accounts.AccountError as exc:
         _fail(exc)
-    member = await session.get(Member, member_id)
-    profile = await session.get(AiMember, member_id)
-    return await svc_members.describe(session, member, profile)
+    from services.ai import teams as svc_teams
+
+    member, profile = await svc_teams.get_profile(session, member_id)
+    return await svc_teams.describe(session, member, profile)
 
 
 @router.get("/ai/accounts-on-this-computer")

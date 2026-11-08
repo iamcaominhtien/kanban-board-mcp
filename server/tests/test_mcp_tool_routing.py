@@ -330,7 +330,7 @@ async def test_ticket_items_explains_a_wrong_call():
     with pytest.raises(ToolError, match="Missing: author"):
         await call("ticket_items", ticket_id=i, item="comment", action="add", text="hi")
     # a parameter that belongs to another item is refused instead of being silently dropped
-    with pytest.raises(ToolError, match="does not use: role"):
+    with pytest.raises(ToolError, match="does not use: log_kind"):
         await call(
             "ticket_items",
             ticket_id=i,
@@ -338,7 +338,7 @@ async def test_ticket_items_explains_a_wrong_call():
             action="add",
             text="hi",
             author="C",
-            role="PM",
+            log_kind="investigation",
         )
     # a stale or unknown sub-item id lists the real ones
     await call("ticket_items", ticket_id=i, item="criterion", action="add", text="ok")

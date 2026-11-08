@@ -127,7 +127,6 @@ export interface Canvas extends CanvasSummary {
   doc: CanvasDoc;
   locks: BoardLock[];
   openComments: number;
-  proposalsOpen: number;
 }
 
 export interface CanvasComment {
@@ -205,37 +204,6 @@ export interface CompareRow {
   kind: BoardKind;
   a: CanvasBoard | null;
   b: CanvasBoard | null;
-}
-
-export interface ProposalChange {
-  boardId: string;
-  name: string;
-  baseRev: number | null;
-  status: 'open' | 'accepted' | 'rejected' | 'stale';
-  entry: string;
-  files: { path: string; bytes: number }[];
-  lines: number;
-  waitingFor: string | null;
-  exists: boolean;
-  before?: { path: string; text: string }[];
-  after?: { path: string; text: string }[];
-  entryUrlBefore?: string | null;
-  entryUrlAfter?: string;
-}
-export interface CanvasProposal {
-  id: string;
-  canvasId: string;
-  author: string;
-  memberId: string | null;
-  request: string;
-  note: string;
-  status: 'open' | 'accepted' | 'rejected' | 'partly';
-  version: number | null;
-  changes: ProposalChange[];
-  createdAt: string;
-  decidedBy: string | null;
-  decidedAt: string | null;
-  nextVersion: number;
 }
 
 /** What a failed canvas call says: the server's `{code, message}` or a generic message. */
@@ -322,7 +290,6 @@ export const canvasKeys = {
   one: (id: string) => ['canvas', id] as const,
   threads: (id: string) => ['canvas', id, 'threads'] as const,
   versions: (id: string) => ['canvas', id, 'versions'] as const,
-  proposals: (id: string) => ['canvas', id, 'proposals'] as const,
 };
 
 /**
@@ -349,19 +316,6 @@ export function useCanvasThreads(id: string, enabled = true) {
     queryFn: async () => (await client.get<CanvasThread[]>(`/canvases/${id}/threads`)).data,
     enabled: !!id && enabled,
     staleTime: 5_000,
-  });
-}
-/**
- * Query a canvas's open AI proposals (before and after).
- * @param id - Canvas id.
- * @param enabled - Whether to fetch.
- */
-export function useCanvasProposals(id: string, enabled = true) {
-  return useQuery({
-    queryKey: canvasKeys.proposals(id),
-    queryFn: async () => (await client.get<CanvasProposal[]>(`/canvases/${id}/proposals`)).data,
-    enabled: !!id && enabled,
-    staleTime: 3_000,
   });
 }
 /**
@@ -566,23 +520,6 @@ export async function replyThread(threadId: string, body: string, aiIntent: AiIn
   return (await client.post<CanvasThread>(`/canvases/threads/${threadId}/replies`, { body, aiIntent })).data;
 }
 export type AiIntent = 'ask' | 'suggest' | 'notify';
-/** An AI member of the project, with whether it can answer now. */
-export interface CanvasAiMember {
-  id: string;
-  name: string;
-  color: string | null;
-  ai?: { status: string; usable: boolean; note: string };
-}
-export interface CanvasAiMembers {
-  /** The AI that knows this canvas best (null: the project's default answers). */
-  defaultMemberId: string | null;
-  why: string;
-  members: CanvasAiMember[];
-}
-/** The AI members that can be asked about a canvas, and who answers by default. */
-export async function fetchAiMembers(id: string) {
-  return (await client.get<CanvasAiMembers>(`/canvases/${id}/ai/members`)).data;
-}
 /** Resolve or reopen a thread. */
 export async function setThreadStatus(threadId: string, status: 'resolved' | 'open') {
   return (
@@ -592,32 +529,4 @@ export async function setThreadStatus(threadId: string, status: 'resolved' | 'op
 /** Delete your own comment (the opening one removes the thread). */
 export async function deleteComment(commentId: string) {
   return (await client.delete(`/canvases/comments/${commentId}`)).data;
-}
-
-// AI
-/** Accept and/or reject the boards of an AI proposal. */
-export async function decideProposal(
-  id: string,
-  proposalId: string,
-  body: { accept?: string[] | 'all'; reject?: string[] | 'rest' | 'all' },
-) {
-  return (await client.post<CanvasProposal>(`/canvases/${id}/proposals/${proposalId}/decide`, body)).data;
-}
-export interface AiJob {
-  id: string;
-  state: 'queued' | 'running' | 'finished' | 'failed' | 'cancelled';
-  result: { proposalId?: string; note?: string; boards?: string[]; cost?: number; metered?: boolean };
-  error: { code?: string; message?: string };
-}
-/** Ask an AI member to prepare a proposal for some boards. */
-export async function askAi(id: string, body: { boardIds: string[]; request: string; memberId?: string }) {
-  return (await client.post<AiJob>(`/canvases/${id}/ai/ask`, body)).data;
-}
-/** Start the same job from an AI comment ("Propose a fix"). */
-export async function proposeFixFromThread(threadId: string) {
-  return (await client.post<AiJob>(`/canvases/threads/${threadId}/propose`)).data;
-}
-/** Read an AI job (to see when a proposal is ready). */
-export async function fetchAiJob(jobId: string) {
-  return (await client.get<AiJob>(`/docs/ai/jobs/${jobId}`)).data;
 }

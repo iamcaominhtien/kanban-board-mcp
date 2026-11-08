@@ -20,7 +20,7 @@ def examples() -> list[Path]:
 
 SKILL_HEADER = r"""---
 name: canvas-design
-description: Design the HTML frames of a Canvas (mockups and prototypes of screens, pages and flows) so they look like one considered product, presented as a design document (foundations, components, then screens, each board with its states side by side), then create them with docs_write(canvas_create) or offer them with canvas_propose. Use when asked to design, mock up or redesign a screen, an app or a flow on a canvas, or to explore design directions.
+description: Design the HTML frames of a Canvas (mockups and prototypes of screens, pages and flows) so they look like one considered product, presented as a design document (foundations, components, then screens, each board with its states side by side), then create them with docs_write(canvas_create) or change a frame with canvas_update. Use when asked to design, mock up or redesign a screen, an app or a flow on a canvas, or to explore design directions.
 ---
 
 """
@@ -210,8 +210,8 @@ returned `markdown` line on its own line in that ticket or page (`manage_ticket`
 - **A spec per screen** on Docs, for whoever builds it: one page per screen (or a section each on one page) with what it
   is for, a screenshot of each state (`![Today · behind](shots/today-behind.png)`, a file in your working folder), the
   tokens and components it uses, sizes and behaviour, the copy of every state, open questions, and the board it is on.
-- **Change to an existing frame**: write the changed files to a folder and `docs_write(canvas_propose)` with a
-  one-sentence note on the design decision; a person accepts or rejects.
+- **Change to an existing frame**: write the changed files to a folder and `docs_write(canvas_update)` with a
+  one-sentence note on the design decision; the canvas keeps the version before it.
 - Leave `canvas_comment`s for open questions, each pinned with `at` (a CSS selector, or `text=Add task`). Give your
   assumptions in one line.
 """

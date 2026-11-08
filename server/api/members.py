@@ -36,9 +36,9 @@ async def post_member(
         raise HTTPException(status_code=422, detail="Invalid role")
     if not " ".join((data.name or "").split()):
         raise HTTPException(status_code=422, detail="Enter a name.")
-    from services.ai.members import check_name
-
     # Names are unique across people and AI in a project, so @mentions never point at two members
+    from services.ai.teams import check_name
+
     found = await check_name(session, project_id, data.name)
     if not found["ok"]:
         msg = (

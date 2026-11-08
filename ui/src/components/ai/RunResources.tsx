@@ -1,5 +1,5 @@
 import { useRestartRun, useResourcesStream } from '../../api/aiResources';
-import { aiApi, useAiBoard, useAiMutation } from '../../api/ai';
+import { aiApi, useAiMutation, useAiSettings } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AiRun } from '../../types/ai';
 import { LEVEL_COLOR, fmtGb, fmtMb, levelOf, limitPct, linePoints } from '../aiteam/resourcesFormat';
@@ -44,12 +44,11 @@ export function RestartNotice({ run }: { run: AiRun }) {
 
 /** On a run the system stopped for memory: what happened, and the way out (raise the limit, then Retry). */
 export function MemoryStopNote({ run }: { run: AiRun }) {
-  const board = useAiBoard(run.projectId);
+  const settings = useAiSettings(run.projectId).data;
   const toast = useToast();
-  const settings = board.data?.settings;
   const limit = settings?.runMemoryLimitMb ?? 0;
   const raise = useAiMutation((mb: number) => aiApi.updateSettings(run.projectId, { runMemoryLimitMb: mb }));
-  const canRaise = settings?.myRole === 'owner' || settings?.myRole === 'admin';
+  const canRaise = true; // v2 has no per-person roles for safety: whoever can open the run can raise its limit
   if (run.stopCode !== 'memory') return null;
   const next = Math.round(((limit || 4096) * 1.5) / 1024) * 1024;
   return (

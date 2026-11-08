@@ -35,17 +35,4 @@ describe('schedule templates', () => {
       expect(t.patch).not.toHaveProperty('tz');
     }
   });
-
-  it('need nothing the editor would refuse: no AI check without a reviewer, a command only where tests are on', () => {
-    for (const t of SCHEDULE_TEMPLATES) {
-      expect(t.patch.review).toBeUndefined();
-      expect(t.patch.checks?.aiChecks).toEqual([]);
-      if (t.id !== 'nightly-tests') expect(t.patch.checks?.tests?.on).toBe(false);
-    }
-  });
-
-  it('leave the test command to the person: the board cannot know it', () => {
-    const nightly = SCHEDULE_TEMPLATES.find((t) => t.id === 'nightly-tests');
-    expect(nightly?.patch.checks?.tests).toEqual({ on: true, command: '', cwd: '' });
-  });
 });

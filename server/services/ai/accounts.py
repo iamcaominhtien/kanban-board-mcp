@@ -10,7 +10,6 @@ import asyncio
 import os
 import re
 import shutil
-import sys
 import time
 from pathlib import Path
 
@@ -18,7 +17,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
-from models import AiAccount, AiMember, Member
+from models import AiAccount, AiTeam, Member
 
 from . import cli, profiles
 from .providers import PROVIDERS
@@ -27,33 +26,13 @@ from .store import now_iso, parse_iso
 ROOT_ENV = "KANBAN_AI_ACCOUNTS_HOME"
 
 # account CLI -> what it is called, which provider it serves and whether runs of that provider start today
+# (AI v2: Claude Code is the only CLI)
 ACCOUNT_CLIS: dict[str, dict] = {
     "claude": {
         "label": "Claude Code",
         "provider": "claude-code",
         "binary": "claude",
         "blurb": "Anthropic · subscription (Pro, Max, Team)",
-        "runnable": True,
-    },
-    "codex": {
-        "label": "Codex",
-        "provider": "codex",
-        "binary": "codex",
-        "blurb": "OpenAI · ChatGPT login",
-        "runnable": True,
-    },
-    "opencode": {
-        "label": "opencode",
-        "provider": "opencode",
-        "binary": "opencode",
-        "blurb": "Paid providers only · free models need no account",
-        "runnable": True,
-    },
-    "agy": {
-        "label": "Antigravity",
-        "provider": "antigravity",
-        "binary": "agy",
-        "blurb": "Google · the agy command",
         "runnable": True,
     },
 }
@@ -114,9 +93,9 @@ def env_for(account: AiAccount, base: dict[str, str]) -> dict[str, str]:
 async def config_dir_for_member(session, member_id: str) -> str | None:
     """The CLAUDE_CONFIG_DIR of the AI account a member uses (where its Claude Code sessions are kept), or None for a
     member on the login already on this computer."""
-    from models import AiMember
+    from models import AiTeam
 
-    member = await session.get(AiMember, member_id)
+    member = await session.get(AiTeam, member_id)
     if member is None or not member.account_id:
         return None
     return claude_config_dir(await session.get(AiAccount, member.account_id))
@@ -132,14 +111,8 @@ def cli_for_provider(provider: str) -> str | None:
     return CLI_OF_PROVIDER.get(provider)
 
 
-def _windows() -> bool:
-    return sys.platform == "win32"
-
-
 def available(cli_name: str) -> str | None:
     """Why an account of this CLI cannot be made on this computer, or None."""
-    if cli_name == "agy" and _windows():
-        return "Not available on Windows"
     return None
 
 
@@ -442,13 +415,11 @@ async def sign_out(session: AsyncSession, account_id: str) -> AiAccount:
     return account
 
 
-async def members_of(session: AsyncSession, account_id: str) -> list[AiMember]:
+async def members_of(session: AsyncSession, account_id: str) -> list[AiTeam]:
     """The AI members (all projects) that run as this account."""
     return list(
         (
-            await session.exec(
-                select(AiMember).where(AiMember.account_id == account_id)
-            )
+            await session.exec(select(AiTeam).where(AiTeam.account_id == account_id))
         ).all()
     )
 
@@ -499,9 +470,9 @@ async def remove(
 
 async def assign(
     session: AsyncSession, member_id: str, account_id: str | None
-) -> AiMember:
+) -> AiTeam:
     """Make an AI member run as an account (None: the login already on this computer)."""
-    profile = await session.get(AiMember, member_id)
+    profile = await session.get(AiTeam, member_id)
     if profile is None:
         raise AccountError("AI member not found.", "member_not_found")
     if account_id is None:
@@ -531,9 +502,7 @@ async def assign(
 async def counts(session: AsyncSession, project_id: str | None) -> dict[str, dict]:
     """Per account: the members using it in this project and in others (with names, for the hover)."""
     rows = (
-        await session.exec(
-            select(AiMember).where(col(AiMember.account_id).is_not(None))
-        )
+        await session.exec(select(AiTeam).where(col(AiTeam.account_id).is_not(None)))
     ).all()
     names = (
         {

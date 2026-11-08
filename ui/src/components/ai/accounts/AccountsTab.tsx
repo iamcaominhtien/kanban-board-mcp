@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAiOverview, useRunnerInfo } from '../../../api/ai';
+import { useAiTeams, useRunnerInfo } from '../../../api/ai';
 import { useAccountActions, useAiAccounts, useComputerLogins } from '../../../api/aiAccounts';
 import { extractError } from '../../../api/extractError';
 import type { AccountCli, AiAccount } from '../../../types/aiAccounts';
@@ -22,7 +22,6 @@ import { RemoveAccountDialog } from './RemoveAccountDialog';
 import { RenameAccountDialog } from './RenameAccountDialog';
 import { SignInWindow } from './SignInWindow';
 import { SignOutDialog } from './SignOutDialog';
-import { WindowsSection } from './WindowsSection';
 import './accounts.css';
 
 /** Opens a link in the person's browser (the desktop app has its own bridge). */
@@ -46,7 +45,7 @@ type Dialog =
 export function AccountsTab({ projectId }: { projectId: string }) {
   const accounts = useAiAccounts(projectId);
   const runner = useRunnerInfo();
-  const overview = useAiOverview(projectId);
+  const teams = useAiTeams(projectId);
   const desktop = runner.data?.local !== false;
   const logins = useComputerLogins();
   const actions = useAccountActions();
@@ -110,8 +109,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
 
   // Members of this project on the login that is already on this computer, per CLI
   const onComputer = (provider: string) =>
-    (overview.data?.members ?? []).filter((m) => m.connection === 'local' && m.provider === provider && !m.accountId)
-      .length;
+    (teams.data ?? []).filter((m) => m.provider === provider && !m.accountId).length;
 
   let body;
   if (accounts.isLoading) {
@@ -263,8 +261,6 @@ export function AccountsTab({ projectId }: { projectId: string }) {
         );
       })}
 
-      <WindowsSection projectId={projectId} />
-
       {body}
 
       {desktop && (logins.data?.length ?? 0) > 0 && list.length > 0 && (
@@ -277,7 +273,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {logins.data?.map((l) => {
-              const n = onComputer(l.cli === 'claude' ? 'claude-code' : l.cli === 'agy' ? 'antigravity' : l.cli);
+              const n = onComputer('claude-code');
               return (
                 <span key={l.cli} className="acc-login">
                   <AccountBadge cli={l.cli} label={l.label} size={22} />

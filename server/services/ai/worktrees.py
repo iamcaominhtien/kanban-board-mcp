@@ -730,8 +730,6 @@ async def merge(ticket_id: str, *, by: str) -> dict:
     """
     from services import notifications as centre
 
-    from . import flags
-
     async with database.async_session() as session:
         row = await session.get(AiWorktree, ticket_id)
         if row is None or row.state not in ("active", "conflict", "kept"):
@@ -801,13 +799,6 @@ async def merge(ticket_id: str, *, by: str) -> dict:
             row.conflict_files = json.dumps(files[:50])
             session.add(row)
             await session.commit()
-            await flags.open_flag(
-                session,
-                ticket_id,
-                row.project_id,
-                "merge_conflict",
-                {"files": files[:50], "base": row.base, "branch": row.branch},
-            )
             await centre.emit(
                 "merge_conflict",
                 project_id=row.project_id,
@@ -831,7 +822,6 @@ async def merge(ticket_id: str, *, by: str) -> dict:
         row.state = "merged"
         session.add(row)
         await session.commit()
-        await flags.resolve(session, ticket_id, "merge_conflict", by=by, how="merged")
         try:
             await remove(session, ticket_id)
         except WorktreeError:

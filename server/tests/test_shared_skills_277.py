@@ -2,14 +2,11 @@
 in every work run, and switches per project and per member."""
 
 import asyncio
-import json
 from pathlib import Path
 
-from models import AiMember, AiProjectSettings
 from services import shared_skills
 from services.ai import board_skills
-from services.ai.context import RunContext, rules_block
-from tests.test_ai import env  # noqa: F401
+from tests.ai_helpers import env  # noqa: F401
 
 SHARED = [
     "working-a-ticket",
@@ -28,27 +25,22 @@ SHARED = [
     "office-files",
     # decks, asked for by the owner after the first office-files run (themes, templates, pictures)
     "slides",
+    # a narrated demo video of the app, built with code
+    "demo-video",
 ]
-
-
-def _block(member: AiMember, settings: AiProjectSettings, mode: str = "work") -> str:
-    ctx = RunContext("run_1", "m1", "Dev", "p1", "KAN-1", "An Nguyen", mode)
-    return rules_block(
-        ctx, member, settings, project_name="Project", ticket_status="todo"
-    )
 
 
 def test_the_four_skills_agreed_with_the_owner_are_board_skills_with_a_description_that_says_when():
     assert [n for n, _d, _b in shared_skills.SKILLS] == SHARED
     names = [s["name"] for s in board_skills.catalog() if not s["role"]]
-    assert names[:5] == [
+    # AI v2: no permission matrix, so no board-permissions skill
+    assert names[:4] == [
         "canvas-design",
         "drawio-diagrams",
         "sketches",
-        "board-permissions",
         "docs-pages",  # issue #268
     ]
-    assert names[5:] == SHARED
+    assert names[4:] == SHARED
     for s in board_skills.catalog():
         # Claude Code opens a skill by its description: each says what it covers and when to use it
         assert "Use " in s["description"], s["name"]
@@ -94,20 +86,6 @@ def test_the_texts_carry_what_the_live_runs_got_wrong():
         assert needle in text, needle
 
 
-def test_every_work_run_gets_the_core_rules_and_where_the_detail_is():
-    member = AiMember(id="m1", provider="claude-code")
-    block = _block(member, AiProjectSettings())
-    for rule in shared_skills.CORE_RULES:
-        assert rule in block
-    assert (
-        "`kanban-board:working-a-ticket`" in block
-        and "`kanban-board:asking-and-writing`" in block
-    )
-    # an agent with no Claude Code skills is pointed to docs_read
-    other = _block(AiMember(id="m2", provider="gemini"), AiProjectSettings())
-    assert "docs_read(action='guides')" in other and "kanban-board:" not in other
-
-
 def test_a_skill_switched_off_for_the_project_or_a_member_is_left_out():
     off = [{"skill": "repo-and-machine", "on": False, "members_on": ["dev"]}]
     ops = {"board_skills": off}
@@ -121,15 +99,6 @@ def test_a_skill_switched_off_for_the_project_or_a_member_is_left_out():
     assert board_skills.enabled_for({}, "x") == [
         s["name"] for s in board_skills.catalog() if not s["role"]
     ]
-
-    settings = AiProjectSettings(
-        ops=json.dumps({"board_skills": [{"skill": "repo-and-machine", "on": False}]})
-    )
-    block = _block(AiMember(id="designer", provider="claude-code"), settings)
-    assert (
-        "kanban-board:repo-and-machine" not in block
-        and "kanban-board:working-a-ticket" in block
-    )
 
 
 def test_a_run_gets_a_folder_with_only_the_skills_on_for_it():
@@ -150,7 +119,7 @@ def test_a_run_gets_a_folder_with_only_the_skills_on_for_it():
 async def test_the_ui_lists_the_board_skills(env):
     r = await env["c"].get("/ai/board-skills")
     assert r.status_code == 200
-    assert [s["name"] for s in r.json() if not s["role"]][5:] == SHARED
+    assert [s["name"] for s in r.json() if not s["role"]][4:] == SHARED
 
 
 def test_personas_and_step_texts_point_to_the_skills_instead_of_repeating_them():
@@ -159,17 +128,6 @@ def test_personas_and_step_texts_point_to_the_skills_instead_of_repeating_them()
     for pack in packs.BUILTIN:
         assert "the board's shared skills" in pack["persona"], pack["key"]
         assert "Report with ai_run(action='report')" not in pack["persona"], pack["key"]
-    src = (
-        Path(__file__)
-        .resolve()
-        .parents[1]
-        .joinpath("services/ai/workflow.py")
-        .read_text()
-    )
-    assert (
-        "`evidence-and-handover` skill" in src
-        and "npx playwright screenshot" not in src
-    )
 
 
 def test_an_outside_agent_is_told_where_the_guides_are():

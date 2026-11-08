@@ -4,7 +4,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Knowledge, Lesson, MemoryNote } from '../../../types/aiKnowledge';
-import { memoryUsedLabel } from '../../aiteam/RunDetail';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('../../../api/client', () => ({ client: http }));
@@ -142,23 +141,5 @@ describe('notes the AIs keep', () => {
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/notes/mem_1', { text: 'Use npm test -- --run.' }));
     fireEvent.click(screen.getAllByTestId('note-delete')[2]);
     await waitFor(() => expect(http.delete).toHaveBeenCalledWith('/ai/notes/mem_3'));
-  });
-});
-
-describe('what a run used', () => {
-  it('says how many lessons and notes, and when it was not recorded', () => {
-    expect(memoryUsedLabel(null)).toMatch(/not recorded/);
-    expect(memoryUsedLabel({ lessons: [], notes: [] })).toMatch(/^none/);
-    expect(
-      memoryUsedLabel({
-        lessons: [
-          { id: 'a', text: 'x' },
-          { id: 'b', text: 'y' },
-          { id: 'c', text: 'z' },
-        ],
-        notes: [{ id: 'm', scope: 'role', text: 'n' }],
-        tokens: 120,
-      }),
-    ).toBe('Used 3 lessons and 1 note, 120 tokens');
   });
 });

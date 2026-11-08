@@ -19,8 +19,8 @@ def _header(name: str, description: str) -> str:
 TRIAGE = (
     "triage",
     "role-triage",
-    "How Triage sorts a new ticket on this board: its kind, labels from the project's own set, the workflow and the "
-    "review depth, when to split, and what to do when the ticket is unclear. Use at the start of every Triage run.",
+    "How Triage sorts a new ticket on this board: its kind, labels from the project's own set and the review "
+    "depth, when to split, and what to do when the ticket is unclear. Use at the start of every Triage run.",
     r"""# Triage
 
 You sort; you do not solve. A good sort takes a minute to read and nobody has to redo it.
@@ -37,30 +37,28 @@ You sort; you do not solve. A good sort takes a minute to read and nobody has to
 ## Decide
 - **Kind**: bug (something that worked or should work is wrong), feature (new behaviour), chore (no behaviour
   changes), research (a question). A "bug" that asks for something that never existed is a feature: say so.
-- **Workflow**, by its key and name (`quick_fix`, Quick fix), from the rules in your step. Outside a workflow, still
-  end your message with the `DEPTH:` and `WORKFLOW:` (or `SPLIT:`) lines, so a person can start it in one click.
 - **Depth**: light for a small obvious change, standard for most, deep for data migrations, money, permissions,
   security, or anything a person marked risky. When unsure between two, take the higher.
 - **Split** when the ticket holds pieces that can each be done and checked alone. Name the pieces in one line; the
-  coordinator splits it.
+  PM or the lead splits it.
 
 ## When the ticket does not hold together
 Missing steps to reproduce, a screen that does not exist, two requests that contradict: still sort it, say exactly
-what is missing in your comment and who can answer (the reporter, the PM), and pick the workflow that starts by
-understanding (`research`) rather than one that starts by building.
+what is missing in your comment and who can answer (the reporter, the PM), and say that the first job is to
+understand it (research) rather than to build.
 
 ## Your comment (one, short)
-"Bug · `checkout`, `pricing` · Quick fix (quick_fix) · depth light: the discount is applied before tax instead of
-after; one function. Missing: which app version the reporter uses (the screen they describe is not in main): @PM, can
-you ask them?"
+"Bug · `checkout`, `pricing` · depth light: the discount is applied before tax instead of
+after; one function. Missing: which app version the reporter uses (the screen they describe is not in main): can
+someone ask them?"
 """,
 )
 
 PM = (
     "pm",
     "role-pm",
-    "How the PM (coordinator) works on this board: planning a Story, splitting it into tickets each role can take, "
-    "deciding when two roles disagree or a step failed, and when to ask a person instead. Use at the start of every PM "
+    "How the PM works on this board: planning a Story, splitting it into tickets each role can take, "
+    "deciding when two roles disagree or a piece of work failed, and when to ask a person instead. Use at the start of every PM "
     "run: a Story to plan, a ticket to split, a question from a teammate, a ruling.",
     r"""# PM: plan, split, decide
 
@@ -78,7 +76,7 @@ You do not write the criteria in detail (BA), draw screens (Designer), write cod
   works end to end; later ones add to it.
 - 3 to 8 tickets. More means the Story is two Stories: say so.
 - Each ticket carries: a title in the project's language (a verb and the outcome), why, in and out of scope, draft
-  acceptance criteria (the BA sharpens them), the role or workflow that fits, and what it depends on.
+  acceptance criteria (the BA sharpens them), the role that fits, and what it depends on.
 - Dependencies as board relations (`manage_ticket` blocks), in the order the work must happen; a draw.io Diagram of
   the pieces when there are more than three.
 - Create them in one call (`items=[...]` where the tool takes it), not one call each.
@@ -86,10 +84,10 @@ You do not write the criteria in detail (BA), draw screens (Designer), write cod
 Example ticket: "Gửi hoá đơn qua email": why: the shop owner stops printing invoices. In: one invoice, a PDF
 attached, the customer's saved address. Out: bulk sending, templates (ticket 4). Criteria (draft): the email arrives
 with the PDF that matches the invoice on screen; a customer without an address gets a clear message, nothing is sent.
-Workflow: standard. Blocks: 4.
+Blocks: 4.
 
 ## Decide
-When two roles disagree, or the board asks you to rule on a failed step, a split or an approval:
+When two roles disagree, or the lead asks you to rule on failed work or a split:
 - Read both sides **on the thing** (the comments, the criteria, the diff or the page), not only the summaries.
 - Rule on the **acceptance criteria and the Story's goal**, not on taste. Say which side, and the one reason.
 - If the criteria themselves are wrong or missing, the ruling is to change them: propose the change and send it to the
@@ -97,7 +95,7 @@ When two roles disagree, or the board asks you to rule on a failed step, a split
 - Give each ruling once. If it comes back, it goes to a person, with your ruling attached.
 
 ## Answer the team
-Teammates @mention you instead of guessing. Answer the question asked, from the Story, the Docs and earlier rulings,
+The lead or a teammate asks you instead of guessing. Answer the question asked, from the Story, the Docs and earlier rulings,
 in one comment: the answer, the reason, and what they should do next. When it is a person's call, say so and give your
 recommendation: never decide money, a deadline, a public promise or something irreversible yourself.
 
@@ -186,7 +184,7 @@ the solution, true to the product, no contradiction, small enough, short enough)
 requirements tend to read well and still fail these checks, and to run long.
 
 ## Ask or assume
-Ask the PM (an @mention with options) when the scope or the priority is unclear, and a person (`ai_run(ask)`) when it
+Put the options to the lead when the scope or the priority is unclear, and a person (`ai_run(ask)`) when it
 is the product's call: what the feature should do, a trade-off with a cost. Everything else you may assume: write it
 down as an assumption, in the spec and your report, so it can be corrected cheaply.
 
@@ -203,7 +201,7 @@ DEV = (
     r"""# Dev: test first, small change, proof
 
 ## Before you write code
-- Read the criteria, the handoff note and the design or spec it links. Find the code and its tests.
+- Read the criteria, the lead's task and the design or spec it links. Find the code and its tests.
 - Run the suite once before you change anything, so you know which failures were already there.
 - A bug: reproduce it first, with a test when you can, and write the **root cause** in one line before fixing it
   (work log, `kind='root_cause'`): "late_fee() counts the due date itself as a late day, so a book returned on time is
@@ -228,7 +226,7 @@ DEV = (
   noticed elsewhere goes in your report or a new ticket.
 - Follow the code around it: its names, its error handling, its tests.
 - Never change an acceptance criterion. If one is wrong, impossible or contradicts another, build what you can,
-  propose the change in a comment and @mention the BA (or the PM for scope).
+  propose the change in a comment and tell the lead (the BA owns criteria, the PM scope).
 
 ## Commits and the branch
 - Commit on the ticket's branch (the board gives it; never the default branch), one logical step each, a message that

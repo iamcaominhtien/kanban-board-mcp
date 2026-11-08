@@ -6,8 +6,6 @@ import { MarkdownRenderer } from '../MarkdownRenderer';
 import { AiAvatar, hhmm, secondsSince, useAiBoardState } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
 import { BoardAiAvatar, CostChip, TicketPill, usd } from './assistUi';
-import { DraftChanges } from './DraftChanges';
-import { DraftAiMembers } from './DraftAiMembers';
 import { LineIcon } from '../ui/LineIcon';
 
 const SLOW_AFTER_S = 30;
@@ -101,7 +99,18 @@ export function AnswerBlock({
   const usingTool = lastStep.startsWith('Using ');
 
   let body;
-  if (msg.state === 'thinking' || msg.state === 'queued') {
+  if ((msg.state === 'thinking' || msg.state === 'queued') && ctxInfo.team) {
+    // a message to the team: its lead answers here when it reaches it, and keeps working meanwhile
+    body = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="answer-waiting-team">
+        <div style={{ fontWeight: 700, fontSize: 13 }}>Waiting for {ctxInfo.team}…</div>
+        <div className="ai-muted">
+          It reads your message at its next step, answers here and carries on with its work. Tell it to stop if you want
+          it to.
+        </div>
+      </div>
+    );
+  } else if (msg.state === 'thinking' || msg.state === 'queued') {
     const slow = elapsed >= SLOW_AFTER_S && !keepWaiting;
     body = (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="answer-thinking">
@@ -298,20 +307,7 @@ export function AnswerBlock({
             )}
           </div>
         )}
-        {draft && (
-          <div style={{ marginTop: 8 }}>
-            {panel?.renderDraft?.(draft) ??
-              (draft.kind === 'ai_members' ? (
-                <DraftAiMembers draftId={draft.id} initial={draft} />
-              ) : (
-                <DraftChanges
-                  draftId={draft.id}
-                  initial={draft}
-                  onRefresh={() => void act(() => assistApi.retry(msg.id))}
-                />
-              ))}
-          </div>
-        )}
+        {draft && <div style={{ marginTop: 8 }}>{panel?.renderDraft?.(draft)}</div>}
         {panel && !ctxInfo.run && msg.text && (
           <div className="sc-share" data-testid="answer-share">
             {panel.onPostComment &&
@@ -530,7 +526,7 @@ export function AnswerBlock({
   return (
     <div className="as-ai">
       {answerer ? (
-        <AiAvatar provider={answerer.provider} color={answerer.color} glyph={answerer.glyph} size={26} />
+        <AiAvatar provider={answerer.provider} color={answerer.color} size={26} />
       ) : (
         <BoardAiAvatar provider={state?.boardAi.provider} size={26} />
       )}

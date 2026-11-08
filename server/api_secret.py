@@ -17,7 +17,7 @@ import sys
 
 HEADER = "X-Kanban-Secret"
 FLAG = "KANBAN_API_SECRET_STDIN"
-UNCHECKED_PREFIXES = ("/mcp", "/logs/client")
+UNCHECKED_PREFIXES = ("/mcp", "/logs/client", "/ai/hooks", "/internal/ai/")
 CHANGING = ("POST", "PUT", "PATCH", "DELETE")
 
 

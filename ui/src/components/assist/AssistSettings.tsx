@@ -258,7 +258,7 @@ function DataBlock({ projectId, s, onOpenAudit }: { projectId: string; s: Assist
           <div className="ai-muted" style={{ marginTop: 4 }}>
             The Board AI is a local runner: requests go through the CLI you are signed in to. Each chat is one
             conversation, so earlier messages are not sent again; when it gets long Claude Code summarizes the older
-            part. Set how early in AI members → this member → Configuration → Auto-compact at.
+            part. Set how early in Settings › AI › Limits › Auto-compact at.
           </div>
         )}
       </div>

@@ -100,8 +100,14 @@ export async function updateTicket(
     /** Member whose review the ticket waits for; null clears it (issue #269). */
     reviewRequestedFrom?: string | null;
   },
+  /** start: false gives the ticket to an AI team without starting its lead (it starts when someone runs it). */
+  opts?: { start?: boolean },
 ): Promise<Ticket> {
-  const res = await client.patch<Ticket>(`/tickets/${ticketId}`, data);
+  const res = await client.patch<Ticket>(
+    `/tickets/${ticketId}`,
+    data,
+    opts?.start === false ? { params: { start: false } } : undefined,
+  );
   return res.data;
 }
 
@@ -241,24 +247,9 @@ export async function listWontDoTickets(projectId: string): Promise<Ticket[]> {
  * @param ticketId - Ticket to comment on.
  * @param text - Comment body (Markdown).
  * @param author - Display name of the author.
- * @param aiIntent - What an @mention of an AI member means: ask, work (assign + run) or notify.
- * @param replyTo - Id of the comment this answers; under an AI's comment it asks that AI again.
  */
-export async function addComment(
-  ticketId: string,
-  text: string,
-  author = 'user',
-  aiIntent?: 'ask' | 'work' | 'notify',
-  replyTo?: string,
-  aiFast?: boolean,
-): Promise<Ticket> {
-  const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, {
-    text,
-    author,
-    aiIntent,
-    replyTo,
-    ...(aiFast ? { aiFast } : {}),
-  });
+export async function addComment(ticketId: string, text: string, author = 'user'): Promise<Ticket> {
+  const res = await client.post<Ticket>(`/tickets/${ticketId}/comments`, { text, author });
   return res.data;
 }
 
@@ -756,8 +747,15 @@ export function useCreateTicket(projectId: string) {
 export function useUpdateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ ticketId, data }: { ticketId: string; data: Parameters<typeof updateTicket>[1] }) =>
-      updateTicket(ticketId, data),
+    mutationFn: ({
+      ticketId,
+      data,
+      start,
+    }: {
+      ticketId: string;
+      data: Parameters<typeof updateTicket>[1];
+      start?: boolean;
+    }) => updateTicket(ticketId, data, { start }),
     onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
       queryClient.invalidateQueries({ queryKey: ['wont_do_tickets', ticket.projectId] });
@@ -860,22 +858,8 @@ function useTicketSubMutation<T>(mutationFn: (arg: T) => Promise<Ticket>) {
 
 /** Mutation: add a comment. */
 export function useAddComment() {
-  return useTicketSubMutation(
-    ({
-      ticketId,
-      text,
-      author,
-      aiIntent,
-      replyTo,
-      aiFast,
-    }: {
-      ticketId: string;
-      text: string;
-      author?: string;
-      aiIntent?: 'ask' | 'work' | 'notify';
-      replyTo?: string;
-      aiFast?: boolean;
-    }) => addComment(ticketId, text, author, aiIntent, replyTo, aiFast),
+  return useTicketSubMutation(({ ticketId, text, author }: { ticketId: string; text: string; author?: string }) =>
+    addComment(ticketId, text, author),
   );
 }
 

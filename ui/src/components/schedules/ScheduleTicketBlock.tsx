@@ -7,23 +7,21 @@ import { useToast } from '../Toast';
 import { useSchedules } from './SchedulesContext';
 import {
   CalendarIcon,
-  CheckChips,
   ClockIcon,
   PauseIcon,
   PencilIcon,
   PlayIcon,
-  ReviewIcon,
   ScheduleStateChip,
   WarnIcon,
   fmtNext,
   fmtSlot,
 } from './schedulesUi';
 
-/** "passed review", "failed"… the way the Last run line says how a slot ended. */
-function endedAs(run: ScheduleRun, reviewed: boolean): string {
+/** "finished", "failed"… the way the Last run line says how a slot ended. */
+function endedAs(run: ScheduleRun): string {
   switch (run.state) {
     case 'passed':
-      return reviewed ? 'passed review' : 'finished';
+      return 'finished';
     case 'partly':
       return 'partly done';
     case 'failed':
@@ -121,19 +119,10 @@ function ScheduleBlock({ s }: { s: Schedule }) {
             : (s.pausedReason ?? 'Paused')}
         </div>
       )}
-      <div className="sc-pills">
-        <CheckChips schedule={s} aiLabel />
-        {s.review.on && s.review.reviewerName && (
-          <span className="sc-pill">
-            <ReviewIcon size={12} />
-            {s.review.reviewerName}
-          </span>
-        )}
-      </div>
       <div className="ai-hint" style={{ marginTop: 8 }} data-testid="block-last">
         {last ? (
           <>
-            Last run: <b style={{ color: '#1E2A22' }}>{fmtSlot(last.slotAt)}</b> {endedAs(last, s.review.on)}.{' '}
+            Last run: <b style={{ color: '#1E2A22' }}>{fmtSlot(last.slotAt)}</b> {endedAs(last)}.{' '}
           </>
         ) : (
           <>Not run yet. </>
@@ -146,7 +135,7 @@ function ScheduleBlock({ s }: { s: Schedule }) {
   );
 }
 
-/** The Schedule block on a ticket, below the header (E1): state, quick actions, what it checks and the last run. */
+/** The Schedule block on a ticket, below the header (E1): state, quick actions and the last run. */
 export function ScheduleTicketBlock({ ticket }: { ticket: Ticket }) {
   const q = useScheduleList(ticket.projectId, ticket.id);
   const { viewForTicket } = useSchedules();

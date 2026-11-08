@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AiProvider } from '../../types/ai';
 import type { AssistState } from '../../types/assist';
-import { AiAvatar, SparkleIcon, useAiBoardState } from '../ai/aiUi';
+import { AiAvatar, SparkleIcon } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
 
 export const STATUS_LABEL: Record<string, string> = {
@@ -25,18 +25,8 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 /** The Board AI's avatar (the provider glyph on the square AI tile). */
-export function BoardAiAvatar({ provider, size = 30 }: { provider?: AiProvider | null; size?: number }) {
-  const { members, settings } = useAiBoardState();
-  const member = settings?.boardAiId ? members.get(settings.boardAiId) : undefined;
-  const mine = member && (!provider || member.provider === provider) ? member : undefined;
-  return (
-    <AiAvatar
-      provider={(provider ?? mine?.provider ?? 'anthropic') as AiProvider}
-      color={mine?.color}
-      glyph={mine?.glyph}
-      size={size}
-    />
-  );
+export function BoardAiAvatar({ size = 30 }: { provider?: AiProvider | null; size?: number }) {
+  return <AiAvatar size={size} />;
 }
 
 /** A ticket key that opens the ticket. */

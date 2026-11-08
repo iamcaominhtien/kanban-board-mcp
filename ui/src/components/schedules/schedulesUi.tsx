@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import type { Schedule, ScheduleRun, SlotState } from '../../types/schedules';
 import '../ai/ai.css';
 import './schedules.css';
@@ -137,24 +137,6 @@ export function DocIcon({ size }: IconProps) {
   return (
     <Svg size={size}>
       <path d="M6 3H14L19 8V20A1 1 0 0 1 18 21H6A1 1 0 0 1 5 20V4A1 1 0 0 1 6 3ZM14 3V8H19" />
-    </Svg>
-  );
-}
-/** Target (checks the reviewer judges). */
-export function TargetIcon({ size }: IconProps) {
-  return (
-    <Svg size={size}>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="4.5" />
-    </Svg>
-  );
-}
-/** Person with a check (AI review). */
-export function ReviewIcon({ size }: IconProps) {
-  return (
-    <Svg size={size}>
-      <circle cx="9" cy="8" r="3.5" />
-      <path d="M2.5 20C2.5 16.5 5.5 14.5 9 14.5M14 18L16.5 20.5L21.5 14.5" />
     </Svg>
   );
 }
@@ -346,18 +328,6 @@ export function SlotChip({
           {catchUp ? 'Catch-up · running' : 'Running'}
         </Pill>
       );
-    case 'reviewing':
-      return (
-        <Pill tone="violet" icon={<span className="ai-spin" style={{ width: 10, height: 10 }} />}>
-          In AI review
-        </Pill>
-      );
-    case 'fixing':
-      return (
-        <Pill tone="violet" icon={<span className="ai-spin" style={{ width: 10, height: 10 }} />}>
-          Fixing after review
-        </Pill>
-      );
   }
 }
 
@@ -427,64 +397,16 @@ export function fmtMinutes(s: number | null | undefined): string {
   return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${Math.max(m, 1)} min`;
 }
 
-/** The "Weekdays at 02:00 (UTC+7) · Claude Code · Backend · reviewed by Reviewer" line. */
+/** The "Weekdays at 02:00 (UTC+7) · Claude Code · Backend" line. */
 export function scheduleLine(s: Schedule, opts: { tz?: boolean; ai?: boolean } = {}): string {
   const parts = [s.kind === 'repeat' && opts.tz ? `${s.when} (${s.tzLabel})` : s.when];
   if (opts.ai !== false && s.memberName) parts.push(s.memberName);
-  if (opts.ai !== false && s.review.on && s.review.reviewerName) parts.push(`reviewed by ${s.review.reviewerName}`);
   return parts.join(' · ');
 }
 
-/** The check chips of a schedule: "4 criteria", "Tests", "PR linked", "1 judged". */
-export function CheckChips({
-  schedule,
-  criteria,
-  aiLabel,
-}: {
-  schedule: Schedule;
-  criteria?: number;
-  aiLabel?: boolean;
-}) {
-  const c = schedule.checks;
-  const chips: { key: string; icon: ReactNode; text: string }[] = [];
-  if (c.criteria)
-    chips.push({
-      key: 'criteria',
-      icon: <CheckCircleIcon size={12} />,
-      text: criteria == null ? 'Criteria' : `${criteria} criteri${criteria === 1 ? 'on' : 'a'}`,
-    });
-  if (c.tests.on) chips.push({ key: 'tests', icon: <FlaskIcon size={12} />, text: 'Tests' });
-  if (c.summary && !chips.length) chips.push({ key: 'summary', icon: <DocIcon size={12} />, text: 'Summary' });
-  if (c.branch) chips.push({ key: 'branch', icon: <BranchIcon size={12} />, text: 'PR linked' });
-  if (c.aiChecks.length)
-    chips.push({
-      key: 'ai',
-      icon: <TargetIcon size={12} />,
-      text: aiLabel
-        ? `${c.aiChecks.length} AI check${c.aiChecks.length === 1 ? '' : 's'}`
-        : `${c.aiChecks.length} judged`,
-    });
-  if (!chips.length)
-    return (
-      <span className="ai-muted" style={{ fontSize: 12.5 }}>
-        No checks
-      </span>
-    );
-  return (
-    <>
-      {chips.map((x) => (
-        <span key={x.key} className="sc-pill">
-          {x.icon}
-          {x.text}
-        </span>
-      ))}
-    </>
-  );
-}
-
 /** What a member can be picked for: the board can start it. */
-export function canStart(m: AiMember): boolean {
-  return m.kind === 'ai' && m.connection !== 'inbox';
+export function canStart(m: AiTeam): boolean {
+  return m.kind === 'ai';
 }
 
 /** The slot the person most likely wants to see first: waiting, then the newest. */

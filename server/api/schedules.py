@@ -59,8 +59,6 @@ class ScheduleBody(BaseModel):
     ends_after: Optional[int] = None
     ends_on: Optional[str] = None
     window_end: Optional[str] = None
-    checks: Optional[dict[str, Any]] = None
-    review: Optional[dict[str, Any]] = None
     limits: Optional[dict[str, Any]] = None
     catch_up: Optional[str] = None
     catch_up_hours: Optional[float] = None

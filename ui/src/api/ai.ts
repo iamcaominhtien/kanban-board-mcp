@@ -1,41 +1,74 @@
 import { LIVE_POLL_MS, SAFETY_POLL_MS } from './pollIntervals';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import camelcaseKeys from 'camelcase-keys';
 import { client } from './client';
+import { mergeSteps } from './aiRunCache';
 import type {
-  AiApproval,
-  AiAuditEntry,
-  AiMember,
+  AiLive,
   AiOverview,
   AiRun,
+  AiRunFull,
   AiSettings,
-  DetectResult,
-  PermissionRow,
+  AiTeam,
+  BoardRun,
+  RunMessage,
   RunnerInfo,
+  RunState,
+  RunStep,
+  TeamPack,
+  AiTeamRole,
+  AiSessionHistory,
+  AiRecent,
+  TeamActivity,
 } from '../types/ai';
-import type { Ticket } from '../types';
+import { ACTIVE_STATES } from '../types/ai';
 
 export const aiKeys = {
   all: ['ai'] as const,
   overview: (projectId: string) => ['ai', 'overview', projectId] as const,
   board: (projectId: string) => ['ai', 'board', projectId] as const,
-  member: (id: string) => ['ai', 'member', id] as const,
-  usage: (id: string) => ['ai', 'usage', id] as const,
-  permissions: (id: string) => ['ai', 'permissions', id] as const,
-  ticketRuns: (ticketId: string) => ['ai', 'ticket-runs', ticketId] as const,
-  ticketHolder: (ticketId: string) => ['ai', 'ticket-holder', ticketId] as const,
+  settings: (projectId: string) => ['ai', 'settings', projectId] as const,
+  teams: (projectId: string) => ['ai', 'teams', projectId] as const,
+  team: (id: string) => ['ai', 'team', id] as const,
   run: (id: string) => ['ai', 'run', id] as const,
-  approvals: (projectId: string, status?: string) => ['ai', 'approvals', projectId, status ?? 'all'] as const,
-  audit: (projectId: string, filters: object) => ['ai', 'audit', projectId, filters] as const,
-  projectUsage: (projectId: string) => ['ai', 'project-usage', projectId] as const,
+  runMessages: (id: string) => ['ai', 'run', id, 'messages'] as const,
+  ticketRuns: (ticketId: string) => ['ai', 'ticketRuns', ticketId] as const,
+  projectRuns: (projectId: string, state?: string) => ['ai', 'runs', projectId, state ?? ''] as const,
+  live: (projectId: string) => ['ai', 'live', projectId] as const,
+  activity: (projectId: string) => ['ai', 'activity', projectId] as const,
+  teamActivity: (teamId: string) => ['ai', 'activity', 'team', teamId] as const,
+  recent: (projectId: string, teamId?: string) => ['ai', 'recent', projectId, teamId ?? ''] as const,
+  packs: ['ai', 'packs', 'teams'] as const,
+  roles: ['ai', 'packs', 'roles'] as const,
 };
 
-/** Overview of the project's AI members (list page, members modal, pickers). */
+/** Whether a run is still going (queued, starting, running or waiting for an answer). */
+export const isActive = (state: RunState | undefined) => !!state && ACTIVE_STATES.includes(state);
+
+/** The board's cache: the newest run of each ticket, by ticket id. */
+export interface AiBoardData {
+  tickets: Record<string, BoardRun>;
+}
+
+// --------------------------------------------------------------------------- queries
+
+/** The project's AI settings (permission mode, deny list, lessons, limits, the kill switch). */
+export function useAiSettings(projectId: string) {
+  return useQuery({
+    queryKey: aiKeys.settings(projectId),
+    queryFn: async () => (await client.get<AiSettings>(`/projects/${projectId}/ai/settings`)).data,
+    enabled: !!projectId,
+    refetchInterval: SAFETY_POLL_MS,
+  });
+}
+
+/** Counts for the AI Team page and the header: teams, runs by state, what is active. */
 export function useAiOverview(projectId: string) {
   return useQuery({
     queryKey: aiKeys.overview(projectId),
     queryFn: async () => (await client.get<AiOverview>(`/projects/${projectId}/ai/overview`)).data,
     enabled: !!projectId,
-    refetchInterval: (q) => (q.state.data?.summary.runningNow ? LIVE_POLL_MS : SAFETY_POLL_MS),
+    refetchInterval: (q) => (q.state.data?.active.length ? LIVE_POLL_MS : SAFETY_POLL_MS),
   });
 }
 
@@ -49,217 +82,192 @@ export function useRunnerInfo() {
   });
 }
 
-/** Run state per ticket for the board (card footers, column indicators) and the kill switch. */
+/**
+ * The newest run of every ticket: the board's card footers and the kill switch. The ticket ids key a dict, so the
+ * response keeps its keys ("IAM-12" would be camel-cased into "iam12") and each entry is converted by hand.
+ */
 export function useAiBoard(projectId: string) {
   return useQuery({
     queryKey: aiKeys.board(projectId),
-    queryFn: async () =>
-      (await client.get<{ runs: AiRun[]; settings: AiSettings }>(`/projects/${projectId}/ai/board`)).data,
+    queryFn: async (): Promise<AiBoardData> => {
+      const raw = (
+        await client.get<{ tickets: Record<string, Record<string, unknown>> }>(`/projects/${projectId}/ai/board`, {
+          keepKeys: true,
+        })
+      ).data;
+      const tickets: Record<string, BoardRun> = {};
+      for (const [ticketId, entry] of Object.entries(raw.tickets ?? {})) {
+        tickets[ticketId] = { ...(camelcaseKeys(entry, { deep: true }) as unknown as BoardRun), ticketId };
+      }
+      return { tickets };
+    },
     enabled: !!projectId,
     refetchInterval: (q) =>
-      q.state.data?.runs.some((r) => ['queued', 'starting', 'running'].includes(r.state))
-        ? LIVE_POLL_MS
-        : SAFETY_POLL_MS,
+      Object.values(q.state.data?.tickets ?? {}).some((r) => isActive(r.state)) ? LIVE_POLL_MS : SAFETY_POLL_MS,
   });
 }
 
-/** One AI member. */
-export function useAiMember(id: string | null) {
+/** The project's teams. */
+export function useAiTeams(projectId: string, includeRemoved = false) {
   return useQuery({
-    queryKey: aiKeys.member(id ?? ''),
-    queryFn: async () => (await client.get<AiMember>(`/ai/members/${id}`)).data,
+    queryKey: [...aiKeys.teams(projectId), includeRemoved] as const,
+    queryFn: async () =>
+      (
+        await client.get<AiTeam[]>(`/projects/${projectId}/ai/teams`, {
+          params: includeRemoved ? { include_removed: true } : undefined,
+        })
+      ).data,
+    enabled: !!projectId,
+    refetchInterval: SAFETY_POLL_MS,
+  });
+}
+
+/** One team. */
+export function useAiTeam(id: string | null) {
+  return useQuery({
+    queryKey: aiKeys.team(id ?? ''),
+    queryFn: async () => (await client.get<AiTeam>(`/ai/teams/${id}`)).data,
     enabled: !!id,
     refetchInterval: LIVE_POLL_MS,
   });
 }
 
-export interface MemberUsage {
-  runsToday: number;
-  scheduledRunsToday: number;
-  runsLastHour: number;
-  tokensInToday: number;
-  tokensOutToday: number;
-  costToday: number;
-  costMonth: number;
-  secondsToday: number;
-  successRateWeek: number | null;
-  days: { date: string; runs: number; costUsd: number; seconds: number }[];
-  recentRuns: AiRun[];
-  metered: boolean;
-  dailyBudget: number | null;
-  monthlyCap: number | null;
-  maxRunsPerDay: number | null;
-}
-
-/** What a member carries into every run before the ticket, in tokens (design: "base prompt N tokens"). */
-export function useBasePrompt(id: string) {
+/** The ready-made team packs (which roles a team brings). */
+export function useTeamPacks() {
   return useQuery({
-    queryKey: ['ai', 'base-prompt', id] as const,
-    queryFn: async () =>
-      (
-        await client.get<{ memberId: string; tokens: number; parts: Record<string, number>; skills: string[] }>(
-          `/ai/members/${id}/base-prompt`,
-        )
-      ).data,
-    enabled: !!id,
-    retry: false,
+    queryKey: aiKeys.packs,
+    queryFn: async () => (await client.get<TeamPack[]>('/ai/packs/teams')).data,
+    staleTime: Infinity,
   });
 }
 
-/** Usage tab. */
-export function useAiUsage(id: string) {
+/** Every ready-made role (the roles a team may add). */
+export function useRoleCatalogue() {
   return useQuery({
-    queryKey: aiKeys.usage(id),
-    queryFn: async () => (await client.get<MemberUsage>(`/ai/members/${id}/usage`)).data,
+    queryKey: aiKeys.roles,
+    queryFn: async () => (await client.get<AiTeamRole[]>('/ai/packs/roles')).data,
+    staleTime: Infinity,
   });
 }
 
-export interface PermissionsData {
-  template: string;
-  ceiling: string;
-  scope: string;
-  matrix: PermissionRow[];
-  history: {
-    id: string;
-    at: string;
-    by: string | null;
-    byRole: string | null;
-    kind: 'created' | 'changed';
-    diffs: { action: string; label: string; from: string | null; to: string | null }[];
-    other: { label: string; from: unknown; to: unknown }[];
-    template?: string | null;
-    ceiling?: string | null;
-  }[];
-  safeMode: boolean;
-  agentSafeMode: boolean;
-  pausedAll: boolean;
-  overrideLabels: string[];
-  me: { name: string; role: 'owner' | 'admin' | 'member' | 'viewer' };
-  projects: { id: string; name: string; checked: boolean }[];
-}
-
-/** Permissions tab. */
-export function useAiPermissions(id: string) {
-  return useQuery({
-    queryKey: aiKeys.permissions(id),
-    queryFn: async () => (await client.get<PermissionsData>(`/ai/members/${id}/permissions`)).data,
-  });
-}
-
-/** Run history of a ticket (newest first); polls while a run is active. */
+/** Run history of a ticket (newest first), without steps. */
 export function useTicketRuns(ticketId: string | undefined) {
   return useQuery({
     queryKey: aiKeys.ticketRuns(ticketId ?? ''),
     queryFn: async () => (await client.get<AiRun[]>(`/tickets/${ticketId}/ai/runs`)).data,
     enabled: !!ticketId,
-    refetchInterval: (q) =>
-      q.state.data?.some((r) => ['queued', 'starting', 'running'].includes(r.state)) ? LIVE_POLL_MS : SAFETY_POLL_MS,
+    refetchInterval: (q) => (q.state.data?.some((r) => isActive(r.state)) ? LIVE_POLL_MS : SAFETY_POLL_MS),
   });
 }
 
-/** Who has a ticket now: an AI, a person, or someone it waits on (issue #272). */
-export interface TicketHolder {
-  kind: 'ai' | 'person' | 'waiting' | 'nobody';
-  name: string | null;
-  memberId: string | null;
-  state: string | null;
-  waitingOn: string | null;
-  step: string | null;
-  since: string | null;
-  text: string;
-}
-
-/** The fixed-form note a hand-over carries: what was done, where it is, what is left, what to check first. */
-export interface HandoffFields {
-  done?: string;
-  where?: string;
-  left?: string;
-  check?: string;
-}
-
-export interface HandOverResult {
-  ticketId: string;
-  route: 'resumed' | 'workflow' | 'told' | 'member';
-  step?: string | null;
-  member?: string;
-  holder: TicketHolder;
-}
-
-/** Who has the ticket now, polled faster while an AI holds it. */
-export function useTicketHolder(ticketId: string | undefined) {
+/** The closed conversations of a ticket's team (History in the ticket chat), newest first. */
+export function useTicketSessions(ticketId: string | undefined) {
   return useQuery({
-    queryKey: aiKeys.ticketHolder(ticketId ?? ''),
-    queryFn: async () => (await client.get<TicketHolder>(`/tickets/${ticketId}/ai/holder`)).data,
+    queryKey: ['ai', 'ticket-sessions', ticketId ?? ''],
+    queryFn: async () => (await client.get<AiSessionHistory[]>(`/tickets/${ticketId}/ai/sessions`)).data,
     enabled: !!ticketId,
-    refetchInterval: (q) => (q.state.data?.kind === 'ai' ? LIVE_POLL_MS : SAFETY_POLL_MS),
   });
 }
 
-/** Approvals of a project. */
-export function useAiApprovals(projectId: string, status?: string) {
+/** The project's runs (Run history), newest first, without steps. */
+export function useProjectRuns(projectId: string, opts: { state?: string; limit?: number } = {}) {
   return useQuery({
-    queryKey: aiKeys.approvals(projectId, status),
-    queryFn: async () =>
-      (await client.get<AiApproval[]>(`/projects/${projectId}/ai/approvals`, { params: status ? { status } : {} }))
-        .data,
-    enabled: !!projectId,
-    refetchInterval: 8000,
-  });
-}
-
-/** Audit log page. */
-export function useAiAudit(
-  projectId: string,
-  filters: { memberId?: string; result?: string; q?: string; runId?: string },
-) {
-  return useQuery({
-    queryKey: aiKeys.audit(projectId, filters),
+    queryKey: aiKeys.projectRuns(projectId, opts.state),
     queryFn: async () =>
       (
-        await client.get<{ entries: AiAuditEntry[]; counts: Record<string, number>; total: number }>(
-          `/projects/${projectId}/ai/audit`,
-          {
-            params: {
-              member_id: filters.memberId || undefined,
-              result: filters.result || undefined,
-              q: filters.q || undefined,
-              run_id: filters.runId || undefined,
-            },
-          },
-        )
+        await client.get<AiRun[]>(`/projects/${projectId}/ai/runs`, {
+          params: { limit: opts.limit ?? 60, state: opts.state || undefined },
+        })
       ).data,
     enabled: !!projectId,
+    refetchInterval: SAFETY_POLL_MS,
   });
 }
 
-export interface ProjectUsage {
-  days: { date: string; costUsd: number; runs: number }[];
-  agents: {
-    memberId: string;
-    name: string;
-    runs: number;
-    tokens: number;
-    costUsd: number;
-    seconds: number;
-    metered: boolean;
-  }[];
-  tickets: { ticketId: string; runs: number; costUsd: number }[];
-  topRuns: { runId: string; ticketId: string; number: number; name: string; costUsd: number; tokensIn: number }[];
-  totalCost: number;
-  totalRuns: number;
-  boardDailyCap: number | null;
-  boardMonthlyBudget: number | null;
-  pricesUpdated: string;
-}
-
-/** Usage dashboard. */
-export function useProjectAiUsage(projectId: string) {
+/** One run with its subagents and the newest steps. Steps arrive over SSE (aiRunCache.ts) and by page. */
+export function useAiRun(id: string | null | undefined) {
   return useQuery({
-    queryKey: aiKeys.projectUsage(projectId),
-    queryFn: async () => (await client.get<ProjectUsage>(`/projects/${projectId}/ai/usage`)).data,
-    enabled: !!projectId,
+    queryKey: aiKeys.run(id ?? ''),
+    queryFn: async () => (await client.get<AiRunFull>(`/ai/runs/${id}`, { params: { steps: 50 } })).data,
+    enabled: !!id,
+    refetchInterval: (q) => (isActive(q.state.data?.state) ? LIVE_POLL_MS : false),
   });
 }
+
+/** Several runs with their subagents and newest steps at once (the ticket's Timeline); the same cache as `useAiRun`. */
+export function useAiRuns(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: aiKeys.run(id),
+      queryFn: async () => (await client.get<AiRunFull>(`/ai/runs/${id}`, { params: { steps: 50 } })).data,
+      refetchInterval: (q: { state: { data?: AiRunFull } }) => (isActive(q.state.data?.state) ? LIVE_POLL_MS : false),
+    })),
+  });
+}
+
+/** Messages into and out of a run (a person's notes, other AI sessions). */
+export function useRunMessages(runId: string | null | undefined) {
+  return useQuery({
+    queryKey: aiKeys.runMessages(runId ?? ''),
+    queryFn: async () => (await client.get<RunMessage[]>(`/ai/runs/${runId}/messages`)).data,
+    enabled: !!runId,
+  });
+}
+
+/** The newest steps of every active run of the project. */
+export function useAiLive(projectId: string) {
+  return useQuery({
+    queryKey: aiKeys.live(projectId),
+    queryFn: async () => (await client.get<AiLive>(`/projects/${projectId}/ai/live`)).data,
+    enabled: !!projectId,
+    refetchInterval: (q) => (q.state.data?.runs.length ? LIVE_POLL_MS : SAFETY_POLL_MS),
+  });
+}
+
+/** What each team's lead and roles do now and did today, by team id (AI Team › Now). */
+export function useTeamsActivity(projectId: string) {
+  return useQuery({
+    queryKey: aiKeys.activity(projectId),
+    queryFn: async () =>
+      (
+        await client.get<{ teams: Record<string, TeamActivity> }>(`/projects/${projectId}/ai/team/activity`, {
+          keepKeys: true,
+        })
+      ).data,
+    enabled: !!projectId,
+    select: (raw): Record<string, TeamActivity> =>
+      Object.fromEntries(
+        Object.entries(raw.teams ?? {}).map(([id, a]) => [
+          id,
+          camelcaseKeys(a as never, { deep: true }) as TeamActivity,
+        ]),
+      ),
+    refetchInterval: LIVE_POLL_MS,
+  });
+}
+
+/** One team's lead and roles: now, last worked, steps and runs today (the team page). */
+export function useTeamActivity(teamId: string | null) {
+  return useQuery({
+    queryKey: aiKeys.teamActivity(teamId ?? ''),
+    queryFn: async () => (await client.get<TeamActivity>(`/ai/teams/${teamId}/activity`)).data,
+    enabled: !!teamId,
+    refetchInterval: LIVE_POLL_MS,
+  });
+}
+
+/** Runs that just ended with the first line of their report, and the latest notes into and out of runs. */
+export function useAiRecent(projectId: string, teamId?: string) {
+  return useQuery({
+    queryKey: aiKeys.recent(projectId, teamId),
+    queryFn: async () =>
+      (await client.get<AiRecent>(`/projects/${projectId}/ai/recent`, { params: { team_id: teamId, limit: 8 } })).data,
+    enabled: !!projectId,
+    refetchInterval: SAFETY_POLL_MS,
+  });
+}
+
+// --------------------------------------------------------------------------- mutations
 
 /** Invalidate every AI query and the tickets (runs move tickets and post comments). */
 function useInvalidate() {
@@ -277,152 +285,71 @@ export function useAiMutation<TVars, TOut>(fn: (v: TVars) => Promise<TOut>) {
   return useMutation({ mutationFn: fn, onSuccess: () => invalidate() });
 }
 
-/** One row of “Undo run's changes”: a field to revert, or what stays (the files, the branch). */
-export interface RevertRow {
-  kind: 'field' | 'files' | 'branch';
-  entryId?: string;
-  ticketId?: string;
-  field: string;
-  from?: unknown;
-  to?: unknown;
-  current?: unknown;
-  conflict: boolean;
-  /** Who changed a conflicting field after the AI, and when. */
-  editedBy?: string;
-  editedAt?: string;
-  count?: number;
-  paths?: string[];
-  name?: string;
-  note?: string;
+/**
+ * Fetch a page of a run's steps (`after` a seq; `agent` = `lead` or a subagent id) and merge it into the run's cache,
+ * so the tree shows them. Returns how many steps the page held.
+ */
+export function useLoadSteps(runId: string) {
+  const qc = useQueryClient();
+  return async (opts: { after?: number; agent?: string; limit?: number } = {}): Promise<RunStep[]> => {
+    const steps = await aiApi.runSteps(runId, opts);
+    qc.setQueryData<AiRunFull>(aiKeys.run(runId), (old) =>
+      old ? { ...old, steps: mergeSteps(old.steps, steps) } : old,
+    );
+    return steps;
+  };
 }
 
 export const aiApi = {
-  detect: async (provider: string, cliPath?: string) =>
-    (await client.post<DetectResult>('/ai/detect', { provider, cliPath })).data,
-  testRun: async (body: {
-    provider: string;
-    cliPath?: string;
-    model?: string;
-    workingDir?: string;
-    /** Run as this AI account (the server runs the CLI with the account's own login). */
-    accountId?: string;
-  }) =>
-    (await client.post<{ ok: boolean; seconds?: number; reply?: string; error?: string }>('/ai/test-run', body)).data,
-  testKey: async (body: { provider: string; apiKey: string; baseUrl?: string }) =>
-    (
-      await client.post<{ ok: boolean; status: number | null; models?: string[]; error?: string; note?: string }>(
-        '/ai/test-key',
-        body,
-      )
-    ).data,
-  checkName: async (projectId: string, name: string, exclude?: string) =>
-    (
-      await client.get<{ ok: boolean; conflict: string | null; message: string | null; suggestion: string | null }>(
-        `/projects/${projectId}/ai/check-name`,
-        { params: { name, exclude } },
-      )
-    ).data,
-  create: async (projectId: string, body: Record<string, unknown>) =>
-    (await client.post<AiMember>(`/projects/${projectId}/ai/members`, body)).data,
-  update: async (id: string, body: Record<string, unknown>) =>
-    (await client.patch<AiMember>(`/ai/members/${id}`, body)).data,
-  pause: async (id: string, body: { cancelCurrent?: boolean; reason?: string } = {}) =>
-    (await client.post<AiMember>(`/ai/members/${id}/pause`, body)).data,
-  resume: async (id: string) => (await client.post<AiMember>(`/ai/members/${id}/resume`)).data,
-  /** Skip a rate limit's wait: the queued runs try the provider again at once. */
-  retryNow: async (id: string) => (await client.post<AiMember>(`/ai/members/${id}/retry-now`)).data,
-  setProjects: async (id: string, projectIds: string[]) =>
-    (await client.put(`/ai/members/${id}/projects`, { projectIds })).data,
-  decidePending: async (id: string, decision: 'confirm' | 'reject') =>
-    (await client.post<AiMember>(`/ai/members/${id}/permissions/pending/${decision}`)).data,
-  test: async (id: string, full = true) =>
-    (
-      await client.post<{ ok: boolean; health: string; message: string; version?: string; account?: string }>(
-        `/ai/members/${id}/test`,
-        { full },
-      )
-    ).data,
+  createTeam: async (projectId: string, body: Record<string, unknown>) =>
+    (await client.post<AiTeam>(`/projects/${projectId}/ai/teams`, body)).data,
+  updateTeam: async (id: string, body: Record<string, unknown>) =>
+    (await client.patch<AiTeam>(`/ai/teams/${id}`, body)).data,
+  pauseTeam: async (id: string, body: { cancelCurrent?: boolean; reason?: string } = {}) =>
+    (await client.post<AiTeam>(`/ai/teams/${id}/pause`, body)).data,
+  resumeTeam: async (id: string) => (await client.post<AiTeam>(`/ai/teams/${id}/resume`)).data,
+  testTeam: async (id: string) =>
+    (await client.post<{ ok: boolean; health: string; message: string; version?: string }>(`/ai/teams/${id}/test`))
+      .data,
   removalImpact: async (id: string) =>
     (
       await client.get<{
         openTickets: { id: string; title: string; status: string }[];
         activeRuns: { id: string; ticketId: string; number: number; state: string }[];
-      }>(`/ai/members/${id}/removal-impact`)
+      }>(`/ai/teams/${id}/removal-impact`)
     ).data,
-  remove: async (id: string, body: { tickets: string; reassignTo?: string; runs: string }) =>
-    (await client.post<{ removed: boolean; scheduled: boolean }>(`/ai/members/${id}/remove`, body)).data,
-  testPermission: async (id: string, body: { action: string; ticketId?: string; targetStatus?: string }) =>
-    (
-      await client.post<{
-        verdict: string;
-        reason: string;
-        checks: { label: string; ok: boolean; mode: string; note?: string }[];
-      }>(`/ai/members/${id}/permissions/test`, body)
-    ).data,
+  removeTeam: async (id: string, body: { tickets: 'reassign' | 'unassign'; reassignTo?: string }) =>
+    (await client.post<{ removed: boolean }>(`/ai/teams/${id}/remove`, body)).data,
   updateSettings: async (projectId: string, body: Partial<AiSettings>) =>
     (await client.patch<AiSettings>(`/projects/${projectId}/ai/settings`, body)).data,
-  pauseAll: async (projectId: string, body: { reason: string; cancelRunning: boolean; revokeTokens?: boolean }) =>
-    (
-      await client.post<{ cancelled: number; held: number; revokedTokens: number }>(
-        `/projects/${projectId}/ai/pause-all`,
-        body,
-      )
-    ).data,
-  resumeAll: async (projectId: string, body: { safeMode: boolean; memberIds?: string[]; reviewed: boolean }) =>
-    (await client.post(`/projects/${projectId}/ai/resume-all`, body)).data,
-  assign: async (
-    ticketId: string,
-    body: { memberId: string; start: 'now' | 'queue' | 'none'; includeContext?: boolean; instruction?: string },
-  ) => (await client.post<{ ticket: Ticket; run: AiRun | null }>(`/tickets/${ticketId}/ai/assign`, body)).data,
-  /** `queue`: wait for the AI's current run to end instead of starting beside it (Run menu: Queue for next free slot). */
-  run: async (ticketId: string, body: { memberId?: string; instruction?: string; queue?: boolean } = {}) =>
+  pauseAll: async (projectId: string, body: { reason?: string; cancelRunning: boolean }) =>
+    (await client.post<AiSettings>(`/projects/${projectId}/ai/pause-all`, body)).data,
+  resumeAll: async (projectId: string) => (await client.post<AiSettings>(`/projects/${projectId}/ai/resume-all`)).data,
+  /** Run the ticket's team on it. A lead already working on the ticket hears the instruction instead. */
+  run: async (ticketId: string, body: { teamId?: string; instruction?: string; mode?: 'work' | 'ask' } = {}) =>
     (await client.post<AiRun>(`/tickets/${ticketId}/ai/run`, body)).data,
-  ask: async (
-    ticketId: string,
-    body: { memberId: string; question: string; source?: string; ref?: string; fast?: boolean },
-  ) => (await client.post<AiRun>(`/tickets/${ticketId}/ai/ask`, body)).data,
-  cancel: async (runId: string, reason?: string) =>
-    (await client.post<AiRun>(`/ai/runs/${runId}/cancel`, { reason })).data,
-  /** Run again as run #n+1; `limitMin` gives that run a longer time limit ("Raise limit"). */
-  retry: async (runId: string, limitMin?: number) =>
-    (await client.post<AiRun>(`/ai/runs/${runId}/retry`, limitMin ? { limitMin } : undefined)).data,
-  /** Take a "stopped: memory" card out of Needs you without retrying the run. */
-  dismissStop: async (runId: string) =>
-    (await client.post<{ dismissed: boolean }>(`/ai/runs/${runId}/dismiss-stop`)).data,
-  startNow: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/start-now`)).data,
-  pauseRun: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/pause`)).data,
-  resumeRun: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/resume`)).data,
-  /** “Ask someone else”: the question and Pending go to another person. */
-  askSomeoneElse: async (runId: string, memberId: string) =>
-    (await client.post<AiRun>(`/ai/runs/${runId}/ask-someone-else`, { memberId })).data,
-  /** Regenerate an answer; with `question` the edited question is asked (Edit and re-run). */
-  regenerate: async (runId: string, body: { question?: string; replace?: boolean } = {}) =>
-    (await client.post<AiRun>(`/ai/runs/${runId}/regenerate`, body)).data,
-  feedback: async (runId: string, rating: 'up' | 'down' | 'none', reasons: string[] = []) =>
-    (await client.post<AiRun>(`/ai/runs/${runId}/feedback`, { rating, reasons })).data,
-  refreshContext: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/refresh-context`)).data,
+  cancel: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/cancel`)).data,
+  retry: async (runId: string) => (await client.post<AiRun>(`/ai/runs/${runId}/retry`)).data,
   answer: async (runId: string, text: string) => (await client.post<AiRun>(`/ai/runs/${runId}/answer`, { text })).data,
-  requestChanges: async (ticketId: string, text: string, continueSession: boolean) =>
-    (await client.post<AiRun>(`/tickets/${ticketId}/ai/request-changes`, { text, continueSession })).data,
-  takeOver: async (ticketId: string, memberId?: string, text?: string) =>
-    (await client.post<Ticket & { holder: TicketHolder }>(`/tickets/${ticketId}/ai/take-over`, { memberId, text }))
-      .data,
-  /** Give the ticket (back) to the AI team with a handoff note; a workflow taken back resumes at its step. */
-  handOver: async (ticketId: string, body: HandoffFields & { memberId?: string; workflow?: string }) =>
-    (await client.post<HandOverResult>(`/tickets/${ticketId}/ai/hand-over`, body)).data,
-  revertPreview: async (runId: string) => (await client.get<RevertRow[]>(`/ai/runs/${runId}/revert-preview`)).data,
-  revertRun: async (runId: string) =>
-    (await client.post<{ entryId: string; result: string; reason?: string }[]>(`/ai/runs/${runId}/revert`)).data,
-  revertEntries: async (entryIds: string[]) =>
-    (await client.post<{ entryId: string; result: string; reason?: string }[]>('/ai/audit/revert', { entryIds })).data,
-  approve: async (id: string, note?: string) =>
-    (await client.post<AiApproval & { error?: string }>(`/ai/approvals/${id}/approve`, { note })).data,
-  deny: async (id: string, note?: string, stopRun = false) =>
-    (await client.post<AiApproval>(`/ai/approvals/${id}/deny`, { note, stopRun })).data,
-  verifyAudit: async (projectId: string) =>
+  message: async (runId: string, text: string) =>
+    (await client.post<{ ok?: boolean; delivered?: boolean }>(`/ai/runs/${runId}/message`, { text })).data,
+  runSteps: async (runId: string, opts: { after?: number; agent?: string; limit?: number } = {}) =>
     (
-      await client.get<{ ok: boolean; brokenAt: string | null; checked: number }>(
-        `/projects/${projectId}/ai/audit/verify`,
+      await client.get<RunStep[]>(`/ai/runs/${runId}/steps`, {
+        params: { after: opts.after || undefined, agent: opts.agent, limit: opts.limit },
+      })
+    ).data,
+  /** `/compact` in the ticket chat: "queued" when the lead is working (it compacts after its step), "done" with the
+   * tokens before and after when the lead was idle. */
+  compact: async (ticketId: string) =>
+    (
+      await client.post<{ state: 'queued' | 'done'; runId?: string; before?: number; after?: number }>(
+        `/tickets/${ticketId}/ai/compact`,
       )
     ).data,
+  /** Start the team over on a ticket: its conversation is closed into the history; the next run begins anew. */
+  newSession: async (ticketId: string) =>
+    (await client.post<AiSessionHistory>(`/tickets/${ticketId}/ai/sessions/new`)).data,
+  stepOutput: async (runId: string, seq: number) =>
+    (await client.get<RunStep>(`/ai/runs/${runId}/steps/${seq}/output`)).data,
 };

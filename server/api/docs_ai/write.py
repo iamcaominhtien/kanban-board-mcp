@@ -1,4 +1,4 @@
-"""Docs AI API: write a page with AI, tidy on import, history and publishing helpers (docs-ai.md D, docs-ai-care.md D)."""
+"""Docs AI API: write a page with the assistant, tidy on import, history and publishing helpers."""
 
 from typing import Annotated, Any, Optional
 
@@ -8,7 +8,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from database import get_session
 from services import activity as svc_activity
-from services.docs_ai import history, jobs, tidy, write  # noqa: F401  (importing registers the job handlers)
+from services import docs as svc_docs
+from services.assistant import docs as svc
+from services.docs_ai import DocsAiError, jobs, tidy
+from services.docs_ai import settings as svc_settings
 
 router = APIRouter(tags=["docs-ai"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -19,7 +22,7 @@ def _by() -> str:
 
 
 class WriteSource(BaseModel):
-    """What the page is written from."""
+    """Where a page is written from: a ticket, an idea, notes or a prompt."""
 
     kind: str
     ticket_id: Optional[str] = None
@@ -28,7 +31,7 @@ class WriteSource(BaseModel):
 
 
 class WriteInclude(BaseModel):
-    """ "Also read": code changes stay off unless asked for."""
+    """What the assistant may read besides the source."""
 
     comments: bool = True
     linked_pages: bool = True
@@ -36,7 +39,7 @@ class WriteInclude(BaseModel):
 
 
 class WritePreviewBody(BaseModel):
-    """Body of "What will be sent"."""
+    """The sources picked in the Write dialog."""
 
     source: WriteSource
     page_kind: Optional[str] = None
@@ -45,7 +48,7 @@ class WritePreviewBody(BaseModel):
 
 
 class WriteBody(WritePreviewBody):
-    """Body of Write draft."""
+    """The sources picked in the Write dialog, and where the page goes."""
 
     parent_id: Optional[str] = None
 
@@ -54,34 +57,52 @@ class WriteBody(WritePreviewBody):
 async def write_preview(
     project_id: str, body: WritePreviewBody, session: Session
 ) -> dict[str, Any]:
-    """ "What will be sent": the list, approximate tokens and cost, and the pages left out (hidden from AI)."""
-    return await write.preview(session, project_id, body.model_dump())
+    """ "What will be sent": what the assistant starts reading from."""
+    return await svc.write_preview(session, project_id, body.model_dump())
 
 
 @router.post("/projects/{project_id}/docs/ai/write")
 async def write_page(
     project_id: str, body: WriteBody, session: Session
 ) -> dict[str, Any]:
-    """Write a page from the picked sources: a `write` job. Its result is `{page_id, gaps, sources, cost}`; the text
-    is the caller's private draft of a new, unpublished page."""
-    job = await write.start(session, project_id, body.model_dump(), _by())
+    """Write a page from the picked sources: a `write` job. Its result is `{page_id, title, gaps, sources, cost}`."""
+    job = await svc.start_write(session, project_id, body.model_dump(), _by())
     return jobs.to_dict(job)
 
 
 @router.get("/docs/pages/{page_id}/ai/markers")
 async def page_markers(page_id: str, session: Session) -> dict[str, Any]:
-    """The Needs input markers still in your draft (checked before publishing; publishing stays possible)."""
-    return await write.markers_of_draft(session, page_id)
+    """The Needs input markers still in the page (checked before publishing; publishing stays possible)."""
+    return await svc.markers_of(session, page_id)
 
 
 @router.post("/docs/pages/{page_id}/ai/accepted")
 async def page_accepted(page_id: str, session: Session) -> dict[str, Any]:
-    """The editor accepted AI text: mark your draft so History shows "with AI" once it is published."""
-    return await write.mark_accepted(session, page_id)
+    """The editor accepted AI text."""
+    await svc_docs.get_page(session, page_id, edit=True)
+    return {"ok": True}
+
+
+async def _page_job(
+    session: AsyncSession, page_id: str, kind: str, instruction: str, **inputs: Any
+) -> dict[str, Any]:
+    page = await svc_docs.get_page(session, page_id)
+    await svc_settings.require_enabled(session, page.project_id)
+    await svc.ready_or_raise(page.project_id)
+    job = await jobs.start(
+        session,
+        project_id=page.project_id,
+        kind=kind,
+        started_by=_by(),
+        page_id=page.id,
+        instruction=instruction,
+        result={"input": inputs},
+    )
+    return jobs.to_dict(job)
 
 
 class HistorySummaryBody(BaseModel):
-    """A range of versions."""
+    """The two versions to compare."""
 
     from_version: int
     to_version: int
@@ -91,15 +112,21 @@ class HistorySummaryBody(BaseModel):
 async def history_summary(
     page_id: str, body: HistorySummaryBody, session: Session
 ) -> dict[str, Any]:
-    """ "What changed since v12": a `history_summary` job over the versions after `from_version` up to `to_version`."""
-    job = await history.start_history_summary(
-        session, page_id, body.from_version, body.to_version, _by()
+    """ "What changed since v12": a `history_summary` job."""
+    if body.to_version <= body.from_version:
+        raise DocsAiError("invalid", "Pick a later version to compare with.")
+    return await _page_job(
+        session,
+        page_id,
+        "history_summary",
+        f"What changed v{body.from_version} → v{body.to_version}",
+        from_version=body.from_version,
+        to_version=body.to_version,
     )
-    return jobs.to_dict(job)
 
 
 class PublishNoteBody(BaseModel):
-    """The text to write a note for; your draft when left out."""
+    """The draft text about to be published (optional)."""
 
     markdown: Optional[str] = None
 
@@ -108,20 +135,33 @@ class PublishNoteBody(BaseModel):
 async def publish_note(
     page_id: str, body: PublishNoteBody, session: Session
 ) -> dict[str, Any]:
-    """A suggested change note from the draft-versus-published diff: a `publish_note` job (`result.note`)."""
-    job = await history.start_publish_note(session, page_id, body.markdown, _by())
-    return jobs.to_dict(job)
+    """A suggested change note for publishing: a `publish_note` job (`result.note`)."""
+    return await _page_job(
+        session,
+        page_id,
+        "publish_note",
+        "Suggest a change note",
+        markdown=body.markdown,
+    )
 
 
 @router.post("/projects/{project_id}/docs/ai/since-viewed")
 async def since_viewed(project_id: str, session: Session) -> dict[str, Any]:
-    """ "Changes since you last viewed": a `since_viewed` job, one line per page, summary only."""
-    job = await history.start_since_viewed(session, project_id, _by())
+    """ "Changes since you last viewed": a `since_viewed` job, one line per page."""
+    await svc_settings.require_enabled(session, project_id)
+    await svc.ready_or_raise(project_id)
+    job = await jobs.start(
+        session,
+        project_id=project_id,
+        kind="since_viewed",
+        started_by=_by(),
+        instruction="Changes since you last viewed",
+    )
     return jobs.to_dict(job)
 
 
 class TidyOptions(BaseModel):
-    """Tidy while importing."""
+    """What a tidy import may change."""
 
     split_by_heading: bool = False
     ticket_chips: bool = False
@@ -130,7 +170,7 @@ class TidyOptions(BaseModel):
 
 
 class TidyBody(BaseModel):
-    """A Markdown file and the tidy options; nothing is imported by this call."""
+    """The Markdown to import and what to tidy in it."""
 
     markdown: str
     filename: str = "import.md"
@@ -142,8 +182,7 @@ class TidyBody(BaseModel):
 async def tidy_import(
     project_id: str, body: TidyBody, session: Session
 ) -> dict[str, Any]:
-    """Preview a tidy import: the pages and what changed in each. "see X" links are candidates for review: they are
-    only added to the text when their ids are in `accept_see_links`. Import the result with the import endpoint."""
+    """Preview a tidy import (no model): the pages and what changed in each."""
     return await tidy.tidy(
         session,
         project_id,

@@ -1,7 +1,7 @@
 """Budget checks shared by the scheduler, the API loop and the member status: the agent's daily budget, monthly cap
 and tokens per day, the board's daily cap, monthly budget and tokens, and the run counts of automatic runs: the
-board's runs per day (scheduled and AI-to-AI runs) and the runners' scheduled runs per day. A run a person starts
-(a mention, an assignment, a question) is never counted against a run limit. "Today" starts at local midnight and the month on the 1st, local time (design/screens/ai-safety-cost.md, C).
+board's runs per day (scheduled runs) and the runners' scheduled runs per day. A run a person starts
+(an assignment, a question, a message) is never counted against a run limit. "Today" starts at local midnight and the month on the 1st, local time (design/screens/ai-safety-cost.md, C).
 A person can raise today's cap (an approved "Raise cap"); the raise ends at midnight."""
 
 from datetime import UTC, date, datetime, time, timedelta
@@ -10,7 +10,7 @@ from sqlalchemy import or_
 from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiGrant, AiMember, AiProjectSettings, AiRun, AiUsage
+from models import AiTeam, AiProjectSettings, AiRun, AiUsage
 
 
 def today_start() -> datetime:
@@ -72,10 +72,6 @@ async def spent(
     if until:
         stmt = stmt.where(col(AiRun.started_at) < until.isoformat())
     ids = [member_id] if member_id else []
-    if member_id and whole_group:
-        from .multiproject import group_ids
-
-        ids = await group_ids(session, member_id)
     if member_id:
         stmt = stmt.where(col(AiRun.member_id).in_(ids))
     if project_id:
@@ -124,10 +120,10 @@ async def tokens_since(
 
 
 def run_kind(run) -> str:
-    """`schedule` for a run a schedule starts, `ai` for a hop of an AI-to-AI @mention chain, else `person`."""
+    """`schedule` for a run a schedule starts, else `person`."""
     if run.trigger == "schedule":
         return "schedule"
-    return "ai" if (run.chain or "[]") not in ("[]", "") else "person"
+    return "person"
 
 
 async def runs_today(
@@ -143,7 +139,7 @@ async def runs_today(
         col(AiRun.started_at) >= today_start().isoformat()
     )
     scheduled = AiRun.trigger == "schedule"
-    chained = AiRun.chain != "[]"
+    chained = AiRun.trigger == "message"
     if kinds == ("schedule",):
         stmt = stmt.where(scheduled)
     else:
@@ -156,18 +152,8 @@ async def runs_today(
 
 
 async def _raise_today(session: AsyncSession, member_id: str | None) -> float:
-    """Dollars added to today's cap by an approved "Raise cap" (agent, or board when `member_id` is None)."""
-    stmt = select(AiGrant).where(
-        AiGrant.kind == "cap_raise",
-        AiGrant.day == day_key(),
-        col(AiGrant.revoked_at).is_(None),
-    )
-    stmt = stmt.where(
-        AiGrant.member_id == member_id
-        if member_id
-        else col(AiGrant.member_id).is_(None)
-    )
-    return float(sum(g.amount for g in (await session.exec(stmt)).all()))
+    """AI v2: no cap raises (approvals are gone)."""
+    return 0.0
 
 
 def _hit(label: str, reason: str, scope: str, kind: str) -> dict:
@@ -176,7 +162,7 @@ def _hit(label: str, reason: str, scope: str, kind: str) -> dict:
 
 async def blocked_detail(
     session: AsyncSession,
-    profile: AiMember,
+    profile: AiTeam,
     settings: AiProjectSettings,
     run_kind: str | None = None,
 ) -> dict | None:
@@ -271,7 +257,7 @@ async def blocked_detail(
 
 async def blocked(
     session: AsyncSession,
-    profile: AiMember,
+    profile: AiTeam,
     settings: AiProjectSettings,
     run_kind: str | None = None,
 ) -> tuple[str, str] | None:

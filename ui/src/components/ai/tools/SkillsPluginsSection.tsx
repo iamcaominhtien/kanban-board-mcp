@@ -1,20 +1,18 @@
 import { useState } from 'react';
-import { aiPluginsApi, usePluginMutation, usePlugins, useSkillsUsage } from '../../../api/aiPlugins';
+import { aiPluginsApi, usePluginMutation, usePlugins } from '../../../api/aiPlugins';
 import { extractError } from '../../../api/extractError';
 import { LoadError } from '../aiUi';
 import { AddFromSource } from './AddFromSource';
 import { CatalogueTab } from './CatalogueTab';
 import { InstalledTab, TAKES_EFFECT } from './InstalledTab';
-import { OwnPluginsCard } from './OwnPluginsCard';
 
 type Tab = 'suggested' | 'source' | 'installed';
 
 /** Skills and plugins of the project (design/screens/ai-team-process.md, B): suggested for a role, add from a source,
- * installed; and the person's own Claude Code plugins per role (ai-story-flow.md, Q2). */
+ * installed. */
 export function SkillsPluginsSection({ projectId }: { projectId: string }) {
   const [tab, setTab] = useState<Tab>('installed');
   const plugins = usePlugins(projectId);
-  const usage = useSkillsUsage(projectId);
   const [confirmReset, setConfirmReset] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -45,9 +43,9 @@ export function SkillsPluginsSection({ projectId }: { projectId: string }) {
     body = <div className="ai-skel" style={{ height: 120 }} aria-busy="true" aria-label="Loading" />;
   else if (plugins.error || !plugins.data)
     body = <LoadError what="the plugins" error={plugins.error} onRetry={() => void plugins.refetch()} />;
-  else if (tab === 'suggested') body = <CatalogueTab projectId={projectId} plugins={plugins.data} />;
+  else if (tab === 'suggested') body = <CatalogueTab plugins={plugins.data} />;
   else if (tab === 'source') body = <AddFromSource projectId={projectId} onInstalled={() => setTab('installed')} />;
-  else body = <InstalledTab projectId={projectId} plugins={plugins.data} usage={usage.data ?? []} />;
+  else body = <InstalledTab projectId={projectId} plugins={plugins.data} />;
 
   return (
     <div data-testid="skills-plugins-section" data-project={projectId} style={{ display: 'grid', gap: 10 }}>
@@ -110,7 +108,6 @@ export function SkillsPluginsSection({ projectId }: { projectId: string }) {
         ))}
       </div>
       {body}
-      <OwnPluginsCard projectId={projectId} />
     </div>
   );
 }

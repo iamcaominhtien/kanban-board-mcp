@@ -1,10 +1,6 @@
-"""REST API of the optional AI helpers of the Idea Space (design: `design/screens/idea-ai-help.md`).
+"""The AI helpers of the Idea Space (AI v2: turns of the Idea assistant with a skill): status and switches, triage
+advice, Shape with AI, Ask, Prepare a ticket and the grooming digest. Nothing is applied for the person."""
 
-Every helper only suggests. Switches are per project and on by default; with AI off nothing here is needed and
-the rest of the Idea Space works unchanged.
-"""
-
-import json
 from typing import Annotated, Any, Literal, NoReturn
 
 from fastapi import APIRouter, Depends, Query
@@ -12,12 +8,11 @@ from pydantic import BaseModel, Field
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import services.activity as act
 from api.idea_space import _fail
 from database import get_session
 from models import IdeaTicket, Member
-from services import activity as act
-from services import idea_ai
-
+from services.assistant import ideas as idea_ai
 from services.docs_access import role_in
 
 router = APIRouter(prefix="/api/idea-ai", tags=["idea-ai"])
@@ -25,7 +20,7 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 
 
 def _ai_error(exc: idea_ai.IdeaAiError) -> NoReturn:
-    _fail(409, exc.code, str(exc), **exc.extra)
+    _fail(404 if exc.code == "not_found" else 409, exc.code, str(exc), **exc.extra)
 
 
 async def _need_member(session: AsyncSession, project_id: str | None) -> None:
@@ -50,10 +45,6 @@ async def _need_admin(session: AsyncSession, project_id: str | None) -> None:
         _fail(403, "read_only", "Only project admins change the AI settings.")
 
 
-def _scope(project_id: str | None) -> str:
-    return "project" if project_id else "all"
-
-
 @router.get("/status")
 async def get_status(session: Session, project_id: str | None = None) -> dict[str, Any]:
     """Whether AI help is available for the project (or for ideas with no project), and why not."""
@@ -76,7 +67,7 @@ class SettingsBody(BaseModel):
 async def get_settings_route(
     session: Session, project_id: str | None = None
 ) -> dict[str, Any]:
-    """The AI settings and the status of the project's Board AI."""
+    """The AI settings and whether the assistant can answer."""
     return await idea_ai.status(session, project_id)
 
 
@@ -86,12 +77,9 @@ async def put_settings(
 ) -> dict[str, Any]:
     """Change the AI switches of a project (admins)."""
     await _need_admin(session, project_id)
-    try:
-        await idea_ai.update_settings(
-            session, project_id, **body.model_dump(exclude_unset=True)
-        )
-    except ValueError as exc:
-        _fail(400, "invalid", str(exc))
+    await idea_ai.update_settings(
+        session, project_id, **body.model_dump(exclude_unset=True)
+    )
     return await idea_ai.status(session, project_id)
 
 
@@ -105,7 +93,6 @@ _ERROR_TEXT = {
     "not_member": "Only members of the project can ask for advice.",
     "failed": "The AI could not answer. Try again.",
     "bad_answer": "The AI gave an answer that could not be used.",
-    "no_repo": "This project has no linked repository.",
 }
 
 
@@ -113,7 +100,7 @@ _ERROR_TEXT = {
 async def post_advice(body: AdviceBody, session: Session) -> dict[str, Any]:
     """Read the ideas and suggest Keep, Park, Merge or Archive for each. Nothing is applied. An idea the AI is not
     sure about gets no advice (it is listed in `none`)."""
-    advice, none, errors = [], [], []
+    none, errors = [], []
     for idea_id in body.idea_ids:
         idea = await session.get(IdeaTicket, idea_id)
         if idea is None:
@@ -137,7 +124,8 @@ async def post_advice(body: AdviceBody, session: Session) -> dict[str, Any]:
                 }
             )
             continue
-        (none.append(idea_id) if found is None else advice.append(found.id))
+        if found is None:
+            none.append(idea_id)
     return {
         "advice": await idea_ai.advice_for(session, body.idea_ids),
         "none": none,
@@ -151,8 +139,7 @@ async def get_advice(
     idea_ids: Annotated[list[str], Query()],
     include_none: bool = False,
 ) -> list[dict[str, Any]]:
-    """Open advice for the ideas, each marked `stale` when the idea changed after the AI read it. `include_none` also
-    lists the ideas the AI read and had no suggestion for (action `none`, "No suggestion: not sure")."""
+    """Open advice for the ideas, each marked `stale` when the idea changed after the AI read it."""
     return await idea_ai.advice_for(session, idea_ids, include_none=include_none)
 
 
@@ -166,7 +153,7 @@ class AdviceState(BaseModel):
 async def post_advice_state(
     advice_id: str, body: AdviceState, session: Session
 ) -> dict[str, Any]:
-    """Mark advice accepted or ignored (the person did the move themselves, with the usual dialogs)."""
+    """Mark advice accepted or ignored (the person did the move themselves)."""
     try:
         a = await idea_ai.set_advice_state(session, advice_id, body.state)
     except ValueError as exc:
@@ -204,7 +191,6 @@ class ShapeBody(BaseModel):
     idea_id: str
     kind: Literal["problem", "assumptions", "tests", "effort", "exists", "ask"]
     question: str | None = Field(default=None, max_length=1000)
-    # names the request so Stop can end it (IP-16); without one it cannot be stopped, as before
     request_id: str | None = Field(default=None, min_length=8, max_length=64)
 
 
@@ -235,7 +221,7 @@ async def post_shape(body: ShapeBody, session: Session) -> dict[str, Any]:
 
 @router.post("/shape/{request_id}/stop")
 async def post_shape_stop(request_id: str) -> dict[str, Any]:
-    """Stop a running shape request (Stop in Shape with AI). `stopped` is false when it had already ended."""
+    """Stop a running shape request. `stopped` is false when it had already ended."""
     return {"stopped": idea_ai.stop_shape(request_id)}
 
 
@@ -260,26 +246,13 @@ async def post_prepare_ticket(body: PrepareBody, session: Session) -> dict[str, 
         _ai_error(exc)
 
 
-def _digest(d) -> dict[str, Any]:
-    return {
-        "id": d.id,
-        "project_id": d.project_id or None,
-        "text": d.text,
-        "items": json.loads(d.items or "[]"),
-        "ai": d.ai,
-        "cost": d.cost,
-        "ideas_read": d.ideas_read,
-        "created_at": d.created_at,
-    }
-
-
 @router.get("/digest")
 async def get_digest(
     session: Session, project_id: str | None = None
 ) -> dict[str, Any] | None:
-    """The newest weekly digest. A digest is not a notification: nobody is pinged."""
+    """The newest grooming digest. A digest is not a notification: nobody is pinged."""
     d = await idea_ai.latest_digest(session, project_id)
-    return _digest(d) if d else None
+    return idea_ai.digest_out(d) if d else None
 
 
 class DigestBody(BaseModel):
@@ -290,8 +263,11 @@ class DigestBody(BaseModel):
 
 @router.post("/digest/run", status_code=201)
 async def post_digest_run(body: DigestBody, session: Session) -> dict[str, Any]:
-    """Write the digest now (members). The findings are local; AI adds a sentence only when it is on."""
+    """Write the digest now (members)."""
     await _need_member(session, body.project_id)
-    return _digest(
-        await idea_ai.groom(session, body.project_id, person=act.current_actor())
-    )
+    try:
+        return idea_ai.digest_out(
+            await idea_ai.groom(session, body.project_id, person=act.current_actor())
+        )
+    except idea_ai.IdeaAiError as exc:
+        _ai_error(exc)

@@ -107,19 +107,19 @@ async def _ask_light(
     import tempfile
 
     import database
-    from models import AiAccount, AiMember
+    from models import AiAccount, AiTeam
 
     from . import accounts, cli
 
     async with database.async_session() as session:
         prof = (
             await session.exec(
-                select(AiMember)
+                select(AiTeam)
                 .where(
-                    AiMember.project_id == project_id,
-                    AiMember.provider == "claude-code",
+                    AiTeam.project_id == project_id,
+                    AiTeam.provider == "claude-code",
                 )
-                .order_by(AiMember.created_at, AiMember.id)
+                .order_by(AiTeam.created_at, AiTeam.id)
             )
         ).first()
         account = (

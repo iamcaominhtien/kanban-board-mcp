@@ -9,7 +9,6 @@ import kanban_mcp
 import services.tickets as svc_tickets
 from main import mcp
 from kanban_mcp.tools import CORE_TOOL_TABLE
-from kanban_mcp.tools.ai_team import AI_TEAM_OPS
 from kanban_mcp.tools.branches import BRANCH_OPS
 from kanban_mcp.tools.docs import DOCS_READ_OPS, DOCS_WRITE_COMPOSITE, DOCS_WRITE_OPS
 from kanban_mcp.tools.items import ITEM_OPS
@@ -51,7 +50,7 @@ async def test_every_registered_tool_is_in_the_table_and_vice_versa():
     assert not core & ideas
     assert set(await _tools()) == core
     assert set(await _tools(_full_mcp())) == core | ideas
-    assert len(core) == 14 and len(ideas) == 5
+    assert len(core) == 13 and len(ideas) == 5
 
 
 async def test_every_operation_is_reachable_through_a_tool():
@@ -141,7 +140,7 @@ async def test_every_tool_has_annotations_that_match_its_name():
             "docs_write",
             "ai_schedules",
             "knowledge",  # forget removes a note (issue #274)
-        }:  # ai_team acts but never deletes: not destructive
+        }:  # ai_run asks, messages and reports but never deletes: not destructive
             assert a.destructiveHint is True, name
         else:
             assert a.destructiveHint is not True, name
@@ -195,39 +194,13 @@ async def test_the_tool_list_stays_compact():
         )
 
     default, full = size(await _tools()), size(await _tools(_full_mcp()))
-    # ai_run (AI member runs) ~700 characters and ai_schedules ~1,600 in 3.8.0, on top of Docs comments (3.7.0)
-    # the diagram actions of docs_read / docs_write (3.8.3) add about 2,000 characters, the sketch actions (3.11.0) about
-    # 1,900 more
-    # ai_team adds about 2,600 characters (measured 2,612) to the 11-tool list
-    # the Autopilot actions of ai_run (decide, answer) add about 460, `items` (many calls in one) on ticket_items and
-    # docs_write about 440; ai_run (3.16.0) lists the fields of its criteria and tests, which Antigravity needs to build
-    # them (a bare "object" made it send nulls), and takes an ignored ticket_id: about 300; the AI accounts actions of
-    # ai_team a few hundred more; the canvas actions (docs_read canvases / canvas, docs_write canvas_comment /
-    # canvas_propose, 3.17.0) add about 1,800 characters and no tool; `knowledge` (the knowledge base: index, search,
-    # read) and `board_wait` (wait for the board to move) add about 1,400 characters and two tools; ai_team's guide,
-    # workflow and Story actions (3.21.1, so an agent knows how to hand work to the team) about 900, and the notes on
-    # manage_ticket (an AI assignee is not started, intake takes a ticket, a Story) with list_tickets' type and parent
-    # filters about 500 more; docs_read's permissions_guide (what an AI may do, issue #275) about 100, and its guides (the
-    # board's shared skills for any role, issue #277) about 120; docs_read's diagram_guide and picture (the draw.io guide
-    # and a PNG of what an agent drew, issue #267) with its `width` about 600; its role_guide (one guide per role, issue
-    # #273) about 150; manage_ticket's wave_pin (a sub-ticket's wave pinned by hand, TDP-1) about 160; the ticket guide,
-    # attachments, criteria on create and what get_ticket says about the Workspace and the worktree (issue #269) about
-    # 750; Docs for every AI (issue #268): docs_write edit (one section or passage), upload (a file to a page or a
-    # ticket), tickets (from a checklist) and assign (a page to an AI member), docs_read get's section and docs_guide,
-    # with their parameters (section, find, mode, data, name, member_id, kind, ticket_id, author), about 2,900;
-    # manage_ticket's review_requested_from (whose review a ticket in Review waits for, issue #269) about 150;
-    # the project memory on `knowledge` (issue #274): memory, remember, forget with text, scope, kind, note_id and
-    # ticket_id, about 810; ai_run report's `learned` (what the next run must not pay for again, with its item
-    # fields, so a run that keeps nothing by itself still hands it over: the #274 live check), about 360; handing work
-    # over with nothing lost (issue #272): ai_run's handoff note (its four fields spelled out for Antigravity),
-    # ai_team's take_back, hand_over and tell, and get_ticket's held_by, about 480; manage_ticket's description
-    # "name a file or cause only once you have read it" (#269 live run) about 50; fast mode on a ticket (ai_team's
-    # `pace` on start_workflow and set_pace) about 185; ai_run's contact and team (an AI asks a teammate, the answer
-    # comes back; who is on what now) about 100
-    assert default < 54_845, (
+    # AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is seven actions
+    # (ask, message, reply, team, runs, report). Measured after that: 49,074 / 51,904 characters. The bounds
+    # leave about 3 % of room; raise them on purpose, with what was added, never by reflex.
+    assert default < 50_500, (
         f"default tool list is {default} characters (about {default // 4} tokens)"
     )
-    assert full < 57_700, (
+    assert full < 53_400, (
         f"full tool list is {full} characters (about {full // 4} tokens)"
     )
     assert default < full
@@ -255,7 +228,9 @@ async def test_schema_enums_match_the_services():
         return set(_enum_of(tools[tool].inputSchema["properties"][param]))
 
     assert enum("ticket_items", "log_kind") == set(svc_tickets.WORK_LOG_KINDS)
-    assert enum("ticket_items", "role") == set(svc_tickets.WORK_LOG_ROLES)
+    # `role` is also the role that speaks in a comment (AI v2: Reviewer, QA…), so it is free text in the schema; the
+    # work log still refuses a role it does not know (services.tickets.WORK_LOG_ROLES)
+    assert _enum_of(tools["ticket_items"].inputSchema["properties"]["role"]) is None
     assert enum("ticket_items", "status") == {"pending", "running", "pass", "fail"}
     assert enum("manage_ticket", "relation_type") == set(
         svc_tickets.VALID_RELATION_TYPES
@@ -278,9 +253,17 @@ async def test_schema_enums_match_the_services():
         ("ticket_branches", BRANCH_OPS),
         ("docs_read", DOCS_READ_OPS),
         ("docs_write", {**DOCS_WRITE_OPS, **dict.fromkeys(DOCS_WRITE_COMPOSITE)}),
-        ("ai_team", AI_TEAM_OPS),
     ):
         assert enum(tool, "action") == set(table), tool
+    assert enum("ai_run", "action") == {
+        "ask",
+        "message",
+        "reply",
+        "history",
+        "team",
+        "runs",
+        "report",
+    }
     pairs = set(ITEM_OPS)
     assert enum("ticket_items", "item") == {i for i, _ in pairs}
     assert enum("ticket_items", "action") == {a for _, a in pairs}

@@ -51,6 +51,11 @@ function bridge(): DesktopBridge | undefined {
   return (window.electronAPI as unknown as { notifications?: DesktopBridge } | undefined)?.notifications;
 }
 
+/** What a row's buttons do (answer, retry, sign in, open the run...), or null when the notifications are not hosted. */
+export function useNotificationAction(): RowActionHandler | null {
+  return useContext(NotificationsContext)?.onAction ?? null;
+}
+
 /** The bell for the top bar; it needs `NotificationsHost` above it. */
 export function NotificationBellButton() {
   const ctx = useContext(NotificationsContext);

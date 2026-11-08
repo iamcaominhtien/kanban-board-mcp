@@ -1,11 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CleanupResult,
-  ConfigMigration,
-  ConflictChoice,
   HandoverRoute,
   MergeResult,
-  TicketFlag,
   Worktree,
   WorktreeList,
   WorktreeWithRoute,
@@ -15,8 +12,6 @@ import { client } from './client';
 export const codeKeys = {
   list: (projectId: string) => ['ai', 'worktrees', projectId] as const,
   ticket: (ticketId: string) => ['ai', 'worktree', ticketId] as const,
-  flags: (ticketId: string) => ['ai', 'ticket-flags', ticketId] as const,
-  migration: (memberId: string) => ['ai', 'config-migration', memberId] as const,
 };
 
 export const codeApi = {
@@ -46,18 +41,6 @@ export const codeApi = {
   merge: async (ticketId: string) => (await client.post<MergeResult>(`/tickets/${ticketId}/ai/merge`)).data,
   handover: async (ticketId: string, route: HandoverRoute) =>
     (await client.patch<WorktreeWithRoute>(`/tickets/${ticketId}/ai/handover`, { route })).data,
-  conflict: async (ticketId: string, choice: ConflictChoice, memberId?: string) =>
-    (
-      await client.post<{ ok: boolean; runId?: string }>(`/tickets/${ticketId}/ai/conflict`, {
-        choice,
-        ...(memberId ? { memberId } : {}),
-      })
-    ).data,
-  flags: async (ticketId: string) => (await client.get<TicketFlag[]>(`/tickets/${ticketId}/ai/ticket-flags`)).data,
-  migration: async (memberId: string) =>
-    (await client.get<ConfigMigration>(`/ai/members/${memberId}/config-migration`)).data,
-  migrate: async (memberId: string) =>
-    (await client.post<{ removed: string[] }>(`/ai/members/${memberId}/config-migration`)).data,
 };
 
 /** Every worktree of a project, with the total size on disk. */
@@ -74,24 +57,6 @@ export function useTicketWorktree(ticketId: string, enabled = true) {
   });
 }
 
-/** The ticket's flags (a merge conflict is one while it is open). */
-export function useTicketFlags(ticketId: string, enabled = true) {
-  return useQuery({
-    queryKey: codeKeys.flags(ticketId),
-    queryFn: () => codeApi.flags(ticketId),
-    enabled: !!ticketId && enabled,
-  });
-}
-
-/** What the board wrote into the member's folder and could now remove. */
-export function useConfigMigration(memberId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: codeKeys.migration(memberId),
-    queryFn: () => codeApi.migration(memberId),
-    enabled: !!memberId && enabled,
-  });
-}
-
 /** Run one worktree action and refresh everything that shows worktrees. */
 export function useCodeMutation<T, V>(fn: (v: V) => Promise<T>) {
   const qc = useQueryClient();
@@ -100,7 +65,6 @@ export function useCodeMutation<T, V>(fn: (v: V) => Promise<T>) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['ai', 'worktrees'] });
       void qc.invalidateQueries({ queryKey: ['ai', 'worktree'] });
-      void qc.invalidateQueries({ queryKey: ['ai', 'ticket-flags'] });
     },
   });
 }

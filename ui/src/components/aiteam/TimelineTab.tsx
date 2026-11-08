@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { aiApi, useTicketRuns } from '../../api/ai';
+import { aiApi, useAiRun } from '../../api/ai';
 import { useTimeline } from '../../api/aiTeam';
 import { extractError } from '../../api/extractError';
-import { safetyApi } from '../../api/aiSafety';
 import { openRun } from './runLink';
 import type { Timeline, TimelineBar, TimelineLifeline, TimelineRange } from '../../types/aiTeam';
 import { useToast } from '../Toast';
@@ -23,6 +22,7 @@ import {
   arrowStroke,
   arrowWord,
   lanesWidth,
+  columnFor,
   lookOf,
   pickKey,
   type Pick,
@@ -168,8 +168,8 @@ function readRange(projectId: string): Preset {
 }
 
 /**
- * Flow › Timeline: a sequence diagram of the AI team. Each AI (and you, Autopilot and Docs) is a lifeline, time runs
- * down, a bar is a run and an arrow is a hand-off, a question, an approval or a decision
+ * Flow › Timeline: a sequence diagram of the AI teams. You, each team's lead and each role it called is a lifeline, time
+ * runs down, a bar is a run or one call of a role and an arrow is a hand-off, a question or an answer
  * (design/screens/ai-team-timeline.md).
  * @param props.projectId - The project to draw.
  * @param props.actions - Open a ticket or a Docs page; go back to the team map.
@@ -197,7 +197,7 @@ export function TimelineTab({
   const [day, setDay] = useState<{ since: string; until: string } | null>(
     initial?.since && initial.until ? { since: initial.since, until: initial.until } : null,
   );
-  const [scope, setScope] = useState<string | null>(scopeTicketId);
+  const [scope, setScope] = useState<string | null>(scopeTicketId ?? initial?.scope ?? null);
   const [detailed, setDetailed] = useState(!!initial?.detailed);
   const [mode, setMode] = useState<AxisMode>(initial?.real ? 'real' : 'compact');
   const [hidden, setHidden] = useState<Set<string>>(new Set(initial?.hidden ?? []));
@@ -228,7 +228,8 @@ export function TimelineTab({
   const toast = useToast();
 
   useEffect(() => {
-    setScope(scopeTicketId);
+    // a ticket asked for (the modal's tab) wins; the team view keeps the scope it opened on (a link) or was given
+    if (scopeTicketId) setScope(scopeTicketId);
   }, [scopeTicketId]);
 
   const query = useMemo(
@@ -289,6 +290,8 @@ export function TimelineTab({
   const narrow = width - GUTTER < lanesWidth(all.length) && width < 900;
   const quiet = narrow && !openQuiet ? all.filter((l) => l.kind === 'ai' && l.quiet) : [];
   const lifelines: TimelineLifeline[] = all.filter((l) => !quiet.includes(l));
+  // the lanes fill the window (to a limit) instead of leaving the right half empty
+  const col = columnFor(lifelines.length, width - GUTTER - (quiet.length ? 100 : 0));
   const axis = useMemo(() => (data ? buildAxis(data, mode, now) : null), [data, mode, now]);
 
   // Following: stay at the bottom unless the person scrolled up, and count what arrived meanwhile
@@ -508,8 +511,7 @@ export function TimelineTab({
             <div className="tl-menu" role="menu" data-testid="tl-show-menu">
               {[
                 ['handoffs', 'Hand-offs'],
-                ['questions', 'Questions and approvals'],
-                ['touches', 'Your marks'],
+                ['questions', 'Questions and answers'],
               ].map(([key, label]) => (
                 <label key={key} className="tl-check">
                   <input
@@ -699,12 +701,13 @@ export function TimelineTab({
               <TimelineHeader
                 lifelines={lifelines}
                 folded={quiet.length}
+                col={col}
                 onOpenFolded={() => setOpenQuiet(true)}
                 paused={paused}
               />
             </div>
             <div className="tl-gutter" style={{ width: GUTTER }}>
-              <TimelineGutter axis={axis} />
+              <TimelineGutter axis={axis} now={now} />
               <NowPill axis={axis} now={now} paused={paused} />
             </div>
             <div className="tl-bodywrap">
@@ -712,6 +715,7 @@ export function TimelineTab({
                 data={data}
                 axis={axis}
                 lifelines={lifelines}
+                col={col}
                 now={now}
                 detailed={detailed}
                 selected={selected}
@@ -939,7 +943,7 @@ function EventTable({
       at: b.startedAt ?? b.queuedAt ?? '',
       from: names.get(b.memberId) ?? b.memberId,
       to: '',
-      kind: `run #${b.number} ${b.state.replace('_', ' ')}`,
+      kind: `${b.label ?? `run #${b.number}`} ${b.state.replace('_', ' ')}`,
       ticket: b.ticketId,
       dur: durationOf(b),
       pick: { type: 'bar', id: b.id } as Pick,
@@ -1010,8 +1014,6 @@ interface Facts {
   pageId?: string;
   /** A Docs proposal still waiting for a person: the page opens to review it. */
   review?: boolean;
-  /** An approval still waiting for a person (its id): the inspector can approve or deny it. */
-  approvalId?: string;
   bar?: TimelineBar;
   question?: { runId: string; text: string; options: string[]; from: number; to: number | null; open: boolean };
   note?: string;
@@ -1027,6 +1029,7 @@ function barTone(b: TimelineBar): Tone {
 }
 
 function tokensLine(b: TimelineBar): { text: string; strong?: string }[] {
+  if (b.role) return []; // a role's tokens are part of the run's
   if (!b.tokensIn && !b.tokensOut)
     return b.metered ? [] : [{ strong: 'Not metered', text: ': a local runner reports no cost' }];
   const t = `${Math.round(b.tokensIn / 1000)}k tokens in, ${Math.round(b.tokensOut / 1000)}k out`;
@@ -1069,14 +1072,13 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
     if (b.endedReason && b.endKind !== 'ok') lines.push({ text: b.endedReason });
     return {
       who: people.get(b.memberId),
-      title: `${who(b.memberId)} · run #${b.number}`,
+      title: `${who(b.memberId)} · ${b.label ?? `run #${b.number}`}`,
       chip: { text: cap1(endWord(b)), tone: barTone(b) },
       ticketId: b.ticketId,
       ticketText: ticketTitle(b.ticketId),
       lines,
       hint: 'Click for the steps',
       bar: b,
-      note: b.trigger === 'autopilot' ? 'A short run by the Autopilot delegate to look at a request.' : undefined,
     };
   }
   if (pick.type === 'wait') {
@@ -1107,7 +1109,6 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
       hint: q && open ? 'Click for the full question and Answer' : 'Click for details',
       question:
         q && w.runId ? { runId: w.runId, text: w.text, options: w.options ?? [], from, to: ms(w.to), open } : undefined,
-      approvalId: !q && open ? w.id.replace(/:p$/, '') : undefined,
     };
   }
   if (pick.type === 'arrow') {
@@ -1117,28 +1118,6 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
     const landed = ms(a.toAt);
     const waitMin = a.waitS != null ? a.waitS / 60 : landed ? (landed - at) / 60000 : 0;
     const lines: Facts['lines'] = [];
-    if (a.kind === 'auto') {
-      const asked =
-        data.waits.find((w) => w.runId === a.runId && w.kind === 'approval' && w.to === a.at) ??
-        data.waits.find((w) => w.runId === a.runId && w.kind === 'approval');
-      const run = data.bars.find((b) => b.autopilot && Math.abs((ms(b.startedAt) ?? 0) - at) < 5 * 60000);
-      if (asked)
-        lines.push({ text: `${who(asked.memberId)} asked: ${asked.text}${a.risk ? ` · risk ${a.risk}` : ''}` });
-      if (a.by)
-        lines.push({
-          text: `Decided by ${a.by}, the delegate${run ? `, in a short run at ${clock(ms(run.startedAt) ?? 0)}` : ''}`,
-        });
-      if (a.label) lines.push({ text: `Its reason: “${a.label}”` });
-      return {
-        icon: ICONS.lock,
-        iconColor: '#5B3AA6',
-        title: `${a.denied ? 'Refused' : 'Approved'} by Autopilot · after ${lengthText(Math.max(waitMin, 1) * 60000)}`,
-        ticketId: a.ticketId,
-        ticketText: ticketTitle(a.ticketId),
-        lines,
-        hint: 'Click for details',
-      };
-    }
     lines.push({
       text:
         landed && landed - at > 60000 ? `Sent ${clock(at)} · ${who(a.to)} started ${clock(landed)}` : `At ${clock(at)}`,
@@ -1346,6 +1325,7 @@ function HoverCard({
 
 /** A step's time is stored as hh:mm:ss in UTC without a date: put it on the run's day, in the person's time zone. */
 function stepClock(at: string, runStart: number | null): string {
+  if (/^\d{4}-\d{2}-\d{2}T/.test(at)) return clock(ms(at) ?? 0); // v2 writes the whole time
   const m = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(at);
   if (!m || runStart == null) return at.slice(0, 5);
   const d = new Date(runStart);
@@ -1356,10 +1336,13 @@ function stepClock(at: string, runStart: number | null): string {
 
 /** The newest steps of a run, read when the inspector opens (they are not part of the Timeline's data). */
 function LatestSteps({ bar }: { bar: TimelineBar }) {
-  const q = useTicketRuns(bar.ticketId);
-  const run = q.data?.find((r) => r.id === bar.id);
+  const q = useAiRun(bar.runId);
+  const run = q.data;
   if (!run) return q.isLoading ? <div className="at-hint">Reading the steps…</div> : null;
-  const steps = [...run.steps].reverse().slice(0, 5);
+  const steps = run.steps
+    .filter((s) => s.kind !== 'role')
+    .reverse()
+    .slice(0, 5);
   if (!steps.length) return null;
   const start = ms(bar.startedAt);
   return (
@@ -1369,7 +1352,7 @@ function LatestSteps({ bar }: { bar: TimelineBar }) {
         {steps.map((s, i) => (
           <div key={i} className="tl-step">
             <span className="at-hint">{stepClock(s.at, start)}</span>
-            <span>{s.text}</span>
+            <span>{s.title}</span>
           </div>
         ))}
       </div>
@@ -1413,40 +1396,10 @@ function Inspector({
       setBusy(false);
     }
   };
-  const decide = async (approve: boolean) => {
-    if (!f.approvalId) return;
-    setBusy(true);
-    try {
-      if (approve) {
-        const out = await safetyApi.approve(f.approvalId);
-        if (out.error) throw new Error(out.error);
-      } else await safetyApi.deny(f.approvalId);
-      toast.success(approve ? 'Approved' : 'Denied');
-      void qc.invalidateQueries({ queryKey: ['ai', 'team'] });
-      onClose();
-    } catch (err) {
-      toast.error(approve ? "Couldn't approve" : "Couldn't deny", extractError(err));
-    } finally {
-      setBusy(false);
-    }
-  };
   const b = f.bar;
-  // A run still going can be paused (and a paused one resumed) from here, as on its Now card
-  const live = !!b && !b.endedAt && ['running', 'starting', 'needs_input'].includes(b.state);
-  const pauseRun = async () => {
-    if (!b) return;
-    setBusy(true);
-    try {
-      await (b.paused ? aiApi.resumeRun(b.id) : aiApi.pauseRun(b.id));
-      toast.success(b.paused ? 'Run resumed' : 'Run paused', b.paused ? undefined : 'Nothing is lost: Resume goes on.');
-      void qc.invalidateQueries({ queryKey: ['ai', 'team'] });
-    } catch (err) {
-      toast.error(b.paused ? "Couldn't resume the run" : "Couldn't pause the run", extractError(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-  const started = b ? data.arrows.find((a) => a.runId === b.id && a.to === b.memberId) : undefined;
+  const started = b
+    ? data.arrows.find((a) => a.runId === b.id && a.to === b.memberId && (a.kind === 'assign' || a.kind === 'handoff'))
+    : undefined;
   const who = (id: string) => people.get(id)?.name ?? (id === 'you' ? 'You' : id);
   const q = f.question;
   return (
@@ -1504,7 +1457,7 @@ function Inspector({
               </Icon>
               step {b.steps}
             </span>
-            {(b.tokensIn > 0 || b.tokensOut > 0) && (
+            {!b.role && (b.tokensIn > 0 || b.tokensOut > 0) && (
               <span className="tl-fact">
                 <Icon size={12} color="#5B6B60">
                   <path d="M13 3L5 13h6l-1 8 8-10h-6z" />
@@ -1512,7 +1465,7 @@ function Inspector({
                 {Math.round(b.tokensIn / 1000)}k in / {Math.round(b.tokensOut / 1000)}k out
               </span>
             )}
-            <span className="tl-fact">
+            <span className="tl-fact" hidden={!!b.role}>
               <Icon size={12} color="#5B6B60">
                 <path d="M3 12V4h8l10 10-8 8z" />
                 <circle cx="7.5" cy="8.5" r="1.2" />
@@ -1618,24 +1571,8 @@ function Inspector({
             Answer
           </button>
         )}
-        {f.approvalId && (
-          <>
-            <button
-              type="button"
-              className="tl-btn primary"
-              disabled={busy}
-              onClick={() => void decide(true)}
-              data-testid="tl-approve"
-            >
-              Approve
-            </button>
-            <button type="button" className="tl-btn" disabled={busy} onClick={() => void decide(false)}>
-              Deny
-            </button>
-          </>
-        )}
         {b && (
-          <button type="button" className="tl-btn primary" onClick={() => openRun(b.id)} data-testid="tl-open-run">
+          <button type="button" className="tl-btn primary" onClick={() => openRun(b.runId)} data-testid="tl-open-run">
             Open the run
           </button>
         )}
@@ -1654,18 +1591,6 @@ function Inspector({
             {f.review ? 'Review changes' : 'Open the page'}
           </button>
         )}
-        {live && (
-          <button
-            type="button"
-            className="tl-btn"
-            disabled={busy}
-            onClick={() => void pauseRun()}
-            data-testid="tl-pause-run"
-          >
-            <Icon size={14}>{b?.paused ? ICONS.play : ICONS.pause}</Icon>
-            {b?.paused ? 'Resume' : 'Pause'}
-          </button>
-        )}
       </div>
     </aside>
   );
@@ -1675,13 +1600,10 @@ function Legend() {
   // the glyph takes the colour the design gives it in the legend (report back is the darker grey here)
   const items: { k: Parameters<typeof arrowColor>[0]; t: string; c?: string }[] = [
     { k: 'assign', t: 'assigned' },
-    { k: 'mention', t: '@mention' },
     { k: 'handoff', t: 'hand-off (dashed and moving while under way)' },
     { k: 'report', t: 'report back (dotted)', c: '#5B6B60' },
-    { k: 'sent_back', t: 'sent back (red dashed)' },
-    { k: 'skip', t: 'a workflow step skipped' },
     { k: 'ask', t: 'asks you' },
-    { k: 'auto', t: 'Autopilot decided' },
+    { k: 'answer', t: 'your answer' },
   ];
   return (
     <div className="tl-legend" data-testid="tl-legend">

@@ -22,13 +22,6 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
       kind: 'repeat',
       days: [0, 1, 2, 3, 4, 5, 6],
       time: '02:00',
-      checks: {
-        criteria: false,
-        tests: { on: true, command: '', cwd: '' },
-        summary: true,
-        branch: false,
-        aiChecks: [],
-      },
       limits: { stopAfterMin: 30, retries: 1, maxCost: null },
       instruction:
         'Run the whole test suite. If something fails, find the cause and write it in the summary (the test, the file, the likely reason). Fix it only when the fix is small and clear.',
@@ -43,13 +36,6 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
       kind: 'repeat',
       days: [0],
       time: '09:00',
-      checks: {
-        criteria: false,
-        tests: { on: false, command: '', cwd: '' },
-        summary: true,
-        branch: false,
-        aiChecks: [],
-      },
       limits: { stopAfterMin: 30, retries: 1, maxCost: null },
       instruction:
         'Check the project for outdated and vulnerable dependencies (for example npm outdated and npm audit, or pip list --outdated and pip-audit). Do not upgrade anything: list what you found in the summary, most urgent first, each with the version to move to.',
@@ -64,13 +50,6 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
       kind: 'repeat',
       days: [0, 1, 2, 3, 4],
       time: '18:00',
-      checks: {
-        criteria: false,
-        tests: { on: false, command: '', cwd: '' },
-        summary: true,
-        branch: false,
-        aiChecks: [],
-      },
       limits: { stopAfterMin: 15, retries: 1, maxCost: null },
       instruction:
         'Write a short summary of today on this board: tickets that moved, runs that finished or failed, and what is waiting for a person. Read the board; change nothing.',

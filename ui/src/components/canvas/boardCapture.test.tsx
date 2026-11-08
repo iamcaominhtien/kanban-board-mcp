@@ -69,10 +69,8 @@ const menu = (b: CanvasBoard, animated: 'yes' | 'no' | 'unknown', onDownloadAs =
     <BoardMenu
       board={b}
       canEdit
-      aiAvailable={false}
       animated={animated}
       onEdit={noop}
-      onAskAi={noop}
       onRename={noop}
       onSize={noop}
       onFitHeight={noop}

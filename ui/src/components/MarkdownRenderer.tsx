@@ -5,6 +5,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { resolveOrigin } from '../api/resolveOrigin';
 import { FileAttachmentCard } from './FileAttachmentCard';
+import { isVideoName } from './preview/kinds';
 import { galleryAround, previewAttrs, usePreview } from './preview/PreviewContext';
 import { useResolveRefs, useRestorePage } from '../api/docs';
 import { useToast } from './Toast';
@@ -301,6 +302,22 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
           }
           if (href && (href.startsWith('/uploads/') || href.includes('/uploads/'))) {
             const fileName = typeof children === 'string' ? children : String(children || '');
+            if (isVideoName(fileName) || isVideoName(href)) {
+              // a video plays right where it is posted (the card under it still opens the full preview)
+              const src = href.startsWith('/') ? `${resolveOrigin()}${href}` : href;
+              return (
+                <span style={{ display: 'block', margin: '6px 0' }}>
+                  <video
+                    src={src}
+                    controls
+                    preload="metadata"
+                    aria-label={fileName}
+                    style={{ display: 'block', maxWidth: '100%', maxHeight: 380, borderRadius: 8, background: '#000' }}
+                  />
+                  <FileAttachmentCard url={href} fileName={fileName} />
+                </span>
+              );
+            }
             return <FileAttachmentCard url={href} fileName={fileName} />;
           }
           return (

@@ -861,3 +861,81 @@ span.tw-fast {
   background: #9aa8a0;
   display: inline-block;
 }
+
+/* The team at work, in the comment thread (RunWorkingRow) */
+.tw-working {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #d7e6dc;
+  border-radius: 12px;
+  background: #f4faf6;
+}
+.tw-working[data-state='queued'] {
+  background: #f7f8f7;
+  border-color: #e3e8e5;
+}
+.tw-working[data-state='needs_input'] {
+  background: #fdf6e8;
+  border-color: #f0dcb4;
+}
+.tw-working-face {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.tw-working-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #2e6f40;
+  opacity: 0;
+  animation: tw-working-pulse 1.6s ease-out infinite;
+}
+@keyframes tw-working-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+.tw-working-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #2e6f40;
+}
+.tw-working[data-state='needs_input'] .tw-working-label {
+  color: #b4791e;
+}
+.tw-working[data-state='queued'] .tw-working-label {
+  color: #7a867f;
+}
+.tw-working-dots::after {
+  content: '';
+  animation: tw-working-dots 1.4s steps(4, end) infinite;
+}
+@keyframes tw-working-dots {
+  0% {
+    content: '';
+  }
+  25% {
+    content: '.';
+  }
+  50% {
+    content: '..';
+  }
+  75% {
+    content: '...';
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tw-working-pulse,
+  .tw-working-dots::after {
+    animation: none;
+  }
+}

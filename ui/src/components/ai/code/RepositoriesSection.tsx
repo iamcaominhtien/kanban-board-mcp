@@ -98,14 +98,14 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
   const patch = usePatchProjectOps(projectId);
   const list = useWorktrees(projectId);
   const board = useAiBoard(projectId);
-  const runOf = new Map((board.data?.runs ?? []).map((r) => [r.ticketId, r]));
+  const runOf = new Map(Object.entries(board.data?.tickets ?? {}));
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const remove = useCodeMutation((id: string) => codeApi.remove(id));
   const keep = useCodeMutation((id: string) => codeApi.keep(id));
   const cleanup = useCodeMutation(() => codeApi.cleanup(projectId));
-  const stop = useCodeMutation((runId: string) => aiApi.cancel(runId, 'Stopped from Repositories'));
+  const stop = useCodeMutation((runId: string) => aiApi.cancel(runId));
   const open = useCodeMutation((id: string) => codeApi.open(id));
 
   if (ops.isLoading) return <div className="ai-skel" style={{ height: 120 }} aria-busy="true" aria-label="Loading" />;
@@ -138,7 +138,6 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
     }
   };
   const repoName = wt.repo || 'the member’s working folder';
-  const perRun = on ? true : !!ops.data.perRunConfig;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="repositories-section">
@@ -298,23 +297,6 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
           changeNote="Saved for this project. The next run of a command or a ticket uses it."
           disabled={patch.isPending}
         />
-        <div className="ai-divider" />
-        <Row
-          title="Load each member's configuration per run"
-          hint={
-            on
-              ? 'Always on while worktrees are on: nothing is written into the repository.'
-              : 'Skills, hooks and MCP servers are passed when a run starts instead of being written into the member’s folder.'
-          }
-        >
-          <Toggle
-            on={perRun}
-            label="Load each member's configuration per run"
-            testId="wt-per-run"
-            disabled={on || patch.isPending}
-            onChange={(v) => void save({ perRunConfig: v })}
-          />
-        </Row>
         {!on && (
           <div className="ai-hint" data-testid="wt-off-note">
             Worktrees are off: every member of the project shares {repoName}, the way it works today. Not a git
@@ -392,7 +374,7 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
                     onOpen={() => void act(() => open.mutateAsync(w.ticketId))}
                     onStop={() => {
                       const r = runOf.get(w.ticketId);
-                      if (r) void act(() => stop.mutateAsync(r.id));
+                      if (r) void act(() => stop.mutateAsync(r.runId));
                     }}
                     onRemove={() => void act(() => remove.mutateAsync(w.ticketId))}
                     onKeep={() => void act(() => keep.mutateAsync(w.ticketId))}

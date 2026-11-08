@@ -12,8 +12,8 @@
 - On a pull request the board opened, pushing to that branch and replying on its threads are part of the work: they
   happen inside the run without asking, and are recorded in it. Anything else that leaves the board still asks.
 
-A project turns this on in its settings (``ops.github.on``); the ready-made standing order "Red CI → back to its Dev"
-does the hand-back by itself once turned on, and the two buttons on the card do it by hand.
+A project turns this on in its settings (``ops.github.on``); the board sends the failure back to the ticket's team by
+itself once turned on (``github.auto``), and the two buttons on the card do it by hand.
 """
 
 import asyncio
@@ -309,7 +309,7 @@ async def tick_project(project_id: str) -> list[dict]:
 
 
 async def signals(session, project_id: str) -> list[dict]:
-    """Red CI on a pull request the board opened, as a signal standing orders fire on (and a card)."""
+    """Red CI on a pull request the board opened, as a signal the board acts on (and a card)."""
     out = []
     for row in (
         await session.exec(
@@ -366,12 +366,12 @@ async def _dev_of(session, ticket_id: str) -> str | None:
             .order_by(col(AiRun.queued_at).desc())
         )
     ).all()
-    from models import AiMember
+    from models import AiTeam
 
     from . import plugins
 
     for run in last:
-        prof = await session.get(AiMember, run.member_id)
+        prof = await session.get(AiTeam, run.member_id)
         if prof is not None and plugins.role_of(prof) in ("dev", None):
             return run.member_id
     return last[0].member_id if last else None
@@ -388,29 +388,25 @@ async def back_to_dev(finding: dict) -> str | None:
             return None
         red = loads(row.red, {}) or {}
         if red.get("handled_at"):
-            return None  # already with the Dev (by itself, or a standing order got there first)
+            return None  # already with the Dev (by itself, or by hand first)
         check = {"name": red.get("check"), "detailsUrl": red.get("url")}
     log = await failure_log(row, check)
     async with database.async_session() as session:
         member = await _dev_of(session, ticket_id)
         if member is None:
             return None
-        run = await runs.create_run(
-            session,
-            ticket_id=ticket_id,
-            member_id=member,
-            mode="work",
-            trigger="ci_red",
-            started_by="the board (red CI)",
-            instruction=_CI_TASK.format(
+        out = await runs.deliver_to_ticket(
+            ticket_id,
+            _CI_TASK.format(
                 number=row.number,
                 check=red.get("check"),
                 base=red.get("base") or "the base branch",
                 log=_fence(f"ci log · {red.get('check')}", log),
                 branch=row.branch,
             ),
-            wait_for_hold=True,
+            by="the board (red CI)",
         )
+        run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
         cur = await session.get(AiWatchedPr, ticket_id)
         red["handled_at"] = _now()
         red["run_id"] = run.id
@@ -440,18 +436,12 @@ async def comments_to_dev(ticket_id: str) -> str | None:
             )
             for c in pending
         )
-        run = await runs.create_run(
-            session,
-            ticket_id=ticket_id,
-            member_id=member,
-            mode="work",
-            trigger="review_comments",
-            started_by="the board (review comments)",
-            instruction=_REVIEW_TASK.format(
-                number=row.number, comments=text, branch=row.branch
-            ),
-            wait_for_hold=True,
+        out = await runs.deliver_to_ticket(
+            ticket_id,
+            _REVIEW_TASK.format(number=row.number, comments=text, branch=row.branch),
+            by="the board (review comments)",
         )
+        run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
         row.pending_comments = "[]"
         session.add(row)
         await session.commit()

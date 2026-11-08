@@ -33,9 +33,7 @@ async def for_caller(session, project_id: str, raw: list[dict]) -> dict | None:
         ).all()
     }
     names = await ai_names(session, project_id)
-    comments, held_back = comments_for_reader(
-        raw, names, humans, bool(profile and profile.allow_external)
-    )
+    comments, held_back = comments_for_reader(raw, names, humans, False)
     return {"comments": comments, "held_back": held_back}
 
 

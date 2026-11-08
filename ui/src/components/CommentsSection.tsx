@@ -3,22 +3,12 @@ import type { Comment, Member } from '../types/ticket';
 import { useToast } from './Toast';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { Composer } from './comments/Composer';
-import { AiAvatar, fmtElapsed, useAiBoardState } from './ai/aiUi';
+import { AiAvatar, useAiBoardState } from './ai/aiUi';
 import { useTicketRuns } from '../api/ai';
 import { ASK_AI_EVENT } from './ai/AiTicketContext';
+import type { SendOpts } from './ai/ComposerAi';
 import { useAiSuggest } from './ai/useMentionList';
-import type { SendOpts } from './ai/MentionIntent';
-import {
-  AnswerFooter,
-  AnswerTransitions,
-  AskErrorCard,
-  AskPlaceholder,
-  ThreadChip,
-  AiBadge,
-  askRunOf,
-  didNotStart,
-  type ThreadState,
-} from './ai/AiThread';
+import { AnswerTransitions, ThreadChip, AiBadge, RoleChip, RunWorkingRow, type ThreadState } from './ai/AiThread';
 import type { AiRun } from '../types/ai';
 
 const AI_KIND: Record<string, string> = {
@@ -29,10 +19,6 @@ const AI_KIND: Record<string, string> = {
 import { Icon } from './docs/Icon';
 import type { SuggestMember } from './docs/RefSuggester';
 import { getAvatarColors } from './MemberAvatar';
-import { CommentAiFlag } from './ai/AiTicketSafety';
-import { AiTalkFold } from './ai/talk/AiTalkFold';
-import { HandoffCard } from './ai/handoff/Handoff';
-import { talkRuns, type AiLookup, type TalkRun } from './ai/talk/aiTalk';
 import {
   UNDO_MS,
   exactTime,
@@ -61,8 +47,6 @@ interface CommentsSectionProps {
   onFocusHandled?: () => void;
   /** Acceptance criteria of the ticket (the “Context sent” chips of the Ask button). */
   criteriaCount?: number;
-  /** The ticket is in fast mode: every AI a comment wakes is fast already. */
-  ticketFast?: boolean;
   /** Resolve with the saved comment id, reject when the server could not be reached. */
   onAdd: (text: string, opts?: SendOpts) => Promise<unknown>;
   onEdit: (id: string, text: string) => Promise<unknown>;
@@ -208,7 +192,6 @@ export function CommentsSection({
   focusCommentId,
   onFocusHandled,
   criteriaCount = 0,
-  ticketFast = false,
   onAdd,
   onEdit,
   onDelete,
@@ -218,11 +201,12 @@ export function CommentsSection({
   const { members: aiMembers } = useAiBoardState();
   const aiRunsData = useTicketRuns(ticketId).data;
   const aiRuns: AiRun[] = useMemo(() => aiRunsData ?? [], [aiRunsData]);
+  // the team at work on this ticket, shown in the thread while its run is queued, working or asking
+  const working = aiRuns.find((r) => ['queued', 'starting', 'running', 'needs_input'].includes(r.state));
   const rootRef = useRef<HTMLDivElement>(null);
   const [composing, setComposing] = useState(false);
-  // A mention put in the box by Ask on a hover card, or the AI comment the next comment replies to
+  // A mention put in the box by Ask on a hover card
   const [prefill, setPrefill] = useState<string | undefined>(undefined);
-  const [replyTo, setReplyTo] = useState<string | undefined>(undefined);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [ghosts, setGhosts] = useState<Ghost[]>([]);
@@ -230,8 +214,6 @@ export function CommentsSection({
   const [queue, setQueue] = useState<QueuedComment[]>(() => readJson<QueuedComment[]>(queueKey(ticketId), []));
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [expandedMiddle, setExpandedMiddle] = useState(false);
-  // Runs of comments only between AIs fold into one line; the ones shown are kept by their first comment's id
-  const [openTalks, setOpenTalks] = useState<Set<string>>(() => new Set());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>(() => {
     try {
       const saved = localStorage.getItem('kanban.comments.sortOrder');
@@ -256,29 +238,6 @@ export function CommentsSection({
 
   const aiRows = useAiSuggest();
   const aiAssignee = assigneeId && aiMembers.get(assigneeId)?.kind === 'ai' ? assigneeId : null;
-  // AI to AI is folded (ai-story-flow P): an AI's comment whose mentions are only AI members
-  const aiLookup = useMemo<AiLookup>(() => {
-    const aiIds = new Set<string>([
-      ...[...aiMembers.values()].filter((a) => a.kind === 'ai').map((a) => a.id),
-      ...members.filter((m) => m.kind === 'ai').map((m) => m.id),
-    ]);
-    const aiNames = new Set<string>(
-      [
-        ...[...aiMembers.values()].filter((a) => a.kind === 'ai').map((a) => a.name),
-        ...members.filter((m) => m.kind === 'ai').map((m) => m.name),
-      ].map((n) => n.toLowerCase()),
-    );
-    return {
-      isAiId: (id) => aiIds.has(id),
-      isAiAuthor: (author) => aiIds.has(author) || aiNames.has(author.toLowerCase()),
-      nameOf: (id) => aiMembers.get(id)?.name ?? members.find((m) => m.id === id)?.name ?? id,
-    };
-  }, [aiMembers, members]);
-  const talks = useMemo(() => {
-    const byComment = new Map<string, TalkRun>();
-    for (const r of talkRuns(comments, aiLookup)) for (const id of r.ids) byComment.set(id, r);
-    return byComment;
-  }, [comments, aiLookup]);
   const suggestMembers = useMemo<SuggestMember[]>(() => {
     const people = members.filter((m) => (m.kind ?? 'human') === 'human');
     const onTicket = new Map<string, string>();
@@ -367,7 +326,6 @@ export function CommentsSection({
   function closeComposer() {
     setComposing(false);
     setPrefill(undefined);
-    setReplyTo(undefined);
   }
   // Ask on an AI's hover card: open the box with its mention in it
   useEffect(() => {
@@ -375,7 +333,6 @@ export function CommentsSection({
       const d = (e as CustomEvent<{ ticketId: string; memberId: string }>).detail;
       const ai = d && d.ticketId === ticketId ? aiMembers.get(d.memberId) : undefined;
       if (!ai) return;
-      setReplyTo(undefined);
       setPrefill(`@[${ai.name}](member:${ai.id}) `);
       setComposing(true);
       requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
@@ -388,9 +345,6 @@ export function CommentsSection({
     commentCount: comments.length,
     defaultAskId: aiAssignee,
     prefill,
-    replyTo,
-    replyLabel: replyTo ? comments.find((x) => x.id === replyTo)?.author : undefined,
-    ticketFast,
   };
 
   // ---- delete with 10 s undo ---------------------------------------------
@@ -433,19 +387,6 @@ export function CommentsSection({
     const hashId = window.location.hash.startsWith('#comment-') ? window.location.hash.slice(9) : null;
     const id = focusCommentId ?? hashId;
     if (!id) return;
-    const folded = talks.get(id);
-    if (folded && !openTalks.has(folded.ids[0])) {
-      // a comment inside a folded AI-to-AI run: show the run, then scroll to it once it is drawn
-      setOpenTalks((o) => new Set(o).add(folded.ids[0]));
-      setExpandedMiddle(true);
-      requestAnimationFrame(() =>
-        rootRef.current
-          ?.querySelector<HTMLElement>(`[data-comment-id="${CSS.escape(id)}"]`)
-          ?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
-      );
-      onFocusHandled?.();
-      return;
-    }
     const el = rootRef.current?.querySelector<HTMLElement>(`[data-comment-id="${CSS.escape(id)}"]`);
     if (!el) {
       if (focusCommentId) toast.info('That comment was deleted');
@@ -473,33 +414,18 @@ export function CommentsSection({
 
   // ---- layout of the thread --------------------------------------------------
   const visible = useMemo(() => {
-    const live: ({ kind: 'c'; c: Comment; i: number } | { kind: 'g'; g: Ghost } | { kind: 'p'; run: AiRun })[] =
-      comments.map((c, i) => ({
-        kind: 'c',
-        c,
-        i,
-      }));
+    const live: ({ kind: 'c'; c: Comment; i: number } | { kind: 'g'; g: Ghost })[] = comments.map((c, i) => ({
+      kind: 'c',
+      c,
+      i,
+    }));
     for (const g of [...ghosts].sort((a, b) => a.index - b.index))
       live.splice(Math.min(g.index, live.length), 0, { kind: 'g', g });
-    // the state of a run a comment started shows right under that comment: queued, reading, needs your OK, did not
-    // start, and (for a work run) ready for review (design C3)
-    aiRuns.forEach((r, i) => {
-      const active = ['queued', 'starting', 'running'].includes(r.state);
-      const show =
-        active ||
-        (r.mode === 'work' && didNotStart(r)) ||
-        (r.mode === 'work' && r.state === 'finished' && i === 0 && !!r.sourceCommentId);
-      if (!show) return;
-      if (!active && !r.sourceCommentId) return;
-      const at = live.findIndex((x) => x.kind === 'c' && x.c.id === r.sourceCommentId);
-      if (at < 0 && !active) return;
-      live.splice(at >= 0 ? at + 1 : live.length, 0, { kind: 'p', run: r });
-    });
     if (sortOrder === 'newest') {
       live.reverse();
     }
     return live;
-  }, [comments, ghosts, sortOrder, aiRuns]);
+  }, [comments, ghosts, sortOrder]);
   const collapseMiddle = !expandedMiddle && comments.length > THREAD_COLLAPSE_OVER;
   const hiddenCount = collapseMiddle ? comments.length - 1 - TAIL : 0;
 
@@ -511,22 +437,9 @@ export function CommentsSection({
       (authorMember ? aiMembers.get(authorMember.id) : undefined) ??
       (c.ai ? [...aiMembers.values()].find((a) => a.name === c.author) : undefined);
     const mine = isMine(c);
-    // where this comment stands in an ask thread: the question, the answer, an error, a reply that asks again
-    const asked = askRunOf(c, aiRuns);
+    // where this comment stands in a thread: an answer to the lead's question, a blocked move
     const threadState: { state: ThreadState; label?: string } | null =
-      c.ai?.kind === 'answer'
-        ? { state: 'answered' }
-        : c.ai?.kind === 'ask_failed'
-          ? { state: 'error' }
-          : c.ai?.kind === 'move_blocked'
-            ? { state: 'blocked' }
-            : c.asksAgain
-              ? { state: 'asks_again' }
-              : c.answerToRun
-                ? { state: 'answer' }
-                : asked
-                  ? { state: 'asked', label: `Asked ${asked.memberName ?? 'AI'}` }
-                  : null;
+      c.ai?.kind === 'move_blocked' ? { state: 'blocked' } : c.answerToRun ? { state: 'answer' } : null;
     if (editingId === c.id) {
       return (
         <div key={c.id} data-comment-id={c.id} style={{ padding: '6px 0' }}>
@@ -562,17 +475,7 @@ export function CommentsSection({
           borderRadius: 10,
         }}
       >
-        {aiAuthor ? (
-          <AiAvatar
-            provider={aiAuthor.provider}
-            color={aiAuthor.color}
-            glyph={aiAuthor.glyph}
-            size={28}
-            title={aiAuthor.name}
-          />
-        ) : (
-          <Avatar person={p} />
-        )}
+        {aiAuthor ? <AiAvatar color={aiAuthor.color} size={28} title={aiAuthor.name} /> : <Avatar person={p} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>{p.name}</span>
@@ -581,6 +484,7 @@ export function CommentsSection({
                 <AiBadge />
               </span>
             )}
+            {c.role && (aiAuthor || c.ai || c.role) && <RoleChip role={c.role} />}
             {c.ai && AI_KIND[c.ai.kind] && (
               <span
                 className="ai-chip"
@@ -620,51 +524,17 @@ export function CommentsSection({
               </span>
             )}
           </div>
-          {c.ai?.kind === 'ask_failed' ? (
-            <AskErrorCard
-              comment={c}
-              run={aiRuns.find((r) => r.id === c.ai?.runId)}
-              onDismiss={() => void remove(c, index)}
-            />
-          ) : c.handoff ? (
-            <HandoffCard note={c.handoff} />
-          ) : (
-            <div style={{ fontSize: 13.5, lineHeight: 1.65, color: '#3A4A3E' }}>
-              <Collapsible text={c.text} />
-            </div>
-          )}
-          {c.ai?.kind === 'answer' && (
-            <AnswerFooter
-              comment={c}
-              run={aiRuns.find((r) => r.id === c.ai?.runId)}
-              canAct
-              onReply={() => {
-                setPrefill(undefined);
-                setReplyTo(c.id);
-                setComposing(true);
-                requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-              }}
-            />
-          )}
-          {c.ai?.kind === 'chat_answer' && (
-            <div className="ai-muted" style={{ display: 'flex', gap: 8 }} data-testid="chat-answer-meta">
-              <span>Answer from the AI chat · asked by {c.ai.askedBy ?? 'a teammate'}</span>
-              <span>· {c.ai.metered ? `$${(c.ai.costUsd ?? 0).toFixed(2)}` : 'Not metered'}</span>
-              {c.ai.model && <span className="ai-mono">· {c.ai.model}</span>}
-            </div>
-          )}
-          <CommentAiFlag ticketId={ticketId} commentId={c.id} />
+          <div style={{ fontSize: 13.5, lineHeight: 1.65, color: '#3A4A3E' }}>
+            <Collapsible text={c.text} />
+          </div>
           {c.answerToRun && <AnswerTransitions run={aiRuns.find((r) => r.id === c.answerToRun)} />}
-          {c.ai?.runNumber && c.ai.kind !== 'answer' && c.ai.kind !== 'ask_failed' && c.ai.kind !== 'chat_answer' && (
+          {c.ai?.runNumber && (
             <div
               className="ai-muted"
               style={{ display: 'flex', gap: 8, alignItems: 'center' }}
               data-testid="ai-comment-meta"
             >
               <span>Run #{c.ai.runNumber}</span>
-              {c.ai.durationS != null && <span>· {fmtElapsed(c.ai.durationS)}</span>}
-              <span>· {c.ai.metered ? `$${(c.ai.costUsd ?? 0).toFixed(2)}` : 'Not metered'}</span>
-              {c.ai.model && <span className="ai-mono">· {c.ai.model}</span>}
             </div>
           )}
           {confirmId === c.id && (
@@ -743,22 +613,6 @@ export function CommentsSection({
               </button>
             </>
           )}
-          {c.ai?.kind === 'answer' && (
-            <button
-              type="button"
-              data-testid="comment-reply"
-              style={barBtn()}
-              title="Replying asks this AI again"
-              onClick={() => {
-                setPrefill(undefined);
-                setReplyTo(c.id);
-                setComposing(true);
-                requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-              }}
-            >
-              <LineIcon name="reply" size={12} /> Reply
-            </button>
-          )}
           <button type="button" data-testid="comment-copy-link" style={barBtn()} onClick={() => copyLink(c)}>
             <Icon name="link" size={13} strokeWidth={1.9} />
             Copy link
@@ -770,7 +624,6 @@ export function CommentsSection({
 
   const rows: React.ReactNode[] = [];
   let shownDivider = false;
-  const drawnTalks = new Set<string>();
   visible.forEach((it, idx) => {
     if (it.kind === 'g') {
       rows.push(
@@ -803,39 +656,7 @@ export function CommentsSection({
       );
       return;
     }
-    if (it.kind === 'p') {
-      rows.push(<AskPlaceholder key={`ask-${it.run.id}`} run={it.run} />);
-      return;
-    }
     const { c, i } = it;
-    const talk = talks.get(c.id);
-    if (talk) {
-      // the whole run is drawn once, where its first comment in this order would be
-      const key = talk.ids[0];
-      if (!drawnTalks.has(key)) {
-        drawnTalks.add(key);
-        rows.push(
-          <AiTalkFold
-            key={`talk-${key}`}
-            run={talk}
-            ticketId={ticketId}
-            ai={aiLookup}
-            runs={aiRuns}
-            open={openTalks.has(key)}
-            onOpenChange={(open) =>
-              setOpenTalks((o) => {
-                const next = new Set(o);
-                if (open) next.add(key);
-                else next.delete(key);
-                return next;
-              })
-            }
-            onJoin={(text) => onAdd(text, { intent: 'notify' })}
-          />,
-        );
-      }
-      return;
-    }
     const isCollapsed =
       collapseMiddle &&
       (sortOrder === 'newest' ? idx >= TAIL && idx < visible.length - 1 : idx > 0 && idx < visible.length - TAIL);
@@ -919,11 +740,6 @@ export function CommentsSection({
         >
           {isLoading ? '…' : comments.length}
         </span>
-        {talks.size > 0 && (
-          <span data-testid="comments-ai-folded" style={{ fontSize: 12, color: '#6B7A70' }}>
-            AI to AI is folded
-          </span>
-        )}
         <button
           type="button"
           data-testid="comments-sort-order"
@@ -999,7 +815,7 @@ export function CommentsSection({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {composing ? (
                 <Composer
-                  key={`${replyTo ?? ''}:${prefill ?? ''}`}
+                  key={prefill ?? ''}
                   ticketId={ticketId}
                   projectId={projectId}
                   me={me}
@@ -1169,7 +985,9 @@ export function CommentsSection({
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {working && sortOrder === 'newest' && <RunWorkingRow run={working} />}
             {rows}
+            {working && sortOrder === 'oldest' && <RunWorkingRow run={working} />}
             {sortOrder === 'oldest' && (
               <>
                 {queue.map((q) => (
@@ -1300,7 +1118,7 @@ export function CommentsSection({
           {sortOrder === 'oldest' &&
             (composing ? (
               <Composer
-                key={`${replyTo ?? ''}:${prefill ?? ''}`}
+                key={prefill ?? ''}
                 ticketId={ticketId}
                 projectId={projectId}
                 me={me}

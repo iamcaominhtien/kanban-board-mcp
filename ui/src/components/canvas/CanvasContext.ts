@@ -17,8 +17,6 @@ export interface OpenCanvasRequest {
   title?: string;
   /** Skip the dialog: make a blank canvas straight away. */
   blank?: boolean;
-  /** Open with the "Ask AI" panel (selected boards) already shown. */
-  openAi?: boolean;
 }
 
 /** What `openCanvas` resolves to once the editor closes after a save. */

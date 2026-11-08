@@ -12,11 +12,7 @@ export interface DocsAiState {
   memberId: string | null;
   member: { id: string; name: string; provider: string; model: string | null; metered: boolean } | null;
   candidates: { id: string; name: string; provider: string; connection: string; model: string | null }[];
-  readScope: 'all' | 'except_hidden' | 'picked';
-  pickedPages: string[];
   stylePageId: string | null;
-  editsMode: 'direct' | 'proposal' | 'draft';
-  proposalDays: number;
   freshnessOn: boolean;
   guidanceLimit: number;
   digestOn: boolean;
@@ -25,19 +21,7 @@ export interface DocsAiState {
 }
 
 export type DocsAiSettingsPatch = Partial<
-  Pick<
-    DocsAiState,
-    | 'enabled'
-    | 'memberId'
-    | 'readScope'
-    | 'pickedPages'
-    | 'stylePageId'
-    | 'editsMode'
-    | 'proposalDays'
-    | 'freshnessOn'
-    | 'guidanceLimit'
-    | 'digestOn'
-  >
+  Pick<DocsAiState, 'enabled' | 'memberId' | 'stylePageId' | 'freshnessOn' | 'guidanceLimit' | 'digestOn'>
 >;
 
 /** One Docs AI call (ask, check, translate, thread reply, ...): the Docs counterpart of an AI run. */

@@ -10,9 +10,8 @@ vi.mock('../api/members', () => ({
   useSetMemberRole: () => ({ mutate: vi.fn() }),
 }));
 vi.mock('../api/ai', () => ({
-  useAiOverview: () => ({ data: { members: [], settings: { boardAiId: null } }, isLoading: false, isError: false }),
+  useAiTeams: () => ({ data: [], isLoading: false, isError: false }),
 }));
-vi.mock('./ai/AiDialogs', () => ({ BoardAiPicker: () => null }));
 
 import { MembersPanel } from './MembersPanel';
 

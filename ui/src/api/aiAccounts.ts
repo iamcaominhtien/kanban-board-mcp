@@ -14,7 +14,7 @@ import type {
   SignInState,
   TerminalMessage,
 } from '../types/aiAccounts';
-import type { AiMember } from '../types/ai';
+import type { AiTeam } from '../types/ai';
 
 export const accountKeys = {
   all: ['ai', 'accounts'] as const,
@@ -76,7 +76,7 @@ export const accountsApi = {
   finishSignIn: async (id: string) => (await client.post<{ done: boolean }>(`/ai/accounts/${id}/signin/done`)).data,
   /** Choose the account an AI member runs as (null: the login already on this computer). */
   assign: async (memberId: string, accountId: string | null) =>
-    (await client.put<AiMember>(`/ai/members/${memberId}/account`, { accountId })).data,
+    (await client.put<AiTeam>(`/ai/teams/${memberId}/account`, { accountId })).data,
 };
 
 /** Create / rename / check / sign out / remove / assign; each refreshes the lists afterwards. */

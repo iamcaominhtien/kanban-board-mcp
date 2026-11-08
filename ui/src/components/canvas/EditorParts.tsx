@@ -15,9 +15,7 @@ export const SIZE_PRESETS = [
 interface MenuProps {
   board: CanvasBoard;
   canEdit: boolean;
-  aiAvailable: boolean;
   onEdit: () => void;
-  onAskAi: () => void;
   onRename: () => void;
   onSize: (w: number, h: number) => void;
   onFitHeight: () => void;
@@ -65,12 +63,6 @@ export function BoardMenu(p: MenuProps) {
         <div className={styles.hint} style={{ padding: '0 10px 4px' }}>
           Locks this board for you
         </div>
-      )}
-      {p.canEdit && p.aiAvailable && editable && (
-        <button type="button" role="menuitem" className={styles.menuItem} onClick={p.onAskAi}>
-          <CanvasIcon name="spark" size={14} /> Ask AI to change…
-          <small>Ctrl J</small>
-        </button>
       )}
       {p.canEdit && (
         <button type="button" role="menuitem" className={styles.menuItem} onClick={p.onRename}>
@@ -335,7 +327,6 @@ export function KeysList({ onClose }: { onClose: () => void }) {
     ['P', 'Present from the selected board'],
     ['I', 'Try the selected page: clicks and keys go to it (Esc or Stop to leave)'],
     ['E or Enter', 'Edit the selected board'],
-    ['Ctrl J', 'Ask AI about the selection'],
     ['Ctrl D', 'Duplicate the selected board'],
     ['Delete', 'Delete the selection'],
     ['Ctrl Z / Ctrl Shift Z', 'Undo / redo layout changes (not source edits)'],

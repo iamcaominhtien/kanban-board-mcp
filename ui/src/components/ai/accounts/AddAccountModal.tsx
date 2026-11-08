@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { accountsApi, useAccountActions, useAiAccounts } from '../../../api/aiAccounts';
 import { extractError } from '../../../api/extractError';
 import type { AccountCli, AccountCliCard, AiAccount } from '../../../types/aiAccounts';
-import { ADD_STEPS, CLI_INFO, cardBlurb } from '../../../utils/signInCopy';
+import { ADD_STEPS, CLI_INFO } from '../../../utils/signInCopy';
 import { openLink } from './SignInLinks';
 import { ICON_PATHS, Icon } from './SignInStatusBar';
 import { SignInWindow } from './SignInWindow';
@@ -27,7 +27,7 @@ function CliCard({ card, selected, onPick }: { card: AccountCliCard; selected: b
       </span>
       <span className="sg-cli-text">
         <span className="sg-cli-name">{info.label}</span>
-        <div className="sg-cli-hint">{cardBlurb(card.cli, card.blurb, card.unavailable)}</div>
+        <div className="sg-cli-hint">{card.blurb}</div>
       </span>
       <span className="sg-chips">
         {off ? (
@@ -326,9 +326,7 @@ export function AddAccountModal({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && canSignIn) void makeAccount();
                     }}
-                    placeholder={
-                      cli ? `For example ${cli === 'claude' ? 'Work Claude' : `Work ${CLI_INFO[cli].label}`}` : ''
-                    }
+                    placeholder={cli ? 'For example Work Claude' : ''}
                     maxLength={60}
                     autoFocus
                     aria-invalid={!!nameProblem}
@@ -337,8 +335,7 @@ export function AddAccountModal({
                   {nameProblem && <span className="ai-error-text">{nameProblem}</span>}
                   <span className="sg-note">
                     Shown when you pick an account for an AI member. Claude Code reports who is signed in, so its email
-                    is shown as well. Codex, opencode and Antigravity do not, so for them the name is how you tell
-                    accounts apart. Use the person or plan, not a secret.
+                    is shown as well. Use the person or plan, not a secret.
                   </span>
                 </label>
                 <div className="sg-callout">

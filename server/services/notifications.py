@@ -32,10 +32,8 @@ import database
 import events as board_events
 from models import (
     AiAccount,
-    AiNotification,
-    AiApproval,
-    AiGrant,
-    AiMember,
+    AiChat,
+    AiTeam,
     AiProjectSettings,
     AiRun,
     AiSchedule,
@@ -1090,7 +1088,6 @@ def _group_title(kind: str, items: list[dict], count: int) -> str:
 
 
 def _group_body(items: list[dict], count: int | None = None) -> str:
-
     total = count or len(items)
     if total > GROUP_NAMES_MAX:
         return f"{total} in 10 minutes"
@@ -1230,22 +1227,6 @@ async def _why_closed_by_kind(session: AsyncSession, r: Notification) -> _Why:
         return await _why_window_closed(session, r.target_id)
     if r.kind in ("merge_conflict", "arbitration"):
         return await _why_flag_closed(session, r)
-    if r.target_kind == "flag" and r.target_id:
-        from models import AiTicketFlag
-
-        flag = await session.get(AiTicketFlag, r.target_id)
-        if flag is None or flag.resolved_at:
-            return (
-                (flag.resolution if flag else None) or "It was resolved.",
-                None,
-                False,
-            )
-    if r.kind == "workflow_step" and r.target_id:
-        from models import AiTicketStep
-
-        step = await session.get(AiTicketStep, r.target_id)
-        if step is None or step.state != "waiting":
-            return "{who} decided it.", None, False
     if r.target_kind == "approval" and r.target_id:
         return await _why_approval_closed(session, r.target_id)
     if r.target_kind == "account" and r.target_id:
@@ -1297,10 +1278,6 @@ async def _why_window_closed(session: AsyncSession, run_id: str) -> _Why:
 
 async def _why_flag_closed(session: AsyncSession, r: Notification) -> _Why:
     """A merge conflict or an arbitration closes when the ticket no longer carries the flag (services/ai/flags)."""
-    from services.ai import flags as ai_flags
-
-    if r.ticket_id and not await ai_flags.is_open(session, r.ticket_id, r.kind):
-        return "It was resolved.", None, False
     return None
 
 
@@ -1327,19 +1304,7 @@ async def _why_retried(session: AsyncSession, r: Notification) -> _Why:
 
 
 async def _why_approval_closed(session: AsyncSession, approval_id: str) -> _Why:
-    a = await session.get(AiApproval, approval_id)
-    if a is None:
-        return "The request is gone.", None, True
-    if a.status == "pending":
-        return None
-    verb = {
-        "approved": "{who} approved it",
-        "denied": "{who} denied it",
-        "expired": "It expired",
-        "failed": "It was approved but could not be applied",
-        "run_ended": "The run ended before a decision",
-    }.get(a.status, f"It was {a.status}")
-    return verb, a.decided_by, False
+    return "The request is gone.", None, True
 
 
 async def _why_account_closed(session: AsyncSession, account_id: str) -> _Why:
@@ -1377,17 +1342,6 @@ async def _why_budget_closed(session: AsyncSession, r: Notification) -> _Why:
         return "The day rolled over", None, False
     if not r.member_id:
         return None
-    raised = (
-        await session.exec(
-            select(AiGrant).where(
-                AiGrant.kind == "cap_raise",
-                AiGrant.member_id == r.member_id,
-                col(AiGrant.created_at) > r.created_at,
-            )
-        )
-    ).first()
-    if raised is not None:
-        return "{who} raised the cap", raised.created_by, False
     return None
 
 
@@ -1399,7 +1353,7 @@ async def _why_pause_closed(session: AsyncSession, r: Notification) -> _Why:
             return "AI was resumed", None, False
         return None
     if r.target_kind == "member" and r.target_id:
-        profile = await session.get(AiMember, r.target_id)
+        profile = await session.get(AiTeam, r.target_id)
         if profile is None:
             return "The AI member was removed.", None, True
         if not profile.paused:
@@ -1569,7 +1523,7 @@ async def _watch_accounts(session: AsyncSession) -> None:
         if await _sign_out_noted(session, acc):
             continue
         on = (
-            await session.exec(select(AiMember).where(AiMember.account_id == acc.id))
+            await session.exec(select(AiTeam).where(AiTeam.account_id == acc.id))
         ).all()
         projects = sorted({p.project_id for p in on})
         n = len(on)
@@ -1712,6 +1666,38 @@ async def _close_passed_question(
     await _resolve_rows(session, list(stale), f"Passed to {passed_to}", by)
 
 
+# The chat page tells the board every ~15 s while it is open and in front of the person (api `/ai/assist/chats/{id}/seen`);
+# a missed beat or two still counts as open.
+CHAT_OPEN_FOR = timedelta(seconds=45)
+
+
+async def _chat_in_front(session: AsyncSession, run: AiRun) -> bool:
+    """A run that a message in the ticket chat started ended while its person had that chat open and in front of
+    them (Chat open: the answer is on their screen, so "AI finished" would tell them what they are reading). The
+    notice stays for a chat that is closed, or in a window nobody looks at: the answer waits there."""
+    if (
+        run.state
+        != "finished"  # a failure or a timeout is a Needs you: the open chat does not make it less so
+        or run.trigger != "message"
+        or not run.ticket_id
+        or not run.started_by
+    ):
+        return False
+    chat = (
+        await session.exec(
+            select(AiChat).where(
+                AiChat.scope == "ticket",
+                AiChat.scope_id == run.ticket_id,
+                AiChat.owner == run.started_by,
+            )
+        )
+    ).first()
+    from services.ai.store import parse_iso
+
+    seen = parse_iso(chat.seen_at) if chat is not None else None
+    return seen is not None and datetime.now(UTC) - seen <= CHAT_OPEN_FOR
+
+
 async def on_run_ended(run_id: str) -> None:
     """A run ended: finished work (for information, grouped), failed or timed out (Needs you), or cancelled
     because its ticket was archived (for information). A scheduled run is told by its schedule instead."""
@@ -1723,14 +1709,18 @@ async def on_run_ended(run_id: str) -> None:
             member = await session.get(Member, run.member_id)
             name = member.name if member else _AN_AI_MEMBER
             keys = await _run_people(session, run)
+            if await _chat_in_front(session, run):
+                # the answer is on the screen of the person who asked: no notice for them; the others still hear
+                asker = set(
+                    await recipient_keys(session, run.project_id, [run.started_by])
+                )
+                keys = [k for k in keys if k not in asker]
+                if not keys:
+                    return
             notice = _run_end_notice(run, name)
             if notice is None:
                 return
             kind, title, body = notice
-            back = _loads(run.report_back, {}) or {}
-            if kind == "ai_finished" and back.get("member_id"):
-                # an AI waiting on this run hears of it
-                keys = [*keys, ai_key(back["member_id"])]
             await emit(
                 kind,
                 project_id=run.project_id,
@@ -3285,70 +3275,7 @@ async def backfill_waiting() -> int:
     """Once, on the first start after the upgrade: what was already waiting for a person gets its row, since the old
     toast hooks are gone and nothing else would write one (a pending approval, an open question, an account found
     signed out). Returns how many were written."""
-    from services.ai import safety
-
-    async with database.async_session() as session:
-        if (await _global(session)).get("backfilled"):
-            return 0
-        await _set_global(session, backfilled=True)
-        await session.commit()
-        open_targets = set(
-            (
-                await session.exec(
-                    select(Notification.target_id).where(
-                        col(Notification.done_at).is_(None),
-                        col(Notification.target_id).is_not(None),
-                    )
-                )
-            ).all()
-        )
-        approvals = (
-            await session.exec(select(AiApproval).where(AiApproval.status == "pending"))
-        ).all()
-        asked = (
-            await session.exec(select(AiRun.id).where(AiRun.state == "needs_input"))
-        ).all()
-        signed_out = (
-            await session.exec(
-                select(AiAccount).where(
-                    AiAccount.status == "needs_sign_in",
-                    col(AiAccount.signed_out_at).is_(None),
-                )
-            )
-        ).all()
-        for acc in signed_out:
-            # _watch_accounts tells an account once it has a sign-out time
-            acc.signed_out_at = now_iso()
-            acc.signed_out_how = acc.signed_out_how or "check"
-            session.add(acc)
-        await session.commit()
-        records = []
-        for a in approvals:
-            if a.id in open_targets:
-                continue
-            rec = (
-                await session.exec(
-                    select(AiNotification)
-                    .where(
-                        AiNotification.ref_kind == "approval",
-                        AiNotification.ref_id == a.id,
-                    )
-                    .order_by(col(AiNotification.created_at).desc())
-                )
-            ).first()
-            if rec is not None:
-                records.append(rec)
-    written = 0
-    for rec in records:
-        await safety.tell_centre(rec)
-        written += 1
-    for run_id in asked:
-        if run_id not in open_targets:
-            await on_run_question(run_id)
-            written += 1
-    if signed_out:
-        mark_dirty()
-    return written + len(signed_out)
+    return 0
 
 
 RECONCILE_EVERY_S = 15.0

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { ROLES } from './pluginLogic';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CatalogueEntry, Plugin } from '../../../types/aiPlugins';
@@ -10,7 +10,6 @@ vi.mock('../../../api/client', () => ({ client: http }));
 
 import { CatalogueTab, isInstalled } from './CatalogueTab';
 import { InstalledTab } from './InstalledTab';
-import { MemberPluginsCard, roleOfConfig } from './MemberPluginsCard';
 
 const plugin = (o: Partial<Plugin> = {}): Plugin => ({
   id: 'p1',
@@ -84,7 +83,7 @@ describe('CatalogueTab', () => {
 
   it('shows a skeleton, then entries; filters by role; shows empty state', async () => {
     http.get.mockResolvedValue({ data: catalogue });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[]} />));
+    render(wrap(<CatalogueTab plugins={[]} />));
     expect(screen.getByLabelText('Loading')).toBeTruthy();
     expect(await screen.findByTestId('cat-tdd')).toBeTruthy();
     expect(screen.getByText('MCP server')).toBeTruthy();
@@ -98,183 +97,23 @@ describe('CatalogueTab', () => {
 
   it('shows an error with Try again', async () => {
     http.get.mockRejectedValue({ response: { data: { detail: 'catalogue offline' } } });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[]} />));
+    render(wrap(<CatalogueTab plugins={[]} />));
     expect(await screen.findByText(/Couldn't load the catalogue: catalogue offline/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(http.get).toHaveBeenCalledTimes(2));
   });
 
-  it('installs a plugin and says so', async () => {
+  it('shows plain Installed for an installed plugin and nothing to press', async () => {
     http.get.mockResolvedValue({ data: catalogue });
-    http.post.mockResolvedValue({ data: { plugin: plugin({ name: 'tdd-kit' }) } });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[]} />));
-    const card = await screen.findByTestId('cat-tdd');
-    fireEvent.click(card.querySelector('button') as HTMLButtonElement);
-    expect(await screen.findByText('Installed.')).toBeTruthy();
-    expect(http.post).toHaveBeenCalledWith('/projects/pr/ai/catalogue/tdd/install', {});
-  });
-
-  it('adds an MCP server to members and counts them', async () => {
-    http.get.mockResolvedValue({ data: catalogue });
-    http.post.mockResolvedValue({ data: { mcpAddedTo: ['m1'] } });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[]} />));
-    const card = await screen.findByTestId('cat-figma');
-    fireEvent.click(card.querySelector('button') as HTMLButtonElement);
-    expect(await screen.findByText('Added to 1 member.')).toBeTruthy();
-  });
-
-  it('shows plain Installed for an installed plugin, and the error of a failed install', async () => {
-    http.get.mockResolvedValue({ data: catalogue });
-    http.post.mockRejectedValue({ response: { data: { detail: 'clone failed' } } });
-    render(wrap(<CatalogueTab projectId="pr" plugins={[plugin({ name: 'tdd-kit' })]} />));
+    render(wrap(<CatalogueTab plugins={[plugin({ name: 'tdd-kit' })]} />));
     const done = await screen.findByTestId('cat-tdd');
     expect(done.textContent).toContain('Installed');
     expect(done.querySelector('button')).toBeNull();
-    fireEvent.click(screen.getByTestId('cat-figma').querySelector('button') as HTMLButtonElement);
-    expect((await screen.findByRole('alert')).textContent).toBe('clone failed');
-  });
-});
-
-describe('MemberPluginsCard', () => {
-  function setup(
-    opts: {
-      plugins?: Plugin[] | 'error';
-      cfg?: unknown;
-      catalogue?: CatalogueEntry[];
-      boardSkills?: { skill: string; on?: boolean; membersOn?: string[]; membersOff?: string[] }[];
-    } = {},
-  ) {
-    http.get.mockImplementation((url: string) => {
-      if (url === '/ai/board-skills')
-        return Promise.resolve({
-          data: [
-            { name: 'canvas-design', description: 'The design guide.' },
-            { name: 'repo-and-machine', description: 'Git and processes.' },
-          ],
-        });
-      if (url === '/projects/pr/ai/ops') return Promise.resolve({ data: { boardSkills: opts.boardSkills ?? [] } });
-      if (url.endsWith('/ai/plugins'))
-        return opts.plugins === 'error'
-          ? Promise.reject({ response: { data: { detail: 'plugins down' } } })
-          : Promise.resolve({ data: opts.plugins ?? [] });
-      if (url === '/ai/catalogue') return Promise.resolve({ data: opts.catalogue ?? [] });
-      if (url.endsWith('/base-prompt'))
-        return Promise.resolve({ data: { memberId: 'm1', tokens: 3140, parts: {}, skills: [] } });
-      if (url.startsWith('/ai/members/'))
-        return Promise.resolve({ data: { id: 'm1', kind: 'ai', config: opts.cfg ?? { role: 'designer' } } });
-      return Promise.reject(new Error(`unexpected GET ${url}`));
-    });
-    http.put.mockResolvedValue({ data: plugin() });
-    http.post.mockResolvedValue({ data: {} });
-  }
-  const renderIt = () => render(wrap(<MemberPluginsCard memberId="m1" projectId="pr" />));
-
-  it("switches one of the board's skills for this member only, and back to the project's default", async () => {
-    setup({ boardSkills: [{ skill: 'repo-and-machine', on: false }] });
-    http.patch.mockResolvedValue({ data: { boardSkills: [] } });
-    renderIt();
-    const row = await screen.findByTestId('bs-repo-and-machine');
-    expect(row.textContent).toContain('Off for this project.');
-    fireEvent.click(within(row).getByRole('switch'));
-    await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/pr/ai/ops', {
-        boardSkills: [{ skill: 'repo-and-machine', on: false, membersOn: ['m1'], membersOff: [] }],
-      }),
-    );
-  });
-
-  it('reads the role from the config', () => {
-    expect(roleOfConfig({ role: 'dev' })).toBe('dev');
-    expect(roleOfConfig({ pack: { key: 'qa' } })).toBe('qa');
-    expect(roleOfConfig(null)).toBeNull();
-  });
-
-  it('loads, then shows the role and an empty hint', async () => {
-    setup();
-    renderIt();
-    expect(screen.getByLabelText('Loading')).toBeTruthy();
-    expect(await screen.findByText('No plugin is installed on this project.')).toBeTruthy();
-    expect(await screen.findByText('Role: Designer.')).toBeTruthy();
-  });
-
-  it('shows the size of the base prompt next to the title', async () => {
-    setup();
-    renderIt();
-    expect((await screen.findByTestId('base-prompt')).textContent).toBe('base prompt 3,140 tokens');
-  });
-
-  it('says so when the member has no role pack', async () => {
-    setup({ cfg: {} });
-    renderIt();
-    expect(await screen.findByText('This member has no role pack.')).toBeTruthy();
-  });
-
-  it('shows the error with Try again', async () => {
-    setup({ plugins: 'error' });
-    renderIt();
-    expect(await screen.findByText(/Couldn't load the plugins: plugins down/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    await waitFor(() => expect(http.get.mock.calls.filter((c) => String(c[0]).endsWith('/ai/plugins')).length).toBe(2));
-  });
-
-  it('shows the project default note, and switches a plugin for this member', async () => {
-    setup({ plugins: [plugin({ used: { uses: 4, byMember: [{ memberId: 'm1', uses: 4 } as never], last: null } })] });
-    renderIt();
-    const row = await screen.findByTestId('mp-design');
-    expect(row.textContent).toContain('Project default is on (suggested for this role).');
-    expect(row.textContent).toContain('2 skills');
-    expect(row.textContent).toContain('used 4 times by this member');
-    const sw = screen.getByRole('switch', { name: 'design' });
-    expect(sw.getAttribute('aria-checked')).toBe('true');
-    fireEvent.click(sw);
-    await waitFor(() => expect(http.put).toHaveBeenCalledWith('/ai/plugins/p1/members/m1', { on: false }));
-  });
-
-  it('shows Switched here and Follow the default for an own switch', async () => {
-    setup({ plugins: [plugin({ members: [{ memberId: 'm1', on: false }], defaultOn: true })] });
-    renderIt();
-    const row = await screen.findByTestId('mp-design');
-    expect(row.textContent).toContain('Switched here.');
-    fireEvent.click(screen.getByRole('button', { name: 'Follow the default' }));
-    await waitFor(() => expect(http.put).toHaveBeenCalledWith('/ai/plugins/p1/members/m1', { on: null }));
-  });
-
-  it('shows the error of a failed switch', async () => {
-    setup({ plugins: [plugin()] });
-    http.put.mockRejectedValue({ response: { data: { detail: 'locked' } } });
-    renderIt();
-    fireEvent.click(await screen.findByRole('switch', { name: 'design' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('locked');
-  });
-
-  it('suggests a role plugin that is not installed, and installs it for this member', async () => {
-    setup({
-      plugins: [],
-      catalogue: [
-        entry({ key: 'figma', name: 'figma-kit', roles: ['designer'] }),
-        entry({ key: 'tdd', roles: ['dev'] }),
-      ],
-    });
-    renderIt();
-    expect(await screen.findByText(/Suggested for the Designer role\./)).toBeTruthy();
-    expect(screen.queryByText('tdd-kit')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }));
-    await waitFor(() =>
-      expect(http.post).toHaveBeenCalledWith('/projects/pr/ai/catalogue/figma/install', { memberIds: ['m1'] }),
-    );
-  });
-
-  it('shows the error of a failed install', async () => {
-    setup({ plugins: [], catalogue: [entry({ key: 'figma', name: 'figma-kit', roles: ['designer'] })] });
-    http.post.mockRejectedValue({ response: { data: { detail: 'no network' } } });
-    renderIt();
-    fireEvent.click(await screen.findByRole('button', { name: 'Install' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('no network');
   });
 });
 
 describe('InstalledTab actions', () => {
-  const renderIt = (plugins: Plugin[]) => render(wrap(<InstalledTab projectId="pr" plugins={plugins} usage={[]} />));
+  const renderIt = (plugins: Plugin[]) => render(wrap(<InstalledTab projectId="pr" plugins={plugins} />));
 
   it('says nothing is installed, and when a filter matches nothing', () => {
     renderIt([]);

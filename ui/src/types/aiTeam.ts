@@ -493,6 +493,8 @@ export interface TimelineLifeline {
   /** Header dot: working, waiting for you, queued, offline, idle or paused (AIs only). */
   state: 'working' | 'waiting' | 'queued' | 'offline' | 'idle' | 'paused' | null;
   delegate?: string | null;
+  /** The team's lead (its box is drawn dark, like You). */
+  lead?: boolean;
   /** No event in the window: folded into the "N quiet AIs" strip on a narrow window. */
   quiet?: boolean;
 }
@@ -500,7 +502,15 @@ export interface TimelineLifeline {
 export type RunEnd = 'ok' | 'failed' | 'memory' | 'timeout' | 'stopped' | 'pause_all' | 'budget' | null;
 
 export interface TimelineBar {
+  /** The bar's own id: a run's id for a lead, `<agent>:<n>` for one call of a role. */
   id: string;
+  /** The run the bar belongs to (the same as `id` for a lead). */
+  runId: string;
+  agentId: string | null;
+  /** The role a call belongs to; null for a run of a lead. */
+  role: string | null;
+  /** What the bar says in a scoped Timeline instead of "run N" (a role's "call 2"). */
+  label: string | null;
   memberId: string;
   ticketId: string;
   number: number;

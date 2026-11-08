@@ -7,7 +7,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
-from models import AiMember, AiProjectSettings, AiRun, Member
+from models import AiTeam, AiProjectSettings, AiRun, Member
 
 
 def now_iso() -> str:
@@ -38,10 +38,10 @@ def loads(value, default):
 
 async def get_profile(
     session: AsyncSession, member_id: str
-) -> tuple[Member | None, AiMember | None]:
+) -> tuple[Member | None, AiTeam | None]:
     """The Member row and its AI profile (either may be None)."""
     member = await session.get(Member, member_id)
-    profile = await session.get(AiMember, member_id)
+    profile = await session.get(AiTeam, member_id)
     return member, profile
 
 

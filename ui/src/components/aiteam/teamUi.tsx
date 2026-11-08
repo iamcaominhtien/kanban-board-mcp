@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react';
 import { PauseGlyph } from '../ai/pausedUi';
-import { roleCode } from '../ai/workflow/wfFormat';
-import type { CardState, HandoffEnd } from '../../types/aiTeam';
+import { roleCode } from '../ai/roleLook';
+/** What a team card shows. */
+export type CardState = 'working' | 'waiting' | 'queued' | 'paused' | 'offline' | 'idle';
+
+/** One end of a hand-off as a badge draws it: a person or an AI, by name and colour. */
+export interface HandoffEnd {
+  kind?: 'person' | 'ai';
+  name?: string;
+  color?: string | null;
+}
 import './aiTeam.css';
 import '../docs/docs.css';
 
@@ -208,13 +216,3 @@ export const ICONS = {
 export function CalendarIcon() {
   return <Icon size={14}>{ICONS.calendar}</Icon>;
 }
-
-export const KIND_LOOK: Record<string, { bg: string; fg: string }> = {
-  mention: { bg: '#EFE8FB', fg: '#5B3AA6' },
-  'asked you': { bg: '#FEF3D9', fg: '#7A5A06' },
-  'hand-off': { bg: '#E6F2EA', fg: '#1F5A31' },
-  'report back': { bg: '#F1F3F1', fg: '#5B6B60' },
-  'sent back': { bg: '#FDECE8', fg: '#A5321E' },
-  assigned: { bg: '#E8F1FA', fg: '#244E78' },
-  answered: { bg: '#E6F2EA', fg: '#1F5A31' },
-};

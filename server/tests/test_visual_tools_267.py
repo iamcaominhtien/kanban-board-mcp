@@ -14,7 +14,7 @@ from kanban_mcp.tools.docs import docs_read, docs_write
 from services import canvas_locks, diagram_export, diagram_model, screenshots
 from services import visual_guides
 from services.ai import board_skills, guard
-from tests.test_ai import _ctx, _project, _ticket, env  # noqa: F401  (fixture)
+from tests.ai_helpers import _ctx, _project, _ticket, env  # noqa: F401  (fixture)
 
 FLOW = """<mxfile><diagram name="Sign-up"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="form" value="Fill in the form" style="rounded=1;html=1;" vertex="1" parent="1">
@@ -446,3 +446,72 @@ def test_flow_is_suggested_and_the_draw_io_guide_says_how_its_files_reach_the_bo
         "node-<id>",
     ):
         assert needle in guide
+
+
+async def test_an_agent_changes_a_frame_directly_and_a_locked_frame_is_left_alone(
+    env, tmp_path
+):
+    """AI v2: no proposals. canvas_update puts the changed files in the frame; what it leaves out stays; a frame a
+    person is editing is refused with their name."""
+    c = env["c"]
+    pid, _ = await _project(c)
+    tid = await _ticket(c, pid, "Sign-up")
+    folder = tmp_path / "canvas" / "01-form"
+    folder.mkdir(parents=True)
+    (folder / "index.html").write_text(FRAME)
+    (folder / "style.css").write_text("h1 { color: green }")
+    made = await docs_write(
+        action="canvas_create",
+        path=str(tmp_path / "canvas"),
+        owner_kind="ticket",
+        owner_id=tid,
+        title="Sign-up screens",
+    )
+    cid, bid = made["id"], made["boards"][0]["id"]
+    before = await docs_read(
+        action="canvas", canvas_id=cid, board_id=bid, path=str(tmp_path / "edit")
+    )
+    rev = before["board"]["content_rev"]
+    # only the changed file is handed in: the stylesheet stays
+    change = tmp_path / "change"
+    change.mkdir()
+    (change / "index.html").write_text(FRAME.replace("Create your account", "Join"))
+    out = await docs_write(
+        action="canvas_update",
+        canvas_id=cid,
+        board_id=bid,
+        path=str(change),
+        note="Shorter title.",
+    )
+    assert out["board_id"] == bid and out["files"] == ["index.html"]
+    assert out["content_rev"] > rev and out["note"] == "Shorter title."
+    after = await docs_read(
+        action="canvas", canvas_id=cid, board_id=bid, path=str(tmp_path / "after")
+    )
+    written = {
+        p.name: p.read_text() for p in (tmp_path / "after").rglob("*") if p.is_file()
+    }
+    assert (
+        "Join" in written["index.html"]
+        and "Create your account" not in written["index.html"]
+    )
+    assert written["style.css"] == "h1 { color: green }"
+    assert after["board"]["content_rev"] == out["content_rev"]
+    # a person holds the frame: the change is refused and nothing moves
+    taken, _lock = canvas_locks.acquire(cid, bid, "An")
+    assert taken
+    (change / "index.html").write_text(FRAME.replace("Create your account", "Other"))
+    with pytest.raises(ValueError, match="An"):
+        await docs_write(
+            action="canvas_update", canvas_id=cid, board_id=bid, path=str(change)
+        )
+    still = await docs_read(action="canvas", canvas_id=cid, board_id=bid)
+    assert still["board"]["content_rev"] == out["content_rev"]
+    # an empty folder changes nothing
+    canvas_locks.release(cid, bid, "An")
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    with pytest.raises(ValueError, match="no files"):
+        await docs_write(
+            action="canvas_update", canvas_id=cid, board_id=bid, path=str(empty)
+        )

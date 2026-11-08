@@ -4,7 +4,6 @@ import type { IssueType, Member, Ticket } from '../types';
 import { MemberAvatar } from './MemberAvatar';
 import { CardAiFooter } from './ai/RunPanel';
 import { CardInsightChip } from './assist/BoardHealth';
-import { WorkflowCardChip } from './workflowBoard/WorkflowBoardContext';
 import { ScheduleCardChip } from './schedules/ScheduleTicketBlock';
 import { TagPill } from './TagPill';
 import { TicketTypeIcon, PriorityMark } from './icons';
@@ -12,8 +11,6 @@ import styles from './TicketCard.module.css';
 import { createPortal } from 'react-dom';
 import { HoverTip } from './HoverTip';
 import { STATUS_NAMES } from '../hooks/useMarkerActions';
-import { Ico, StoryChildChip } from './story/storyUi';
-import { CardCapLine, WaitsFor, WaitsForStopped } from './ai/limits/CardLimits';
 
 const TYPE_LABELS: Record<IssueType, string> = {
   bug: 'Bug',
@@ -46,8 +43,6 @@ interface TicketCardProps {
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
   onDelete?: (ticket: Ticket) => void;
-  /** In a Story's lane the chip naming the Story is left out: the lane already says it. */
-  hideStoryChip?: boolean;
 }
 
 /**
@@ -65,7 +60,6 @@ export function TicketCard({
   onPending,
   onResume,
   onDelete,
-  hideStoryChip,
 }: TicketCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
@@ -114,16 +108,7 @@ export function TicketCard({
     !dismissPrompt &&
     (blockerTicket ? blockerTicket.status === 'wont_do' : !allTickets.some((t) => t.id === ticket.pendingTicketId));
   const pendingChildren = allTickets.filter((t) => t.parentId === ticket.id && t.pending);
-  // A child of a Story carries one small chip naming its Story, and says what it waits for (ai-story-flow C)
-  const parentTicket = ticket.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
-  const storyParent = parentTicket?.type === 'story' ? parentTicket : undefined;
-  const openWaits = storyParent
-    ? (ticket.blockedBy ?? []).filter((id) => {
-        const b = allTickets.find((t) => t.id === id);
-        return !b || (b.status !== 'done' && b.status !== 'wont_do');
-      })
-    : [];
-  const showParentChip = !!ticket.parentId && !(storyParent && hideStoryChip);
+  const showParentChip = !!ticket.parentId;
 
   const cardClasses = [
     styles.card,
@@ -561,8 +546,7 @@ export function TicketCard({
         {/* Parent chip & Tags row */}
         {(showParentChip || visibleTags.length > 0) && (
           <div className={styles.tagsRow}>
-            {storyParent && showParentChip && <StoryChildChip storyId={storyParent.id} title={storyParent.title} />}
-            {ticket.parentId && !storyParent && (
+            {ticket.parentId && (
               <span className={styles.parentChip} title={`Sub-ticket of ${ticket.parentId}`}>
                 <svg
                   width="10"
@@ -585,24 +569,6 @@ export function TicketCard({
             ))}
             {overflowCount > 0 && <span className={styles.tagOverflow}>+{overflowCount}</span>}
           </div>
-        )}
-
-        {openWaits.length > 0 && !isClosed && (
-          <div className={styles.waitsLine} data-testid="card-waits-for">
-            <Ico name="clock" size={12} color="#5B6B60" width={2} />
-            <WaitsFor ids={openWaits} />
-          </div>
-        )}
-        {/* A ticket waiting for one that stopped at its token cap says so, with a click to it (ai-story-flow O) */}
-        {!storyParent && !isClosed && (
-          <WaitsForStopped
-            ids={[
-              ...(ticket.blockedBy ?? []),
-              ...(isPending && ticket.pendingReasonType === 'ticket' && ticket.pendingTicketId
-                ? [ticket.pendingTicketId]
-                : []),
-            ]}
-          />
         )}
 
         {/* Sub-tasks progress bar for parent tickets */}
@@ -760,8 +726,6 @@ export function TicketCard({
         )}
 
         {/* AI line: Run, running, queued, needs input, failed, summary ready (AI work on tickets, A4) */}
-        {!isDragging && <CardCapLine ticketId={ticket.id} />}
-        {!isDragging && <WorkflowCardChip ticketId={ticket.id} />}
         {!isDragging && <CardAiFooter ticket={ticket} />}
 
         {/* Schedule chip: "Tue 02:00", "Starts in 12 min", "Missed, waiting for runner", "Schedule paused" (AI schedules, E2) */}

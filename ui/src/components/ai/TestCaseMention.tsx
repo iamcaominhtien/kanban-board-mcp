@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { aiApi, useAiMutation } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
-import { mentionedAi } from './MentionIntent';
+import { mentionedAi } from './ComposerAi';
 import { useAiBoardState } from './aiUi';
 import './ticketWork.css';
 
@@ -17,7 +17,7 @@ export function TestCaseMention({ ticketId, code, notes }: { ticketId: string; c
   const [intent, setIntent] = useState<'ask' | 'notify'>('ask');
   const [sent, setSent] = useState<string | null>(null);
   const ask = useAiMutation((v: { memberId: string; question: string }) =>
-    aiApi.ask(ticketId, { memberId: v.memberId, question: v.question, source: 'test_case', ref: code }),
+    aiApi.run(ticketId, { teamId: v.memberId, instruction: code ? `Test case ${code}: ${v.question}` : v.question }),
   );
   const ais = mentionedAi(notes, members);
   if (!ais.length) return null;

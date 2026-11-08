@@ -2,8 +2,7 @@
 
 - **Instructions**: one text per project, written by a person, in the system prompt of every run on the project
   (before the member's own persona). Project-wide, so it is not copied into each member's CLAUDE.md.
-- **Memory (lessons)**: short facts learned the hard way. An AI proposes one (a light model reading a finished ticket's
-  run, or a diagnosis such as "the dev server must run in the background"); a person keeps, edits or drops it. Only
+- **Memory (lessons)**: short facts learned the hard way. An AI proposes one (the lead in its final report, or an outside agent); a person keeps, edits or drops it. Only
   kept lessons go into the prompt, capped at ``LESSON_TOKEN_CAP``.
 
 The system prompt is fixed at the first request of a conversation, so a change takes effect on the next run (the
@@ -19,7 +18,7 @@ from datetime import UTC, datetime
 from sqlmodel import col, select
 
 import database
-from models import AiLesson, AiProjectKnowledge, AiRun, Ticket
+from models import AiLesson, AiProjectKnowledge, AiRun
 
 from . import ops, transcripts
 from .config_model import estimate_tokens
@@ -253,7 +252,6 @@ async def for_run(session, run: AiRun, profile) -> str:
         record_use=True,
         notes_on=ops.get(settings).get("ai_notes", True) is not False,
     )
-    run.memory_used = json.dumps(used)
     session.add(run)
     await session.commit()
     return text
@@ -315,18 +313,10 @@ def lesson_dict(r: AiLesson) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# A light model proposes at most one lesson when a ticket ends
+# The light model (notes after a run, the repository scan)
 # ---------------------------------------------------------------------------
 
 LIGHT_MODEL_TIMEOUT_S = 180
-
-LESSON_PROMPT = (
-    "You read the log of an AI coding agent's work on one ticket. Propose AT MOST ONE lesson that would save the next "
-    "AI on this project time or a mistake: a fact about this repository or how it is worked on (a command that must be "
-    "run a certain way, a file that must not be touched, a trap that cost several attempts). Not a summary of the "
-    "work, not generic advice. If nothing like that happened, propose nothing. Answer with ONE JSON object only: "
-    '{"lesson": "one or two sentences, or empty", "why": "what in the log shows it"}.\n\n'
-)
 
 
 def digest(records: list[dict], limit: int = 12000) -> str:
@@ -362,21 +352,6 @@ def digest(records: list[dict], limit: int = 12000) -> str:
                 out.append(f"  error: {str(body)[:300]}")
     text = "\n".join(out)
     return text[-limit:]
-
-
-def parse_proposal(text: str) -> str | None:
-    """The lesson in the light model's answer, or None."""
-    import re
-
-    m = re.search(r"\{.*\}", text or "", re.DOTALL)
-    if not m:
-        return None
-    try:
-        data = json.loads(m.group(0))
-    except ValueError:
-        return None
-    lesson = " ".join(str(data.get("lesson") or "").split())
-    return lesson[:600] or None
 
 
 async def _ask_light_model(prompt: str, profile, account) -> str | None:
@@ -421,87 +396,6 @@ async def _ask_light_model(prompt: str, profile, account) -> str | None:
         return json.loads(out.decode(errors="replace") or "{}").get("result")
     except ValueError:
         return None
-
-
-async def propose_from_ticket(ticket_id: str) -> AiLesson | None:
-    """When a ticket ends: a light model reads its last AI work run and proposes at most one lesson. Once per ticket."""
-    from models import AiAccount
-    from services import notifications as centre
-
-    from .store import get_profile
-
-    async with database.async_session() as session:
-        ticket = await session.get(Ticket, ticket_id)
-        if ticket is None:
-            return None
-        settings = await get_settings(session, ticket.project_id)
-        if not ops.get(settings).get("propose_lessons"):
-            return None
-        # only the ticket-end reading marks the ticket as read: a lesson a diagnosis proposed during a run of the
-        # same ticket is another kind
-        done = (
-            await session.exec(
-                select(AiLesson).where(
-                    AiLesson.source_ticket_id == ticket_id,
-                    AiLesson.proposed_by == "model",
-                )
-            )
-        ).first()
-        if done is not None:
-            return None
-        run = (
-            await session.exec(
-                select(AiRun)
-                .where(AiRun.ticket_id == ticket_id, AiRun.mode == "work")
-                .order_by(col(AiRun.queued_at).desc())
-                .limit(1)
-            )
-        ).first()
-        if run is None:
-            return None
-        member, profile = await get_profile(session, run.member_id)
-        if (
-            profile is None
-            or profile.provider != "claude-code"
-            or profile.connection == "api_key"
-        ):
-            return None
-        account_id = run.account_id or profile.account_id
-        account = await session.get(AiAccount, account_id) if account_id else None
-    records = await transcripts.read(run.id)
-    if not records:
-        return None
-    answer = await _ask_light_model(LESSON_PROMPT + digest(records), profile, account)
-    lesson = parse_proposal(answer or "")
-    async with database.async_session() as session:
-        # mark the ticket as read even when nothing was proposed, so it is never read twice
-        marker = AiLesson(
-            project_id=run.project_id,
-            text=lesson or "",
-            state="proposed" if lesson else "none",
-            source_ticket_id=ticket_id,
-            source_run_id=run.id,
-            proposed_by="model",
-        )
-        session.add(marker)
-        await session.commit()
-        await session.refresh(marker)
-        if not lesson:
-            return None
-        await centre.emit(
-            "lesson",
-            project_id=run.project_id,
-            recipients=await centre.owners_and_admins(session, run.project_id),
-            title=f"A lesson proposed from {ticket_id}",
-            body=lesson[:300],
-            target_kind="lesson",
-            target_id=marker.id,
-            ticket_id=ticket_id,
-            member_id=run.member_id,
-            data={"run_id": run.id},
-            session=session,
-        )
-        return marker
 
 
 async def propose(
@@ -549,43 +443,3 @@ async def propose(
     except Exception:  # noqa: BLE001 - the proposal stands even if nobody could be told
         logger.exception("Could not tell anyone about lesson %s", row.id)
     return row
-
-
-async def propose_from_diagnosis(run_id: str, text: str) -> AiLesson | None:
-    """A diagnosis named something the project will meet again (a dev server that hung): propose it. A person is told,
-    as for a proposal at the end of a ticket (it used to wait unseen)."""
-    async with database.async_session() as session:
-        run = await session.get(AiRun, run_id)
-        if run is None:
-            return None
-        return await propose(
-            session,
-            run.project_id,
-            text,
-            by="the board",
-            proposed_by="diagnosis",
-            source_ticket_id=run.ticket_id,
-            source_run_id=run_id,
-            member_id=run.member_id,
-        )
-
-
-def on_ticket_done(ticket_id: str) -> None:
-    """Called when a ticket moves to Done: the proposal runs in the background, never in the request."""
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        return
-    task = loop.create_task(_safe_propose(ticket_id))
-    _TASKS.add(task)
-    task.add_done_callback(_TASKS.discard)
-
-
-_TASKS: set[asyncio.Task] = set()
-
-
-async def _safe_propose(ticket_id: str) -> None:
-    try:
-        await propose_from_ticket(ticket_id)
-    except Exception:  # noqa: BLE001 - a proposal must never disturb the board
-        logger.exception("Could not propose a lesson for %s", ticket_id)

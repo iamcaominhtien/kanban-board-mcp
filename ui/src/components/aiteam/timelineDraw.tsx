@@ -26,9 +26,12 @@ export const PAD = 8;
 const TOP = 12;
 
 /** Width of the diagram for `n` lanes. */
-export const lanesWidth = (n: number) => n * COL + 2 * PAD;
+export const lanesWidth = (n: number, col: number = COL) => n * col + 2 * PAD;
 /** Centre of lane `i`. */
-const laneX = (i: number) => PAD + COL / 2 + i * COL;
+const laneXAt = (i: number, col: number = COL) => PAD + col / 2 + i * col;
+/** The width of one lane: the room shared by `n` lanes, never less than COL (no upper limit: they fill the window). */
+export const columnFor = (n: number, room: number): number =>
+  Math.max(COL, Math.floor((room - 2 * PAD) / Math.max(n, 1)));
 
 /** One label per cluster of marks that sit closer than a mark is tall: "Changed settings ×3", not three texts on top of each other. */
 export function touchLabels<T extends { what: string; at: string }>(
@@ -110,6 +113,15 @@ const STATE_DOT: Record<string, string> = {
   offline: '#C4432A',
   idle: '#C7D2CB',
   // the whole team paused: every header goes grey (ai-team-timeline-cases.md, I)
+  paused: '#9AA8A0',
+};
+/** The same dots on the dark boxes (You, the Lead): lighter, so they read on #1E2A22. */
+const STATE_DOT_DARK: Record<string, string> = {
+  working: '#6FCF8E',
+  waiting: '#F2B84B',
+  queued: '#B8C4BC',
+  offline: '#F07A63',
+  idle: '#7C8A82',
   paused: '#9AA8A0',
 };
 export const STATE_WORD: Record<string, string> = {
@@ -251,6 +263,8 @@ export interface DrawProps {
   data: Timeline;
   axis: Axis;
   lifelines: TimelineLifeline[];
+  /** Width of one lane (the lanes spread over a wide window). */
+  col?: number;
   now: number;
   detailed: boolean;
   selected: Pick | null;
@@ -271,7 +285,8 @@ const MOTION_BUDGET = 20;
 
 /** Height of the diagram body: the axis, its padding and room for the now pill. */
 export function bodyHeight(axis: Axis) {
-  return axis.height + TOP * 2 + 34;
+  // below the "now" line: room for its pill and a bar's head, no more (it was 34 more)
+  return axis.height + TOP * 2 + 6;
 }
 
 /** A live element moves; with reduced motion it shows its still picture instead (timeline.css). */
@@ -295,19 +310,24 @@ export function TimelineHeader({
   folded,
   onOpenFolded,
   paused = false,
+  col = COL,
 }: {
   lifelines: TimelineLifeline[];
+  /** Width of one lane. */
+  col?: number;
   /** Quiet AIs folded into one thin strip at the right. */
   folded: number;
   onOpenFolded: () => void;
   /** The whole team is paused: every dot is grey and nothing moves. */
   paused?: boolean;
 }) {
-  const w = lanesWidth(lifelines.length) + (folded ? 100 : 0);
+  const w = lanesWidth(lifelines.length, col) + (folded ? 100 : 0);
+  const laneX = (i: number) => laneXAt(i, col);
   return (
     <svg width={w} height={HEAD_H} role="presentation" style={{ display: 'block' }} className="tl-svg">
       {lifelines.map((l, i) => {
-        const look = lookOf(l);
+        // the team's lead has a dark box like You: it is the one who talks to the person
+        const look = l.lead ? { fill: '#1E2A22', stroke: '#1E2A22', text: '#FFFFFF' } : lookOf(l);
         const cx = laneX(i);
         const state = paused && l.kind === 'ai' ? 'paused' : l.state;
         const word = state ? STATE_WORD[state] : '';
@@ -340,15 +360,20 @@ export function TimelineHeader({
             {l.kind === 'autopilot' && <DelegateLine x={cx - 20} delegate={l.delegate ?? null} color={look.text} />}
             {state && (
               <>
-                <circle cx={cx + 37} cy={16} r={4} fill={STATE_DOT[state] ?? '#C7D2CB'} />
-                {state === 'working' && (
+                <circle
+                  cx={cx + 37}
+                  cy={16}
+                  r={4}
+                  fill={(look.fill === '#1E2A22' ? STATE_DOT_DARK : STATE_DOT)[state] ?? '#C7D2CB'}
+                />
+                {(state === 'working' || state === 'waiting') && (
                   <Pulse still={null}>
                     <circle
                       cx={cx + 37}
                       cy={16}
                       r={4}
                       fill="none"
-                      stroke="#2E6F40"
+                      stroke={(look.fill === '#1E2A22' ? STATE_DOT_DARK : STATE_DOT)[state]}
                       strokeWidth={1.5}
                       data-testid="tl-head-ring"
                     >
@@ -365,7 +390,7 @@ export function TimelineHeader({
       {folded > 0 && (
         <g className="tl-folded" onClick={onOpenFolded} style={{ cursor: 'pointer' }} role="button" tabIndex={0}>
           <rect
-            x={lanesWidth(lifelines.length) + 4}
+            x={lanesWidth(lifelines.length, col) + 4}
             y={4}
             width={92}
             height={40}
@@ -375,7 +400,7 @@ export function TimelineHeader({
             strokeDasharray="4 3"
           />
           <text
-            x={lanesWidth(lifelines.length) + 50}
+            x={lanesWidth(lifelines.length, col) + 50}
             y={28}
             fontSize={11}
             fontWeight={700}
@@ -426,7 +451,9 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…`
 // ---------------------------------------------------------------------------
 
 /** The time labels down the left edge, with the real clock on both sides of every folded stretch. */
-export function TimelineGutter({ axis }: { axis: Axis }) {
+export function TimelineGutter({ axis, now }: { axis: Axis; now?: number }) {
+  // a tick under the "now" pill would be half hidden by it: the pill says the time already
+  const nowY = now == null ? null : axis.y(now);
   return (
     <svg width={GUTTER} height={bodyHeight(axis)} role="presentation" style={{ display: 'block' }} className="tl-svg">
       {axis.breaks.map((b) => (
@@ -440,19 +467,21 @@ export function TimelineGutter({ axis }: { axis: Axis }) {
           opacity={b.paused ? 0.75 : 1}
         />
       ))}
-      {axis.ticks.map((t) => (
-        <text
-          key={t.t}
-          x={64}
-          y={TOP + t.y + 3.5}
-          fontSize={10}
-          fill={t.midnight ? '#1E2A22' : '#6B7A70'}
-          fontWeight={t.midnight ? 700 : 400}
-          textAnchor="end"
-        >
-          {t.label}
-        </text>
-      ))}
+      {axis.ticks
+        .filter((t) => nowY == null || Math.abs(t.y - nowY) >= 14)
+        .map((t) => (
+          <text
+            key={t.t}
+            x={64}
+            y={TOP + t.y + 3.5}
+            fontSize={10}
+            fill={t.midnight ? '#1E2A22' : '#6B7A70'}
+            fontWeight={t.midnight ? 700 : 400}
+            textAnchor="end"
+          >
+            {t.label}
+          </text>
+        ))}
     </svg>
   );
 }
@@ -522,10 +551,12 @@ export function TimelineBody(props: DrawProps) {
   const may = () => motion.left-- > 0;
   const pausedNow = data.pausedAll;
   const index = new Map(lifelines.map((l, i) => [l.id, i]));
+  const col = props.col ?? COL;
+  const laneX = (i: number) => laneXAt(i, col);
   const cx = (id: string): number => (index.has(id) ? laneX(index.get(id) as number) : -1);
   const yy = (iso: string | null | undefined, fallback = now): number => TOP + axis.y(ms(iso) ?? fallback);
   const nowY = TOP + axis.y(now);
-  const W = lanesWidth(lifelines.length);
+  const W = lanesWidth(lifelines.length, col);
   const H = bodyHeight(axis);
   const lookById = new Map(lifelines.map((l) => [l.id, lookOf(l)]));
   const sel = (type: Pick['type'], id: string) => selected?.type === type && selected.id === id;
@@ -650,15 +681,19 @@ export function TimelineBody(props: DrawProps) {
     data.docs.find((n) => n.memberId === a.from && Math.abs((ms(n.at) ?? 0) - (ms(a.at) ?? 0)) < 5000);
   const arrows: ArrowGeo[] = visible.map((a, i) => {
     const r = raw[i];
-    const d = shift.get(a.id) ?? 0;
+    // an arrow level with the now line would run along it and read as one line: it sits a little above
+    const onNow = Math.abs(r.y1 - nowY) < 10 && Math.abs(r.y2 - nowY) < 10;
+    const d = (shift.get(a.id) ?? 0) + (onNow ? -16 : 0);
     const recv = a.runId ? barById.get(a.runId)?.b : undefined;
-    const underWay =
-      ['assign', 'mention', 'handoff', 'skip'].includes(a.kind) &&
-      !!recv &&
-      (recv.state === 'queued' || recv.state === 'starting') &&
-      !pausedNow;
     const question = data.waits.find((w) => w.runId === a.runId && w.kind === 'question');
     const askOpen = a.kind === 'ask' && !!question && !question.to;
+    // not delivered yet: the run waits to start, or the question waits for its answer (dashed and moving)
+    const underWay =
+      !pausedNow &&
+      (askOpen ||
+        (['assign', 'mention', 'handoff', 'skip'].includes(a.kind) &&
+          !!recv &&
+          (recv.state === 'queued' || recv.state === 'starting')));
     const doc = a.kind === 'doc' ? docVersion(a) : undefined;
     const label = arrowLabel(
       a,
@@ -926,7 +961,7 @@ export function TimelineBody(props: DrawProps) {
   // 4. runs: the ticket key (or "run 3" for one ticket), and how long a queue has waited
   for (const g of [...bars].sort((p, q) => p.top - q.top || p.x - q.x)) {
     const h = g.bottom - g.top;
-    const text = props.scoped ? `run ${g.b.number}` : ticketOf(g.b.ticketId);
+    const text = props.scoped ? (g.b.label ?? `run ${g.b.number}`) : ticketOf(g.b.ticketId);
     if (text && (h >= 14 || detailed)) {
       const right: Spot = { x: g.x + g.w + 6, y: g.top + 11, anchor: 'start' };
       const left: Spot = { x: g.x - 6, y: g.top + 11, anchor: 'end' };
@@ -1164,7 +1199,7 @@ export function TimelineBody(props: DrawProps) {
       {bars.map((g) => {
         const { b, x, w, top, bottom, qy, queued, live, look } = g;
         const end = endLook(b, look);
-        const label = `${props.ticketOf(b.ticketId)} · run ${b.number}`;
+        const label = `${props.ticketOf(b.ticketId)} · ${b.label ?? `run ${b.number}`}`;
         const mid = (top + bottom) / 2;
         const r = Math.min(5, (bottom - top) / 2);
         return (

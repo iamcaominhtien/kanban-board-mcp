@@ -136,25 +136,15 @@ async def create_docs_page(
     """Create a Docs page and publish it as v1. Returns {id, title, slug, status, version}. When the project holds AI
     edits (Settings > Docs > AI: proposal or draft), an AI member's page is not published: it stays a private draft
     of the person it works for."""
-    from services.ai import guard
-    from services.docs_ai import proposals as docs_ai_proposals
-
-    ctx = await guard.resolve()
     async with common.async_session() as session:
         try:
             markdown = await _with_pictures(session, markdown)
             page = await svc_docs.create_page(
                 session, project_id, title, parent_id=parent_id, markdown=markdown
             )
-            if ctx is not None and await docs_ai_proposals.holds_ai_edits(
-                session, project_id
-            ):
-                await docs_ai_proposals.hand_draft_to_person(session, page["id"], ctx)
-                page = await svc_docs.page_detail(session, page["id"])
-            else:
-                page = await svc_docs.publish_page(
-                    session, page["id"], base_version=0, note="Created via MCP"
-                )
+            page = await svc_docs.publish_page(
+                session, page["id"], base_version=0, note="Created via MCP"
+            )
         except svc_docs.DocsError as exc:
             raise _docs_error(exc) from exc
         return {k: page[k] for k in ("id", "title", "slug", "status", "version")}
@@ -413,8 +403,15 @@ async def import_docs(
     parent_id: Annotated[
         str | None, Field(description="Parent page id; omit for the top level.")
     ] = None,
+    publish: Annotated[
+        bool,
+        Field(
+            description="Publish version 1 of each page (default). false leaves your own drafts that nobody sees."
+        ),
+    ] = True,
 ) -> dict:
-    """Import local Markdown files as new Docs pages (drafts), keeping folders as a tree. Returns {created, failed}."""
+    """Import local Markdown files as new Docs pages, published (or as your drafts with publish=false), keeping folders
+    as a tree. Returns {created, failed, skipped, published}."""
     from pathlib import Path
 
     from services import docs_import
@@ -432,11 +429,18 @@ async def import_docs(
         raise ValueError("No .md or .markdown files found at that path")
     async with common.async_session() as session:
         try:
-            return await docs_import.run_import(
-                session, project_id, files, parent_id=parent_id
+            out = await docs_import.run_import(
+                session, project_id, files, parent_id=parent_id, publish=publish
             )
         except svc_docs.DocsError as exc:
             raise _docs_error(exc) from exc
+    out["published"] = publish
+    if not publish and out.get("created"):
+        out["note"] = (
+            "The pages are your drafts: their published text is still empty. Publish each with "
+            "docs_write(update, markdown, base_version=0); an edit before that works on the empty page."
+        )
+    return out
 
 
 @notify_on_success
@@ -663,6 +667,7 @@ def _stored(name: str, content: bytes) -> dict:
         "size": len(content),
         "type": uploads.MIME_BY_EXTENSION[suffix],
         "markdown": f"![{label}]({url})" if image else f"[{label}]({url})",
+        **uploads.storage_info(),
     }
 
 
@@ -684,7 +689,7 @@ async def upload_file(
         Field(description="File name with its extension (needed with data)."),
     ] = None,
 ) -> dict:
-    """Store a file (a picture, a PDF, a sheet, a log…) on the board. Returns {url, name, size, type, markdown}:
+    """Store a file (a picture, a PDF, a sheet, a log…) on the board. Returns {url, name, size, type, markdown, stored_in} (`stored_in`: the folder; a `warning` there means the app does not serve it):
     put `markdown` in a page, a description or a comment to show it (a picture shows inline, another file as a link)."""
     import base64
     import binascii
@@ -728,4 +733,5 @@ async def upload_file(
         "size": size,
         "type": uploads.MIME_BY_EXTENSION.get(suffix, "application/octet-stream"),
         "markdown": f"![{label}]({url})" if image else f"[{label}]({url})",
+        **uploads.storage_info(),
     }
