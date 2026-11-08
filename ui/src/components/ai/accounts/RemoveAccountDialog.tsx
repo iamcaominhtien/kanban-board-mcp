@@ -87,7 +87,7 @@ export function RemoveAccountDialog({
                 </button>
               );
             })}
-            {policy === 'other' && others.length > 1 && (
+            {policy === 'other' && others.length > 0 && (
               <select
                 className="ai-select"
                 aria-label="Account for these teams"

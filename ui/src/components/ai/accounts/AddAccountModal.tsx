@@ -249,11 +249,14 @@ export function AddAccountModal({
   // Esc leaves the first two steps (step 3 is the sign-in window, which asks before it stops anything)
   const leave = useRef(onClose);
   leave.current = () => {
-    if (!created) onClose();
+    if (created) return false;
+    onClose();
+    return true;
   };
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) leave.current();
+      // taken here, so a dialog under this one (Add an AI team) does not close with it
+      if (e.key === 'Escape' && !e.defaultPrevented && leave.current()) e.preventDefault();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -361,10 +364,10 @@ export function AddAccountModal({
                 Back
               </button>
             )}
+            <span className="sg-grow" />
             <button type="button" className="ai-btn ai-btn-sm" onClick={onClose}>
               Cancel
             </button>
-            <span className="sg-grow" />
             {step === 1 ? (
               <button
                 type="button"

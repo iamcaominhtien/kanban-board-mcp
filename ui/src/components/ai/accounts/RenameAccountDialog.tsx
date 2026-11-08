@@ -20,6 +20,9 @@ export function RenameAccountDialog({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const clean = name.split(/\s+/).filter(Boolean).join(' ');
+  // a taken name is said while typing and keeps Save off (frame 40)
+  const live = nameProblem(clean, accounts, account.id);
+  const shown = error ?? live;
 
   const save = async () => {
     const problem = nameProblem(clean, accounts, account.id);
@@ -48,7 +51,7 @@ export function RenameAccountDialog({
         <label className="ai-field">
           <span className="ai-label ai-label-dark">Name</span>
           <input
-            className={`ai-input ${error ? 'ai-input-error' : ''}`}
+            className={`ai-input ${shown ? 'ai-input-error' : ''}`}
             value={name}
             maxLength={60}
             autoFocus
@@ -60,8 +63,8 @@ export function RenameAccountDialog({
               if (e.key === 'Enter') void save();
             }}
           />
-          {error ? (
-            <span className="ai-error-text">{error}</span>
+          {shown ? (
+            <span className="ai-error-text">{shown}</span>
           ) : (
             <span className="acc-hint">
               Shown when you pick an account for an AI team. Use the person or plan, not a secret.
@@ -75,8 +78,13 @@ export function RenameAccountDialog({
             Cancel
           </button>
           <span style={{ flex: 1 }} />
-          <button type="button" className="ai-btn ai-btn-primary ai-btn-sm" disabled={busy} onClick={() => void save()}>
-            Rename
+          <button
+            type="button"
+            className="ai-btn ai-btn-primary ai-btn-sm"
+            disabled={busy || !!live}
+            onClick={() => void save()}
+          >
+            Save
           </button>
         </>
       }

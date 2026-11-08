@@ -4,6 +4,7 @@ import './ai.css';
 import { extractError } from '../../api/extractError';
 import type { Ticket } from '../../types';
 import { LineIcon } from '../ui/LineIcon';
+import { longAgo } from '../../utils/accountList';
 
 const SPARKLE = 'M12 3C12 8 14 10 19 12C14 14 12 16 12 21C12 16 10 14 5 12C10 10 12 8 12 3Z';
 
@@ -333,7 +334,7 @@ export function statusSub(m: AiTeam): string | undefined {
       return run?.startedAt ? `${fmtElapsed(secondsSince(run.startedAt))} elapsed` : undefined;
     }
     case 'idle':
-      return m.lastRun ? `Last run ${ago(m.lastRun.endedAt)}` : 'No runs yet';
+      return m.lastRun ? `Last run ${longAgo(m.lastRun.endedAt, Date.now())}` : 'No runs yet';
     case 'paused':
       return m.pausedAt ? `Paused ${shortDate(m.pausedAt)}` : (m.status.detail ?? undefined);
     case 'runner_missing':
