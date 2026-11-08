@@ -720,6 +720,9 @@ async def make_lesson(
     if touch["lesson_id"]:
         raise TouchError("A lesson was already made from this touch.")
     body = (text or "").strip() or draft_lesson(touch)
+    # Memory keeps 600 characters of a lesson: say so instead of dropping the end without a word
+    if len(" ".join(body.split())) > LESSON_MAX:
+        raise TouchError(f"The lesson is limited to {LESSON_MAX} characters.")
     # claim the touch first, in one statement: a second request at the same time finds it taken
     claimed = await session.execute(
         update(AiTouchMark)
