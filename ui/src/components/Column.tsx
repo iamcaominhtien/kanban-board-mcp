@@ -80,15 +80,15 @@ export function Column({
     // Only place as root if it's not a child of another ticket in this column
     const isChildInColumn = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
     if (isChildInColumn) continue;
-    ordered.push(ticket);
-    placed.add(ticket.id);
-    // Place direct children immediately after
-    for (const child of sorted) {
-      if (child.parentId === ticket.id && !placed.has(child.id)) {
-        ordered.push(child);
-        placed.add(child.id);
+    // Place the ticket, then its children (and their children: Story > ticket > sub-ticket) immediately after
+    const place = (t: Ticket) => {
+      ordered.push(t);
+      placed.add(t.id);
+      for (const child of sorted) {
+        if (child.parentId === t.id && !placed.has(child.id)) place(child);
       }
-    }
+    };
+    place(ticket);
   }
   // Any remaining (shouldn't happen, but safety net)
   for (const ticket of sorted) {
@@ -202,6 +202,11 @@ export function Column({
         )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
+          // Story > ticket > sub-ticket in one column: the third level steps in once more
+          const parentOfTicket = ticket.parentId
+            ? (allTickets ?? tickets).find((t) => t.id === ticket.parentId)
+            : undefined;
+          const deep = indented && parentOfTicket?.parentId != null && columnTicketIds.has(parentOfTicket.parentId);
           const childTicketsForThis = (allTickets ?? tickets).filter((t) => t.parentId === ticket.id);
           const subtaskStats =
             childTicketsForThis.length > 0
@@ -212,7 +217,7 @@ export function Column({
               : undefined;
 
           return indented ? (
-            <div key={ticket.id} className={styles.childIndent}>
+            <div key={ticket.id} className={deep ? styles.childIndentDeep : styles.childIndent}>
               <DraggableTicketCard
                 ticket={ticket}
                 allTickets={allTickets}

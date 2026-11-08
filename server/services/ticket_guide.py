@@ -86,7 +86,7 @@ every part for that glance. The tools: `manage_ticket` (the ticket, its relation
 | You have | Use | Why |
 |---|---|---|
 | Steps of one piece of work, one person, one go | sub-task (`ticket_items item='sub_task'`) | a checklist inside the ticket |
-| A part someone else can do, or that ships and is tested on its own | sub-ticket (`manage_ticket create parent_id=`) | its own status, assignee and criteria; one level deep |
+| A part someone else can do, or that ships and is tested on its own | sub-ticket (`manage_ticket create parent_id=`) | its own status, assignee and criteria; one level deep, two under a Story (Story > ticket > sub-ticket) |
 | A goal bigger than a few tickets | a Story (`type='story'`) split into sub-tickets | one place for the goal, each piece tracked on its own |
 | This cannot start or finish before another is done | block (`manage_ticket block`: `ticket_id` waits for `target_id`) | the board shows the lock and the waiting order |
 | Related, same cause, or a duplicate | link (`relates_to`, `causes`, `duplicates`) | no lock |

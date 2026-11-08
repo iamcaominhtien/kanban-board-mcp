@@ -114,7 +114,14 @@ export function StoryLanes({
   const shownIds = new Set(tickets.map((t) => t.id));
   const storyIds = new Set(allTickets.filter((t) => t.type === 'story').map((t) => t.id));
   const cards = tickets.filter((t) => t.type !== 'story');
-  const childrenOf = (id: string) => cards.filter((t) => t.parentId === id);
+  // a ticket belongs to the Story that is its parent, or its parent's parent (Story > ticket > sub-ticket)
+  const byId = new Map(allTickets.map((t) => [t.id, t]));
+  const storyOf = (t: Ticket): string | null => {
+    if (t.parentId && storyIds.has(t.parentId)) return t.parentId;
+    const grand = t.parentId ? byId.get(t.parentId)?.parentId : undefined;
+    return grand && storyIds.has(grand) ? grand : null;
+  };
+  const childrenOf = (id: string) => cards.filter((t) => storyOf(t) === id);
 
   const stories = allTickets
     .filter((t) => t.type === 'story' && t.status !== 'wont_do')
@@ -124,7 +131,7 @@ export function StoryLanes({
         (LANE_ORDER[a.status] ?? 9) - (LANE_ORDER[b.status] ?? 9) ||
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  const loose = cards.filter((t) => !t.parentId || !storyIds.has(t.parentId));
+  const loose = cards.filter((t) => storyOf(t) === null);
   const cellProps: CellProps = { allTickets, onCardClick, memberMap, onReopen, onPending, onResume, onDelete };
 
   return (

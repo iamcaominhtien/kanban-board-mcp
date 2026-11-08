@@ -129,7 +129,7 @@ async def create_ticket(
     parent_id: Annotated[
         str | None,
         Field(
-            description="Make this a sub-ticket of this ticket ID (same project; only one level deep). Same as create_child_ticket."
+            description="Make this a sub-ticket of this ticket ID (same project; one level deep, plus one more under a Story: Story > ticket > sub-ticket). Same as create_child_ticket."
         ),
     ] = None,
     estimate: Annotated[
@@ -440,7 +440,7 @@ async def update_ticket(
     parent_id: Annotated[
         str | None,
         Field(
-            description="Make this a sub-ticket of this ticket ID (same project, one level deep, the new parent must not itself be a child)."
+            description="Make this a sub-ticket of this ticket ID (same project, one level deep; the new parent may itself be a child only when its parent is a Story)."
         ),
     ] = None,
     tags: Annotated[
@@ -568,8 +568,8 @@ async def create_child_ticket(
     priority: Priority = "medium",
     description: Annotated[str, Field(description="Markdown description.")] = "",
 ) -> dict:
-    """Create a sub-ticket under an existing ticket, in the same project (starts in 'backlog'). Only one level of
-    nesting is allowed. Returns the new ticket."""
+    """Create a sub-ticket under an existing ticket, in the same project (starts in 'backlog'). One level of
+    nesting is allowed, two under a Story (Story > ticket > sub-ticket). Returns the new ticket."""
     async with common.async_session() as session:
         parent = await svc_tickets.get_ticket(session, parent_ticket_id)
         if parent is None:

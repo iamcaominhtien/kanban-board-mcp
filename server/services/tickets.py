@@ -179,14 +179,37 @@ async def _validate_parent(
         raise ValueError(f"Parent ticket '{parent_id}' not found")
     if parent.project_id != project_id:
         raise ValueError("Parent must belong to the same project")
+    # A ticket holds sub-tickets one level deep; under a Story there is one more level:
+    # Story -> ticket -> sub-ticket.
+    parent_depth = 0
+    root = parent
     if parent.parent_id is not None:
-        raise ValueError("Cannot nest tickets more than 1 level deep")
-    if self_id is not None:
-        has_children = await session.exec(
-            select(Ticket.id).where(Ticket.parent_id == self_id).limit(1)
-        )
-        if has_children.first() is not None:
+        parent_depth = 1
+        root = await session.get(Ticket, parent.parent_id)
+        if root is None or root.parent_id is not None:
             raise ValueError("Cannot nest tickets more than 1 level deep")
+    max_depth = 2 if root.type == "story" else 1
+    if parent_depth + 1 > max_depth:
+        raise ValueError(
+            "Cannot nest tickets more than 1 level deep (only a Story's tickets can have sub-tickets)"
+        )
+    if self_id is not None:
+        height = await _subtree_height(session, self_id)
+        if parent_depth + 1 + height > max_depth:
+            raise ValueError("Cannot nest tickets more than 1 level deep")
+
+
+async def _subtree_height(session: AsyncSession, ticket_id: str) -> int:
+    """How many levels of children hang under a ticket (0 = none; capped at 2)."""
+    kids = (
+        await session.exec(select(Ticket.id).where(Ticket.parent_id == ticket_id))
+    ).all()
+    if not kids:
+        return 0
+    grandkids = await session.exec(
+        select(Ticket.id).where(Ticket.parent_id.in_(kids)).limit(1)  # type: ignore[union-attr]
+    )
+    return 2 if grandkids.first() is not None else 1
 
 
 def _fuzzy_score(ticket: Ticket, query: str) -> float:

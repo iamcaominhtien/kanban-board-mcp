@@ -136,7 +136,7 @@ async def manage_ticket(
     parent_id: Annotated[
         str | None,
         Field(
-            description="Make this a sub-ticket of this ticket ID (same project, one level deep: the parent must not itself be a child)."
+            description="Make this a sub-ticket of this ticket ID (same project, one level deep; under a Story, tickets may have sub-tickets: Story > ticket > sub-ticket)."
         ),
     ] = None,
     tags: Annotated[

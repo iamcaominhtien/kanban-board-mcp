@@ -267,6 +267,11 @@
   padding-left: 18px;
 }
 
+/* Story > ticket > sub-ticket in one column: the sub-ticket steps in once more */
+.childIndentDeep {
+  padding-left: 36px;
+}
+
 /* Reserved row for the loading pill: always there, so the pill never pushes the top bar */
 .statusRow {
   height: 28px;
