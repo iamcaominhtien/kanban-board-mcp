@@ -13,6 +13,14 @@ const CHIP_ICON: Partial<Record<RowKind, LineIconName>> = {
   changed: 'edit',
 };
 
+const STEP_AFTER_END: Record<JobStep['state'], JobStep['state']> = {
+  done: 'done',
+  running: 'failed',
+  waiting: 'skipped',
+  failed: 'failed',
+  skipped: 'skipped',
+};
+
 const STEP_ICON: Record<JobStep['state'], React.ReactNode> = {
   done: <LineIcon name="check" size={13} />,
   running: <span className="rc-dot rc-dot-on" />,
@@ -43,15 +51,19 @@ export function ScanStrip({ job, onStop }: { job: ScanJob; onStop: () => void })
         className="rc-steps"
         style={{ gridTemplateColumns: `repeat(${Math.max(job.steps.length, 1)}, minmax(0, 1fr))` }}
       >
-        {job.steps.map((s) => (
-          <div key={s.key} className={`rc-step rc-step-${s.state}`} data-testid={`rc-step-${s.key}`}>
-            <span className="rc-step-icon">{STEP_ICON[s.state]}</span>
-            <div>
-              <div className="rc-step-label">{s.label}</div>
-              {s.detail && <div className="rc-step-detail">{s.detail}</div>}
+        {job.steps.map((raw) => {
+          // a job that ended (or was lost in a restart) leaves no step live or waiting
+          const s = job.state === 'running' ? raw : { ...raw, state: STEP_AFTER_END[raw.state] };
+          return (
+            <div key={s.key} className={`rc-step rc-step-${s.state}`} data-testid={`rc-step-${s.key}`}>
+              <span className="rc-step-icon">{STEP_ICON[s.state]}</span>
+              <div>
+                <div className="rc-step-label">{s.label}</div>
+                {s.detail && <div className="rc-step-detail">{s.detail}</div>}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

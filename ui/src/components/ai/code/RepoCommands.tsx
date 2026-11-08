@@ -29,6 +29,23 @@ function writeMade(projectId: string, v: { scanId: string; folder: string }) {
   }
 }
 
+/** The job whose proposal this person has already seen (taken into the boxes, saved or discarded). */
+const seenKey = (projectId: string) => `kb-repo-seen:${projectId}`;
+function readSeen(projectId: string): string | null {
+  try {
+    return localStorage.getItem(seenKey(projectId));
+  } catch {
+    return null;
+  }
+}
+function writeSeen(projectId: string, key: string) {
+  try {
+    localStorage.setItem(seenKey(projectId), key);
+  } catch {
+    // the card still works for this visit
+  }
+}
+
 /** Frame 7: a command that ended "npm: command not found" and a folder the AI proposed that has it. */
 function pathNote(run: TrialRun | null | undefined, env: EnvFolder[]): string | null {
   if (!run || run.status !== 'wrong' || run.exitCode !== 127) return null;
@@ -86,7 +103,6 @@ export function RepoCommands({ projectId }: { projectId: string }) {
 
   // The boxes take what the AI proposes, only when it arrives while this page watches the job: the server keeps the
   // proposal of the last job until the next one writes its own, so the first sight of a job is its baseline
-  const nothingSaved = COMMAND_ORDER.every((n) => !saved[n].trim());
   const watched = useRef<{
     key: string;
     proposal: string;
@@ -108,7 +124,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
     if (!w || w.key !== key) {
       // first sight of this job: a proposal that is already there belongs to an earlier look, unless nothing is saved
       // yet and the job has ended (the page was closed while it ran): then its commands are what the person has
-      const take = !!proposed && job.state !== 'running' && nothingSaved;
+      const take = !!proposed && job.state !== 'running' && readSeen(projectId) !== key;
       watched.current = {
         key,
         proposal: sig,
@@ -116,17 +132,20 @@ export function RepoCommands({ projectId }: { projectId: string }) {
         adopted: take,
         envAdopted: take && !!folders?.length,
         // opened while it works and its answer is already there: take it when the job ends
-        late: !!proposed && job.state === 'running',
+        late: !!proposed && job.state === 'running' && job.steps.some((s) => s.key === 'ai' && s.state === 'done'),
       };
       if (take) {
+        writeSeen(projectId, key);
         setTyped(proposed);
         if (folders?.length) setEnvEdit(folders);
       }
       return;
     }
+    if (w.adopted && job.state !== 'running') writeSeen(projectId, key);
     if (!proposed) return;
     if (!w.adopted && (sig !== w.proposal || (w.late && job.state !== 'running'))) {
       w.adopted = true;
+      if (job.state !== 'running') writeSeen(projectId, key);
       setTyped((cur) => {
         // a box the person typed in meanwhile stays; the others take the proposal
         const next = { ...proposed };
@@ -140,7 +159,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       w.envAdopted = true;
       setEnvEdit(folders);
     }
-  }, [scan, job, ops.data, nothingSaved]);
+  }, [scan, job, ops.data, projectId]);
 
   // a scan is read by code (nothing runs) so the card knows at once whether the AI can start; one try per folder
   const inflight = useRef<Promise<Scan> | null>(null);
@@ -244,7 +263,6 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       : null;
   const noFolder = !scan && !folder;
   const aiJob = job?.mode === 'ai';
-  const rowsCarryError = COMMAND_ORDER.some((n) => !!job?.error && scan?.trial?.[n]?.reason === job.error);
   const hasProof = COMMAND_ORDER.some((n) => !!scan?.trial?.[n]);
   const finished = !!job && !running;
   const again = job && (job.state === 'timeout' || job.state === 'failed') ? 'Run it again' : 'Set up again';
@@ -303,7 +321,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       )}
       {job && <ScanStrip job={job} onStop={stop} />}
       {running && <ScanLog lines={job.log} mode={job.mode} />}
-      {job && !running && job.error && job.state !== 'cancelled' && !(job.state === 'timeout' && rowsCarryError) && (
+      {job && !running && job.error && job.state !== 'cancelled' && (
         <div className="rc-why rc-why-bad" data-testid="rc-job-error">
           {job.error}
         </div>
