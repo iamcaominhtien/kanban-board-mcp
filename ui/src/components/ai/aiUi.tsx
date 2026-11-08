@@ -4,6 +4,7 @@ import './ai.css';
 import { extractError } from '../../api/extractError';
 import type { Ticket } from '../../types';
 import { LineIcon } from '../ui/LineIcon';
+import { longAgo } from '../../utils/accountList';
 
 const SPARKLE = 'M12 3C12 8 14 10 19 12C14 14 12 16 12 21C12 16 10 14 5 12C10 10 12 8 12 3Z';
 
@@ -139,15 +140,13 @@ export const STATUS_NAMES: Record<string, string> = {
 const STATUS_STYLE: Record<string, { dot: string; text: string; hollow?: boolean; square?: boolean }> = {
   running: { dot: '#2E6F40', text: '#2E6F40' },
   online: { dot: '#2E6F40', text: '#2E6F40' },
-  idle: { dot: '#9AA8A0', text: '#1E2A22', hollow: true },
+  idle: { dot: '#9AA8A0', text: '#3A4A3E' },
   inbox: { dot: '#9AA8A0', text: '#5B6B60', hollow: true },
-  key_invalid: { dot: '#C4432A', text: '#C4432A' },
   not_logged_in: { dot: '#C4432A', text: '#C4432A' },
   runner_missing: { dot: '#B4791E', text: '#B4571F' },
-  model_retired: { dot: '#B4571F', text: '#B4571F' },
-  rate_limited: { dot: '#B4791E', text: '#B4791E' },
-  paused: { dot: '#9AA8A0', text: '#5B6B60', square: true },
-  paused_all: { dot: '#B4571F', text: '#B4571F', square: true },
+  rate_limited: { dot: '#B4791E', text: '#B4571F' },
+  paused: { dot: '#D9A21B', text: '#7A5A06' },
+  paused_all: { dot: '#D9A21B', text: '#7A5A06' },
   removing: { dot: '#9AA8A0', text: '#5B6B60' },
   removed: { dot: '#9AA8A0', text: '#9AA8A0' },
 };
@@ -335,7 +334,7 @@ export function statusSub(m: AiTeam): string | undefined {
       return run?.startedAt ? `${fmtElapsed(secondsSince(run.startedAt))} elapsed` : undefined;
     }
     case 'idle':
-      return m.lastRun ? `Last run ${ago(m.lastRun.endedAt)}` : 'No runs yet';
+      return m.lastRun ? `Last run ${longAgo(m.lastRun.endedAt, Date.now())}` : 'No runs yet';
     case 'paused':
       return m.pausedAt ? `Paused ${shortDate(m.pausedAt)}` : (m.status.detail ?? undefined);
     case 'runner_missing':

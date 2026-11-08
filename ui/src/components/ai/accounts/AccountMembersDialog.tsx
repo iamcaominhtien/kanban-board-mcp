@@ -9,7 +9,7 @@ export function AccountMembersDialog({ account, onClose }: { account: AiAccount;
   ];
   return (
     <AccountDialog
-      title={`Members using ${account.name}`}
+      title={`Teams using ${account.name}`}
       narrow
       onClose={onClose}
       body={
@@ -23,12 +23,12 @@ export function AccountMembersDialog({ account, onClose }: { account: AiAccount;
             ))}
             {rows.length > 1 && (
               <div className="acc-hint" style={{ marginTop: 6 }}>
-                {rows.length} members share this account and its limits.
+                {rows.length} teams share this account and its limits.
               </div>
             )}
           </div>
         ) : (
-          <div>No AI member uses it.</div>
+          <div>No AI team uses it.</div>
         )
       }
       foot={

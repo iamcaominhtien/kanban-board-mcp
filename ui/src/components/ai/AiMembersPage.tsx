@@ -332,7 +332,18 @@ function TeamTable({
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               <AiAvatar color={m.color} size={36} dim={m.paused} />
               <div style={{ minWidth: 0 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap' }}>{m.name}</span>
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={m.name}
+                >
+                  {m.name}
+                </div>
                 <div
                   className="ai-hint"
                   style={{ marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
@@ -345,7 +356,7 @@ function TeamTable({
             <div>
               <RoleChips team={m} />
             </div>
-            <div className="ai-muted">
+            <div style={{ fontSize: 13 }}>
               {m.model ?? 'sonnet'}
               {m.effort ? ` · ${m.effort}` : ''}
             </div>
@@ -369,7 +380,7 @@ function TeamTable({
               </div>
               <div className="ai-muted">{money(m.usage.costToday)}</div>
             </div>
-            <div className="ai-muted">{m.permissionMode}</div>
+            <div style={{ fontSize: 13 }}>{m.permissionMode}</div>
             <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"

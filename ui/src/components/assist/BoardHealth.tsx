@@ -217,7 +217,6 @@ function ScheduleSettings({ projectId, cfg }: { projectId: string; cfg: HealthCo
       </div>
       <div className="ai-hint">Board health panel · always</div>
       {row('Badge on the sidebar item and a toast when new insights arrive', cfg.badgeToast, 'badgeToast')}
-      {row('Offer a draft comment on the ticket (posted by a person, never by the AI)', cfg.offerDraft, 'offerDraft')}
       <div className="as-label" style={{ margin: 0 }}>
         Noise controls
       </div>
@@ -269,7 +268,7 @@ function ScheduleSettings({ projectId, cfg }: { projectId: string; cfg: HealthCo
   );
 }
 
-/** Board health panel with the standup digest and insights; each insight: Act (draft), Snooze, Dismiss (F1, F2). */
+/** Board health panel with the standup digest and insights; each insight: Snooze, Dismiss (D). */
 export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
   const ctx = useAssist();
   const projectId = ctx?.projectId ?? '';
@@ -312,7 +311,7 @@ export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
             borderBottom: '1px solid #EDF1EE',
           }}
         >
-          <BoardAiAvatar provider={st.data?.boardAi.provider} size={34} />
+          <BoardAiAvatar size={34} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 17, fontWeight: 700 }}>Board health</div>
             <div className="ai-muted" style={{ fontSize: 12 }}>

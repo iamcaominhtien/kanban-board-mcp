@@ -9,7 +9,7 @@ import { AccountDialog } from './AccountParts';
 export function SignOutDialog({ account, onClose }: { account: AiAccount; onClose: () => void }) {
   const actions = useAccountActions();
   const [error, setError] = useState<string | null>(null);
-  const clause = cantRunClause(account, 'until someone signs in again');
+  const clause = cantRunClause(account, 'until someone signs in', 'AI team');
   return (
     <AccountDialog
       title={`Sign out ${account.name}?`}

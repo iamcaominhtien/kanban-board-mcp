@@ -67,6 +67,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
 import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
 import { TicketHandover } from './ai/code/TicketHandover';
+import { PullStatus } from './ai/code/PullStatus';
 import { TimelineTab } from './aiteam/TimelineTab';
 import { AiActivityDesign, AiRunPanelDesign } from './ai/activity/AiActivityDesign';
 import { MOCK_AI_ACTIVITY } from './ai/activity/mock';
@@ -1898,6 +1899,7 @@ function TicketModalInner({
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
                     {/* TODO(connect to data): the design's mock for now; port the real logic from main (table in ai/activity/mock.ts) */}
+                    {MOCK_AI_ACTIVITY && <PullStatus ticketId={ticket.id} />}
                     {MOCK_AI_ACTIVITY && (
                       <AiActivityDesign
                         ticket={ticket}
