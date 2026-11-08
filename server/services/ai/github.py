@@ -405,6 +405,7 @@ async def back_to_dev(finding: dict) -> str | None:
                 branch=row.branch,
             ),
             by="the board (red CI)",
+            trigger="ci_red",
         )
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
         cur = await session.get(AiWatchedPr, ticket_id)
@@ -440,6 +441,7 @@ async def comments_to_dev(ticket_id: str) -> str | None:
             ticket_id,
             _REVIEW_TASK.format(number=row.number, comments=text, branch=row.branch),
             by="the board (review comments)",
+            trigger="review_comments",
         )
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
         row.pending_comments = "[]"

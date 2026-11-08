@@ -381,7 +381,7 @@ async def timeline(
         if q0 and q1:
             wait_s = max(int((q1 - q0).total_seconds()), 0)
         # the person's instruction: not for a schedule, a GitHub event or the API (nobody sat there)
-        if r.trigger in ("assign", "run_button", "message", "retry"):
+        if r.trigger in ("assign", "run_button", "message", "docs_threads", "retry"):
             arrows.append(
                 _arrow(
                     f"{r.id}:assign",

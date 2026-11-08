@@ -83,22 +83,10 @@ export function serverIntent(intent: 'ask' | 'work' | 'suggest' | 'notify'): Doc
   return intent === 'work' ? 'suggest' : intent;
 }
 
-/** What an AI reply is: an answer, a note (paused, over budget, hidden page), an error, or a proposal made. */
-export function aiReplyKind(c: DocsCommentItem): 'answer' | 'note' | 'error' | 'proposal' | 'sent' | 'ticket' | null {
+/** What an AI reply is: an answer, a note (paused, over budget), an error, the board's "sent to" line, or a ticket's reply. */
+export function aiReplyKind(c: DocsCommentItem): 'answer' | 'note' | 'error' | 'sent' | 'ticket' | null {
   if (!c.ai) return null;
   return c.ai.kind ?? 'answer';
-}
-
-/** "Suggest an edit" shows on an AI answer that says the page is wrong, while the thread is open. */
-export function canSuggestEdit(c: DocsCommentItem, thread: DocsCommentThread, docsAi: boolean): boolean {
-  return (
-    docsAi &&
-    thread.canReply &&
-    thread.status === 'open' &&
-    aiReplyKind(c) === 'answer' &&
-    !!c.ai?.canSuggest &&
-    !(thread.aiJobs ?? []).some((j) => j.kind === 'suggest_edit')
-  );
 }
 
 /** Names of the AI members working in the thread now (the "thinking" placeholder). */

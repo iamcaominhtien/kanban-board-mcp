@@ -147,7 +147,6 @@ const PURPLE = { bg: '#EFE8FB', fg: '#5B3AA6' };
 const VISUALS: Record<string, Visual> = {
   question: { icon: 'bubble', ...AMBER },
   approval: { icon: 'lock', ...AMBER },
-  page_proposal: { icon: 'doc', ...AMBER },
   run_failed: { icon: 'triangle', ...RED },
   run_stopped_memory: { icon: 'triangle', ...RED },
   blocked: { icon: 'lock', ...RED },

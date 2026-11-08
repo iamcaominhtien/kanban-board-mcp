@@ -123,6 +123,47 @@ CHAT_RUN_NOTE = (
 )
 
 
+# A run that a note started (not a person's assignment): where the note came from, and so how to answer it. A run
+# whose trigger is not here has no note. The chat's note asks for `ai_run reply`; no other source is a chat, so none
+# of them gets that.
+DOCS_RUN_NOTE = (
+    "<board trusted>\n"
+    "This run began with comment threads sent from a Docs page (a person pressed Send to AI there). The person is on the\n"
+    "page, not in a chat: do not use ai_run(action='reply'). Work as the note says: change the page with\n"
+    "docs_write(action='edit'), answer in each thread with docs_write(action='reply', thread_id, body), and close a thread\n"
+    "only as the skill `kanban-board:docs-comment-threads` says (open it with the Skill tool before you start). Say in your final report what you changed on the page\n"
+    "(section, version) and which threads stay open and why; the board posts that report as a comment on this ticket.\n"
+    "</board trusted>"
+)
+AI_MESSAGE_RUN_NOTE = (
+    "<board trusted>\n"
+    "This run began with a note from another AI (it says who). It is not a person's chat message: answer by doing the\n"
+    "work it asks for and reporting, or reply to that AI with ai_run(action='message', to=...) when it needs an answer\n"
+    "(that hand-off is counted: after a few the board refuses another). Do not use ai_run(action='reply').\n"
+    "</board trusted>"
+)
+CI_RUN_NOTE = (
+    "<board trusted>\n"
+    "This run began because the pull request's CI is red (the failing log is in the note). Fix what the log shows,\n"
+    "push to the branch and say in your report what you changed. It is not a chat message: do not use ai_run(action='reply').\n"
+    "</board trusted>"
+)
+REVIEW_RUN_NOTE = (
+    "<board trusted>\n"
+    "This run began because a reviewer commented on the pull request (the comments are in the note). Answer each\n"
+    "comment by changing the code or saying why not, push to the branch and report. It is not a chat message: do not\n"
+    "use ai_run(action='reply').\n"
+    "</board trusted>"
+)
+RUN_NOTES = {
+    "message": CHAT_RUN_NOTE,
+    "docs_threads": DOCS_RUN_NOTE,
+    "ai_message": AI_MESSAGE_RUN_NOTE,
+    "ci_red": CI_RUN_NOTE,
+    "review_comments": REVIEW_RUN_NOTE,
+}
+
+
 @dataclass
 class Launch:
     """Everything `runs` needs to start the CLI."""
@@ -442,6 +483,7 @@ async def build_prompt(
         on_behalf_of=run.started_by,
         mode=run.mode,
         trigger=run.trigger or "",
+        depth=run.depth or 0,
     )
     system = board_rules(
         ctx, project.name if project else "", team_roles, live, workspace
@@ -499,8 +541,9 @@ async def build_prompt(
             ctx, run.instruction, person_trusted=run.started_by not in names
         )
     )
-    if run.trigger == "message":
-        parts.append(CHAT_RUN_NOTE)
+    note_for_trigger = RUN_NOTES.get(run.trigger or "")
+    if note_for_trigger:
+        parts.append(note_for_trigger)
     return system, sub_system, "\n\n".join(p for p in parts if p)
 
 

@@ -10,10 +10,6 @@ export interface DocsTreeNode {
   version: number;
   hasDraft: boolean;
   updatedAt: string;
-  /** Hidden from every AI (a lock in the tree) */
-  aiHidden?: boolean;
-  /** Read by every AI run in the project (a small icon in the tree) */
-  aiGuidance?: boolean;
   /** `canvas` pages open the Canvas editor instead of the text editor (the layers icon in the tree) */
   kind?: 'page' | 'canvas';
 }
@@ -72,8 +68,6 @@ export interface DocsPage {
   updatedAt: string;
   createdAt: string;
   hasUnpublishedChanges: boolean;
-  aiHidden?: boolean;
-  aiGuidance?: boolean;
   draft: DocsDraft | null;
 }
 
@@ -217,22 +211,19 @@ export interface DocsCommentAi {
   jobId?: string;
   cost?: number;
   sources?: { pageId: string; title: string; heading: string | null }[];
-  /** The answer says something on the page is wrong or out of date: "Suggest an edit" is offered. */
-  canSuggest?: boolean;
-  /** `note` (paused, over budget, hidden page), `error` (couldn't answer), `proposal` (Suggest an edit made one). */
+  /** `note` (paused, over budget), `error` (couldn't answer). */
   /** `sent`: the board's line that the thread was sent to an AI on a ticket (not a comment of the person's). */
-  kind?: 'note' | 'error' | 'proposal' | 'sent' | 'ticket';
+  kind?: 'note' | 'error' | 'sent' | 'ticket';
   /** `ticket`/`sent`: the ticket whose conversation the AI answers from. */
   ticketId?: string;
   code?: string;
-  proposalId?: string;
   problems?: string[];
 }
 
 /** AI work going on in a thread (the "thinking" placeholder). */
 export interface DocsThreadAiJob {
   id: string;
-  kind: 'thread_reply' | 'suggest_edit' | 'thread_summary';
+  kind: 'thread_reply' | 'thread_summary';
   state: 'queued' | 'running';
   memberId: string | null;
   memberName: string;

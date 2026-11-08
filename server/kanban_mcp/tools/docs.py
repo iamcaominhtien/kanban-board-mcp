@@ -581,7 +581,7 @@ async def _no_unpublished_draft(page_id: str, page: dict) -> None:
 
 async def _edit(given: dict) -> dict:
     """docs_write(edit): read the page, change one part (or several, in order), publish it as one new version through
-    `update`, so an AI run's edit goes through the same checks, proposals and history as a whole-page update."""
+    `update`, so an AI run's edit goes through the same checks and history as a whole-page update."""
     from services import docs_edit
 
     page_id = given.get("page_id")

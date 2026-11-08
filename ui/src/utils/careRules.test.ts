@@ -6,16 +6,13 @@ import {
   createBody,
   createdToast,
   createLabel,
-  currentChange,
   defaultHealthTab,
   dueLabel,
   firstTicketRef,
   healthTabs,
   initials,
-  pendingCount,
   showFreshnessBanner,
   toEditable,
-  type CareChange,
   type TicketDraft,
 } from './careRules';
 
@@ -43,12 +40,11 @@ describe('checkedLabel', () => {
 
 describe('freshness banner', () => {
   it('shows only to editors, with Docs AI on, for a flagged page that AI can read', () => {
-    const base = { canEdit: true, aiOn: true, stale: true, hiddenFromAi: false };
+    const base = { canEdit: true, aiOn: true, stale: true };
     expect(showFreshnessBanner(base)).toBe(true);
     expect(showFreshnessBanner({ ...base, canEdit: false })).toBe(false);
     expect(showFreshnessBanner({ ...base, aiOn: false })).toBe(false);
     expect(showFreshnessBanner({ ...base, stale: false })).toBe(false);
-    expect(showFreshnessBanner({ ...base, hiddenFromAi: true })).toBe(false);
   });
   it('offers to open the first ticket among the reasons', () => {
     const r = (kind: string, ref: string) => ({ key: `${kind}:${ref}`, kind, ref, text: '', compared: '' });
@@ -105,23 +101,5 @@ describe('tickets from a page', () => {
     expect(dueLabel('2026-10-30')).toBe('Due Fri, Oct 30');
     expect(dueLabel(null)).toBeNull();
     expect(initials('Hoa Mai')).toBe('HM');
-  });
-});
-
-describe('suggested edits', () => {
-  const ch = (n: number, status: CareChange['status'], stale = false): CareChange => ({
-    n,
-    title: `c${n}`,
-    reason: '',
-    old: 'a',
-    new: 'b',
-    status,
-    stale,
-  });
-  it('shows one pending change at a time and counts what waits', () => {
-    const list = [ch(1, 'accepted'), ch(2, 'pending', true), ch(3, 'pending'), ch(4, 'pending')];
-    expect(currentChange(list)?.n).toBe(3);
-    expect(pendingCount(list)).toBe(2);
-    expect(currentChange([ch(1, 'rejected')])).toBeNull();
   });
 });

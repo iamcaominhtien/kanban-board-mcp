@@ -40,9 +40,8 @@ describe('pageMenu', () => {
     if (m.kind !== 'rows') throw new Error('rows');
     expect(m.rows.map((r) => r.id)).toEqual(['ask', 'summarise', 'check', 'translate']);
   });
-  it('shows one row for no AI member and a lock for a hidden page', () => {
+  it('shows one row for no AI member', () => {
     expect(pageMenu(aiGate({ ...ready, state: 'no_member' }), true).kind).toBe('no_member');
-    expect(pageMenu(aiGate(ready, { hidden: true }), true)).toMatchObject({ kind: 'hidden' });
   });
 });
 

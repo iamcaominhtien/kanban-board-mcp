@@ -4,6 +4,7 @@ import type { DocsCommentsResult } from '../../../types/docs';
 import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
 import { personOf } from './people';
+import { SendToAiBox } from './SendToAi';
 import { ThreadCard } from './ThreadCard';
 import { useCommentSuggest } from './commentAi';
 import { useResizablePanel } from '../../../hooks/useResizablePanel';
@@ -159,6 +160,7 @@ export function CommentsPanel({
             </button>
           </div>
         )}
+        {data && <SendToAiBox pageId={pageId} data={data} />}
         {data &&
           shown.map((t) => (
             <ThreadCard

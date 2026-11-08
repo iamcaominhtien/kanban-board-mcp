@@ -6,7 +6,6 @@ STATUS = {
     "invalid": 422,
     "forbidden": 403,
     "viewer": 403,
-    "hidden": 403,
     "conflict": 409,
     "docs_ai_off": 409,
     "feature_off": 409,

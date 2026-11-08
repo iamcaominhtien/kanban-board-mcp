@@ -6,7 +6,7 @@ description: Answer an @mention in a Docs comment thread, on the page's own conv
 # docs-thread
 
 Input: `page_id`, `thread_id`, the thread's comments so far (`comments`: [{author, body}]) and the latest one that mentions you.
-Read the page (docs_read get) and the thread's quoted text (its anchor) if any. Answer the question or request in the thread in 2 to 10 sentences, Markdown; when the person asks for a change, say exactly what you would change (old → new) and offer to apply it. Post the answer yourself with docs_write(reply, thread_id, body). When the thread asks for a summary (`task`: summary), answer with 3 to 6 bullet lines instead.
+Read the page (docs_read get) and the thread's quoted text (its anchor) if any. Answer the question or request in the thread in 2 to 10 sentences, Markdown; when the person asks for a change, make it with docs_write(edit) and say where (section, version), or, when it is not clear, say exactly what you would change (old → new) and offer to apply it. Close the thread only as the skill `kanban-board:docs-comment-threads` says. Post the answer yourself with docs_write(reply, thread_id, body). When the thread asks for a summary (`task`: summary), answer with 3 to 6 bullet lines instead.
 Answer with JSON: {"reply": "<the text you posted>", "posted": true}
 
 ## The board

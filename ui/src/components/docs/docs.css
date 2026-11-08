@@ -325,7 +325,18 @@
 }
 .dk-table th,
 .dk-table td {
-  /* a long link or path breaks inside its cell instead of widening the table past the page */
+  /* A long word breaks only when its cell cannot hold it (`break-word`, unlike `anywhere`, does not lower the cell's
+     minimum width, so the automatic layout keeps a short column like "A-001" or "Verdict" as wide as its longest word and
+     takes the room from the long text). A very long link that still does not fit is wrapped by the table wrap's scroll. */
+  overflow-wrap: break-word;
+  word-break: normal;
+  /* an id like "A-001" or "KAN-123" may break at its hyphen: keep a column at least as wide as a short word */
+  min-width: calc(5ch + 24px); /* the cell padding (12px each side) plus five characters */
+}
+.dk-table a,
+.dk-table code {
+  /* a long link or path is the one thing that may break anywhere: it is cut inside its own cell, so it neither widens the
+     table nor lowers the minimum width of the plain words beside it */
   overflow-wrap: anywhere;
 }
 .dk-table td {
