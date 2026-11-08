@@ -1064,6 +1064,8 @@ async def _finish(run_id: str, result: dict) -> None:
         asks = [a for a in report["asks"] if isinstance(a, str) and a.strip()]
         async with database.async_session() as session:
             run = await session.get(AiRun, run_id)
+            from . import touches
+
             run.question = json.dumps(
                 {
                     "text": asks[0][:1000],
@@ -1071,6 +1073,7 @@ async def _finish(run_id: str, result: dict) -> None:
                     "to": run.started_by,
                     "asked_at": now_iso(),
                     "more": asks[1:6],
+                    "previous": touches.carry_answer(run.question, run.answer),
                 }
             )
             session.add(run)
@@ -1832,6 +1835,9 @@ async def record_question(ctx: RunContext, text: str, options: list | None) -> d
         run = await session.get(AiRun, ctx.run_id)
         if run is None:
             raise ValueError("Run not found.")
+        from . import touches
+
+        q["previous"] = touches.carry_answer(run.question, run.answer)
         run.question = json.dumps(q)
         session.add(run)
         await session.commit()
@@ -1905,9 +1911,19 @@ async def before_ticket_change(
 
 
 async def note_person_edit(
-    ticket_id: str, *, by: str | None = None, what: str = ""
+    ticket_id: str, *, by: str | None = None, what: str = "", tell_lead: bool = True
 ) -> None:
-    """A person edited the ticket while a lead works on it: the lead hears it on its live input."""
+    """A person edited the ticket while a lead works on it: the lead hears it on its live input, and the edit is
+    recorded as a touch (tab "You stepped in")."""
+    async with database.async_session() as session:
+        try:
+            from . import touches
+
+            await touches.record_edit(session, ticket_id, by=by, what=what)
+        except Exception:  # noqa: BLE001 - a note about the edit must never fail the edit
+            logger.exception("Could not record the edit of %s as a touch", ticket_id)
+    if not tell_lead:
+        return
     async with database.async_session() as session:
         rows = [
             r

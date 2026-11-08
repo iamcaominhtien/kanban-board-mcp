@@ -8,6 +8,10 @@ Kế hoạch làm toàn bộ [`ai-v2.md`](ai-v2.md) trong **một PR**, trên nh
 - **Runner tách tiến trình** và **`--permission-mode auto`** (tuỳ chọn project) đều trong PR.
 - **Xoá hết provider khác** (Antigravity, API key, Codex, OpenCode, adapter). Chỉ còn Claude Code.
 
+> **2026-11-08:** đây là kế hoạch của ngày 2026-11-05. Mục 1 và 2 mô tả hình dạng đích và các giai đoạn **như đã lên kế hoạch**; mục
+> 6 ghi cái đã làm, và mục 7 ghi cái đã làm sau giai đoạn 9. Chỗ nào kế hoạch không còn đúng với code, nó được đánh dấu
+> **(đã khác)** kèm lời chỉ sang mục 7 và [`ai-v2.md` mục 11](ai-v2.md#11-đã-xây-khác-hoặc-thêm-so-với-thiết-kế).
+
 Khảo sát ngày 2026-11-05 (ba agent, chi tiết trong lịch sử phiên): `services/ai` 64 nghìn dòng trong 80 module cộng `assist/`
 11 nghìn; `docs_ai` 9,6 nghìn; `api/ai*` 8 nghìn; `kanban_mcp` 10 nghìn; UI `components/ai` 17,6 nghìn cộng `aiteam` 15 nghìn;
 931 test `test_ai*`, 147 test Docs AI.
@@ -30,7 +34,7 @@ Khảo sát ngày 2026-11-05 (ba agent, chi tiết trong lịch sử phiên): `s
 ai/
   accounts.py profiles.py signin.py quota.py usage.py budget.py       # giữ, cắt phần API key
   worktrees.py paths.py project_env.py secrets.py audit.py            # giữ
-  transcripts.py run_retention.py resources.py power.py               # giữ
+  transcripts.py run_retention.py resources.py power.py               # giữ   (đã khác: run_retention.py đã xoá, `aa4cbf44`)
   schedules.py github.py repo_scan.py kb.py knowledge.py memory.py    # giữ, sửa import
   library.py plugins.py packs.py board_skills.py own_claude.py mcp_sources.py  # giữ; packs → vai
   ops.py store.py injection.py                                        # giữ
@@ -147,9 +151,9 @@ SSE: `events.publish_typed(kind, payload)` phát `{"type":"ai.step","run_id","st
 ### 1.6 MCP (`kanban_mcp`)
 
 - `ai_run`: còn `ask` (hỏi người), `report` (bỏ, thay bằng `--json-schema`), `message` (tới ticket/trang; mục 4.3 spec), `team`
-  (đọc đội mình). Bỏ `handoff contact decide answer`.
+  (đọc đội mình). Bỏ `handoff contact decide answer`. **(đã khác)** `report` còn (ghi báo cáo sớm); thêm `reply`, `history`, `runs`.
 - `ai_team`: còn `runs run cancel answer message resources restart accounts guide`. Bỏ workflow, stories, approvals, members
-  CRUD (người làm trên UI).
+  CRUD (người làm trên UI). **(đã khác)** không có tool `ai_team` (`4c5c831b`).
 - `ticket_items(comment)` thêm tham số `role`.
 - `board_wait` giữ.
 - `guard`: `guarded` chỉ còn resolve token + actor + duplicate-write sau resume; bỏ `check`, approvals, permissions, `_hide_from_ai`.
@@ -196,7 +200,7 @@ với cờ `--runner`, hoặc entry riêng `kanban-runner` thêm vào `desktop/k
 Xoá: `AiPermissionsTab/Cards`, `AiTicketSafety`, `AiSafetyPage/aiSafetyUi/AiSafetyViews` (giữ `AiKillSwitch`), `ReviewGate`,
 `AutopilotCard`, `MentionPlan`, `MentionIntent`, `TicketHold`, `TicketPlan`, `handoff/`, `evidence/`, `workflow/`, `talk/`,
 `board/orders`, `limits/` (trừ phần quota), `trouble/HandToDialog`, `settings/` phần autonomy, `aiteam/` các tab Flow, Timeline,
-Stepped in, Decided, Health; `api/aiSafety.ts` phần tương ứng, `aiWorkflow*.ts`, `aiOrders.ts`, `aiOps.ts`, `aiLiveFeed.ts`,
+Stepped in, Decided, Health **(đã khác: Timeline quay lại, Flow / Stepped in / Health / Resources đang làm lại, KBM-19 đến 22; mục 7)**; `api/aiSafety.ts` phần tương ứng, `aiWorkflow*.ts`, `aiOrders.ts`, `aiOps.ts`, `aiLiveFeed.ts`,
 `aiEvals.ts`; types tương ứng.
 
 Viết lại (dùng component sẵn có, không màn mới ngoài bốn màn tối thiểu):
@@ -287,9 +291,42 @@ Mỗi giai đoạn một hoặc vài commit; thông điệp commit nêu giai đo
 
 ## AI activity: giao diện theo design trước, nối logic sau
 
+> **(đã xong, 2026-11-08)** Tab AI activity đã nối dữ liệu thật (`4b3f0323`, `59260fba`, `d1383bed`); công tắc `MOCK_AI_ACTIVITY`
+> và đoạn dưới là lịch sử của cách làm, giữ để biết bản cũ trên `main` ở đâu. `services/ai/timeline.py` đã được dựng lại trên
+> `ai_run`, `ai_run_agent`, `ai_run_step`, `ai_run_message`.
+
 Tab AI activity của ticket đang hiện **mock theo đúng canvas design** (`ui/src/components/ai/activity/`, công tắc `MOCK_AI_ACTIVITY`).
 Khi nối dữ liệu thật **không viết lại**: bản cũ trên `main` đã làm hết (thẻ run, RAM stream, Timeline vẽ từ dữ liệu, khởi động lại, thử lại)
 và khá phức tạp, nên đọc rồi bê sang. Bảng "khối design ↔ file cũ ↔ route/service cũ" nằm ở `ui/src/components/ai/activity/mock.ts`
 (đọc bản cũ bằng `git show $(git merge-base HEAD origin/main):<đường dẫn>`). `server/services/ai/timeline.py` đã bị xoá ở v2: khôi phục
 rồi dựng lại trên `ai_run`, `ai_run_agent`, `ai_run_step`. Phần v2 giữ: báo cáo của lead, bước của từng vai (`RunTree`), tin nhắn cho lead đang chạy.
 
+## 7. Sau giai đoạn 9 (2026-11-05 đến 2026-11-08)
+
+Người dùng chạy app thật (Electron, dữ liệu thật) và báo từng lỗi một; mỗi lỗi một hoặc vài commit, việc theo dõi nằm ở project KBM
+của board, Story KBM-1. Bảng dưới theo chủ đề; commit và lý do ở [`ai-v2.md` mục 11](ai-v2.md#11-đã-xây-khác-hoặc-thêm-so-với-thiết-kế).
+Cách kiểm ghi ở cột cuối **chỉ khi tôi có bằng chứng**; chỗ để trống nghĩa là không có ghi chép ở đây, xem work log của ticket.
+
+| Chủ đề | Việc chính | Ticket | Cách đã kiểm |
+|---|---|---|---|
+| Hoàn thiện run | vai là một dòng nối với id của Claude Code; vòng đời lấy từ stream; board chờ vai xong mới đóng CLI; hook chạy khi đường dẫn có dấu cách; `--setting-sources ""` | | run thật trên bảng tạm (ghi trong thân commit `2f4a6669`) |
+| Dọn nốt v1 | chỉ Claude Code; vai không allow-list; lịch chạy chỉ mở run; bỏ model nhẹ sau mỗi run; bỏ text handoff, mention, workflow trong prompt | | |
+| Timeline và AI activity | Timeline dựng lại từ dữ liệu v2; thẻ run, panel run, lịch sử run, Resources trên ticket | | |
+| Ticket chat | chat nói với đội; History, `/new` `/history` `/compact` `/report` `/stop` `/cost`; tự nén; thanh ngữ cảnh | | |
+| Báo cáo và bình luận | báo cáo cuối là bình luận đóng; `comment_needed` | | 14 trường hợp của hàm chặn trên bản sao DB của bảng tạm, 5 kịch bản chạy thật bằng Haiku và Sonnet, tài khoản `cmtienc2` |
+| Thông báo | không báo "AI finished" khi chat đang mở và ở phía trước (`ai_chat.seen_at`, nhịp 15 giây, hạn 45 giây) | | 6 trường hợp của `on_run_ended` trên bản sao DB của bảng tạm; **chưa** thử với thông báo của Electron |
+| Câu hỏi của đội | trả lời ở thread và ở chat; Answer của thông báo chạy được khi ticket mở ở tab khác | KBM-3 | video demo trên ticket |
+| Skill và tệp | demo-video thành skill của board; `attachment post=false`; sha256; ảnh dán trong bình luận | | |
+| Thư mục uploads | thứ tự tìm thư mục, `stored_in`, `warning`, desktop ghi `uploads_dir` | KBM-18 | video demo trên ticket |
+| Story | trang Story, Group by Story, thanh sub-task trên thẻ cha, Open in Timeline | KBM-16 và các commit `fa173822` đến `2ce08974` | |
+| Trang AI Team v2 | Needs you, thẻ đội và thẻ vai, Recent, Spend today; `activity.py` và ba route | KBM-17 | video demo; trạng thái "giữ vì giới hạn" kiểm bằng dữ liệu giả, **chưa** với giới hạn thật |
+| MCP | `ticket_branches add adopt` | | |
+| Còn lại, đang làm trên cloud | Resources (KBM-19), Flow (KBM-20), You stepped in (KBM-21), Health (KBM-22) | KBM-19 đến 22 | chưa có |
+
+Ghi chú:
+
+- Test đã dừng theo yêu cầu của người dùng cho đến khi refactor và sửa lỗi xong: không chạy pytest, vitest, và không viết test mới
+  sau giai đoạn 9. Một số test cũ có thể còn đòi text hay thứ tự cũ (`test_mcp_tool_quality`, `test_ai_launch_v2`, thứ tự thư mục
+  uploads). Việc chạy lại và sửa chúng là bước kế tiếp sau khi người dùng nói xong.
+- Những gì giai đoạn 9 ghi "chưa kiểm" và còn đúng: đo request mỗi giây với 3 run, hook trên Windows, `--runner` trong bản đóng
+  gói PyInstaller. "Một run thật bằng Haiku" thì đã làm nhiều lần, trên bảng tạm.
