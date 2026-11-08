@@ -5,7 +5,7 @@ KBM-24: `docs_ai_settings` loses `read_scope`, `picked_pages`, `edits_mode`, `pr
 person can read, and no run reads guidance pages. A "page proposal" notification (nothing makes them any more) is removed.
 
 Revision ID: e6a8c0d2f4b6
-Revises: d5f7b9c1e3a4
+Revises: e2a4c6e8b0d1
 Create Date: 2026-11-07
 """
 
@@ -16,7 +16,7 @@ import sqlmodel
 from alembic import op
 
 revision: str = "e6a8c0d2f4b6"
-down_revision: str | Sequence[str] | None = "d5f7b9c1e3a4"
+down_revision: str | Sequence[str] | None = "e2a4c6e8b0d1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
