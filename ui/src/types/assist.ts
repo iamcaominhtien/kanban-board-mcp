@@ -1,14 +1,13 @@
 import type { AiProvider, AiStatus } from './ai';
 
 export type AssistScope = 'ticket' | 'project' | 'all' | 'doc' | 'idea';
-export type FeatureKey = 'chat' | 'drafting' | 'split' | 'test_cases' | 'health' | 'docs' | 'sketch';
+export type FeatureKey = 'chat' | 'drafting' | 'health' | 'docs' | 'sketch';
 
 export interface AssistFeature {
   key: FeatureKey;
   label: string;
   description: string;
   on: boolean;
-  costMonth: number;
 }
 
 export interface HealthConfig {
@@ -20,7 +19,6 @@ export interface HealthConfig {
   returnIfWorse: boolean;
   weekend: boolean;
   badgeToast: boolean;
-  offerDraft: boolean;
 }
 
 export interface AssistState {
@@ -33,33 +31,49 @@ export interface AssistState {
     connection: 'local' | 'api_key' | 'inbox' | null;
     metered: boolean;
     status: AiStatus | null;
-    /** No Board AI is chosen: Ask AI still answers with this AI member until one is. */
-    fallback?: { id: string; name: string } | null;
   };
   features: AssistFeature[];
   language: string;
   tone: 'neutral' | 'friendly' | 'concise';
   styleGuide: string;
   styleGuideMax: number;
-  dataScope: { projectId: string; name: string; shared: boolean; docs: number; sharedDocs: number }[];
-  excludedDocs: { id: string; title: string; projectId: string }[];
-  monthlyCap: number | null;
-  perRequestCap: number | null;
-  overCap: 'pause' | 'warn';
-  usedMonth: number;
-  resets: string;
   health: HealthConfig;
   sent: Record<string, boolean>;
   unseenInsights: number;
   lastCheck: string | null;
   ticketCount: number;
-  overBudget: boolean;
 }
 
 export interface AssistErrorBody {
   detail: string;
   code: string;
   [key: string]: unknown;
+}
+
+/** One change the Board AI made, as its receipt lists it. */
+export interface ReceiptChange {
+  op: string;
+  ticket: string;
+  before?: unknown;
+  after?: unknown;
+  /** The comment's id, for a comment. */
+  ref?: string;
+  /** The new ticket's id and its type, for a created ticket. */
+  created?: string;
+  type?: string;
+  title?: string;
+  /** Whether the board can put this change back. */
+  undo: boolean;
+  /** A sub-task, criterion, branch or link, in words (the server says what happened to it). */
+  words?: string;
+}
+
+export interface Receipt {
+  applied: ReceiptChange[];
+  count: number;
+  status: 'done' | 'undone';
+  /** After "Undo all": how many were put back and what was left as someone else set it. */
+  undo?: { undone: number; putBack: number[]; skipped: string[]; kept: string[] };
 }
 
 export interface ContextSummary {
@@ -73,8 +87,8 @@ export interface ContextSummary {
   privateSkipped: { id: string; title: string }[];
   tokens: number;
   scope?: AssistScope;
-  /** "Do the work": the run the message started. */
-  run?: { id: string; number: number; memberId: string; memberName: string };
+  /** What the answer changed on tickets, and what "Undo all" did (design/screens/ai-board-wave3.md, B and G). */
+  receipt?: Receipt;
   /** The answer hit its length limit; Continue goes on from where it stopped. */
   cutShort?: boolean;
   /** Claude Code only: tokens the chat's CLI session holds after this answer, and the model's context window. */
@@ -512,6 +526,8 @@ export interface ScopeMember {
 export interface ScopeState {
   scope: ChatScopeInfo;
   availability: Availability;
+  /** The Board AI that answers when the thing has no team: the project's first team, run by Claude Code. */
+  boardAi?: { name: string; providerLabel: string; ready: boolean; label: string };
   members: ScopeMember[];
   memberId: string | null;
   estimate: CostEstimate | null;

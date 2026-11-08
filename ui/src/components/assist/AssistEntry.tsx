@@ -18,7 +18,7 @@ export function AskAiButton() {
       className="as-header-btn"
       onClick={ctx.toggle}
       disabled={!!block}
-      title={block ? `${block.reason}. Fix in AI members.` : 'Ask the Board AI'}
+      title={block ? `${block.reason}. Fix in AI Team.` : 'Ask the Board AI'}
       data-testid="ask-ai-button"
       aria-pressed={ctx.open}
     >

@@ -77,7 +77,7 @@ export function TicketChat({
   onClose: () => void;
   onOpenRun: (runId: string) => void;
 }) {
-  const { openAiPage, openAiTab } = useAiBoardState();
+  const { openAiPage } = useAiBoardState();
   const runs = useTicketRuns(ticket.id).data ?? [];
   const scope = useMemo(() => ({ kind: 'ticket' as const, id: ticket.id }), [ticket.id]);
   return (
@@ -85,9 +85,7 @@ export function TicketChat({
       scope={scope}
       banner={<AskBanner ticketId={ticket.id} />}
       onClose={onClose}
-      onOpenRun={onOpenRun}
       onOpenAiMembers={() => openAiPage?.()}
-      onOpenUsage={() => openAiTab?.('usage')}
       runsTab={{
         label: `Runs ${runs.length}`,
         content: <TicketRunsList ticketId={ticket.id} onOpenRun={onOpenRun} />,
