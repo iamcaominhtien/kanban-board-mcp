@@ -1927,7 +1927,7 @@ function TicketModalInner({
                               data-testid="open-in-timeline"
                               onClick={() => openTimeline({ scope: ticket.id })}
                             >
-                              Open in Timeline
+                              Open in Flow
                             </button>
                             <TimelineTab
                               projectId={ticket.projectId}

@@ -716,6 +716,28 @@
   border: 1px solid #e3e8e5;
   border-radius: 12px;
 }
+/* the events as a table (design AiTimelineCases I, 10) */
+.tl-tablewrap table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.tl-tablewrap th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  padding: 6px 10px;
+  position: sticky;
+  top: 0;
+  background: #fff;
+}
+.tl-tablewrap td {
+  padding: 7px 10px;
+  font-size: 12.5px;
+  border-top: 1px solid #eef3ef;
+}
 
 /* What moves when something arrives (ai-team-timeline-cases.md, G): once, short, and never under reduced motion */
 @keyframes tl-draw {

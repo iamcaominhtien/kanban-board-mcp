@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { FlowScopes } from '../../types/aiFlow';
+import type { FlowScopes, FlowTicketNode } from '../../types/aiFlow';
 
 /** What Flow looks at: every team, one team, or one ticket (a Story is a ticket with children). */
 export interface FlowScope {
@@ -54,6 +54,7 @@ export function FlowScopeBar({
   view,
   summary,
   right,
+  mapTickets,
   onScope,
   onView,
   onCopyLink,
@@ -64,6 +65,8 @@ export function FlowScopeBar({
   view: FlowView;
   summary: string;
   right?: ReactNode;
+  /** The tickets the Map draws: their titles and parents stand in for a ticket the picker does not list. */
+  mapTickets?: FlowTicketNode[];
   onScope: (s: FlowScope) => void;
   onView: (v: FlowView) => void;
   onCopyLink: () => void;
@@ -107,13 +110,22 @@ export function FlowScopeBar({
   }, [open]);
 
   const crumbs = useMemo<Crumb[]>(() => {
-    const list: Crumb[] = [{ key: 'project', label: projectName, scope: ALL_TEAMS }];
+    // the project goes up to All teams from anywhere but All teams itself, where it is only the first word
+    const list: Crumb[] = [
+      { key: 'project', label: projectName, scope: scope.teamId || scope.ticketId ? ALL_TEAMS : null },
+    ];
     if (scope.teamId) {
       const t = scopes?.teams.find((x) => x.id === scope.teamId);
       list.push({ key: 'team', label: t?.name ?? 'This team', scope: null });
     } else if (scope.ticketId) {
+      // a ticket the teams never ran is not in the picker's lists: the Map's own cards know its title and parent
       const row = scopes?.tickets.find((x) => x.id === scope.ticketId);
-      const story = isStory(scopes, scope.ticketId) ? scope.ticketId : (row?.storyId ?? null);
+      const node = mapTickets?.find((x) => x.id === scope.ticketId);
+      const parent = node?.parentId ? mapTickets?.find((x) => x.id === node.parentId) : undefined;
+      const story = isStory(scopes, scope.ticketId)
+        ? scope.ticketId
+        : (row?.storyId ?? (parent?.type === 'story' ? parent.id : null));
+      const title = row?.title ?? scopes?.stories.find((x) => x.id === scope.ticketId)?.title ?? node?.title;
       if (story && story !== scope.ticketId) {
         list.push({ key: 'story', label: <>Story {story}</>, scope: { teamId: null, ticketId: story } });
       }
@@ -121,22 +133,18 @@ export function FlowScopeBar({
         key: 'ticket',
         label: (
           <>
-            {isStory(scopes, scope.ticketId) ? 'Story ' : ''}
+            {isStory(scopes, scope.ticketId) || node?.type === 'story' ? 'Story ' : ''}
             {scope.ticketId}
-            {row
-              ? ` · ${row.title}`
-              : scopes?.stories.find((s) => s.id === scope.ticketId)?.title
-                ? ` · ${scopes.stories.find((s) => s.id === scope.ticketId)?.title}`
-                : ''}
+            {title ? ` · ${title}` : ''}
           </>
         ),
         scope: null,
       });
     } else {
-      list[0] = { ...list[0], scope: null };
+      list.push({ key: 'all', label: 'All teams', scope: null });
     }
     return list;
-  }, [projectName, scope, scopes]);
+  }, [projectName, scope, scopes, mapTickets]);
 
   const teams = (scopes?.teams ?? []).filter((t) => matches(q, t.name));
   const stories = (scopes?.stories ?? []).filter((s) => matches(q, s.id, s.title));
@@ -169,19 +177,20 @@ export function FlowScopeBar({
                 >
                   {c.label}
                 </button>
-              ) : (
+              ) : i === crumbs.length - 1 ? (
                 <b className="fl-crumb here" aria-current="page">
                   {c.label}
                 </b>
+              ) : (
+                <span className="fl-crumb">{c.label}</span>
               )}
             </span>
           ))}
-          {!scope.teamId && !scope.ticketId && <b className="fl-crumb here">All teams</b>}
         </nav>
         <div className="fl-picker" ref={wrap}>
           <button
             type="button"
-            className="tl-btn"
+            className={`tl-btn fl-picker-btn${open ? ' open' : ''}`}
             aria-haspopup="dialog"
             aria-expanded={open}
             onClick={() => setOpen(!open)}
@@ -205,70 +214,71 @@ export function FlowScopeBar({
                 placeholder="code or words"
                 aria-label="Search teams, Stories and tickets"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.nativeEvent.isComposing && q.trim() && first) pick(first);
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing && q.trim() && first) {
+                    // the same Enter must not press the picker's button once the focus goes back to it
+                    e.preventDefault();
+                    pick(first);
+                  }
                 }}
               />
-              <button
-                type="button"
-                className={!scope.teamId && !scope.ticketId ? 'fl-opt on' : 'fl-opt'}
-                onClick={() => pick(ALL_TEAMS)}
-              >
-                <b>All teams</b>
-                <span>the whole project</span>
-              </button>
-              {teams.length > 0 && <div className="tl-menu-h">Teams</div>}
-              {teams.map((t) => (
+              <div className="fl-list">
                 <button
-                  key={t.id}
                   type="button"
-                  className="fl-opt"
-                  onClick={() => pick({ teamId: t.id, ticketId: null })}
-                  data-testid={`flow-pick-team-${t.id}`}
+                  className={!scope.teamId && !scope.ticketId ? 'fl-opt on' : 'fl-opt'}
+                  onClick={() => pick(ALL_TEAMS)}
                 >
-                  <i className="fl-dot" style={{ background: t.color ?? '#5B6B60' }} />
-                  <b>{t.name}</b>
-                  <span>{t.live ? 'working now' : `${t.runs} run${t.runs === 1 ? '' : 's'}`}</span>
+                  <b>All teams</b>
+                  <span className="grow">the whole project</span>
                 </button>
-              ))}
-              {stories.length > 0 && <div className="tl-menu-h">Stories</div>}
-              {stories.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className="fl-opt"
-                  onClick={() => pick({ teamId: null, ticketId: s.id })}
-                  data-testid={`flow-pick-story-${s.id}`}
-                >
-                  {s.live && <span className={`at-live-dot ${s.waiting ? 'waiting_you' : 'working'}`} />}
-                  <b>{s.id}</b>
-                  <span className="grow">{s.title}</span>
-                  <span>
-                    {s.done} of {s.tickets} done
-                  </span>
-                </button>
-              ))}
-              {tickets.length > 0 && <div className="tl-menu-h">Tickets with AI work</div>}
-              {tickets.slice(0, 30).map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className="fl-opt"
-                  onClick={() => pick({ teamId: null, ticketId: t.id })}
-                  data-testid={`flow-pick-ticket-${t.id}`}
-                >
-                  {t.live && <span className={`at-live-dot ${t.waiting ? 'waiting_you' : 'working'}`} />}
-                  <b>{t.id}</b>
-                  <span className="grow">{t.title}</span>
-                  {t.storyId && <span>in {t.storyId}</span>}
-                </button>
-              ))}
-              {tickets.length > 30 && (
-                <div className="tl-menu-foot" data-testid="flow-picker-more">
-                  {tickets.length - 30} more: type to narrow the list.
-                </div>
-              )}
-              {!first && <div className="tl-menu-empty">Nothing matches “{q}”.</div>}
-              <div className="tl-menu-foot">↑ Enter opens the first match · Esc closes</div>
+                {teams.length > 0 && <div className="tl-menu-h">Teams</div>}
+                {teams.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="fl-opt"
+                    onClick={() => pick({ teamId: t.id, ticketId: null })}
+                    data-testid={`flow-pick-team-${t.id}`}
+                  >
+                    <i className="fl-dot" style={{ background: t.color ?? '#5B6B60' }} />
+                    <b>{t.name}</b>
+                    <span className="end">{t.live ? 'working now' : `${t.runs} run${t.runs === 1 ? '' : 's'}`}</span>
+                  </button>
+                ))}
+                {stories.length > 0 && <div className="tl-menu-h">Stories</div>}
+                {stories.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className="fl-opt"
+                    onClick={() => pick({ teamId: null, ticketId: s.id })}
+                    data-testid={`flow-pick-story-${s.id}`}
+                  >
+                    {s.live && <span className={`at-live-dot ${s.waiting ? 'waiting_you' : 'working'}`} />}
+                    <b>{s.id}</b>
+                    <span className="grow">{s.title}</span>
+                    <span>
+                      {s.done} of {s.tickets} done
+                    </span>
+                  </button>
+                ))}
+                {tickets.length > 0 && <div className="tl-menu-h">Tickets with AI work</div>}
+                {tickets.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="fl-opt"
+                    onClick={() => pick({ teamId: null, ticketId: t.id })}
+                    data-testid={`flow-pick-ticket-${t.id}`}
+                  >
+                    {t.live && <span className={`at-live-dot ${t.waiting ? 'waiting_you' : 'working'}`} />}
+                    <b>{t.id}</b>
+                    <span className="grow">{t.title}</span>
+                    {t.storyId && <span>in {t.storyId}</span>}
+                  </button>
+                ))}
+                {!first && q.trim() && <div className="tl-menu-empty">Nothing matches “{q}”.</div>}
+              </div>
+              <div className="tl-menu-foot">Enter opens the first match · Esc closes</div>
             </div>
           )}
         </div>

@@ -19,7 +19,7 @@ export function RunDetail({
       data-testid="run-detail"
     >
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <button type="button" className="ai-link" onClick={onBack} data-testid="run-detail-back">
+        <button type="button" className="at-open" onClick={onBack} data-testid="run-detail-back">
           ← All runs
         </button>
         {run?.ticketId && <TicketChip id={run.ticketId} onOpen={onOpenTicket} />}

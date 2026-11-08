@@ -81,10 +81,27 @@
   width: 420px;
   max-width: calc(100vw - 48px);
   max-height: 420px;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+/* the input stays at the top and the foot at the bottom; the list between them scrolls */
+.fl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+.fl-picker-btn.open {
+  border-color: #2e6f40;
+  background: #e6f2ea;
+  color: #1f5a31;
+}
+.fl-opt > span.end {
+  margin-left: auto;
 }
 .fl-pop input {
   margin: 2px 2px 6px;
@@ -198,18 +215,6 @@
   gap: 8px;
   padding: 0 8px 0 10px;
   box-sizing: border-box;
-}
-.fl-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 .fl-team-t {
   display: flex;
@@ -411,4 +416,54 @@
   .fl-node {
     transition: none;
   }
+  .fl-skel > i {
+    animation: none;
+  }
+}
+
+/* loading and error of the Map (design AiTeam 8, 3 and 4) */
+.fl-skel {
+  position: relative;
+  height: 240px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  overflow: hidden;
+}
+.fl-skel > i {
+  position: absolute;
+  display: block;
+  border-radius: 10px;
+}
+
+.fl-skel > i {
+  background: linear-gradient(90deg, #eef3ef 25%, #f6faf7 37%, #eef3ef 63%);
+  background-size: 400px 100%;
+  animation: fl-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes fl-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+.fl-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 240px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  font-size: 13.5px;
+  color: #1e2a22;
+}
+.fl-error .tl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }

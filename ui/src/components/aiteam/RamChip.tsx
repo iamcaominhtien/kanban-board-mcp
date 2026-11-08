@@ -11,7 +11,7 @@ export function rowsByRun(snap: ResourceSnapshot | null): Map<string, ResourceRu
 /**
  * RAM of a run's Claude Code on a team card and on the team page (design/screens/ai-resources.md, C1). Green below 65%
  * of the memory limit, amber from 65%, red from 90%; amber and red write the share ("76% of its limit") so the colour
- * is never the only signal. A restart by the system is written on it too. Nothing before the first reading.
+ * is never the only signal. A restart by the system is written on it too (one by a person is not). Nothing before the first reading.
  */
 export function RamChip({
   run,
@@ -26,12 +26,12 @@ export function RamChip({
   if (!run || !run.readable || run.cliRssMb == null) return null;
   const pct = limitPct(run.cliRssMb, limitMb);
   const level = limitMb > 0 ? levelOf(pct) : 'ok';
-  const restarts = run.restarts.length;
+  // "restarted" is what the system did to the run; a restart a person asked for is not a warning (design E1)
+  const restarts = run.restarts.filter((r) => r.by === 'system').length;
   const title = [
     `Claude Code ${fmtMb(run.cliRssMb)}${limitMb > 0 ? ` of ${fmtMb(limitMb)} (${pct}%)` : ''}`,
     run.peakRssMb != null ? `peak ${fmtMb(run.peakRssMb)}` : null,
-    run.extraMb ? `+${fmtMb(run.extraMb)} from what it started (not counted)` : null,
-    restarts ? `${restarts} restart${restarts === 1 ? '' : 's'}` : null,
+    run.extraMb && run.extraMb >= 50 ? `+${fmtMb(run.extraMb)} from what it started (not counted)` : null,
   ]
     .filter(Boolean)
     .join(' · ');

@@ -23,6 +23,7 @@ import {
   arrowWord,
   lanesWidth,
   columnFor,
+  FOLDED_W,
   lookOf,
   pickKey,
   type Pick,
@@ -40,7 +41,6 @@ export interface TimelineActions {
   /** Back to the team map. */
   onSeeMap?: () => void;
   /** Open a ticket's flow (the ticket scope of Flow). */
-  onOpenStory?: (ticketId: string) => void;
 }
 
 type Preset = Exclude<TimelineRange, 'custom'>;
@@ -170,7 +170,7 @@ function readRange(projectId: string): Preset {
 
 /**
  * Flow › Timeline: a sequence diagram of the AI teams. You, each team's lead and each role it called is a lifeline, time
- * runs down, a bar is a run or one call of a role and an arrow is a hand-off, a question or an answer
+ * runs down, a bar is a run or one call of a role and an arrow is a role call, a question or an answer
  * (design/screens/ai-team-timeline.md).
  * @param props.projectId - The project to draw.
  * @param props.actions - Open a ticket or a Docs page; go back to the team map.
@@ -182,7 +182,7 @@ export function TimelineTab({
   projectId,
   actions,
   scopeTicketId = null,
-  compactChrome = false,
+  scopeIsStory = false,
   scopeBar = false,
   initial = null,
   teamId = null,
@@ -195,6 +195,8 @@ export function TimelineTab({
   initial?: TimelineLink | null;
   scopeTicketId?: string | null;
   compactChrome?: boolean;
+  /** The scope ticket is a Story: its bars keep the ticket keys of its sub-tickets. */
+  scopeIsStory?: boolean;
   scopeBar?: boolean;
   /** Draw only this team (and the teams that wrote to it): Flow's scope "one team". */
   teamId?: string | null;
@@ -319,7 +321,7 @@ export function TimelineTab({
     [data, foldedLanes],
   );
   // the lanes fill the window (to a limit) instead of leaving the right half empty
-  const col = columnFor(lifelines.length, width - GUTTER - (quiet.length ? 100 : 0));
+  const col = columnFor(lifelines.length, width - GUTTER - (quiet.length ? FOLDED_W + 8 : 0));
   const axis = useMemo(() => (data ? buildAxis(data, mode, now) : null), [data, mode, now]);
 
   // Following: stay at the bottom unless the person scrolled up, and count what arrived meanwhile
@@ -391,8 +393,22 @@ export function TimelineTab({
   };
 
   const ticketOf = useCallback((id: string | null | undefined) => id ?? '', []);
-  const names = useMemo(() => new Map(all.map((l) => [l.id, l.name])), [all]);
+  // under a team's header a role is called by its role alone, as its head says ("Dev", not "Dev (Backend team)")
+  const names = useMemo(
+    () => new Map(all.map((l) => [l.id, groups && l.teamId && !l.lead ? l.name.replace(/\s*\(.*\)\s*$/, '') : l.name])),
+    [all, groups],
+  );
   const people = useMemo(() => new Map(all.map((l) => [l.id, l])), [all]);
+
+  // a click outside the Show menu closes it
+  useEffect(() => {
+    if (menu !== 'show') return;
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement | null)?.closest('.tl-menuwrap')) setMenu(null);
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [menu]);
 
   // Esc closes the inspector
   useEffect(() => {
@@ -436,7 +452,6 @@ export function TimelineTab({
     scroller.current?.scrollTo({ top: Math.max(y - 120, 0), behavior: 'smooth' });
     setSelected({ type: 'bar', id: bar.id });
   };
-  const scopeTickets = Object.entries(data.tickets);
   const paused = data.pausedAll;
   const dayLabel = day
     ? zoomWindow
@@ -460,70 +475,6 @@ export function TimelineTab({
       )}
 
       <div className="tl-toolbar">
-        {!compactChrome && !scopeBar && (
-          <div className="tl-menuwrap">
-            <button
-              type="button"
-              className="tl-btn"
-              onClick={() => setMenu(menu === 'scope' ? null : 'scope')}
-              aria-haspopup="menu"
-            >
-              <Icon size={14} color="currentColor">
-                {scope ? ICONS.page : PEOPLE}
-              </Icon>
-              {scope ? `One ticket: ${scope}` : 'Whole team'}
-            </button>
-            {menu === 'scope' && (
-              <div className="tl-menu" role="menu" data-testid="tl-scope-menu">
-                <div className="tl-menu-h">Scope</div>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={!scope ? 'on' : ''}
-                  onClick={() => {
-                    setScope(null);
-                    setMenu(null);
-                  }}
-                >
-                  <Icon size={15} color="currentColor">
-                    {PEOPLE}
-                  </Icon>
-                  <span style={{ flex: 1 }}>Whole team</span>
-                  {!scope && <Check />}
-                </button>
-                <div className="tl-menu-h">One ticket</div>
-                {scopeTickets.length === 0 && <div className="tl-menu-empty">No ticket yet.</div>}
-                {scopeTickets
-                  .sort((a, b) => Number(isLive(data, b[0])) - Number(isLive(data, a[0])))
-                  .map(([id, t]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      role="menuitem"
-                      className={scope === id ? 'on' : ''}
-                      onClick={() => {
-                        setScope(id);
-                        setMenu(null);
-                      }}
-                    >
-                      {isLive(data, id) ? (
-                        <span className="at-live-dot working" />
-                      ) : (
-                        <Icon size={15} color="currentColor">
-                          {ICONS.page}
-                        </Icon>
-                      )}
-                      <span style={{ flex: 1 }}>
-                        <b>{id}</b> {t.title}
-                      </span>
-                      {scope === id && <Check />}
-                    </button>
-                  ))}
-                <div className="tl-menu-foot">Only the lifelines that took part are shown.</div>
-              </div>
-            )}
-          </div>
-        )}
         <div className="tl-menuwrap">
           <button
             type="button"
@@ -539,7 +490,7 @@ export function TimelineTab({
           {menu === 'show' && (
             <div className="tl-menu" role="menu" data-testid="tl-show-menu">
               {[
-                ['handoffs', 'Hand-offs'],
+                ['handoffs', 'Role calls and notes'],
                 ['questions', 'Questions and answers'],
               ].map(([key, label]) => (
                 <label key={key} className="tl-check">
@@ -606,12 +557,16 @@ export function TimelineTab({
           onClick={() => setTable(!table)}
           aria-pressed={table}
         >
+          <Icon size={14} color="currentColor">
+            <path d="M4 5h16v14H4zM4 10h16M10 5v14" />
+          </Icon>
           Table
         </button>
         <div className="tl-menuwrap">
           <MenuSelect<RangeChoice>
             variant="button"
             label="Range"
+            prefix="Range:"
             testId="tl-range"
             icon={<CalendarIcon />}
             value={day ? 'day' : preset}
@@ -661,7 +616,7 @@ export function TimelineTab({
       )}
       {data.truncated && (
         <div className="at-hint">
-          Showing the newest 500 hand-offs. Narrow the range or pick one ticket to see the rest.
+          Showing the newest 500 events. Narrow the range or pick one ticket to see the rest.
         </div>
       )}
       {data.groupedHarder && !data.truncated && (
@@ -670,10 +625,10 @@ export function TimelineTab({
         </div>
       )}
 
-      {data.range === '7d' && !day && !scope ? (
-        <DayBands data={data} onPick={(since, until) => setDay({ since, until })} />
-      ) : table ? (
+      {table ? (
         <EventTable data={data} names={names} onPick={(p) => setSelected(p)} />
+      ) : data.range === '7d' && !day && !scope ? (
+        <DayBands data={data} onPick={(since, until) => setDay({ since, until })} />
       ) : empty ? (
         <EmptyRange
           data={data}
@@ -684,22 +639,6 @@ export function TimelineTab({
         />
       ) : (
         <div className="tl-stage">
-          {scope && !scopeBar && (
-            <div className="tl-scope-head" data-testid="tl-scope-head">
-              <span className="tl-tchip">
-                <i />
-                <span>{scope}</span>
-              </span>
-              <b>{data.tickets[scope]?.title ?? ''}</b>
-              <span className="at-hint">scoped timeline · {scopedWho(lifelines)}</span>
-              <span style={{ flex: 1 }} />
-              {actions.onOpenStory && (
-                <button type="button" className="tl-btn" onClick={() => actions.onOpenStory?.(scope)}>
-                  Open ticket flow
-                </button>
-              )}
-            </div>
-          )}
           <TimelineStrip
             data={data}
             axis={axis}
@@ -781,7 +720,7 @@ export function TimelineTab({
                 onHover={(p, at) => setHover(p && at ? { pick: p, x: at.x, y: at.y } : null)}
                 hidden={hidden}
                 ticketOf={ticketOf}
-                scoped={!!scope}
+                scoped={!!scope && !scopeIsStory}
                 fresh={fresh}
               />
             </div>
@@ -806,31 +745,6 @@ export function TimelineTab({
       <span className="tl-keyhint at-hint-sm">Tab moves between marks · Enter opens the inspector · Esc closes it</span>
     </div>
   );
-}
-
-const PEOPLE = (
-  <path d="M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 20c0-3.5 3-6 6-6s6 2.5 6 6M16 5a3.5 3.5 0 0 1 0 7M18 14c2 .8 3 2.6 3 5" />
-);
-
-function Check() {
-  return (
-    <Icon size={14} color="#2E6F40">
-      {ICONS.check}
-    </Icon>
-  );
-}
-
-/** "Dev, Tester, Reviewer and you": the lifelines of a scoped Timeline, in words. */
-function scopedWho(lifelines: TimelineLifeline[]): string {
-  const ais = lifelines.filter((l) => l.kind === 'ai').map((l) => l.name);
-  const you = lifelines.some((l) => l.kind === 'you');
-  const all = you ? [...ais, 'you'] : ais;
-  if (all.length <= 1) return all.join('');
-  return `${all.slice(0, -1).join(', ')} and ${all[all.length - 1]}`;
-}
-
-function isLive(data: Timeline, ticketId: string): boolean {
-  return data.live.some((x) => x.ticketId === ticketId);
 }
 
 /** The strip of what is happening now, one chip per live run; a click scrolls to the run. */
@@ -922,6 +836,7 @@ function DayBands({ data, onPick }: { data: Timeline; onPick: (since: string, un
     days.set(d.toDateString(), { start: d, runs: 0, failed: 0, long: 0, hours: new Array(24).fill(0) });
   }
   for (const b of data.bars) {
+    if (b.role) continue; // a role's call is part of its lead's run
     const at = new Date(ms(b.queuedAt) ?? 0);
     const d = days.get(at.toDateString());
     if (!d) continue;
@@ -992,6 +907,7 @@ function EventTable({
   names: Map<string, string>;
   onPick: (p: Pick) => void;
 }) {
+  // the same events as the arrows, oldest first (design AiTimelineCases I, 10)
   const rows = [
     ...data.arrows.map((a) => ({
       at: a.at,
@@ -1001,15 +917,6 @@ function EventTable({
       ticket: a.ticketId ?? '',
       dur: a.waitS != null ? lengthText(a.waitS * 1000) : '',
       pick: { type: 'arrow', id: a.id } as Pick,
-    })),
-    ...data.bars.map((b) => ({
-      at: b.startedAt ?? b.queuedAt ?? '',
-      from: names.get(b.memberId) ?? b.memberId,
-      to: '',
-      kind: `${b.label ?? `run #${b.number}`} ${b.state.replace('_', ' ')}`,
-      ticket: b.ticketId,
-      dur: durationOf(b),
-      pick: { type: 'bar', id: b.id } as Pick,
     })),
   ].sort((x, y) => x.at.localeCompare(y.at));
   return (
@@ -1040,12 +947,6 @@ function EventTable({
       </table>
     </div>
   );
-}
-
-function durationOf(b: TimelineBar): string {
-  const a = ms(b.startedAt);
-  const z = ms(b.endedAt) ?? Date.now();
-  return a ? lengthText(z - a) : '';
 }
 
 // ---------------------------------------------------------------------------
@@ -1093,12 +994,9 @@ function barTone(b: TimelineBar): Tone {
 
 function tokensLine(b: TimelineBar): { text: string; strong?: string }[] {
   if (b.role) return []; // a role's tokens are part of the run's
-  if (!b.tokensIn && !b.tokensOut)
-    return b.metered ? [] : [{ strong: 'Not metered', text: ': a local runner reports no cost' }];
-  const t = `${Math.round(b.tokensIn / 1000)}k tokens in, ${Math.round(b.tokensOut / 1000)}k out`;
-  return b.metered
-    ? [{ text: `${t} · $${b.costUsd.toFixed(2)}` }]
-    : [{ text: t }, { strong: 'Not metered', text: ': a local runner reports no cost' }];
+  if (!b.tokensIn && !b.tokensOut) return [];
+  // users are on a subscription: tokens say how much it used, a price would not mean anything
+  return [{ text: `${Math.round(b.tokensIn / 1000)}k tokens in, ${Math.round(b.tokensOut / 1000)}k out` }];
 }
 
 function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifeline>, now: number): Facts | null {
@@ -1135,7 +1033,7 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
     if (b.endedReason && b.endKind !== 'ok') lines.push({ text: b.endedReason });
     return {
       who: people.get(b.memberId),
-      title: `${who(b.memberId)} · ${b.label ?? `run #${b.number}`}`,
+      title: `${who(b.memberId).replace(/\s*\(.*\)\s*$/, '')} · ${b.label ?? `run #${b.number}`}`,
       chip: { text: cap1(endWord(b)), tone: barTone(b) },
       ticketId: b.ticketId,
       ticketText: ticketTitle(b.ticketId),
@@ -1259,7 +1157,7 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
     title: 'AI paused',
     lines: [
       {
-        text: `By ${p.by ?? 'someone'} at ${clock(ms(p.from) ?? 0)}${p.to ? ` · resumed ${clock(ms(p.to) ?? 0)}${p.resumedBy ? ` by ${p.resumedBy}` : ''}` : ''}`,
+        text: `${p.by ? `By ${p.by} at` : 'Paused at'} ${clock(ms(p.from) ?? 0)}${p.to ? ` · resumed ${clock(ms(p.to) ?? 0)}${p.resumedBy ? ` by ${p.resumedBy}` : ''}` : ''}`,
       },
       ...(p.reason ? [{ text: `Reason: “${p.reason}”` }] : []),
       { text: 'The time inside the band is counted as paused: it is not waiting for you and not a bottleneck.' },
@@ -1284,18 +1182,22 @@ function endWord(b: TimelineBar): string {
       return 'stopped by a person';
     case 'pause_all':
       return 'stopped by the pause';
-    case 'budget':
-      return 'held back by a budget';
+    case 'limit':
+      return 'held back by the usage limit';
     default:
-      return b.state.replace('_', ' ');
+      return b.state === 'needs_input' ? 'waiting for you' : b.state.replace('_', ' ');
   }
 }
 
 /** The small square with an AI's initials and colours. */
 function Avatar({ l, size = 18 }: { l: TimelineLifeline; size?: number }) {
   const look = lookOf(l);
-  const words = l.name.trim().split(/\s+/);
-  const ini = (words.length > 1 ? words[0][0] + words[1][0] : l.name.slice(0, 2)).toUpperCase();
+  // "Dev (Backend team)" is the role Dev: the initials are the role's
+  const words = l.name
+    .replace(/\s*\(.*\)\s*$/, '')
+    .trim()
+    .split(/\s+/);
+  const ini = (words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)).toUpperCase();
   return (
     <span
       className="tl-avatar"
@@ -1514,12 +1416,14 @@ function Inspector({
                 {lengthText((ms(b.endedAt) ?? now) - (ms(b.startedAt) ?? now))}
               </span>
             )}
-            <span className="tl-fact">
-              <Icon size={12} color="#5B6B60">
-                <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
-              </Icon>
-              step {b.steps}
-            </span>
+            {b.steps > 0 && (
+              <span className="tl-fact">
+                <Icon size={12} color="#5B6B60">
+                  <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
+                </Icon>
+                step {b.steps}
+              </span>
+            )}
             {!b.role && (b.tokensIn > 0 || b.tokensOut > 0) && (
               <span className="tl-fact">
                 <Icon size={12} color="#5B6B60">
@@ -1528,13 +1432,6 @@ function Inspector({
                 {Math.round(b.tokensIn / 1000)}k in / {Math.round(b.tokensOut / 1000)}k out
               </span>
             )}
-            <span className="tl-fact" hidden={!!b.role}>
-              <Icon size={12} color="#5B6B60">
-                <path d="M3 12V4h8l10 10-8 8z" />
-                <circle cx="7.5" cy="8.5" r="1.2" />
-              </Icon>
-              {b.metered ? `$${b.costUsd.toFixed(2)}` : 'Not metered'}
-            </span>
           </div>
           {data.tickets[b.ticketId] && <div className="at-hint">{data.tickets[b.ticketId].title}</div>}
           {f.lines
@@ -1644,11 +1541,6 @@ function Inspector({
             Open the ticket
           </button>
         )}
-        {f.ticketId && actions.onOpenStory && (
-          <button type="button" className="tl-btn" onClick={() => actions.onOpenStory?.(f.ticketId as string)}>
-            Open ticket flow
-          </button>
-        )}
         {f.pageId && (
           <button type="button" className="tl-btn primary" onClick={() => actions.onOpenDocsPage(f.pageId as string)}>
             {f.review ? 'Review changes' : 'Open the page'}
@@ -1663,7 +1555,7 @@ function Legend() {
   // the glyph takes the colour the design gives it in the legend (report back is the darker grey here)
   const items: { k: Parameters<typeof arrowColor>[0]; t: string; c?: string }[] = [
     { k: 'assign', t: 'assigned' },
-    { k: 'handoff', t: 'hand-off (dashed and moving while under way)' },
+    { k: 'handoff', t: 'role call (dashed and moving while under way)' },
     { k: 'note', t: 'note from one team to another' },
     { k: 'report', t: 'report back (dotted)', c: '#5B6B60' },
     { k: 'ask', t: 'asks you' },

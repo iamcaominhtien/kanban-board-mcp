@@ -10,16 +10,7 @@ export type RunState =
 export const ACTIVE_STATES: RunState[] = ['queued', 'starting', 'running', 'needs_input'];
 
 export interface AiStatus {
-  code:
-    | 'not_logged_in'
-    | 'runner_missing'
-    | 'rate_limited'
-    | 'paused_all'
-    | 'paused'
-    | 'running'
-    | 'idle'
-    | 'removed'
-    | 'not_ready';
+  code: 'not_logged_in' | 'runner_missing' | 'rate_limited' | 'paused_all' | 'paused' | 'running' | 'idle' | 'removed';
   label: string;
   detail: string | null;
   ticketId?: string;

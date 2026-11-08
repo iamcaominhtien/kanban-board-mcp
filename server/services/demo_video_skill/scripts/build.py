@@ -114,6 +114,7 @@ async def main(a):
         # ---- intro: the banner shows while the app loads under it
         starts = {}
         starts[0] = now(); voice_ev.append((0, starts[0] + 0.25)); sfx_ev.append(("chime", 0.3))
+        await js(f"__cap({scenes[0]['cap']!r})")   # the intro card leaves the caption band free: the words read show there too
         await js(f"__prog({1/len(scenes)},100)")
         await loc(sc["ready"]).wait_for(timeout=30000)
         await until(0.25 + dur[0] + 0.8)

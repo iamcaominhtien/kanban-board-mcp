@@ -310,7 +310,7 @@ async def _fixes(
                     "severity": "fix",
                     "weight": len(rs),
                     "title": f"{tid} failed {len(rs)} times",
-                    "evidence": f"{len(rs)} runs of {name(team_id)} on {tid} failed or timed out. Most often: “{reasons[:140]}”.",
+                    "evidence": f"{len(rs)} runs of {name(team_id)} on {tid} failed or timed out. Most often: “{_reason(reasons)}”.",
                     "suggestion": "Read the last run: the ticket may be too big, or missing something the team needs.",
                     "tickets": [tid],
                     "team_id": team_id,
@@ -510,6 +510,14 @@ def _sentence(
     return text
 
 
+def _reason(text: str, limit: int = 140) -> str:
+    """A run's end reason for a sentence: no closing full stop of its own, cut with an ellipsis, not mid-word."""
+    t = " ".join((text or "").split()).rstrip(".")
+    return (
+        t if len(t) <= limit else t[: limit - 1].rsplit(" ", 1)[0].rstrip(",;: ") + "…"
+    )
+
+
 async def health(session: AsyncSession, project_id: str, range_key: str = "7d") -> dict:
     """The Health page: a verdict, five measures with the change since the range before, a row per team, what to fix."""
     key = range_key if range_key in RANGES else "7d"
@@ -700,6 +708,8 @@ async def health(session: AsyncSession, project_id: str, range_key: str = "7d") 
             "quality": prev_total["quality"]["value"],
             "run_median_s": prev_total["speed"]["run_median_s"],
             "usd": prev_total["cost"]["usd"],
+            "priced_runs": prev_total["cost"]["priced_runs"],
+            "tokens": prev_total["cost"]["tokens"],
             "runs": len(prev_runs),
         },
         "teams": sorted(rows.values(), key=lambda r: (-r["runs"], r["name"])),

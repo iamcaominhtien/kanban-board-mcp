@@ -7,7 +7,7 @@ export function fmtDuration(seconds: number | null | undefined): string {
   const m = Math.floor(s / 60);
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')}` : ''}`;
+  if (h < 24) return `${h} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')} min` : ''}`;
   return `${Math.floor(h / 24)} d`;
 }
 
@@ -80,4 +80,34 @@ export function deltaOf(
   const mag = Math.abs(rounded);
   const body = kind === 'pts' ? `${mag} pts` : kind === 'seconds' ? `${mag} min` : `$${mag.toFixed(2)}`;
   return { text: `${sign}${body} vs previous`, better: better === 'up' ? value > 0 : value < 0 };
+}
+
+/** "just now", "20 min ago", "3 h ago", "yesterday", else the date ("Nov 6"): when something happened. */
+export function whenAgo(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return '';
+  const seconds = Math.max(0, (Date.now() - at.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} h ago`;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (at.toDateString() === yesterday.toDateString()) return 'yesterday';
+  return at.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+/** The first non-empty line of a report, without Markdown marks, cut to `limit` characters (as Recent does on the server). */
+export function firstLine(text: string | null | undefined, limit = 200): string {
+  for (const raw of (text ?? '').split('\n')) {
+    const line = raw
+      .trim()
+      .replace(/^[#>*\-•\s]+/, '')
+      .replace(/\*\*/g, '')
+      .replace(/`/g, '')
+      .replace(/\[\[(?:[^\]|]+\|)?([^\]]+)\]\]/g, '$1')
+      .trim();
+    if (line) return line.length <= limit ? line : `${line.slice(0, limit - 1).trimEnd()}…`;
+  }
+  return '';
 }
