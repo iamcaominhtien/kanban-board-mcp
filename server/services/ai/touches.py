@@ -446,7 +446,7 @@ async def collect(
         ):
             continue
         if run.state in RUN_ENDED and run.ended_at and run.ended_at <= m.at:
-            continue  # sent to a run that had ended: it started a new run, counted below as that run's touch
+            continue  # sent to a run that had ended: it only started a new run, which is not a touch
         if any(
             who == m.peer
             and abs(
