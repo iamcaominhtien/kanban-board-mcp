@@ -8,8 +8,6 @@ import {
 } from '../../api/notifications';
 import { useProjects } from '../../api/projects';
 import type { NotificationFamily, NotificationFilter } from '../../types/notifications';
-import { NeedsFilterBar } from './NeedsFilterBar';
-import { applyNeedsFilter, type NeedsFilter } from './needsFilters';
 import { NotificationRow, type RowActionHandler } from './NotificationRow';
 import { EmptyState, LoadingRows, OfflineNotice } from './NotificationStates';
 import { Icon, groupByDay, rowKeyAction } from './notificationUi';
@@ -21,7 +19,7 @@ import styles from './AllNotificationsPage.module.css';
 const KINDS: { id: NotificationFamily; label: string }[] = [
   { id: 'needs', label: 'Needs you' },
   { id: 'info', label: 'For information' },
-  { id: 'ai', label: 'From AI members' },
+  { id: 'ai', label: 'From AI teams' },
   { id: 'people', label: 'From people' },
   { id: 'docs', label: 'Docs' },
   { id: 'schedules', label: 'Schedules' },
@@ -60,7 +58,6 @@ export function AllNotificationsPage({
 }>) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<NotificationFilter>('all');
-  const [needsFilter, setNeedsFilter] = useState<NeedsFilter>('all');
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [days, setDays] = useState(7);
@@ -93,7 +90,7 @@ export function AllNotificationsPage({
     return m;
   }, [all]);
   const inProject = projectId ? all.filter((r) => r.projectId === projectId) : all;
-  const rows = filter === 'needs' ? applyNeedsFilter(inProject, needsFilter) : inProject;
+  const rows = inProject;
   // grouped by the time the page is sorted by: the last activity
   const groups = useMemo(() => groupByDay(rows, Date.now(), (r) => r.updatedAt), [rows]);
   const ordered = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
@@ -183,7 +180,6 @@ export function AllNotificationsPage({
           <option value={90}>Last 90 days</option>
         </select>
       </div>
-      {filter === 'needs' && <NeedsFilterBar rows={inProject} value={needsFilter} onChange={setNeedsFilter} />}
       <div className={styles.content}>
         <div className={styles.list} ref={scroller}>
           {offline && <OfflineNotice at={list.dataUpdatedAt || null} onRetry={() => void list.refetch()} />}
@@ -194,7 +190,7 @@ export function AllNotificationsPage({
               title={filter === 'all' && !q && !family && !projectId ? 'No notifications yet' : 'Nothing matches'}
               text={
                 filter === 'all' && !q && !family && !projectId
-                  ? 'When an AI member needs an answer, a run fails or a page is published, it shows up here.'
+                  ? 'When an AI team needs an answer, a run fails or a page is published, it shows up here.'
                   : 'Try another filter or a longer period.'
               }
             />

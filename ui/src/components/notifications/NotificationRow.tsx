@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type Ref } from 'react';
 import type { Project } from '../../types';
 import type { NotificationRow as Row } from '../../types/notifications';
-import { DiagnosisBlock } from './DiagnosisBlock';
-import { isBoardFault } from './needsFilters';
 import {
   Icon,
   avatarColors,
@@ -224,7 +222,7 @@ function ProjectChip({ project, fire }: Readonly<{ project: Project; fire: Fire 
   );
 }
 
-/** The chips under a row's text: the AI member, the ticket, the page, the project. */
+/** The chips under a row's text: the AI team, the ticket, the page, the project. */
 function RowChips({
   row,
   actors,
@@ -565,12 +563,6 @@ export function NotificationRow({
       <div className={styles.main}>
         <div className={styles.head}>
           <div className={`${styles.title} ${f.unread || f.open ? '' : styles.titleQuiet}`}>{row.title}</div>
-          {row.needs && !row.done && isBoardFault(row) && (
-            <span className={`${styles.chip} ${styles.chipFault}`}>Board fault</span>
-          )}
-          {row.needs && !row.done && !isBoardFault(row) && typeof row.data?.verdict === 'string' && (
-            <span className={`${styles.chip} ${styles.chipPm}`}>PM could not settle it</span>
-          )}
           <span className={styles.time}>{relTime(rowTime(row), now)}</span>
         </div>
         {f.body && <div className={styles.body}>{f.body}</div>}
@@ -590,8 +582,6 @@ export function NotificationRow({
             </span>
           </div>
         )}
-
-        <DiagnosisBlock row={row} />
 
         {answering && !row.done && (
           <AnswerBox

@@ -9,7 +9,7 @@ import { currentActor, runAction } from './notificationUi';
 const POLL_MS = 30_000;
 const ERROR_KINDS = new Set(['run_failed', 'run_stopped_memory', 'offline', 'auto_trip', 'account_signed_out']);
 
-/** Failures toast as errors; a question, an approval, a block or a mention as warnings. */
+/** Failures toast as errors; a question or a mention as warnings. */
 export function toastVariantFor(kind: string): ToastVariant {
   return ERROR_KINDS.has(kind) ? 'error' : 'warning';
 }
@@ -110,13 +110,11 @@ function showRowToast(c: ToastContext, row: NotificationRow, feed: Feed) {
 }
 
 /** Decisions a toast under the cursor must never offer as its one button: they act at once on something unread. */
-const NOT_FROM_A_TOAST = new Set(['approve', 'deny', 'retry', 'dismiss']);
+const NOT_FROM_A_TOAST = new Set(['retry', 'dismiss']);
 /** The toast's one action per kind: the safe way in (read first, then decide), never the decision itself. */
 const TOAST_ACTION: Record<string, string> = {
-  approval: 'review',
   run_failed: 'open_run_log',
   run_stopped_memory: 'open_run_log',
-  blocked: 'change_permission',
 };
 
 /** The one action a Needs you toast offers for this row, or none when every action is a decision. */
