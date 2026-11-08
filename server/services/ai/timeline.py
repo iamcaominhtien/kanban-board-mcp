@@ -79,23 +79,32 @@ def role_label(agent_type: str) -> str:
     return words[:1].upper() + words[1:]
 
 
+# The three roles the design draws (AiTimeline, AiTeam board 7) have their own colour in the Map and the Timeline
+NAMED_ROLE_COLORS = {"dev": "#2F6FB0", "reviewer": "#7C5CD6", "qa": "#0F8B8D"}
+
+
 def _role_color(agent_type: str) -> str:
+    named = NAMED_ROLE_COLORS.get((agent_type or "").strip().lower())
+    if named:
+        return named
     return ROLE_COLORS[sum(ord(c) for c in agent_type or "agent") % len(ROLE_COLORS)]
 
 
 def end_kind(r: AiRun) -> str | None:
     """How a finished run ended, in the words the diagram draws: ok, failed, memory (stopped by the system over the RAM
-    limit), timeout, stopped (a person), pause_all, budget; None while it is live."""
+    limit), timeout, stopped (a person), pause_all, limit (the account's usage limit was reached); None while it is live."""
     if r.state == "finished":
         return "ok"
     if r.state == "failed":
         if r.stop_code == "memory":
             return "memory"
+        if r.stop_code == "rate_limited":
+            return "limit"
         return "timeout" if "timed out" in (r.ended_reason or "").lower() else "failed"
     if r.state == "cancelled":
         if (r.ended_reason or "").startswith("Pause all"):
             return "pause_all"
-        return "budget" if r.stop_code == "budget" else "stopped"
+        return "stopped"
     return None
 
 
@@ -162,7 +171,7 @@ def _call_bar(
         "state": ("running" if end is None else "finished")
         if kind in (None, "ok")
         else r.state,
-        "trigger": "hand-off",
+        "trigger": "role call",
         "autopilot": False,
         "queued_at": span["start"],
         "started_at": span["start"],
@@ -384,9 +393,16 @@ async def timeline(
         tid = by_name.get((name or "").strip().lower())
         return tid if tid and tid != receiver else None
 
+    def add_sender(sender: str, receiver: str) -> None:
+        """A team that wrote a note is drawn to the left of the team that got it (the note runs left to right)."""
+        if receiver in used:
+            used.insert(used.index(receiver), sender)
+        else:
+            used.append(sender)
+
     def lane_name(team_id: str, role: str | None) -> str:
         team = teams[team_id][0].name
-        many = len(used) > 1
+        many = len(shown) > 1
         if role is None:
             return team if many else "Lead"
         return f"{role_label(role)} ({team})" if many else role_label(role)
@@ -427,7 +443,7 @@ async def timeline(
             "retry",
         ) or (r.trigger == "ai_message" and from_team):
             if from_team and from_team not in used:
-                used.append(from_team)
+                add_sender(from_team, r.member_id)
             arrows.append(
                 _arrow(
                     f"{r.id}:assign",
@@ -542,7 +558,7 @@ async def timeline(
                 continue  # the instruction that started the run is the assign arrow
             from_team = sender_team(m.peer, r.member_id)
             if from_team and from_team not in used:
-                used.append(from_team)
+                add_sender(from_team, r.member_id)
             arrows.append(
                 _arrow(
                     m.id,

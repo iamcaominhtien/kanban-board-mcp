@@ -13,7 +13,7 @@ import type { Ticket } from '../../../types';
 /**
  * The ticket's AI activity view as the canvas design draws it (design/source/AiTicketWork, AiResources and
  * AiTimelineCases), in the order it had on main: the run going now, its restart notice and Resources strip, then the
- * ticket's Timeline under "Open in Timeline". The design's own mock numbers; connecting it to the board comes later.
+ * ticket's Timeline under "Open in Flow". The design's own mock numbers; connecting it to the board comes later.
  *
  * TODO(connect to data): the old code on `main` does this for real; port from it, see the table in `./mock.ts`.
  */
@@ -45,7 +45,7 @@ export function AiActivityDesign({
           data-testid="open-in-timeline"
           onClick={onOpenTimeline}
         >
-          Open in Timeline
+          Open in Flow
         </button>
         <TimelineTab
           projectId={projectId}

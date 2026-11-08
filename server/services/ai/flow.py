@@ -110,6 +110,41 @@ async def flow_map(
     run_ids = [r.id for r in runs]
     runs_by_id = {r.id: r for r in runs}
 
+    # notes: the receiver's run is what records one, so a view of one team (or of one ticket) also reads the runs other
+    # teams started on a note from a team in view; they feed the note edges only, never the takes or the tickets
+    note_runs = list(runs)
+    # runs of other teams read only for the notes the team in view sent them
+    extra_ids: set[str] = set()
+    if team_id and team_id in teams:
+        mine_name = teams[team_id][0].name.strip().lower()
+        extra = (
+            await session.exec(
+                select(AiRun)
+                .where(
+                    AiRun.project_id == project_id,
+                    AiRun.kind == "team",
+                    col(AiRun.trigger).in_(NOTE_TRIGGERS),
+                    AiRun.member_id != team_id,
+                )
+                .order_by(col(AiRun.queued_at).desc())
+                .limit(MAX_RUNS)
+            )
+        ).all()
+        have = set(run_ids)
+        added = [
+            r
+            for r in extra
+            if r.id not in have
+            and r.member_id in teams
+            and (r.started_by or "").strip().lower() == mine_name
+            and (a is None or (parse_iso(r.ended_at) or now) >= a)
+            and (b is None or (parse_iso(r.queued_at) or now) <= b)
+        ]
+        note_runs += added
+        extra_ids = {r.id for r in added}
+    note_run_ids = [r.id for r in note_runs]
+    note_runs_by_id = {r.id: r for r in note_runs}
+
     # roles each team called in these runs (a call is one stretch of work; the count is what the lead used them for)
     roles: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     if run_ids:
@@ -182,7 +217,7 @@ async def flow_map(
         e["text"] = text[:160]
         e["at"] = at
 
-    for r in runs:
+    for r in note_runs:
         sender = by_name.get((r.started_by or "").strip().lower())
         queued = parse_iso(r.queued_at)
         in_window = queued is not None and (
@@ -195,20 +230,22 @@ async def flow_map(
             and in_window
         ):
             add_note(sender, r.member_id, r.ticket_id, "", r.queued_at)
-    if run_ids:
+    if note_run_ids:
         for m in (
             await session.exec(
                 select(AiRunMessage).where(
-                    col(AiRunMessage.run_id).in_(run_ids),
+                    col(AiRunMessage.run_id).in_(note_run_ids),
                     AiRunMessage.direction == "in",
                 )
             )
         ).all():
-            r = runs_by_id[m.run_id]
+            r = note_runs_by_id[m.run_id]
             sender = by_name.get((m.peer or "").strip().lower())
             at = parse_iso(m.at)
             if not sender or sender == r.member_id or at is None:
                 continue
+            if r.id in extra_ids and sender != team_id:
+                continue  # another team's run, read for this team's notes only: a third team's note is not this view's
             if (a is not None and at < a) or (b is not None and at > b):
                 continue
             started = parse_iso(r.queued_at)
