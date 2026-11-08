@@ -1,5 +1,7 @@
 # KBM-37: design vs code, frame by frame
 
+> **Snapshot, not kept up to date.** This is the table written before KBM-37 was coded, against `6f6dd69`. "Code now" is that code, not the code after the PR. It can be deleted once KBM-37 is merged.
+
 Working table written **before** coding (canvas `1794110641-1323`; source files `design/source/AiBoardAssistant.dc.html`, `AiBoardWave3.dc.html`, `AiEverywhere.dc.html`; the PNGs and the docs were read next to them). "Code now" is branch `claude/ai-team-architecture-7a1efc` at `6f6dd69`.
 
 ## AiBoardAssistant
