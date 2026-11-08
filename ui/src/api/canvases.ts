@@ -43,6 +43,8 @@ export interface CanvasBoard {
   /** The height is to be measured from the page (the editor does it once and clears this). */
   fit?: boolean;
   createdBy?: string;
+  /** The AI team that saved this board last (a person saving it clears this). */
+  aiSavedBy?: string;
 }
 export interface CanvasNote {
   id: string;
@@ -135,7 +137,7 @@ export interface CanvasComment {
   author: string;
   body: string;
   mentions: string[];
-  ai: { member?: string; canPropose?: boolean } | null;
+  ai: { member?: string } | null;
   isAi: boolean;
   createdAt: string;
   editedAt: string | null;
@@ -167,14 +169,6 @@ export interface CanvasThread {
   resolvedAt: string | null;
   comments: CanvasComment[];
   byAi: boolean;
-  /** Only in the answer to a new comment or reply: what became of each AI member it mentioned. */
-  aiDeliveries?: AiDelivery[];
-}
-export interface AiDelivery {
-  memberId: string;
-  result: 'job' | 'notified' | 'refused' | 'not_delivered';
-  jobId?: string;
-  reason?: string;
 }
 
 export interface CanvasVersion {
@@ -509,17 +503,14 @@ export async function addThread(
     y?: number;
     page?: string | null;
     anchor?: PinAnchor | null;
-    /** What an @mentioned AI member does: answer (ask), answer and propose the change (suggest), or nothing (notify). */
-    aiIntent?: AiIntent;
   },
 ) {
   return (await client.post<CanvasThread>(`/canvases/${id}/threads`, body)).data;
 }
 /** Reply in a comment thread. */
-export async function replyThread(threadId: string, body: string, aiIntent: AiIntent = 'ask') {
-  return (await client.post<CanvasThread>(`/canvases/threads/${threadId}/replies`, { body, aiIntent })).data;
+export async function replyThread(threadId: string, body: string) {
+  return (await client.post<CanvasThread>(`/canvases/threads/${threadId}/replies`, { body })).data;
 }
-export type AiIntent = 'ask' | 'suggest' | 'notify';
 /** Resolve or reopen a thread. */
 export async function setThreadStatus(threadId: string, status: 'resolved' | 'open') {
   return (

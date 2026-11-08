@@ -32,7 +32,7 @@ interface MenuProps {
 }
 
 /**
- * The board menu: Edit (takes the lock), Ask AI, Rename, Size, Duplicate, Replace content, Download, Copy link, Delete.
+ * The board menu: Edit (takes the lock), Rename, Size, Duplicate, Replace content, Download, Copy link, Delete.
  * @param props - The board and what each item does.
  */
 export function BoardMenu(p: MenuProps) {

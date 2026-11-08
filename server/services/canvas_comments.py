@@ -1,7 +1,7 @@
 """Comments on a canvas: pinned to a frame (the pin moves with it) or to a point of the plane, in threads that can be
 resolved. They behave like Docs comments and belong to the canvas, so they follow it when it moves to Docs.
 
-An AI member comments under its own name and can offer a proposal; it never resolves a person's thread.
+An AI team comments under its own name; it never resolves a person's thread.
 """
 
 import json

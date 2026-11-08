@@ -1626,7 +1626,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 return (
                   <div
                     key={b.id}
-                    className={`${styles.board} ${selected ? styles.boardSel : ''}`}
+                    className={`${styles.board} ${selected ? styles.boardSel : ''} ${b.aiSavedBy ? styles.boardAi : ''}`}
                     style={{ left: sx(b.x), top: sy(b.y), width: bw, height: bh, pointerEvents: 'none' }}
                   >
                     <div
@@ -1657,6 +1657,15 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       <span>
                         {Math.round(b.w)} x {Math.round(b.h)}
                       </span>
+                      {b.aiSavedBy && (
+                        <span
+                          className={styles.aiChip}
+                          title={`${b.aiSavedBy} changed this board. Saving it yourself clears the mark.`}
+                          data-testid="canvas-ai-chip"
+                        >
+                          {b.aiSavedBy}
+                        </span>
+                      )}
                     </div>
                     {(b.kind === 'empty' || (b.kind === 'html' && !b.content)) && (
                       <div className={styles.emptyLabel} data-testid="board-empty-label">
@@ -2265,8 +2274,8 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 aria-label="Comment"
               />
               <div className={styles.hint} style={{ margin: '4px 0 8px' }}>
-                Type @ to mention a person or an AI member. Click a board to pin at that spot (it moves with the board),
-                or click the plane for a pin that stays put. Esc leaves the tool.
+                Type @ to mention a person or a team. Click a board to pin at that spot (it moves with the board), or
+                click the plane for a pin that stays put. Esc leaves the tool.
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setPinDraft(null)}>

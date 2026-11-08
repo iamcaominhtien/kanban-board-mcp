@@ -9,7 +9,6 @@ from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from pydantic import BaseModel, Field
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
@@ -497,7 +496,6 @@ class NewThread(BaseModel):
     y: float = 0.5
     page: Optional[str] = None
     anchor: Optional[dict[str, Any]] = None
-    ai_intent: str = "ask"
 
 
 @router.post("/canvases/{canvas_id}/threads", status_code=201)
@@ -516,23 +514,13 @@ async def post_thread(
         anchor=body.anchor,
     )
     await _changed()
-    out["ai_deliveries"] = await _deliver(session, canvas_id, out, body.ai_intent)
     return out
 
 
 class Body(BaseModel):
-    """Comment text. ``ai_intent`` is what an @mentioned AI member does: ask (answer), suggest (answer and propose a
-    change to the frame) or notify (nothing runs)."""
+    """Comment text. An @mention is only stored with the comment; nothing is sent to the person or team named."""
 
     body: str
-    ai_intent: str = "ask"
-
-
-async def _deliver(
-    session: AsyncSession, canvas_id: str, thread: dict[str, Any], intent: str
-) -> list[dict[str, Any]]:
-    """Wake the AI members the newest comment of a thread mentions (see ``canvas_replies``)."""
-    return []
 
 
 @router.post("/canvases/threads/{thread_id}/replies", status_code=201)
@@ -540,8 +528,6 @@ async def post_reply(thread_id: str, body: Body, session: Session) -> dict[str, 
     """Reply in a thread."""
     out = await comments.reply(session, thread_id, body.body)
     await _changed()
-    c = await svc._canvas(session, out["canvas_id"])  # noqa: SLF001
-    out["ai_deliveries"] = await _deliver(session, c.id, out, body.ai_intent)
     return out
 
 
@@ -575,47 +561,3 @@ async def del_comment(comment_id: str, session: Session) -> dict[str, Any]:
     out = await comments.delete_comment(session, comment_id)
     await _changed()
     return out
-
-
-# --- AI proposals -----------------------------------------------------------------------------------------------
-
-
-class Decision(BaseModel):
-    """Accept and/or reject frames of a proposal."""
-
-    accept: list[str] | str = "all"
-    reject: list[str] | str | None = None
-
-
-class AskBody(BaseModel):
-    """Ask AI about frames (Ctrl J)."""
-
-    board_ids: list[str]
-    request: str
-    member_id: Optional[str] = None
-
-
-async def _same_ask(
-    session: AsyncSession, canvas_id: str, body: AskBody, member_id: str | None
-) -> Any:
-    """The job still working on exactly this ask (same canvas, frames, request and AI member), else None."""
-    from models import DocsAiJob
-    from services.ai.store import loads
-
-    rows = await session.exec(
-        select(DocsAiJob).where(
-            DocsAiJob.kind == "canvas",
-            DocsAiJob.state.in_(("queued", "running")),  # type: ignore[attr-defined]
-            DocsAiJob.member_id == member_id,
-        )
-    )
-    for j in rows.all():
-        res = loads(j.result, {}) or {}
-        mine = res.get("input") or res.get("working_on") or {}
-        if (
-            mine.get("canvas_id") == canvas_id
-            and sorted(mine.get("board_ids") or []) == sorted(body.board_ids)
-            and (mine.get("request") or "")[:200] == body.request[:200]
-        ):
-            return j
-    return None

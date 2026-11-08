@@ -10,9 +10,9 @@ Rules the design (design/screens/canvas.md) asks for, and where they live:
 * Layout changes (move, resize, notes, arrows, labels) need no lock and merge **per item**: every item carries the
   canvas revision it was last changed in, a save names the revision of each item it changes, and only an item changed
   twice conflicts (``save``).
-* A board's content changes under a **lock** (``canvas_locks``); an AI member only ever *proposes* (``canvas_proposals``).
+* A board's content changes under a **lock** (``canvas_locks``); an AI team saves a board's new files straight into it (``put_board_content``), and is refused while a person holds the lock.
 * Boards are open web pages: their files are kept exactly as given and run like a file opened in a browser.
-* Versions are made on Done, on accepting a proposal, and every 10 minutes for a canvas that is a Docs page.
+* Versions are made on Done, on restore, and every 10 minutes for a canvas that is a Docs page.
 """
 
 import asyncio
@@ -137,7 +137,6 @@ def embed_line(canvas_id: str, title: str, board_id: str | None = None) -> str:
 _ID_FORMS = {
     "canvas": re.compile(r"cv_[0-9a-f]{8}"),
     "board": re.compile(r"b_[0-9a-f]{8}"),
-    "proposal": re.compile(r"cp_[0-9a-f]{10}"),
 }
 
 
@@ -188,11 +187,6 @@ def board_dir(canvas_id: str, board_id: str, rev: int) -> Any:
     return _join(
         canvas_dir(canvas_id), "boards", _id_part("board", board_id), f"r{int(rev)}"
     )
-
-
-def proposal_dir(canvas_id: str, proposal_id: str) -> Any:
-    """Folder of the files an AI member proposed."""
-    return _join(canvas_dir(canvas_id), "proposals", _id_part("proposal", proposal_id))
 
 
 def safe_path(raw: str) -> str:
@@ -578,7 +572,6 @@ async def get_canvas(session: AsyncSession, canvas_id: str) -> dict[str, Any]:
     out["doc"] = read_doc(c.id)
     out["locks"] = canvas_locks.locks_of(c.id)
     out["open_comments"] = await canvas_comments.open_count(session, c.id)
-    out["proposals_open"] = 0
     return out
 
 
@@ -1598,6 +1591,7 @@ async def put_board_content(
     release: bool = True,
     author: str | None = None,
     reason: str = "board",
+    ai_team: str | None = None,
 ) -> dict[str, Any]:
     """Save a frame's new content (the person editing it holds the lock).
 
@@ -1608,8 +1602,10 @@ async def put_board_content(
         entry: The page to show.
         base_content_rev: The content revision the editor started from; a different one means somebody saved meanwhile.
         release: Let go of the lock after saving (Save to canvas).
-        author: Who is credited (an accepted AI proposal credits the person who accepted it).
+        author: Who is credited.
         reason: Internal tag for the audit trail.
+        ai_team: The AI team that saves this change. The frame keeps its name (``ai_saved_by``) so the plane can show
+            who changed it; a save by a person clears it.
 
     Raises:
         DocsError: 423 ``board_locked`` if somebody else holds the frame; 409 ``board_conflict``; 413/422.
@@ -1649,6 +1645,10 @@ async def put_board_content(
     board["kind"] = "html"
     board["content"] = content
     board["rev"] = new_rev
+    if ai_team:
+        board["ai_saved_by"] = ai_team[:80]
+    else:
+        board.pop("ai_saved_by", None)
     c.rev = new_rev - 1
     _touch(c, doc)
     write_doc(c.id, doc)

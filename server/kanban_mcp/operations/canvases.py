@@ -1,9 +1,9 @@
 """Canvas operations: boards of HTML, pictures, Sketches and Diagrams with notes and comments on one plane.
 
-An agent reads a canvas as data (frames, notes, arrows, comments, open proposals), comments on it, *creates* a canvas
-(or adds frames to one) from local folders of web pages, and *proposes* a changed frame from a local folder. It never
-changes an existing frame itself and never takes a lock from a person: a person sees before and after and accepts or
-rejects (docs/specs/canvas.md).
+An agent reads a canvas as data (frames, notes, arrows, comments, locks), comments on it, *creates* a canvas (or adds
+frames to one) from local folders of web pages, and *changes* an HTML frame from a local folder. The change is saved at
+once (files it leaves out stay). It never takes a lock from a person: a frame a person is editing is refused
+(docs/specs/canvas.md).
 """
 
 import json
@@ -206,7 +206,7 @@ async def read_canvas(
         ),
     ] = None,
 ) -> dict:
-    """Read a canvas: {id, title, rev, version, markdown, pages, boards, notes, arrows, labels, comments, proposals, locks}."""
+    """Read a canvas: {id, title, rev, version, markdown, pages, boards, notes, arrows, labels, comments, locks}."""
     from services import canvas_comments
 
     async with common.async_session() as session:
@@ -221,7 +221,6 @@ async def read_canvas(
                 )
             doc = out["doc"]
             threads = await canvas_comments.list_threads(session, canvas_id)
-            props: list = []
             result = {
                 "id": out["id"],
                 "title": out["title"],
@@ -299,18 +298,6 @@ async def read_canvas(
                         ],
                     }
                     for t in threads
-                ],
-                "proposals": [
-                    {
-                        "id": p["id"],
-                        "author": p["author"],
-                        "note": p["note"],
-                        "boards": [
-                            {"board_id": c["board_id"], "status": c["status"]}
-                            for c in p["changes"]
-                        ],
-                    }
-                    for p in props
                 ],
                 "locks": out["locks"],
             }
@@ -688,6 +675,8 @@ async def update_canvas_frame(
     ] = None,
 ) -> dict:
     """Change an HTML frame from a folder; the canvas keeps the version before it. Returns {board_id, name, content_rev, files, note}. A frame a person is editing is locked: the error names them, try again later."""
+    from services.ai import guard
+
     root = _ai_folder(path)
     files = _read_folder(root)
     if not files:
@@ -716,6 +705,7 @@ async def update_canvas_frame(
                 files={**current, **files},
                 entry=content.get("entry"),
                 reason="ai",
+                ai_team=guard.current().member_name if guard.current() else "AI",
             )
         except svc_canvases.DocsError as exc:
             raise _error(exc) from exc
@@ -767,11 +757,7 @@ async def comment_on_canvas(
         try:
             c = await svc_canvases._canvas(session, canvas_id)  # noqa: SLF001
             await _same_project(c.project_id)
-            ai = (
-                {"member": guard.current().member_name, "can_propose": bool(board_id)}
-                if guard.current()
-                else None
-            )
+            ai = {"member": guard.current().member_name} if guard.current() else None
             if not await _ai_may_read(session, c):
                 raise ValueError(
                     "That canvas is a page hidden from AI, so it was left alone."

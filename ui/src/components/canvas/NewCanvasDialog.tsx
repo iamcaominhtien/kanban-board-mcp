@@ -15,8 +15,7 @@ interface Props {
 }
 
 /**
- * The "New canvas" dialog: a name, where it is saved, and what it starts with (one empty frame, HTML or picture files,
- * or screens described to the AI).
+ * The "New canvas" dialog: a name, where it is saved, and what it starts with (one empty frame, or HTML or picture files).
  * @param props.savedIn - Where it belongs (read only).
  * @param props.defaultName - Suggested name.
  * @param props.busy - Creating.

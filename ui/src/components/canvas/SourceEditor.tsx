@@ -18,6 +18,17 @@ import { widthFor } from './planeMath';
 import { dataUrl, previewDocument } from './sourcePreview';
 import styles from './Canvas.module.css';
 
+/** "Started 6 minutes ago. " for the lock card, or nothing when the time is not known. */
+function startedAgo(since?: string): string {
+  const t = since ? new Date(since).getTime() : NaN;
+  if (Number.isNaN(t)) return '';
+  const mins = Math.max(0, Math.floor((Date.now() - t) / 60000));
+  if (mins < 1) return 'Started just now. ';
+  if (mins < 60) return `Started ${mins} minute${mins === 1 ? '' : 's'} ago. `;
+  const hrs = Math.floor(mins / 60);
+  return `Started ${hrs} hour${hrs === 1 ? '' : 's'} ago. `;
+}
+
 interface Props {
   canvasId: string;
   canvasTitle: string;
@@ -271,7 +282,7 @@ export function SourceEditor({
           <div className={styles.dialogBody}>
             <div>
               {blocker?.code === 'board_locked'
-                ? 'You can still look, comment and move the board. Edit is off until they save or leave.'
+                ? `${startedAgo(blocker.since)}You can still look, comment and move the board. Edit is off until they save or leave.`
                 : blocker?.message}
             </div>
             {blocker?.code === 'board_locked' && (

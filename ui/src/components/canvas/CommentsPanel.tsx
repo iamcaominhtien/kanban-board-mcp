@@ -105,17 +105,9 @@ export function CommentsPanel(props: Props) {
       if (!next.has('open') && !next.has('resolved')) next.add('open');
       return next;
     });
-  /** Tell the person what became of the AI members a comment mentioned. */
-  const announce = (t: unknown) => {
-    for (const d of (t as CanvasThread | undefined)?.aiDeliveries ?? []) {
-      if (d.result === 'job') toast.success('AI is on it', 'Its answer appears in the thread.');
-      else if (d.result === 'refused' || d.result === 'not_delivered')
-        toast.error('Not sent to the AI', d.reason ?? '');
-    }
-  };
   const run = async (fn: () => Promise<unknown>) => {
     try {
-      announce(await fn());
+      await fn();
       refresh();
     } catch (e) {
       toast.error('Comment failed', canvasFailure(e).message);
@@ -157,7 +149,7 @@ export function CommentsPanel(props: Props) {
           <textarea
             className={styles.input}
             rows={2}
-            placeholder={`Comment on “${nameOf(boardId)}”… Write @Name to ask a person or an AI member`}
+            placeholder={`Comment on “${nameOf(boardId)}”… Type @ to mention a person or a team`}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             data-testid="canvas-new-comment"
