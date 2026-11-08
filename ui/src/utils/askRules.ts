@@ -33,7 +33,7 @@ export type AskView =
   | { kind: 'answer'; result: AskResult }
   | { kind: 'not_covered'; result: AskResult }
   | { kind: 'disagree'; result: AskResult }
-  | { kind: 'error'; code: string; title: string; detail: string; action: 'usage' | 'members' | 'retry' | null };
+  | { kind: 'error'; code: string; title: string; detail: string; action: 'members' | 'retry' | null };
 
 /** Which result the palette shows for an ask job (or the error the request ended with). */
 export function askView(
@@ -47,27 +47,26 @@ export function askView(
   return { kind: result.verdict, result } as AskView;
 }
 
-/** The states of docs-ai-care G: no AI member, over budget, paused, anything else. */
+/** The states of docs-ai-care I: no AI team, the team that answers is paused, anything else. */
 export function askError(code: string, detail: string): AskView {
   switch (code) {
-    case 'over_budget':
-      return {
-        kind: 'error',
-        code,
-        title: 'AI is paused until tomorrow',
-        detail: 'The daily cap was reached. Docs AI shares the Board AI’s budget. Reading and editing still work.',
-        action: 'usage',
-      };
     case 'no_member':
       return {
         kind: 'error',
         code,
         title: 'No AI is set up for Docs',
-        detail: 'Pick an AI member that can read this project.',
+        detail: 'Pick an AI team in Settings › Docs, or add one in Members.',
         action: 'members',
       };
     case 'paused':
-      return { kind: 'error', code, title: 'AI is paused', detail, action: 'members' };
+      // one sentence in the place of the answer (docs-ai-care I): the server words it
+      return {
+        kind: 'error',
+        code,
+        title: detail || 'The team that answers is paused.',
+        detail: '',
+        action: 'members',
+      };
     default:
       return { kind: 'error', code, title: 'Couldn’t answer', detail, action: 'retry' };
   }

@@ -41,7 +41,7 @@ const GROUPS: Item[][] = [
     { action: 'history', label: 'Page history', icon: 'i39', kbd: 'H' },
     { action: 'export', label: 'Export as Markdown', icon: 'i43' },
   ],
-  [{ action: 'give-ai', label: 'Give to an AI member…', icon: 'i28' }],
+  [{ action: 'give-ai', label: 'Give to an AI team…', icon: 'i28' }],
   [{ action: 'delete', label: 'Delete page', icon: 'i12', kbd: 'Del', danger: true }],
 ];
 
