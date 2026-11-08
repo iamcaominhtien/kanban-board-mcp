@@ -7,21 +7,23 @@ import { GroupHead, Ico, TeamRow } from './settingsUi';
 
 /** Section A of design/screens/ai-project-settings.md (Running the teams) and the runner card of section F. */
 
-/** Save a partial change of the project's AI settings; true when it was saved, the error of the last try otherwise. */
+/** The text of a failure as a sentence that ends with a full stop. */
+function sentence(text: string): string {
+  const t = text.trim();
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
+
+/** Save a partial change of the project's AI settings: null when it was saved, the failure as a sentence otherwise. */
 function useSave(projectId: string) {
-  const [error, setError] = useState<string | null>(null);
   const patch = useAiMutation((body: Partial<AiSettings>) => aiApi.updateSettings(projectId, body));
-  const save = async (body: Partial<AiSettings>): Promise<boolean> => {
-    setError(null);
+  return async (body: Partial<AiSettings>): Promise<string | null> => {
     try {
       await patch.mutateAsync(body);
-      return true;
+      return null;
     } catch (e) {
-      setError(extractError(e));
-      return false;
+      return sentence(extractError(e));
     }
   };
-  return { save, error, clearError: () => setError(null) };
 }
 
 /** One quiet line under a row: an icon and a sentence. */
@@ -41,8 +43,9 @@ const MODE_NOTE: Record<PermissionMode, string> = {
 
 /** The permission mode of new runs and the deny list that holds in both modes. */
 export function RunRules({ projectId, settings }: { projectId: string; settings: AiSettings }) {
-  const mode = useSave(projectId);
-  const rules = useSave(projectId);
+  const save = useSave(projectId);
+  const [modeError, setModeError] = useState<string | null>(null);
+  const [denyError, setDenyError] = useState<string | null>(null);
   const [deny, setDeny] = useState(settings.denyList.join('\n'));
   const [saved, setSaved] = useState(false);
   // a failed save keeps the lines typed; only a change that comes from the server replaces them
@@ -54,7 +57,10 @@ export function RunRules({ projectId, settings }: { projectId: string; settings:
       .filter(Boolean);
     if (list.join('\n') === settings.denyList.join('\n')) return;
     setSaved(false);
-    setSaved(await rules.save({ denyList: list }));
+    setDenyError(null);
+    const failure = await save({ denyList: list });
+    setDenyError(failure);
+    setSaved(failure === null);
   };
   return (
     <section className="to-sec" data-setting="ai-rules" data-testid="ai-rules">
@@ -73,9 +79,11 @@ export function RunRules({ projectId, settings }: { projectId: string; settings:
                 aria-checked={settings.permissionMode === m.id}
                 title={m.hint}
                 className={`tw-chipbtn ${settings.permissionMode === m.id ? 'tw-chipbtn-on' : ''}`}
-                onClick={() =>
-                  settings.permissionMode !== m.id && void mode.save({ permissionMode: m.id as PermissionMode })
-                }
+                onClick={async () => {
+                  if (settings.permissionMode === m.id) return;
+                  setModeError(null);
+                  setModeError(await save({ permissionMode: m.id as PermissionMode }));
+                }}
                 data-testid={`settings-permission-${m.id}`}
               >
                 {m.label}
@@ -84,35 +92,40 @@ export function RunRules({ projectId, settings }: { projectId: string; settings:
           </div>
         </TeamRow>
         <Note icon="info">{MODE_NOTE[settings.permissionMode] ?? MODE_NOTE.bypass}</Note>
-        {mode.error && <div className="ai-error-text">{mode.error}</div>}
+        {modeError && (
+          <div className="ai-error-text" role="alert">
+            Could not save the permission mode: {modeError}
+          </div>
+        )}
         <TeamRow
           title="Deny list"
           hint="One Claude Code tool rule per line, such as Bash(git push --force:*). A run never uses what is listed, in either mode."
         >
           <textarea
-            className={`ai-textarea to-mono ${rules.error ? 'ai-input-error' : ''}`}
+            className={`ai-textarea to-mono ${denyError ? 'ai-input-error' : ''}`}
             style={{ width: 320, minHeight: 80 }}
             aria-label="Deny list"
-            aria-invalid={!!rules.error}
+            aria-invalid={!!denyError}
+            aria-describedby={denyError ? 'deny-error' : undefined}
             placeholder="One rule per line"
             value={deny}
             onChange={(e) => {
               setDeny(e.target.value);
               setSaved(false);
-              rules.clearError();
+              setDenyError(null);
             }}
             onBlur={() => void saveDeny()}
             data-testid="settings-deny-list"
           />
         </TeamRow>
-        {saved && !rules.error && (
+        {saved && !denyError && (
           <div className="ai-ok-text" role="status" data-testid="deny-saved">
             Saved. Takes effect on the next run.
           </div>
         )}
-        {rules.error && (
-          <div className="ai-error-text" role="alert" data-testid="deny-error">
-            Could not save the deny list: {rules.error} Your lines are kept in the field.
+        {denyError && (
+          <div className="ai-error-text" role="alert" id="deny-error" data-testid="deny-error">
+            Could not save the deny list: {denyError} Your lines are kept in the field.
           </div>
         )}
         <Note icon="lock">
@@ -133,6 +146,9 @@ function LimitInput({
   step,
   width = 110,
   testId,
+  integer = true,
+  nullable = true,
+  describedBy,
   onSave,
   onFocusChange,
 }: {
@@ -144,6 +160,11 @@ function LimitInput({
   step?: string;
   width?: number;
   testId?: string;
+  /** Whole numbers only (everything but the money caps). */
+  integer?: boolean;
+  /** An empty field means "no limit" (null); when false an empty field puts the old value back. */
+  nullable?: boolean;
+  describedBy?: string;
   /** Resolves true when the value was saved. Gets null for an empty field. */
   onSave: (n: number | null) => Promise<boolean>;
   onFocusChange?: (on: boolean) => void;
@@ -154,8 +175,9 @@ function LimitInput({
     onFocusChange?.(false);
     if (draft == null) return;
     const text = draft.trim();
-    const n = text === '' ? null : Number(text);
-    if (n !== null && (!Number.isFinite(n) || n < min)) {
+    const raw = text === '' ? null : Number(text);
+    const n = raw !== null && integer ? Math.round(raw) : raw;
+    if ((n === null && !nullable) || (n !== null && (!Number.isFinite(n) || n < min))) {
       setDraft(null);
       return;
     }
@@ -177,6 +199,7 @@ function LimitInput({
       style={{ width }}
       aria-label={label}
       aria-invalid={failed}
+      aria-describedby={failed ? describedBy : undefined}
       placeholder={placeholder}
       data-testid={testId}
       value={draft ?? (value == null ? '' : String(value))}
@@ -193,21 +216,20 @@ function LimitInput({
 
 /** Caps and budgets for the whole project. The money caps show only once a run has reported a real cost (C-12). */
 export function LimitSettings({ projectId, settings }: { projectId: string; settings: AiSettings }) {
-  const { save, error, clearError } = useSave(projectId);
+  const save = useSave(projectId);
   const [compactFocus, setCompactFocus] = useState(false);
   // the row whose save failed shows the error under itself
-  const [failedRow, setFailedRow] = useState<string | null>(null);
+  const [failure_, setFailure] = useState<{ row: string; text: string } | null>(null);
   const wrap = (row: string, body: (n: number | null) => Partial<AiSettings>) => async (n: number | null) => {
-    clearError();
-    setFailedRow(null);
-    const ok = await save(body(n));
-    if (!ok) setFailedRow(row);
-    return ok;
+    setFailure((f) => (f?.row === row ? null : f));
+    const text = await save(body(n));
+    if (text) setFailure({ row, text });
+    return text === null;
   };
   const failure = (row: string) =>
-    failedRow === row && error ? (
-      <div className="ai-error-text" role="alert" data-testid="limits-error">
-        Could not save the limits: {error} The field keeps what you typed.
+    failure_?.row === row ? (
+      <div className="ai-error-text" role="alert" id={`limit-error-${row}`} data-testid="limits-error">
+        Could not save the limits: {failure_.text} The field keeps what you typed.
       </div>
     ) : null;
   const compact = typeof settings.ops.autoCompactPct === 'number' ? settings.ops.autoCompactPct : 0;
@@ -226,6 +248,8 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
               <LimitInput
                 value={settings.boardDailyCap}
                 label="Daily cap ($)"
+                integer={false}
+                describedBy="limit-error-daily"
                 placeholder="No cap"
                 min={0}
                 step="0.5"
@@ -242,6 +266,8 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
               <LimitInput
                 value={settings.boardMonthlyBudget}
                 label="Monthly budget ($)"
+                integer={false}
+                describedBy="limit-error-monthly"
                 placeholder="No budget"
                 min={0}
                 step="1"
@@ -256,6 +282,7 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
           <LimitInput
             value={settings.boardRunsPerDay}
             label="Runs a day"
+            describedBy="limit-error-runs"
             placeholder="No limit"
             min={1}
             onSave={wrap('runs', (n) => ({ boardRunsPerDay: n }))}
@@ -266,10 +293,12 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
           <LimitInput
             value={settings.boardMaxParallel}
             label="Runs at once on this project"
+            nullable={false}
+            describedBy="limit-error-atonce"
             testId="settings-at-once"
             min={1}
             width={64}
-            onSave={wrap('atonce', (n) => (n == null ? {} : { boardMaxParallel: n }))}
+            onSave={wrap('atonce', (n) => ({ boardMaxParallel: n ?? 1 }))}
           />
           <span className="ai-hint">at a time</span>
         </TeamRow>
@@ -281,10 +310,12 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
           <LimitInput
             value={memory}
             label="Memory of one run (MB)"
+            nullable={false}
+            describedBy="limit-error-memory"
             testId="settings-memory-limit"
             min={0}
             width={90}
-            onSave={wrap('memory', (n) => (n == null ? {} : { runMemoryLimitMb: n }))}
+            onSave={wrap('memory', (n) => ({ runMemoryLimitMb: n ?? 0 }))}
           />
           <span className="ai-hint">{memory === 0 ? 'MB (no limit)' : 'MB'}</span>
         </TeamRow>
@@ -300,6 +331,8 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
           <LimitInput
             value={compact}
             label="Auto-compact at (%)"
+            nullable={false}
+            describedBy="limit-error-compact"
             testId="settings-auto-compact"
             min={0}
             max={95}
@@ -347,8 +380,8 @@ export function RunnerCard() {
     <section className="to-sec" data-setting="ai-runner" data-testid="ai-runner">
       <div className="to-group">
         <GroupHead
-          title="Where runs happen"
-          hint="Runs happen on a computer where the desktop app is open. A team can still be asked when no runner is found: its tickets wait in the queue."
+          title="Runner and keep-awake"
+          hint="Runs happen on a computer where the desktop app is open. While a run needs that computer, a chip says whether it will be kept awake; when no runner is found, a team can still be asked and its tickets wait in the queue."
         />
         {!info.local ? (
           <div className="rn-card" data-testid="runner-other">
