@@ -7,7 +7,7 @@ export function fmtDuration(seconds: number | null | undefined): string {
   const m = Math.floor(s / 60);
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')}` : ''}`;
+  if (h < 24) return `${h} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')} min` : ''}`;
   return `${Math.floor(h / 24)} d`;
 }
 

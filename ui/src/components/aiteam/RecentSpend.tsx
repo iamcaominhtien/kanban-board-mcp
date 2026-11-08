@@ -32,9 +32,9 @@ export function RecentList({
     <section data-testid="at-recent" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <h2 className="at-h">Recent</h2>
       {q.isLoading ? (
-        <div className="at-empty">Loading…</div>
+        <div className="at-plain">Loading…</div>
       ) : runs.length === 0 ? (
-        <div className="at-empty">No run has ended yet.</div>
+        <div className="at-plain">No run has ended yet.</div>
       ) : (
         <div className="ai-card">
           {runs.map((r) => {

@@ -202,7 +202,7 @@ export function NeedsYou({
     return (
       <section data-testid="at-needs-you-empty" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <h2 className="at-h">Needs you</h2>
-        <div className="at-empty">Nothing waits for you.</div>
+        <div className="at-plain">Nothing waits for you.</div>
       </section>
     );
   }

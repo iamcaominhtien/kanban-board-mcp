@@ -64,15 +64,7 @@ export function HistoryTab({
                 key={r.id}
                 className="at-row"
                 style={{ cursor: 'pointer' }}
-                role="button"
-                tabIndex={0}
                 onClick={() => onRunChange(r.id)}
-                onKeyDown={(e) => {
-                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    onRunChange(r.id);
-                  }
-                }}
                 data-testid="history-row"
               >
                 {r.ticketId && (
@@ -80,7 +72,9 @@ export function HistoryTab({
                     <TicketChip id={r.ticketId} onOpen={onOpenTicket} />
                   </span>
                 )}
-                <b>{names.get(r.memberId) ?? 'Team'}</b>
+                <button type="button" className="at-runlink" onClick={() => onRunChange(r.id)} title="Open this run">
+                  {names.get(r.memberId) ?? 'Team'}
+                </button>
                 <span className="at-sub">#{r.number}</span>
                 <RunStateChip state={r.state} />
                 <span className="at-line at-sub" title={r.report?.summary || r.summary || r.instruction}>

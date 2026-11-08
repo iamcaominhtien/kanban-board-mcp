@@ -58,7 +58,7 @@ function Card({ name, sub, badge, activity, meter, ram, blocked, onOpenTicket, t
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span className="at-hint-sm" style={{ whiteSpace: 'nowrap' }}>
-                {fmtDuration(secondsSince(working.since))} so far · run #{working.number}
+                {working.since ? `${fmtDuration(secondsSince(working.since))} so far · ` : ''}run #{working.number}
               </span>
               {meter && working.contextUsed != null && working.contextWindow ? (
                 <ContextBar used={working.contextUsed} size={working.contextWindow} />

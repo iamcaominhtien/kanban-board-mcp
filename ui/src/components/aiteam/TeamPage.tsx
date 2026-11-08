@@ -166,7 +166,7 @@ export function TeamPage({
         </button>
       </div>
       <Header team={team} onOpenMember={onOpenMember} chips={chips} />
-      <section>
+      <section className="at-sec">
         <h2 className="at-h">Roles</h2>
         {activityQ.isError ? (
           <LoadError what="what the roles do" error={activityQ.error} onRetry={() => void activityQ.refetch()} />

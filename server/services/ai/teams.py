@@ -513,7 +513,8 @@ async def health_check() -> int:
 
 def status_of(member: Member, profile: AiTeam, runs: list[AiRun], settings) -> dict:
     """The one status a row shows, most blocking first."""
-    running = [r for r in runs if r.state in ("starting", "running")]
+    # a run that waits for an answer still holds the team's ticket: the card says Running, as the design draws it
+    running = [r for r in runs if r.state in ("starting", "running", "needs_input")]
     if member.kind == "ai_removed":
         return {"code": "removed", "label": "Removed", "detail": None}
     if profile.health == "not_logged_in":

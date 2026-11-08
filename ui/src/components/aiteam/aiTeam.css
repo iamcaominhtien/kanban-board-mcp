@@ -179,9 +179,7 @@
 .at-card-name {
   font-size: 14px;
   font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .at-card-body {
   min-height: 78px;
@@ -230,9 +228,14 @@
   color: #5b6b60;
   font-weight: 600;
 }
-.at-empty {
+.at-plain {
   font-size: 12.5px;
   color: #5b6b60;
+}
+.at-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .at-stepico {
   width: 22px;
@@ -328,6 +331,19 @@
 .at-row > b {
   font-weight: 600;
   white-space: nowrap;
+}
+.at-runlink {
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+.at-runlink:hover {
+  text-decoration: underline;
 }
 .at-sub {
   color: #5b6b60;

@@ -37,14 +37,14 @@ export function QuestionCard({ run, variant }: { run: QuestionRun; variant?: 'st
   const answer = useAiMutation((t: string) => aiApi.answer(run.id, t));
   useNow(30_000);
   if (!q) return null;
-  const value = choice === '__other' || !choice ? text : text ? `${choice}. ${text}` : choice;
-  const waiting = variant === 'strip' ? fmtDuration(secondsSince(q.askedAt)) : fmtElapsed(secondsSince(q.askedAt));
-  const name = team?.name ?? 'The team';
   const strip = variant === 'strip';
+  const value = choice === '__other' || !choice ? text : text ? `${choice}. ${text}` : choice;
+  const waiting = strip ? fmtDuration(secondsSince(q.askedAt)) : fmtElapsed(secondsSince(q.askedAt));
+  const name = team?.name ?? 'The team';
   return (
-    <div className={`tw-question${variant === 'strip' ? ' tw-question-strip' : ''}`} data-testid="ai-question-card">
+    <div className={`tw-question${strip ? ' tw-question-strip' : ''}`} data-testid="ai-question-card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {team && <AiAvatar color={team.color} size={variant === 'strip' ? 30 : 36} />}
+        {team && <AiAvatar color={team.color} size={strip ? 30 : 36} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: strip ? 14 : 15, fontWeight: 700 }}>{name} asks a question</div>
           <div style={{ fontSize: strip ? 11.5 : 12.5, color: strip ? '#5B6B60' : '#5B6F86' }}>
