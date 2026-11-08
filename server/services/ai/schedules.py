@@ -1,5 +1,5 @@
 """AI schedules (design/screens/ai-schedules.md, issue #153): an AI team works on a ticket at a set time, once or on
-repeat. At the time the board checks that the team can start (paused, budget, runner), then starts a normal run tagged
+repeat. At the time the board checks that the team can start (paused, budget, desktop app), then starts a normal run tagged
 `schedule`. The run's lead decides what is done and reports (the final JSON report); the board only follows the
 run: it stops one that goes over its time limit, starts a crashed one again within the retries, closes the slot with
 what the lead reported, and pauses a schedule that failed three times in a row. Defaults fail safe: when unsure, skip
@@ -243,7 +243,7 @@ async def _names(session, ids) -> dict[str, str]:
 async def summary_text(session, s: AiSchedule) -> str:
     """The plain-language "In short" line (C)."""
     names = await _names(session, [s.member_id, s.backup_member_id])
-    ai = names.get(s.member_id, "The AI")
+    ai = names.get(s.member_id, "The team")
     tzl = tz_label(s.tz)
     if s.kind == "once":
         at = _once_at(s)
@@ -266,11 +266,11 @@ async def summary_text(session, s: AiSchedule) -> str:
         when = when.replace("Every every day", "Every day") + f" ({tzl})"
     parts = [
         f"{when}, {ai} works on {s.ticket_id}.",
-        "Its lead decides when the work is done and reports it.",
+        "The lead decides what to do and reports.",
     ]
     if s.backup_member_id:
         parts.append(
-            f"If {ai} is unavailable, {names.get(s.backup_member_id, 'the backup AI')} runs it."
+            f"If {ai} is unavailable, {names.get(s.backup_member_id, 'the backup team')} runs it."
         )
     if s.kind == "repeat" and s.ends == "after" and s.ends_after:
         parts.append(f"It ends after {s.ends_after} runs.")
@@ -412,12 +412,12 @@ def _apply(s: AiSchedule, data: dict) -> None:
 async def availability(
     session, member_id: str | None, project_id: str
 ) -> tuple[bool, str | None]:
-    """Whether the AI can start now (paused, kill switch, connection, budget); the reason when not."""
+    """Whether the team can start now (paused, kill switch, connection, budget); the reason when not."""
     if not member_id:
-        return False, "No AI chosen"
+        return False, "No team chosen"
     member, profile = await get_profile(session, member_id)
     if member is None or profile is None or member.kind != "ai":
-        return False, "The AI member was removed"
+        return False, "The team was removed"
     settings = await get_settings(session, project_id)
     if settings.paused_all:
         return False, "AI is paused for this project"
@@ -431,13 +431,17 @@ async def availability(
     ):
         return False, {
             "key_invalid": f"{member.name}: API key invalid",
-            "not_logged_in": f"{member.name}: CLI not logged in",
-            "runner_missing": f"{member.name}: runner offline",
+            "not_logged_in": f"{member.name} is signed out",
+            "runner_missing": f"{member.name}: the desktop app is closed",
             "model_retired": f"{member.name}: model retired",
         }[profile.health]
     over = await budget.blocked(session, profile, settings, "schedule")
     if over:
-        return False, f"{member.name} is over its budget ({over[1]})"
+        label, reason = over
+        # a runs-a-day limit is not a budget: say what it is (design: "Scheduled runs per day used up (3 of 3); resets at 00:00")
+        if label.startswith("Runs per day"):
+            return False, reason
+        return False, f"{member.name} is over its budget ({reason})"
     return True, None
 
 
@@ -457,7 +461,7 @@ async def _slots_in_use(session, member_id: str) -> int:
 async def _running_tickets(
     session, member_id: str, states: list[str] | None = None
 ) -> list[str]:
-    """The tickets an AI has runs on, in the given run states (default: working now)."""
+    """The tickets a team has runs on, in the given run states (default: working now)."""
     rows = (
         await session.exec(
             select(AiRun).where(
@@ -497,7 +501,7 @@ async def assess(
         or member.project_id != s.project_id
         or member.kind != "ai"
     ):
-        add("error", "Pick an AI member of this project.", "member")
+        add("error", "Pick a team of this project.", "member")
     else:
         if profile.connection == "inbox":
             add(
@@ -513,7 +517,7 @@ async def assess(
                 "member",
             )
         elif ticket is not None:
-            add("ok", f"You may assign this AI to {ticket.id}", "permission")
+            add("ok", f"You may assign this team to {ticket.id}", "permission")
         ok, why = await availability(session, s.member_id, s.project_id)
         busy = await _slots_in_use(session, s.member_id)
         free = max(0, profile.max_parallel - busy)
@@ -523,45 +527,41 @@ async def assess(
             ahead = len(await _running_tickets(session, s.member_id, ["queued"]))
             add(
                 "warn",
-                f"{member.name} has no free slot. "
+                f"{member.name} has no free run. "
                 + (f"{', '.join(running[:2])} is running. " if running else "")
-                + f"This run queues at position #{ahead + 1} and starts when a slot frees. "
+                + f"This run queues at position #{ahead + 1} and starts when a run frees. "
                 f"Max wait {BUSY_MAX_WAIT_MIN} min, then it is skipped.",
                 "runner",
             )
         elif ok:
-            what = (
-                "Runner online now"
-                if profile.connection == "local"
-                else "Connected now"
-            )
+            what = f"{member.name} can start now"
             add(
                 "ok",
-                f"{what}, {free} of {profile.max_parallel} slot{'s' if profile.max_parallel != 1 else ''} free",
+                f"{what}, {free} of {profile.max_parallel} run{'s' if profile.max_parallel != 1 else ''} free",
                 "runner",
             )
         else:
             add(
                 "warn",
-                f"{why}. At the time it {'runs on the backup AI' if s.backup_member_id else 'follows the catch-up rule'}.",
+                f"{why}. At the time it {'runs on the backup team' if s.backup_member_id else 'follows the catch-up rule'}.",
                 "runner",
             )
         if profile.connection == "local":
             if s.catch_up == "run":
                 add(
                     "warn",
-                    f"Local runners run only while the board app is open. Catch-up is on ({s.catch_up_hours:g} h).",
+                    f"Teams run only while the desktop app is open. Catch-up is on ({s.catch_up_hours:g} h).",
                     "local",
                 )
             else:
                 add(
                     "warn",
-                    "Local runners run only while the board app is open. If it is closed at the time, the run is skipped.",
+                    "Teams run only while the desktop app is open. If it is closed at the time, the run is skipped.",
                     "local",
                 )
     if s.backup_member_id:
         if s.backup_member_id == s.member_id:
-            add("error", "The backup AI must be a different AI.", "backup")
+            add("error", "The backup team must be a different team.", "backup")
         else:
             bm, bp = await get_profile(session, s.backup_member_id)
             if (
@@ -572,7 +572,7 @@ async def assess(
             ):
                 add(
                     "error",
-                    "The backup AI must be an AI member of this project the board can start.",
+                    "The backup team must be a team of this project the board can start.",
                     "backup",
                 )
     lim = limits_of(s)
@@ -653,8 +653,8 @@ async def _overlaps(session, s: AiSchedule, now: datetime) -> list[dict]:
                 out.append(
                     {
                         "level": "warn",
-                        "text": f"{o.ticket_id} is scheduled for the same AI at {local:%H:%M} on "
-                        f"{DAY_NAMES[local.weekday()]}. It will queue.",
+                        "text": f"{o.ticket_id} is scheduled for the same team at {local:%H:%M} on "
+                        f"{DAY_NAMES[local.weekday()]}. It will wait for a free run.",
                         "key": "overlap",
                     }
                 )
@@ -663,13 +663,13 @@ async def _overlaps(session, s: AiSchedule, now: datetime) -> list[dict]:
 
 
 async def _offline_risk(session, s: AiSchedule, profile) -> str | None:
-    """B1 "Runner often offline at 02:00" under the next run: a local runner that missed two of its last six slots."""
+    """B1 "Desktop app often closed at 02:00" under the next run: a team that missed two of its last six starts."""
     if s.state != "active" or profile is None or profile.connection != "local":
         return None
     if not await _offline_history(session, s):
         return None
     at = s.time if s.kind == "repeat" else (s.run_at or "")[11:16]
-    return f"Runner often offline at {at}" if at else "Runner is often offline"
+    return f"Desktop app often closed at {at}" if at else "Desktop app is often closed"
 
 
 async def _offline_history(session, s: AiSchedule) -> list[dict]:
@@ -684,13 +684,17 @@ async def _offline_history(session, s: AiSchedule) -> list[dict]:
     missed = [
         r
         for r in rows
-        if r.catch_up or (r.state == "skipped" and "offline" in (r.note or ""))
+        if r.catch_up
+        or (
+            r.state == "skipped"
+            and ("closed" in (r.note or "") or "offline" in (r.note or ""))
+        )
     ]
     if len(missed) >= 2:
         return [
             {
                 "level": "warn",
-                "text": f"The runner was offline for {len(missed)} of its last {len(rows)} scheduled runs."
+                "text": f"The desktop app was closed for {len(missed)} of its last {len(rows)} scheduled runs."
                 + (
                     f" Catch-up is on ({s.catch_up_hours:g} h)."
                     if s.catch_up == "run"
@@ -950,7 +954,43 @@ async def history(
         )
     ).all()
     names = await _names(session, [r.member_id for r in rows])
-    return [run_to_dict(r, names) for r in rows]
+    # the lead's report of the slot's last run: what the history row and its open view show
+    last_ids = {r.id: (loads(r.run_ids, []) or [None])[-1] for r in rows}
+    wanted = [i for i in last_ids.values() if i]
+    runs = (
+        {
+            x.id: x
+            for x in (
+                await session.exec(select(AiRun).where(col(AiRun.id).in_(wanted)))
+            ).all()
+        }
+        if wanted
+        else {}
+    )
+    out = []
+    for r in rows:
+        d = run_to_dict(r, names)
+        d["report"] = _report_of(runs.get(last_ids[r.id] or ""))
+        out.append(d)
+    return out
+
+
+def _report_of(run: AiRun | None) -> dict | None:
+    """The lead's report on a run, trimmed for the schedule history: summary, open items, branch and PR."""
+    if run is None or run.state != "finished":
+        return None
+    rep = loads(run.report, {}) or {}
+    summary = str(rep.get("summary") or run.summary or "").strip()
+    if not summary and not rep.get("open_items"):
+        return None
+    return {
+        "status": str(rep.get("status") or "done"),
+        "summary": summary[:2000],
+        "open_items": [str(x)[:300] for x in (rep.get("open_items") or [])[:8]],
+        "branch": rep.get("branch"),
+        "pr_url": rep.get("pr_url"),
+        "run_id": run.id,
+    }
 
 
 async def detail(session, schedule_id: str) -> dict:
@@ -965,7 +1005,7 @@ async def detail(session, schedule_id: str) -> dict:
         "of": len(ended),
         "avg_s": int(sum(timed) / len(timed)) if timed else None,
         "cost": round(sum(r["cost_usd"] for r in runs), 4),
-        "metered": out["connection"] == "api_key",
+        "metered": any(r["cost_usd"] > 0 for r in runs),
     }
     out["runs"] = runs
     out["summary"] = await summary_text(session, s)
@@ -983,7 +1023,7 @@ async def detail(session, schedule_id: str) -> dict:
 
 
 async def week(session, project_id: str, start: datetime, days: int = 7) -> dict:
-    """Planned runs per AI in a range (B2): overlaps (will queue) and offline risk."""
+    """Planned runs per AI in a range (B2): overlaps (will queue) and the desktop-app-closed risk."""
     end = start + timedelta(days=days)
     rows = (
         await session.exec(
@@ -1036,7 +1076,7 @@ async def week(session, project_id: str, start: datetime, days: int = 7) -> dict
         ok, why = await availability(session, mid, project_id)
         members[mid] = {
             "id": mid,
-            "name": m.name if m else "Removed AI",
+            "name": m.name if m else "Removed team",
             "connection": p.connection if p else None,
             "max_parallel": p.max_parallel if p else 1,
             "available": ok,
@@ -1062,7 +1102,7 @@ async def week(session, project_id: str, start: datetime, days: int = 7) -> dict
                 members.get(mid, {}).get("connection") == "local"
                 and not members[mid]["available"]
             ):
-                it["risk"] = "Runner offline?"
+                it["risk"] = "App closed?"
     items.sort(key=lambda i: i["at"])
     return {
         "start": start.isoformat(),
@@ -1285,7 +1325,7 @@ async def _try_start(
     manual: bool = False,
     member_id: str | None = None,
 ) -> None:
-    """Start the slot's run when the AI can; otherwise wait, use the backup, ask or skip per the catch-up rule."""
+    """Start the slot's run when the team can; otherwise wait, use the backup, ask or skip per the catch-up rule."""
     now = now or datetime.now(UTC)
     async with database.async_session() as session:
         srun = await session.get(AiScheduleRun, srun_id)
@@ -1313,7 +1353,7 @@ async def _try_start(
                 s.id,
                 True,
                 s.created_by,
-                reason=f"{s.created_by} lost permission to assign this AI",
+                reason=f"{s.created_by} lost permission to assign this team",
             )
             return await _close(
                 srun_id,
@@ -1414,7 +1454,7 @@ async def _try_start(
     if chosen != s.member_id and not member_id:
         note = (
             note + " " if note else ""
-        ) + f"Ran on the backup AI, {names.get(chosen)}."
+        ) + f"Ran on the backup team, {names.get(chosen)}."
     await _set(
         srun_id,
         state="running",
@@ -1425,7 +1465,7 @@ async def _try_start(
         started_at=now_iso(),
         note=note,
     )
-    ai = names.get(chosen, "The AI")
+    ai = names.get(chosen, "The team")
     await _activity(
         s.ticket_id,
         f"started a scheduled run on {s.ticket_id} (schedule by {s.created_by})",
@@ -1484,7 +1524,7 @@ async def _close(
         if srun.note and srun.state == "running":
             note = (
                 f"{srun.note} {note or ''}".strip()
-            )  # keep how it started (catch-up, backup AI)
+            )  # keep how it started (catch-up, backup team)
         srun.state = state
         srun.note = note
         srun.ended_at = now_iso()
@@ -1586,12 +1626,12 @@ async def _follow(srun_id: str, now: datetime) -> None:
             await svc_runs.cancel(
                 run.id,
                 by="schedule",
-                reason=f"No free slot within {BUSY_MAX_WAIT_MIN} min",
+                reason=f"No free run within {BUSY_MAX_WAIT_MIN} min",
             )
             return await _close(
                 srun_id,
                 "skipped",
-                f"Skipped: no free slot within {BUSY_MAX_WAIT_MIN} min.",
+                f"Skipped: no free run within {BUSY_MAX_WAIT_MIN} min.",
                 notify="failed",
             )
         return
@@ -1790,7 +1830,7 @@ async def for_tickets(session, project_id: str) -> dict[str, dict]:
         elif s.id in waiting:
             item = {
                 "state": "missed",
-                "label": "Missed, waiting for runner"
+                "label": "Missed, waiting for the app"
                 if waiting[s.id].state == "waiting"
                 else "Late: run it?",
             }

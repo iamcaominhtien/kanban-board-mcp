@@ -269,21 +269,18 @@ export function ScheduleStateChip({ state }: { state: Schedule['state'] }) {
 export function SlotChip({
   state,
   failures,
-  verbose,
   catchUp,
 }: {
   state: SlotState;
   /** Failures in a row, shown as ×N on a failed chip. */
   failures?: number;
-  /** "Finished · passed" in the run history. */
-  verbose?: boolean;
   catchUp?: boolean;
 }) {
   switch (state) {
     case 'passed':
       return (
         <Pill tone="green" icon={<CheckCircleIcon size={11} />}>
-          {verbose ? 'Finished · passed' : 'Finished'}
+          Finished
         </Pill>
       );
     case 'partly':
@@ -313,7 +310,7 @@ export function SlotChip({
     case 'waiting':
       return (
         <Pill tone="amber" icon={<ClockIcon size={11} />}>
-          Waiting for runner
+          Waiting for the desktop app
         </Pill>
       );
     case 'ask':
@@ -404,7 +401,10 @@ export function scheduleLine(s: Schedule, opts: { tz?: boolean; ai?: boolean } =
   return parts.join(' · ');
 }
 
-/** What a member can be picked for: the board can start it. */
+/** The name of the CLI a team runs on. */
+export const PROVIDER_NAME: Record<string, string> = { 'claude-code': 'Claude Code' };
+
+/** What a team can be picked for: the board can start it. */
 export function canStart(m: AiTeam): boolean {
   return m.kind === 'ai';
 }

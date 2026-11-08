@@ -4,7 +4,7 @@ import { pullApi, usePullMutation, usePulls } from '../../../api/aiPulls';
 import { useProjectOps } from '../../../api/aiProjectOps';
 import { useTicket } from '../../../api/tickets';
 import { ago } from '../aiUi';
-import { BRANCH, BUBBLE, CI_TEXT, EXTERNAL, PullRules } from './pullParts';
+import { BRANCH, BUBBLE, CI_TEXT, EXTERNAL } from './pullParts';
 
 /** A pull request the board opened (design/screens/ai-board-wave3.md, J): CI state, red CI and review comments. */
 export function PullStatus({ ticketId }: { ticketId: string }) {
@@ -14,7 +14,6 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
   const ops = useProjectOps(projectId ?? '');
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
-  const [showRules, setShowRules] = useState(false);
   const poll = usePullMutation(projectId, () => pullApi.poll(projectId as string));
 
   const p = pulls.data?.find((x) => x.ticketId === ticketId);
@@ -83,8 +82,7 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
       </div>
       {unreachable && (
         <div className="ai-notice ai-notice-warn" role="alert" data-testid="pull-unreachable">
-          GitHub could not be reached ({p.lastError}). The state above is {checked}, not a green light; no rule fires on
-          stale data.
+          GitHub could not be reached ({p.lastError}). The state above is {checked}, not a green light.
         </div>
       )}
       {ops.data && !ops.data.github?.on && (
@@ -125,11 +123,14 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
             </div>
           ) : (
             <div style={{ fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-not-ours">
-              <b>{red.base ?? 'The base branch'} is red on the same check.</b> The failure is not this ticket’s, so
-              nobody is sent back.
+              <b>{red.base ?? 'The base branch'} is red on the same check.</b> The failure is not this ticket’s.
             </div>
           )}
-          {red.handledAt && <div className="ai-hint">Already given back {ago(red.handledAt)}.</div>}
+          {red.handledAt && (
+            <div className="ai-hint" data-testid="pull-given">
+              The board gave the failing check to the team {ago(red.handledAt)}.
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {red.url && (
               <a className="ai-btn" href={red.url} target="_blank" rel="noreferrer">
@@ -201,18 +202,6 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
           {error}
         </div>
       )}
-      <div>
-        <button
-          type="button"
-          className="ai-link"
-          aria-expanded={showRules}
-          onClick={() => setShowRules(!showRules)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          {showRules ? 'Hide' : 'Show'} the rule: pushing and replying
-        </button>
-      </div>
-      {showRules && <PullRules />}
     </div>
   );
 }

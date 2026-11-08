@@ -3,7 +3,7 @@ import { aiApi, useAiMutation } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AiSettings, AiTeam } from '../../types/ai';
 import { useToast } from '../Toast';
-import { PAUSE_COLOR, PauseGlyph, agoText, canResume, clockTime, pausedSummary } from './pausedUi';
+import { PAUSE_COLOR, PauseGlyph, agoText, canResume, clockTime, pausedSummary, sentence } from './pausedUi';
 
 /** The kill switch: Pause all AI stops every team of the project; Resume lifts it (design/screens/ai-paused.md). */
 
@@ -42,6 +42,7 @@ export function PauseAllButton({
               className="ai-pausebar-label"
               tabIndex={0}
               aria-label={`AI paused${since ? ` since ${since}` : ''}. ${pausedSummary(settings)}`}
+              title={pausedSummary(settings)}
               data-testid="ai-paused-label"
             >
               <PauseGlyph />
@@ -111,6 +112,7 @@ function PauseAllDialog({ projectId, running, onClose }: { projectId: string; ru
         className="ai-modal"
         style={{ width: 480 }}
         role="dialog"
+        aria-modal="true"
         aria-label="Pause all AI"
         data-testid="pause-all-dialog"
         onClick={(e) => e.stopPropagation()}
@@ -155,7 +157,11 @@ function PauseAllDialog({ projectId, running, onClose }: { projectId: string; ru
               maxLength={200}
             />
           </label>
-          {error && <div className="ai-error-text">{error}</div>}
+          {error && (
+            <div className="ai-error-text" role="alert">
+              Could not pause: {sentence(error)} Nothing was changed.
+            </div>
+          )}
         </div>
         <div className="ai-modal-foot">
           <span style={{ flex: 1 }} />
@@ -197,6 +203,7 @@ export function ResumeAllDialog({ projectId, onClose }: { projectId: string; onC
         className="ai-modal"
         style={{ width: 440 }}
         role="dialog"
+        aria-modal="true"
         aria-label="Resume AI"
         data-testid="resume-all-dialog"
         onClick={(e) => e.stopPropagation()}
@@ -207,7 +214,9 @@ export function ResumeAllDialog({ projectId, onClose }: { projectId: string; onC
         </div>
         {error && (
           <div className="ai-modal-body">
-            <div className="ai-error-text">{error}</div>
+            <div className="ai-error-text" role="alert">
+              {error}
+            </div>
           </div>
         )}
         <div className="ai-modal-foot">

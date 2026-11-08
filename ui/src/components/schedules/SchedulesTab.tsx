@@ -12,6 +12,7 @@ import type { Schedule, ScheduleRun, ScheduleWeek, WeekItem } from '../../types/
 import { AiAvatar, Toggle, useAiBoardState } from '../ai/aiUi';
 import { useToast } from '../Toast';
 import { TicketLine } from './MemberSelect';
+import { LoadError } from '../ai/aiUi';
 import { useSchedules } from './SchedulesContext';
 import {
   CalendarIcon,
@@ -27,6 +28,7 @@ import {
   fmtDuration,
   fmtNext,
   fmtSlot,
+  PROVIDER_NAME,
   zoneLabel,
 } from './schedulesUi';
 import { LineIcon } from '../ui/LineIcon';
@@ -52,7 +54,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
         <CalendarIcon size={22} />
       </div>
       <h3>No schedules yet</h3>
-      <p>Let an AI work on a ticket at night or on a regular day, and have another AI check it.</p>
+      <p>Let an AI team work on a ticket at night or on a regular day.</p>
       <button type="button" className="ai-btn ai-btn-primary" onClick={onNew}>
         <PlusIcon size={13} /> New schedule
       </button>
@@ -152,7 +154,7 @@ function ListHeader() {
   return (
     <div className={`${GRID} sc-thead`}>
       <span>SCHEDULE</span>
-      <span>AI</span>
+      <span>TEAM</span>
       <span>NEXT RUN</span>
       <span>LAST RUN</span>
       <span />
@@ -161,18 +163,19 @@ function ListHeader() {
 }
 
 function LocalNote({ items }: { items: Schedule[] }) {
-  const local = items.filter((s) => s.connection === 'local' && s.state !== 'ended');
-  if (!local.length) return null;
-  const hours = [...new Set(local.filter((s) => s.catchUp === 'run').map((s) => s.catchUpHours))];
-  const owners = [...new Set(local.map((s) => s.createdBy))];
+  // every team runs through the desktop app: the note shows while some schedule is still going to start
+  const live = items.filter((s) => s.connection !== 'inbox' && s.state !== 'ended');
+  if (!live.length) return null;
+  const hours = [...new Set(live.filter((s) => s.catchUp === 'run').map((s) => s.catchUpHours))];
+  const owners = [...new Set(live.map((s) => s.createdBy))];
   return (
     <div className="ai-notice ai-notice-slate sc-local" data-testid="local-note">
       <InfoIcon size={16} />
       <div>
-        <b>Local runners only run while the desktop app is open</b>
+        <b>Teams run while the desktop app is open</b>
         <div>
-          {local.length} of these schedules use a local runner. If it is offline at the time, the run starts when it is
-          back{hours.length === 1 ? ` (up to ${hours[0]} hour${hours[0] === 1 ? '' : 's'})` : ''}, then{' '}
+          If the app is closed at the time, the run starts when it is back
+          {hours.length === 1 ? ` (up to ${hours[0]} hour${hours[0] === 1 ? '' : 's'})` : ''}, then{' '}
           {owners.length === 1 ? owners[0] : 'its owner'} is told.
         </div>
       </div>
@@ -201,7 +204,7 @@ function HistoryTable({
       <div className="sc-hgrid sc-thead">
         <span>TIME</span>
         <span>SCHEDULE</span>
-        <span>AI</span>
+        <span>TEAM</span>
         <span>RESULT</span>
         <span>NOTE</span>
         <span style={{ textAlign: 'right' }}>TIME TAKEN</span>
@@ -224,7 +227,7 @@ function HistoryTable({
             </span>
             <span className="sc-ellipsis">{r.memberName ?? s?.memberName ?? ''}</span>
             <span>
-              <SlotChip state={r.state} verbose />
+              <SlotChip state={r.state} />
             </span>
             <span className="ai-hint sc-ellipsis" title={r.note ?? ''}>
               {r.note}
@@ -261,7 +264,7 @@ function WeekChip({ item, onOpen }: { item: WeekItem; onOpen: () => void }) {
     skipped: 'Skipped',
     cancelled: 'Cancelled',
     running: 'Running',
-    waiting: 'Waiting for runner',
+    waiting: 'Waiting for the desktop app',
     ask: 'Late: run it?',
   };
   return (
@@ -319,17 +322,18 @@ function WeekView({
     .filter((m) => !aiFilter || m.id === aiFilter)
     .filter((m) => items.some((i) => i.memberId === m.id));
   if (q.isLoading) return <span className="ai-spin" />;
+  if (q.isError) return <LoadError what="the week" error={q.error} onRetry={() => void q.refetch()} />;
   if (!rows.length)
     return (
       <div className="ai-card sc-empty" data-testid="week-empty">
         <h3>Nothing planned this week</h3>
-        <p>Runs show here one row per AI. Use the arrows to look at another week.</p>
+        <p>Runs show here one row per team. Use the arrows to look at another week.</p>
       </div>
     );
   return (
     <div className="ai-card sc-week" data-testid="week-view">
       <div className="sc-wgrid sc-thead">
-        <span>AI</span>
+        <span>TEAM</span>
         {days.map((d) => {
           const today = d.toDateString() === todayKey;
           return (
@@ -349,9 +353,7 @@ function WeekView({
                 {ai && <AiAvatar provider={ai.provider} size={24} />}
                 <b>{m.name}</b>
               </span>
-              <span className="ai-hint">
-                {m.connection === 'local' ? 'Local runner' : m.connection === 'api_key' ? 'API key' : ''}
-              </span>
+              <span className="ai-hint">{ai ? (PROVIDER_NAME[ai.provider] ?? ai.provider) : ''}</span>
             </div>
             {days.map((d) => (
               <div key={d.toISOString()} className={`sc-wcell ${d.toDateString() === todayKey ? 'sc-wtoday' : ''}`}>
@@ -370,7 +372,7 @@ function WeekView({
 }
 
 /**
- * The Schedules tab (B): a list of what runs next and how the last run went, a week view with one row per AI,
+ * The Schedules tab (B): a list of what runs next and how the last run went, a week view with one row per team,
  * and the history of every planned start.
  */
 export function SchedulesTab({ projectId, tickets }: { projectId: string; tickets: Ticket[] }) {
@@ -420,6 +422,12 @@ export function SchedulesTab({ projectId, tickets }: { projectId: string; ticket
     return (
       <div className="ai-root sc-page">
         <span className="ai-spin" />
+      </div>
+    );
+  if (list.isError)
+    return (
+      <div className="ai-root sc-page">
+        <LoadError what="the schedules" error={list.error} onRetry={() => void list.refetch()} />
       </div>
     );
   const empty = !all.length;
@@ -517,19 +525,19 @@ export function SchedulesTab({ projectId, tickets }: { projectId: string; ticket
         )}
         <span className="sc-grow" />
         {view === 'week' && (
-          <span className="ai-hint sc-tznote">One row per AI. Times are in your time zone ({tzNote}).</span>
+          <span className="ai-hint sc-tznote">One row per team. Times are in your time zone ({tzNote}).</span>
         )}
         {!empty && (
           <>
             <MenuSelect
-              label="Filter by AI"
+              label="Filter by team"
               testId="filter-ai"
               className="sc-filter"
               style={{ width: 150 }}
               menuWidth={220}
               value={aiFilter}
               options={[
-                { value: '', label: 'All AI' },
+                { value: '', label: 'All teams' },
                 ...aiOptions.map(([id, name]) => ({ value: id, label: name ?? aiMap.get(id)?.name ?? id })),
               ]}
               onChange={setAiFilter}

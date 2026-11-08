@@ -11,7 +11,16 @@ export function isInstalled(e: CatalogueEntry, plugins: Plugin[]): boolean {
 }
 
 /** "Suggested for a role": one list per role (B1). */
-export function CatalogueTab({ plugins, mcpInstalled }: { plugins: Plugin[]; mcpInstalled?: Set<string> }) {
+export function CatalogueTab({
+  plugins,
+  mcpInstalled,
+  onAdd,
+}: {
+  plugins: Plugin[];
+  mcpInstalled?: Set<string>;
+  /** “Add…”: open Add from a source with this suggestion filled in. */
+  onAdd?: (e: CatalogueEntry) => void;
+}) {
   const q = useCatalogue();
   const [role, setRole] = useState('');
 
@@ -57,7 +66,21 @@ export function CatalogueTab({ plugins, mcpInstalled }: { plugins: Plugin[]; mcp
                 {e.source ? ` · ${e.source}` : ''}
               </span>
             </div>
-            {done && <span className="ai-chip">Installed</span>}
+            {done ? (
+              <span className="ai-chip">Installed</span>
+            ) : (
+              onAdd &&
+              e.source && (
+                <button
+                  type="button"
+                  className="ai-btn ai-btn-sm"
+                  data-testid={`cat-add-${e.key}`}
+                  onClick={() => onAdd(e)}
+                >
+                  Add…
+                </button>
+              )
+            )}
           </div>
         );
       })}

@@ -31,7 +31,7 @@ function endedAs(run: ScheduleRun): string {
     case 'cancelled':
       return 'was cancelled';
     case 'waiting':
-      return 'is waiting for the runner';
+      return 'is waiting for the desktop app';
     case 'ask':
       return 'is waiting for your answer';
     default:
@@ -158,7 +158,7 @@ export function ScheduleTicketBlock({ ticket }: { ticket: Ticket }) {
   );
 }
 
-/** The small chip in a board card's footer (E2): "Tue 02:00", "Starts in 12 min", "Missed, waiting for runner". */
+/** The small chip in a board card's footer (E2): "Tue 02:00", "Starts in 12 min", "Missed, waiting for the app". */
 export function ScheduleCardChip({ ticket }: { ticket: Ticket }) {
   const cards = useScheduleCards(ticket.projectId);
   const { openDetail } = useSchedules();

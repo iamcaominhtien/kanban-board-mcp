@@ -1,0 +1,443 @@
+/* Role packs (design/source/AiProjectSettings.dc.html, D). Built on the ai-* and to-* classes of Settings > AI. */
+.rp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.rp-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* The list */
+.rp-list {
+  container-type: inline-size;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  overflow: visible;
+}
+.rp-list .ai-table th:first-child {
+  border-top-left-radius: 12px;
+}
+.rp-list .ai-table th:last-child {
+  border-top-right-radius: 12px;
+}
+.rp-list .ai-table td {
+  vertical-align: middle;
+  padding: 10px;
+}
+.rp-list .ai-table tr:last-child td {
+  border-bottom: none;
+}
+.rp-row {
+  cursor: pointer;
+}
+.rp-row-edited td {
+  background: #f1f8f3;
+}
+.rp-role {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.rp-role-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rp-role-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e2a22;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rp-role-name:hover {
+  text-decoration: underline;
+}
+.rp-role-tag {
+  font-size: 11.5px;
+  color: #5b6b60;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 230px;
+}
+.rp-glyph {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.rp-glyph-lg {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+.rp-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: #5b6b60;
+  overflow-wrap: break-word;
+}
+.rp-state {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid;
+}
+.rp-state-ready {
+  background: #f1f3f1;
+  border-color: #e3e8e5;
+  color: #4a5a50;
+}
+.rp-state-edited {
+  background: #fef3d9;
+  border-color: #f0d9a8;
+  color: #7a5a06;
+}
+.rp-state-own {
+  background: #e6f2ea;
+  border-color: #cfe5d6;
+  color: #1f5a31;
+}
+.rp-more {
+  position: relative;
+  display: inline-block;
+}
+.rp-more .ai-menu {
+  right: 0;
+  top: 30px;
+}
+.rp-note {
+  font-size: 12px;
+  color: #5b6b60;
+  margin: 0;
+}
+
+/* The editor */
+.rp-editor {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rp-ed-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rp-ed-title {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.rp-crumb {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.rp-crumb:hover {
+  color: #2e6f40;
+  text-decoration: underline;
+}
+.rp-ed-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.rp-ed-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.rp-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+.rp-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.rp-name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 70px minmax(0, 1.6fr);
+  gap: 10px;
+}
+.rp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.rp-field .ai-input,
+.rp-field .ai-textarea,
+.rp-field .ai-select {
+  width: 100%;
+}
+.rp-persona {
+  min-height: 190px;
+}
+.rp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.rp-chips .tw-chipbtn {
+  height: 30px;
+}
+.rp-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 4px 0 9px;
+  border-radius: 6px;
+  border: 1px solid #dce6df;
+  background: #f6faf7;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: #1e2a22;
+}
+.rp-tool-missing {
+  border-style: dashed;
+  border-color: #e0b95a;
+  background: #fffbef;
+}
+.rp-tool button {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  color: #5b6b60;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 4px;
+}
+.rp-tool button:hover {
+  background: #e3e8e5;
+}
+.rp-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.rp-add:hover {
+  text-decoration: underline;
+}
+.rp-add-line {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.rp-add-line .ai-input {
+  width: 190px;
+}
+.rp-limits {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.rp-limits .ai-input {
+  width: 64px;
+}
+.rp-skill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid #e3e8e5;
+  background: #f1f3f1;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: #4a5a50;
+}
+.rp-skill-role {
+  background: #e8f1fa;
+  border-color: #c6dbef;
+  color: #244e78;
+}
+.rp-skill-off {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.rp-versions {
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.rp-version {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border-bottom: 1px solid #eef3ef;
+}
+.rp-version:last-child {
+  border-bottom: none;
+}
+.rp-version b {
+  font-weight: 700;
+  min-width: 26px;
+}
+.rp-version-now {
+  background: #f1f8f3;
+}
+.rp-version-now .rp-cur {
+  margin-left: auto;
+  font-weight: 600;
+  color: #2e6f40;
+}
+.rp-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid #eef3ef;
+  padding-top: 14px;
+}
+.rp-foot-right {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.rp-err {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c4432a;
+}
+
+/* Dialogs: export and import, add a role, reset and remove */
+.rp-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.rp-file-name {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.rp-drop {
+  border: 1.5px dashed #c7d2cb;
+  border-radius: 10px;
+  padding: 22px 12px;
+  text-align: center;
+  font-size: 12.5px;
+  color: #5b6b60;
+  background: #fbfcfb;
+  cursor: pointer;
+  width: 100%;
+  font-family: inherit;
+}
+.rp-drop:hover,
+.rp-drop-over {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.rp-result {
+  border: 1px solid #cfe5d6;
+  background: #f1f8f3;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: #1e2a22;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.rp-start {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+@media (max-width: 640px) {
+  .rp-name-row {
+    grid-template-columns: 1fr 70px;
+  }
+  .rp-name-row .rp-field:last-child {
+    grid-column: 1 / -1;
+  }
+  .rp-role-tag {
+    max-width: 140px;
+  }
+}
+
+/* The plugins have a column when there is room; otherwise they sit under the tagline */
+.rp-role-tools {
+  display: none;
+}
+.rp-col-tools {
+  max-width: 190px;
+}
+@container (max-width: 780px) {
+  .rp-col-tools {
+    display: none;
+  }
+  .rp-role-tools {
+    display: block;
+    font-size: 10.5px;
+    margin-top: 1px;
+  }
+}

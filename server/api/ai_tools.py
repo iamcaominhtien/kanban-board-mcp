@@ -269,6 +269,7 @@ async def get_pack_export(project_id: str, key: str, session: Session) -> dict:
     return svc_packs.export(pack)
 
 
+@router.post("/projects/{project_id}/ai/packs/import")
 async def post_pack_import(project_id: str, body: dict, session: Session) -> dict:
     """Import a pack file; says what it could not find on this project."""
     await _project(session, project_id)

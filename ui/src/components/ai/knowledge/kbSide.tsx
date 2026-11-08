@@ -84,8 +84,7 @@ export function KbExplainer() {
           </li>
           <li style={li}>
             <b>An uploaded file is untrusted input.</b> Its text is fenced and labelled with its source before any AI
-            reads it, the same way a guest comment is in <span className="ai-mono">ai-safety-cost</span> F2, so a line
-            inside a PDF cannot act as an instruction.
+            reads it, so a line inside a PDF cannot act as an instruction.
           </li>
           <li style={li}>
             Permissions are still enforced outside the model: a document cannot widen what an AI is allowed to do,
@@ -97,8 +96,7 @@ export function KbExplainer() {
         <div style={h}>Why not embeddings</div>
         <ul style={ul}>
           <li style={li}>
-            You did not want documents going to an embedding service, and a local model is slow enough to be felt on
-            every lookup.
+            Documents do not go to an embedding service, and a local model is slow enough to be felt on every lookup.
           </li>
           <li style={li}>
             Claude reads these documents anyway when it works, so sending them to one more service buys nothing and adds

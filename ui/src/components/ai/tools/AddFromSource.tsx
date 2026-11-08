@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { aiPluginsApi, usePluginMutation } from '../../../api/aiPlugins';
 import { extractError } from '../../../api/extractError';
 import type { PluginPreview, PreviewChoices, SourceKind } from '../../../types/aiPlugins';
@@ -36,12 +36,21 @@ function isChoices(p: PluginPreview | PreviewChoices): p is PreviewChoices {
 }
 
 /** "Add from a source": git URL, marketplace or a folder, with a preview of what will be installed (B2). */
-export function AddFromSource({ projectId, onInstalled }: { projectId: string; onInstalled: () => void }) {
+export function AddFromSource({
+  projectId,
+  onInstalled,
+  initial,
+}: {
+  projectId: string;
+  onInstalled: () => void;
+  /** A suggestion the person chose (“Add…”): its source and the roles it is suggested for. */
+  initial?: { source: string; plugin?: string; roles: string[] };
+}) {
   const [kind, setKind] = useState<SourceKind>('git');
-  const [source, setSource] = useState('');
+  const [source, setSource] = useState(initial?.source ?? '');
   const [ref, setRef] = useState('');
-  const [plugin, setPlugin] = useState<string | undefined>();
-  const [roles, setRoles] = useState<string[]>([]);
+  const [plugin, setPlugin] = useState<string | undefined>(initial?.plugin);
+  const [roles, setRoles] = useState<string[]>(initial?.roles ?? []);
   const [preview, setPreview] = useState<PluginPreview | null>(null);
   const [choices, setChoices] = useState<PreviewChoices['choices'] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +67,10 @@ export function AddFromSource({ projectId, onInstalled }: { projectId: string; o
     aiPluginsApi.install(projectId, { ...body(), roles, defaultOn: false }),
   );
 
+  // a preview that comes back after the source was edited is for another source: forget it
+  const seq = useRef(0);
   const reset = () => {
+    seq.current += 1;
     setPreview(null);
     setChoices(null);
     setPlugin(undefined);
@@ -67,8 +79,10 @@ export function AddFromSource({ projectId, onInstalled }: { projectId: string; o
   const run = async (pl?: string) => {
     setError(null);
     setPreview(null);
+    const mine = ++seq.current;
     try {
       const r = await previewM.mutateAsync(pl);
+      if (mine !== seq.current) return;
       if (isChoices(r)) setChoices(r.choices);
       else {
         setChoices(null);
@@ -155,7 +169,7 @@ export function AddFromSource({ projectId, onInstalled }: { projectId: string; o
           ))}
         </div>
         <span className="ai-hint">
-          A member can switch it off for itself. Choosing nobody installs it and leaves it off.
+          A team can switch it off for itself. Choosing nobody installs it and leaves it off.
         </span>
       </div>
       <div>

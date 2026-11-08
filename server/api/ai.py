@@ -16,6 +16,7 @@ from database import get_session
 from models import AiProjectSettings, AiRun, AiTeam, Member, Project
 from services import activity as svc_activity
 from services.ai import activity as svc_activity_roles
+from services.ai import budget as svc_budget
 from services.ai import roles as svc_roles
 from services.ai import runs as svc_runs
 from services.ai import steps as svc_steps
@@ -221,9 +222,10 @@ async def post_remove(member_id: str, body: RemoveBody, session: Session) -> dic
 # --------------------------------------------------------------------------- settings
 
 
-def settings_dict(s: AiProjectSettings) -> dict:
-    """The project's AI settings for the API."""
+def settings_dict(s: AiProjectSettings, reports_cost: bool = False) -> dict:
+    """The project's AI settings for the API. `reports_cost`: a run of the project has reported a real cost."""
     return {
+        "reports_cost": reports_cost,
         "project_id": s.project_id,
         "paused_all": s.paused_all,
         "paused_at": s.paused_at,
@@ -248,7 +250,8 @@ def settings_dict(s: AiProjectSettings) -> dict:
 async def get_ai_settings(project_id: str, session: Session) -> dict:
     """The project's AI settings."""
     await _project(session, project_id)
-    return settings_dict(await get_settings(session, project_id))
+    settings = await get_settings(session, project_id)
+    return settings_dict(settings, await svc_budget.reports_cost(session, project_id))
 
 
 class SettingsBody(BaseModel):
@@ -311,7 +314,7 @@ async def patch_ai_settings(
     await session.commit()
     await session.refresh(settings)
     await board_events.publish("invalidate")
-    return settings_dict(settings)
+    return settings_dict(settings, await svc_budget.reports_cost(session, project_id))
 
 
 class PauseAllBody(BaseModel):
@@ -352,7 +355,7 @@ async def post_pause_all(project_id: str, body: PauseAllBody, session: Session) 
                 except svc_runs.RunError:
                     pass
     await board_events.publish("invalidate")
-    return settings_dict(settings)
+    return settings_dict(settings, await svc_budget.reports_cost(session, project_id))
 
 
 @router.post("/projects/{project_id}/ai/resume-all")
@@ -370,7 +373,7 @@ async def post_resume_all(project_id: str, session: Session) -> dict:
     await svc_touches.record_pause(project_id, "project_resumed", _by())
     svc_runs.RT.wake.set()
     await board_events.publish("invalidate")
-    return settings_dict(settings)
+    return settings_dict(settings, await svc_budget.reports_cost(session, project_id))
 
 
 # --------------------------------------------------------------------------- overview and board

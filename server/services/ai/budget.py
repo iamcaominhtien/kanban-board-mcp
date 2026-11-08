@@ -100,6 +100,32 @@ async def spent(
     return runs + float((await session.exec(calls)).one() or 0.0)
 
 
+async def reports_cost(session: AsyncSession, project_id: str) -> bool:
+    """True once a run (or one-shot call) of the project has reported a real cost. Users are on a subscription (quota,
+    not money), so the money caps of the project settings are shown only after this (owner decision C-12)."""
+    run = (
+        select(AiRun.id)
+        .where(
+            AiRun.project_id == project_id,
+            AiRun.metered.is_(True),
+            AiRun.cost_usd > 0,
+        )
+        .limit(1)
+    )
+    if (await session.exec(run)).first() is not None:
+        return True
+    call = (
+        select(AiUsage.id)
+        .where(
+            AiUsage.project_id == project_id,
+            AiUsage.metered.is_(True),
+            AiUsage.cost > 0,
+        )
+        .limit(1)
+    )
+    return (await session.exec(call)).first() is not None
+
+
 async def tokens_since(
     session: AsyncSession,
     since: datetime,

@@ -6,7 +6,7 @@ description: Plan a scheduled run without doing it.
 # schedule-dry-run
 
 Input: the ticket, its acceptance criteria and the run's instruction. Read the repository (your working folder) and the Docs only to plan.
-Reply in short Markdown: 1) the steps you would take, 2) the files you would likely change, 3) how you would know the work is done, 4) risks or questions. Under 250 words. Do not change anything.
+Reply in short Markdown: 1) the steps you would take, 2) the files you would likely change, 3) risks or questions. Under 250 words. Do not change anything.
 Answer with JSON: {"text": "<the Markdown>"}
 
 ## The board

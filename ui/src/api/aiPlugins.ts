@@ -44,6 +44,10 @@ export interface BoardSkill {
   description: string;
   /** The role a role skill is for (issue #273); null or absent: every role. */
   role?: string | null;
+  /** The roles that do this craft (a team gets the skill when one of its roles is listed); null: every team. */
+  craftRoles?: string[] | null;
+  /** The skill every run opens first: it cannot be switched off. */
+  alwaysOn?: boolean;
 }
 
 /** The board's own skills; whether each is on lives in the project's ops (`boardSkills`). */

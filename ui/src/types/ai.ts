@@ -131,6 +131,8 @@ export interface AiSettings {
   lessonsMode: 'auto' | 'review';
   lessonsMax: number;
   ops: Record<string, unknown>;
+  /** A run of the project has reported a real cost: only then are the money caps shown (owner decision C-12). */
+  reportsCost: boolean;
 }
 
 export interface AiOverview {
@@ -426,9 +428,14 @@ export interface RunRetry {
 /** Where local runners run: the computer the board's server runs on. */
 export interface RunnerInfo {
   host: string;
+  /** This request comes from the computer the board runs on (the desktop app); false in the web build. */
   local: boolean;
   appVersion: string;
   platform: string;
+  /** The runner process is alive. */
+  alive: boolean;
+  /** Claude Code is installed on that computer. */
+  claudeFound: boolean;
 }
 
 /** Where a lead or a role is working now (`GET .../ai/team/activity`). */
