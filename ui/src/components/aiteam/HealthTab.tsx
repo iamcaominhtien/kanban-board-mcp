@@ -120,6 +120,13 @@ function Fix({ n, f, actions }: { n: number; f: HealthFix; actions: HealthAction
 /** 85%, 69.6%: a decimal only when rounding would hide which side of a limit it is on. */
 const pct = (v: number | null) =>
   v == null ? '–' : `${Math.round(v * 1000) % 10 === 0 ? Math.round(v * 100) : Math.round(v * 1000) / 10}%`;
+/** The change in a count per ticket (touches): fewer is better. */
+function countDelta(cur: number | null, prev: number | null): Delta | null {
+  if (cur == null || prev == null) return null;
+  const d = cur - prev;
+  if (Math.abs(d) < 0.05) return { text: 'no change vs previous', better: null };
+  return { text: `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} vs previous`, better: d < 0 };
+}
 const pts = (cur: number | null, prev: number | null) => (cur == null || prev == null ? null : (cur - prev) * 100);
 
 function Row({ t, onOpenTeam }: { t: TeamHealth; onOpenTeam: (id: string) => void }) {
@@ -285,7 +292,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           name="Autonomy"
           verdict={m.autonomy.verdict}
           value={m.autonomy.value == null ? '–' : `${m.autonomy.value}`}
-          delta={null}
+          delta={hasPrev ? countDelta(m.autonomy.value, p.autonomy) : null}
           hint={`touches per ticket: ${m.autonomy.touches} on ${m.autonomy.tickets} tickets. ${m.autonomy.clean} tickets with no touch at all`}
         />
         <Tile
@@ -304,9 +311,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           verdict={m.quality.verdict}
           value={pct(m.quality.value)}
           delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : null}
-          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} tickets reopened${
-            m.quality.findings != null ? `. Reviewer findings: ${m.quality.findings}` : ''
-          }`}
+          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} tickets reopened`}
         />
         <Tile
           name="Cost"

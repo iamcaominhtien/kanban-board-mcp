@@ -6,7 +6,7 @@ Nothing here is stored per touch. A touch is worked out, newest first, from what
 - an answer to a team's question: the run's question and answer;
 - a run started by hand (the Run button): `ai_run.trigger` and `started_by`;
 - a run stopped by a person or retried by one: `ended_by` (no stop code) and the `retry` trigger;
-- a message to a lead: `ai_run_message` (direction in), or the run a message started when the lead was not working;
+- a message to a lead that is working: `ai_run_message` (direction in; `/compact` is a command and a message that only started a new run are not touches);
 - a ticket edited while a run works on it, an account signed in again, a team (or the whole project) paused and
   resumed: audit entries written when the action happens (`record_edit`, `record_signin`, and the pause routes).
 
@@ -26,7 +26,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import AiAudit, AiRun, AiRunMessage, AiTeam, AiTouchMark, Member
 
-from . import audit, knowledge
+from . import audit, compact, knowledge
 from .store import ai_names, loads, now_iso, parse_iso
 
 logger = logging.getLogger("kanban.ai.touches")
@@ -383,20 +383,6 @@ async def collect(
                         details=f"Run #{r.number} continues the one before it",
                     )
                 )
-            elif r.trigger == "message":
-                text = (r.instruction or "").split(":\n", 1)[-1]
-                out.append(
-                    _touch(
-                        f"msgrun:{r.id}",
-                        "message",
-                        r.queued_at,
-                        r.started_by,
-                        team_ids=team,
-                        ticket_id=ticket,
-                        run_id=r.id,
-                        details=f"“{_clip(text, 120)}” (the lead was not working: a new run started)",
-                    )
-                )
         if (
             r.state == "cancelled"
             and not r.stop_code
@@ -439,7 +425,13 @@ async def collect(
             by_id[r.id] = r
     for m in msgs:
         run = by_id.get(m.run_id)
-        if run is None or run.kind != "team" or not is_person(m.peer, ai):
+        if (
+            run is None
+            or run.kind != "team"
+            or not is_person(m.peer, ai)
+            or m.text
+            == compact.WISH  # /compact is a command, not a message to the lead
+        ):
             continue
         if run.state in RUN_ENDED and run.ended_at and run.ended_at <= m.at:
             continue  # sent to a run that had ended: it started a new run, counted below as that run's touch
@@ -624,13 +616,6 @@ async def stepped_in(
     }
 
 
-async def count(
-    session: AsyncSession, project_id: str, range_key: str = DEFAULT_RANGE
-) -> int:
-    """How many touches the range holds (the number on the tab)."""
-    return len(await collect(session, project_id, since_of(range_key)))
-
-
 # --------------------------------------------------------------------------- marks and lessons
 
 
@@ -752,7 +737,6 @@ __all__ = [
     "RANGES",
     "TouchError",
     "collect",
-    "count",
     "draft_lesson",
     "is_person",
     "make_lesson",

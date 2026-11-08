@@ -34,8 +34,6 @@ export interface Quality extends MeasureBase {
   value: number | null;
   reopened: number;
   finishedTickets: number;
-  findings: number | null;
-  runsWithFindings: number;
 }
 export interface Cost extends MeasureBase {
   usd: number;

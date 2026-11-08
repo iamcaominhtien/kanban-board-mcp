@@ -143,7 +143,7 @@ function Row({
               </span>
               {lesson.isError && (
                 <span className="at-hint-sm" style={{ color: '#A5321E' }} role="alert">
-                  Could not make the lesson. A lesson with this text may exist.
+                  {extractError(lesson.error)}
                 </span>
               )}
             </div>

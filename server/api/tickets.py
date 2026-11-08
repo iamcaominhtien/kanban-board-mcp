@@ -294,6 +294,10 @@ async def get_one_ticket(ticket_id: str, session: Session) -> TicketRead:
     return _read(ticket)
 
 
+# Fields besides the title and description whose change by a person, while a run works on the ticket, is a touch
+TOUCH_FIELDS = ("status", "priority", "type", "tags")
+
+
 @router.patch("/tickets/{ticket_id}", response_model=TicketRead)
 async def patch_ticket(
     ticket_id: str, data: TicketUpdate, session: Session, start: bool = True
@@ -315,6 +319,7 @@ async def patch_ticket(
             "title": before.title,
             "description": before.description,
             "assignee": before.assignee,
+            **{k: getattr(before, k, None) for k in TOUCH_FIELDS},
         }
         if before
         else {}
@@ -331,6 +336,19 @@ async def patch_ticket(
         for key, label in (("title", "the title"), ("description", "the description"))
         if key in fields and fields[key] != was.get(key)
     ]
+    # the other fields a person changes while a run works are touches too, but the lead is not told of each
+    changed = [
+        k.replace("_", " ")
+        for k in TOUCH_FIELDS
+        if k in fields and fields[k] != was.get(k)
+    ]
+    if changed and not edited:
+        await ai_runs.note_person_edit(
+            ticket_id,
+            by=act_ctx.current_actor(),
+            what="the " + " and the ".join(changed),
+            tell_lead=False,
+        )
     if edited:
         await ai_runs.note_person_edit(
             ticket_id, by=act_ctx.current_actor(), what=" and ".join(edited)
