@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CommandName, JobStep, ScanJob } from '../../../types/aiPacks';
-import { LineIcon } from '../../ui/LineIcon';
+import { LineIcon, type LineIconName } from '../../ui/LineIcon';
 import { useNow } from '../aiUi';
-import { COMMAND_TITLE, clock, jobPill, sourceParts, type RowView } from './repoCommandsLogic';
+import { COMMAND_TITLE, clock, jobPill, sourceParts, type RowKind, type RowView } from './repoCommandsLogic';
+
+const CHIP_ICON: Partial<Record<RowKind, LineIconName>> = {
+  works: 'check',
+  fails: 'warning',
+  wrong: 'close',
+  timeout: 'clock',
+  running: 'refresh',
+  changed: 'edit',
+};
 
 const STEP_ICON: Record<JobStep['state'], React.ReactNode> = {
   done: <LineIcon name="check" size={13} />,
@@ -148,6 +157,7 @@ export function CommandRow({
       </div>
       <div className="rc-row-status">
         <span className={`ai-chip rc-chip rc-chip-${view.kind}`} data-testid={`rc-chip-${name}`}>
+          {CHIP_ICON[view.kind] && <LineIcon name={CHIP_ICON[view.kind]!} size={11} />}
           {view.chip}
           {running && <Elapsed />}
         </span>

@@ -53,27 +53,20 @@ export function RepoCommands({ projectId }: { projectId: string }) {
 
   // the boxes take what the AI proposed once its job has ended (also when the page is opened after it ended)
   const adopted = useRef<string | null>(null);
-  const wasRunning = useRef(false);
   useEffect(() => {
-    if (!scan || !job || !ops.data) return;
+    if (!scan || !job || !ops.data || job.mode !== 'ai') return;
     const key = `${scan.id}:${job.startedAt}`;
-    if (job.state === 'running') {
-      wasRunning.current = true;
-      adopted.current = adopted.current === key ? key : null;
-      return;
-    }
-    if (adopted.current === key || job.mode !== 'ai' || job.state === 'cancelled') return;
-    adopted.current = key;
     const proposed = proposedTexts(scan);
+    // while it works, the boxes fill in as soon as the AI has proposed; a job that ended without a proposal has nothing
+    if (adopted.current === key || !proposed) return;
+    adopted.current = key;
     const folders = (scan.proposal as { envPath?: EnvFolder[] }).envPath;
-    if (proposed) {
-      setTyped((cur) => {
-        // a typed box that was kept stays as it is; the others take the proposal
-        const next = { ...proposed };
-        if (cur) for (const n of COMMAND_ORDER) if (!next[n] && cur[n]) next[n] = cur[n];
-        return next;
-      });
-    }
+    setTyped((cur) => {
+      // a typed box that was kept stays as it is; the others take the proposal
+      const next = { ...proposed };
+      if (cur) for (const n of COMMAND_ORDER) if (!next[n] && cur[n]) next[n] = cur[n];
+      return next;
+    });
     if (folders?.length) setEnvEdit(folders);
   }, [scan, job, ops.data]);
 
@@ -163,6 +156,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       : null;
   const noFolder = !scan && !folder;
   const aiJob = job?.mode === 'ai';
+  const hasProof = COMMAND_ORDER.some((n) => !!scan?.trial?.[n]);
   const finished = !!job && !running;
   const again = job && (job.state === 'timeout' || job.state === 'failed') ? 'Run it again' : 'Set up again';
   const proposed = proposedTexts(scan);
@@ -186,8 +180,8 @@ export function RepoCommands({ projectId }: { projectId: string }) {
           disabled={running || busy || aiOff || noFolder}
           onClick={() => void startAi()}
         >
-          <LineIcon name={aiJob ? 'refresh' : 'sparkle'} size={13} />
-          {aiJob ? again : 'Let the AI find the commands'}
+          <LineIcon name={aiJob && !running ? 'refresh' : 'sparkle'} size={13} />
+          {aiJob && !running ? again : 'Let the AI find the commands'}
         </button>
       </div>
       {!aiJob && !aiOff && !noFolder && (
@@ -215,7 +209,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       )}
       {job && <ScanStrip job={job} onStop={stop} />}
       {running && <ScanLog lines={job.log} mode={job.mode} />}
-      {job && !running && job.error && job.state !== 'cancelled' && (
+      {job && !running && job.error && job.state !== 'cancelled' && job.state !== 'timeout' && (
         <div className="rc-why rc-why-bad" data-testid="rc-job-error">
           {job.error}
         </div>
@@ -279,7 +273,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
         disabled={patch.isPending}
       />
 
-      {(finished || dirty || !!scan?.trial?.test) && (
+      {(dirty || hasProof) && (
         <div className="rc-bar">
           <button
             type="button"
