@@ -55,6 +55,11 @@ async def get_assist(project_id: str, session: Session) -> dict:
     out = await svc_settings.describe(session, project_id)
     info = await engine.ready(project_id)
     out["board_ai"]["state"] = info["state"]
+    if info["state"] != "ready":
+        out["board_ai"]["status"] = {
+            "label": "Claude Code was not found",
+            "detail": info.get("message") or "",
+        }
     panel = await svc_health.panel(session, project_id)
     out["unseen_insights"] = panel["unseen"]
     out["last_check"] = panel["digest"]["created_at"] if panel["digest"] else None
@@ -253,6 +258,12 @@ class FeedbackBody(BaseModel):
 
     thumb: Optional[str] = None
     reason: str = ""
+
+
+@router.post("/ai/assist/messages/{message_id}/undo")
+async def post_undo(message_id: str, session: Session) -> dict:
+    """Undo all: put back what the answer changed on tickets, unless someone else changed it since."""
+    return await svc_chat.undo_receipt(session, message_id, _by())
 
 
 @router.post("/ai/assist/messages/{message_id}/feedback")

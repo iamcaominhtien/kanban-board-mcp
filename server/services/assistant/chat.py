@@ -16,7 +16,7 @@ from models import AiChat, AiChatMessage, DocsPage, IdeaTicket, Project, Ticket
 from services import tickets as svc_tickets
 from services.ai.store import loads, now_iso
 
-from . import drafts, engine, sessions
+from . import drafts, engine, receipt, sessions
 from . import settings as svc_settings
 from .errors import AssistError
 
@@ -356,12 +356,12 @@ async def scope_state(
                 "request": "Summarise this ticket: what is asked, what is done, what is open.",
             },
             {
-                "label": "What is unclear?",
-                "request": "What is unclear or missing in this ticket before someone starts?",
+                "label": "What is left to do here?",
+                "request": "What is left to do on this ticket? List what is open and what is unclear.",
             },
             {
-                "label": "Write acceptance criteria",
-                "request": "Write acceptance criteria for this ticket and add them to it.",
+                "label": "Who should review this?",
+                "request": "Who should review this ticket, and why? Look at who worked on related tickets.",
             },
         ],
         "doc": [
@@ -419,6 +419,11 @@ async def scope_state(
             "draft_kinds": [],
         },
         "availability": availability,
+        "board_ai": {
+            "name": info.get("member") or "Board AI",
+            "provider_label": "Claude Code",
+            "ready": info["state"] == "ready",
+        },
         "members": members,
         "member_id": member_id,
         "estimate": None,
@@ -710,7 +715,10 @@ async def _answer(
                 False,
             )
             ctx = loads(ai.context, {})
-            ctx["run"] = {"id": out.run_id}
+            ctx["turn"] = {"id": out.run_id}
+            changes = await receipt.collect(session, project_id, out.run_id)
+            if changes:
+                ctx["receipt"] = receipt.summary(changes)
             ai.context = json.dumps(ctx)
             ideas = [str(i) for i in (data.get("ideas") or []) if str(i).strip()][:8]
             if ideas and state == "done":
@@ -799,6 +807,29 @@ async def get_message(
 ) -> dict[str, Any]:
     """One message of the person's own chat."""
     m, _chat_row = await _message(session, message_id, by)
+    return msg_out(m)
+
+
+async def undo_receipt(
+    session: AsyncSession, message_id: str, by: str
+) -> dict[str, Any]:
+    """Put back what an answer changed ("Undo all"): the changes of its receipt, newest first. A change someone else
+    has since overwritten is left as it is and named in `receipt.undo.skipped`."""
+    m, _chat_row = await _message(session, message_id, by)
+    ctx = loads(m.context, {})
+    rec = ctx.get("receipt")
+    if not rec or not rec.get("applied"):
+        raise AssistError("not_found", "This answer changed nothing.")
+    if rec.get("status") == "undone":
+        raise AssistError("conflict", "These changes were already put back.")
+    result = await receipt.undo(session, rec["applied"])
+    rec["status"] = "undone"
+    rec["undo"] = result
+    ctx["receipt"] = rec
+    m.context = json.dumps(ctx)
+    session.add(m)
+    await session.commit()
+    await board_events.publish(board_events.INVALIDATE)
     return msg_out(m)
 
 

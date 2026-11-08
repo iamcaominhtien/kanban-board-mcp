@@ -15,11 +15,16 @@ from .errors import AssistError
 FEATURES = {
     "chat": "Ask AI (chat)",
     "drafting": "Drafting in editors",
-    "split": "Split tickets",
-    "test_cases": "Test cases",
     "health": "Board health",
     "docs": "Docs AI",
     "sketch": "Sketch AI",
+}
+DESCRIPTIONS = {
+    "chat": "Ask AI dock, ⌘J, answers with sources",
+    "drafting": "Ask AI, rewrite and continue in every editor",
+    "health": "Daily insights",
+    "docs": "Summaries, sections, link suggestions",
+    "sketch": "Draw and edit sketches with AI",
 }
 DEFAULT_FEATURES = {k: True for k in FEATURES}
 DEFAULT_HEALTH = {
@@ -168,7 +173,7 @@ async def describe(session: AsyncSession, project_id: str) -> dict[str, Any]:
             {
                 "key": k,
                 "label": lbl,
-                "description": "",
+                "description": DESCRIPTIONS.get(k, ""),
                 "on": features(row).get(k, True),
                 "cost_month": await month_spend(session, k),
             }
