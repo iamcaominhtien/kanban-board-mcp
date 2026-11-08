@@ -79,7 +79,9 @@ export function AccountPicker({
             <Radio on={value === a.id} />
             <div className="acm-choice-main">
               <div className="acm-choice-name">{a.name}</div>
-              <div className={`acm-choice-sub ${a.status === 'needs_sign_in' ? 'acm-warn-text' : ''}`}>
+              <div
+                className={`acm-choice-sub ${a.status === 'needs_sign_in' || a.status === 'cli_missing' ? 'acm-warn-text' : ''}`}
+              >
                 {profile && value === a.id ? profileSub(a) : accountSub(a, false)}
               </div>
             </div>
