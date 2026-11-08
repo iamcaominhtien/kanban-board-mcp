@@ -149,7 +149,10 @@ export function TeamPage({
   const rows = rowsByRun(resources);
   const limitMb = resources?.limits.runMemoryLimitMb ?? 0;
   // the RAM of the team's CLIs: one chip per running run (the lead and its roles share one process)
-  const live = team.running.filter((r) => rows.has(r.runId));
+  const live = team.running.filter((r) => {
+    const row = rows.get(r.runId);
+    return !!row && row.readable && row.cliRssMb != null;
+  });
   const chips = live.length ? (
     <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
       {live.map((r) => (

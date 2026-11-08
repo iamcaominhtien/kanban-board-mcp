@@ -103,24 +103,23 @@ function TeamCard({
         {team.slotsInUse} of {team.maxParallel} running · {team.queued} queued · {team.usage.runsToday} run
         {team.usage.runsToday === 1 ? '' : 's'} today
       </div>
-      {team.running.map((r) => (
-        <div key={r.runId} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12.5 }}>
-          <TicketChip id={r.ticketId} onOpen={actions.onOpenTicket} />
-          <span
-            style={{
-              flex: '1 1 90px',
-              minWidth: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {r.ticketTitle}
-          </span>
-          <RamChip run={rows.get(r.runId)} limitMb={limitMb} onOpen={actions.onOpenResources} />
-          <RunStateChip state={r.state} />
-        </div>
-      ))}
+      {team.running.map((r) => {
+        const ram = rows.get(r.runId);
+        return (
+          <div key={r.runId} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, minWidth: 0 }}>
+              <TicketChip id={r.ticketId} onOpen={actions.onOpenTicket} />
+              <span className="at-line">{r.ticketTitle}</span>
+              <RunStateChip state={r.state} />
+            </div>
+            {ram && ram.readable && ram.cliRssMb != null && (
+              <div>
+                <RamChip run={ram} limitMb={limitMb} onOpen={actions.onOpenResources} />
+              </div>
+            )}
+          </div>
+        );
+      })}
       <div>
         <button type="button" className="at-open" onClick={() => actions.onOpenTeam(team.id)}>
           See the roles →

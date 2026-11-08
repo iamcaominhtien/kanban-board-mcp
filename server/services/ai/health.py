@@ -310,7 +310,7 @@ async def _fixes(
                     "severity": "fix",
                     "weight": len(rs),
                     "title": f"{tid} failed {len(rs)} times",
-                    "evidence": f"{len(rs)} runs of {name(team_id)} on {tid} failed or timed out. Most often: “{reasons[:140]}”.",
+                    "evidence": f"{len(rs)} runs of {name(team_id)} on {tid} failed or timed out. Most often: “{_reason(reasons)}”.",
                     "suggestion": "Read the last run: the ticket may be too big, or missing something the team needs.",
                     "tickets": [tid],
                     "team_id": team_id,
@@ -508,6 +508,14 @@ def _sentence(
     if fixes:
         text += f" {len(fixes)} thing{'s' if len(fixes) != 1 else ''} to fix below."
     return text
+
+
+def _reason(text: str, limit: int = 140) -> str:
+    """A run's end reason for a sentence: no closing full stop of its own, cut with an ellipsis, not mid-word."""
+    t = " ".join((text or "").split()).rstrip(".")
+    return (
+        t if len(t) <= limit else t[: limit - 1].rsplit(" ", 1)[0].rstrip(",;: ") + "…"
+    )
 
 
 async def health(session: AsyncSession, project_id: str, range_key: str = "7d") -> dict:

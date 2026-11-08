@@ -326,7 +326,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           verdict={m.autonomy.verdict}
           value={m.autonomy.value == null ? '–' : `${m.autonomy.value}`}
           delta={hasPrev ? countDelta(m.autonomy.value, p.autonomy) : noPrev}
-          hint={`touches per ticket: ${m.autonomy.touches} on ${m.autonomy.tickets} tickets. ${m.autonomy.clean} ticket${m.autonomy.clean === 1 ? '' : 's'} with no touch at all`}
+          hint={`touches per ticket: ${m.autonomy.touches} on ${m.autonomy.tickets} ticket${m.autonomy.tickets === 1 ? '' : 's'}. ${m.autonomy.clean} ticket${m.autonomy.clean === 1 ? '' : 's'} with no touch at all`}
         />
         <Tile
           name="Speed"
@@ -341,14 +341,14 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
                 )
               : noPrev
           }
-          hint={`median run. Assignment to Review: ${fmtSpan(m.speed.toReviewMedianS)} (${m.speed.toReviewTickets} tickets)`}
+          hint={`median run. Assignment to Review: ${fmtSpan(m.speed.toReviewMedianS)} (${m.speed.toReviewTickets} ticket${m.speed.toReviewTickets === 1 ? '' : 's'})`}
         />
         <Tile
           name="Quality"
           verdict={m.quality.verdict}
           value={pct(m.quality.value)}
           delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : noPrev}
-          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} tickets reopened${
+          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} ticket${m.quality.finishedTickets === 1 ? '' : 's'} reopened${
             m.quality.findings != null
               ? `. Reviewer findings: ${m.quality.findings} in ${m.quality.runsWithFindings} run${m.quality.runsWithFindings === 1 ? '' : 's'}`
               : ''
