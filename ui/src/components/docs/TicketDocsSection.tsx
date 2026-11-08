@@ -353,15 +353,18 @@ function LinkPopover({
 function GiveTeam({
   projectId,
   busy,
+  preferred,
   onGive,
 }: {
   projectId?: string;
   busy: boolean;
+  /** The team that built the page: the one offered first. */
+  preferred?: string;
   onGive: (teamId: string) => void;
 }) {
   const teams = (useAiTeams(projectId ?? '').data ?? []).filter((t) => t.kind === 'ai');
   const [teamId, setTeamId] = useState('');
-  const chosen = teams.find((t) => t.id === teamId) ?? teams[0];
+  const chosen = teams.find((t) => t.id === teamId) ?? teams.find((t) => t.id === preferred) ?? teams[0];
   if (teams.length === 0)
     return (
       <span style={{ fontSize: 12, color: '#5B6B60' }} data-testid="ticket-comments-no-team">
@@ -437,7 +440,14 @@ function ApplyComments({ ticketId, projectId }: { ticketId: string; projectId?: 
           Open comments on {pages.length === 1 ? pages[0].title : `${pages.length} linked pages`}
         </span>
       </div>
-      {needTeam && <GiveTeam projectId={projectId} busy={send.isPending} onGive={(id) => void go(id)} />}
+      {needTeam && (
+        <GiveTeam
+          projectId={projectId}
+          busy={send.isPending}
+          preferred={info.data?.builderTeam?.id}
+          onGive={(id) => void go(id)}
+        />
+      )}
     </div>
   );
 }

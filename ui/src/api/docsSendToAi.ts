@@ -84,6 +84,8 @@ export interface TicketDocComments {
   threads: number;
   pages: { pageId: string; title: string; threads: number }[];
   maxThreads: number;
+  /** The team that built the first of those pages (the default for "give it to a team"). */
+  builderTeam: { id: string; name: string } | null;
 }
 
 export const sendToAiKeys = {

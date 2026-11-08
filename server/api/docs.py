@@ -709,6 +709,10 @@ async def get_ticket_doc_comments(ticket_id: str, session: Session) -> dict[str,
             {"page_id": p.id, "title": p.title, "threads": len(ts)} for p, ts in groups
         ],
         "max_threads": handoff.MAX_THREADS,
+        # the team that built the first of those pages (the default for "give it to a team")
+        "builder_team": await handoff.builder_team_of(session, groups[0][0])
+        if groups
+        else None,
     }
 
 
