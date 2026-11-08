@@ -1,9 +1,6 @@
-import { useRestartRun, useResourcesStream } from '../../api/aiResources';
-import { aiApi, useAiMutation, useAiSettings } from '../../api/ai';
-import { extractError } from '../../api/extractError';
+import { useResourcesStream } from '../../api/aiResources';
 import type { AiRun } from '../../types/ai';
 import { LEVEL_COLOR, fmtGb, fmtMb, levelOf, limitPct, linePoints } from '../aiteam/resourcesFormat';
-import { useToast } from '../Toast';
 import '../aiteam/resources.css';
 
 function clock(iso: string | null | undefined): string {
@@ -42,43 +39,6 @@ export function RestartNotice({ run }: { run: AiRun }) {
   );
 }
 
-/** On a run the system stopped for memory: what happened, and the way out (raise the limit, then Retry). */
-export function MemoryStopNote({ run }: { run: AiRun }) {
-  const settings = useAiSettings(run.projectId).data;
-  const toast = useToast();
-  const limit = settings?.runMemoryLimitMb ?? 0;
-  const raise = useAiMutation((mb: number) => aiApi.updateSettings(run.projectId, { runMemoryLimitMb: mb }));
-  const canRaise = true; // v2 has no per-person roles for safety: whoever can open the run can raise its limit
-  if (run.stopCode !== 'memory') return null;
-  const next = Math.round(((limit || 4096) * 1.5) / 1024) * 1024;
-  return (
-    <div className="rs-notice" style={{ borderColor: '#F0C4B8', background: '#FDF3F0' }} data-testid="memory-stop">
-      <b style={{ color: '#A5321E' }}>Stopped automatically at {clock(run.endedAt)}</b>
-      <span>
-        {run.peakRssMb ? `Peak ${fmtMb(run.peakRssMb)}. ` : ''}Partial work in the folder is kept.{' '}
-        {canRaise ? 'You can raise the limit, then Retry.' : 'An owner or admin can raise the limit.'}
-      </span>
-      {canRaise && (
-        <button
-          type="button"
-          className="st-btn st-btn-sm"
-          disabled={raise.isPending}
-          onClick={async () => {
-            try {
-              await raise.mutateAsync(next);
-              toast.success(`Limit raised to ${fmtGb(next)}`);
-            } catch (err) {
-              toast.error("Couldn't raise the limit", extractError(err));
-            }
-          }}
-        >
-          Raise limit to {fmtGb(next)}
-        </button>
-      )}
-    </div>
-  );
-}
-
 function Mini({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rs-mini">
@@ -89,11 +49,9 @@ function Mini({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
-/** The Resources strip of a running run: RAM now, peak, CPU, restarts and a 5-minute line (design, C2). */
+/** The Resources strip of a running run: RAM now, peak, CPU, restarts and a 5-minute line (design F1). Stop is on the run card; Restart is in the tab. */
 export function RunResourcesStrip({ run }: { run: AiRun }) {
   const { data: snap, live } = useResourcesStream(run.projectId);
-  const restart = useRestartRun();
-  const toast = useToast();
   const row = snap?.runs.find((r) => r.runId === run.id);
   if (!snap || !row || !row.readable) return null;
   const limit = snap.limits.runMemoryLimitMb;
@@ -138,38 +96,6 @@ export function RunResourcesStrip({ run }: { run: AiRun }) {
           points={linePoints(row.history, Date.parse(snap.at), 300, maxMb, W, H)}
         />
       </svg>
-      {run.state === 'running' && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            type="button"
-            className="st-btn st-btn-sm"
-            disabled={!live || restart.isPending}
-            onClick={async () => {
-              try {
-                await restart.mutateAsync(run.id);
-              } catch (err) {
-                toast.error("Couldn't restart", extractError(err));
-              }
-            }}
-          >
-            Restart
-          </button>
-          <span className="at-hint-sm">
-            Starts the CLI again inside this run; it resumes and its memory is released.
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** What a finished run used: kept with the run, so it still answers "how much did this use?". */
-export function FinalResources({ run }: { run: AiRun }) {
-  if (!run.peakRssMb) return null;
-  return (
-    <div className="at-hint-sm" data-testid="final-resources">
-      Final: peak {fmtMb(run.peakRssMb)}, last {fmtMb(run.lastRssMb)}, {run.restarts?.length ?? 0}{' '}
-      {(run.restarts?.length ?? 0) === 1 ? 'restart' : 'restarts'}
     </div>
   );
 }
