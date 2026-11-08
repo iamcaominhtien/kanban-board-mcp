@@ -99,3 +99,9 @@ export function PausedStrip({
     </div>
   );
 }
+
+/** A failure text as a sentence: ends with a full stop, so a line can follow it. */
+export function sentence(text: string): string {
+  const t = text.trim();
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}

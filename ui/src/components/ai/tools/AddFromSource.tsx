@@ -155,7 +155,7 @@ export function AddFromSource({ projectId, onInstalled }: { projectId: string; o
           ))}
         </div>
         <span className="ai-hint">
-          A member can switch it off for itself. Choosing nobody installs it and leaves it off.
+          A team can switch it off for itself. Choosing nobody installs it and leaves it off.
         </span>
       </div>
       <div>

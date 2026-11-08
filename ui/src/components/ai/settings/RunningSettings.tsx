@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { aiApi, useAiMutation, useRunnerInfo } from '../../../api/ai';
 import { extractError } from '../../../api/extractError';
 import type { AiSettings, PermissionMode } from '../../../types/ai';
@@ -48,6 +48,9 @@ export function RunRules({ projectId, settings }: { projectId: string; settings:
   const [denyError, setDenyError] = useState<string | null>(null);
   const [deny, setDeny] = useState(settings.denyList.join('\n'));
   const [saved, setSaved] = useState(false);
+  const sent = useRef('');
+  const latest = useRef('');
+  latest.current = deny;
   // a failed save keeps the lines typed; only a change that comes from the server replaces them
   useEffect(() => setDeny(settings.denyList.join('\n')), [settings.denyList]);
   const saveDeny = async () => {
@@ -58,9 +61,10 @@ export function RunRules({ projectId, settings }: { projectId: string; settings:
     if (list.join('\n') === settings.denyList.join('\n')) return;
     setSaved(false);
     setDenyError(null);
+    sent.current = deny;
     const failure = await save({ denyList: list });
     setDenyError(failure);
-    setSaved(failure === null);
+    setSaved(failure === null && sent.current === latest.current);
   };
   return (
     <section className="to-sec" data-setting="ai-rules" data-testid="ai-rules">
@@ -150,6 +154,7 @@ function LimitInput({
   nullable = true,
   describedBy,
   onSave,
+  onClear,
   onFocusChange,
 }: {
   value: number | null | undefined;
@@ -167,10 +172,20 @@ function LimitInput({
   describedBy?: string;
   /** Resolves true when the value was saved. Gets null for an empty field. */
   onSave: (n: number | null) => Promise<boolean>;
+  /** The value went back to the stored one: forget an earlier failure. */
+  onClear?: () => void;
   onFocusChange?: (on: boolean) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  // after a save the typed text stays until the refetched value arrives, so the old number does not flash back
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    if (waiting) {
+      setWaiting(false);
+      setDraft(null);
+    }
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
   const commit = async () => {
     onFocusChange?.(false);
     if (draft == null) return;
@@ -183,11 +198,13 @@ function LimitInput({
     }
     if (n === (value ?? null)) {
       setDraft(null);
+      setFailed(false);
+      onClear?.();
       return;
     }
     const ok = await onSave(n);
     setFailed(!ok);
-    if (ok) setDraft(null);
+    if (ok) setWaiting(true);
   };
   return (
     <input
@@ -226,6 +243,7 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
     if (text) setFailure({ row, text });
     return text === null;
   };
+  const clear = (row: string) => () => setFailure((f) => (f?.row === row ? null : f));
   const failure = (row: string) =>
     failure_?.row === row ? (
       <div className="ai-error-text" role="alert" id={`limit-error-${row}`} data-testid="limits-error">
@@ -253,6 +271,7 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
                 placeholder="No cap"
                 min={0}
                 step="0.5"
+                onClear={clear('daily')}
                 onSave={wrap('daily', (n) => ({ boardDailyCap: n }))}
               />
               <span className="ai-hint">dollars</span>
@@ -271,6 +290,7 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
                 placeholder="No budget"
                 min={0}
                 step="1"
+                onClear={clear('monthly')}
                 onSave={wrap('monthly', (n) => ({ boardMonthlyBudget: n }))}
               />
               <span className="ai-hint">dollars</span>
@@ -285,6 +305,7 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
             describedBy="limit-error-runs"
             placeholder="No limit"
             min={1}
+            onClear={clear('runs')}
             onSave={wrap('runs', (n) => ({ boardRunsPerDay: n }))}
           />
         </TeamRow>
@@ -298,6 +319,7 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
             testId="settings-at-once"
             min={1}
             width={64}
+            onClear={clear('atonce')}
             onSave={wrap('atonce', (n) => ({ boardMaxParallel: n ?? 1 }))}
           />
           <span className="ai-hint">at a time</span>
@@ -315,6 +337,7 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
             testId="settings-memory-limit"
             min={0}
             width={90}
+            onClear={clear('memory')}
             onSave={wrap('memory', (n) => ({ runMemoryLimitMb: n ?? 0 }))}
           />
           <span className="ai-hint">{memory === 0 ? 'MB (no limit)' : 'MB'}</span>
@@ -338,6 +361,7 @@ export function LimitSettings({ projectId, settings }: { projectId: string; sett
             max={95}
             width={90}
             onFocusChange={setCompactFocus}
+            onClear={clear('compact')}
             onSave={wrap('compact', (n) => ({
               ops: { autoCompactPct: n && n > 0 ? Math.max(30, Math.min(95, n)) : null },
             }))}

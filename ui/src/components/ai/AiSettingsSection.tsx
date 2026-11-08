@@ -7,7 +7,6 @@ import { GroupHead, TeamRow } from './settings/settingsUi';
 import { LimitSettings, RunRules, RunnerCard } from './settings/RunningSettings';
 import './settings/teamOwn.css';
 import { KnowledgeSection } from './knowledge/KnowledgeSection';
-import { LessonsSettings } from './knowledge/LessonsSettings';
 import { RepositoriesSection } from './code/RepositoriesSection';
 import { SkillsPluginsSection } from './tools/SkillsPluginsSection';
 import './aiPage.css';
@@ -23,16 +22,6 @@ function GroupTitle({ id, title, hint, actions }: { id: string; title: string; h
         <div className="ai-group-hint">{hint}</div>
       </div>
       {actions && <div className="ai-group-actions">{actions}</div>}
-    </div>
-  );
-}
-
-/** A part of a group: a small heading over the section it names. */
-function Sub({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="ai-part">
-      <div className="ai-part-title">{title}</div>
-      {children}
     </div>
   );
 }
@@ -111,7 +100,7 @@ export function AiSettingsSection({
         )}
       </section>
 
-      <section className="ai-group" id="ai-tools" aria-labelledby="ai-tools-h" data-toc="Skills and plugins">
+      <section className="ai-group" id="ai-tools" aria-labelledby="ai-tools-h" data-toc="Skills & plugins">
         <GroupTitle
           id="ai-tools-h"
           title="Skills & plugins"
@@ -120,21 +109,22 @@ export function AiSettingsSection({
         <SkillsPluginsSection projectId={projectId} />
       </section>
 
-      <section className="ai-group" id="ai-knowledge" aria-labelledby="ai-knowledge-h" data-toc="Knowledge and code">
+      <section className="ai-group" id="ai-memory" aria-labelledby="ai-memory-h" data-toc="Memory">
         <GroupTitle
-          id="ai-knowledge-h"
-          title="Knowledge and code"
-          hint="What every run is told about the project, and where the AIs work on it."
+          id="ai-memory-h"
+          title="Memory"
+          hint="What every run is told about the project, and what the teams learned while they worked."
         />
-        <Sub title="Lessons">
-          <LessonsSettings projectId={projectId} />
-        </Sub>
-        <Sub title="Project knowledge">
-          <KnowledgeSection projectId={projectId} />
-        </Sub>
-        <Sub title="Repositories">
-          <RepositoriesSection projectId={projectId} />
-        </Sub>
+        <KnowledgeSection projectId={projectId} />
+      </section>
+
+      <section className="ai-group" id="ai-repos" aria-labelledby="ai-repos-h" data-toc="Repositories">
+        <GroupTitle
+          id="ai-repos-h"
+          title="Repositories"
+          hint="Where the AIs work on the project's code, and how a finished ticket leaves it."
+        />
+        <RepositoriesSection projectId={projectId} />
       </section>
     </div>
   );

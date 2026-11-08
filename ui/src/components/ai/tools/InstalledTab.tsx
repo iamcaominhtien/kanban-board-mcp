@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LineIcon } from '../../ui/LineIcon';
 import { aiPluginsApi, usePluginMutation } from '../../../api/aiPlugins';
 import { extractError } from '../../../api/extractError';
@@ -12,8 +12,6 @@ export const TAKES_EFFECT = 'Every change takes effect from the next run.';
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'plugins', label: 'Plugins' },
-  { key: 'skills', label: 'Skills' },
-  { key: 'mcp', label: 'MCP servers' },
   { key: 'never', label: 'Never used' },
 ];
 
@@ -28,6 +26,25 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [changes, setChanges] = useState<PluginChanges | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const away = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenu(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(false);
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', away);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [menu]);
+  const pick = (fn: () => Promise<unknown> | void) => {
+    setMenu(false);
+    void fn();
+  };
   const act = usePluginMutation(projectId, (a: PluginAction) => aiPluginsApi.act(p.id, a));
   const patch = usePluginMutation(projectId, (b: { defaultOn?: boolean; roles?: string[] }) =>
     aiPluginsApi.patch(p.id, b),
@@ -63,6 +80,16 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
       <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
         <b style={{ fontSize: 13.5 }}>{p.name}</b>
         <span className="ai-chip">Plugin</span>
+        {p.pinned && (
+          <span className="ai-chip" style={{ background: '#E6EEF8', color: '#3B5A8A' }}>
+            Pinned
+          </span>
+        )}
+        {busy === 'check' && (
+          <span className="ai-chip" role="status">
+            <span className="ai-spin" aria-hidden="true" /> Checking…
+          </span>
+        )}
         <span className="ai-hint" style={{ flex: 1 }}>
           {sourceLabel(p)} · {p.skills.length} skills
           {p.description ? ` · ${p.description}` : ''}
@@ -80,27 +107,11 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
           {uses === 0 ? 'never used' : `used ${uses} times${usedBy ? ` by ${usedBy}` : ''}`}
         </span>
         <span>
-          On by default: {p.defaultOn ? 'every member' : p.roles.length ? p.roles.map(roleName).join(', ') : 'nobody'}
+          On by default: {p.defaultOn ? 'every team' : p.roles.length ? p.roles.map(roleName).join(', ') : 'nobody'}
         </span>
         {p.updatedAt && <span>updated {ago(p.updatedAt)}</span>}
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-        <button className="ai-btn ai-btn-sm" aria-expanded={open} onClick={() => setOpen(!open)}>
-          Open
-        </button>
-        <button className="ai-btn ai-btn-sm" disabled={!!busy} onClick={() => void doAct('reload')}>
-          {busy === 'reload' ? 'Reloading…' : 'Reload'}
-        </button>
-        <button className="ai-btn ai-btn-sm" disabled={!!busy} onClick={() => void doAct('reset')}>
-          {busy === 'reset' ? 'Resetting…' : 'Reset'}
-        </button>
-        <button
-          className="ai-btn ai-btn-sm"
-          disabled={!!busy}
-          onClick={() => void guard('check', async () => setUpdate(await aiPluginsApi.checkUpdate(p.id)))}
-        >
-          {busy === 'check' ? 'Checking…' : 'Check for update'}
-        </button>
         {update?.update && (
           <>
             <button className="ai-btn ai-btn-sm ai-btn-primary" disabled={!!busy} onClick={() => void doAct('update')}>
@@ -115,16 +126,84 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
             </button>
           </>
         )}
-        {update && !update.update && <span className="ai-hint">Up to date.</span>}
-        <button className="ai-btn ai-btn-sm" disabled={!!busy} onClick={() => void doAct(p.pinned ? 'unpin' : 'pin')}>
-          {p.pinned ? 'Unpin' : `Pin${p.version ? ` v${p.version.replace(/^v/, '')}` : ''}`}
+        <button className="ai-btn ai-btn-sm" aria-expanded={open} onClick={() => setOpen(!open)}>
+          Open
         </button>
-        {p.hasPrevious && (
-          <button className="ai-btn ai-btn-sm" disabled={!!busy} onClick={() => void doAct('rollback')}>
-            {busy === 'rollback' ? 'Rolling back…' : 'Roll back'}
+        {p.pinned && (
+          <button className="ai-btn ai-btn-sm" disabled={!!busy} onClick={() => void doAct('unpin')}>
+            Unpin
           </button>
         )}
-        {confirmRemove ? (
+        {p.sourceKind === 'folder' && !p.pinned && (
+          <>
+            <button className="ai-btn ai-btn-sm" disabled={!!busy} onClick={() => void doAct('reload')}>
+              {busy === 'reload' ? 'Reloading…' : 'Reload'}
+            </button>
+            <button
+              className="ai-btn ai-btn-sm"
+              disabled={!!busy}
+              onClick={() => void guard('check', async () => setUpdate(await aiPluginsApi.checkUpdate(p.id)))}
+            >
+              Check for update
+            </button>
+          </>
+        )}
+        <span style={{ position: 'relative' }} ref={menuRef}>
+          <button
+            className="ai-btn ai-btn-sm"
+            aria-label={`More actions for ${p.name}`}
+            aria-haspopup="menu"
+            aria-expanded={menu}
+            disabled={!!busy}
+            onClick={() => setMenu(!menu)}
+            data-testid="plugin-more"
+          >
+            ⋯
+          </button>
+          {menu && (
+            <div className="ai-menu" role="menu" style={{ left: 0, top: 30 }}>
+              {p.sourceKind !== 'folder' && (
+                <button role="menuitem" className="ai-mi" onClick={() => pick(() => doAct('reload'))}>
+                  Reload
+                </button>
+              )}
+              <button role="menuitem" className="ai-mi" onClick={() => pick(() => doAct('reset'))}>
+                Reset
+              </button>
+              {(p.sourceKind !== 'folder' || p.pinned) && (
+                <button
+                  role="menuitem"
+                  className="ai-mi"
+                  onClick={() =>
+                    pick(() => guard('check', async () => setUpdate(await aiPluginsApi.checkUpdate(p.id))))
+                  }
+                >
+                  Check for update
+                </button>
+              )}
+              {!p.pinned && (
+                <button role="menuitem" className="ai-mi" onClick={() => pick(() => doAct('pin'))}>
+                  Pin{p.version ? ` v${p.version.replace(/^v/, '')}` : ''}
+                </button>
+              )}
+              {p.hasPrevious && (
+                <button role="menuitem" className="ai-mi" onClick={() => pick(() => doAct('rollback'))}>
+                  Roll back
+                </button>
+              )}
+              <button
+                role="menuitem"
+                className="ai-mi"
+                style={{ color: '#c4432a' }}
+                onClick={() => pick(async () => setConfirmRemove(true))}
+              >
+                Remove
+              </button>
+            </div>
+          )}
+        </span>
+        {update && !update.update && <span className="ai-hint">Up to date.</span>}
+        {confirmRemove && (
           <>
             <span className="ai-hint">Remove {p.name}?</span>
             <button
@@ -139,12 +218,8 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
               Keep
             </button>
           </>
-        ) : (
-          <button className="ai-btn ai-btn-sm ai-btn-danger-outline" onClick={() => setConfirmRemove(true)}>
-            Remove
-          </button>
         )}
-        {busy && <span className="ai-spin" role="status" aria-label="Working" />}
+        {busy && busy !== 'check' && <span className="ai-spin" role="status" aria-label="Working" />}
       </div>
       {error && (
         <div className="ai-notice ai-notice-error" role="alert" data-testid="plugin-error">
@@ -175,31 +250,37 @@ function PluginRow({ p, projectId }: { p: Plugin; projectId: string }) {
             {countOf(p.mcp)} MCP servers{p.sizeBytes ? ` · ${mb(p.sizeBytes)}` : ''}
           </div>
           <Toggle
-            label="On for every member"
+            label="On for every team"
             on={p.defaultOn}
             disabled={patch.isPending}
             onChange={(v) => void guard('patch', () => patch.mutateAsync({ defaultOn: v }))}
           />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <span className="ai-label">Suggested for</span>
-            {Object.entries(ROLES).map(([k, name]) => (
-              <label key={k} style={{ display: 'flex', gap: 4 }}>
-                <input
-                  type="checkbox"
-                  checked={p.roles.includes(k)}
+            {Object.entries(ROLES).map(([k, name]) => {
+              const on = p.roles.includes(k);
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={on}
+                  className={`tw-chipbtn ${on ? 'tw-chipbtn-on' : ''}`}
                   disabled={patch.isPending}
-                  onChange={(e) =>
+                  onClick={() =>
                     void guard('patch', () =>
-                      patch.mutateAsync({ roles: e.target.checked ? [...p.roles, k] : p.roles.filter((r) => r !== k) }),
+                      patch.mutateAsync({ roles: on ? p.roles.filter((r) => r !== k) : [...p.roles, k] }),
                     )
                   }
-                />
-                {name}
-              </label>
-            ))}
+                >
+                  {name}
+                </button>
+              );
+            })}
           </div>
           {(p.used?.byMember ?? []).length > 0 && (
-            <div className="ai-hint">Used by {p.used.byMember.length} members.</div>
+            <div className="ai-hint">
+              Used by {p.used.byMember.length} {p.used.byMember.length === 1 ? 'team' : 'teams'}.
+            </div>
           )}
         </div>
       )}
@@ -256,9 +337,9 @@ export function InstalledTab({ projectId, plugins }: { projectId: string; plugin
       {/* B: the two notes as cards (green, amber) */}
       <div className="tl-callouts">
         <div className="tl-callout tl-callout-amber">
-          <b>No approval step, and no pretending otherwise.</b> Installing from the internet runs other people’s code on
-          your machine. The board records the source and the commit, shows the diff before an update, and keeps one
-          button back to the version that worked.
+          <b>Nothing checks it for you, and no pretending otherwise.</b> Installing from the internet runs other
+          people’s code on your machine. The board records the source and the commit, shows the diff before an update,
+          and keeps one button back to the version that worked.
         </div>
       </div>
     </div>

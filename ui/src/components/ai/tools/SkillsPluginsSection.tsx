@@ -3,13 +3,14 @@ import { aiPluginsApi, usePluginMutation, usePlugins } from '../../../api/aiPlug
 import { extractError } from '../../../api/extractError';
 import { LoadError } from '../aiUi';
 import { AddFromSource } from './AddFromSource';
+import { ByTeamTab } from './ByTeamTab';
 import { CatalogueTab } from './CatalogueTab';
 import { InstalledTab, TAKES_EFFECT } from './InstalledTab';
 
-type Tab = 'suggested' | 'source' | 'installed';
+type Tab = 'installed' | 'suggested' | 'source' | 'byTeam';
 
 /** Skills and plugins of the project (design/screens/ai-team-process.md, B): suggested for a role, add from a source,
- * installed. */
+ * installed, by team. */
 export function SkillsPluginsSection({ projectId }: { projectId: string }) {
   const [tab, setTab] = useState<Tab>('installed');
   const plugins = usePlugins(projectId);
@@ -33,9 +34,10 @@ export function SkillsPluginsSection({ projectId }: { projectId: string }) {
   };
   const some = (plugins.data?.length ?? 0) > 0;
   const tabs: [Tab, string][] = [
+    ['installed', 'Installed'],
     ['suggested', 'Suggested for a role'],
     ['source', 'Add from a source'],
-    ['installed', 'Installed'],
+    ['byTeam', 'By team'],
   ];
 
   let body;
@@ -44,6 +46,7 @@ export function SkillsPluginsSection({ projectId }: { projectId: string }) {
   else if (plugins.error || !plugins.data)
     body = <LoadError what="the plugins" error={plugins.error} onRetry={() => void plugins.refetch()} />;
   else if (tab === 'suggested') body = <CatalogueTab plugins={plugins.data} />;
+  else if (tab === 'byTeam') body = <ByTeamTab projectId={projectId} plugins={plugins.data} />;
   else if (tab === 'source') body = <AddFromSource projectId={projectId} onInstalled={() => setTab('installed')} />;
   else body = <InstalledTab projectId={projectId} plugins={plugins.data} />;
 

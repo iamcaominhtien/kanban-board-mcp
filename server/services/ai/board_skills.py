@@ -62,6 +62,11 @@ def catalog() -> list[dict]:
                 "name": name,
                 "description": m.group(1).strip() if m else "",
                 "role": role_skills.role_of_skill(name),
+                # the roles that do this craft; None for a skill that is for every team
+                "craft_roles": sorted(CRAFT_ROLES[name])
+                if name in CRAFT_ROLES
+                else None,
+                "always_on": name == ALWAYS_ON,
             }
         )
     return out
@@ -100,6 +105,10 @@ CRAFT_ROLES: dict[str, set[str]] = {
 }
 
 
+# The skill every run opens first (launch.py says REQUIRED): it cannot be switched off.
+ALWAYS_ON = "working-a-ticket"
+
+
 def enabled_for(
     ops: dict, member_id: str | None, role: str | set[str] | None = None
 ) -> list[str]:
@@ -131,7 +140,7 @@ def enabled_for(
         ):
             continue
         r = rows.get(name)
-        if r is None:
+        if r is None or name == ALWAYS_ON:
             out.append(name)
             continue
         if member_id and member_id in (r.get("members_on") or []):

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PullStatus } from './PullStatus';
 import { codeApi, useCodeMutation, useTicketWorktree } from '../../../api/aiCode';
+import { useProjectOps } from '../../../api/aiProjectOps';
 import { extractError } from '../../../api/extractError';
 import type { Ticket } from '../../../types';
 import type { HandoverRoute, MergeResult } from '../../../types/aiCode';
@@ -9,6 +10,7 @@ import { ROUTE_TEXT, ROUTE_TITLE, StateChip, mbText, uncommittedText } from './w
 /** A ticket's worktree and hand-over (design/screens/ai-operations.md, J): ready to hand over, merge, a conflict. */
 export function TicketHandover({ ticket }: { ticket: Ticket }) {
   const wt = useTicketWorktree(ticket.id);
+  const ops = useProjectOps(ticket.projectId);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResult | null>(null);
   const merge = useCodeMutation(() => codeApi.merge(ticket.id));
@@ -24,6 +26,10 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
 
   const route = (w as { route?: HandoverRoute }).route ?? w.handover ?? 'auto';
   const eff: Exclude<HandoverRoute, 'auto'> = route === 'auto' ? 'pr' : route;
+  // the project's own choice (Settings › AI › Repositories); this ticket's can differ
+  const projectDefault = (ops.data?.worktrees as { handover?: HandoverRoute } | undefined)?.handover;
+  const projectRoute: Exclude<HandoverRoute, 'auto'> =
+    !projectDefault || projectDefault === 'auto' ? 'pr' : projectDefault;
   const dirty = (w.live?.uncommitted.length ?? 0) > 0;
   const run = async (fn: () => Promise<unknown>) => {
     setError(null);
@@ -98,24 +104,39 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
       {w.state === 'merged' ? (
         <div className="ai-hint">Merged. The worktree is removed and its port is given back.</div>
       ) : (
-        <div className="ai-notice ai-notice-info" style={{ display: 'block' }} data-testid="ready-to-hand-over">
-          <div style={{ fontWeight: 700 }}>Ready to hand over</div>
-          <div style={{ margin: '3px 0 8px' }}>
-            This ticket hands over by <b>{ROUTE_TITLE[eff].toLowerCase()}</b>. {ROUTE_TEXT[eff]}
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {eff !== 'local' ? (
+        <div style={{ display: 'grid', gap: 8 }} data-testid="ready-to-hand-over">
+          <div className="ai-label">WHEN THE WORK IS READY, HAND IT OVER BY</div>
+          <div
+            role="radiogroup"
+            aria-label="Hand the work over by"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}
+          >
+            {(Object.keys(ROUTE_TITLE) as Exclude<HandoverRoute, 'auto'>[]).map((r) => (
               <button
+                key={r}
                 type="button"
-                className="ai-btn ai-btn-sm"
+                role="radio"
+                aria-checked={eff === r}
                 disabled={handover.isPending}
-                data-testid="merge-here"
-                onClick={() => void run(() => handover.mutateAsync('local'))}
+                className={`ai-option ${eff === r ? 'ai-option-active' : ''}`}
+                style={{ alignItems: 'flex-start', textAlign: 'left' }}
+                data-testid={`handover-${r}`}
+                onClick={() => eff !== r && void run(() => handover.mutateAsync(r))}
               >
-                Merge here instead
+                <span className={`ai-radio ${eff === r ? 'ai-radio-on' : ''}`} />
+                <span>
+                  <b style={{ fontSize: 13 }}>{ROUTE_TITLE[r]}</b>
+                  <div className="ai-muted">{ROUTE_TEXT[r]}</div>
+                </span>
               </button>
-            ) : null}
-            {eff === 'local' && (
+            ))}
+          </div>
+          <div className="ai-hint">
+            The project&rsquo;s default is {ROUTE_TITLE[projectRoute].toLowerCase()}. Choosing here changes only this
+            ticket.
+          </div>
+          {eff === 'local' && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <button
                 type="button"
                 className="ai-btn ai-btn-sm ai-btn-primary"
@@ -126,11 +147,9 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
               >
                 {merge.isPending ? 'Merging...' : 'Merge'}
               </button>
-            )}
-            {eff === 'local' && (
               <span className="ai-hint">Merging also removes the worktree. Only you merge, never a rule or an AI.</span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
       {result?.refused && (
