@@ -100,7 +100,9 @@ export function RemoveAccountDialog({
                 ))}
               </select>
             )}
-            {policy === 'none' && <div className="acc-hint">{cantRunClause(account, 'until you choose one', 'AI team')}</div>}
+            {policy === 'none' && (
+              <div className="acc-hint">{cantRunClause(account, 'until you choose one', 'AI team')}</div>
+            )}
             <div className="acc-hint">
               Removing signs the CLI out for this account and deletes its saved login (its folder, and for Claude Code
               on macOS its keychain entry). Tickets, runs and history are kept.
