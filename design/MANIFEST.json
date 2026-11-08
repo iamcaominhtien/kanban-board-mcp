@@ -84,21 +84,20 @@
       "h": 11153
     },
     "AiOperations.dc.html": {
-      "bytes": 245805,
-      "sha256": "b36309e624168c51842faea3646a8be6f614c1a9515abc2fe5dadf11d515e300",
+      "bytes": 139700,
+      "sha256": "81b2825d959fd9ffa7cff029ddc1a027b0853202c65a62ee15c5616cd984661d",
       "title": "AI operations — hangs, the needs-you queue, quota, run history, knowledge, worktrees",
       "page": "screens_ai",
       "w": 1480,
-      "h": 16040
+      "h": 9196
     },
     "AiPaused.dc.html": {
-      "bytes": 225894,
-      "sha256": "1c3ea3f26d0dca51d78f8f3889f7225cac52d1d16db614814a007064df548e89",
+      "bytes": 108714,
+      "sha256": "db7062930325175c3c29dd31e9942608ef8f2618eed217dc377a1d5f3cd0d09c",
       "title": "AI Team — AI paused: one clear state on every screen",
       "page": "screens_ai",
       "w": 1480,
-      "h": 10280,
-      "note": "Supersedes D1 (header button, paused state) of AiSafetyCost for the banner and top-bar state; D2-D6 stay."
+      "h": 4953
     },
     "AiProjectSettings.dc.html": {
       "bytes": 248715,
@@ -125,12 +124,12 @@
       "h": 8283
     },
     "AiSchedules.dc.html": {
-      "bytes": 122027,
-      "sha256": "30ff6c869fc892606e26321afe8c5c2efd684a5a1403ae400f3d535f1a4cefb2",
+      "bytes": 134542,
+      "sha256": "04c76f058e9f2f205ad0964e77ba24eb8250f6712de81bd5257756f6e5390c9d",
       "title": "AI — schedules",
       "page": "screens_ai",
       "w": 1480,
-      "h": 6640
+      "h": 7969
     },
     "AiStoryFlow.dc.html": {
       "bytes": 815411,
@@ -149,12 +148,12 @@
       "h": 14490
     },
     "AiTeamProcess.dc.html": {
-      "bytes": 231817,
-      "sha256": "e354b3009272ad4f81e59f49f7eda1146854818ababc8f0683efa0dd95206ecd",
+      "bytes": 86951,
+      "sha256": "7739685785347bdccf1238d8a0cea23c089e860e38e8b22df5069f0d0aa8c9a7",
       "title": "AI team & process — skills and plugins, role packs, workflows, review, arbitration, TDD proof",
       "page": "screens_ai",
       "w": 1480,
-      "h": 14153
+      "h": 4665
     },
     "AiTeamReview.dc.html": {
       "bytes": 133438,
