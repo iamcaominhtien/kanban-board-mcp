@@ -5,7 +5,7 @@ An AI team comments under its own name; it never resolves a person's thread.
 """
 
 import json
-import re
+import logging
 from typing import Any
 
 from sqlmodel import select
@@ -13,7 +13,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import AiTeam, CanvasComment, CanvasThread, Member
 from services import activity, canvases
+from services.docs_comments import mentions_in, snippet_of
 from services.docs_text import DocsError
+
+logger = logging.getLogger(__name__)
 
 MAX_BODY = 4000
 
@@ -25,10 +28,65 @@ def _body(text: str) -> str:
     return body[:MAX_BODY]
 
 
-def _mentions(body: str) -> list[str]:
-    return sorted(
-        set(re.findall(r"(?<![\w@])@([\w][\w .-]{0,40}?)(?=[\s,.;:!?)]|$)", body))
+async def _people_mentioned(
+    session: AsyncSession, canvas: Any, body: str
+) -> list[Member]:
+    """The members of the canvas's project that a comment mentions: the picker's ``@[Name](member:id)`` and a typed
+    ``@Name`` both count (see ``docs_comments.mentions_in``). Other ``@words`` are ignored."""
+    if not canvas.project_id:
+        return []
+    rows = await session.exec(
+        select(Member).where(Member.project_id == canvas.project_id)
     )
+    return mentions_in(body, list(rows.all()))
+
+
+async def _mentions(session: AsyncSession, canvas: Any, body: str) -> list[str]:
+    """What a comment stores as ``mentions``: the ids of the project members it mentions."""
+    return [m.id for m in await _people_mentioned(session, canvas, body)]
+
+
+async def _notify_mentions(
+    session: AsyncSession,
+    canvas: Any,
+    thread: CanvasThread,
+    comment: CanvasComment,
+) -> None:
+    """Tell each person a new comment mentions (a Needs you row of kind ``mention`` that opens the canvas). Not the
+    author, and never an AI member. A failure here must not lose the comment, so it is only logged."""
+    try:
+        from services import notifications
+
+        author = comment.author
+        people = [
+            m
+            for m in await _people_mentioned(session, canvas, comment.body)
+            if m.kind not in ("ai", "ai_removed")
+            and notifications.person_key(m.name) != notifications.person_key(author)
+        ]
+        if not people:
+            return
+        who = "Someone" if notifications.person_key(author) == "user" else author
+        for m in people:
+            await notifications.emit(
+                "mention",
+                project_id=canvas.project_id,
+                recipients=[notifications.person_key(m.name)],
+                title=f"{who} mentioned you on {canvas.title}",
+                body=f"“{snippet_of(comment.body)}”",
+                target_kind="canvas_thread",
+                target_id=thread.id,
+                actor=author,
+                data={
+                    "canvas_id": canvas.id,
+                    "canvas_title": canvas.title,
+                    "board_id": thread.board_id,
+                    "comment_id": comment.id,
+                },
+                session=session,
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write a canvas mention notification")
 
 
 async def _is_ai(session: AsyncSession, c: Any, author: str) -> bool:
@@ -200,16 +258,16 @@ async def add_thread(
     )
     session.add(t)
     await session.flush()
-    session.add(
-        CanvasComment(
-            thread_id=t.id,
-            author=actor,
-            body=text,
-            mentions=json.dumps(_mentions(text)),
-            ai=json.dumps(ai) if ai is not None else None,
-        )
+    first = CanvasComment(
+        thread_id=t.id,
+        author=actor,
+        body=text,
+        mentions=json.dumps(await _mentions(session, c, text)),
+        ai=json.dumps(ai) if ai is not None else None,
     )
+    session.add(first)
     await session.commit()
+    await _notify_mentions(session, c, t, first)
     return await _thread_out(session, c, t)
 
 
@@ -231,16 +289,16 @@ async def reply(
     c, t = await _thread(session, thread_id)
     await canvases.member_role(session, c)
     text = _body(body)
-    session.add(
-        CanvasComment(
-            thread_id=t.id,
-            author=activity.current_actor(),
-            body=text,
-            mentions=json.dumps(_mentions(text)),
-            ai=json.dumps(ai) if ai is not None else None,
-        )
+    new = CanvasComment(
+        thread_id=t.id,
+        author=activity.current_actor(),
+        body=text,
+        mentions=json.dumps(await _mentions(session, c, text)),
+        ai=json.dumps(ai) if ai is not None else None,
     )
+    session.add(new)
     await session.commit()
+    await _notify_mentions(session, c, t, new)
     return await _thread_out(session, c, t)
 
 
@@ -256,7 +314,7 @@ async def edit_comment(
     if m.author != activity.current_actor():
         raise DocsError(403, "not_yours", "You can only edit your own comments.")
     m.body = _body(body)
-    m.mentions = json.dumps(_mentions(m.body))
+    m.mentions = json.dumps(await _mentions(session, c, m.body))
     m.edited_at = canvases._now()  # noqa: SLF001
     session.add(m)
     await session.commit()

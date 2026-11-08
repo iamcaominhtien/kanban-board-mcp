@@ -518,7 +518,8 @@ async def post_thread(
 
 
 class Body(BaseModel):
-    """Comment text. An @mention is only stored with the comment; nothing is sent to the person or team named."""
+    """Comment text. ``@[Name](member:id)`` (what the picker writes) or a typed ``@Name`` mentions a person of the project: the
+    comment keeps their ids and each of them gets a Needs you notification that opens the canvas."""
 
     body: str
 

@@ -35,6 +35,8 @@ export interface ViewCanvasRequest {
   pageId?: string;
   /** Start with the comments panel open. */
   comments?: boolean;
+  /** Select this comment thread (a "mentioned you" notification opens the canvas at it). */
+  threadId?: string;
 }
 
 /** The canvas tool, for any part of the app. */

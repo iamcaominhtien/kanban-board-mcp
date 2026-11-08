@@ -14,6 +14,8 @@ import {
 import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { useToast } from '../Toast';
 import { CanvasIcon } from './CanvasIcon';
+import { MentionBox } from './MentionBox';
+import { useCanvasMentions } from './useCanvasMentions';
 import styles from './Canvas.module.css';
 
 export type CommentFilter = 'open' | 'resolved' | 'board' | 'mine' | 'ai';
@@ -30,6 +32,8 @@ interface Props {
   canComment: boolean;
   /** Who is looking, for "Only mine" and delete. */
   me: string;
+  /** The canvas's project: the people the `@` picker offers. */
+  projectId?: string | null;
   /** Start a new thread on the board in view (the large view has no pin tool). */
   newOnBoard?: boolean;
   filters?: CommentFilter[];
@@ -56,16 +60,19 @@ export function filterThreads(threads: CanvasThread[], on: Set<CommentFilter>, b
   });
 }
 
+/** A saved mention is `@[Name](member:id)` (what the picker made) or plain `@Name` (older comments). */
+const MENTION = /(@\[[^\][\n]{1,100}\]\(member:[\w.-]{1,64}\)|@[\w][\w.-]*(?: [A-Z][\w.-]*)?)/g;
+
 function mentioned(text: string) {
-  return text.split(/(@[\w][\w.-]*(?: [A-Z][\w.-]*)?)/g).map((part, i) =>
-    part.startsWith('@') ? (
+  return text.split(MENTION).map((part, i) => {
+    if (!part.startsWith('@')) return part;
+    const linked = /^@\[([^\]]+)\]\(member:/.exec(part);
+    return (
       <span key={i} className={styles.mention}>
-        {part}
+        {linked ? `@${linked[1]}` : part}
       </span>
-    ) : (
-      part
-    ),
-  );
+    );
+  });
 }
 
 /**
@@ -84,9 +91,11 @@ export function CommentsPanel(props: Props) {
     onSelectThread,
     canComment,
     me,
+    projectId,
     filters,
     newOnBoard,
   } = props;
+  const mentions = useCanvasMentions(projectId, me);
   const qc = useQueryClient();
   const toast = useToast();
   const [on, setOn] = useState<Set<CommentFilter>>(new Set(['open']));
@@ -146,13 +155,16 @@ export function CommentsPanel(props: Props) {
       </div>
       {newOnBoard && canComment && (
         <div className={styles.thread}>
-          <textarea
+          <MentionBox
+            multiline
             className={styles.input}
             rows={2}
-            placeholder={`Comment on “${nameOf(boardId)}”… Type @ to mention a person or a team`}
+            placeholder={`Comment on “${nameOf(boardId)}”… Type @ to mention a person`}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            data-testid="canvas-new-comment"
+            onChange={setDraft}
+            members={mentions.suggest}
+            projectId={projectId ?? ''}
+            testId="canvas-new-comment"
           />
           <div className={styles.threadActions}>
             <button
@@ -161,7 +173,12 @@ export function CommentsPanel(props: Props) {
               disabled={!draft.trim()}
               onClick={() =>
                 void run(async () => {
-                  const out = await addThread(canvasId, { body: draft.trim(), boardId, x: 0.5, y: 0.5 });
+                  const out = await addThread(canvasId, {
+                    body: mentions.store(draft.trim()),
+                    boardId,
+                    x: 0.5,
+                    y: 0.5,
+                  });
                   setDraft('');
                   return out;
                 })
@@ -229,15 +246,17 @@ export function CommentsPanel(props: Props) {
             </div>
           ))}
           {canComment && t.status === 'open' && (
-            <input
+            <MentionBox
               className={styles.input}
               placeholder="Reply…"
               value={reply[t.id] ?? ''}
               onClick={(e) => e.stopPropagation()}
-              onChange={(e) => setReply((r) => ({ ...r, [t.id]: e.target.value }))}
+              onChange={(v) => setReply((r) => ({ ...r, [t.id]: v }))}
+              members={mentions.suggest}
+              projectId={projectId ?? ''}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (reply[t.id] ?? '').trim()) {
-                  const body = reply[t.id].trim();
+                  const body = mentions.store(reply[t.id].trim());
                   void run(async () => {
                     const out = await replyThread(t.id, body);
                     setReply((r) => ({ ...r, [t.id]: '' }));

@@ -2036,6 +2036,9 @@ def _actions(r: Notification, gone: bool) -> list[dict]:
     if k == "account_signed_out":
         return [{"id": "sign_in", "label": "Sign in again"}]
     if k == "mention":
+        if r.target_kind == "canvas_thread":
+            # a canvas comment is answered on the canvas, not from the row
+            return [{"id": "open", "label": "Open"}]
         return [{"id": "reply", "label": "Reply"}, {"id": "open", "label": "Open"}]
     if k in ("budget", "auto_trip", "offline"):
         return [{"id": "open_ai", "label": "Open AI Team"}]
