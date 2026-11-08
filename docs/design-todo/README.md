@@ -1,6 +1,6 @@
 # AI v2 design todo: files for the designer
 
-These files are a **snapshot** of the board's Docs page "AI v2: design todo" (project Kanban Board MCP, page id `4c07b3fe-efac-4e2e-a4cf-6ee992616c4d`), version 14, taken on 2026-11-08, cut into one file per canvas so a designer reads only what it needs.
+These files are a **snapshot** of the board's Docs page "AI v2: design todo" (project Kanban Board MCP, page id `4c07b3fe-efac-4e2e-a4cf-6ee992616c4d`), version 16, taken on 2026-11-08, cut into one file per canvas so a designer reads only what it needs.
 
 - **The board page is the source.** It keeps changing (ticket KBM-14 keeps it up to date, new rows are added there). Do not edit these files and do not add rows here; ask for a fresh snapshot when you start a new canvas.
 - A row's id (`A-nnn`, `B-nn`, `C-nn`) is stable; use it when you answer or ask.
