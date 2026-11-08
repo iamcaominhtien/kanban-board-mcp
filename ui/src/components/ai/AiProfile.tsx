@@ -18,7 +18,7 @@ import {
   withRoleOverride,
   type RoleDraft,
 } from './roleEdit';
-import { AiAvatar, LoadError, StatusLabel, money, statusSub, useNow } from './aiUi';
+import { AiAvatar, LoadError, STATUS_NAMES, StatusLabel, money, statusSub, useNow } from './aiUi';
 import { roleLook } from './roleLook';
 import { displayStatus } from '../../utils/memberAccount';
 import { LineIcon } from '../ui/LineIcon';
@@ -505,12 +505,10 @@ export function AiProfile({
           <LineIcon name="trash" size={13} /> Remove…
         </button>
       </div>
-      {team.healthDetail && team.health !== 'ok' && (
-        <div className="ai-notice ai-notice-warn">
-          {displayStatus(team) !== team.status && team.accountRef
-            ? `The account ${team.accountRef.name} needs to sign in.`
-            : team.healthDetail}
-        </div>
+      {displayStatus(team) !== team.status && team.accountRef ? (
+        <div className="ai-notice ai-notice-warn">The account {team.accountRef.name} needs to sign in.</div>
+      ) : (
+        team.healthDetail && team.health !== 'ok' && <div className="ai-notice ai-notice-warn">{team.healthDetail}</div>
       )}
 
       <Section title="Today">
@@ -556,7 +554,8 @@ export function AiProfile({
                 style={{ textAlign: 'left' }}
                 onClick={() => onOpenTicket(t.id)}
               >
-                <span className="ai-mono">{t.id}</span> {t.title} <span className="ai-muted">· {t.status}</span>
+                <span className="ai-mono">{t.id}</span> {t.title}{' '}
+                <span className="ai-muted">· {STATUS_NAMES[t.status] ?? t.status}</span>
               </button>
             ))}
           </div>
