@@ -35,6 +35,14 @@
       "w": 680,
       "h": 620
     },
+    "AiAccounts.dc.html": {
+      "bytes": 224019,
+      "sha256": "776dbd2758914f3d55d71c09c336c44076e14a7d09227fd1ad3e00825e567d2a",
+      "title": "AI accounts — sign in once, share between AI members",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 15321
+    },
     "AiBoardAssistant.dc.html": {
       "bytes": 274378,
       "sha256": "5ca27b0a187cbe7e4ee41f6d4746dfe3d7e416bcb3e897415e2d3cbb7cb33114",
@@ -42,6 +50,30 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 7960
+    },
+    "AiBoardWave3.dc.html": {
+      "bytes": 169735,
+      "sha256": "752524874dfcb5c2dbd0e47d4818972429533fa1df09d619261d79c3a194219d",
+      "title": "Board AI & beyond — risk tiers, standing orders, knowledge base, GitHub, marks",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 12020
+    },
+    "AiDatabases.dc.html": {
+      "bytes": 167340,
+      "sha256": "2744187998cf03ebf72e6faa1213e68ad9ff9fcd111dc4314b9d80ed3617689a",
+      "title": "Choose your database",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 10602
+    },
+    "AiEverywhere.dc.html": {
+      "bytes": 69747,
+      "sha256": "567d8b0a57df9c42b3bc44dd6035c732162a9143fd0ddf352bc8d64aa006db6e",
+      "title": "AI where you work — ticket chat, @mentions & editor",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 4046
     },
     "AiMembers.dc.html": {
       "bytes": 219755,
@@ -51,29 +83,13 @@
       "w": 1480,
       "h": 7980
     },
-    "AiAccounts.dc.html": {
-      "bytes": 224019,
-      "sha256": "776dbd2758914f3d55d71c09c336c44076e14a7d09227fd1ad3e00825e567d2a",
-      "title": "AI accounts — sign in once, share between AI members",
+    "AiOperations.dc.html": {
+      "bytes": 245805,
+      "sha256": "b36309e624168c51842faea3646a8be6f614c1a9515abc2fe5dadf11d515e300",
+      "title": "AI operations — hangs, the needs-you queue, quota, run history, knowledge, worktrees",
       "page": "screens_ai",
       "w": 1480,
-      "h": 15321
-    },
-    "AiProviderConfig.dc.html": {
-      "bytes": 238168,
-      "sha256": "01dd233efcacc5d16c7494f6504ba9673eceeedbcc0025b8a6f8926f6cf8259b",
-      "title": "AI provider configuration",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 7975
-    },
-    "AiSafetyCost.dc.html": {
-      "bytes": 333892,
-      "sha256": "b76e1a31f4eb34c67b7d9b23c233f4cc4449d73cc81432de017476c1e0de6616",
-      "title": "AI safety & cost",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 7910
+      "h": 16040
     },
     "AiPaused.dc.html": {
       "bytes": 225894,
@@ -84,6 +100,22 @@
       "h": 10280,
       "note": "Supersedes D1 (header button, paused state) of AiSafetyCost for the banner and top-bar state; D2-D6 stay."
     },
+    "AiProviderConfig.dc.html": {
+      "bytes": 238168,
+      "sha256": "01dd233efcacc5d16c7494f6504ba9673eceeedbcc0025b8a6f8926f6cf8259b",
+      "title": "AI provider configuration",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 7975
+    },
+    "AiRepoCommands.dc.html": {
+      "bytes": 195351,
+      "sha256": "30372fd625bb09fcf541cba358d1da28399e2e47d496a4830fca900897e33553",
+      "title": "AI sets up the commands",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 10231
+    },
     "AiResources.dc.html": {
       "bytes": 136640,
       "sha256": "d44a525aae5bc009a0e7e972c8bbb2c69cd656f57a751dc8f4ff66dafed32705",
@@ -92,6 +124,54 @@
       "w": 1480,
       "h": 8283
     },
+    "AiSafetyCost.dc.html": {
+      "bytes": 333892,
+      "sha256": "b76e1a31f4eb34c67b7d9b23c233f4cc4449d73cc81432de017476c1e0de6616",
+      "title": "AI safety & cost",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 7910
+    },
+    "AiSchedules.dc.html": {
+      "bytes": 122027,
+      "sha256": "30ff6c869fc892606e26321afe8c5c2efd684a5a1403ae400f3d535f1a4cefb2",
+      "title": "AI — schedules",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 6640
+    },
+    "AiStoryFlow.dc.html": {
+      "bytes": 815411,
+      "sha256": "7c41829d3aff8fadabfab31f072c54aa70d59809d6dc100e76e8c154d6d91c04",
+      "title": "Story, Flow by scope and Live commentary — a job the PM owns, one bar for Flow, the screens that ran without a design",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 34506
+    },
+    "AiTeam.dc.html": {
+      "bytes": 317294,
+      "sha256": "87b6d3651705208f0d051bf1c37176e29d19a82bfdf7ed4c465ce3a3c006da5f",
+      "title": "AI Team — what the AIs are doing and how work moves",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 14490
+    },
+    "AiTeamProcess.dc.html": {
+      "bytes": 231817,
+      "sha256": "e354b3009272ad4f81e59f49f7eda1146854818ababc8f0683efa0dd95206ecd",
+      "title": "AI team & process — skills and plugins, role packs, workflows, review, arbitration, TDD proof",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 14153
+    },
+    "AiTeamReview.dc.html": {
+      "bytes": 133438,
+      "sha256": "933b4a109529a37cf9fc2a0e8288386ceb9bbbeb6f4c688fe4908254f5382374",
+      "title": "AI Team — where people stepped in, and AI health",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 7445
+    },
     "AiTicketWork.dc.html": {
       "bytes": 280284,
       "sha256": "7d369b668acab1a840d34c3bfb7bc5801e1ba7852504da05a9de0704a9cf0330",
@@ -99,6 +179,22 @@
       "page": "components",
       "w": 1380,
       "h": 7970
+    },
+    "AiTimeline.dc.html": {
+      "bytes": 147264,
+      "sha256": "20e235bc485346b519163693a1b829624a73104802d16c92451984237eb00000",
+      "title": "AI Team — Flow: the Timeline view",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 5281
+    },
+    "AiTimelineCases.dc.html": {
+      "bytes": 206978,
+      "sha256": "76b9b89977aa0733ec3b048ad867b2e33a55b72afcf176c254e44b9b6853e593",
+      "title": "AI Team — Timeline: time, scope, motion, states",
+      "page": "screens_ai",
+      "w": 1480,
+      "h": 6632
     },
     "AppLoading.dc.html": {
       "bytes": 94480,
@@ -132,6 +228,14 @@
       "w": 1300,
       "h": 2740
     },
+    "Canvas.dc.html": {
+      "bytes": 403353,
+      "sha256": "3d8e46e752b1a2b1852371b855a13896ac709fb73958a08541119ff326e092ce",
+      "title": "Canvas — boards, notes and comments on one large plane",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 19845
+    },
     "DebugSpace.dc.html": {
       "bytes": 30886,
       "sha256": "a330f8c6b647c3d1f2a0be2545094f0cfddb1433996cd2cf8b0bbdc50c49e32f",
@@ -148,6 +252,22 @@
       "w": 900,
       "h": 2820
     },
+    "DesktopMenu.dc.html": {
+      "bytes": 104626,
+      "sha256": "fde1924f3ea6a2a696dda365917a4987020dd810e239318a664b11560605bfb4",
+      "title": "Desktop — menu bar (macOS, Windows)",
+      "page": "screens_account",
+      "w": 1480,
+      "h": 6579
+    },
+    "Diagrams.dc.html": {
+      "bytes": 85259,
+      "sha256": "66a3c664e48c8fabea8e72a773fef99ffab5ed28ede1d9ae438b4ebdf9d286bf",
+      "title": "Diagrams — draw.io",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 4380
+    },
     "DocsActions.dc.html": {
       "bytes": 242702,
       "sha256": "e5f6258efa0be3fa9fb954af2f9faec02d31fcdd95e67056368c23473dfebce9",
@@ -155,6 +275,30 @@
       "page": "screens_docs",
       "w": 1480,
       "h": 7913
+    },
+    "DocsAi.dc.html": {
+      "bytes": 113919,
+      "sha256": "62d5c43801116643f3da83422efda94f2ebc6acd05b8eddf9a31ca8977bbf761",
+      "title": "Docs AI — ask, write, read & edit",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 5220
+    },
+    "DocsAiCare.dc.html": {
+      "bytes": 126445,
+      "sha256": "175c78653843dc5bb6e9c257ab9908e923f24704e6b6bae86a08665bf19b91ac",
+      "title": "Docs AI — keeping docs true, proposals & control",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 6340
+    },
+    "DocsComments.dc.html": {
+      "bytes": 91862,
+      "sha256": "c5f2b69b986f694128d6fd774512e4033b1607885b9f76dfe06b17e6bb49a1ed",
+      "title": "Docs — comments",
+      "page": "screens_docs",
+      "w": 1480,
+      "h": 5100
     },
     "DocsEditor.dc.html": {
       "bytes": 154235,
@@ -204,6 +348,14 @@
       "w": 1200,
       "h": 780
     },
+    "GuidelineDesign.dc.html": {
+      "bytes": 144551,
+      "sha256": "97e1ac2fd0b0b1f38cbbb99faf3e423842ae7ead505f669932485f86d4b7e905",
+      "title": "Guideline — design of the user and administrator guide",
+      "page": "guideline",
+      "w": 1480,
+      "h": 8862
+    },
     "Icons.dc.html": {
       "bytes": 22464,
       "sha256": "da9137d02d0db7390c3794796ccdd345bf3a0b5efe13e812f55a746370d436c8",
@@ -211,6 +363,54 @@
       "page": "components",
       "w": 900,
       "h": 1660
+    },
+    "IdeaAi.dc.html": {
+      "bytes": 78760,
+      "sha256": "410829ab5b84d0e849b329195a3785121d31d7eb70049d17b3030881b84c4b4c",
+      "title": "Idea Space — AI help",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 4919
+    },
+    "IdeaCapture.dc.html": {
+      "bytes": 71375,
+      "sha256": "a229048f7914b1ffd3bf01e3e754a82690a1a0f80fbe462012074bbb09128095",
+      "title": "Idea Space — capture & triage",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 3227
+    },
+    "IdeaPage.dc.html": {
+      "bytes": 122828,
+      "sha256": "cc36e79baf2fa1eae7f2e8c7047f518b3ae18397f6711c952b5718711d13dee1",
+      "title": "Idea Space — the idea page",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 5714
+    },
+    "IdeaPromote.dc.html": {
+      "bytes": 89101,
+      "sha256": "516bf6ecd4027abf32f79fe717ac3ea237f30d75e3bf687a7eaafbc2f1beeda1",
+      "title": "Idea Space — promote & migration",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 5657
+    },
+    "IdeaSpaceViews.dc.html": {
+      "bytes": 113778,
+      "sha256": "ac9aaed74959e5dfbb48bbae16a3be4b24e7ee0983c4a17ddeb7c0942c58a673",
+      "title": "Idea Space — list, stages & matrix",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 4533
+    },
+    "IdeaWork.dc.html": {
+      "bytes": 94399,
+      "sha256": "3a2cc6a0a16ff1c2b8cf416d829b56ab56c30d56a9b73236565f7a916a8f8be2",
+      "title": "Idea Space — research log, workspace & activity",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 4803
     },
     "ListView.dc.html": {
       "bytes": 28132,
@@ -268,6 +468,14 @@
       "w": 900,
       "h": 1560
     },
+    "Notifications.dc.html": {
+      "bytes": 227497,
+      "sha256": "9028c264068d816508fece870c4c5535c068afef3b2273dd3c587dfe14fc2aa0",
+      "title": "Notifications — one place for what needs you and what happened",
+      "page": "screens_account",
+      "w": 1480,
+      "h": 12547
+    },
     "PasswordReset.dc.html": {
       "bytes": 24170,
       "sha256": "3a2473e7fa4957839a9be1483a55dcdc7b15ea054687f0cecacda36cc864a0b4",
@@ -275,6 +483,22 @@
       "page": "screens_account",
       "w": 1440,
       "h": 2160
+    },
+    "PreviewTypes.dc.html": {
+      "bytes": 142226,
+      "sha256": "ad4557db7e29544506ce0dd57f9a596a99b6fe1ebd6a6f93a2effe6a0ca7c709",
+      "title": "Preview — file types & states",
+      "page": "screens_startup",
+      "w": 1480,
+      "h": 8630
+    },
+    "PreviewViewer.dc.html": {
+      "bytes": 79228,
+      "sha256": "ef2a2c3afe3d9fab8ba7c252906b810bbb338c89fcfafeaf62f6ce06ee2ad568",
+      "title": "Preview — open & viewer",
+      "page": "screens_startup",
+      "w": 1480,
+      "h": 5010
     },
     "Relations.dc.html": {
       "bytes": 14224,
@@ -292,6 +516,22 @@
       "w": 1362,
       "h": 6477
     },
+    "SettingsNav.dc.html": {
+      "bytes": 60207,
+      "sha256": "c9e13b688590060debe423521f04370231e26fa69dede263c76994af418356e1",
+      "title": "Settings — structure & navigation",
+      "page": "screens_account",
+      "w": 1480,
+      "h": 3420
+    },
+    "SettingsPages.dc.html": {
+      "bytes": 54741,
+      "sha256": "6396cd03daef727acd0c385c297e16a3caf55a2e228e54656af349b6c4ba6911",
+      "title": "Settings — pages & states",
+      "page": "screens_account",
+      "w": 1480,
+      "h": 4330
+    },
     "SignUp.dc.html": {
       "bytes": 47719,
       "sha256": "7dcf4cf7b3504eadbe5f63422a6461096c32c9d62a3827fa188fe90ae132dc61",
@@ -299,6 +539,14 @@
       "page": "screens_account",
       "w": 1440,
       "h": 3700
+    },
+    "Sketch.dc.html": {
+      "bytes": 73045,
+      "sha256": "7e8ed32a94a424cfa9729dcbe7da6eb9585a9303418af4992a5e88f84a76be4f",
+      "title": "Sketch — paint-style drawing tool",
+      "page": "screens_ideas",
+      "w": 1480,
+      "h": 3531
     },
     "Splash.dc.html": {
       "bytes": 34402,
@@ -419,254 +667,6 @@
       "page": "components",
       "w": 1180,
       "h": 2760
-    },
-    "DocsComments.dc.html": {
-      "bytes": 91862,
-      "sha256": "c5f2b69b986f694128d6fd774512e4033b1607885b9f76dfe06b17e6bb49a1ed",
-      "title": "Docs — comments",
-      "page": "screens_docs",
-      "w": 1480,
-      "h": 5100
-    },
-    "Diagrams.dc.html": {
-      "bytes": 85259,
-      "sha256": "66a3c664e48c8fabea8e72a773fef99ffab5ed28ede1d9ae438b4ebdf9d286bf",
-      "title": "Diagrams — draw.io",
-      "page": "screens_docs",
-      "w": 1480,
-      "h": 4380
-    },
-    "AiSchedules.dc.html": {
-      "bytes": 122027,
-      "sha256": "30ff6c869fc892606e26321afe8c5c2efd684a5a1403ae400f3d535f1a4cefb2",
-      "title": "AI — schedules",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 6640
-    },
-    "PreviewViewer.dc.html": {
-      "bytes": 79228,
-      "sha256": "ef2a2c3afe3d9fab8ba7c252906b810bbb338c89fcfafeaf62f6ce06ee2ad568",
-      "title": "Preview — open & viewer",
-      "page": "screens_startup",
-      "w": 1480,
-      "h": 5010
-    },
-    "PreviewTypes.dc.html": {
-      "bytes": 142226,
-      "sha256": "ad4557db7e29544506ce0dd57f9a596a99b6fe1ebd6a6f93a2effe6a0ca7c709",
-      "title": "Preview — file types & states",
-      "page": "screens_startup",
-      "w": 1480,
-      "h": 8630
-    },
-    "SettingsNav.dc.html": {
-      "bytes": 60207,
-      "sha256": "c9e13b688590060debe423521f04370231e26fa69dede263c76994af418356e1",
-      "title": "Settings — structure & navigation",
-      "page": "screens_account",
-      "w": 1480,
-      "h": 3420
-    },
-    "SettingsPages.dc.html": {
-      "bytes": 54741,
-      "sha256": "6396cd03daef727acd0c385c297e16a3caf55a2e228e54656af349b6c4ba6911",
-      "title": "Settings — pages & states",
-      "page": "screens_account",
-      "w": 1480,
-      "h": 4330
-    },
-    "IdeaSpaceViews.dc.html": {
-      "bytes": 113778,
-      "sha256": "ac9aaed74959e5dfbb48bbae16a3be4b24e7ee0983c4a17ddeb7c0942c58a673",
-      "title": "Idea Space — list, stages & matrix",
-      "page": "screens_ideas",
-      "w": 1480,
-      "h": 4533
-    },
-    "IdeaCapture.dc.html": {
-      "bytes": 71375,
-      "sha256": "a229048f7914b1ffd3bf01e3e754a82690a1a0f80fbe462012074bbb09128095",
-      "title": "Idea Space — capture & triage",
-      "page": "screens_ideas",
-      "w": 1480,
-      "h": 3227
-    },
-    "IdeaPage.dc.html": {
-      "bytes": 122828,
-      "sha256": "cc36e79baf2fa1eae7f2e8c7047f518b3ae18397f6711c952b5718711d13dee1",
-      "title": "Idea Space — the idea page",
-      "page": "screens_ideas",
-      "w": 1480,
-      "h": 5714
-    },
-    "IdeaPromote.dc.html": {
-      "bytes": 89101,
-      "sha256": "516bf6ecd4027abf32f79fe717ac3ea237f30d75e3bf687a7eaafbc2f1beeda1",
-      "title": "Idea Space — promote & migration",
-      "page": "screens_ideas",
-      "w": 1480,
-      "h": 5657
-    },
-    "IdeaWork.dc.html": {
-      "bytes": 94399,
-      "sha256": "3a2cc6a0a16ff1c2b8cf416d829b56ab56c30d56a9b73236565f7a916a8f8be2",
-      "title": "Idea Space — research log, workspace & activity",
-      "page": "screens_ideas",
-      "w": 1480,
-      "h": 4803
-    },
-    "IdeaAi.dc.html": {
-      "bytes": 78760,
-      "sha256": "410829ab5b84d0e849b329195a3785121d31d7eb70049d17b3030881b84c4b4c",
-      "title": "Idea Space — AI help",
-      "page": "screens_ideas",
-      "w": 1480,
-      "h": 4919
-    },
-    "Sketch.dc.html": {
-      "bytes": 73045,
-      "sha256": "7e8ed32a94a424cfa9729dcbe7da6eb9585a9303418af4992a5e88f84a76be4f",
-      "title": "Sketch — paint-style drawing tool",
-      "page": "screens_ideas",
-      "w": 1480,
-      "h": 3531
-    },
-    "AiEverywhere.dc.html": {
-      "bytes": 69747,
-      "sha256": "567d8b0a57df9c42b3bc44dd6035c732162a9143fd0ddf352bc8d64aa006db6e",
-      "title": "AI where you work — ticket chat, @mentions & editor",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 4046
-    },
-    "DocsAi.dc.html": {
-      "bytes": 113919,
-      "sha256": "62d5c43801116643f3da83422efda94f2ebc6acd05b8eddf9a31ca8977bbf761",
-      "title": "Docs AI — ask, write, read & edit",
-      "page": "screens_docs",
-      "w": 1480,
-      "h": 5220
-    },
-    "DocsAiCare.dc.html": {
-      "bytes": 126445,
-      "sha256": "175c78653843dc5bb6e9c257ab9908e923f24704e6b6bae86a08665bf19b91ac",
-      "title": "Docs AI — keeping docs true, proposals & control",
-      "page": "screens_docs",
-      "w": 1480,
-      "h": 6340
-    },
-    "Canvas.dc.html": {
-      "bytes": 403353,
-      "sha256": "3d8e46e752b1a2b1852371b855a13896ac709fb73958a08541119ff326e092ce",
-      "title": "Canvas — boards, notes and comments on one large plane",
-      "page": "screens_docs",
-      "w": 1480,
-      "h": 19845
-    },
-    "DesktopMenu.dc.html": {
-      "bytes": 104626,
-      "sha256": "fde1924f3ea6a2a696dda365917a4987020dd810e239318a664b11560605bfb4",
-      "title": "Desktop — menu bar (macOS, Windows)",
-      "page": "screens_account",
-      "w": 1480,
-      "h": 6579
-    },
-    "Notifications.dc.html": {
-      "bytes": 227497,
-      "sha256": "9028c264068d816508fece870c4c5535c068afef3b2273dd3c587dfe14fc2aa0",
-      "title": "Notifications — one place for what needs you and what happened",
-      "page": "screens_account",
-      "w": 1480,
-      "h": 12547
-    },
-    "GuidelineDesign.dc.html": {
-      "bytes": 144551,
-      "sha256": "97e1ac2fd0b0b1f38cbbb99faf3e423842ae7ead505f669932485f86d4b7e905",
-      "title": "Guideline — design of the user and administrator guide",
-      "page": "guideline",
-      "w": 1480,
-      "h": 8862
-    },
-    "AiTeam.dc.html": {
-      "bytes": 139147,
-      "sha256": "6a2a42b026970571cdade3e52a3614171b96a0ca9a6c654b7d1570aa4052a06f",
-      "title": "AI Team — what the AIs are doing and how work moves",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 5988
-    },
-    "AiTeamReview.dc.html": {
-      "bytes": 133438,
-      "sha256": "933b4a109529a37cf9fc2a0e8288386ceb9bbbeb6f4c688fe4908254f5382374",
-      "title": "AI Team — where people stepped in, and AI health",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 7445
-    },
-    "AiTimeline.dc.html": {
-      "bytes": 139277,
-      "sha256": "733eee8eda7433e45dbe1a6967b77684653adc0ae0d10b7c0d2d3e9ca21c8b00",
-      "title": "AI Team — Flow: the Timeline view",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 4849
-    },
-    "AiTimelineCases.dc.html": {
-      "bytes": 177773,
-      "sha256": "076194223532224b8694e5a5a878b38d32d3facd1d28525ce8fe24b91f998993",
-      "title": "AI Team — Timeline: time, scope, motion, states",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 8098
-    },
-    "AiOperations.dc.html": {
-      "bytes": 245805,
-      "sha256": "b36309e624168c51842faea3646a8be6f614c1a9515abc2fe5dadf11d515e300",
-      "title": "AI operations — hangs, the needs-you queue, quota, run history, knowledge, worktrees",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 16040
-    },
-    "AiTeamProcess.dc.html": {
-      "bytes": 231817,
-      "sha256": "e354b3009272ad4f81e59f49f7eda1146854818ababc8f0683efa0dd95206ecd",
-      "title": "AI team & process — skills and plugins, role packs, workflows, review, arbitration, TDD proof",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 14153
-    },
-    "AiBoardWave3.dc.html": {
-      "bytes": 169735,
-      "sha256": "752524874dfcb5c2dbd0e47d4818972429533fa1df09d619261d79c3a194219d",
-      "title": "Board AI & beyond — risk tiers, standing orders, knowledge base, GitHub, marks",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 12020
-    },
-    "AiStoryFlow.dc.html": {
-      "bytes": 815411,
-      "sha256": "7c41829d3aff8fadabfab31f072c54aa70d59809d6dc100e76e8c154d6d91c04",
-      "title": "Story, Flow by scope and Live commentary — a job the PM owns, one bar for Flow, the screens that ran without a design",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 34506
-    },
-    "AiRepoCommands.dc.html": {
-      "bytes": 195351,
-      "sha256": "30372fd625bb09fcf541cba358d1da28399e2e47d496a4830fca900897e33553",
-      "title": "AI sets up the commands",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 10231
-    },
-    "AiDatabases.dc.html": {
-      "bytes": 167340,
-      "sha256": "2744187998cf03ebf72e6faa1213e68ad9ff9fcd111dc4314b9d80ed3617689a",
-      "title": "Choose your database",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 10602
     }
   }
 }
