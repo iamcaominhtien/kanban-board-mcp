@@ -64,7 +64,15 @@ export function HistoryTab({
                 key={r.id}
                 className="at-row"
                 style={{ cursor: 'pointer' }}
+                role="button"
+                tabIndex={0}
                 onClick={() => onRunChange(r.id)}
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    onRunChange(r.id);
+                  }
+                }}
                 data-testid="history-row"
               >
                 {r.ticketId && (

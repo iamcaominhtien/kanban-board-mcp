@@ -24,7 +24,7 @@ def _day_start() -> str:
     return datetime.now(UTC).date().isoformat()
 
 
-_WIKI_LINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
+_WIKI_LINK = re.compile(r"\[\[(?:[^\]|]+\|)?([^\]]+)\]\]")
 
 
 def first_line(text: str | None, limit: int = 200) -> str:

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AiTeam, AiTeamRole, RoleActivity } from '../../types/ai';
-import { ago, secondsSince } from '../ai/aiUi';
-import { fmtDuration } from './teamFormat';
+import { secondsSince } from '../ai/aiUi';
+import { fmtDuration, whenAgo } from './teamFormat';
 import { roleLook } from '../ai/roleLook';
 import { openRun } from './runLink';
 import { Badge, ContextBar, StateChip, StepText, TicketChip } from './teamUi';
@@ -69,7 +69,7 @@ function Card({ name, sub, badge, activity, meter, ram, blocked, onOpenTicket, t
         ) : last ? (
           <>
             <div>
-              Last worked {ago(last.at)}
+              Last worked {whenAgo(last.at)}
               {last.ticketId && (
                 <>
                   {' on '}

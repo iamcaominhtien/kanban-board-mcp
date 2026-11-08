@@ -423,7 +423,7 @@ export function LoadError({ what, error, onRetry }: { what: string; error: unkno
   return (
     <div className="ai-notice ai-notice-error" role="alert" data-testid="load-error">
       Couldn't load {what}: {extractError(error)}.{' '}
-      <button type="button" className="ai-link" onClick={onRetry}>
+      <button type="button" className="ai-link" style={{ textDecoration: 'none' }} onClick={onRetry}>
         Try again
       </button>
     </div>

@@ -30,11 +30,11 @@ export function RecentList({
   const notes = q.data?.notes ?? [];
   return (
     <section data-testid="at-recent" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <h2 className="ai-label ai-label-dark">Recent</h2>
+      <h2 className="at-h">Recent</h2>
       {q.isLoading ? (
-        <div className="at-hint">Loading…</div>
+        <div className="at-empty">Loading…</div>
       ) : runs.length === 0 ? (
-        <div className="at-hint">No run has ended yet.</div>
+        <div className="at-empty">No run has ended yet.</div>
       ) : (
         <div className="ai-card">
           {runs.map((r) => {
@@ -63,7 +63,7 @@ export function RecentList({
       )}
       {notes.length > 0 && (
         <>
-          <h3 className="ai-label" style={{ marginTop: 6 }}>
+          <h3 className="at-h" style={{ marginTop: 6 }}>
             Notes
           </h3>
           <div className="ai-card" data-testid="recent-notes">
@@ -118,7 +118,7 @@ export function SpendToday({ teams, settings }: { teams: AiTeam[]; settings?: Ai
   const runCap = settings?.boardRunsPerDay ?? null;
   return (
     <section data-testid="at-spend" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <h2 className="ai-label ai-label-dark">Spend today</h2>
+      <h2 className="at-h">Spend today</h2>
       <div className="ai-card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>

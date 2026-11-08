@@ -5,6 +5,7 @@ import type { RunQuestion } from '../../types/ai';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
 import { AiAvatar, fmtElapsed, hhmm, secondsSince, useAiBoardState, useNow } from './aiUi';
+import { fmtDuration } from '../aiteam/teamFormat';
 import './ticketWork.css';
 import { LineIcon } from '../ui/LineIcon';
 
@@ -37,25 +38,29 @@ export function QuestionCard({ run, variant }: { run: QuestionRun; variant?: 'st
   useNow(30_000);
   if (!q) return null;
   const value = choice === '__other' || !choice ? text : text ? `${choice}. ${text}` : choice;
-  const waiting = fmtElapsed(secondsSince(q.askedAt));
+  const waiting = variant === 'strip' ? fmtDuration(secondsSince(q.askedAt)) : fmtElapsed(secondsSince(q.askedAt));
   const name = team?.name ?? 'The team';
+  const strip = variant === 'strip';
   return (
     <div className={`tw-question${variant === 'strip' ? ' tw-question-strip' : ''}`} data-testid="ai-question-card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {team && <AiAvatar color={team.color} size={36} />}
+        {team && <AiAvatar color={team.color} size={variant === 'strip' ? 30 : 36} />}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>{name} asks a question</div>
-          <div style={{ fontSize: 12.5, color: '#5B6F86' }}>
+          <div style={{ fontSize: strip ? 14 : 15, fontWeight: 700 }}>{name} asks a question</div>
+          <div style={{ fontSize: strip ? 11.5 : 12.5, color: strip ? '#5B6B60' : '#5B6F86' }}>
             {q.askedAt ? `${hhmm(q.askedAt)} · waiting ${waiting} · ` : ''}run #{run.number} paused
           </div>
         </div>
         {q.to && (
-          <span className="ai-chip" style={{ background: '#fff', color: '#34455A', border: '1px solid #D3DCE6' }}>
+          <span
+            className="ai-chip"
+            style={{ background: '#fff', color: '#34455A', border: `1px solid ${strip ? '#B8C4D2' : '#D3DCE6'}` }}
+          >
             To {q.to}
           </span>
         )}
       </div>
-      <div style={{ fontSize: 14, margin: '12px 0', lineHeight: 1.55 }}>
+      <div style={{ fontSize: strip ? 13 : 14, margin: '12px 0', lineHeight: strip ? 1.5 : 1.55 }}>
         <MarkdownRenderer plain>{q.text}</MarkdownRenderer>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

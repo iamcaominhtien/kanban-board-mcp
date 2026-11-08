@@ -167,9 +167,7 @@ export function TeamPage({
       </div>
       <Header team={team} onOpenMember={onOpenMember} chips={chips} />
       <section>
-        <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
-          Roles
-        </h2>
+        <h2 className="at-h">Roles</h2>
         {activityQ.isError ? (
           <LoadError what="what the roles do" error={activityQ.error} onRetry={() => void activityQ.refetch()} />
         ) : !act ? (

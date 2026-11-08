@@ -218,6 +218,22 @@
   display: block;
   height: 100%;
 }
+.at-h {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1e2a22;
+}
+.at-h > span {
+  color: #5b6b60;
+  font-weight: 600;
+}
+.at-empty {
+  font-size: 12.5px;
+  color: #5b6b60;
+}
 .at-stepico {
   width: 22px;
   height: 22px;
@@ -850,4 +866,10 @@
   padding: 5px 10px !important;
   background: #fff !important;
   font-size: 12.5px;
+}
+.tw-question-strip .ai-radio {
+  border-color: #9aa8a0;
+}
+.tw-question-strip .ai-radio-on {
+  border-color: #2e6f40;
 }

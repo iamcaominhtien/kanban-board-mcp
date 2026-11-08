@@ -56,7 +56,7 @@ function WorkingNow({ team, activity }: { team: AiTeam; activity?: TeamActivity 
       <div className="at-step" title={step?.title} data-testid="working-step">
         {step ? <StepText text={step.title} /> : 'Starting…'}
       </div>
-      {lead.contextUsed != null && lead.contextWindow ? (
+      {!waiting && lead.contextUsed != null && lead.contextWindow ? (
         <div>
           <ContextBar used={lead.contextUsed} size={lead.contextWindow} />
         </div>
@@ -151,7 +151,7 @@ function ActiveRow({ run, team, actions }: { run: AiRun; team?: AiTeam; actions:
 /** The newest steps of every active run, from the live endpoint and the typed events that patch it. */
 function LivePanel({ live, teams }: { live: AiLive; teams: Map<string, AiTeam> }) {
   const steps = live.steps.slice(-30).reverse();
-  if (!steps.length) return <div className="at-hint">Nothing is running.</div>;
+  if (!steps.length) return <div className="at-empty">Nothing is running.</div>;
   return (
     <div className="ai-card" data-testid="live-steps">
       {steps.map((s) => (
@@ -225,11 +225,9 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
         onOpenMember={actions.onOpenMember}
       />
       <section>
-        <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
-          Teams
-        </h2>
+        <h2 className="at-h">Teams</h2>
         {teams.length === 0 ? (
-          <div className="at-hint">No AI team yet. Add one from the Members page.</div>
+          <div className="at-empty">No AI team yet. Add one from the Members page.</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
             {teams.map((t) => (
@@ -239,11 +237,9 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
         )}
       </section>
       <section>
-        <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
-          Active runs
-        </h2>
+        <h2 className="at-h">Active runs</h2>
         {active.length === 0 ? (
-          <div className="at-hint">No run is active.</div>
+          <div className="at-empty">No run is active.</div>
         ) : (
           <div className="ai-card">
             {active.map((r) => (
@@ -255,10 +251,8 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
       {hasTeams && <RecentList projectId={projectId} teams={teams} onOpenTicket={actions.onOpenTicket} />}
       {hasTeams && <SpendToday teams={teams} settings={settingsQ.data} />}
       <section>
-        <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
-          Live
-        </h2>
-        {liveQ.data ? <LivePanel live={liveQ.data} teams={byId} /> : <div className="at-hint">Loading…</div>}
+        <h2 className="at-h">Live</h2>
+        {liveQ.data ? <LivePanel live={liveQ.data} teams={byId} /> : <div className="at-empty">Loading…</div>}
       </section>
     </div>
   );

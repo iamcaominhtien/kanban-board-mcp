@@ -105,7 +105,7 @@ export function firstLine(text: string | null | undefined, limit = 200): string 
       .replace(/^[#>*\-•\s]+/, '')
       .replace(/\*\*/g, '')
       .replace(/`/g, '')
-      .replace(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g, '$1')
+      .replace(/\[\[(?:[^\]|]+\|)?([^\]]+)\]\]/g, '$1')
       .trim();
     if (line) return line.length <= limit ? line : `${line.slice(0, limit - 1).trimEnd()}…`;
   }

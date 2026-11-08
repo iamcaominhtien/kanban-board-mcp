@@ -164,7 +164,7 @@ export function ContextBar({ used, size }: { used: number; size: number }) {
       data-testid="context-bar"
     >
       <span>
-        <i style={{ width: `${Math.max(pct, 3)}%`, background: color }} />
+        <i style={{ width: `${pct > 0 ? Math.max(pct, 3) : 0}%`, background: color }} />
       </span>
       {label}% of the context
     </span>
@@ -173,7 +173,8 @@ export function ContextBar({ used, size }: { used: number; size: number }) {
 
 /** A step's title with the file paths in bold, as the design draws it ("editing **ui/src/…/CardFooter.tsx**"). */
 export function StepText({ text }: { text: string }) {
-  const parts = text.split(/(\S+\/\S+)/g);
+  // a path has a file name with an extension, or at least two folders
+  const parts = text.split(/((?:[\w.@-]+\/)+[\w.@-]*\.[A-Za-z0-9]+|(?:[\w.@-]+\/){2,}[\w.@-]*)/g);
   return <>{parts.map((part, i) => (i % 2 === 1 ? <b key={i}>{part}</b> : part))}</>;
 }
 
