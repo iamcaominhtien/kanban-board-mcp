@@ -244,9 +244,18 @@
   }
 }
 
+/* Too narrow even for a shortened type word (a sub-ticket two steps in): the type icon says it, so the word goes */
+@container (max-width: 105px) {
+  .typeLabel {
+    display: none;
+  }
+}
+
 .typeLabel {
-  /* the type word stays readable next to a Reopened or Pending chip (board RO-1); the chips collapse first */
-  flex-shrink: 0;
+  /* the type word stays readable next to a Reopened or Pending chip (board RO-1); the chips collapse first.
+     In a card too narrow for icon, word and ID (an indented sub-ticket) it shortens with an ellipsis, so it
+     never runs over the ID. */
+  flex-shrink: 1;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
