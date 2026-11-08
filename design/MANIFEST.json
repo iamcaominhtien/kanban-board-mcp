@@ -36,12 +36,12 @@
       "h": 620
     },
     "AiAccounts.dc.html": {
-      "bytes": 224019,
-      "sha256": "776dbd2758914f3d55d71c09c336c44076e14a7d09227fd1ad3e00825e567d2a",
+      "bytes": 184527,
+      "sha256": "e4aae9f479220f61f20145f8b07294891c792df3d2b356c057e05959619445e3",
       "title": "AI accounts — sign in once, share between AI members",
       "page": "screens_ai",
       "w": 1480,
-      "h": 15321
+      "h": 10035
     },
     "AiBoardAssistant.dc.html": {
       "bytes": 274378,
@@ -76,12 +76,12 @@
       "h": 4046
     },
     "AiMembers.dc.html": {
-      "bytes": 219755,
-      "sha256": "d3513e3f2747d8445b9576b773cff2cdcddfbf2f61bb33ec8e4e7facd3935402",
+      "bytes": 208683,
+      "sha256": "afd6e094f0af7cef6743f029f0f7b2409282f71f339c044435e4e669a69946a8",
       "title": "AI members — list & register",
       "page": "screens_ai",
       "w": 1480,
-      "h": 7980
+      "h": 11153
     },
     "AiOperations.dc.html": {
       "bytes": 245805,
@@ -109,12 +109,12 @@
       "h": 7975
     },
     "AiRepoCommands.dc.html": {
-      "bytes": 195351,
-      "sha256": "30372fd625bb09fcf541cba358d1da28399e2e47d496a4830fca900897e33553",
+      "bytes": 128843,
+      "sha256": "65a635b215480742983976dbd6d644074375ad22327305779ed416840af5eb87",
       "title": "AI sets up the commands",
       "page": "screens_ai",
       "w": 1480,
-      "h": 10231
+      "h": 7516
     },
     "AiResources.dc.html": {
       "bytes": 136640,
