@@ -12,6 +12,7 @@ import type { Schedule, ScheduleRun, ScheduleWeek, WeekItem } from '../../types/
 import { AiAvatar, Toggle, useAiBoardState } from '../ai/aiUi';
 import { useToast } from '../Toast';
 import { TicketLine } from './MemberSelect';
+import { LoadError } from '../ai/aiUi';
 import { useSchedules } from './SchedulesContext';
 import {
   CalendarIcon,
@@ -321,6 +322,7 @@ function WeekView({
     .filter((m) => !aiFilter || m.id === aiFilter)
     .filter((m) => items.some((i) => i.memberId === m.id));
   if (q.isLoading) return <span className="ai-spin" />;
+  if (q.isError) return <LoadError what="the week" error={q.error} onRetry={() => void q.refetch()} />;
   if (!rows.length)
     return (
       <div className="ai-card sc-empty" data-testid="week-empty">
@@ -420,6 +422,12 @@ export function SchedulesTab({ projectId, tickets }: { projectId: string; ticket
     return (
       <div className="ai-root sc-page">
         <span className="ai-spin" />
+      </div>
+    );
+  if (list.isError)
+    return (
+      <div className="ai-root sc-page">
+        <LoadError what="the schedules" error={list.error} onRetry={() => void list.refetch()} />
       </div>
     );
   const empty = !all.length;

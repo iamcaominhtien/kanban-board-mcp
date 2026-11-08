@@ -436,7 +436,11 @@ async def availability(
         }[profile.health]
     over = await budget.blocked(session, profile, settings, "schedule")
     if over:
-        return False, f"{member.name} is over its budget ({over[1]})"
+        label, reason = over
+        # a runs-a-day limit is not a budget: say what it is (design: "Scheduled runs per day used up (3 of 3); resets at 00:00")
+        if label.startswith("Runs per day"):
+            return False, reason
+        return False, f"{member.name} is over its budget ({reason})"
     return True, None
 
 
@@ -1071,7 +1075,7 @@ async def week(session, project_id: str, start: datetime, days: int = 7) -> dict
         ok, why = await availability(session, mid, project_id)
         members[mid] = {
             "id": mid,
-            "name": m.name if m else "Removed AI",
+            "name": m.name if m else "Removed team",
             "connection": p.connection if p else None,
             "max_parallel": p.max_parallel if p else 1,
             "available": ok,
@@ -1621,12 +1625,12 @@ async def _follow(srun_id: str, now: datetime) -> None:
             await svc_runs.cancel(
                 run.id,
                 by="schedule",
-                reason=f"No free slot within {BUSY_MAX_WAIT_MIN} min",
+                reason=f"No free run within {BUSY_MAX_WAIT_MIN} min",
             )
             return await _close(
                 srun_id,
                 "skipped",
-                f"Skipped: no free slot within {BUSY_MAX_WAIT_MIN} min.",
+                f"Skipped: no free run within {BUSY_MAX_WAIT_MIN} min.",
                 notify="failed",
             )
         return

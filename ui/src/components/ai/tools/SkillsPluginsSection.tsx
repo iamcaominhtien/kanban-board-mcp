@@ -76,7 +76,14 @@ export function SkillsPluginsSection({ projectId }: { projectId: string }) {
     <div data-testid="skills-plugins-section" data-project={projectId} style={{ display: 'grid', gap: 10 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ flex: 1 }} />
-        <button type="button" className="ai-btn ai-btn-sm ai-btn-primary" onClick={() => setTab('source')}>
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm ai-btn-primary"
+          onClick={() => {
+            setPick(null);
+            setTab('source');
+          }}
+        >
           Add from a source
         </button>
         <button

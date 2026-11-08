@@ -163,7 +163,6 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
           {result.refused}
         </div>
       )}
-      {result?.merged && <div className="ai-ok-text">Merged.</div>}
       {result?.prUrl && (
         <a href={result.prUrl} target="_blank" rel="noreferrer" className="ai-link">
           Pull request
