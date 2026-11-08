@@ -1624,20 +1624,22 @@ async def put_board_content(
     taken, lock = canvas_locks.acquire(c.id, board_id, actor)
     if not taken:
         raise _locked(board, lock)
-    cur_rev = (board.get("content") or {}).get("rev")
-    if (
-        base_content_rev is not None
-        and cur_rev is not None
-        and base_content_rev != cur_rev
-    ):
-        raise DocsError(
-            409,
-            "board_conflict",
-            f"{c.updated_by} saved a newer version of {board['name']} while you were editing it.",
-            latest_content_rev=cur_rev,
-            latest_author=c.updated_by,
-        )
     try:
+        cur_rev = (board.get("content") or {}).get("rev")
+        if (
+            base_content_rev is not None
+            and cur_rev is not None
+            and base_content_rev != cur_rev
+        ):
+            # the team that saved the board's content, else whoever touched the canvas last
+            saver = board.get("ai_saved_by") or c.updated_by
+            raise DocsError(
+                409,
+                "board_conflict",
+                f"{saver} saved a newer version of {board['name']} while you were editing it.",
+                latest_content_rev=cur_rev,
+                latest_author=saver,
+            )
         written, content = prepare_files(files, entry)
         _check_canvas_bytes(doc, board_id, content["bytes"])
         new_rev = c.rev + 1
@@ -1656,8 +1658,8 @@ async def put_board_content(
         session.add(c)
         await session.commit()
     except BaseException:
-        # a refused AI save must not leave the board locked for ten minutes (a person's editor stays open to fix it)
-        if release and reason == "ai":
+        # a refused AI save (or one that lost a race) must not leave the board locked for ten minutes (a person's editor stays open to fix it)
+        if release and ai_team:
             canvas_locks.release(c.id, board_id, actor)
         raise
     if release:

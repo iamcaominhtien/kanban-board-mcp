@@ -383,6 +383,9 @@ export function SourceEditor({
                 : 'Could not save'}
           </b>
           <div style={{ fontSize: 13 }}>{error.message}</div>
+          {error.code === 'board_conflict' && (
+            <div style={{ fontSize: 13 }}>Your source stays in the editor. Saving it as a new board keeps both.</div>
+          )}
           <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
             <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setError(null)}>
               Back to editor

@@ -893,7 +893,7 @@ class Canvas(SQLModel, table=True):
 
 
 class CanvasVersion(SQLModel, table=True):
-    """A frozen copy of a canvas file (made on Done, on accepting a proposal, and every 10 minutes in Docs)."""
+    """A frozen copy of a canvas file (made on Done, on restore, and every 10 minutes in Docs)."""
 
     __tablename__ = "canvas_version"
     __table_args__ = (

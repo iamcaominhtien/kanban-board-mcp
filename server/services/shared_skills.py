@@ -113,8 +113,7 @@ canvas, the branch), before anything else.
 ## Close the ticket's story
 End with one comment that a person reads first: what you handed in (with the pictures), what is left, and what
 waits for whom. In a board run the lead's final report is that comment: put the files in it (attach each with
-`post=false`, link the markdown it returns) rather than a comment per file and a report on top. A proposal or approval that waits for a person says so, by name: "The canvas edit on Foundations
-waits for your accept".
+`post=false`, link the markdown it returns) rather than a comment per file and a report on top. What waits for a person says so, by name: "The canvas on Foundations waits for your answer to my comment".
 """,
 )
 

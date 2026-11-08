@@ -1489,9 +1489,9 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                   <div
                     className={styles.boardBody}
                     style={{
-                      borderWidth: (b.aiSavedBy ? 2 : 1) / z,
+                      borderWidth: (b.aiSavedBy && !sel.includes(b.id) ? 2 : 1) / z,
                       boxShadow: 'none',
-                      ...(b.aiSavedBy ? { borderColor: '#3f9b5a' } : {}),
+                      ...(b.aiSavedBy && !sel.includes(b.id) ? { borderColor: '#3f9b5a' } : {}),
                     }}
                     data-item={b.id}
                     data-kind="board"
