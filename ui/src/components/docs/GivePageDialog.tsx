@@ -17,7 +17,7 @@ const KINDS = [
 ] as const;
 
 /**
- * Give a page to an AI member to write or review (#268). It becomes a ticket "Write/Review the page “X”", linked to the
+ * Give a page to an AI team to write or review (#268). It becomes a ticket "Write/Review the page “X”", linked to the
  * page and assigned to the member, whose run starts; the page shows what it is doing.
  * @param props.projectId - The page's project (its AI members are listed).
  * @param props.page - The page to give.
@@ -52,9 +52,9 @@ export function GivePageDialog({ projectId, page, onClose, onGiven }: Props) {
   return (
     <ModalShell
       width={520}
-      ariaLabel="Give the page to an AI member"
+      ariaLabel="Give the page to an AI team"
       icon="i11"
-      title={<>Give “{page.title}” to an AI member</>}
+      title={<>Give “{page.title}” to an AI team</>}
       subtitle="A ticket linked to the page, assigned to the member, and its run started"
       onClose={onClose}
       testId="docs-give-page"
@@ -78,7 +78,7 @@ export function GivePageDialog({ projectId, page, onClose, onGiven }: Props) {
     >
       {ais.length === 0 ? (
         <p style={{ margin: 0, fontSize: 13.5, color: '#5B6B60' }}>
-          This project has no AI member yet. Add one in the AI Team, then give it the page.
+          This project has no AI team yet. Add one in Members, then give it the page.
         </p>
       ) : (
         <>

@@ -110,11 +110,11 @@ export function useSuggestOnKeep() {
   return suggest;
 }
 
-const STARTERS: { kind: ShapeResult['kind']; label: string; hint: 'shape' | 'exists' }[] = [
-  { kind: 'problem', label: 'Draft the problem and the idea', hint: 'shape' },
-  { kind: 'assumptions', label: 'Suggest assumptions and cheapest tests', hint: 'shape' },
-  { kind: 'exists', label: 'Check what already exists', hint: 'exists' },
-  { kind: 'effort', label: 'Guess the effort from the code', hint: 'shape' },
+const STARTERS: { kind: ShapeResult['kind']; label: string }[] = [
+  { kind: 'problem', label: 'Draft the problem and the idea' },
+  { kind: 'assumptions', label: 'Suggest assumptions and cheapest tests' },
+  { kind: 'exists', label: 'Check what already exists' },
+  { kind: 'effort', label: 'Guess the effort from the code' },
 ];
 
 interface Props {

@@ -13,7 +13,10 @@ export type AiGate =
 export function aiGate(state: DocsAiState | undefined): AiGate {
   if (!state || state.state === 'off') return { show: false };
   if (state.state === 'no_member') {
-    return { show: true, reason: 'no_member', text: 'No AI team can read this space. Open Members.' };
+    // a paused team says so in one sentence (the server words it); otherwise nobody can read the space
+    const text =
+      state.problem?.code === 'paused' ? state.problem.message : 'No AI team can read this space. Open Members.';
+    return { show: true, reason: 'no_member', text };
   }
   return { show: true, reason: null };
 }

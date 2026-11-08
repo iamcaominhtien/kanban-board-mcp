@@ -533,7 +533,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
                   }}
                 >
                   {it.group}
-                  {(it.group === 'People' || it.group === 'AI members') && (
+                  {it.group === 'People' && (
                     <span style={{ fontWeight: 600 }}> · {items.filter((x) => x.group === it.group).length}</span>
                   )}
                 </div>

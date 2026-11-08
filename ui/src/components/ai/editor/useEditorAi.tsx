@@ -111,7 +111,7 @@ function readLang(): string {
 }
 
 function dollars(v: number | null | undefined, metered: boolean): string {
-  if (!metered) return 'Not metered';
+  if (!metered || (v != null && v <= 0)) return 'Not metered';
   if (v == null) return '';
   return v < 0.01 ? `$${v.toFixed(3)}` : `$${v.toFixed(2)}`;
 }
