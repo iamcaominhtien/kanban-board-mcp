@@ -1517,7 +1517,7 @@ async def restart_run(run_id: str, *, by: str) -> AiRun:
 async def _tell_memory(
     kind: str, run: AiRun, title: str, body: str, data: dict
 ) -> None:
-    """The board's notice of a restart or a stop for memory (one row per run; restarts merge: "restarted 2 times")."""
+    """The board's notice of a stop for memory (Needs you, one row per ticket). A restart has none."""
     from services import notifications as centre
 
     try:
@@ -1616,13 +1616,7 @@ async def _restart_inside_run(run_id: str, token: str, request: dict) -> None:
             f"(restart {by_system + 1} of {resources.AUTO_RESTARTS})"
         )
         why = f"it used {gb} of memory, over the {lim} limit"
-        await _tell_memory(
-            "run_restarted",
-            run,
-            f"{ticket}: restarted (memory)",
-            f"The CLI reached {gb}, over the {lim} limit, and started again in the same run.",
-            {"rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
-        )
+        # no notification for a restart (Notifications board, owner decision on PR #331): it is written on the run
     else:
         text = f"Restarted by {by}"
         why = f"{by} restarted it"

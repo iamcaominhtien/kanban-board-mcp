@@ -7,7 +7,7 @@ import { LineIcon } from '../ui/LineIcon';
 
 /**
  * The "Ask AI" button of the idea page header. Nothing is drawn while AI help is off for the project, like
- * "Shape with AI"; with no AI member or a reached cap the chat opens and says why it cannot answer.
+ * "Shape with AI"; with no team or a reached cap the chat opens and says why it cannot answer.
  * @param props.projectId - The idea's project (null for an idea with no project).
  * @param props.active - The chat is open.
  * @param props.onClick - Open or close the chat.

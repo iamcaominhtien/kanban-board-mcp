@@ -238,7 +238,7 @@ export function PromoteDialog({ idea, projects, onClose, onOpenTicket, onPromote
                 <span aria-hidden="true">
                   <LineIcon name="sparkle" size={12} />
                 </span>{' '}
-                {prepare.isPending ? 'Drafting…' : `Draft with AI · about $${aiStatus.hints.ticket.toFixed(2)}`}
+                {prepare.isPending ? 'Drafting…' : 'Draft with AI'}
               </button>
               {aiNote && <span className="is-muted">{aiNote}</span>}
             </div>
