@@ -9,10 +9,10 @@ from fastapi.responses import JSONResponse
 
 from services.docs_ai import DocsAiError
 
-from . import ask, health, page, proposals, settings, threads, tickets, write
+from . import ask, health, page, settings, threads, tickets, write
 
 router = APIRouter(tags=["docs-ai"])
-for _module in (settings, ask, page, write, proposals, threads, health, tickets):
+for _module in (settings, ask, page, write, threads, health, tickets):
     router.include_router(_module.router)
 
 

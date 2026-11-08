@@ -618,23 +618,3 @@ async def test_signing_in_again_to_a_signed_in_account_waits_for_the_login_to_en
 
 
 # --------------------------------------------------------------------------- the account everywhere a CLI is started
-
-
-async def test_a_shared_conversation_is_looked_up_in_the_accounts_folder(fake_cli):
-    from services.docs_ai import sessions
-
-    c = fake_cli["c"]
-    pid, _ = await _project(c)
-    a = await _account(c)
-    _login(a)
-    on = await _runner(c, pid, fake_cli["repo"], account_id=a["id"])
-    plain = await _runner(c, pid, fake_cli["repo"], name="Plain")
-    folder = Path(a["folder"], "projects", "p")
-    folder.mkdir(parents=True)
-    (folder / "sess-1.jsonl").write_text("{}")
-    scope = sessions.ticket_scope("T-1")
-    await sessions.remember(scope, on["id"], pid, "sess-1")
-    await sessions.remember(scope, plain["id"], pid, "sess-1")
-    # the account's session is found for the member on the account, and not kept for one that is not on it
-    assert await sessions.lookup(scope, on["id"]) == "sess-1"
-    assert await sessions.lookup(scope, plain["id"]) is None

@@ -131,6 +131,7 @@ async def context_for_token(token: str) -> RunContext:
             on_behalf_of=run.started_by,
             mode=getattr(run, "mode", "work") or "work",
             trigger=run.trigger or "",
+            depth=run.depth or 0,
         )
 
 

@@ -1,5 +1,5 @@
 """Docs AI on the assistant engine (AI v2 stage 7): the old API paths start jobs whose handlers run one assistant
-turn with a skill; what needs no model (ignore, create tickets, undo) is plain code; proposals answer 410."""
+turn with a skill; what needs no model (ignore, create tickets, undo) is plain code."""
 
 import asyncio
 import json
@@ -317,10 +317,9 @@ async def test_freshness_banner(env, monkeypatch):
     assert (await c.post(f"/docs/pages/{page}/ai/freshness/still-correct")).json()[
         "state"
     ] == "ok"
-    assert (await c.post(f"/docs/pages/{page}/ai/freshness/suggest")).status_code == 410
 
 
-async def test_thread_summary_and_proposals_are_gone(env, monkeypatch):
+async def test_thread_summary(env, monkeypatch):
     c, pid, page = await _space(
         env,
         monkeypatch,
@@ -342,15 +341,6 @@ async def test_thread_summary_and_proposals_are_gone(env, monkeypatch):
     j = await _job(c, r.json())
     assert j["state"] == "finished", j
     assert j["thread_id"] == thread_id
-    assert (
-        await c.post(
-            f"/docs/ai/threads/{thread_id}/suggest-edit", json={"comment_id": "x"}
-        )
-    ).status_code == 410
-    assert (await c.get(f"/docs/pages/{page}/ai/proposals")).json() == []
-    assert (await c.get(f"/projects/{pid}/docs/ai/proposals/pages")).json() == []
-    assert (await c.post("/docs/ai/proposals/p1/accept-all")).status_code == 410
-    assert (await c.post("/docs/ai/proposals/p1/changes/0/accept")).status_code == 410
     assert (await c.get(f"/docs/pages/{page}/comments")).json()["docs_ai"] is True
 
 

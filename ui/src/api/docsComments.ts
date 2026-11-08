@@ -113,16 +113,11 @@ export async function previewOrphans(
   return (await client.post(`/docs/pages/${pageId}/comments/anchor-preview`, { markdown })).data;
 }
 
-/** Docs AI in a thread: "Suggest an edit" on an AI answer, and the summary of a long thread. */
+/** Docs AI in a thread: the summary of a long thread. */
 export function useThreadAiActions(pageId: string) {
   const qc = useQueryClient();
   const refresh = () => qc.invalidateQueries({ queryKey: ['docs', 'comments', pageId] });
   return {
-    suggestEdit: useMutation({
-      mutationFn: async (v: { threadId: string; commentId: string }) =>
-        (await client.post<DocsAiJob>(`/docs/ai/threads/${v.threadId}/suggest-edit`, { commentId: v.commentId })).data,
-      onSuccess: refresh,
-    }),
     summarise: useMutation({
       mutationFn: async (threadId: string) =>
         (await client.post<DocsAiJob>(`/docs/ai/threads/${threadId}/summary`)).data,

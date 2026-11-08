@@ -144,13 +144,12 @@ export function FreshnessBanner({
 }) {
   const state = useDocsAiState(projectId);
   const aiOn = state.data?.state === 'ready';
-  const hiddenFromAi = !!page.aiHidden;
-  const q = useFreshness(page.id, canEdit && aiOn && !hiddenFromAi && page.version > 0);
+  const q = useFreshness(page.id, canEdit && aiOn && page.version > 0);
   const still = useStillCorrect(page.id);
   const dismiss = useDismissReason(page.id);
   const refs = useDocsRefs();
   const check = q.data;
-  if (!showFreshnessBanner({ canEdit, aiOn, stale: !!check?.stale, hiddenFromAi }) || !check) return null;
+  if (!showFreshnessBanner({ canEdit, aiOn, stale: !!check?.stale }) || !check) return null;
   const open = onOpenTicket ?? refs?.openTicket;
   const ticket = firstTicketRef(check.reasons);
   const err = [still.error, dismiss.error].map((e) => (e ? docsAiError(e)?.detail : null)).find(Boolean);

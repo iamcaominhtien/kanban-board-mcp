@@ -4,24 +4,16 @@ import type { DocsAiState } from '../api/docsAi';
 export type AiGate =
   /** Nothing is shown: Docs AI is off for the project. */
   | { show: false }
-  /** Shown, with a reason instead of the actions (no AI member can read the space, or the page is hidden). */
-  | { show: true; reason: 'no_member' | 'hidden'; text: string }
+  /** Shown, with a reason instead of the actions (no AI member can read the space). */
+  | { show: true; reason: 'no_member'; text: string }
   /** Shown and usable. */
   | { show: true; reason: null; text?: undefined };
 
-export interface PageAiFacts {
-  /** The page is hidden from AI. */
-  hidden: boolean;
-}
-
 /** Whether the AI menu / Ask tab / Docs health show, and why they would be limited. */
-export function aiGate(state: DocsAiState | undefined, page?: PageAiFacts): AiGate {
+export function aiGate(state: DocsAiState | undefined): AiGate {
   if (!state || state.state === 'off') return { show: false };
   if (state.state === 'no_member') {
     return { show: true, reason: 'no_member', text: 'No AI member can read this space. Open AI members.' };
-  }
-  if (page?.hidden) {
-    return { show: true, reason: 'hidden', text: 'This page is hidden from AI. Ask, summaries and AI runs skip it.' };
   }
   return { show: true, reason: null };
 }

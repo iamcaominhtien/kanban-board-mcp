@@ -19,6 +19,8 @@ SHARED = [
     "working-together",
     # keeping the project memory without being asked (issue #274)
     "keeping-memory",
+    # the comment threads a person sent from a Docs page: change, reply, when to close (KBM-24)
+    "docs-comment-threads",
     # asked for by the owner in the brainstorm
     "brainstorming",
     "end-user-eyes",

@@ -284,5 +284,5 @@ async def manage_ticket(
     - block / unblock: ticket_id, target_id. ticket_id waits until target_id is done (lock on the board); same project, no cycles. Returns {blocker, blocked}.
     - link: ticket_id, target_id, relation_type. A non-blocking relation (use block for dependencies). Returns {id, target_id, relation_type}; keep `id` for unlink.
     - unlink: ticket_id, link_id. Removes the relation and its inverse. Returns {"removed": link_id}.
-    - link_doc / unlink_doc: ticket_id, page_id. Links a Docs page to the ticket."""
+    - link_doc / unlink_doc: ticket_id, page_id. Links a Docs page to the ticket by hand. Read get_ticket.docs first: a page the ticket's text names, or that names the ticket, is already linked (link_doc then answers 'already linked' and adds nothing); link by hand only a page the text does not mention."""
     return await dispatch("manage_ticket", TICKET_OPS, action, params_of(locals()))

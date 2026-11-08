@@ -81,7 +81,7 @@ export function DocsEditScreen({
   const [aiCommand, setAiCommand] = useState<{ id: AiSlashId; n: number } | null>(null);
   const [ticketsFrom, setTicketsFrom] = useState<string | null>(null);
   const docsAiState = useDocsAiState(projectId);
-  const docsAiNow = aiGate(docsAiState.data, { hidden: !!page.aiHidden });
+  const docsAiNow = aiGate(docsAiState.data);
   const docsAiOn = docsAiNow.show && docsAiNow.reason === null;
   // "Edit with AI…" in the reader opens the editor with the AI menu ready
   useEffect(() => {
@@ -664,7 +664,6 @@ export function DocsEditScreen({
                       pageTitle={title}
                       menuOpen={aiMenu}
                       setMenuOpen={setAiMenu}
-                      hidden={!!page.aiHidden}
                       command={aiCommand}
                       onCreateTickets={setTicketsFrom}
                       ed={{
