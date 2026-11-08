@@ -59,9 +59,10 @@ export function ScanStrip({ job, onStop }: { job: ScanJob; onStop: () => void })
 
 /** What the AI and the board are doing, live: the job's log, newest line last. */
 export function ScanLog({ lines, mode }: { lines: string[]; mode: ScanJob['mode'] }) {
-  const end = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLPreElement>(null);
+  // follow the newest line inside the box only: scrolling the page itself would pull Settings away from the person
   useEffect(() => {
-    end.current?.scrollIntoView?.({ block: 'nearest' });
+    if (box.current) box.current.scrollTop = box.current.scrollHeight;
   }, [lines.length]);
   return (
     <>
@@ -69,10 +70,7 @@ export function ScanLog({ lines, mode }: { lines: string[]; mode: ScanJob['mode'
         <div className="rc-log-head">
           <LineIcon name="frame" size={12} /> what the {mode === 'ai' ? 'AI' : 'board'} is doing · live
         </div>
-        <pre>
-          {lines.slice(-40).join('\n')}
-          <div ref={end} />
-        </pre>
+        <pre ref={box}>{lines.slice(-40).join('\n')}</pre>
       </div>
       <div className="ai-hint">
         Closing this page does not stop it: it is a job on the server. Come back and the strip is where it was.
@@ -96,6 +94,7 @@ export function CommandRow({
   proven,
   disabled,
   canFix,
+  onAi,
   pathNote,
   onChange,
   onRun,
@@ -109,6 +108,8 @@ export function CommandRow({
   proven: boolean;
   disabled: boolean;
   canFix: boolean;
+  /** Run the AI again (the row of a command that was not run because the AI ran out of time). */
+  onAi: () => void;
   /** Why a command that was not found is probably the PATH, when the AI found the folder. */
   pathNote?: string | null;
   onChange: (v: string) => void;
@@ -116,6 +117,7 @@ export function CommandRow({
   onFix: () => void;
 }) {
   const [showAll, setShowAll] = useState<boolean | null>(null);
+  const input = useRef<HTMLInputElement>(null);
   const hasOutput = view.tail.length > 0;
   const open = showAll ?? (hasOutput && (view.kind === 'fails' || view.kind === 'wrong'));
   const src = proven ? sourceParts(source) : null;
@@ -128,6 +130,7 @@ export function CommandRow({
       </div>
       <div className="rc-row-main">
         <input
+          ref={input}
           className={`ai-input ai-mono rc-box ${view.kind === 'changed' ? 'rc-box-changed' : ''} ${view.kind === 'wrong' ? 'rc-box-wrong' : ''}`}
           aria-label={`${COMMAND_TITLE[name]} command`}
           data-testid={name === 'prepare' ? 'wt-prepare' : `cmd-${name}`}
@@ -182,11 +185,21 @@ export function CommandRow({
               onClick={onRun}
             >
               <LineIcon name="play" size={11} />
-              {view.kind === 'untried' || view.kind === 'waiting'
+              {view.kind === 'untried' || view.kind === 'waiting' || view.kind === 'not_run'
                 ? 'Run'
                 : view.kind === 'changed'
                   ? 'Run this one again'
                   : 'Run again'}
+            </button>
+          )}
+          {view.kind === 'not_run' && view.sub && canFix && (
+            <button type="button" className="ai-btn ai-btn-sm" disabled={disabled} onClick={onAi}>
+              <LineIcon name="sparkle" size={12} /> Run the AI again
+            </button>
+          )}
+          {view.kind === 'empty' && (
+            <button type="button" className="ai-btn ai-btn-sm" onClick={() => input.current?.focus()}>
+              Type one
             </button>
           )}
           {hasOutput && (

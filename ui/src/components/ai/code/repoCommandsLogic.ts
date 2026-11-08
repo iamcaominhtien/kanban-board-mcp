@@ -94,9 +94,12 @@ export function rowView(
   });
   const step = job?.state === 'running' ? job.steps.find((s) => s.key === name) : undefined;
   if (!text.trim()) return blank('empty', 'Empty', name === 'lint' || name === 'build' ? 'Optional' : null);
-  if (step?.state === 'running' || trial?.status === 'running') return blank('running', 'Running');
-  if (step?.state === 'waiting' || trial?.status === 'waiting') return blank('waiting', 'Waiting');
-  if (!trial || !trial.status) return blank('untried', 'Not tried yet');
+  // a run the app lost (it restarted while the job ran) stays saved as running: only a live job makes a row live
+  const live = job?.state === 'running';
+  if (step?.state === 'running' || (live && trial?.status === 'running')) return blank('running', 'Running');
+  if (step?.state === 'waiting' || (live && trial?.status === 'waiting')) return blank('waiting', 'Waiting');
+  if (!trial || !trial.status || trial.status === 'running' || trial.status === 'waiting')
+    return blank('untried', 'Not tried yet');
   const tail = trial.tail ?? [];
   const base = { tail, note: null as string | null };
   if (trial.command.trim() !== text.trim())

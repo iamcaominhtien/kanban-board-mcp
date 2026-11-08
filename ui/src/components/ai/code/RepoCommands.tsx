@@ -41,7 +41,12 @@ export function RepoCommands({ projectId }: { projectId: string }) {
   // a scan of another folder is not this project's any more (the repository path or the team's folder changed)
   const trim = (p: string) => p.replace(/\/+$/, '');
   const latest = query.data ?? null;
-  const scan: Scan | null = latest && (!folder.startsWith('/') || trim(latest.folder) === trim(folder)) ? latest : null;
+  // the server keeps the real path (symlinks resolved), so a scan this card made is always this project's
+  const madeHere = useRef<string | null>(null);
+  const scan: Scan | null =
+    latest && (latest.id === madeHere.current || !folder.startsWith('/') || trim(latest.folder) === trim(folder))
+      ? latest
+      : null;
   const job = jobOf(scan);
   const running = job?.state === 'running';
   const saved: CommandTexts = {
@@ -64,28 +69,45 @@ export function RepoCommands({ projectId }: { projectId: string }) {
 
   // The boxes take what the AI proposes, only when it arrives while this page watches the job: the server keeps the
   // proposal of the last job until the next one writes its own, so the first sight of a job is its baseline
-  const watched = useRef<{ key: string; proposal: string; adopted: boolean } | null>(null);
+  const nothingSaved = COMMAND_ORDER.every((n) => !saved[n].trim());
+  const watched = useRef<{ key: string; proposal: string; adopted: boolean; envAdopted: boolean } | null>(null);
+  // the boxes the person typed in since the job started: the AI's answer does not replace them
+  const touched = useRef<Set<CommandName>>(new Set());
   useEffect(() => {
     if (!scan || !job || !ops.data || job.mode !== 'ai') return;
     const key = `${scan.id}:${job.startedAt}`;
     const sig = JSON.stringify(scan.proposal ?? {});
     const w = watched.current;
+    const proposed = proposedTexts(scan);
+    const folders = (scan.proposal as { envPath?: EnvFolder[] }).envPath;
     if (!w || w.key !== key) {
-      watched.current = { key, proposal: sig, adopted: false };
+      // first sight of this job: a proposal that is already there belongs to an earlier look, unless nothing is saved
+      // yet and the job has ended (the page was closed while it ran): then its commands are what the person has
+      const take = !!proposed && job.state !== 'running' && nothingSaved;
+      watched.current = { key, proposal: sig, adopted: take, envAdopted: take && !!folders?.length };
+      if (take) {
+        setTyped(proposed);
+        if (folders?.length) setEnvEdit(folders);
+      }
       return;
     }
-    const proposed = proposedTexts(scan);
-    if (w.adopted || sig === w.proposal || !proposed) return;
-    w.adopted = true;
-    const folders = (scan.proposal as { envPath?: EnvFolder[] }).envPath;
-    setTyped((cur) => {
-      // a typed box that was kept stays as it is; the others take the proposal
-      const next = { ...proposed };
-      if (cur) for (const n of COMMAND_ORDER) if (!next[n] && cur[n]) next[n] = cur[n];
-      return next;
-    });
-    if (folders?.length) setEnvEdit(folders);
-  }, [scan, job, ops.data]);
+    if (!proposed) return;
+    if (!w.adopted && sig !== w.proposal) {
+      w.adopted = true;
+      setTyped((cur) => {
+        // a box the person typed in meanwhile stays; the others take the proposal
+        const next = { ...proposed };
+        if (cur) for (const n of COMMAND_ORDER) if (touched.current.has(n) && cur[n].trim()) next[n] = cur[n];
+        return next;
+      });
+      touched.current.clear();
+    }
+    // the folders are saved a moment after the commands: take them when they arrive
+    if (!w.envAdopted && folders?.length) {
+      w.envAdopted = true;
+      setEnvEdit(folders);
+    }
+  }, [scan, job, ops.data, nothingSaved]);
 
   // a scan is read by code (nothing runs) so the card knows at once whether the AI can start; one try per folder
   const inflight = useRef<Promise<Scan> | null>(null);
@@ -94,6 +116,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
     inflight.current ??= aiScanApi
       .create(projectId, folder)
       .then((s) => {
+        madeHere.current = s.id;
         put(s);
         return s;
       })
@@ -133,8 +156,9 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       setBusy(false);
     }
   };
-  const startAi = (opts?: { hint?: string; keep?: CommandName[] }) =>
-    go((s) =>
+  const startAi = (opts?: { hint?: string; keep?: CommandName[] }) => {
+    touched.current.clear();
+    return go((s) =>
       aiScanApi.startAi(s.id, {
         hint: opts?.hint ?? hint,
         commands: texts,
@@ -142,9 +166,16 @@ export function RepoCommands({ projectId }: { projectId: string }) {
         envPath: envPaths,
       }),
     );
+  };
+
   const runCommands = (only?: CommandName[]) =>
     go((s) => aiScanApi.startTry(s.id, { commands: texts, envPath: envPaths, only }));
-  const stop = () => scan && void aiScanApi.cancel(scan.id).then(put);
+  const stop = () =>
+    scan &&
+    void aiScanApi
+      .cancel(scan.id)
+      .then(put)
+      .catch((e) => setProblem(extractError(e)));
   const askToFix = (name: CommandName) => {
     const run = scan?.trial?.[name];
     const why = [run?.reason, ...(run?.tail ?? []).slice(-3)].filter(Boolean).join(' | ');
@@ -283,10 +314,14 @@ export function RepoCommands({ projectId }: { projectId: string }) {
             }
             proven={!!scan?.trial?.[n] && scan.trial[n]?.command.trim() === texts[n].trim()}
             disabled={running || busy}
-            onChange={(v) => setTyped({ ...texts, [n]: v })}
+            onChange={(v) => {
+              touched.current.add(n);
+              setTyped({ ...texts, [n]: v });
+            }}
             onRun={() => void runCommands(n === 'prepare' ? [] : [n])}
             onFix={() => askToFix(n)}
             canFix={!aiOff}
+            onAi={() => void startAi()}
             pathNote={pathNote(scan?.trial?.[n], env)}
           />
         ))}
