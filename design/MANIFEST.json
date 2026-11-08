@@ -60,8 +60,8 @@
       "h": 4598
     },
     "AiDatabases.dc.html": {
-      "bytes": 167340,
-      "sha256": "2744187998cf03ebf72e6faa1213e68ad9ff9fcd111dc4314b9d80ed3617689a",
+      "bytes": 167320,
+      "sha256": "bcab3db365abe6ae9b6ad6fc5fc3c95ea4917080fe4c067418e1f4a0552ceecc",
       "title": "Choose your database",
       "page": "screens_ai",
       "w": 1480,
@@ -220,12 +220,12 @@
       "h": 2740
     },
     "Canvas.dc.html": {
-      "bytes": 403353,
-      "sha256": "3d8e46e752b1a2b1852371b855a13896ac709fb73958a08541119ff326e092ce",
+      "bytes": 392108,
+      "sha256": "1afafd63cc59149360b4d5e9cef535abbb068f15bbec47e923694f5e1e013d65",
       "title": "Canvas — boards, notes and comments on one large plane",
       "page": "screens_docs",
       "w": 1480,
-      "h": 19845
+      "h": 19219
     },
     "DebugSpace.dc.html": {
       "bytes": 30886,
@@ -356,12 +356,12 @@
       "h": 1660
     },
     "IdeaAi.dc.html": {
-      "bytes": 78760,
-      "sha256": "410829ab5b84d0e849b329195a3785121d31d7eb70049d17b3030881b84c4b4c",
+      "bytes": 77288,
+      "sha256": "75dd4bb7c4e1d7540afd7c92497c80a580b056929a9545b196ab54b374a71024",
       "title": "Idea Space — AI help",
       "page": "screens_ideas",
       "w": 1480,
-      "h": 4919
+      "h": 4817
     },
     "IdeaCapture.dc.html": {
       "bytes": 71375,
@@ -460,12 +460,12 @@
       "h": 1560
     },
     "Notifications.dc.html": {
-      "bytes": 227497,
-      "sha256": "9028c264068d816508fece870c4c5535c068afef3b2273dd3c587dfe14fc2aa0",
+      "bytes": 253818,
+      "sha256": "c47e6883e80b553fbc27383cea9200e78caa1eef8a297eba5877c3277fe0ad74",
       "title": "Notifications — one place for what needs you and what happened",
       "page": "screens_account",
       "w": 1480,
-      "h": 12547
+      "h": 14902
     },
     "PasswordReset.dc.html": {
       "bytes": 24170,
@@ -476,12 +476,12 @@
       "h": 2160
     },
     "PreviewTypes.dc.html": {
-      "bytes": 142226,
-      "sha256": "ad4557db7e29544506ce0dd57f9a596a99b6fe1ebd6a6f93a2effe6a0ca7c709",
+      "bytes": 220759,
+      "sha256": "bf6b7cb7340da41583075af0dca575bc06d8ae9cf80eee9d417decc87d08c2eb",
       "title": "Preview — file types & states",
       "page": "screens_startup",
       "w": 1480,
-      "h": 8630
+      "h": 8806
     },
     "PreviewViewer.dc.html": {
       "bytes": 79228,
@@ -588,12 +588,12 @@
       "h": 488
     },
     "TicketComments.dc.html": {
-      "bytes": 178967,
-      "sha256": "e05ef4814877095b9db08d3a86981587aa627fd362f228fefc3efcec668e8e3b",
+      "bytes": 210188,
+      "sha256": "acf1493255024863b29bfb116f8e564791f421ede2ef31c36faf83f6f04d32b7",
       "title": "Comments",
-      "page": "components",
+      "page": "components_collab",
       "w": 1180,
-      "h": 7877
+      "h": 9574
     },
     "TicketDetail.dc.html": {
       "bytes": 27978,
