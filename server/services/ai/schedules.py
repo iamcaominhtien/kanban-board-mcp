@@ -276,6 +276,7 @@ async def summary_text(session, s: AiSchedule) -> str:
         parts.append(f"It ends after {s.ends_after} runs.")
     elif s.kind == "repeat" and s.ends == "on_date" and s.ends_on:
         parts.append(f"It ends on {s.ends_on}.")
+    parts.append("It never moves past Review.")
     return " ".join(parts)
 
 
