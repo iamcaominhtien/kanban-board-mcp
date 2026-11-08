@@ -17,8 +17,6 @@ function aiNote(m: AiTeam): { disabled: boolean; note: string; tag?: string; gre
       return { disabled: false, note: '', tag: 'offline', grey: true };
     case 'not_logged_in':
       return { disabled: true, note: '', tag: 'signed out' };
-    case 'over_budget':
-      return { disabled: true, note: '· resets 00:00' };
     case 'paused':
       return { disabled: true, note: '· resume in AI teams' };
     case 'paused_all':

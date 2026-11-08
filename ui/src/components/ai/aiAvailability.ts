@@ -25,8 +25,6 @@ export function aiAvailability(m: AiTeam): AiAvailability {
       return { label: 'Rate-limited', note: '· will queue', tone: 'warn', usable: true };
     case 'not_logged_in':
       return { label: 'Signed out', note: '· can’t be mentioned', tone: 'off', usable: false };
-    case 'over_budget':
-      return { label: 'Over budget', note: '· can’t be mentioned', tone: 'off', usable: false };
     case 'paused':
       return { label: 'Paused', note: '· can’t be mentioned', tone: 'off', usable: false };
     case 'paused_all':
