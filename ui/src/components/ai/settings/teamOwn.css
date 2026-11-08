@@ -246,3 +246,60 @@
   border-radius: 4px;
   color: #2e6f40;
 }
+
+/* a quiet line under a row of the project settings: an icon and a sentence */
+.to-note {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.45;
+}
+.to-note > svg {
+  margin-top: 2px;
+}
+.to-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+}
+
+/* the runner card (Settings › AI › Running the teams) */
+.rn-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fff;
+}
+.rn-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+}
+.rn-line {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+}
+.rn-line > span {
+  width: 78px;
+  color: #5b6b60;
+}
+.rn-pill {
+  padding: 1px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.rn-pill-ok {
+  background: #e7f3ea;
+  color: #1f5a31;
+}
+.rn-pill-warn {
+  background: #fef3d9;
+  color: #b4571f;
+}
