@@ -211,27 +211,29 @@ function SlotRow({
               )}
             </div>
           )}
-          <div className="sc-slot-cols">
-            <div>
-              <div className="ai-label" style={{ marginTop: 8 }}>
-                THIS RUN
-              </div>
-              <div className="ai-hint">
-                {run.memberName ? `Run by ${run.memberName}. ` : ''}
-                {run.costUsd ? `${money(run.costUsd)}. ` : ''}
-                {lastRunId && (
-                  <button
-                    type="button"
-                    className="ai-link"
-                    onClick={() => onOpenTicket(run.ticketId)}
-                    data-testid="open-run"
-                  >
-                    Open run{num ? ` #${num}` : ''}
-                  </button>
-                )}
+          {lastRunId && (
+            <div className="sc-slot-cols">
+              <div>
+                <div className="ai-label" style={{ marginTop: 8 }}>
+                  THIS RUN
+                </div>
+                <div className="ai-hint">
+                  {run.memberName ? `Run by ${run.memberName}. ` : ''}
+                  {run.costUsd ? `${money(run.costUsd)}. ` : ''}
+                  {lastRunId && (
+                    <button
+                      type="button"
+                      className="ai-link"
+                      onClick={() => onOpenTicket(run.ticketId)}
+                      data-testid="open-run"
+                    >
+                      Open run{num ? ` #${num}` : ''}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
