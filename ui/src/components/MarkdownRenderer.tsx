@@ -216,8 +216,20 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
           ? { p: ({ children: inner }: { children?: React.ReactNode }) => <>{inner}</> }
           : {
               // a diagram or sketch is a block: it cannot live inside a <p>
-              p: ({ node, children: inner }) =>
-                hasDiagram(node) || hasSketch(node) || hasCanvas(node) ? <div>{inner}</div> : <p>{inner}</p>,
+              p: ({ node, children: inner }) => {
+                if (hasDiagram(node) || hasSketch(node) || hasCanvas(node)) return <div>{inner}</div>;
+                // the usage line a team's closing report ends with ("Run #3 · 12,300 tokens · sonnet", the server wraps it
+                // in <sub>, which this renderer drops): small grey print
+                const text = Array.isArray(inner) ? inner.join('') : typeof inner === 'string' ? inner : '';
+                const usage = /^(?:<sub>)?(Run #\d+ · [^<]+?)(?:<\/sub>)?$/.exec(text.trim());
+                if (usage)
+                  return (
+                    <p style={{ fontSize: 12, color: '#9AA8A0', lineHeight: 1.5 }} data-testid="report-usage">
+                      {usage[1]}
+                    </p>
+                  );
+                return <p>{inner}</p>;
+              },
             }),
         table: ({ node: _n, children: inner, ...props }) => (
           <div className={styles.tableWrap}>

@@ -4,7 +4,7 @@ import { STATUS_NAMES, useAiBoardState, AiAvatar } from './aiUi';
 import './ticketWork.css';
 
 /**
- * Dragging a card an AI holds asks first (A4): “Move anyway and cancel the run?”, as a dialog of its own. The move
+ * Dragging a card a team is working on asks first (A4): “Move anyway and cancel the run?”, as a dialog of its own. The move
  * ends the run; its files stay on the branch.
  */
 export function DragConfirm({
@@ -57,8 +57,8 @@ export function DragConfirm({
         <div className="ai-modal-body">
           <div className="ai-notice ai-notice-warn">
             <div>
-              Moving it to <b>{STATUS_NAMES[to] ?? to}</b> cancels the run and releases the hold. Files stay on the
-              branch; the status the run set is not restored.
+              Moving it to <b>{STATUS_NAMES[to] ?? to}</b> cancels the run. Files stay on the branch; the status the run
+              set is not restored.
             </div>
           </div>
         </div>

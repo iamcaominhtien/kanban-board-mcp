@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Resources, RestartNotice } from './Resources';
 import { RunCard } from './RunCard';
 import { RunHistoryTable } from './RunHistoryTable';
 import { RunPanel, RunStepsBlock } from './RunPanel';
+import { TicketAiStrips } from '../RunPanel';
 import { useTicketRuns } from '../../../api/ai';
 import { elapsedWords, isLive, startedByWords } from './runFormat';
 import { useNow } from '../aiUi';
@@ -18,11 +19,13 @@ import type { Ticket } from '../../../types';
  * TODO(connect to data): the old code on `main` does this for real; port from it, see the table in `./mock.ts`.
  */
 export function AiActivityDesign({
+  ticket,
   ticketId,
   projectId,
   onOpenTimeline,
   onOpenRun,
 }: {
+  ticket: Ticket;
   ticketId: string;
   projectId: string;
   onOpenTimeline?: () => void;
@@ -33,6 +36,9 @@ export function AiActivityDesign({
       style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 24px 24px' }}
       data-testid="ai-activity"
     >
+      <div className="ai-root" style={{ display: 'contents' }}>
+        <TicketAiStrips ticket={ticket} />
+      </div>
       <RunCard ticketId={ticketId} onOpenRun={onOpenRun} />
       <RestartNotice ticketId={ticketId} onOpenRun={onOpenRun} />
       <Resources ticketId={ticketId} />
@@ -67,34 +73,57 @@ export function AiRunPanelDesign({ ticket }: { ticket: Ticket }) {
   const runs = (useTicketRuns(ticket.id).data ?? []).filter((r) => r.kind === 'team');
   const [picked, setPicked] = useState<string | null>(null);
   const [full, setFull] = useState(false);
+  // "Expand all" / "Collapse all" of the whole page of the full history
+  const [allOpen, setAllOpen] = useState(false);
   // a run that is gone (another ticket, a deleted run) falls back to the newest
   const shown = runs.find((r) => r.id === picked) ?? runs[0];
+  const seg = (on: boolean): CSSProperties => ({
+    padding: '5px 11px',
+    borderRadius: 7,
+    border: `1px solid ${on ? '#2E6F40' : '#E3E8E5'}`,
+    background: on ? '#2E6F40' : '#fff',
+    color: on ? '#fff' : '#5B6B60',
+    fontSize: 12,
+    fontWeight: 600,
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+  });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 2px' }} data-testid="ai-run-panel">
+      <div className="ai-root" style={{ display: 'contents' }}>
+        <TicketAiStrips ticket={ticket} />
+      </div>
       {runs.length > 1 && (
-        <div style={{ display: 'flex', gap: 8 }} role="tablist" aria-label="What to show">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={!full}
-            className={`ai-btn ai-btn-sm${full ? '' : ' ai-btn-primary'}`}
-            onClick={() => setFull(false)}
-          >
-            One run
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={full}
-            className={`ai-btn ai-btn-sm${full ? ' ai-btn-primary' : ''}`}
-            data-testid="full-history"
-            onClick={() => setFull(true)}
-          >
-            Full history ({runs.length} runs)
-          </button>
+        <div className="dz dz-tw" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span role="tablist" aria-label="What to show" style={{ display: 'inline-flex', gap: 6 }}>
+            <button type="button" role="tab" aria-selected={!full} style={seg(!full)} onClick={() => setFull(false)}>
+              One run
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={full}
+              style={seg(full)}
+              data-testid="full-history"
+              onClick={() => setFull(true)}
+            >
+              Full history ({runs.length} runs)
+            </button>
+          </span>
+          <span style={{ flex: 1 }} />
+          {full && (
+            <>
+              <button type="button" className="mc-link" onClick={() => setAllOpen(true)}>
+                Expand all
+              </button>
+              <button type="button" className="mc-link" onClick={() => setAllOpen(false)}>
+                Collapse all
+              </button>
+            </>
+          )}
         </div>
       )}
-      {full ? <FullHistory runs={runs} /> : shown && <RunPanel key={shown.id} runId={shown.id} />}
+      {full ? <FullHistory runs={runs} allOpen={allOpen} /> : shown && <RunPanel key={shown.id} runId={shown.id} />}
       <div style={{ overflowX: 'auto' }}>
         <RunHistoryTable
           ticket={ticket}
@@ -109,42 +138,37 @@ export function AiRunPanelDesign({ ticket }: { ticket: Ticket }) {
   );
 }
 
-/** Every run of the ticket, oldest first, each with the whole of its steps (a long run's earlier steps load too). */
-function FullHistory({ runs }: { runs: AiRun[] }) {
-  const [allOpen, setAllOpen] = useState(false);
+/** Every run of the ticket, oldest first: its header, its request, how many steps, and its report. */
+function FullHistory({ runs, allOpen }: { runs: AiRun[]; allOpen: boolean }) {
   const now = useNow(
     1000,
     runs.some((r) => isLive(r.state)),
   );
   const ordered = [...runs].reverse();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }} data-testid="full-history-view">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>Full history</span>
-        <span style={{ flex: 1 }} />
-        <button type="button" className="mc-link" onClick={() => setAllOpen(true)}>
-          Expand all
-        </button>
-        <button type="button" className="mc-link" onClick={() => setAllOpen(false)}>
-          Collapse all
-        </button>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="full-history-view">
       {ordered.map((r) => (
-        <section key={r.id} data-testid="full-history-run">
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'baseline',
-              gap: '4px 10px',
-              padding: '6px 0',
-              borderBottom: '2px solid #DCE3DE',
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>Run #{r.number}</span>
-            <span style={{ fontSize: 11.5, color: '#5B6B60' }}>
-              {r.state.replace('_', ' ')} · {startedByWords(r)} · {elapsedWords(r, now)}
+        <section
+          key={r.id}
+          data-testid="full-history-run"
+          style={{
+            boxSizing: 'border-box',
+            border: '1px solid #E3E8E5',
+            borderRadius: 12,
+            background: '#fff',
+            padding: '10px 13px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+            <b style={{ fontSize: 13.5 }}>
+              {r.mode === 'ask' ? 'Answer' : 'Run'} #{r.number}
+            </b>
+            <span style={{ fontSize: 12, color: '#5B6B60' }}>
+              {r.state.replace('_', ' ')} · {startedByWords(r)}
+              {elapsedWords(r, now) ? ` · ${elapsedWords(r, now)}` : ''}
             </span>
           </div>
           <RunStepsBlock runId={r.id} allOpen={allOpen} />
