@@ -313,7 +313,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : null}
           hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} tickets reopened${
             m.quality.findings != null
-              ? `. Reviewer findings: ${m.quality.findings} in ${m.quality.runsWithFindings} runs`
+              ? `. Reviewer findings: ${m.quality.findings} in ${m.quality.runsWithFindings} run${m.quality.runsWithFindings === 1 ? '' : 's'}`
               : ''
           }`}
         />

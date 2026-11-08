@@ -334,7 +334,10 @@ async def post_pause_all(project_id: str, body: PauseAllBody, session: Session) 
     session.add(settings)
     await session.commit()
     await svc_touches.record_pause(
-        project_id, "project_paused", _by(), {"reason": settings.paused_reason}
+        project_id,
+        "project_paused",
+        _by(),
+        {"reason": settings.paused_reason, "cancel_running": body.cancel_running},
     )
     if body.cancel_running and hasattr(svc_runs, "cancel"):
         for r in await active_runs(session):

@@ -227,6 +227,20 @@ def answers_of(r: AiRun) -> list[dict]:
 # --------------------------------------------------------------------------- reading
 
 
+def _cancelled_runs(e: AiAudit) -> bool:
+    """Whether this audit entry is a pause or removal that also stopped the team's runs (so those stops belong to it)."""
+    if e.action == "team_removed":
+        return True
+    d = loads(e.detail, {}) or {}
+    if e.action == "team_paused":
+        return bool(d.get("cancel_current"))
+    if e.action == "project_paused":
+        return bool(
+            d.get("cancel_running", True)
+        )  # an entry from before the flag was kept: assume it stopped them
+    return False
+
+
 def _with_pause(r: AiRun, pauses: list[tuple[str | None, datetime | None]]) -> bool:
     """Whether this run was stopped as part of the same person's pause or removal of its team."""
     ended = parse_iso(r.ended_at)
@@ -334,9 +348,7 @@ async def collect(
     rows = (await session.exec(select(AiAudit).where(*audit_where))).all()
     # when a person paused or removed a team: the runs they stopped with it are part of that
     pauses = [
-        (e.on_behalf_of, parse_iso(e.created_at))
-        for e in rows
-        if e.action in ("team_paused", "project_paused", "team_removed")
+        (e.on_behalf_of, parse_iso(e.created_at)) for e in rows if _cancelled_runs(e)
     ]
     answered: dict[str, list[tuple[str, str]]] = {}  # run id -> [(who, when)]
     for r in runs:
