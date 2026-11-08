@@ -8,6 +8,45 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-11-08
+
+**AI v2: the board's AI team is rebuilt around Claude Code.** One lead session per ticket, led by Claude Code itself, with the team's roles as its subagents. Design: `docs/specs/ai-v2.md`. Plan, limits and what was checked: `docs/specs/ai-v2-implementation.md`.
+
+### Back up before you upgrade
+- **The old AI data is not carried over.** The first migration of this version (`a2b4c6d8e0f1`) drops the old AI tables: AI members, runs and their steps, approvals, grants, standing orders, workflows, AI notifications, Docs AI proposals and checks. Teams are made again by people, accounts are found again on this computer. Tickets, comments, Docs pages and everything else stay.
+- Make a backup of the board (App settings › Storage & backup › Export) first. A downgrade does not bring the dropped data back.
+- **Only the Claude Code CLI** is supported. Antigravity, API keys and other providers are gone from the AI team; the board counts quota, not money, and shows money only when a run reports a real cost ("Not metered" otherwise).
+- 8 migrations run in order on the first start (head `b8d0f2a4c6e9`). A copy of a real board and the released 3.37.2 schema were both upgraded on SQLite and PostgreSQL; MariaDB was not tried.
+
+### Changed
+- **No approval layer.** Runs use bypass permissions with a short deny list (no force-push to the main branch, no `rm -rf` outside the ticket's worktree), a worktree per ticket and a token per run. The permission matrix, approvals, hand-offs, Autopilot, standing orders and the manager role are removed.
+- **A ticket's chat writes to the ticket's team.** A working lead answers in the chat and carries on, an idle one takes the message as its next task. `/compact`, `/report`, `/stop`, `/cost`, `/new` and `/history` work in it, the team can start over with a History of its conversations, and the project settings have an auto-compact level.
+- **One hand-in, one comment:** the lead's final report is the closing comment, and files go in that report. A question from the team is answered where the person is: in the comment thread or in the ticket's AI chat.
+- **Review and Done hand over the work:** moving a ticket to Review pushes its branch and opens a draft PR; Done merges it. The AI never merges.
+- **Docs AI, Idea AI and Notifications** follow the new design: pages are edited directly (the page History undoes it), the "hide from AI", proposals and guidance-page settings are gone, and the Needs you list lost the kinds nothing creates any more (approvals, blocked, restart, budget).
+- **Canvas:** a comment can mention a person (they get a Needs you row that opens the thread) or an AI team (delivered to the ticket's team or the Docs page's assistant, with a line under the comment saying whether it was sent). AI proposals on a canvas are gone; an AI saves a board directly and the board shows which team saved it.
+
+### Added
+- **The AI Team page:** Needs you strip, Now, a page per team with a card per role, Run history, Memory, Resources, You stepped in and Health. A team that hit a usage limit shows **Rate-limited** until its next good run.
+- **Flow v2** (Map view and scope picker) and the full **Timeline**, read from the new runs, roles and questions.
+- **The AI tab on a ticket:** run card, run panel (a step opens to its whole command, steps load in pages), Full history of every run, Resources and restart notice, assign, mention and composer to the design.
+- **The Story page** (progress, sub-tickets in wave order with holder, state and time, tokens and money), **Group by Story** on the board, and the sub-tasks progress bar on the card.
+- **Board AI dock with receipts and Undo:** each answer lists what the AI changed, and Undo reverts it (an AI-created ticket is removed only when nothing else touched it).
+- **Members and accounts** (AI teams, accounts, repository commands) and the **AI project settings and operations** pages follow the design.
+- **Canvas and file preview:** the preview draws PowerPoint, PDF and Excel as they look; CSV can download all rows.
+- **Skills:** `demo-video` makes a narrated 1080p demo of the app on a throwaway board and is offered to every team with a working role; the slides skill and the others run their scripts from their own folder.
+- **MCP:** `ticket_branches add` takes `adopt`, to record a branch that already exists in the linked repo.
+
+### Fixed
+- The packaged server starts when the data folder has spaces (the board's hooks); a Docs page comment can be sent to an AI again (Send to AI); three Docs bugs found while moving Docs AI to v2.
+- An AI's save of an HTML board that is refused no longer leaves the board locked for ten minutes.
+- Runs are told where the ticket's Workspace is, and an attached file's result carries its size and sha256, so the AI does not search the disk.
+
+### Not checked before this release
+- The app was reviewed and its checks (types, lint, formatting, migrations) run, but the new AI flows were not hand-tested end to end: a real run, a real usage-limit (429) stop, Board AI Review/Undo, a Canvas mention reaching a team, and "Let the AI find the commands".
+- The old automated tests were not brought up to date for the new AI (tracked as KBM-25) and the CI test job is switched off for now.
+- No packaged build was smoke-tested.
+
 ## [3.37.2] - 2026-11-04
 
 Hotfix: AIs can see the pictures people paste.
