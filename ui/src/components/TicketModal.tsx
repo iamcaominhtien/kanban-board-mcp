@@ -253,7 +253,7 @@ function TicketModalInner({
   const [activeTab, setActiveTab] = useState<
     'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity' | 'ai'
   >('main');
-  // The ticket and the AI's work on it take turns on the main tab (a tall AI summary no longer hides the ticket)
+  // The ticket and the AI's work on it take turns on the main tab (a tall report no longer hides the ticket)
   const [mainView, setMainView] = useState<'ticket' | 'ai'>('ticket');
   const [hasAiPane, setHasAiPane] = useState(false);
   const [aiNeedsYou, setAiNeedsYou] = useState(false);
@@ -1900,6 +1900,7 @@ function TicketModalInner({
                     {/* TODO(connect to data): the design's mock for now; port the real logic from main (table in ai/activity/mock.ts) */}
                     {MOCK_AI_ACTIVITY && (
                       <AiActivityDesign
+                        ticket={ticket}
                         ticketId={ticket.id}
                         projectId={ticket.projectId}
                         onOpenTimeline={() => openTimeline({ scope: ticket.id })}
@@ -1926,7 +1927,7 @@ function TicketModalInner({
                               data-testid="open-in-timeline"
                               onClick={() => openTimeline({ scope: ticket.id })}
                             >
-                              Open in Timeline
+                              Open in Flow
                             </button>
                             <TimelineTab
                               projectId={ticket.projectId}
@@ -2578,7 +2579,6 @@ function TicketModalInner({
                           assigneeId={ticket.assignee}
                           focusCommentId={focusCommentId}
                           onFocusHandled={() => setFocusCommentId(null)}
-                          criteriaCount={ticket.acceptanceCriteria?.length ?? 0}
                           onAdd={async (t, opts) => {
                             // "Send to team": the comment is saved like any other, then the team's lead gets its text
                             // (a lead already working hears it at once; otherwise a run starts with it)

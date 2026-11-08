@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MenuSelect } from '../ui/MenuSelect';
 import {
   useHealth,
@@ -58,10 +58,8 @@ function Tile({
   const color = !delta || delta.better === null ? '#5B6B60' : delta.better ? '#2E6F40' : '#C4432A';
   return (
     <div className="at-measure" data-testid={`measure-${name.toLowerCase()}`}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span className="at-label" style={{ flex: 1, fontSize: 11 }}>
-          {name}
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 21 }}>
+        <span className="at-label hl-tile-label">{name}</span>
         <VerdictChip v={verdict} />
       </div>
       <span className="at-measure-n">{value}</span>
@@ -82,9 +80,9 @@ function Fix({ n, f, actions }: { n: number; f: HealthFix; actions: HealthAction
   };
   return (
     <div className="at-fix" data-testid="health-fix">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <span className="at-num">{n}</span>
-        <b style={{ fontSize: 14, flex: 1 }}>{f.title}</b>
+        <b style={{ fontSize: 14, flex: 1, lineHeight: 1.35 }}>{f.title}</b>
         <span className="at-chip" style={{ background: V[f.severity].bg, color: V[f.severity].fg }}>
           {V[f.severity].label}
         </span>
@@ -103,7 +101,7 @@ function Fix({ n, f, actions }: { n: number; f: HealthFix; actions: HealthAction
         </span>{' '}
         {f.suggestion}
       </div>
-      <div className="at-actions">
+      <div className="at-actions hl-actions">
         <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={go} data-testid="health-fix-action">
           {a.label}
         </button>
@@ -127,11 +125,16 @@ function fmtSpan(seconds: number | null | undefined): string {
 }
 
 /** The change in a count per ticket (touches): fewer is better. */
-function countDelta(cur: number | null, prev: number | null): Delta | null {
-  if (cur == null || prev == null) return null;
+function countDelta(cur: number | null, prev: number | null): Delta {
+  if (cur == null || prev == null) return { text: 'no earlier range to compare', better: null };
   const d = cur - prev;
   if (Math.abs(d) < 0.05) return { text: 'no change vs previous', better: null };
   return { text: `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} vs previous`, better: d < 0 };
+}
+/** The change in tokens, when nothing was priced in either range: fewer is better. */
+function tokensDelta(d: number): Delta {
+  if (d === 0) return { text: 'no change vs previous', better: null };
+  return { text: `${d > 0 ? '+' : '−'}${fmtTokens(Math.abs(d))} tokens vs previous`, better: d < 0 };
 }
 const pts = (cur: number | null, prev: number | null) => (cur == null || prev == null ? null : (cur - prev) * 100);
 
@@ -146,7 +149,7 @@ function Row({ t, onOpenTeam }: { t: TeamHealth; onOpenTeam: (id: string) => voi
   return (
     <div className="hl-grid" data-testid="health-team-row">
       <span>
-        <button type="button" className="ai-link" onClick={() => onOpenTeam(t.id)}>
+        <button type="button" className="hl-team" onClick={() => onOpenTeam(t.id)}>
           <b>{t.name}</b>
         </button>
         {t.paused && <span className="hl-sub">paused</span>}
@@ -206,12 +209,19 @@ function Row({ t, onOpenTeam }: { t: TeamHealth; onOpenTeam: (id: string) => voi
 export function HealthTab({ projectId, actions }: { projectId: string; actions: HealthActions }) {
   const [range, setRange] = useState<HealthRange>('7d');
   const q = useHealth(projectId, range);
-  const h: Health | undefined = q.data;
+  // A failed fetch for the other range keeps the last good numbers on screen, with the notice above them
+  const last = useRef<Health>();
+  if (q.data) last.current = q.data;
+  const h: Health | undefined = q.data ?? last.current;
   if (!h) {
     return q.isError ? (
-      <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />
+      <div className="st-err">
+        <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />
+      </div>
     ) : (
-      <span className="ai-spin" />
+      <div className="st-center">
+        <span className="ai-spin" />
+      </div>
     );
   }
   const m = h.measures;
@@ -227,9 +237,25 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
       : h.title;
   const text = noTeams ? 'Add a team to see how it works. Start with a ready-made one.' : h.text;
   const hasPrev = p.runs > 0;
+  // With no earlier range every tile says so on its delta line, so the tiles keep one height (AiTeamReview B3)
+  const noPrev: Delta = { text: 'no earlier range to compare', better: null };
+  // Money is compared only when both ranges priced their runs; tokens only when neither did
+  const costDelta: Delta = !hasPrev
+    ? noPrev
+    : m.cost.pricedRuns > 0 && p.pricedRuns > 0
+      ? deltaOf('usd', m.cost.usd - p.usd, 'down')
+      : m.cost.pricedRuns === 0 && p.pricedRuns === 0 && (m.cost.tokens > 0 || p.tokens > 0)
+        ? tokensDelta(m.cost.tokens - p.tokens)
+        : noPrev;
+  // The note about tokens stands where a team's cost is shown as tokens (AiTeamReview B2)
+  const tokensOnly = h.teams.some((t) => t.measures.cost.pricedRuns === 0 && t.measures.cost.tokens > 0);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }} data-testid="at-health">
-      {q.isError && <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />}
+      {q.isError && (
+        <div className="st-err">
+          <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />
+        </div>
+      )}
       <div
         className={`at-banner ${bannerClass}`}
         data-testid="health-banner"
@@ -257,7 +283,8 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
             <b style={{ fontSize: 18, color: unknown ? '#244E78' : undefined }}>{title}</b>
             {h.runs > 0 && (
               <span className="at-hint">
-                {h.runs} runs on {h.tickets} tickets · {day(h.since)} to {day(h.until)}
+                {h.runs} run{h.runs === 1 ? '' : 's'} on {h.tickets} ticket{h.tickets === 1 ? '' : 's'} · {day(h.since)}{' '}
+                to {day(h.until)}
               </span>
             )}
           </div>
@@ -291,33 +318,37 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           name="Reliability"
           verdict={m.reliability.verdict}
           value={pct(m.reliability.value)}
-          delta={hasPrev ? deltaOf('pts', pts(m.reliability.value, p.reliability), 'up') : null}
+          delta={hasPrev ? deltaOf('pts', pts(m.reliability.value, p.reliability), 'up') : noPrev}
           hint={`runs that finished OK: ${m.reliability.ok} of ${m.reliability.ended}. Failed, timed out and cancelled count against`}
         />
         <Tile
           name="Autonomy"
           verdict={m.autonomy.verdict}
           value={m.autonomy.value == null ? '–' : `${m.autonomy.value}`}
-          delta={hasPrev ? countDelta(m.autonomy.value, p.autonomy) : null}
-          hint={`touches per ticket: ${m.autonomy.touches} on ${m.autonomy.tickets} tickets. ${m.autonomy.clean} tickets with no touch at all`}
+          delta={hasPrev ? countDelta(m.autonomy.value, p.autonomy) : noPrev}
+          hint={`touches per ticket: ${m.autonomy.touches} on ${m.autonomy.tickets} ticket${m.autonomy.tickets === 1 ? '' : 's'}. ${m.autonomy.clean} ticket${m.autonomy.clean === 1 ? '' : 's'} with no touch at all`}
         />
         <Tile
           name="Speed"
           verdict={null}
           value={fmtSpan(m.speed.runMedianS)}
           delta={
-            hasPrev && p.runMedianS != null && m.speed.runMedianS != null
-              ? deltaOf('seconds', m.speed.runMedianS - p.runMedianS, 'down')
-              : null
+            hasPrev
+              ? deltaOf(
+                  'seconds',
+                  p.runMedianS != null && m.speed.runMedianS != null ? m.speed.runMedianS - p.runMedianS : null,
+                  'down',
+                )
+              : noPrev
           }
-          hint={`median run. Assignment to Review: ${fmtSpan(m.speed.toReviewMedianS)} (${m.speed.toReviewTickets} tickets)`}
+          hint={`median run. Assignment to Review: ${fmtSpan(m.speed.toReviewMedianS)} (${m.speed.toReviewTickets} ticket${m.speed.toReviewTickets === 1 ? '' : 's'})`}
         />
         <Tile
           name="Quality"
           verdict={m.quality.verdict}
           value={pct(m.quality.value)}
-          delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : null}
-          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} tickets reopened${
+          delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : noPrev}
+          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} ticket${m.quality.finishedTickets === 1 ? '' : 's'} reopened${
             m.quality.findings != null
               ? `. Reviewer findings: ${m.quality.findings} in ${m.quality.runsWithFindings} run${m.quality.runsWithFindings === 1 ? '' : 's'}`
               : ''
@@ -327,7 +358,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           name="Cost"
           verdict={m.cost.verdict}
           value={m.cost.pricedRuns > 0 || !m.cost.tokens ? fmtUsd(m.cost.usd) : `${fmtTokens(m.cost.tokens)} tokens`}
-          delta={hasPrev ? deltaOf('usd', m.cost.usd - p.usd, 'down') : null}
+          delta={costDelta}
           hint={`${m.cost.perRun != null ? `${fmtUsd(m.cost.perRun)} per run, ` : ''}${fmtTokens(m.cost.tokensPerRun ?? 0)} tokens per run${
             m.cost.tokensOnlyRuns
               ? `. ${m.cost.tokensOnlyRuns} run${m.cost.tokensOnlyRuns === 1 ? '' : 's'} report${m.cost.tokensOnlyRuns === 1 ? 's' : ''} tokens only`
@@ -338,9 +369,11 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
 
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <b style={{ fontSize: 14, flex: 1 }}>Each team</b>
-        <span className="at-hint">
-          One row per team: cost exists per run, not per role. Where no price is reported, tokens show, never $0
-        </span>
+        {tokensOnly && (
+          <span className="at-hint">
+            One row per team: cost exists per run, not per role. Where no price is reported, tokens show, never $0
+          </span>
+        )}
       </div>
       <div className="hl-table" data-testid="health-per-team">
         <div className="hl-grid head">
@@ -361,7 +394,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
 
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <b style={{ fontSize: 14, flex: 1 }}>What to fix · {h.fixes.length}</b>
-        <span className="at-hint">Worked out from rules, at most five. Nothing is changed for you</span>
+        {h.canJudge && <span className="at-hint">Worked out from rules, at most five. Nothing is changed for you</span>}
       </div>
       {h.fixes.length === 0 ? (
         <div className="at-empty" data-testid="health-no-fixes">
@@ -370,7 +403,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
             : `What to fix waits for ${h.minRuns} runs in the range. A rule shows only with enough cases.`}
         </div>
       ) : (
-        <div className="at-fixgrid">
+        <div className="at-fixgrid hl-fixgrid">
           {h.fixes.map((f, i) => (
             <Fix key={f.id} n={i + 1} f={f} actions={actions} />
           ))}

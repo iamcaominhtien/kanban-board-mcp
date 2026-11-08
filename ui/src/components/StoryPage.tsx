@@ -188,7 +188,7 @@ export function StoryPage({ ticket, allTickets = [], onClose, onOpenTicket, onOp
             <circle cx="19.5" cy="18.5" r="1.8" />
             <path d="M6 7l4 3.5M18 7l-4 3.5M6 17l4-3.5M18 17l-4-3.5" />
           </svg>
-          Open in Timeline
+          Open in Flow
         </button>
         <div ref={menuRef} style={{ position: 'relative' }}>
           <button

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAiTeams, useProjectRuns } from '../../api/ai';
-import { LoadError, RunStateChip, ago, fmtElapsed, money } from '../ai/aiUi';
+import { LoadError, RunStateChip, fmtElapsed, money } from '../ai/aiUi';
+import { firstLine, whenAgo } from './teamFormat';
 import { RunDetail } from './RunDetail';
 import { TicketChip } from './teamUi';
 
@@ -50,7 +51,7 @@ export function HistoryTab({
       ) : q.isLoading ? (
         <span className="ai-spin" />
       ) : (q.data ?? []).length === 0 ? (
-        <div className="ai-muted" data-testid="history-empty">
+        <div className="at-hint" data-testid="history-empty">
           No runs yet.
         </div>
       ) : (
@@ -61,8 +62,8 @@ export function HistoryTab({
             return (
               <div
                 key={r.id}
-                className="ai-row"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer' }}
+                className="at-row"
+                style={{ cursor: 'pointer' }}
                 onClick={() => onRunChange(r.id)}
                 data-testid="history-row"
               >
@@ -71,19 +72,18 @@ export function HistoryTab({
                     <TicketChip id={r.ticketId} onOpen={onOpenTicket} />
                   </span>
                 )}
-                <span style={{ fontWeight: 600 }}>{names.get(r.memberId) ?? 'Team'}</span>
-                <span className="ai-muted">#{r.number}</span>
+                <button type="button" className="at-runlink" onClick={() => onRunChange(r.id)} title="Open this run">
+                  {names.get(r.memberId) ?? 'Team'}
+                </button>
+                <span className="at-sub">#{r.number}</span>
                 <RunStateChip state={r.state} />
-                <span
-                  className="ai-muted"
-                  style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                >
-                  {r.report?.summary || r.summary || r.instruction}
+                <span className="at-line at-sub" title={r.report?.summary || r.summary || r.instruction}>
+                  {firstLine(r.report?.summary || r.summary || r.instruction)}
                 </span>
-                <span className="ai-muted">{r.stepsCount} steps</span>
-                {secs != null && <span className="ai-mono ai-muted">{fmtElapsed(secs)}</span>}
-                {r.costUsd > 0 && <span className="ai-mono ai-muted">{money(r.costUsd)}</span>}
-                <span className="ai-muted">{ago(r.queuedAt)}</span>
+                <span className="at-sub">{r.stepsCount} steps</span>
+                {secs != null && <span className="at-mono">{fmtElapsed(secs)}</span>}
+                {r.costUsd > 0 && <span className="at-mono">{money(r.costUsd)}</span>}
+                <span className="at-sub">{whenAgo(r.queuedAt)}</span>
               </div>
             );
           })}

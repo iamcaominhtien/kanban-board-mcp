@@ -15,19 +15,23 @@ import './aiTeam.css';
 
 type Tab = 'now' | 'flow' | 'history' | 'stepped' | 'health' | 'resources' | 'memory';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'now', label: 'Now' },
+const TABS: { id: Tab; label: string; hint: string }[] = [
+  { id: 'now', label: 'Now', hint: 'What each team is doing, and what needs you' },
   // the map and the timeline of the teams, by scope (the old tab Timeline is a view of it)
-  { id: 'flow', label: 'Flow' },
-  { id: 'history', label: 'Run history' },
+  {
+    id: 'flow',
+    label: 'Flow',
+    hint: 'Who took which ticket, who wrote to whom, what waited for you: a Map or a Timeline',
+  },
+  { id: 'history', label: 'Run history', hint: 'Every run, newest first' },
   // every time a person had to touch the work (KBM-21)
-  { id: 'stepped', label: 'You stepped in' },
+  { id: 'stepped', label: 'You stepped in', hint: 'Each time a person had to touch the work, in the last 7 days' },
   // is the AI team healthy, per team (KBM-22)
-  { id: 'health', label: 'Health' },
+  { id: 'health', label: 'Health', hint: 'Whether each team is in good shape' },
   // the machine, the running runs and the limits (KBM-19)
-  { id: 'resources', label: 'Resources' },
+  { id: 'resources', label: 'Resources', hint: 'The machine, the runs on it and its limits' },
   // what the AIs remember, and what waits for a person there (issue #274)
-  { id: 'memory', label: 'Memory' },
+  { id: 'memory', label: 'Memory', hint: 'What the AIs learned on this project' },
 ];
 
 interface Props {
@@ -96,6 +100,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
               type="button"
               role="tab"
               aria-selected={tab === t.id}
+              title={t.hint}
               className={tab === t.id ? 'on' : ''}
               onClick={() => {
                 setSteppedMark(undefined);

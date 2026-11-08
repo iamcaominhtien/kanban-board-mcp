@@ -3,15 +3,15 @@ import { aiApi, isActive, useAiMutation, useAiRun, useLoadSteps } from '../../..
 import { extractError } from '../../../api/extractError';
 import type { AiRunFull, RunStep } from '../../../types/ai';
 import { useToast } from '../../Toast';
-import { MarkdownRenderer } from '../../MarkdownRenderer';
 import { QuestionCard } from '../QuestionCard';
 import { RunMessageBox, RunMessages, RunReportCard } from '../RunView';
+import { RunChip } from './RunHistoryTable';
+import { LineIcon } from '../../ui/LineIcon';
 import { hhmm, money, testsOf, useAiBoardState, useNow } from '../aiUi';
 import { elapsedWords } from './runFormat';
 import './design/designBlocks.css';
 
 const MONO = "'JetBrains Mono',monospace";
-const DOT: CSSProperties = { fontSize: '12px', color: '#9AA8A0', fontWeight: 400, lineHeight: 1.5 };
 const CHECK = 'M5 12.5L10 17.5L19 7';
 
 const Svg = ({
@@ -48,6 +48,8 @@ function plainTitle(title: string): string {
 /** "Ran npm test" → ["Ran ", "npm test"]: the verb in plain text and the thing it acted on as code. */
 function splitTitle(title: string): [string, string] | null {
   const m = /^(Ran|Edited|Created|Read|Searched|Deleted|Running) (.+)$/.exec(title);
+  // "Read the ticket and acceptance criteria" is a sentence, not a file: only a path or a command is code
+  if (m && (m[1] === 'Read' || m[1] === 'Searched') && /\s/.test(m[2])) return null;
   return m ? [`${m[1]} `, m[2]] : null;
 }
 
@@ -273,7 +275,12 @@ function StepList({
         const failedCount = item.steps.filter(stepFailed).length;
         const said = [...item.steps].reverse().find((x) => x.kind === 'text');
         return (
-          <div key={key} data-testid="step-group" data-open={open ? 'true' : 'false'}>
+          <div
+            key={key}
+            data-testid="step-group"
+            data-open={open ? 'true' : 'false'}
+            style={{ borderLeft: `3px solid ${color}`, borderRadius: 2, margin: '3px 0' }}
+          >
             <div
               role="button"
               tabIndex={0}
@@ -289,12 +296,9 @@ function StepList({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '6px 4px 6px 8px',
-                margin: '4px 0 2px 0',
+                padding: '5px 8px',
                 cursor: 'pointer',
-                borderLeft: `3px solid ${color}`,
                 background: '#F6FAF7',
-                borderRadius: '0 6px 6px 0',
               }}
             >
               <Svg size={12} stroke="#9AA8A0" w={2.2}>
@@ -338,7 +342,7 @@ function StepList({
               </span>
             </div>
             {open && (
-              <div style={{ marginLeft: '6px', paddingLeft: '10px', borderLeft: `3px solid ${color}33` }}>
+              <div style={{ marginLeft: '10px', borderLeft: `3px solid ${color}55` }}>
                 {item.steps.map((x) => (
                   <StepRow
                     key={x.seq}
@@ -367,6 +371,9 @@ export function RunStepsBlock({ runId, allOpen }: { runId: string; allOpen: bool
   const run = useAiRun(runId).data;
   const loadSteps = useLoadSteps(runId);
   const [opened, setOpened] = useState<Record<number, boolean>>({});
+  // the run's steps are folded behind their count; "Expand all" / "Collapse all" of the page opens or folds them
+  const [showSteps, setShowSteps] = useState(allOpen);
+  useEffect(() => setShowSteps(allOpen), [allOpen]);
   const asked = useRef(false);
   const missing = !!run && run.steps.filter((s) => s.kind !== 'role').length < run.stepsCount;
   useEffect(() => {
@@ -388,24 +395,40 @@ export function RunStepsBlock({ runId, allOpen }: { runId: string; allOpen: bool
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {run.instruction.trim() && (
-        <div className="tw-card" data-testid="run-request">
-          <div className="ai-label ai-label-dark" style={{ marginBottom: 6 }}>
-            Request
-          </div>
-          <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-            <MarkdownRenderer plain>{run.instruction}</MarkdownRenderer>
-          </div>
-        </div>
+        <Notice tone="blue" testId="run-request">
+          <b>Request</b> {run.instruction}
+        </Notice>
       )}
       <RunMessages runId={runId} />
-      {!steps.length && <span style={{ fontSize: '12px', color: '#9AA8A0' }}>No steps.</span>}
-      <StepList
-        run={run}
-        steps={steps}
-        opened={opened}
-        allOpen={allOpen}
-        onToggle={(key, wasOpen) => setOpened((o) => ({ ...o, [key]: !wasOpen }))}
-      />
+      <button
+        type="button"
+        aria-expanded={showSteps}
+        data-testid="full-history-steps"
+        onClick={() => setShowSteps((v) => !v)}
+        style={{
+          alignSelf: 'flex-start',
+          border: 'none',
+          background: 'none',
+          padding: 0,
+          fontFamily: 'inherit',
+          fontSize: '12px',
+          color: '#5B6B60',
+          cursor: steps.length ? 'pointer' : undefined,
+        }}
+      >
+        {steps.length === 0
+          ? 'No steps yet.'
+          : `${steps.length}${isActive(run.state) ? ' steps so far' : steps.length === 1 ? ' step' : ' steps'}`}
+      </button>
+      {showSteps && steps.length > 0 && (
+        <StepList
+          run={run}
+          steps={steps}
+          opened={opened}
+          allOpen={allOpen}
+          onToggle={(key, wasOpen) => setOpened((o) => ({ ...o, [key]: !wasOpen }))}
+        />
+      )}
       <RunReportCard run={run} />
     </div>
   );
@@ -421,6 +444,7 @@ export function RunPanel({ runId }: { runId: string }) {
   const run = q.data;
   const loadSteps = useLoadSteps(runId);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [noMoreEarlier, setNoMoreEarlier] = useState(false);
   const { members } = useAiBoardState();
   const toast = useToast();
   const cancel = useAiMutation(() => aiApi.cancel(runId));
@@ -450,7 +474,8 @@ export function RunPanel({ runId }: { runId: string }) {
   const commands = run.steps.filter((s) => s.kind === 'command').slice(-6);
   const tests = testsOf(run);
   const tokens = run.tokensIn + run.tokensOut;
-  const earlierMissing = run.steps.filter((s) => s.kind !== 'role').length < run.stepsCount;
+  // a load that brought nothing new (the run holds fewer rows than it counted) ends the offer
+  const earlierMissing = !noMoreEarlier && run.steps.filter((s) => s.kind !== 'role').length < run.stepsCount;
   const showEarlier = async () => {
     setLoadingEarlier(true);
     try {
@@ -460,350 +485,513 @@ export function RunPanel({ runId }: { runId: string }) {
         if (page.length < 500) break;
         after = page[page.length - 1].seq;
       }
+      setNoMoreEarlier(true);
     } catch (err) {
       toast.error('The earlier steps could not be loaded', extractError(err));
     } finally {
       setLoadingEarlier(false);
     }
   };
-  const stateLabel: Record<string, string> = {
-    queued: 'Queued',
-    starting: 'Starting',
-    running: 'Running',
-    needs_input: 'Needs input',
-    finished: 'Finished',
-    failed: 'Failed',
-    cancelled: 'Cancelled',
-    timed_out: 'Timed out',
-  };
-  const good = run.state === 'finished' || run.state === 'running' || run.state === 'starting';
-  return (
-    <div className="dz dz-tw" data-testid="run-view">
-      <div style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '15px', color: '#1E2A22', fontWeight: 700, lineHeight: 1.5 }}>
-            {run.mode === 'ask' ? 'Answer' : 'Run'} #{run.number}
-          </span>
-          <span
-            className="ai-chip"
-            style={
-              good
-                ? { background: '#F1F8F3', color: '#2E6F40', border: '1px solid #BFDCC7' }
-                : { background: '#F1F3F1', color: '#5B6B60', border: '1px solid #DCE3DE' }
-            }
+  const usageWords = `${run.costUsd > 0 ? money(run.costUsd) : 'Not metered'}${tokens > 0 ? ` · ${fmtElapsedTokens(tokens)} tokens` : ''}`;
+  // a run that is only waiting or just starting is one line; the facts strip is for a run that goes on
+  const started = !!run.startedAt && run.state !== 'starting';
+  // waiting or just starting, with nothing done yet: one line, not an empty steps box
+  const plainHint = run.state === 'queued' || (run.state === 'starting' && steps.length === 0);
+  const stepsBlock = (
+    <div
+      style={{
+        flex: '1 1 320px',
+        minWidth: 0,
+        border: '1px solid #E3E8E5',
+        borderRadius: '11px',
+        padding: '10px 12px',
+        background: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '2px',
+      }}
+      data-testid="run-steps"
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <Label>
+          Steps{' '}
+          <b style={{ color: '#1E2A22' }} data-testid="step-count">
+            {noMoreEarlier || run.steps.filter((s) => s.kind !== 'role').length >= run.stepsCount
+              ? steps.length
+              : `${steps.length} of ${run.stepsCount}`}
+          </b>
+        </Label>
+        <span style={{ flex: 1 }} />
+        {earlierMissing && (
+          <button
+            type="button"
+            className="mc-link"
+            onClick={showEarlier}
+            disabled={loadingEarlier}
+            data-testid="show-earlier-steps"
           >
-            {run.state === 'running' && (
-              <span
-                className="ai-pulse"
-                style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#2E6F40', flexShrink: 0 }}
-              />
-            )}
-            {stateLabel[run.state] ?? run.state}
+            {loadingEarlier ? 'Loading…' : 'Show earlier steps'}
+          </button>
+        )}
+        <button
+          type="button"
+          className="mc-link"
+          data-testid="expand-all-steps"
+          onClick={async () => {
+            setOpened({});
+            setAllOpen(true);
+            if (earlierMissing) await showEarlier();
+          }}
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          className="mc-link"
+          onClick={() => {
+            setOpened({});
+            setAllOpen(false);
+          }}
+        >
+          Collapse all
+        </button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {steps.length === 0 && (
+          <span style={{ fontSize: '12px', color: '#9AA8A0', padding: '6px 4px' }} data-testid="no-steps">
+            {run.state === 'starting' ? 'Starting Claude Code…' : 'No steps yet.'}
           </span>
-          <span style={{ flex: 1 }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {live && (
-              <button
-                type="button"
-                className="st-btn st-btn-danger-outline st-btn-sm"
-                disabled={cancel.isPending}
-                data-testid="run-cancel"
-                onClick={() => void act(() => cancel.mutateAsync(undefined), "Couldn't cancel the run")}
-              >
-                <Svg size={12} stroke="currentColor">
-                  <rect x="6" y="6" width="12" height="12" rx="2" />
-                </Svg>
-                {run.state === 'queued' ? 'Cancel run' : 'Stop run'}
-              </button>
-            )}
-            {!live && (
-              <button
-                type="button"
-                className="st-btn st-btn-sm"
-                disabled={retry.isPending}
-                data-testid="run-retry"
-                onClick={() => void act(() => retry.mutateAsync(undefined), "Couldn't start a new run")}
-              >
-                {run.state === 'failed' || run.state === 'timed_out' ? 'Retry' : 'Run again'}
-              </button>
-            )}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }} data-testid="run-facts">
-          <span
-            style={{
-              display: 'inline-flex',
-              width: '18px',
-              height: '18px',
-              borderRadius: '5px',
-              background: '#DCEEE1',
-              color: '#2E6F40',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-              <path
-                d="M12 3V21M3 12H21M5.6 5.6L18.4 18.4M18.4 5.6L5.6 18.4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </span>
-          <span style={{ fontSize: '12px', color: '#1E2A22', fontWeight: 600, lineHeight: 1.5 }}>
-            {team?.name ?? 'Team'}
-          </span>
-          <span style={DOT}>·</span>
-          <span style={{ fontSize: '12px', color: '#5B6B60', fontWeight: 400, lineHeight: 1.5 }}>
-            {run.startedAt ? `started ${hhmm(run.startedAt)}` : `queued ${hhmm(run.queuedAt)}`} by {run.startedBy}
-          </span>
-          {run.startedAt && (
-            <>
-              <span style={DOT}>·</span>
-              <span style={{ fontSize: '12px', color: '#2E6F40', fontWeight: 700, lineHeight: 1.5, fontFamily: MONO }}>
-                {elapsedWords(run, now || Date.now())}
-              </span>
-            </>
-          )}
-          <span style={DOT}>·</span>
-          <span style={{ fontSize: '12px', color: '#5B6B60', fontWeight: 400, lineHeight: 1.5 }}>
-            {run.costUsd > 0 ? money(run.costUsd) : 'Not metered'}
-            {tokens > 0 ? ` · ${fmtElapsedTokens(tokens)} tokens` : ''}
-          </span>
-          {run.report?.branch && (
-            <>
-              <span style={DOT}>·</span>
-              <span
-                style={{ fontSize: '11.5px', color: '#1E2A22', fontWeight: 600, lineHeight: 1.5, fontFamily: MONO }}
-              >
-                {run.report.branch}
-              </span>
-            </>
-          )}
-        </div>
-        <div className="ai-root" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {run.instruction && (
-            <div className="ai-notice ai-notice-info" style={{ fontSize: 12 }} data-testid="run-instruction">
-              <b>{run.mode === 'ask' ? 'Question' : 'Instruction'}:</b> {run.instruction}
-            </div>
-          )}
-          {run.state === 'queued' && run.waitingReason && (
-            <div className="ai-notice ai-notice-warn" data-testid="why-waiting">
-              {run.waitingReason}
-            </div>
-          )}
-          {!live && run.endedReason && (
-            <div
-              className={`ai-notice ${run.state === 'finished' ? 'ai-notice-info' : run.state === 'cancelled' ? 'ai-notice-slate' : 'ai-notice-error'}`}
+        )}
+        <StepList
+          run={run}
+          steps={steps}
+          opened={opened}
+          allOpen={allOpen}
+          onToggle={(key, wasOpen) => setOpened((o) => ({ ...o, [key]: !wasOpen }))}
+        />
+      </div>
+    </div>
+  );
+  const rail = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '250px', flex: 'none' }}>
+      <RailCard
+        title="Files touched"
+        note={`${run.files.length} changed`}
+        testId="run-files"
+        empty={run.files.length === 0 ? 'None yet.' : null}
+      >
+        {run.files.map((f) => (
+          <div key={f.path} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px' }}>
+            <Svg size={13} stroke="#5B6B60">
+              <path d="M6 3H14L19 8V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+              <path d="M14 3V8H19" />
+            </Svg>
+            <span
+              title={f.path}
+              style={{
+                fontFamily: MONO,
+                fontSize: '11.5px',
+                flex: 1,
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
             >
-              {run.endedReason}
-            </div>
-          )}
-          {run.state === 'needs_input' && run.question && !run.answer && <QuestionCard run={{ ...run }} />}
-          <RunReportCard run={run} />
-          <RunMessageBox run={run} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '22px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 320px', minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Label>Steps</Label>
-              <span
-                style={{ fontSize: '11px', color: '#9AA8A0', fontWeight: 400, lineHeight: 1.5 }}
-                data-testid="step-count"
-              >
-                {run.steps.filter((s) => s.kind !== 'role').length >= run.stepsCount
-                  ? steps.length
-                  : `${steps.length} of ${run.stepsCount}`}
-              </span>
-              <span style={{ flex: 1 }} />
-              {earlierMissing && (
-                <button
-                  type="button"
-                  className="mc-link"
-                  onClick={showEarlier}
-                  disabled={loadingEarlier}
-                  data-testid="show-earlier-steps"
-                >
-                  {loadingEarlier ? 'Loading…' : 'Show earlier steps'}
-                </button>
-              )}
-              <button
-                type="button"
-                className="mc-link"
-                data-testid="expand-all-steps"
-                onClick={async () => {
-                  setOpened({});
-                  setAllOpen(true);
-                  if (earlierMissing) await showEarlier();
-                }}
-              >
-                Expand all
-              </button>
-              <button
-                type="button"
-                className="mc-link"
-                onClick={() => {
-                  setOpened({});
-                  setAllOpen(false);
-                }}
-              >
-                Collapse all
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {steps.length === 0 && <span style={{ fontSize: '12px', color: '#9AA8A0' }}>No steps yet.</span>}
-              <StepList
-                run={run}
-                steps={steps}
-                opened={opened}
-                allOpen={allOpen}
-                onToggle={(key, wasOpen) => setOpened((o) => ({ ...o, [key]: !wasOpen }))}
-              />
-            </div>
+              {f.path.split('/').pop()}
+            </span>
+            <span style={{ fontFamily: MONO, fontSize: '10.5px', whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#2E6F40' }}>
+                +{f.added}
+                {f.new ? ' new' : ''}
+              </span>{' '}
+              {!f.new && f.removed > 0 && <span style={{ color: '#C4432A' }}>−{f.removed}</span>}
+            </span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '236px', flexShrink: 0 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Label>Files touched</Label>
-                <span style={{ flex: 1 }} />
-                <span style={{ fontSize: '11px', color: '#9AA8A0', fontWeight: 400, lineHeight: 1.5 }}>
-                  {run.files.length} changed
-                </span>
-              </div>
-              {run.files.length === 0 && <span style={{ fontSize: '11.5px', color: '#9AA8A0' }}>None yet.</span>}
-              {run.files.map((f) => (
-                <div key={f.path} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <Svg size={13} stroke="#5B6B60">
-                    <path d="M6 3H14L19 8V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
-                    <path d="M14 3V8H19" />
-                  </Svg>
-                  <span
-                    title={f.path}
-                    style={{
-                      fontSize: '12px',
-                      color: '#1E2A22',
-                      fontWeight: 600,
-                      lineHeight: 1.5,
-                      fontFamily: MONO,
-                      minWidth: 0,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {f.path.split('/').pop()}
-                  </span>
-                  <span style={{ flex: 1 }} />
-                  <span style={{ fontFamily: MONO, fontSize: '10.5px', whiteSpace: 'nowrap' }}>
-                    <span style={{ color: '#2E6F40' }}>
-                      +{f.added}
-                      {f.new ? ' new' : ''}
-                    </span>{' '}
-                    {!f.new && f.removed > 0 && <span style={{ color: '#C4432A' }}>−{f.removed}</span>}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }} data-testid="run-commands">
-              <Label>Commands</Label>
-              {commands.length === 0 && <span style={{ fontSize: '11.5px', color: '#9AA8A0' }}>None.</span>}
-              {commands.map((c, i) => {
-                const code = typeof c.detail?.exitCode === 'number' ? c.detail.exitCode : null;
-                const now2 = i === commands.length - 1 && run.state === 'running' && code == null;
-                return (
-                  <div key={c.seq} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                    <Chip ok={now2 || code === 0}>
-                      {now2 ? (
-                        <>
-                          <span
-                            className="ai-pulse"
-                            style={{
-                              width: '7px',
-                              height: '7px',
-                              borderRadius: '50%',
-                              background: '#2E6F40',
-                              flexShrink: 0,
-                            }}
-                          />
-                          now
-                        </>
-                      ) : (
-                        <>
-                          {code === 0 && (
-                            <Svg size={11} stroke="currentColor" w={2.6}>
-                              <path d={CHECK} />
-                            </Svg>
-                          )}
-                          {code != null ? `exit ${code}` : '—'}
-                        </>
-                      )}
-                    </Chip>
+        ))}
+      </RailCard>
+      <RailCard title="Commands" testId="run-commands" empty={commands.length === 0 ? 'None.' : null}>
+        {commands.map((c, i) => {
+          const code = typeof c.detail?.exitCode === 'number' ? c.detail.exitCode : null;
+          const now2 = i === commands.length - 1 && run.state === 'running' && code == null;
+          return (
+            <div key={c.seq} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '11.5px' }}>
+              <span className="ai-chip" style={{ ...(now2 || code === 0 ? CHIP_OK : CHIP_BAD), height: 18 }}>
+                {now2 ? (
+                  <>
                     <span
-                      style={{
-                        fontSize: '11.5px',
-                        color: '#1E2A22',
-                        fontWeight: 500,
-                        lineHeight: 1.5,
-                        fontFamily: MONO,
-                        minWidth: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {c.title.replace(/^Ran /, '')}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            {tests && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }} data-testid="run-tests">
-                <Label>Test results</Label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  {(tests.passed > 0 || tests.failed === 0) && (
-                    <Chip ok>
+                      className="ai-pulse"
+                      style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2E6F40' }}
+                    />
+                    now
+                  </>
+                ) : (
+                  <>
+                    {code === 0 && (
                       <Svg size={11} stroke="currentColor" w={2.6}>
                         <path d={CHECK} />
                       </Svg>
-                      {tests.passed} passed
-                    </Chip>
-                  )}
-                  {tests.failed > 0 && (
-                    <Chip ok={false}>
-                      <Svg size={11} stroke="currentColor" w={2.2}>
-                        <path d="M12 3.5L22 20H2Z" />
-                        <path d="M12 10V14" />
-                        <path d="M12 17.2V17.3" />
-                      </Svg>
-                      {tests.failed} failed
-                    </Chip>
-                  )}
-                </div>
-                {(tests.failing?.length ?? 0) > 0 && (
-                  <span style={{ fontSize: '11.5px', color: '#5B6B60', fontWeight: 400, lineHeight: 1.5 }}>
-                    Failing:{' '}
-                    {tests.failing!.map((f) => (
-                      <span key={f} className="m-code" style={{ marginRight: 6 }}>
-                        {f}
-                      </span>
-                    ))}
-                  </span>
+                    )}
+                    {code != null ? `exit ${code}` : '—'}
+                  </>
                 )}
-              </div>
+              </span>
+              <span
+                style={{
+                  fontFamily: MONO,
+                  fontSize: '11px',
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {c.title.replace(/^Ran /, '')}
+              </span>
+            </div>
+          );
+        })}
+      </RailCard>
+      {tests && (
+        <RailCard title="Test results" testId="run-tests">
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {(tests.passed > 0 || tests.failed === 0) && (
+              <Chip ok>
+                <Svg size={11} stroke="currentColor" w={2.6}>
+                  <path d={CHECK} />
+                </Svg>
+                {tests.passed} passed
+              </Chip>
+            )}
+            {tests.failed > 0 && (
+              <Chip ok={false}>
+                <Svg size={11} stroke="currentColor" w={2.2}>
+                  <path d="M12 3.5L22 20H2Z" />
+                  <path d="M12 10V14" />
+                  <path d="M12 17.2V17.3" />
+                </Svg>
+                {tests.failed} failed
+              </Chip>
             )}
           </div>
+          {(tests.failing?.length ?? 0) > 0 && (
+            <div style={{ fontSize: '11.5px', color: '#5B6B60' }}>
+              Failing:{' '}
+              {tests.failing!.map((f) => (
+                <span key={f} className="m-code" style={{ marginRight: 6 }}>
+                  {f}
+                </span>
+              ))}
+            </div>
+          )}
+        </RailCard>
+      )}
+    </div>
+  );
+  return (
+    <div className="dz dz-tw" data-testid="run-view">
+      <div
+        style={{
+          boxSizing: 'border-box',
+          border: '1px solid #E3E8E5',
+          borderRadius: '12px',
+          background: '#fff',
+          padding: '16px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '15px', color: '#1E2A22', fontWeight: 700 }}>
+            {run.mode === 'ask' ? 'Answer' : 'Run'} #{run.number}
+          </span>
+          <RunChip state={run.state} />
+          <span style={{ flex: 1 }} />
+          {live && (
+            <button
+              type="button"
+              className="st-btn st-btn-danger-outline st-btn-sm"
+              disabled={cancel.isPending}
+              data-testid="run-cancel"
+              onClick={() => void act(() => cancel.mutateAsync(undefined), "Couldn't cancel the run")}
+            >
+              <Svg size={12} stroke="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </Svg>
+              {run.state === 'queued' ? 'Cancel run' : 'Stop run'}
+            </button>
+          )}
+          {!live && (
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              disabled={retry.isPending}
+              data-testid="run-retry"
+              onClick={() => void act(() => retry.mutateAsync(undefined), "Couldn't start a new run")}
+            >
+              <Svg size={12} stroke="currentColor">
+                <path d="M20 11A8 8 0 1 0 18.3 16.2" />
+                <path d="M20 4.5V11H13.5" />
+              </Svg>
+              {run.state === 'failed' || run.state === 'timed_out' ? 'Retry' : 'Run again'}
+            </button>
+          )}
         </div>
-        <div style={{ fontSize: '11px', color: '#9AA8A0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Svg size={12} stroke="currentColor">
-            <path d="M12 3L20 6V12C20 16.5 16.5 20 12 21C7.5 20 4 16.5 4 12V6Z" />
-          </Svg>
+        {started ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              rowGap: '8px',
+              padding: '9px 0',
+              borderRadius: '10px',
+              background: '#F6F8F6',
+            }}
+            data-testid="run-facts"
+          >
+            <Fact label="Team" first>
+              <TeamTile size={20} />
+              <b>{team?.name ?? 'Team'}</b>
+            </Fact>
+            <Fact label="Started">
+              {hhmm(run.startedAt)} · {run.startedBy}
+            </Fact>
+            <Fact label="Time">
+              <span style={{ fontFamily: MONO, color: '#2E6F40', fontWeight: 700 }}>
+                {elapsedWords(run, now || Date.now())}
+              </span>
+            </Fact>
+            <Fact label="Usage">{usageWords}</Fact>
+            {run.report?.branch && (
+              <Fact label="Branch">
+                <span style={{ fontFamily: MONO, fontSize: '11.5px' }}>{run.report.branch}</span>
+              </Fact>
+            )}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'wrap',
+              fontSize: '12px',
+              color: '#3A4A3E',
+            }}
+            data-testid="run-facts"
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <TeamTile size={16} />
+              <b>{team?.name ?? 'Team'}</b>
+            </span>
+            <span style={{ color: '#9AA8A0' }}>·</span>
+            <span>
+              {run.startedAt ? `started ${hhmm(run.startedAt)}` : `queued ${hhmm(run.queuedAt)}`} by {run.startedBy}
+            </span>
+            <span style={{ color: '#9AA8A0' }}>·</span>
+            <span>{usageWords}</span>
+          </div>
+        )}
+        {run.instruction && (
+          <div style={{ borderLeft: '3px solid #7FB0DC', padding: '2px 0 2px 12px' }} data-testid="run-instruction">
+            <div
+              style={{
+                fontSize: '9.5px',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                color: '#2F6FB0',
+                textTransform: 'uppercase',
+              }}
+            >
+              {run.mode === 'ask' ? 'Question' : 'Instruction'}
+            </div>
+            <div style={{ fontSize: '13px', lineHeight: 1.5, color: '#244E78' }}>{run.instruction}</div>
+          </div>
+        )}
+        {run.state === 'queued' && run.waitingReason && (
+          <Notice tone="amber" testId="why-waiting">
+            {run.waitingReason}
+          </Notice>
+        )}
+        {!live && run.endedReason && (
+          <Notice tone={run.state === 'finished' ? 'blue' : run.state === 'cancelled' ? 'grey' : 'red'}>
+            {run.endedReason}
+          </Notice>
+        )}
+        {run.state === 'needs_input' && run.question && !run.answer && <QuestionCard run={{ ...run }} />}
+        <RunReportCard run={run} />
+        {!plainHint && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+            {stepsBlock}
+            {rail}
+          </div>
+        )}
+        <RunMessages runId={runId} />
+        <RunMessageBox run={run} />
+        {plainHint && (
+          <span style={{ fontSize: '12px', color: '#9AA8A0' }} data-testid="no-steps">
+            {run.state === 'starting' ? 'Starting Claude Code…' : 'No steps yet.'}
+          </span>
+        )}
+        <div style={{ fontSize: '11.5px', color: '#9AA8A0', display: 'flex', alignItems: 'center', gap: '7px' }}>
+          <LineIcon name="lock" size={12} />
           Secrets, tokens and key-like strings are masked before the log is stored or shown.
         </div>
       </div>
+    </div>
+  );
+}
+
+const CHIP_OK: CSSProperties = { background: '#F1F8F3', color: '#2E6F40', border: '1px solid #BFDCC7' };
+const CHIP_BAD: CSSProperties = { background: '#FDF1EE', color: '#C4432A', border: '1px solid #F0C4B8' };
+
+const NOTICE_TONES = {
+  amber: { bg: '#FDF3E3', fg: '#8A5A00', border: '#EBD3A4' },
+  blue: { bg: '#E8F1FA', fg: '#244E78', border: '#C9DDF0' },
+  grey: { bg: '#F1F3F1', fg: '#3A4A3E', border: '#DCE3DE' },
+  red: { bg: '#FDF1EE', fg: '#C4432A', border: '#F0C4B8' },
+} as const;
+
+/** A line under the run's facts: why it waits (amber), why it ended (blue finished, grey stopped, red did not finish). */
+function Notice({ tone, children, testId }: { tone: keyof typeof NOTICE_TONES; children: ReactNode; testId?: string }) {
+  const t = NOTICE_TONES[tone];
+  return (
+    <div
+      data-testid={testId ?? 'run-notice'}
+      style={{
+        boxSizing: 'border-box',
+        display: 'flex',
+        gap: '8px',
+        alignItems: 'flex-start',
+        padding: '8px 11px',
+        borderRadius: '8px',
+        background: t.bg,
+        color: t.fg,
+        border: `1px solid ${t.border}`,
+        fontSize: '12.5px',
+        lineHeight: 1.5,
+      }}
+    >
+      <span style={{ display: 'flex', paddingTop: 2 }}>
+        <Svg size={13} stroke="currentColor" w={2}>
+          {tone === 'amber' ? (
+            <>
+              <path d="M12 3.5L22 20H2Z" />
+              <path d="M12 10V14M12 17.2V17.3" />
+            </>
+          ) : (
+            <>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11V16M12 7.8V7.9" />
+            </>
+          )}
+        </Svg>
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+/** One cell of the facts strip: a small label over the value. */
+function Fact({ label, children, first }: { label: string; children: ReactNode; first?: boolean }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '3px',
+        padding: '0 14px',
+        borderLeft: first ? undefined : '1px solid #E3E8E5',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '9.5px',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          color: '#9AA8A0',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', whiteSpace: 'nowrap' }}
+      >
+        {children}
+      </span>
+    </div>
+  );
+}
+
+/** The team's rounded square with a sparkle (a person's avatar is round). */
+function TeamTile({ size }: { size: number }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        width: size,
+        height: size,
+        borderRadius: Math.round(size / 4),
+        background: '#DCEEE1',
+        color: '#2E6F40',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <svg width={size / 2} height={size / 2} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+        <path
+          d="M12 3V21M3 12H21M5.6 5.6L18.4 18.4M18.4 5.6L5.6 18.4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  );
+}
+
+/** One of the small cards at the right of the steps: Files touched, Commands, Test results. */
+function RailCard({
+  title,
+  note,
+  children,
+  empty,
+  testId,
+}: {
+  title: string;
+  note?: string;
+  children?: ReactNode;
+  empty?: string | null;
+  testId?: string;
+}) {
+  return (
+    <div
+      data-testid={testId}
+      style={{
+        border: '1px solid #E3E8E5',
+        borderRadius: '11px',
+        background: '#fff',
+        padding: '10px 12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '7px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Label>{title}</Label>
+        <span style={{ flex: 1 }} />
+        {note && <span style={{ fontSize: '11px', color: '#9AA8A0' }}>{note}</span>}
+      </div>
+      {empty ? (
+        <span style={{ fontSize: '11.5px', color: '#9AA8A0' }}>{empty}</span>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>{children}</div>
+      )}
     </div>
   );
 }

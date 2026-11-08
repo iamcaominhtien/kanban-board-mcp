@@ -14,6 +14,8 @@ export interface ToastItem {
   variant: ToastVariant;
   title: string;
   message?: string;
+  /** How many lines of the message show before it is cut (default 3, see Toast.module.css). */
+  lines?: number;
   duration?: number;
   /** Optional button on the toast (e.g. Undo). */
   action?: ToastAction;
@@ -126,7 +128,14 @@ function ToastCard({ toast, onClose }: Readonly<{ toast: ToastItem; onClose: (id
         <div className={styles.title} title={toast.title}>
           {toast.title}
         </div>
-        {toast.message && <div className={styles.message}>{toast.message}</div>}
+        {toast.message && (
+          <div
+            className={styles.message}
+            style={toast.lines ? { WebkitLineClamp: toast.lines, lineClamp: toast.lines } : undefined}
+          >
+            {toast.message}
+          </div>
+        )}
       </div>
       {[toast.action, toast.secondaryAction].map(
         (a) =>
@@ -226,7 +235,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    ({ variant, title, message, duration, action, secondaryAction, onClose }: Omit<ToastItem, 'id'>) => {
+    ({ variant, title, message, lines, duration, action, secondaryAction, onClose }: Omit<ToastItem, 'id'>) => {
       // feedback with nothing to do becomes the quiet line; an Undo or an Open stays a toast, long enough to use
       if ((variant === 'success' || variant === 'info') && !action && !secondaryAction && duration !== 0) {
         return quiet(message ? `${title} · ${message}` : title);
@@ -234,7 +243,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // a toast with an action button stays a little longer so it can be used
       if (duration === undefined) duration = action ? 8000 : 4000;
       const id = newId();
-      const next = [...toastsRef.current, { id, variant, title, message, duration, action, secondaryAction, onClose }];
+      const next = [
+        ...toastsRef.current,
+        { id, variant, title, message, lines, duration, action, secondaryAction, onClose },
+      ];
       const over = next.length - MAX_TOASTS;
       toastsRef.current = over > 0 ? next.slice(over) : next;
       setToasts(toastsRef.current);

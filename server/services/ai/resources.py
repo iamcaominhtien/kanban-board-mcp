@@ -22,7 +22,7 @@ from sqlmodel import col, select
 
 import database
 import events as board_events
-from models import AiRun, AiRunAgent, AiTeam, Member, Ticket
+from models import AiRun, AiRunAgent, Member, Ticket
 
 from . import runner_link
 from .store import get_settings, loads
@@ -36,7 +36,6 @@ SAVE_EVERY_S = 15.0  # how often the peak and last value are written to the run
 LIMIT_TTL_S = 10.0  # how long a project's limit is remembered
 AUTO_RESTARTS = 2  # restarts by the system before the next breach stops the run
 ENDED_SHOWN_S = 600  # an ended run stays in the table for 10 minutes
-ACCESS_LEVELS = ("none", "view", "control")
 
 _procs: dict[int, psutil.Process] = {}
 
@@ -454,12 +453,6 @@ def card_view(run: AiRun, limit_mb: int) -> dict | None:
         "restarts": len(restarts_of(run)),
         "limit_mb": limit_mb,
     }
-
-
-def access_of(profile: AiTeam | None) -> str:
-    """none | view | control for an AI member (a missing or odd value is none)."""
-    level = getattr(profile, "resource_access", "none")
-    return level if level in ACCESS_LEVELS else "none"
 
 
 def dump(value: Any) -> str:

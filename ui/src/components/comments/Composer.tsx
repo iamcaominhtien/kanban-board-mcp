@@ -42,10 +42,7 @@ interface Props {
   onCancel: () => void;
   /** Starting text for a new comment (a mention put there by Ask on a hover card); replaces the saved draft. */
   prefill?: string;
-  /** What an AI gets as context, for the “Context sent” chips. */
-  criteriaCount?: number;
-  commentCount?: number;
-  /** The AI member the Ask button asks first (the ticket's AI assignee). */
+  /** The team the Send to button offers first (the ticket's AI assignee). */
   defaultAskId?: string | null;
 }
 
@@ -97,8 +94,6 @@ const kb = {
  * @param props.onSubmit - Called with the comment text and, when chosen, how to send it (the Ask button).
  * @param props.onCancel - Called when the box is dismissed.
  * @param props.prefill - Starting text for a new comment (replaces the saved draft).
- * @param props.criteriaCount - Acceptance criteria an AI gets as context.
- * @param props.commentCount - Comments an AI gets as context.
  * @param props.defaultAskId - AI member the Ask button asks first.
  */
 export function Composer({
@@ -112,8 +107,6 @@ export function Composer({
   onSubmit,
   onCancel,
   prefill,
-  criteriaCount = 0,
-  commentCount = 0,
   defaultAskId,
 }: Props) {
   // the box shows a mention as @PM; the comment is saved with the member's id (`stored`)
@@ -623,29 +616,6 @@ export function Composer({
           </div>
         )}
 
-        {!editing && text.trim() && mentioned.length === 0 && asking && (
-          <div
-            data-testid="comment-context-chips"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 8,
-              padding: '8px 12px',
-              borderTop: '1px solid #EEF3EF',
-              fontSize: 12,
-              color: '#9AA8A0',
-            }}
-          >
-            Context sent
-            <span className="tw-ctx">
-              <LineIcon name="check" size={12} /> {criteriaCount} criteria
-            </span>
-            <span className="tw-ctx">
-              <LineIcon name="frame" size={12} /> {commentCount} comments
-            </span>
-          </div>
-        )}
         <div
           style={{
             display: 'flex',
@@ -699,18 +669,17 @@ export function Composer({
               e.target.value = '';
             }}
           />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: '#9AA8A0' }}>
-            <span style={kb}>{MOD}</span>+<span style={kb}>Enter</span>
-            {!editing && (mentioned.length > 0 || asking) && (
-              <>
-                <span>comment ·</span>
-                <span style={kb}>{MOD}</span>+<span style={kb}>Shift</span>+<span style={kb}>Enter</span>
-                <span>ask</span>
-              </>
-            )}
-          </span>
+          {!(!editing && (mentioned.length > 0 || asking)) && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: '#9AA8A0' }}>
+              <span style={kb}>{MOD}</span>+<span style={kb}>Enter</span>
+            </span>
+          )}
           {!editing && mentioned.length > 0 && (
-            <span data-testid="comment-ai-mentioned" className="tw-mentioned">
+            <span
+              data-testid="comment-ai-mentioned"
+              className="tw-mentioned"
+              title={`A mention is just a pill. ${MOD}+Shift+Enter sends to the first team mentioned.`}
+            >
               <span style={{ color: '#2F6FB0', fontWeight: 700 }}>@</span> {mentioned.length} AI mentioned
               {/* The picked AI as a purple pill (the box itself is plain text: "@Reviewer") */}
               {mentioned.map((m) => (
@@ -774,6 +743,21 @@ export function Composer({
             </button>
           </span>
         </div>
+        {!editing && (mentioned.length > 0 || asking) && (
+          <div
+            data-testid="comment-send-hint"
+            style={{
+              padding: '0 12px 9px',
+              fontSize: 11.5,
+              color: '#5B6B60',
+              textAlign: 'right',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={kb}>{MOD}+Enter</span> comment · <span style={kb}>{MOD}+Shift+Enter</span> send
+            {mentioned.length > 0 ? ' to the team' : ''}
+          </div>
+        )}
         {!editing && saved && (
           <div
             data-testid="comment-draft-saved"

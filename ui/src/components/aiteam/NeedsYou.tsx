@@ -201,18 +201,18 @@ export function NeedsYou({
   if (!items.length && !asking.length) {
     return (
       <section data-testid="at-needs-you-empty" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <h2 className="ai-label ai-label-dark">Needs you</h2>
-        <div className="ai-muted">Nothing waits for you.</div>
+        <h2 className="at-h">Needs you</h2>
+        <div className="at-plain">Nothing waits for you.</div>
       </section>
     );
   }
   return (
     <section data-testid="at-needs-you" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <h2 className="ai-label ai-label-dark">
-        Needs you <span className="ai-muted">· {items.length + asking.length}</span>
+      <h2 className="at-h">
+        Needs you <span>· {items.length + asking.length}</span>
       </h2>
       {asking.map((r) => (
-        <QuestionCard key={r.id} run={r} />
+        <QuestionCard key={r.id} run={r} variant="strip" />
       ))}
       {items.length > 0 && (
         <div className="at-needs">
