@@ -113,6 +113,8 @@ async def flow_map(
     # notes: the receiver's run is what records one, so a view of one team (or of one ticket) also reads the runs other
     # teams started on a note from a team in view; they feed the note edges only, never the takes or the tickets
     note_runs = list(runs)
+    # runs of other teams read only for the notes the team in view sent them
+    extra_ids: set[str] = set()
     if team_id and team_id in teams:
         mine_name = teams[team_id][0].name.strip().lower()
         extra = (
@@ -129,7 +131,7 @@ async def flow_map(
             )
         ).all()
         have = set(run_ids)
-        note_runs += [
+        added = [
             r
             for r in extra
             if r.id not in have
@@ -138,6 +140,8 @@ async def flow_map(
             and (a is None or (parse_iso(r.ended_at) or now) >= a)
             and (b is None or (parse_iso(r.queued_at) or now) <= b)
         ]
+        note_runs += added
+        extra_ids = {r.id for r in added}
     note_run_ids = [r.id for r in note_runs]
     note_runs_by_id = {r.id: r for r in note_runs}
 
@@ -240,6 +244,8 @@ async def flow_map(
             at = parse_iso(m.at)
             if not sender or sender == r.member_id or at is None:
                 continue
+            if r.id in extra_ids and sender != team_id:
+                continue  # another team's run, read for this team's notes only: a third team's note is not this view's
             if (a is not None and at < a) or (b is not None and at > b):
                 continue
             started = parse_iso(r.queued_at)
