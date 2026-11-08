@@ -750,7 +750,14 @@ export function TimelineTab({
                 />
               )}
               <TimelineHeader
-                lifelines={lifelines}
+                // under a team's header a role's box says the role only ("Dev", not "Dev (Core team)")
+                lifelines={
+                  groups
+                    ? lifelines.map((l) =>
+                        l.teamId && !l.lead ? { ...l, name: l.name.replace(/\s*\(.*\)\s*$/, '') } : l,
+                      )
+                    : lifelines
+                }
                 folded={quiet.length}
                 col={col}
                 onOpenFolded={() => setOpenQuiet(true)}

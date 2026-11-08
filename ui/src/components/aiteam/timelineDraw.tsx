@@ -441,7 +441,9 @@ function DelegateLine({ x, delegate, color }: { x: number; delegate: string | nu
   );
 }
 
-function initials(name: string): string {
+function initials(full: string): string {
+  // "Dev (Core team)" is the role Dev: the team in brackets is not part of its initials
+  const name = full.replace(/\s*\(.*\)\s*$/, '');
   const words = name.trim().split(/\s+/).filter(Boolean);
   const raw = words.length > 1 ? words[0][0] + words[1][0] : name.replace(/[^A-Za-z0-9]/g, '').slice(0, 2);
   return raw.toUpperCase() || '?';
