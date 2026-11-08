@@ -185,10 +185,10 @@ export function AdviceBar({
             <span className="is-advice-n">
               {open.length} suggestion{open.length === 1 ? '' : 's'}
             </span>{' '}
-            {status.member ?? 'The AI'} read the {ideaIds.length} new ideas. You decide; archive is always one by one.
+            {status.member ?? 'Idea AI'} read the {ideaIds.length} new ideas. You decide. Archive is always one by one.
           </>
         ) : (
-          `${status.member ?? 'The AI'} can read the ${ideaIds.length} new ideas and suggest Keep, Park, Merge or Archive.`
+          `${status.member ?? 'Idea AI'} can read the ${ideaIds.length} new ideas and suggest Keep, Park, Merge or Archive.`
         )}
       </div>
       {bulkItems.length > 0 && (
@@ -342,7 +342,7 @@ export function AdviceCard({
       {advice.stale ? (
         <div className="is-banner is-banner-warn" style={{ marginTop: 8 }}>
           <div style={{ flex: 1 }}>
-            <b>This idea changed since the advice.</b> The idea was edited after the AI read it. Ask again before
+            <b>This idea changed since the advice.</b> The idea was edited after Idea AI read it. Ask again before
             accepting.
           </div>
           <button type="button" className="is-btn is-btn-sm" onClick={() => request.mutate([ideaId])}>

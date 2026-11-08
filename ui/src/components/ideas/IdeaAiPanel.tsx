@@ -102,8 +102,8 @@ export function useSuggestOnKeep() {
       } else {
         qc.removeQueries({ queryKey: keptKey(ideaId) });
         toast.error(
-          'The AI suggestion could not be made',
-          'The idea was kept as Exploring without a suggestion. You can ask again from its page.',
+          'Idea AI did not answer',
+          'The idea was kept as Exploring without a suggestion. Try again, or sort by hand.',
           undefined,
           { label: 'Try again', onClick: () => void suggest(ideaId, ideaTitle) },
         );
@@ -517,7 +517,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
             ) : t.error ? (
               <div className="is-banner is-banner-risk" role="alert">
                 <div style={{ flex: 1 }}>
-                  <b>The AI could not answer.</b> {t.error} Nothing was changed.
+                  <b>Idea AI did not answer.</b> {t.error} Nothing was changed. Try again, or sort by hand.
                 </div>
                 <button
                   type="button"
@@ -629,7 +629,9 @@ export function AiRailCard({ idea, onOpen }: { idea: Idea; onOpen: () => void })
       <p className="is-muted" style={{ margin: '4px 0 8px' }}>
         {status.state === 'on'
           ? `Chat with ${status.member ?? 'the Idea AI'} about this idea. It drafts the problem, assumptions and tests; you add what you want.`
-          : status.message}
+          : status.state === 'cap'
+            ? `Idea Space used its $${status.cap.toFixed(2)} cap. Suggestions already made are still there.`
+            : status.message}
       </p>
       <button type="button" className="is-btn is-btn-sm" onClick={onOpen} disabled={status.state !== 'on'}>
         Open chat
