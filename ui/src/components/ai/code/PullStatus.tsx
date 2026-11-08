@@ -3,15 +3,24 @@ import { extractError } from '../../../api/extractError';
 import { pullApi, usePullMutation, usePulls } from '../../../api/aiPulls';
 import { useProjectOps } from '../../../api/aiProjectOps';
 import { useTicket } from '../../../api/tickets';
-import { ago } from '../aiUi';
+import { useTicketRuns } from '../../../api/ai';
+import { ago, useAiBoardState } from '../aiUi';
 import { BRANCH, BUBBLE, CI_TEXT, EXTERNAL } from './pullParts';
 
-/** A pull request the board opened (design/screens/ai-board-wave3.md, J): CI state, red CI and review comments. */
+/** What the board did with the run it gave to the team: a new one, or a note into the one that was working. */
+const runWords = (delivered?: string | null) =>
+  !delivered || delivered === 'new_run'
+    ? 'a new run, started by the board'
+    : 'it went into the run that is working, from the board';
+
+/** A pull request the board opened (design/screens/ai-board-wave3.md, E): CI state, red CI and review comments. */
 export function PullStatus({ ticketId }: { ticketId: string }) {
   const ticket = useTicket(ticketId);
   const projectId = ticket.data?.projectId;
   const pulls = usePulls(projectId);
   const ops = useProjectOps(projectId ?? '');
+  const runs = useTicketRuns(ticketId).data ?? [];
+  const { members } = useAiBoardState();
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const poll = usePullMutation(projectId, () => pullApi.poll(projectId as string));
@@ -32,13 +41,36 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
       setError(extractError(e));
     }
   };
-  const nComments = p.pendingComments.length;
+  // the card shows what is waiting; once the board gave comments to the team, the latest batch it gave
+  const waiting = p.pendingComments.filter((c) => !c.handledAt);
+  const lastGiven = p.pendingComments.reduce((at, c) => (c.handledAt && c.handledAt > at ? c.handledAt : at), '');
+  const shown = waiting.length ? waiting : p.pendingComments.filter((c) => c.handledAt === lastGiven);
+  const nComments = shown.length;
+  /** The team the board gave a run to: the one that ran it, else "the team". */
+  const teamOf = (runId?: string | null) => {
+    const run = runs.find((r) => r.id === runId);
+    return (run && members.get(run.memberId)?.name) || 'the team';
+  };
+  const givenComments = waiting.length ? undefined : shown.find((c) => c.handledAt);
   const dot = (c: string) => (
     <span style={{ width: 8, height: 8, borderRadius: '50%', background: c, display: 'inline-block' }} />
   );
 
   return (
-    <div data-testid="pull-status" data-ticket={ticketId} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div
+      data-testid="pull-status"
+      data-ticket={ticketId}
+      className="ai-root"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        border: '1px solid #E3E8E5',
+        borderRadius: 12,
+        background: '#fff',
+        padding: 14,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>Pull request</span>
         <a href={p.url} target="_blank" rel="noreferrer" className="ai-link" data-testid="pull-link">
@@ -82,7 +114,8 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
       </div>
       {unreachable && (
         <div className="ai-notice ai-notice-warn" role="alert" data-testid="pull-unreachable">
-          GitHub could not be reached ({p.lastError}). The state above is {checked}, not a green light.
+          GitHub could not be reached ({p.lastError}). The state above is {checked}, not a green light; the board does
+          not act on old data.
         </div>
       )}
       {ops.data && !ops.data.github?.on && (
@@ -121,14 +154,19 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
               {red.base ? <b>{red.base} is green</b> : <b>The base branch is green</b>}, so this failure is this pull
               request’s.
             </div>
+          ) : red.baseUnknown ? (
+            <div style={{ fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-base-unknown">
+              <b>The board could not tell whether {red.base ?? 'the base branch'} is red on the same check.</b> It has
+              not given this failure to the team.
+            </div>
           ) : (
             <div style={{ fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-not-ours">
               <b>{red.base ?? 'The base branch'} is red on the same check.</b> The failure is not this ticket’s.
             </div>
           )}
           {red.handledAt && (
-            <div className="ai-hint" data-testid="pull-given">
-              The board gave the failing check to the team {ago(red.handledAt)}.
+            <div style={{ color: '#1F5A31', fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-given">
+              The board gave the failing check to {teamOf(red.runId)}: {runWords(red.delivered)} (red CI).
             </div>
           )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -164,7 +202,7 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
               From a person
             </span>
           </div>
-          {p.pendingComments.map((c) => (
+          {shown.map((c) => (
             <div
               key={c.id}
               data-testid="pull-comment"
@@ -184,6 +222,12 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
               <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>“{c.body}”</div>
             </div>
           ))}
+          {givenComments && (
+            <div style={{ color: '#1F5A31', fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-comments-given">
+              The board gave the review comments to {teamOf(givenComments.runId)}: {runWords(givenComments.delivered)}{' '}
+              (review comments).
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <a className="ai-btn" href={p.url} target="_blank" rel="noreferrer">
               {EXTERNAL}I will answer them

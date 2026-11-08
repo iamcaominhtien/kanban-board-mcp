@@ -216,6 +216,8 @@ export const assistApi = {
         text,
       })
     ).data,
+  /** "Undo all": put back what the answer changed; what someone else changed since is left and named. */
+  undo: async (messageId: string) => (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/undo`)).data,
   stop: async (messageId: string) => (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/stop`)).data,
   feedback: async (messageId: string, thumb: 'up' | 'down' | null, reason = '') =>
     (await client.post<ChatMessage>(`/ai/assist/messages/${messageId}/feedback`, { thumb, reason })).data,

@@ -55,6 +55,14 @@ async def get_assist(project_id: str, session: Session) -> dict:
     out = await svc_settings.describe(session, project_id)
     info = await engine.ready(project_id)
     out["board_ai"]["state"] = info["state"]
+    if info["state"] != "ready":
+        out["board_ai"]["status"] = {
+            "code": "runner_missing" if not info.get("code") else "paused",
+            "label": "Claude Code was not found"
+            if not info.get("code")
+            else "The Board AI is not ready",
+            "detail": info.get("message") or "",
+        }
     panel = await svc_health.panel(session, project_id)
     out["unseen_insights"] = panel["unseen"]
     out["last_check"] = panel["digest"]["created_at"] if panel["digest"] else None
@@ -67,7 +75,6 @@ async def get_assist(project_id: str, session: Session) -> dict:
             .where(Ticket.project_id == project_id)
         )
     ).one()
-    out["over_budget"] = False
     return out
 
 
@@ -78,11 +85,6 @@ class AssistSettingsBody(BaseModel):
     language: Optional[str] = None
     tone: Optional[str] = None
     style_guide: Optional[str] = None
-    monthly_cap: Optional[float] = None
-    per_request_cap: Optional[float] = None
-    over_cap: Optional[str] = None
-    data_scope: Optional[list[dict[str, Any]] | dict[str, bool]] = None
-    excluded_docs: Optional[list[str]] = None
     health: Optional[dict[str, Any]] = None
 
 
@@ -253,6 +255,12 @@ class FeedbackBody(BaseModel):
 
     thumb: Optional[str] = None
     reason: str = ""
+
+
+@router.post("/ai/assist/messages/{message_id}/undo")
+async def post_undo(message_id: str, session: Session) -> dict:
+    """Undo all: put back what the answer changed on tickets, unless someone else changed it since."""
+    return await svc_chat.undo_receipt(session, message_id, _by())
 
 
 @router.post("/ai/assist/messages/{message_id}/feedback")

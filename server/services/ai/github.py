@@ -6,7 +6,7 @@
   open (``ops.github.poll_min``, 5 by default).
 - Red CI: the failing job's log (``gh run view --log-failed``) goes to the ticket's Dev in a run on the ticket's
   worktree — but first the same check is looked up on the base branch: when it is red there too, the ticket is not
-  to blame and nobody is sent back.
+  to blame and the board does not give it to the team.
 - Review comments from people: the text and the lines go to the AI, which replies on the thread when something
   changed. It never resolves a person's thread.
 - On a pull request the board opened, pushing to that branch and replying on its threads are part of the work: they
@@ -285,7 +285,12 @@ async def tick_project(project_id: str) -> list[dict]:
                     }
                 )
             if got["comments"]:
-                pending = loads(cur.pending_comments, []) or []
+                # the ones already given to the team are dropped when new ones come: the card shows the latest batch
+                pending = [
+                    c
+                    for c in (loads(cur.pending_comments, []) or [])
+                    if not c.get("handled_at")
+                ]
                 pending += got["comments"]
                 cur.pending_comments = json.dumps(pending[-50:])
                 cur.seen_comments = json.dumps(
@@ -334,7 +339,7 @@ async def signals(session, project_id: str) -> list[dict]:
                     "number": row.number,
                 },
                 "score": 8,
-                "action": "Give it back to the Dev",
+                "action": "The board gives it to the team",
             }
         )
     return out
@@ -408,9 +413,12 @@ async def back_to_dev(finding: dict) -> str | None:
             trigger="ci_red",
         )
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
+        if run is None:
+            return None  # nothing was started or reached: it is not marked as given
         cur = await session.get(AiWatchedPr, ticket_id)
         red["handled_at"] = _now()
         red["run_id"] = run.id
+        red["delivered"] = out.get("delivered")
         cur.red = json.dumps(red)
         session.add(cur)
         await session.commit()
@@ -423,7 +431,8 @@ async def comments_to_dev(ticket_id: str) -> str | None:
 
     async with database.async_session() as session:
         row = await session.get(AiWatchedPr, ticket_id)
-        pending = loads(row.pending_comments, []) if row else []
+        every = loads(row.pending_comments, []) if row else []
+        pending = [c for c in every if not c.get("handled_at")]
         if not pending:
             return None
         member = await _dev_of(session, ticket_id)
@@ -444,7 +453,23 @@ async def comments_to_dev(ticket_id: str) -> str | None:
             trigger="review_comments",
         )
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
-        row.pending_comments = "[]"
+        if run is None:
+            return None
+        # kept, marked as given, so the ticket still shows what the team was given (and which run)
+        now = _now()
+        row.pending_comments = json.dumps(
+            [
+                c
+                if c.get("handled_at")
+                else {
+                    **c,
+                    "handled_at": now,
+                    "run_id": run.id,
+                    "delivered": out.get("delivered"),
+                }
+                for c in every
+            ]
+        )
         session.add(row)
         await session.commit()
         return run.id
