@@ -3,12 +3,21 @@ import { accountKeys, useAccountActions, useAiAccounts, useComputerLogins } from
 import { extractError } from '../../../api/extractError';
 import type { AiTeam, AiProvider } from '../../../types/ai';
 import type { AiAccount } from '../../../types/aiAccounts';
-import { CLI_OF_PROVIDER, accountReady, accountSub, accountsFor, sharedHint } from '../../../utils/memberAccount';
+import {
+  CLI_OF_PROVIDER,
+  accountReady,
+  joinNames,
+  accountSub,
+  accountsFor,
+  profileSub,
+  sharedHint,
+} from '../../../utils/memberAccount';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../Toast';
 import { AddAccountModal } from './AddAccountModal';
 import { AccountNote } from './AccountBanner';
-import { AccountStatusChip, GreyChip } from './AccountChip';
+import { AccIcon, ICONS } from './AccountParts';
+import { AccountStatusChip } from './AccountChip';
 import { SignInWindow } from './SignInWindow';
 import './accountsMember.css';
 
@@ -17,7 +26,7 @@ function Radio({ on }: { on: boolean }) {
 }
 
 /**
- * “Which account should this AI member use?” (design D2–D6): the accounts of the member type's CLI, the login that
+ * The accounts of the team type's CLI (design E, frames 28–32), the login that
  * is already on this computer (kept last, as before), and “New account…”, which opens
  * the same window as Add an account. A signed-out choice offers “Sign in again” and, while it is chosen, the parent
  * keeps Next off (`accountReady`). `value` is an account id, or null for the CLI's own login.
@@ -28,6 +37,7 @@ export function AccountPicker({
   onChange,
   projectId,
   currentAccountId,
+  profile,
 }: {
   provider: AiProvider;
   value: string | null;
@@ -36,6 +46,8 @@ export function AccountPicker({
   projectId?: string;
   /** The account the edited member already runs as, so it is not counted twice as a sharer. */
   currentAccountId?: string | null;
+  /** On the team page: the chosen account says how many teams share it, and no blue box repeats it (frame 36). */
+  profile?: boolean;
 }) {
   const accounts = useAiAccounts(projectId);
   const logins = useComputerLogins();
@@ -47,12 +59,12 @@ export function AccountPicker({
   const list = accountsFor(accounts.data?.accounts ?? [], provider);
   const chosen = list.find((a) => a.id === value) ?? null;
   const own = logins.data?.find((l) => l.cli === cli);
-  const hint = chosen ? sharedHint(chosen, chosen.id === currentAccountId) : null;
+  const hint = chosen && !profile ? sharedHint(chosen, chosen.id === currentAccountId) : null;
+  const actions = useAccountActions();
   const refresh = () => void qc.invalidateQueries({ queryKey: accountKeys.all });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="account-picker">
-      <div style={{ fontSize: 12.5, color: '#3A4A3E' }}>Which account should this AI member use?</div>
       <div className="acm-choices" role="radiogroup" aria-label="AI account">
         {list.map((a) => (
           <button
@@ -67,7 +79,11 @@ export function AccountPicker({
             <Radio on={value === a.id} />
             <div className="acm-choice-main">
               <div className="acm-choice-name">{a.name}</div>
-              <div className="acm-choice-sub">{accountSub(a, value === a.id)}</div>
+              <div
+                className={`acm-choice-sub ${a.status === 'needs_sign_in' || a.status === 'cli_missing' ? 'acm-warn-text' : ''}`}
+              >
+                {profile && value === a.id ? profileSub(a) : accountSub(a, false)}
+              </div>
             </div>
             <AccountStatusChip status={a.status} />
           </button>
@@ -86,7 +102,6 @@ export function AccountPicker({
               <div className="acm-choice-name">The login already on this computer</div>
               <div className="acm-choice-sub">as before{own?.signedInWith ? ` · ${own.signedInWith}` : ''}</div>
             </div>
-            <GreyChip>as before</GreyChip>
           </button>
         }
         <button type="button" className="acm-new" onClick={() => setAdding(true)} data-testid="account-new">
@@ -112,38 +127,52 @@ export function AccountPicker({
             </button>
           }
         >
-          This AI member will use the login already on this computer, as before. Add an account to share one login
-          between members or to keep work and personal apart.
+          This AI team will use the login already on this computer, as before. Add an account to share one login between
+          teams or to keep work and personal apart.
         </AccountNote>
       )}
-      {chosen && !accountReady(chosen) && (
+      {chosen && chosen.status === 'needs_sign_in' && (
         <AccountNote
           tone="error"
-          title={
-            chosen.status === 'cli_missing'
-              ? `The ${spec.binary ?? 'CLI'} CLI was not found for ${chosen.name}`
-              : `${chosen.name} is signed out`
-          }
+          title={`${chosen.name} is signed out`}
           testId="account-signed-out"
           actions={
-            chosen.status === 'cli_missing' ? undefined : (
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm ai-btn-primary"
-                disabled={chosen.status === 'signing_in'}
-                onClick={() => setSigning(chosen)}
-                data-testid="account-sign-in"
-              >
-                Sign in again
-              </button>
-            )
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm ai-btn-primary"
+              onClick={() => setSigning(chosen)}
+              data-testid="account-sign-in"
+            >
+              <AccIcon paths={[...ICONS.refresh]} size={13} />
+              Sign in again
+            </button>
           }
         >
-          {chosen.status === 'cli_missing'
-            ? 'Install it, then detect again. Next stays off until this account works.'
-            : chosen.status === 'signing_in'
-              ? `${chosen.signingInBy ?? 'Someone'} is signing in. Next stays off until this account works.`
-              : 'Pick another account, or sign in again now. Next stays off until this account works.'}
+          Pick another account, or sign in again now.
+        </AccountNote>
+      )}
+      {chosen && chosen.status === 'signing_in' && (
+        <AccountNote title={`${chosen.signingInBy ?? 'Someone'} is signing in`} testId="account-signing-in">
+          Wait until they finish, or pick another account.
+        </AccountNote>
+      )}
+      {chosen && chosen.status === 'cli_missing' && (
+        <AccountNote
+          tone="warn"
+          title={`The ${spec.binary} CLI was not found for ${chosen.name}`}
+          testId="account-cli-missing"
+          actions={
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm"
+              disabled={actions.check.isPending}
+              onClick={() => actions.check.mutate([chosen.id])}
+            >
+              Detect again
+            </button>
+          }
+        >
+          Install it, then detect again.
         </AccountNote>
       )}
       {adding && cli && (
@@ -193,7 +222,7 @@ export function ChangeAccountDialog({ members, onClose }: { members: AiTeam[]; o
       for (const m of members) await assign.mutateAsync([m.id, value]);
       toast.success(
         many
-          ? `${members.length} AI members moved`
+          ? `${members.length} teams moved`
           : `${first.name} now runs as ${chosen?.name ?? 'the login on this computer'}`,
       );
       onClose();
@@ -213,10 +242,10 @@ export function ChangeAccountDialog({ members, onClose }: { members: AiTeam[]; o
       >
         <div className="ai-modal-head">
           <h2 className="ai-modal-title">
-            {many ? `Choose another account for ${members.length} AI members` : 'Change account'}
+            {many ? `Choose another account for ${members.length} teams` : 'Change account'}
           </h2>
           <div className="ai-hint" style={{ marginTop: 3 }}>
-            {many ? members.map((m) => m.name).join(', ') : first.name}
+            {many ? `${joinNames(members.map((m) => m.name))}.` : first.name}
           </div>
         </div>
         <div className="ai-modal-body">

@@ -31,7 +31,7 @@ interface MembersPanelProps {
   projectId: string;
   members: Member[];
   onClose: () => void;
-  /** Open the full AI members page (optionally straight into “Add AI member”). */
+  /** Open the full AI teams page (optionally straight into “Add AI team”). */
   onOpenAiPage?: (opts?: { add?: boolean; memberId?: string }) => void;
 }
 
@@ -121,7 +121,9 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
               data-testid={`members-tab-${t}`}
             >
               {t === 'humans' ? 'Humans' : 'AI'}
-              <span className="ai-tab-count">{t === 'humans' ? members.length : aiMembers.length}</span>
+              <span className="ai-tab-count">
+                {t === 'humans' ? members.length : ai.isLoading ? '…' : aiMembers.length}
+              </span>
             </button>
           ))}
         </div>
@@ -146,7 +148,7 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
             {ai.isError && (
               <div className="ai-notice ai-notice-error" role="alert">
                 <div>
-                  <b>Could not load AI members</b>
+                  <b>Could not load AI teams</b>
                   <div>
                     <button type="button" className="ai-link" onClick={() => void ai.refetch()}>
                       Try again
@@ -183,25 +185,29 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
                 </span>
               </button>
             ))}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-              {aiMembers.length > 4 && (
-                <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="members-more">
-                  +{aiMembers.length - 4} more
+            {!ai.isLoading && !ai.isError && aiMembers.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                {aiMembers.length > 4 && (
+                  <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="members-more">
+                    +{aiMembers.length - 4} more
+                  </button>
+                )}
+                <span style={{ flex: 1 }} />
+                <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="open-ai-page">
+                  Open AI teams page →
                 </button>
-              )}
-              <span style={{ flex: 1 }} />
-              <button type="button" className="ai-link" onClick={() => onOpenAiPage?.()} data-testid="open-ai-page">
-                Open AI teams page →
+              </div>
+            )}
+            {!ai.isLoading && !ai.isError && (
+              <button
+                type="button"
+                className="ai-btn ai-btn-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => onOpenAiPage?.({ add: true })}
+              >
+                + Add AI team
               </button>
-            </div>
-            <button
-              type="button"
-              className="ai-btn ai-btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={() => onOpenAiPage?.({ add: true })}
-            >
-              + Add AI team
-            </button>
+            )}
           </div>
         )}
 

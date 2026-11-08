@@ -3,7 +3,9 @@ import { aiApi, useAiMutation, useTeamPacks } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { useToast } from '../Toast';
 import { AccountPicker } from './accounts/AccountPicker';
-import { EFFORTS, MAX_PERSONA, MODELS } from './teamOptions';
+import { EFFORTS, MODELS } from './teamOptions';
+import { PersonaField } from './PersonaField';
+import { roleName } from './tools/pluginLogic';
 import { LineIcon } from '../ui/LineIcon';
 import './ai.css';
 
@@ -92,7 +94,7 @@ export function AddTeamModal({
         </div>
         <div className="ai-modal-body" style={{ maxHeight: '64vh', overflow: 'auto' }}>
           <label className="ai-field">
-            <span className="ai-label ai-label-dark">Name</span>
+            <span className="ai-label ai-label-dark ai-label-sentence">Name</span>
             <input
               className={`ai-input ${nameError && attempted ? 'ai-input-error' : ''}`}
               value={name}
@@ -105,7 +107,7 @@ export function AddTeamModal({
             {nameError && attempted && <span className="ai-error-text">{nameError}</span>}
           </label>
           <label className="ai-field">
-            <span className="ai-label ai-label-dark">Working folder</span>
+            <span className="ai-label ai-label-dark ai-label-sentence">Working folder</span>
             <input
               className={`ai-input ai-mono ${folderError && attempted ? 'ai-input-error' : ''}`}
               value={workingDir}
@@ -120,12 +122,12 @@ export function AddTeamModal({
             )}
           </label>
           <div className="ai-field">
-            <span className="ai-label ai-label-dark">Claude account</span>
+            <span className="ai-label ai-label-dark ai-label-sentence">Claude account</span>
             <AccountPicker provider="claude-code" value={accountId} projectId={projectId} onChange={setAccountId} />
           </div>
           <div style={{ display: 'flex', gap: 14 }}>
             <label className="ai-field" style={{ flex: 1 }}>
-              <span className="ai-label ai-label-dark">Model of the lead</span>
+              <span className="ai-label ai-label-dark ai-label-sentence">Model of the lead</span>
               <select
                 className="ai-select"
                 value={model}
@@ -140,7 +142,7 @@ export function AddTeamModal({
               </select>
             </label>
             <label className="ai-field" style={{ flex: 1 }}>
-              <span className="ai-label ai-label-dark">Effort</span>
+              <span className="ai-label ai-label-dark ai-label-sentence">Effort</span>
               <select
                 className="ai-select"
                 value={effort}
@@ -157,8 +159,8 @@ export function AddTeamModal({
             </label>
           </div>
           <div className="ai-field">
-            <span className="ai-label ai-label-dark">Team pack</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} role="radiogroup" aria-label="Team pack">
+            <span className="ai-label ai-label-dark ai-label-sentence">Team pack</span>
+            <div className="ai-pack-grid" role="radiogroup" aria-label="Team pack">
               {(packs.data ?? []).map((p) => (
                 <button
                   key={p.key}
@@ -179,19 +181,18 @@ export function AddTeamModal({
               {packs.isLoading && <span className="ai-spin" />}
             </div>
             {pack && (
-              <span className="ai-hint">Roles: {pack.roles.join(', ')}. Change any of them on the team's page.</span>
+              <span className="ai-hint">
+                Roles: {pack.roles.map(roleName).join(', ')}. Change any of them on the team's page.
+              </span>
             )}
           </div>
           <label className="ai-field">
-            <span className="ai-label ai-label-dark">Persona (optional)</span>
-            <textarea
-              className="ai-textarea"
-              style={{ minHeight: 70 }}
+            <span className="ai-label ai-label-dark ai-label-sentence">Persona (optional)</span>
+            <PersonaField
               value={persona}
-              maxLength={MAX_PERSONA}
-              onChange={(e) => setPersona(e.target.value)}
+              onChange={setPersona}
               placeholder="How this team works: its tone, the rules it keeps, what it never touches."
-              data-testid="team-persona"
+              testId="team-persona"
             />
           </label>
           {error && (

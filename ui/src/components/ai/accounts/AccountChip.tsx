@@ -17,12 +17,3 @@ export function AccountStatusChip({ status }: { status: AccountStatus }) {
 export function GreyChip({ children }: { children: React.ReactNode }) {
   return <span className="acm-chip">{children}</span>;
 }
-
-/** The amber "Not ready" pill of a type whose runs do not start yet. */
-export function NotReadyChip() {
-  return (
-    <span className="acm-chip" style={{ background: '#FEF3D9', color: '#7A5A06' }} data-testid="not-ready-chip">
-      Not ready
-    </span>
-  );
-}

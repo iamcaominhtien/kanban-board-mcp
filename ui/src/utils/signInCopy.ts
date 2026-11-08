@@ -256,9 +256,9 @@ export function statusLine(
               ' is signed in as ',
               { b: who },
               extra ? ` · ${extra}` : '',
-              '. It is ready to be chosen by AI members.',
+              '. It is ready to be chosen by AI teams.',
             ]
-          : [ctx.accountName, ' is signed in', extra ? ` (${extra})` : '', '. It is ready to be chosen by AI members.'],
+          : [ctx.accountName, ' is signed in', extra ? ` (${extra})` : '', '. It is ready to be chosen by AI teams.'],
       };
     }
     case 'rejected':

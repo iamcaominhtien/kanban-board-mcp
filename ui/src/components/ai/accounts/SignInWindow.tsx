@@ -159,11 +159,12 @@ export function SignInWindow({
           }
         } else {
           setProblem(extractError(err));
+          setCommand((c) => c || `CLAUDE_CONFIG_DIR=${account.folder} claude auth login`);
           setMode('no_terminal');
         }
       }
     },
-    [account.id, overview.data?.terminal],
+    [account.id, account.folder, overview.data?.terminal],
   );
 
   async function restart() {
@@ -243,6 +244,7 @@ export function SignInWindow({
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== 'Escape' || e.shiftKey || e.defaultPrevented) return;
       if ((e.target as HTMLElement | null)?.closest?.('.sg-term')) return;
+      e.preventDefault();
       escape.current();
     };
     document.addEventListener('keydown', onKey);
@@ -388,7 +390,7 @@ export function SignInWindow({
             spinning={view === 'starting' || view === 'confirming' || view === 'fallback' || view === 'console'}
           />
           {view === 'no_terminal' && problem && <div className="sg-reason">{problem}</div>}
-          {(mode === 'fallback' || mode === 'console') && (
+          {(mode === 'fallback' || mode === 'console') && !fallbackSigned && (
             <>
               <div className="sg-cmd-row">
                 <span data-testid="sign-in-command">{command}</span>
@@ -397,12 +399,10 @@ export function SignInWindow({
                   Copy
                 </button>
               </div>
-              {!fallbackSigned && (
-                <div className="sg-note">
-                  The command uses this account’s own folder, so the login lands in the right account and not in the one
-                  already on this computer. Nothing you type there is seen by Kanban.
-                </div>
-              )}
+              <div className="sg-note">
+                The command uses this account’s own folder, so the login lands in the right account and not in the one
+                already on this computer. Nothing you type there is seen by Kanban.
+              </div>
             </>
           )}
           {showTerminal && (
@@ -433,14 +433,10 @@ export function SignInWindow({
           <span className="sg-grow" />
           {signedView ? (
             done
-          ) : view === 'fallback' || view === 'console' ? (
+          ) : view === 'fallback' || view === 'console' || showTerminal ? (
             <button type="button" className="ai-btn ai-btn-sm ai-btn-primary" disabled style={{ opacity: 0.5 }}>
               Done
             </button>
-          ) : showTerminal ? (
-            <span className="sg-note">
-              The terminal is the real CLI. Kanban only watches whether it ends up signed in.
-            </span>
           ) : null}
         </div>
       </div>
