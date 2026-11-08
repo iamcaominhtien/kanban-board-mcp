@@ -67,11 +67,13 @@ export function DoneReceipt({
   const n = applied.length;
   const undone = receipt.status === 'undone';
   const skipped = receipt.undo?.skipped ?? [];
-  const kept = receipt.undo?.kept ?? [];
+  // lines with no way back, said before Undo is pressed
+  const kept = applied.filter((a) => !a.undo).map((a) => `${a.ticket} ${a.words ?? a.op.replace(/_/g, ' ')}`);
   const back = new Set(receipt.undo?.putBack ?? []);
   const putBack = receipt.undo?.undone ?? 0;
   // what the board can put back: the button counts only these
   const nUndo = applied.filter((a) => a.undo).length;
+  const left = applied.filter((a, i) => a.undo && !back.has(i)).length;
   return (
     <div className="as-receipt" data-testid="receipt">
       <div className="as-receipt-head">
@@ -81,7 +83,7 @@ export function DoneReceipt({
         <b data-testid="receipt-title">
           {undone ? `Undone — ${putBack} put back` : `Done — ${n} change${n === 1 ? '' : 's'}`}
         </b>
-        {!undone && nUndo > 0 && (
+        {(!undone ? nUndo > 0 : skipped.length > 0 && left > 0) && (
           <button
             type="button"
             className="ai-btn ai-btn-sm"
@@ -89,7 +91,7 @@ export function DoneReceipt({
             onClick={onUndo}
             data-testid="receipt-undo"
           >
-            {nUndo === 1 ? 'Undo' : `Undo all ${nUndo}`}
+            {undone ? 'Undo the rest' : nUndo === 1 ? 'Undo' : `Undo all ${nUndo}`}
           </button>
         )}
       </div>
@@ -106,7 +108,7 @@ export function DoneReceipt({
       {skipped.length ? (
         <div className="ai-hint" data-testid="undo-skipped">
           {putBack ? 'Part of the group is back. ' : 'Nothing was put back. '}
-          Left as someone else set them: {skipped.join('; ')}.
+          Left as they are: {skipped.join('; ')}.
         </div>
       ) : null}
       {kept.length ? (
@@ -114,7 +116,7 @@ export function DoneReceipt({
           No way back for: {kept.join('; ')}.
         </div>
       ) : null}
-      {!undone && (
+      {!undone && nUndo > 0 && (
         <div className="ai-hint">
           Recorded for <b>{person} (through the Board AI)</b>. Undo works until something else changes the same field.
         </div>

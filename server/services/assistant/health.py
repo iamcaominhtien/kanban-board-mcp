@@ -72,6 +72,8 @@ async def panel(session: AsyncSession, project_id: str) -> dict[str, Any]:
     """The Board health panel: the latest digest, insights by state, the schedule, the unseen count."""
     row = await svc_settings.get(session)
     cfg = svc_settings.health_config(row)
+    member, _profile = await svc_settings.first_team(session, project_id)
+    team_name = member.name if member else "Board AI"
     rows = await _rows(session, project_id)
     needs = sorted(
         [i for i in rows if i.state == "open"], key=lambda i: i.score, reverse=True
@@ -103,7 +105,7 @@ async def panel(session: AsyncSession, project_id: str) -> dict[str, Any]:
         "unseen": len([i for i in needs if not i.seen]),
         "drafts": [],
         "schedule": cfg,
-        "board_ai": "Board AI",
+        "board_ai": team_name,
         "enabled": svc_settings.features(row).get("health", True),
     }
 

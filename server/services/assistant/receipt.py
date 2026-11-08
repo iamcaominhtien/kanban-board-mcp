@@ -34,7 +34,7 @@ FIELDS = (
     "type",
 )
 # Listed in the receipt; there is no way back for these.
-LISTED = ("sub_task", "acceptance_criterion", "branch", "link")
+LISTED = ("sub_task", "acceptance_criterion", "branch")
 MAX_CHANGES = 200
 # Moving a ticket into these hands its work over (a pull request, a merge): that is for a person to do.
 HAND_OVER = ("review", "done")
@@ -150,6 +150,13 @@ async def collect(
                         "undo": False,
                     }
                 )
+    for c in changes:
+        if c["op"] != "description":
+            continue
+        for k in ("before", "after"):
+            if isinstance(c[k], str) and len(c[k]) > 300:
+                c[k] = c[k][:299] + "…"
+                c["undo"] = False  # a clipped text cannot be written back
     changes.sort(key=lambda c: str(c.get("at") or ""))
     changes = changes[:MAX_CHANGES]
     ids = {
@@ -170,20 +177,21 @@ async def collect(
     return changes
 
 
-def summary(changes: list[dict[str, Any]]) -> dict[str, Any]:
-    """The receipt as it is kept on the answer."""
-    return {"applied": changes, "count": len(changes), "status": "done"}
+def summary(changes: list[dict[str, Any]], runs: list[str]) -> dict[str, Any]:
+    """The receipt as it is kept on the answer (`runs`: the turns whose changes it lists)."""
+    return {"applied": changes, "count": len(changes), "status": "done", "runs": runs}
 
 
 def merge(
-    old: dict[str, Any] | None, changes: list[dict[str, Any]]
+    old: dict[str, Any] | None, changes: list[dict[str, Any]], run_id: str
 ) -> dict[str, Any] | None:
     """The receipt of an answer tried again: what the first try did and was not put back stays in it."""
-    kept = (
-        list(old.get("applied") or []) if old and old.get("status") != "undone" else []
-    )
+    applied = list((old or {}).get("applied") or [])
+    back = set(((old or {}).get("undo") or {}).get("put_back") or [])
+    kept = [a for i, a in enumerate(applied) if i not in back]
+    runs = [*((old or {}).get("runs") or []), run_id]
     both = [*kept, *changes]
-    return summary(both) if both else None
+    return summary(both, runs) if both else None
 
 
 def _same(a: Any, b: Any) -> bool:
@@ -211,7 +219,10 @@ def _later(t: Ticket, field: str, after_at: str | None) -> str:
 
 
 async def undo(
-    session: AsyncSession, applied: list[dict[str, Any]], runs: list[str]
+    session: AsyncSession,
+    applied: list[dict[str, Any]],
+    runs: list[str],
+    already: set[int] | None = None,
 ) -> dict[str, Any]:
     """Put the changes back, newest first. A change is left alone when the field was changed by someone else since.
 
@@ -223,6 +234,8 @@ async def undo(
     skipped: list[str] = []
     kept: list[str] = []
     for i in range(len(applied) - 1, -1, -1):
+        if already and i in already:
+            continue
         c = applied[i]
         ticket_id, op = str(c.get("ticket")), str(c.get("op"))
         label = f"{ticket_id} {op.replace('_', ' ')}"

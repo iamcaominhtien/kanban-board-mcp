@@ -650,42 +650,40 @@ export function AssistDock() {
           </div>
           <SelectToReply containerRef={bodyRef} onReply={quotes.add} disabled={disabled} />
           <div className="as-composer">
-            <>
-              <ReplyTray
-                replies={quotes.replies}
-                focusId={quotes.focusId}
-                onChange={quotes.update}
-                onRemove={quotes.remove}
-                onDone={() => inputRef.current?.focus()}
+            <ReplyTray
+              replies={quotes.replies}
+              focusId={quotes.focusId}
+              onChange={quotes.update}
+              onRemove={quotes.remove}
+              onDone={() => inputRef.current?.focus()}
+            />
+            <div className="as-composer-box">
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={text}
+                placeholder={quotes.replies.length ? 'Anything else? (optional)' : placeholder}
+                disabled={disabled}
+                aria-label="Ask the Board AI"
+                data-testid="assist-input"
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void sendComposed();
+                  }
+                }}
               />
-              <div className="as-composer-box">
-                <textarea
-                  ref={inputRef}
-                  rows={1}
-                  value={text}
-                  placeholder={quotes.replies.length ? 'Anything else? (optional)' : placeholder}
-                  disabled={disabled}
-                  aria-label="Ask the Board AI"
-                  data-testid="assist-input"
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      void sendComposed();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="as-send"
-                  disabled={disabled || sending || !outgoing.trim()}
-                  aria-label="Send"
-                  onClick={() => void sendComposed()}
-                >
-                  <LineIcon name="send" size={16} />
-                </button>
-              </div>
-            </>
+              <button
+                type="button"
+                className="as-send"
+                disabled={disabled || sending || !outgoing.trim()}
+                aria-label="Send"
+                onClick={() => void sendComposed()}
+              >
+                <LineIcon name="send" size={16} />
+              </button>
+            </div>
             {error && (
               <div className="ai-error-text" style={{ marginTop: 6 }}>
                 {error}

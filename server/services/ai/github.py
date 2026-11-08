@@ -413,9 +413,11 @@ async def back_to_dev(finding: dict) -> str | None:
             trigger="ci_red",
         )
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
+        if run is None:
+            return None  # nothing started: it stays open, so the next check tries again
         cur = await session.get(AiWatchedPr, ticket_id)
         red["handled_at"] = _now()
-        red["run_id"] = run.id if run else None
+        red["run_id"] = run.id
         cur.red = json.dumps(red)
         session.add(cur)
         await session.commit()
@@ -450,13 +452,13 @@ async def comments_to_dev(ticket_id: str) -> str | None:
             trigger="review_comments",
         )
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
+        if run is None:
+            return None
         # kept, marked as given, so the ticket still shows what the team was given (and which run)
         now = _now()
         row.pending_comments = json.dumps(
             [
-                c
-                if c.get("handled_at")
-                else {**c, "handled_at": now, "run_id": run.id if run else None}
+                c if c.get("handled_at") else {**c, "handled_at": now, "run_id": run.id}
                 for c in every
             ]
         )

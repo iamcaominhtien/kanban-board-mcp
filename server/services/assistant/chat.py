@@ -26,6 +26,7 @@ KEEP_DAYS = 30
 MAX_TEXT = 8000
 SCOPES = ("ticket", "doc", "idea", "project", "all", "sketch")
 ACTIVE = ("queued", "thinking", "streaming")
+UNDOING: set[str] = set()
 TASKS: dict[str, asyncio.Task] = {}
 RUNS: dict[str, str] = {}  # message id -> the run of its turn (for Stop)
 
@@ -662,7 +663,6 @@ async def _answer(
             **(request.get("extra") or {}),
         }
         project_id, chat_id, ticket_id = chat.project_id, chat.id, chat.ticket_id
-        scope_kind = chat.scope
     state, error = "done", {}
     out: engine.Turn | None = None
     try:
@@ -685,7 +685,7 @@ async def _answer(
                 "error",
                 {
                     "code": "unavailable",
-                    "message": out.error or "The assistant could not answer.",
+                    "message": out.error or "Claude Code did not answer.",
                 },
             )
     except asyncio.CancelledError:
@@ -716,10 +716,7 @@ async def _answer(
                 False,
             )
             ctx = loads(ai.context, {})
-            ctx["answer_run"] = {"id": out.run_id}
-            changes = await receipt.collect(
-                session, None if scope_kind == "all" else project_id, out.run_id
-            )
+            changes = await receipt.collect(session, None, out.run_id)
             merged = receipt.merge(ctx.get("receipt"), changes, out.run_id)
             if merged:
                 ctx["receipt"] = merged
@@ -826,9 +823,21 @@ async def undo_receipt(
     rec = ctx.get("receipt")
     if not rec or not rec.get("applied"):
         raise AssistError("not_found", "This answer changed nothing.")
-    if rec.get("status") == "undone":
+    before = rec.get("undo") or {}
+    if rec.get("status") == "undone" and not before.get("skipped"):
         raise AssistError("conflict", "These changes were already put back.")
-    result = await receipt.undo(session, rec["applied"], rec.get("runs") or [])
+    if m.id in UNDOING:
+        raise AssistError("conflict", "Undo is already running.")
+    UNDOING.add(m.id)
+    try:
+        already = set(before.get("put_back") or [])
+        result = await receipt.undo(
+            session, rec["applied"], rec.get("runs") or [], already
+        )
+    finally:
+        UNDOING.discard(m.id)
+    result["put_back"] = sorted(already | set(result["put_back"]))
+    result["undone"] = len(result["put_back"])
     rec["status"] = "undone" if result["undone"] else "done"
     rec["undo"] = result
     ctx["receipt"] = rec
