@@ -914,3 +914,42 @@
   color: #5b6b60;
   font-size: 12.5px;
 }
+
+/* The receipt of an answer that acted (design/screens/ai-board-wave3.md, B) */
+.as-receipt {
+  border: 1px solid #cfe3d6;
+  border-radius: 9px;
+  background: #f3f9f5;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.as-receipt-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.as-receipt-head b {
+  flex: 1;
+  font-size: 12.5px;
+  color: #1f5a31;
+}
+.as-receipt-ok {
+  flex: none;
+  color: #1f5a31;
+}
+.as-receipt-row {
+  display: flex;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.5;
+  align-items: flex-start;
+}
+.as-receipt-row .as-receipt-ok {
+  margin-top: 2px;
+}
+.as-receipt-undone {
+  text-decoration: line-through;
+  opacity: 0.6;
+}

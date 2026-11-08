@@ -62,6 +62,30 @@ export interface AssistErrorBody {
   [key: string]: unknown;
 }
 
+/** One change the Board AI made, as its receipt lists it. */
+export interface ReceiptChange {
+  op: string;
+  ticket: string;
+  before?: unknown;
+  after?: unknown;
+  /** The comment's id, for a comment. */
+  ref?: string;
+  /** The new ticket's id and its type, for a created ticket. */
+  created?: string;
+  type?: string;
+  title?: string;
+  /** Whether the board can put this change back. */
+  undo: boolean;
+}
+
+export interface Receipt {
+  applied: ReceiptChange[];
+  count: number;
+  status: 'done' | 'undone';
+  /** After "Undo all": how many were put back and what was left as someone else set it. */
+  undo?: { undone: number; skipped: string[] };
+}
+
 export interface ContextSummary {
   label: string;
   tickets: number;
@@ -73,8 +97,8 @@ export interface ContextSummary {
   privateSkipped: { id: string; title: string }[];
   tokens: number;
   scope?: AssistScope;
-  /** "Do the work": the run the message started. */
-  run?: { id: string; number: number; memberId: string; memberName: string };
+  /** What the answer changed on tickets, and what "Undo all" did (design/screens/ai-board-wave3.md, B and G). */
+  receipt?: Receipt;
   /** The answer hit its length limit; Continue goes on from where it stopped. */
   cutShort?: boolean;
   /** Claude Code only: tokens the chat's CLI session holds after this answer, and the model's context window. */
@@ -512,6 +536,8 @@ export interface ScopeMember {
 export interface ScopeState {
   scope: ChatScopeInfo;
   availability: Availability;
+  /** The Board AI that answers when the thing has no team: the project's first team, run by Claude Code. */
+  boardAi?: { name: string; providerLabel: string; ready: boolean };
   members: ScopeMember[];
   memberId: string | null;
   estimate: CostEstimate | null;

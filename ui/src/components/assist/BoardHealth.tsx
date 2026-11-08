@@ -217,7 +217,6 @@ function ScheduleSettings({ projectId, cfg }: { projectId: string; cfg: HealthCo
       </div>
       <div className="ai-hint">Board health panel · always</div>
       {row('Badge on the sidebar item and a toast when new insights arrive', cfg.badgeToast, 'badgeToast')}
-      {row('Offer a draft comment on the ticket (posted by a person, never by the AI)', cfg.offerDraft, 'offerDraft')}
       <div className="as-label" style={{ margin: 0 }}>
         Noise controls
       </div>

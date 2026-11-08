@@ -6,9 +6,10 @@ import { useDocsTree } from '../../api/docs';
 import type { AssistScope, AssistState, Chat } from '../../types/assist';
 import { useAssist } from './AssistContext';
 import { AnswerBlock } from './AnswerBlock';
-import { BoardAiAvatar, dayOrTime, usd } from './assistUi';
+import { BoardAiAvatar, dayOrTime } from './assistUi';
+import { SparkleIcon } from '../ai/aiUi';
 import { useResizablePanel } from '../../hooks/useResizablePanel';
-import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
+import { PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 import { ContextMeter } from './ContextMeter';
 import { LineIcon } from '../ui/LineIcon';
@@ -21,47 +22,19 @@ const SCOPES: { key: AssistScope; label: string; reads: string; size: string; wa
   { key: 'all', label: 'All projects', reads: 'Only projects you belong to · slower', size: '~5× cost', warn: true },
 ];
 
-const SUGGESTIONS = ['Who’s blocked this week?', 'What changed since Monday?', 'What should I pick up next?'];
+const SUGGESTIONS = ['Who’s blocked this week?', 'What changed since Monday?'];
 
-/** A7: no Board AI chosen yet. */
-export function NoBoardAi({ onSettings, onMembers }: { onSettings?: () => void; onMembers?: () => void }) {
+/** G1 and A5: Claude Code is missing, so the Board AI cannot answer. The server says why and what to do. */
+export function ClaudeCodeMissing({ state }: { state: AssistState }) {
   return (
     <div className="as-tile" data-testid="assist-not-configured">
       <div className="as-tile-title">
-        Board AI isn’t set up
-        <span className="ai-chip" style={{ background: '#EEF1F5', color: '#5B6B7A' }}>
-          Not configured
-        </span>
+        <SparkleIcon size={14} /> {state.boardAi.status?.label ?? 'Claude Code was not found'}
       </div>
       <div className="ai-hint">
-        Pick the AI that answers board-wide questions. It needs a working API key or local runner. Until then chat,
-        drafting and suggestions are disabled.
+        {state.boardAi.status?.detail ||
+          'Claude Code was not found on this computer. Install it, or add an AI team in Members.'}
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" className="ai-btn ai-btn-primary ai-btn-sm" onClick={onSettings}>
-          Open Settings → AI
-        </button>
-        <button type="button" className="ai-btn ai-btn-sm" onClick={onMembers}>
-          Manage AI members
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** I1: the Board AI cannot answer now. */
-export function BoardAiOffline({ state, onMembers }: { state: AssistState; onMembers?: () => void }) {
-  return (
-    <div className="as-tile as-tile-error" data-testid="assist-unavailable">
-      <div className="as-tile-title">
-        {state.boardAi.name}: {state.boardAi.status?.label?.toLowerCase() ?? 'unavailable'}
-      </div>
-      <div className="ai-hint">
-        {state.boardAi.status?.detail ?? 'Chat, drafting and suggestions are disabled until it is fixed.'}
-      </div>
-      <button type="button" className="ai-link" style={{ alignSelf: 'flex-start' }} onClick={onMembers}>
-        Fix in AI members
-      </button>
     </div>
   );
 }
@@ -80,7 +53,6 @@ function History({
   onNew,
   onBack,
   onClose,
-  extra,
 }: {
   projectId: string;
   provider?: AssistState['boardAi']['provider'];
@@ -90,8 +62,6 @@ function History({
   onBack: () => void;
   /** Closes the dock, as the dock header's ✕ does. */
   onClose: () => void;
-  /** The maximize button, so it stays one click away. */
-  extra?: React.ReactNode;
 }) {
   const [q, setQ] = useState('');
   const list = useChats(projectId, q);
@@ -130,7 +100,6 @@ function History({
         >
           <LineIcon name="clock" size={15} />
         </button>
-        {extra}
         <button type="button" className="ai-icobtn" title="Close" aria-label="Close Board AI" onClick={onClose}>
           <LineIcon name="close" size={14} />
         </button>
@@ -176,19 +145,15 @@ function History({
                       {scopeLabel(c)} · {dayOrTime(c.updatedAt)}
                     </div>
                   </div>
-                  <span className="as-cost">{usd(c.cost)}</span>
                 </div>
               ))}
             </div>
           ) : null,
         )}
         <div className="ai-muted" style={{ marginTop: 'auto' }}>
-          Chats are private to you. Kept {list.data?.keepDays ?? 30} days, then deleted. A chat that applied changes
+          Chats are private to you. Kept {list.data?.keepDays ?? 30} days, then deleted. A chat that changed things
           keeps only a log line in Activity.
         </div>
-      </div>
-      <div className="as-history-foot" data-testid="assist-history-foot">
-        {list.data?.count ?? 0} chats · {usd(list.data?.monthCost ?? 0)} this month
       </div>
     </div>
   );
@@ -220,7 +185,7 @@ export function AssistDock() {
   useEffect(() => clearQuotes(), [ctx?.chatId, clearQuotes]); // the passages belong to the chat they were picked in
 
   /** Sends one message; true once the server has it. */
-  const send = async (raw: string, opts?: { draft?: boolean; sendAll?: boolean }): Promise<boolean> => {
+  const send = async (raw: string, opts?: { sendAll?: boolean }): Promise<boolean> => {
     if (!ctx || !projectId) return false;
     const q = raw.trim();
     if (!q) return false;
@@ -241,7 +206,6 @@ export function AssistDock() {
       const f = ctx.filters;
       await assistApi.send(id, {
         text: q,
-        draft: opts?.draft,
         sendAll: opts?.sendAll,
         docIds: docChip ? [docChip] : [],
         filters: {
@@ -268,7 +232,7 @@ export function AssistDock() {
     if (await send(outgoing)) quotes.clear();
   };
 
-  // A request from an entry point ("Ask about this ticket", "Draft first ticket with AI"…)
+  // A request from an entry point ("Ask about this ticket", "Ask this page"…)
   useEffect(() => {
     if (!ctx?.pending) return;
     const p = ctx.consumePending();
@@ -340,12 +304,9 @@ export function AssistDock() {
   };
 
   const b = state?.boardAi;
-  const standby = b?.fallback ?? null;
-  const notConfigured = b?.state === 'not_configured' && !standby;
+  const notConfigured = b?.state === 'not_configured';
   const chatFeature = state?.features.find((f) => f.key === 'chat');
   const chatOff = chatFeature ? !chatFeature.on : false;
-  const offline = b?.state === 'unavailable';
-  const overBudget = !!state?.overBudget;
   const messages = chat.data?.messages ?? [];
   const placeholder =
     scope === 'ticket'
@@ -359,7 +320,7 @@ export function AssistDock() {
   const sessionFill = [...messages].reverse().find((m) => m.role === 'ai' && m.context.contextWindow)
     ?.context.contextWindow;
   const loadFailed = st.isError && !state;
-  const disabled = notConfigured || chatOff || offline || overBudget || loadFailed;
+  const disabled = notConfigured || chatOff || loadFailed;
   const sizing = panelSizing(panel);
   const f = ctx.filters;
   const filterLabel = f.assignee || f.type || f.priority || f.q ? 'Filtered' : 'No filters';
@@ -377,21 +338,14 @@ export function AssistDock() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="as-head-title">Board AI</div>
           <div className="as-head-sub">
-            <span
-              className={`as-dot ${b?.state === 'ready' || standby ? '' : b?.state === 'unavailable' ? 'as-dot-red' : 'as-dot-grey'}`}
-            />
-            {b?.name ? (
+            <span className={`as-dot ${b?.state === 'ready' ? '' : 'as-dot-grey'}`} />
+            {b?.state === 'ready' ? (
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {b.name}
-                {b.providerLabel ? ` (${b.providerLabel})` : ''} ·{' '}
-                {b.state === 'ready' ? 'online' : (b.status?.label?.toLowerCase() ?? 'unavailable')}
-              </span>
-            ) : standby ? (
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {standby.name} · stand-in (no Board AI chosen)
+                {b.name ?? 'Board AI'}
+                {b.providerLabel ? ` (${b.providerLabel})` : ''} · online
               </span>
             ) : (
-              'Not configured'
+              'Claude Code was not found'
             )}
           </div>
         </div>
@@ -416,7 +370,6 @@ export function AssistDock() {
         >
           <LineIcon name="plus" size={15} />
         </button>
-        <PanelMaxButton panel={panel} />
         <button type="button" className="ai-icobtn" title="Close" aria-label="Close Board AI" onClick={ctx.close}>
           <LineIcon name="close" size={14} />
         </button>
@@ -427,7 +380,6 @@ export function AssistDock() {
           provider={b?.provider}
           onBack={() => setView('chat')}
           onClose={ctx.close}
-          extra={<PanelMaxButton panel={panel} />}
           onOpen={(id) => {
             ctx.setChatId(id);
             setView('chat');
@@ -444,7 +396,7 @@ export function AssistDock() {
           >
             {loadFailed && (
               <div className="ai-notice ai-notice-error" data-testid="assist-load-error">
-                Board AI could not load: {extractError(st.error)}. Export the log from Settings and try again.
+                Board AI could not load: {extractError(st.error)}.
               </div>
             )}
             {scope === 'doc' && (
@@ -598,8 +550,7 @@ export function AssistDock() {
             )}
           </div>
           <div className="as-body" ref={bodyRef}>
-            {notConfigured && <NoBoardAi onSettings={ctx.onOpenSettings} onMembers={ctx.onOpenAiMembers} />}
-            {!notConfigured && offline && state && <BoardAiOffline state={state} onMembers={ctx.onOpenAiMembers} />}
+            {notConfigured && state && <ClaudeCodeMissing state={state} />}
             {!notConfigured && chatOff && (
               <div className="as-tile" data-testid="assist-feature-off">
                 <div className="as-tile-title">Chat is turned off for this board</div>
@@ -628,8 +579,8 @@ export function AssistDock() {
                       : ctx.projectName}
                 </div>
                 <div className="ai-hint" style={{ fontSize: 13 }}>
-                  I read tickets, comments and docs you can see, and propose changes as drafts. I never change anything
-                  until you press Apply.
+                  I read tickets, comments and docs you can see. I do what can be undone at once and tell you what I
+                  did; for anything hard to undo I ask you a question.
                 </div>
                 {state && state.ticketCount === 0 ? (
                   <div className="as-tile" data-testid="assist-empty-board">
@@ -639,9 +590,9 @@ export function AssistDock() {
                       <button
                         type="button"
                         className="ai-btn ai-btn-primary ai-btn-sm"
-                        onClick={() => void send('Suggest a first ticket for this project and draft it.')}
+                        onClick={() => void send('Create a first ticket for this project.')}
                       >
-                        Draft first ticket with AI
+                        Ask for a first ticket
                       </button>
                       <button type="button" className="ai-btn ai-btn-sm" onClick={ctx.close}>
                         Skip
@@ -655,7 +606,13 @@ export function AssistDock() {
                     </div>
                     {(scope === 'ticket'
                       ? ['Summarise this ticket', 'What is left to do here?', 'Who should review this?']
-                      : SUGGESTIONS
+                      : [
+                          SUGGESTIONS[0],
+                          tree.data?.[0]?.title
+                            ? `Summarise doc “${tree.data[0].title}”`
+                            : 'What should I pick up next?',
+                          SUGGESTIONS[1],
+                        ]
                     ).map((s) => (
                       <button key={s} type="button" className="as-suggest" onClick={() => void send(s)}>
                         <LineIcon name="chat" size={12} color="#2E6F40" strokeWidth={2} />
@@ -689,57 +646,48 @@ export function AssistDock() {
                     <UserText text={m.text} />
                   </div>
                 ) : (
-                  <AnswerBlock key={m.id} msg={m} chat={chat.data!} state={state} onSend={(t, o) => void send(t, o)} />
+                  <AnswerBlock key={m.id} msg={m} chat={chat.data!} state={state} />
                 ),
               )}
           </div>
-          <SelectToReply containerRef={bodyRef} onReply={quotes.add} disabled={overBudget || disabled} />
+          <SelectToReply containerRef={bodyRef} onReply={quotes.add} disabled={disabled} />
           <div className="as-composer">
-            {overBudget ? (
-              <div className="as-composer-box" style={{ background: '#F6F7F7' }} data-testid="assist-composer-paused">
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#5B6B60' }}>Chat is paused</div>
-                  <div className="ai-muted">Over budget. Nothing was sent to the provider.</div>
-                </div>
-              </div>
-            ) : (
-              <>
-                <ReplyTray
-                  replies={quotes.replies}
-                  focusId={quotes.focusId}
-                  onChange={quotes.update}
-                  onRemove={quotes.remove}
-                  onDone={() => inputRef.current?.focus()}
+            <>
+              <ReplyTray
+                replies={quotes.replies}
+                focusId={quotes.focusId}
+                onChange={quotes.update}
+                onRemove={quotes.remove}
+                onDone={() => inputRef.current?.focus()}
+              />
+              <div className="as-composer-box">
+                <textarea
+                  ref={inputRef}
+                  rows={1}
+                  value={text}
+                  placeholder={quotes.replies.length ? 'Anything else? (optional)' : placeholder}
+                  disabled={disabled}
+                  aria-label="Ask the Board AI"
+                  data-testid="assist-input"
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void sendComposed();
+                    }
+                  }}
                 />
-                <div className="as-composer-box">
-                  <textarea
-                    ref={inputRef}
-                    rows={1}
-                    value={text}
-                    placeholder={quotes.replies.length ? 'Anything else? (optional)' : placeholder}
-                    disabled={disabled}
-                    aria-label="Ask the Board AI"
-                    data-testid="assist-input"
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        void sendComposed();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="as-send"
-                    disabled={disabled || sending || !outgoing.trim()}
-                    aria-label="Send"
-                    onClick={() => void sendComposed()}
-                  >
-                    <LineIcon name="send" size={16} />
-                  </button>
-                </div>
-              </>
-            )}
+                <button
+                  type="button"
+                  className="as-send"
+                  disabled={disabled || sending || !outgoing.trim()}
+                  aria-label="Send"
+                  onClick={() => void sendComposed()}
+                >
+                  <LineIcon name="send" size={16} />
+                </button>
+              </div>
+            </>
             {error && (
               <div className="ai-error-text" style={{ marginTop: 6 }}>
                 {error}
@@ -749,7 +697,7 @@ export function AssistDock() {
               <LineIcon name="shield" size={13} />{' '}
               {scope === 'doc'
                 ? 'Only this page and linked tickets are sent.'
-                : 'AI proposes · you apply. Answers can be wrong.'}
+                : 'Changes it can undo are made at once and listed. Answers can be wrong.'}
               {sessionFill && <ContextMeter used={sessionFill.used} size={sessionFill.size} />}
             </div>
           </div>

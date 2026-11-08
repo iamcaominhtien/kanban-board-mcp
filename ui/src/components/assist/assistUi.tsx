@@ -46,7 +46,7 @@ export function TicketPill({ id, status, red }: { id: string; status?: string; r
   );
 }
 
-/** "$0.012 · 3.1k tok", or "Not metered" for a local runner. */
+/** "$0.012 · 3.1k tok" when a run reports a real cost, else "Not metered". */
 export function CostChip({
   cost,
   tokens,
@@ -60,7 +60,7 @@ export function CostChip({
 }) {
   const tok = tokens ? ` · ${tokens >= 1000 ? `${(tokens / 1000).toFixed(1)}k` : tokens} tok` : '';
   return (
-    <span className="as-cost" title={metered ? 'Cost of this request' : 'Local runner: subscription, not metered'}>
+    <span className="as-cost" title={metered ? 'Cost of this request' : 'This run reported no cost'}>
       {metered ? usd(cost) : 'Not metered'}
       {tok}
       {suffix ? ` ${suffix}` : ''}
@@ -77,15 +77,6 @@ export function DraftTag({ children = 'AI draft' }: { children?: ReactNode }) {
   );
 }
 
-/** One line under a draft: who applies it, and how Activity reads. */
-export function AppliedAs({ person, ai }: { person: string; ai: string }) {
-  return (
-    <div className="ai-muted" style={{ fontSize: 11.5 }}>
-      Applied as <b style={{ color: '#5B6B60' }}>{person}</b>; Activity says “suggested by {ai}”.
-    </div>
-  );
-}
-
 /** The person this browser acts as (X-Actor), "user" when none is chosen. */
 export function currentPerson(): string {
   try {
@@ -95,7 +86,7 @@ export function currentPerson(): string {
   }
 }
 
-/** Short Board AI label, e.g. "Reviewer (Claude API)". */
+/** Short Board AI label, e.g. "Backend team". */
 export function boardAiLabel(state: AssistState | undefined): string {
   const b = state?.boardAi;
   if (!b?.name) return 'Board AI';
@@ -106,9 +97,10 @@ export function boardAiLabel(state: AssistState | undefined): string {
 export function featureBlock(
   state: AssistState | undefined,
   feature: string,
-): { reason: string; code: 'not_configured' | 'unavailable' | 'over_budget' | 'feature_off' } | null {
+): { reason: string; code: 'not_configured' | 'unavailable' | 'feature_off' } | null {
   if (!state) return null;
-  if (state.boardAi.state === 'not_configured') return { reason: "Board AI isn't set up", code: 'not_configured' };
+  if (state.boardAi.state === 'not_configured')
+    return { reason: state.boardAi.status?.label ?? 'Claude Code was not found', code: 'not_configured' };
   if (state.boardAi.state === 'unavailable')
     return {
       reason: `${state.boardAi.name}: ${state.boardAi.status?.label?.toLowerCase() ?? 'unavailable'}`,
@@ -116,7 +108,6 @@ export function featureBlock(
     };
   const f = state.features.find((x) => x.key === feature);
   if (f && !f.on) return { reason: `${f.label} is turned off in Settings → AI`, code: 'feature_off' };
-  if (state.overBudget) return { reason: 'Monthly cap reached', code: 'over_budget' };
   return null;
 }
 
