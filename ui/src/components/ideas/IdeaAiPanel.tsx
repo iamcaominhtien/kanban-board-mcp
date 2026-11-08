@@ -32,14 +32,13 @@ import { LineIcon } from '../ui/LineIcon';
 const money = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
 
 /**
- * Why AI help is not available, in the words of the design ("AI help is off", "Choose an AI member", "paused until
+ * Why AI help is not available, in the words of the design ("AI help is off", "AI help is not available right now", "paused until
  * tomorrow"); null when it is on.
  */
 export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus; onOpenSettings?: () => void }) {
   if (status.state === 'on') return null;
   const title = {
     off: 'AI help is off',
-    no_member: 'Choose an AI member to use AI help',
     unavailable: 'AI help is not available right now',
     cap: 'AI help paused until tomorrow',
   }[status.state];
@@ -51,11 +50,15 @@ export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus
     >
       <div style={{ flex: 1 }}>
         <b>{title}</b>
-        <div>{status.message}</div>
+        <div>
+          {status.state === 'cap'
+            ? `Idea Space used its $${status.cap.toFixed(2)} cap. Suggestions already made are still there.`
+            : status.message}
+        </div>
       </div>
       {onOpenSettings && (
         <button type="button" className="is-btn is-btn-sm" onClick={onOpenSettings}>
-          {status.state === 'no_member' ? 'Open AI members' : 'Open settings'}
+          {status.state === 'cap' ? 'Change the cap' : 'Open settings'}
         </button>
       )}
     </div>
@@ -99,8 +102,8 @@ export function useSuggestOnKeep() {
       } else {
         qc.removeQueries({ queryKey: keptKey(ideaId) });
         toast.error(
-          'The AI suggestion could not be made',
-          'The idea was kept as Exploring without a suggestion. You can ask again from its page.',
+          'Idea AI did not answer',
+          'The idea was kept as Exploring without a suggestion. Try again, or sort by hand.',
           undefined,
           { label: 'Try again', onClick: () => void suggest(ideaId, ideaTitle) },
         );
@@ -111,11 +114,11 @@ export function useSuggestOnKeep() {
   return suggest;
 }
 
-const STARTERS: { kind: ShapeResult['kind']; label: string; hint: 'shape' | 'exists' }[] = [
-  { kind: 'problem', label: 'Draft the problem and the idea', hint: 'shape' },
-  { kind: 'assumptions', label: 'Suggest assumptions and cheapest tests', hint: 'shape' },
-  { kind: 'exists', label: 'Check what already exists', hint: 'exists' },
-  { kind: 'effort', label: 'Guess the effort from the code', hint: 'shape' },
+const STARTERS: { kind: ShapeResult['kind']; label: string }[] = [
+  { kind: 'problem', label: 'Draft the problem and the idea' },
+  { kind: 'assumptions', label: 'Suggest assumptions and cheapest tests' },
+  { kind: 'exists', label: 'Check what already exists' },
+  { kind: 'effort', label: 'Guess the effort from the code' },
 ];
 
 interface Props {
@@ -218,7 +221,8 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
     const r = turn.result!;
     const footer = (
       <div className="is-muted" style={{ marginTop: 6 }}>
-        {r.member} · {money(r.cost)} · suggestions are drafts
+        {r.member}
+        {r.cost > 0 ? ` · ${money(r.cost)}` : ''} · suggestions are drafts
       </div>
     );
     if (r.kind === 'problem') {
@@ -438,7 +442,6 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
   }
 
   const open = status?.state === 'on';
-  const hint = (k: 'shape' | 'exists') => (status ? ` · about ${money(status.hints[k])}` : '');
 
   return (
     <aside
@@ -514,7 +517,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
             ) : t.error ? (
               <div className="is-banner is-banner-risk" role="alert">
                 <div style={{ flex: 1 }}>
-                  <b>The AI could not answer.</b> {t.error} Nothing was changed.
+                  <b>Idea AI did not answer.</b> {t.error} Nothing was changed. Try again, or sort by hand.
                 </div>
                 <button
                   type="button"
@@ -566,11 +569,10 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
                     key={s.kind}
                     type="button"
                     className="is-starter-chip"
-                    title={`${s.label}${hint(s.hint)}`}
+                    title={s.label}
                     onClick={() => run(s.kind, s.label)}
                   >
                     {s.label}
-                    <span className="is-muted">{hint(s.hint)}</span>
                   </button>
                 ),
               )}
@@ -580,7 +582,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
                   className="is-starter-chip"
                   onClick={() => run('tests', 'Cheapest test for each assumption')}
                 >
-                  Cheapest test for each assumption<span className="is-muted">{hint('shape')}</span>
+                  Cheapest test for each assumption
                 </button>
               )}
             </div>
@@ -598,7 +600,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
             </button>
           </div>
           <div className="is-muted" style={{ fontSize: 11.5 }}>
-            About {money(status?.hints.ask ?? 0.01)} per answer · suggestions are drafts · Enter sends
+            Suggestions are drafts · Enter sends
           </div>
         </form>
       )}
@@ -626,8 +628,10 @@ export function AiRailCard({ idea, onOpen }: { idea: Idea; onOpen: () => void })
       <div className="is-label">AI help</div>
       <p className="is-muted" style={{ margin: '4px 0 8px' }}>
         {status.state === 'on'
-          ? `Chat with ${status.member ?? 'an AI member'} about this idea. It drafts the problem, assumptions and tests; you add what you want.`
-          : status.message}
+          ? `Chat with ${status.member ?? 'the Idea AI'} about this idea. It drafts the problem, assumptions and tests; you add what you want.`
+          : status.state === 'cap'
+            ? `Idea Space used its $${status.cap.toFixed(2)} cap. Suggestions already made are still there.`
+            : status.message}
       </p>
       <button type="button" className="is-btn is-btn-sm" onClick={onOpen} disabled={status.state !== 'on'}>
         Open chat

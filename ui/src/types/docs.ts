@@ -211,7 +211,7 @@ export interface DocsCommentAi {
   jobId?: string;
   cost?: number;
   sources?: { pageId: string; title: string; heading: string | null }[];
-  /** `note` (paused, over budget), `error` (couldn't answer). */
+  /** `note` (the team is paused), `error` (couldn't answer). */
   /** `sent`: the board's line that the thread was sent to an AI on a ticket (not a comment of the person's). */
   kind?: 'note' | 'error' | 'sent' | 'ticket';
   /** `ticket`/`sent`: the ticket whose conversation the AI answers from. */
@@ -248,7 +248,7 @@ export interface DocsCommentMember {
   role: CommentRole;
   kind?: 'human' | 'ai';
   ai?: {
-    status: 'ready' | 'paused' | 'over_budget' | 'unavailable';
+    status: 'ready' | 'paused' | 'unavailable';
     usable: boolean;
     note: string;
     provider: string | null;

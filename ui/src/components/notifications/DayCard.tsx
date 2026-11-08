@@ -57,7 +57,9 @@ export function DayCard({
   const retryable = d.failedRuns ? d.failedRuns.length : failed;
   const [retried, setRetried] = useState<number | null>(null);
   const waiting = d.waiting ?? 0;
-  const money = `$${(d.spent ?? 0).toFixed(2)}`;
+  // a dollar figure only when a run reported a real cost; a subscription reports none
+  const spent = d.spent ?? 0;
+  const money = spent > 0 ? `$${spent.toFixed(2)}` : '—';
   return (
     <div className={styles.card} data-row-id={row.id} data-unread={row.read ? undefined : 'true'}>
       <div className={styles.head}>
@@ -96,7 +98,7 @@ export function DayCard({
             <span className={styles.num} style={{ color: '#1E2A22' }}>
               {money}
             </span>
-            <span className={styles.label}>spent</span>
+            <span className={styles.label}>{spent > 0 ? 'spent' : 'Not metered'}</span>
           </div>
         </div>
       )}

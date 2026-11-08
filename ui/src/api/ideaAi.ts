@@ -17,7 +17,7 @@ export interface IdeaAiSettings {
 
 /** Whether AI help can answer now, and the switches behind it. */
 export interface IdeaAiStatus {
-  state: 'on' | 'off' | 'no_member' | 'unavailable' | 'cap';
+  state: 'on' | 'off' | 'unavailable' | 'cap';
   message: string;
   settings: IdeaAiSettings;
   member: string | null;

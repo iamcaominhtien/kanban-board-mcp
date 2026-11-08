@@ -57,15 +57,13 @@ TOPIC = "notifications"
 KINDS: dict[str, tuple[str, bool, bool, bool]] = {
     # Needs you: may interrupt. In app is locked on.
     "question": ("A question from an AI", True, True, False),
-    "approval": ("An approval request", True, True, False),
     "run_failed": ("A run failed or timed out", True, True, True),
-    "blocked": ("An AI was blocked by a permission", True, True, True),
     "account_signed_out": ("An AI account signed out", True, True, False),
     "mention": ("Someone mentioned you", True, True, True),
     "run_stopped_memory": ("A run was stopped for memory", True, True, True),
     "budget": ("Budget or cap reached", True, True, True),
     "auto_trip": ("AI was paused (auto-trip or Pause all AI)", True, True, True),
-    "offline": ("An AI member went offline", True, False, True),
+    "offline": ("An AI team went offline", True, False, True),
     # AI team v2 (design/screens/ai-operations.md C, D; ai-board-wave3.md L)
     "run_stuck": ("An AI stopped moving", True, True, True),
     "board_fault": ("The board failed an AI (a board fault)", True, True, True),
@@ -84,22 +82,18 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
         True,
         False,
     ),
-    "story_plan": ("A Story's plan waits for you", True, True, False),
-    "story_blocked": ("A Story cannot go on without you", True, True, False),
     # For information: never interrupts.
     "ai_finished": ("An AI finished work", False, False, False),
     "schedule": ("A scheduled run finished or was skipped", False, False, False),
     "schedule_started": ("A scheduled run started", False, False, False),
     "page_published": ("A page was published", False, False, False),
     "comment": ("A new comment in a thread you follow", False, False, False),
-    "run_restarted": ("A run was restarted for memory", False, False, False),
     "run_cancelled": ("A run was cancelled", False, False, False),
     "budget_warning": ("Budget passed a warning level", False, False, False),
     "access_request": ("Someone asked for access to Docs", False, False, False),
     "day_card": ("The day in one card", False, False, False),
     "window_wait": ("Runs wait for the next usage window", False, False, False),
     "lesson": ("An AI proposed a lesson for the project", False, False, False),
-    "story_done": ("A Story is done", False, False, False),
 }
 
 # The order of the Settings table (L)
@@ -137,8 +131,8 @@ DEFAULT_PREFS: dict[str, Any] = {
 # What a recipient key looks like when it is the board's own user
 _SELF = {"", "user", "you", "me"}
 
-# Who an AI member is called when the member is gone
-_AN_AI_MEMBER = "An AI member"
+# Who an AI team is called when the team is gone
+_AN_AI_MEMBER = "An AI team"
 
 
 # ---------------------------------------------------------------------------
@@ -740,10 +734,6 @@ def _group_key(
             return f"{kind}:{target_kind or '-'}:{target_id}"
         # nothing to point at: one row per project, never across projects
         return f"{kind}:project:{project_id or '-'}"
-    if kind == "run_restarted" and target_id:
-        return (
-            f"{kind}:{target_id}"  # several restarts of one run in minutes are one row
-        )
     return f"{kind}:{project_id or '-'}"
 
 
@@ -1079,9 +1069,6 @@ _GROUP_TITLES = {
 
 
 def _group_title(kind: str, items: list[dict], count: int) -> str:
-    if kind == "run_restarted":
-        tid = items[-1].get("ticket_id") or "A run"
-        return f"{tid}: restarted {count} times (memory)"
     n = "20+" if count > GROUP_NAMES_MAX else str(count)
     return _GROUP_TITLES.get(kind, "{n} updates").format(n=n)
 
@@ -1226,8 +1213,6 @@ async def _why_closed_by_kind(session: AsyncSession, r: Notification) -> _Why:
         return await _why_window_closed(session, r.target_id)
     if r.kind in ("merge_conflict", "arbitration"):
         return await _why_flag_closed(session, r)
-    if r.target_kind == "approval" and r.target_id:
-        return await _why_approval_closed(session, r.target_id)
     if r.target_kind == "account" and r.target_id:
         return await _why_account_closed(session, r.target_id)
     if r.target_kind == "thread" and r.target_id:
@@ -1302,10 +1287,6 @@ async def _why_retried(session: AsyncSession, r: Notification) -> _Why:
     return None
 
 
-async def _why_approval_closed(session: AsyncSession, approval_id: str) -> _Why:
-    return "The request is gone.", None, True
-
-
 async def _why_account_closed(session: AsyncSession, account_id: str) -> _Why:
     acc = await session.get(AiAccount, account_id)
     if acc is None:
@@ -1345,7 +1326,7 @@ async def _why_budget_closed(session: AsyncSession, r: Notification) -> _Why:
 
 
 async def _why_pause_closed(session: AsyncSession, r: Notification) -> _Why:
-    """Pause all AI of a project, or one AI member paused (auto-trip)."""
+    """Pause all AI of a project, or one AI team paused (auto-trip)."""
     if r.project_id and r.target_kind in (None, "project"):
         s = await session.get(AiProjectSettings, r.project_id)
         if s is not None and not s.paused_all:
@@ -1354,9 +1335,9 @@ async def _why_pause_closed(session: AsyncSession, r: Notification) -> _Why:
     if r.target_kind == "member" and r.target_id:
         profile = await session.get(AiTeam, r.target_id)
         if profile is None:
-            return "The AI member was removed.", None, True
+            return "The AI team was removed.", None, True
         if not profile.paused:
-            return "The AI member was resumed", None, False
+            return "The AI team was resumed", None, False
     return None
 
 
@@ -1441,10 +1422,10 @@ async def _open_needs_groups(
 
 
 def _closes_by_itself(r: Notification) -> bool:
-    """Whether something other than its target going away can close a row. A blocked or offline row closes only by
-    Dismiss, and a mention of an AI member only when its thread goes (an AI does not reply in Docs)."""
-    if r.kind in ("blocked", "offline"):
-        return r.target_kind in ("approval", "account", "thread")
+    """Whether something other than its target going away can close a row. An offline row closes only by Dismiss,
+    and a mention of an AI member only when its thread goes (an AI does not reply in Docs)."""
+    if r.kind == "offline":
+        return r.target_kind in ("account", "thread")
     if r.kind == "mention" and r.target_kind == "thread":
         return not r.recipient.startswith("ai:")
     return True
@@ -1526,9 +1507,9 @@ async def _watch_accounts(session: AsyncSession) -> None:
         ).all()
         projects = sorted({p.project_id for p in on})
         n = len(on)
-        body = "No AI member uses it right now."
+        body = "No AI team uses it right now."
         if n:
-            body = f"{n} AI member{_s(n)} on this account stopped. Their queued runs are held."
+            body = f"{n} AI team{_s(n)} on this account stopped. Their queued runs are held."
         await emit(
             "account_signed_out",
             project_id=projects[0] if len(projects) == 1 else None,
@@ -1870,36 +1851,6 @@ def _failed_notice(run: AiRun) -> tuple[str, str, str] | None:
     )
 
 
-async def on_blocked_move(run_id: str, target: str) -> None:
-    """An AI tried to move a ticket past its permission (Needs you: change the permission, or dismiss)."""
-    try:
-        async with database.async_session() as session:
-            run = await session.get(AiRun, run_id)
-            if run is None:
-                return
-            member = await session.get(Member, run.member_id)
-            name = member.name if member else _AN_AI_MEMBER
-            label = (
-                "Done" if target == "done" else target.replace("-", " ").capitalize()
-            )
-            await emit(
-                "blocked",
-                project_id=run.project_id,
-                recipients=await _run_people(session, run),
-                title=f"{name} can’t move {run.ticket_id} to {label}",
-                body="Its permission stops before that. The ticket stays where it is.",
-                target_kind="ticket",
-                target_id=run.ticket_id,
-                ticket_id=run.ticket_id,
-                member_id=run.member_id,
-                actor=name,
-                data={"to": target, "run_id": run.id},
-                session=session,
-            )
-    except Exception:  # noqa: BLE001
-        logger.exception("Could not write a blocked-move notification")
-
-
 async def on_page_published(page: dict[str, Any], note: str | None = None) -> None:
     """A page was published: for the people who follow its space or the page (not the author)."""
     try:
@@ -2035,19 +1986,11 @@ def _actions(r: Notification, gone: bool) -> list[dict]:
             {"id": "answer", "label": "Answer"},
             {"id": "open_ticket", "label": "Open ticket"},
         ]
-    if k == "approval":
-        return [
-            {"id": "approve", "label": "Approve"},
-            {"id": "deny", "label": "Deny"},
-            {"id": "review", "label": "Review"},
-        ]
     if k in ("run_failed", "run_stopped_memory", "board_fault"):
-        # a stopped run: the four ways out, always in this order (design D)
+        # a stopped run: Retry, or look at the run (Notifications board, C and D)
         return [
-            {"id": "retry", "label": "Try again"},
-            {"id": "continue_note", "label": "Continue with a note"},
-            {"id": "hand_to", "label": "Hand to another AI"},
-            {"id": "open_run_log", "label": "Open the run"},
+            {"id": "retry", "label": "Retry"},
+            {"id": "open_run_log", "label": "Open run log"},
         ]
     if k == "run_stuck":
         labels = {
@@ -2094,11 +2037,6 @@ def _actions(r: Notification, gone: bool) -> list[dict]:
         return [{"id": "sign_in", "label": "Sign in again"}]
     if k == "mention":
         return [{"id": "reply", "label": "Reply"}, {"id": "open", "label": "Open"}]
-    if k == "blocked":
-        return [
-            {"id": "open_ticket", "label": "Open ticket"},
-            {"id": "change_permission", "label": "Change permission"},
-        ]
     if k in ("budget", "auto_trip", "offline"):
         return [{"id": "open_ai", "label": "Open AI Team"}]
     if k == "day_card":
@@ -2719,7 +2657,7 @@ async def dismiss(session: AsyncSession, me: str, row_id: str, by: str) -> dict:
         return to_dict(r, me)
     if not r.needs:
         raise ValueError("Only a Needs you row is dismissed; clear an update instead.")
-    if not (gone or KINDS[r.kind][3]):
+    if not (gone or KINDS.get(r.kind, ("", False, False, False))[3]):
         raise ValueError(
             "This one closes when the work is done; it cannot be dismissed."
         )
@@ -3266,7 +3204,7 @@ async def wake_snoozed(now: datetime | None = None) -> int | None:
 
 async def backfill_waiting() -> int:
     """Once, on the first start after the upgrade: what was already waiting for a person gets its row, since the old
-    toast hooks are gone and nothing else would write one (a pending approval, an open question, an account found
+    toast hooks are gone and nothing else would write one (an open question, an account found
     signed out). Returns how many were written."""
     return 0
 

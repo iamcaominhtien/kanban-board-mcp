@@ -148,7 +148,8 @@ export function AskPanel({
   const failed = j && (j.state === 'failed' || j.state === 'cancelled') ? j.error : null;
   const error = startError ?? (failed ? { code: failed.code ?? 'error', detail: failed.message ?? 'Failed.' } : null);
   const view = askView(running, result, error);
-  const noMember = state.data?.state === 'no_member';
+  // a paused team is not "no team": the answer is the server's one sentence about it
+  const noMember = state.data?.state === 'no_member' && state.data.problem?.code !== 'paused';
   const chips = askScopes(!!pageId);
 
   const ask = async (question = q, wantScope = scope) => {
@@ -249,10 +250,10 @@ export function AskPanel({
       <div style={{ padding: 18 }} data-testid="ask-no-member">
         <div style={{ fontWeight: 700, fontSize: 14 }}>No AI is set up for Docs</div>
         <div style={{ color: MUTED, fontSize: 12.5, margin: '4px 0 10px' }}>
-          Pick an AI member that can read this project.
+          Pick an AI team in Settings › Docs, or add one in Members.
         </div>
         <button type="button" style={primaryBtn} onClick={() => assist?.onOpenAiMembers()}>
-          Open AI members
+          Open Members
         </button>
       </div>
     );
@@ -281,15 +282,10 @@ export function AskPanel({
     body = (
       <div style={{ padding: 18 }} data-testid="ask-error" data-code={view.code}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>{view.title}</div>
-        <div style={{ color: MUTED, fontSize: 12.5, margin: '4px 0 10px' }}>{view.detail}</div>
-        {view.action === 'usage' && (
-          <button type="button" style={smallBtn} onClick={() => assist?.onOpenSettings()}>
-            See usage
-          </button>
-        )}
+        {view.detail && <div style={{ color: MUTED, fontSize: 12.5, margin: '4px 0 10px' }}>{view.detail}</div>}
         {view.action === 'members' && (
           <button type="button" style={smallBtn} onClick={() => assist?.onOpenAiMembers()}>
-            Open AI members
+            Open Members
           </button>
         )}
         {view.action === 'retry' && (
