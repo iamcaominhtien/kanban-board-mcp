@@ -1,6 +1,6 @@
 # AI Team — where people stepped in, and AI health
 
-> Redrawn for AI v2 · source: [`AiTeamReview.dc.html`](../source/AiTeamReview.dc.html) · canvas `1794108209-3be9` · sha256 `9cac6f11a15d15c35157b7e87f61e7cb3492324890eea30a19a0481d5210379e`
+> Redrawn for AI v2 · source: [`AiTeamReview.dc.html`](../source/AiTeamReview.dc.html) · canvas `1794110641-1323` · sha256 `9cac6f11a15d15c35157b7e87f61e7cb3492324890eea30a19a0481d5210379e`
 
 > Words, states and conditions follow the code of branch `claude/ai-team-architecture-7a1efc`; the layout is designed here and is not the layout of the current screens. Names, ids, costs and times in the mock-ups are sample data. **Check the code before building from this: the file named in each part is the truth, not the picture.**
 

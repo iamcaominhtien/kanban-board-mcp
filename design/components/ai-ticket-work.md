@@ -1,10 +1,10 @@
 # AI work on tickets
 
-> Component — v2 · source: [`AiTicketWork.dc.html`](../source/AiTicketWork.dc.html) · canvas `1794099567-d725` · sha256 `192c8543c3f801e9ec75e5c5dc30c52c37b36e802c3dd3e5231deae478758726`
+> Component — v2 · source: [`AiTicketWork.dc.html`](../source/AiTicketWork.dc.html) · canvas `1794110641-1323` · sha256 `10ac9c3956a782379325dddcefdb7ee47886eb1df0d0bdb9717a5ad086fbf921`
 
 > Redrawn for AI v2 from `docs/design-todo/` (rows A-001 to A-040 and the B rows named in the "Todo rows" section below) and checked against the code of branch `claude/ai-team-architecture-7a1efc` (`ui/src/components/ai/`). Names, ids, costs, tokens and times in the mock-ups are sample data. **Check the code before building from this: the file named in each section is the truth, not the picture.**
 
-Eyebrow "Component — v2". A ticket is assigned to an AI team: a lead (Claude Code) and the roles it calls on. The lead does the work and decides how; the board only shows it. Nothing the board draws can hold, gate or approve what the team does: no review gate, no status ceiling, no approval, no hold on a ticket. You can send the team a message at any time (Send to {team}), answer when it asks, stop a run, and read the lead’s Report. Desktop only. Sample project: Kanban Board (KAN).
+Eyebrow "Component — v2". A ticket is assigned to an AI team: a lead (Claude Code) and the roles it calls on. The lead does the work and decides how; the board only shows it. Nothing the board draws can hold or gate what the team does. You can send the team a message at any time (Send to {team}), answer when it asks, stop a run, and read the lead’s Report. Desktop only. Sample project: Kanban Board (KAN).
 
 ---
 
@@ -30,13 +30,13 @@ Source: [AiTicketWork.dc.html](../source/AiTicketWork.dc.html) › section A
 
 ![1. Assignee picker — AI teams under People](../images/ai-ticket-work/03-a1-assignee-picker.png)
 
-- Text in the frame: "ASSIGNEE" · "Search people and teams…" · "Unassigned" · "PEOPLE" · "AN" · "An Nguyen" · "you" · "HM" · "Hoa Mai" · "TV" · "Tuan Vo" · "AI TEAMS · 6" · "Backend team" · "Running KAN-142 · 1 running" · "Frontend team" · "Idle" · "Docs team" · "offline" · "Mobile team" · "signed out" · "Data team" · "Over budget · resets 00:00" · "Ops team" · "Paused · resume in AI teams"
+- Text in the frame: "ASSIGNEE" · "Search people and teams…" · "Unassigned" · "PEOPLE" · "AN" · "An Nguyen" · "you" · "HM" · "Hoa Mai" · "TV" · "Tuan Vo" · "AI TEAMS · 6" · "Backend team" · "Running KAN-142 · 1 running" · "Frontend team" · "Idle" · "Docs team" · "offline" · "Mobile team" · "signed out" · "Data team" · "Rate-limited" · "Ops team" · "Paused · resume in AI teams"
 
 ### 2. On assign: start now, or only assign — under the picker: the default, with another team at work, and the other choice
 
 ![2. On assign: start now, or only assign — under the picker: the default, with another team at work, and the other choice](../images/ai-ticket-work/04-a2-on-assign-start-now-or-only-assign.png)
 
-- Text in the frame: "Assign KAN-151 to Backend team" · "Return 409 on duplicate member names" · "Start now" · "The lead begins at once · Dev, Reviewer, QA" · "Assign only" · "The team holds the ticket and starts when you press Run" · "Ticket text is untrusted input for the agent." · "Cancel" · "Assign & start" · "Assign KAN-142 to Frontend team" · "Add drag handle to ticket card footer" · "The lead begins at once · Dev, Designer" · "Backend team is working on it now. That run is cancelled." · "Assign KAN-160 to Docs team" · "Write the import guide" · "The lead begins at once" · "Assign"
+- Text in the frame: "Assign KAN-151 to Backend team" · "Return 409 on duplicate member names" · "Start now" · "The lead begins at once · Dev, Reviewer, QA" · "Assign only" · "The team is assigned and starts when you press Run" · "Ticket text is untrusted input for the agent." · "Cancel" · "Assign & start" · "Assign KAN-142 to Frontend team" · "Add drag handle to ticket card footer" · "The lead begins at once · Dev, Designer" · "Backend team is working on it now. That run is cancelled." · "Assign KAN-160 to Docs team" · "Write the import guide" · "The lead begins at once" · "Assign"
 
 ### 3. Ticket header after assigning — the Run button, the run chip, the team in the Assignee block
 
@@ -74,13 +74,13 @@ Source: [AiTicketWork.dc.html](../source/AiTicketWork.dc.html) › section B
 
 ![1. Autocomplete — AI teams, with the state next to each](../images/ai-ticket-work/09-b1-autocomplete.png)
 
-- Text in the frame: "Write" · "Preview" · "B" · "i" · "Does the new handle break the keyboard order in the footer? @b" · "Mention" · "↑↓" · "Tab" · "Esc" · "PEOPLE · 1" · "LP" · "Linh Pham" · "Project member" · "AI TEAMS" · "Backend team" · "Team · running KAN-142 · roles: Dev, Reviewer, QA" · "Frontend team" · "Team · ready · roles: Dev, Designer" · "Docs team" · "Team · ready · no roles" · "Mobile team" · "Signed out · can’t be mentioned" · "Signed out" · "Data team" · "Over budget · can’t be mentioned" · "Over budget" · "Ops team" · "Paused · can’t be mentioned" · "Paused"
+- Text in the frame: "Write" · "Preview" · "B" · "i" · "Does the new handle break the keyboard order in the footer? @b" · "Mention" · "↑↓" · "Tab" · "Esc" · "PEOPLE · 1" · "LP" · "Linh Pham" · "Project member" · "AI TEAMS" · "Backend team" · "Team · running KAN-142 · roles: Dev, Reviewer, QA" · "Frontend team" · "Team · ready · roles: Dev, Designer" · "Docs team" · "Team · ready · no roles" · "Mobile team" · "Signed out · can’t be mentioned" · "Signed out" · "Data team" · "Team · ready · roles: Dev, Data" · "Ops team" · "Paused · can’t be mentioned" · "Paused"
 
 ### 2. The pill and its hover card — doc-reference shape, AI colour
 
 ![2. The pill and its hover card — doc-reference shape, AI colour](../images/ai-ticket-work/10-b2-the-pill-and-its-hover-card.png)
 
-- Text in the frame: "Can you check the keyboard order after the handle change," · "Backend team? Hoa already looked at the visual side, @Hoa Mai." · "Backend team" · "Running KAN-142" · "Now" · "3m 12s · KAN-142 Add drag handle to ticket card footer" · "Last run" · "Yesterday 17:20 · KAN-131 Finished" · "Product squad" · "Ask" · "Assign here" · "Profile" · "Mobile team" · "Signed out" · "Nothing right now" · "No runs yet" · "Buttons are off: “Not available now”. With no ticket open they say “Open a ticket to ask” / “Open a ticket to assign”." · "ready or running" · "Docs team" · "no runner: dashed border, can still be mentioned" · "signed out, over budget or paused: grey, struck through" · "@An Nguyen" · "a person: round, blue (unchanged)"
+- Text in the frame: "Can you check the keyboard order after the handle change," · "Backend team? Hoa already looked at the visual side, @Hoa Mai." · "Backend team" · "Running KAN-142" · "Now" · "3m 12s · KAN-142 Add drag handle to ticket card footer" · "Last run" · "Yesterday 17:20 · KAN-131 Finished" · "Product squad" · "Ask" · "Assign here" · "Profile" · "Mobile team" · "Signed out" · "Nothing right now" · "No runs yet" · "Buttons are off: “Not available now”. With no ticket open they say “Open a ticket to ask” / “Open a ticket to assign”." · "ready or running" · "Docs team" · "no runner: dashed border, can still be mentioned" · "signed out or paused: grey, struck through" · "@An Nguyen" · "a person: round, blue (unchanged)"
 
 ### 3. Mention in a comment: nothing to choose — replaces the dialog “What should happen when you send this comment?”
 
@@ -92,7 +92,7 @@ Source: [AiTicketWork.dc.html](../source/AiTicketWork.dc.html) › section B
 
 ![4. Mention in a test case note — small fragment](../images/ai-ticket-work/12-b4-mention-in-a-test-case-note.png)
 
-- Text in the frame: "TC-04" · "Handle keeps tab order in the footer" · "Failed" · "Fails in Safari 17: focus jumps to the handle before the title." · "Frontend team can you reproduce this?" · "Frontend team is mentioned" · "Ask" · "Just notify" · "Ask Frontend team" · "A test case is not a ticket: a mention here can only Ask or Just notify, and the answer lands as a ticket comment linking to TC-04." · "Test case note" · "Keeps Ask / Just notify for now" · "Open decision: one Send to {team} button instead"
+- Text in the frame: "TC-04" · "Handle keeps tab order in the footer" · "Failed" · "Fails in Safari 17: focus jumps to the handle before the title." · "Frontend team can you reproduce this?" · "Frontend team is mentioned" · "Send to Frontend team" · "A test case is not a ticket: the note goes to the team as a message, and the answer lands as a ticket comment linking to TC-04." · "Test case note" · "One button: Send to {team}" · "No choice of how to ask"
 
 ---
 
@@ -180,7 +180,7 @@ Source: [AiTicketWork.dc.html](../source/AiTicketWork.dc.html) › section D
 
 ![7. The AI activity view of a ticket — above the run panel: the run card, the restart notice, Resources, and the ticket’s own Timeline](../images/ai-ticket-work/24-d7-the-ai-activity-view-of-a-ticket.png)
 
-- Text in the frame: "Run #3 in progress" · "Started 12:41 · 3m 12s" · "Open run ›" · "Restarted automatically at 10:50" · "It reached 3.1 GB, over the 3.0 GB limit, so the system restarted it. It continues from its session. Restart 1 (2 in this run)." · "Open run" · "Resources" · "Live · every 2 s" · "CLI RAM NOW" · "1.35 GB" · "45% of the limit · +0.4 GB it started" · "PEAK" · "1.62 GB" · "this run" · "CPU" · "38%" · "of 1 core" · "RESTARTS" · "1" · "limit: 3" · "limit per run 3 GB" · "3.0" · "2.0" · "1.0" · "0.0" · "5 min ago" · "4" · "3" · "2" · "now" · "Stop" · "Open in Timeline" · "You" · "asks you ▸" · "Lead" · "Dev" · "Reviewer"
+- Text in the frame: "Run #3 in progress" · "Started 12:41 · 3m 12s" · "Open run ›" · "Restarted automatically at 10:50" · "It reached 3.1 GB, over the 3.0 GB limit, so the system restarted it. It continues from its session. Restart 1 (2 in this run)." · "Open run" · "Resources" · "Live · every 2 s" · "CLI RAM NOW" · "1.35 GB" · "45% of the limit · +0.4 GB it started" · "PEAK" · "1.62 GB" · "this run" · "CPU" · "38%" · "of 1 core" · "RESTARTS" · "1" · "limit: 3" · "limit per run 3 GB" · "3.0" · "2.0" · "1.0" · "0.0" · "5 min ago" · "4" · "3" · "2" · "now" · "Stop" · "Open in Flow" · "You" · "asks you ▸" · "Lead" · "Dev" · "Reviewer"
 
 ### 7b. The run card, one line per state — hidden while the ticket has no run; there is no chip on it
 
@@ -366,3 +366,9 @@ Boards and parts of boards that described v1 and are no longer in the product. T
 | A-033, A-034 | H1 two AIs one holder (lock chip), H2 a person edits while the AI runs (Refresh context, Pause run) | One assignee, one run at a time per team; to talk to the lead mid-run use Tell the lead now. |
 | A-037, A-039 | H5 AI tags AI (depth limit 3); H7 and H8 drafts of sub-tickets to accept or discard | The lead creates tickets itself through the board’s tools. |
 | A-002, A-003 | The “In AI review” chip, and Antigravity, GPT, Gemini, Llama and Claude API samples anywhere | Teams are Claude Code only. |
+
+---
+
+### Owner decisions pass (comment on PR #331)
+
+A-011 (test case note) is one "Send to {team}" button; "Open in Timeline" is "Open in Flow"; the "over budget" state is gone (the code's `status_of` never returns it); Rate-limited is drawn as "Rate-limited · will queue" in the assignee picker and as the plain team line in the mention list. The code still has `over_budget` in `aiAvailability.ts` and `AssigneePicker.tsx`, and says "Open in Timeline".

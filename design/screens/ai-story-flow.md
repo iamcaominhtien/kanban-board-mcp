@@ -1,6 +1,6 @@
 # Story, Flow by scope and Live commentary — a job the PM owns, one bar for Flow, the screens that ran without a design
 
-> Redrawn for AI v2 · source: [`AiStoryFlow.dc.html`](../source/AiStoryFlow.dc.html) · canvas `1794108209-3be9` · sha256 `af461b7af809ae89c0e029f0303e33929f181ed30363cab20f49fcaf4c03fdea`
+> Redrawn for AI v2 · source: [`AiStoryFlow.dc.html`](../source/AiStoryFlow.dc.html) · canvas `1794110641-1323` · sha256 `9e107aea7884c3cced80a75efc89d84feab7f4626d6b9dc5613b4267b45b00f2`
 
 > Words, states and conditions follow the code of branch `claude/ai-team-architecture-7a1efc`; the layout is designed here and is not the layout of the current screens. Names, ids, costs and times in the mock-ups are sample data. **Check the code before building from this: the file named in each part is the truth, not the picture.**
 
@@ -28,7 +28,7 @@
 
 ![The Story page](../images/ai-story-flow/03-the-story-page-b.png)
 
-- Text in this part: "B" · "The Story page" · "Opens for a Story ticket, in the app beside the sidebar. It answers four questions in order: what was asked, how far along it is, who holds each sub-ticket, what the teams have used." · "1. The Story page — a page in the app, beside the sidebar" · "KANBAN" · "PROJECTS" · "Kanban Board" · "KAN" · "Mobile App" · "MOB" · "Marketing Site" · "MKT" · "Settings" · "Members" · "3 teams" · "Recycle Bin" · "3" · "Board" · "KAN-301" · "Story" · "In progress" · "Weather app, web version" · "Open in Timeline" · "⋯" · "TICKETS" · "3 of 5" · "1 building" · "ELAPSED" · "2 h 40 m" · "since the first team run" · "WAITING FOR YOU" · "0" · "teams that asked a question" · "TOKENS" · "1.3M" · "by the teams on its sub-tickets" · "GOAL" · "3 of 5 met" · "A web page where I type a city and see the weather there: today, the next seven days, in my choice of units. The cities I look at most stay on the page." · "DONE WHEN" · "Type a city and see today’s temperature and conditions" · "See the next seven days" · "Choose Celsius or Fahrenheit and the page remembers it" · "Cities I use often stay on the page" · "When there is no network the page says so instead of showing nothing" · "PLAN" · "5 sub-tickets · in the order of their waves" · "#" · "TICKET" · "WHAT" · "HELD BY" · "STATE" · "TIME" · "1" · "KAN-302" · "Search a city and show today’s forecast" · "Backend team" · "Done" · "2" · "KAN-303" · "Seven-day forecast list" · "KAN-304" · "Unit switch: Celsius and Fahrenheit" · "AN" · "An Nguyen" · "4" · "KAN-305" · "Save favourite cities" · "5" · "KAN-306" · "Offline message and error states" · "Waits for KAN-305" · "TOKENS AND MONEY" · "tokens in 11 team runs" · "about $6.40 so far" · "2. The ⋯ menu — Open as ticket is the ordinary ticket window, for this Story only" · "Open as ticket" · "Lands on AI Team, tab Flow" · "Timeline view, scoped to this Story and its sub-tickets" · "The same bar brings you back to the Map" · "3. Open in Timeline — lands on AI Team › Flow, on the Timeline view, scoped to this Story" · "List" · "Timeline" · "Docs" · "AI Team" · "Now" · "Flow" · "Run history" · "You stepped in" · "9" · "Health" · "Resources" · "Memory" · "›" · "Story KAN-301 · Weather app, web version" · "Go to a team, Story or ticket" · "/" · "Copy link" · "Map" · "5 tickets in this Story, 3 done, from the plan to now" · "You" · "▾ Backend team 3 roles" · "Lead" · "Dev" · "Reviewer" · "QA" · "4. A new Story — no goal, no criteria, no sub-tickets, nothing spent" · "0 of 0" · "none building" · "—"
+- Text in this part: "B" · "The Story page" · "Opens for a Story ticket, in the app beside the sidebar. It answers four questions in order: what was asked, how far along it is, who holds each sub-ticket, what the teams have used." · "1. The Story page — a page in the app, beside the sidebar" · "KANBAN" · "PROJECTS" · "Kanban Board" · "KAN" · "Mobile App" · "MOB" · "Marketing Site" · "MKT" · "Settings" · "Members" · "3 teams" · "Recycle Bin" · "3" · "Board" · "KAN-301" · "Story" · "In progress" · "Weather app, web version" · "Open in Flow" · "⋯" · "TICKETS" · "3 of 5" · "1 building" · "ELAPSED" · "2 h 40 m" · "since the first team run" · "WAITING FOR YOU" · "0" · "teams that asked a question" · "TOKENS" · "1.3M" · "by the teams on its sub-tickets" · "GOAL" · "3 of 5 met" · "A web page where I type a city and see the weather there: today, the next seven days, in my choice of units. The cities I look at most stay on the page." · "DONE WHEN" · "Type a city and see today’s temperature and conditions" · "See the next seven days" · "Choose Celsius or Fahrenheit and the page remembers it" · "Cities I use often stay on the page" · "When there is no network the page says so instead of showing nothing" · "PLAN" · "5 sub-tickets · in the order of their waves" · "#" · "TICKET" · "WHAT" · "HELD BY" · "STATE" · "TIME" · "1" · "KAN-302" · "Search a city and show today’s forecast" · "Backend team" · "Done" · "2" · "KAN-303" · "Seven-day forecast list" · "KAN-304" · "Unit switch: Celsius and Fahrenheit" · "AN" · "An Nguyen" · "4" · "KAN-305" · "Save favourite cities" · "5" · "KAN-306" · "Offline message and error states" · "Waits for KAN-305" · "TOKENS AND MONEY" · "tokens in 11 team runs" · "about $6.40 so far" · "2. The ⋯ menu — Open as ticket is the ordinary ticket window, for this Story only" · "Open as ticket" · "Lands on AI Team, tab Flow" · "Timeline view, scoped to this Story and its sub-tickets" · "The same bar brings you back to the Map" · "3. Open in Flow — lands on AI Team › Flow, on the Timeline view, scoped to this Story" · "List" · "Timeline" · "Docs" · "AI Team" · "Now" · "Flow" · "Run history" · "You stepped in" · "9" · "Health" · "Resources" · "Memory" · "›" · "Story KAN-301 · Weather app, web version" · "Go to a team, Story or ticket" · "/" · "Copy link" · "Map" · "5 tickets in this Story, 3 done, from the plan to now" · "You" · "▾ Backend team 3 roles" · "Lead" · "Dev" · "Reviewer" · "QA" · "4. A new Story — no goal, no criteria, no sub-tickets, nothing spent" · "0 of 0" · "none building" · "—"
 
 ---
 
@@ -80,4 +80,100 @@
 
 ---
 
-Rows, differences from the code and open points for this group are in [ai-team.md](ai-team.md).
+### Owner decisions pass (comment on PR #331)
+
+"Open in Timeline" is "Open in Flow" in the buttons and captions.
+
+---
+
+## Todo rows, differences from the code, and what was not checked
+
+### First round (story, board assistant, Wave 3, everywhere)
+
+All files are 1480 wide. finalH: AiStoryFlow 10447, AiBoardAssistant 10654, AiBoardWave3 4136, AiEverywhere 4347.
+Not touched: AiTeamReview, AiResources. Generators: gen_story.py, gen_assist.py, gen_wave3.py, gen_every.py (kit.py, dock.py, cio.py are shared helpers).
+
+## AiStoryFlow.dc.html (A-147..A-153, B-42, B-43)
+Old file edited with bs4 (25 boards, 34 506 px) down to 9 children: new header, A, B, C and the five Flow boards.
+| Row | What I did | Notes |
+|---|---|---|
+| A-147 | Removed A, A2, B, C, C2, F, G, L, M1, M2, N, O, P, Q, R(1)(3), S; redrew D and E (now A and B) | G (scope bar) is removed with the rest: it belongs to Flow but the todo lists it as deleted |
+| A-147 Flow part | LEFT as is: H, H2, I, I2, J (Flow map, one Story, one ticket, Timeline inside a Story) | KBM-20 is building them. They still carry v1 words (PM, hand-offs, Designer, approval); not mine to change. Their letters stay H..J |
+| A-148, A-149, A-150, A-151, A-153 | Removed (K, K2, L..P, Q, R(1)(3), S) | Live list goes in AiTeam (not in this canvas) |
+| A-152 | Drawn as board C: chip on (green) and off (amber), nothing running, popover on and off | Samples now Backend team / Docs team. Not moved to its own canvas (the assignment keeps it here) |
+| B-42 | Board A: lanes on (full board), switch off and on, folded lane, Story with no sub-tickets (folded and open), no Story at all, filters hiding sub-tickets (progress still counts all), drag over a lane cell | |
+| B-43 | Board B: the page, the ⋯ menu with Open as ticket, Open in Timeline landing, new Story (no goal, no criteria, no sub-tickets), a team waiting for you with cost not metered ("—"), the Time column (done, live, hatched), window under 1100 px | |
+
+Differences from the code (drawn on purpose): the lane's status is a small chip ("In progress"), the code prints it as grey lowercase text ("in progress"); the card avatars are teams; Members badge in the sidebar reads "3 teams" (the code still has the v1 count); the Open in Timeline icon is the code's. Todo B-42 says the draw of the "Draft Story with no children" was not checked: I drew the code's "Folded: no tickets yet" and an open lane with empty cells; the empty cells are my reading of the code, not a screenshot.
+
+## AiBoardAssistant.dc.html (A-154..A-166, B-26, B-39..B-41, B-44)
+Boards now: A Entry points, B Chat dock, C Ticket chat with its team (new), D Board health, E Docs AI, F Settings → AI, G States, Note. Removed: C Ticket drafting, D Sub-task split, E Test cases.
+| Row | What I did | Notes |
+|---|---|---|
+| A-154 | Header and Note rewritten (Board AI = session of the project's first team, acts, context bar) | |
+| A-155 | A1 edited in place: sub line "Backend team (Claude Code) · online", new welcome, new footer, context bar; A7 redrawn as "Board AI without a team" | New texts are mine (the code still says "propose drafts", see below) |
+| A-156 | A2 table: removed New Ticket and Test Cases rows; Ticket row now "Ask about this ticket ⌘J"; A4 menu has one item | |
+| A-157 | Removed boards C, D, E and I4, I5, I6 | |
+| A-158 | B1 conversation without suggested actions or cost; B2 receipt "Done — 2 changes · Undo all 2"; B3 Undo all ("Undone — 2 put back"); B4 asks first | Receipt drawn as DoneReceipt.tsx (Undo all only, no per-line Undo) |
+| A-159 | Removed (old B2 draft card) | |
+| A-160 | History without $ (B5); thinking, scope with Doc and Idea scopes (B10); empty board (G5); long ticket; injection; private doc; feature off | I8: new target is "Ask for a first ticket" (my wording, there is no target in the code) |
+| A-161 | Error (B8), account limit (B9), budget reached "only when metered" (B11), not signed in (G1), slow (G3) | Texts mine: "Claude Code did not answer", "Claude usage limit reached" |
+| A-162 | G4 Viewer | Text as the todo quotes Wave3 M |
+| A-163 | D: act buttons, draft block and cost chip removed | |
+| A-164 | D2 row "Offer a draft comment" removed; E (Docs AI) kept, cost chip removed | |
+| A-165 | F: features Ask AI (chat), Drafting in editors, Board health, Docs AI, Sketch AI; Board AI = first team; no caps, no audit link | Names from `settings.py` FEATURES |
+| A-166 | No canvas part (md only). The integrator must delete section J in ai-board-assistant.md | |
+| B-39 | C1..C6 idle, working, waiting ("Waiting for Backend team…"), answered with role label, stopped without answering, no team ("Private to you") | |
+| B-40 | C15..C19: six commands, filter, dimmed, notices, bar at 8 / 41 / 72 % (A also 18..33; B12 has 20 / 65 / 90), Auto-compact row | The code has six commands (compact, new, history, report, stop, cost); the todo says four |
+| B-41 | C7..C14: + menu, greyed while working, confirmation, "Summarising…", notice, History empty / rows / digest stand-in | |
+| B-44 | C20..C23: question answered in chat, request that changes something, Runs tab, bell open and closed | |
+| B-26 | E4, E5 in Docs AI (draft waiting with Continue; written directly with "AI edited this page · version 14" and Undo) | The banner is C-21 (not built) |
+
+## AiBoardWave3.dc.html (A-167..A-175)
+Boards now: A Does it / asks first, B Receipt, C What it can reach, D Knowledge base, E GitHub, F Two events, G States. Removed: A, B, F, G, H, K, N.
+| Row | What I did | Notes |
+|---|---|---|
+| A-167 | Header rewritten | |
+| A-168, A-172 | Removed | |
+| A-169 | One card with two behaviours | |
+| A-170 | Receipt with four changes and an ask-first (delete) | No per-line Undo (code has none) |
+| A-171 | Table from the board-ask skill tools: projects, tickets, manage_ticket, ticket_items, ticket_branches, docs, knowledge | Schedules, runs, stop and workflows are not in the skill's tool list; dropped |
+| A-173 | Kept; "AIs" to "teams", wave and ai-safety-cost references removed, sidebar badge | The sentence "A light model wrote the one-line summary" is still in `KnowledgeBasePanel.tsx` (for files), so I kept it |
+| A-174 | Six frames from PullStatus.tsx: red, red on base too, already given back, comments, unreachable, watching off. Only "Open the run on GitHub" and "I will answer them" | The code's rule table (`pullParts.tsx`) still says "section H", "hand-over rules", "ask-first tier": not drawn, needs a code edit |
+| A-175 | Two events kept (window wait, merge conflict); arbitration removed; states 12 to 8 | Merge conflict row has only "Open the ticket": the todo's "Give it to an AI / I will do it" buttons are not in the code. I count 8 other states, the todo says nine |
+
+## AiEverywhere.dc.html (A-176..A-180)
+| Row | What I did | Notes |
+|---|---|---|
+| A-176 | Header and A rewritten (Ask only / mention-stops-at-Review rows gone) | |
+| A-177 | B: ticket with a team (chat = the lead, role label, Post as comment, Copy), no team ("Private to you"), Runs tab | No toggle, no criteria draft, no run chip, no estimate |
+| A-178 | C: teams in the picker (Docs team paused), "Send to Backend team" split button, queued / working / did not start, answer with team and role | "Needs your OK" removed; Helpful removed |
+| A-179 | D kept; costs removed; frames 6..8 added (draft waits with Continue, accepted with Undo, written directly) | |
+| A-180 | E "No team yet", "Budget reached" (metered); F three rules (drafts, what it reads, keyboard) | |
+
+## Rows not done, or left
+Flow boards (KBM-20) kept untouched. Not drawn: Resources, You stepped in, Health, Docs AI (KBM-21/22/24 as the brief says). `design/screens/ai-where-you-work.md` and `ai-board-assistant.md` not edited (integrator).
+
+## Code against todo
+- `AssistDock.tsx` still prints "I read ... and propose changes as drafts. I never change anything until you press Apply.", the footer "AI proposes · you apply", "Reviewer (…)" subtitle and "Draft first ticket with AI"; `ScopedChat.tsx` still says "I propose changes as drafts" for a ticket with no team and has `Who` with "No AI member". I drew the todo's v2 text; the code must change.
+- Ask-first has no confirm control in the code (`AsksFirst` says "Apply is the confirm"). I drew two answer buttons ("Yes, delete…", "Leave it"): the developer must decide.
+- Context bar tooltip and Auto-compact row follow the code.
+
+## Not checked
+Nothing was run in the app. Strings for the account-limit, error, empty-board and "Send to" frames are mine where the code has nothing. Word search done on text: no v1 words remain except in the kept Flow boards and the real code line "API keys and secrets, never" (what is sent).
+
+## Review round
+finalH now: AiStoryFlow 11353, AiBoardAssistant 10890, AiBoardWave3 4598, AiEverywhere 4358. Avatar dot bug fixed by re-running the generators with the fixed lib (kept boards come from the old file and are untouched).
+**Fixed**
+- Keep awake: chip now in the project header beside Board health, Ask AI, bell, on any tab. Lane status is grey lowercase text. Open in Timeline lands on AI Team › Timeline with "One ticket: KAN-301". Narrow Story page: only Tokens and money goes under, full table kept. Story sample made one story (5 children: 302/303/304 done, 305 working, 306 waits; same holders everywhere; numbering from 1; "5 sub-tickets"); filter frame hides KAN-304 and says so.
+- Board AI: A7/G1 now use the code's block "Claude Code was not found on this computer. Install it, or add an AI team in Members." Removed frames for streaming, rate limit, budget, over-budget, viewer, truncated context (never produced by the server); Everywhere Budget and Viewer states removed; Wave3 "Everything is paused" removed (nothing reads paused_all). Scope shows the three real rows. Thinking has Stop. Frames renumbered. Reading chips "This ticket / Its comments / Linked pages". Style guide label "Style guide for ticket drafts". Board health: "Check now", "Docs that may be out of date", "Not metered" label, 6 insights and 08:00 consistent. "Run #14" plain; thread rows "Cancel" / "Stop", no "Did not start"; Runs tab as TicketChat.tsx (Run #, state chip, Open, "Answer only"/"Work", cost or "Not metered"); empty Runs tab text; question card above the chat; "+ New chat" frame; closing comment without "Report." and dollars, with "Run #4 · 48,000 tokens · sonnet"; bell texts "{team} finished {ticket}" and "{team} asks a question"; @ picker lines as aiAvailability.ts; "2 review comments"; Wave3 B1 "Based on 11 tickets · 2 docs", no "Acts as you"; knowledge-base frame no longer cut, "wave 1" gone; invented UI removed (Open the Runs tab, Reply, explanation under comment box, Draft waiting frames, window-wait example row and its button).
+**Kept (why)**
+- Todo's frames for the Board AI without a team: replaced by the code's text, so the todo's "needs a team" wording is not drawn (todo and code disagree).
+- Scope with Doc and Idea rows (todo A-160): removed, the code has three.
+- "Yes, delete…/Leave it" buttons under an ask-first: designer's proposal (code has none). "AI edited this page · Undo" banner: todo C-21, not built. Wave3 merge-conflict card has only "Open the ticket": the todo's give-back buttons do not exist.
+- Wave3 states: 7 remain (12 minus 4 rule/suite states minus "Everything is paused"); the todo's nine cannot be reached.
+- Stopped-without-answer text and closing-comment sample are drawn from chat.py/runs.py wording.
+**Cannot**
+- B-26 Idea and Sketch assistants not drawn (no frame source read in this round). "AI summary" chip on the closing comment not drawn (code basis unclear).
+
+The Flow v2 round (Map, scope bar, ranges, empty states) is reported in [ai-team.md](ai-team.md).

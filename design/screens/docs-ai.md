@@ -1,6 +1,6 @@
 # Docs AI — ask, write, read & edit
 
-> Redrawn for AI v2 · source: [`DocsAi.dc.html`](../source/DocsAi.dc.html) · canvas `1794108209-3be9` · sha256 `c7ff844a12cace5dd8d4445774edb3d8a6895bbb327c0e88b219a39324e5acb7`
+> Redrawn for AI v2 · source: [`DocsAi.dc.html`](../source/DocsAi.dc.html) · canvas `1794110641-1323` · sha256 `c7ff844a12cace5dd8d4445774edb3d8a6895bbb327c0e88b219a39324e5acb7`
 
 > Words, states and conditions follow the code of branch `claude/ai-team-architecture-7a1efc`; the layout is designed here and is not the layout of the current screens. Names, ids, costs and times in the mock-ups are sample data. **Check the code before building from this: the file named in each part is the truth, not the picture.**
 

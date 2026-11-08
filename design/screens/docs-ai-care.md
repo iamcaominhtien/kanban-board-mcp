@@ -1,6 +1,6 @@
 # Docs AI — keeping docs true, Send to AI & control
 
-> Redrawn for AI v2 · source: [`DocsAiCare.dc.html`](../source/DocsAiCare.dc.html) · canvas `1794108858-2696` · sha256 `b706d3065a99d946e8ec2de32203e1f810e63e73111dd1a2f51deac09a538665`
+> Redrawn for AI v2 · source: [`DocsAiCare.dc.html`](../source/DocsAiCare.dc.html) · canvas `1794110641-1323` · sha256 `b706d3065a99d946e8ec2de32203e1f810e63e73111dd1a2f51deac09a538665`
 
 > Words, states and conditions follow the code of branch `claude/ai-team-architecture-7a1efc`; the layout is designed here and is not the layout of the current screens. Names, ids, costs and times in the mock-ups are sample data. **Check the code before building from this: the file named in each part is the truth, not the picture.**
 

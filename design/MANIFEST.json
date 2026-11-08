@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1794108858-2696",
+  "canvas_version": "1794110641-1323",
   "exported": "2026-11-02",
   "files": {
     "AccountMenu.dc.html": {
@@ -36,28 +36,28 @@
       "h": 620
     },
     "AiAccounts.dc.html": {
-      "bytes": 184527,
-      "sha256": "e4aae9f479220f61f20145f8b07294891c792df3d2b356c057e05959619445e3",
+      "bytes": 188094,
+      "sha256": "073777fe19aedb9655fb9a56c1ba74332180654a4e7fbb7a7ba26457a14a8b4a",
       "title": "AI accounts — sign in once, share between AI members",
       "page": "screens_ai",
       "w": 1480,
-      "h": 10035
+      "h": 10169
     },
     "AiBoardAssistant.dc.html": {
-      "bytes": 338774,
-      "sha256": "76f1c75932ac4d875b4a0cf7d6eb24e9fac2b3be14da5ea8cc59a4b350e77412",
+      "bytes": 342580,
+      "sha256": "a54b4655708e87a561504e04f7175688ae1221edf31e80181141e56923833bda",
       "title": "Board AI — assistant & suggestions",
       "page": "screens_ai",
       "w": 1480,
-      "h": 10890
+      "h": 11266
     },
     "AiBoardWave3.dc.html": {
-      "bytes": 87775,
-      "sha256": "508feeeb7abc1dd2a0f27c9401a4e6a90fa27f8c330005478738f746c3c67b0c",
+      "bytes": 89977,
+      "sha256": "1ab21f07558e841ba2326e7fe81a3d887d9e4df7166b6b38f93361504112967c",
       "title": "Board AI & beyond — risk tiers, standing orders, knowledge base, GitHub, marks",
       "page": "screens_ai",
       "w": 1480,
-      "h": 4598
+      "h": 4787
     },
     "AiDatabases.dc.html": {
       "bytes": 167320,
@@ -76,20 +76,20 @@
       "h": 4358
     },
     "AiMembers.dc.html": {
-      "bytes": 208683,
-      "sha256": "afd6e094f0af7cef6743f029f0f7b2409282f71f339c044435e4e669a69946a8",
+      "bytes": 215689,
+      "sha256": "e84769c85c3b8cd0b9cb96b10695c16ae2c0b2933e37754bf58b69b0d7cb6be6",
       "title": "AI members — list & register",
       "page": "screens_ai",
       "w": 1480,
-      "h": 11153
+      "h": 11393
     },
     "AiOperations.dc.html": {
-      "bytes": 139700,
-      "sha256": "81b2825d959fd9ffa7cff029ddc1a027b0853202c65a62ee15c5616cd984661d",
+      "bytes": 139755,
+      "sha256": "853772f54e98234b0714d8e4b630abded083e33ca21d25c60c4ce18c8a5f1c45",
       "title": "AI operations — hangs, the needs-you queue, quota, run history, knowledge, worktrees",
       "page": "screens_ai",
       "w": 1480,
-      "h": 9196
+      "h": 9195
     },
     "AiPaused.dc.html": {
       "bytes": 108714,
@@ -116,8 +116,8 @@
       "h": 7516
     },
     "AiResources.dc.html": {
-      "bytes": 235976,
-      "sha256": "f213dc290f12946b2dc1a504b6cb1ee7f81823bb07908cef748f661840c80481",
+      "bytes": 235972,
+      "sha256": "c2d737a4d118989cc57654713cd15711b907cba6139a297b8763099f10d47305",
       "title": "AI Team — Resources: what the running AIs use",
       "page": "screens_ai",
       "w": 1480,
@@ -132,20 +132,20 @@
       "h": 7969
     },
     "AiStoryFlow.dc.html": {
-      "bytes": 419772,
-      "sha256": "af461b7af809ae89c0e029f0303e33929f181ed30363cab20f49fcaf4c03fdea",
+      "bytes": 419756,
+      "sha256": "9e107aea7884c3cced80a75efc89d84feab7f4626d6b9dc5613b4267b45b00f2",
       "title": "Story, Flow by scope and Live commentary — a job the PM owns, one bar for Flow, the screens that ran without a design",
       "page": "screens_ai",
       "w": 1480,
       "h": 14120
     },
     "AiTeam.dc.html": {
-      "bytes": 424047,
-      "sha256": "a0ddeb3b490ff3515cd27f8404c07c572c8fe58c032579880f3f982400a46029",
+      "bytes": 427163,
+      "sha256": "7c256b48e3aa7e93b7625970da5b329d71f1ebe4ee8bc4e6b7022260d4abd5b4",
       "title": "AI Team — what the AIs are doing and how work moves",
       "page": "screens_ai",
       "w": 1480,
-      "h": 17330
+      "h": 17500
     },
     "AiTeamProcess.dc.html": {
       "bytes": 86951,
@@ -164,24 +164,24 @@
       "h": 12796
     },
     "AiTicketWork.dc.html": {
-      "bytes": 358344,
-      "sha256": "192c8543c3f801e9ec75e5c5dc30c52c37b36e802c3dd3e5231deae478758726",
+      "bytes": 357410,
+      "sha256": "10ac9c3956a782379325dddcefdb7ee47886eb1df0d0bdb9717a5ad086fbf921",
       "title": "AI work on tickets",
       "page": "components_collab",
       "w": 1380,
-      "h": 15007
+      "h": 14998
     },
     "AiTimeline.dc.html": {
-      "bytes": 200263,
-      "sha256": "6a1cf199fabec229af9a99e02c5a01bece8609f93b6e9edc03bd8a39ab3ab07e",
+      "bytes": 200267,
+      "sha256": "d0f5040199e78bbf391dce55fd0d9093c70e15bdee2f7367a7be5eec61aee3c8",
       "title": "AI Team — Flow: the Timeline view",
       "page": "screens_ai",
       "w": 1480,
       "h": 7017
     },
     "AiTimelineCases.dc.html": {
-      "bytes": 344019,
-      "sha256": "80fc3fef3eb7a5a6ae26e3505fac02f85efa82d86c56db3f183f3a0d48d4d044",
+      "bytes": 344036,
+      "sha256": "52877678058168ed28cebc7c1b36874738f3979d8455746e38213883df6e687b",
       "title": "AI Team — Flow Timeline: time, scope, motion, states",
       "page": "screens_ai",
       "w": 1480,
@@ -460,12 +460,12 @@
       "h": 1560
     },
     "Notifications.dc.html": {
-      "bytes": 253818,
-      "sha256": "c47e6883e80b553fbc27383cea9200e78caa1eef8a297eba5877c3277fe0ad74",
+      "bytes": 257746,
+      "sha256": "7c6cee8ac8f64a610efb63f7d985ac4361fe58bdd94aa721c4f2c8df3340a6a2",
       "title": "Notifications — one place for what needs you and what happened",
       "page": "screens_account",
       "w": 1480,
-      "h": 14902
+      "h": 15259
     },
     "PasswordReset.dc.html": {
       "bytes": 24170,
