@@ -200,11 +200,23 @@ export function menuItems(a: AiAccount, desktop: boolean): MenuItem[] {
   const web = desktop ? null : DESKTOP_ONLY;
   const busy = a.status === 'signing_in' ? 'Someone is signing in to this account.' : null;
   return [
-    { action: 'sign_in', label: 'Sign in again', ...off(signInOffReason(a, desktop)) },
+    {
+      action: 'sign_in',
+      label: 'Sign in again',
+      ...off(
+        signInOffReason(a, desktop) ??
+          (a.status === 'signed_in' ? 'This account works: there is nothing to sign in again.' : null),
+      ),
+    },
     { action: 'check', label: 'Check now', ...off(web) },
     { action: 'rename', label: 'Rename', ...off(web) },
     { action: 'members', label: 'See teams using it', disabled: false },
-    { action: 'sign_out', label: 'Sign out', divider: true, ...off(web ?? busy) },
+    {
+      action: 'sign_out',
+      label: 'Sign out',
+      divider: true,
+      ...off(web ?? busy ?? (a.status === 'needs_sign_in' ? 'This account is already signed out.' : null)),
+    },
     { action: 'remove', label: 'Remove…', danger: true, ...off(web ?? busy) },
   ];
 }

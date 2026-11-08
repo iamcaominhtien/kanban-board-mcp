@@ -345,7 +345,7 @@ function TeamTable({
             <div>
               <RoleChips team={m} />
             </div>
-            <div className="ai-muted">
+            <div style={{ fontSize: 13 }}>
               {m.model ?? 'sonnet'}
               {m.effort ? ` · ${m.effort}` : ''}
             </div>
@@ -369,7 +369,7 @@ function TeamTable({
               </div>
               <div className="ai-muted">{money(m.usage.costToday)}</div>
             </div>
-            <div className="ai-muted">{m.permissionMode}</div>
+            <div style={{ fontSize: 13 }}>{m.permissionMode}</div>
             <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"

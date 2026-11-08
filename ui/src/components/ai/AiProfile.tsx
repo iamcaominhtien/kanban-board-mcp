@@ -20,6 +20,7 @@ import {
 } from './roleEdit';
 import { AiAvatar, LoadError, StatusLabel, money, statusSub, useNow } from './aiUi';
 import { roleLook } from './roleLook';
+import { displayStatus } from '../../utils/memberAccount';
 import { LineIcon } from '../ui/LineIcon';
 import './ai.css';
 
@@ -460,7 +461,10 @@ export function AiProfile({
             {team.name}
           </h1>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
-            <StatusLabel status={team.status} sub={statusSub(team) ?? null} />
+            <StatusLabel
+              status={displayStatus(team)}
+              sub={displayStatus(team) !== team.status ? displayStatus(team).detail : (statusSub(team) ?? null)}
+            />
             <span className="ai-muted">
               {team.packName ?? team.packKey} · {team.model ?? 'sonnet'}
               {team.effort ? ` · ${team.effort}` : ''} · {team.permissionMode}
@@ -501,7 +505,13 @@ export function AiProfile({
           <LineIcon name="trash" size={13} /> Remove…
         </button>
       </div>
-      {team.healthDetail && team.health !== 'ok' && <div className="ai-notice ai-notice-warn">{team.healthDetail}</div>}
+      {team.healthDetail && team.health !== 'ok' && (
+        <div className="ai-notice ai-notice-warn">
+          {displayStatus(team) !== team.status && team.accountRef
+            ? `The account ${team.accountRef.name} needs to sign in.`
+            : team.healthDetail}
+        </div>
+      )}
 
       <Section title="Today">
         <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', fontSize: 13 }}>
