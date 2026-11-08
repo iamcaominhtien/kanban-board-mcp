@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTickets } from '../../../api/tickets';
-import { useDocsAiState, useSetPageAiFlags } from '../../../api/docsAi';
+import { useDocsAiState } from '../../../api/docsAi';
 import { freshnessUnavailable, useCheckFreshness } from '../../../api/docsAiPage';
 import { extractError } from '../../../api/extractError';
 import type { DocsPage } from '../../../types/docs';
@@ -26,7 +26,7 @@ import { LineIcon } from '../../ui/LineIcon';
 /**
  * The AI button in the page header, beside Comments and Share (docs-ai B). Shown only when Docs AI is on for the
  * project (`aiGate`); lists what AI can do with this page and starts nothing until a row is picked. Viewers do not see
- * the writing rows. A hidden page shows a lock and a reason; with no AI member there is one row that opens AI members.
+ * the writing rows; with no AI member there is one row that opens AI members.
  * @param props.projectId - The project of the page.
  * @param props.page - The page the menu is for.
  * @param props.canEdit - Whether the person can edit the page.
@@ -60,13 +60,12 @@ export function PageAiMenu({
   const [tickets, setTickets] = useState(false);
   const [other, setOther] = useState('');
   const box = useRef<HTMLDivElement>(null);
-  const flags = useSetPageAiFlags(page.projectId, page.id);
   const projectTickets = useTickets(projectId);
   const knownTickets = useMemo(
     () => (projectTickets.data ? new Set(projectTickets.data.map((t) => t.id)) : undefined),
     [projectTickets.data],
   );
-  const gate = aiGate(state.data, { hidden: !!page.aiHidden });
+  const gate = aiGate(state.data);
   const menu = pageMenu(gate, canEdit);
 
   useEffect(() => {
@@ -132,40 +131,12 @@ export function PageAiMenu({
         data-testid="page-ai-menu"
         onClick={() => setOpen((v) => !v)}
       >
-        {menu.kind === 'hidden' ? (
-          <Icon name="lock" size={14} strokeWidth={1.9} />
-        ) : (
-          <LineIcon name="sparkle" size={14} />
-        )}
+        <LineIcon name="sparkle" size={14} />
         AI
         <Icon name="chevronDown" size={11} strokeWidth={2.3} />
       </button>
       {open && (
         <div className="dk-menu pai-menu" role="menu" aria-label="AI" data-testid="page-ai-popover">
-          {menu.kind === 'hidden' && (
-            <div style={{ display: 'flex', gap: 10, padding: '10px 10px 12px', alignItems: 'flex-start' }}>
-              <Icon name="lock" size={16} strokeWidth={1.9} style={{ color: '#7c5cd6', marginTop: 2 }} />
-              <div>
-                <div className="pai-row-title">This page is hidden from AI</div>
-                {/* the server's own words (who hid it, why) when it sends them; the design copy otherwise */}
-                <div className="pai-row-hint">
-                  {menu.text || 'Ask, summaries and AI runs skip it. People can still read and edit it.'}
-                </div>
-                {canEdit && (
-                  <button
-                    type="button"
-                    className="st-btn st-btn-sm"
-                    style={{ marginTop: 8 }}
-                    disabled={flags.isPending}
-                    data-testid="ai-show-to-ai"
-                    onClick={() => flags.mutate({ hidden: false })}
-                  >
-                    Show to AI
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
           {menu.kind === 'no_member' && (
             <button
               type="button"

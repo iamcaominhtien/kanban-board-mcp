@@ -707,18 +707,6 @@ export function DocsTree({
               {highlight(n.title, q)}
             </TitleTip>
           )}
-          {!renaming && aiOn && n.aiHidden && (
-            <span title="Hidden from AI" aria-label="Hidden from AI" style={{ display: 'flex', color: '#9AA8A0' }}>
-              <Icon name="lock" size={11} strokeWidth={2} />
-            </span>
-          )}
-          {!renaming && aiOn && n.aiGuidance && (
-            <span
-              title="AI guidance: read by every AI run"
-              aria-label="AI guidance"
-              style={{ width: 7, height: 7, borderRadius: 2, background: '#6B5BD2', flexShrink: 0, margin: '0 3px' }}
-            />
-          )}
           {!renaming && n.status === 'draft' && (
             <span
               title="Draft"

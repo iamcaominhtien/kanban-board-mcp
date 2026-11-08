@@ -55,7 +55,7 @@ interface BoardProps {
   projectId?: string;
   viewMode: 'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team';
   onViewModeChange: (v: 'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team') => void;
-  /** AI Team view: open an AI member's page (fix its connection) and a Docs page (review its proposals). */
+  /** AI Team view: open an AI member's page (fix its connection) and a Docs page. */
   onOpenAiMember?: (memberId: string) => void;
   onOpenDocsPage?: (pageId: string) => void;
   /** Docs view: a page to open (from a ticket's linked docs or a ?docs= link). */

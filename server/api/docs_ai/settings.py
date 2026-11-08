@@ -41,13 +41,8 @@ class DocsAiBody(BaseModel):
 
     enabled: Optional[bool] = None
     member_id: Optional[str] = None
-    read_scope: Optional[str] = None
-    picked_pages: Optional[list[str]] = None
     style_page_id: Optional[str] = None
-    edits_mode: Optional[str] = None
-    proposal_days: Optional[int] = None
     freshness_on: Optional[bool] = None
-    guidance_limit: Optional[int] = None
     digest_on: Optional[bool] = None
 
 
@@ -66,28 +61,6 @@ async def patch_docs_ai(
     await svc.update(session, project_id, body.model_dump(exclude_unset=True), by())
     await board_events.publish(board_events.INVALIDATE)
     return await svc.describe(session, project_id)
-
-
-class PageFlagsBody(BaseModel):
-    """Page info: hide from AI, use as AI guidance."""
-
-    hidden: Optional[bool] = None
-    guidance: Optional[bool] = None
-
-
-@router.patch("/docs/pages/{page_id}/ai")
-async def patch_page_flags(
-    page_id: str, body: PageFlagsBody, session: Session
-) -> dict[str, Any]:
-    """Hide a page from AI and/or mark it as guidance every AI run reads (people who can edit the page)."""
-    from services import docs as svc_docs
-
-    await svc_docs.get_page(session, page_id, edit=True)
-    page = await svc.set_page_flags(
-        session, page_id, hidden=body.hidden, guidance=body.guidance
-    )
-    await board_events.publish(board_events.INVALIDATE)
-    return {"id": page.id, "ai_hidden": page.ai_hidden, "ai_guidance": page.ai_guidance}
 
 
 @router.get("/projects/{project_id}/docs/ai/jobs")

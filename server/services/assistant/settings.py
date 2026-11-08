@@ -6,9 +6,11 @@ from sqlmodel import col, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
-from models import AiAssistSettings, AiTeam, AiUsage, Member
+from models import AiAssistSettings, AiTeam, AiUsage, DocsAiSettings, Member
 from services.ai import budget
 from services.ai.store import loads, now_iso
+
+from .errors import AssistError
 
 FEATURES = {
     "chat": "Ask AI (chat)",
@@ -115,6 +117,35 @@ async def first_team(
         if profile is not None and not profile.paused:
             return m, profile
     return None, None
+
+
+async def answering_team(
+    session: AsyncSession, project_id: str, feature: str = "chat"
+) -> tuple[Member, AiTeam] | tuple[None, None]:
+    """The AI team that answers a request of `feature`. Docs AI answers with the team chosen in Settings › Docs › AI
+    ("AI that answers"); with none chosen, or for any other feature, it is the project's first unpaused team.
+
+    Raises:
+        AssistError: `paused` when the team chosen for Docs AI is paused (the choice is not silently replaced).
+    """
+    if feature == "docs":
+        row = await session.get(DocsAiSettings, project_id)
+        if row is not None and row.member_id:
+            member = await session.get(Member, row.member_id)
+            profile = await session.get(AiTeam, row.member_id)
+            if (
+                member is not None
+                and member.project_id == project_id
+                and member.kind == "ai"
+                and profile is not None
+            ):
+                if profile.paused:
+                    raise AssistError(
+                        "paused",
+                        f"{member.name} is paused. Resume it in Members, or pick another AI team in Settings › Docs.",
+                    )
+                return member, profile
+    return await first_team(session, project_id)
 
 
 async def describe(session: AsyncSession, project_id: str) -> dict[str, Any]:

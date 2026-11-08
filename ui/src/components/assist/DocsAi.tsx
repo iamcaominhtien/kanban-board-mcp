@@ -303,7 +303,6 @@ export function DocsAi({
   menuOpen,
   setMenuOpen,
   ed,
-  hidden,
   command,
   onCreateTickets,
 }: {
@@ -313,8 +312,6 @@ export function DocsAi({
   menuOpen: boolean;
   setMenuOpen: (v: boolean) => void;
   ed: DocsAiEditor;
-  /** The page is hidden from AI: the Docs-only rows are not offered. */
-  hidden?: boolean;
   /** A row of the `/ai` slash menu that was picked (run once per `n`). */
   command?: { id: AiSlashId; n: number } | null;
   /** Create tickets from a list or the page (the editor screen opens the dialog). */
@@ -323,7 +320,7 @@ export function DocsAi({
   const ctx = useAssist();
   const st = useAssistState(projectId);
   const docsAi = useDocsAiState(projectId);
-  const gate = aiGate(docsAi.data, { hidden: !!hidden });
+  const gate = aiGate(docsAi.data);
   const docsOn = gate.show && gate.reason === null;
   const drafts = useDocDrafts(projectId, pageId);
   const [ticketPick, setTicketPick] = useState(false);

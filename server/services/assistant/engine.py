@@ -16,6 +16,7 @@ from typing import Any
 
 import database
 import events as board_events
+import services.activity as svc_activity
 from models import AiAccount, AiRun, Project
 from services.ai import (
     accounts,
@@ -37,7 +38,13 @@ from .errors import AssistError
 
 logger = logging.getLogger("kanban.assistant")
 
-BOARD_SKILLS = ["docs-pages", "drawio-diagrams", "sketches", "canvas-design"]
+BOARD_SKILLS = [
+    "docs-pages",
+    "docs-comment-threads",
+    "drawio-diagrams",
+    "sketches",
+    "canvas-design",
+]
 DEFAULT_MODEL = "sonnet"
 TIMEOUT_S = 600.0
 PROCS: dict[str, cli.CliProcess] = {}
@@ -123,10 +130,21 @@ def render_inputs(skill: str, inputs: dict[str, Any], by: str) -> str:
     return sessions.asked_by(by, "\n".join(lines))
 
 
-async def ready(project_id: str) -> dict[str, Any]:
-    """Whether an assistant can answer in this project now: {state: ready | not_configured, message, member}."""
+async def ready(project_id: str, feature: str = "chat") -> dict[str, Any]:
+    """Whether an assistant can answer in this project now: {state: ready | not_configured, message, member, code?}.
+    `feature` picks the team that answers (Docs AI: the one chosen in its settings)."""
     async with database.async_session() as session:
-        member, profile = await svc_settings.first_team(session, project_id)
+        try:
+            member, profile = await svc_settings.answering_team(
+                session, project_id, feature
+            )
+        except AssistError as exc:
+            return {
+                "state": "not_configured",
+                "code": exc.code,
+                "message": str(exc),
+                "member": None,
+            }
     path, _ = cli.find_cli("claude", profile.cli_path if profile else None)
     if not path:
         return {
@@ -165,12 +183,14 @@ async def turn(
     timeout_s: float = TIMEOUT_S,
     fresh: bool = False,
     on_run=None,
+    depth: int = 0,
 ) -> Turn:
     """Run one turn of the conversation `name` with a feature skill.
 
     `schema`: True takes the skill's own JSON schema, None asks for plain text, a dict is used as given.
     `files`: (name, bytes) saved into the turn's folder; their paths are given to the skill as `files`.
     `on_run(run_id)` is called once the turn's run exists (so a caller can offer Stop).
+    `depth`: the AI-to-AI hand-offs behind this turn (a note an AI sent to a page); the turn's tools carry it.
 
     Raises:
         AssistError: `not_configured` when Claude Code is not there, `not_found` for an unknown project.
@@ -181,7 +201,7 @@ async def turn(
         project = await session.get(Project, project_id)
         if project is None:
             raise AssistError("not_found", "Project not found.")
-        team, profile = await svc_settings.first_team(session, project_id)
+        team, profile = await svc_settings.answering_team(session, project_id, feature)
         account = (
             await session.get(AiAccount, profile.account_id)
             if (profile and profile.account_id)
@@ -201,6 +221,7 @@ async def turn(
             member_id=team.id if team else sessions.MEMBER,
             mode="ask",
             trigger=skill,
+            depth=depth,
             state="starting",
             started_by=by,
             instruction=str(
@@ -238,12 +259,15 @@ async def turn(
     ctx = RunContext(
         run_id=run.id,
         member_id=team.id if team else sessions.MEMBER,
-        member_name=member_name,
+        # the turn's tool calls act as a member of the project (the answering team, else the board's own agent): the
+        # label "Docs AI" / "Board AI" is not a member, and Docs refuses a name it does not know
+        member_name=team.name if team else svc_activity.AGENT_ACTOR,
         project_id=project_id,
         ticket_id=ticket_id,
         on_behalf_of=by,
         mode="ask",
         trigger="assistant",
+        depth=depth,
     )
     token = guard.issue_chat_token(ctx)
     out = Turn(run_id=run.id, member=member_name, model=run.model)

@@ -4,7 +4,6 @@ import {
   aiBusy,
   aiCostLabel,
   aiReplyKind,
-  canSuggestEdit,
   canSummarise,
   mentionedAi,
   mentionRows,
@@ -94,15 +93,11 @@ describe('thread state', () => {
     expect(serverIntent('work')).toBe('suggest');
     expect(serverIntent('notify')).toBe('notify');
   });
-  it('knows AI reply kinds and when Suggest an edit shows', () => {
-    const answer = comment({ ai: { memberId: 'a1', canSuggest: true } });
+  it('knows AI reply kinds', () => {
+    const answer = comment({ ai: { memberId: 'a1' } });
     expect(aiReplyKind(answer)).toBe('answer');
     expect(aiReplyKind(comment({ ai: { memberId: 'a1', kind: 'note' } }))).toBe('note');
     expect(aiReplyKind(comment())).toBeNull();
-    expect(canSuggestEdit(answer, thread(), true)).toBe(true);
-    expect(canSuggestEdit(answer, thread(), false)).toBe(false);
-    expect(canSuggestEdit(answer, thread({ status: 'resolved' }), true)).toBe(false);
-    expect(canSuggestEdit(comment({ ai: { memberId: 'a1', canSuggest: false } }), thread(), true)).toBe(false);
   });
   it('shows thinking and offers a summary on long threads', () => {
     const busy = thread({

@@ -8,15 +8,16 @@ const KEY = 'kanban.docs.mentionIntent';
 function remembered(): DocsMentionIntent | null {
   try {
     const v = localStorage.getItem(KEY);
-    return v === 'ask' || v === 'suggest' || v === 'notify' ? v : null;
+    // 'suggest' (an older choice) meant a proposal to review; the assistant now answers and edits when asked
+    return v === 'ask' || v === 'suggest' ? 'ask' : v === 'notify' ? v : null;
   } catch {
     return null;
   }
 }
 
 /**
- * "What does the mention mean?" for a Docs comment that mentions an AI member (docs-ai-care E): Ask only, Suggest an
- * edit (the tickets' "Do the work"), or Just notify. Resolves to the choice, or null when the person goes back.
+ * "What does the mention mean?" for a Docs comment that mentions an AI member (docs-ai-care E): Ask (the assistant
+ * answers in the thread and edits the page when asked), or Just notify. Resolves to the choice, or null when the person goes back.
  * Mounted on its own, so any comment box can ask without a place in its tree.
  * @param names - The AI members mentioned.
  */
@@ -56,13 +57,8 @@ function IntentDialog({
     {
       id: 'ask',
       title: 'Ask (answer in the thread)',
-      sub: 'It reads the page and the whole thread and replies here. Nothing on the page changes.',
+      sub: 'It reads the page and the whole thread and replies here. If you ask for a change it can make it; the page’s history undoes it.',
       tag: 'Default',
-    },
-    {
-      id: 'suggest',
-      title: 'Ask and suggest an edit',
-      sub: 'It answers, and when the page is out of date it proposes the change for a person to review.',
     },
     {
       id: 'notify',

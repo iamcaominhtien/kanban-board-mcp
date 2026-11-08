@@ -142,8 +142,7 @@ export function NotificationsHost({
         p.onOpenAiTab('accounts', row.projectId);
         break;
       case 'review':
-        if (row.kind === 'page_proposal' && row.pageId) p.onOpenDoc(row.pageId, row.projectId);
-        else p.onOpenAiTab('approvals', row.projectId);
+        p.onOpenAiTab('approvals', row.projectId);
         break;
       case 'open_ai':
       case 'change_permission':

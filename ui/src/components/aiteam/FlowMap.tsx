@@ -32,7 +32,10 @@ const STATUS_WORD: Record<string, string> = {
   backlog: 'Backlog',
   todo: 'To do',
   'in-progress': 'In progress',
+  review: 'Review',
+  testing: 'Testing',
   done: 'Done',
+  wont_do: "Won't do",
 };
 
 const initials = (name: string) => {

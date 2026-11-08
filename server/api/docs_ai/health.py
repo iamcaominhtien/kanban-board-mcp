@@ -2,7 +2,7 @@
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -11,7 +11,7 @@ from database import get_session
 from services import activity as svc_activity
 from services import docs as svc_docs
 from services.assistant import docs as assistant_docs
-from services.docs_ai import DocsAiError, jobs
+from services.docs_ai import jobs
 from services.docs_ai import health as svc
 from services.docs_ai import settings as svc_settings
 
@@ -24,12 +24,10 @@ def by() -> str:
     return svc_activity.current_actor() or "user"
 
 
-async def _editable_page(session: AsyncSession, page_id: str, *, ai: bool = True):
-    """The page, for someone who can edit it, with Docs AI on and the page readable by AI."""
+async def _editable_page(session: AsyncSession, page_id: str):
+    """The page, for someone who can edit it, with Docs AI on."""
     page = await svc_docs.get_page(session, page_id, edit=True)
     await svc_settings.require_enabled(session, page.project_id)
-    if False:
-        raise DocsAiError("hidden", "This page is hidden from AI.")
     return page
 
 
@@ -82,15 +80,6 @@ async def dismiss_reason(
     """Hide one reason of the banner."""
     page = await _editable_page(session, page_id)
     return await assistant_docs.freshness_mark(session, page, dismiss=body.key)
-
-
-@router.post("/docs/pages/{page_id}/ai/freshness/suggest")
-async def suggest_edit(page_id: str) -> None:
-    """Gone: suggested edits were proposals."""
-    raise HTTPException(
-        status_code=410,
-        detail="Proposals are gone in AI v2: ask the assistant to update the page; the page's history undoes it.",
-    )
 
 
 async def _reader(session: AsyncSession, project_id: str) -> None:

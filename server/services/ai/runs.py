@@ -45,6 +45,10 @@ from .store import active_runs, get_profile, get_settings, loads, now_iso, parse
 logger = logging.getLogger("kanban.ai.runs")
 
 ENDED = ("finished", "failed", "cancelled")
+# How many AI-to-AI hand-offs may lie behind a run: a note an AI sends (ai_run message, the Board AI routing Docs
+# threads, a ticket's team writing to a page) starts a run one deeper; at this depth the send is refused, so two AIs
+# (or a ticket and a page) cannot keep each other busy.
+MAX_DEPTH = 3
 ACTIVE = ("queued", "starting", "running", "needs_input")
 BOARD_CLOSED = "board_closed"
 STARTING_TIMEOUT_S = 180.0
@@ -123,6 +127,8 @@ class _Runtime:
     writers: dict[str, steps.StepWriter] = field(default_factory=dict)
     cancelled: set[str] = field(default_factory=set)
     waiting: dict[str, str] = field(default_factory=dict)
+    # a CLI that was stopped on purpose (the memory limit, or a person's Restart): who asked and the numbers
+    restart_requests: dict[str, dict] = field(default_factory=dict)
     board_url: str | None = None
     scheduler: asyncio.Task | None = None
     last_health: float = 0.0
@@ -245,6 +251,7 @@ async def create_run(
     resume_session: str | None = None,
     kind: str = "team",
     target: str | None = None,
+    depth: int = 0,
     **_ignored,
 ) -> AiRun:
     """Queue a run of a team on a ticket; the scheduler starts it when it can.
@@ -320,6 +327,7 @@ async def create_run(
         number=(last.number + 1) if last else 1,
         mode=mode,
         trigger=trigger,
+        depth=depth,
         started_by=started_by,
         instruction=instruction or "",
         session_id=resume_session,
@@ -569,6 +577,7 @@ async def _ctx_for(session, run: AiRun) -> RunContext:
         on_behalf_of=run.started_by,
         mode=run.mode,
         trigger=run.trigger or "",
+        depth=run.depth or 0,
     )
 
 
@@ -620,9 +629,12 @@ async def _execute(run_id: str, token: str, note: str | None = None) -> None:
         RT.tasks.pop(run_id, None)
         RT.procs.pop(run_id, None)
         RT.cancelled.discard(run_id)
+        RT.restart_requests.pop(run_id, None)
 
 
-async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
+async def _execute_cli(
+    run_id: str, token: str, note: str | None, restart_why: str | None = None
+) -> None:
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
         if run is None or run.state in ENDED:
@@ -659,6 +671,11 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
         config_dir = accounts.claude_config_dir(account) if account else None
         session_id, fresh_note = await _session_for(session, run, config_dir)
         resume = session_id is not None
+        if restart_why:
+            # what the AI is told depends on whether its conversation could be continued
+            note = (RESTART_NOTE if resume else RESTART_FRESH_NOTE).format(
+                why=restart_why
+            )
         session_id = session_id or str(uuid.uuid4())
         run.session_id = session_id
         run.session_name = run.session_name or run.ticket_id or run.target
@@ -718,6 +735,9 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
         await _end(run_id, "failed", f"Could not start Claude Code: {exc}")
         return
     RT.procs[run_id] = proc
+    RT.restart_requests.pop(
+        run_id, None
+    )  # one aimed at the CLI that just ended does not apply to this one
     if resume:
         guard.mark_resumed(run_id)
     resources.MON.track(run_id, proc, run.project_id)
@@ -816,6 +836,21 @@ async def _execute_cli(run_id: str, token: str, note: str | None) -> None:
     RT.writers.pop(run_id, None)
     await resources.MON.untrack(run_id)
     if run_id in RT.cancelled:
+        return
+    request = RT.restart_requests.pop(run_id, None)
+    if request is not None and not result:
+        # the CLI was stopped on purpose (over the memory limit, or a person pressed Restart): the run goes on in a
+        # new CLI that resumes the conversation, or ends when the system already restarted it too often. (A CLI that
+        # already gave its answer and only lingers is not restarted: the normal ending below takes it.)
+        if held_tokens:
+            async with database.async_session() as session:
+                cur = await session.get(AiRun, run_id)
+                if cur is not None:
+                    cur.context_used = held_tokens
+                    cur.context_window = window_tokens or cur.context_window
+                    session.add(cur)
+                    await session.commit()
+        await _restart_inside_run(run_id, token, request)
         return
     async with database.async_session() as session:
         run = await session.get(AiRun, run_id)
@@ -1417,6 +1452,186 @@ async def cancel_for_ticket(
     return n
 
 
+RESTART_NOTE = (
+    "Your process was restarted ({why}). The conversation and every file are as you left them. Look at "
+    "`git status` and the last steps, then carry on with the task from where you stopped; do not start over."
+)
+# the CLI's conversation was not found on this computer: the files are there, the memory of the talk is not
+RESTART_FRESH_NOTE = (
+    "Your process was restarted ({why}) and its earlier conversation could not be continued, so you start a new "
+    "one. Every file is as it was left. Read the ticket and its comments, look at `git status` and `git log`, then "
+    "carry on with the task from where the work stopped; do not start over."
+)
+
+
+async def _memory_breach(run_id: str, rss_mb: float, limit_mb: int) -> None:
+    """The monitor saw a run's CLI pass the memory limit: stop it; the run goes on in a new CLI (or ends)."""
+    proc = RT.procs.get(run_id)
+    if proc is None or proc.proc is None or proc.proc.returncode is not None:
+        return
+    if run_id in RT.restart_requests:
+        return
+    RT.restart_requests[run_id] = {
+        "by": "system",
+        "rss_mb": rss_mb,
+        "limit_mb": limit_mb,
+    }
+    proc.kill()
+
+
+resources.MON.on_breach = _memory_breach
+
+
+async def restart_run(run_id: str, *, by: str) -> AiRun:
+    """Start a running run's CLI again inside the same run (it resumes its conversation); memory is released.
+
+    Raises:
+        RunError: The run is not running a CLI.
+    """
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+    if run is None:
+        raise RunError("Run not found.")
+    if run.state != "running":
+        raise RunError("Only a running run can be restarted.")
+    if defers_to_runner():
+        row = await runner_link.command(run_id, "restart", {"by": by})
+        if row is None or not row.taken_at:
+            raise RunError("The runner did not answer. Try again in a moment.")
+        return run
+    proc = RT.procs.get(run_id)
+    if proc is None or proc.proc is None or proc.proc.returncode is not None:
+        raise RunError("This run has no Claude Code process to restart right now.")
+    if run_id in RT.restart_requests:
+        raise RunError("This run is already being restarted.")
+    reading = resources.MON.readings.get(run_id) or {}
+    RT.restart_requests[run_id] = {
+        "by": by,
+        "rss_mb": reading.get("cli_rss_mb"),
+        "limit_mb": await resources.MON.limit_mb(run.project_id),
+    }
+    proc.kill()
+    return run
+
+
+async def _tell_memory(
+    kind: str, run: AiRun, title: str, body: str, data: dict
+) -> None:
+    """The board's notice of a restart or a stop for memory (one row per run; restarts merge: "restarted 2 times")."""
+    from services import notifications as centre
+
+    try:
+        async with database.async_session() as session:
+            await centre.emit(
+                kind,
+                project_id=run.project_id,
+                recipients=await centre.owners_and_admins(session, run.project_id),
+                title=title,
+                body=body,
+                target_kind="run",
+                target_id=run.id,
+                ticket_id=run.ticket_id,
+                member_id=run.member_id,
+                data=data,
+                session=session,
+            )
+    except Exception:  # noqa: BLE001 - the notice never stops the run
+        logger.exception(
+            "Could not tell anyone that run %s used too much memory", run.id
+        )
+
+
+async def _restart_inside_run(run_id: str, token: str, request: dict) -> None:
+    """The CLI was stopped on purpose: log it and start a new CLI in the same run. After `AUTO_RESTARTS` restarts by
+    the system, the next breach ends the run instead (stop code `memory`)."""
+    by = request["by"]
+    rss, limit = request.get("rss_mb"), request.get("limit_mb")
+    async with database.async_session() as session:
+        run = await session.get(AiRun, run_id)
+        if run is None or run.state in ENDED:
+            return
+        log = resources.restarts_of(run)
+        by_system = sum(1 for r in log if r.get("by") == "system")
+        if by == "system" and by_system >= resources.AUTO_RESTARTS:
+            stop_run = run
+        else:
+            stop_run = None
+            entry = {
+                "at": now_iso(),
+                "rss_mb": rss,
+                "limit_mb": limit,
+                "by": by,
+                "n": len(log) + 1,
+            }
+            run.restarts = resources.dump(log + [entry])
+            session.add(run)
+            await session.commit()
+            await session.refresh(run)
+    if run_id in RT.cancelled:
+        return  # stopped while the restart was being written: say nothing more about a run that ended
+    ticket = run.ticket_id or "A run"
+    if stop_run is not None:
+        gb = f"{rss / 1024:.2f} GB" if rss else "too much memory"
+        lim = f"{limit / 1024:.1f} GB" if limit else "the limit"
+        await audit.record(
+            run.project_id,
+            "run_stopped_memory",
+            "info",
+            member_name="System",
+            member_id=run.member_id,
+            run_id=run_id,
+            target=run.ticket_id,
+            detail={"rss_mb": rss, "limit_mb": limit, "restarts": len(log)},
+        )
+        await _tell_memory(
+            "run_stopped_memory",
+            run,
+            f"{ticket}: stopped, out of memory",
+            f"The CLI went over {lim} again after {resources.AUTO_RESTARTS} restarts. Partial work is kept; retry it or raise the limit.",
+            {"rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
+        )
+        await _end(
+            run_id,
+            "failed",
+            f"Stopped automatically: the CLI went over the memory limit ({gb} of {lim}) again after "
+            f"{resources.AUTO_RESTARTS} restarts. Partial work in the folder is kept.",
+            stop_code="memory",
+        )
+        return
+    await audit.record(
+        run.project_id,
+        "run_restarted",
+        "info",
+        member_name="System" if by == "system" else by,
+        member_id=run.member_id,
+        run_id=run_id,
+        target=run.ticket_id,
+        detail=entry,
+    )
+    if by == "system":
+        gb = f"{rss / 1024:.2f} GB" if rss else "too much memory"
+        lim = f"{limit / 1024:.1f} GB" if limit else "the limit"
+        text = (
+            f"Restarted automatically: the CLI reached {gb}, over the {lim} limit "
+            f"(restart {by_system + 1} of {resources.AUTO_RESTARTS})"
+        )
+        why = f"it used {gb} of memory, over the {lim} limit"
+        await _tell_memory(
+            "run_restarted",
+            run,
+            f"{ticket}: restarted (memory)",
+            f"The CLI reached {gb}, over the {lim} limit, and started again in the same run.",
+            {"rss_mb": rss, "limit_mb": limit, "ticket_id": run.ticket_id},
+        )
+    else:
+        text = f"Restarted by {by}"
+        why = f"{by} restarted it"
+    await steps.append(run_id, [{"kind": "start", "title": text}])
+    transcripts.note(run_id, "restart", text)
+    await _publish_run(run_id)
+    await _execute_cli(run_id, token, None, restart_why=why)
+
+
 async def answer(run_id: str, *, by: str, text: str) -> AiRun:
     """Answer the lead's question: the answer is a comment on the ticket and the run resumes its conversation."""
     text = (text or "").strip()
@@ -1493,14 +1708,38 @@ async def retry(run_id: str, *, by: str) -> AiRun:
         )
 
 
+NEEDS_INPUT_BLOCK = (
+    "The team is asking a person a question (run #{number} is waiting for an answer): answer it first, in the "
+    "ticket or from Needs you. A note sent now would be taken as that answer."
+)
+
+
 async def send_message(
-    run_id: str, text: str, *, by: str, peer: str | None = None
+    run_id: str,
+    text: str,
+    *,
+    by: str,
+    peer: str | None = None,
+    answers: bool = True,
 ) -> dict:
     """A note to a run: into the running lead's input when it is live; else kept for its next turn (a run that ended
-    gets a new run on the same conversation)."""
+    gets a new run on the same conversation).
+
+    A run in `needs_input` takes the text as the answer to its question. That is right for the person answering it
+    (`answers=True`, the default: the ticket chat and the run's own message box); a note from anything else (another
+    AI, a Docs page, CI) must not be mistaken for it, so with `answers=False` the send is refused.
+
+    Raises:
+        RunError: Empty text, an unknown run, or `answers=False` to a run that waits for an answer.
+    """
     text = (text or "").strip()
     if not text:
         raise RunError("Write a message first.")
+    if not answers:
+        async with database.async_session() as session:
+            waiting = await session.get(AiRun, run_id)
+            if waiting is not None and waiting.state == "needs_input":
+                raise RunError(NEEDS_INPUT_BLOCK.format(number=waiting.number))
     if defers_to_runner():
         async with database.async_session() as session:
             run = await session.get(AiRun, run_id)
@@ -1835,16 +2074,39 @@ async def start_on_ticket(
     )
 
 
-async def deliver_to_ticket(ticket_id: str, text: str, *, by: str) -> dict:
+async def deliver_to_ticket(
+    ticket_id: str,
+    text: str,
+    *,
+    by: str,
+    trigger: str = "message",
+    depth: int = 0,
+) -> dict:
     """The one primitive of AI-to-AI and person-to-AI contact: a note to the ticket's team. Live when its lead runs,
-    else a new turn on its conversation; a ticket with no team gets the note as a comment."""
+    else a new turn on its conversation; a ticket with no team gets the note as a comment.
+
+    `trigger` says where the note came from, and the run it starts carries it (the lead is told how to answer):
+    `message` the ticket chat (the default), `ai_message` another AI, `docs_threads` comment threads from Docs,
+    `ci_red` and `review_comments` GitHub. Only the chat's text can answer a question the team asked
+    (`needs_input`): the others are refused while it waits. `depth` is the hand-off depth of the run it starts.
+
+    Raises:
+        RunError: The ticket is not there, the team asks a person something (non-chat), or its run cannot start.
+    """
     async with database.async_session() as session:
         ticket = await session.get(Ticket, ticket_id)
         if ticket is None:
             raise RunError("Ticket not found.")
         active = [r for r in await active_runs(session, ticket_id=ticket_id)]
         if active:
-            return await send_message(active[0].id, text, by=by)
+            if depth and (active[0].depth or 0) < depth:
+                # a note that reaches a run already going counts as a hand-off too: its next note starts one deeper
+                active[0].depth = depth
+                session.add(active[0])
+                await session.commit()
+            return await send_message(
+                active[0].id, text, by=by, answers=trigger == "message"
+            )
         last = (
             await session.exec(
                 select(AiRun)
@@ -1867,7 +2129,8 @@ async def deliver_to_ticket(ticket_id: str, text: str, *, by: str) -> dict:
             session,
             ticket_id=ticket_id,
             member_id=team_id,
-            trigger="message",
+            trigger=trigger,
+            depth=depth,
             started_by=by,
             instruction=f"{by} says:\n{text}",
             resume_session=last.session_id

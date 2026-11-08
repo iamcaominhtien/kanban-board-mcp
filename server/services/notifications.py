@@ -64,7 +64,6 @@ KINDS: dict[str, tuple[str, bool, bool, bool]] = {
     "mention": ("Someone mentioned you", True, True, True),
     "run_stopped_memory": ("A run was stopped for memory", True, True, True),
     "budget": ("Budget or cap reached", True, True, True),
-    "page_proposal": ("A page proposal from an AI", True, True, False),
     "auto_trip": ("AI was paused (auto-trip or Pause all AI)", True, True, True),
     "offline": ("An AI member went offline", True, False, True),
     # AI team v2 (design/screens/ai-operations.md C, D; ai-board-wave3.md L)
@@ -2042,8 +2041,6 @@ def _actions(r: Notification, gone: bool) -> list[dict]:
             {"id": "deny", "label": "Deny"},
             {"id": "review", "label": "Review"},
         ]
-    if k == "page_proposal":
-        return [{"id": "review", "label": "Review"}]
     if k in ("run_failed", "run_stopped_memory", "board_fault"):
         # a stopped run: the four ways out, always in this order (design D)
         return [
@@ -2313,8 +2310,8 @@ async def _day_card_dict(session: AsyncSession, me: str) -> dict | None:
     return to_dict(card, me) if card is not None else None
 
 
-# The Docs family (NT-5): rows about a page (a comment, a mention, a proposal) and the Docs kinds with no page
-DOCS_KINDS = ("page_proposal", "page_published", "access_request")
+# The Docs family (NT-5): rows about a page (a comment, a mention) and the Docs kinds with no page
+DOCS_KINDS = ("page_published", "access_request")
 
 
 def _where_family(stmt, family: str | None):
@@ -2827,9 +2824,8 @@ async def build_day_card(
     if waiting_open:
         lines.append(_waiting_line(waiting_open, now))
     published = await _published_between(session, s_iso, u_iso)
-    proposals = [r for r in waiting_open if r.kind == "page_proposal"]
-    if published or proposals:
-        lines.append(_docs_line(published, proposals))
+    if published:
+        lines.append(_docs_line(published))
     if snoozed:
         lines.append(
             {
@@ -2997,11 +2993,8 @@ async def _published_between(session: AsyncSession, s_iso: str, u_iso: str) -> i
     ).one()
 
 
-def _docs_line(published: int, proposals: list[Notification]) -> dict:
-    text = f"Docs: {published} page{_s(published)} published"
-    if proposals:
-        text += f", {len(proposals)} proposal{_s(len(proposals))} unanswered"
-    return {"kind": "docs", "text": text + "."}
+def _docs_line(published: int) -> dict:
+    return {"kind": "docs", "text": f"Docs: {published} page{_s(published)} published."}
 
 
 async def _tomorrow_line(session: AsyncSession, now: datetime) -> dict | None:

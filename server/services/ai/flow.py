@@ -17,7 +17,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from models import AiRun, AiRunAgent, AiRunMessage, AiTeam, Member, Ticket
 
 from .store import get_settings, loads, parse_iso
-from .timeline import ACTIVE, MAX_RUNS, _role_color, name_map, role_label, window
+from .timeline import (
+    ACTIVE,
+    MAX_RUNS,
+    NOTE_TRIGGERS,
+    _role_color,
+    name_map,
+    role_label,
+    window,
+)
 
 # The tickets the scope picker lists, and the tickets a map draws before it says "narrow the range"
 MAX_PICKER_TICKETS = 200
@@ -180,7 +188,12 @@ async def flow_map(
         in_window = queued is not None and (
             (a is None or queued >= a) and (b is None or queued <= b)
         )
-        if r.trigger == "message" and sender and sender != r.member_id and in_window:
+        if (
+            r.trigger in NOTE_TRIGGERS
+            and sender
+            and sender != r.member_id
+            and in_window
+        ):
             add_note(sender, r.member_id, r.ticket_id, "", r.queued_at)
     if run_ids:
         for m in (
@@ -200,7 +213,7 @@ async def flow_map(
                 continue
             started = parse_iso(r.queued_at)
             if (
-                r.trigger == "message"
+                r.trigger in NOTE_TRIGGERS
                 and started is not None
                 and abs((started - at).total_seconds()) < 2
                 and (r.started_by or "").strip().lower()

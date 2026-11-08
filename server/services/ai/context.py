@@ -35,6 +35,8 @@ class RunContext:
     on_behalf_of: str
     mode: str  # work | ask
     trigger: str = ""
+    # AI-to-AI hand-offs behind this run (see `runs.MAX_DEPTH`)
+    depth: int = 0
     # A Board AI chat answer that acts by risk tier (D23): its board tools only read, and its changes go through the
     # chat's actions block, where the board applies them by tier with one Undo
     acts_by_tier: bool = False

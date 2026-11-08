@@ -33,13 +33,8 @@ export function firstTicketRef(reasons: CareReason[]): string | null {
 }
 
 /** Whether the banner shows: editors only, Docs AI on, and the check says the page may be out of date. */
-export function showFreshnessBanner(opts: {
-  canEdit: boolean;
-  aiOn: boolean;
-  stale: boolean;
-  hiddenFromAi: boolean;
-}): boolean {
-  return opts.canEdit && opts.aiOn && opts.stale && !opts.hiddenFromAi;
+export function showFreshnessBanner(opts: { canEdit: boolean; aiOn: boolean; stale: boolean }): boolean {
+  return opts.canEdit && opts.aiOn && opts.stale;
 }
 
 export type HealthTab = 'outOfDate' | 'missing' | 'broken' | 'overlaps';
@@ -171,25 +166,4 @@ export function initials(name: string): string {
     .slice(0, 2)
     .map((p) => p[0]!.toUpperCase())
     .join('');
-}
-
-/** A change from a proposal, as the suggested-edits view shows it. */
-export interface CareChange {
-  n: number;
-  title: string;
-  reason: string;
-  old: string;
-  new: string;
-  status: 'pending' | 'accepted' | 'rejected';
-  stale?: boolean;
-}
-
-/** The change to show now: the first pending one that still applies. */
-export function currentChange(changes: CareChange[]): CareChange | null {
-  return changes.find((c) => c.status === 'pending' && !c.stale) ?? null;
-}
-
-/** How many changes still wait for a decision ("Accept all (2)"). */
-export function pendingCount(changes: CareChange[]): number {
-  return changes.filter((c) => c.status === 'pending' && !c.stale).length;
 }

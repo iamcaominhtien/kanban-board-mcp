@@ -1,6 +1,6 @@
 # AI v2 design todo: files for the designer
 
-These files are a **snapshot** of the board's Docs page "AI v2: design todo" (project Kanban Board MCP, page id `4c07b3fe-efac-4e2e-a4cf-6ee992616c4d`), version 7, taken on 2026-11-08, cut into one file per canvas so a designer reads only what it needs.
+These files are a **snapshot** of the board's Docs page "AI v2: design todo" (project Kanban Board MCP, page id `4c07b3fe-efac-4e2e-a4cf-6ee992616c4d`), version 14, taken on 2026-11-08, cut into one file per canvas so a designer reads only what it needs.
 
 - **The board page is the source.** It keeps changing (ticket KBM-14 keeps it up to date, new rows are added there). Do not edit these files and do not add rows here; ask for a fresh snapshot when you start a new canvas.
 - A row's id (`A-nnn`, `B-nn`, `C-nn`) is stable; use it when you answer or ask.
@@ -23,15 +23,15 @@ These files are a **snapshot** of the board's Docs page "AI v2: design todo" (pr
 | [`A11-airepocommands.md`](A11-airepocommands.md) | A.11 AiRepoCommands (`AiRepoCommands.dc.html`, "Set up the AI team" wizard commands step) |
 | [`A12-aiproviderconfig.md`](A12-aiproviderconfig.md) | A.12 AiProviderConfig (`AiProviderConfig.dc.html`). Obsolete as a whole |
 | [`A13-aiteamprocess.md`](A13-aiteamprocess.md) | A.13 AiTeamProcess (`AiTeamProcess.dc.html`). Boards B and C carry forward, the rest is obsolete |
-| [`A14-aiteamreview.md`](A14-aiteamreview.md) | A.14 AiTeamReview (`AiTeamReview.dc.html`). Obsolete as a whole |
+| [`A14-aiteamreview.md`](A14-aiteamreview.md) | A.14 AiTeamReview (`AiTeamReview.dc.html`). Two of its tabs, You stepped in and Health, came back in v2 (KBM-21, KBM-22) |
 | [`A15-aistoryflow.md`](A15-aistoryflow.md) | A.15 AiStoryFlow (`AiStoryFlow.dc.html`, 815 KB, 25 boards). Obsolete except keep awake |
 | [`A16-aiboardassistant.md`](A16-aiboardassistant.md) | A.16 AiBoardAssistant (`AiBoardAssistant.dc.html`) |
 | [`A17-aiboardwave3.md`](A17-aiboardwave3.md) | A.17 AiBoardWave3 (`AiBoardWave3.dc.html`) |
 | [`A18-aieverywhere.md`](A18-aieverywhere.md) | A.18 AiEverywhere (`AiEverywhere.dc.html`, md: `ai-where-you-work.md`) |
 | [`A19-aidatabases.md`](A19-aidatabases.md) | A.19 AiDatabases (`AiDatabases.dc.html`): not an AI-team design |
 | [`A20-docs-and-idea-assistant-canvases.md`](A20-docs-and-idea-assistant-canvases.md) | A.20 Docs and Idea assistant canvases (`DocsAi.dc.html`, `DocsAiCare.dc.html`, `IdeaAi.dc.html`) |
-| [`A21-canvas.md`](A21-canvas.md) | A.21 Canvas (`Canvas.dc.html`, "Canvas — boards, notes and comments on one large plane"). Found by the KBM-14 walk: the  |
+| [`A21-canvas.md`](A21-canvas.md) | A.21 Canvas (`Canvas.dc.html`, "Canvas — boards, notes and comments on one large plane"). Found by the KBM-14 walk: the whole AI part was deleted from the code and nothing said so |
 | [`A22-notifications.md`](A22-notifications.md) | A.22 Notifications (`Notifications.dc.html`, "one place for what needs you and what happened") |
-| [`A23-file-preview.md`](A23-file-preview.md) | A.23 File preview (`PreviewTypes.dc.html` boards I, J, K and `PreviewViewer.dc.html`). Built after the design, then made |
-| [`B-code-with-no-design.md`](B-code-with-no-design.md) | 53 screens and states built in v2 that have no canvas |
+| [`A23-file-preview.md`](A23-file-preview.md) | A.23 File preview (`PreviewTypes.dc.html` boards I, J, K and `PreviewViewer.dc.html`). Built after the design, then made richer by the merge of `brave-lovelace` (75cdcc94) |
+| [`B-code-with-no-design.md`](B-code-with-no-design.md) | 61 screens and states built in v2 that have no canvas |
 | [`C-code-todo-not-for-the-designer.md`](C-code-todo-not-for-the-designer.md) | Developer's list; the designer can skip it |

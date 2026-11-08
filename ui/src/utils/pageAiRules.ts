@@ -37,8 +37,6 @@ export type PageMenu =
   | { kind: 'rows'; rows: MenuRow[] }
   /** One row that opens AI members (no AI member can read the project). */
   | { kind: 'no_member'; text: string }
-  /** A lock and a one-line reason (the page is hidden from AI). */
-  | { kind: 'hidden'; text: string }
   /** Nothing renders. */
   | { kind: 'none' };
 
@@ -46,7 +44,6 @@ export type PageMenu =
 export function pageMenu(gate: AiGate, canEdit: boolean): PageMenu {
   if (!gate.show) return { kind: 'none' };
   if (gate.reason === 'no_member') return { kind: 'no_member', text: gate.text };
-  if (gate.reason === 'hidden') return { kind: 'hidden', text: gate.text };
   return { kind: 'rows', rows: menuRows(canEdit).map((r) => ({ id: r.id, ...COPY[r.id] })) };
 }
 
@@ -104,8 +101,6 @@ export function problemLine(code: string, detail: string): string {
   switch (code) {
     case 'docs_ai_off':
       return 'Docs AI is off for this project.';
-    case 'hidden':
-      return 'This page is hidden from AI.';
     case 'no_member':
       return 'No AI member can read this space. Open AI members.';
     case 'paused':

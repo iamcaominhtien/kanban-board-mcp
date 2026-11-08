@@ -47,6 +47,8 @@ ROLE_COLORS = (
     "#7C5CD6",
 )
 OFFLINE = ("runner_missing", "not_logged_in")
+# Triggers of a run that a note started: a person in the ticket chat, or another AI (`ai_run message`)
+NOTE_TRIGGERS = ("message", "ai_message")
 
 
 def window(
@@ -412,10 +414,18 @@ async def timeline(
         if q0 and q1:
             wait_s = max(int((q1 - q0).total_seconds()), 0)
         # the person's instruction: not for a schedule, a GitHub event or the API (nobody sat there)
-        if r.trigger in ("assign", "run_button", "message", "retry"):
-            from_team = (
-                sender_team(r.started_by, lead) if r.trigger == "message" else None
-            )
+        # a note from another team starts a run too (`message` from the ticket chat, `ai_message` from `ai_run message`):
+        # it is an arrow from that team's lead; a note whose sender is no team (the board's agent) draws none
+        from_team = (
+            sender_team(r.started_by, lead) if r.trigger in NOTE_TRIGGERS else None
+        )
+        if r.trigger in (
+            "assign",
+            "run_button",
+            "message",
+            "docs_threads",
+            "retry",
+        ) or (r.trigger == "ai_message" and from_team):
             if from_team and from_team not in used:
                 used.append(from_team)
             arrows.append(

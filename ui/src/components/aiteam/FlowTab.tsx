@@ -164,7 +164,14 @@ export function FlowTab({
         <TimelineTab
           key={`${scope.teamId}|${scope.ticketId}`}
           projectId={projectId}
-          initial={initial && !initial.flow ? { ...initial, scope: undefined } : null}
+          initial={
+            // a Story or a ticket opens on its whole life in the Map: the Timeline's longest range (7 days) is the nearest
+            initial && !initial.flow
+              ? { ...initial, scope: undefined, range: initial.range ?? (scope.ticketId ? '7d' : undefined) }
+              : scope.ticketId
+                ? { range: '7d' }
+                : null
+          }
           scopeTicketId={scope.ticketId}
           teamId={scope.teamId}
           scopeBar

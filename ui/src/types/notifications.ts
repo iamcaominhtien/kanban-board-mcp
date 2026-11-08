@@ -9,7 +9,6 @@ export type NotificationKind =
   | 'mention'
   | 'run_stopped_memory'
   | 'budget'
-  | 'page_proposal'
   | 'auto_trip'
   | 'offline'
   | 'ai_finished'

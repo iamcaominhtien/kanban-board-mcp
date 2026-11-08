@@ -80,7 +80,9 @@ export function FlowScopeBar({
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
-      if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) {
+      // not behind a ticket (or any other) dialog that is open over the page
+      const behindDialog = !!document.querySelector('[role="dialog"][aria-modal="true"]');
+      if (e.key === '/' && !typing && !behindDialog && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         setOpen(true);
       } else if (e.key === 'Escape') setOpen(false);
@@ -260,6 +262,11 @@ export function FlowScopeBar({
                   {t.storyId && <span>in {t.storyId}</span>}
                 </button>
               ))}
+              {tickets.length > 30 && (
+                <div className="tl-menu-foot" data-testid="flow-picker-more">
+                  {tickets.length - 30} more: type to narrow the list.
+                </div>
+              )}
               {!first && <div className="tl-menu-empty">Nothing matches “{q}”.</div>}
               <div className="tl-menu-foot">↑ Enter opens the first match · Esc closes</div>
             </div>

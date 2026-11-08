@@ -1,8 +1,11 @@
+import type { ReactNode } from 'react';
 import { aiApi, useAiMutation, useAiTeams, useTeamActivity } from '../../api/ai';
+import { useResourcesStream } from '../../api/aiResources';
 import { extractError } from '../../api/extractError';
 import type { AiTeam, AiTeamRole, RoleActivity } from '../../types/ai';
 import { AiAvatar, LoadError, StatusLabel, useNow } from '../ai/aiUi';
 import { useToast } from '../Toast';
+import { RamChip, rowsByRun } from './RamChip';
 import { RecentList } from './RecentSpend';
 import { LeadCard, RoleCard } from './RoleCard';
 import { fmtTokens, fmtUsd } from './teamFormat';
@@ -21,7 +24,16 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function Header({ team, onOpenMember }: { team: AiTeam; onOpenMember: (id: string) => void }) {
+function Header({
+  team,
+  onOpenMember,
+  chips,
+}: {
+  team: AiTeam;
+  onOpenMember: (id: string) => void;
+  /** The RAM chips of the team's running runs. */
+  chips: ReactNode;
+}) {
   const toast = useToast();
   const toggle = useAiMutation(() => (team.paused ? aiApi.resumeTeam(team.id) : aiApi.pauseTeam(team.id)));
   const lead = [team.model, team.effort].filter(Boolean).join(' · ') || 'Default';
@@ -79,6 +91,12 @@ function Header({ team, onOpenMember }: { team: AiTeam; onOpenMember: (id: strin
           {team.dailyBudget != null ? <span className="ai-muted"> of {fmtUsd(team.dailyBudget)}</span> : null}
         </Fact>
       </div>
+      {chips ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }} data-testid="team-memory">
+          <span className="at-label">Memory</span>
+          {chips}
+        </div>
+      ) : null}
       <div>
         <button type="button" className="ai-link" onClick={() => onOpenMember(team.id)} data-testid="team-configure">
           Roles, limits and account: open on the Members page →
@@ -95,15 +113,19 @@ export function TeamPage({
   onBack,
   onOpenTicket,
   onOpenMember,
+  onOpenResources,
 }: {
   projectId: string;
   teamId: string;
   onBack: () => void;
   onOpenTicket: (id: string) => void;
   onOpenMember: (id: string) => void;
+  /** Open the Resources tab (the RAM chip). */
+  onOpenResources?: () => void;
 }) {
   const teamsQ = useAiTeams(projectId);
   const activityQ = useTeamActivity(teamId);
+  const { data: resources } = useResourcesStream(projectId);
   const team = teamsQ.data?.find((t) => t.id === teamId);
   const act = activityQ.data;
   useNow(1000, !!act?.lead.working || !!act?.roles.some((r) => r.working));
@@ -123,6 +145,18 @@ export function TeamPage({
         writes: null,
       });
   const byKey = new Map((act?.roles ?? []).map((r) => [r.key, r]));
+  const rows = rowsByRun(resources);
+  const limitMb = resources?.limits.runMemoryLimitMb ?? 0;
+  // the RAM of the team's CLIs: one chip per running run (the lead and its roles share one process)
+  const live = team.running.filter((r) => rows.has(r.runId));
+  const chips = live.length ? (
+    <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+      {live.map((r) => (
+        <RamChip key={r.runId} run={rows.get(r.runId)} limitMb={limitMb} onOpen={onOpenResources} />
+      ))}
+    </span>
+  ) : null;
+  const leadRun = act?.lead.working ? rows.get(act.lead.working.runId) : undefined;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }} data-testid="team-page">
       <div>
@@ -130,7 +164,7 @@ export function TeamPage({
           ← All teams
         </button>
       </div>
-      <Header team={team} onOpenMember={onOpenMember} />
+      <Header team={team} onOpenMember={onOpenMember} chips={chips} />
       <section>
         <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
           Roles
@@ -143,7 +177,12 @@ export function TeamPage({
           </div>
         ) : (
           <div className="at-cards" data-testid="role-cards">
-            <LeadCard team={team} activity={act?.lead ?? NO_ACTIVITY} onOpenTicket={onOpenTicket} />
+            <LeadCard
+              team={team}
+              activity={act?.lead ?? NO_ACTIVITY}
+              onOpenTicket={onOpenTicket}
+              ram={<RamChip run={leadRun} limitMb={limitMb} onOpen={onOpenResources} />}
+            />
             {roles.map((r) => (
               <RoleCard
                 key={r.key}

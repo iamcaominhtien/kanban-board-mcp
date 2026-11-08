@@ -14,14 +14,11 @@ export interface DocsAiState {
   candidates: { id: string; name: string; provider: string; connection: string; model: string | null }[];
   stylePageId: string | null;
   freshnessOn: boolean;
-  guidanceLimit: number;
   digestOn: boolean;
-  guidancePages: { id: string; title: string }[];
-  hiddenPages: { id: string; title: string }[];
 }
 
 export type DocsAiSettingsPatch = Partial<
-  Pick<DocsAiState, 'enabled' | 'memberId' | 'stylePageId' | 'freshnessOn' | 'guidanceLimit' | 'digestOn'>
+  Pick<DocsAiState, 'enabled' | 'memberId' | 'stylePageId' | 'freshnessOn' | 'digestOn'>
 >;
 
 /** One Docs AI call (ask, check, translate, thread reply, ...): the Docs counterpart of an AI run. */
@@ -77,20 +74,6 @@ export function useUpdateDocsAi(projectId: string) {
     onSuccess: (data) => {
       qc.setQueryData(docsAiKeys.state(projectId), data);
       void qc.invalidateQueries({ queryKey: ['docs', 'tree', projectId] });
-    },
-  });
-}
-
-/** Hide a page from AI and/or mark it as guidance every AI run reads. */
-export function useSetPageAiFlags(projectId: string, pageId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (patch: { hidden?: boolean; guidance?: boolean }) =>
-      (await client.patch<{ id: string; aiHidden: boolean; aiGuidance: boolean }>(`/docs/pages/${pageId}/ai`, patch))
-        .data,
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: docsAiKeys.state(projectId) });
-      void qc.invalidateQueries({ queryKey: ['docs'] });
     },
   });
 }

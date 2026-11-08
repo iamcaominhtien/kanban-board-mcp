@@ -18,7 +18,6 @@ STATUS = {
     "too_large": 413,
     "viewer": 403,
     "forbidden": 403,
-    "hidden": 403,
     "conflict": 409,
     "feature_off": 409,
     "not_configured": 409,
