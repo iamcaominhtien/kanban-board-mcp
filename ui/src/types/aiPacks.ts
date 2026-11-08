@@ -264,3 +264,73 @@ export interface MemberPackDiff extends MemberPack {
   /** What stays the member's own. */
   kept: string[];
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Settings › AI › Role packs (design/screens/ai-project-settings.md, D): a pack as the screen reads and saves it.
+// The server keeps what a person saved (a model id of any kind, no limits), so these fields are looser than `Pack`.
+
+export interface PackLimits {
+  maxParallel?: number | null;
+  maxRunsPerDay?: number | null;
+  [key: string]: unknown;
+}
+
+/** A pack as GET /projects/{id}/ai/packs gives it: a ready-made one, or the project's own copy or own role. */
+export interface RolePack {
+  /** `builtin:<key>` for a ready-made one that this project did not edit, else the project's own row id. */
+  id: string;
+  key: string;
+  name: string;
+  glyph?: string;
+  tagline?: string;
+  model?: string;
+  /** The model of a second attempt. */
+  retryModel?: string | null;
+  effort?: string;
+  writes?: PackWrites | (string & {});
+  handsIn?: string;
+  plugins?: string[];
+  mcp?: string[];
+  persona?: string;
+  limits?: PackLimits;
+  /** The fields the design does not show; the server keeps them as they are on every save. */
+  depthModels?: Record<string, string>;
+  personas?: string[] | null;
+  template?: string;
+  ceiling?: string;
+  permissions?: Record<string, string>;
+  permissionMode?: string;
+  allow?: string[];
+  /** The project's own copy or role: the number of its last save; a ready-made one: the ready-made version. */
+  version: number;
+  /** A ready-made pack the project did not edit. */
+  builtin: boolean;
+  projectId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: string | null;
+}
+
+/** What a save sends: the fields of the editor (the server merges them over what the pack has). */
+export interface PackBody {
+  name: string;
+  glyph?: string;
+  tagline?: string;
+  model?: string;
+  retryModel?: string | null;
+  effort?: string;
+  writes?: string;
+  handsIn?: string;
+  plugins?: string[];
+  mcp?: string[];
+  persona?: string;
+  limits?: PackLimits;
+  // a copy of a pack also carries the fields the editor does not show
+  depthModels?: Record<string, string>;
+  personas?: string[] | null;
+  template?: string;
+  ceiling?: string;
+  permissions?: Record<string, string>;
+  permissionMode?: string;
+  allow?: string[];
+}
