@@ -311,7 +311,7 @@ export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
             borderBottom: '1px solid #EDF1EE',
           }}
         >
-          <BoardAiAvatar provider={st.data?.boardAi.provider} size={34} />
+          <BoardAiAvatar size={34} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 17, fontWeight: 700 }}>Board health</div>
             <div className="ai-muted" style={{ fontSize: 12 }}>

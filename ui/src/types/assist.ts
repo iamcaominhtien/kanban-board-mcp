@@ -1,14 +1,13 @@
 import type { AiProvider, AiStatus } from './ai';
 
 export type AssistScope = 'ticket' | 'project' | 'all' | 'doc' | 'idea';
-export type FeatureKey = 'chat' | 'drafting' | 'split' | 'test_cases' | 'health' | 'docs' | 'sketch';
+export type FeatureKey = 'chat' | 'drafting' | 'health' | 'docs' | 'sketch';
 
 export interface AssistFeature {
   key: FeatureKey;
   label: string;
   description: string;
   on: boolean;
-  costMonth: number;
 }
 
 export interface HealthConfig {
@@ -20,7 +19,6 @@ export interface HealthConfig {
   returnIfWorse: boolean;
   weekend: boolean;
   badgeToast: boolean;
-  offerDraft: boolean;
 }
 
 export interface AssistState {
@@ -33,27 +31,17 @@ export interface AssistState {
     connection: 'local' | 'api_key' | 'inbox' | null;
     metered: boolean;
     status: AiStatus | null;
-    /** No Board AI is chosen: Ask AI still answers with this AI member until one is. */
-    fallback?: { id: string; name: string } | null;
   };
   features: AssistFeature[];
   language: string;
   tone: 'neutral' | 'friendly' | 'concise';
   styleGuide: string;
   styleGuideMax: number;
-  dataScope: { projectId: string; name: string; shared: boolean; docs: number; sharedDocs: number }[];
-  excludedDocs: { id: string; title: string; projectId: string }[];
-  monthlyCap: number | null;
-  perRequestCap: number | null;
-  overCap: 'pause' | 'warn';
-  usedMonth: number;
-  resets: string;
   health: HealthConfig;
   sent: Record<string, boolean>;
   unseenInsights: number;
   lastCheck: string | null;
   ticketCount: number;
-  overBudget: boolean;
 }
 
 export interface AssistErrorBody {
@@ -76,6 +64,8 @@ export interface ReceiptChange {
   title?: string;
   /** Whether the board can put this change back. */
   undo: boolean;
+  /** A sub-task, criterion, branch or link, in words (the server says what happened to it). */
+  words?: string;
 }
 
 export interface Receipt {
@@ -83,7 +73,7 @@ export interface Receipt {
   count: number;
   status: 'done' | 'undone';
   /** After "Undo all": how many were put back and what was left as someone else set it. */
-  undo?: { undone: number; skipped: string[] };
+  undo?: { undone: number; putBack: number[]; skipped: string[]; kept: string[] };
 }
 
 export interface ContextSummary {

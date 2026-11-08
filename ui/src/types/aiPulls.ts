@@ -15,6 +15,8 @@ export interface PullRed {
   at: string | null;
   /** False: the same check is red on the base branch too, so it is not this ticket's failure. */
   blamed: boolean;
+  /** Whether the base branch is red on the same check could not be found out. */
+  baseUnknown?: boolean;
   base: string | null;
   handledAt: string | null;
   runId: string | null;

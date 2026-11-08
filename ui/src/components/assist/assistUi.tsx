@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import type { AiProvider } from '../../types/ai';
 import type { AssistState } from '../../types/assist';
 import { AiAvatar, SparkleIcon } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
@@ -25,7 +24,7 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 /** The Board AI's avatar (the provider glyph on the square AI tile). */
-export function BoardAiAvatar({ size = 30 }: { provider?: AiProvider | null; size?: number }) {
+export function BoardAiAvatar({ size = 30 }: { size?: number }) {
   return <AiAvatar size={size} />;
 }
 
@@ -84,13 +83,6 @@ export function currentPerson(): string {
   } catch {
     return 'You';
   }
-}
-
-/** Short Board AI label, e.g. "Backend team". */
-export function boardAiLabel(state: AssistState | undefined): string {
-  const b = state?.boardAi;
-  if (!b?.name) return 'Board AI';
-  return b.name;
 }
 
 /** Can the Board AI take a request now, and if not, why (I1, I2, I12). */

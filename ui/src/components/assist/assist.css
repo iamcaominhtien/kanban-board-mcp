@@ -701,13 +701,6 @@
   font-size: 12.5px;
   color: #1e2a22;
 }
-.as-history-foot {
-  padding: 10px 14px;
-  border-top: 1px solid #e3e8e5;
-  background: #fbfcfb;
-  font-size: 11px;
-  color: #9aa8a0;
-}
 
 /* Scope popover: bordered radio rows (design B8) */
 .as-radio-row {
@@ -781,35 +774,6 @@
   border: 1px solid #e3e8e5;
   border-radius: 10px;
   background: #fbfcfb;
-}
-.as-money {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.as-money > span {
-  position: absolute;
-  left: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: #5b6b60;
-  pointer-events: none;
-}
-.as-money > input {
-  width: 100%;
-  padding-left: 22px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-}
-.as-usage-bar {
-  height: 6px;
-  margin-top: 6px;
-  border-radius: 3px;
-  background: #dce6df;
-  overflow: hidden;
-}
-.as-usage-bar > div {
-  height: 100%;
 }
 
 /* Reply to a passage of an answer (quoteReplies.tsx) */

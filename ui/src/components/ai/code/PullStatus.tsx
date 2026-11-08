@@ -35,13 +35,17 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
       setError(extractError(e));
     }
   };
-  const nComments = p.pendingComments.length;
+  // the card shows what is waiting; once the board gave comments to the team, the latest batch it gave
+  const waiting = p.pendingComments.filter((c) => !c.handledAt);
+  const lastGiven = p.pendingComments.reduce((at, c) => (c.handledAt && c.handledAt > at ? c.handledAt : at), '');
+  const shown = waiting.length ? waiting : p.pendingComments.filter((c) => c.handledAt === lastGiven);
+  const nComments = shown.length;
   /** The team the board gave a run to: the one that ran it, else "the team". */
   const teamOf = (runId?: string | null) => {
     const run = runs.find((r) => r.id === runId);
     return (run && members.get(run.memberId)?.name) || 'the team';
   };
-  const givenComments = p.pendingComments.find((c) => c.handledAt);
+  const givenComments = waiting.length ? undefined : shown.find((c) => c.handledAt);
   const dot = (c: string) => (
     <span style={{ width: 8, height: 8, borderRadius: '50%', background: c, display: 'inline-block' }} />
   );
@@ -144,6 +148,11 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
               {red.base ? <b>{red.base} is green</b> : <b>The base branch is green</b>}, so this failure is this pull
               request’s.
             </div>
+          ) : red.baseUnknown ? (
+            <div style={{ fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-base-unknown">
+              <b>The board could not tell whether {red.base ?? 'the base branch'} is red on the same check.</b> It has
+              not given this failure to the team.
+            </div>
           ) : (
             <div style={{ fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-not-ours">
               <b>{red.base ?? 'The base branch'} is red on the same check.</b> The failure is not this ticket’s.
@@ -187,7 +196,7 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
               From a person
             </span>
           </div>
-          {p.pendingComments.map((c) => (
+          {shown.map((c) => (
             <div
               key={c.id}
               data-testid="pull-comment"

@@ -57,6 +57,7 @@ async def get_assist(project_id: str, session: Session) -> dict:
     out["board_ai"]["state"] = info["state"]
     if info["state"] != "ready":
         out["board_ai"]["status"] = {
+            "code": "runner_missing",
             "label": "Claude Code was not found",
             "detail": info.get("message") or "",
         }
@@ -72,7 +73,6 @@ async def get_assist(project_id: str, session: Session) -> dict:
             .where(Ticket.project_id == project_id)
         )
     ).one()
-    out["over_budget"] = False
     return out
 
 
@@ -83,11 +83,6 @@ class AssistSettingsBody(BaseModel):
     language: Optional[str] = None
     tone: Optional[str] = None
     style_guide: Optional[str] = None
-    monthly_cap: Optional[float] = None
-    per_request_cap: Optional[float] = None
-    over_cap: Optional[str] = None
-    data_scope: Optional[list[dict[str, Any]] | dict[str, bool]] = None
-    excluded_docs: Optional[list[str]] = None
     health: Optional[dict[str, Any]] = None
 
 

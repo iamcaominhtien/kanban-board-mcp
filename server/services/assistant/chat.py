@@ -662,6 +662,7 @@ async def _answer(
             **(request.get("extra") or {}),
         }
         project_id, chat_id, ticket_id = chat.project_id, chat.id, chat.ticket_id
+        scope_kind = chat.scope
     state, error = "done", {}
     out: engine.Turn | None = None
     try:
@@ -715,10 +716,15 @@ async def _answer(
                 False,
             )
             ctx = loads(ai.context, {})
-            ctx["turn"] = {"id": out.run_id}
-            changes = await receipt.collect(session, project_id, out.run_id)
-            if changes:
-                ctx["receipt"] = receipt.summary(changes)
+            ctx["answer_run"] = {"id": out.run_id}
+            changes = await receipt.collect(
+                session, None if scope_kind == "all" else project_id, out.run_id
+            )
+            merged = receipt.merge(ctx.get("receipt"), changes, out.run_id)
+            if merged:
+                ctx["receipt"] = merged
+            else:
+                ctx.pop("receipt", None)
             ai.context = json.dumps(ctx)
             ideas = [str(i) for i in (data.get("ideas") or []) if str(i).strip()][:8]
             if ideas and state == "done":
@@ -822,8 +828,8 @@ async def undo_receipt(
         raise AssistError("not_found", "This answer changed nothing.")
     if rec.get("status") == "undone":
         raise AssistError("conflict", "These changes were already put back.")
-    result = await receipt.undo(session, rec["applied"])
-    rec["status"] = "undone"
+    result = await receipt.undo(session, rec["applied"], rec.get("runs") or [])
+    rec["status"] = "undone" if result["undone"] else "done"
     rec["undo"] = result
     ctx["receipt"] = rec
     m.context = json.dumps(ctx)

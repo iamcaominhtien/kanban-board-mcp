@@ -34,16 +34,12 @@ export function appliedWords(a: ReceiptChange): string {
       return `new comment: “${clipped(a.after)}”`;
     case 'create':
       return `created${a.type && a.type !== 'task' ? ` as a new ${a.type}` : ''}: “${clipped(a.title, 80)}”`;
-    case 'sub_task':
-      return `sub-task added${a.after ? `: ${clipped(a.after, 80)}` : ''}`;
-    case 'acceptance_criterion':
-      return `acceptance criterion added${a.after ? `: ${clipped(a.after, 80)}` : ''}`;
-    case 'branch':
-      return `branch ${text(a.after)}`;
-    case 'link':
-      return 'link added';
+    case 'description':
+      return 'description rewritten';
+    case 'parent_id':
+      return a.after ? `moved under ${text(a.after)}` : 'taken out of its parent';
     default:
-      return a.op.replace(/_/g, ' ');
+      return a.words ?? a.op.replace(/_/g, ' ');
   }
 }
 
@@ -55,29 +51,29 @@ export function appliedWords(a: ReceiptChange): string {
  * @param props.person - The person the changes are recorded for.
  * @param props.busy - Undo all is running.
  * @param props.onUndo - Put the changes back.
- * @param props.error - Why Undo all failed.
  */
 export function DoneReceipt({
   receipt,
   person,
   busy,
   onUndo,
-  error,
 }: {
   receipt: Receipt;
   person: string;
   busy: boolean;
   onUndo: () => void;
-  error?: string | null;
 }) {
   const applied = receipt.applied;
   const n = applied.length;
   const undone = receipt.status === 'undone';
   const skipped = receipt.undo?.skipped ?? [];
+  const kept = receipt.undo?.kept ?? [];
+  const back = new Set(receipt.undo?.putBack ?? []);
   const putBack = receipt.undo?.undone ?? 0;
-  const canUndo = applied.some((a) => a.undo);
+  // what the board can put back: the button counts only these
+  const nUndo = applied.filter((a) => a.undo).length;
   return (
-    <div className="as-receipt" data-testid="draft-done">
+    <div className="as-receipt" data-testid="receipt">
       <div className="as-receipt-head">
         <span aria-hidden="true" className="as-receipt-ok">
           <LineIcon name="check" size={13} />
@@ -85,14 +81,20 @@ export function DoneReceipt({
         <b data-testid="receipt-title">
           {undone ? `Undone — ${putBack} put back` : `Done — ${n} change${n === 1 ? '' : 's'}`}
         </b>
-        {!undone && canUndo && (
-          <button type="button" className="ai-btn ai-btn-sm" disabled={busy} onClick={onUndo} data-testid="draft-undo">
-            {n === 1 ? 'Undo' : `Undo all ${n}`}
+        {!undone && nUndo > 0 && (
+          <button
+            type="button"
+            className="ai-btn ai-btn-sm"
+            disabled={busy}
+            onClick={onUndo}
+            data-testid="receipt-undo"
+          >
+            {nUndo === 1 ? 'Undo' : `Undo all ${nUndo}`}
           </button>
         )}
       </div>
       {applied.map((a, i) => (
-        <div key={i} className={`as-receipt-row ${undone && a.undo ? 'as-receipt-undone' : ''}`} data-testid="done-row">
+        <div key={i} className={`as-receipt-row ${back.has(i) ? 'as-receipt-undone' : ''}`} data-testid="done-row">
           <span aria-hidden="true" className="as-receipt-ok">
             <LineIcon name="check" size={13} />
           </span>
@@ -107,12 +109,16 @@ export function DoneReceipt({
           Left as someone else set them: {skipped.join('; ')}.
         </div>
       ) : null}
+      {kept.length ? (
+        <div className="ai-hint" data-testid="undo-kept">
+          No way back for: {kept.join('; ')}.
+        </div>
+      ) : null}
       {!undone && (
         <div className="ai-hint">
           Recorded for <b>{person} (through the Board AI)</b>. Undo works until something else changes the same field.
         </div>
       )}
-      {error && <div className="ai-error-text">{error}</div>}
     </div>
   );
 }

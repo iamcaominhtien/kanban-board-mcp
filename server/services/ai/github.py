@@ -285,7 +285,12 @@ async def tick_project(project_id: str) -> list[dict]:
                     }
                 )
             if got["comments"]:
-                pending = loads(cur.pending_comments, []) or []
+                # the ones already given to the team are dropped when new ones come: the card shows the latest batch
+                pending = [
+                    c
+                    for c in (loads(cur.pending_comments, []) or [])
+                    if not c.get("handled_at")
+                ]
                 pending += got["comments"]
                 cur.pending_comments = json.dumps(pending[-50:])
                 cur.seen_comments = json.dumps(
@@ -410,7 +415,7 @@ async def back_to_dev(finding: dict) -> str | None:
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
         cur = await session.get(AiWatchedPr, ticket_id)
         red["handled_at"] = _now()
-        red["run_id"] = run.id
+        red["run_id"] = run.id if run else None
         cur.red = json.dumps(red)
         session.add(cur)
         await session.commit()
@@ -449,7 +454,9 @@ async def comments_to_dev(ticket_id: str) -> str | None:
         now = _now()
         row.pending_comments = json.dumps(
             [
-                c if c.get("handled_at") else {**c, "handled_at": now, "run_id": run.id}
+                c
+                if c.get("handled_at")
+                else {**c, "handled_at": now, "run_id": run.id if run else None}
                 for c in every
             ]
         )

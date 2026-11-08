@@ -7,7 +7,6 @@ import type { AssistScope, AssistState, Chat } from '../../types/assist';
 import { useAssist } from './AssistContext';
 import { AnswerBlock } from './AnswerBlock';
 import { BoardAiAvatar, dayOrTime } from './assistUi';
-import { SparkleIcon } from '../ai/aiUi';
 import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
@@ -27,9 +26,9 @@ const SUGGESTIONS = ['Who’s blocked this week?', 'What changed since Monday?']
 /** G1 and A5: Claude Code is missing, so the Board AI cannot answer. The server says why and what to do. */
 export function ClaudeCodeMissing({ state }: { state: AssistState }) {
   return (
-    <div className="as-tile" data-testid="assist-not-configured">
+    <div className="as-tile as-tile-error" data-testid="assist-not-configured">
       <div className="as-tile-title">
-        <SparkleIcon size={14} /> {state.boardAi.status?.label ?? 'Claude Code was not found'}
+        <LineIcon name="warning" size={14} /> {state.boardAi.status?.label ?? 'Claude Code was not found'}
       </div>
       <div className="ai-hint">
         {state.boardAi.status?.detail ||
@@ -48,14 +47,12 @@ function scopeLabel(c: Chat): string {
 
 function History({
   projectId,
-  provider,
   onOpen,
   onNew,
   onBack,
   onClose,
 }: {
   projectId: string;
-  provider?: AssistState['boardAi']['provider'];
   onOpen: (id: string) => void;
   onNew: () => void;
   /** Back to the chat (the same history toggle as in the dock header). */
@@ -77,7 +74,7 @@ function History({
     <div className="as-history" data-testid="assist-history">
       {/* B3: the history replaces the dock header */}
       <div className="as-head">
-        <BoardAiAvatar provider={provider} size={28} />
+        <BoardAiAvatar size={28} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="as-head-title" style={{ fontSize: 13.5 }}>
             Chat history
@@ -334,12 +331,14 @@ export function AssistDock() {
     >
       <PanelResizer panel={panel} label="Resize Board AI" />
       <div className="as-head" hidden={view === 'history'}>
-        <BoardAiAvatar provider={b?.provider} size={34} />
+        <BoardAiAvatar size={34} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="as-head-title">Board AI</div>
           <div className="as-head-sub">
             <span className={`as-dot ${b?.state === 'ready' ? '' : 'as-dot-grey'}`} />
-            {b?.state === 'ready' ? (
+            {!b ? (
+              ' '
+            ) : b.state === 'ready' ? (
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {b.name ?? 'Board AI'}
                 {b.providerLabel ? ` (${b.providerLabel})` : ''} · online
@@ -377,7 +376,6 @@ export function AssistDock() {
       {view === 'history' ? (
         <History
           projectId={projectId}
-          provider={b?.provider}
           onBack={() => setView('chat')}
           onClose={ctx.close}
           onOpen={(id) => {
@@ -569,7 +567,7 @@ export function AssistDock() {
             )}
             {!messages.length && !disabled && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="assist-welcome">
-                <BoardAiAvatar provider={b?.provider} size={38} />
+                <BoardAiAvatar size={38} />
                 <div style={{ fontSize: 17, fontWeight: 700 }}>
                   Ask about{' '}
                   {scope === 'ticket' && ctx.ticketId
@@ -646,7 +644,7 @@ export function AssistDock() {
                     <UserText text={m.text} />
                   </div>
                 ) : (
-                  <AnswerBlock key={m.id} msg={m} chat={chat.data!} state={state} />
+                  <AnswerBlock key={m.id} msg={m} chat={chat.data!} />
                 ),
               )}
           </div>

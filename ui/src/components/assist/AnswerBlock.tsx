@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { assistApi, assistKeys } from '../../api/assist';
 import { extractError } from '../../api/extractError';
-import type { AssistState, ChatDetail, ChatMessage } from '../../types/assist';
+import type { ChatDetail, ChatMessage } from '../../types/assist';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { AiAvatar, hhmm, secondsSince, useAiBoardState } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
@@ -44,12 +44,10 @@ function useTick(active: boolean) {
 export function AnswerBlock({
   msg,
   chat,
-  state,
   panel,
 }: {
   msg: ChatMessage;
   chat: ChatDetail;
-  state: AssistState | undefined;
   /** Set by the chat panel of a ticket or an idea (design/screens/ai-where-you-work.md, B). */
   panel?: AnswerPanel;
 }) {
@@ -96,6 +94,18 @@ export function AnswerBlock({
   // the tool the member used last ("Using get_ticket · YU-12"), when it uses its own tools
   const lastStep = msg.steps.length ? msg.steps[msg.steps.length - 1].text : '';
   const usingTool = lastStep.startsWith('Using ');
+
+  const receiptBlock =
+    ctxInfo.receipt && ctxInfo.receipt.applied.length > 0 ? (
+      <div style={{ marginTop: 8 }}>
+        <DoneReceipt
+          receipt={ctxInfo.receipt}
+          person={chat.owner || currentPerson()}
+          busy={busy}
+          onUndo={() => void undoAll()}
+        />
+      </div>
+    ) : null;
 
   let body;
   if ((msg.state === 'thinking' || msg.state === 'queued') && ctxInfo.team) {
@@ -175,31 +185,38 @@ export function AnswerBlock({
     );
   } else if (msg.state === 'error') {
     body = (
-      <div className="as-tile as-tile-error" data-testid="answer-error">
-        <div className="as-tile-title">Couldn’t get an answer</div>
-        <div className="ai-hint">
-          {msg.error.message ?? 'Claude Code did not answer.'} Nothing was changed. Your message is kept.
+      <div>
+        <div className="as-tile as-tile-error" data-testid="answer-error">
+          <div className="as-tile-title">Couldn’t get an answer</div>
+          <div className="ai-hint">
+            {msg.error.message ?? 'Claude Code did not answer.'}{' '}
+            {ctxInfo.receipt?.applied.length
+              ? 'It had changed some things before it stopped: see below.'
+              : 'Nothing was changed.'}{' '}
+            Your message is kept.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className="ai-btn ai-btn-primary ai-btn-sm"
+              disabled={busy}
+              onClick={() => void retry()}
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm"
+              onClick={() => {
+                void navigator.clipboard?.writeText(JSON.stringify(msg.error, null, 2));
+                setCopied(true);
+              }}
+            >
+              {copied ? 'Copied' : 'Copy error details'}
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            type="button"
-            className="ai-btn ai-btn-primary ai-btn-sm"
-            disabled={busy}
-            onClick={() => void retry()}
-          >
-            Try again
-          </button>
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm"
-            onClick={() => {
-              void navigator.clipboard?.writeText(JSON.stringify(msg.error, null, 2));
-              setCopied(true);
-            }}
-          >
-            {copied ? 'Copied' : 'Copy error details'}
-          </button>
-        </div>
+        {receiptBlock}
       </div>
     );
   } else if (msg.state === 'rate_limited') {
@@ -249,16 +266,7 @@ export function AnswerBlock({
             </button>
           </div>
         )}
-        {ctxInfo.receipt && ctxInfo.receipt.applied.length > 0 && (
-          <div style={{ marginTop: 8 }}>
-            <DoneReceipt
-              receipt={ctxInfo.receipt}
-              person={chat.owner || currentPerson()}
-              busy={busy}
-              onUndo={() => void undoAll()}
-            />
-          </div>
-        )}
+        {receiptBlock}
         {panel && msg.text && (
           <div className="sc-share" data-testid="answer-share">
             {panel.onPostComment &&
@@ -428,9 +436,11 @@ export function AnswerBlock({
               >
                 <LineIcon name="copy" size={14} />
               </button>
-              <button type="button" title="Regenerate" aria-label="Regenerate" onClick={() => void retry()}>
-                <LineIcon name="refresh" size={14} />
-              </button>
+              {!ctxInfo.receipt?.applied.length && (
+                <button type="button" title="Regenerate" aria-label="Regenerate" onClick={() => void retry()}>
+                  <LineIcon name="refresh" size={14} />
+                </button>
+              )}
               <button
                 type="button"
                 title="Helpful"
@@ -462,7 +472,7 @@ export function AnswerBlock({
       {answerer ? (
         <AiAvatar provider={answerer.provider} color={answerer.color} size={26} />
       ) : (
-        <BoardAiAvatar provider={state?.boardAi.provider} size={26} />
+        <BoardAiAvatar size={26} />
       )}
       <div className="as-ai-body">
         {body}

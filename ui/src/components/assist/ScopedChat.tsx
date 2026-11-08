@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { assistApi, assistError, assistKeys, useChat, useScopeState } from '../../api/assist';
 import { aiApi, isActive, useTicketRuns, useTicketSessions } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import type { AssistDraft, ChatMessage, ChatScope, ScopeState, StartingPoint } from '../../types/assist';
+import type { ChatMessage, ChatScope, ScopeState, StartingPoint } from '../../types/assist';
 import { AiAvatar, SparkleIcon, useAiBoardState } from '../ai/aiUi';
 import { AnswerBlock, type AnswerPanel } from './AnswerBlock';
 import { useResizablePanel } from '../../hooks/useResizablePanel';
@@ -20,17 +20,13 @@ export interface ScopedChatProps {
   scope: ChatScope;
   /** Starting points of the empty chat, shown before the ones the server sends for the scope. */
   startingPoints?: StartingPoint[];
-  /** No longer used: the Board AI does what it can undo and says so (kept so the idea chat still compiles). */
-  renderDraft?: (draft: AssistDraft) => ReactNode | null;
   /** The panel's "Runs" tab. Without it there is no tab bar. */
   runsTab?: { label: string; content: ReactNode };
   /** Close (the X, and Ctrl+J). */
   onClose: () => void;
-  /** No longer used (there is no "Do the work" run any more). */
-  onOpenRun?: (runId: string) => void;
-  /** "Open AI members" on the no-AI-member state. */
+  /** "Open AI Team" on the Claude-Code-missing state. */
   onOpenAiMembers?: () => void;
-  /** No longer used (there is no cap state any more). */
+  /** No longer used (there is no cap state any more); kept so the idea chat still compiles. */
   onOpenUsage?: () => void;
   /** Called after an answer was posted as a comment (the thread refreshes itself). */
   onPosted?: (ticketId: string, commentId: string) => void;
@@ -120,9 +116,11 @@ function Who({ state }: { state: ScopeState | undefined }) {
           <span>
             {cur
               ? cur.status
-              : board?.ready
-                ? `${board.name === 'Board AI' ? 'Claude Code' : `${board.name} (${board.providerLabel})`} · online`
-                : 'Claude Code was not found'}
+              : !board
+                ? ' '
+                : board.ready
+                  ? `${board.name === 'Board AI' ? 'Claude Code' : `${board.name} (${board.providerLabel})`} · online`
+                  : 'Claude Code was not found'}
           </span>
         </div>
       </div>
@@ -179,7 +177,7 @@ function Blocked({ state, onMembers }: { state: ScopeState; onMembers?: () => vo
  * team, writes to the team's lead (the team answers here and keeps working). Enter sends, Ctrl+J closes.
  *
  * To use it for another thing, register a scope on the server (`services/ai/assist/scopes.py`) and render
- * `<ScopedChat scope={{ kind: 'idea', id }} startingPoints={…} renderDraft={…} />` inside a column of the page.
+ * `<ScopedChat scope={{ kind: 'idea', id }} startingPoints={…} />` inside a column of the page.
  */
 export function ScopedChat({
   scope,
@@ -297,8 +295,7 @@ export function ScopedChat({
     } catch (e) {
       const body = assistError(e);
       setError(body?.detail ?? extractError(e));
-      if (body && ['viewer', 'ai_off', 'over_budget', 'not_configured', 'unavailable'].includes(body.code))
-        void refresh();
+      if (body && ['viewer', 'ai_off', 'not_configured', 'unavailable'].includes(body.code)) void refresh();
       return false;
     } finally {
       setSending(false);
@@ -656,7 +653,7 @@ export function ScopedChat({
                     <UserText text={m.text} />
                   </div>
                 ) : (
-                  <AnswerBlock key={m.id} msg={m} chat={chat.data!} state={undefined} panel={panel} />
+                  <AnswerBlock key={m.id} msg={m} chat={chat.data!} panel={panel} />
                 ),
               )}
             {state && !canAsk && messages.length > 0 && <Blocked state={state} onMembers={onOpenAiMembers} />}

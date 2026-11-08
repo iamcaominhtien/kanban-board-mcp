@@ -4,6 +4,8 @@ design/screens/ai-board-wave3.md, B and G).
 The Board AI acts through the board's own tools with the asker's rights, so every change it makes is already in the
 Activity of its ticket, marked with the id of the turn's run. The receipt is read from there, kept on the answer
 (`context.receipt`) and, on "Undo all", each change is put back unless something else changed the same field since.
+
+Not in the receipt: edits of a Docs page (they leave no ticket Activity) and what a tool refused.
 """
 
 import json
@@ -26,12 +28,16 @@ FIELDS = (
     "due_date",
     "start_date",
     "title",
+    "description",
+    "parent_id",
     "tags",
     "type",
 )
-# Other things a turn does that are listed in the receipt (and undone where there is a way back).
-OTHER = ("created", "comment", "sub_task", "acceptance_criterion", "branch", "link")
-MAX_CHANGES = 60
+# Listed in the receipt; there is no way back for these.
+LISTED = ("sub_task", "acceptance_criterion", "branch", "link")
+MAX_CHANGES = 200
+# Moving a ticket into these hands its work over (a pull request, a merge): that is for a person to do.
+HAND_OVER = ("review", "done")
 
 
 def _loads(raw: str | None, default: Any) -> Any:
@@ -49,58 +55,115 @@ async def _names(session: AsyncSession, ids: set[str]) -> dict[str, str]:
     return {m.id: m.name for m in rows}
 
 
-async def collect(
-    session: AsyncSession, project_id: str, run_id: str
-) -> list[dict[str, Any]]:
-    """The changes the turn `run_id` made on tickets of the project, oldest first.
+def _item_words(field: str, e: dict[str, Any]) -> str:
+    """What a sub-task, criterion, branch or link entry says, in a few words."""
+    what = {
+        "sub_task": "sub-task",
+        "acceptance_criterion": "acceptance criterion",
+        "branch": "branch",
+        "link": "link",
+    }[field]
+    before, after, ref = e.get("from"), e.get("to"), e.get("ref")
+    text = str(ref or after or before or "")
+    if field in ("sub_task", "acceptance_criterion"):
+        if before is None and after is not None:
+            verb = "added"
+        elif after is None:
+            verb = "removed"
+        elif after == "done":
+            verb = "ticked"
+        else:
+            verb = "unticked" if before == "done" else "changed"
+    else:
+        verb = "removed" if after is None and before is not None else "added"
+    return f"{what} {verb}{f': {text[:80]}' if text and field != 'branch' else ''}"
 
-    Each change is `{op, ticket, before, after, ref?, at, undo}` where `undo` says whether the board can put it back.
+
+async def collect(
+    session: AsyncSession, project_id: str | None, run_id: str
+) -> list[dict[str, Any]]:
+    """The changes the turn `run_id` made on tickets (of one project, or of every project when `project_id` is None),
+    oldest first.
+
+    Each change is `{op, ticket, before, after, at, undo}`; `undo` says whether the board can put it back, `words`
+    says a listed one in words.
     """
-    rows = (
-        await session.exec(
-            select(Ticket).where(
-                Ticket.project_id == project_id,
-                cast(col(Ticket.activity_log), String).contains(run_id),
-            )
-        )
-    ).all()
+    stmt = select(Ticket).where(cast(col(Ticket.activity_log), String).contains(run_id))
+    if project_id:
+        stmt = stmt.where(Ticket.project_id == project_id)
     changes: list[dict[str, Any]] = []
-    for t in rows:
-        for e in _loads(t.activity_log, []):
-            if e.get("run_id") != run_id:
-                continue
+    for t in (await session.exec(stmt)).all():
+        log = [e for e in _loads(t.activity_log, []) if e.get("run_id") == run_id]
+        born_here = any(e.get("field") == "created" for e in log)
+        for e in log:
             field = str(e.get("field") or "")
-            if field not in FIELDS and field not in OTHER:
-                continue
-            change: dict[str, Any] = {
-                "op": field if field != "created" else "create",
-                "ticket": t.id,
-                "before": e.get("from"),
-                "after": e.get("to"),
-                "at": e.get("at"),
-                "undo": field in FIELDS or field in ("created", "comment"),
-            }
-            if e.get("ref"):
-                change["ref"] = e["ref"]
             if field == "created":
-                change["created"] = t.id
-                change["type"] = t.type
-                change["title"] = e.get("ref") or t.title
-            changes.append(change)
+                changes.append(
+                    {
+                        "op": "create",
+                        "ticket": t.id,
+                        "created": t.id,
+                        "type": t.type,
+                        "title": e.get("ref") or t.title,
+                        "before": None,
+                        "after": None,
+                        "at": e.get("at"),
+                        "undo": True,
+                    }
+                )
+            elif field == "comment":
+                changes.append(
+                    {
+                        "op": "comment",
+                        "ticket": t.id,
+                        "before": None,
+                        "after": e.get("to"),
+                        "ref": e.get("ref"),
+                        "at": e.get("at"),
+                        "undo": True,
+                    }
+                )
+            elif field in FIELDS:
+                if born_here:
+                    continue  # the ticket is new: its first values are part of "created"
+                changes.append(
+                    {
+                        "op": field,
+                        "ticket": t.id,
+                        "before": e.get("from"),
+                        "after": e.get("to"),
+                        "at": e.get("at"),
+                        "undo": True,
+                    }
+                )
+            elif field in LISTED:
+                if born_here:
+                    continue
+                changes.append(
+                    {
+                        "op": field,
+                        "ticket": t.id,
+                        "before": e.get("from"),
+                        "after": e.get("to"),
+                        "words": _item_words(field, e),
+                        "at": e.get("at"),
+                        "undo": False,
+                    }
+                )
     changes.sort(key=lambda c: str(c.get("at") or ""))
     changes = changes[:MAX_CHANGES]
-    names = await _names(
-        session,
-        {
-            str(v)
-            for c in changes
-            if c["op"] == "assignee"
-            for v in (c["before"], c["after"])
-            if v
-        },
-    )
+    ids = {
+        str(v)
+        for c in changes
+        if c["op"] == "assignee"
+        for v in (c["before"], c["after"])
+        if v
+    }
+    names = await _names(session, ids)
     for c in changes:
         if c["op"] == "assignee":
+            # the receipt says the name; the id stays beside it for the way back
+            c["before_id"], c["after_id"] = c["before"], c["after"]
             for k in ("before", "after"):
                 if c[k]:
                     c[k] = names.get(str(c[k]), c[k])
@@ -112,14 +175,15 @@ def summary(changes: list[dict[str, Any]]) -> dict[str, Any]:
     return {"applied": changes, "count": len(changes), "status": "done"}
 
 
-async def _current(session: AsyncSession, ticket_id: str, field: str) -> Any:
-    t = await session.get(Ticket, ticket_id)
-    if t is None:
-        return None
-    value = getattr(t, field, None)
-    if field == "tags":
-        return _loads(value, []) if isinstance(value, str) else (value or [])
-    return value
+def merge(
+    old: dict[str, Any] | None, changes: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """The receipt of an answer tried again: what the first try did and was not put back stays in it."""
+    kept = (
+        list(old.get("applied") or []) if old and old.get("status") != "undone" else []
+    )
+    both = [*kept, *changes]
+    return summary(both) if both else None
 
 
 def _same(a: Any, b: Any) -> bool:
@@ -129,66 +193,114 @@ def _same(a: Any, b: Any) -> bool:
     return clip(a) == clip(b) if isinstance(a, str) or isinstance(b, str) else a == b
 
 
-async def _overwritten_by(
-    session: AsyncSession, ticket_id: str, field: str, after_at: str | None
-) -> str:
-    """Who changed `field` after the turn did, and when ("Hoa Mai at 10:51")."""
-    t = await session.get(Ticket, ticket_id)
-    for e in reversed(_loads(t.activity_log if t else None, [])):
+def _current(t: Ticket, field: str) -> Any:
+    value = getattr(t, field, None)
+    if field == "tags":
+        return _loads(value, []) if isinstance(value, str) else (value or [])
+    return value
+
+
+def _later(t: Ticket, field: str, after_at: str | None) -> str:
+    """Who changed `field` after the turn did, and when ("Hoa Mai at 10:51 UTC")."""
+    for e in reversed(_loads(t.activity_log, [])):
         if e.get("field") == field and str(e.get("at") or "") > str(after_at or ""):
             who = e.get("actor") or "someone"
             when = str(e.get("at") or "")[11:16]
-            return f"{who} at {when}" if when else str(who)
+            return f"{who} at {when} UTC" if when else str(who)
     return "someone else"
 
 
-async def undo(session: AsyncSession, applied: list[dict[str, Any]]) -> dict[str, Any]:
+async def undo(
+    session: AsyncSession, applied: list[dict[str, Any]], runs: list[str]
+) -> dict[str, Any]:
     """Put the changes back, newest first. A change is left alone when the field was changed by someone else since.
 
     Returns:
-        `{undone: n, skipped: [text, …]}`: each skipped line names the ticket, the field and what overwrote it.
+        `{undone, put_back, skipped, kept}`: `put_back` holds the indexes (in `applied`) that are back; each
+        `skipped` line names the ticket, the field and what overwrote it; `kept` names what has no way back.
     """
-    done = 0
+    put_back: list[int] = []
     skipped: list[str] = []
-    for c in reversed(applied):
+    kept: list[str] = []
+    for i in range(len(applied) - 1, -1, -1):
+        c = applied[i]
         ticket_id, op = str(c.get("ticket")), str(c.get("op"))
+        label = f"{ticket_id} {op.replace('_', ' ')}"
         if not c.get("undo"):
-            skipped.append(f"{ticket_id} {op.replace('_', ' ')}: it cannot be put back")
+            kept.append(f"{ticket_id} {c.get('words') or label}")
+            continue
+        t = await session.get(Ticket, ticket_id)
+        if t is None:
+            skipped.append(f"{label} (the ticket is gone)")
             continue
         try:
             if op == "create":
+                children = (
+                    await session.exec(select(Ticket).where(Ticket.parent_id == t.id))
+                ).first()
+                mine = {
+                    str(x.get("ref"))
+                    for x in applied
+                    if x["op"] == "comment" and x["ticket"] == t.id
+                }
+                since = [
+                    e
+                    for e in _loads(t.activity_log, [])
+                    if str(e.get("at") or "") > str(c.get("at") or "")
+                    and e.get("run_id") not in runs
+                ]
+                others = [
+                    x
+                    for x in _loads(t.comments, [])
+                    if not x.get("deleted_at") and x.get("id") not in mine
+                ]
+                if children or since or others:
+                    skipped.append(f"{label} (it has been worked on since)")
+                    continue
                 if await svc_tickets.delete_ticket(session, ticket_id):
-                    done += 1
+                    put_back.append(i)
                 continue
             if op == "comment":
-                if await svc_tickets.delete_comment(
-                    session, ticket_id, str(c.get("ref"))
-                ):
-                    done += 1
+                comments = _loads(t.comments, [])
+                live = [
+                    x
+                    for x in comments
+                    if x.get("id") == c.get("ref") and not x.get("deleted_at")
+                ]
+                if not live:
+                    skipped.append(f"{label} (it is already gone)")
+                    continue
+                await svc_tickets.delete_comment(session, ticket_id, str(c.get("ref")))
+                put_back.append(i)
                 continue
-            current = await _current(session, ticket_id, op)
-            raw_after = c.get("after")
-            if op == "assignee":
-                # the receipt shows the name; compare through the ticket's own member
-                t = await session.get(Ticket, ticket_id)
-                m = await session.get(Member, t.assignee) if t and t.assignee else None
-                current, raw_after = (m.name if m else None), raw_after
-            if not _same(current, raw_after):
-                who = await _overwritten_by(session, ticket_id, op, c.get("at"))
-                skipped.append(f"{ticket_id} {op.replace('_', ' ')} (now set by {who})")
+            if not _same(
+                _current(t, op),
+                c.get("after_id") if op == "assignee" else c.get("after"),
+            ):
+                skipped.append(f"{label} (now set by {_later(t, op, c.get('at'))})")
                 continue
-            before = c.get("before")
-            if op == "assignee" and before:
-                m = (
-                    await session.exec(select(Member).where(Member.name == before))
-                ).first()
-                before = m.id if m else before
+            before = c.get("before_id") if op == "assignee" else c.get("before")
             if op == "tags":
                 before = list(before or [])
-            await svc_tickets.update_ticket(
-                session, ticket_id, TicketUpdate(**{op: before})
-            )
-            done += 1
+            if op == "status" and before in HAND_OVER:
+                skipped.append(
+                    f"{label} (moving it back to {before} hands its work over: do that yourself)"
+                )
+                continue
+            if (
+                await svc_tickets.update_ticket(
+                    session, ticket_id, TicketUpdate(**{op: before})
+                )
+                is None
+            ):
+                skipped.append(f"{label} (the ticket is gone)")
+                continue
+            put_back.append(i)
         except ValueError as exc:
-            skipped.append(f"{ticket_id} {op.replace('_', ' ')}: {exc}")
-    return {"undone": done, "skipped": skipped}
+            skipped.append(f"{label}: {exc}")
+    return {
+        "undone": len(put_back),
+        "put_back": sorted(put_back),
+        "skipped": skipped,
+        "kept": kept,
+    }

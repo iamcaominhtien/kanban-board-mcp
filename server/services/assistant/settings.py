@@ -37,7 +37,6 @@ DEFAULT_HEALTH = {
     "return_if_worse": True,
     "weekend": False,
     "badge_toast": True,
-    "offer_draft": False,
 }
 TONES = ("neutral", "friendly", "concise")
 STYLE_GUIDE_MAX = 1000
@@ -167,7 +166,6 @@ async def describe(session: AsyncSession, project_id: str) -> dict[str, Any]:
             "connection": "local",
             "metered": False,
             "status": None,
-            "fallback": None,
         },
         "features": [
             {
@@ -175,7 +173,6 @@ async def describe(session: AsyncSession, project_id: str) -> dict[str, Any]:
                 "label": lbl,
                 "description": DESCRIPTIONS.get(k, ""),
                 "on": features(row).get(k, True),
-                "cost_month": await month_spend(session, k),
             }
             for k, lbl in FEATURES.items()
         ],
@@ -183,13 +180,6 @@ async def describe(session: AsyncSession, project_id: str) -> dict[str, Any]:
         "tone": row.tone or "neutral",
         "style_guide": row.style_guide or "",
         "style_guide_max": STYLE_GUIDE_MAX,
-        "data_scope": [],
-        "excluded_docs": [],
-        "monthly_cap": row.monthly_cap,
-        "per_request_cap": row.per_request_cap,
-        "over_cap": row.over_cap or "warn",
-        "used_month": await month_spend(session),
-        "resets": budget.month_start().isoformat()[:10],
         "health": health_config(row),
         "sent": {},
     }
@@ -213,11 +203,6 @@ async def update(session: AsyncSession, data: dict[str, Any]) -> AiAssistSetting
         row.tone = data["tone"]
     if "style_guide" in data:
         row.style_guide = (data["style_guide"] or "")[:STYLE_GUIDE_MAX]
-    for key in ("monthly_cap", "per_request_cap"):
-        if key in data:
-            setattr(row, key, data[key])
-    if data.get("over_cap") in ("pause", "warn"):
-        row.over_cap = data["over_cap"]
     if "health" in data and isinstance(data["health"], dict):
         row.health = json.dumps({**health_config(row), **data["health"]})
     session.add(row)
