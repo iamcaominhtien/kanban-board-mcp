@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1794108209-3be9",
+  "canvas_version": "1794108858-2696",
   "exported": "2026-11-02",
   "files": {
     "AccountMenu.dc.html": {
@@ -276,8 +276,8 @@
       "h": 6081
     },
     "DocsAiCare.dc.html": {
-      "bytes": 297358,
-      "sha256": "7b310cc9be96810cf8b4d70038a34298d6caec002dc4adf72a1362b7a303b647",
+      "bytes": 297380,
+      "sha256": "b706d3065a99d946e8ec2de32203e1f810e63e73111dd1a2f51deac09a538665",
       "title": "Docs AI — keeping docs true, Send to AI & control",
       "page": "screens_docs",
       "w": 1480,
