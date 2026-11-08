@@ -2311,7 +2311,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       .then((t) => {
                         setPinDraft(null);
                         setTool('select');
-                        if (t.deliveries?.length) setPinNotes((cur) => ({ ...cur, [t.id]: t.deliveries ?? [] }));
+                        setPinNotes((cur) => ({ ...cur, [t.id]: t.deliveries ?? [] }));
                         setSelThread(t.id);
                         setSide('comments');
                         void qc.invalidateQueries({ queryKey: canvasKeys.threads(canvasId) });

@@ -121,7 +121,8 @@ export function CommentsPanel(props: Props) {
   const run = async (fn: () => Promise<unknown>) => {
     try {
       const out = (await fn()) as CanvasThread | undefined;
-      if (out?.deliveries?.length) setMine((cur) => ({ ...cur, [out.id]: out.deliveries ?? [] }));
+      // the line says what the newest post did: a later post with no team in it clears it
+      if (out?.id) setMine((cur) => ({ ...cur, [out.id]: out.deliveries ?? [] }));
       refresh();
     } catch (e) {
       toast.error('Comment failed', canvasFailure(e).message);

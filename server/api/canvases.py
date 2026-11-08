@@ -535,8 +535,9 @@ async def post_thread(
 async def _deliver(
     session: AsyncSession, canvas_id: str, thread: dict[str, Any]
 ) -> list[dict[str, Any]]:
-    """Give the comment just saved to the AI teams it mentions (see ``services.canvas_delivery``). A failure here is
-    answered as "not delivered", never as a failed comment: the comment is already saved."""
+    """Give the comment just saved to the AI teams it mentions (see ``services.canvas_delivery``). A failure of a team's
+    delivery is answered as "not delivered" inside ``deliver``; any other failure here is logged and gives no line,
+    never a failed comment: the comment is already saved."""
     try:
         canvas = await svc._canvas(session, canvas_id)  # noqa: SLF001
         return await canvas_delivery.deliver(

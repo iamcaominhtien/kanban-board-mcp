@@ -21,6 +21,7 @@ NOT_ON_TICKET = "This team is not on this ticket."
 ONLY_TICKET_OR_PAGE = (
     "A team answers a canvas comment only on a ticket's canvas or a Docs page's canvas."
 )
+SEND_FAILED = "The note could not be sent."
 DOCS_AI_OFF = "The page's assistant is not available now (Docs AI is off or not ready): the note is only a comment on the page."
 
 
@@ -115,6 +116,8 @@ async def mentionable(session: AsyncSession, canvas: Any) -> list[dict[str, Any]
 
 def _note(canvas: Any, thread: dict[str, Any], comment: dict[str, Any], by: str) -> str:
     """What the team is told: who mentioned it, where, the comment, and how to answer on the same thread."""
+    import re
+
     from services.docs_comments import plain_mentions
 
     where = f"canvas “{canvas.title}” (canvas_id {canvas.id}"
@@ -122,9 +125,13 @@ def _note(canvas: Any, thread: dict[str, Any], comment: dict[str, Any], by: str)
         where += f", board_id {thread['board_id']}"
     where += f", thread_id {thread['id']})"
     who = "A person on the board" if by.casefold() in ("user", "you", "me") else by
+    # no `@` before a name: a page comment with `@Name` would notify that person a second time
+    unmentioned = re.sub(
+        r"(?<!\w)@(?=\w)", "", plain_mentions(comment.get("body") or "")
+    )
     return (
         f"{who} mentioned you in a comment on the {where}:\n\n"
-        f"{plain_mentions(comment.get('body') or '')}\n\n"
+        f"{unmentioned}\n\n"
         "Read the canvas with docs_read(canvas, canvas_id=…) and answer in that thread with "
         "docs_write(canvas_comment, canvas_id=…, thread_id=…). Change a board only if the comment asks for it."
     )
@@ -142,7 +149,7 @@ async def deliver(
     comment = (thread.get("comments") or [{}])[-1]
     if not comment or comment.get("is_ai") or comment.get("ai"):
         return []
-    if not canvas.project_id:
+    if not comment.get("mentions") or not canvas.project_id:
         return []
     members = (
         await session.exec(select(Member).where(Member.project_id == canvas.project_id))
@@ -169,9 +176,11 @@ async def deliver(
     results: list[dict[str, Any]] = []
     if canvas.owner_kind == "ticket":
         from services.ai import messaging
+        from services.ai.runs import RunError
 
         team_id = await ticket_team(session, canvas.owner_id)
-        sent = False
+        # one note reaches the ticket's team, however many times it is named
+        sent: dict[str, Any] | None = None
         for m in mentioned:
             if m.id != team_id:
                 results.append(fail(m, NOT_ON_TICKET))
@@ -180,31 +189,55 @@ async def deliver(
             if status != "ready":
                 results.append(fail(m, f"{m.name} is {why.lower()}."))
                 continue
-            if sent:
-                continue
-            try:
-                await messaging.deliver_to_ticket(canvas.owner_id, note, by=by)
-            except Exception as exc:  # noqa: BLE001 - a run that cannot start, a team that waits for a person
-                results.append(fail(m, str(exc) or "The note could not be sent."))
-                continue
-            sent = True
-            results.append({"member_id": m.id, "name": m.name, "result": "delivered"})
+            if sent is None:
+                try:
+                    # a person's note: depth 0, and the run is told it came from comment threads, not from another AI
+                    await messaging.deliver_to_ticket(
+                        canvas.owner_id, note, by=by, trigger="docs_threads", depth=0
+                    )
+                    sent = {}
+                except (
+                    RunError
+                ) as exc:  # a team that waits for a person, a run that cannot start
+                    sent = {"reason": str(exc) or SEND_FAILED}
+                except Exception:  # noqa: BLE001
+                    logger.exception(
+                        "Could not deliver a canvas note to a ticket's team"
+                    )
+                    sent = {"reason": SEND_FAILED}
+            if "reason" in sent:
+                results.append(fail(m, sent["reason"]))
+            else:
+                results.append(
+                    {"member_id": m.id, "name": m.name, "result": "delivered"}
+                )
     elif page:
         from services.ai import messaging
 
-        try:
-            sent = await messaging.deliver_to_page(page, note, by=by)
-        except Exception as exc:  # noqa: BLE001
-            return [
-                fail(m, str(exc) or "The note could not be sent.") for m in mentioned
-            ]
-        answered = sent.get("delivered") == "page_assistant"
+        ready: list[Member] = []
         for m in mentioned:
-            results.append(
-                {"member_id": m.id, "name": m.name, "result": "delivered"}
-                if answered
-                else fail(m, DOCS_AI_OFF)
-            )
+            status, why = await _status(session, m)
+            if status == "ready":
+                ready.append(m)
+            else:
+                results.append(fail(m, f"{m.name} is {why.lower()}."))
+        if ready:
+            answered = False
+            reason = DOCS_AI_OFF
+            try:
+                sent = await messaging.deliver_to_page(page, note, by=by, depth=0)
+                answered = sent.get("delivered") == "page_assistant"
+            except ValueError as exc:  # the note could not be left on the page
+                reason = str(exc) or SEND_FAILED
+            except Exception:  # noqa: BLE001
+                logger.exception("Could not deliver a canvas note to a Docs page")
+                reason = SEND_FAILED
+            for m in ready:
+                results.append(
+                    {"member_id": m.id, "name": m.name, "result": "delivered"}
+                    if answered
+                    else fail(m, reason)
+                )
     else:
         results = [fail(m, ONLY_TICKET_OR_PAGE) for m in mentioned]
     return results

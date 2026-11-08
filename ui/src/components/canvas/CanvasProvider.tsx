@@ -175,6 +175,7 @@ export function CanvasProvider({ children }: { children: ReactNode }) {
       )}
       {view && (
         <CanvasViewer
+          key={`${view.request.id}:${view.request.boardId ?? ''}:${view.request.threadId ?? ''}`}
           request={view.request}
           mode={view.mode}
           me={currentActor()}

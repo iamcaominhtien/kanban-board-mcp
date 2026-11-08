@@ -284,8 +284,10 @@ async def add_thread(
     )
     session.add(first)
     await session.commit()
+    out = await _thread_out(session, c, t)
+    # after the answer is built: a failed notification rolls the session back, which expires what the answer reads
     await _notify_mentions(session, c, t, first, mentioned)
-    return await _thread_out(session, c, t)
+    return out
 
 
 async def _thread(session: AsyncSession, thread_id: str) -> tuple[Any, CanvasThread]:
@@ -316,8 +318,9 @@ async def reply(
     )
     session.add(new)
     await session.commit()
+    out = await _thread_out(session, c, t)
     await _notify_mentions(session, c, t, new, mentioned)
-    return await _thread_out(session, c, t)
+    return out
 
 
 async def edit_comment(

@@ -22,7 +22,7 @@ const STATUS = {
  */
 export function useCanvasMentions(canvasId: string | null | undefined, me: string) {
   const members = useCanvasMembers(canvasId);
-  const list = useMemo(() => members.data ?? [], [members.data]);
+  const list = useMemo(() => (Array.isArray(members.data) ? members.data : []), [members.data]);
   const suggest = useMemo<SuggestMember[]>(
     () =>
       list.map<SuggestMember>((m) => {
@@ -51,9 +51,12 @@ export function useCanvasMentions(canvasId: string | null | undefined, me: strin
       }),
     [list, me],
   );
-  // usable teams come first inside their group
+  // people first, then the AI teams (usable ones first): the picker draws a header at every change of group
   const ordered = useMemo(
-    () => [...suggest].sort((a, b) => Number(b.ai?.usable ?? true) - Number(a.ai?.usable ?? true)),
+    () =>
+      [...suggest].sort(
+        (a, b) => Number(!!a.ai) - Number(!!b.ai) || Number(b.ai?.usable ?? true) - Number(a.ai?.usable ?? true),
+      ),
     [suggest],
   );
   const store = useCallback(
