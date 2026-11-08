@@ -171,7 +171,7 @@ def _call_bar(
         "state": ("running" if end is None else "finished")
         if kind in (None, "ok")
         else r.state,
-        "trigger": "hand-off",
+        "trigger": "role call",
         "autopilot": False,
         "queued_at": span["start"],
         "started_at": span["start"],
@@ -402,7 +402,7 @@ async def timeline(
 
     def lane_name(team_id: str, role: str | None) -> str:
         team = teams[team_id][0].name
-        many = len(used) > 1
+        many = len(shown) > 1
         if role is None:
             return team if many else "Lead"
         return f"{role_label(role)} ({team})" if many else role_label(role)

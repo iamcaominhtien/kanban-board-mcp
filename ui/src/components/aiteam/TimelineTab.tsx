@@ -170,7 +170,7 @@ function readRange(projectId: string): Preset {
 
 /**
  * Flow › Timeline: a sequence diagram of the AI teams. You, each team's lead and each role it called is a lifeline, time
- * runs down, a bar is a run or one call of a role and an arrow is a hand-off, a question or an answer
+ * runs down, a bar is a run or one call of a role and an arrow is a role call, a question or an answer
  * (design/screens/ai-team-timeline.md).
  * @param props.projectId - The project to draw.
  * @param props.actions - Open a ticket or a Docs page; go back to the team map.
@@ -399,6 +399,16 @@ export function TimelineTab({
     [all, groups],
   );
   const people = useMemo(() => new Map(all.map((l) => [l.id, l])), [all]);
+
+  // a click outside the Show menu closes it
+  useEffect(() => {
+    if (menu !== 'show') return;
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement | null)?.closest('.tl-menuwrap')) setMenu(null);
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [menu]);
 
   // Esc closes the inspector
   useEffect(() => {
@@ -1023,7 +1033,7 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
     if (b.endedReason && b.endKind !== 'ok') lines.push({ text: b.endedReason });
     return {
       who: people.get(b.memberId),
-      title: `${who(b.memberId)} · ${b.label ?? `run #${b.number}`}`,
+      title: `${who(b.memberId).replace(/\s*\(.*\)\s*$/, '')} · ${b.label ?? `run #${b.number}`}`,
       chip: { text: cap1(endWord(b)), tone: barTone(b) },
       ticketId: b.ticketId,
       ticketText: ticketTitle(b.ticketId),
@@ -1406,12 +1416,14 @@ function Inspector({
                 {lengthText((ms(b.endedAt) ?? now) - (ms(b.startedAt) ?? now))}
               </span>
             )}
-            <span className="tl-fact">
-              <Icon size={12} color="#5B6B60">
-                <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
-              </Icon>
-              step {b.steps}
-            </span>
+            {b.steps > 0 && (
+              <span className="tl-fact">
+                <Icon size={12} color="#5B6B60">
+                  <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
+                </Icon>
+                step {b.steps}
+              </span>
+            )}
             {!b.role && (b.tokensIn > 0 || b.tokensOut > 0) && (
               <span className="tl-fact">
                 <Icon size={12} color="#5B6B60">

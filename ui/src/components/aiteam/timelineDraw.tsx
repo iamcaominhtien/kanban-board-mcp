@@ -817,7 +817,6 @@ export function TimelineBody(props: DrawProps) {
   for (const g of arrows) {
     placer.addSeg(K.line(g.a.id), { x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2 });
     // the "?" on your lifeline and the purple A on Autopilot's: their own label sits beside them, never on them
-    if (g.askOpen) placer.addBox(`${K.arrow(g.a.id)}:?`, { x: cx('you') - 9, y: g.y2 - 9, w: 18, h: 18 }, 'glyph');
     if (g.autoAt)
       placer.addBox(`${K.arrow(g.a.id)}:A`, { x: g.autoAt.x - 9, y: g.autoAt.y - 9, w: 18, h: 18 }, 'glyph');
   }
@@ -981,7 +980,7 @@ export function TimelineBody(props: DrawProps) {
         crossLines: true,
         spots: cap ? capSpots : plain,
       },
-      v.long > 60 ? '#A5321E' : '#7A5A06',
+      '#7A5A06',
       { type: 'wait', id: v.w.id },
       cap ? { weight: 800, size: 10.5 } : { weight: 700 },
     );
@@ -1333,7 +1332,6 @@ export function TimelineBody(props: DrawProps) {
           y0={v.y0}
           y1={v.y1}
           caps={v.caps}
-          long={v.long}
           breathe={!v.w.to && !pausedNow}
           selected={sel('wait', v.w.id)}
           props={interact(
@@ -1376,7 +1374,6 @@ export function TimelineBody(props: DrawProps) {
           strokeDasharray: g.dash,
           markerEnd: marker(g.color),
         };
-        const youX = cx('you');
         return (
           <g
             key={a.id}
@@ -1436,30 +1433,6 @@ export function TimelineBody(props: DrawProps) {
                 >
                   {g.badge}
                 </text>
-              </g>
-            )}
-            {g.askOpen && youX >= 0 && (
-              <g>
-                <circle cx={youX} cy={g.y2} r={8.5} fill="#FEF3D9" stroke="#B8860B" strokeWidth={1.6} />
-                <text x={youX} y={g.y2 + 4} fontSize={11} fontWeight={800} fill="#7A5A06" textAnchor="middle">
-                  ?
-                </text>
-                {!pausedNow && may() && (
-                  <Pulse still={null}>
-                    <circle
-                      cx={youX}
-                      cy={g.y2}
-                      r={8.5}
-                      fill="none"
-                      stroke="#B8860B"
-                      strokeWidth={1.4}
-                      data-testid="tl-ask-ripple"
-                    >
-                      <animate attributeName="r" values="8.5;16" dur="2.2s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.8;0" dur="2.2s" repeatCount="indefinite" />
-                    </circle>
-                  </Pulse>
-                )}
               </g>
             )}
             {g.autoAt && g.autoAt.x >= 0 && (
@@ -1639,7 +1612,6 @@ function WaitMark({
   y0,
   y1,
   caps,
-  long,
   breathe,
   selected,
   props,
@@ -1651,12 +1623,10 @@ function WaitMark({
   y0: number;
   y1: number;
   caps: Axis['caps'];
-  long: number;
   breathe: boolean;
   selected: boolean;
   props: Record<string, unknown>;
 }) {
-  const red = long > 60;
   return (
     <g data-testid={`tl-wait-${w.kind}`} {...props}>
       <rect
@@ -1666,9 +1636,8 @@ function WaitMark({
         height={y1 - y0}
         rx={Math.min(5, bw / 2)}
         fill="url(#tlhA)"
-        stroke={red ? '#C4432A' : '#E8B93A'}
+        stroke="#E8B93A"
         strokeWidth={selected ? 2.6 : 1.5}
-        strokeDasharray="4 3"
       />
       {breathe && (
         <Pulse still={null}>
@@ -1683,7 +1652,7 @@ function WaitMark({
           <path
             key={cap.from}
             d={`M${cx - 14} ${cy} l7 -4 l7 6 l7 -6 l7 4`}
-            stroke="#B8860B"
+            stroke="#9AA8A0"
             strokeWidth={1.6}
             fill="#fff"
             strokeLinejoin="round"
