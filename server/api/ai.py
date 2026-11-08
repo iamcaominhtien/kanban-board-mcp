@@ -597,6 +597,27 @@ async def post_cancel(run_id: str, session: Session) -> dict:
     return svc_runs.to_dict(run)
 
 
+@router.post("/ai/runs/{run_id}/restart")
+async def post_restart(run_id: str, session: Session) -> dict:
+    """Start the run's Claude Code again inside the same run: it resumes its conversation and memory is released."""
+    await _run(session, run_id)
+    try:
+        await svc_runs.restart_run(run_id, by=_by())
+    except ValueError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return {"restarting": True}
+
+
+@router.get("/projects/{project_id}/ai/resources")
+async def get_resources(project_id: str, session: Session) -> dict:
+    """RAM and CPU of the machine, the project's limits, and its running (and recently ended) runs."""
+    from services.ai import resources as svc_resources
+
+    await _project(session, project_id)
+    return await svc_resources.snapshot(project_id)
+
+
 @router.get("/tickets/{ticket_id}/ai/sessions")
 async def get_sessions(ticket_id: str, session: Session) -> list[dict]:
     """The closed conversations of the ticket's team, newest first."""

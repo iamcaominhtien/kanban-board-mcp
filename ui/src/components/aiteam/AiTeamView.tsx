@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NowTab, type NowActions } from './NowTab';
 import { HistoryTab } from './HistoryTab';
+import { ResourcesTab } from './ResourcesTab';
 import { useKnowledge } from '../../api/aiKnowledge';
 import { KnowledgeSection, memoryWaiting } from '../ai/knowledge/KnowledgeSection';
 import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
@@ -12,7 +13,7 @@ import { useTouches } from '../../api/aiTouches';
 import { OPEN_TIMELINE_EVENT, takePendingTimeline, type TimelineLink } from './timelineLink';
 import './aiTeam.css';
 
-type Tab = 'now' | 'timeline' | 'history' | 'stepped' | 'health' | 'memory';
+type Tab = 'now' | 'timeline' | 'history' | 'stepped' | 'health' | 'resources' | 'memory';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'now', label: 'Now' },
@@ -22,6 +23,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'stepped', label: 'You stepped in' },
   // is the AI team healthy, per team (KBM-22)
   { id: 'health', label: 'Health' },
+  // the machine, the running runs and the limits (KBM-19)
+  { id: 'resources', label: 'Resources' },
   // what the AIs remember, and what waits for a person there (issue #274)
   { id: 'memory', label: 'Memory' },
 ];
@@ -70,7 +73,12 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
   const touches = useTouches(projectId, '7d');
   // A team page (its roles) replaces tab Now until the person goes back
   const [teamId, setTeamId] = useState<string | null>(null);
-  const actions: NowActions = { onOpenTicket, onOpenMember, onOpenTeam: setTeamId };
+  const actions: NowActions = {
+    onOpenTicket,
+    onOpenMember,
+    onOpenTeam: setTeamId,
+    onOpenResources: () => setTab('resources'),
+  };
 
   return (
     <div className="at-root" data-testid="ai-team-view">
@@ -144,6 +152,8 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
             },
           }}
         />
+      ) : tab === 'resources' ? (
+        <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} />
       ) : tab === 'memory' ? (
         <div style={{ padding: '4px 0 24px', maxWidth: 920 }} data-testid="at-memory">
           <KnowledgeSection projectId={projectId} initialTab="memory" />
@@ -155,6 +165,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
           onBack={() => setTeamId(null)}
           onOpenTicket={onOpenTicket}
           onOpenMember={onOpenMember}
+          onOpenResources={actions.onOpenResources}
         />
       ) : (
         <NowTab projectId={projectId} actions={actions} />
