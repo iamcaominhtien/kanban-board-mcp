@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { PauseGlyph } from '../ai/pausedUi';
-import { roleCode } from '../ai/roleLook';
+import { roleCode, roleLook } from '../ai/roleLook';
 /** What a team card shows. */
 export type CardState = 'working' | 'waiting' | 'queued' | 'paused' | 'offline' | 'idle';
 
@@ -115,6 +115,66 @@ export function TicketChip({ id, onOpen }: { id: string; onOpen?: (id: string) =
       <span>{id}</span>
     </button>
   );
+}
+
+// The role chips of the team cards (AiTeam.dc.html, frame 4): Dev blue, Reviewer purple, QA amber, Docs green
+const CHIP_LOOK: Record<string, { bg: string; fg: string }> = {
+  dev: { bg: '#E1EEFB', fg: '#1F5A8E' },
+  reviewer: { bg: '#EFEAFB', fg: '#5B4BB5' },
+  qa: { bg: '#FDF3E3', fg: '#8A5A00' },
+  tech_writer: { bg: '#E6F2EA', fg: '#1F5A31' },
+};
+
+/** The colours of a role's chip on a team card. */
+export const chipLook = (role: string) => CHIP_LOOK[role] ?? roleLook(role);
+
+/** The role chips of a team card: a small tag per role ("Dev", "Reviewer", "QA"), or "No roles". */
+export function RoleTags({ roles }: { roles: { key: string; name?: string | null; model?: string | null }[] }) {
+  if (!roles.length) return <span className="at-hint-sm">No roles</span>;
+  return (
+    <span className="at-tags" data-testid="role-chips">
+      {roles.map((r) => {
+        const look = chipLook(r.key);
+        return (
+          <span
+            key={r.key}
+            className="at-tag"
+            style={{ background: look.bg, color: look.fg }}
+            title={`${r.name ?? r.key}${r.model ? ` · ${r.model}` : ''}`}
+          >
+            {r.name ?? roleLook(r.key).glyph}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** How full a conversation is: a 56 px bar and "38% of the context" (the design's working block and role card). */
+export function ContextBar({ used, size }: { used: number; size: number }) {
+  const pct = Math.min(100, Math.max(0, (used / size) * 100));
+  const color = pct >= 85 ? '#C4432A' : '#2E6F40';
+  const label = pct > 0 && pct < 1 ? '<1' : String(Math.round(pct));
+  return (
+    <span
+      className="at-ctx"
+      role="img"
+      aria-label={`The conversation is ${label}% full`}
+      title="How full the lead's conversation is. Claude Code summarises the oldest part when it gets close to full."
+      data-testid="context-bar"
+    >
+      <span>
+        <i style={{ width: `${Math.max(pct, 3)}%`, background: color }} />
+      </span>
+      {label}% of the context
+    </span>
+  );
+}
+
+/** A step's title with the file paths in bold, as the design draws it ("editing **ui/src/…/CardFooter.tsx**"). */
+export function StepText({ text }: { text: string }) {
+  const parts = text.split(/(\S+\/\S+)/g);
+  return <>{parts.map((part, i) => (i % 2 === 1 ? <b key={i}>{part}</b> : part))}</>;
 }
 
 /** The rising line on a card: runs so far across the range. */

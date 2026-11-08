@@ -218,11 +218,150 @@
   display: block;
   height: 100%;
 }
-.at-quote {
-  padding: 7px 10px;
+.at-stepico {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #f1f5f2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.at-tags {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.at-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.at-working {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
   border-radius: 8px;
-  background: #fef6e7;
-  border: 1px solid #f0dba8;
+  background: #f4f9f5;
+  border: 1px solid #d6e8db;
+}
+.at-working-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.at-working .at-step {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #3a4a3e;
+}
+.at-ctx {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #5b6b60;
+}
+.at-ctx > span {
+  width: 56px;
+  height: 5px;
+  border-radius: 3px;
+  background: #e3e8e5;
+  overflow: hidden;
+  display: block;
+}
+.at-ctx > span > i {
+  display: block;
+  height: 100%;
+}
+.at-step-role {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #3a4a3e;
+}
+.at-note {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #3a4a3e;
+  border-left: 3px solid #d6e8db;
+  padding-left: 9px;
+}
+/* a row of a list (Active runs, Recent, Run history, Live): one line, 13px */
+.at-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  min-width: 0;
+  border-top: 1px solid #eef3ef;
+}
+.at-row:first-child {
+  border-top: none;
+}
+.at-row > b {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.at-sub {
+  color: #5b6b60;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.at-line {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.at-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #5b6b60;
+  white-space: nowrap;
+}
+.at-open {
+  color: #2e6f40;
+  font-weight: 600;
+  font-size: 12.5px;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.at-open:hover {
+  text-decoration: underline;
+}
+.at-teamname {
+  font-weight: 700;
+  font-size: 14px;
+  color: #2e6f40;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.at-teamname:hover {
+  text-decoration: underline;
 }
 .at-avatar {
   display: inline-flex;
@@ -661,4 +800,54 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
+}
+
+/* The question card inside the Needs you strip (AiTeam.dc.html, frame 3): plain rows, no hatched edge */
+.tw-question-strip {
+  padding: 12px 14px;
+  border-color: #b8c4d2;
+  border-radius: 12px;
+  background: #f6f9fc;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.tw-question-strip::before {
+  display: none;
+}
+.tw-question-strip > div {
+  margin: 0 !important;
+}
+.tw-question-strip .ai-option {
+  border: none;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 9px;
+  align-items: flex-start;
+  border-radius: 0;
+}
+.tw-question-strip .ai-option:hover:not(:disabled) {
+  border-color: transparent;
+}
+.tw-question-strip .ai-option b {
+  font-size: 13px !important;
+}
+.tw-question-strip .ai-radio {
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+}
+.tw-question-strip .ai-hint {
+  font-size: 12px;
+}
+.tw-question-strip .ai-option:last-of-type {
+  align-items: center;
+}
+.tw-question-strip .ai-option:last-of-type .ai-input {
+  border: 1px solid #c7d2cb !important;
+  border-radius: 7px;
+  padding: 5px 10px !important;
+  background: #fff !important;
+  font-size: 12.5px;
 }

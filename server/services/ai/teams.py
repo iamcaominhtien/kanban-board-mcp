@@ -563,6 +563,8 @@ async def _account_ref(session: AsyncSession, profile: AiTeam) -> dict | None:
         "name": account.name,
         "status": account.status,
         "email": account.email,
+        "plan": account.plan,
+        "method": account.method,
     }
 
 

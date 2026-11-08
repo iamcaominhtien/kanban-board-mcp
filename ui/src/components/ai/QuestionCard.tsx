@@ -21,7 +21,7 @@ export interface QuestionRun {
  * The lead asks back: choices with a line each and one marked recommended, free text, Answer and resume.
  * Answering resumes the run's conversation; no terminal needed.
  */
-export function QuestionCard({ run }: { run: QuestionRun }) {
+export function QuestionCard({ run, variant }: { run: QuestionRun; variant?: 'strip' }) {
   const q = run.question;
   const { members } = useAiBoardState();
   const team = members.get(run.memberId);
@@ -40,7 +40,7 @@ export function QuestionCard({ run }: { run: QuestionRun }) {
   const waiting = fmtElapsed(secondsSince(q.askedAt));
   const name = team?.name ?? 'The team';
   return (
-    <div className="tw-question" data-testid="ai-question-card">
+    <div className={`tw-question${variant === 'strip' ? ' tw-question-strip' : ''}`} data-testid="ai-question-card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         {team && <AiAvatar color={team.color} size={36} />}
         <div style={{ flex: 1, minWidth: 0 }}>

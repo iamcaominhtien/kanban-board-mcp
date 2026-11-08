@@ -48,9 +48,9 @@ function Header({
         <AiAvatar color={team.color} size={44} dim={team.paused} />
         <div style={{ flex: 1, minWidth: 180 }}>
           <div style={{ fontWeight: 700, fontSize: 18 }}>{team.name}</div>
-          <div className="ai-muted">{team.packName ?? team.packKey}</div>
+          <div className="at-hint">{team.packName ?? team.packKey}</div>
         </div>
-        <StatusLabel status={team.status} sub={null} />
+        <StatusLabel status={{ ...team.status, ticketId: undefined }} sub={null} />
         <button
           type="button"
           className="st-btn st-btn-sm"
@@ -65,13 +65,14 @@ function Header({
           {team.paused ? 'Resume the team' : 'Pause the team'}
         </button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
         <Fact label="Account">
           {account ? (
             <>
               {account.name}
+              {account.plan ? ` (Claude ${account.plan.charAt(0).toUpperCase()}${account.plan.slice(1)})` : ''}
               {account.status !== 'signed_in' ? (
-                <span className="ai-muted"> · {account.status.replace(/_/g, ' ')}</span>
+                <span className="at-sub"> · {account.status.replace(/_/g, ' ')}</span>
               ) : null}
             </>
           ) : (
@@ -81,14 +82,14 @@ function Header({
         <Fact label="Lead model">{lead}</Fact>
         <Fact label="Slots">
           {team.slotsInUse} of {team.maxParallel} running
-          {team.queued > 0 ? <span className="ai-muted"> · {team.queued} queued</span> : null}
+          {team.queued > 0 ? <span className="at-sub"> · {team.queued} queued</span> : null}
         </Fact>
         <Fact label="Runs today">{against(team.usage.runsToday, team.maxRunsPerDay)}</Fact>
         <Fact label="Spend today">
           {team.usage.costToday > 0 || team.usage.tokensToday === 0
             ? fmtUsd(team.usage.costToday)
             : `${fmtTokens(team.usage.tokensToday)} tokens`}
-          {team.dailyBudget != null ? <span className="ai-muted"> of {fmtUsd(team.dailyBudget)}</span> : null}
+          {team.dailyBudget != null ? <span className="at-sub"> of {fmtUsd(team.dailyBudget)}</span> : null}
         </Fact>
       </div>
       {chips ? (
@@ -98,7 +99,7 @@ function Header({
         </div>
       ) : null}
       <div>
-        <button type="button" className="ai-link" onClick={() => onOpenMember(team.id)} data-testid="team-configure">
+        <button type="button" className="at-open" onClick={() => onOpenMember(team.id)} data-testid="team-configure">
           Roles, limits and account: open on the Members page →
         </button>
       </div>
@@ -160,7 +161,7 @@ export function TeamPage({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }} data-testid="team-page">
       <div>
-        <button type="button" className="ai-link" onClick={onBack} data-testid="team-back">
+        <button type="button" className="at-open" onClick={onBack} data-testid="team-back">
           ← All teams
         </button>
       </div>
@@ -172,7 +173,7 @@ export function TeamPage({
         {activityQ.isError ? (
           <LoadError what="what the roles do" error={activityQ.error} onRetry={() => void activityQ.refetch()} />
         ) : !act ? (
-          <div className="ai-muted" data-testid="role-cards-loading">
+          <div className="at-hint" data-testid="role-cards-loading">
             Loading what the roles do…
           </div>
         ) : (
@@ -194,7 +195,7 @@ export function TeamPage({
             ))}
           </div>
         )}
-        {roles.length === 0 && <div className="ai-muted">This team has no roles: its lead works alone.</div>}
+        {roles.length === 0 && <div className="at-hint">This team has no roles: its lead works alone.</div>}
       </section>
       <RecentList projectId={projectId} teamId={teamId} teams={[team]} onOpenTicket={onOpenTicket} />
     </div>

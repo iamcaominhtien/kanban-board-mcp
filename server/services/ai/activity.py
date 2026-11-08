@@ -1,6 +1,7 @@
 """What a team's roles are doing and have done (AI Team page, AI v2): read from `ai_run`, `ai_run_agent` and
 `ai_run_step`. There is no cost per role (cost belongs to a run), so this module counts runs and steps, never money."""
 
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -23,10 +24,14 @@ def _day_start() -> str:
     return datetime.now(UTC).date().isoformat()
 
 
+_WIKI_LINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
+
+
 def first_line(text: str | None, limit: int = 200) -> str:
-    """The first non-empty line of a report, cleaned of Markdown marks and cut short."""
+    """The first non-empty line of a report, cleaned of Markdown marks (and `[[page]]` links) and cut short."""
     for raw in (text or "").splitlines():
-        line = raw.strip().lstrip("#>*-• ").replace("**", "").replace("`", "").strip()
+        line = raw.strip().lstrip("#>*-• ").replace("**", "").replace("`", "")
+        line = _WIKI_LINK.sub(r"\1", line).strip()
         if line:
             return line if len(line) <= limit else line[: limit - 1].rstrip() + "…"
     return ""

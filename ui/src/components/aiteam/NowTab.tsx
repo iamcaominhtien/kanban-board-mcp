@@ -1,17 +1,14 @@
 import { useAiLive, useAiOverview, useAiSettings, useAiTeams, useProjectRuns, useTeamsActivity } from '../../api/ai';
 import type { AiLive, AiRun, AiTeam, TeamActivity } from '../../types/ai';
 import { AiAvatar, LoadError, RunStateChip, StatusLabel, fmtElapsed, hhmm, secondsSince, useNow } from '../ai/aiUi';
-import { RoleChips } from '../ai/AiMembersPage';
-import { roleLook } from '../ai/roleLook';
 import { StepIcon } from '../ai/run/StepIcon';
-import { ContextMeter } from '../assist/ContextMeter';
 import { useResourcesStream } from '../../api/aiResources';
 import type { ResourceSnapshot } from '../../types/aiResources';
 import { NeedsYou } from './NeedsYou';
 import { RamChip, rowsByRun } from './RamChip';
 import { RecentList, SpendToday } from './RecentSpend';
 import { openRun } from './runLink';
-import { TicketChip } from './teamUi';
+import { ContextBar, RoleTags, StepText, TicketChip, chipLook } from './teamUi';
 
 export interface NowActions {
   onOpenTicket: (ticketId: string) => void;
@@ -34,30 +31,34 @@ function WorkingNow({ team, activity }: { team: AiTeam; activity?: TeamActivity 
   // the most specific step: the role that works now, else the lead
   const step = workers.find((r) => r.working?.step)?.working?.step ?? lead.step;
   return (
-    <div className="at-quote" style={{ background: '#F4F9F5', borderColor: '#D6E8DB' }} data-testid="working-now">
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+    <div className="at-working" data-testid="working-now">
+      <div className="at-working-head">
         <span className="at-label">{waiting ? 'Waiting for your answer' : 'Working'}</span>
-        {workers.length === 0 && !waiting && <span className="at-chip">Lead</span>}
+        {workers.length === 0 && !waiting && (
+          <span className="at-chip" style={{ background: '#1E2A22', color: '#fff' }}>
+            Lead
+          </span>
+        )}
         {(waiting ? [] : workers).map((r) => {
-          const look = roleLook(r.key);
+          const look = chipLook(r.key);
           return (
             <span
               key={r.key}
               className="at-chip"
-              style={{ background: look.bg, color: look.fg, border: `1px solid ${look.border}` }}
+              style={{ background: look.bg, color: look.fg, border: `1px solid ${look.fg}55` }}
             >
-              <span className="at-dot at-dot-live" style={{ background: look.border }} />
+              <span className="at-dot" style={{ background: look.fg, boxShadow: `0 0 0 3px ${look.fg}33` }} />
               {roleName(r.key)}
             </span>
           );
         })}
       </div>
-      <div className="at-step" style={{ marginTop: 4 }} title={step?.title} data-testid="working-step">
-        {step ? step.title : 'Starting…'}
+      <div className="at-step" title={step?.title} data-testid="working-step">
+        {step ? <StepText text={step.title} /> : 'Starting…'}
       </div>
       {lead.contextUsed != null && lead.contextWindow ? (
-        <div style={{ marginTop: 4 }}>
-          <ContextMeter used={lead.contextUsed} size={lead.contextWindow} inline />
+        <div>
+          <ContextBar used={lead.contextUsed} size={lead.contextWindow} />
         </div>
       ) : null}
     </div>
@@ -87,21 +88,18 @@ function TeamCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <AiAvatar color={team.color} size={32} dim={team.paused} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <button
-            type="button"
-            className="ai-link"
-            style={{ fontWeight: 700, fontSize: 14 }}
-            onClick={() => actions.onOpenTeam(team.id)}
-          >
+          <button type="button" className="at-teamname" onClick={() => actions.onOpenTeam(team.id)}>
             {team.name}
           </button>
-          <div className="ai-muted">{team.packName ?? team.packKey}</div>
+          <div className="at-hint-sm" style={{ fontSize: 12 }}>
+            {team.packName ?? team.packKey}
+          </div>
         </div>
         <StatusLabel status={team.status} sub={null} />
       </div>
-      <RoleChips team={team} />
+      <RoleTags roles={team.roles} />
       <WorkingNow team={team} activity={activity} />
-      <div className="ai-muted">
+      <div className="at-hint-sm" style={{ fontSize: 12 }}>
         {team.slotsInUse} of {team.maxParallel} running · {team.queued} queued · {team.usage.runsToday} run
         {team.usage.runsToday === 1 ? '' : 's'} today
       </div>
@@ -124,7 +122,7 @@ function TeamCard({
         </div>
       ))}
       <div>
-        <button type="button" className="ai-link" onClick={() => actions.onOpenTeam(team.id)}>
+        <button type="button" className="at-open" onClick={() => actions.onOpenTeam(team.id)}>
           See the roles →
         </button>
       </div>
@@ -135,19 +133,15 @@ function TeamCard({
 /** A row of an active run: ticket, team, state, how far. */
 function ActiveRow({ run, team, actions }: { run: AiRun; team?: AiTeam; actions: NowActions }) {
   return (
-    <div
-      className="ai-row"
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}
-      data-testid="active-run"
-    >
+    <div className="at-row" data-testid="active-run">
       {run.ticketId && <TicketChip id={run.ticketId} onOpen={actions.onOpenTicket} />}
-      <span style={{ fontWeight: 600 }}>{team?.name ?? 'Team'}</span>
-      <span className="ai-muted">run #{run.number}</span>
+      <b>{team?.name ?? 'Team'}</b>
+      <span className="at-sub">run #{run.number}</span>
       <RunStateChip state={run.state} />
-      <span className="ai-muted">{run.stepsCount} steps</span>
-      {run.state === 'running' && <span className="ai-mono ai-muted">{fmtElapsed(secondsSince(run.startedAt))}</span>}
+      <span className="at-sub">{run.stepsCount} steps</span>
+      {run.state === 'running' && <span className="at-mono">{fmtElapsed(secondsSince(run.startedAt))}</span>}
       <span style={{ flex: 1 }} />
-      <button type="button" className="ai-link" onClick={() => openRun(run.id)}>
+      <button type="button" className="at-open" onClick={() => openRun(run.id)}>
         Open run
       </button>
     </div>
@@ -157,19 +151,21 @@ function ActiveRow({ run, team, actions }: { run: AiRun; team?: AiTeam; actions:
 /** The newest steps of every active run, from the live endpoint and the typed events that patch it. */
 function LivePanel({ live, teams }: { live: AiLive; teams: Map<string, AiTeam> }) {
   const steps = live.steps.slice(-30).reverse();
-  if (!steps.length) return <div className="ai-muted">Nothing is running.</div>;
+  if (!steps.length) return <div className="at-hint">Nothing is running.</div>;
   return (
-    <div className="ai-steps" data-testid="live-steps">
+    <div className="ai-card" data-testid="live-steps">
       {steps.map((s) => (
-        <div key={`${s.runId}-${s.seq}`} className="ai-step-row">
-          <StepIcon step={s} />
-          <span className="ai-mono ai-muted" style={{ whiteSpace: 'nowrap' }}>
+        <div key={`${s.runId}-${s.seq}`} className="at-row">
+          <span className="at-stepico">
+            <StepIcon step={s} />
+          </span>
+          <span className="at-mono" style={{ fontSize: 11.5 }}>
             {s.ticketId ?? ''} · {teams.get(s.memberId)?.name ?? ''}
           </span>
-          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {s.title}
+          <span className="at-line">{s.title}</span>
+          <span className="at-mono" style={{ fontSize: 11.5, color: '#9aa8a0' }}>
+            {hhmm(s.at)}
           </span>
-          <span className="ai-step-time">{hhmm(s.at)}</span>
         </div>
       ))}
     </div>
@@ -197,25 +193,29 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
   const active = activeQ.data ?? [];
   const asking = active.filter((r) => r.state === 'needs_input' && r.question && !r.answer);
   const counts = overview.data?.runs ?? {};
+  // a project with no team shows only what has nothing to count: no counts, no Recent, no Spend today
+  const hasTeams = teams.length > 0;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }} data-testid="at-now">
-      <div style={{ display: 'flex', gap: 24, fontSize: 13, flexWrap: 'wrap' }} data-testid="at-counts">
-        <span>
-          <b>{(counts.running ?? 0) + (counts.starting ?? 0)}</b> running
-        </span>
-        <span>
-          <b>{counts.queued ?? 0}</b> queued
-        </span>
-        <span>
-          <b>{counts.needsInput ?? 0}</b> waiting for you
-        </span>
-        <span>
-          <b>{counts.finished ?? 0}</b> finished
-        </span>
-        <span>
-          <b>{counts.failed ?? 0}</b> failed
-        </span>
-      </div>
+      {hasTeams && (
+        <div style={{ display: 'flex', gap: 24, fontSize: 13, flexWrap: 'wrap' }} data-testid="at-counts">
+          <span>
+            <b>{(counts.running ?? 0) + (counts.starting ?? 0)}</b> running
+          </span>
+          <span>
+            <b>{counts.queued ?? 0}</b> queued
+          </span>
+          <span>
+            <b>{counts.needsInput ?? 0}</b> waiting for you
+          </span>
+          <span>
+            <b>{counts.finished ?? 0}</b> finished
+          </span>
+          <span>
+            <b>{counts.failed ?? 0}</b> failed
+          </span>
+        </div>
+      )}
       <NeedsYou
         projectId={projectId}
         teams={teams}
@@ -229,7 +229,7 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
           Teams
         </h2>
         {teams.length === 0 ? (
-          <div className="ai-muted">No AI team yet. Add one from the Members page.</div>
+          <div className="at-hint">No AI team yet. Add one from the Members page.</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
             {teams.map((t) => (
@@ -243,7 +243,7 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
           Active runs
         </h2>
         {active.length === 0 ? (
-          <div className="ai-muted">No run is active.</div>
+          <div className="at-hint">No run is active.</div>
         ) : (
           <div className="ai-card">
             {active.map((r) => (
@@ -252,13 +252,13 @@ export function NowTab({ projectId, actions }: { projectId: string; actions: Now
           </div>
         )}
       </section>
-      <RecentList projectId={projectId} teams={teams} onOpenTicket={actions.onOpenTicket} />
-      <SpendToday teams={teams} settings={settingsQ.data} />
+      {hasTeams && <RecentList projectId={projectId} teams={teams} onOpenTicket={actions.onOpenTicket} />}
+      {hasTeams && <SpendToday teams={teams} settings={settingsQ.data} />}
       <section>
         <h2 className="ai-label ai-label-dark" style={{ marginBottom: 8 }}>
           Live
         </h2>
-        {liveQ.data ? <LivePanel live={liveQ.data} teams={byId} /> : <div className="ai-muted">Loading…</div>}
+        {liveQ.data ? <LivePanel live={liveQ.data} teams={byId} /> : <div className="at-hint">Loading…</div>}
       </section>
     </div>
   );
