@@ -665,6 +665,7 @@ async def _answer(
         project_id, chat_id, ticket_id = chat.project_id, chat.id, chat.ticket_id
     state, error = "done", {}
     out: engine.Turn | None = None
+    started = now_iso()
     try:
         out = await engine.turn(
             project_id,
@@ -716,8 +717,14 @@ async def _answer(
                 False,
             )
             ctx = loads(ai.context, {})
-            changes = await receipt.collect(session, None, out.run_id)
-            merged = receipt.merge(ctx.get("receipt"), changes, out.run_id)
+            try:
+                changes = await receipt.collect(
+                    session, None, out.run_id, since=started
+                )
+                merged = receipt.merge(ctx.get("receipt"), changes, out.run_id)
+            except Exception:  # noqa: BLE001 - a receipt that cannot be read must not lose the answer
+                logger.exception("receipt of %s could not be read", message_id)
+                merged = ctx.get("receipt")
             if merged:
                 ctx["receipt"] = merged
             else:

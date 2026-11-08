@@ -7,6 +7,8 @@ export interface PullComment {
   /** The board gave this comment to the ticket's team as a new run (the run's id). */
   handledAt?: string | null;
   runId?: string | null;
+  /** How it reached the team: `new_run`, or into a run that was already working. */
+  delivered?: string | null;
 }
 
 export interface PullRed {
@@ -20,6 +22,7 @@ export interface PullRed {
   base: string | null;
   handledAt: string | null;
   runId: string | null;
+  delivered?: string | null;
 }
 
 export interface Pull {

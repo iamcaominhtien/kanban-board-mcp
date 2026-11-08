@@ -7,6 +7,12 @@ import { useTicketRuns } from '../../../api/ai';
 import { ago, useAiBoardState } from '../aiUi';
 import { BRANCH, BUBBLE, CI_TEXT, EXTERNAL } from './pullParts';
 
+/** What the board did with the run it gave to the team: a new one, or a note into the one that was working. */
+const runWords = (delivered?: string | null) =>
+  !delivered || delivered === 'new_run'
+    ? 'a new run, started by the board'
+    : 'it went into the run that is working, from the board';
+
 /** A pull request the board opened (design/screens/ai-board-wave3.md, E): CI state, red CI and review comments. */
 export function PullStatus({ ticketId }: { ticketId: string }) {
   const ticket = useTicket(ticketId);
@@ -160,7 +166,7 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
           )}
           {red.handledAt && (
             <div style={{ color: '#1F5A31', fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-given">
-              The board gave the failing check to {teamOf(red.runId)}: a new run, started by the board (red CI).
+              The board gave the failing check to {teamOf(red.runId)}: {runWords(red.delivered)} (red CI).
             </div>
           )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -218,7 +224,7 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
           ))}
           {givenComments && (
             <div style={{ color: '#1F5A31', fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-comments-given">
-              The board gave the review comments to {teamOf(givenComments.runId)}: a new run, started by the board
+              The board gave the review comments to {teamOf(givenComments.runId)}: {runWords(givenComments.delivered)}{' '}
               (review comments).
             </div>
           )}

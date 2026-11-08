@@ -133,9 +133,9 @@ function Blocked({ state, onMembers }: { state: ScopeState; onMembers?: () => vo
   const a = state.availability;
   if (a.code === 'not_configured')
     return (
-      <div className="sc-tile sc-tile-blue" data-testid="chat-no-member">
-        <div className="sc-tile-title">
-          <SparkleIcon size={13} /> Claude Code was not found
+      <div className="as-tile as-tile-error" data-testid="chat-no-member">
+        <div className="as-tile-title">
+          <LineIcon name="warning" size={14} /> Claude Code was not found
         </div>
         <div className="ai-hint">
           {a.message ?? 'Claude Code was not found on this computer. Install it, or add an AI team in Members.'}

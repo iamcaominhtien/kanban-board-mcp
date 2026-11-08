@@ -80,7 +80,10 @@ def _item_words(field: str, e: dict[str, Any]) -> str:
 
 
 async def collect(
-    session: AsyncSession, project_id: str | None, run_id: str
+    session: AsyncSession,
+    project_id: str | None,
+    run_id: str,
+    since: str | None = None,
 ) -> list[dict[str, Any]]:
     """The changes the turn `run_id` made on tickets (of one project, or of every project when `project_id` is None),
     oldest first.
@@ -91,6 +94,9 @@ async def collect(
     stmt = select(Ticket).where(cast(col(Ticket.activity_log), String).contains(run_id))
     if project_id:
         stmt = stmt.where(Ticket.project_id == project_id)
+    if since:
+        # only tickets touched while the turn ran: no scan of the whole board for a plain answer
+        stmt = stmt.where(col(Ticket.updated_at) >= since)
     changes: list[dict[str, Any]] = []
     for t in (await session.exec(stmt)).all():
         log = [e for e in _loads(t.activity_log, []) if e.get("run_id") == run_id]
@@ -154,9 +160,10 @@ async def collect(
         if c["op"] != "description":
             continue
         for k in ("before", "after"):
-            if isinstance(c[k], str) and len(c[k]) > 300:
-                c[k] = c[k][:299] + "…"
+            if isinstance(c[k], str) and len(c[k]) > 190:
+                c[k] = c[k][:189] + "…"
                 c["undo"] = False  # a clipped text cannot be written back
+                c["words"] = "description rewritten (too long to put back)"
     changes.sort(key=lambda c: str(c.get("at") or ""))
     changes = changes[:MAX_CHANGES]
     ids = {
@@ -240,7 +247,7 @@ async def undo(
         ticket_id, op = str(c.get("ticket")), str(c.get("op"))
         label = f"{ticket_id} {op.replace('_', ' ')}"
         if not c.get("undo"):
-            kept.append(f"{ticket_id} {c.get('words') or label}")
+            kept.append(f"{ticket_id} {c['words']}" if c.get("words") else label)
             continue
         t = await session.get(Ticket, ticket_id)
         if t is None:

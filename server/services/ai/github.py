@@ -414,10 +414,11 @@ async def back_to_dev(finding: dict) -> str | None:
         )
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
         if run is None:
-            return None  # nothing started: it stays open, so the next check tries again
+            return None  # nothing was started or reached: it is not marked as given
         cur = await session.get(AiWatchedPr, ticket_id)
         red["handled_at"] = _now()
         red["run_id"] = run.id
+        red["delivered"] = out.get("delivered")
         cur.red = json.dumps(red)
         session.add(cur)
         await session.commit()
@@ -458,7 +459,14 @@ async def comments_to_dev(ticket_id: str) -> str | None:
         now = _now()
         row.pending_comments = json.dumps(
             [
-                c if c.get("handled_at") else {**c, "handled_at": now, "run_id": run.id}
+                c
+                if c.get("handled_at")
+                else {
+                    **c,
+                    "handled_at": now,
+                    "run_id": run.id,
+                    "delivered": out.get("delivered"),
+                }
                 for c in every
             ]
         )
