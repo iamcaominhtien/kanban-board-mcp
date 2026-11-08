@@ -32,7 +32,6 @@ interface Props {
 
 const REASON: Record<string, string> = {
   done: 'Done',
-  proposal: 'Accepted a proposal',
   auto: 'Saved in Docs',
   restore: 'Restored',
   create: 'Created',
@@ -40,8 +39,8 @@ const REASON: Record<string, string> = {
 };
 
 /**
- * History: every Done, every accepted AI proposal and every change in a Docs page (grouped every 10 minutes) makes a
- * version of the whole canvas. A version can be named, looked at, compared with the one before, and restored
+ * History: every Done and every change in a Docs page (grouped every 10 minutes) makes a version of the whole canvas.
+ * (An AI team saving a board makes no version: the board just changes.) A version can be named, looked at, compared with the one before, and restored
  * (restoring makes a new version; nothing is lost).
  * @param props - The canvas and what to do after a restore.
  */
@@ -112,8 +111,8 @@ export function HistoryPanel({ canvasId, canEdit, onClose, onRestored }: Props) 
           </button>
         </div>
         <div className={styles.hint} style={{ padding: '8px 14px' }}>
-          Every Done, every accepted AI proposal and every change in a Docs page (grouped every 10 minutes) makes a
-          version of the whole canvas.
+          Every Done and every change in a Docs page (grouped every 10 minutes) makes a version of the whole canvas. A
+          version can be named, looked at, and restored.
         </div>
         <div className={styles.sideBody}>
           {versions.map((v) => (

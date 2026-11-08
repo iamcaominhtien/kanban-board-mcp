@@ -13,6 +13,7 @@ import {
   replaceBoard,
   useCanvasThreads,
   type CanvasBoard,
+  type CanvasDelivery,
   type CanvasNote,
   type CanvasThread,
   type PinAnchor,
@@ -25,6 +26,8 @@ import { BoardFrame } from './BoardFrame';
 import { FitProbe } from './FitProbe';
 import { anchorAt, useAnchoredPins } from './pinAnchor';
 import { CanvasIcon } from './CanvasIcon';
+import { MentionBox } from './MentionBox';
+import { useCanvasMentions } from './useCanvasMentions';
 import { useCanvas, type CanvasResult, type OpenCanvasRequest } from './CanvasContext';
 import { NOTE_BG } from './CanvasStatic';
 import { CommentsPanel } from './CommentsPanel';
@@ -184,6 +187,8 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     anchor?: PinAnchor | null;
   } | null>(null);
   const [pinText, setPinText] = useState('');
+  const mentions = useCanvasMentions(canvasId, me);
+  const [pinNotes, setPinNotes] = useState<Record<string, CanvasDelivery[]>>({});
   const [selThread, setSelThread] = useState<string | null>(null);
   const [keys, setKeys] = useState(false);
   const [dropping, setDropping] = useState(false);
@@ -1488,7 +1493,11 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 <div key={b.id} className={styles.board} style={{ left: b.x, top: b.y, width: b.w, height: b.h }}>
                   <div
                     className={styles.boardBody}
-                    style={{ borderWidth: 1 / z, boxShadow: 'none' }}
+                    style={{
+                      borderWidth: (b.aiSavedBy && !sel.includes(b.id) ? 2 : 1) / z,
+                      boxShadow: 'none',
+                      ...(b.aiSavedBy && !sel.includes(b.id) ? { borderColor: '#3f9b5a' } : {}),
+                    }}
                     data-item={b.id}
                     data-kind="board"
                     data-testid="canvas-board"
@@ -1657,6 +1666,15 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       <span>
                         {Math.round(b.w)} x {Math.round(b.h)}
                       </span>
+                      {b.aiSavedBy && (
+                        <span
+                          className={styles.aiChip}
+                          title={`${b.aiSavedBy} changed this board. Saving it yourself clears the mark.`}
+                          data-testid="canvas-ai-chip"
+                        >
+                          {b.aiSavedBy}
+                        </span>
+                      )}
                     </div>
                     {(b.kind === 'empty' || (b.kind === 'html' && !b.content)) && (
                       <div className={styles.emptyLabel} data-testid="board-empty-label">
@@ -2255,18 +2273,21 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
               data-ui
               data-testid="canvas-pin-draft"
             >
-              <textarea
+              <MentionBox
+                multiline
                 className={styles.input}
                 rows={3}
                 autoFocus
                 value={pinText}
-                onChange={(e) => setPinText(e.target.value)}
+                onChange={setPinText}
+                members={mentions.suggest}
                 placeholder="Is the button label long enough for Vietnamese?"
-                aria-label="Comment"
+                ariaLabel="Comment"
               />
               <div className={styles.hint} style={{ margin: '4px 0 8px' }}>
-                Type @ to mention a person or an AI member. Click a board to pin at that spot (it moves with the board),
-                or click the plane for a pin that stays put. Esc leaves the tool.
+                Type @ to mention a person or a team. Click a board to pin at that spot (it moves with the board), or
+                click the plane for a pin that stays put. Esc leaves the tool. Pins are numbered in the order they were
+                made.
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setPinDraft(null)}>
@@ -2280,7 +2301,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                   onClick={() => {
                     const d = pinDraft;
                     void addThread(canvasId, {
-                      body: pinText.trim(),
+                      body: mentions.store(pinText.trim()),
                       boardId: d.boardId,
                       x: d.x,
                       y: d.y,
@@ -2290,6 +2311,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       .then((t) => {
                         setPinDraft(null);
                         setTool('select');
+                        setPinNotes((cur) => ({ ...cur, [t.id]: t.deliveries ?? [] }));
                         setSelThread(t.id);
                         setSide('comments');
                         void qc.invalidateQueries({ queryKey: canvasKeys.threads(canvasId) });
@@ -2373,6 +2395,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                   title={canvas.title}
                   threads={threads}
                   boards={doc.boards}
+                  notes={pinNotes}
                   boardId={oneBoard?.id ?? null}
                   selectedThread={selThread}
                   onSelectThread={(id) => {

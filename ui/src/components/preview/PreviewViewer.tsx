@@ -96,6 +96,19 @@ function Thumb({ item, active, onPick }: { item: PreviewItem; active: boolean; o
   );
 }
 
+/** " · 12 slides", " · 3 sheets" or " · 8 pages" for the subtitle, when the reader counted them. */
+function countOf(facts: Record<string, string>): string {
+  for (const [key, one, many] of [
+    ['Slides', 'slide', 'slides'],
+    ['Sheets', 'sheet', 'sheets'],
+    ['Pages', 'page', 'pages'],
+  ] as const) {
+    const n = Number(facts[key]);
+    if (facts[key] && Number.isFinite(n)) return ` · ${facts[key]} ${n === 1 ? one : many}`;
+  }
+  return '';
+}
+
 /**
  * The one viewer for every image and file: a header, a reader for the type, a thumbnail strip and a details panel.
  * @param props.items - The files around the one that was opened.
@@ -278,7 +291,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
   );
 
   const reader = useMemo(() => {
-    const props = { item, onFacts, actions, onNavigate: go };
+    const props = { item, onFacts, actions, downloadHref, onNavigate: go };
     switch (kind) {
       case 'image':
         return <ImageReader {...props} />;
@@ -388,6 +401,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
               {kindLabel(item.name, meta.label)}
               {size ? ` · ${formatFileSize(size)}` : ''}
               {facts.Dimensions ? ` · ${facts.Dimensions}` : ''}
+              {countOf(facts)}
               {item.uploadedBy ? ` · ${item.uploadedBy}` : ''}
               {item.uploadedAt ? ` · ${item.uploadedAt}` : ''}
               {status ? ` · ${status}` : ''}

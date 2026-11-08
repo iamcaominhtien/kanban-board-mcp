@@ -135,6 +135,7 @@ export function BoardFrame({
           <div style={{ textAlign: 'center', color: '#5b6b60', padding: 8 }}>
             <CanvasIcon name="warning" size={Math.max(14, 20 * scale)} />
             <div style={{ fontWeight: 700, fontSize: Math.max(10, 13 * scale) }}>{board.name} could not be drawn</div>
+            <div style={{ fontSize: Math.max(9, 11 * scale) }}>The page is not valid or its file is missing.</div>
           </div>
         </div>
       ) : (

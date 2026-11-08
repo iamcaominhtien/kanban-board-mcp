@@ -893,7 +893,7 @@ class Canvas(SQLModel, table=True):
 
 
 class CanvasVersion(SQLModel, table=True):
-    """A frozen copy of a canvas file (made on Done, on accepting a proposal, and every 10 minutes in Docs)."""
+    """A frozen copy of a canvas file (made on Done, on restore, and every 10 minutes in Docs)."""
 
     __tablename__ = "canvas_version"
     __table_args__ = (
@@ -951,9 +951,7 @@ class CanvasComment(SQLModel, table=True):
     author: str = Field(default="user")
     body: str = Field(default="")
     mentions: str = Field(default="[]")
-    ai: Optional[str] = Field(
-        default=None
-    )  # JSON {member_id, can_propose, proposal_id} on an AI member's comment
+    ai: Optional[str] = Field(default=None)  # JSON {member} on an AI team's comment
     created_at: str = Field(default_factory=_now_iso)
     edited_at: Optional[str] = Field(default=None)
 

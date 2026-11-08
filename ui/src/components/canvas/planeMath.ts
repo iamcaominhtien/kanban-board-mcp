@@ -216,7 +216,7 @@ export function stepBoard<T extends { id: string }>(list: T[], id: string | null
 
 type Item = { id: string; rev: number } & Record<string, unknown>;
 const LISTS = ['pages', 'boards', 'notes', 'arrows', 'labels'] as const;
-const LAYOUT_ONLY = new Set(['content', 'createdBy', 'rev']);
+const LAYOUT_ONLY = new Set(['content', 'createdBy', 'aiSavedBy', 'rev']);
 
 function same(a: Item, b: Item): boolean {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);

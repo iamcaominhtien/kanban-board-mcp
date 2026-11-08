@@ -1,21 +1,25 @@
-"""Canvas API: boards, notes, arrows and labels on one large plane, with versions, comments and AI proposals.
+"""Canvas API: boards, notes, arrows and labels on one large plane, with versions and comments.
 
 Writes that carry files are multipart; the plane itself (layout) is JSON and merges per item. Errors use the Docs
 error shape ``{detail: {code, message, ...}}``. The files of a frame are served with a strict policy (no scripts, no
 outside requests, sandboxed), so a frame opened on its own is as locked as inside the editor.
 """
 
+import logging
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from pydantic import BaseModel, Field
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
+from services import activity
 from services import canvas_comments as comments
+from services import canvas_delivery
 from services import canvases as svc
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["canvases"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -480,6 +484,15 @@ async def post_restore_version(
 # --- comments ---------------------------------------------------------------------------------------------------
 
 
+@router.get("/canvases/{canvas_id}/members")
+async def get_mentionable(canvas_id: str, session: Session) -> list[dict[str, Any]]:
+    """Who the ``@`` picker of this canvas offers: the project's people, and its AI teams with whether each can be asked
+    on this canvas now."""
+    canvas = await svc._canvas(session, canvas_id)  # noqa: SLF001
+    await svc.member_role(session, canvas)
+    return await canvas_delivery.mentionable(session, canvas)
+
+
 @router.get("/canvases/{canvas_id}/threads")
 async def get_threads(
     canvas_id: str, session: Session, state: Optional[str] = None
@@ -497,7 +510,6 @@ class NewThread(BaseModel):
     y: float = 0.5
     page: Optional[str] = None
     anchor: Optional[dict[str, Any]] = None
-    ai_intent: str = "ask"
 
 
 @router.post("/canvases/{canvas_id}/threads", status_code=201)
@@ -516,23 +528,31 @@ async def post_thread(
         anchor=body.anchor,
     )
     await _changed()
-    out["ai_deliveries"] = await _deliver(session, canvas_id, out, body.ai_intent)
+    out["deliveries"] = await _deliver(session, canvas_id, out)
     return out
 
 
+async def _deliver(
+    session: AsyncSession, canvas_id: str, thread: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Give the comment just saved to the AI teams it mentions (see ``services.canvas_delivery``). A failure of a team's
+    delivery is answered as "not delivered" inside ``deliver``; any other failure here is logged and gives no line,
+    never a failed comment: the comment is already saved."""
+    try:
+        canvas = await svc._canvas(session, canvas_id)  # noqa: SLF001
+        return await canvas_delivery.deliver(
+            session, canvas, thread, by=activity.current_actor()
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not deliver a canvas comment to an AI team")
+        return []
+
+
 class Body(BaseModel):
-    """Comment text. ``ai_intent`` is what an @mentioned AI member does: ask (answer), suggest (answer and propose a
-    change to the frame) or notify (nothing runs)."""
+    """Comment text. ``@[Name](member:id)`` (what the picker writes) or a typed ``@Name`` mentions a person of the project: the
+    comment keeps their ids and each of them gets a Needs you notification that opens the canvas."""
 
     body: str
-    ai_intent: str = "ask"
-
-
-async def _deliver(
-    session: AsyncSession, canvas_id: str, thread: dict[str, Any], intent: str
-) -> list[dict[str, Any]]:
-    """Wake the AI members the newest comment of a thread mentions (see ``canvas_replies``)."""
-    return []
 
 
 @router.post("/canvases/threads/{thread_id}/replies", status_code=201)
@@ -540,8 +560,7 @@ async def post_reply(thread_id: str, body: Body, session: Session) -> dict[str, 
     """Reply in a thread."""
     out = await comments.reply(session, thread_id, body.body)
     await _changed()
-    c = await svc._canvas(session, out["canvas_id"])  # noqa: SLF001
-    out["ai_deliveries"] = await _deliver(session, c.id, out, body.ai_intent)
+    out["deliveries"] = await _deliver(session, out["canvas_id"], out)
     return out
 
 
@@ -575,47 +594,3 @@ async def del_comment(comment_id: str, session: Session) -> dict[str, Any]:
     out = await comments.delete_comment(session, comment_id)
     await _changed()
     return out
-
-
-# --- AI proposals -----------------------------------------------------------------------------------------------
-
-
-class Decision(BaseModel):
-    """Accept and/or reject frames of a proposal."""
-
-    accept: list[str] | str = "all"
-    reject: list[str] | str | None = None
-
-
-class AskBody(BaseModel):
-    """Ask AI about frames (Ctrl J)."""
-
-    board_ids: list[str]
-    request: str
-    member_id: Optional[str] = None
-
-
-async def _same_ask(
-    session: AsyncSession, canvas_id: str, body: AskBody, member_id: str | None
-) -> Any:
-    """The job still working on exactly this ask (same canvas, frames, request and AI member), else None."""
-    from models import DocsAiJob
-    from services.ai.store import loads
-
-    rows = await session.exec(
-        select(DocsAiJob).where(
-            DocsAiJob.kind == "canvas",
-            DocsAiJob.state.in_(("queued", "running")),  # type: ignore[attr-defined]
-            DocsAiJob.member_id == member_id,
-        )
-    )
-    for j in rows.all():
-        res = loads(j.result, {}) or {}
-        mine = res.get("input") or res.get("working_on") or {}
-        if (
-            mine.get("canvas_id") == canvas_id
-            and sorted(mine.get("board_ids") or []) == sorted(body.board_ids)
-            and (mine.get("request") or "")[:200] == body.request[:200]
-        ):
-            return j
-    return None

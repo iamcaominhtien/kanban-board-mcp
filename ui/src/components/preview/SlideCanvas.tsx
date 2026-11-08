@@ -181,9 +181,9 @@ function PathShape({ s }: { s: RenderedShape }) {
   );
   return (
     <svg
-      width={s.w}
-      height={s.h}
-      viewBox={`0 0 ${s.w} ${s.h}`}
+      width={Math.max(1, s.w)}
+      height={Math.max(1, s.h)}
+      viewBox={`0 0 ${Math.max(1, s.w)} ${Math.max(1, s.h)}`}
       style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible' }}
       aria-hidden="true"
     >
