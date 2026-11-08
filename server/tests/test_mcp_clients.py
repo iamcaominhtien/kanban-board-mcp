@@ -239,7 +239,12 @@ async def test_test_connection_requires_install(client, fake_home):
     assert r.json()["ok"] is False
 
 
-async def test_test_connection_starts_the_real_server(client, fake_home):
+async def test_test_connection_starts_the_real_server(
+    client, fake_home, monkeypatch, tmp_path
+):
+    # the server this starts is a real one: it gets a database of its own (and, from conftest, a config folder of its
+    # own), never the one the developer's board uses
+    monkeypatch.setenv("KANBAN_DB_PATH", str(tmp_path / "real-server" / "kanban.db"))
     await _post(client, "antigravity", "install", scope="global")
     r = await _post(client, "antigravity", "test", scope="global")
     assert r.json()["ok"] is True, r.json()

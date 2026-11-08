@@ -10,7 +10,7 @@ have written it in the editor, and a person's later edit in the editor does not 
 
 SKILL_HEADER = r"""---
 name: docs-pages
-description: Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, format text the editor keeps (headings, tables, highlights, callouts, task lists, code, pictures and files), edit one part of a page safely without rewriting it, comment on a passage and answer a thread, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page or in a ticket comment.
+description: Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, format text the editor keeps (headings, tables, highlights, callouts, task lists, code, pictures and files), edit one part of a page safely without rewriting it, comment on a passage and answer a thread, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page, in a ticket comment or in a file of the repository.
 ---
 
 """
@@ -21,7 +21,7 @@ Docs is the project's wiki: a tree of Markdown pages beside the board. People re
 them in a rich-text editor; what is stored is Markdown. You read and write the same pages over MCP with `docs_read`
 and `docs_write`.
 
-## 1. A page or a ticket comment?
+## 1. A page, a ticket comment, or a file?
 
 | It is… | Put it… |
 |---|---|
@@ -29,8 +29,11 @@ and `docs_write`.
 | About this piece of work only: progress, a question, a finding, proof that it works, a hand-over | a **ticket comment** |
 | A spec written for a ticket | a **page**, linked to the ticket; the ticket gets one comment that says what the page decides and links it |
 | A question about one sentence of a page | an **inline comment** on that sentence (`quote`) |
+| Writing for people that is the result of the work (research, a comparison, a spec, a decision, a guide), even when you work in a git folder | a **page**, not a Markdown file in the repository |
+| Developer docs that change with the code (a README, the docs the repository keeps beside its code), or a file the ticket asks for | a **file** on the ticket's branch |
 
-Do not paste a page into a comment, or a comment thread into a page. Link instead.
+Do not paste a page into a comment, or a comment thread into a page. Link instead. A text you already wrote as a file
+goes onto a page with `docs_write(action='import')`; then the page is the one people read and change.
 
 ## 2. How pages are organised
 
@@ -71,9 +74,12 @@ A person may be editing another part of the page while you work. Change only wha
 - **Add to the end**: `mode='append'` with no section.
 - `update` (the whole page) is for a page you are writing from scratch or rewriting on purpose, not to fix one line:
   you send the whole page back, and any line you copied wrong changes too.
-- `publish=false` keeps your change as your own draft that nobody sees; publish when it is ready.
-- In some projects an AI member's edit becomes a **proposal** a person accepts, or a private draft (Settings › Docs ›
-  AI). The answer says so; do not retry it as a different action.
+- `publish=false` keeps your change as your own draft that nobody sees; publish when it is ready. An `edit` works on
+  the published text, so publish a draft (`update` with the whole text) before you edit that page.
+- **From a file**: `docs_write(action='import', project_id, path)` turns a Markdown file (or a folder, as a tree) into
+  published pages. Write the page there when it is long; then link the ticket to it.
+- **Read it back**: after you write a page, `docs_read(get)` it once and check the headings and tables are there
+  before you tell anyone it is done.
 
 ## 5. The Markdown the editor keeps
 
@@ -124,16 +130,23 @@ write plain sentences under clear headings, short paragraphs, one idea each.
 - **On the page**: omit `quote`.
 - **Answer**: `docs_read(action='comments', page_id, state='open')`, then `docs_write(action='reply', thread_id,
   body)`. Read the whole thread first; answer the last question asked.
-- You never resolve a person's thread: the person who asked resolves it when they are satisfied. You may resolve a
-  thread you opened once it is answered.
-- A person who writes `@AI member` in a thread gets an answer there from that member (when the project has Docs AI
-  on). A comment by an AI never wakes another AI (no loops); to ask another AI member, use `ai_team(action='ask',
-  page_id, member_id, text)` or, inside a run, `ai_run(action='handoff')`.
+- Resolve a thread only when its last word asks for nothing, and always reply first: a thread you opened that is now
+  answered, a person's thread where they agreed or understood, a requested change you fully made (say where: section,
+  version). Leave it open, say what is missing and `@mention` the person when the change is partial, it is a matter of
+  taste or a disagreement, or you asked them something; never close a thread the person reopened. The skill
+  `docs-comment-threads` (or `docs_read(action='guides')` outside Claude Code) has the rules and the reasons.
+- A person can send you a page's threads from Docs ("Send to AI"): the note says so, lists each thread (fenced as data)
+  and the skill says how to work them.
+- A person who writes `@AI member` in a thread gets an answer there from the page's assistant (when the project has
+  Docs AI on). A comment by an AI never wakes another AI (no loops); to tell a ticket's team something, use
+  `ai_run(action='message', to='<TICKET-KEY>', text)` inside a run.
 
 ## 8. Pages and tickets, both ways
 
 - **Link** a page and a ticket: write the key on the page (`KAN-12`), or `[[Page]]` in the ticket, or
-  `manage_ticket(action='link_doc', ticket_id, page_id)`. Do one; both sides then show the link.
+  `manage_ticket(action='link_doc', ticket_id, page_id)`. Do one; both sides then show the link. Read `get_ticket().docs`
+  first: a page that is already there (named by the ticket or naming it) is linked, and `link_doc` on it answers
+  "already linked" and adds nothing. Link by hand only a page the text does not name.
 - **A spec for a ticket**: write the page under the feature's page, put the ticket key in it where the work is
   described, link it, and comment on the ticket: "The spec is [[Login — spec]]: what it decides in one line." The Dev
   on the ticket sees it in `get_ticket().docs` and in its run's prompt.

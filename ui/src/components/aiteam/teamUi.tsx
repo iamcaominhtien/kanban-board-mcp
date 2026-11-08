@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react';
 import { PauseGlyph } from '../ai/pausedUi';
-import { roleCode } from '../ai/workflow/wfFormat';
-import type { CardState, HandoffEnd } from '../../types/aiTeam';
+import { roleCode, roleLook } from '../ai/roleLook';
+/** What a team card shows. */
+export type CardState = 'working' | 'waiting' | 'queued' | 'paused' | 'offline' | 'idle';
+
+/** One end of a hand-off as a badge draws it: a person or an AI, by name and colour. */
+export interface HandoffEnd {
+  kind?: 'person' | 'ai';
+  name?: string;
+  color?: string | null;
+}
 import './aiTeam.css';
 import '../docs/docs.css';
 
@@ -109,6 +117,67 @@ export function TicketChip({ id, onOpen }: { id: string; onOpen?: (id: string) =
   );
 }
 
+// The role chips of the team cards (AiTeam.dc.html, frame 4): Dev blue, Reviewer purple, QA amber, Docs green
+const CHIP_LOOK: Record<string, { bg: string; fg: string }> = {
+  dev: { bg: '#E1EEFB', fg: '#1F5A8E' },
+  reviewer: { bg: '#EFEAFB', fg: '#5B4BB5' },
+  qa: { bg: '#FDF3E3', fg: '#8A5A00' },
+  tech_writer: { bg: '#E6F2EA', fg: '#1F5A31' },
+};
+
+/** The colours of a role's chip on a team card. */
+export const chipLook = (role: string) => CHIP_LOOK[role] ?? roleLook(role);
+
+/** The role chips of a team card: a small tag per role ("Dev", "Reviewer", "QA"), or "No roles". */
+export function RoleTags({ roles }: { roles: { key: string; name?: string | null; model?: string | null }[] }) {
+  if (!roles.length) return <span className="at-hint-sm">No roles</span>;
+  return (
+    <span className="at-tags" data-testid="role-chips">
+      {roles.map((r) => {
+        const look = chipLook(r.key);
+        return (
+          <span
+            key={r.key}
+            className="at-tag"
+            style={{ background: look.bg, color: look.fg }}
+            title={`${r.name ?? r.key}${r.model ? ` · ${r.model}` : ''}`}
+          >
+            {r.name ?? roleLook(r.key).glyph}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** How full a conversation is: a 56 px bar and "38% of the context" (the design's working block and role card). */
+export function ContextBar({ used, size }: { used: number; size: number }) {
+  const pct = Math.min(100, Math.max(0, (used / size) * 100));
+  const color = pct >= 85 ? '#C4432A' : '#2E6F40';
+  const label = pct > 0 && pct < 1 ? '<1' : String(Math.round(pct));
+  return (
+    <span
+      className="at-ctx"
+      role="img"
+      aria-label={`The conversation is ${label}% full`}
+      title="How full the lead's conversation is. Claude Code summarises the oldest part when it gets close to full."
+      data-testid="context-bar"
+    >
+      <span>
+        <i style={{ width: `${pct > 0 ? Math.max(pct, 3) : 0}%`, background: color }} />
+      </span>
+      {label}% of the context
+    </span>
+  );
+}
+
+/** A step's title with the file paths in bold, as the design draws it ("editing **ui/src/…/CardFooter.tsx**"). */
+export function StepText({ text }: { text: string }) {
+  // a path has a file name with an extension, or at least two folders
+  const parts = text.split(/((?:[\w.@-]+\/)+[\w.@-]*\.[A-Za-z0-9]+|(?:[\w.@-]+\/){2,}[\w.@-]*)/g);
+  return <>{parts.map((part, i) => (i % 2 === 1 ? <b key={i}>{part}</b> : part))}</>;
+}
+
 /** The rising line on a card: runs so far across the range. */
 export function Spark({ values, color }: { values: number[]; color: string }) {
   const max = Math.max(...values, 1);
@@ -208,13 +277,3 @@ export const ICONS = {
 export function CalendarIcon() {
   return <Icon size={14}>{ICONS.calendar}</Icon>;
 }
-
-export const KIND_LOOK: Record<string, { bg: string; fg: string }> = {
-  mention: { bg: '#EFE8FB', fg: '#5B3AA6' },
-  'asked you': { bg: '#FEF3D9', fg: '#7A5A06' },
-  'hand-off': { bg: '#E6F2EA', fg: '#1F5A31' },
-  'report back': { bg: '#F1F3F1', fg: '#5B6B60' },
-  'sent back': { bg: '#FDECE8', fg: '#A5321E' },
-  assigned: { bg: '#E8F1FA', fg: '#244E78' },
-  answered: { bg: '#E6F2EA', fg: '#1F5A31' },
-};

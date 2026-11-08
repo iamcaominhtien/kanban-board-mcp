@@ -10,6 +10,7 @@ The monitor runs only while a CLI runs or someone watches, so an idle board cost
 
 import asyncio
 import json
+import logging
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
@@ -20,10 +21,13 @@ import psutil
 from sqlmodel import col, select
 
 import database
-from models import AiRun, AiMember, Member, Ticket
+import events as board_events
+from models import AiRun, AiRunAgent, Member, Ticket
 
+from . import runner_link
 from .store import get_settings, loads
 
+logger = logging.getLogger("kanban.ai.resources")
 MB = 1024 * 1024
 SAMPLE_S = 2.0  # how often every CLI is read
 HISTORY_EVERY_S = 5.0  # a history point every 5 s, 60 points = the last 5 minutes
@@ -32,7 +36,6 @@ SAVE_EVERY_S = 15.0  # how often the peak and last value are written to the run
 LIMIT_TTL_S = 10.0  # how long a project's limit is remembered
 AUTO_RESTARTS = 2  # restarts by the system before the next breach stops the run
 ENDED_SHOWN_S = 600  # an ended run stays in the table for 10 minutes
-ACCESS_LEVELS = ("none", "view", "control")
 
 _procs: dict[int, psutil.Process] = {}
 
@@ -282,6 +285,17 @@ class Monitor:
                 if queue.full():
                     queue.get_nowait()
                 queue.put_nowait(snap)
+        # The CLIs run in the runner process and so does this monitor: the people's app lives in another one, so the
+        # same snapshot goes out as a typed event (`ai.resources`) over the event stream, for each project with a live CLI.
+        for project_id in {p for _, (_, p) in self.live().items()}:
+            try:
+                await board_events.publish_typed(
+                    "ai.resources", await snapshot(project_id)
+                )
+            except Exception:  # noqa: BLE001 - numbers for a screen never stop a run
+                logger.debug(
+                    "Could not announce the resources of %s", project_id, exc_info=True
+                )
 
 
 MON = Monitor()
@@ -297,7 +311,14 @@ def restarts_of(run: AiRun) -> list[dict]:
     return [r for r in loads(run.restarts, []) if isinstance(r, dict)]
 
 
-def _row(run: AiRun, names: dict, colors: dict, tickets: dict, live: bool) -> dict:
+def _row(
+    run: AiRun,
+    names: dict,
+    colors: dict,
+    tickets: dict,
+    live: bool,
+    working: dict | None = None,
+) -> dict:
     reading = MON.readings.get(run.id) if live else None
     readable = reading is None or reading.get("readable", True)
     peak = (
@@ -316,6 +337,10 @@ def _row(run: AiRun, names: dict, colors: dict, tickets: dict, live: bool) -> di
         "state": run.state,
         "started_at": run.started_at,
         "ended_at": run.ended_at,
+        "ended_reason": run.ended_reason,
+        "stop_code": run.stop_code,
+        # the roles (subagents) that work right now; empty means the lead works alone
+        "roles_working": (working or {}).get(run.id, []),
         "live": live,
         "readable": readable,
         "cli_rss_mb": reading["cli_rss_mb"] if reading else run.last_rss_mb,
@@ -342,6 +367,22 @@ async def snapshot(project_id: str) -> dict:
                 )
             )
         ).all()
+        if runner_link.mode() == "process" and not runner_link.in_runner():
+            # the CLIs live in the runner process: the API cannot read them, but a run that works has one. Its numbers
+            # are the last ones the runner saved; the live ones reach the app over the event stream (`ai.resources`).
+            live_ids += [r.id for r in active if r.state == "running"]
+        working: dict[str, list[str]] = {}
+        if active:
+            open_agents = (
+                await session.exec(
+                    select(AiRunAgent).where(
+                        col(AiRunAgent.run_id).in_([r.id for r in active]),
+                        col(AiRunAgent.ended_at).is_(None),
+                    )
+                )
+            ).all()
+            for agent in open_agents:
+                working.setdefault(agent.run_id, []).append(agent.agent_type)
         ended = (
             await session.exec(
                 select(AiRun).where(
@@ -375,12 +416,13 @@ async def snapshot(project_id: str) -> dict:
             if ticket_ids
             else {}
         )
-    rows = [_row(r, names, colors, tickets, r.id in live_ids) for r in runs]
+    rows = [_row(r, names, colors, tickets, r.id in live_ids, working) for r in runs]
     rows.sort(key=lambda r: (not r["live"], -(r["cli_rss_mb"] or 0)))
     ai_mb = sum(
         (r["cli_rss_mb"] or 0) + (r["extra_mb"] or 0) for r in rows if r["live"]
     )
     return {
+        "project_id": project_id,
         "at": datetime.now(UTC).isoformat(),
         "machine": {
             **machine,
@@ -411,12 +453,6 @@ def card_view(run: AiRun, limit_mb: int) -> dict | None:
         "restarts": len(restarts_of(run)),
         "limit_mb": limit_mb,
     }
-
-
-def access_of(profile: AiMember | None) -> str:
-    """none | view | control for an AI member (a missing or odd value is none)."""
-    level = getattr(profile, "resource_access", "none")
-    return level if level in ACCESS_LEVELS else "none"
 
 
 def dump(value: Any) -> str:

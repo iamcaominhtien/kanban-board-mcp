@@ -5,7 +5,6 @@ import type { KbStore, KbUpload } from '../../../types/aiKb';
 import { LoadError } from '../aiUi';
 import { KbAddForm, KindIcon, Snippet, kindName } from './kbParts';
 import { KbRow } from './kbRows';
-import { KbExplainer } from './kbSide';
 
 type View = KbStore | 'toc';
 
@@ -208,9 +207,6 @@ export function KnowledgeBasePanel({ projectId }: { projectId: string }) {
           Each file was turned into text when it was added. A light model wrote the one-line summary and the keywords,
           once. Nothing is sent anywhere but Claude, and there is no embedding service and no extra key.
         </div>
-      </div>
-      <div style={{ flex: '0 1 446px', minWidth: 300 }}>
-        <KbExplainer />
       </div>
     </div>
   );

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DocsPage } from '../../types/docs';
 import { useDocsAiState } from '../../api/docsAi';
-import { usePageProposals } from '../../api/docsAiProposals';
 import { aiGate } from '../../utils/docsAiRules';
-import { proposedLines, REVIEW_PROPOSAL_EVENT } from '../../utils/docsProposalRules';
 import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { DocsMarkdown, type DocsMarkdownProps } from './DocsMarkdown';
 import { OfflineBanner } from './DocsStates';
@@ -31,6 +29,7 @@ import { PageMenu, type PageMenuAction } from './PageMenu';
 import { PageWork } from './PageWork';
 import { ReferencedBy } from './ReferencedBy';
 import { SharePopover } from './SharePopover';
+import { AiChangedBar } from './AiChangedBar';
 import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
 import { useCommentSuggest } from './comments/commentAi';
 
@@ -116,6 +115,7 @@ export function DocsPageView({
   const [timeTip, setTimeTip] = useState(false);
   const [editTip, setEditTip] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const tocNavRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const [bodyEl, setBodyEl] = useState<HTMLDivElement | null>(null);
@@ -123,20 +123,9 @@ export function DocsPageView({
   const cc = useCommentsController(page.id);
   const aiView = usePageAiView(page.id);
   const aiState = useDocsAiState(projectId);
-  const aiNow = aiGate(aiState.data, { hidden: !!page.aiHidden });
+  const aiNow = aiGate(aiState.data);
   const aiOn = !offline && page.version > 0 && aiNow.show && aiNow.reason === null;
   const translated = useTranslatedMarkdown(aiView);
-  // blocks a waiting AI proposal would change are marked in the page; a click opens the review
-  const waiting = usePageProposals(page.id, aiOn && !readOnly && page.version > 0);
-  const proposed = useMemo(
-    () => (waiting.data?.canReview ? proposedLines(waiting.data.proposals) : undefined),
-    [waiting.data],
-  );
-  const reviewMarked = useCallback((e: { target: EventTarget }) => {
-    const mark = (e.target as HTMLElement).closest?.('[data-proposal-id]');
-    const proposalId = mark?.getAttribute('data-proposal-id');
-    if (proposalId) window.dispatchEvent(new CustomEvent(REVIEW_PROPOSAL_EVENT, { detail: { proposalId } }));
-  }, []);
   const commentsData = cc.query.data;
   const inlineThreads = useMemo(() => (commentsData?.threads ?? []).filter((t) => t.kind === 'inline'), [commentsData]);
   const suggest = useCommentSuggest(commentsData);
@@ -213,6 +202,17 @@ export function DocsPageView({
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
   }, [page.id, page.markdown]);
+
+  // a long "On this page" list scrolls on its own: keep the section in view visible in it
+  useEffect(() => {
+    const nav = tocNavRef.current;
+    const cur = nav?.querySelector<HTMLElement>('[aria-current="location"]');
+    if (!nav || !cur) return;
+    const top = cur.offsetTop - nav.offsetTop;
+    if (top < nav.scrollTop + 40) nav.scrollTop = Math.max(0, top - 40);
+    else if (top + cur.offsetHeight > nav.scrollTop + nav.clientHeight - 24)
+      nav.scrollTop = top + cur.offsetHeight - nav.clientHeight + 24;
+  }, [activeSlug]);
 
   function jump(slug: string) {
     document.getElementById(`docs-${slug}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -306,6 +306,15 @@ export function DocsPageView({
         >
           <div style={{ maxWidth: 'min(100%, clamp(640px, 62vw, 1120px))', margin: '0 auto' }}>
             {!offline && (
+              <AiChangedBar
+                page={page}
+                projectId={projectId}
+                members={members}
+                canEdit={!readOnly}
+                onCompare={onCompare}
+              />
+            )}
+            {!offline && (
               <div style={{ marginBottom: 16 }}>
                 <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
               </div>
@@ -395,6 +404,9 @@ export function DocsPageView({
                           zIndex: 40,
                           width: 220,
                           padding: '10px 12px',
+                          // a long list scrolls inside the popover instead of running off the window
+                          maxHeight: 'min(60vh, 420px)',
+                          overflowY: 'auto',
                         }}
                       >
                         <span
@@ -691,7 +703,6 @@ export function DocsPageView({
               {(published || page.draft) && (
                 <div
                   style={{ display: 'contents' }}
-                  onClick={reviewMarked}
                   data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
                 >
                   <DocsMarkdown
@@ -706,16 +717,13 @@ export function DocsPageView({
                     onRestorePage={onRestorePage}
                     onReplaceSection={published && !translated ? onReplaceSection : undefined}
                     changedIn={published && since.behind && since.marks && !translated ? since.changedIn : undefined}
-                    proposed={published && !translated ? proposed : undefined}
                   >
                     {translated ?? (published ? page.markdown : page.draft!.markdown)}
                   </DocsMarkdown>
                 </div>
               )}
             </div>
-            {!offline && (
-              <PageComments pageId={page.id} projectId={projectId} data={commentsData} actions={cc.actions} />
-            )}
+            {!offline && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
             <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
           </div>
         </div>
@@ -742,9 +750,19 @@ export function DocsPageView({
           <nav
             aria-label="On this page"
             className="dk-toc"
-            style={{ width: 200, flexShrink: 0, padding: '30px 20px 0 8px', boxSizing: 'border-box' }}
+            ref={tocNavRef}
+            // as tall as the pane (a flex child of it): a list taller than that scrolls here, so its end can be reached
+            style={{
+              width: 200,
+              flexShrink: 0,
+              padding: '30px 20px 24px 8px',
+              boxSizing: 'border-box',
+              maxHeight: '100%',
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
+            }}
           >
-            <div style={{ position: 'sticky', top: 0 }}>
+            <div>
               <span
                 style={{
                   display: 'block',

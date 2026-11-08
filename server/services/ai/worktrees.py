@@ -730,8 +730,6 @@ async def merge(ticket_id: str, *, by: str) -> dict:
     """
     from services import notifications as centre
 
-    from . import flags
-
     async with database.async_session() as session:
         row = await session.get(AiWorktree, ticket_id)
         if row is None or row.state not in ("active", "conflict", "kept"):
@@ -801,13 +799,6 @@ async def merge(ticket_id: str, *, by: str) -> dict:
             row.conflict_files = json.dumps(files[:50])
             session.add(row)
             await session.commit()
-            await flags.open_flag(
-                session,
-                ticket_id,
-                row.project_id,
-                "merge_conflict",
-                {"files": files[:50], "base": row.base, "branch": row.branch},
-            )
             await centre.emit(
                 "merge_conflict",
                 project_id=row.project_id,
@@ -831,7 +822,6 @@ async def merge(ticket_id: str, *, by: str) -> dict:
         row.state = "merged"
         session.add(row)
         await session.commit()
-        await flags.resolve(session, ticket_id, "merge_conflict", by=by, how="merged")
         try:
             await remove(session, ticket_id)
         except WorktreeError:
@@ -846,8 +836,7 @@ def on_status(ticket_id: str, status: str, previous: str, *, by_ai: bool) -> Non
     """Hand-over on the ticket's moves: Review pushes (and opens the draft PR), Done merges or marks the PR ready, but
     only when a person moved it. In the background, never in the request.
 
-    A move to Review the Board AI made (its changes carry "suggested by", whether it acted by itself in its Undo tier
-    or a person applied its card) hands nothing over: a push and a pull request post outside the board, which the
+    A move to Review the Board AI made (a turn of its chat, or a change that carries "suggested by") hands nothing over: a push and a pull request post outside the board, which the
     Board AI never does by itself, and its Undo could not take them back. The person's own move to Review (or the AI
     member's that worked on the ticket) does."""
     if status == previous or status not in ("review", "done"):
@@ -858,6 +847,11 @@ def on_status(ticket_id: str, status: str, previous: str, *, by_ai: bool) -> Non
 
     if status == "review" and act._suggested.get():
         return  # a Board AI move (Done is always asked first, so a person confirmed that one)
+    from services.ai import guard as ai_guard
+
+    ctx = ai_guard.current()
+    if status == "review" and ctx is not None and ctx.trigger == "assistant":
+        return  # the Board AI's chat acts at once only on what Undo can take back: a push and a PR it cannot
 
     async def go() -> None:
         try:

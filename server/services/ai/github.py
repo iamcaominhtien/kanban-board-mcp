@@ -6,14 +6,14 @@
   open (``ops.github.poll_min``, 5 by default).
 - Red CI: the failing job's log (``gh run view --log-failed``) goes to the ticket's Dev in a run on the ticket's
   worktree — but first the same check is looked up on the base branch: when it is red there too, the ticket is not
-  to blame and nobody is sent back.
+  to blame and the board does not give it to the team.
 - Review comments from people: the text and the lines go to the AI, which replies on the thread when something
   changed. It never resolves a person's thread.
 - On a pull request the board opened, pushing to that branch and replying on its threads are part of the work: they
   happen inside the run without asking, and are recorded in it. Anything else that leaves the board still asks.
 
-A project turns this on in its settings (``ops.github.on``); the ready-made standing order "Red CI → back to its Dev"
-does the hand-back by itself once turned on, and the two buttons on the card do it by hand.
+A project turns this on in its settings (``ops.github.on``); the board sends the failure back to the ticket's team by
+itself once turned on (``github.auto``), and the two buttons on the card do it by hand.
 """
 
 import asyncio
@@ -285,7 +285,12 @@ async def tick_project(project_id: str) -> list[dict]:
                     }
                 )
             if got["comments"]:
-                pending = loads(cur.pending_comments, []) or []
+                # the ones already given to the team are dropped when new ones come: the card shows the latest batch
+                pending = [
+                    c
+                    for c in (loads(cur.pending_comments, []) or [])
+                    if not c.get("handled_at")
+                ]
                 pending += got["comments"]
                 cur.pending_comments = json.dumps(pending[-50:])
                 cur.seen_comments = json.dumps(
@@ -309,7 +314,7 @@ async def tick_project(project_id: str) -> list[dict]:
 
 
 async def signals(session, project_id: str) -> list[dict]:
-    """Red CI on a pull request the board opened, as a signal standing orders fire on (and a card)."""
+    """Red CI on a pull request the board opened, as a signal the board acts on (and a card)."""
     out = []
     for row in (
         await session.exec(
@@ -334,7 +339,7 @@ async def signals(session, project_id: str) -> list[dict]:
                     "number": row.number,
                 },
                 "score": 8,
-                "action": "Give it back to the Dev",
+                "action": "The board gives it to the team",
             }
         )
     return out
@@ -366,12 +371,12 @@ async def _dev_of(session, ticket_id: str) -> str | None:
             .order_by(col(AiRun.queued_at).desc())
         )
     ).all()
-    from models import AiMember
+    from models import AiTeam
 
     from . import plugins
 
     for run in last:
-        prof = await session.get(AiMember, run.member_id)
+        prof = await session.get(AiTeam, run.member_id)
         if prof is not None and plugins.role_of(prof) in ("dev", None):
             return run.member_id
     return last[0].member_id if last else None
@@ -388,32 +393,32 @@ async def back_to_dev(finding: dict) -> str | None:
             return None
         red = loads(row.red, {}) or {}
         if red.get("handled_at"):
-            return None  # already with the Dev (by itself, or a standing order got there first)
+            return None  # already with the Dev (by itself, or by hand first)
         check = {"name": red.get("check"), "detailsUrl": red.get("url")}
     log = await failure_log(row, check)
     async with database.async_session() as session:
         member = await _dev_of(session, ticket_id)
         if member is None:
             return None
-        run = await runs.create_run(
-            session,
-            ticket_id=ticket_id,
-            member_id=member,
-            mode="work",
-            trigger="ci_red",
-            started_by="the board (red CI)",
-            instruction=_CI_TASK.format(
+        out = await runs.deliver_to_ticket(
+            ticket_id,
+            _CI_TASK.format(
                 number=row.number,
                 check=red.get("check"),
                 base=red.get("base") or "the base branch",
                 log=_fence(f"ci log · {red.get('check')}", log),
                 branch=row.branch,
             ),
-            wait_for_hold=True,
+            by="the board (red CI)",
+            trigger="ci_red",
         )
+        run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
+        if run is None:
+            return None  # nothing was started or reached: it is not marked as given
         cur = await session.get(AiWatchedPr, ticket_id)
         red["handled_at"] = _now()
         red["run_id"] = run.id
+        red["delivered"] = out.get("delivered")
         cur.red = json.dumps(red)
         session.add(cur)
         await session.commit()
@@ -426,7 +431,8 @@ async def comments_to_dev(ticket_id: str) -> str | None:
 
     async with database.async_session() as session:
         row = await session.get(AiWatchedPr, ticket_id)
-        pending = loads(row.pending_comments, []) if row else []
+        every = loads(row.pending_comments, []) if row else []
+        pending = [c for c in every if not c.get("handled_at")]
         if not pending:
             return None
         member = await _dev_of(session, ticket_id)
@@ -440,19 +446,30 @@ async def comments_to_dev(ticket_id: str) -> str | None:
             )
             for c in pending
         )
-        run = await runs.create_run(
-            session,
-            ticket_id=ticket_id,
-            member_id=member,
-            mode="work",
+        out = await runs.deliver_to_ticket(
+            ticket_id,
+            _REVIEW_TASK.format(number=row.number, comments=text, branch=row.branch),
+            by="the board (review comments)",
             trigger="review_comments",
-            started_by="the board (review comments)",
-            instruction=_REVIEW_TASK.format(
-                number=row.number, comments=text, branch=row.branch
-            ),
-            wait_for_hold=True,
         )
-        row.pending_comments = "[]"
+        run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
+        if run is None:
+            return None
+        # kept, marked as given, so the ticket still shows what the team was given (and which run)
+        now = _now()
+        row.pending_comments = json.dumps(
+            [
+                c
+                if c.get("handled_at")
+                else {
+                    **c,
+                    "handled_at": now,
+                    "run_id": run.id,
+                    "delivered": out.get("delivered"),
+                }
+                for c in every
+            ]
+        )
         session.add(row)
         await session.commit()
         return run.id

@@ -1,574 +1,774 @@
-"""AI Team, "You stepped in": every time a person acted on AI work, and whether it was needed
-(design/screens/ai-team-review.md, A). Worked out from records the app keeps: approvals, Docs proposals, answered
-questions, runs started or stopped by hand, edits made during a run, resolved Docs threads and settings changes.
+"""You stepped in (design/screens/ai-team-review.md, A; AI v2): every time a person had to touch the work of the
+project's AI teams, and whether the touch was needed.
 
-Each touch carries one mark:
-  by_rule    the project is set up to ask for it (approvals, Done)
-  needed     only a person had the information or the judgement
-  avoidable  a setting, a note in the instructions or an automatic retry would have removed it
+Nothing here is stored per touch. A touch is worked out, newest first, from what the board already keeps:
+
+- an answer to a team's question: the run's question and answer;
+- a run started by hand (the Run button): `ai_run.trigger` and `started_by`;
+- a run stopped by a person or retried by one: `ended_by` (no stop code) and the `retry` trigger;
+- a message to a lead that is working: `ai_run_message` (direction in; `/compact` is a command and a message that only started a new run are not touches);
+- a ticket edited while a run works on it, an account signed in again, a team (or the whole project) paused and
+  resumed: audit entries written when the action happens (`record_edit`, `record_signin`, and the pause routes).
+
+The only thing stored is the mark a person gives to a touch (`ai_touch_mark`), under the touch's stable key, so a
+clean-up of runs or of the audit log never takes a mark with it. Approvals and a status ceiling do not exist in AI v2,
+so no touch is "by rule" yet: the tab has no such mark until a rule exists.
 """
 
-import re
-from datetime import UTC, datetime
+import logging
+from collections import Counter
+from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import or_, update
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import (
-    AiApproval,
-    AiAudit,
-    AiMember,
-    AiRun,
-    DocsAiProposal,
-    DocsCommentThread,
-    DocsPage,
-    Member,
-    Ticket,
-)
+from models import AiAudit, AiRun, AiRunMessage, AiTeam, AiTouchMark, Member
 
-from services.docs_ai import proposals
+from . import audit, compact, knowledge
+from .store import ai_names, loads, now_iso, parse_iso
 
-from . import approvals as svc_approvals
-from . import permissions as perms
-from .store import loads, parse_iso
-from .team import RANGES, window_start
+logger = logging.getLogger("kanban.ai.touches")
 
-MARKS = ("by_rule", "needed", "avoidable")
-# What the touch list calls each kind, in the order of the "What you did" bars
-KINDS = {
-    "approval": "Approved or denied",
-    "docs_proposal": "Accepted or rejected a Docs proposal",
-    "done": "Moved to Done, past what the AI may do",
-    "answer": "Answered a question",
-    "thread": "Resolved a Docs review thread",
-    "edit": "Edited the ticket while an AI worked",
-    "run": "Started or re-ran a run by hand",
-    "stop": "Stopped or took over a run",
-    "settings": "Changed an AI’s settings",
+RANGES = {"24h": 1, "7d": 7, "30d": 30, "90d": 90}
+DEFAULT_RANGE = "7d"
+MARKS = ("needed", "avoidable")
+LIMIT = 500
+LESSON_MAX = 600
+
+KINDS: dict[str, str] = {
+    "answer": "Answered a team's question",
+    "run_by_hand": "Started a run by hand",
+    "stop": "Stopped a run",
+    "retry": "Retried a run",
+    "message": "Sent a message to the lead",
+    "edit": "Edited a ticket while a run worked on it",
+    "signin": "Signed an account in again",
+    "pause": "Paused or resumed",
 }
-# A question asked again and again with the same answer is a missing line in the instructions
-REPEAT_AT = 3
-# Run settings whose raising follows a run that hit its limit
-LIMIT_KEYS = ("run_timeout_min", "max_runs_per_day", "tokens_per_day", "cap_per_run")
-HAND_STARTS = ("run_button", "retry")
-LIMIT_REASONS = ("rate", "limit", "timed out", "timeout")
+
+# Names the board uses for itself: what they did is not a person stepping in
+MACHINE = {
+    "board",
+    "system",
+    "schedule",
+    "scheduler",
+    "runner",
+    "auto",
+    "github",
+    "api",
+    "",
+}
+
+# Audit actions written for touches that no other table keeps
+EDIT_ACTION = "ticket_edited_during_run"
+SIGNIN_ACTION = "account_signin"
+PAUSE_ACTIONS = ("team_paused", "team_resumed", "project_paused", "project_resumed")
+# the lesson_id of a touch while its lesson is being made (a second request finds the touch taken)
+CLAIMED = "pending"
+RUN_ENDED = ("finished", "failed", "cancelled", "timed_out")
+# a stop that comes with a pause or a removal of the team by the same person is part of it, not a touch of its own
+STOP_WITH_PAUSE_S = 60
+EDIT_COALESCE_S = 300  # typing in the description saves again and again: one touch per run per five minutes
 
 
-def _norm(text: str | None) -> str:
-    return re.sub(r"\W+", " ", (text or "").lower()).strip()
+def is_person(name: str | None, ai: set[str] | None = None) -> bool:
+    """Whether this actor name is a person (not the board, a schedule or one of the project's AIs)."""
+    n = (name or "").strip()
+    return bool(n) and n.lower() not in MACHINE and n not in (ai or set())
 
 
-def _in(value: str | None, since: datetime) -> bool:
-    at = parse_iso(value)
-    return at is not None and at >= since
+def _clip(text: str | None, n: int = 160) -> str:
+    t = " ".join((text or "").split())
+    return t if len(t) <= n else t[: n - 1] + "…"
 
 
-def _person(name: str | None, ai_names: set[str]) -> bool:
-    return (
-        bool(name) and name not in ai_names and name not in ("system", "Board", "board")
+def since_of(range_key: str, now: datetime | None = None) -> datetime:
+    """The start of a range ("24h", "7d", "30d", "90d"; anything else is the default)."""
+    days = RANGES.get(range_key, RANGES[DEFAULT_RANGE])
+    return (now or datetime.now(UTC)) - timedelta(days=days)
+
+
+# --------------------------------------------------------------------------- recording
+
+
+async def record_edit(
+    session: AsyncSession, ticket_id: str, *, by: str | None, what: str = ""
+) -> int:
+    """A person edited a ticket while a run was on it: one audit entry per such run (coalesced), written when it
+    happens. Returns how many were written."""
+    from .store import active_runs
+
+    runs = [
+        r
+        for r in await active_runs(session, ticket_id=ticket_id)
+        if r.state in ("starting", "running", "needs_input") and r.kind == "team"
+    ]
+    if not runs or not is_person(by, await ai_names(session, runs[0].project_id)):
+        return 0
+    written = 0
+    now = datetime.now(UTC)
+    for r in runs:
+        last = (
+            await session.exec(
+                select(AiAudit)
+                .where(AiAudit.run_id == r.id, AiAudit.action == EDIT_ACTION)
+                .order_by(col(AiAudit.seq).desc())
+                .limit(1)
+            )
+        ).first()
+        when = parse_iso(last.created_at) if last else None
+        if (
+            when
+            and last
+            and last.on_behalf_of == by
+            and (now - when).total_seconds() < EDIT_COALESCE_S
+        ):
+            continue
+        member = await session.get(Member, r.member_id)
+        await audit.record(
+            r.project_id,
+            EDIT_ACTION,
+            "info",
+            member_id=r.member_id,
+            member_name=member.name if member else "",
+            on_behalf_of=by,
+            run_id=r.id,
+            target=ticket_id,
+            detail={"what": what or "the ticket"},
+        )
+        written += 1
+    return written
+
+
+async def record_signin(session: AsyncSession, account, by: str) -> int:
+    """A person opened the sign-in of an AI account: one audit entry per project whose teams run as this account."""
+    try:
+        teams = (
+            await session.exec(select(AiTeam).where(AiTeam.account_id == account.id))
+        ).all()
+        by_project: dict[str, list[AiTeam]] = {}
+        for t in teams:
+            by_project.setdefault(t.project_id, []).append(t)
+        for project_id, rows in by_project.items():
+            await audit.record(
+                project_id,
+                SIGNIN_ACTION,
+                "info",
+                on_behalf_of=by,
+                detail={
+                    "account": account.name,
+                    "account_id": account.id,
+                    "team_ids": [t.id for t in rows],
+                },
+            )
+        return len(by_project)
+    except Exception:  # noqa: BLE001 - a note about the sign-in must never fail the sign-in
+        logger.exception("Could not record the sign-in of %s as a touch", account.id)
+        return 0
+
+
+async def record_pause(
+    project_id: str, action: str, by: str, detail: dict | None = None
+) -> None:
+    """The whole project's AI was paused or resumed by a person (the teams' own pauses are recorded by `teams`)."""
+    try:
+        await audit.record(
+            project_id, action, "info", on_behalf_of=by, detail=detail or {}
+        )
+    except Exception:  # noqa: BLE001 - the audit entry must never undo the pause
+        logger.exception("Could not record %s as a touch", action)
+
+
+def carry_answer(question_json: str | None, answer: str | None) -> list[dict]:
+    """The answered questions of a run to keep when it asks a new one (a run holds one question; the earlier ones, with
+    their answers, move to `previous` so each answer stays a touch)."""
+    old = loads(question_json, {}) or {}
+    previous = list(old.get("previous") or [])
+    if answer and old.get("answered_at"):
+        previous.append(
+            {
+                "text": old.get("text", ""),
+                "answer": answer,
+                "answered_at": old["answered_at"],
+                "answered_by": old.get("answered_by"),
+            }
+        )
+    return previous[-20:]
+
+
+def answers_of(r: AiRun) -> list[dict]:
+    """Every answered question of a run, oldest first: {index, text, answer, at, by}."""
+    q = loads(r.question, {}) or {}
+    pairs = [
+        {
+            "text": p.get("text", ""),
+            "answer": p.get("answer", ""),
+            "at": p.get("answered_at"),
+            "by": p.get("answered_by"),
+        }
+        for p in q.get("previous") or []
+        if isinstance(p, dict)
+    ]
+    if r.answer and q.get("answered_at"):
+        pairs.append(
+            {
+                "text": q.get("text", ""),
+                "answer": r.answer,
+                "at": q["answered_at"],
+                "by": q.get("answered_by"),
+            }
+        )
+    for i, p in enumerate(pairs):
+        p["index"] = i
+    return pairs
+
+
+# --------------------------------------------------------------------------- reading
+
+
+def _cancelled_runs(e: AiAudit) -> bool:
+    """Whether this audit entry is a pause or removal that also stopped the team's runs (so those stops belong to it)."""
+    if e.action == "team_removed":
+        return True
+    d = loads(e.detail, {}) or {}
+    if e.action == "team_paused":
+        return bool(d.get("cancel_current"))
+    if e.action == "project_paused":
+        return bool(
+            d.get("cancel_running", True)
+        )  # an entry from before the flag was kept: assume it stopped them
+    return False
+
+
+def _with_pause(r: AiRun, pauses: list[tuple[str | None, datetime | None]]) -> bool:
+    """Whether this run was stopped as part of the same person's pause or removal of its team."""
+    ended = parse_iso(r.ended_at)
+    return bool(
+        ended
+        and any(
+            who == r.ended_by
+            and at is not None
+            and abs((ended - at).total_seconds()) <= STOP_WITH_PAUSE_S
+            for who, at in pauses
+        )
     )
 
 
 def _touch(
-    *,
-    at: str,
+    key: str,
     kind: str,
+    at: str | None,
     who: str,
-    via: str | None,
-    what: str,
-    mark: str,
-    why: str,
-    details: str = "",
-    member_id: str | None = None,
+    *,
+    team_ids: list[str],
     ticket_id: str | None = None,
-    ref: dict | None = None,
+    run_id: str | None = None,
+    details: str = "",
+    via: str | None = None,
 ) -> dict:
     return {
-        "at": at,
+        "id": key,
         "kind": kind,
-        "kind_label": KINDS[kind],
+        "label": KINDS[kind],
+        "at": at,
         "who": who,
         "via": via,
-        "what": what,
-        "mark": mark,
-        "why": why,
-        "details": details,
-        "member_id": member_id,
+        "team_ids": team_ids,
         "ticket_id": ticket_id,
-        "ref": ref or {},
+        "run_id": run_id,
+        "details": details,
+        "mark": None,
+        "marked_by": None,
+        "marked_at": None,
+        "lesson_id": None,
     }
-
-
-def _quote(text: str | None, n: int = 90) -> str:
-    text = " ".join((text or "").split())
-    return f"“{text[:n]}{'…' if len(text) > n else ''}”"
 
 
 async def collect(
-    session: AsyncSession, project_id: str, since: datetime
+    session: AsyncSession,
+    project_id: str,
+    since: datetime,
+    *,
+    key: str | None = None,
 ) -> list[dict]:
-    """Every touch of the project since `since`, newest first, each with its mark and why."""
-    ai_members = (
-        await session.exec(
-            select(Member).where(Member.project_id == project_id, Member.kind == "ai")
-        )
-    ).all()
-    ai_names = {m.name for m in ai_members}
-    names = {m.id: m.name for m in ai_members}
-    profiles = {
-        p.id: p
-        for p in (
-            await session.exec(
-                select(AiMember).where(col(AiMember.id).in_(list(names) or [""]))
-            )
-        ).all()
-    }
-    runs = (
-        await session.exec(select(AiRun).where(AiRun.project_id == project_id))
-    ).all()
-    tickets = {
-        t.id: t
-        for t in (
-            await session.exec(select(Ticket).where(Ticket.project_id == project_id))
-        ).all()
-    }
-    touches: list[dict] = []
+    """Every touch of the project since this time, newest first (team ids, not names: the caller adds them).
 
-    # --- approved or denied (the project asks for these)
-    approvals = [
-        a
-        for a in (
-            await session.exec(
-                select(AiApproval).where(
-                    AiApproval.project_id == project_id,
-                    col(AiApproval.status).in_(("approved", "denied")),
-                )
+    With `key` only the rows that touch can come from are read (its run, its message, its audit entry): marking a
+    touch or making a lesson from it does not read the whole range again."""
+    iso = since.isoformat()
+    ai = await ai_names(session, project_id)
+    out: list[dict] = []
+    # where a keyed touch comes from: a run, a message (and its run) or an audit entry
+    src, _, rest = (key or "").partition(":")
+    run_id = rest.split(":")[0] if key and src not in ("msg", "audit") else None
+    msg_id = rest if src == "msg" else None
+    audit_id = rest if src == "audit" else None
+    audit_iso = iso
+    if msg_id:
+        m = await session.get(AiRunMessage, msg_id)
+        run_id = m.run_id if m else "-"
+    if key:
+        iso = ""  # the key says what to read: no window
+        audit_iso = ""
+        if src == "stop" and run_id:
+            r = await session.get(AiRun, run_id)
+            ended = parse_iso(r.ended_at) if r else None
+            # a stop is judged against the pauses made around the time it ended
+            audit_iso = (
+                (ended - timedelta(seconds=STOP_WITH_PAUSE_S + 1)).isoformat()
+                if ended
+                else "~"
             )
-        ).all()
-        if a.decided_by
-        and a.decided_via != "autopilot"  # the delegate AI, not a person
-        and not svc_approvals.is_proposal(a)
+
+    run_where = [AiRun.project_id == project_id, AiRun.kind == "team"]
+    if key:
+        run_where.append(AiRun.id == (run_id or "-"))
+    else:
+        run_where.append(
+            or_(
+                AiRun.queued_at >= iso,
+                col(AiRun.ended_at) >= iso,
+                col(AiRun.ended_at).is_(None),
+            )
+        )
+    runs = (await session.exec(select(AiRun).where(*run_where))).all()
+    by_id = {r.id: r for r in runs}
+    audit_where = [
+        AiAudit.project_id == project_id,
+        AiAudit.created_at >= audit_iso,
+        col(AiAudit.action).in_(
+            [EDIT_ACTION, SIGNIN_ACTION, "team_removed", *PAUSE_ACTIONS]
+        ),
     ]
-    tally: dict[tuple[str, str], list[AiApproval]] = {}
-    for a in approvals:
-        tally.setdefault((a.member_id, a.action), []).append(a)
-    for a in approvals:
-        if not _in(a.decided_at, since):
-            continue
-        label = perms.ACTIONS.get(a.action, (a.action,))[0]
-        group = tally[(a.member_id, a.action)]
-        ok = len([x for x in group if x.status == "approved"])
-        mark, why = (
-            "by_rule",
-            f"Rule: {label.lower()} needs approval. {ok} of {len(group)} approved.",
-        )
-        if (
-            a.action in svc_approvals.ALWAYS_ALLOWED
-            and len(group) >= REPEAT_AT
-            and ok == len(group)
-        ):
-            mark = "avoidable"
-            why = f"Approved {ok} of {len(group)} times. “Always allow” would remove this."
-        touches.append(
-            _touch(
-                at=a.decided_at,
-                kind="approval",
-                who=a.decided_by,
-                via=a.decided_via,
-                what="Approved" if a.status == "approved" else "Denied",
-                mark=mark,
-                why=why,
-                details=a.summary,
-                member_id=a.member_id,
-                ticket_id=a.ticket_id,
-                ref={"type": "approval", "id": a.id},
-            )
-        )
-
-    # --- Docs proposals (only where Docs AI holds AI edits)
-    for p in (
-        await session.exec(
-            select(DocsAiProposal).where(
-                DocsAiProposal.project_id == project_id,
-                col(DocsAiProposal.status).in_(("accepted", "partial", "rejected")),
-            )
-        )
-    ).all():
-        if not p.decided_by or not _in(p.decided_at, since):
-            continue
-        changes = loads(p.changes, [])
-        taken = len([c for c in changes if c.get("status") == "accepted"])
-        page = await session.get(DocsPage, p.page_id)
-        title = page.title if page else "a page"
-        touches.append(
-            _touch(
-                at=p.decided_at,
-                kind="docs_proposal",
-                who=p.decided_by,
-                via=None,
-                what="Accepted a proposal" if taken else "Rejected a proposal",
-                mark="by_rule",
-                why="Rule: edit docs needs approval, with a diff.",
-                details=f"Accepted {taken} of {len(changes)} changes to the page {title}",
-                member_id=p.member_id,
-                ticket_id=p.ticket_id,
-                ref={"type": "page", "id": p.page_id},
-            )
-        )
-
-    # --- answered questions
-    answered = []
+    if audit_id:
+        audit_where.append(AiAudit.id == audit_id)
+    elif key and src != "stop":
+        audit_where.append(AiAudit.id == "-")  # a run's touch needs no audit entry
+    rows = (await session.exec(select(AiAudit).where(*audit_where))).all()
+    # when a person paused or removed a team: the runs they stopped with it are part of that
+    pauses = [
+        (e.on_behalf_of, parse_iso(e.created_at)) for e in rows if _cancelled_runs(e)
+    ]
+    answered: dict[str, list[tuple[str, str]]] = {}  # run id -> [(who, when)]
     for r in runs:
-        q = loads(r.question, None) or {}
-        if (
-            q.get("answered_at")
-            and q.get("answered_by")
-            and q.get("answered_via") != "autopilot"
-        ):
-            answered.append((r, q))
-    for r, q in answered:
-        if not _in(q["answered_at"], since):
-            continue
-        same = [
-            (r2, q2)
-            for r2, q2 in answered
-            if r2.member_id == r.member_id
-            and _norm(q2.get("text")) == _norm(q.get("text"))
-            and _norm(r2.answer) == _norm(r.answer)
-            and q2["answered_at"] <= q["answered_at"]
-        ]
-        repeat = len(same) >= REPEAT_AT
-        ordinal = {3: "3rd", 4: "4th", 5: "5th"}.get(len(same), f"{len(same)}th")
-        touches.append(
-            _touch(
-                at=q["answered_at"],
-                kind="answer",
-                who=q["answered_by"],
-                via=q.get("answered_via"),
-                what="Answered a question",
-                mark="avoidable" if repeat else "needed",
-                why=(
-                    f"The {ordinal} time {names.get(r.member_id, 'the AI')} asked this, with the same answer each time."
-                    if repeat
-                    else "Only a person could supply it."
-                ),
-                details=f"{_quote(q.get('text'))} → {_quote(r.answer, 60)}",
-                member_id=r.member_id,
-                ticket_id=r.ticket_id,
-                ref={"type": "run", "id": r.id},
-            )
-        )
-
-    # --- runs started or re-run by hand, stopped, or edited while they worked
-    by_ticket: dict[str, list[AiRun]] = {}
-    for r in runs:
-        by_ticket.setdefault(r.ticket_id, []).append(r)
-    for r in runs:
-        if (
-            r.trigger in HAND_STARTS
-            and _person(r.started_by, ai_names)
-            and _in(r.queued_at, since)
-        ):
-            earlier = [
-                x
-                for x in by_ticket.get(r.ticket_id, [])
-                if x.member_id == r.member_id
-                and x.queued_at < r.queued_at
-                and x.ended_at
-            ]
-            prev = max(earlier, key=lambda x: x.queued_at) if earlier else None
-            reason = ((prev.ended_reason if prev else "") or "").lower()
-            hit_limit = (
-                prev is not None
-                and prev.state in ("timed_out", "failed")
-                and any(
-                    w in reason or w in prev.state.replace("_", " ")
-                    for w in LIMIT_REASONS
+        team, ticket = [r.member_id], r.ticket_id
+        for a in answers_of(r):
+            if a["at"] and a["at"] >= iso and is_person(a["by"], ai):
+                answered.setdefault(r.id, []).append((a["by"], a["at"]))
+                out.append(
+                    _touch(
+                        f"answer:{r.id}" + (f":{a['index']}" if a["index"] else ""),
+                        "answer",
+                        a["at"],
+                        a["by"],
+                        team_ids=team,
+                        ticket_id=ticket,
+                        run_id=r.id,
+                        details=f"“{_clip(a['text'], 110)}” → “{_clip(a['answer'], 110)}”",
+                    )
                 )
-            )
-            touches.append(
-                _touch(
-                    at=r.queued_at,
-                    kind="run",
-                    who=r.started_by,
-                    via=r.started_via,
-                    what="Re-ran by hand"
-                    if r.trigger == "retry" or prev
-                    else "Started a run by hand",
-                    mark="avoidable" if hit_limit else "needed",
-                    why=(
-                        "The last run stopped at a limit. A higher limit or an automatic retry would have done it."
-                        if hit_limit
-                        else "A person chose to run it."
-                    ),
-                    details=f"Run #{r.number} of {names.get(r.member_id, 'an AI')}",
-                    member_id=r.member_id,
-                    ticket_id=r.ticket_id,
-                    ref={"type": "run", "id": r.id},
+        if r.queued_at >= iso and is_person(r.started_by, ai):
+            if r.trigger == "run_button":
+                out.append(
+                    _touch(
+                        f"run:{r.id}",
+                        "run_by_hand",
+                        r.queued_at,
+                        r.started_by,
+                        team_ids=team,
+                        ticket_id=ticket,
+                        run_id=r.id,
+                        details=_clip(r.instruction) or f"Run #{r.number}",
+                    )
                 )
-            )
+            elif r.trigger == "retry":
+                out.append(
+                    _touch(
+                        f"retry:{r.id}",
+                        "retry",
+                        r.queued_at,
+                        r.started_by,
+                        team_ids=team,
+                        ticket_id=ticket,
+                        run_id=r.id,
+                        details=f"Run #{r.number} continues the one before it",
+                    )
+                )
         if (
             r.state == "cancelled"
-            and r.ended_by
-            and _person(r.ended_by, ai_names)
-            and _in(r.ended_at, since)
+            and not r.stop_code
+            and r.ended_at
+            and r.ended_at >= iso
+            and is_person(r.ended_by, ai)
+            and not _with_pause(r, pauses)
         ):
-            touches.append(
+            out.append(
                 _touch(
-                    at=r.ended_at,
-                    kind="stop",
-                    who=r.ended_by,
-                    via=None,
-                    what="Took over a run"
-                    if r.stop_code == "takeover"
-                    else "Stopped a run",
-                    mark="needed",
-                    why="A person decided the run should not go on.",
-                    details=f"Run #{r.number} of {names.get(r.member_id, 'an AI')}"
-                    + (f": {r.ended_reason}" if r.ended_reason else ""),
-                    member_id=r.member_id,
-                    ticket_id=r.ticket_id,
-                    ref={"type": "run", "id": r.id},
+                    f"stop:{r.id}",
+                    "stop",
+                    r.ended_at,
+                    r.ended_by or "",
+                    team_ids=team,
+                    ticket_id=ticket,
+                    run_id=r.id,
+                    details=_clip(r.ended_reason) or f"Run #{r.number} stopped",
                 )
             )
-        for note in loads(r.context_notes, []):
-            if _person(note.get("by"), ai_names) and _in(note.get("at"), since):
-                touches.append(
-                    _touch(
-                        at=note["at"],
-                        kind="edit",
-                        who=note["by"],
-                        via=None,
-                        what="Edited the ticket during a run",
-                        mark="needed",
-                        why="A person changed the ticket while the AI worked; the AI was told.",
-                        details=note.get("what") or "",
-                        member_id=r.member_id,
-                        ticket_id=r.ticket_id,
-                        ref={"type": "run", "id": r.id},
-                    )
-                )
 
-    # --- moved to Done by a person where the AI could only go as far as Review
-    for t in tickets.values():
-        mine = [r for r in by_ticket.get(t.id, []) if r.mode == "work"]
-        if not mine:
-            continue
-        for e in loads(t.activity_log, []):
-            if (
-                e.get("field") == "status"
-                and e.get("to") == "done"
-                and _person(e.get("actor"), ai_names)
-                and _in(e.get("at"), since)
-            ):
-                last = max(mine, key=lambda x: x.queued_at)
-                profile = profiles.get(last.member_id)
-                ceiling = profile.ceiling if profile else "review"
-                if ceiling == "done":
-                    continue
-                touches.append(
-                    _touch(
-                        at=e["at"],
-                        kind="done",
-                        who=e["actor"],
-                        via=None,
-                        what="Moved to Done",
-                        mark="by_rule",
-                        why=f"The AI may go up to {ceiling.replace('_', ' ').title()}; Done is a person’s step.",
-                        details=t.title,
-                        member_id=last.member_id,
-                        ticket_id=t.id,
-                        ref={"type": "ticket", "id": t.id},
-                    )
-                )
-
-    # --- resolved Docs review threads that an AI opened
-    for th in (
-        await session.exec(
-            select(DocsCommentThread)
-            .join(DocsPage, DocsPage.id == DocsCommentThread.page_id)
-            .where(
-                DocsPage.project_id == project_id,
-                DocsCommentThread.status == "resolved",
-            )
-        )
-    ).all():
+    # a message into a run, not from an AI session
+    msg_where = [
+        AiRunMessage.direction == "in",
+        AiRunMessage.at >= iso,
+        col(AiRunMessage.run_id).in_(
+            select(AiRun.id).where(AiRun.project_id == project_id)
+        ),
+    ]
+    if msg_id:
+        msg_where.append(AiRunMessage.id == msg_id)
+    elif key:
+        msg_where.append(AiRunMessage.id == "-")  # only a message touch reads messages
+    msgs = (await session.exec(select(AiRunMessage).where(*msg_where))).all()
+    missing = [m.run_id for m in msgs if m.run_id not in by_id]
+    if missing:
+        for r in (
+            await session.exec(select(AiRun).where(col(AiRun.id).in_(missing)))
+        ).all():
+            by_id[r.id] = r
+    for m in msgs:
+        run = by_id.get(m.run_id)
         if (
-            th.created_by in ai_names
-            and _person(th.resolved_by, ai_names)
-            and _in(th.resolved_at, since)
+            run is None
+            or run.kind != "team"
+            or not is_person(m.peer, ai)
+            or m.text
+            == compact.WISH  # /compact is a command, not a message to the lead
         ):
-            page = await session.get(DocsPage, th.page_id)
-            touches.append(
+            continue
+        if run.state in RUN_ENDED and run.ended_at and run.ended_at <= m.at:
+            continue  # sent to a run that had ended: it only started a new run, which is not a touch
+        if any(
+            who == m.peer
+            and abs(
+                (
+                    (parse_iso(m.at) or datetime.now(UTC))
+                    - (parse_iso(at) or datetime.now(UTC))
+                ).total_seconds()
+            )
+            < 10
+            for who, at in answered.get(m.run_id, [])
+        ):
+            continue  # an answer sent through the message box is one touch, not two
+        out.append(
+            _touch(
+                f"msg:{m.id}",
+                "message",
+                m.at,
+                m.peer,
+                team_ids=[run.member_id],
+                ticket_id=run.ticket_id,
+                run_id=run.id,
+                details=f"“{_clip(m.text, 140)}”",
+            )
+        )
+
+    for e in rows:
+        if e.action == "team_removed" or not is_person(e.on_behalf_of, ai):
+            continue
+        d = loads(e.detail, {}) or {}
+        via = d.get("via")
+        if e.action == EDIT_ACTION:
+            out.append(
                 _touch(
-                    at=th.resolved_at,
-                    kind="thread",
-                    who=th.resolved_by,
-                    via=None,
-                    what="Resolved a review thread",
-                    mark="needed",
-                    why="A review thread closes when a person agrees the text is fixed.",
-                    details=f"Thread by {th.created_by} on {page.title if page else 'a page'}",
-                    member_id=next(
-                        (i for i, n in names.items() if n == th.created_by), None
-                    ),
-                    ref={"type": "page", "id": th.page_id},
+                    f"audit:{e.id}",
+                    "edit",
+                    e.created_at,
+                    e.on_behalf_of or "",
+                    team_ids=[e.member_id] if e.member_id else [],
+                    ticket_id=e.target,
+                    run_id=e.run_id,
+                    details=f"Changed {d.get('what') or 'the ticket'} while the lead was working",
+                    via=via,
+                )
+            )
+        elif e.action == SIGNIN_ACTION:
+            out.append(
+                _touch(
+                    f"audit:{e.id}",
+                    "signin",
+                    e.created_at,
+                    e.on_behalf_of or "",
+                    team_ids=list(d.get("team_ids") or []),
+                    details=f"Signed in the account “{d.get('account', '')}”",
+                    via=via,
+                )
+            )
+        else:
+            whole = e.action.startswith("project_")
+            verb = "Paused" if e.action.endswith("paused") else "Resumed"
+            out.append(
+                _touch(
+                    f"audit:{e.id}",
+                    "pause",
+                    e.created_at,
+                    e.on_behalf_of or "",
+                    team_ids=[e.member_id] if e.member_id else [],
+                    details=f"{verb} "
+                    + ("all the project's AI" if whole else e.member_name or "a team"),
+                    via=via,
                 )
             )
 
-    # --- changed an AI's settings
-    for row in (
-        await session.exec(
-            select(AiAudit).where(
-                AiAudit.project_id == project_id, AiAudit.action == "member_updated"
+    out.sort(key=lambda t: t["at"] or "", reverse=True)
+    mark_where = [AiTouchMark.project_id == project_id]
+    if key:
+        mark_where.append(AiTouchMark.key == key)
+    marks = {
+        m.key: m
+        for m in (await session.exec(select(AiTouchMark).where(*mark_where))).all()
+    }
+    for t in out:
+        m = marks.get(t["id"])
+        if m:
+            t.update(
+                mark=m.mark,
+                marked_by=m.marked_by,
+                marked_at=m.marked_at,
+                lesson_id=m.lesson_id,
             )
-        )
-    ).all():
-        if not _in(row.created_at, since) or not _person(row.on_behalf_of, ai_names):
-            continue
-        detail = loads(row.detail, {})
-        changes = detail.get("changes") or {}
-        raised = [k for k in changes if k in LIMIT_KEYS or k.startswith("config.")]
-        shown = ", ".join(
-            f"{k.replace('_', ' ')} {v[0]} → {v[1]}"
-            for k, v in list(changes.items())[:3]
-            if isinstance(v, (list, tuple)) and len(v) == 2
-        )
-        limits = [k for k in raised if k.replace("config.", "") in LIMIT_KEYS]
-        touches.append(
-            _touch(
-                at=row.created_at,
-                kind="settings",
-                who=row.on_behalf_of,
-                via=detail.get("via"),
-                what="Changed settings",
-                mark="avoidable" if limits else "needed",
-                why="A limit was raised after runs hit it."
-                if limits
-                else "A person chose the setting.",
-                details=shown or "Member settings",
-                member_id=row.member_id,
-                ref={"type": "audit", "id": row.id},
-            )
-        )
-
-    touches.sort(key=lambda t: t["at"] or "", reverse=True)
-    return touches
-
-
-def _per_ai(
-    touches: list[dict], runs: list[AiRun], ais: dict[str, Member]
-) -> list[dict]:
-    out = []
-    for mid, m in ais.items():
-        n_runs = len([r for r in runs if r.member_id == mid])
-        n_touch = len([t for t in touches if t["member_id"] == mid])
-        out.append(
-            {
-                "id": mid,
-                "name": m.name,
-                "color": m.color,
-                "runs": n_runs,
-                "touches": n_touch,
-                "per_10_runs": round(n_touch * 10 / n_runs, 1) if n_runs else None,
-            }
-        )
-    out.sort(key=lambda r: -(r["per_10_runs"] or 0))
     return out
 
 
 async def stepped_in(
     session: AsyncSession,
     project_id: str,
-    range_key: str = "7d",
     *,
+    range_key: str = DEFAULT_RANGE,
+    team_id: str | None = None,
+    kind: str | None = None,
     mark: str | None = None,
-    member_id: str | None = None,
-    person: str | None = None,
-    via: str | None = None,
 ) -> dict:
-    """The You stepped in tab: totals, a bar per kind, touches per 10 runs by AI and the touch list (filtered)."""
-    if range_key not in RANGES:
-        range_key = "7d"
-    now = datetime.now(UTC)
-    since = window_start(range_key, now)
+    """The tab: totals of the range, a row per kind and per team, and the touches (filtered by team, kind and mark)."""
+    since = since_of(range_key)
     touches = await collect(session, project_id, since)
-    ais = {
-        m.id: m
-        for m in (
-            await session.exec(
-                select(Member).where(
-                    Member.project_id == project_id, Member.kind == "ai"
-                )
+    teams = (
+        await session.exec(
+            select(Member).where(
+                Member.project_id == project_id,
+                col(Member.kind).in_(["ai", "ai_removed"]),
             )
-        ).all()
-    }
-    runs = [
-        r
-        for r in (
-            await session.exec(select(AiRun).where(AiRun.project_id == project_id))
-        ).all()
-        if _in(r.queued_at, since)
-    ]
-    tickets_touched = len({t["ticket_id"] for t in touches if t["ticket_id"]})
-    tickets_with_ai = len({r.ticket_id for r in runs})
-    totals = {
-        "touches": len(touches),
-        "tickets": tickets_with_ai,
-        "per_ticket": round(len(touches) / tickets_with_ai, 1)
-        if tickets_with_ai
-        else None,
-        "by_rule": len([t for t in touches if t["mark"] == "by_rule"]),
-        "needed": len([t for t in touches if t["mark"] == "needed"]),
-        "avoidable": len([t for t in touches if t["mark"] == "avoidable"]),
-        "via_mcp": len([t for t in touches if t["via"] == "mcp"]),
-        "tickets_touched": tickets_touched,
-    }
-    kinds = []
-    for key, label in KINDS.items():
-        rows = [t for t in touches if t["kind"] == key]
-        if not rows:
-            continue
-        kinds.append(
-            {
-                "key": key,
-                "label": label,
-                **{m: len([t for t in rows if t["mark"] == m]) for m in MARKS},
-                "total": len(rows),
-            }
         )
-    people = sorted({t["who"] for t in touches})
+    ).all()
+    names = {m.id: m.name for m in teams}
+    iso = since.isoformat()
+    runs = (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.project_id == project_id,
+                AiRun.kind == "team",
+                AiRun.queued_at >= iso,
+            )
+        )
+    ).all()
+    runs_by_team = Counter(r.member_id for r in runs)
+    tickets = {r.ticket_id for r in runs if r.ticket_id}
+    for t in touches:
+        t["team_names"] = [names.get(i, "") for i in t["team_ids"] if names.get(i)]
+        t["team_id"] = t["team_ids"][0] if t["team_ids"] else None
+        t["team_name"] = ", ".join(t["team_names"]) or "All teams"
+    kinds = Counter(t["kind"] for t in touches)
+    per_team: Counter = Counter()
+    for t in touches:
+        for i in t["team_ids"]:
+            per_team[i] += 1
+    total = len(touches)
+    on_tickets = sum(1 for t in touches if t["ticket_id"] in tickets)
+    marked = Counter(t["mark"] for t in touches)
     items = [
         t
         for t in touches
-        if (not mark or t["mark"] == mark)
-        and (not member_id or t["member_id"] == member_id)
-        and (not person or t["who"] == person)
-        and (not via or t["via"] == via)
+        if (not team_id or team_id in t["team_ids"])
+        and (not kind or t["kind"] == kind)
+        and (not mark or (mark == "unmarked" and not t["mark"]) or t["mark"] == mark)
     ]
-    for t in items:
-        t["member_name"] = ais[t["member_id"]].name if t["member_id"] in ais else None
-    titles = {
-        t.id: t.title
-        for t in (
-            await session.exec(
-                select(Ticket).where(
-                    col(Ticket.id).in_(
-                        [i["ticket_id"] for i in items if i["ticket_id"]] or [""]
-                    )
-                )
-            )
-        ).all()
-    }
-    for t in items:
-        t["ticket_title"] = titles.get(t["ticket_id"])
     return {
-        "range": range_key,
-        "since": since.isoformat(),
-        "totals": totals,
-        "kinds": kinds,
-        "per_ai": _per_ai(touches, runs, ais),
-        "people": people,
-        "items": items,
-        "docs_proposals_held": await proposals.holds_ai_edits(session, project_id),
+        "range": range_key if range_key in RANGES else DEFAULT_RANGE,
+        "since": iso,
+        "totals": {
+            "touches": total,
+            "needed": marked["needed"],
+            "avoidable": marked["avoidable"],
+            "unmarked": marked[None],
+            "tickets": len(tickets),
+            "runs": len(runs),
+            "per_ticket": round(on_tickets / len(tickets), 1) if tickets else None,
+        },
+        "kinds": [
+            {"key": k, "label": KINDS[k], "total": kinds.get(k, 0)}
+            for k in KINDS
+            if kinds.get(k)
+        ],
+        "all_kinds": [{"key": k, "label": v} for k, v in KINDS.items()],
+        "teams": [
+            {
+                "id": m.id,
+                "name": m.name,
+                "removed": m.kind == "ai_removed",
+                "touches": per_team.get(m.id, 0),
+                "runs": runs_by_team.get(m.id, 0),
+                "per_10_runs": round(per_team.get(m.id, 0) * 10 / runs_by_team[m.id], 1)
+                if runs_by_team.get(m.id)
+                else None,
+            }
+            for m in teams
+            if m.kind == "ai" or per_team.get(m.id) or runs_by_team.get(m.id)
+        ],
+        "items": items[:LIMIT],
+        "truncated": len(items) > LIMIT,
     }
+
+
+# --------------------------------------------------------------------------- marks and lessons
+
+
+class TouchError(ValueError):
+    """The mark or lesson could not be set."""
+
+
+async def _find(session: AsyncSession, project_id: str, key: str) -> dict:
+    """The touch with this key, read from the rows it comes from (any age)."""
+    for t in await collect(session, project_id, since_of("90d"), key=key):
+        if t["id"] == key:
+            return t
+    raise TouchError("This touch is no longer in the list.")
+
+
+async def set_mark(
+    session: AsyncSession, project_id: str, key: str, mark: str | None, *, by: str
+) -> dict:
+    """Give a touch the mark needed or avoidable, or take it away (mark None). The mark stays."""
+    if mark is not None and mark not in MARKS:
+        raise TouchError("A mark is “needed” or “avoidable”.")
+    row = await session.get(AiTouchMark, key)
+    if row is not None and row.project_id != project_id:
+        raise TouchError("This touch belongs to another project.")
+    if mark is None:
+        if row is not None and row.lesson_id:
+            raise TouchError("A lesson was made from this touch: its mark stays.")
+        if row is not None:
+            await session.delete(row)
+            await session.commit()
+        return {
+            "id": key,
+            "mark": None,
+            "marked_by": None,
+            "marked_at": None,
+            "lesson_id": None,
+        }
+    if row is None:
+        await _find(session, project_id, key)  # only a touch of the list can be marked
+        row = AiTouchMark(key=key, project_id=project_id, mark=mark, marked_by=by)
+    else:
+        row.mark, row.marked_by, row.marked_at = mark, by, now_iso()
+    session.add(row)
+    try:
+        await session.commit()
+    except (
+        IntegrityError
+    ):  # two first marks of the same touch at once: the later one updates the earlier
+        await session.rollback()
+        row = await session.get(AiTouchMark, key)
+        if row is None:
+            raise TouchError("Could not save the mark. Try again.") from None
+        row.mark, row.marked_by, row.marked_at = mark, by, now_iso()
+        session.add(row)
+        await session.commit()
+    await session.refresh(row)
+    return {
+        "id": key,
+        "mark": row.mark,
+        "marked_by": row.marked_by,
+        "marked_at": row.marked_at,
+        "lesson_id": row.lesson_id,
+    }
+
+
+def draft_lesson(touch: dict) -> str:
+    """A starting sentence for the lesson a person writes from an avoidable touch.
+
+    It always ends with "Next time, do this without a person."; when the whole is too long the details are shortened."""
+    ticket = f" on {touch['ticket_id']}" if touch.get("ticket_id") else ""
+    head = f"{touch['label']}{ticket}: "
+    tail = " Next time, do this without a person."
+    details = " ".join((touch["details"] or "").split())
+    room = LESSON_MAX - len(head) - len(tail) - 1  # one for the full stop
+    if len(details) > room:
+        details = details[: max(room - 1, 0)].rstrip() + "…"
+    if details and details[-1] not in ".!?…":
+        details += "."
+    return f"{head}{details}{tail}"
+
+
+async def make_lesson(
+    session: AsyncSession, project_id: str, key: str, text: str | None, *, by: str
+) -> dict:
+    """“Make a lesson” on an avoidable touch: a proposed lesson in Memory, linked to the touch."""
+    touch = await _find(session, project_id, key)
+    if touch["mark"] != "avoidable":
+        raise TouchError("Mark the touch Avoidable first.")
+    if touch["lesson_id"]:
+        raise TouchError("A lesson was already made from this touch.")
+    body = (text or "").strip() or draft_lesson(touch)
+    # Memory keeps 600 characters of a lesson: say so instead of dropping the end without a word
+    if len(" ".join(body.split())) > LESSON_MAX:
+        raise TouchError(f"The lesson is limited to {LESSON_MAX} characters.")
+    # claim the touch first, in one statement: a second request at the same time finds it taken
+    claimed = await session.execute(
+        update(AiTouchMark)
+        .where(col(AiTouchMark.key) == key, col(AiTouchMark.lesson_id).is_(None))
+        .values(lesson_id=CLAIMED)
+    )
+    await session.commit()
+    if not claimed.rowcount:
+        raise TouchError("A lesson was already made from this touch.")
+    lesson = None
+    try:
+        lesson = await knowledge.add_lesson(
+            session,
+            project_id,
+            body,
+            by=by,
+            state="proposed",
+            source_ticket_id=touch["ticket_id"],
+            source_run_id=touch["run_id"],
+            proposed_by=by,
+        )
+    finally:
+        await session.execute(
+            update(AiTouchMark)
+            .where(col(AiTouchMark.key) == key)
+            .values(lesson_id=lesson.id if lesson is not None else None)
+        )
+        await session.commit()
+    if lesson is None:
+        raise TouchError("Memory already has a lesson with this text.")
+    return {"id": key, "lesson": knowledge.lesson_dict(lesson), "lesson_id": lesson.id}
+
+
+__all__ = [
+    "KINDS",
+    "RANGES",
+    "TouchError",
+    "collect",
+    "draft_lesson",
+    "is_person",
+    "make_lesson",
+    "answers_of",
+    "carry_answer",
+    "record_edit",
+    "record_pause",
+    "record_signin",
+    "set_mark",
+    "stepped_in",
+]

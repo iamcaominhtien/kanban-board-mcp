@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { roleCode } from '../ai/workflow/wfFormat';
+import { roleCode } from '../ai/roleLook';
 import { Badge } from './teamUi';
 
 describe('Badge role code (AT-4)', () => {

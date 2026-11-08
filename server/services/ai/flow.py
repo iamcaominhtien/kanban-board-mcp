@@ -1,220 +1,566 @@
-"""AI Team, Flow: how work passes between the AIs (design/screens/ai-team.md, C to F). The same hand-off events feed
-Health's Quality measure, so the two tabs agree on what "sent back" means.
+"""AI Team, Flow, the Map view and the scope picker (AI v2).
 
-A hand-off is a run that came from someone else: the sender is the last member of its chain, or the person who started
-it. Its kind is the trigger the app recorded (assigned, mention, hand-off, report back). A *return* is work going back
-to an AI that already held the ticket when the sender is a Reviewer (by template) or a person asked for changes; the
-first return of a ticket is round 1 and normal, a later one is *sent back*.
+The Map answers "how does work pass between the teams and you": nodes are the person, the teams (each with the roles
+it called) and the tickets being worked; edges are the team that took a ticket, notes between teams (`ai_run message`),
+questions to the person and their answers, parent and child tickets, and blocked-by. Like the Timeline it is built from
+rows that already exist (`ai_run`, `ai_run_agent`, `ai_run_message`, the tickets) and nothing is tracked for it.
 """
 
+import json
 from collections import defaultdict
-from datetime import datetime
+from datetime import UTC, datetime
+from typing import Any
 
-from models import AiRun, AiTicketStep, Member
+from sqlmodel import col, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from .store import loads, parse_iso
+from models import AiRun, AiRunAgent, AiRunMessage, AiTeam, Member, Ticket
 
-KIND_OF = {
-    "assign": "assigned",
-    "run_button": "assigned",
-    "retry": "assigned",
-    "schedule": "assigned",
-    "mention": "mention",
-    "reply": "mention",
-    "ask": "mention",
-    "handoff": "hand-off",
-    "report_back": "report back",
-    "request_changes": "assigned",
-    "answer": "answered",
-}
-PING_PONG_AT = 3
-# runs the board starts as a workflow moves on (the next step, the PM, the coordinator's ruling, an odd job's review):
-# their sender is the AI that held the ticket before, not the person who attached the workflow
-WORKFLOW_TRIGGERS = ("workflow", "manager", "arbitration", "review")
-# the coordinator's runs: the step after one takes the ticket from the PM, not from the step before
-_COORDINATOR = ("manager", "arbitration")
-CHECKS = "checks"
-_SENT_BACK = "Sent back by "
+from .store import get_settings, loads, parse_iso
+from .timeline import (
+    ACTIVE,
+    MAX_RUNS,
+    NOTE_TRIGGERS,
+    _role_color,
+    name_map,
+    role_label,
+    window,
+)
+
+# The tickets the scope picker lists, and the tickets a map draws before it says "narrow the range"
+MAX_PICKER_TICKETS = 200
+MAX_MAP_TICKETS = 60
 
 
-def is_board(who: str | None) -> bool:
-    """The board itself started it ("the board (intake)", "the board (red CI)"): no person handed it on."""
-    return bool(who) and str(who).startswith("the board")
+def _ids(raw: str | None) -> list[str]:
+    try:
+        v = json.loads(raw or "[]")
+    except ValueError:
+        return []
+    return [str(x) for x in v] if isinstance(v, list) else []
 
 
-def _sent_back_by(row) -> str | None:
-    """Who sent this step back, from the note the send-back left on it (workflow.send_back), or None."""
-    note = (row.note_in or "") if row is not None else ""
-    if not note.startswith(_SENT_BACK):
-        return None
-    return note[len(_SENT_BACK) :].split(":", 1)[0].strip()
+async def _teams(
+    session: AsyncSession, project_id: str
+) -> dict[str, tuple[Member, AiTeam]]:
+    rows = (
+        await session.exec(
+            select(Member, AiTeam)
+            .join(AiTeam, col(AiTeam.id) == col(Member.id))
+            .where(AiTeam.project_id == project_id)
+        )
+    ).all()
+    return {m.id: (m, t) for m, t in rows}
 
 
-def _handed_by(row, rows: list) -> tuple[object | None, list[str]]:
-    """The last AI step done before `row` (the one that handed the ticket on) and the steps skipped since."""
-    skipped: list[str] = []
-    for x in reversed([x for x in rows if x.seq < row.seq and x.state != "superseded"]):
-        if x.state == "skipped":
-            skipped.append(x.label)
-        elif x.state == "done" and x.kind == "ai":
-            return x, list(reversed(skipped))
-    return None, list(reversed(skipped))
+def _team_state(team: AiTeam, mine: list[AiRun], held: bool) -> str:
+    if team.health in ("runner_missing", "not_logged_in"):
+        return "offline"
+    if any(r.state == "needs_input" for r in mine):
+        return "waiting"
+    if held or team.paused:
+        return "paused"
+    if any(r.state in ("starting", "running") for r in mine):
+        return "working"
+    return "queued" if any(r.state in ACTIVE for r in mine) else "idle"
 
 
-def _secs(a: str | None, b: str | None) -> int | None:
-    x, y = parse_iso(a), parse_iso(b)
-    return int((y - x).total_seconds()) if x and y else None
-
-
-def events(
-    runs: list[AiRun],
-    ais: dict[str, Member],
-    templates: dict[str, str],
+async def flow_map(
+    session: AsyncSession,
+    project_id: str,
     *,
+    range_key: str = "today",
     since: datetime | None = None,
-    steps: list[AiTicketStep] | None = None,
-) -> list[dict]:
-    """Every hand-off between AIs and from people, oldest first, each marked returned / sent back where it is one.
+    until: datetime | None = None,
+    ticket_id: str | None = None,
+    team_id: str | None = None,
+) -> dict[str, Any]:
+    """The nodes and edges of the Map for a range and a scope (the whole project, one team, or one ticket with its
+    sub-tickets). `range_key` `all` is the whole life of the scope."""
+    now = datetime.now(UTC)
+    settings = await get_settings(session, project_id)
+    held = bool(settings.paused_all)
+    teams = await _teams(session, project_id)
 
-    `runs` must hold the ticket's earlier runs too (the rounds are counted from the first), `since` only limits which
-    events are returned. `steps` are the workflow step rows of those tickets (every state), so a workflow's hand-offs
-    come from the step before, not from whoever attached the workflow.
-    """
-    by_ticket: dict[str, list[AiRun]] = defaultdict(list)
-    for r in sorted(runs, key=lambda r: r.queued_at or ""):
-        by_ticket[r.ticket_id].append(r)
-    step_of: dict[str, AiTicketStep] = {}
-    steps_by_ticket: dict[str, list[AiTicketStep]] = defaultdict(list)
-    for s in sorted(steps or [], key=lambda s: s.seq):
-        steps_by_ticket[s.ticket_id].append(s)
-        if s.run_id:
-            step_of[s.run_id] = s
-    out: list[dict] = []
-    for ticket_id, rows in by_ticket.items():
-        held: set[str] = set()
-        returns = 0
-        checks_back = 0
-        pairs: dict[tuple[str, str], int] = defaultdict(int)
-        last_ai: str | None = None  # who held the ticket before this run
-        prev_run: AiRun | None = None
-        for r in rows:
-            if r.trigger == "autopilot":
-                continue  # the delegate answering for the owner is not work passed between AIs
-            chain = loads(r.chain, [])
-            sender: str | None = chain[-1] if chain else r.started_by
-            via: str | None = None
-            back = False  # a workflow step sent back
-            skipped: list[str] | None = (
-                None  # the steps a workflow hand-off skipped (None: not a workflow step)
+    scope_ids: set[str] | None = None
+    if ticket_id:
+        kids = (
+            await session.exec(select(Ticket.id).where(Ticket.parent_id == ticket_id))
+        ).all()
+        scope_ids = {ticket_id, *kids}
+
+    stmt = select(AiRun).where(AiRun.project_id == project_id, AiRun.kind == "team")
+    if range_key != "all":
+        a, b = window(range_key, now, since, until)
+        stmt = stmt.where(col(AiRun.queued_at) <= b.isoformat())
+    else:
+        a = b = None
+    if scope_ids is not None:
+        stmt = stmt.where(col(AiRun.ticket_id).in_(scope_ids))
+    if team_id:
+        stmt = stmt.where(AiRun.member_id == team_id)
+    candidates = (
+        await session.exec(stmt.order_by(col(AiRun.queued_at).desc()).limit(MAX_RUNS))
+    ).all()
+    runs = [
+        r
+        for r in candidates
+        if r.member_id in teams and (a is None or (parse_iso(r.ended_at) or now) >= a)
+    ]
+    run_ids = [r.id for r in runs]
+    runs_by_id = {r.id: r for r in runs}
+
+    # notes: the receiver's run is what records one, so a view of one team (or of one ticket) also reads the runs other
+    # teams started on a note from a team in view; they feed the note edges only, never the takes or the tickets
+    note_runs = list(runs)
+    # runs of other teams read only for the notes the team in view sent them
+    extra_ids: set[str] = set()
+    if team_id and team_id in teams:
+        mine_name = teams[team_id][0].name.strip().lower()
+        extra = (
+            await session.exec(
+                select(AiRun)
+                .where(
+                    AiRun.project_id == project_id,
+                    AiRun.kind == "team",
+                    col(AiRun.trigger).in_(NOTE_TRIGGERS),
+                    AiRun.member_id != team_id,
+                )
+                .order_by(col(AiRun.queued_at).desc())
+                .limit(MAX_RUNS)
             )
-            board_run = r.trigger in WORKFLOW_TRIGGERS
-            row = step_of.get(r.id) if board_run else None
-            if board_run:
-                by = _sent_back_by(row) if r.trigger == "workflow" else None
-                prev_row = step_of.get(prev_run.id) if prev_run is not None else None
-                if (
-                    by is not None
-                    and last_ai
-                    and (
-                        (prev_row is not None and prev_row.outcome == "changes")
-                        or by == "Reviewer"
-                    )
-                ):
-                    sender, back = last_ai, True  # the Reviewer asked for changes
-                elif by is not None and (by == "Checks" or is_board(by)):
-                    # the Checks (or the test-first gate) failed the work: it comes back to the AI that did it
-                    sender, via, back = r.member_id, CHECKS, True
-                elif by is not None:
-                    sender, back = by, True  # a person sent it back
-                elif last_ai == r.member_id:
-                    sender = (
-                        r.member_id
-                    )  # the same AI again (the board's retry): no hand-off
-                elif prev_run is not None and prev_run.trigger in _COORDINATOR:
-                    sender = last_ai  # the PM looked at it and passed it on
-                else:
-                    hand, gone = (
-                        _handed_by(row, steps_by_ticket[ticket_id])
-                        if row is not None
-                        else (None, [])
-                    )
-                    if row is not None:
-                        skipped = gone
-                    if hand is not None and hand.member_id:
-                        sender = hand.member_id
-                    elif last_ai:
-                        sender = last_ai
-                    elif is_board(sender):
-                        sender = None  # the board started it with nobody before: not a hand-off from a person
-            elif not chain and is_board(sender):
-                sender = None
-            last_ai = r.member_id
-            prev_run = r
-            came_from_other = sender is not None and (
-                sender != r.member_id or via == CHECKS
+        ).all()
+        have = set(run_ids)
+        added = [
+            r
+            for r in extra
+            if r.id not in have
+            and r.member_id in teams
+            and (r.started_by or "").strip().lower() == mine_name
+            and (a is None or (parse_iso(r.ended_at) or now) >= a)
+            and (b is None or (parse_iso(r.queued_at) or now) <= b)
+        ]
+        note_runs += added
+        extra_ids = {r.id for r in added}
+    note_run_ids = [r.id for r in note_runs]
+    note_runs_by_id = {r.id: r for r in note_runs}
+
+    # roles each team called in these runs (a call is one stretch of work; the count is what the lead used them for)
+    roles: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    if run_ids:
+        for ag in (
+            await session.exec(
+                select(AiRunAgent).where(col(AiRunAgent.run_id).in_(run_ids))
             )
-            kind = KIND_OF.get(r.trigger, r.trigger)
-            if board_run:
-                kind = "hand-off" if sender in ais else "assigned"
-            ev = None
-            if came_from_other and r.trigger != "answer":
-                if back:
-                    returned = via != CHECKS
-                else:
-                    # a workflow step with its row is a send-back only when its row says so; without a row (an odd
-                    # job's review, older runs) the review-round rule decides, as for any other run
-                    returned = row is None and (
-                        r.member_id in held
-                        and kind != "report back"
-                        and (
-                            r.trigger == "request_changes"
-                            or templates.get(sender) == "reviewer"
-                        )
-                    )
-                round_ = 0
-                if via == CHECKS:
-                    # a failed check is a fact, not a review round: always sent back, counted on its own
-                    checks_back += 1
-                    round_ = checks_back
-                    pairs[(CHECKS, r.member_id)] += 1
-                elif returned:
-                    returns += 1
-                    round_ = returns
-                    pairs[(sender, r.member_id)] += 1
-                ev = {
-                    "run_id": r.id,
-                    "at": r.queued_at,
-                    "ticket_id": ticket_id,
-                    "from": sender,
-                    "from_ai": sender in ais,
-                    "to": r.member_id,
-                    "kind": kind,
-                    "trigger": r.trigger,
-                    "round": round_,
-                    "returned": returned and round_ == 1,
-                    "sent_back": via == CHECKS or (returned and round_ >= 2),
-                    "wait_s": _secs(r.queued_at, r.started_at),
-                    "pair_count": pairs[(CHECKS, r.member_id)]
-                    if via == CHECKS
-                    else pairs[(sender, r.member_id)]
-                    if returned
-                    else 0,
-                    "via": via,
-                    "skipped": skipped,
-                    "workflow": board_run,
+        ).all():
+            r = runs_by_id.get(ag.run_id)
+            if r is not None:
+                roles[r.member_id][ag.agent_type or "agent"] += 1
+
+    # takes: the team that worked a ticket
+    takes: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in runs:
+        if not r.ticket_id:
+            continue
+        e = takes.setdefault(
+            (r.member_id, r.ticket_id),
+            {
+                "count": 0,
+                "live": False,
+                "waiting": False,
+                "last_state": r.state,
+                "at": r.queued_at,
+            },
+        )
+        e["count"] += 1
+        if r.state in ACTIVE:
+            e["live"] = True
+        if r.state == "needs_input":
+            e["waiting"] = True
+
+    # questions to the person and their answers, by team
+    asks: dict[str, dict[str, Any]] = defaultdict(
+        lambda: {"asked": 0, "answered": 0, "open": 0, "tickets": [], "text": ""}
+    )
+    for r in runs:
+        q = loads(r.question, None) or {}
+        asked = parse_iso(q.get("asked_at"))
+        if (
+            asked is None
+            or (b is not None and asked > b)
+            or (a is not None and asked < a)
+        ):
+            continue
+        e = asks[r.member_id]
+        e["asked"] += 1
+        if q.get("answered_at"):
+            e["answered"] += 1
+        elif r.state == "needs_input":
+            e["open"] += 1  # a question of a run that ended unanswered waits for nobody
+        if r.ticket_id and r.ticket_id not in e["tickets"]:
+            e["tickets"].append(r.ticket_id)
+        e["text"] = (q.get("text") or "")[:160]
+
+    # notes between teams: a team's note to a ticket's team arrives as a message from the sender's name
+    by_name = await name_map(session, project_id, teams)
+    notes: dict[tuple[str, str], dict[str, Any]] = {}
+
+    def add_note(
+        frm: str, to: str, ticket: str | None, text: str, at: str | None
+    ) -> None:
+        e = notes.setdefault(
+            (frm, to), {"count": 0, "tickets": [], "text": "", "at": at}
+        )
+        e["count"] += 1
+        if ticket and ticket not in e["tickets"]:
+            e["tickets"].append(ticket)
+        e["text"] = text[:160]
+        e["at"] = at
+
+    for r in note_runs:
+        sender = by_name.get((r.started_by or "").strip().lower())
+        queued = parse_iso(r.queued_at)
+        in_window = queued is not None and (
+            (a is None or queued >= a) and (b is None or queued <= b)
+        )
+        if (
+            r.trigger in NOTE_TRIGGERS
+            and sender
+            and sender != r.member_id
+            and in_window
+        ):
+            add_note(sender, r.member_id, r.ticket_id, "", r.queued_at)
+    if note_run_ids:
+        for m in (
+            await session.exec(
+                select(AiRunMessage).where(
+                    col(AiRunMessage.run_id).in_(note_run_ids),
+                    AiRunMessage.direction == "in",
+                )
+            )
+        ).all():
+            r = note_runs_by_id[m.run_id]
+            sender = by_name.get((m.peer or "").strip().lower())
+            at = parse_iso(m.at)
+            if not sender or sender == r.member_id or at is None:
+                continue
+            if r.id in extra_ids and sender != team_id:
+                continue  # another team's run, read for this team's notes only: a third team's note is not this view's
+            if (a is not None and at < a) or (b is not None and at > b):
+                continue
+            started = parse_iso(r.queued_at)
+            if (
+                r.trigger in NOTE_TRIGGERS
+                and started is not None
+                and abs((started - at).total_seconds()) < 2
+                and (r.started_by or "").strip().lower()
+                == (m.peer or "").strip().lower()
+            ):
+                continue  # the message that started a run is counted from the run itself
+            add_note(sender, r.member_id, r.ticket_id, m.text or "", m.at)
+
+    # tickets: the ones worked, plus the parents and blockers they point at (drawn dim, for the edges)
+    worked = list(dict.fromkeys(r.ticket_id for r in runs if r.ticket_id))
+    truncated = len(worked) > MAX_MAP_TICKETS
+    worked = worked[:MAX_MAP_TICKETS]
+    rows: dict[str, Ticket] = {}
+    if worked:
+        for t in (
+            await session.exec(select(Ticket).where(col(Ticket.id).in_(worked)))
+        ).all():
+            rows[t.id] = t
+    context_ids: list[str] = []
+    for t in list(rows.values()):
+        for other in [t.parent_id, *_ids(t.blocked_by)]:
+            if other and other not in rows and other not in context_ids:
+                context_ids.append(other)
+    for t in (
+        await session.exec(select(Ticket).where(col(Ticket.id).in_(context_ids)))
+        if context_ids
+        else []
+    ):
+        if t.project_id == project_id:
+            rows[t.id] = t
+    edge_ids = set(rows)
+
+    live_by_ticket: dict[str, str] = {}
+    for r in runs:
+        if r.ticket_id and r.state in ACTIVE:
+            if live_by_ticket.get(r.ticket_id) != "waiting":
+                live_by_ticket[r.ticket_id] = (
+                    "waiting" if r.state == "needs_input" else "working"
+                )
+    teams_of: dict[str, list[str]] = defaultdict(list)
+    for tid, ticket in takes:
+        teams_of[ticket].append(tid)
+
+    tickets = [
+        {
+            "id": t.id,
+            "title": t.title,
+            "status": t.status,
+            "type": t.type,
+            "parent_id": t.parent_id if t.parent_id in edge_ids else None,
+            "blocked_by": list(
+                dict.fromkeys(
+                    x for x in _ids(t.blocked_by) if x in edge_ids and x != t.id
+                )
+            ),
+            "context": t.id not in worked,
+            "live": live_by_ticket.get(t.id),
+            "teams": teams_of.get(t.id, []),
+        }
+        for t in rows.values()
+    ]
+
+    # a team's state is about everything it does now, not only the runs of the scope
+    live_now: dict[str, list[AiRun]] = defaultdict(list)
+    for r in (
+        await session.exec(
+            select(AiRun).where(
+                AiRun.project_id == project_id,
+                AiRun.kind == "team",
+                col(AiRun.state).in_(ACTIVE),
+            )
+        )
+    ).all():
+        live_now[r.member_id].append(r)
+    team_nodes = []
+    for tid, (m, tm) in teams.items():
+        if (
+            team_id
+            and tid != team_id
+            and tid not in {x for pair in notes for x in pair}
+        ):
+            continue
+        mine = [r for r in runs if r.member_id == tid]
+        team_nodes.append(
+            {
+                "id": tid,
+                "name": m.name,
+                "color": m.color,
+                "state": _team_state(tm, live_now.get(tid, []), held),
+                "runs": len(mine),
+                "tickets": len({r.ticket_id for r in mine if r.ticket_id}),
+                "roles": [
+                    {
+                        "id": f"{tid}:{role}",
+                        "name": role_label(role),
+                        "color": _role_color(role),
+                        "calls": n,
+                    }
+                    for role, n in sorted(roles[tid].items(), key=lambda kv: -kv[1])
+                ],
+            }
+        )
+
+    edges: list[dict[str, Any]] = []
+    for (tid, ticket), e in takes.items():
+        if ticket in edge_ids:
+            edges.append(
+                {
+                    "id": f"take:{tid}:{ticket}",
+                    "kind": "take",
+                    "from": tid,
+                    "to": ticket,
+                    "count": e["count"],
+                    "live": e["live"],
+                    "waiting": e["waiting"],
+                    "tickets": [ticket],
                 }
-                out.append(ev)
-            held.add(r.member_id)
-    out.sort(key=lambda e: e["at"] or "")
-    if since is not None:
-        out = [e for e in out if (parse_iso(e["at"]) or since) >= since]
-    return out
+            )
+    for (frm, to), e in notes.items():
+        edges.append(
+            {
+                "id": f"note:{frm}:{to}",
+                "kind": "note",
+                "from": frm,
+                "to": to,
+                "count": e["count"],
+                "tickets": e["tickets"],
+                "label": e["text"],
+                "live": False,
+            }
+        )
+    for tid, e in asks.items():
+        edges.append(
+            {
+                "id": f"ask:{tid}",
+                "kind": "ask",
+                "from": tid,
+                "to": "you",
+                "count": e["asked"],
+                "tickets": e["tickets"],
+                "label": e["text"],
+                "live": e["open"] > 0,
+            }
+        )
+        if e["answered"]:
+            edges.append(
+                {
+                    "id": f"answer:{tid}",
+                    "kind": "answer",
+                    "from": "you",
+                    "to": tid,
+                    "count": e["answered"],
+                    "tickets": e["tickets"],
+                    "live": False,
+                }
+            )
+    for t in tickets:
+        if t["parent_id"]:
+            edges.append(
+                {
+                    "id": f"child:{t['parent_id']}:{t['id']}",
+                    "kind": "child",
+                    "from": t["parent_id"],
+                    "to": t["id"],
+                    "count": 1,
+                    "tickets": [t["id"]],
+                    "live": False,
+                }
+            )
+        for blocker in t["blocked_by"]:
+            edges.append(
+                {
+                    "id": f"blocked:{blocker}:{t['id']}",
+                    "kind": "blocked",
+                    "from": blocker,
+                    "to": t["id"],
+                    "count": 1,
+                    "tickets": [t["id"]],
+                    "live": False,
+                }
+            )
+
+    open_questions = sum(e["open"] for e in asks.values())
+    return {
+        "range": range_key,
+        "since": a.isoformat() if a else None,
+        "until": b.isoformat() if b else None,
+        "now": now.isoformat(),
+        "scope": {"ticket_id": ticket_id, "team_id": team_id},
+        "paused_all": held,
+        "you": {
+            "asked": sum(e["asked"] for e in asks.values()),
+            "waiting": open_questions,
+        },
+        "teams": team_nodes,
+        "tickets": tickets,
+        "edges": edges,
+        "runs": len(runs),
+        "truncated": truncated,
+        # the newest runs only were read: an old range or "all time" may be missing the oldest ones
+        "runs_truncated": len(candidates) >= MAX_RUNS,
+        "all_teams": len(teams),
+    }
 
 
-def ping_pong(evs: list[dict]) -> dict[str, int]:
-    """Tickets where the same two AIs sent work back and forth PING_PONG_AT or more times after the first round."""
-    count: dict[str, int] = defaultdict(int)
-    for e in evs:
-        if e["sent_back"] and e.get("via") != CHECKS:
-            count[e["ticket_id"]] += 1
-    return {t: n for t, n in count.items() if n >= PING_PONG_AT}
+async def flow_scopes(session: AsyncSession, project_id: str) -> dict[str, Any]:
+    """What the scope picker offers: the teams, the Stories with AI work and the tickets the teams worked (newest
+    first), each with whether a run is live now."""
+    teams = await _teams(session, project_id)
+    recent = (
+        await session.exec(
+            select(AiRun)
+            .where(AiRun.project_id == project_id, AiRun.kind == "team")
+            .order_by(col(AiRun.queued_at).desc())
+            .limit(MAX_RUNS)
+        )
+    ).all()
+    per_team: dict[str, dict[str, Any]] = {
+        tid: {"runs": 0, "live": False} for tid in teams
+    }
+    per_ticket: dict[str, dict[str, Any]] = {}
+    for r in recent:
+        if r.member_id in per_team:
+            per_team[r.member_id]["runs"] += 1
+            per_team[r.member_id]["live"] = (
+                per_team[r.member_id]["live"] or r.state in ACTIVE
+            )
+        if r.ticket_id:
+            e = per_ticket.setdefault(
+                r.ticket_id,
+                {"at": r.queued_at, "live": False, "waiting": False, "teams": []},
+            )
+            e["live"] = e["live"] or r.state in ACTIVE
+            e["waiting"] = e["waiting"] or r.state == "needs_input"
+            if r.member_id not in e["teams"]:
+                e["teams"].append(r.member_id)
+    ids = list(per_ticket)[:MAX_PICKER_TICKETS]
+    tickets = (
+        {
+            t.id: t
+            for t in (
+                await session.exec(select(Ticket).where(col(Ticket.id).in_(ids)))
+            ).all()
+        }
+        if ids
+        else {}
+    )
+    # a Story is listed when it is a Story with a worked child, or was worked itself
+    parents = {t.parent_id for t in tickets.values() if t.parent_id}
+    stories = (
+        {
+            t.id: t
+            for t in (
+                await session.exec(
+                    select(Ticket).where(
+                        col(Ticket.id).in_(parents), Ticket.type == "story"
+                    )
+                )
+            ).all()
+        }
+        if parents
+        else {}
+    )
+    stories.update({i: t for i, t in tickets.items() if t.type == "story"})
+    children: dict[str, list[str]] = defaultdict(list)
+    for t in tickets.values():
+        if t.parent_id in stories and t.id != t.parent_id:
+            children[t.parent_id].append(t.id)
+
+    def story_row(s: Ticket) -> dict[str, Any]:
+        kids = children.get(s.id, [])
+        mine = [s.id, *kids]
+        return {
+            "id": s.id,
+            "title": s.title,
+            "status": s.status,
+            "tickets": len(kids),
+            "done": sum(1 for k in kids if tickets[k].status == "done"),
+            "live": any(per_ticket.get(i, {}).get("live") for i in mine),
+            "waiting": any(per_ticket.get(i, {}).get("waiting") for i in mine),
+        }
+
+    return {
+        "teams": [
+            {
+                "id": tid,
+                "name": m.name,
+                "color": m.color,
+                "runs": per_team[tid]["runs"],
+                "live": per_team[tid]["live"],
+            }
+            for tid, (m, _t) in teams.items()
+        ],
+        "stories": sorted(
+            (story_row(s) for s in stories.values()),
+            key=lambda x: (not x["live"], x["id"]),
+        ),
+        "tickets": [
+            {
+                "id": t.id,
+                "title": t.title,
+                "status": t.status,
+                "type": t.type,
+                "story_id": t.parent_id if t.parent_id in stories else None,
+                "live": per_ticket[t.id]["live"],
+                "waiting": per_ticket[t.id]["waiting"],
+                "at": per_ticket[t.id]["at"],
+                "teams": per_ticket[t.id]["teams"],
+            }
+            for t in (tickets[i] for i in ids if i in tickets)
+            if t.type != "story"
+        ],
+    }

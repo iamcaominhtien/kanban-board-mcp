@@ -10,9 +10,9 @@ Rules the design (design/screens/canvas.md) asks for, and where they live:
 * Layout changes (move, resize, notes, arrows, labels) need no lock and merge **per item**: every item carries the
   canvas revision it was last changed in, a save names the revision of each item it changes, and only an item changed
   twice conflicts (``save``).
-* A board's content changes under a **lock** (``canvas_locks``); an AI member only ever *proposes* (``canvas_proposals``).
+* A board's content changes under a **lock** (``canvas_locks``); an AI team saves a board's new files straight into it (``put_board_content``), and is refused while a person holds the lock.
 * Boards are open web pages: their files are kept exactly as given and run like a file opened in a browser.
-* Versions are made on Done, on accepting a proposal, and every 10 minutes for a canvas that is a Docs page.
+* Versions are made on Done, on restore, and every 10 minutes for a canvas that is a Docs page.
 """
 
 import asyncio
@@ -137,7 +137,6 @@ def embed_line(canvas_id: str, title: str, board_id: str | None = None) -> str:
 _ID_FORMS = {
     "canvas": re.compile(r"cv_[0-9a-f]{8}"),
     "board": re.compile(r"b_[0-9a-f]{8}"),
-    "proposal": re.compile(r"cp_[0-9a-f]{10}"),
 }
 
 
@@ -188,11 +187,6 @@ def board_dir(canvas_id: str, board_id: str, rev: int) -> Any:
     return _join(
         canvas_dir(canvas_id), "boards", _id_part("board", board_id), f"r{int(rev)}"
     )
-
-
-def proposal_dir(canvas_id: str, proposal_id: str) -> Any:
-    """Folder of the files an AI member proposed."""
-    return _join(canvas_dir(canvas_id), "proposals", _id_part("proposal", proposal_id))
 
 
 def safe_path(raw: str) -> str:
@@ -570,7 +564,7 @@ async def create_canvas(
 
 async def get_canvas(session: AsyncSession, canvas_id: str) -> dict[str, Any]:
     """The canvas with its file, the live locks and the number of open comments."""
-    from services import canvas_comments, canvas_proposals
+    from services import canvas_comments
 
     c = await _canvas(session, canvas_id)
     role = await role_for(session, c)
@@ -578,7 +572,6 @@ async def get_canvas(session: AsyncSession, canvas_id: str) -> dict[str, Any]:
     out["doc"] = read_doc(c.id)
     out["locks"] = canvas_locks.locks_of(c.id)
     out["open_comments"] = await canvas_comments.open_count(session, c.id)
-    out["proposals_open"] = await canvas_proposals.open_count(session, c.id)
     return out
 
 
@@ -1598,6 +1591,7 @@ async def put_board_content(
     release: bool = True,
     author: str | None = None,
     reason: str = "board",
+    ai_team: str | None = None,
 ) -> dict[str, Any]:
     """Save a frame's new content (the person editing it holds the lock).
 
@@ -1608,8 +1602,10 @@ async def put_board_content(
         entry: The page to show.
         base_content_rev: The content revision the editor started from; a different one means somebody saved meanwhile.
         release: Let go of the lock after saving (Save to canvas).
-        author: Who is credited (an accepted AI proposal credits the person who accepted it).
+        author: Not used (the actor of the request is credited).
         reason: Internal tag for the audit trail.
+        ai_team: The AI team that saves this change. The frame keeps its name (``ai_saved_by``) so the plane can show
+            who changed it; a save by a person clears it.
 
     Raises:
         DocsError: 423 ``board_locked`` if somebody else holds the frame; 409 ``board_conflict``; 413/422.
@@ -1625,35 +1621,52 @@ async def put_board_content(
             "Images, Sketches and Diagrams are changed in their own editors.",
         )
     actor = activity.current_actor()
+    held_before = any(
+        lk["board_id"] == board_id and lk["holder"] == actor
+        for lk in canvas_locks.locks_of(c.id)
+    )
     taken, lock = canvas_locks.acquire(c.id, board_id, actor)
     if not taken:
         raise _locked(board, lock)
-    cur_rev = (board.get("content") or {}).get("rev")
-    if (
-        base_content_rev is not None
-        and cur_rev is not None
-        and base_content_rev != cur_rev
-    ):
-        raise DocsError(
-            409,
-            "board_conflict",
-            f"{c.updated_by} saved a newer version of {board['name']} while you were editing it.",
-            latest_content_rev=cur_rev,
-            latest_author=c.updated_by,
-        )
-    written, content = prepare_files(files, entry)
-    _check_canvas_bytes(doc, board_id, content["bytes"])
-    new_rev = c.rev + 1
-    content["rev"] = new_rev
-    write_revision(c.id, board_id, new_rev, written)
-    board["kind"] = "html"
-    board["content"] = content
-    board["rev"] = new_rev
-    c.rev = new_rev - 1
-    _touch(c, doc)
-    write_doc(c.id, doc)
-    session.add(c)
-    await session.commit()
+    try:
+        cur_rev = (board.get("content") or {}).get("rev")
+        if (
+            base_content_rev is not None
+            and cur_rev is not None
+            and base_content_rev != cur_rev
+        ):
+            # the team that saved the board's content, else whoever touched the canvas last
+            saver = board.get("ai_saved_by") or c.updated_by
+            raise DocsError(
+                409,
+                "board_conflict",
+                f"{saver} saved a newer version of {board['name']} while you were editing it.",
+                latest_content_rev=cur_rev,
+                latest_author=saver,
+            )
+        written, content = prepare_files(files, entry)
+        _check_canvas_bytes(doc, board_id, content["bytes"])
+        new_rev = c.rev + 1
+        content["rev"] = new_rev
+        write_revision(c.id, board_id, new_rev, written)
+        board["kind"] = "html"
+        board["content"] = content
+        board["rev"] = new_rev
+        if ai_team:
+            board["ai_saved_by"] = ai_team[:80]
+        else:
+            board.pop("ai_saved_by", None)
+        c.rev = new_rev - 1
+        _touch(c, doc)
+        write_doc(c.id, doc)
+        session.add(c)
+        await session.commit()
+    except BaseException:
+        # a refused save must not leave the board locked for ten minutes when this call took the lock itself (an
+        # editor that held it before stays open to fix the problem)
+        if release and not held_before:
+            canvas_locks.release(c.id, board_id, actor)
+        raise
     if release:
         canvas_locks.release(c.id, board_id, actor)
     return {"board": board, "rev": c.rev}
@@ -1736,6 +1749,7 @@ async def duplicate_board(
     copy["order"] = len([b for b in doc["boards"] if b.get("page") == src["page"]])
     copy["rev"] = new_rev
     copy["created_by"] = activity.current_actor()
+    copy.pop("ai_saved_by", None)  # a person's copy is not the team's change
     if src.get("content"):
         _check_canvas_bytes(doc, None, src["content"]["bytes"])
         old = board_dir(c.id, src["id"], src["content"]["rev"])
@@ -1795,6 +1809,9 @@ async def copy_canvas(
         for item in doc[k]:
             item["rev"] = 1
     for b in doc["boards"]:
+        b.pop(
+            "ai_saved_by", None
+        )  # the copy is a person's, the team's mark stays on the original
         if b.get("content"):
             b["content"]["rev"] = 1
     # copy each frame's current files as revision 1

@@ -4,9 +4,9 @@ import type { DocsCommentsResult } from '../../../types/docs';
 import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
 import { personOf } from './people';
+import { SendToAiBox } from './SendToAi';
 import { ThreadCard } from './ThreadCard';
 import { useCommentSuggest } from './commentAi';
-import { SendToAiBox } from './SendToAi';
 import { useResizablePanel } from '../../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../../PanelResizer';
 
@@ -73,15 +73,11 @@ export function CommentsPanel({
   onClose,
 }: Props) {
   const [showActivity, setShowActivity] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState<string | null>(null);
   const panel = useResizablePanel('doc-comments', 392, { min: 280 });
   const sizing = panelSizing(panel);
   const events = useDocsCommentEvents(projectId);
   const inline = useMemo(() => (data?.threads ?? []).filter((t) => t.kind === 'inline'), [data]);
   const shown = inline.filter((t) => tab === 'all' || t.status === tab);
-  const open = (data?.threads ?? []).filter((t) => t.status === 'open');
-  const canSend = !!data?.docsAi && open.some((t) => t.canReply);
   const suggest = useCommentSuggest(data);
   const c = data?.counts;
   const pageEvents = (events.data ?? []).filter((e) => e.pageId === pageId).slice(0, 8);
@@ -97,21 +93,6 @@ export function CommentsPanel({
       <header className="dc-panel-head">
         <h2>Inline comments</h2>
         <div style={{ display: 'flex', gap: 2 }}>
-          {canSend && (
-            <button
-              type="button"
-              className="dc-plain dc-bordered dc-sendai-open"
-              onClick={() => {
-                setSent(null);
-                setSending((v) => !v);
-              }}
-              aria-expanded={sending}
-              title="Send the open comments to the AI of a ticket this page names"
-              data-testid="send-to-ai-open"
-            >
-              <Icon name="send" size={13} strokeWidth={1.9} /> Send to AI
-            </button>
-          )}
           <PanelMaxButton panel={panel} className="dc-icon" />
           <button
             type="button"
@@ -145,22 +126,6 @@ export function CommentsPanel({
           </button>
         ))}
       </div>
-      {sending && data && (
-        <SendToAiBox
-          pageId={pageId}
-          threads={open}
-          onClose={() => setSending(false)}
-          onSent={(m) => {
-            setSending(false);
-            setSent(m);
-          }}
-        />
-      )}
-      {sent && (
-        <div className="dc-sendai-done" role="status" data-testid="send-to-ai-done">
-          <Icon name="check" size={13} strokeWidth={2} /> {sent}
-        </div>
-      )}
       <div className="dc-list" data-testid="comments-list">
         {loading && (
           <div className="dc-state" data-testid="comments-loading">
@@ -195,6 +160,7 @@ export function CommentsPanel({
             </button>
           </div>
         )}
+        {data && <SendToAiBox pageId={pageId} data={data} />}
         {data &&
           shown.map((t) => (
             <ThreadCard

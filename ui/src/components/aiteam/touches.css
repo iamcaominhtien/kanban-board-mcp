@@ -1,0 +1,324 @@
+/* AI Team › You stepped in and Health (v2). Builds on the .at-* look of aiTeam.css. */
+.st-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.st-grid {
+  display: grid;
+  grid-template-columns: 100px 140px 190px 262px minmax(200px, 1fr) 240px;
+  gap: 12px;
+  align-items: start;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.st-grid.head {
+  background: #fbfcfb;
+  padding: 9px 16px;
+  border-bottom: 1px solid #eef3ef;
+  align-items: center;
+}
+.st-grid.head .at-label {
+  letter-spacing: 0.08em;
+}
+.st-row {
+  padding: 10px 16px;
+  border-bottom: 1px solid #eef3ef;
+}
+.st-row:last-child {
+  border-bottom: none;
+}
+.st-table {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #fff;
+}
+.st-table > .st-grid,
+.st-table > .st-row {
+  min-width: 1180px;
+}
+.st-details {
+  color: #3a4a3e;
+  word-break: break-word;
+}
+.st-mark {
+  display: inline-flex;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.st-mark button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  border: 0;
+  background: #fff;
+  color: #5b6b60;
+  padding: 4px 11px;
+  cursor: pointer;
+}
+.st-mark button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.st-mark button + button {
+  border-left: 1px solid #e3e8e5;
+}
+.st-mark button:hover:not(:disabled) {
+  background: #f6faf7;
+}
+.st-mark button.needed[aria-pressed='true'] {
+  background: #fef3d9;
+  color: #7a5a06;
+}
+.st-mark button.avoidable[aria-pressed='true'] {
+  background: #fdece8;
+  color: #a5321e;
+}
+.st-lesson {
+  margin: 8px 0 2px 254px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px solid #dcebe0;
+  border-radius: 10px;
+  background: #f6faf7;
+}
+.st-lesson textarea {
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #1e2a22;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  resize: vertical;
+  min-height: 40px;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+}
+.st-lesson textarea:focus {
+  outline: none;
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.14);
+}
+.st-lesson .st-btn-primary:disabled {
+  opacity: 0.5;
+}
+.st-error {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #a5321e;
+}
+.st-count {
+  align-self: flex-end;
+  font-size: 11px;
+  color: #5b6b60;
+  margin-top: -3px;
+}
+.st-made:focus {
+  outline: none;
+}
+.st-lesson .st-error {
+  margin-top: 0;
+}
+.st-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.st-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.st-where {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.st-team {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #244e78;
+}
+.st-open {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2e6f40;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.st-open:hover {
+  text-decoration: underline;
+}
+.st-lesson-link {
+  display: block;
+  margin-top: 4px;
+}
+.st-err .ai-notice {
+  display: block;
+  padding: 9px 13px;
+  font-size: 12.5px;
+}
+.st-err .ai-link {
+  text-decoration: none;
+  font-weight: 600;
+}
+.st-center {
+  display: flex;
+  justify-content: center;
+  padding: 36px 0;
+}
+.st-center .ai-spin {
+  width: 18px;
+  height: 18px;
+}
+/* The tab's numbers, as AiTeamReview A3 draws them */
+.st-root .at-tile {
+  min-width: 0;
+}
+.st-root .at-tile .at-label {
+  font-size: 11px;
+}
+.st-root .at-total-n {
+  font-size: 30px;
+  line-height: 1.15;
+}
+.st-root .at-hint-sm {
+  line-height: 1.45;
+}
+.st-root .at-two {
+  align-items: flex-start;
+}
+.st-root .at-bar {
+  background: #eef3ef;
+}
+.st-root .at-opt {
+  height: 30px;
+  padding: 0 12px;
+  gap: 5px;
+}
+.st-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: #efe8fb;
+  color: #5b3aa6;
+  margin-left: 4px;
+}
+.st-kind {
+  font-weight: 600;
+}
+.st-root .st-kindrow {
+  width: calc(100% + 12px);
+  margin: 0 -6px;
+  border-radius: 6px;
+  background: none;
+  border: 0;
+  padding: 5px 6px;
+  font: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.st-root .st-kindrow:hover {
+  background: #f6faf7;
+}
+.st-root .st-kindrow.on,
+.st-root .st-kindrow.on:hover {
+  background: #f1f8f3;
+}
+
+/* Health */
+.hl-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.3fr) 60px 100px 120px 130px 130px 170px minmax(130px, 1fr);
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #eef3ef;
+  align-items: center;
+  font-size: 12.5px;
+}
+.hl-grid.head {
+  background: #fbfcfb;
+  padding: 9px 16px;
+}
+.hl-grid:last-child {
+  border-bottom: none;
+}
+.hl-table {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #fff;
+}
+.hl-table > .hl-grid {
+  min-width: 1100px;
+}
+.hl-grid.head .at-label {
+  color: #9aa8a0;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+.hl-tile-label {
+  flex: 1;
+  font-size: 11px;
+  color: #9aa8a0;
+}
+.hl-team {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2e6f40;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: left;
+}
+.hl-team:hover {
+  text-decoration: underline;
+}
+/* What to fix: three columns, the button row at the bottom of each card (AiTeamReview B2) */
+.at-fixgrid.hl-fixgrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 1000px) {
+  .at-fixgrid.hl-fixgrid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+.hl-actions {
+  margin-top: auto;
+  padding-top: 4px;
+}
+.hl-sub {
+  display: block;
+  font-size: 11px;
+  color: #5b6b60;
+}

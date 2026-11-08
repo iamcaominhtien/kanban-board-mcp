@@ -2,8 +2,7 @@
 
 A feature module registers a handler for its job kind (`HANDLERS["check"] = handler`). `start()` creates the row and
 runs the handler in the background; the handler returns a result dict and calls `engine.call(job_id=...)`, which adds
-tokens, cost, the session and the pages read to the row. Jobs are what the Activity view, the "Read" chips and the
-MCP `ai_team` tool report.
+tokens, cost, the session and the pages read to the row. Jobs are what the Activity view and the "Read" chips report.
 """
 
 import asyncio
@@ -224,7 +223,13 @@ async def set_reads(job_id: str, reads: list[dict[str, Any]]) -> None:
 
 
 async def account(job_id: str, out: Any, *, member_id: str | None = None) -> None:
-    """Add a completion's tokens and cost to the job."""
+    """Copy a turn's tokens and cost onto the job, for the job list and the page's "AI · $0.004" label.
+
+    One Docs AI call leaves three rows, each with one job: this `docs_ai_job` (the Docs UI's queue, state and result),
+    the `ai_run` of kind `assistant` (steps, session and the cost the budget and the AI Team page count) and an
+    `ai_usage` line (Settings › AI: this month's spend per feature, unmetered here). `ai_run` is the source of the
+    cost; the job's figure is a copy that nothing sums, and `ai_usage` is not metered, so a call is counted once.
+    """
     async with database.async_session() as session:
         job = await session.get(DocsAiJob, job_id)
         if job is None:

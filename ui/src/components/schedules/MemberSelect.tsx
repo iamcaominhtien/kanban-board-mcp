@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { AiAvatar } from '../ai/aiUi';
 import { CheckCircleIcon, ChevronIcon, LockIcon } from './schedulesUi';
@@ -19,7 +19,7 @@ function useOutside(open: boolean, onClose: () => void) {
   return ref;
 }
 
-/** Select of AI members that shows each one's avatar (a native select cannot). */
+/** Select of AI teams that shows each one's avatar (a native select cannot). */
 export function MemberSelect({
   members,
   value,
@@ -29,7 +29,7 @@ export function MemberSelect({
   testId,
   disabled,
 }: {
-  members: AiMember[];
+  members: AiTeam[];
   value: string;
   onChange: (id: string) => void;
   /** Label of the empty choice ("None. Skip when unavailable."); without it a member must be picked. */
@@ -58,7 +58,7 @@ export function MemberSelect({
             <span className="sc-select-text">{current.name}</span>
           </>
         ) : (
-          <span className="sc-select-text sc-placeholder">{none ?? 'Pick an AI member'}</span>
+          <span className="sc-select-text sc-placeholder">{none ?? 'Pick a team'}</span>
         )}
         <ChevronIcon size={14} />
       </button>
@@ -102,7 +102,7 @@ export function MemberSelect({
           ))}
           {!members.length && (
             <div className="ai-muted" style={{ padding: 10 }}>
-              No AI members yet.
+              No AI teams yet.
             </div>
           )}
         </div>

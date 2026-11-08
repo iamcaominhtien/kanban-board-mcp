@@ -1,140 +1,12 @@
 import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import type { AiMember, AiProvider, AiRun, AiSettings, AiStatus, RunState } from '../../types/ai';
+import type { AiProvider, AiStatus, AiRun, AiSettings, AiTeam, BoardRun, RunState, TestCounts } from '../../types/ai';
 import './ai.css';
 import { extractError } from '../../api/extractError';
-
-/** Adapters an AI member can use (mirrors server/services/ai/providers.py). */
-export const PROVIDERS: Record<
-  AiProvider,
-  {
-    label: string;
-    connection: 'local' | 'api_key' | 'inbox';
-    sub: string;
-    models: string[];
-    defaultModel: string | null;
-    baseUrl?: string;
-    install?: string;
-    binary?: string;
-  }
-> = {
-  'claude-code': {
-    label: 'Claude Code',
-    connection: 'local',
-    sub: 'Uses an AI account · subscription',
-    models: ['sonnet', 'haiku'],
-    defaultModel: 'sonnet',
-    install: 'npm install -g @anthropic-ai/claude-code',
-    binary: 'claude',
-  },
-  codex: {
-    label: 'Codex',
-    connection: 'local',
-    sub: 'Uses an AI account',
-    models: [],
-    defaultModel: null,
-    install: 'npm install -g @openai/codex',
-    binary: 'codex',
-  },
-  opencode: {
-    label: 'opencode',
-    connection: 'local',
-    sub: 'Free models need no account; paid ones use an account',
-    models: [],
-    defaultModel: null,
-    install: 'npm install -g opencode-ai',
-    binary: 'opencode',
-  },
-  antigravity: {
-    label: 'Antigravity',
-    connection: 'local',
-    sub: 'Uses your signed-in CLI, or an AI account',
-    models: [],
-    defaultModel: null,
-    binary: 'agy',
-  },
-  anthropic: {
-    label: 'Anthropic',
-    connection: 'api_key',
-    sub: 'Claude models',
-    models: ['claude-sonnet-5-5', 'claude-haiku-5-5'],
-    defaultModel: 'claude-sonnet-5-5',
-    baseUrl: 'https://api.anthropic.com',
-  },
-  openai: {
-    label: 'OpenAI',
-    connection: 'api_key',
-    sub: 'GPT models',
-    models: ['gpt-4.1-mini', 'gpt-4.1'],
-    defaultModel: 'gpt-4.1-mini',
-    baseUrl: 'https://api.openai.com/v1',
-  },
-  gemini: {
-    label: 'Gemini',
-    connection: 'api_key',
-    sub: 'Gemini models',
-    models: ['gemini-2.5-flash', 'gemini-2.5-pro'],
-    defaultModel: 'gemini-2.5-flash',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-  },
-  custom: {
-    label: 'Custom endpoint',
-    connection: 'api_key',
-    sub: 'Any OpenAI-compatible URL',
-    models: [],
-    defaultModel: null,
-  },
-  'mcp-client': {
-    label: 'Other MCP client',
-    connection: 'inbox',
-    sub: 'Cursor, Cline… connect through MCP like today',
-    models: [],
-    defaultModel: null,
-  },
-};
-
-const GLYPHS: Record<AiProvider, { path: string; bg: string; color: string; fill?: boolean }> = {
-  'claude-code': { path: 'M12 3V21M3 12H21M5.6 5.6L18.4 18.4M18.4 5.6L5.6 18.4', bg: '#DCEEE1', color: '#2E6F40' },
-  anthropic: { path: 'M12 3V21M3 12H21M5.6 5.6L18.4 18.4M18.4 5.6L5.6 18.4', bg: '#F3E7DC', color: '#B4571F' },
-  antigravity: { path: 'M5 18.5L12 5.5L19 18.5M8.8 14.5H15.2', bg: '#DDEBF7', color: '#2F6FB0' },
-  codex: { path: 'M12 3L20 7.5V16.5L12 21L4 16.5V7.5Z', bg: '#E8F1FA', color: '#244E78' },
-  opencode: {
-    path: 'M9 4C7 4 7 6 7 8S7 11 5 12C7 13 7 14 7 16S7 20 9 20M15 4C17 4 17 6 17 8S17 11 19 12C17 13 17 14 17 16S17 20 15 20',
-    bg: '#EFE8FB',
-    color: '#5B3AA6',
-  },
-  openai: { path: 'M12 3L20 7.5V16.5L12 21L4 16.5V7.5Z', bg: '#E6E9F5', color: '#5B5FA8' },
-  gemini: {
-    path: 'M12 2.5C12 8 16 12 21.5 12C16 12 12 16 12 21.5C12 16 8 12 2.5 12C8 12 12 8 12 2.5Z',
-    bg: '#FBE4E9',
-    color: '#B0446E',
-    fill: true,
-  },
-  custom: {
-    path: 'M9 4C7 4 7 6 7 8S7 11 5 12C7 13 7 14 7 16S7 20 9 20M15 4C17 4 17 6 17 8S17 11 19 12C17 13 17 14 17 16S17 20 15 20',
-    bg: '#E8EFEA',
-    color: '#5B6B60',
-  },
-  'mcp-client': { path: 'M9 3V8M15 3V8M6 8H18V12A6 6 0 0 1 6 12ZM12 18V21', bg: '#EEF1EE', color: '#5B6B60' },
-};
+import type { Ticket } from '../../types';
+import { LineIcon } from '../ui/LineIcon';
+import { longAgo } from '../../utils/accountList';
 
 const SPARKLE = 'M12 3C12 8 14 10 19 12C14 14 12 16 12 21C12 16 10 14 5 12C10 10 12 8 12 3Z';
-
-/** Glyph of a provider (vendor-neutral drawings, never logos). */
-export function ProviderGlyph({ provider, size = 12 }: { provider: AiProvider; size?: number }) {
-  const g = GLYPHS[provider] ?? GLYPHS.custom;
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" style={{ flexShrink: 0 }} aria-hidden="true">
-      <path
-        d={g.path}
-        fill={g.fill ? 'currentColor' : 'none'}
-        stroke={g.fill ? 'none' : 'currentColor'}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 /** Glyphs an AI member can pick for its avatar (neutral drawings, never vendor logos). */
 export const AI_GLYPHS: Record<string, { path: string; fill?: boolean }> = {
@@ -160,18 +32,8 @@ export const AI_GLYPHS: Record<string, { path: string; fill?: boolean }> = {
 /** Avatar colours of an AI member (the same palette the people use). */
 export const AI_COLORS = ['#2E6F40', '#2F6FB0', '#6D5DD3', '#B4791E', '#B0446E', '#C4432A', '#5B6B60'];
 
-/** What the avatar shows until someone picks: a glyph and a colour per provider (mirrors providers.py). */
-export const DEFAULT_LOOK: Record<AiProvider, { glyph: string; color: string }> = {
-  'claude-code': { glyph: 'asterisk', color: '#2E6F40' },
-  anthropic: { glyph: 'asterisk', color: '#B4791E' },
-  antigravity: { glyph: 'peak', color: '#2F6FB0' },
-  codex: { glyph: 'hex', color: '#244E78' },
-  opencode: { glyph: 'braces', color: '#5B3AA6' },
-  openai: { glyph: 'hex', color: '#6D5DD3' },
-  gemini: { glyph: 'spark', color: '#B0446E' },
-  custom: { glyph: 'braces', color: '#5B6B60' },
-  'mcp-client': { glyph: 'plug', color: '#5B6B60' },
-};
+/** What the avatar shows until a team picks its own. */
+export const DEFAULT_LOOK = { glyph: 'asterisk', color: '#2E6F40' };
 
 /** One avatar glyph, drawn in the current text colour. */
 export function GlyphIcon({ glyph, size = 12 }: { glyph: string; size?: number }) {
@@ -195,21 +57,21 @@ export function GlyphIcon({ glyph, size = 12 }: { glyph: string; size?: number }
  * picked; without them it falls back to its provider's look.
  */
 export function AiAvatar({
-  provider,
+  provider: _provider,
   color,
   glyph,
   size = 36,
   title,
   dim,
 }: {
-  provider: AiProvider;
+  provider?: AiProvider;
   color?: string | null;
   glyph?: string | null;
   size?: number;
   title?: string;
   dim?: boolean;
 }) {
-  const look = DEFAULT_LOOK[provider] ?? DEFAULT_LOOK.custom;
+  const look = DEFAULT_LOOK;
   const tint = color || look.color;
   const badge = Math.max(10, Math.round(size * 0.39));
   return (
@@ -255,131 +117,12 @@ export function AiAvatar({
   );
 }
 
-/** Colour and glyph pickers of the Add AI member stepper and Configuration, with a live avatar preview. */
-export function AvatarPicker({
-  provider,
-  color,
-  glyph,
-  onChange,
-  preview = true,
-}: {
-  provider: AiProvider;
-  color: string;
-  glyph: string;
-  onChange: (next: { color: string; glyph: string }) => void;
-  /** Draw the avatar next to the pickers (the stepper already shows it beside the name). */
-  preview?: boolean;
-}) {
-  return (
-    <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'flex-start' }} data-testid="avatar-picker">
-      <div className="ai-field">
-        <span className="ai-label ai-label-dark">Avatar color</span>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 34 }}>
-          {AI_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-label={`Color ${c}`}
-              aria-pressed={color.toUpperCase() === c}
-              data-testid={`avatar-color-${c.slice(1)}`}
-              onClick={() => onChange({ color: c, glyph })}
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                background: c,
-                cursor: 'pointer',
-                border: '2px solid #fff',
-                boxShadow: color.toUpperCase() === c ? `0 0 0 2px ${c}, 0 0 0 4px #1E2A22` : '0 0 0 1px #C7D2CB',
-                padding: 0,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-      <div className="ai-field">
-        <span className="ai-label ai-label-dark">Glyph</span>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 330 }}>
-          {Object.keys(AI_GLYPHS).map((g) => (
-            <button
-              key={g}
-              type="button"
-              aria-label={`Glyph ${g}`}
-              aria-pressed={glyph === g}
-              data-testid={`avatar-glyph-${g}`}
-              onClick={() => onChange({ color, glyph: g })}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 8,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: glyph === g ? color : '#5B6B60',
-                background: glyph === g ? `${color}1F` : '#fff',
-                border: `1.5px solid ${glyph === g ? color : '#E3E8E5'}`,
-              }}
-            >
-              <GlyphIcon glyph={g} size={17} />
-            </button>
-          ))}
-        </div>
-      </div>
-      {preview && (
-        <span aria-hidden="true" style={{ marginTop: 18 }}>
-          <AiAvatar provider={provider} color={color} glyph={glyph} size={40} />
-        </span>
-      )}
-    </div>
-  );
-}
-
 /** Sparkle icon (Run button, AI badges). */
 export function SparkleIcon({ size = 13, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" style={{ flexShrink: 0 }} aria-hidden="true">
       <path d={SPARKLE} fill={color} />
     </svg>
-  );
-}
-
-/** Chip naming the provider (glyph + label). */
-export function ProviderChip({ provider, label }: { provider: AiProvider; label?: string }) {
-  return (
-    <span className="ai-chip" style={{ background: '#F6FAF7', color: '#5B6B60', border: '1px solid #E3E8E5' }}>
-      <ProviderGlyph provider={provider} />
-      {label ?? PROVIDERS[provider]?.label.replace(' endpoint', '') ?? provider}
-    </span>
-  );
-}
-
-/** Local runner / API key / Inbox chip. */
-export function ConnectionChip({ connection }: { connection: 'local' | 'api_key' | 'inbox' }) {
-  if (connection === 'local')
-    return (
-      <span className="ai-chip" style={{ background: '#E8F1FA', color: '#2F6FB0' }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="4" width="18" height="12" rx="2" />
-          <path d="M8 20H16M12 16V20" />
-        </svg>
-        Local runner
-      </span>
-    );
-  if (connection === 'api_key')
-    return (
-      <span className="ai-chip" style={{ background: '#EFEAFB', color: '#6D5DD3' }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="8" cy="15" r="4" />
-          <path d="M11 12L20 3M17 6L20 9" />
-        </svg>
-        API key
-      </span>
-    );
-  return (
-    <span className="ai-chip" style={{ background: '#EEF1EE', color: '#5B6B60' }}>
-      Inbox only
-    </span>
   );
 }
 
@@ -394,39 +137,16 @@ export const STATUS_NAMES: Record<string, string> = {
   wont_do: "Won't Do",
 };
 
-/** “Up to Review” permission chip (orange below Review, red above). */
-export function CeilingChip({ ceiling }: { ceiling: string }) {
-  const rank = ['none', 'backlog', 'todo', 'in-progress', 'review', 'testing', 'done'].indexOf(ceiling);
-  const style =
-    rank === 4
-      ? { background: '#F1F8F3', color: '#2E6F40' }
-      : rank > 4
-        ? { background: '#FBEEEA', color: '#C4432A' }
-        : { background: '#FDF0E6', color: '#B4571F' };
-  return (
-    <span className="ai-chip" style={style}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 3L20 6V12C20 16.5 16.5 20 12 21C7.5 20 4 16.5 4 12V6Z" />
-      </svg>
-      {ceiling === 'none' ? 'No status moves' : `Up to ${STATUS_NAMES[ceiling] ?? ceiling}`}
-    </span>
-  );
-}
-
 const STATUS_STYLE: Record<string, { dot: string; text: string; hollow?: boolean; square?: boolean }> = {
   running: { dot: '#2E6F40', text: '#2E6F40' },
   online: { dot: '#2E6F40', text: '#2E6F40' },
-  idle: { dot: '#9AA8A0', text: '#1E2A22', hollow: true },
+  idle: { dot: '#9AA8A0', text: '#3A4A3E' },
   inbox: { dot: '#9AA8A0', text: '#5B6B60', hollow: true },
-  key_invalid: { dot: '#C4432A', text: '#C4432A' },
   not_logged_in: { dot: '#C4432A', text: '#C4432A' },
   runner_missing: { dot: '#B4791E', text: '#B4571F' },
-  model_retired: { dot: '#B4571F', text: '#B4571F' },
-  over_budget: { dot: '#B4571F', text: '#B4571F' },
   rate_limited: { dot: '#B4791E', text: '#B4571F' },
-  paused: { dot: '#9AA8A0', text: '#5B6B60', square: true },
-  paused_all: { dot: '#B4571F', text: '#B4571F', square: true },
-  not_ready: { dot: '#B4791E', text: '#7A5A06' },
+  paused: { dot: '#D9A21B', text: '#7A5A06' },
+  paused_all: { dot: '#D9A21B', text: '#7A5A06' },
   removing: { dot: '#9AA8A0', text: '#5B6B60' },
   removed: { dot: '#9AA8A0', text: '#9AA8A0' },
 };
@@ -606,28 +326,19 @@ export function inWords(iso: string | null | undefined): string {
   return `${Math.round(s / 3600)} hours`;
 }
 
-/**
- * The second line under a status: “Last call 2 min ago” for an online API member, “Paused Oct 20” for a paused
- * one, “401 from provider” for a rejected key, “3m 12s elapsed” while it runs, “Resets at 00:00” over budget.
- */
-export function statusSub(m: AiMember): string | undefined {
+/** The second line under a team's status: what it does or why it does not. */
+export function statusSub(m: AiTeam): string | undefined {
   switch (m.status.code) {
     case 'running': {
       const run = m.running.find((r) => r.state === 'running' || r.state === 'starting');
       return run?.startedAt ? `${fmtElapsed(secondsSince(run.startedAt))} elapsed` : undefined;
     }
-    case 'online':
-      return m.lastCallAt ? `Last call ${ago(m.lastCallAt)}` : 'No calls yet';
     case 'idle':
-      return m.lastRunAt ? `Last run ${ago(m.lastRunAt)}` : 'No runs yet';
+      return m.lastRun ? `Last run ${longAgo(m.lastRun.endedAt, Date.now())}` : 'No runs yet';
     case 'paused':
       return m.pausedAt ? `Paused ${shortDate(m.pausedAt)}` : (m.status.detail ?? undefined);
-    case 'over_budget':
-      return /1st/.test(m.status.detail ?? '') ? 'Resets on the 1st' : 'Resets at 00:00';
-    case 'rate_limited':
-      return `Retries in about ${inWords(m.retryAt)}`;
     case 'runner_missing':
-      return 'CLI not found on this computer';
+      return 'Claude Code not found on this computer';
     default:
       return m.status.detail ?? undefined;
   }
@@ -641,15 +352,17 @@ export const ACTIVE_RUN_STATES: RunState[] = ['queued', 'starting', 'running', '
 
 export interface AiBoardState {
   projectId: string;
-  members: Map<string, AiMember>;
-  runsByTicket: Map<string, AiRun>;
+  /** The project's AI teams by id (a team is a member of the project, so an assignee id finds it here). */
+  members: Map<string, AiTeam>;
+  /** The newest run of each ticket, from `GET /projects/{id}/ai/board`. */
+  runsByTicket: Map<string, BoardRun>;
   settings: AiSettings | null;
-  /** Open the AI members page (optionally a member's profile). */
+  /** Open the AI teams page (optionally a team's page). */
   openAiPage?: (memberId?: string) => void;
   /** Open a ticket. */
   openTicket?: (ticketId: string) => void;
-  /** Open the AI page on one of its tabs (Inbox, Audit log, Usage, Safety). */
-  openAiTab?: (tab: 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety', opts?: { memberId?: string }) => void;
+  /** Open the AI page on one of its tabs. */
+  openAiTab?: (tab: 'accounts' | 'usage' | 'approvals' | 'audit', opts?: { memberId?: string }) => void;
 }
 
 /** AI state of the open project, provided by App. */
@@ -666,17 +379,10 @@ export function useAiBoardState(): AiBoardState {
 }
 
 /** AI avatar for an AI member (dimmed while paused). */
-export function Avatar({ member, size = 20, style }: { member: AiMember; size?: number; style?: CSSProperties }) {
+export function Avatar({ member, size = 20, style }: { member: AiTeam; size?: number; style?: CSSProperties }) {
   return (
     <span style={style}>
-      <AiAvatar
-        provider={member.provider}
-        color={member.color}
-        glyph={member.glyph}
-        size={size}
-        title={member.name}
-        dim={member.paused}
-      />
+      <AiAvatar color={member.color} size={size} title={member.name} dim={member.paused} />
     </span>
   );
 }
@@ -714,9 +420,56 @@ export function LoadError({ what, error, onRetry }: { what: string; error: unkno
   return (
     <div className="ai-notice ai-notice-error" role="alert" data-testid="load-error">
       Couldn't load {what}: {extractError(error)}.{' '}
-      <button type="button" className="ai-link" onClick={onRetry}>
+      <button type="button" className="ai-link" style={{ textDecoration: 'none' }} onClick={onRetry}>
         Try again
       </button>
+    </div>
+  );
+}
+
+/** AI-completed: an AI member moved the ticket to Done, so it is never mistaken for a person's approval. */
+export function AiCompletedBadge({ ticket }: { ticket: Ticket }) {
+  const { members } = useAiBoardState();
+  if (ticket.status !== 'done' || !ticket.completedBy) return null;
+  const done = [...(ticket.activityLog ?? [])].reverse().find((e) => e.field === 'status' && e.to === 'done');
+  const byAi = done?.ai || [...members.values()].some((m) => m.name === ticket.completedBy);
+  if (!byAi) return null;
+  return (
+    <span
+      className="ai-chip"
+      style={{ background: '#E5F2E9', color: '#2E6F40' }}
+      data-testid="ai-completed-badge"
+      title={`Moved to Done by ${ticket.completedBy}`}
+    >
+      <LineIcon name="check" size={12} /> AI-completed
+    </span>
+  );
+}
+
+/** Test counts of a run: what the lead's report claims. */
+export function testsOf(run: Pick<AiRun, 'report'>): TestCounts | null {
+  return run.report?.tests ?? null;
+}
+
+/** Chips “14 passed · 1 failed · lint clean” of a test summary. */
+export function TestChips({ counts }: { counts: TestCounts }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} data-testid="test-chips">
+      {(counts.passed > 0 || counts.failed === 0) && (
+        <span className="tw-test tw-test-ok">
+          <LineIcon name="check" size={12} /> {counts.passed} passed
+        </span>
+      )}
+      {counts.failed > 0 && (
+        <span className="tw-test tw-test-bad">
+          <LineIcon name="warning" size={12} /> {counts.failed} failed
+        </span>
+      )}
+      {counts.lint && (
+        <span className="tw-test tw-test-ok">
+          <LineIcon name="check" size={12} /> lint {counts.lint}
+        </span>
+      )}
     </div>
   );
 }

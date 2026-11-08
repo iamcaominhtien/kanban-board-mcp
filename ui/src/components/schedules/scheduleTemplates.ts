@@ -6,7 +6,7 @@ export interface ScheduleTemplate {
   label: string;
   /** One line under the label: what it does. */
   hint: string;
-  /** What changes in the draft; the ticket, the AI and the time zone stay as chosen. */
+  /** What changes in the draft; the ticket, the team and the time zone stay as chosen. */
   patch: Partial<ScheduleDraft>;
 }
 
@@ -16,19 +16,12 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
   {
     id: 'nightly-tests',
     label: 'Nightly test run',
-    hint: 'Every night at 02:00 the AI runs your tests and reports what failed.',
+    hint: 'Every night at 02:00 the team runs your tests and reports what failed.',
     patch: {
       ...base,
       kind: 'repeat',
       days: [0, 1, 2, 3, 4, 5, 6],
       time: '02:00',
-      checks: {
-        criteria: false,
-        tests: { on: true, command: '', cwd: '' },
-        summary: true,
-        branch: false,
-        aiChecks: [],
-      },
       limits: { stopAfterMin: 30, retries: 1, maxCost: null },
       instruction:
         'Run the whole test suite. If something fails, find the cause and write it in the summary (the test, the file, the likely reason). Fix it only when the fix is small and clear.',
@@ -37,19 +30,12 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
   {
     id: 'weekly-dependencies',
     label: 'Weekly dependency check',
-    hint: 'Monday at 09:00 the AI lists outdated or vulnerable packages. It upgrades nothing.',
+    hint: 'Monday at 09:00 the team lists outdated or vulnerable packages. It upgrades nothing.',
     patch: {
       ...base,
       kind: 'repeat',
       days: [0],
       time: '09:00',
-      checks: {
-        criteria: false,
-        tests: { on: false, command: '', cwd: '' },
-        summary: true,
-        branch: false,
-        aiChecks: [],
-      },
       limits: { stopAfterMin: 30, retries: 1, maxCost: null },
       instruction:
         'Check the project for outdated and vulnerable dependencies (for example npm outdated and npm audit, or pip list --outdated and pip-audit). Do not upgrade anything: list what you found in the summary, most urgent first, each with the version to move to.',
@@ -58,19 +44,12 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
   {
     id: 'daily-summary',
     label: 'Daily summary',
-    hint: 'Weekdays at 18:00 the AI writes what moved on the board today and what waits for a person.',
+    hint: 'Weekdays at 18:00 the team writes what moved on the board today and what waits for a person.',
     patch: {
       ...base,
       kind: 'repeat',
       days: [0, 1, 2, 3, 4],
       time: '18:00',
-      checks: {
-        criteria: false,
-        tests: { on: false, command: '', cwd: '' },
-        summary: true,
-        branch: false,
-        aiChecks: [],
-      },
       limits: { stopAfterMin: 15, retries: 1, maxCost: null },
       instruction:
         'Write a short summary of today on this board: tickets that moved, runs that finished or failed, and what is waiting for a person. Read the board; change nothing.',

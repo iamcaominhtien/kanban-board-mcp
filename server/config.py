@@ -41,6 +41,14 @@ def get_data_folder() -> Path | None:
     return Path(value) if value else None
 
 
+def get_uploads_dir() -> Path | None:
+    """The uploads folder the desktop app recorded at its start (`uploads_dir`), or None when it never did.
+    A server that did not get `KANBAN_UPLOADS_DIR` (the stdio MCP of an outside session) serves and writes the same
+    folder as the app through this."""
+    value = _load().get("uploads_dir")
+    return Path(value) if isinstance(value, str) and value else None
+
+
 def set_data_folder(path: Path) -> None:
     """Persist the data folder path in the config file."""
     data = _load()

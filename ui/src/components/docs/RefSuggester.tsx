@@ -21,14 +21,14 @@ export interface SuggestMember {
   note?: string;
   bg?: string;
   color?: string;
-  /** An AI member: its avatar, and its status in words (greyed and not insertable when it cannot be used now). */
+  /** An AI team: its avatar, and its status in words (greyed and not insertable when it cannot be used now). */
   ai?: {
     avatar: ReactNode;
     status: string;
     note: string;
     tone: 'ok' | 'warn' | 'off';
     usable: boolean;
-    /** The whole sub line ("Local runner · online · can edit code"); replaces status + note. */
+    /** The whole sub line ("Backend team · idle"); replaces status + note. */
     sub?: string;
     /** A pill at the right ("Paused") for a member that cannot be used now. */
     chip?: string;
@@ -134,6 +134,10 @@ interface Props {
   members?: SuggestMember[];
   /** Called after the pick rewrote the field. */
   onChanged?: () => void;
+  /** Only `@` members: no `[[` pages and no ticket numbers (a text that has no place for them). */
+  membersOnly?: boolean;
+  /** Stacking of the menu when the field sits in a layer above the page (the canvas editor). */
+  zIndex?: number;
 }
 
 /**
@@ -144,8 +148,18 @@ interface Props {
  * @param props.keyPrefix - Ticket prefix (e.g. `KAN`): typing `KAN-` offers tickets.
  * @param props.members - Members offered after `@` (comment composer).
  * @param props.onChanged - Called after a pick rewrote the field.
+ * @param props.membersOnly - Offer only `@` members (no pages, sections or tickets).
+ * @param props.zIndex - Stacking of the menu (above the field's own layer).
  */
-export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChanged }: Props) {
+export function RefSuggester({
+  targetRef,
+  projectId,
+  keyPrefix,
+  members,
+  onChanged,
+  membersOnly,
+  zIndex = 2000,
+}: Props) {
   const [state, setState] = useState<Open | null>(null);
   const [active, setActive] = useState(0);
   const stateRef = useRef(state);
@@ -324,7 +338,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
         bottom: cr.bottom || box.top + 24,
       };
     }
-    let m = /\[\[([^[\]\n|]{0,60})$/.exec(before);
+    let m = membersOnly ? null : /\[\[([^[\]\n|]{0,60})$/.exec(before);
     if (m) {
       const hash = m[1].indexOf('#');
       if (hash >= 0)
@@ -489,7 +503,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
         top: flip ? undefined : state.y,
         bottom: flip ? window.innerHeight - state.top + 6 : undefined,
         width: 330,
-        zIndex: 2000,
+        zIndex,
         padding: 5,
       }}
       onMouseDown={(e) => e.preventDefault()}
@@ -533,7 +547,7 @@ export function RefSuggester({ targetRef, projectId, keyPrefix, members, onChang
                   }}
                 >
                   {it.group}
-                  {(it.group === 'People' || it.group === 'AI members') && (
+                  {it.group === 'People' && (
                     <span style={{ fontWeight: 600 }}> · {items.filter((x) => x.group === it.group).length}</span>
                   )}
                 </div>

@@ -2,27 +2,20 @@ import type { AccountCli, AccountMemberRef, AiAccount, RemoveMembersPolicy } fro
 
 /** Rules behind the AI accounts tab (design/screens/ai-accounts.md, B1, B2, F): what each row, banner and dialog says. */
 
-/** The two-letter badge of each CLI (design B1: CC, CX, OC, AG). */
+/** The two-letter badge of each CLI (design B1: CC). */
 export const CLI_BADGE: Record<AccountCli, { short: string; bg: string; color: string }> = {
   claude: { short: 'CC', bg: '#FBEFE6', color: '#B4571F' },
-  codex: { short: 'CX', bg: '#E8F1FA', color: '#244E78' },
-  opencode: { short: 'OC', bg: '#EFE8FB', color: '#5B3AA6' },
-  agy: { short: 'AG', bg: '#E6F2EA', color: '#1F5A31' },
 };
 
 /** Where each CLI is installed from (mirrors guide_url in server/services/ai/providers.py). */
 export const GUIDE_URL: Record<AccountCli, string> = {
   claude: 'https://docs.claude.com/en/docs/claude-code/setup',
-  codex: 'https://developers.openai.com/codex/cli',
-  opencode: 'https://opencode.ai/docs',
-  agy: 'https://antigravity.google',
 };
 
 /** Why Add account and Sign in are off in the web build (the sentence is the tooltip). */
 export const DESKTOP_ONLY = 'AI accounts need the desktop app. Signing in runs a terminal on your computer.';
 
-export type StatusKey =
-  'signed_in' | 'needs_sign_in' | 'signing_in' | 'checking' | 'cli_missing' | 'not_ready' | 'unavailable';
+export type StatusKey = 'signed_in' | 'needs_sign_in' | 'signing_in' | 'checking' | 'cli_missing' | 'unavailable';
 
 export interface StatusView {
   key: StatusKey;
@@ -41,13 +34,12 @@ const TONES: Record<StatusKey, Pick<StatusView, 'bg' | 'color' | 'dot'>> = {
   signing_in: { bg: '#E8F1FA', color: '#244E78', dot: '#2F6FB0' },
   checking: { bg: '#F1F3F1', color: '#5B6B60', dot: '#9AA8A0' },
   cli_missing: { bg: '#FEF3D9', color: '#7A5A06', dot: '#E8B93A' },
-  not_ready: { bg: '#FEF3D9', color: '#7A5A06', dot: '#E8B93A' },
   unavailable: { bg: '#F1F3F1', color: '#5B6B60', dot: '#9AA8A0' },
 };
 
-/** "1 member", "3 members", "No members". */
+/** "1 team", "3 teams", "No teams". */
 export function membersCount(n: number): string {
-  return n === 0 ? 'No members' : `${n} member${n === 1 ? '' : 's'}`;
+  return n === 0 ? 'No teams' : `${n} team${n === 1 ? '' : 's'}`;
 }
 
 /** Every AI member that runs as the account, in this project first. */
@@ -99,29 +91,24 @@ export function statusView(a: AiAccount, checking: boolean, nowMs: number): Stat
   const n = a.memberCount;
   if (a.unavailable) return view('unavailable', a.unavailable, null);
   if (a.status === 'cli_missing')
-    return view('cli_missing', 'CLI not installed', n ? 'Its members are paused.' : null, 'warn');
+    return view('cli_missing', 'CLI not installed', n ? 'Its teams are paused.' : null, 'warn');
   if (a.status === 'signing_in')
     return view('signing_in', 'Signing in', a.signingInBy ? `${a.signingInBy} is signing in` : null);
   if (checking) return view('checking', 'Checking', 'Checked now');
   if (a.status === 'needs_sign_in') {
     const why = a.signedOutAt ? 'Session expired.' : 'Not signed in yet.';
-    return view(
-      'needs_sign_in',
-      'Needs sign-in',
-      n ? `${why} ${n} member${n === 1 ? '' : 's'} can’t run.` : why,
-      'bad',
-    );
+    return view('needs_sign_in', 'Needs sign-in', n ? `${why} ${n} team${n === 1 ? '' : 's'} can’t run.` : why, 'bad');
   }
-  if (!a.runnable) return view('not_ready', 'Not ready', 'Runs don’t start yet for this CLI.', 'warn');
   return view('signed_in', 'Signed in', checked);
 }
 
 /** What the account is signed in with: a first line (method and plan) and a second (who, when the CLI says). */
 export function signedInWith(a: AiAccount): { primary: string; secondary: string | null } {
+  // A signed-out account shows a dash: what it was signed in with is not shown while it does not work (design B, frame 1)
+  if (a.status === 'needs_sign_in') return { primary: '—', secondary: null };
   const plan = a.plan ? a.plan.charAt(0).toUpperCase() + a.plan.slice(1) : null;
   let method = a.method;
   if (a.cli === 'claude' && method) method = method.charAt(0).toUpperCase() + method.slice(1);
-  if (a.cli === 'codex' && method && !/login/i.test(method)) method = `${method} login`;
   const primary = [method, plan].filter(Boolean).join(' · ') || (a.status === 'signed_in' ? 'Signed in' : '—');
   return { primary, secondary: a.email };
 }
@@ -138,12 +125,12 @@ export function namesList(members: AccountMemberRef[], max = 3): string {
   return `${names.slice(0, max).join(', ')} and ${names.length - max} more`;
 }
 
-/** "1 AI member (X) can’t run until someone signs in." (empty when no member uses the account). */
-export function cantRunClause(a: AiAccount, tail = 'until someone signs in'): string {
+/** "1 team (X) can’t run until someone signs in." (empty when no team uses the account). */
+export function cantRunClause(a: AiAccount, tail = 'until someone signs in', noun = 'team'): string {
   const users = usersOf(a);
   if (!users.length) return '';
   const n = new Set(users.map((u) => u.id)).size;
-  return `${n} AI member${n === 1 ? '' : 's'} (${namesList(users)}) can’t run ${tail}.`;
+  return `${n} ${noun}${n === 1 ? '' : 's'} (${namesList(users)}) can’t run ${tail}.`;
 }
 
 /** The banner for a signed-out account (design B1). */
@@ -154,7 +141,7 @@ export function bannerText(a: AiAccount, nowMs: number): { title: string; body: 
   const clause = cantRunClause(a);
   return {
     title: a.signedOutAt ? `${a.name} needs to sign in again` : `${a.name} needs to sign in`,
-    body: `${since} ${clause || 'No AI member uses it.'}`,
+    body: `${since} ${clause || 'No team uses it.'}`,
   };
 }
 
@@ -213,11 +200,23 @@ export function menuItems(a: AiAccount, desktop: boolean): MenuItem[] {
   const web = desktop ? null : DESKTOP_ONLY;
   const busy = a.status === 'signing_in' ? 'Someone is signing in to this account.' : null;
   return [
-    { action: 'sign_in', label: 'Sign in again', ...off(signInOffReason(a, desktop)) },
+    {
+      action: 'sign_in',
+      label: 'Sign in again',
+      ...off(
+        signInOffReason(a, desktop) ??
+          (a.status === 'signed_in' ? 'This account works: there is nothing to sign in again.' : null),
+      ),
+    },
     { action: 'check', label: 'Check now', ...off(web) },
     { action: 'rename', label: 'Rename', ...off(web) },
-    { action: 'members', label: 'See members using it', disabled: false },
-    { action: 'sign_out', label: 'Sign out', divider: true, ...off(web ?? busy) },
+    { action: 'members', label: 'See teams using it', disabled: false },
+    {
+      action: 'sign_out',
+      label: 'Sign out',
+      divider: true,
+      ...off(web ?? busy ?? (a.status === 'needs_sign_in' ? 'This account is already signed out.' : null)),
+    },
     { action: 'remove', label: 'Remove…', danger: true, ...off(web ?? busy) },
   ];
 }

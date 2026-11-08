@@ -1,38 +1,37 @@
-import { useState } from 'react';
-import { WorkflowMetrics } from './WorkflowMetrics';
-import { MarksPanel } from './MarksPanel';
-import { StoryAutonomy } from './StoryAutonomy';
-import { useQueryClient } from '@tanstack/react-query';
-import { aiApi, aiKeys } from '../../api/ai';
-import { extractError } from '../../api/extractError';
-import type { Health, HealthSuggestion, TeamRange, Verdict } from '../../types/aiTeam';
-import { useToast } from '../Toast';
-import { useDismissSuggestion, useTeamHealth } from '../../api/aiTeam';
-import { Badge, ICONS, Icon, Spark, TicketChip } from './teamUi';
-import { deltaOf, fmtShort, fmtTokens, fmtUsd } from './teamFormat';
+import { useRef, useState } from 'react';
+import { MenuSelect } from '../ui/MenuSelect';
+import {
+  useHealth,
+  type Health,
+  type HealthFix,
+  type HealthRange,
+  type TeamHealth,
+  type Verdict,
+} from '../../api/aiHealth';
+import { LoadError } from '../ai/aiUi';
+import { openRun } from './runLink';
+import { openSettingsAt } from './settingsLink';
+import { deltaOf, fmtShort, fmtTokens, fmtUsd, type Delta } from './teamFormat';
+import { CalendarIcon, ICONS, Icon, TicketChip } from './teamUi';
+import './touches.css';
+
+const V: Record<Verdict, { bg: string; fg: string; label: string }> = {
+  good: { bg: '#E6F2EA', fg: '#1F5A31', label: 'Good' },
+  watch: { bg: '#FEF3D9', fg: '#7A5A06', label: 'Watch' },
+  fix: { bg: '#FDECE8', fg: '#A5321E', label: 'Fix' },
+};
+const RANGES: { value: HealthRange; label: string }[] = [
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+];
 
 export interface HealthActions {
   onOpenTicket: (ticketId: string) => void;
-  onOpenMember: (memberId: string) => void;
-  onOpenDocsPage: (pageId: string) => void;
-  onOpenFlow: (ticketId: string) => void;
-  /** Autonomy by Story: open You stepped in. */
-  onOpenStepped?: () => void;
-  /** Open a Story's page; without it the Story's ticket opens. */
-  onOpenStory?: (storyId: string) => void;
+  /** Open a team's page (its caps and roles). */
+  onOpenTeam: (teamId: string) => void;
+  /** Open another tab of AI Team (the avoidable touches, Memory). */
+  onOpenTab: (tab: 'memory' | 'stepped', mark?: 'avoidable') => void;
 }
-
-const V: Record<Verdict, { bg: string; fg: string; label: string; line: string }> = {
-  good: { bg: '#E6F2EA', fg: '#1F5A31', label: 'Good', line: '#2E6F40' },
-  watch: { bg: '#FEF3D9', fg: '#7A5A06', label: 'Watch', line: '#2E6F40' },
-  fix: { bg: '#FDECE8', fg: '#A5321E', label: 'Fix', line: '#C4432A' },
-};
-const STATE_TITLE = {
-  good: 'Healthy',
-  watch: 'Needs attention',
-  fix: 'Needs fixing',
-  unknown: 'Not enough to judge yet',
-};
 
 function VerdictChip({ v }: { v: Verdict | null }) {
   if (!v) return null;
@@ -43,189 +42,54 @@ function VerdictChip({ v }: { v: Verdict | null }) {
   );
 }
 
-function summary(h: Health): string {
-  if (!h.canJudge) {
-    if (h.runs === 0) return 'No runs in this range yet. The numbers show, the verdict waits for 10 runs.';
-    return `Only ${h.runs} run${h.runs === 1 ? '' : 's'} in this range. The numbers show, the verdict waits for 10 runs.`;
-  }
-  const m = h.measures;
-  const rel = m.reliability.verdict;
-  const reliable = rel === 'good' ? 'reliable' : rel === 'watch' ? 'mostly reliable' : 'not reliable yet';
-  const faster =
-    m.speed.deltaS == null
-      ? ''
-      : m.speed.deltaS < 0
-        ? ' and getting faster'
-        : m.speed.deltaS > 0
-          ? ' and getting slower'
-          : '';
-  const lead = `The team is ${reliable}${faster}`;
-  const sentences: string[] = [];
-  if (m.autonomy.verdict && m.autonomy.verdict !== 'good') {
-    sentences.push(
-      `people still step in too often${h.touches.avoidable ? `: ${h.touches.avoidable} of the ${h.touches.total} touches were avoidable` : ''}`,
-    );
-  }
-  const top = h.suggestions.slice(0, 2).map((s) => s.title);
-  if (!sentences.length && !top.length) return `${lead}.`;
-  return `${lead}${sentences.length ? `, but ${sentences[0]}` : ''}.${top.length ? ` ${top.map((t) => `${t}.`).join(' ')}` : ''}`;
-}
-
 function Tile({
   name,
   verdict,
   value,
-  spark,
   delta,
   hint,
 }: {
   name: string;
   verdict: Verdict | null;
   value: string;
-  spark: number[];
-  delta: ReturnType<typeof deltaOf>;
+  delta: Delta | null;
   hint: string;
 }) {
-  const color = delta.better === null ? '#5B6B60' : delta.better ? '#2E6F40' : '#C4432A';
+  const color = !delta || delta.better === null ? '#5B6B60' : delta.better ? '#2E6F40' : '#C4432A';
   return (
     <div className="at-measure" data-testid={`measure-${name.toLowerCase()}`}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span className="at-label" style={{ flex: 1, fontSize: 11 }}>
-          {name}
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 21 }}>
+        <span className="at-label hl-tile-label">{name}</span>
         <VerdictChip v={verdict} />
       </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-        <span className="at-measure-n">{value}</span>
-        <span style={{ flex: 1 }} />
-        <Spark values={spark.length ? spark : [0, 0]} color={delta.better === false ? '#C4432A' : '#2E6F40'} />
-      </div>
-      <div style={{ fontSize: 12, fontWeight: 700, color, whiteSpace: 'nowrap' }}>{delta.text}</div>
+      <span className="at-measure-n">{value}</span>
+      {delta && <div style={{ fontSize: 12, fontWeight: 700, color }}>{delta.text}</div>}
       <div className="at-hint-sm">{hint}</div>
     </div>
   );
 }
 
-/** “You confirm before anything is saved”: the text to add, editable, and what the instructions will read. */
-function InstructionsDialog({
-  draft,
-  onClose,
-  onSaved,
-}: {
-  draft: NonNullable<HealthSuggestion['draft']>;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [text, setText] = useState(draft.text);
-  const [busy, setBusy] = useState(false);
-  const toast = useToast();
-  const qc = useQueryClient();
-  const next = draft.current.trim() ? `${draft.current.trim()}\n\n${text.trim()}` : text.trim();
-  const over = next.length > draft.limit;
-  const save = async () => {
-    setBusy(true);
-    try {
-      await aiApi.update(draft.memberId, { persona: next });
-      await qc.invalidateQueries({ queryKey: aiKeys.all });
-      toast.success('Instructions saved', `${draft.memberName} reads it from its next run.`);
-      onSaved();
-    } catch (err) {
-      toast.error("Couldn't save", extractError(err));
-    } finally {
-      setBusy(false);
-    }
+function Fix({ n, f, actions }: { n: number; f: HealthFix; actions: HealthActions }) {
+  const a = f.action;
+  const go = () => {
+    if (a.type === 'setting') openSettingsAt({ page: a.page, setting: a.setting });
+    else if (a.type === 'run') openRun(a.runId);
+    else if (a.type === 'team') actions.onOpenTeam(a.teamId);
+    else if (a.type === 'ticket') actions.onOpenTicket(a.ticketId);
+    else actions.onOpenTab(a.tab, a.mark);
   };
-  return (
-    <div className="ai-overlay" onClick={onClose}>
-      <div
-        className="ai-modal"
-        style={{ width: 560 }}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label={`Change ${draft.memberName}’s instructions`}
-        data-testid="instructions-dialog"
-      >
-        <div className="ai-modal-head">
-          <h2 className="ai-modal-title">Add to {draft.memberName}’s instructions</h2>
-          <div className="ai-hint">Nothing is saved until you confirm. You can edit the text first.</div>
-        </div>
-        <div className="ai-modal-body">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={4}
-            aria-label="Text to add"
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              border: '1.5px dashed #7C5CD6',
-              background: '#FAF7FF',
-              borderRadius: 8,
-              padding: '8px 11px',
-              font: 'inherit',
-              fontSize: 12.5,
-              lineHeight: 1.5,
-              resize: 'vertical',
-            }}
-          />
-          <div className="at-hint-sm" style={{ color: over ? '#C4432A' : undefined }}>
-            The instructions will be {next.length} of {draft.limit} characters.
-            {over ? ' That is too long: shorten the text above or the current instructions first.' : ''}
-          </div>
-        </div>
-        <div className="ai-modal-foot">
-          <span style={{ flex: 1 }} />
-          <button type="button" className="st-btn st-btn-sm" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="st-btn st-btn-primary st-btn-sm"
-            disabled={busy || over || !text.trim()}
-            onClick={() => void save()}
-          >
-            Save to instructions
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Fix({
-  n,
-  s,
-  actions,
-  onDismiss,
-}: {
-  n: number;
-  s: HealthSuggestion;
-  actions: HealthActions;
-  onDismiss: () => void;
-}) {
-  const [confirm, setConfirm] = useState(false);
-  const open = () => {
-    if (s.draft) {
-      setConfirm(true);
-      return;
-    }
-    if (s.target.type === 'member' && s.target.id) actions.onOpenMember(s.target.id);
-    else if (s.target.type === 'ticket' && s.target.id) actions.onOpenFlow(s.target.id);
-    else if (s.target.type === 'page' && s.target.id) actions.onOpenDocsPage(s.target.id);
-  };
-  const look = V[s.severity];
   return (
     <div className="at-fix" data-testid="health-fix">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <span className="at-num">{n}</span>
-        <b style={{ fontSize: 14, flex: 1 }}>{s.title}</b>
-        <span className="at-chip" style={{ background: look.bg, color: look.fg }}>
-          {look.label}
+        <b style={{ fontSize: 14, flex: 1, lineHeight: 1.35 }}>{f.title}</b>
+        <span className="at-chip" style={{ background: V[f.severity].bg, color: V[f.severity].fg }}>
+          {V[f.severity].label}
         </span>
       </div>
       <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>
-        <span className="at-label">Evidence</span> {s.evidence}{' '}
-        {s.tickets.map((t) => (
+        <span className="at-label">Evidence</span> {f.evidence}{' '}
+        {f.tickets.map((t) => (
           <span key={t} style={{ marginRight: 4 }}>
             <TicketChip id={t} onOpen={actions.onOpenTicket} />
           </span>
@@ -235,76 +99,168 @@ function Fix({
         <span className="at-label" style={{ color: '#2E6F40' }}>
           Suggestion
         </span>{' '}
-        {s.suggestion}
+        {f.suggestion}
       </div>
-      {s.draft && (
-        <div
-          style={{
-            padding: '8px 11px',
-            borderRadius: 8,
-            border: '1.5px dashed #7C5CD6',
-            background: '#FAF7FF',
-            fontSize: 12.5,
-            lineHeight: 1.5,
-          }}
-        >
-          <span className="at-label" style={{ color: '#5B3AA6' }}>
-            Text to add to {s.draft.memberName}’s instructions
-          </span>
-          <br />“{s.draft.text}”
-        </div>
-      )}
-      <div className="at-actions">
-        <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={open}>
-          {s.button}
+      <div className="at-actions hl-actions">
+        <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={go} data-testid="health-fix-action">
+          {a.label}
         </button>
-        <button type="button" className="st-btn st-btn-sm" onClick={onDismiss}>
-          {s.dismiss ?? 'Dismiss'}
-        </button>
+        {f.runId && a.type !== 'run' && (
+          <button type="button" className="st-btn st-btn-sm" onClick={() => openRun(f.runId as string)}>
+            Open a run
+          </button>
+        )}
       </div>
-      {confirm && s.draft && (
-        <InstructionsDialog
-          draft={s.draft}
-          onClose={() => setConfirm(false)}
-          onSaved={() => {
-            setConfirm(false);
-            onDismiss();
-          }}
-        />
-      )}
     </div>
   );
 }
 
-/** Health: is the AI feature working? A verdict, five measures, a row per AI and what to fix. */
-export function HealthTab({
-  projectId,
-  range,
-  actions,
-  onWiden,
-}: {
-  projectId: string;
-  range: TeamRange;
-  actions: HealthActions;
-  /** Widens the range to 30 days (the no-work state offers it). */
-  onWiden?: () => void;
-}) {
-  const q = useTeamHealth(projectId, range);
-  const dismiss = useDismissSuggestion(projectId);
-  const h = q.data;
-  if (!h)
-    return <div className="at-hint">{q.isError ? "Couldn't load the health page." : 'Working out the numbers…'}</div>;
-  const m = h.measures;
-  const pct = (v: number | null) => (v == null ? '–' : `${Math.round(v * 100)}%`);
-  const unknown = h.state === 'unknown';
-  const bannerClass = h.state === 'good' ? 'good' : h.state === 'fix' ? 'fix' : h.state === 'unknown' ? 'unknown' : '';
-  const rest = h.runs < 20 && h.canJudge ? ' Too few runs to be sure about a change.' : '';
-  const maxNotOk = Math.max(...h.notOk.map((x) => x.count), 1);
-  const dayPart = new Date(h.since).toLocaleDateString([], { month: 'short', day: 'numeric' });
-  const endPart = new Date(h.until).toLocaleDateString([], { month: 'short', day: 'numeric' });
+/** 85%, 69.6%: a decimal only when rounding would hide which side of a limit it is on. */
+const pct = (v: number | null) =>
+  v == null ? '–' : `${Math.round(v * 1000) % 10 === 0 ? Math.round(v * 100) : Math.round(v * 1000) / 10}%`;
+/** A time as the page shows it: seconds under two minutes (a short run is not "0 min"), else minutes and hours. */
+function fmtSpan(seconds: number | null | undefined): string {
+  if (seconds != null && seconds < 120) return `${Math.round(seconds)} s`;
+  return fmtShort(seconds);
+}
+
+/** The change in a count per ticket (touches): fewer is better. */
+function countDelta(cur: number | null, prev: number | null): Delta {
+  if (cur == null || prev == null) return { text: 'no earlier range to compare', better: null };
+  const d = cur - prev;
+  if (Math.abs(d) < 0.05) return { text: 'no change vs previous', better: null };
+  return { text: `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} vs previous`, better: d < 0 };
+}
+/** The change in tokens, when nothing was priced in either range: fewer is better. */
+function tokensDelta(d: number): Delta {
+  if (d === 0) return { text: 'no change vs previous', better: null };
+  return { text: `${d > 0 ? '+' : '−'}${fmtTokens(Math.abs(d))} tokens vs previous`, better: d < 0 };
+}
+const pts = (cur: number | null, prev: number | null) => (cur == null || prev == null ? null : (cur - prev) * 100);
+
+function Row({ t, onOpenTeam }: { t: TeamHealth; onOpenTeam: (id: string) => void }) {
+  const m = t.measures;
+  const cost =
+    m.cost.pricedRuns > 0
+      ? `${fmtUsd(m.cost.usd)}${m.cost.perRun != null ? ` · ${fmtUsd(m.cost.perRun)}/run` : ''}`
+      : m.cost.tokens
+        ? `${fmtTokens(m.cost.tokens)} tokens`
+        : '–';
   return (
-    <>
-      <div className={`at-banner ${bannerClass}`} data-testid="health-banner">
+    <div className="hl-grid" data-testid="health-team-row">
+      <span>
+        <button type="button" className="hl-team" onClick={() => onOpenTeam(t.id)}>
+          <b>{t.name}</b>
+        </button>
+        {t.paused && <span className="hl-sub">paused</span>}
+      </span>
+      <span>{t.runs}</span>
+      <span>
+        <b>{pct(m.reliability.value)}</b>
+        <span className="hl-sub">
+          {m.reliability.ok} of {m.reliability.ended}
+        </span>
+      </span>
+      <span>
+        <b>{m.autonomy.value ?? '–'}</b>
+        <span className="hl-sub">touches / ticket</span>
+      </span>
+      <span>
+        <b>{fmtSpan(m.speed.runMedianS)}</b>
+        <span className="hl-sub">to Review {fmtSpan(m.speed.toReviewMedianS)}</span>
+      </span>
+      <span>
+        <b>{pct(m.quality.value)}</b>
+        <span className="hl-sub">
+          {m.quality.reopened} of {m.quality.finishedTickets} reopened
+        </span>
+      </span>
+      <span>
+        {cost}
+        {m.cost.monthShare != null && (
+          <span className="hl-sub">{Math.round(m.cost.monthShare * 100)}% of the monthly cap</span>
+        )}
+      </span>
+      <span style={{ textAlign: 'right' }}>
+        {t.status === 'idle' ? (
+          <span className="at-hint-sm">No runs</span>
+        ) : t.status === 'too_few' ? (
+          <span className="at-chip" style={{ background: '#E8F1FA', color: '#244E78' }}>
+            Too few runs to judge
+          </span>
+        ) : (
+          <span
+            className="at-chip"
+            style={
+              t.status === 'healthy'
+                ? { background: '#E6F2EA', color: '#1F5A31' }
+                : { background: V[t.status].bg, color: V[t.status].fg }
+            }
+          >
+            {t.status === 'healthy' ? 'Healthy' : V[t.status].label}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+/** Health: is the AI team healthy? A verdict in words, five measures, a row per team and what to fix. */
+export function HealthTab({ projectId, actions }: { projectId: string; actions: HealthActions }) {
+  const [range, setRange] = useState<HealthRange>('7d');
+  const q = useHealth(projectId, range);
+  // A failed fetch for the other range keeps the last good numbers on screen, with the notice above them
+  const last = useRef<Health>();
+  if (q.data) last.current = q.data;
+  const h: Health | undefined = q.data ?? last.current;
+  if (!h) {
+    return q.isError ? (
+      <div className="st-err">
+        <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />
+      </div>
+    ) : (
+      <div className="st-center">
+        <span className="ai-spin" />
+      </div>
+    );
+  }
+  const m = h.measures;
+  const p = h.previous;
+  const unknown = h.state === 'unknown';
+  const bannerClass = h.state === 'good' ? 'good' : h.state === 'fix' ? 'fix' : unknown ? 'unknown' : '';
+  const day = (iso: string) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const noTeams = !h.hasTeams;
+  const title = noTeams
+    ? 'No AI team in this project'
+    : h.runs === 0
+      ? `No AI work between ${day(h.since)} and ${day(h.until)}`
+      : h.title;
+  const text = noTeams ? 'Add a team to see how it works. Start with a ready-made one.' : h.text;
+  const hasPrev = p.runs > 0;
+  // With no earlier range every tile says so on its delta line, so the tiles keep one height (AiTeamReview B3)
+  const noPrev: Delta = { text: 'no earlier range to compare', better: null };
+  // Money is compared only when both ranges priced their runs; tokens only when neither did
+  const costDelta: Delta = !hasPrev
+    ? noPrev
+    : m.cost.pricedRuns > 0 && p.pricedRuns > 0
+      ? deltaOf('usd', m.cost.usd - p.usd, 'down')
+      : m.cost.pricedRuns === 0 && p.pricedRuns === 0 && (m.cost.tokens > 0 || p.tokens > 0)
+        ? tokensDelta(m.cost.tokens - p.tokens)
+        : noPrev;
+  // The note about tokens stands where a team's cost is shown as tokens (AiTeamReview B2)
+  const tokensOnly = h.teams.some((t) => t.measures.cost.pricedRuns === 0 && t.measures.cost.tokens > 0);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }} data-testid="at-health">
+      {q.isError && (
+        <div className="st-err">
+          <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />
+        </div>
+      )}
+      <div
+        className={`at-banner ${bannerClass}`}
+        data-testid="health-banner"
+        data-state={noTeams ? 'no-team' : h.state}
+      >
         <span
           className="at-banner-ico"
           style={{
@@ -313,7 +269,6 @@ export function HealthTab({
           }}
         >
           {unknown ? (
-            // Too few runs (or none) is information, not a warning: the design's blue (i) banner
             <Icon color="#244E78" size={22}>
               {ICONS.info}
             </Icon>
@@ -324,21 +279,21 @@ export function HealthTab({
           )}
         </span>
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <b style={{ fontSize: 18, color: unknown ? '#244E78' : undefined }}>
-              {h.runs === 0 ? `No AI work between ${dayPart} and ${endPart}` : STATE_TITLE[h.state]}
-            </b>
-            <span className="at-hint">
-              {h.runs} runs on {h.tickets} tickets · {dayPart} to {endPart}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <b style={{ fontSize: 18, color: unknown ? '#244E78' : undefined }}>{title}</b>
+            {h.runs > 0 && (
+              <span className="at-hint">
+                {h.runs} run{h.runs === 1 ? '' : 's'} on {h.tickets} ticket{h.tickets === 1 ? '' : 's'} · {day(h.since)}{' '}
+                to {day(h.until)}
+              </span>
+            )}
           </div>
-          <div style={{ fontSize: 13.5, lineHeight: 1.55, marginTop: 3 }}>
-            {h.runs === 0 ? 'Nothing ran in this range, so there is nothing to judge yet.' : summary(h)}
-            {rest}
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, marginTop: 3 }} data-testid="health-text">
+            {text}
           </div>
         </div>
-        {h.runs === 0 && onWiden && range !== '30d' && (
-          <button type="button" className="st-btn st-btn-sm" onClick={onWiden} data-testid="health-widen">
+        {h.runs === 0 && h.hasTeams && range !== '30d' && (
+          <button type="button" className="st-btn st-btn-sm" onClick={() => setRange('30d')} data-testid="health-widen">
             Widen to 30 days
           </button>
         )}
@@ -347,6 +302,15 @@ export function HealthTab({
             {h.counts.good} good · {h.counts.watch} watch · {h.counts.fix} fix
           </span>
         )}
+        <MenuSelect<HealthRange>
+          variant="button"
+          label="Range"
+          icon={<CalendarIcon />}
+          testId="health-range"
+          value={range}
+          options={RANGES}
+          onChange={setRange}
+        />
       </div>
 
       <div className="at-measures">
@@ -354,179 +318,102 @@ export function HealthTab({
           name="Reliability"
           verdict={m.reliability.verdict}
           value={pct(m.reliability.value)}
-          spark={m.reliability.spark}
-          delta={deltaOf('pts', m.reliability.delta, 'up')}
-          hint={`runs that finished OK: ${m.reliability.ok} of ${m.reliability.total}`}
+          delta={hasPrev ? deltaOf('pts', pts(m.reliability.value, p.reliability), 'up') : noPrev}
+          hint={`runs that finished OK: ${m.reliability.ok} of ${m.reliability.ended}. Failed, timed out and cancelled count against`}
         />
         <Tile
           name="Autonomy"
           verdict={m.autonomy.verdict}
-          value={pct(m.autonomy.value)}
-          spark={m.autonomy.spark}
-          delta={deltaOf('pts', m.autonomy.delta, 'up')}
-          hint={`tickets completed with no needed or avoidable touch: ${m.autonomy.clean} of ${m.autonomy.total}. Goal ${Math.round(m.autonomy.goal * 100)}%`}
+          value={m.autonomy.value == null ? '–' : `${m.autonomy.value}`}
+          delta={hasPrev ? countDelta(m.autonomy.value, p.autonomy) : noPrev}
+          hint={`touches per ticket: ${m.autonomy.touches} on ${m.autonomy.tickets} ticket${m.autonomy.tickets === 1 ? '' : 's'}. ${m.autonomy.clean} ticket${m.autonomy.clean === 1 ? '' : 's'} with no touch at all`}
         />
         <Tile
           name="Speed"
-          verdict={m.speed.verdict}
-          value={fmtShort(m.speed.medianS)}
-          spark={m.speed.spark}
-          delta={deltaOf('seconds', m.speed.deltaS, 'down')}
-          hint={`median, start to completed${m.speed.waitingShare != null ? `. ${Math.round(m.speed.waitingShare * 100)}% of it waiting for you` : ''}`}
+          verdict={null}
+          value={fmtSpan(m.speed.runMedianS)}
+          delta={
+            hasPrev
+              ? deltaOf(
+                  'seconds',
+                  p.runMedianS != null && m.speed.runMedianS != null ? m.speed.runMedianS - p.runMedianS : null,
+                  'down',
+                )
+              : noPrev
+          }
+          hint={`median run. Assignment to Review: ${fmtSpan(m.speed.toReviewMedianS)} (${m.speed.toReviewTickets} ticket${m.speed.toReviewTickets === 1 ? '' : 's'})`}
         />
         <Tile
           name="Quality"
           verdict={m.quality.verdict}
           value={pct(m.quality.value)}
-          spark={m.quality.spark}
-          delta={deltaOf('pts', m.quality.delta, 'down')}
-          hint={`hand-offs sent back: ${m.quality.sentBack} of ${m.quality.handoffs}. Report backs and first review rounds are not counted`}
+          delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : noPrev}
+          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} ticket${m.quality.finishedTickets === 1 ? '' : 's'} reopened${
+            m.quality.findings != null
+              ? `. Reviewer findings: ${m.quality.findings} in ${m.quality.runsWithFindings} run${m.quality.runsWithFindings === 1 ? '' : 's'}`
+              : ''
+          }`}
         />
         <Tile
           name="Cost"
           verdict={m.cost.verdict}
-          value={fmtUsd(m.cost.usd)}
-          spark={m.cost.spark}
-          delta={deltaOf('usd', m.cost.deltaUsd, 'down')}
-          hint={`${m.cost.perTicket != null ? `${fmtUsd(m.cost.perTicket)} per ticket on priced runs. ` : ''}${m.cost.tokensOnly ? `${m.cost.tokensOnly} runs report tokens only. ` : ''}${m.cost.cap ? `${Math.round((m.cost.capShare ?? 0) * 100)}% of the ${fmtUsd(m.cost.cap)} cap` : 'No monthly cap set'}`}
+          value={m.cost.pricedRuns > 0 || !m.cost.tokens ? fmtUsd(m.cost.usd) : `${fmtTokens(m.cost.tokens)} tokens`}
+          delta={costDelta}
+          hint={`${m.cost.perRun != null ? `${fmtUsd(m.cost.perRun)} per run, ` : ''}${fmtTokens(m.cost.tokensPerRun ?? 0)} tokens per run${
+            m.cost.tokensOnlyRuns
+              ? `. ${m.cost.tokensOnlyRuns} run${m.cost.tokensOnlyRuns === 1 ? '' : 's'} report${m.cost.tokensOnlyRuns === 1 ? 's' : ''} tokens only`
+              : ''
+          }${m.cost.runsOverCap ? `. ${m.cost.runsOverCap} over the cap of one run` : ''}`}
         />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
-        <b style={{ fontSize: 14, flex: 1 }}>Each AI</b>
-        <span className="at-hint">
-          Compared with the previous range. Where a runner reports no dollars, tokens are shown, never $0
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <b style={{ fontSize: 14, flex: 1 }}>Each team</b>
+        {tokensOnly && (
+          <span className="at-hint">
+            One row per team: cost exists per run, not per role. Where no price is reported, tokens show, never $0
+          </span>
+        )}
       </div>
-      <div className="at-table at-aitable" data-testid="health-per-ai">
-        <div className="at-trow head">
-          {[
-            'AI',
-            'Runs',
-            'Finished OK',
-            'Asked you',
-            'Touches /10 runs',
-            'Avg run',
-            'Cost /ticket',
-            'Sent back to it',
-            '',
-          ].map((c) => (
-            <span key={c} className="at-label" style={{ fontSize: 11 }}>
+      <div className="hl-table" data-testid="health-per-team">
+        <div className="hl-grid head">
+          {['Team', 'Runs', 'Finished OK', 'Autonomy', 'Run · to Review', 'Sent back', 'Cost', ''].map((c) => (
+            <span key={c || 'status'} className="at-label" style={{ fontSize: 11 }}>
               {c}
             </span>
           ))}
         </div>
-        {h.perAi.map((r) => (
-          <div key={r.id} className="at-trow">
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Badge name={r.name} color={r.color} size={24} />
-              <b>{r.name}</b>
-            </span>
-            <span>{r.runs}</span>
-            <b>{pct(r.okShare)}</b>
-            <span>{r.runs ? `${r.asked} (${pct(r.askedShare)})` : '–'}</span>
-            <b>{r.touchesPer10 ?? '–'}</b>
-            <span>{fmtShort(r.avgRunS)}</span>
-            <span>
-              {r.costPerTicket != null ? fmtUsd(r.costPerTicket) : r.tokens ? `${fmtTokens(r.tokens)} tokens` : '–'}
-            </span>
-            <span>{r.sentBackTo}</span>
-            <span style={{ textAlign: 'right' }}>
-              {r.status === 'idle' ? null : (
-                <span
-                  className="at-chip"
-                  style={
-                    r.status === 'healthy'
-                      ? { background: '#E6F2EA', color: '#1F5A31' }
-                      : { background: V[r.status].bg, color: V[r.status].fg }
-                  }
-                >
-                  {r.status === 'healthy' ? 'Healthy' : V[r.status].label}
-                </span>
-              )}
-            </span>
+        {h.teams.length === 0 ? (
+          <div className="at-hint" style={{ padding: 16 }}>
+            {noTeams ? 'No team yet.' : 'No team ran in this range.'}
           </div>
-        ))}
-      </div>
-      <div className="at-hint-sm">
-        Tokens are counted differently by each runner: Claude Code counts cached context on every call (shown as new and
-        cached), Antigravity counts input per model call. Compare tokens only within one runner.
+        ) : (
+          h.teams.map((t) => <Row key={t.id} t={t} onOpenTeam={actions.onOpenTeam} />)
+        )}
       </div>
 
-      <div className="at-two" style={{ alignItems: 'flex-start' }}>
-        <div style={{ flex: 1, minWidth: 320, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <b style={{ fontSize: 14, flex: 1 }}>What to fix · {h.suggestions.length}</b>
-            <span className="at-hint">Worked out from rules, shown only with 3 or more cases</span>
-          </div>
-          {h.suggestions.length === 0 ? (
-            <div className="at-empty">
-              {h.canJudge ? 'Nothing to fix in this range.' : 'What to fix waits for 10 runs in the range.'}
-            </div>
-          ) : (
-            <div className="at-fixgrid">
-              {h.suggestions.map((s, i) => (
-                <Fix key={s.key} n={i + 1} s={s} actions={actions} onDismiss={() => dismiss.mutate(s.key)} />
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="at-box" style={{ width: 300, flexShrink: 0 }}>
-          {h.runs > 0 && (
-            <>
-              <b style={{ fontSize: 13.5, display: 'block', marginBottom: 6 }}>
-                Why {h.notOkTotal} run{h.notOkTotal === 1 ? '' : 's'} did not finish OK
-              </b>
-              {h.notOk.length === 0 && <div className="at-hint">Every run in this range finished OK.</div>}
-              {h.notOk.map((x) => (
-                <button
-                  key={x.label}
-                  type="button"
-                  className="at-barrow"
-                  style={{
-                    gridTemplateColumns: '130px 1fr 22px',
-                    width: '100%',
-                    background: 'none',
-                    border: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    font: 'inherit',
-                  }}
-                  onClick={() => x.ticketIds[0] && actions.onOpenTicket(x.ticketIds[0])}
-                  title="Open the first ticket behind this"
-                >
-                  <span>{x.label}</span>
-                  <div className="at-bar" style={{ height: 8 }}>
-                    <i style={{ width: `${(x.count / maxNotOk) * 100}%`, background: '#C4432A' }} />
-                  </div>
-                  <b style={{ textAlign: 'right' }}>{x.count}</b>
-                </button>
-              ))}
-              <div className="at-hint-sm" style={{ marginTop: 8 }}>
-                Each bar opens a ticket behind it.
-              </div>
-            </>
-          )}
-          <div className="at-hint-sm" style={{ marginTop: 12, lineHeight: 1.5 }}>
-            <b>Not enough to judge yet?</b>
-            <br />
-            The verdict needs at least 10 runs in the range. Below that, the numbers show without a verdict. A single
-            bad run never turns a measure red.
-          </div>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <b style={{ fontSize: 14, flex: 1 }}>What to fix · {h.fixes.length}</b>
+        {h.canJudge && <span className="at-hint">Worked out from rules, at most five. Nothing is changed for you</span>}
       </div>
-
-      {/* The extensions (ai-team-process, ai-board-wave3) come after the design's own sections */}
-      {h.stories && (
-        <StoryAutonomy
-          projectId={projectId}
-          stories={h.stories}
-          onOpenStepped={() => actions.onOpenStepped?.()}
-          onOpenStory={(id) => (actions.onOpenStory ? actions.onOpenStory(id) : actions.onOpenTicket(id))}
-        />
+      {h.fixes.length === 0 ? (
+        <div className="at-empty" data-testid="health-no-fixes">
+          {h.canJudge
+            ? 'Nothing to fix in this range.'
+            : `What to fix waits for ${h.minRuns} runs in the range. A rule shows only with enough cases.`}
+        </div>
+      ) : (
+        <div className="at-fixgrid hl-fixgrid">
+          {h.fixes.map((f, i) => (
+            <Fix key={f.id} n={i + 1} f={f} actions={actions} />
+          ))}
+        </div>
       )}
-      <WorkflowMetrics projectId={projectId} />
-      <MarksPanel projectId={projectId} />
-    </>
+      <div className="at-hint-sm">
+        Thresholds: reliability 85% good, 70% watch · autonomy under 1 touch per ticket good, over 2 fix · quality under
+        10% reopened good, over 20% fix · cost under 70% of the monthly cap good, over 90% fix. Speed has no verdict.
+        Under {h.minRuns} runs the numbers show without a verdict.
+      </div>
+    </div>
   );
 }

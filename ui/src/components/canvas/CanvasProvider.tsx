@@ -1,15 +1,7 @@
 import { Suspense, lazy, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  addBoard,
-  askAi,
-  canvasFailure,
-  canvasKeys,
-  createCanvas,
-  importFiles,
-  type CanvasOwnerKind,
-} from '../../api/canvases';
+import { canvasFailure, canvasKeys, createCanvas, importFiles, type CanvasOwnerKind } from '../../api/canvases';
 import { useToast } from '../Toast';
 import {
   CanvasContext,
@@ -117,7 +109,7 @@ export function CanvasProvider({ children }: { children: ReactNode }) {
     [openCanvas],
   );
 
-  const create = async (r: { name: string; start: StartWith; files: File[]; prompt: string }) => {
+  const create = async (r: { name: string; start: StartWith; files: File[] }) => {
     if (!pending) return;
     setCreating(true);
     setCreateError(null);
@@ -139,26 +131,9 @@ export function CanvasProvider({ children }: { children: ReactNode }) {
           return;
         }
       }
-      let boardId: string | undefined = request.boardId;
-      if (r.start === 'ai') {
-        // the blank board is what the AI fills in: ask it to build the screens as a proposal
-        const first = c.doc.boards[0];
-        boardId = first?.id;
-        if (first) {
-          await addBoard(c.id, { kind: 'html', name: first.name, page: first.page }, [
-            {
-              file: new Blob(['<!doctype html><title>New screen</title><h1>New screen</h1>'], { type: 'text/html' }),
-              path: 'index.html',
-            },
-          ]).catch(() => undefined);
-          await askAi(c.id, { boardIds: [first.id], request: r.prompt }).catch((e: unknown) =>
-            toast.info('Ask AI later', canvasFailure(e).message),
-          );
-        }
-      }
       void qc.invalidateQueries({ queryKey: canvasKeys.one(c.id) });
       setPending(null);
-      start({ ...request, boardId, openAi: false }, c.id, resolve);
+      start(request, c.id, resolve);
     } catch (e) {
       setCreateError(canvasFailure(e).message);
     } finally {
@@ -184,7 +159,6 @@ export function CanvasProvider({ children }: { children: ReactNode }) {
             defaultName={pending.request.title}
             busy={creating}
             error={createError}
-            aiAvailable={!!pending.request.projectId || pending.request.ownerKind !== 'idea'}
             onCancel={() => {
               pending.resolve(null);
               setPending(null);
@@ -201,6 +175,7 @@ export function CanvasProvider({ children }: { children: ReactNode }) {
       )}
       {view && (
         <CanvasViewer
+          key={`${view.request.id}:${view.request.boardId ?? ''}:${view.request.threadId ?? ''}`}
           request={view.request}
           mode={view.mode}
           me={currentActor()}

@@ -1,25 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAiOverview, useTicketRuns } from '../../api/ai';
+import { useAiTeams, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { scheduleApi, useScheduleDetail, useScheduleMutation } from '../../api/schedules';
-import type { AiMember } from '../../types/ai';
-import type { CheckResult, ScheduleDetail as Detail, ScheduleRun } from '../../types/schedules';
-import { AiAvatar, SparkleIcon, money, useAiBoardState } from '../ai/aiUi';
+import type { AiTeam } from '../../types/ai';
+import type { ScheduleDetail as Detail, ScheduleRun } from '../../types/schedules';
+import { money } from '../ai/aiUi';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
 import { TicketLine } from './MemberSelect';
 import {
   CatchUpChip,
   ChevronIcon,
-  CheckCircleIcon,
   CloseIcon,
   PauseIcon,
   PencilIcon,
   PlayIcon,
-  Pill,
   ScheduleStateChip,
   SkipIcon,
   SlotChip,
-  TargetIcon,
   WarnIcon,
   InfoIcon,
   canStart,
@@ -32,7 +30,7 @@ import {
 
 const FILTERS = [
   { id: 'all', label: 'All results' },
-  { id: 'passed', label: 'Passed' },
+  { id: 'passed', label: 'Finished' },
   { id: 'partly', label: 'Partly done' },
   { id: 'failed', label: 'Failed' },
   { id: 'skipped', label: 'Skipped' },
@@ -48,32 +46,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub: string
   );
 }
 
-/** One "done when" line of a slot: machine facts and the reviewer's judgement look different. */
-function ResultLine({ r, reviewer }: { r: CheckResult; reviewer?: string | null }) {
-  const ai = r.kind === 'ai';
-  return (
-    <div className={`sc-result ${r.ok ? 'sc-result-ok' : 'sc-result-bad'}`} data-testid={`result-${r.key}`}>
-      <span className="sc-result-ico">{r.ok ? <CheckCircleIcon size={16} /> : <WarnIcon size={16} />}</span>
-      <div>
-        <div>{r.label}</div>
-        <div className={`ai-muted ${ai ? 'sc-judged' : ''}`}>
-          {ai ? (
-            <>
-              <TargetIcon size={11} />{' '}
-              {r.detail.startsWith('Judged by')
-                ? r.detail
-                : `Judged by ${reviewer ?? 'the reviewer'}: ${r.ok ? 'pass' : 'not met'}`}
-            </>
-          ) : (
-            r.detail
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** A slot that waits for the runner or for a person: run it on another AI, skip it, or run it now (F). */
+/** A slot that waits for the desktop app or for a person: run it on another team, skip it, or run it now (F). */
 function SlotActions({
   run,
   ais,
@@ -81,8 +54,8 @@ function SlotActions({
   onDone,
 }: {
   run: ScheduleRun;
-  ais: AiMember[];
-  /** The schedule's backup AI (F: "Use backup AI"), when it has one other than the AI that was due. */
+  ais: AiTeam[];
+  /** The schedule's backup team (F: "Use backup team"), when it has one other than the team that was due. */
   backup?: { id: string; name: string } | null;
   onDone: () => void;
 }) {
@@ -120,7 +93,7 @@ function SlotActions({
           disabled={act.isPending}
           data-testid="slot-backup"
         >
-          Use backup AI · {backup.name}
+          Use backup team · {backup.name}
         </button>
       )}
       {pick ? (
@@ -130,10 +103,10 @@ function SlotActions({
             style={{ width: 200 }}
             value={member}
             onChange={(e) => setMember(e.target.value)}
-            aria-label="Another AI"
+            aria-label="Another team"
             data-testid="slot-member"
           >
-            <option value="">Pick an AI…</option>
+            <option value="">Pick a team…</option>
             {others.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -152,7 +125,7 @@ function SlotActions({
         </>
       ) : (
         <button type="button" className="ai-btn ai-btn-sm" onClick={() => setPick(true)} data-testid="slot-other">
-          Run on another AI
+          Run on another team
         </button>
       )}
       <button
@@ -181,22 +154,19 @@ function SlotRow({
   detail: Detail;
   open: boolean;
   onToggle: () => void;
-  ais: AiMember[];
+  ais: AiTeam[];
   runNumber: (id: string) => number | undefined;
   onOpenTicket: (ticketId: string) => void;
 }) {
   const waiting = run.state === 'waiting' || run.state === 'ask';
-  const reviewer = run.review.reviewerName ?? detail.review.reviewerName ?? null;
-  const reviewerAi = ais.find((m) => m.id === run.review.reviewerId);
   const lastRunId = run.runIds[run.runIds.length - 1];
   const num = lastRunId ? runNumber(lastRunId) : undefined;
-  const hasReview = !!run.review.verdict;
   return (
     <div className={`sc-slot ${open ? 'sc-slot-open' : ''}`} data-testid="slot" data-state={run.state}>
       <button type="button" className="sc-slot-head" onClick={onToggle} aria-expanded={open}>
         <ChevronIcon size={14} dir={open ? 'down' : 'right'} />
         <b className="sc-slot-time">{fmtSlot(run.slotAt)}</b>
-        <SlotChip state={run.state} verbose />
+        <SlotChip state={run.state} />
         {run.catchUp && run.state !== 'running' && <CatchUpChip />}
         <span className="sc-slot-note">{run.note ?? ''}</span>
         <span className="ai-muted sc-slot-dur">{fmtDuration(run.durationS)}</span>
@@ -213,69 +183,57 @@ function SlotRow({
               onDone={() => undefined}
             />
           )}
-          <div className="sc-slot-cols">
-            <div>
-              <div className="ai-label ai-label-dark">DONE WHEN</div>
-              {run.results.length ? (
-                run.results.map((r) => <ResultLine key={r.key} r={r} reviewer={reviewer} />)
-              ) : (
-                <div className="ai-muted" style={{ marginTop: 6 }}>
-                  {run.state === 'skipped' || waiting
-                    ? 'Nothing ran, so nothing was checked.'
-                    : 'No checks were evaluated.'}
+          {run.report && (
+            <div className="sc-report" data-testid="lead-report">
+              <div className="ai-label">REPORT FROM THE LEAD</div>
+              <div className="sc-report-text">
+                {run.report.summary ? <MarkdownRenderer plain>{run.report.summary}</MarkdownRenderer> : null}
+              </div>
+              {run.report.openItems.length > 0 && (
+                <ul className="sc-report-open">
+                  {run.report.openItems.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+              {run.report.branch && (
+                <div className="ai-hint">
+                  Branch <span className="ai-mono">{run.report.branch}</span>
+                  {run.report.prUrl && (
+                    <>
+                      {' · '}
+                      <a href={run.report.prUrl} target="_blank" rel="noreferrer">
+                        PR
+                      </a>
+                    </>
+                  )}
                 </div>
               )}
             </div>
-            <div>
-              <div className="ai-label ai-label-dark">AI REVIEW</div>
-              {hasReview ? (
-                <>
-                  <div className="sc-reviewer">
-                    {reviewerAi ? <AiAvatar provider={reviewerAi.provider} size={26} /> : <SparkleIcon size={16} />}
-                    <b>{reviewer ?? 'Reviewer'}</b>
-                    {run.review.verdict === 'pass' ? (
-                      <Pill tone="green" icon={<CheckCircleIcon size={11} />}>
-                        Passed
-                      </Pill>
-                    ) : (
-                      <Pill tone="amber" icon={<WarnIcon size={11} />}>
-                        Needs changes
-                      </Pill>
-                    )}
-                  </div>
-                  {run.review.notes && <div className="sc-review-notes">{run.review.notes}</div>}
-                  {run.review.fixes && run.review.fixes.length > 0 && (
-                    <ul className="sc-fixes">
-                      {run.review.fixes.map((f) => (
-                        <li key={f}>{f}</li>
-                      ))}
-                    </ul>
-                  )}
-                </>
-              ) : (
-                <div className="ai-muted" style={{ marginTop: 6 }}>
-                  {detail.review.on ? 'No review for this run.' : 'AI review is off for this schedule.'}
+          )}
+          {lastRunId && (
+            <div className="sc-slot-cols">
+              <div>
+                <div className="ai-label" style={{ marginTop: 8 }}>
+                  THIS RUN
                 </div>
-              )}
-              <div className="ai-hint" style={{ marginTop: 8 }}>
-                {run.memberName ? `Run by ${run.memberName}. ` : ''}
-                {hasReview
-                  ? `${run.review.rounds ?? 1} review round${(run.review.rounds ?? 1) === 1 ? '' : 's'}. `
-                  : ''}
-                {run.costUsd ? `${money(run.costUsd)}. ` : ''}
-                {lastRunId && (
-                  <button
-                    type="button"
-                    className="ai-link"
-                    onClick={() => onOpenTicket(run.ticketId)}
-                    data-testid="open-run"
-                  >
-                    Open run{num ? ` #${num}` : ''}
-                  </button>
-                )}
+                <div className="ai-hint">
+                  {run.memberName ? `Run by ${run.memberName}. ` : ''}
+                  {run.costUsd ? `${money(run.costUsd)}. ` : ''}
+                  {lastRunId && (
+                    <button
+                      type="button"
+                      className="ai-link"
+                      onClick={() => onOpenTicket(run.ticketId)}
+                      data-testid="open-run"
+                    >
+                      Open run{num ? ` #${num}` : ''}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -283,8 +241,8 @@ function SlotRow({
 }
 
 /**
- * One schedule and its history (D): stats, problems and every slot with how each "done when" check turned out
- * and what the reviewer said. Waiting slots offer the actions of F.
+ * One schedule and its history (D): stats, problems and every slot with how it ended (the lead's own report).
+ * Waiting slots offer the actions of F.
  */
 export function ScheduleDetailLayer({
   scheduleId,
@@ -302,10 +260,9 @@ export function ScheduleDetailLayer({
   const toast = useToast();
   const q = useScheduleDetail(scheduleId);
   const d = q.data;
-  const overview = useAiOverview(projectId);
-  const ais = (overview.data?.members ?? []).filter(canStart);
+  const teams = useAiTeams(projectId);
+  const ais = (teams.data ?? []).filter(canStart);
   const ticketRuns = useTicketRuns(d?.ticketId);
-  const { openAiTab } = useAiBoardState();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
   const [openIds, setOpenIds] = useState<Set<string> | null>(null);
   const [menu, setMenu] = useState(false);
@@ -323,9 +280,6 @@ export function ScheduleDetailLayer({
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [onClose]);
-
-  // F "Over budget": the banner names the budget and offers to edit it
-  const overBudget = !!d?.problems.some((p) => p.level === 'warn' && p.text.includes('over its budget'));
 
   if (!d) {
     return (
@@ -504,7 +458,7 @@ export function ScheduleDetailLayer({
               <div>
                 <b>{d.ticketId} was edited since you scheduled it</b>
                 <div>
-                  The AI reads the latest ticket at run time. If the ticket is Done or deleted, the run is skipped.
+                  The team reads the latest ticket at run time. If the ticket is Done or deleted, the run is skipped.
                 </div>
               </div>
             </div>
@@ -526,18 +480,6 @@ export function ScheduleDetailLayer({
                   .map((p) => (
                     <div key={`${p.key}-${p.text}`}>{p.text}</div>
                   ))}
-                {overBudget && openAiTab && (
-                  <div className="sc-inline" style={{ marginTop: 8 }}>
-                    <button
-                      type="button"
-                      className="ai-btn ai-btn-sm"
-                      onClick={() => openAiTab('usage', { memberId: d.memberId })}
-                      data-testid="edit-budget"
-                    >
-                      Edit budget
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -557,19 +499,14 @@ export function ScheduleDetailLayer({
               }
             />
             <Tile
-              label="PASSED"
+              label="FINISHED"
               value={`${d.stats.passed} of ${d.stats.of}`}
               sub={`last ${d.stats.of} run${d.stats.of === 1 ? '' : 's'}`}
             />
             <Tile
               label="AVERAGE TIME"
               value={fmtMinutes(d.stats.avgS)}
-              sub={d.stats.metered ? money(d.stats.cost) : 'Not metered'}
-            />
-            <Tile
-              label="REVIEW ROUNDS"
-              value={d.stats.reviewRounds == null ? '–' : String(d.stats.reviewRounds)}
-              sub="per run"
+              sub={d.stats.metered ? `${money(d.stats.cost)} over ${d.stats.of} runs` : 'per run'}
             />
           </div>
 

@@ -1,19 +1,23 @@
 """Comments on a canvas: pinned to a frame (the pin moves with it) or to a point of the plane, in threads that can be
 resolved. They behave like Docs comments and belong to the canvas, so they follow it when it moves to Docs.
 
-An AI member comments under its own name and can offer a proposal; it never resolves a person's thread.
+An AI team comments under its own name; it never resolves a person's thread.
 """
 
 import json
+import logging
 import re
 from typing import Any
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import AiMember, CanvasComment, CanvasThread, Member
+from models import AiTeam, CanvasComment, CanvasThread, Member
 from services import activity, canvases
+from services.docs_comments import snippet_of
 from services.docs_text import DocsError
+
+logger = logging.getLogger(__name__)
 
 MAX_BODY = 4000
 
@@ -25,21 +29,91 @@ def _body(text: str) -> str:
     return body[:MAX_BODY]
 
 
-def _mentions(body: str) -> list[str]:
-    return sorted(
-        set(re.findall(r"(?<![\w@])@([\w][\w .-]{0,40}?)(?=[\s,.;:!?)]|$)", body))
+_MEMBER_LINK = re.compile(r"@\[([^\][\n]{1,200})\]\(member:([\w.-]{1,64})\)")
+
+
+async def _mentioned(session: AsyncSession, canvas: Any, body: str) -> list[Member]:
+    """The members of the canvas's project that a comment mentions: the picker's ``@[Name](member:id)`` and a typed
+    ``@Name`` both count. A picked mention is settled first and its text is taken out, so "@[Ann Lee](member:x)" does
+    not also mention a member called "Ann"; a typed name is read longest first for the same reason. Other ``@words``
+    are ignored."""
+    if not canvas.project_id or "@" not in body:
+        return []
+    rows = await session.exec(
+        select(Member).where(Member.project_id == canvas.project_id)
     )
+    members = list(rows.all())
+    by_id = {m.id: m for m in members}
+    found: list[Member] = []
+    for hit in _MEMBER_LINK.finditer(body):
+        m = by_id.get(hit.group(2))
+        if m and m not in found:
+            found.append(m)
+    text = _MEMBER_LINK.sub(" ", body)
+    for m in sorted(members, key=lambda m: -len(m.name)):
+        typed = re.compile(r"(?<![\w@])@" + re.escape(m.name) + r"(?!\w)", re.I)
+        if typed.search(text):
+            text = typed.sub(" ", text)
+            if m not in found:
+                found.append(m)
+    return found
+
+
+async def _notify_mentions(
+    session: AsyncSession,
+    canvas: Any,
+    thread: CanvasThread,
+    comment: CanvasComment,
+    mentioned: list[Member],
+) -> None:
+    """Tell each person a new comment mentions (a Needs you row of kind ``mention`` that opens the canvas). Not the
+    author, and never an AI member. A failure here must not lose the comment or fail the request, so it is only
+    logged."""
+    try:
+        from services import notifications
+
+        author = comment.author
+        people = [
+            m
+            for m in mentioned
+            if m.kind not in ("ai", "ai_removed")
+            and notifications.person_key(m.name) != notifications.person_key(author)
+        ]
+        if not people:
+            return
+        who = "Someone" if notifications.person_key(author) == "user" else author
+        for m in people:
+            await notifications.emit(
+                "mention",
+                project_id=canvas.project_id,
+                recipients=[notifications.person_key(m.name)],
+                title=f"{who} mentioned you on {canvas.title}",
+                body=f"“{snippet_of(comment.body)}”",
+                target_kind="canvas_thread",
+                target_id=thread.id,
+                actor=author,
+                data={
+                    "canvas_id": canvas.id,
+                    "canvas_title": canvas.title,
+                    "board_id": thread.board_id,
+                    "comment_id": comment.id,
+                },
+                session=session,
+            )
+    except Exception:  # noqa: BLE001
+        await session.rollback()
+        logger.exception("Could not write a canvas mention notification")
 
 
 async def _is_ai(session: AsyncSession, c: Any, author: str) -> bool:
-    """Whether an author is one of the project's AI members."""
+    """Whether an author is one of the project's AI teams."""
     if not c.project_id:
         return False
     rows = await session.exec(select(Member).where(Member.project_id == c.project_id))
     for m in rows.all():
         if (
             m.name.casefold() == author.casefold()
-            and await session.get(AiMember, m.id) is not None
+            and await session.get(AiTeam, m.id) is not None
         ):
             return True
     return False
@@ -200,17 +274,20 @@ async def add_thread(
     )
     session.add(t)
     await session.flush()
-    session.add(
-        CanvasComment(
-            thread_id=t.id,
-            author=actor,
-            body=text,
-            mentions=json.dumps(_mentions(text)),
-            ai=json.dumps(ai) if ai is not None else None,
-        )
+    mentioned = await _mentioned(session, c, text)
+    first = CanvasComment(
+        thread_id=t.id,
+        author=actor,
+        body=text,
+        mentions=json.dumps([m.id for m in mentioned]),
+        ai=json.dumps(ai) if ai is not None else None,
     )
+    session.add(first)
     await session.commit()
-    return await _thread_out(session, c, t)
+    out = await _thread_out(session, c, t)
+    # after the answer is built: a failed notification rolls the session back, which expires what the answer reads
+    await _notify_mentions(session, c, t, first, mentioned)
+    return out
 
 
 async def _thread(session: AsyncSession, thread_id: str) -> tuple[Any, CanvasThread]:
@@ -231,17 +308,19 @@ async def reply(
     c, t = await _thread(session, thread_id)
     await canvases.member_role(session, c)
     text = _body(body)
-    session.add(
-        CanvasComment(
-            thread_id=t.id,
-            author=activity.current_actor(),
-            body=text,
-            mentions=json.dumps(_mentions(text)),
-            ai=json.dumps(ai) if ai is not None else None,
-        )
+    mentioned = await _mentioned(session, c, text)
+    new = CanvasComment(
+        thread_id=t.id,
+        author=activity.current_actor(),
+        body=text,
+        mentions=json.dumps([m.id for m in mentioned]),
+        ai=json.dumps(ai) if ai is not None else None,
     )
+    session.add(new)
     await session.commit()
-    return await _thread_out(session, c, t)
+    out = await _thread_out(session, c, t)
+    await _notify_mentions(session, c, t, new, mentioned)
+    return out
 
 
 async def edit_comment(
@@ -256,7 +335,7 @@ async def edit_comment(
     if m.author != activity.current_actor():
         raise DocsError(403, "not_yours", "You can only edit your own comments.")
     m.body = _body(body)
-    m.mentions = json.dumps(_mentions(m.body))
+    m.mentions = json.dumps([x.id for x in await _mentioned(session, c, m.body)])
     m.edited_at = canvases._now()  # noqa: SLF001
     session.add(m)
     await session.commit()
@@ -297,10 +376,10 @@ async def delete_comment(session: AsyncSession, comment_id: str) -> dict[str, An
 async def set_status(
     session: AsyncSession, thread_id: str, status: str
 ) -> dict[str, Any]:
-    """Resolve or reopen a thread. An AI member never resolves a person's thread.
+    """Resolve or reopen a thread. An AI team never resolves a person's thread.
 
     Raises:
-        DocsError: 403 when an AI member tries to resolve a thread a person started.
+        DocsError: 403 when an AI team tries to resolve a thread a person started.
     """
     c, t = await _thread(session, thread_id)
     await canvases.member_role(session, c)
@@ -311,7 +390,7 @@ async def set_status(
         and not await _is_ai(session, c, t.created_by)
     ):
         raise DocsError(
-            403, "ai_cannot_resolve", "AI members do not resolve a person's thread."
+            403, "ai_cannot_resolve", "AI teams do not resolve a person's thread."
         )
     t.status = status
     t.resolved_by = actor if status == "resolved" else None

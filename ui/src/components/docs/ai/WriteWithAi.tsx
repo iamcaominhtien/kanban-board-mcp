@@ -300,10 +300,7 @@ export function WriteWithAi({ projectId, form, onForm, onPreview, error }: Props
         data-testid="what-will-be-sent"
         style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minHeight: 28 }}
       >
-        <span
-          style={{ fontSize: 11.5, color: '#5B6B60' }}
-          title="Only this goes to the AI. Pages hidden from AI are never read."
-        >
+        <span style={{ fontSize: 11.5, color: '#5B6B60' }} title="Only this goes to the AI.">
           What will be sent ⓘ
         </span>
         {!ready && <span style={hint}>Pick a source first</span>}

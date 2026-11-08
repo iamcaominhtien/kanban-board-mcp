@@ -5,11 +5,11 @@ import { Icon } from '../Icon';
 import { CommentBox } from './CommentBox';
 import { CommentText } from './CommentText';
 import { personOf, threadLink, type CommentPerson } from './people';
-import { sentWords, useSendToAi, useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
+import { useThreadAiActions, type useCommentActions } from '../../../api/docsComments';
 import type { SuggestMember } from '../RefSuggester';
-import { aiCostLabel, aiReplyKind, canSuggestEdit, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
-import { REVIEW_PROPOSAL_EVENT } from '../../../utils/docsProposalRules';
+import { aiCostLabel, aiReplyKind, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
 import { LineIcon } from '../../ui/LineIcon';
+import { ThreadSendButton } from './SendToAi';
 
 type Actions = ReturnType<typeof useCommentActions>;
 
@@ -85,7 +85,7 @@ export function aiWhere(c: DocsCommentItem): { label: string; title: string } {
 
 /** Replies only between AIs (ai-story-flow P): an AI member's reply whose mentions are all AI members. */
 export function aiToAiReply(c: DocsCommentItem, members: DocsCommentsResult['members'], me: string): boolean {
-  if (c.ai?.kind) return false; // a note, an error or a proposal speaks to the person
+  if (c.ai?.kind) return false; // a note or an error speaks to the person
   if (!personOf(c.author, members, me).ai || c.mentions.length === 0) return false;
   return c.mentions.every((m) => members.some((x) => x.id === m.id && x.kind === 'ai'));
 }
@@ -191,8 +191,6 @@ export function ThreadCard({
   const docsAi = !!data.docsAi;
   const ai = useThreadAiActions(thread.pageId);
   const replyMembers = useMemo(() => threadMembers(thread, suggestMembers), [thread, suggestMembers]);
-  const handOff = useSendToAi(thread.pageId);
-  const [notice, setNotice] = useState<string | null>(null);
   const working = thinking(thread);
   const orphaned = thread.anchor?.state === 'orphaned';
   const resolved = thread.status === 'resolved';
@@ -224,24 +222,6 @@ export function ThreadCard({
   function renderAiExtras(c: DocsCommentItem) {
     const kind = aiReplyKind(c);
     if (!kind || !c.ai) return null;
-    if (kind === 'proposal' && c.ai.proposalId) {
-      const id = c.ai.proposalId;
-      return (
-        <div className="dc-ai-proposal" data-testid="ai-proposal-link">
-          <span>A proposal waits for review. Nothing on the page changed.</span>
-          <button
-            type="button"
-            className="dc-plain dc-bordered"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.dispatchEvent(new CustomEvent(REVIEW_PROPOSAL_EVENT, { detail: { proposalId: id } }));
-            }}
-          >
-            <Icon name="eye" size={13} strokeWidth={1.9} /> Review
-          </button>
-        </div>
-      );
-    }
     if (kind !== 'answer') return null;
     return (
       <div className="dc-ai-chips">
@@ -253,36 +233,6 @@ export function ThreadCard({
         ))}
         <span className="dc-ai-cost">{aiCostLabel(c.ai.cost)}</span>
         <span style={{ flex: 1 }} />
-        {c.ai.handoff?.ticketId && !resolved && thread.canReply && (
-          <button
-            type="button"
-            className="dc-ai-suggest"
-            data-testid="ai-handoff"
-            disabled={handOff.isPending}
-            title="The AI working on that ticket does it, in the ticket's own conversation"
-            onClick={(e) => {
-              e.stopPropagation();
-              const ticketId = c.ai!.handoff!.ticketId;
-              void run(handOff.mutateAsync({ threadIds: [thread.id], ticketId }).then((r) => setNotice(sentWords(r))));
-            }}
-          >
-            <Icon name="send" size={13} strokeWidth={1.9} /> Send to {c.ai.handoff.ticketId}
-          </button>
-        )}
-        {canSuggestEdit(c, thread, docsAi) && (
-          <button
-            type="button"
-            className="dc-ai-suggest"
-            data-testid="ai-suggest-edit"
-            disabled={ai.suggestEdit.isPending}
-            onClick={(e) => {
-              e.stopPropagation();
-              void run(ai.suggestEdit.mutateAsync({ threadId: thread.id, commentId: c.id }));
-            }}
-          >
-            <Icon name="i15" size={13} strokeWidth={1.9} /> Suggest an edit
-          </button>
-        )}
       </div>
     );
   }
@@ -332,7 +282,7 @@ export function ThreadCard({
     return (
       <div
         key={c.id}
-        className={`dc-comment${c.ai && !['answer', 'proposal', 'ticket'].includes(aiReplyKind(c) ?? '') ? ' dc-ai-note' : ''}`}
+        className={`dc-comment${c.ai && !['answer', 'ticket'].includes(aiReplyKind(c) ?? '') ? ' dc-ai-note' : ''}`}
         data-testid="comment-item"
       >
         <Avatar p={p} />
@@ -643,7 +593,7 @@ export function ThreadCard({
               </span>
             </div>
             <div className="dc-ai-dots">
-              {w.kind === 'suggest_edit' ? 'Writing a suggested edit' : (w.step ?? 'Reading the page and the thread')}
+              {w.step ?? 'Reading the page and the thread'}
               <span>…</span>
             </div>
           </div>
@@ -707,16 +657,12 @@ export function ThreadCard({
           {thread.resolvedAt && <> · {relativeTime(thread.resolvedAt)}</>}
         </div>
       )}
-      {notice && (
-        <div className="dc-sendai-done" role="status" data-testid="thread-handoff-done">
-          {notice}
-        </div>
-      )}
       {error && (
         <div className="dc-failed" role="alert" data-testid="thread-error">
           {error}
         </div>
       )}
+      {!resolved && thread.canReply && <ThreadSendButton pageId={thread.pageId} threadId={thread.id} />}
       {!resolved && (
         <div id={`dc-reply-${thread.id}`} className="dc-reply" onClick={(e) => e.stopPropagation()}>
           {thread.canReply ? (

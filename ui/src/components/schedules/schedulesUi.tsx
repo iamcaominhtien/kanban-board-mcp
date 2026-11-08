@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import type { Schedule, ScheduleRun, SlotState } from '../../types/schedules';
 import '../ai/ai.css';
 import './schedules.css';
@@ -140,24 +140,6 @@ export function DocIcon({ size }: IconProps) {
     </Svg>
   );
 }
-/** Target (checks the reviewer judges). */
-export function TargetIcon({ size }: IconProps) {
-  return (
-    <Svg size={size}>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="4.5" />
-    </Svg>
-  );
-}
-/** Person with a check (AI review). */
-export function ReviewIcon({ size }: IconProps) {
-  return (
-    <Svg size={size}>
-      <circle cx="9" cy="8" r="3.5" />
-      <path d="M2.5 20C2.5 16.5 5.5 14.5 9 14.5M14 18L16.5 20.5L21.5 14.5" />
-    </Svg>
-  );
-}
 /** Plus. */
 export function PlusIcon({ size }: IconProps) {
   return (
@@ -287,21 +269,18 @@ export function ScheduleStateChip({ state }: { state: Schedule['state'] }) {
 export function SlotChip({
   state,
   failures,
-  verbose,
   catchUp,
 }: {
   state: SlotState;
   /** Failures in a row, shown as ×N on a failed chip. */
   failures?: number;
-  /** "Finished · passed" in the run history. */
-  verbose?: boolean;
   catchUp?: boolean;
 }) {
   switch (state) {
     case 'passed':
       return (
         <Pill tone="green" icon={<CheckCircleIcon size={11} />}>
-          {verbose ? 'Finished · passed' : 'Finished'}
+          Finished
         </Pill>
       );
     case 'partly':
@@ -331,7 +310,7 @@ export function SlotChip({
     case 'waiting':
       return (
         <Pill tone="amber" icon={<ClockIcon size={11} />}>
-          Waiting for runner
+          Waiting for the desktop app
         </Pill>
       );
     case 'ask':
@@ -344,18 +323,6 @@ export function SlotChip({
       return (
         <Pill tone="green" icon={<span className="ai-pulse sc-dot" />}>
           {catchUp ? 'Catch-up · running' : 'Running'}
-        </Pill>
-      );
-    case 'reviewing':
-      return (
-        <Pill tone="violet" icon={<span className="ai-spin" style={{ width: 10, height: 10 }} />}>
-          In AI review
-        </Pill>
-      );
-    case 'fixing':
-      return (
-        <Pill tone="violet" icon={<span className="ai-spin" style={{ width: 10, height: 10 }} />}>
-          Fixing after review
         </Pill>
       );
   }
@@ -427,64 +394,19 @@ export function fmtMinutes(s: number | null | undefined): string {
   return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${Math.max(m, 1)} min`;
 }
 
-/** The "Weekdays at 02:00 (UTC+7) · Claude Code · Backend · reviewed by Reviewer" line. */
+/** The "Weekdays at 02:00 (UTC+7) · Claude Code · Backend" line. */
 export function scheduleLine(s: Schedule, opts: { tz?: boolean; ai?: boolean } = {}): string {
   const parts = [s.kind === 'repeat' && opts.tz ? `${s.when} (${s.tzLabel})` : s.when];
   if (opts.ai !== false && s.memberName) parts.push(s.memberName);
-  if (opts.ai !== false && s.review.on && s.review.reviewerName) parts.push(`reviewed by ${s.review.reviewerName}`);
   return parts.join(' · ');
 }
 
-/** The check chips of a schedule: "4 criteria", "Tests", "PR linked", "1 judged". */
-export function CheckChips({
-  schedule,
-  criteria,
-  aiLabel,
-}: {
-  schedule: Schedule;
-  criteria?: number;
-  aiLabel?: boolean;
-}) {
-  const c = schedule.checks;
-  const chips: { key: string; icon: ReactNode; text: string }[] = [];
-  if (c.criteria)
-    chips.push({
-      key: 'criteria',
-      icon: <CheckCircleIcon size={12} />,
-      text: criteria == null ? 'Criteria' : `${criteria} criteri${criteria === 1 ? 'on' : 'a'}`,
-    });
-  if (c.tests.on) chips.push({ key: 'tests', icon: <FlaskIcon size={12} />, text: 'Tests' });
-  if (c.summary && !chips.length) chips.push({ key: 'summary', icon: <DocIcon size={12} />, text: 'Summary' });
-  if (c.branch) chips.push({ key: 'branch', icon: <BranchIcon size={12} />, text: 'PR linked' });
-  if (c.aiChecks.length)
-    chips.push({
-      key: 'ai',
-      icon: <TargetIcon size={12} />,
-      text: aiLabel
-        ? `${c.aiChecks.length} AI check${c.aiChecks.length === 1 ? '' : 's'}`
-        : `${c.aiChecks.length} judged`,
-    });
-  if (!chips.length)
-    return (
-      <span className="ai-muted" style={{ fontSize: 12.5 }}>
-        No checks
-      </span>
-    );
-  return (
-    <>
-      {chips.map((x) => (
-        <span key={x.key} className="sc-pill">
-          {x.icon}
-          {x.text}
-        </span>
-      ))}
-    </>
-  );
-}
+/** The name of the CLI a team runs on. */
+export const PROVIDER_NAME: Record<string, string> = { 'claude-code': 'Claude Code' };
 
-/** What a member can be picked for: the board can start it. */
-export function canStart(m: AiMember): boolean {
-  return m.kind === 'ai' && m.connection !== 'inbox';
+/** What a team can be picked for: the board can start it. */
+export function canStart(m: AiTeam): boolean {
+  return m.kind === 'ai';
 }
 
 /** The slot the person most likely wants to see first: waiting, then the newest. */

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { CanvasIcon } from './CanvasIcon';
 import styles from './Canvas.module.css';
 
-export type StartWith = 'blank' | 'files' | 'ai';
+export type StartWith = 'blank' | 'files';
 
 interface Props {
   /** "Ticket KAN-142, description" - where the canvas will belong. */
@@ -10,40 +10,27 @@ interface Props {
   defaultName?: string;
   busy?: boolean;
   error?: string | null;
-  /** Hide "Ask AI" where AI is not available (a free idea). */
-  aiAvailable?: boolean;
-  onCreate: (r: { name: string; start: StartWith; files: File[]; prompt: string }) => void;
+  onCreate: (r: { name: string; start: StartWith; files: File[] }) => void;
   onCancel: () => void;
 }
 
 /**
- * The "New canvas" dialog: a name, where it is saved, and what it starts with (one empty frame, HTML or picture files,
- * or screens described to the AI).
+ * The "New canvas" dialog: a name, where it is saved, and what it starts with (one empty frame, or HTML or picture files).
  * @param props.savedIn - Where it belongs (read only).
  * @param props.defaultName - Suggested name.
  * @param props.busy - Creating.
  * @param props.error - Why the last try failed.
- * @param props.aiAvailable - Whether "Ask AI" is offered.
  * @param props.onCreate - Called with the choices.
  * @param props.onCancel - Called when the person backs out.
  */
-export function NewCanvasDialog({
-  savedIn,
-  defaultName = '',
-  busy,
-  error,
-  aiAvailable = true,
-  onCreate,
-  onCancel,
-}: Props) {
+export function NewCanvasDialog({ savedIn, defaultName = '', busy, error, onCreate, onCancel }: Props) {
   const [name, setName] = useState(defaultName);
   const [start, setStart] = useState<StartWith>('blank');
   const [files, setFiles] = useState<File[]>([]);
-  const [prompt, setPrompt] = useState('');
   const pick = useRef<HTMLInputElement>(null);
-  const ready = name.trim().length > 0 && (start !== 'files' || files.length > 0) && (start !== 'ai' || prompt.trim());
+  const ready = name.trim().length > 0 && (start !== 'files' || files.length > 0);
   const submit = () => {
-    if (ready && !busy) onCreate({ name: name.trim(), start, files, prompt: prompt.trim() });
+    if (ready && !busy) onCreate({ name: name.trim(), start, files });
   };
   return (
     <div
@@ -87,7 +74,6 @@ export function NewCanvasDialog({
                 [
                   ['blank', 'Blank', 'One empty frame', 'frame'],
                   ['files', 'From files', 'HTML or images', 'upload'],
-                  ...(aiAvailable ? [['ai', 'Ask AI', 'Describe the screens', 'spark']] : []),
                 ] as [StartWith, string, string, string][]
               ).map(([id, label, sub, icon]) => (
                 <button
@@ -128,18 +114,6 @@ export function NewCanvasDialog({
             onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
             data-testid="canvas-new-files"
           />
-          {start === 'ai' && (
-            <label>
-              <span className={styles.fieldLabel}>Describe the screens</span>
-              <textarea
-                className={styles.input}
-                rows={3}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Sign in, sign in with a wrong password, and reset password, desktop and phone."
-              />
-            </label>
-          )}
           {error && (
             <div role="alert" style={{ color: '#a93822', fontSize: 13 }}>
               {error}

@@ -3,7 +3,7 @@ the board. Nothing here changes a page.
 
 Out of date comes from the freshness checks. Missing docs (Done tickets no page links), Broken links (`[[links]]` and
 sections that do not resolve) and Overlaps (pages with strongly similar titles or text) are found by rules on the
-space's own data, with no model. Only pages an AI may read are included: a hidden page never appears. Dismissals
+space's own data, with no model. Every live page is included (AI v2 reads what people read). Dismissals
 (this time, 30 days, never) are remembered per item in `docs_ai_health.data.dismissed`.
 """
 
@@ -17,13 +17,29 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import database
-from models import DocsAiCheck, DocsAiHealth, DocsLink, DocsPage, Ticket
+from models import DocsAiHealth, DocsLink, DocsPage, Ticket
 from services import docs as svc_docs
 from services.ai.store import loads, now_iso, parse_iso
 
-from . import access, freshness
 from . import settings as svc_settings
 from .errors import DocsAiError
+
+
+async def _readable_pages(session: AsyncSession, project_id: str) -> list[DocsPage]:
+    """The project's live pages (AI v2 reads what people read)."""
+    from sqlmodel import col
+
+    return list(
+        (
+            await session.exec(
+                select(DocsPage).where(
+                    DocsPage.project_id == project_id,
+                    col(DocsPage.deleted_at).is_(None),
+                )
+            )
+        ).all()
+    )
+
 
 KINDS = ("out_of_date", "missing", "broken", "overlaps")
 MISSING_DAYS = 30  # Done tickets of the last 30 days
@@ -174,7 +190,7 @@ async def _overlaps(
     pages = pages[:MAX_PAIR_PAGES]
     shingles: dict[str, set[str]] = {}
     for p in pages:
-        w = _words(await access.published_text(session, p))
+        w = _words(getattr(p, "content", "") or "")
         if len(w) >= MIN_WORDS:
             shingles[p.id] = _shingles(w)
     out = []
@@ -213,16 +229,13 @@ async def run(
     *,
     check: bool = True,
     freshness_day: str | None = None,
-    cap: int = freshness.MANUAL_CAP,
+    cap: int = 50,
 ) -> dict[str, Any]:
     """Recompute Missing docs, Broken links and Overlaps (no model), and, with `check`, run the freshness checks of
     pages whose dependencies changed (at most `cap` model calls). Returns what `get` returns."""
     await svc_settings.require_enabled(session, project_id)
     asked = {"checked": 0, "asked": 0, "deferred": 0, "stopped": None}
-    if check:
-        asked = await freshness.run_project(project_id, by=by, cap=cap, pause=0)
-        session.expire_all()
-    pages = await access.readable_pages(session, project_id)
+    pages = await _readable_pages(session, project_id)
     readable = {p.id for p in pages}
     row = await row_of(session, project_id)
     data = loads(row.data, {})
@@ -277,36 +290,14 @@ def _dismissed(
 async def _out_of_date(
     session: AsyncSession, project_id: str, pages: dict[str, DocsPage]
 ) -> list[dict[str, Any]]:
-    checks = (
-        await session.exec(
-            select(DocsAiCheck).where(DocsAiCheck.project_id == project_id)
-        )
-    ).all()
-    out = []
-    for c in checks:
-        page = pages.get(c.page_id)
-        if page is None or not freshness.is_flagged(c):
-            continue
-        parent = pages.get(page.parent_id or "")
-        v = await svc_docs._latest_version(session, page)  # noqa: SLF001
-        out.append(
-            {
-                "page_id": page.id,
-                "title": page.title,
-                "parent": parent.title if parent else None,
-                "reasons": freshness.visible_reasons(c),
-                "edited_at": v.created_at if v else page.updated_at,
-                "checked_at": c.checked_at,
-            }
-        )
-    out.sort(key=lambda r: r["title"].lower())
-    return out
+    """Freshness checks come back with the assistant (AI v2, stage 7)."""
+    return []
 
 
 async def get(
     session: AsyncSession, project_id: str, *, compute_missing: bool = True
 ) -> dict[str, Any]:
-    """The Docs health lists with dismissed items and pages hidden from AI left out, and the counts.
+    """The Docs health lists with dismissed items left out, and the counts.
 
     The first call of a project runs the deterministic part once (`compute_missing`)."""
     cfg = await svc_settings.require_enabled(session, project_id)
@@ -314,7 +305,7 @@ async def get(
     if compute_missing and not row.checked_at:
         return await run(session, project_id, "system", check=False)
     data = await data_of(session, project_id)
-    pages = {p.id: p for p in await access.readable_pages(session, project_id)}
+    pages = {p.id: p for p in await _readable_pages(session, project_id)}
     entries = [e for e in data.get("dismissed", []) if isinstance(e, dict)]
     run_at = row.checked_at
 
@@ -372,7 +363,7 @@ async def dismiss(
     """Dismiss one item of a list: this time (until the next run), 30 days, or never."""
     if kind not in KINDS:
         raise DocsAiError("invalid", "Unknown kind of finding.")
-    if level not in freshness.LEVELS:
+    if level not in ("once", "month", "never"):
         raise DocsAiError("invalid", "Dismiss this time, for 30 days or never.")
     await svc_settings.require_enabled(session, project_id)
     row = await row_of(session, project_id)

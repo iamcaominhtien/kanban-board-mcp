@@ -16,10 +16,9 @@ function Source({ lesson }: { lesson: Lesson }) {
 
 /** Where a proposal came from, in the words of the design. */
 export function proposedByLine(by: string | null): string {
-  if (by === 'model') return 'Proposed by a light model reading the run, not by the Dev itself.';
-  if (by === 'diagnosis') return 'Proposed by a diagnosis of a run that went wrong.';
-  if (by && by !== 'model') return `Proposed by ${by} while it worked.`;
-  return by ? `Proposed by ${by}.` : 'Proposed.';
+  // v2: a lesson comes from the lead's final report; the two v1 sources (a light model, a diagnosis) are gone
+  if (!by || by === 'model' || by === 'diagnosis') return 'Proposed while the team worked.';
+  return `Proposed by ${by} while it worked.`;
 }
 
 function LessonEditor({

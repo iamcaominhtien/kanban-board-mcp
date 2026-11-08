@@ -9,6 +9,7 @@ to open with Read (Claude reads images).
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import tempfile
@@ -43,7 +44,11 @@ def stage(text: str, key: str) -> tuple[str, str | None]:
     folder.mkdir(parents=True, exist_ok=True)
     lines = []
     for rel, path in found:
-        copy = folder / Path(rel).name
+        # the copy keeps only the file name and must stay inside the call's folder (no "..", no separators)
+        target = os.path.normpath(os.path.join(str(folder), Path(rel).name))
+        if not target.startswith(str(folder) + os.sep):
+            continue
+        copy = Path(target)
         if not copy.exists():
             shutil.copy2(path, copy)
         lines.append(f"- /uploads/{rel} → {copy}")

@@ -7,24 +7,7 @@ export type ScheduleState = 'active' | 'paused' | 'ended';
 export type ScheduleNotify = 'started' | 'needs_input' | 'failed' | 'finished';
 
 /** What one slot is doing or how it ended. */
-export type SlotState =
-  'waiting' | 'ask' | 'running' | 'reviewing' | 'fixing' | 'passed' | 'partly' | 'failed' | 'skipped' | 'cancelled';
-
-export interface ScheduleChecks {
-  criteria: boolean;
-  tests: { on: boolean; command: string; cwd: string };
-  summary: boolean;
-  branch: boolean;
-  /** Points the reviewer judges, in plain words. */
-  aiChecks: string[];
-}
-
-export interface ScheduleReview {
-  on: boolean;
-  reviewerId: string | null;
-  fixRounds: number;
-  reviewerName?: string | null;
-}
+export type SlotState = 'waiting' | 'ask' | 'running' | 'passed' | 'partly' | 'failed' | 'skipped' | 'cancelled';
 
 export interface ScheduleLimits {
   stopAfterMin: number;
@@ -32,27 +15,14 @@ export interface ScheduleLimits {
   maxCost: number | null;
 }
 
-/** One "done when" result of a slot. `machine` checks are facts, `ai` checks are the reviewer's judgement. */
-export interface CheckResult {
-  key: string;
-  label: string;
-  kind: 'machine' | 'ai';
-  ok: boolean;
-  detail: string;
-  met?: number;
-  count?: number;
-  exitCode?: number;
-}
-
-export interface SlotReview {
-  reviewerId?: string | null;
-  reviewerName?: string | null;
-  verdict?: 'pass' | 'changes';
-  notes?: string;
-  fixes?: string[];
-  rounds?: number;
-  cost?: number;
-  metered?: boolean;
+/** What the lead said when the run finished. */
+export interface ScheduleRunReport {
+  status: string;
+  summary: string;
+  openItems: string[];
+  branch: string | null;
+  prUrl: string | null;
+  runId: string;
 }
 
 /** One planned start (a "slot") and what came of it. */
@@ -67,14 +37,13 @@ export interface ScheduleRun {
   memberName: string | null;
   runIds: string[];
   attempts: number;
-  fixRound: number;
-  results: CheckResult[];
-  review: SlotReview;
   note: string | null;
   startedAt: string | null;
   endedAt: string | null;
   durationS: number | null;
   costUsd: number;
+  /** The lead's report on the slot's last run (summary, open items, branch and PR), when it finished. */
+  report?: ScheduleRunReport | null;
 }
 
 export interface PreviewCheck {
@@ -105,9 +74,6 @@ export interface Schedule {
   endsAfter: number | null;
   endsOn: string | null;
   windowEnd: string | null;
-  checks: ScheduleChecks;
-  machineChecks: number;
-  review: ScheduleReview;
   limits: ScheduleLimits;
   catchUp: ScheduleCatchUp;
   catchUpHours: number;
@@ -120,7 +86,7 @@ export interface Schedule {
   runsCount: number;
   nextRunAt: string | null;
   nextIn: string | null;
-  /** "Runner often offline at 02:00": a local runner that missed its last slots. */
+  /** "Desktop app often closed at 02:00": a team that missed its last starts. */
   offlineRisk?: string | null;
   when: string;
   ticketChanged: boolean;
@@ -143,7 +109,6 @@ export interface ScheduleDetail extends Schedule {
     avgS: number | null;
     cost: number;
     metered: boolean;
-    reviewRounds: number | null;
   };
   runs: ScheduleRun[];
   summary: string;
@@ -164,8 +129,6 @@ export interface ScheduleDraft {
   endsAfter: number | null;
   endsOn: string;
   windowEnd: string;
-  checks: ScheduleChecks;
-  review: { on: boolean; reviewerId: string | null; fixRounds: number };
   limits: ScheduleLimits;
   catchUp: ScheduleCatchUp;
   catchUpHours: number;
@@ -192,7 +155,7 @@ export interface WeekItem {
   ticketId: string;
   memberId: string | null;
   at: string;
-  kind: 'run' | 'review' | 'past';
+  kind: 'run' | 'past';
   paused: boolean;
   state?: SlotState;
   overlap?: boolean;

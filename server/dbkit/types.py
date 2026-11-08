@@ -88,7 +88,7 @@ def server_metadata(metadata: MetaData, dialect: str | None = None) -> MetaData:
     writes a row before the one it points at within a transaction and keeps rows whose parent was deleted (a docs
     page whose parent went to the bin). Enforcing them on one engine only would make the same action fail there.
 
-    MySQL and MariaDB have no partial index: a unique index that holds only some rows (``ux_ai_run_ticket_hold``)
+    MySQL and MariaDB have no partial index: a unique index that holds only some rows
     would hold all of them there, so on ``dialect`` "mysql" it is made as a plain index.
     """
     from sqlalchemy import ForeignKeyConstraint

@@ -1,38 +1,37 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDecidedForYou, useTeamNow, useTeamStepped } from '../../api/aiTeam';
-import type { TeamRange } from '../../types/aiTeam';
+import { useEffect, useState } from 'react';
 import { NowTab, type NowActions } from './NowTab';
-import { FlowTab } from './FlowTab';
-import { HealthTab } from './HealthTab';
-import { SteppedInTab } from './SteppedInTab';
-import { DecidedTab } from './DecidedTab';
-import { AwayCard, AwaySummary, type AwayActions } from './AwayCard';
-import { decidedIsNew, markDecidedSeen, useAwayWindow } from './awayStore';
-import { ResumeAllDialog } from '../ai/AiKillSwitch';
-import { useAiBoardState } from '../ai/aiUi';
-import { ResourcesTab } from './ResourcesTab';
 import { HistoryTab } from './HistoryTab';
+import { ResourcesTab } from './ResourcesTab';
 import { useKnowledge } from '../../api/aiKnowledge';
 import { KnowledgeSection, memoryWaiting } from '../ai/knowledge/KnowledgeSection';
 import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
-import { CalendarIcon, Icon, ICONS } from './teamUi';
-import { MenuSelect } from '../ui/MenuSelect';
-import { OPEN_TIMELINE_EVENT, syncFlowAddress, takePendingTimeline, type TimelineLink } from './timelineLink';
-import { PROJECT_SCOPE, scopeLevel, type FlowScope, type FlowView } from './flowScope';
+import { TeamPage } from './TeamPage';
+import { FlowTab } from './FlowTab';
+import { SteppedInTab } from './SteppedInTab';
+import { HealthTab } from './HealthTab';
+import { useTouches } from '../../api/aiTouches';
+import { OPEN_TIMELINE_EVENT, parseTimelineLink, takePendingTimeline, type TimelineLink } from './timelineLink';
 import './aiTeam.css';
 
-type Tab = 'now' | 'flow' | 'stepped' | 'decided' | 'health' | 'resources' | 'history' | 'memory';
+type Tab = 'now' | 'flow' | 'history' | 'stepped' | 'health' | 'resources' | 'memory';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'now', label: 'Now' },
-  { id: 'flow', label: 'Flow' },
-  { id: 'stepped', label: 'You stepped in' },
-  { id: 'decided', label: 'Decided for you' },
-  { id: 'health', label: 'Health' },
-  { id: 'resources', label: 'Resources' },
-  { id: 'history', label: 'Run history' },
+const TABS: { id: Tab; label: string; hint: string }[] = [
+  { id: 'now', label: 'Now', hint: 'What each team is doing, and what needs you' },
+  // the map and the timeline of the teams, by scope (the old tab Timeline is a view of it)
+  {
+    id: 'flow',
+    label: 'Flow',
+    hint: 'Who took which ticket, who wrote to whom, what waited for you: a Map or a Timeline',
+  },
+  { id: 'history', label: 'Run history', hint: 'Every run, newest first' },
+  // every time a person had to touch the work (KBM-21)
+  { id: 'stepped', label: 'You stepped in', hint: 'Each time a person had to touch the work, in the last 7 days' },
+  // is the AI team healthy, per team (KBM-22)
+  { id: 'health', label: 'Health', hint: 'Whether each team is in good shape' },
+  // the machine, the running runs and the limits (KBM-19)
+  { id: 'resources', label: 'Resources', hint: 'The machine, the runs on it and its limits' },
   // what the AIs remember, and what waits for a person there (issue #274)
-  { id: 'memory', label: 'Memory' },
+  { id: 'memory', label: 'Memory', hint: 'What the AIs learned on this project' },
 ];
 
 interface Props {
@@ -40,54 +39,29 @@ interface Props {
   projectName: string;
   onOpenTicket: (ticketId: string) => void;
   onOpenMember: (memberId: string) => void;
-  onOpenDocsPage: (pageId: string) => void;
-  /** Open a Story's page; without it the Story's ticket opens. */
-  onOpenStory?: (storyId: string) => void;
 }
 
-/** Where Flow opens from a link: a Flow link names its scope and view, a Timeline link may name one ticket. */
-function scopeFromLink(link: TimelineLink | null): { scope: FlowScope; view: FlowView } {
-  if (link?.flow) return { scope: { story: link.flow.story, ticket: link.flow.ticket }, view: link.flow.view };
-  if (link) return { scope: { story: null, ticket: link.scope ?? null }, view: 'timeline' };
-  return { scope: PROJECT_SCOPE, view: 'map' };
-}
-
-/** The AI Team view (design/screens/ai-team.md): what the AIs are doing, how work moves, where people stepped in. */
-export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember, onOpenDocsPage, onOpenStory }: Props) {
-  // The Timeline was asked for (a link, or "Open in Timeline" on a ticket): Flow opens on it
-  const [timelineLink, setTimelineLink] = useState<{ link: TimelineLink; key: number } | null>(() => {
-    const link = takePendingTimeline();
-    return link ? { link, key: Date.now() } : null;
-  });
+/** The AI Team view: what the teams are doing now, what they use, what they ran and what they remember. */
+export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember }: Props) {
   // A run was asked for (a link to its detail): Run history opens on it
   const [runId, setRunId] = useState<string | null>(() => takePendingRun());
-  const [tab, setTab] = useState<Tab>(runId ? 'history' : timelineLink ? 'flow' : 'now');
-  // Flow's scope and view (design/screens/ai-story-flow.md, G), kept on the address while Flow is open
-  const [flowScope, setFlowScopeState] = useState<FlowScope>(() => scopeFromLink(timelineLink?.link ?? null).scope);
-  const [flowView, setFlowView] = useState<FlowView>(() => scopeFromLink(timelineLink?.link ?? null).view);
-  // a Story or a ticket opens on its whole life until a range is picked
-  const [flowLife, setFlowLife] = useState(() => scopeLevel(flowScope) !== 'project');
-  const scopeRef = useRef(flowScope);
-  const setFlowScope = useCallback((next: FlowScope) => {
-    const prev = scopeRef.current;
-    if (prev.story === next.story && prev.ticket === next.ticket) return;
-    scopeRef.current = next;
-    setFlowScopeState(next);
-    setFlowLife(scopeLevel(next) !== 'project');
-  }, []);
+  // Flow was asked for ("Open in Timeline" on a ticket, or an address with `?aiteam=flow` / `?aiteam=timeline`): the
+  // Flow tab opens on that scope and view
+  const [flowLink, setFlowLink] = useState<{ link: TimelineLink; key: number } | null>(() => {
+    const link = takePendingTimeline() ?? parseTimelineLink(window.location.search);
+    return link ? { link, key: Date.now() } : null;
+  });
+  const [tab, setTab] = useState<Tab>(runId ? 'history' : flowLink ? 'flow' : 'now');
   useEffect(() => {
     const open = () => {
       const link = takePendingTimeline();
       if (!link) return;
-      setTimelineLink({ link, key: Date.now() });
-      const next = scopeFromLink(link);
-      setFlowScope(next.scope);
-      setFlowView(next.view);
+      setFlowLink({ link, key: Date.now() });
       setTab('flow');
     };
     window.addEventListener(OPEN_TIMELINE_EVENT, open);
     return () => window.removeEventListener(OPEN_TIMELINE_EVENT, open);
-  }, [setFlowScope]);
+  }, []);
   useEffect(() => {
     const open = () => {
       const id = takePendingRun();
@@ -98,67 +72,19 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
     window.addEventListener(OPEN_RUN_EVENT, open);
     return () => window.removeEventListener(OPEN_RUN_EVENT, open);
   }, []);
-  // Now reads best for today, the other tabs for a week; each tab keeps the range the person picked
-  const [ranges, setRanges] = useState<Record<Tab, TeamRange>>({
-    now: 'today',
-    flow: '7d',
-    stepped: '7d',
-    decided: '7d',
-    health: '7d',
-    resources: 'today',
-    history: '30d',
-    memory: '30d',
-  });
-  const range = ranges[tab];
-  const setRange = (r: TeamRange) => setRanges({ ...ranges, [tab]: r });
-  const scoped = tab === 'flow' && scopeLevel(flowScope) !== 'project';
-  const life = scoped && flowLife;
-  const scopeId = flowScope.ticket ?? flowScope.story;
-
-  useEffect(() => {
-    syncFlowAddress(projectId, tab === 'flow' ? { ...flowScope, view: flowView } : null);
-  }, [projectId, tab, flowScope, flowView]);
-  useEffect(() => () => syncFlowAddress(projectId, null), [projectId]);
-  const { data, isLoading, isError, dataUpdatedAt } = useTeamNow(projectId, ranges.now);
-  const stepped = useTeamStepped(projectId, ranges.stepped);
+  // Health sends a person to the avoidable touches: the tab opens with that mark chosen
+  const [steppedMark, setSteppedMark] = useState<'avoidable' | undefined>(undefined);
+  const [steppedKey, setSteppedKey] = useState(0);
   const knowledge = useKnowledge(projectId);
-  const decided = useDecidedForYou(projectId, ranges.decided);
-  const [decidedNew, setDecidedNew] = useState(decidedIsNew);
-  useEffect(() => {
-    if (tab === 'decided' && decidedNew) {
-      markDecidedSeen();
-      setDecidedNew(false);
-    }
-  }, [tab, decidedNew]);
-  // While you were away (M2): the card on Now, its full summary, and Resume when AI was paused
-  const away = useAwayWindow();
-  const [awayFull, setAwayFull] = useState(false);
-  const [resuming, setResuming] = useState(false);
-  const board = useAiBoardState();
-  const openStory = (id: string) => (onOpenStory ? onOpenStory(id) : onOpenTicket(id));
-  const closeAway = () => {
-    away.close();
-    setAwayFull(false);
-  };
-  const awayActions: AwayActions = {
-    onOpenTicket,
-    onOpenStory: openStory,
-    onOpenWaiting: () => {
-      setAwayFull(false);
-      setTab('now');
-      window.setTimeout(() => document.getElementById('at-needs-you')?.scrollIntoView?.({ behavior: 'smooth' }), 0);
-    },
-    onSeeDecided: () => setTab('decided'),
-    onResume: () => setResuming(true),
-  };
+  const touches = useTouches(projectId, '7d');
+  // A team page (its roles) replaces tab Now until the person goes back
+  const [teamId, setTeamId] = useState<string | null>(null);
   const actions: NowActions = {
     onOpenTicket,
     onOpenMember,
-    onOpenDocsPage,
-    onSeeFlow: () => setTab('flow'),
-    onSeeResources: () => setTab('resources'),
+    onOpenTeam: setTeamId,
+    onOpenResources: () => setTab('resources'),
   };
-  const updated = dataUpdatedAt ? Math.max(0, Math.round((Date.now() - dataUpdatedAt) / 1000)) : null;
 
   return (
     <div className="at-root" data-testid="ai-team-view">
@@ -174,25 +100,25 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
               type="button"
               role="tab"
               aria-selected={tab === t.id}
+              title={t.hint}
               className={tab === t.id ? 'on' : ''}
-              onClick={() => setTab(t.id)}
+              onClick={() => {
+                setSteppedMark(undefined);
+                setTab(t.id);
+                if (t.id === 'now') setTeamId(null);
+                // leaving Flow forgets the request it was opened with: the tab opens on its default next time
+                if (t.id !== 'flow') setFlowLink(null);
+              }}
             >
               {t.label}
-              {t.id === 'resources' && data && data.restartedRuns > 0 ? (
-                <span
-                  data-testid="resources-dot"
-                  role="img"
-                  aria-label={`${data.restartedRuns} run${data.restartedRuns === 1 ? '' : 's'} restarted for memory`}
-                  title={`${data.restartedRuns} run${data.restartedRuns === 1 ? '' : 's'} restarted for memory`}
-                  style={{
-                    display: 'inline-block',
-                    width: 7,
-                    height: 7,
-                    borderRadius: 999,
-                    background: '#E8821A',
-                    marginLeft: 6,
-                  }}
-                />
+              {t.id === 'stepped' && touches.data && touches.data.totals.touches > 0 ? (
+                <b
+                  style={{ fontWeight: 700, color: '#7A5A06' }}
+                  title="Times a person stepped in during the last 7 days"
+                  data-testid="stepped-tab-count"
+                >
+                  {touches.data.totals.touches}
+                </b>
               ) : null}
               {t.id === 'memory' && knowledge.data && memoryWaiting(knowledge.data) > 0 ? (
                 <b
@@ -203,174 +129,56 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
                   {memoryWaiting(knowledge.data)}
                 </b>
               ) : null}
-              {t.id === 'stepped' && stepped.data ? (
-                <b style={{ fontWeight: 700, color: '#7A5A06' }}>{stepped.data.totals.touches}</b>
-              ) : null}
-              {t.id === 'decided' && decided.data ? (
-                <b
-                  style={{ fontWeight: 700, color: '#7A5A06' }}
-                  title={`${decided.data.totals.overridable} you can still override`}
-                  data-testid="decided-count"
-                >
-                  {decided.data.totals.overridable}
-                </b>
-              ) : null}
-              {t.id === 'decided' && decidedNew ? (
-                <span
-                  className="at-chip"
-                  style={{
-                    background: '#E3F3E7',
-                    color: '#1F5A31',
-                    height: 17,
-                    fontSize: 10,
-                    letterSpacing: '0.04em',
-                    padding: '0 6px',
-                  }}
-                >
-                  NEW
-                </span>
-              ) : null}
             </button>
           ))}
         </div>
-        <span style={{ flex: 1 }} />
-        {!(
-          tab === 'resources' ||
-          tab === 'history' ||
-          tab === 'memory' ||
-          (tab === 'flow' && flowView === 'timeline')
-        ) && (
-          // Flow › Timeline has its own range in its toolbar: a second one here disagreed with it
-          <MenuSelect<TeamRange | 'life'>
-            variant="button"
-            label="Range"
-            testId="at-range"
-            icon={<CalendarIcon />}
-            value={life ? 'life' : range}
-            options={[
-              ...(scoped ? [{ value: 'life' as const, label: 'Whole life' }] : []),
-              { value: 'today', label: 'Today' },
-              { value: '7d', label: 'Last 7 days' },
-              { value: '30d', label: 'Last 30 days' },
-            ]}
-            onChange={(v) => {
-              if (v === 'life') {
-                setFlowLife(true);
-                return;
-              }
-              setRange(v);
-              if (tab === 'flow') setFlowLife(false);
-            }}
-          />
-        )}
-        <span className="at-hint" hidden={tab === 'resources' || tab === 'history'} data-testid="range-hint">
-          {life
-            ? `The whole life of ${scopeId}`
-            : isError
-              ? 'Not live: reconnecting'
-              : updated != null
-                ? `Live · updated ${updated} s ago`
-                : ''}
-        </span>
       </div>
 
       {tab === 'flow' ? (
         <FlowTab
-          key={`flow:${timelineLink?.key ?? 0}`}
-          timelineLink={timelineLink?.link ?? null}
+          key={flowLink?.key ?? 0}
           projectId={projectId}
           projectName={projectName}
-          range={life ? null : range}
-          scope={flowScope}
-          view={flowView}
-          onScope={setFlowScope}
-          onView={setFlowView}
-          actions={{ onOpenTicket, onOpenDocsPage, onOpenStory }}
+          initial={flowLink?.link ?? null}
+          onOpenTicket={onOpenTicket}
         />
+      ) : tab === 'history' ? (
+        <HistoryTab projectId={projectId} runId={runId} onRunChange={setRunId} onOpenTicket={onOpenTicket} />
+      ) : tab === 'stepped' ? (
+        <SteppedInTab key={steppedKey} projectId={projectId} onOpenTicket={onOpenTicket} initialMark={steppedMark} />
       ) : tab === 'health' ? (
         <HealthTab
           projectId={projectId}
-          range={range}
-          onWiden={() => setRange('30d')}
           actions={{
             onOpenTicket,
-            onOpenMember,
-            onOpenDocsPage,
-            onOpenFlow: (id) => {
-              setFlowScope({ story: null, ticket: id });
-              setFlowView('map');
-              setTab('flow');
+            onOpenTeam: (id) => {
+              setTeamId(id);
+              setTab('now');
             },
-            onOpenStepped: () => setTab('stepped'),
-            onOpenStory: openStory,
+            onOpenTab: (t, mark) => {
+              setSteppedMark(mark);
+              setSteppedKey((k) => k + 1);
+              setTab(t);
+            },
           }}
         />
-      ) : tab === 'history' ? (
-        <HistoryTab
-          projectId={projectId}
-          members={data?.members ?? []}
-          runId={runId}
-          onRunChange={setRunId}
-          onOpenTicket={onOpenTicket}
-        />
+      ) : tab === 'resources' ? (
+        <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} />
       ) : tab === 'memory' ? (
         <div style={{ padding: '4px 0 24px', maxWidth: 920 }} data-testid="at-memory">
           <KnowledgeSection projectId={projectId} initialTab="memory" />
         </div>
-      ) : tab === 'resources' ? (
-        <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} />
-      ) : tab === 'decided' ? (
-        <DecidedTab projectId={projectId} range={range} actions={{ onOpenTicket, onOpenStory }} />
-      ) : tab === 'stepped' ? (
-        <SteppedInTab
+      ) : teamId ? (
+        <TeamPage
           projectId={projectId}
-          range={range}
-          actions={{
-            onOpenTicket,
-            onOpenDocsPage,
-            onOpenAudit: (id) => id && onOpenMember(id),
-          }}
-        />
-      ) : tab !== 'now' ? (
-        <div className="at-soon">
-          <Icon color="#7C5CD6" size={16}>
-            {ICONS.sparkle}
-          </Icon>{' '}
-          This tab is not built yet.
-        </div>
-      ) : away.since && awayFull ? (
-        <AwaySummary
-          projectId={projectId}
-          since={away.since}
-          members={data?.members ?? []}
-          onBack={() => setAwayFull(false)}
-          onMarkSeen={closeAway}
-          actions={awayActions}
+          teamId={teamId}
+          onBack={() => setTeamId(null)}
+          onOpenTicket={onOpenTicket}
+          onOpenMember={onOpenMember}
+          onOpenResources={actions.onOpenResources}
         />
       ) : (
-        <>
-          {away.since && (
-            <AwayCard
-              projectId={projectId}
-              since={away.since}
-              onClose={closeAway}
-              onOpenFull={() => setAwayFull(true)}
-              actions={awayActions}
-            />
-          )}
-          {isLoading || !data ? (
-            <div className="at-hint">{isError ? "Couldn't load the AI team." : 'Loading the AI team…'}</div>
-          ) : (
-            <NowTab data={data} range={range} actions={actions} />
-          )}
-        </>
-      )}
-      {resuming && (
-        <ResumeAllDialog
-          projectId={projectId}
-          members={[...board.members.values()].filter((m) => m.kind === 'ai')}
-          onClose={() => setResuming(false)}
-        />
+        <NowTab projectId={projectId} actions={actions} />
       )}
     </div>
   );

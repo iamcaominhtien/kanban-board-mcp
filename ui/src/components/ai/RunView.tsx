@@ -1,173 +1,298 @@
-import { useEffect, useMemo, useState } from 'react';
-import { aiApi, useAiMutation, useTicketRuns } from '../../api/ai';
+import { useEffect, useState } from 'react';
+import { aiApi, isActive, useAiMutation, useAiRun, useRunMessages, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import type { AiRun, RunStep } from '../../types/ai';
+import type { AiRun, AiRunFull, RunReport } from '../../types/ai';
 import type { Ticket } from '../../types';
 import { useToast } from '../Toast';
-import { RaiseLimitButton, TakeOverButton, UndoRunDialog } from './RunActions';
-import { SignInAgainButton } from './accounts/SignedOutBanners';
-import { testsOf, TestChips } from './ReviewGate';
-import { BoardStepIcon, isBoardStep } from './trouble/stepKinds';
-import { TellBox } from './trouble/TellBox';
-import { TroubleCard } from './trouble/TroubleCard';
+import { MarkdownRenderer } from '../MarkdownRenderer';
+import { QuestionCard } from './QuestionCard';
+import { RunTree } from './run/RunTree';
 import {
-  ACTIVE_RUN_STATES,
   AiAvatar,
+  LoadError,
   RunStateChip,
-  STATUS_NAMES,
+  TestChips,
   fmtElapsed,
   hhmm,
   money,
-  secondsSince,
   shortDate,
+  testsOf,
   useAiBoardState,
   useNow,
 } from './aiUi';
 import './ticketWork.css';
 import { LineIcon } from '../ui/LineIcon';
 
-function stepIcon(step: RunStep, last: boolean, live: boolean) {
-  if (last && live) return <span className="ai-spin" />;
-  if (isBoardStep(step.kind)) return <BoardStepIcon kind={step.kind} />;
-  if (step.kind === 'error' || step.kind === 'blocked')
-    return <span style={{ color: '#C4432A', fontWeight: 800, width: 13, textAlign: 'center' }}>!</span>;
-  if (step.kind === 'question' || step.kind === 'approval')
-    return <span style={{ color: '#34455A', fontWeight: 800, width: 13, textAlign: 'center' }}>?</span>;
-  if (step.kind === 'say') return <span style={{ color: '#9AA8A0', width: 13, textAlign: 'center' }}>“</span>;
-  if (step.kind === 'paused' || step.kind === 'resumed')
-    return (
-      <span style={{ color: '#5B6B60', fontWeight: 800, width: 13, textAlign: 'center' }}>
-        {step.kind === 'paused' ? <LineIcon name="pause" size={13} /> : <LineIcon name="play" size={13} />}
-      </span>
-    );
-  if (step.kind === 'command' && step.exitCode != null && step.exitCode !== 0)
-    return (
-      <span style={{ color: '#C4432A', fontWeight: 800, width: 13, textAlign: 'center' }}>
-        <LineIcon name="close" size={13} />
-      </span>
-    );
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#2E6F40"
-      strokeWidth="2.6"
-      style={{ flexShrink: 0 }}
-    >
-      <path d="M5 12.5L10 17.5L19 7" />
-    </svg>
-  );
+/** How long a run took, or has taken so far. */
+function runSeconds(run: Pick<AiRun, 'startedAt' | 'endedAt'>): number | null {
+  if (!run.startedAt) return null;
+  const end = run.endedAt ? new Date(run.endedAt).getTime() : Date.now();
+  return Math.max(0, Math.round((end - new Date(run.startedAt).getTime()) / 1000));
 }
 
-function StepText({ step, run }: { step: RunStep; run: AiRun }) {
-  const m = step.text.match(/^(Edited|Wrote|Read|Ran|Searched) (.+)$/);
-  const file = step.kind === 'edit' || step.kind === 'create' ? run.files.find((f) => m && f.path === m[2]) : undefined;
-  if (m && ['read', 'edit', 'create', 'command', 'search'].includes(step.kind))
-    return (
-      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-        {m[1]} <span className="ai-code">{m[2]}</span>
-        {step.exitCode != null && (
-          <span
-            style={{ color: step.exitCode === 0 ? '#5B6B60' : '#C4432A', fontWeight: step.exitCode === 0 ? 400 : 700 }}
-          >
-            {' '}
-            · exit {step.exitCode}
-          </span>
-        )}
-        {file && (
-          <span className="ai-mono" style={{ marginLeft: 10, fontSize: 11.5 }}>
-            <span style={{ color: '#2E6F40' }}>+{file.added}</span>
-            {!file.new && file.removed > 0 && <span style={{ color: '#C4432A' }}> −{file.removed}</span>}
-          </span>
-        )}
-      </span>
-    );
+/** Tokens as "12.3k". */
+export function tokenWords(n: number): string {
+  if (n < 1000) return String(n);
+  return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
+}
+
+/** What the lead handed in at the end: summary, branch, PR, what is left, the tests. */
+export function RunReportCard({ run }: { run: Pick<AiRun, 'report' | 'summary'> }) {
+  const report: RunReport = run.report ?? {};
+  const summary = report.summary || run.summary;
+  const tests = testsOf(run);
+  const open = report.openItems ?? [];
+  if (!summary && !report.branch && !report.prUrl && !open.length && !tests) return null;
   return (
-    <span
+    <div
+      data-testid="run-report"
       style={{
-        minWidth: 0,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: step.kind === 'say' ? 'normal' : 'nowrap',
-        color: step.kind === 'say' ? '#5B6B60' : undefined,
-        flex: 1,
+        boxSizing: 'border-box',
+        border: '1px solid #BFDCC7',
+        borderRadius: 12,
+        background: '#F6FBF7',
+        padding: '14px 17px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
       }}
     >
-      {step.text}
-      {typeof step.detail === 'string' && step.detail ? <span className="ai-muted"> · {step.detail}</span> : null}
-    </span>
+      <div className="ai-label" style={{ color: '#2E6F40' }}>
+        Report
+      </div>
+      {summary && (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }} data-testid="run-report-text">
+          <MarkdownRenderer plain>{summary}</MarkdownRenderer>
+        </div>
+      )}
+      {(report.branch || report.prUrl || tests) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12.5 }}>
+          {report.branch && (
+            <span data-testid="report-branch" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <LineIcon name="branch" size={12} /> <span className="ai-code">{report.branch}</span>
+            </span>
+          )}
+          {report.prUrl && (
+            <a href={report.prUrl} target="_blank" rel="noreferrer" data-testid="report-pr" className="ai-link">
+              <LineIcon name="external" size={12} /> Pull request
+            </a>
+          )}
+          {tests && <TestChips counts={tests} />}
+        </div>
+      )}
+      {open.length > 0 && (
+        <div data-testid="report-open-items">
+          <div className="ai-label" style={{ marginBottom: 4 }}>
+            Still open
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, lineHeight: 1.55 }}>
+            {open.map((o) => (
+              <li key={o}>{o}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
-/**
- * The live list of what the run did. A command's step opens to show what it printed (masked) and its exit code;
- * the failing one opens by itself. `collapseKey` changing collapses every row (“Collapse all”).
- */
-export function RunSteps({ run, compact, collapseKey = 0 }: { run: AiRun; compact?: boolean; collapseKey?: number }) {
-  const steps = compact ? run.steps.slice(-5) : run.steps;
-  const live = run.state === 'running' || run.state === 'starting';
-  const [open, setOpen] = useState<Set<number>>(new Set());
-  useEffect(() => setOpen(new Set()), [collapseKey]);
-  if (!steps.length) return <div className="ai-muted">{live ? 'Starting the CLI…' : 'No steps recorded.'}</div>;
-  const offset = run.steps.length - steps.length;
+/** A note to the running lead (live: it hears it now; else at its next turn). */
+export function RunMessageBox({ run }: { run: Pick<AiRun, 'id' | 'live' | 'state'> }) {
+  const [text, setText] = useState('');
+  const toast = useToast();
+  const send = useAiMutation((t: string) => aiApi.message(run.id, t));
+  if (!isActive(run.state) || run.state === 'queued') return null;
+  const sendNote = async () => {
+    if (!text.trim() || send.isPending) return;
+    try {
+      await send.mutateAsync(text.trim());
+      setText('');
+      toast.success('Sent', run.live ? 'The lead has it.' : 'The lead gets it with its next turn.');
+    } catch (err) {
+      toast.error("Couldn't send the message", extractError(err));
+    }
+  };
   return (
-    <div className="ai-steps" data-testid="run-steps">
-      {steps.map((s, i) => {
-        const n = offset + i;
-        const expandable = !!s.output;
-        const failing = s.kind === 'command' && s.exitCode != null && s.exitCode !== 0;
-        const isOpen = expandable && (open.has(n) || (failing && !open.has(-n - 1)));
-        const toggle = () =>
-          setOpen((cur) => {
-            const next = new Set(cur);
-            // a failing step is open by default: closing it is remembered with the negative index
-            if (failing && !open.has(n)) {
-              if (next.has(-n - 1)) next.delete(-n - 1);
-              else next.add(-n - 1);
-            } else if (next.has(n)) next.delete(n);
-            else next.add(n);
-            return next;
-          });
+    <div
+      data-testid="run-message-box"
+      style={{
+        display: 'flex',
+        gap: 10,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        padding: '8px 10px',
+        border: '1px solid #E3E8E5',
+        borderRadius: 11,
+        background: '#FBFCFB',
+      }}
+    >
+      <label
+        htmlFor={`run-msg-${run.id}`}
+        style={{ fontSize: 12.5, fontWeight: 700, color: '#1F5A31', whiteSpace: 'nowrap', paddingLeft: 4 }}
+      >
+        {run.live ? 'Tell the lead now' : 'Leave a note for the lead'}
+      </label>
+      <input
+        id={`run-msg-${run.id}`}
+        type="text"
+        className="ai-input"
+        style={{ flex: '1 1 220px', minWidth: 0 }}
+        value={text}
+        placeholder={run.live ? 'It reads this at its next step…' : 'It reads this when it takes its next turn…'}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.nativeEvent.isComposing) void sendNote();
+        }}
+        data-testid="run-message-input"
+      />
+      <button
+        type="button"
+        className="ai-btn ai-btn-sm"
+        disabled={!text.trim() || send.isPending}
+        data-testid="run-message-send"
+        onClick={() => void sendNote()}
+      >
+        <LineIcon name="send" size={12} /> Send
+      </button>
+    </div>
+  );
+}
+
+/** Messages that went into and out of the run (a person's notes, other AI sessions). */
+export function RunMessages({ runId }: { runId: string }) {
+  const q = useRunMessages(runId);
+  const list = q.data ?? [];
+  if (!list.length) return null;
+  return (
+    <details
+      data-testid="run-messages"
+      className="tw-msgs"
+      style={{ border: '1px solid #E3E8E5', borderRadius: 12, background: '#fff', padding: '8px 14px' }}
+    >
+      <summary style={{ cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#3A4A3E' }}>
+        {list.length} message{list.length === 1 ? '' : 's'}
+      </summary>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+        {list.map((m) => (
+          <div key={m.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 13 }}>
+            <b style={{ whiteSpace: 'nowrap' }}>{m.direction === 'in' ? `${m.peer} →` : `→ ${m.peer}`}</b>
+            <span className="ai-mono" style={{ fontSize: 11.5, color: '#9AA8A0' }}>
+              {hhmm(m.at)}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}>{m.text}</span>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+/** Cancel while it is going; Retry when it failed, Run again when it ended another way. */
+export function RunButtons({ run }: { run: Pick<AiRun, 'id' | 'state'> }) {
+  const toast = useToast();
+  const cancel = useAiMutation(() => aiApi.cancel(run.id));
+  const retry = useAiMutation(() => aiApi.retry(run.id));
+  const act = async (fn: () => Promise<unknown>, fail: string) => {
+    try {
+      await fn();
+    } catch (err) {
+      toast.error(fail, extractError(err));
+    }
+  };
+  const failed = run.state === 'failed' || run.state === 'timed_out';
+  return (
+    <>
+      {isActive(run.state) && (
+        <button
+          type="button"
+          className="ai-btn ai-btn-sm ai-btn-danger-outline"
+          disabled={cancel.isPending}
+          data-testid="run-cancel"
+          onClick={() => void act(() => cancel.mutateAsync(undefined), "Couldn't cancel the run")}
+        >
+          <LineIcon name="square" size={13} /> {run.state === 'queued' ? 'Cancel run' : 'Stop run'}
+        </button>
+      )}
+      {['failed', 'cancelled', 'timed_out', 'finished'].includes(run.state) && (
+        <button
+          type="button"
+          className={`ai-btn ai-btn-sm ${failed ? 'ai-btn-primary' : ''}`}
+          disabled={retry.isPending}
+          data-testid="run-retry"
+          onClick={() => void act(() => retry.mutateAsync(undefined), "Couldn't start a new run")}
+        >
+          {failed ? 'Retry' : 'Run again'}
+        </button>
+      )}
+    </>
+  );
+}
+
+/** Tokens, cost and the run's size, as on main's Usage card. */
+export function UsageCard({ run, who }: { run: AiRun; who: string }) {
+  return (
+    <div className="tw-usage" data-testid="usage-card">
+      <div className="ai-label">Usage</div>
+      <div style={{ fontSize: 12, color: '#5B6B60', margin: '2px 0 8px' }}>
+        {who} · run #{run.number} on <span className="ai-mono">{run.ticketId}</span>
+      </div>
+      {run.costUsd > 0 || run.tokensIn + run.tokensOut > 0 ? (
+        <div className="tw-usage-grid">
+          <div>
+            <div className="ai-muted">Tokens in</div>
+            <b className="ai-mono">{tokenWords(run.tokensIn)}</b>
+          </div>
+          <div>
+            <div className="ai-muted">Tokens out</div>
+            <b className="ai-mono">{tokenWords(run.tokensOut)}</b>
+          </div>
+          <div>
+            <div className="ai-muted">Cost</div>
+            <b className="ai-mono">{money(run.costUsd)}</b>
+          </div>
+        </div>
+      ) : (
+        <div className="ai-hint">Not metered</div>
+      )}
+    </div>
+  );
+}
+
+/** The last commands the run ran, each with its exit code (the newest, still going, says "now"). */
+function CommandsBlock({ run, running }: { run: AiRunFull; running: boolean }) {
+  const commands = run.steps.filter((s) => s.kind === 'command').slice(-6);
+  return (
+    <div data-testid="run-commands">
+      <span className="ai-label">Commands</span>
+      {commands.length === 0 && <div className="ai-muted">None.</div>}
+      {commands.map((c, i) => {
+        const code = typeof c.detail?.exitCode === 'number' ? c.detail.exitCode : null;
+        const now = i === commands.length - 1 && running && code == null;
+        const good = now || code === 0;
         return (
-          <div key={n} data-testid="run-step">
-            <div className="ai-step-row">
-              {expandable ? (
-                <button
-                  type="button"
-                  className="tw-chev"
-                  aria-expanded={isOpen}
-                  aria-label={isOpen ? 'Hide output' : 'Show output'}
-                  data-testid="step-toggle"
-                  onClick={toggle}
-                >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    style={{ transform: isOpen ? 'rotate(90deg)' : undefined }}
-                  >
-                    <path d="M9 6l6 6-6 6" />
-                  </svg>
-                </button>
+          <div key={c.seq} className="tw-cmd">
+            <span
+              className="tw-exit"
+              style={good ? { background: '#F1F8F3', color: '#2E6F40' } : { background: '#FBEEEA', color: '#C4432A' }}
+            >
+              {now ? (
+                '● now'
+              ) : code != null ? (
+                <>
+                  {code === 0 && (
+                    <>
+                      <LineIcon name="check" size={12} />{' '}
+                    </>
+                  )}
+                  exit {code}
+                </>
               ) : (
-                <span style={{ width: 20, flexShrink: 0 }} />
+                '—'
               )}
-              {stepIcon(s, i === steps.length - 1, live)}
-              <StepText step={s} run={run} />
-              <span className="ai-step-time">{s.at}</span>
-            </div>
-            {isOpen && (
-              <pre className="tw-term" data-testid="step-output">
-                <span style={{ color: '#7BC48F' }}>$ {s.text.replace(/^Ran /, '')}</span>
-                {'\n'}
-                {s.output}
-              </pre>
-            )}
+            </span>
+            <span className="ai-mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {c.title.replace(/^Ran /, '')}
+            </span>
           </div>
         );
       })}
@@ -175,375 +300,91 @@ export function RunSteps({ run, compact, collapseKey = 0 }: { run: AiRun; compac
   );
 }
 
-/** “main branch → status” sentence of a run's status changes: To Do → In Progress → To Do. */
-export function statusPath(run: AiRun): string {
-  if (!run.statusChanges.length) return '';
-  return [run.statusChanges[0].from, ...run.statusChanges.map((c) => c.to)]
-    .map((s) => STATUS_NAMES[s] ?? s)
-    .join(' → ');
-}
-
-/** Who or what ended a run, in words (the archive, a take-over, a person's Cancel). */
-function endedWords(run: AiRun): string {
-  if (run.stopCode === 'archive') return `Cancelled by archive${run.endedBy ? ` (${run.endedBy})` : ''}`;
-  if (run.stopCode === 'deleted') return 'Cancelled: the ticket was deleted';
-  if (run.stopCode === 'takeover') return `Taken over by ${run.endedBy ?? 'a person'}`;
-  if (run.stopCode === 'reassigned') return `Cancelled: ${run.endedReason ?? 'the ticket was reassigned'}`;
-  return `${run.endedReason ?? ''}${run.endedBy && !run.endedReason?.includes(run.endedBy) ? ` (by ${run.endedBy})` : ''}`;
-}
-
-/** The run stopped on a budget limit mid-way (the agent loop writes “Stopped · budget at step N”). */
-export function budgetStop(run: AiRun): { step: number | null } | null {
-  if (run.state !== 'failed' || !/^Stopped · budget/.test(run.endedReason ?? '')) return null;
-  const m = (run.endedReason ?? '').match(/at step (\d+)/);
-  return { step: m ? Number(m[1]) : null };
-}
-
-/** Amber box under a run that a budget stopped: work is kept, Continue at 00:00 / Raise budget (H4). */
-export function BudgetStopBox({ run }: { run: AiRun }) {
-  const stop = budgetStop(run);
-  const { members, openAiPage } = useAiBoardState();
-  const ai = members.get(run.memberId);
-  const toast = useToast();
-  const retry = useAiMutation(() => aiApi.retry(run.id));
-  if (!stop) return null;
-  const of = run.stepEstimate ? ` of about ${run.stepEstimate}` : '';
-  return (
-    <div className="ai-notice ai-notice-warn" style={{ alignItems: 'flex-start' }} data-testid="budget-stop">
-      <div style={{ flex: 1 }}>
-        <b>Run stopped{stop.step ? ` at step ${stop.step}${of}` : ''}</b>
-        <div>
-          {run.endedReason!.replace(/^Stopped · budget(?: at step \d+)?:?\s*/, '') || 'The budget was reached mid-run.'}
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm"
-            disabled={retry.isPending}
-            data-testid="budget-continue"
-            onClick={async () => {
-              try {
-                await retry.mutateAsync(undefined);
-                toast.success(`Run #${run.number + 1} queued`, 'It waits for the budget to reset, then continues.');
-              } catch (err) {
-                toast.error("Couldn't queue the run", extractError(err));
-              }
-            }}
-          >
-            Continue at 00:00
-          </button>
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm ai-btn-primary"
-            data-testid="budget-raise"
-            onClick={() => openAiPage?.(ai?.id ?? run.memberId)}
-          >
-            Raise budget
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Tokens, cost and the member's daily budget (D3); a local runner is “Not metered”. */
-export function UsageCard({ run }: { run: AiRun }) {
+/**
+ * One run, whole, as on main: its title and actions, who ran it and for how long, what it was asked, then the steps
+ * (a tree: the lead and its roles) beside the files, commands, test results and usage. The lead's report is the one
+ * addition of v2. Steps arrive live (SSE patches the cache); a role's steps and the earlier ones are fetched on request.
+ */
+export function RunView({ runId }: { runId: string }) {
+  const q = useAiRun(runId);
   const { members } = useAiBoardState();
-  const ai = members.get(run.memberId);
-  const budget = ai?.dailyBudget ?? null;
-  const spent = ai?.usage.costToday ?? 0;
-  const pct = budget ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
-  const full = !!budget && spent >= budget;
-  return (
-    <div className="tw-usage" data-testid="usage-card">
-      <div className="ai-label">Usage</div>
-      <div style={{ fontSize: 12, color: '#5B6B60', margin: '2px 0 8px' }}>
-        {run.memberName} · run #{run.number} on <span className="ai-mono">{run.ticketId}</span>
-      </div>
-      {run.metered ? (
-        <>
-          <div className="tw-usage-grid">
-            <div>
-              <div className="ai-muted">Tokens in</div>
-              <b className="ai-mono">{fmtTokens(run.tokensIn)}</b>
-            </div>
-            <div>
-              <div className="ai-muted">Tokens out</div>
-              <b className="ai-mono">{fmtTokens(run.tokensOut)}</b>
-            </div>
-            <div>
-              <div className="ai-muted">Cost</div>
-              <b className="ai-mono">{money(run.costUsd)}</b>
-            </div>
-          </div>
-          {budget != null && (
-            <div style={{ marginTop: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                <span className="ai-muted">Daily budget</span>
-                <span className="ai-mono" style={{ fontWeight: 700, color: full ? '#B4571F' : '#1E2A22' }}>
-                  {money(spent)} of {money(budget)}
-                </span>
-              </div>
-              <div className="tw-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                <div style={{ width: `${pct}%`, background: full ? '#C4432A' : pct > 80 ? '#B4791E' : '#2E6F40' }} />
-              </div>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="ai-hint">Not metered: a local runner uses your signed-in CLI.</div>
-      )}
-    </div>
-  );
-}
-
-function fmtTokens(n: number): string {
-  return n >= 1000 ? `${(Math.round(n / 100) / 10).toString()}k` : String(n);
-}
-
-/** Run panel in ticket detail (D2): steps, files, commands, tests, usage and the actions of its state. */
-export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
-  const toast = useToast();
-  const { members } = useAiBoardState();
-  const ai = members.get(run.memberId);
-  const cancel = useAiMutation(() => aiApi.cancel(run.id));
-  const retry = useAiMutation(() => aiApi.retry(run.id));
-  const pause = useAiMutation(() => aiApi.pauseRun(run.id));
-  const resume = useAiMutation(() => aiApi.resumeRun(run.id));
-  const startNow = useAiMutation(() => aiApi.startNow(run.id));
-  const [terminal, setTerminal] = useState(false);
-  const [undo, setUndo] = useState(false);
-  const [collapseKey, setCollapseKey] = useState(0);
-  const live = ACTIVE_RUN_STATES.includes(run.state);
-  const running = run.state === 'running' || run.state === 'starting';
+  const run = q.data;
+  const live = isActive(run?.state);
+  const running = run?.state === 'running' || run?.state === 'starting';
   useNow(1000, running);
-  const commands = run.steps.filter((s) => s.kind === 'command' && s.text.startsWith('Ran '));
-  const elapsed = running ? secondsSince(run.startedAt) : run.elapsedS;
+  if (q.isError) return <LoadError what="the run" error={q.error} onRetry={() => void q.refetch()} />;
+  if (!run) return <span className="ai-spin" />;
+  const team = members.get(run.memberId);
+  const who = team?.name ?? 'Team';
+  const ended = run.endedReason && !live ? run.endedReason : null;
   const tests = testsOf(run);
-  const branch = (ticket.branches ?? [])
-    .map((b) => String((b as { name?: string }).name ?? ''))
-    .find((n) => n.startsWith('ai/'));
-  const act = async (fn: () => Promise<unknown>, failure: string) => {
-    try {
-      await fn();
-    } catch (err) {
-      toast.error(failure, extractError(err));
-    }
-  };
-  const canUndo = run.mode === 'work' && !live && (run.statusChanges.length > 0 || run.files.length > 0);
-  const waitingForHold = run.state === 'queued' && !!run.behindRunId;
+  const secs = runSeconds(run);
+  const tokens = run.tokensIn + run.tokensOut;
   return (
     <div className="ai-run-panel ai-root" data-testid="run-view">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 18, fontWeight: 800 }}>
           {run.mode === 'ask' ? 'Answer' : 'Run'} #{run.number}
         </span>
-        <RunStateChip state={run.state} />
-        {run.paused && <RunStateChip state="paused" />}
-        {run.stopCode === 'archive' && (
-          <span
-            className="ai-chip"
-            style={{ background: '#F1F3F2', color: '#5B6B60' }}
-            data-testid="cancelled-by-archive"
-          >
-            Cancelled by archive
-          </span>
-        )}
-        {budgetStop(run) && (
-          <span className="ai-chip" style={{ background: '#FDF0E6', color: '#B4571F' }}>
-            Stopped · budget
-          </span>
-        )}
+        <RunStateChip state={run.paused ? 'paused' : run.state} />
         <span style={{ flex: 1 }} />
-        {run.state === 'running' && run.mode === 'work' && (
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm"
-            disabled={pause.isPending || resume.isPending}
-            data-testid={run.paused ? 'run-resume' : 'run-pause'}
-            onClick={() =>
-              act(
-                () => (run.paused ? resume : pause).mutateAsync(undefined),
-                run.paused ? "Couldn't resume" : "Couldn't pause",
-              )
-            }
-          >
-            {run.paused ? (
-              <>
-                <LineIcon name="play" size={12} /> Resume
-              </>
-            ) : (
-              <>
-                <LineIcon name="pause" size={12} /> Pause
-              </>
-            )}
-          </button>
-        )}
-        {run.state === 'queued' && !waitingForHold && (
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm ai-btn-primary"
-            disabled={startNow.isPending}
-            data-testid="run-start-now"
-            onClick={() => act(() => startNow.mutateAsync(undefined), "Can't start it now")}
-          >
-            <LineIcon name="play" size={12} /> Start now
-          </button>
-        )}
-        {live && (
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm ai-btn-danger-outline"
-            onClick={() => cancel.mutate(undefined)}
-            disabled={cancel.isPending}
-            data-testid="run-cancel"
-          >
-            <LineIcon name="square" size={13} /> Cancel run
-          </button>
-        )}
-        {!live && run.mode === 'work' && (
-          <>
-            {ai && ['failed', 'timed_out'].includes(run.state) && <SignInAgainButton member={ai} primary />}
-            <button
-              type="button"
-              className={`ai-btn ai-btn-sm ${run.state === 'failed' || run.state === 'timed_out' ? 'ai-btn-primary' : ''}`}
-              data-testid="run-retry"
-              onClick={() => act(() => retry.mutateAsync(undefined), "Couldn't start a new run")}
-            >
-              {run.state === 'failed' || run.state === 'timed_out' ? 'Retry' : 'Run again'}
-            </button>
-            {['failed', 'timed_out'].includes(run.state) && (
-              <TakeOverButton ticketId={run.ticketId} projectId={run.projectId} />
-            )}
-            {run.state === 'timed_out' && <RaiseLimitButton run={run} />}
-            {canUndo && (
-              <button type="button" className="ai-btn ai-btn-sm" data-testid="run-undo" onClick={() => setUndo(true)}>
-                <LineIcon name="undo" size={13} /> Undo changes
-              </button>
-            )}
-          </>
-        )}
-        {run.sessionId && ai?.connection === 'local' && (
-          <button type="button" className="ai-btn ai-btn-sm" onClick={() => setTerminal(!terminal)}>
-            <LineIcon name="frame" size={13} /> Open in terminal
-          </button>
-        )}
+        <RunButtons run={run} />
       </div>
       <div
         style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#5B6B60', flexWrap: 'wrap' }}
+        data-testid="run-facts"
       >
-        {ai && <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={20} />}
-        <b style={{ color: '#1E2A22' }}>{run.memberName}</b>·
+        {team && <AiAvatar color={team.color} size={20} />}
+        <b style={{ color: '#1E2A22' }}>{who}</b>·
         <span>
           {run.startedAt ? `started ${hhmm(run.startedAt)}` : `queued ${hhmm(run.queuedAt)}`} by {run.startedBy}
         </span>
-        ·
-        <span className="ai-mono" style={{ color: '#2E6F40', fontWeight: 600 }}>
-          {fmtElapsed(elapsed)}
-        </span>
-        ·
-        <span>
-          {run.metered
-            ? `${money(run.costUsd)} · ${Math.round(run.tokensIn / 1000)}k in · ${Math.round(run.tokensOut / 100) / 10}k out`
-            : 'Not metered'}
-        </span>
-        {branch && (
+        {secs != null && (
           <>
-            · <span className="ai-mono">{branch}</span>
+            ·
+            <span className="ai-mono" style={{ color: '#2E6F40', fontWeight: 600 }}>
+              {fmtElapsed(secs)}
+            </span>
           </>
         )}
+        {tokens > 0 && <>· {tokenWords(tokens)} tokens</>}
+        {run.costUsd > 0 && <>· {money(run.costUsd)}</>}
         {run.model && (
           <>
             · <span className="ai-mono">{run.model}</span>
           </>
         )}
+        {run.effort && <>· {run.effort}</>}
       </div>
       {run.instruction && (
-        <div className="ai-notice ai-notice-info" style={{ fontSize: 12 }}>
+        <div className="ai-notice ai-notice-info" style={{ fontSize: 12 }} data-testid="run-instruction">
           <b>{run.mode === 'ask' ? 'Question' : 'Instruction'}:</b> {run.instruction}
         </div>
       )}
       {run.state === 'queued' && run.waitingReason && (
         <div className="ai-notice ai-notice-warn" data-testid="why-waiting">
-          {run.queuePosition ? `#${run.queuePosition} in the queue · ` : ''}
           {run.waitingReason}
         </div>
       )}
-      {run.state === 'running' && <TroubleCard run={run} />}
-      {run.state === 'running' && <TellBox run={run} />}
-      {run.paused && (
-        <div className="ai-notice ai-notice-slate" data-testid="run-paused-note">
-          Paused: the agent is stopped where it was and its time limits are not running. Resume continues from here.
-        </div>
-      )}
-      {run.endedReason && !live && !budgetStop(run) && (
+      {ended && (
         <div
           className={`ai-notice ${run.state === 'finished' ? 'ai-notice-info' : run.state === 'cancelled' ? 'ai-notice-slate' : 'ai-notice-error'}`}
         >
-          {endedWords(run)}
-          {run.state === 'cancelled' && run.statusChanges.some((c) => c.kind === 'cancel')
-            ? ` · the status returned to ${STATUS_NAMES[run.statusBefore ?? ''] ?? run.statusBefore}; files stay on the branch`
-            : ''}
+          {ended}
         </div>
       )}
-      <BudgetStopBox run={run} />
-      {run.contextNotes.length > 0 && (
-        <div className="ai-notice ai-notice-warn" style={{ fontSize: 12.5 }} data-testid="context-notes">
-          <div>
-            {run.contextNotes.map((n, i) => (
-              <div key={i}>
-                {n.by} edited {n.what}.{' '}
-                {n.delivered ? `Run #${run.number} refreshed its context.` : `It gets the new text at its next step.`}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {terminal && run.sessionId && (
-        <div className="ai-card" style={{ padding: 12, background: '#F6FAF7' }}>
-          <div className="ai-hint">
-            Opens a terminal in <span className="ai-code">{ai?.workingDir}</span> and resumes this run’s session, as if
-            you had typed:
-          </div>
-          <div className="ai-term" style={{ marginTop: 6 }}>
-            $ cd {ai?.workingDir} && claude --resume {run.sessionId}
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button
-              type="button"
-              className="ai-btn ai-btn-sm"
-              onClick={() => {
-                void navigator.clipboard?.writeText(`cd ${ai?.workingDir} && claude --resume ${run.sessionId}`);
-                toast.success('Command copied');
-              }}
-            >
-              Copy command
-            </button>
-            <span className="ai-muted">Cancel the board’s run first if you want the hold.</span>
-          </div>
-        </div>
-      )}
+      {run.state === 'needs_input' && run.question && !run.answer && <QuestionCard run={{ ...run }} />}
+      <RunReportCard run={run} />
+      <RunMessageBox run={run} />
       <div className="tw-runcols">
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
             <span className="ai-label">Steps</span>
             <span className="ai-muted" data-testid="step-count">
-              {run.steps.length}
-              {live && run.stepEstimate ? ` of ~${Math.max(run.stepEstimate, run.steps.length)}` : ''}
+              {run.stepsCount}
             </span>
-            <span style={{ flex: 1 }} />
-            {run.steps.some((s) => s.output) && (
-              <button
-                type="button"
-                className="ai-link"
-                onClick={() => setCollapseKey((k) => k + 1)}
-                data-testid="collapse-all"
-              >
-                Collapse all
-              </button>
-            )}
           </div>
-          <RunSteps run={run} collapseKey={collapseKey} />
+          <RunTree run={run} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
           <div>
@@ -574,58 +415,17 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
               </div>
             ))}
           </div>
-          <div>
-            <span className="ai-label">Commands</span>
-            {commands.length === 0 && <div className="ai-muted">None.</div>}
-            {commands.slice(-6).map((c, i) => {
-              const last = i === commands.slice(-6).length - 1 && running && c.exitCode == null;
-              return (
-                <div key={i} className="tw-cmd">
-                  <span
-                    className="tw-exit"
-                    style={
-                      last
-                        ? { background: '#F1F8F3', color: '#2E6F40' }
-                        : c.exitCode === 0
-                          ? { background: '#F1F8F3', color: '#2E6F40' }
-                          : { background: '#FBEEEA', color: '#C4432A' }
-                    }
-                  >
-                    {last ? (
-                      '● now'
-                    ) : c.exitCode != null ? (
-                      <>
-                        {c.exitCode === 0 && (
-                          <>
-                            <LineIcon name="check" size={12} />{' '}
-                          </>
-                        )}
-                        exit {c.exitCode}
-                      </>
-                    ) : (
-                      '—'
-                    )}
-                  </span>
-                  <span
-                    className="ai-mono"
-                    style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                  >
-                    {c.text.replace(/^Ran /, '')}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <CommandsBlock run={run} running={!!running} />
           {tests && (
             <div data-testid="run-tests">
               <span className="ai-label">Test results</span>
               <div style={{ margin: '6px 0' }}>
-                <TestChips counts={tests.counts} />
+                <TestChips counts={tests} />
               </div>
-              {(tests.counts.failing?.length ?? 0) > 0 && (
+              {(tests.failing?.length ?? 0) > 0 && (
                 <div style={{ fontSize: 12.5, color: '#5B6B60' }}>
                   Failing:{' '}
-                  {tests.counts.failing!.map((f) => (
+                  {tests.failing!.map((f) => (
                     <span key={f} className="ai-code" style={{ marginRight: 6 }}>
                       {f}
                     </span>
@@ -634,154 +434,107 @@ export function RunView({ run, ticket }: { run: AiRun; ticket: Ticket }) {
               )}
             </div>
           )}
-          {run.statusChanges.length > 0 && (
-            <div>
-              <span className="ai-label">Status changes</span>
-              <div style={{ fontSize: 12.5, marginTop: 4 }} data-testid="run-status-path">
-                {statusPath(run)}
-                {run.statusChanges.some((c) => c.kind === 'cancel') && (
-                  <span className="ai-muted"> · returned at cancel</span>
-                )}
-              </div>
-            </div>
-          )}
-          <UsageCard run={run} />
+          <UsageCard run={run} who={who} />
         </div>
       </div>
+      <RunMessages runId={run.id} />
       <div className="ai-muted">
         <LineIcon name="shield" size={13} /> Secrets, tokens and key-like strings are masked before the log is stored or
         shown.
       </div>
-      {undo && <UndoRunDialog run={run} onClose={() => setUndo(false)} />}
     </div>
   );
 }
 
-/** What a run did to the ticket, as a note under its status change in the history (D5). */
-function historyNote(r: AiRun): string {
-  if (r.mode === 'ask') return 'no changes (answer only)';
-  const notes: string[] = [];
-  if (r.statusChanges.some((c) => c.kind === 'cancel')) notes.push('status returned at cancel');
-  else if (['failed', 'timed_out'].includes(r.state) && r.files.length) notes.push('partial changes kept');
-  else if (r.files.length) notes.push(`${r.files.length} file${r.files.length === 1 ? '' : 's'}`);
-  if (r.stopCode === 'archive') notes.push('cancelled by archive');
-  return notes.join(' · ');
-}
-
-/** Every run on this ticket, newest first, with the status changes each one made and its own Undo (D5). */
+/** Every run on this ticket, newest first; a click opens that run (the table of main's run history). */
 export function RunHistory({
   runs,
+  selected,
   onSelect,
-  selectedId,
 }: {
   runs: AiRun[];
+  selected: string | null;
   onSelect: (id: string) => void;
-  selectedId?: string;
 }) {
-  const [undo, setUndo] = useState<AiRun | null>(null);
+  const { members } = useAiBoardState();
   return (
-    <>
-      <table className="ai-table" data-testid="run-history">
-        <thead>
-          <tr>
-            <th>Run</th>
-            <th>Agent</th>
-            <th>Started by</th>
-            <th>State</th>
-            <th>Time</th>
-            <th>Usage</th>
-            <th>Status change</th>
+    <table className="ai-table" data-testid="run-history">
+      <thead>
+        <tr>
+          <th>Run</th>
+          <th>Team</th>
+          <th>Started by</th>
+          <th>State</th>
+          <th>Time</th>
+          <th>Usage</th>
+          <th>Changes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {runs.map((r) => (
+          <tr
+            key={r.id}
+            onClick={() => onSelect(r.id)}
+            style={{ cursor: 'pointer', background: selected === r.id ? '#F6FAF7' : undefined }}
+            data-testid="run-history-item"
+            aria-selected={selected === r.id}
+          >
+            <td style={{ fontWeight: 700 }}>#{r.number}</td>
+            <td>{members.get(r.memberId)?.name ?? 'Team'}</td>
+            <td className="ai-muted">
+              {r.mode === 'ask' ? 'Ask' : r.trigger === 'assign' ? 'Assigned' : (r.trigger ?? '').replace(/_/g, ' ')} by{' '}
+              {r.startedBy},{' '}
+              {r.queuedAt && new Date(r.queuedAt).toDateString() !== new Date().toDateString()
+                ? shortDate(r.queuedAt)
+                : hhmm(r.queuedAt)}
+            </td>
+            <td>
+              <RunStateChip state={r.paused ? 'paused' : r.state} />
+            </td>
+            <td>{fmtElapsed(runSeconds(r))}</td>
+            <td className="ai-muted">{r.costUsd > 0 ? money(r.costUsd) : 'Not metered'}</td>
+            <td className="ai-muted">
+              {r.mode === 'ask'
+                ? 'no changes (answer only)'
+                : r.files.length
+                  ? `${r.files.length} file${r.files.length === 1 ? '' : 's'}`
+                  : '—'}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {runs.map((r) => {
-            const note = historyNote(r);
-            const undoable = r.mode === 'work' && !ACTIVE_RUN_STATES.includes(r.state) && r.statusChanges.length > 0;
-            return (
-              <tr
-                key={r.id}
-                onClick={() => onSelect(r.id)}
-                style={{ cursor: 'pointer', background: selectedId === r.id ? '#F6FAF7' : undefined }}
-                data-testid="run-history-row"
-              >
-                <td style={{ fontWeight: 700 }}>#{r.number}</td>
-                <td>{r.memberName}</td>
-                <td className="ai-muted">
-                  {r.mode === 'ask' ? 'Ask' : r.trigger === 'assign' ? 'Assigned' : r.trigger.replace(/_/g, ' ')} by{' '}
-                  {r.startedBy},{' '}
-                  {r.queuedAt && new Date(r.queuedAt).toDateString() !== new Date().toDateString()
-                    ? shortDate(r.queuedAt)
-                    : hhmm(r.queuedAt)}
-                </td>
-                <td>
-                  <RunStateChip state={r.state} />
-                </td>
-                <td>{fmtElapsed(r.elapsedS)}</td>
-                <td className="ai-muted">{r.metered ? money(r.costUsd) : 'Not metered'}</td>
-                <td className="ai-muted">
-                  {r.statusChanges.length ? statusPath(r) : null}
-                  {note && (
-                    <div>
-                      {r.statusChanges.length ? '· ' : ''}
-                      {note}
-                    </div>
-                  )}
-                  {!r.statusChanges.length && !note && '—'}
-                  {undoable && (
-                    <button
-                      type="button"
-                      className="ai-link"
-                      style={{ display: 'block', marginTop: 2 }}
-                      data-testid="history-undo"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setUndo(r);
-                      }}
-                    >
-                      Undo run’s changes
-                    </button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {undo && <UndoRunDialog run={undo} onClose={() => setUndo(null)} />}
-    </>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
-/** The AI tab of ticket detail: the selected (or the holder's latest) run and the run history. */
+/** The ticket's AI tab: the newest run in full, then the table of every run (a click opens that one). */
 export function TicketRunsTab({ ticket, runId }: { ticket: Ticket; runId?: string | null }) {
-  const runs = useTicketRuns(ticket.id);
-  const [selected, setSelected] = useState<string | null>(runId ?? null);
+  const q = useTicketRuns(ticket.id);
+  const runs = q.data ?? [];
+  const [picked, setPicked] = useState<string | null>(runId ?? null);
   useEffect(() => {
-    if (runId) setSelected(runId);
+    if (runId) setPicked(runId);
   }, [runId]);
-  const list = useMemo(() => runs.data ?? [], [runs.data]);
-  const run = useMemo(
-    () =>
-      list.find((r) => r.id === selected) ??
-      list.find((r) => r.mode === 'work' && !r.behindRunId) ??
-      list.find((r) => r.mode === 'work') ??
-      list[0],
-    [list, selected],
-  );
-  if (runs.isLoading) return <span className="ai-spin" />;
-  if (!run)
+  if (q.isError) return <LoadError what="the runs" error={q.error} onRetry={() => void q.refetch()} />;
+  if (q.isLoading) return <span className="ai-spin" />;
+  if (!runs.length)
     return (
-      <div className="ai-card ai-root" style={{ padding: 20 }}>
+      <div className="ai-card ai-root" style={{ padding: 20 }} data-testid="no-runs">
         <b>No AI runs on this ticket yet</b>
-        <div className="ai-hint">Assign it to an AI member, or @mention one in a comment and pick “Do the work”.</div>
+        <div className="ai-hint">Assign it to a team, or use Run.</div>
       </div>
     );
+  const current = runs.find((r) => r.id === picked) ?? runs[0];
   return (
-    <div className="ai-root" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 2px' }}>
-      <RunView run={run} ticket={ticket} />
+    <div
+      className="ai-root"
+      style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 2px' }}
+      data-testid="ticket-runs-tab"
+    >
+      <RunView key={current.id} runId={current.id} />
       <div className="ai-card" style={{ padding: 12 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 6 }}>Run history for {ticket.id}</div>
-        <RunHistory runs={list} onSelect={setSelected} selectedId={run.id} />
+        <RunHistory runs={runs} selected={current.id} onSelect={setPicked} />
       </div>
     </div>
   );

@@ -57,8 +57,6 @@ describe('signInView', () => {
     expect(signInView(input({ state: state({ phase: 'paste_code' }) }))).toBe('paste_code');
     expect(signInView(input({ state: state({ phase: 'choose_method' }) }))).toBe('choose_method');
     expect(signInView(input({ state: state({ phase: 'waiting' }) }))).toBe('waiting');
-    // a prompt only meaningful after sign-in does not claim a step before it
-    expect(signInView(input({ cli: 'agy', state: state({ phase: 'trust_folder' }) }))).toBe('waiting');
   });
 
   it('is done only when the server says signed in, never from the screen', () => {
@@ -66,13 +64,6 @@ describe('signInView', () => {
     expect(signInView(input({ state: state({ signedIn: true, running: false, ended: 'exited', exitCode: 0 }) }))).toBe(
       'done',
     );
-  });
-
-  it('keeps Antigravity open on its last question and lets the person press Done', () => {
-    const s = state({ signedIn: true, phase: 'trust_folder' });
-    expect(signInView(input({ cli: 'agy', state: s }))).toBe('trust_folder');
-    expect(signInView(input({ cli: 'agy', state: state({ signedIn: true, phase: 'waiting' }) }))).toBe('done');
-    expect(signInView(input({ cli: 'claude', state: s }))).toBe('done');
   });
 
   it('asks about a duplicate login until the person chooses to add it anyway', () => {
@@ -114,27 +105,22 @@ describe('signInView', () => {
 describe('step dots', () => {
   it('draws only the steps that apply: no method menu for Claude Code', () => {
     expect(stepDots('claude', 'browser').map((d) => d.label)).toEqual(['Start', 'Browser', 'Confirm']);
-    expect(stepDots('agy', 'browser').map((d) => d.label)).toEqual(['Start', 'Choose a method', 'Browser', 'Confirm']);
   });
 
   it('fills every dot up to the current one and bolds only the current', () => {
     const dots = stepDots('claude', 'browser');
     expect(dots.map((d) => d.filled)).toEqual([true, true, false]);
     expect(dots.map((d) => d.current)).toEqual([false, true, false]);
-    expect(stepDots('agy', 'trust_folder').map((d) => d.filled)).toEqual([true, true, true, true]);
   });
 
   it('puts each moment where the design draws it', () => {
     expect(currentStep('claude', 'starting')).toBe(0);
     expect(currentStep('claude', 'paste_code')).toBe(1);
     expect(currentStep('claude', 'confirming')).toBe(2);
-    expect(currentStep('agy', 'choose_method')).toBe(1);
-    expect(currentStep('agy', 'paste_code')).toBe(2);
     expect(currentStep('claude', 'fallback')).toBe(1);
     expect(currentStep('claude', 'no_terminal')).toBe(0);
     expect(currentStep('claude', 'fallback_signed')).toBe(2);
     expect(currentStep('claude', 'console')).toBe(1);
-    expect(currentStep('agy', 'console')).toBe(1);
   });
 
   it('on Windows says the sign-in is in the window that opened, and still offers the command', () => {
@@ -148,13 +134,8 @@ describe('step dots', () => {
 
 describe('statusLine', () => {
   it('uses amber exactly when it is the person’s turn, blue while the app or browser works', () => {
-    const tone = (v: Parameters<typeof statusLine>[0], cli: 'claude' | 'agy' = 'claude') =>
-      statusLine(v, { ...ctx, cli }).tone;
-    expect(['paste_code', 'choose_method', 'trust_folder'].map((v) => tone(v as never, 'agy'))).toEqual([
-      'amber',
-      'amber',
-      'amber',
-    ]);
+    const tone = (v: Parameters<typeof statusLine>[0]) => statusLine(v, ctx).tone;
+    expect(['paste_code', 'choose_method'].map((v) => tone(v as never))).toEqual(['amber', 'amber']);
     expect(['starting', 'waiting', 'browser', 'confirming', 'fallback'].map((v) => tone(v as never))).toEqual([
       'blue',
       'blue',
@@ -173,8 +154,6 @@ describe('statusLine', () => {
       'Opening a terminal and running claude in the folder made for this account.',
     );
     expect(statusLine('paste_code', ctx).title).toBe('Your turn: paste the code');
-    expect(statusLine('paste_code', { ...ctx, cli: 'agy' }).title).toBe('Your turn: paste the authorization code');
-    expect(plain(statusLine('choose_method', { ...ctx, cli: 'agy' }).body)).toContain('Choose 1 to sign in');
   });
 
   it('says who the CLI reports, when it does', () => {
@@ -182,13 +161,6 @@ describe('statusLine', () => {
     expect(plain(statusLine('done', { ...ctx, signedIn }).body)).toBe(
       'Work Claude is signed in as an.nguyen@work.example · Max plan. It is ready to be chosen by AI members.',
     );
-    // Codex, opencode and Antigravity do not say who
-    expect(
-      plain(
-        statusLine('done', { ...ctx, cli: 'agy', signedIn: { email: null, plan: null, method: 'Google sign-in' } })
-          .body,
-      ),
-    ).toBe('Work Claude is signed in (Google sign-in). It is ready to be chosen by AI members.');
     expect(plain(statusLine('done', ctx).body)).toBe(
       'Work Claude is signed in. It is ready to be chosen by AI members.',
     );
@@ -209,7 +181,6 @@ describe('statusLine', () => {
 describe('helpers', () => {
   it('offers the arrow keys only while the CLI asks a menu question', () => {
     expect(keyRow('choose_method')).toEqual(['up', 'down', 'enter', 'esc']);
-    expect(keyRow('trust_folder')).toEqual(['up', 'down', 'enter']);
     expect(keyRow('browser')).toEqual([]);
   });
 

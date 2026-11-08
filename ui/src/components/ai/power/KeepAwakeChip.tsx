@@ -49,7 +49,7 @@ function Clock() {
 
 /** "Dev Khoa on KAN-305, Reviewer Binh on KAN-304". */
 const listRuns = (runs: { memberName: string | null; ticketId: string }[]) =>
-  runs.map((r) => `${r.memberName ?? 'An AI'} on ${r.ticketId}`).join(', ');
+  runs.map((r) => `${r.memberName ?? 'A team'} on ${r.ticketId}`).join(', ');
 
 /**
  * Keep awake (design/screens/ai-story-flow.md, R2): in the desktop app, while an AI run is starting or running, a
@@ -62,7 +62,7 @@ export function KeepAwakeChip({ onSeeRunHistory }: { onSeeRunHistory?: () => voi
   const power = usePowerActive(desktop);
   const awake = useKeepAwake();
   const set = useSetKeepAwake();
-  const { runsByTicket } = useAiBoardState();
+  const { runsByTicket, members } = useAiBoardState();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
 
@@ -85,7 +85,7 @@ export function KeepAwakeChip({ onSeeRunHistory }: { onSeeRunHistory?: () => voi
   const on = awake.data;
   const runs = [...runsByTicket.values()].filter((r) => GOING.has(r.state));
   const count = `${active} AI run${active === 1 ? ' is' : 's are'} going`;
-  const seeHistory = onSeeRunHistory ?? (runs[0] ? () => openRun(runs[0].id) : undefined);
+  const seeHistory = onSeeRunHistory ?? (runs[0] ? () => openRun(runs[0].runId) : undefined);
 
   return (
     <div className="ka-wrap" ref={wrap}>
@@ -110,7 +110,10 @@ export function KeepAwakeChip({ onSeeRunHistory }: { onSeeRunHistory?: () => voi
               <b style={{ fontSize: 14 }}>{on ? 'Keeping this computer awake' : 'This computer may sleep'}</b>
               <div className="ai-hint">
                 {count}
-                {runs.length ? `: ${listRuns(runs)}` : ''}.
+                {runs.length
+                  ? `: ${listRuns(runs.map((r) => ({ ticketId: r.ticketId, memberName: members.get(r.memberId)?.name ?? null })))}`
+                  : ''}
+                .
               </div>
             </div>
           </div>

@@ -45,6 +45,15 @@ def unsubscribe(q: asyncio.Queue) -> None:
     _subscribers.discard(q)
 
 
+_forwarder = None  # set in the runner process: events go to the API over HTTP instead of local subscribers
+
+
+def set_forwarder(fn) -> None:
+    """Route every announcement through `fn(event_json)` (the runner process has no SSE subscribers of its own)."""
+    global _forwarder
+    _forwarder = fn
+
+
 async def publish(event: str, topics: Iterable[str] | None = None) -> None:
     """Broadcast an event string to all active SSE subscribers.
 
@@ -63,6 +72,50 @@ async def publish(event: str, topics: Iterable[str] | None = None) -> None:
             logger.debug("A publish listener failed", exc_info=True)
     if topics:
         event = json.dumps({"type": event, "topics": sorted(set(topics))})
+    if _forwarder is not None:
+        await _forwarder(event)
+        return
+    for q in _subscribers:
+        if q.full():
+            try:
+                q.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        q.put_nowait(event)
+
+
+async def publish_typed(kind: str, payload: dict) -> None:
+    """Broadcast a typed event (AI v2): `{"type": kind, ...payload}`. The app patches its cache from it instead of
+    refetching; `kind` is `ai.step`, `ai.run`, `ai.agent` or `ai.message`."""
+    global _published
+    _published += 1
+    for cb in _on_publish:
+        try:
+            cb()
+        except Exception:  # noqa: BLE001 - a listener never stops an announcement
+            logger.debug("A publish listener failed", exc_info=True)
+    event = json.dumps({"type": kind, **payload}, default=str)
+    if _forwarder is not None:
+        await _forwarder(event)
+        return
+    for q in _subscribers:
+        if q.full():
+            try:
+                q.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        q.put_nowait(event)
+
+
+def broadcast_raw(event: str) -> None:
+    """An event that arrived from the runner process: to every subscriber as it is."""
+    global _published
+    _published += 1
+    for cb in _on_publish:
+        try:
+            cb()
+        except Exception:  # noqa: BLE001
+            logger.debug("A publish listener failed", exc_info=True)
     for q in _subscribers:
         if q.full():
             try:

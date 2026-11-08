@@ -13,11 +13,8 @@ describe('aiGate', () => {
     const g = aiGate({ ...base, state: 'no_member' });
     expect(g).toMatchObject({ show: true, reason: 'no_member' });
   });
-  it('shows a lock and a reason on a page hidden from AI', () => {
-    expect(aiGate(base, { hidden: true })).toMatchObject({ show: true, reason: 'hidden' });
-  });
   it('is usable otherwise', () => {
-    expect(aiGate(base, { hidden: false })).toEqual({ show: true, reason: null });
+    expect(aiGate(base)).toEqual({ show: true, reason: null });
   });
 });
 

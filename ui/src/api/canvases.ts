@@ -43,6 +43,8 @@ export interface CanvasBoard {
   /** The height is to be measured from the page (the editor does it once and clears this). */
   fit?: boolean;
   createdBy?: string;
+  /** The AI team that saved this board last (a person saving it clears this). */
+  aiSavedBy?: string;
 }
 export interface CanvasNote {
   id: string;
@@ -127,7 +129,6 @@ export interface Canvas extends CanvasSummary {
   doc: CanvasDoc;
   locks: BoardLock[];
   openComments: number;
-  proposalsOpen: number;
 }
 
 export interface CanvasComment {
@@ -136,7 +137,7 @@ export interface CanvasComment {
   author: string;
   body: string;
   mentions: string[];
-  ai: { member?: string; canPropose?: boolean } | null;
+  ai: { member?: string } | null;
   isAi: boolean;
   createdAt: string;
   editedAt: string | null;
@@ -168,14 +169,24 @@ export interface CanvasThread {
   resolvedAt: string | null;
   comments: CanvasComment[];
   byAi: boolean;
-  /** Only in the answer to a new comment or reply: what became of each AI member it mentioned. */
-  aiDeliveries?: AiDelivery[];
+  /** Only in the answer to a new comment or reply: what became of each AI team it mentioned. */
+  deliveries?: CanvasDelivery[];
 }
-export interface AiDelivery {
+/** What became of one AI team a comment mentioned: sent to it, or why not. */
+export interface CanvasDelivery {
   memberId: string;
-  result: 'job' | 'notified' | 'refused' | 'not_delivered';
-  jobId?: string;
+  name: string;
+  result: 'delivered' | 'not_delivered';
   reason?: string;
+}
+/** A member the `@` picker of a canvas offers; a team says whether it can be asked on this canvas now. */
+export interface CanvasMember {
+  id: string;
+  name: string;
+  color: string;
+  role?: string;
+  kind: 'human' | 'ai';
+  ai?: { status: 'ready' | 'paused' | 'unavailable'; usable: boolean; note: string; provider: string };
 }
 
 export interface CanvasVersion {
@@ -205,37 +216,6 @@ export interface CompareRow {
   kind: BoardKind;
   a: CanvasBoard | null;
   b: CanvasBoard | null;
-}
-
-export interface ProposalChange {
-  boardId: string;
-  name: string;
-  baseRev: number | null;
-  status: 'open' | 'accepted' | 'rejected' | 'stale';
-  entry: string;
-  files: { path: string; bytes: number }[];
-  lines: number;
-  waitingFor: string | null;
-  exists: boolean;
-  before?: { path: string; text: string }[];
-  after?: { path: string; text: string }[];
-  entryUrlBefore?: string | null;
-  entryUrlAfter?: string;
-}
-export interface CanvasProposal {
-  id: string;
-  canvasId: string;
-  author: string;
-  memberId: string | null;
-  request: string;
-  note: string;
-  status: 'open' | 'accepted' | 'rejected' | 'partly';
-  version: number | null;
-  changes: ProposalChange[];
-  createdAt: string;
-  decidedBy: string | null;
-  decidedAt: string | null;
-  nextVersion: number;
 }
 
 /** What a failed canvas call says: the server's `{code, message}` or a generic message. */
@@ -322,7 +302,6 @@ export const canvasKeys = {
   one: (id: string) => ['canvas', id] as const,
   threads: (id: string) => ['canvas', id, 'threads'] as const,
   versions: (id: string) => ['canvas', id, 'versions'] as const,
-  proposals: (id: string) => ['canvas', id, 'proposals'] as const,
 };
 
 /**
@@ -352,16 +331,15 @@ export function useCanvasThreads(id: string, enabled = true) {
   });
 }
 /**
- * Query a canvas's open AI proposals (before and after).
+ * Query who the `@` picker of a canvas offers: the project's people and AI teams.
  * @param id - Canvas id.
- * @param enabled - Whether to fetch.
  */
-export function useCanvasProposals(id: string, enabled = true) {
+export function useCanvasMembers(id: string | null | undefined) {
   return useQuery({
-    queryKey: canvasKeys.proposals(id),
-    queryFn: async () => (await client.get<CanvasProposal[]>(`/canvases/${id}/proposals`)).data,
-    enabled: !!id && enabled,
-    staleTime: 3_000,
+    queryKey: ['canvas-members', id ?? ''] as const,
+    queryFn: async () => (await client.get<CanvasMember[]>(`/canvases/${id}/members`)).data,
+    enabled: !!id,
+    staleTime: 15_000,
   });
 }
 /**
@@ -555,33 +533,13 @@ export async function addThread(
     y?: number;
     page?: string | null;
     anchor?: PinAnchor | null;
-    /** What an @mentioned AI member does: answer (ask), answer and propose the change (suggest), or nothing (notify). */
-    aiIntent?: AiIntent;
   },
 ) {
   return (await client.post<CanvasThread>(`/canvases/${id}/threads`, body)).data;
 }
 /** Reply in a comment thread. */
-export async function replyThread(threadId: string, body: string, aiIntent: AiIntent = 'ask') {
-  return (await client.post<CanvasThread>(`/canvases/threads/${threadId}/replies`, { body, aiIntent })).data;
-}
-export type AiIntent = 'ask' | 'suggest' | 'notify';
-/** An AI member of the project, with whether it can answer now. */
-export interface CanvasAiMember {
-  id: string;
-  name: string;
-  color: string | null;
-  ai?: { status: string; usable: boolean; note: string };
-}
-export interface CanvasAiMembers {
-  /** The AI that knows this canvas best (null: the project's default answers). */
-  defaultMemberId: string | null;
-  why: string;
-  members: CanvasAiMember[];
-}
-/** The AI members that can be asked about a canvas, and who answers by default. */
-export async function fetchAiMembers(id: string) {
-  return (await client.get<CanvasAiMembers>(`/canvases/${id}/ai/members`)).data;
+export async function replyThread(threadId: string, body: string) {
+  return (await client.post<CanvasThread>(`/canvases/threads/${threadId}/replies`, { body })).data;
 }
 /** Resolve or reopen a thread. */
 export async function setThreadStatus(threadId: string, status: 'resolved' | 'open') {
@@ -592,32 +550,4 @@ export async function setThreadStatus(threadId: string, status: 'resolved' | 'op
 /** Delete your own comment (the opening one removes the thread). */
 export async function deleteComment(commentId: string) {
   return (await client.delete(`/canvases/comments/${commentId}`)).data;
-}
-
-// AI
-/** Accept and/or reject the boards of an AI proposal. */
-export async function decideProposal(
-  id: string,
-  proposalId: string,
-  body: { accept?: string[] | 'all'; reject?: string[] | 'rest' | 'all' },
-) {
-  return (await client.post<CanvasProposal>(`/canvases/${id}/proposals/${proposalId}/decide`, body)).data;
-}
-export interface AiJob {
-  id: string;
-  state: 'queued' | 'running' | 'finished' | 'failed' | 'cancelled';
-  result: { proposalId?: string; note?: string; boards?: string[]; cost?: number; metered?: boolean };
-  error: { code?: string; message?: string };
-}
-/** Ask an AI member to prepare a proposal for some boards. */
-export async function askAi(id: string, body: { boardIds: string[]; request: string; memberId?: string }) {
-  return (await client.post<AiJob>(`/canvases/${id}/ai/ask`, body)).data;
-}
-/** Start the same job from an AI comment ("Propose a fix"). */
-export async function proposeFixFromThread(threadId: string) {
-  return (await client.post<AiJob>(`/canvases/threads/${threadId}/propose`)).data;
-}
-/** Read an AI job (to see when a proposal is ready). */
-export async function fetchAiJob(jobId: string) {
-  return (await client.get<AiJob>(`/docs/ai/jobs/${jobId}`)).data;
 }

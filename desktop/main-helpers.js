@@ -19,6 +19,39 @@ function resolveConfiguredUploadsDir(userDataPath, configPath = null) {
 }
 
 /**
+ * The config file the server reads (server/config.py): KANBAN_CONFIG_DIR/config.json when that folder is set, else
+ * ~/.kanban-board/config.json. A test instance with its own config folder never touches the person's file.
+ */
+function resolveConfigPath(env, homeDir) {
+  const dir = env && env.KANBAN_CONFIG_DIR ? env.KANBAN_CONFIG_DIR : path.join(homeDir, '.kanban-board');
+  return path.join(dir, 'config.json');
+}
+
+/**
+ * Writes the uploads folder this app serves into the config file (key `uploads_dir`), so a server started without
+ * KANBAN_UPLOADS_DIR (the stdio MCP of an outside Claude Code session) stores attachments in the same folder
+ * (server/uploads.py). Other keys stay; the file is replaced atomically and only when the value changed. A config
+ * file that cannot be parsed is left alone. Returns 'written', 'unchanged' or 'skipped' (never throws).
+ */
+function recordUploadsDir(configPath, uploadsDir) {
+  try {
+    let config = {};
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (!config || typeof config !== 'object' || Array.isArray(config)) return 'skipped';
+    }
+    if (config.uploads_dir === uploadsDir) return 'unchanged';
+    fs.mkdirSync(path.dirname(configPath), { recursive: true });
+    const tmp = `${configPath}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify({ ...config, uploads_dir: uploadsDir }, null, 2), 'utf8');
+    fs.renameSync(tmp, configPath);
+    return 'written';
+  } catch {
+    return 'skipped';
+  }
+}
+
+/**
  * StartupProfiler — records timestamps for key startup stages.
  * Usage: profiler.mark('stage-name') at each milestone.
  * Call profiler.summary() to get a human-readable report.
@@ -421,6 +454,8 @@ module.exports = {
   openExternalSafely,
   openPathSafely,
   parseReadyPort,
+  recordUploadsDir,
+  resolveConfigPath,
   resolveConfiguredUploadsDir,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,

@@ -217,8 +217,6 @@ async def list_tree(session: AsyncSession, project_id: str) -> list[dict[str, An
             "version": p.version,
             "has_draft": p.id in drafted,
             "updated_at": p.updated_at,
-            "ai_hidden": p.ai_hidden,
-            "ai_guidance": p.ai_guidance,
             "kind": p.kind,
         }
         for p in pages
@@ -463,8 +461,6 @@ async def page_detail(session: AsyncSession, page_id: str) -> dict[str, Any]:
         "created_at": page.created_at,
         "stats": await page_stats(session, page, markdown),
         "has_unpublished_changes": unpublished,
-        "ai_hidden": page.ai_hidden,
-        "ai_guidance": page.ai_guidance,
         "kind": page.kind,
         "draft": (
             {
@@ -782,10 +778,10 @@ async def _hard_delete(session: AsyncSession, pages: list[DocsPage]) -> None:
         rows = await session.exec(select(model).where(col.in_(ids)))
         for row in rows.all():
             await session.delete(row)
-    # Docs AI rows that belong to the pages (proposals and the freshness check have a foreign key to the page)
-    from models import DocsAiCheck, DocsAiIgnore, DocsAiJob, DocsAiProposal
+    # Docs AI rows that belong to the pages (the freshness check and the ignored findings have a foreign key to the page)
+    from models import DocsAiIgnore, DocsAiJob
 
-    for ai_model in (DocsAiProposal, DocsAiCheck, DocsAiIgnore, DocsAiJob):
+    for ai_model in (DocsAiIgnore, DocsAiJob):
         for row in (
             await session.exec(select(ai_model).where(ai_model.page_id.in_(ids)))  # type: ignore[attr-defined]
         ).all():
@@ -2037,7 +2033,7 @@ async def linked_pages(
 ) -> list[dict[str, Any]]:
     """The Docs pages tied to a ticket, one row per page, for an agent: {page_id, title, path, sections, why, version}.
 
-    `hidden`: page ids to leave out (pages hidden from AI). A page tied in several ways is one row with every reason."""
+    `hidden`: page ids to leave out (no caller passes any now: no page is hidden from AI). A page tied in several ways is one row with every reason."""
     by_page: dict[str, dict[str, Any]] = {}
     for r in await docs_for_ticket(session, ticket_id):
         if hidden and r["page_id"] in hidden:
@@ -2108,7 +2104,8 @@ async def link_ticket_doc(
         page_id: Page to link to.
 
     Returns:
-        The link row.
+        The link row; when a mention already links them, that row, with `already_linked` and a `message` (no manual
+        link is added).
 
     Raises:
         DocsError: 422 if the page and ticket are in different projects.
@@ -2127,6 +2124,26 @@ async def link_ticket_doc(
         )
     )
     if existing.first() is None:
+        # A page and a ticket tied by a mention (the ticket's text names the page, or the page names the ticket) are
+        # already linked both ways; a second, manual link would only draw the page twice on the ticket.
+        mention = next(
+            (
+                r
+                for r in await docs_for_ticket(session, ticket_id)
+                if r["page_id"] == page.id and r["origin"] != "manual"
+            ),
+            None,
+        )
+        if mention is not None:
+            return {
+                **mention,
+                "already_linked": "mention",
+                "message": (
+                    "Already linked by a mention (%s): nothing was added. A manual link is for a page the text does not "
+                    "name; if the mention is removed later, link it then."
+                    % _MENTION_WORDS.get(mention["origin"], "the text names it")
+                ),
+            }
         session.add(
             DocsLink(
                 source_page_id=page.id,
@@ -2139,6 +2156,16 @@ async def link_ticket_doc(
         await session.commit()
     rows = await docs_for_ticket(session, ticket_id)
     return next(r for r in rows if r["page_id"] == page.id and r["origin"] == "manual")
+
+
+_MENTION_WORDS = {
+    "page": "the page names the ticket",
+    "description": "the ticket's description names the page",
+    "comment": "a comment of the ticket names the page",
+    "acceptance_criterion": "an acceptance criterion names the page",
+    "test_case": "a test case names the page",
+    "debug_note": "a debug note names the page",
+}
 
 
 def _ticket_activity(ticket, field: str, from_: str | None, to: str | None) -> None:

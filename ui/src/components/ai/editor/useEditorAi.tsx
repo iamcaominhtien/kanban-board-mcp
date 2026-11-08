@@ -41,10 +41,8 @@ export interface UseEditorAiOptions {
   insertDiagramLine?: (markdown: string) => void;
   /** Where a diagram saves to, shown in the draw.io editor ("KAN-1 description"). */
   diagramSaveTo?: string;
-  /** "Open AI members" on the no-AI-member state. */
+  /** "Open Members" on the no-AI-team state. */
   onOpenAiMembers?: () => void;
-  /** "See usage" on the over-budget state. */
-  onOpenUsage?: () => void;
   /** A draft was accepted (after the text went in, or a list was added). The criteria list uses it to drop a split one. */
   onAccepted?: (action: EditorAction, kind: EditorResult['kind']) => void;
 }
@@ -113,7 +111,7 @@ function readLang(): string {
 }
 
 function dollars(v: number | null | undefined, metered: boolean): string {
-  if (!metered) return 'Not metered';
+  if (!metered || (v != null && v <= 0)) return 'Not metered';
   if (v == null) return '';
   return v < 0.01 ? `$${v.toFixed(3)}` : `$${v.toFixed(2)}`;
 }
@@ -224,7 +222,7 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
   const qc = useQueryClient();
   const toast = useToast();
   const diagrams = useDiagrams();
-  const { openAiPage, openAiTab } = useAiBoardState();
+  const { openAiPage } = useAiBoardState();
   const st = useEditorAiState(projectId, surface, ticketId, enabled && !!projectId, ideaId);
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
   const phaseRef = useRef<Phase>(phase);
@@ -754,10 +752,6 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
             close();
             (optsRef.current.onOpenAiMembers ?? (() => openAiPage?.()))();
           }}
-          onUsage={() => {
-            close();
-            (optsRef.current.onOpenUsage ?? (() => openAiTab?.('usage')))();
-          }}
         />
       </Floating>
     );
@@ -785,17 +779,7 @@ function labelOf(action: EditorAction, ...lists: (EditorActionInfo[] | undefined
 }
 
 /** The states of design E, as tiles. */
-function NoticeTile({
-  notice,
-  onClose,
-  onMembers,
-  onUsage,
-}: {
-  notice: Notice;
-  onClose: () => void;
-  onMembers: () => void;
-  onUsage: () => void;
-}) {
+function NoticeTile({ notice, onClose, onMembers }: { notice: Notice; onClose: () => void; onMembers: () => void }) {
   switch (notice.code) {
     case 'not_configured':
       return (
@@ -809,29 +793,10 @@ function NoticeTile({
           testId="ea-no-member"
         >
           <div className="ai-hint">
-            The AI button, @ picker and /ai appear when an AI member that can read this project exists.
+            The AI button, @ picker and /ai appear when an AI team that can read this project exists.
           </div>
           <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onMembers}>
-            Open AI members
-          </button>
-        </Tile>
-      );
-    case 'over_budget':
-      return (
-        <Tile
-          tone="amber"
-          title={
-            <>
-              <LineIcon name="warning" size={13} /> AI is paused until tomorrow
-            </>
-          }
-          testId="ea-over-budget"
-        >
-          <div className="ai-hint">
-            The daily cap was reached. Ask-only answers and drafts stop; reading the thread still works.
-          </div>
-          <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onUsage}>
-            See usage
+            Open Members
           </button>
         </Tile>
       );
@@ -1148,7 +1113,7 @@ function PromptBox({
         </button>
         <span style={{ flex: 1 }} />
         <span className="ai-muted" data-testid="ea-cost">
-          {est ? (est.metered ? `About ${dollars(est.usd, true)}` : 'Not metered') : ''}
+          {est ? (est.metered && (est.usd ?? 0) > 0 ? `About ${dollars(est.usd, true)}` : 'Not metered') : ''}
         </span>
       </div>
       {showSent && (

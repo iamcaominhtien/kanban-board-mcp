@@ -18,6 +18,17 @@ import { widthFor } from './planeMath';
 import { dataUrl, previewDocument } from './sourcePreview';
 import styles from './Canvas.module.css';
 
+/** "Started 6 minutes ago. " for the lock card, or nothing when the time is not known. */
+function startedAgo(since?: string): string {
+  const t = since ? new Date(since).getTime() : NaN;
+  if (Number.isNaN(t)) return '';
+  const mins = Math.max(0, Math.floor((Date.now() - t) / 60000));
+  if (mins < 1) return 'Started just now. ';
+  if (mins < 60) return `Started ${mins} minute${mins === 1 ? '' : 's'} ago. `;
+  const hrs = Math.floor(mins / 60);
+  return `Started ${hrs} hour${hrs === 1 ? '' : 's'} ago. `;
+}
+
 interface Props {
   canvasId: string;
   canvasTitle: string;
@@ -271,12 +282,13 @@ export function SourceEditor({
           <div className={styles.dialogBody}>
             <div>
               {blocker?.code === 'board_locked'
-                ? 'You can still look, comment and move the board. Edit is off until they save or leave.'
+                ? `${startedAgo(blocker.since)}You can still look, comment and move the board. Edit is off until they save or leave.`
                 : blocker?.message}
             </div>
             {blocker?.code === 'board_locked' && (
               <div className={styles.hint}>
-                The lock ends when they save or cancel, close the editor, or have been idle for 10 minutes.
+                The lock ends when they save or cancel, close the editor, or have been idle for 10 minutes (shown to
+                them first).
               </div>
             )}
           </div>
@@ -372,6 +384,9 @@ export function SourceEditor({
                 : 'Could not save'}
           </b>
           <div style={{ fontSize: 13 }}>{error.message}</div>
+          {error.code === 'board_conflict' && (
+            <div style={{ fontSize: 13 }}>Your source stays in the editor. Saving it as a new board keeps both.</div>
+          )}
           <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
             <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setError(null)}>
               Back to editor
@@ -439,7 +454,7 @@ export function SourceEditor({
             </button>
             <span className={styles.spacer} />
             <span className={styles.hint}>
-              {lines} lines · {formatFileSize(size)}
+              {lines} {lines === 1 ? 'line' : 'lines'} · {formatFileSize(size)}
             </span>
           </div>
           {phase === 'locking' ? (

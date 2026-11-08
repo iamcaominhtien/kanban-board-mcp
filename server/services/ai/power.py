@@ -24,8 +24,11 @@ async def after_wake(session) -> dict:
     """Check each run the board thinks is running. Returns {"checked": n, "alive": [...], "dead": [...], "orphans":
     [...]}: `dead` had a CLI process of the board's that is gone (it is stopped so the run is resumed or ended by its
     kind), `orphans` have no process or task at all (ended as after a crash)."""
-    from . import cli, runs
+    from . import cli, runner_link, runs
 
+    if runner_link.mode() == "process" and not runner_link.in_runner():
+        await runner_link.command("*", "wake", {}, wait=False)
+        return {"checked": 0, "alive": [], "dead": [], "orphans": [], "deferred": True}
     rows = (
         await session.exec(
             select(AiRun).where(col(AiRun.state).in_(["starting", "running"]))
@@ -43,12 +46,12 @@ async def after_wake(session) -> dict:
             runs.transcripts.note(
                 run.id, "sleep", "The computer woke up; the CLI did not survive."
             )
-            await runs._append(
+            await runs.steps.append(
                 run.id,
-                steps=[
+                [
                     {
                         "kind": "start",
-                        "text": "The computer woke up; the CLI did not survive.",
+                        "title": "The computer woke up; the CLI did not survive.",
                     }
                 ],
             )
@@ -75,7 +78,7 @@ async def _end_orphans(run_ids: list[str]) -> None:
     would also kill CLIs it finds by pid, and a run reached here by pid is alive)."""
     import database
 
-    from . import approvals, runs
+    from . import runs
     from .store import now_iso
 
     async with database.async_session() as session:
@@ -95,5 +98,3 @@ async def _end_orphans(run_ids: list[str]) -> None:
             run.token_hash = None
             session.add(run)
         await session.commit()
-    for run_id in run_ids:
-        await approvals.mark_run_ended(run_id)

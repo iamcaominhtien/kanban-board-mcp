@@ -4,7 +4,7 @@ change and MCP all refuse it and name the blocker; a blocker that is Done or Won
 import pytest
 
 from kanban_mcp import operations as ops
-from tests.test_ai import _project, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _ticket, env  # noqa: F401
 
 
 async def _blocked_pair(c, pid):

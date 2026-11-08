@@ -1,5 +1,7 @@
 # AI members and AI work on tickets — technical notes
 
+> **Pointer note (AI v2, KBM-39):** the design boards `ai-provider-config` and `ai-safety-cost` (`AiProviderConfig`, `AiSafetyCost`) were deleted from `design/` when the AI team replaced the per-AI-member screens. The names below are kept as history; for today's screens see `design/screens/ai-project-settings.md`, `ai-members.md`, `ai-paused.md`, `ai-operations.md` and `docs/specs/ai-v2.md`.
+
 Issue #165. Design: `design/screens/ai-members.md`, `design/screens/ai-provider-config.md`,
 `design/components/ai-ticket-work.md`, `design/screens/ai-safety-cost.md`.
 

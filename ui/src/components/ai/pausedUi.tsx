@@ -54,29 +54,21 @@ export function spanText(ms: number): string {
   return `${h} h ${String(m).padStart(2, '0')}`;
 }
 
-/** Only owners and admins resume. */
-export function canResume(settings: AiSettings | null | undefined): boolean {
-  const role = settings?.myRole;
-  // An old server does not send the role: let the server decide
-  return !role || role === 'owner' || role === 'admin';
+/** Anyone who can open the project may resume it; the server decides. */
+export function canResume(_settings?: AiSettings | null): boolean {
+  return true;
 }
 
-/** "Paused by An Nguyen at 10:41" */
+/** "Paused at 10:41" */
 export function pausedByLine(settings: AiSettings): string {
-  const by = settings.pausedBy ?? 'someone';
   const at = clockTime(settings.pausedAt);
-  return `Paused by ${by}${at ? ` at ${at}` : ''}`;
+  return `Paused${at ? ` at ${at}` : ''}`;
 }
 
 /** What the pause did, for the hover text of the top-bar label. */
 export function pausedSummary(settings: AiSettings): string {
-  const bits: string[] = [];
-  const c = settings.pausedCancelled ?? 0;
-  const h = settings.pausedHeld ?? 0;
-  if (c) bits.push(`${c} run${c === 1 ? '' : 's'} cancelled`);
-  if (h) bits.push(`${h} queued run${h === 1 ? '' : 's'} held`);
-  const sentence = bits.length ? `${bits.join(', ')}. ` : '';
-  return `${pausedByLine(settings)}. ${sentence}Nothing new starts until an owner or admin resumes.`;
+  const why = settings.pausedReason ? ` “${settings.pausedReason}”.` : '.';
+  return `${pausedByLine(settings)}${why} Nothing new starts until it is resumed.`;
 }
 
 /** The ticket-level strip: "AI is paused for this project · by An Nguyen at 10:41". */
@@ -97,8 +89,7 @@ export function PausedStrip({
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <b>AI is paused for this project</b>
-        {' · '}by {settings.pausedBy ?? 'someone'}
-        {at ? ` at ${at}` : ''}. {children ?? 'Nothing new starts on this ticket.'}
+        {at ? ` · since ${at}` : ''}. {children ?? 'Nothing new starts on this ticket.'}
       </span>
       {onResume && canResume(settings) && (
         <button type="button" className="ai-btn ai-btn-sm" onClick={onResume}>
@@ -107,4 +98,10 @@ export function PausedStrip({
       )}
     </div>
   );
+}
+
+/** A failure text as a sentence: ends with a full stop, so a line can follow it. */
+export function sentence(text: string): string {
+  const t = text.trim();
+  return /[.!?]$/.test(t) ? t : `${t}.`;
 }

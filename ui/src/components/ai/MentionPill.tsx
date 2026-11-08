@@ -1,19 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import { aiAvailability, TONE_COLOR } from './aiAvailability';
 import { ASSIGN_AI_EVENT, fireAiEvent, useAiTicket } from './AiTicketContext';
-import {
-  AiAvatar,
-  CeilingChip,
-  ConnectionChip,
-  GlyphIcon,
-  SparkleIcon,
-  fmtElapsed,
-  secondsSince,
-  useAiBoardState,
-  whenWords,
-} from './aiUi';
+import { AiAvatar, GlyphIcon, SparkleIcon, fmtElapsed, secondsSince, useAiBoardState, whenWords } from './aiUi';
 import './ticketWork.css';
 
 /** “@Name” of a mention link without its @ (an AI pill is a name, not a handle). */
@@ -30,11 +20,8 @@ function plainName(children: ReactNode): ReactNode {
  * An AI that cannot take work now is greyed out and struck through.
  */
 export function MentionPill({ memberId, children }: { memberId: string; children: ReactNode }) {
-  const { members, settings } = useAiBoardState();
+  const { members } = useAiBoardState();
   const ai = members.get(memberId);
-  // AI turned off for the project: an old mention of an AI member is plain text
-  if (ai && ai.kind === 'ai' && settings?.aiEnabled === false)
-    return <span data-testid="mention-plain">{children}</span>;
   if (!ai || ai.kind !== 'ai') {
     return (
       <span
@@ -118,7 +105,7 @@ export function AiHoverHost() {
   );
 }
 
-function AiMentionPill({ ai, children }: { ai: AiMember; children: ReactNode }) {
+function AiMentionPill({ ai, children }: { ai: AiTeam; children: ReactNode }) {
   const av = aiAvailability(ai);
   const announce = (el: HTMLElement) =>
     window.dispatchEvent(new CustomEvent(HOVER_SHOW, { detail: { id: ai.id, rect: el.getBoundingClientRect() } }));
@@ -146,7 +133,7 @@ function AiMentionPill({ ai, children }: { ai: AiMember; children: ReactNode }) 
         textDecoration: off ? 'line-through' : undefined,
       }}
     >
-      <GlyphIcon glyph={ai.glyph} size={12} />
+      <GlyphIcon glyph="asterisk" size={12} />
       {plainName(children)}
       <SparkleIcon size={9} />
     </span>
@@ -154,17 +141,16 @@ function AiMentionPill({ ai, children }: { ai: AiMember; children: ReactNode }) 
 }
 
 /** Hover card of an AI mention: Now, Last run, ceiling, Ask, Assign here, Profile. */
-export function AiHoverCard({ ai, onClose }: { ai: AiMember; onClose: () => void }) {
+export function AiHoverCard({ ai, onClose }: { ai: AiTeam; onClose: () => void }) {
   const av = aiAvailability(ai);
   const { ticketId, ask } = useAiTicket();
   const { openAiPage } = useAiBoardState();
   const run = ai.running.find((r) => r.state === 'running' || r.state === 'starting') ?? ai.running[0];
   const last = ai.lastRun;
-  const metered = ai.connection === 'api_key' ? 'Metered' : 'Not metered';
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={34} />
+        <AiAvatar color={ai.color} size={34} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>{ai.name}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
@@ -175,7 +161,6 @@ export function AiHoverCard({ ai, onClose }: { ai: AiMember; onClose: () => void
             <span style={{ color: av.tone === 'off' ? '#5B6B60' : TONE_COLOR[av.tone], fontWeight: 600 }}>
               {av.label}
             </span>
-            <ConnectionChip connection={ai.connection} />
           </div>
         </div>
       </div>
@@ -201,9 +186,7 @@ export function AiHoverCard({ ai, onClose }: { ai: AiMember; onClose: () => void
           {last ? (
             <>
               {whenWords(last.endedAt)} · <span className="ai-mono">{last.ticketId}</span>
-              <div className="ai-muted">
-                {last.state === 'finished' ? 'Finished' : last.state.replace('_', ' ')} · {metered}
-              </div>
+              <div className="ai-muted">{last.state === 'finished' ? 'Finished' : last.state.replace('_', ' ')}</div>
             </>
           ) : (
             <span className="ai-muted" style={{ fontSize: 12.5 }}>
@@ -213,7 +196,7 @@ export function AiHoverCard({ ai, onClose }: { ai: AiMember; onClose: () => void
         </span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-        <CeilingChip ceiling={ai.ceiling} />
+        <span className="ai-muted">{ai.packName ?? 'Team'}</span>
         <span style={{ flex: 1 }} />
         <button
           type="button"

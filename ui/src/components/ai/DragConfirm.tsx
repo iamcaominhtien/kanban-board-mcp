@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import type { AiRun } from '../../types/ai';
+import type { BoardRun } from '../../types/ai';
 import { STATUS_NAMES, useAiBoardState, AiAvatar } from './aiUi';
 import './ticketWork.css';
 
 /**
- * Dragging a card an AI holds asks first (A4): “Move anyway and cancel the run?”, as a dialog of its own. The move
+ * Dragging a card a team is working on asks first (A4): “Move anyway and cancel the run?”, as a dialog of its own. The move
  * ends the run; its files stay on the branch.
  */
 export function DragConfirm({
@@ -13,7 +13,7 @@ export function DragConfirm({
   onCancel,
   onConfirm,
 }: {
-  run: AiRun;
+  run: BoardRun;
   to: string;
   onCancel: () => void;
   onConfirm: () => void;
@@ -44,21 +44,21 @@ export function DragConfirm({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="ai-modal-head" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {ai && <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={34} />}
+          {ai && <AiAvatar color={ai.color} size={34} />}
           <div>
             <h2 className="ai-modal-title" style={{ fontSize: 16 }}>
               Move {run.ticketId} anyway?
             </h2>
             <div className="ai-hint">
-              {run.memberName} {stateWords} (run #{run.number}).
+              {ai?.name ?? 'The team'} {stateWords} (run #{run.number}).
             </div>
           </div>
         </div>
         <div className="ai-modal-body">
           <div className="ai-notice ai-notice-warn">
             <div>
-              Moving it to <b>{STATUS_NAMES[to] ?? to}</b> cancels the run and releases the hold. Files stay on the
-              branch; the status the run set is not restored.
+              Moving it to <b>{STATUS_NAMES[to] ?? to}</b> cancels the run. Files stay on the branch; the status the run
+              set is not restored.
             </div>
           </div>
         </div>

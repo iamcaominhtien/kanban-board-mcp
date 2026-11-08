@@ -493,14 +493,28 @@ export interface TimelineLifeline {
   /** Header dot: working, waiting for you, queued, offline, idle or paused (AIs only). */
   state: 'working' | 'waiting' | 'queued' | 'offline' | 'idle' | 'paused' | null;
   delegate?: string | null;
+  /** The team's lead (its box is drawn dark, like You). */
+  lead?: boolean;
+  /** The team a lead or a role belongs to (the group header of the Flow timeline); absent for You. */
+  teamId?: string;
+  /** The team's own name (a lead's lane is called "Lead" when only one team is drawn). */
+  teamName?: string;
   /** No event in the window: folded into the "N quiet AIs" strip on a narrow window. */
   quiet?: boolean;
 }
 
-export type RunEnd = 'ok' | 'failed' | 'memory' | 'timeout' | 'stopped' | 'pause_all' | 'budget' | null;
+export type RunEnd = 'ok' | 'failed' | 'memory' | 'timeout' | 'stopped' | 'pause_all' | 'limit' | null;
 
 export interface TimelineBar {
+  /** The bar's own id: a run's id for a lead, `<agent>:<n>` for one call of a role. */
   id: string;
+  /** The run the bar belongs to (the same as `id` for a lead). */
+  runId: string;
+  agentId: string | null;
+  /** The role a call belongs to; null for a run of a lead. */
+  role: string | null;
+  /** What the bar says in a scoped Timeline instead of "run N" (a role's "call 2"). */
+  label: string | null;
   memberId: string;
   ticketId: string;
   number: number;
@@ -535,6 +549,7 @@ export type ArrowKind =
   | 'assign'
   | 'mention'
   | 'handoff'
+  | 'note'
   | 'report'
   | 'returned'
   | 'sent_back'
@@ -628,7 +643,7 @@ export interface Timeline {
   until: string;
   now: string;
   following: boolean;
-  scope: { kind: 'team' | 'ticket'; ticketId: string | null };
+  scope: { kind: 'team' | 'ticket'; ticketId: string | null; teamId?: string | null };
   lifelines: TimelineLifeline[];
   bars: TimelineBar[];
   arrows: TimelineArrow[];

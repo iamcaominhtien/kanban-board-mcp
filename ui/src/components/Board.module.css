@@ -100,34 +100,6 @@
     background 0.15s ease;
 }
 
-.storyButton {
-  background: #f3f6fb;
-  color: #1b3a6b;
-  border: 1px solid #c9d6ea;
-  border-radius: 8px;
-  padding: 7px 13px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  white-space: nowrap;
-  transition: background 0.15s ease;
-}
-
-.storyButton:hover {
-  background: #e6ecf5;
-}
-
-.storyButton:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
 .newButton:hover {
   opacity: 0.92;
 }

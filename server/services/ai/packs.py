@@ -1,9 +1,9 @@
 """Role packs: everything that makes an AI a role, in one object you can export, import and version
 (design/screens/ai-team-process.md, C; plan D15).
 
-A pack is: who it is (persona), model and effort, its tools (allow rules, plugins, MCP servers from the catalog), its
-permission template and status ceiling, where it may write, what it must hand in, and its limits. Eight are
-ready-made; the four presets of ``memberPresets.json`` are the first four. A project can add its own, and every edit
+A pack is: who it is (persona), model and effort, its plugins and MCP servers from the catalog, where it may write,
+what it must hand in, and its limits. There is no permission template, status ceiling or tool list (AI v2: bypass
+plus a short deny list). Twelve are ready-made; the four presets of ``memberPresets.json`` are the first four. A project can add its own, and every edit
 makes a new version so a member keeps the version it was made from until someone updates it.
 """
 
@@ -38,25 +38,14 @@ BUILTIN: list[dict] = [
         "tagline": "Reads a new ticket and sorts it",
         "model": "haiku",
         "effort": "low",
-        # Developer narrowed to the fields it sorts: labels and the like without asking, nothing else it could make
-        "template": "developer",
-        "permissions": {
-            "change_assignee": "blocked",
-            "create_tickets": "blocked",
-            "edit_docs": "blocked",
-            "delete_docs": "blocked",
-            "create_branches": "blocked",
-        },
-        "ceiling": "todo",
         "writes": "nothing",
-        "hands_in": "Labels, the workflow, the review depth: a ticket with a process on it",
-        "allow": ["Read", "Glob", "Grep"],
+        "hands_in": "Labels and the review depth: a ticket sorted for the team",
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 2, "max_runs_per_day": 40},
         "persona": (
             "You are Triage on this project. For a new ticket: read it, decide its kind (bug, feature, chore, research), "
-            "set labels, pick the workflow template that fits and the review depth (light for a small obvious change, "
+            "set labels and the review depth (light for a small obvious change, "
             "standard for most, deep for migrations, money, permissions or anything marked risky). Change nothing in the "
             "repository. Say in one sentence why you chose them; a person may change any of it. "
             + _rules("triage")
@@ -66,32 +55,19 @@ BUILTIN: list[dict] = [
         "key": "pm",
         "name": "PM",
         "glyph": "PM",
-        "tagline": "PM / coordinator: plans, splits, and settles disagreements",
+        "tagline": "PM: plans, splits, and settles disagreements",
         "model": "opus",
         "effort": "high",
-        "template": "developer",
-        "ceiling": "todo",
         "writes": "nothing",
         "hands_in": "A plan, or a verdict",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            "Bash(git status:*)",
-            "Bash(git diff:*)",
-            "Bash(git log:*)",
-            # the files of a draw.io Diagram of a plan (no other shell)
-            "Write",
-            "Edit",
-        ],
         "plugins": [],
         "mcp": ["playwright"],  # to look at a design before deciding it
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
         "persona": (
-            "You are the PM (coordinator) of this project. You get tickets ready (clarify, criteria, split), give work "
-            "to the right AI, and when two AIs cannot agree you read both sides and rule: side with one, or split the "
+            "You are the PM of this team. You get tickets ready (clarify, criteria, split), say which role should take "
+            "each piece, and when two roles cannot agree you read both sides and rule: side with one, or split the "
             "ticket. You may propose a change to an acceptance criterion but never make one. You never edit code. The "
-            "Board AI speaks for the people and outranks you; when you cannot decide, say so and it goes to a person. "
+            "lead decides who does what; when you cannot decide, say so and the lead asks a person. "
             + "When you split or plan work, a draw.io Diagram of the pieces and what depends on what helps the person see it "
             "(skill `kanban-board:drawio-diagrams`, else docs_read(diagram_guide)). "
             + _rules("pm")
@@ -104,18 +80,8 @@ BUILTIN: list[dict] = [
         "tagline": "Turns a wish into criteria",
         "model": "sonnet",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "todo",
         "writes": "ticket",
         "hands_in": "Acceptance criteria",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            # the files of a draw.io Diagram or a Sketch, written before docs_write makes it (no shell)
-            "Write",
-            "Edit",
-        ],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -137,11 +103,8 @@ BUILTIN: list[dict] = [
         "tagline": "Draws before anyone builds",
         "model": "opus",
         "effort": "high",
-        "template": "developer",
-        "ceiling": "todo",
         "writes": "canvas",
         "hands_in": "A mock-up for you to approve",
-        "allow": ["Read", "Glob", "Grep"],
         # not Anthropic's canvas-design (poster art as a PNG; its name hides the board's own guide), nor Figma (it signs
         # in through a browser, which a run cannot do): both stay in the catalogue for a person to add
         # only skills for work the guide does not teach (motion, charts) and checks run on drawn boards: rule sets
@@ -176,11 +139,8 @@ BUILTIN: list[dict] = [
         "model": "sonnet",
         "retry_model": "opus",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "review",
         "writes": "worktree",
         "hands_in": "A run where the test failed, and a later run where it passed",
-        "allow": [],
         "plugins": ["tdd"],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
@@ -203,26 +163,8 @@ BUILTIN: list[dict] = [
         "model": "sonnet",
         "effort": "medium",
         "depth_models": {"light": "haiku", "standard": "sonnet", "deep": "opus"},
-        "template": "reviewer",
-        "ceiling": "review",
         "writes": "nothing",
         "hands_in": "Pass, or what to change",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            "Bash(git status:*)",
-            "Bash(git diff:*)",
-            "Bash(git log:*)",
-            "Bash(npm test:*)",
-            "Bash(npm run test:*)",
-            "Bash(npm run lint:*)",
-            "Bash(pytest:*)",
-            "Bash(python -m pytest:*)",
-            "Bash(python3 -m pytest:*)",
-            "Bash(uv run pytest:*)",
-            "Bash(uvx pytest:*)",
-        ],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 2, "max_runs_per_day": 30},
@@ -240,11 +182,8 @@ BUILTIN: list[dict] = [
         "tagline": "Runs it, does not read it",
         "model": "sonnet",
         "effort": "low",
-        "template": "developer",
-        "ceiling": "review",
         "writes": "tests",
         "hands_in": "What passed, what did not",
-        "allow": [],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -262,30 +201,8 @@ BUILTIN: list[dict] = [
         "tagline": "Plays one kind of person",
         "model": "sonnet",
         "effort": "medium",
-        "template": "reviewer",
-        "ceiling": "review",
         "writes": "nothing",
         "hands_in": "What it tried, and where it got stuck",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            # start the app it tries (in the background) and drive it with the browser; no other shell
-            "Bash(npm ci:*)",
-            "Bash(npm install:*)",
-            "Bash(npm run dev:*)",
-            "Bash(npm run build:*)",
-            "Bash(npm run preview:*)",
-            "Bash(npm start:*)",
-            "Bash(npx vite:*)",
-            "Bash(uv run:*)",
-            "Bash(python3 -m http.server:*)",
-            "Bash(curl:*)",
-            "Bash(lsof:*)",
-            "Bash(kill:*)",
-            # screenshots and notes for a demo or a report
-            "Write",
-        ],
         "plugins": [],
         "mcp": ["playwright"],
         "personas": ["in a hurry", "first time here", "keyboard only", "on a phone"],
@@ -307,12 +224,9 @@ BUILTIN: list[dict] = [
         "tagline": "Docs a reader can follow, every step tried",
         "model": "sonnet",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "review",
         # developer docs live beside the code, on the ticket's branch; team and user docs are Docs pages
         "writes": "worktree",
         "hands_in": "A guide or page whose every step was tried, with the commands and their output",
-        "allow": [],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
@@ -331,11 +245,8 @@ BUILTIN: list[dict] = [
         "tagline": "CI and environments that run the same every time",
         "model": "sonnet",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "review",
         "writes": "worktree",
         "hands_in": "The config on a branch, a local run of the commands it runs, and what a person must switch on",
-        "allow": [],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 10},
@@ -355,28 +266,8 @@ BUILTIN: list[dict] = [
         "tagline": "Finds what an attacker could use, and proves it",
         "model": "sonnet",
         "effort": "high",
-        "template": "reviewer",
-        "ceiling": "review",
         "writes": "nothing",
         "hands_in": "Findings rated by severity, each with a local proof and a fix, and a verdict",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            "Bash(git status:*)",
-            "Bash(git diff:*)",
-            "Bash(git log:*)",
-            "Bash(git show:*)",
-            # a proof test in the ticket's scratch folder, run and thrown away (never committed)
-            "Write",
-            "Bash(pytest:*)",
-            "Bash(python -m pytest:*)",
-            "Bash(python3 -m pytest:*)",
-            "Bash(uv run pytest:*)",
-            "Bash(npm test:*)",
-            "Bash(npm audit:*)",
-            "Bash(pip-audit:*)",
-        ],
         "plugins": [],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -396,22 +287,8 @@ BUILTIN: list[dict] = [
         "tagline": "Answers questions with numbers people can trust",
         "model": "sonnet",
         "effort": "medium",
-        "template": "developer",
-        "ceiling": "review",
         "writes": "ticket",
         "hands_in": "The answer with its numbers, a chart, the definitions and caveats, and a script that reruns it",
-        "allow": [
-            "Read",
-            "Glob",
-            "Grep",
-            # an analysis script, run with the machine's Python; its chart and output beside it
-            "Write",
-            "Edit",
-            "Bash(mkdir:*)",
-            "Bash(python3:*)",
-            "Bash(python:*)",
-            "Bash(uv run:*)",
-        ],
         "plugins": ["tufte-data-viz"],
         "mcp": [],
         "limits": {"max_parallel": 1, "max_runs_per_day": 15},
@@ -461,7 +338,7 @@ def to_dict(row: AiRolePack) -> dict:
     """A stored pack for the API."""
     body = json.loads(row.body or "{}")
     return {
-        **body,
+        **{k: v for k, v in body.items() if k in _FIELDS},
         "id": row.id,
         "key": row.key,
         "name": row.name,
@@ -523,13 +400,8 @@ _FIELDS = (
     "retry_model",
     "effort",
     "depth_models",
-    "template",
-    "permissions",
-    "permission_mode",
-    "ceiling",
     "writes",
     "hands_in",
-    "allow",
     "plugins",
     "mcp",
     "personas",
@@ -557,7 +429,7 @@ def clean(body: dict) -> dict:
         "max",
     ):
         raise ValueError("The effort is low, medium, high, xhigh or max.")
-    for key in ("allow", "plugins", "mcp", "personas"):
+    for key in ("plugins", "mcp", "personas"):
         if key in out and out[key] is None:
             # the edit dialog sends `personas: null` for every pack without personas (all but the User tester):
             # nothing to change, not a bad value (it refused every save of the PM pack with a 422)
@@ -664,364 +536,6 @@ async def import_pack(session, project_id: str, data: dict, *, by: str) -> dict:
     }
     missing = [p for p in pack.get("plugins") or [] if p not in installed]
     return {"pack": pack, "missing": missing}
-
-
-_WRITES_CODE = ("worktree", "tests")
-_WRITE_TOOLS = ["Read", "Glob", "Grep", "Edit", "Write", "MultiEdit", "Bash"]
-# a canvas is made from a folder of HTML frames the Designer writes first (docs_write canvas_create): files, no shell
-_FILE_TOOLS = ["Edit", "Write", "MultiEdit"]
-
-
-def member_body(
-    pack: dict,
-    *,
-    name: str,
-    working_dir: str | None,
-    account_id: str | None,
-    plays: str | None = None,
-) -> dict:
-    """The body of a new AI member made from a pack (the existing member API takes it as it is)."""
-    persona = pack.get("persona") or ""
-    if "{plays}" in persona:
-        persona = persona.replace(
-            "{plays}", plays or (pack.get("personas") or ["a typical user"])[0]
-        )
-    limits = pack.get("limits") or {}
-    allow = list(pack.get("allow") or [])
-    if pack.get("writes") in _WRITES_CODE:
-        # A pack that changes code edits files and runs commands; the member's deny rules still apply
-        allow += [t for t in _WRITE_TOOLS if t not in allow]
-    elif pack.get("writes") == "canvas":
-        allow += [t for t in _FILE_TOOLS if t not in allow]
-    from . import config_model as cm, plugins
-
-    catalogue = {c["key"]: c for c in plugins.CATALOGUE if c["kind"] == "mcp"}
-    extra: dict = {}
-    # the pack's MCP servers go on the member as they are (an unknown key is skipped)
-    servers = [
-        cm.normalize_server({**catalogue[k]["server"], "mode": "synced"})
-        for k in pack.get("mcp") or []
-        if k in catalogue
-    ]
-    if servers:
-        extra["mcp_servers"] = servers
-    for key in ("retry_model", "depth_models", "hands_in"):
-        if pack.get(key):
-            extra[key] = pack[key]
-    if pack.get("plugins"):
-        # marketplace plugins are installed per project by the apply step; the member only remembers which
-        extra["pack_plugins"] = list(pack["plugins"])
-    body = {
-        "name": name,
-        "provider": "claude-code",
-        "working_dir": working_dir,
-        "account_id": account_id,
-        "model": pack.get("model"),
-        "persona": persona,
-        "template": pack.get("template") or "developer",
-        "ceiling": pack.get("ceiling") or "review",
-        "permissions": dict(pack.get("permissions") or {}) or None,
-        "max_parallel": limits.get("max_parallel"),
-        "max_runs_per_day": limits.get("max_runs_per_day"),
-        "glyph": None,
-        "description": pack.get("tagline"),
-        "config": {
-            # the ready-made packs run with Bypass permissions (deny rules, the status ceiling and approvals still
-            # hold); Triage, which only reads and sorts, keeps the allow list
-            "permission_mode": pack.get("permission_mode")
-            or ("allowlist" if pack["key"] == "triage" else "bypass"),
-            "effort": pack.get("effort"),
-            "allow_rules": allow,
-            "role": pack["key"],
-            "pack": {
-                "key": pack["key"],
-                "version": pack.get("version") or BUILTIN_VERSION,
-            },
-            # the instructions as the pack wrote them: an update can tell whether a person changed them since
-            "pack_persona": persona,
-            **({"plays": plays} if plays else {}),
-            **extra,
-        },
-    }
-    return {k: v for k, v in body.items() if v is not None}
-
-
-# what an update from the pack replaces on a member; its name, folder, account, model and paused state stay its own
-_FROM_PACK = (
-    "persona",
-    "template",
-    "ceiling",
-    "permissions",
-    "max_parallel",
-    "max_runs_per_day",
-    "description",
-)
-_CONFIG_FROM_PACK = (
-    "permission_mode",
-    "effort",
-    "allow_rules",
-    "role",
-    "pack",
-    "retry_model",
-    "depth_models",
-    "hands_in",
-    "pack_plugins",
-    "pack_persona",
-)
-HISTORY_DAYS = 30  # a member can go back to the version it was updated from for this long (ai-story-flow Q1)
-_LABELS = {
-    "persona": "Instructions",
-    "template": "Template",
-    "ceiling": "Ceiling",
-    "permissions": "Permissions",
-    "max_parallel": "Runs at a time",
-    "max_runs_per_day": "Runs a day",
-    "description": "Description",
-    "permission_mode": "Permission mode",
-    "effort": "Effort",
-    "allow_rules": "Allow list",
-    "retry_model": "Model for a second attempt",
-    "depth_models": "Models per review depth",
-    "hands_in": "What it hands in",
-    "pack_plugins": "Plugins",
-    "mcp_servers": "MCP servers",
-}
-
-
-async def member_pack(session, member_id: str) -> dict | None:
-    """Which pack a member was made from and whether a newer version of it is out, or None (not made from a pack)."""
-    from models import AiMember
-
-    profile = await session.get(AiMember, member_id)
-    cfg = json.loads(profile.config or "{}") if profile else {}
-    made = cfg.get("pack") or {}
-    if not made.get("key"):
-        return None
-    pack = await get_pack(session, profile.project_id, made["key"])
-    if pack is None:
-        return {
-            "key": made["key"],
-            "version": made.get("version", 1),
-            "latest": None,
-            "outdated": False,
-        }
-    latest = pack.get("version", 1)
-    history = _history(cfg)
-    return {
-        "key": made["key"],
-        "name": pack.get("name"),
-        "version": made.get("version", 1),
-        "latest": latest,
-        "outdated": latest > made.get("version", 1),
-        "edited": bool(cfg.get("pack_persona"))
-        and (profile.persona or "") != cfg.get("pack_persona"),
-        "history": [
-            {"version": h.get("version"), "at": h.get("at"), "by": h.get("by")}
-            for h in history
-        ],
-    }
-
-
-def _history(cfg: dict) -> list[dict]:
-    """The versions a member can go back to, newest first, younger than HISTORY_DAYS."""
-    from datetime import UTC, datetime, timedelta
-
-    floor = (datetime.now(UTC) - timedelta(days=HISTORY_DAYS)).isoformat()
-    return [
-        h
-        for h in cfg.get("pack_history") or []
-        if isinstance(h, dict) and (h.get("at") or "") >= floor
-    ]
-
-
-def _short(value) -> str:
-    if isinstance(value, str):
-        return value
-    return json.dumps(value, ensure_ascii=False) if value not in (None, "") else ""
-
-
-async def pack_diff(session, member_id: str) -> dict:
-    """What an update to the pack's latest version would change on the member (ai-story-flow Q1): each field with
-    its value now and after, and what stays the member's own."""
-    from models import AiMember, Member
-
-    profile = await session.get(AiMember, member_id)
-    member = await session.get(Member, member_id)
-    state = await member_pack(session, member_id)
-    if profile is None or member is None or state is None:
-        raise ValueError("This AI member was not made from a role pack.")
-    pack = await get_pack(session, profile.project_id, state["key"])
-    if pack is None:
-        raise ValueError(f"The pack {state['key']} is gone.")
-    cfg = json.loads(profile.config or "{}")
-    body = member_body(
-        pack,
-        name=member.name,
-        working_dir=profile.working_dir,
-        account_id=profile.account_id,
-        plays=cfg.get("plays"),
-    )
-    changes = []
-    for key in _FROM_PACK:
-        now = getattr(profile, key)
-        if key == "permissions":
-            now = json.loads(now or "{}") or None
-        after = body.get(key)
-        if _short(now) != _short(after):
-            changes.append(
-                {
-                    "field": key,
-                    "label": _LABELS.get(key, key),
-                    "before": _short(now),
-                    "after": _short(after),
-                }
-            )
-    fresh = body["config"]
-    for key in _CONFIG_FROM_PACK:
-        if key in ("pack", "pack_persona", "role"):
-            continue
-        if _short(cfg.get(key)) != _short(fresh.get(key)):
-            changes.append(
-                {
-                    "field": key,
-                    "label": _LABELS.get(key, key),
-                    "before": _short(cfg.get(key)),
-                    "after": _short(fresh.get(key)),
-                }
-            )
-    before_srv = sorted(srv.get("name", "") for srv in cfg.get("mcp_servers") or [])
-    after_srv = sorted(srv.get("name", "") for srv in fresh.get("mcp_servers") or [])
-    if before_srv != after_srv:
-        changes.append(
-            {
-                "field": "mcp_servers",
-                "label": _LABELS["mcp_servers"],
-                "before": ", ".join(before_srv),
-                "after": ", ".join(after_srv),
-            }
-        )
-    return {
-        **state,
-        "to": pack.get("version", 1),
-        "changes": changes,
-        "kept": [
-            "name",
-            "working folder",
-            "account",
-            "model",
-            "MCP servers you added yourself",
-        ],
-    }
-
-
-async def update_member(session, member_id: str, *, by: str) -> dict:
-    """Bring a member made from a pack up to the pack's latest version: its persona, tools, MCP servers, ceiling and
-    permissions come from the pack; its name, folder, account and model stay as they are, and MCP servers a person
-    added stay too."""
-    from models import AiMember, Member
-
-    from . import audit
-
-    profile = await session.get(AiMember, member_id)
-    member = await session.get(Member, member_id)
-    state = await member_pack(session, member_id)
-    if profile is None or member is None or state is None:
-        raise ValueError("This AI member was not made from a role pack.")
-    pack = await get_pack(session, profile.project_id, state["key"])
-    if pack is None:
-        raise ValueError(f"The pack {state['key']} is gone.")
-    cfg = json.loads(profile.config or "{}")
-    body = member_body(
-        pack,
-        name=member.name,
-        working_dir=profile.working_dir,
-        account_id=profile.account_id,
-        plays=cfg.get("plays"),
-    )
-    # what it was, so the person can go back for HISTORY_DAYS (ai-story-flow Q1)
-    snapshot = {
-        "version": state["version"],
-        "at": _now(),
-        "by": by,
-        "fields": {k: getattr(profile, k) for k in _FROM_PACK},
-        "config": {k: v for k, v in cfg.items() if k != "pack_history"},
-    }
-    history = [snapshot, *_history(cfg)][:5]
-    for key in _FROM_PACK:
-        if key in body:
-            value = body[key]
-            setattr(profile, key, json.dumps(value) if key == "permissions" else value)
-    if "permissions" not in body:
-        profile.permissions = "{}"
-    fresh = body["config"]
-    for key in _CONFIG_FROM_PACK:
-        if key in fresh:
-            cfg[key] = fresh[key]
-        else:
-            cfg.pop(key, None)
-    pack_servers = {s["name"] for s in fresh.get("mcp_servers") or []}
-    catalogue = {
-        c["server"]["name"] for c in plugins_catalogue() if c.get("kind") == "mcp"
-    }
-    # the pack's servers as the pack has them; a server a person added (not one of the catalogue's) stays
-    cfg["mcp_servers"] = list(fresh.get("mcp_servers") or []) + [
-        srv
-        for srv in cfg.get("mcp_servers") or []
-        if srv.get("name") not in pack_servers and srv.get("name") not in catalogue
-    ]
-    cfg["pack_history"] = history
-    profile.config = json.dumps(cfg)
-    session.add(profile)
-    await session.commit()
-    await audit.record(
-        profile.project_id,
-        "member_pack_updated",
-        "info",
-        member_id=member_id,
-        member_name=member.name,
-        on_behalf_of=by,
-        detail={
-            "pack": state["key"],
-            "from": state["version"],
-            "to": pack.get("version", 1),
-        },
-    )
-    return await member_pack(session, member_id)
-
-
-async def revert_member(session, member_id: str, *, by: str) -> dict:
-    """Go back to the version the member was last updated from (within HISTORY_DAYS)."""
-    from models import AiMember, Member
-
-    from . import audit
-
-    profile = await session.get(AiMember, member_id)
-    member = await session.get(Member, member_id)
-    if profile is None or member is None:
-        raise ValueError("AI member not found.")
-    cfg = json.loads(profile.config or "{}")
-    history = _history(cfg)
-    if not history:
-        raise ValueError("There is no earlier version to go back to.")
-    last, rest = history[0], history[1:]
-    for key, value in (last.get("fields") or {}).items():
-        if key in _FROM_PACK:
-            setattr(profile, key, value)
-    restored = dict(last.get("config") or {})
-    restored["pack_history"] = rest
-    profile.config = json.dumps(restored)
-    session.add(profile)
-    await session.commit()
-    await audit.record(
-        profile.project_id,
-        "member_pack_reverted",
-        "info",
-        member_id=member_id,
-        member_name=member.name,
-        on_behalf_of=by,
-        detail={"to": last.get("version")},
-    )
-    return await member_pack(session, member_id)
 
 
 def plugins_catalogue() -> list[dict]:

@@ -1,0 +1,160 @@
+/* The board grouped by Story: one lane per Story, its tickets in the board's columns */
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #5b6b60;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hint {
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.5;
+}
+
+.iconBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.iconBtn:hover {
+  background: #eaf0ec;
+}
+
+.iconBtn:focus-visible,
+.laneTitle:focus-visible {
+  outline: 2px solid #2e6f40;
+  outline-offset: 2px;
+}
+
+.lanes {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+.laneGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.laneCols {
+  padding: 0 10px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fbfcfb;
+  padding-bottom: 4px;
+}
+
+.laneColHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 13px;
+}
+
+.laneHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border: 1px solid #c9d6ea;
+  border-radius: 10px;
+  background: #f3f6fb;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.laneHeadLoose {
+  border: 1px dashed #c7d2cb;
+  background: #fff;
+}
+
+.laneTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.laneTitle:hover {
+  text-decoration: underline;
+}
+
+.bar {
+  width: 110px;
+  height: 6px;
+  border-radius: 3px;
+  background: #dfe7e2;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  background: #2e6f40;
+}
+
+.progress {
+  font-size: 12px;
+  color: #3a4a3e;
+  width: 92px;
+  flex-shrink: 0;
+}
+
+.laneBody {
+  background: #f6faf7;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.laneCell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0;
+  min-height: 30px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.laneCellOver {
+  background: #e6f2ea;
+  outline: 1.5px dashed #2e6f40;
+}
+
+.collapsedLine {
+  font-size: 11.5px;
+  color: #5b6b60;
+  padding: 0 18px;
+}

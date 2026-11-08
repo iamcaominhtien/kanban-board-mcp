@@ -167,8 +167,9 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     page: 'docs',
     section: 'AI in Docs',
     name: 'AI in Docs',
-    description: 'Ask the docs, check pages and write drafts: who answers, what AI may read, edits by AI members.',
-    keywords: 'ai ask hide guidance style guide freshness proposal',
+    description:
+      'Ask the docs, check pages and write drafts: which AI team answers, the style guide page, freshness checks.',
+    keywords: 'ai ask answers style guide freshness digest',
   },
   {
     id: 'board-ai',
@@ -177,14 +178,6 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     name: 'Board AI',
     description: 'Answers board-wide requests: chat, ticket drafting and suggestions.',
     keywords: 'chatbot assistant provider',
-  },
-  {
-    id: 'safe-mode',
-    page: 'ai',
-    section: 'Safety',
-    name: 'Safe mode',
-    description: 'AI members may only read and comment; every other action is blocked.',
-    keywords: 'read only',
   },
   {
     id: 'ai-limits',
@@ -198,26 +191,10 @@ export const SETTINGS_INDEX: SettingEntry[] = [
     id: 'ai-limits',
     page: 'ai',
     section: 'Limits and budgets',
-    name: 'Max chain depth',
-    description: 'How many times an AI may hand work to another AI.',
-    keywords: 'handoff',
-  },
-  {
-    id: 'ai-limits',
-    page: 'ai',
-    section: 'Limits and budgets',
     name: 'Scheduled and AI-started runs per ticket a day',
     description:
       'A loop guard: how many runs a schedule or another AI may start on one ticket in a day. A person’s runs are not counted.',
     keywords: 'runs limit',
-  },
-  {
-    id: 'ai-limits',
-    page: 'ai',
-    section: 'Limits and budgets',
-    name: 'Approvals expire after',
-    description: 'How long an approval request waits.',
-    keywords: 'expiry timeout',
   },
   {
     id: 'assistant',

@@ -1,13 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
-import type {
-  CommentAnchorInput,
-  DocsCommentEvent,
-  DocsCommentsResult,
-  DocsCommentThread,
-  SendToAiResult,
-  SendToAiTargets,
-} from '../types/docs';
+import type { CommentAnchorInput, DocsCommentEvent, DocsCommentsResult, DocsCommentThread } from '../types/docs';
 import type { DocsAiJob } from './docsAi';
 import { aiBusy, type DocsMentionIntent } from '../utils/docsThreadAiRules';
 
@@ -120,56 +113,15 @@ export async function previewOrphans(
   return (await client.post(`/docs/pages/${pageId}/comments/anchor-preview`, { markdown })).data;
 }
 
-/** Docs AI in a thread: "Suggest an edit" on an AI answer, and the summary of a long thread. */
+/** Docs AI in a thread: the summary of a long thread. */
 export function useThreadAiActions(pageId: string) {
   const qc = useQueryClient();
   const refresh = () => qc.invalidateQueries({ queryKey: ['docs', 'comments', pageId] });
   return {
-    suggestEdit: useMutation({
-      mutationFn: async (v: { threadId: string; commentId: string }) =>
-        (await client.post<DocsAiJob>(`/docs/ai/threads/${v.threadId}/suggest-edit`, { commentId: v.commentId })).data,
-      onSuccess: refresh,
-    }),
     summarise: useMutation({
       mutationFn: async (threadId: string) =>
         (await client.post<DocsAiJob>(`/docs/ai/threads/${threadId}/summary`)).data,
       onSuccess: refresh,
     }),
   };
-}
-
-/**
- * The tickets a page names, with the AI each would send to, and each open thread's default ticket.
- * @param pageId - Page whose comments would be sent.
- * @param enabled - Load only while the picker is open.
- */
-export function useSendToAiTargets(pageId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ['docs', 'send-to-ai', pageId] as const,
-    queryFn: async () => (await client.get<SendToAiTargets>(`/docs/pages/${pageId}/send-to-ai`)).data,
-    enabled: enabled && !!pageId,
-  });
-}
-
-/** Send open threads to the AI of a ticket: a message to the run holding it, else a new work run. */
-export function useSendToAi(pageId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (v: { threadIds: string[]; ticketId: string; memberId?: string }) =>
-      (await client.post<SendToAiResult>(`/docs/pages/${pageId}/send-to-ai`, v)).data,
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['docs', 'comments', pageId] });
-      void qc.invalidateQueries({ queryKey: ['docs', 'send-to-ai', pageId] });
-    },
-  });
-}
-
-/** What a send did, in a sentence. */
-export function sentWords(r: SendToAiResult): string {
-  const what = `${r.threads} comment${r.threads === 1 ? '' : 's'}`;
-  if (r.delivered === 'run' && r.after)
-    return `${what} went to ${r.memberName} on ${r.ticketId}: run #${r.runNumber} starts after ${r.after}'s run.`;
-  return r.delivered === 'run'
-    ? `${r.memberName} is on it: ${what} went to ${r.ticketId} as run #${r.runNumber}.`
-    : `${what} went to ${r.memberName}, already working on ${r.ticketId} (run #${r.runNumber}).`;
 }

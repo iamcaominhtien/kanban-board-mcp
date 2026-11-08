@@ -56,14 +56,14 @@ def _raise(exc: jobs.JobError):
 
 
 async def _counts() -> dict:
-    from models import AiMember, Project, Ticket
+    from models import AiTeam, Project, Ticket
 
     async with database.async_session() as s:
         out = {}
         for key, model in (
             ("tickets", Ticket),
             ("projects", Project),
-            ("ai_members", AiMember),
+            ("ai_members", AiTeam),
         ):
             out[key] = int(
                 (await s.execute(select(func.count()).select_from(model))).scalar() or 0

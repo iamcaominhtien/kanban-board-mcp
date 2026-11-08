@@ -31,7 +31,7 @@ function Row({ title, text, children }: { title: string; text: string; children:
   );
 }
 
-/** Settings › Docs › AI (docs-ai-care F1): the switch, who answers, what AI may read, style guide, edits by AI members. */
+/** Settings › Docs › AI (docs-ai-care F1): the switch, which AI team answers, the style guide page, freshness checks. */
 export function DocsAiSettings({ project }: { project: Project }) {
   const state = useDocsAiState(project.id);
   const update = useUpdateDocsAi(project.id);
@@ -62,12 +62,17 @@ export function DocsAiSettings({ project }: { project: Project }) {
       )}
       {d.enabled && d.state === 'no_member' && (
         <div role="status" style={{ ...hint, color: '#B4541A' }}>
-          No AI member can read this space. Pick one below or add an AI member in Members.
+          {d.problem?.code === 'paused'
+            ? d.problem.message
+            : 'No AI team can read this space. Pick one below or add an AI team in Members.'}
         </div>
       )}
       {!admin && <div style={hint}>Only project admins change these settings.</div>}
       <div style={{ opacity: off ? 0.55 : 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Row title="AI that answers" text="Answers and checks are made by this AI member. It counts toward its budget.">
+        <Row
+          title="AI that answers"
+          text="Docs answers and checks run with this AI team (its account and model, and its budget). Default: the first AI team of the project that is not paused."
+        >
           <select
             style={select}
             value={d.memberId ?? ''}
@@ -75,47 +80,15 @@ export function DocsAiSettings({ project }: { project: Project }) {
             onChange={(e) => save({ memberId: e.target.value || null })}
             aria-label="AI that answers"
           >
-            <option value="">Board AI (default)</option>
+            <option value="">First AI team (default)</option>
             {d.candidates.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+                {c.paused ? ' (paused)' : ''}
               </option>
             ))}
           </select>
         </Row>
-        <Row title="What AI may read" text="Pages hidden from AI are never read, by anyone's AI.">
-          <select
-            style={select}
-            value={d.readScope}
-            disabled={!admin || off}
-            onChange={(e) => save({ readScope: e.target.value as DocsAiSettingsPatch['readScope'] })}
-            aria-label="What AI may read"
-          >
-            <option value="all">All pages</option>
-            <option value="except_hidden">Except hidden</option>
-            <option value="picked">Only picked</option>
-          </select>
-        </Row>
-        {d.readScope === 'picked' && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }} aria-label="Picked pages">
-            {pages.map((p) => {
-              const on = d.pickedPages.includes(p.id);
-              return (
-                <label key={p.id} style={{ fontSize: 12, display: 'flex', gap: 4, alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    disabled={!admin || off}
-                    onChange={() =>
-                      save({ pickedPages: on ? d.pickedPages.filter((x) => x !== p.id) : [...d.pickedPages, p.id] })
-                    }
-                  />
-                  {p.title}
-                </label>
-              );
-            })}
-          </div>
-        )}
         <Row title="Style guide page" text="Used by Check this page and Write with AI.">
           <select
             style={select}
@@ -133,14 +106,6 @@ export function DocsAiSettings({ project }: { project: Project }) {
           </select>
         </Row>
         <Row
-          title="Pages AI should always read"
-          text={`Architecture, naming, rules. Read by AI members on every run in this project. Limit ${d.guidanceLimit.toLocaleString()} tokens. Mark a page in its info (AI › Use as AI guidance).`}
-        >
-          <span style={{ fontSize: 12.5, fontWeight: 600 }}>
-            {d.guidancePages.length ? d.guidancePages.map((p) => p.title).join(', ') : 'None'}
-          </span>
-        </Row>
-        <Row
           title="Freshness checks"
           text="Compare pages with their tickets every day. A digest goes out on Mondays at 09:00."
         >
@@ -150,37 +115,6 @@ export function DocsAiSettings({ project }: { project: Project }) {
             disabled={!admin || off}
             onChange={(v) => save({ freshnessOn: v })}
           />
-        </Row>
-        <Row
-          title="Edits by AI members"
-          text="What happens when an AI member wants to change a page. “Make the change” follows each member’s own permissions."
-        >
-          <select
-            style={select}
-            value={d.editsMode}
-            disabled={!admin || off}
-            onChange={(e) => save({ editsMode: e.target.value as DocsAiSettingsPatch['editsMode'] })}
-            aria-label="Edits by AI members"
-          >
-            <option value="direct">Make the change</option>
-            <option value="proposal">Proposal to review</option>
-            <option value="draft">Draft only</option>
-          </select>
-        </Row>
-        <Row title="Proposals expire after" text="Nothing changes when they expire.">
-          <select
-            style={select}
-            value={d.proposalDays}
-            disabled={!admin || off || d.editsMode !== 'proposal'}
-            onChange={(e) => save({ proposalDays: Number(e.target.value) })}
-            aria-label="Proposals expire after"
-          >
-            {[3, 7, 14, 30].map((n) => (
-              <option key={n} value={n}>
-                {n} days
-              </option>
-            ))}
-          </select>
         </Row>
       </div>
       {err && (

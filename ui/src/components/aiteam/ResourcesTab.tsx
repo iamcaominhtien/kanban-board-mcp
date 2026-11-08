@@ -1,11 +1,16 @@
-import { useState } from 'react';
-import { aiApi, useAiBoard, useAiMutation } from '../../api/ai';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { aiApi, useAiMutation, useAiSettings, useAiTeams } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import { useToast } from '../Toast';
-import { useRestartRun, useResourcesStream } from '../../api/aiResources';
+import { IDLE_POLL_S, POLL_S, useRestartRun, useResourcesStream } from '../../api/aiResources';
+import type { AiTeam } from '../../types/ai';
 import type { ResourceRun, ResourceSnapshot } from '../../types/aiResources';
+import { hhmm, useNow } from '../ai/aiUi';
+import { roleLook } from '../ai/roleLook';
+import { useToast } from '../Toast';
 import {
+  AUTO_RESTARTS,
   LEVEL_COLOR,
+  fitEstimate,
   fmtGb,
   fmtGbOf,
   fmtMb,
@@ -15,6 +20,8 @@ import {
   verdictOf,
   type Verdict,
 } from './resourcesFormat';
+import { openRun } from './runLink';
+import { openSettingsAt } from './settingsLink';
 import { Badge, ICONS, Icon, TicketChip } from './teamUi';
 import './resources.css';
 
@@ -24,7 +31,9 @@ interface Props {
 }
 
 const WINDOW_S = 300;
-const FALLBACK_COLORS = ['#2E6F40', '#C2417A', '#B8860B', '#5B5FA8', '#2F6FB0'];
+/** How long a Restart may take to show in the run's restart count: the old CLI exits, the count is saved, the poll reads it. */
+const RESTART_CHECK_MS = 10000;
+const FALLBACK_COLORS = ['#2E6F40', '#C2417A', '#B8860B', '#5B5FA8', '#2F6FB0', '#C4432A'];
 
 const VERDICT_LOOK: Record<Verdict['tone'], { bg: string; border: string; fg: string }> = {
   ok: { bg: '#E6F2EA', border: '#BFDCC8', fg: '#1F5A31' },
@@ -33,17 +42,13 @@ const VERDICT_LOOK: Record<Verdict['tone'], { bg: string; border: string; fg: st
   bad: { bg: '#FDF3F0', border: '#F0C4B8', fg: '#A5321E' },
 };
 
-function clock(iso: string | null | undefined): string {
-  const t = iso ? new Date(iso) : null;
-  return t && !Number.isNaN(t.getTime()) ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-}
-
 function runningFor(run: ResourceRun, nowMs: number): string {
   const start = run.startedAt ? Date.parse(run.startedAt) : Number.NaN;
   const end = run.endedAt ? Date.parse(run.endedAt) : nowMs;
   if (!Number.isFinite(start)) return '';
-  const min = Math.max(0, Math.round((end - start) / 60000));
-  return min < 1 ? '<1 min' : `${min} min`;
+  const min = Math.max(0, (end - start) / 60000);
+  // test the real length, then round: 45 s is "<1 min", not "1 min"
+  return min < 1 ? '<1 min' : `${Math.round(min)} min`;
 }
 
 function Tile({
@@ -73,32 +78,41 @@ function Tile({
   );
 }
 
-function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<string, string> }) {
+/** One line per running run: RAM of its Claude Code over the last 5 minutes, against the limit of one run. */
+function RunsChart({
+  snap,
+  colors,
+  label,
+}: {
+  snap: ResourceSnapshot;
+  colors: Map<string, string>;
+  label: (r: ResourceRun) => string;
+}) {
   const W = 1000;
   const H = 150;
   const now = Date.parse(snap.at);
   const limit = snap.limits.runMemoryLimitMb;
-  const peak = Math.max(0, ...snap.runs.flatMap((r) => r.history.map((p) => p.rssMb)));
-  // The axis runs up to the limit per run, with the red dashed limit line at its top, as drawn (design F1, B); without a
+  const live = snap.runs.filter((r) => r.live);
+  const peak = Math.max(0, ...live.flatMap((r) => r.history.map((p) => p.rssMb)));
+  // The axis runs up to the limit of one run, with the red dashed limit line at its top (design F1, B); without a
   // limit it is scaled to what the runs use
   const fitMb = Math.max(peak * 1.3, 512);
-  const limitInView = limit > 0;
-  const wantMb = limitInView ? Math.max(fitMb, limit) : fitMb;
-  // Round the axis up to four even steps, so every label is a round number (it read 0.0, 0.1, 0.3, 0.4, 0.5 GB)
+  const wantMb = limit > 0 ? Math.max(fitMb, limit) : fitMb;
+  // Round the axis up to four even steps, so every label is a round number
   const step =
     [64, 128, 256, 512, 1024, 2048, 4096, 8192].find((s) => s * 4 >= wantMb) ?? Math.ceil(wantMb / 4096) * 1024;
   const maxMb = step * 4;
-  const live = snap.runs.filter((r) => r.live);
   const ticks = [0, 1, 2, 3, 4].map((i) => i * step);
+  const limitY = H - (limit / maxMb) * H;
   return (
-    <div className="rs-box">
+    <div className="rs-box" data-testid="rs-chart">
       <div className="rs-boxhead">
         <b>RAM of each run, last 5 minutes</b>
         <span className="rs-legend">
           {live.map((r) => (
             <span key={r.runId}>
-              <i style={{ background: colors.get(r.memberId) }} />
-              {r.memberName}
+              <i style={{ background: colors.get(r.runId) }} />
+              {label(r)}
             </span>
           ))}
         </span>
@@ -120,24 +134,10 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
             </g>
           );
         })}
-        {limitInView && (
+        {limit > 0 && (
           <g>
-            <line
-              x1="52"
-              x2={W + 56}
-              y1={H - (limit / maxMb) * H + 4}
-              y2={H - (limit / maxMb) * H + 4}
-              stroke="#C4432A"
-              strokeDasharray="5 4"
-            />
-            <text
-              x={W + 54}
-              // at the top of the axis the label sits under its line, inside the chart
-              y={H - (limit / maxMb) * H < 12 ? H - (limit / maxMb) * H + 18 : H - (limit / maxMb) * H}
-              textAnchor="end"
-              fontSize="11"
-              fill="#A5321E"
-            >
+            <line x1="52" x2={W + 56} y1={limitY + 4} y2={limitY + 4} stroke="#C4432A" strokeDasharray="5 4" />
+            <text x={W + 54} y={limitY < 12 ? limitY + 18 : limitY} textAnchor="end" fontSize="11" fill="#A5321E">
               limit per run {fmtGb(limit)}
             </text>
           </g>
@@ -147,7 +147,7 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
             <polyline
               key={r.runId}
               fill="none"
-              stroke={colors.get(r.memberId)}
+              stroke={colors.get(r.runId)}
               strokeWidth="2"
               points={linePoints(r.history, now, WINDOW_S, maxMb, W, H)}
             />
@@ -187,42 +187,76 @@ function RunsChart({ snap, colors }: { snap: ResourceSnapshot; colors: Map<strin
   );
 }
 
-function RowActions({ run, canAct, onDone }: { run: ResourceRun; canAct: boolean; onDone: () => void }) {
+/** Stop and Restart of a running run, each behind a confirmation. */
+function RowActions({ run, canAct, teamName }: { run: ResourceRun; canAct: boolean; teamName: string }) {
   const [asking, setAsking] = useState<'stop' | 'restart' | null>(null);
   const restart = useRestartRun();
   const toast = useToast();
-  const stop = useAiMutation((id: string) => aiApi.cancel(id, 'Stopped from the Resources tab'));
-  if (!run.live) return null;
-  const who = `${run.memberName ?? 'This AI'}’s run on ${run.ticketId}`;
-  const tip = canAct ? undefined : 'You can look, not act';
+  const stop = useAiMutation((id: string) => aiApi.cancel(id));
+  // the newest row, for the check a few seconds after a Restart (the server says yes when the runner took the command,
+  // not when a new Claude Code started: if the restart count did not grow, say so)
+  const latest = useRef(run);
+  latest.current = run;
+  const timer = useRef<number | undefined>(undefined);
+  // leaving the row or the tab ends the wait: no toast about a restart the person can no longer see
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  // the server stopped answering: a question that is open cannot be confirmed any more
+  useEffect(() => {
+    if (!canAct) setAsking(null);
+  }, [canAct]);
+  const checkRestarted = (before: number) => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      if ((latest.current.live || latest.current.state === 'running') && latest.current.restarts.length <= before)
+        toast.showToast({
+          variant: 'error',
+          title: 'Restart not confirmed',
+          message: `${latest.current.ticketId} has not shown a restart yet. Its Claude Code may still be restarting, or there was none to restart. Look at the row in a moment.`,
+          // the whole sentence is the answer (design B4): it needs four lines at the width of a toast
+          lines: 4,
+          duration: 8000,
+        });
+    }, RESTART_CHECK_MS);
+  };
+  // a run that works but has no reading is still a run that can be stopped
+  if (!run.live && run.state !== 'running') return null;
+  const tipId = `rs-tip-${run.runId}`;
+  const who = `${teamName}’s run on ${run.ticketId}`;
   return (
     <div className="rs-actions">
       <button
         type="button"
-        className="st-btn st-btn-sm"
+        className={`st-btn st-btn-sm${asking === 'restart' ? ' rs-btn-asking' : ''}`}
         disabled={!canAct}
-        title={tip}
+        aria-describedby={canAct ? undefined : tipId}
+        data-testid="rs-restart"
         onClick={() => setAsking('restart')}
       >
         Restart
       </button>
       <button
         type="button"
-        className="st-btn st-btn-sm"
+        className={`st-btn st-btn-sm${asking === 'stop' ? ' rs-btn-asking' : ''}`}
         style={{ color: '#C4432A' }}
         disabled={!canAct}
-        title={tip}
+        aria-describedby={canAct ? undefined : tipId}
+        data-testid="rs-stop"
         onClick={() => setAsking('stop')}
       >
         Stop
       </button>
+      {!canAct && (
+        <span className="rs-tip" role="tooltip" id={tipId} data-testid="rs-tip">
+          The server is not answering
+        </span>
+      )}
       {asking && (
         <div className="rs-pop" role="dialog" aria-label={asking === 'stop' ? 'Confirm stop' : 'Confirm restart'}>
           <b>{asking === 'stop' ? `Stop ${who}?` : `Restart ${who}?`}</b>
           <span>
             {asking === 'stop'
-              ? `Ends the run now. Partial work in the folder is kept. The ticket stays assigned to ${run.memberName ?? 'the AI'}.`
-              : 'The CLI starts again inside the same run and picks up the session. Memory is released.'}
+              ? 'Ends the run now. Partial work in the folder is kept; Retry on the run starts it again.'
+              : 'Claude Code starts again inside the same run and continues its conversation. If that conversation is gone from this computer, it starts a new one and is told to read the ticket and the git history. Memory is released.'}
           </span>
           <div className="rs-pop-btns">
             <button type="button" className="st-btn st-btn-sm" onClick={() => setAsking(null)}>
@@ -230,12 +264,13 @@ function RowActions({ run, canAct, onDone }: { run: ResourceRun; canAct: boolean
             </button>
             <button
               type="button"
-              className={asking === 'stop' ? 'st-btn st-btn-sm st-btn-danger' : 'st-btn st-btn-sm st-btn-primary'}
+              className={`st-btn st-btn-sm ${asking === 'stop' ? 'rs-danger' : 'rs-primary'}`}
               disabled={stop.isPending || restart.isPending}
+              data-testid="rs-confirm"
               onClick={() => {
                 const done = () => {
                   setAsking(null);
-                  onDone();
+                  if (asking === 'restart') checkRestarted(run.restarts.length);
                 };
                 const failed = (err: unknown) => toast.error("Couldn't do it", extractError(err));
                 if (asking === 'stop') stop.mutate(run.runId, { onSuccess: done, onError: failed });
@@ -251,38 +286,108 @@ function RowActions({ run, canAct, onDone }: { run: ResourceRun; canAct: boolean
   );
 }
 
+/** What the system did to a run, written on its row: restarted (amber) or stopped for memory (red). */
+function SystemNote({ run, limitMb }: { run: ResourceRun; limitMb: number }) {
+  const last = run.restarts[run.restarts.length - 1];
+  const stopped = run.stopCode === 'memory';
+  if (!stopped && !(last && last.by === 'system')) return null;
+  const red = stopped;
+  const bySystem = run.restarts.filter((r) => r.by === 'system').length;
+  return (
+    <div
+      className="rs-note"
+      data-testid={red ? 'rs-note-stopped' : 'rs-note-restarted'}
+      style={
+        red ? { background: '#FDF3F0', borderColor: '#F0C4B8' } : { background: '#FFF4E5', borderColor: '#F0CDA0' }
+      }
+    >
+      {red ? (
+        <>
+          <b style={{ color: '#A5321E' }}>Stopped automatically{run.endedAt ? ` at ${hhmm(run.endedAt)}` : ''}.</b> It
+          went over {fmtGb(limitMb || last?.limitMb || 0)} again after {AUTO_RESTARTS} restarts
+          {run.peakRssMb ? `; peak ${fmtMb(run.peakRssMb)}` : ''}. Partial work is kept: raise the limit, then Retry.
+        </>
+      ) : (
+        <>
+          <b style={{ color: '#8A4B08' }}>Restarted automatically at {hhmm(last.at)}.</b> It reached{' '}
+          {last.rssMb != null ? fmtMb(last.rssMb) : 'the limit'}
+          {last.limitMb ? `, over the ${fmtGb(last.limitMb)} limit` : ''}, so the system started it again in the same
+          run (restart {bySystem} of {AUTO_RESTARTS}; after the second, the next time it goes over the run is stopped).
+        </>
+      )}{' '}
+      <button type="button" className="ai-link" onClick={() => openRun(run.runId)}>
+        Open run
+      </button>
+    </div>
+  );
+}
+
 function RunRow({
   run,
   limitMb,
   canAct,
   nowMs,
+  team,
   onOpenTicket,
 }: {
   run: ResourceRun;
   limitMb: number;
   canAct: boolean;
   nowMs: number;
+  team: AiTeam | undefined;
   onOpenTicket: (id: string) => void;
 }) {
   const pct = limitPct(run.cliRssMb, limitMb);
   const level = levelOf(pct);
   const young = run.live && run.startedAt != null && nowMs - Date.parse(run.startedAt) < 15000;
+  // a run that works but has no CLI to read yet (the server does not call it live): not an ended run
+  const starting = !run.live && run.state === 'starting';
+  // a run that works (state running) but that the server does not read: still going, its numbers are not readable
+  const going = run.live || run.state === 'running';
+  const readable = run.readable && (run.live || !going);
   const last = run.restarts[run.restarts.length - 1];
+  const roles = run.rolesWorking ?? [];
+  const roleName = (key: string) => team?.roles.find((r) => r.key === key)?.name ?? key;
   return (
-    <div className={`rs-row${run.live ? '' : ' rs-ended'}`}>
-      <div className="rs-who">
-        <Badge name={run.memberName ?? ''} color={run.memberColor} size={26} />
-        <b>{run.memberName}</b>
-      </div>
-      <div>
-        <TicketChip id={run.ticketId} onOpen={onOpenTicket} />
-        <div className="at-hint-sm">{run.ticketTitle}</div>
-      </div>
-      <div>{runningFor(run, nowMs)}</div>
-      <div>
-        {run.readable ? (
-          <>
-            <div className="rs-ram">
+    <div data-testid={`rs-run-${run.ticketId}`}>
+      <div className={`rs-row${going || starting ? '' : ' rs-ended'}`}>
+        <div>
+          <TicketChip id={run.ticketId} onOpen={onOpenTicket} />
+          <div className="at-hint-sm">{run.ticketTitle}</div>
+        </div>
+        <div className="rs-work">
+          {!going ? (
+            <span className="at-hint">{starting ? 'Starting' : run.stopCode === 'memory' ? 'Stopped' : 'Ended'}</span>
+          ) : roles.length ? (
+            roles.map((key, i) => {
+              const look = roleLook(key);
+              return (
+                <span
+                  key={`${key}-${i}`}
+                  className="at-chip"
+                  style={{ background: look.bg, color: look.fg, border: `1px solid ${look.border}` }}
+                >
+                  {roleName(key)}
+                </span>
+              );
+            })
+          ) : (
+            <span
+              className="at-chip"
+              style={{ background: '#EEF3EF', color: '#3A4A3E', border: '1px solid #D5DED8' }}
+              data-testid="rs-lead"
+            >
+              Lead
+            </span>
+          )}
+        </div>
+        <div>
+          <div>{runningFor(run, nowMs)}</div>
+          <div className="at-hint-sm">since {hhmm(run.startedAt)}</div>
+        </div>
+        <div>
+          {readable && run.cliRssMb != null ? (
+            <>
               <div style={{ width: 116 }}>
                 <div className="rs-ramline">
                   <b>{fmtMb(run.cliRssMb)}</b>
@@ -292,81 +397,255 @@ function RunRow({
                   <i style={{ width: `${Math.min(100, pct)}%`, background: LEVEL_COLOR[level].bar }} />
                 </div>
               </div>
-            </div>
-            {run.extraMb != null && run.extraMb >= 50 && (
-              <div className="at-hint-sm">+{fmtMb(run.extraMb)} from what it started (not counted)</div>
-            )}
-          </>
-        ) : (
-          <span className="at-hint">— not readable</span>
-        )}
+              {run.extraMb != null && run.extraMb >= 50 && (
+                <div className="at-hint-sm">+{fmtMb(run.extraMb)} it started (not counted)</div>
+              )}
+            </>
+          ) : readable ? (
+            <span className="at-hint">—</span>
+          ) : (
+            <span className="at-hint">— not readable</span>
+          )}
+        </div>
+        <div>{readable ? fmtMb(run.peakRssMb) : '—'}</div>
+        <div>
+          <b>{run.cpuPct != null ? `${Math.round(run.cpuPct)}%` : '—'}</b>
+          {young && run.cpuPct != null && run.cpuPct > 100 && <span className="rs-starting">starting</span>}
+        </div>
+        <div>
+          {run.restarts.length ? (
+            <>
+              <span style={{ color: '#7A5A06' }}>{run.restarts.length}</span>{' '}
+              <span className="at-hint-sm">
+                {last.by === 'system' ? 'restarted' : `restarted by ${last.by}`} {hhmm(last.at)}
+              </span>
+            </>
+          ) : (
+            <span className="at-hint">0</span>
+          )}
+        </div>
+        <RowActions run={run} canAct={canAct} teamName={run.memberName ?? 'The team'} />
       </div>
-      <div>{run.readable ? fmtMb(run.peakRssMb) : '—'}</div>
-      <div>
-        <b>{run.cpuPct != null ? `${Math.round(run.cpuPct)}%` : '—'}</b>
-        {young && run.cpuPct != null && run.cpuPct > 100 && <span className="rs-starting">starting</span>}
-      </div>
-      <div>
-        {run.restarts.length ? (
-          <>
-            <span style={{ color: '#7A5A06' }}>{run.restarts.length}</span>{' '}
-            <span className="at-hint-sm">
-              {last.by === 'system' ? 'restarted' : `restarted by ${last.by}`} {clock(last.at)}
-            </span>
-          </>
-        ) : (
-          <span className="at-hint">0</span>
-        )}
-      </div>
-      <RowActions run={run} canAct={canAct} onDone={() => undefined} />
+      <SystemNote run={run} limitMb={limitMb} />
     </div>
   );
 }
 
-/** AI Team › Resources (design/screens/ai-resources.md, B): the machine, RAM of every run and Stop / Restart. */
+/** A number field that saves when it loses focus. A save that fails leaves what was typed in the field (design D4). */
+function LimitField({
+  value,
+  min,
+  label,
+  testId,
+  onSave,
+}: {
+  value: number;
+  min: number;
+  label: string;
+  testId: string;
+  onSave: (n: number, saved: () => void) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [saved, setSaved] = useState<number | null>(null);
+  const [bad, setBad] = useState(false);
+  // After a save the typed number stays until the settings come back with it: no flash of the old number
+  useEffect(() => {
+    if (saved == null) return;
+    if (value === saved) {
+      setDraft(null);
+      setSaved(null);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      setDraft(null);
+      setSaved(null);
+    }, 5000);
+    return () => window.clearTimeout(t);
+  }, [saved, value]);
+  const commit = () => {
+    if (draft == null) return;
+    const n = Math.round(Number(draft));
+    if (draft.trim() === '' || !Number.isFinite(n) || n < min) {
+      setBad(true);
+      return;
+    }
+    if (n !== value) onSave(n, () => setSaved(n));
+    else setDraft(null);
+  };
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 3 }}>
+      <input
+        className="ai-input"
+        type="number"
+        min={min}
+        style={{ width: 96 }}
+        aria-label={label}
+        aria-invalid={bad || undefined}
+        data-testid={testId}
+        value={draft ?? String(value)}
+        onChange={(e) => {
+          setBad(false);
+          setDraft(e.target.value);
+        }}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+      />
+      {bad && (
+        <span className="at-hint-sm" style={{ color: '#A5321E' }} role="alert">
+          A whole number, {min} or more.
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** What a failed save says: the server's own words, or that it did not answer. */
+function saveFailure(err: unknown): string {
+  const answered = !!(err as { response?: unknown } | null)?.response;
+  return answered ? extractError(err) : 'The server did not answer. Try again in a moment.';
+}
+
+/** The two limits of the project and what they mean for this machine (design/screens/ai-resources.md, E). */
+function LimitsCard({ projectId, snap }: { projectId: string; snap: ResourceSnapshot }) {
+  const settings = useAiSettings(projectId).data;
+  const toast = useToast();
+  const save = useAiMutation((body: { runMemoryLimitMb?: number; boardMaxParallel?: number }) =>
+    aiApi.updateSettings(projectId, body),
+  );
+  const limitMb = settings?.runMemoryLimitMb ?? snap.limits.runMemoryLimitMb;
+  const parallel = settings?.boardMaxParallel ?? snap.limits.boardMaxParallel;
+  const est = fitEstimate(parallel, limitMb, snap.machine);
+  const onSave = (body: { runMemoryLimitMb?: number; boardMaxParallel?: number }, saved: () => void) =>
+    save.mutate(body, { onSuccess: saved, onError: (err) => toast.error("Couldn't save the limit", saveFailure(err)) });
+  return (
+    <div className="rs-box" data-testid="rs-limits">
+      <div className="rs-boxhead">
+        <b>Limits</b>
+        <button
+          type="button"
+          className="ai-link"
+          onClick={() => openSettingsAt({ page: 'ai', setting: 'ai-limits' })}
+          data-testid="rs-open-settings"
+        >
+          All AI limits in Settings →
+        </button>
+      </div>
+      <div className="rs-limits">
+        <label className="rs-field">
+          <span>Memory of one run (MB)</span>
+          <LimitField
+            value={limitMb}
+            min={0}
+            label="Memory of one run (MB)"
+            testId="rs-limit-memory"
+            onSave={(n, saved) => onSave({ runMemoryLimitMb: n }, saved)}
+          />
+          <span className="at-hint-sm">
+            A run whose Claude Code goes over this is restarted, twice at most, then stopped. 0 is no limit.
+          </span>
+        </label>
+        <label className="rs-field">
+          <span>Runs at the same time</span>
+          <LimitField
+            value={parallel}
+            min={1}
+            label="Runs at the same time"
+            testId="rs-limit-parallel"
+            onSave={(n, saved) => onSave({ boardMaxParallel: n }, saved)}
+          />
+          <span className="at-hint-sm">Runs past this wait in line; nothing is lost.</span>
+        </label>
+      </div>
+      <div
+        className="rs-estimate"
+        data-testid="rs-estimate"
+        style={est.fits ? undefined : { background: '#FEF6E7', borderColor: '#F0DBA8', color: '#7A5A06' }}
+      >
+        <Icon color={est.fits ? '#1F5A31' : '#B8860B'} size={15}>
+          {est.fits ? ICONS.check : ICONS.info}
+        </Icon>
+        <span>
+          <b>{est.fits ? 'It fits this machine. ' : 'It may not fit this machine. '}</b>
+          {est.text}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** AI Team › Resources (design/screens/ai-resources.md, B): the machine, RAM of every running run, Stop and Restart. */
 export function ResourcesTab({ projectId, onOpenTicket }: Props) {
-  const { data: snap, live } = useResourcesStream(projectId);
-  const board = useAiBoard(projectId);
-  const role = board.data?.settings.myRole;
-  const canAct = !!live && role !== 'viewer';
+  const { data: snap, live, pushed } = useResourcesStream(projectId);
+  const teamsQ = useAiTeams(projectId);
+  const nowMs = useNow(1000);
   if (!snap) {
     return (
-      <div className="rs-root" aria-busy="true">
+      <div className="rs-root" aria-busy="true" data-testid="resources-tab">
         <div className="rs-skel" />
         <div className="rs-skel" style={{ height: 90 }} />
         <div className="at-hint">Reading the machine…</div>
       </div>
     );
   }
+  const teams = new Map((teamsQ.data ?? []).map((t) => [t.id, t]));
   const verdict = verdictOf(snap);
   const look = VERDICT_LOOK[verdict.tone];
   const { machine, limits } = snap;
-  const nowMs = Date.parse(snap.at);
   const usedPct = machine.ramTotalMb
     ? Math.round(((machine.ramTotalMb - machine.ramFreeMb) / machine.ramTotalMb) * 100)
     : 0;
-  const colors = new Map<string, string>();
-  snap.runs.forEach((r, i) => {
-    if (!colors.has(r.memberId)) colors.set(r.memberId, r.memberColor || FALLBACK_COLORS[i % FALLBACK_COLORS.length]);
-  });
-  const liveCount = snap.runs.filter((r) => r.live).length;
+  const liveRuns = snap.runs.filter((r) => r.live);
+  const liveCount = liveRuns.length;
   const loadPct = machine.load1 != null && machine.cores ? Math.round((machine.load1 / machine.cores) * 100) : 0;
   const slotsPct = limits.boardMaxParallel ? Math.round((liveCount / limits.boardMaxParallel) * 100) : 0;
   const free = machine.ramTotalMb ? (machine.ramFreeMb / machine.ramTotalMb) * 100 : 100;
+  // A line colour per run: the team's colour for its first run, the palette for another run of the same team
+  const colors = new Map<string, string>();
+  const taken = new Set<string>();
+  liveRuns.forEach((r, i) => {
+    let c = r.memberColor && !taken.has(r.memberColor) ? r.memberColor : '';
+    if (!c) c = FALLBACK_COLORS.find((x) => !taken.has(x)) ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+    taken.add(c);
+    colors.set(r.runId, c);
+  });
+  // The rows grouped by team, the team with a live run first
+  const groups = new Map<string, ResourceRun[]>();
+  for (const r of snap.runs) groups.set(r.memberId, [...(groups.get(r.memberId) ?? []), r]);
+  const head: ReactNode[] = [
+    'Ticket',
+    'Working now',
+    'Since',
+    `CLI RAM now${limits.runMemoryLimitMb > 0 ? ` (of ${fmtGb(limits.runMemoryLimitMb)} limit)` : ''}`,
+    'Peak',
+    'CPU',
+    'Restarts',
+    '',
+  ];
   return (
     <div className="rs-root" data-testid="resources-tab">
-      <div className="rs-livebar">
-        <span className="at-dot" style={{ background: live ? '#2E6F40' : '#A3B0A8' }} />
-        <span className="at-hint" style={{ color: live ? '#1F5A31' : '#5B6B60' }}>
-          {live ? 'Live · every 2 s' : `Showing data from ${clock(snap.at)}`}
+      <div className="rs-livebar" data-testid="rs-livebar">
+        <i
+          className={`rs-dot${live && pushed ? ' rs-dot-live' : ''}`}
+          style={{ background: live ? '#2E6F40' : '#A3B0A8' }}
+        />
+        <span className="rs-livetext" style={{ color: live && (pushed || !liveCount) ? '#1F5A31' : '#5B6B60' }}>
+          {!live
+            ? `Showing data from ${hhmm(snap.at)}`
+            : pushed
+              ? 'Live · every 2 s'
+              : liveCount
+                ? `Last saved readings · every ${POLL_S} s`
+                : `Live · every ${IDLE_POLL_S} s`}
         </span>
       </div>
       {!live && (
         <div className="rs-banner" style={{ background: '#FEF6E7', borderColor: '#F0DBA8', color: '#7A5A06' }}>
-          <b>Can’t reach the server.</b> The chart has stopped, and Stop and Restart are off until it is back.
+          <div>
+            <b>Can’t reach the server.</b> The chart has stopped, and Stop and Restart are off until it is back.
+          </div>
         </div>
       )}
-      <div className="rs-banner" style={{ background: look.bg, borderColor: look.border }}>
+      <div className="rs-banner" style={{ background: look.bg, borderColor: look.border }} data-testid="rs-verdict">
         <span style={{ color: look.fg, display: 'inline-flex', paddingTop: 1 }}>
           <Icon color={look.fg} size={16}>
             {verdict.tone === 'ok' || verdict.tone === 'idle' ? ICONS.check : ICONS.info}
@@ -411,35 +690,46 @@ export function ResourcesTab({ projectId, onOpenTicket }: Props) {
           level={levelOf(slotsPct)}
         />
       </div>
-      <RunsChart snap={snap} colors={colors} />
+      <RunsChart snap={snap} colors={colors} label={(r) => `${r.memberName ?? 'Team'} · ${r.ticketId}`} />
       {snap.runs.length ? (
-        <div className="rs-box rs-table">
-          <div className="rs-grid rs-head">
-            <div className="rs-h">AI</div>
-            <div className="rs-h">Run</div>
-            <div className="rs-h">Running</div>
-            <div className="rs-h">
-              CLI RAM now{limits.runMemoryLimitMb > 0 ? ` (of ${fmtGb(limits.runMemoryLimitMb)} limit)` : ''}
+        <div className="rs-box rs-table" data-testid="rs-table">
+          {[...groups.entries()].map(([memberId, rows]) => (
+            <div key={memberId} data-testid={`rs-team-${rows[0].memberName ?? memberId}`}>
+              <div className="rs-team">
+                <Badge name={rows[0].memberName ?? ''} color={rows[0].memberColor} size={24} role="lead" />
+                <b>{rows[0].memberName ?? 'Team'}</b>
+                <span className="at-hint-sm">
+                  {rows.filter((r) => r.live).length} running ·{' '}
+                  {fmtMb(rows.reduce((a, r) => a + (r.live ? (r.cliRssMb ?? 0) : 0), 0))}
+                </span>
+              </div>
+              <div className="rs-grid rs-head">
+                {head.map((h, i) => (
+                  <div key={i} className="rs-h">
+                    {h}
+                  </div>
+                ))}
+              </div>
+              {rows.map((r) => (
+                <RunRow
+                  key={r.runId}
+                  run={r}
+                  limitMb={limits.runMemoryLimitMb}
+                  canAct={live}
+                  nowMs={nowMs}
+                  team={teams.get(r.memberId)}
+                  onOpenTicket={onOpenTicket}
+                />
+              ))}
             </div>
-            <div className="rs-h">Peak</div>
-            <div className="rs-h">CPU</div>
-            <div className="rs-h">Restarts</div>
-            <div className="rs-h" />
-          </div>
-          {snap.runs.map((r) => (
-            <RunRow
-              key={r.runId}
-              run={r}
-              limitMb={limits.runMemoryLimitMb}
-              canAct={canAct}
-              nowMs={nowMs}
-              onOpenTicket={onOpenTicket}
-            />
           ))}
         </div>
       ) : (
-        <div className="rs-empty">Runs appear here when an AI starts working on a ticket.</div>
+        <div className="rs-empty" data-testid="rs-empty">
+          Runs appear here when a team starts working on a ticket.
+        </div>
       )}
+      <LimitsCard projectId={projectId} snap={snap} />
     </div>
   );
 }

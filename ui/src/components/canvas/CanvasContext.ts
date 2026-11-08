@@ -17,8 +17,6 @@ export interface OpenCanvasRequest {
   title?: string;
   /** Skip the dialog: make a blank canvas straight away. */
   blank?: boolean;
-  /** Open with the "Ask AI" panel (selected boards) already shown. */
-  openAi?: boolean;
 }
 
 /** What `openCanvas` resolves to once the editor closes after a save. */
@@ -37,6 +35,8 @@ export interface ViewCanvasRequest {
   pageId?: string;
   /** Start with the comments panel open. */
   comments?: boolean;
+  /** Select this comment thread (a "mentioned you" notification opens the canvas at it). */
+  threadId?: string;
 }
 
 /** The canvas tool, for any part of the app. */

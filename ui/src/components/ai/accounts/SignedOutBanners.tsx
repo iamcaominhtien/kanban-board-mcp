@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAiAccounts } from '../../../api/aiAccounts';
-import type { AiMember } from '../../../types/ai';
+import type { AiTeam } from '../../../types/ai';
 import type { AiAccount } from '../../../types/aiAccounts';
 import { bannerCopy, blockedAccounts } from '../../../utils/memberAccount';
 import { AccountBanner } from './AccountBanner';
@@ -11,10 +11,10 @@ import { SignInWindow } from './SignInWindow';
  * One banner per signed-out account among `members`, however many members it hits (design E1, E3): “Sign in again”
  * opens the sign-in window, “Choose another account” moves those members. Renders nothing while every account works.
  */
-export function SignedOutBanners({ projectId, members }: { projectId: string; members: AiMember[] }) {
+export function SignedOutBanners({ projectId, members }: { projectId: string; members: AiTeam[] }) {
   const accounts = useAiAccounts(projectId);
   const [signingIn, setSigningIn] = useState<AiAccount | null>(null);
-  const [moving, setMoving] = useState<AiMember[] | null>(null);
+  const [moving, setMoving] = useState<AiTeam[] | null>(null);
   const blocked = blockedAccounts(members);
   return (
     <>
@@ -43,7 +43,7 @@ export function SignedOutBanners({ projectId, members }: { projectId: string; me
  * “Sign in again” for the account of one AI member, with the sign-in window it opens. Renders nothing when the
  * member's account works, so it can sit next to Retry on a failed run.
  */
-export function SignInAgainButton({ member, primary }: { member: AiMember; primary?: boolean }) {
+export function SignInAgainButton({ member, primary }: { member: AiTeam; primary?: boolean }) {
   const accounts = useAiAccounts(member.projectId);
   const [open, setOpen] = useState(false);
   const full = accounts.data?.accounts.find((a) => a.id === member.accountId);

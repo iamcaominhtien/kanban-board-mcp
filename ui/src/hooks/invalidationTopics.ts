@@ -1,13 +1,12 @@
 import type { QueryKey } from '@tanstack/react-query';
 
 /**
- * What a server announcement names, and which cached queries depend on it. The server says "ai" while a run streams
- * its steps (server/events.py); the app then refetches only the AI screens, not every ticket, page and idea.
+ * What a server announcement names, and which cached queries depend on it. A run's steps no longer come through
+ * here: they are typed SSE events (`ai.step`, `ai.run`) that patch the cache (api/aiRunCache.ts).
  * An announcement with no topic, a topic nobody here knows, or an event of another kind means anything may have
  * changed, and everything is refetched.
  */
 const TOPIC_KEYS: Record<string, QueryKey[]> = {
-  ai: [['ai'], ['ticket_workspace'], ['ticket_branches']],
   // The bell, the panel, the page and the feed of toasts (server/services/notifications.py publishes this)
   notifications: [['notifications']],
 };

@@ -21,7 +21,6 @@ export type SignInView =
   | 'choose_method'
   | 'browser'
   | 'paste_code'
-  | 'trust_folder'
   | 'confirming'
   | 'done'
   | 'rejected'
@@ -71,44 +70,7 @@ export const CLI_INFO: Record<AccountCli, CliInfo> = {
     installSteps: [],
     guideUrl: 'https://docs.claude.com/en/docs/claude-code/setup',
   },
-  codex: {
-    label: 'Codex',
-    command: 'codex',
-    initials: 'CX',
-    bg: '#E8F1FA',
-    color: '#244E78',
-    install: 'npm install -g @openai/codex',
-    installSteps: [],
-    guideUrl: 'https://developers.openai.com/codex/cli',
-  },
-  opencode: {
-    label: 'opencode',
-    command: 'opencode',
-    initials: 'OC',
-    bg: '#EFE8FB',
-    color: '#5B3AA6',
-    install: 'npm install -g opencode-ai',
-    installSteps: [],
-    guideUrl: 'https://opencode.ai/docs',
-  },
-  agy: {
-    label: 'Antigravity',
-    command: 'agy',
-    initials: 'AG',
-    bg: '#E6F2EA',
-    color: '#1F5A31',
-    install: null,
-    installSteps: [
-      'Install the Antigravity command line tool from its website, so that “agy” works in a terminal.',
-      'You do not need to sign in there: sign in here, in this account.',
-    ],
-    guideUrl: 'https://antigravity.google',
-  },
 };
-
-/** The sentence under the CLI card of Antigravity on Windows (its login is shared by the Windows user). */
-export const AGY_WINDOWS_NOTE =
-  'On Windows its login is kept in the system credential store, which belongs to the Windows user, not to the account, so two accounts might share one login.';
 
 /** "max" → "Max plan"; null when the CLI does not say. */
 export function planLabel(plan: string | null | undefined): string | null {
@@ -145,7 +107,6 @@ export function signInView(i: ViewInput): SignInView {
   if (!s) return 'starting';
   if (s.signedIn) {
     if (s.duplicateOf && !i.duplicateAccepted) return 'duplicate';
-    if (i.cli === 'agy' && s.running && s.phase === 'trust_folder') return 'trust_folder';
     return 'done';
   }
   if (s.ended === 'exited') {
@@ -166,9 +127,9 @@ export function signInView(i: ViewInput): SignInView {
   }
 }
 
-/** Dots for the steps that apply to this CLI (Claude Code has no method menu). */
-export function stepLabels(cli: AccountCli): string[] {
-  return cli === 'agy' ? ['Start', 'Choose a method', 'Browser', 'Confirm'] : ['Start', 'Browser', 'Confirm'];
+/** Dots for the steps of a sign-in (Claude Code has no method menu). */
+export function stepLabels(_cli: AccountCli): string[] {
+  return ['Start', 'Browser', 'Confirm'];
 }
 
 /** Index of the current dot: that one is bold, every earlier one is filled. */
@@ -182,16 +143,16 @@ export function currentStep(cli: AccountCli, view: SignInView): number {
     case 'busy':
       return 0;
     case 'choose_method':
-      return cli === 'agy' ? 1 : 0;
+      return 0;
     case 'browser':
     case 'paste_code':
     case 'rejected':
     case 'timed_out':
     case 'fallback':
     case 'console':
-      return cli === 'agy' && view !== 'fallback' && view !== 'console' ? 2 : 1;
+      return 1;
     default:
-      return last; // trust_folder, confirming, done, duplicate, fallback_signed
+      return last; // confirming, done, duplicate, fallback_signed
   }
 }
 
@@ -215,7 +176,6 @@ export const KEY_LABELS: Record<KeyName, string> = { up: '↑', down: '↓', ent
 /** The helper keys for people unused to terminal prompts, shown while the CLI asks a menu question. */
 export function keyRow(view: SignInView): KeyName[] {
   if (view === 'choose_method') return ['up', 'down', 'enter', 'esc'];
-  if (view === 'trust_folder') return ['up', 'down', 'enter'];
   return [];
 }
 
@@ -257,21 +217,11 @@ export function statusLine(
         body: ['Follow what the CLI asks in the terminal. This window updates by itself.'],
       };
     case 'choose_method':
-      return ctx.cli === 'agy'
-        ? {
-            tone: 'amber',
-            title: 'Your turn: choose how to sign in',
-            body: [
-              'The CLI is asking a question. Click inside the terminal, then use the arrow keys and Enter. Choose ',
-              { b: '1' },
-              ' to sign in with a Google account.',
-            ],
-          }
-        : {
-            tone: 'amber',
-            title: 'Your turn: answer the CLI',
-            body: ['The CLI is asking a question. Click inside the terminal, then use the arrow keys and Enter.'],
-          };
+      return {
+        tone: 'amber',
+        title: 'Your turn: answer the CLI',
+        body: ['The CLI is asking a question. Click inside the terminal, then use the arrow keys and Enter.'],
+      };
     case 'browser':
       return {
         tone: 'blue',
@@ -279,33 +229,13 @@ export function statusLine(
         body: ['A browser window should have opened. Sign in there and approve access. This window updates by itself.'],
       };
     case 'paste_code':
-      return ctx.cli === 'agy'
-        ? {
-            tone: 'amber',
-            title: 'Your turn: paste the authorization code',
-            body: [
-              'The browser page shows a code. Copy it, then click ',
-              { b: 'Paste code' },
-              ' (or paste inside the terminal).',
-            ],
-          }
-        : {
-            tone: 'amber',
-            title: 'Your turn: paste the code',
-            body: [
-              'The browser shows a code. Copy it, then click ',
-              { b: 'Paste code' },
-              ' (or paste inside the terminal).',
-            ],
-          };
-    case 'trust_folder':
       return {
         tone: 'amber',
-        title: 'Signed in. One last question from the CLI',
+        title: 'Your turn: paste the code',
         body: [
-          'The account is already signed in; the CLI is asking whether to trust its own folder. Answer it, then click ',
-          { b: 'Done' },
-          '. The window never closes by itself, so it cannot cut a prompt short.',
+          'The browser shows a code. Copy it, then click ',
+          { b: 'Paste code' },
+          ' (or paste inside the terminal).',
         ],
       };
     case 'confirming':
@@ -326,9 +256,9 @@ export function statusLine(
               ' is signed in as ',
               { b: who },
               extra ? ` · ${extra}` : '',
-              '. It is ready to be chosen by AI members.',
+              '. It is ready to be chosen by AI teams.',
             ]
-          : [ctx.accountName, ' is signed in', extra ? ` (${extra})` : '', '. It is ready to be chosen by AI members.'],
+          : [ctx.accountName, ' is signed in', extra ? ` (${extra})` : '', '. It is ready to be chosen by AI teams.'],
       };
     }
     case 'rejected':
@@ -358,7 +288,7 @@ export function statusLine(
           { b: ctx.signedIn?.email ?? 'the same login' },
           ', which is already added as ',
           { b: ctx.duplicateOf ?? 'another account' },
-          '. Adding it twice would share one limit. Only Claude Code reports who is signed in; for Codex, opencode and Antigravity two accounts cannot be told apart, so a duplicate is possible there.',
+          '. Adding it twice would share one limit. Claude Code reports who is signed in, so the board can tell.',
         ],
       };
     case 'busy':
@@ -400,7 +330,7 @@ export function statusLine(
         body: [
           'The CLI reports ',
           { b: as ?? 'a login' },
-          '. For a CLI that may still be asking questions in your terminal (Antigravity), finish them there first, then click Done.',
+          '. If the CLI is still asking questions in your terminal, finish them there first, then click Done.',
         ],
       };
   }
@@ -418,8 +348,3 @@ export function closingNeedsConfirm(view: SignInView): boolean {
 
 /** The order of the add-account steps. */
 export const ADD_STEPS = ['CLI', 'Name', 'Sign in'] as const;
-
-/** What a CLI card says under its name; Antigravity on Windows explains why it is off. */
-export function cardBlurb(cli: AccountCli, blurb: string, unavailable: string | null): string {
-  return unavailable && cli === 'agy' ? AGY_WINDOWS_NOTE : blurb;
-}

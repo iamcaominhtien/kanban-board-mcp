@@ -2,7 +2,7 @@
 
 Moving, resizing, notes, arrows and comments need no lock. A lock ends when its holder saves or cancels, closes the
 editor, or has been idle for 10 minutes (the editor warns first). Locks live in memory with a time limit: they are not
-versions and a restart simply frees them. An AI member never takes a lock from a person; it proposes instead.
+versions and a restart simply frees them. An AI team never takes a lock from a person: a board a person is editing is refused to it.
 """
 
 import time

@@ -20,12 +20,11 @@ export interface MentionRow {
 const STATUS: Record<string, { label: string; tone: 'ok' | 'warn' | 'off' }> = {
   ready: { label: 'Ready', tone: 'ok' },
   paused: { label: 'Paused', tone: 'warn' },
-  over_budget: { label: 'Over budget', tone: 'warn' },
   unavailable: { label: 'Unavailable', tone: 'off' },
 };
 
 /**
- * Rows of the @ list in a Docs comment: people, then (only while Docs AI is on) the AI members in an "AI" group,
+ * Rows of the @ list in a Docs comment: people, then (only while Docs AI is on) the AI teams in an "AI" group,
  * usable ones first. With Docs AI off an AI member is not offered at all (a mention would only notify).
  */
 export function mentionRows(members: DocsCommentMember[], docsAi: boolean): MentionRow[] {
@@ -83,22 +82,10 @@ export function serverIntent(intent: 'ask' | 'work' | 'suggest' | 'notify'): Doc
   return intent === 'work' ? 'suggest' : intent;
 }
 
-/** What an AI reply is: an answer, a note (paused, over budget, hidden page), an error, or a proposal made. */
-export function aiReplyKind(c: DocsCommentItem): 'answer' | 'note' | 'error' | 'proposal' | 'sent' | 'ticket' | null {
+/** What an AI reply is: an answer, a note (the team is paused), an error, the board's "sent to" line, or a ticket's reply. */
+export function aiReplyKind(c: DocsCommentItem): 'answer' | 'note' | 'error' | 'sent' | 'ticket' | null {
   if (!c.ai) return null;
   return c.ai.kind ?? 'answer';
-}
-
-/** "Suggest an edit" shows on an AI answer that says the page is wrong, while the thread is open. */
-export function canSuggestEdit(c: DocsCommentItem, thread: DocsCommentThread, docsAi: boolean): boolean {
-  return (
-    docsAi &&
-    thread.canReply &&
-    thread.status === 'open' &&
-    aiReplyKind(c) === 'answer' &&
-    !!c.ai?.canSuggest &&
-    !(thread.aiJobs ?? []).some((j) => j.kind === 'suggest_edit')
-  );
 }
 
 /** Names of the AI members working in the thread now (the "thinking" placeholder). */

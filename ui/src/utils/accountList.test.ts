@@ -74,10 +74,8 @@ describe('status chip', () => {
     expect(statusView(acct({ status: 'needs_sign_in' }), false, NOW).sub).toBe('Not signed in yet.');
   });
   it('is Not ready for a signed-in account whose CLI cannot run yet, but Needs sign-in wins when signed out', () => {
-    expect(statusView(acct({ cli: 'agy', runnable: false }), false, NOW).label).toBe('Not ready');
-    expect(statusView(acct({ cli: 'agy', runnable: false, status: 'needs_sign_in' }), false, NOW).label).toBe(
-      'Needs sign-in',
-    );
+    expect(statusView(acct({ runnable: false }), false, NOW).label).toBe('Not ready');
+    expect(statusView(acct({ runnable: false, status: 'needs_sign_in' }), false, NOW).label).toBe('Needs sign-in');
   });
   it('shows Signing in (blue) while a window is open, and Checking while the CLI is asked', () => {
     const v = statusView(acct({ status: 'signing_in', signingInBy: 'An Nguyen' }), true, NOW);
@@ -86,7 +84,7 @@ describe('status chip', () => {
   });
   it('shows CLI not installed, and the platform reason when the CLI cannot be used here', () => {
     expect(statusView(acct({ status: 'cli_missing' }), false, NOW).label).toBe('CLI not installed');
-    expect(statusView(acct({ cli: 'agy', unavailable: 'Not available on Windows' }), false, NOW).label).toBe(
+    expect(statusView(acct({ unavailable: 'Not available on Windows' }), false, NOW).label).toBe(
       'Not available on Windows',
     );
   });
@@ -95,15 +93,6 @@ describe('status chip', () => {
 describe('what the account is signed in with', () => {
   it('shows method, plan and email for Claude Code', () => {
     expect(signedInWith(acct())).toEqual({ primary: 'Subscription · Max', secondary: 'an.nguyen@work.example' });
-  });
-  it('shows only the method for the CLIs that do not say who', () => {
-    expect(signedInWith(acct({ cli: 'codex', method: 'ChatGPT', plan: null, email: null }))).toEqual({
-      primary: 'ChatGPT login',
-      secondary: null,
-    });
-    expect(signedInWith(acct({ cli: 'agy', method: 'Google sign-in', plan: null, email: null })).primary).toBe(
-      'Google sign-in',
-    );
   });
 });
 
@@ -164,9 +153,7 @@ describe('what can be done', () => {
     expect(signInOffReason(acct(), false)).toBe(DESKTOP_ONLY);
     expect(signInOffReason(acct({ status: 'signing_in' }), true)).toMatch(/Someone is signing in/);
     expect(signInOffReason(acct({ status: 'cli_missing' }), true)).toMatch(/not found/);
-    expect(signInOffReason(acct({ cli: 'agy', unavailable: 'Not available on Windows' }), true)).toBe(
-      'Not available on Windows',
-    );
+    expect(signInOffReason(acct({ unavailable: 'Not available on Windows' }), true)).toBe('Not available on Windows');
   });
   it('keeps the design’s menu, with Remove last and in red', () => {
     const items = menuItems(acct(), true);
@@ -186,13 +173,9 @@ describe('what can be done', () => {
     const items = menuItems(acct(), false);
     expect(items.filter((i) => !i.disabled).map((i) => i.action)).toEqual(['members']);
   });
-  it('only offers accounts of the same CLI to move members to', () => {
+  it('only offers other accounts of the same CLI to move members to', () => {
     const a = acct();
-    const all = [
-      a,
-      acct({ id: 'b', name: 'Personal Claude', status: 'needs_sign_in' }),
-      acct({ id: 'c', cli: 'codex' }),
-    ];
+    const all = [a, acct({ id: 'b', name: 'Personal Claude', status: 'needs_sign_in' })];
     expect(otherAccounts(a, all).map((o) => o.id)).toEqual(['b']);
     expect(otherHint(all[1])).toBe('Personal Claude (needs sign-in)');
     expect(otherHint(undefined)).toBe('no other account of this CLI');

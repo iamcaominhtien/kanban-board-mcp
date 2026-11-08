@@ -10,7 +10,8 @@ import { SettingsPage, type SettingsTarget } from './components/settings/Setting
 import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
 import { OPEN_RUN_EVENT } from './components/aiteam/runLink';
-import { OPEN_TIMELINE_EVENT, parseTimelineLink, setPendingTimeline } from './components/aiteam/timelineLink';
+import { OPEN_TIMELINE_EVENT } from './components/aiteam/timelineLink';
+import { OPEN_SETTINGS_EVENT } from './components/aiteam/settingsLink';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
@@ -42,14 +43,14 @@ import { useLoadingPill } from './hooks/useLoadingPill';
 import { Splash } from './components/Splash';
 import { UpdateNotice } from './components/UpdateNotice';
 import { DesktopMenuHost, type MenuView } from './components/desktop/DesktopMenuHost';
-import { useAiBoard, useAiOverview, aiApi } from './api/ai';
+import { useAiBoard, useAiSettings, useAiTeams, aiApi } from './api/ai';
 import { AiBoardContext, type AiBoardState } from './components/ai/aiUi';
 import { AiMembersPage } from './components/ai/AiMembersPage';
 import { OPEN_DOC_EVENT } from './utils/openDoc';
 import { AiPausedBanner, PauseAllButton } from './components/ai/AiDialogs';
 import { DragConfirm } from './components/ai/DragConfirm';
 import { AiHoverHost } from './components/ai/MentionPill';
-import type { AiRun } from './types/ai';
+import type { BoardRun } from './types/ai';
 import { AssistProvider, useAssist, useAssistShortcut } from './components/assist/AssistContext';
 import { AssistDock } from './components/assist/AssistDock';
 import { AskAiButton, BoardHealthChip } from './components/assist/AssistEntry';
@@ -63,14 +64,6 @@ import {
   NotificationsPageView,
 } from './components/notifications/NotificationsHost';
 import { notificationsApi, useNotificationCounts } from './api/notifications';
-import { useWorkflowBoard } from './api/aiWorkflowBoard';
-import { WorkflowBoardProvider } from './components/workflowBoard/WorkflowBoardContext';
-import {
-  NO_WORKFLOW_FILTER,
-  matchesWorkflowFilter,
-  workflowFilterOptions,
-} from './components/workflowBoard/workflowFilter';
-import type { WorkflowBoardRow, WorkflowFilterState } from './types/aiWorkflowBoard';
 import { SchedulesProvider } from './components/schedules/SchedulesContext';
 import type { IssueType, Priority, Status, Ticket, Project, Member } from './types';
 import { LineIcon } from './components/ui/LineIcon';
@@ -117,14 +110,12 @@ function BoardProviders({
   ai,
   schedules,
   ideas,
-  workflowRows,
   children,
 }: {
   ai: AiBoardState;
   schedules: Omit<Parameters<typeof SchedulesProvider>[0], 'children'>;
   /** Idea Space: Quick add (Alt+N, "Make idea") and the links from tickets to their idea. */
   ideas: { projectId: string | null; openIdea: (id: string, tab?: string) => void };
-  workflowRows: WorkflowBoardRow[] | undefined;
   children: ReactNode;
 }) {
   return (
@@ -132,7 +123,7 @@ function BoardProviders({
       <SchedulesProvider {...schedules}>
         <IdeaLinksProvider value={{ openIdea: ideas.openIdea }}>
           <IdeaCaptureProvider projectId={ideas.projectId} onOpenIdea={ideas.openIdea}>
-            <WorkflowBoardProvider rows={workflowRows}>{children}</WorkflowBoardProvider>
+            {children}
           </IdeaCaptureProvider>
         </IdeaLinksProvider>
       </SchedulesProvider>
@@ -151,19 +142,15 @@ export default function App() {
 
   const { theme, toggleTheme } = useTheme();
   const [currentProjectId, setCurrentProjectId] = useState<string>(
-    // A Timeline link names its project
     () => new URLSearchParams(window.location.search).get('proj') ?? localStorage.getItem('activeProjectId') ?? '',
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline' | 'docs' | 'schedules' | 'ai_team'>(() => {
-    const link = parseTimelineLink(window.location.search);
-    if (link) {
-      setPendingTimeline(link);
-      return 'ai_team';
-    }
-    return new URLSearchParams(window.location.search).has('docs') ? 'docs' : 'board';
+    const params = new URLSearchParams(window.location.search);
+    // a link to Flow (`?aiteam=flow` or the old `?aiteam=timeline`) opens the AI Team page
+    return params.has('docs') ? 'docs' : params.has('aiteam') ? 'ai_team' : 'board';
   });
   const [docsRequest, setDocsRequest] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get('docs'),
@@ -185,7 +172,7 @@ export default function App() {
   const ideaInbox = useIdeaCounts().data?.totalInbox ?? 0;
   // The card of an AI's ticket was dropped on another column: a dialog asks before its run is cancelled
   const [dragConfirm, setDragConfirm] = useState<{
-    run: AiRun;
+    run: BoardRun;
     to: string;
     resolve: (move: boolean) => void;
   } | null>(null);
@@ -196,22 +183,22 @@ export default function App() {
   const [aiPage, setAiPage] = useState<{
     memberId?: string | null;
     add?: boolean;
-    tab?: 'accounts' | 'approvals' | 'audit' | 'usage' | 'safety';
-    auditMemberId?: string;
+    tab?: 'accounts';
     key: number;
   } | null>(null);
-  const aiOverview = useAiOverview(currentProjectId ?? '');
+  const aiTeams = useAiTeams(currentProjectId ?? '');
+  const aiSettings = useAiSettings(currentProjectId ?? '');
   const aiBoard = useAiBoard(currentProjectId ?? '');
   const aiState = useMemo<AiBoardState>(
     () => ({
       projectId: currentProjectId ?? '',
-      members: new Map((aiOverview.data?.members ?? []).map((m) => [m.id, m])),
-      runsByTicket: new Map((aiBoard.data?.runs ?? []).map((r) => [r.ticketId, r])),
-      settings: aiBoard.data?.settings ?? aiOverview.data?.settings ?? null,
+      members: new Map((aiTeams.data ?? []).map((m) => [m.id, m])),
+      runsByTicket: new Map(Object.entries(aiBoard.data?.tickets ?? {})),
+      settings: aiSettings.data ?? null,
       openAiPage: (memberId?: string) => setAiPage({ memberId, key: Date.now() }),
-      openAiTab: (tab, opts) => setAiPage({ tab, auditMemberId: opts?.memberId, key: Date.now() }),
+      openAiTab: (tab) => setAiPage({ tab: tab === 'accounts' ? 'accounts' : undefined, key: Date.now() }),
     }),
-    [currentProjectId, aiOverview.data, aiBoard.data],
+    [currentProjectId, aiTeams.data, aiSettings.data, aiBoard.data],
   );
   // All notifications page (a view of its own, like Settings)
   const [notifPage, setNotifPage] = useState(false);
@@ -270,11 +257,6 @@ export default function App() {
   const [filterPending, setFilterPending] = useState(false);
   const [filterFromIdea, setFilterFromIdea] = useState(false);
   const [hidePending, setHidePending] = useState(false);
-  const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilterState>(NO_WORKFLOW_FILTER);
-  const workflowBoard = useWorkflowBoard(currentProjectId ?? '');
-  const workflowRows = workflowBoard.data;
-  const workflowRowById = useMemo(() => new Map((workflowRows ?? []).map((r) => [r.ticketId, r])), [workflowRows]);
-  const workflowOptions = useMemo(() => workflowFilterOptions(workflowRows ?? []), [workflowRows]);
 
   const [reopenTargetTicket, setReopenTargetTicket] = useState<Ticket | null>(null);
   const [pendingTargetTicket, setPendingTargetTicket] = useState<Ticket | null>(null);
@@ -353,7 +335,6 @@ export default function App() {
       const matchesPending = !filterPending || Boolean(t.pending);
       const matchesFromIdea = !filterFromIdea || Boolean(t.fromIdeaId);
       const matchesHidePending = !hidePending || !t.pending;
-      const matchesWorkflow = matchesWorkflowFilter(workflowRowById.get(t.id), workflowFilter);
       return (
         matchesType &&
         matchesPriority &&
@@ -361,8 +342,7 @@ export default function App() {
         matchesReopened &&
         matchesPending &&
         matchesFromIdea &&
-        matchesHidePending &&
-        matchesWorkflow
+        matchesHidePending
       );
     });
 
@@ -558,22 +538,6 @@ export default function App() {
     closeModal();
   }
 
-  // "Open in Timeline" from a ticket: show the AI Team view on the Timeline, over whatever is open
-  useEffect(() => {
-    const open = () => {
-      setSettingsTarget(null);
-      setAiPage(null);
-      setActiveBoard('main');
-      setViewMode('ai_team');
-      setModalState(null);
-      const url = new URL(window.location.href);
-      url.searchParams.delete('ticket');
-      window.history.replaceState({}, '', url.toString());
-    };
-    window.addEventListener(OPEN_TIMELINE_EVENT, open);
-    return () => window.removeEventListener(OPEN_TIMELINE_EVENT, open);
-  }, []);
-
   // A link to one run (AI Team › Run history): show the AI Team view, over whatever is open
   useEffect(() => {
     const open = () => {
@@ -587,7 +551,24 @@ export default function App() {
       window.history.replaceState({}, '', url.toString());
     };
     window.addEventListener(OPEN_RUN_EVENT, open);
-    return () => window.removeEventListener(OPEN_RUN_EVENT, open);
+    window.addEventListener(OPEN_TIMELINE_EVENT, open);
+    return () => {
+      window.removeEventListener(OPEN_RUN_EVENT, open);
+      window.removeEventListener(OPEN_TIMELINE_EVENT, open);
+    };
+  }, []);
+
+  // A link to one setting (AI Team › Health: "Open Memory of one run"): the settings page opens on it
+  useEffect(() => {
+    const open = (e: Event) => {
+      const d = (e as CustomEvent<{ page?: string; setting?: string }>).detail ?? {};
+      setSettingsTarget({
+        page: isSettingsPageId(d.page ?? null) ? (d.page as SettingsPageId) : undefined,
+        setting: d.setting,
+      });
+    };
+    window.addEventListener(OPEN_SETTINGS_EVENT, open);
+    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, open);
   }, []);
 
   function closeModal() {
@@ -614,7 +595,6 @@ export default function App() {
     const heldBy = aiState.runsByTicket.get(ticketId);
     if (
       heldBy &&
-      heldBy.mode === 'work' &&
       ['queued', 'starting', 'running', 'needs_input'].includes(heldBy.state) &&
       dragged?.status !== newStatus &&
       !confirmed
@@ -623,7 +603,7 @@ export default function App() {
       const move = await new Promise<boolean>((resolve) => setDragConfirm({ run: heldBy, to: newStatus, resolve }));
       if (!move) return;
       try {
-        await aiApi.cancel(heldBy.id, 'The card was moved by a person');
+        await aiApi.cancel(heldBy.runId);
       } catch {
         /* it ended meanwhile */
       }
@@ -826,11 +806,7 @@ export default function App() {
     activeAssignee === 'all' &&
     !filterReopened &&
     !filterPending &&
-    !filterFromIdea &&
-    workflowFilter.waitingForMe === NO_WORKFLOW_FILTER.waitingForMe &&
-    workflowFilter.role === NO_WORKFLOW_FILTER.role &&
-    workflowFilter.template === NO_WORKFLOW_FILTER.template &&
-    workflowFilter.step === NO_WORKFLOW_FILTER.step;
+    !filterFromIdea;
   const laneCountsQuery = useLaneCounts(currentProjectId ?? '', ticketsPhase && noBoardFilter);
   const loadingLaneCounts = ticketsPhase && noBoardFilter ? laneCountsQuery.data : undefined;
   const lanesOverride = projectsError ? (
@@ -854,7 +830,7 @@ export default function App() {
     />
   );
 
-  const aiMemberCount = aiOverview.data?.members.length ?? 0;
+  const aiMemberCount = aiTeams.data?.length ?? 0;
   const insightChips = useInsightChips(currentProjectId);
   const humanMembers = members.filter((m) => (m.kind ?? 'human') === 'human');
 
@@ -889,9 +865,7 @@ export default function App() {
     );
   }
   // the AI paused banner (ai-2 AP-2): under the top bar. The board has its top bar inside, so it draws the banner
-  const pausedBanner = aiState.settings?.pausedAll ? (
-    <AiPausedBanner settings={aiState.settings} onResume={() => setAiPage({ key: Date.now() })} />
-  ) : null;
+  const pausedBanner = aiState.settings?.pausedAll ? <AiPausedBanner settings={aiState.settings} /> : null;
   const boardShown =
     !overlayPage &&
     !(aiPage && currentProjectId && !noProjects) &&
@@ -901,7 +875,6 @@ export default function App() {
   return (
     <BoardProviders
       ai={aiState}
-      workflowRows={workflowRows}
       schedules={{
         projectId: currentProjectId,
         tickets: allAvailableTickets,
@@ -940,7 +913,7 @@ export default function App() {
               setSettingsTarget(null);
               setNotifPage(false);
               switchToProject(projectId);
-              setAiPage({ tab, key: Date.now() });
+              setAiPage({ tab: tab === 'accounts' ? 'accounts' : undefined, key: Date.now() });
             }}
             onOpenAiMember={(memberId, projectId) => {
               setSettingsTarget(null);
@@ -1053,7 +1026,6 @@ export default function App() {
                         initialMemberId={aiPage.memberId}
                         initialAdd={aiPage.add}
                         initialTab={aiPage.tab}
-                        initialAuditMemberId={aiPage.auditMemberId}
                         onBack={() => setAiPage(null)}
                         onOpenTicket={(id) => {
                           setAiPage(null);
@@ -1127,7 +1099,7 @@ export default function App() {
                               <PauseAllButton
                                 projectId={currentProjectId}
                                 settings={aiState.settings}
-                                members={aiOverview.data?.members ?? []}
+                                members={aiTeams.data ?? []}
                               />
                             ) : null
                           }
@@ -1149,9 +1121,6 @@ export default function App() {
                           fromIdeaCount={fromIdeaCount}
                           filterFromIdea={filterFromIdea}
                           onFilterFromIdeaChange={setFilterFromIdea}
-                          workflowOptions={workflowOptions}
-                          workflowFilter={workflowFilter}
-                          onWorkflowFilterChange={setWorkflowFilter}
                           pendingCount={pendingCount}
                           totalReopens30d={totalReopens30d}
                           waitingOnTicketsCount={waitingOnTicketsCount}

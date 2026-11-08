@@ -2,9 +2,7 @@
 
 export type PackModel = 'haiku' | 'sonnet' | 'opus';
 export type PackWrites = 'nothing' | 'ticket' | 'worktree' | 'tests' | 'canvas';
-export type WorkflowKey = 'standard' | 'feature_ui' | 'quick_fix' | 'research' | 'docs' | 'chore';
 export type HandoverKind = 'local' | 'pr' | 'branch';
-export type PackPermissionMode = 'allowlist' | 'bypass';
 
 export interface Pack {
   /** "builtin:dev" for a ready-made one. */
@@ -17,18 +15,13 @@ export interface Pack {
   retryModel?: PackModel | null;
   effort: string;
   depthModels?: { light: PackModel; standard: PackModel; deep: PackModel } | null;
-  template: string;
-  ceiling: string;
   writes: PackWrites;
   handsIn: string;
-  allow: string[];
   plugins: string[];
   mcp: string[];
   personas?: string[] | null;
   limits: { maxParallel: number; maxRunsPerDay: number };
   persona: string;
-  /** How a member made from the pack runs; unset: Bypass permissions, except Triage (the allow list). */
-  permissionMode?: PackPermissionMode | null;
   version: number;
   builtin: boolean;
   projectId?: string | null;
@@ -44,17 +37,14 @@ export type PackDraft = Pick<
   | 'model'
   | 'retryModel'
   | 'effort'
-  | 'template'
-  | 'ceiling'
   | 'writes'
   | 'handsIn'
-  | 'allow'
   | 'plugins'
   | 'mcp'
   | 'limits'
   | 'persona'
 > &
-  Partial<Pick<Pack, 'depthModels' | 'personas' | 'glyph' | 'permissionMode'>>;
+  Partial<Pick<Pack, 'depthModels' | 'personas' | 'glyph'>>;
 
 export interface PackExport {
   format: 'kanban-role-pack/1';
@@ -91,9 +81,9 @@ export interface ScanPackage {
   manager?: string;
 }
 
-/** The four commands a project keeps; test, lint and build are checks, prepare runs before a ticket starts. */
+/** The four commands a project keeps; test, lint and build run before a hand-in, prepare runs before a ticket starts. */
 export type CommandName = 'prepare' | 'test' | 'lint' | 'build';
-/** The ones a workflow's Checks step can run. */
+/** The commands the teams run before they hand in. */
 export type CheckName = 'test' | 'lint' | 'build';
 
 /**
@@ -123,7 +113,6 @@ export interface Suggestion {
   commands: { test?: string | null; lint?: string | null; build?: string | null };
   prepare: string | null;
   basePort: number | null;
-  workflowDefault: WorkflowKey;
   team: SuggestedMember[];
   plugins: string[];
   handover: HandoverKind;
@@ -215,7 +204,6 @@ export interface ApplyBody {
   commands: Suggestion['commands'];
   prepare: string | null;
   basePort: number | null;
-  workflowDefault: WorkflowKey;
   handover: HandoverKind;
   worktrees: boolean;
   team: SuggestedMember[];
@@ -275,4 +263,74 @@ export interface MemberPackDiff extends MemberPack {
   changes: { field: string; label: string; before: string; after: string }[];
   /** What stays the member's own. */
   kept: string[];
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Settings › AI › Role packs (design/screens/ai-project-settings.md, D): a pack as the screen reads and saves it.
+// The server keeps what a person saved (a model id of any kind, no limits), so these fields are looser than `Pack`.
+
+export interface PackLimits {
+  maxParallel?: number | null;
+  maxRunsPerDay?: number | null;
+  [key: string]: unknown;
+}
+
+/** A pack as GET /projects/{id}/ai/packs gives it: a ready-made one, or the project's own copy or own role. */
+export interface RolePack {
+  /** `builtin:<key>` for a ready-made one that this project did not edit, else the project's own row id. */
+  id: string;
+  key: string;
+  name: string;
+  glyph?: string;
+  tagline?: string;
+  model?: string;
+  /** The model of a second attempt. */
+  retryModel?: string | null;
+  effort?: string;
+  writes?: PackWrites | (string & {});
+  handsIn?: string;
+  plugins?: string[];
+  mcp?: string[];
+  persona?: string;
+  limits?: PackLimits;
+  /** The fields the design does not show; the server keeps them as they are on every save. */
+  depthModels?: Record<string, string>;
+  personas?: string[] | null;
+  template?: string;
+  ceiling?: string;
+  permissions?: Record<string, string>;
+  permissionMode?: string;
+  allow?: string[];
+  /** The project's own copy or role: the number of its last save; a ready-made one: the ready-made version. */
+  version: number;
+  /** A ready-made pack the project did not edit. */
+  builtin: boolean;
+  projectId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: string | null;
+}
+
+/** What a save sends: the fields of the editor (the server merges them over what the pack has). */
+export interface PackBody {
+  name: string;
+  glyph?: string;
+  tagline?: string;
+  model?: string;
+  retryModel?: string | null;
+  effort?: string;
+  writes?: string;
+  handsIn?: string;
+  plugins?: string[];
+  mcp?: string[];
+  persona?: string;
+  limits?: PackLimits;
+  // a copy of a pack also carries the fields the editor does not show
+  depthModels?: Record<string, string>;
+  personas?: string[] | null;
+  template?: string;
+  ceiling?: string;
+  permissions?: Record<string, string>;
+  permissionMode?: string;
+  allow?: string[];
 }

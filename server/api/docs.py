@@ -2,6 +2,8 @@ import json
 import uuid
 from typing import Annotated, Any
 
+import re
+
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -12,6 +14,7 @@ from database import get_session
 from services import docs as svc
 from services import docs_access, docs_comments
 from services import docs_import, docs_search
+from services.docs_ai import handoff
 from services.docs_templates import TEMPLATES
 
 router = APIRouter(tags=["docs"])
@@ -452,9 +455,9 @@ async def post_publish(
         )
     )
     # Needs input markers that went out with the text (the publish dialog warned about them first)
-    from services.docs_ai.write import find_markers
-
-    page["needs_input_markers"] = len(find_markers(page["markdown"]))
+    page["needs_input_markers"] = len(
+        re.findall(r"\[Needs input[^\]]*\]", page["markdown"] or "")
+    )
     if body.notify:
         await _announce(page, body.note)
     return page
@@ -592,56 +595,36 @@ async def _deliver_ai(
     """Deliver the AI members mentioned in the comment just saved (Docs AI); the thread comes back with
     `ai_delivery` and any note an AI member posted."""
     from services import activity
-    from services.docs_ai import DocsAiError
-    from services.docs_ai import threads as ai_threads
+    from services.assistant import docs as assistant_docs
 
     if not out.get("comments"):
         return out
-    intent = {"work": "suggest", None: "ask", "": "ask"}.get(intent, intent)
-    try:
-        delivered = await ai_threads.deliver(
-            session,
-            thread_id=out["id"],
-            comment_id=out["comments"][-1]["id"],
-            by=activity.current_actor(),
-            intent=intent or "ask",
-        )
-    except DocsAiError as exc:
-        delivered = [{"result": "not_delivered", "reason": str(exc)}]
-    if any(d["result"] in ("job", "refused", "sent") for d in delivered):
+    intent = {"work": "ask", "suggest": "ask", None: "ask", "": "ask"}.get(
+        intent, intent
+    )
+    delivered = await assistant_docs.deliver(
+        session, thread=out, by=activity.current_actor(), intent=intent or "ask"
+    )
+    if any(d["result"] == "job" for d in delivered):
         out = await docs_comments.get_thread(session, out["id"])
     return {**out, "ai_delivery": delivered}
 
 
 class SendToAiBody(BaseModel):
-    """Open threads of a page to send to the AI of a ticket."""
+    """Open threads of a page to send to an AI (Send to AI)."""
 
     thread_ids: list[str]
-    ticket_id: str
-    # which AI on the ticket (default: the one holding it, else its AI assignee)
-    member_id: str | None = None
+    # team: the team of `ticket_id` | board_ai: it routes | page_assistant: the page's own assistant
+    to: str = "team"
+    ticket_id: str | None = None
+    # a ticket with no team: the team to give it before sending
+    give_team_id: str | None = None
 
 
-@router.get("/docs/pages/{page_id}/send-to-ai")
-async def get_send_to_ai(page_id: str, session: Session) -> dict[str, Any]:
-    """The tickets the page names with the AI each would send to, and each open thread's default ticket."""
-    from services.docs_ai import handoff
+class SendCommentsBody(BaseModel):
+    """Send a ticket's page comments to its own team."""
 
-    return await handoff.targets(session, page_id)
-
-
-@router.post("/docs/pages/{page_id}/send-to-ai")
-async def post_send_to_ai(
-    page_id: str, body: SendToAiBody, session: Session
-) -> dict[str, Any]:
-    """Send open threads to the AI of a ticket: a message to the run holding it, else a new work run."""
-    from services.docs_ai import handoff
-
-    out = await handoff.send(
-        session, page_id, body.thread_ids, body.ticket_id, body.member_id
-    )
-    await board_events.publish("invalidate")
-    return out
+    give_team_id: str | None = None
 
 
 class AnchorPreviewBody(BaseModel):
@@ -690,6 +673,59 @@ async def post_reply(
     out = await docs_comments.add_reply(session, thread_id, body.body)
     await board_events.publish("invalidate")
     return await _deliver_ai(session, out, body.ai_intent)
+
+
+@router.get("/docs/pages/{page_id}/send-to-ai")
+async def get_send_to_ai(page_id: str, session: Session) -> dict[str, Any]:
+    """Who can receive the page's open threads: tickets by how they relate to the page and to each thread, every
+    other ticket, the project's AI teams, and whether the Board AI and the page's assistant can answer."""
+    return await handoff.targets(session, page_id)
+
+
+@router.post("/docs/pages/{page_id}/send-to-ai", status_code=202)
+async def post_send_to_ai(
+    page_id: str, body: SendToAiBody, session: Session
+) -> dict[str, Any]:
+    """Send open threads to the team of a ticket, to the Board AI (it routes) or to the page's assistant."""
+    out = await handoff.send(
+        session,
+        page_id=page_id,
+        thread_ids=body.thread_ids,
+        to=body.to,
+        ticket_id=body.ticket_id,
+        give_team_id=body.give_team_id,
+    )
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.get("/tickets/{ticket_id}/docs/comments")
+async def get_ticket_doc_comments(ticket_id: str, session: Session) -> dict[str, Any]:
+    """The open comment threads of the pages linked to a ticket: what "Ask the team to apply the comments" sends."""
+    groups = await handoff.threads_of_ticket(session, ticket_id)
+    return {
+        "threads": sum(len(ts) for _p, ts in groups),
+        "pages": [
+            {"page_id": p.id, "title": p.title, "threads": len(ts)} for p, ts in groups
+        ],
+        "max_threads": handoff.MAX_THREADS,
+        # the team that built the first of those pages (the default for "give it to a team")
+        "builder_team": await handoff.builder_team_of(session, groups[0][0])
+        if groups
+        else None,
+    }
+
+
+@router.post("/tickets/{ticket_id}/docs/comments/send", status_code=202)
+async def post_ticket_doc_comments_send(
+    ticket_id: str, body: SendCommentsBody, session: Session
+) -> dict[str, Any]:
+    """Send the open threads of the ticket's linked pages to the ticket's own team."""
+    out = await handoff.send(
+        session, from_ticket=ticket_id, give_team_id=body.give_team_id
+    )
+    await board_events.publish("invalidate")
+    return out
 
 
 @router.post("/docs/comments/threads/{thread_id}/resolve")

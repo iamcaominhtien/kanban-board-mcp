@@ -5,7 +5,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
-from services import activity as svc_activity
 from services import sketches as svc
 
 router = APIRouter(tags=["sketches"])
@@ -76,17 +75,7 @@ async def post_sketch(
 
 async def _rebind_chat(session: AsyncSession, draft_chat: str, sketch_id: str) -> None:
     """Move the AI chat kept for a drawing that had no id to the saved sketch. Saving never fails because of it."""
-    from models import Sketch
-    from services.ai.assist import sketch_scope
-
-    try:
-        sketch = await session.get(Sketch, sketch_id)
-        if sketch is not None:
-            await sketch_scope.rebind(
-                session, draft_chat, sketch, svc_activity.current_actor() or "user"
-            )
-    except Exception:  # noqa: BLE001 - the chat is a convenience, the drawing is saved
-        await session.rollback()
+    return  # AI v2 stage 7: the sketch assistant keeps its own chat
 
 
 @router.get("/sketches/{sketch_id}")

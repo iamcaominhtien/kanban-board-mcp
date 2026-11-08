@@ -2,14 +2,21 @@ import { useState } from 'react';
 import { useBoardSkills } from '../../../api/aiPlugins';
 import { usePatchProjectOps, useProjectOps } from '../../../api/aiProjectOps';
 import { extractError } from '../../../api/extractError';
+import { useAiTeams } from '../../../api/ai';
 import { Toggle } from '../aiUi';
 import { boardSkillOn, boardSkillOwn, withBoardSkill } from './boardSkillLogic';
 import { roleName } from './pluginLogic';
 
+/** The first sentence of a skill's description, for the one-line hint of its row. */
+function gist(description: string): string {
+  const first = description.split(/(?<=[.:])\s|\s-\s/)[0] ?? description;
+  return first.replace(/[.:]$/, '');
+}
+
 /**
  * The board's own skills (the canvas design guide, permissions, the shared skills every role uses, one skill per role),
  * each with a switch: for the whole project, or, with `memberId`, for one member over the project's default (issues
- * #277, #273). On a member's page only its own role's skill is listed (`role`): the others never load for it.
+ * #277, #273). With `memberId` only that team's own role skill is listed (`role`): the others never load for it.
  */
 export function BoardSkillsRows({
   projectId,
@@ -21,6 +28,7 @@ export function BoardSkillsRows({
   role?: string | null;
 }) {
   const skills = useBoardSkills();
+  const teams = useAiTeams(projectId);
   const ops = useProjectOps(projectId);
   const patch = usePatchProjectOps(projectId);
   const [error, setError] = useState<string | null>(null);
@@ -50,27 +58,48 @@ export function BoardSkillsRows({
       {all.map((s) => {
         const on = boardSkillOn(list, s.name, memberId);
         const own = memberId ? boardSkillOwn(list, s.name, memberId) : false;
+        // a craft skill reaches only the teams with a role that does that work
+        const left = s.craftRoles
+          ? (teams.data ?? []).filter((t) => !t.roles.some((r) => s.craftRoles?.includes(r.key)))
+          : [];
+        const nobody = on && left.length > 0 && left.length === (teams.data ?? []).length;
+        const lockedOn = !!s.alwaysOn;
+        const reach = s.role
+          ? `every ${roleName(s.role)}`
+          : left.length
+            ? `every team except ${left.map((t) => t.name).join(', ')}`
+            : 'every team';
         return (
           <div
             key={s.name}
             data-testid={`bs-${s.name}`}
-            style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}
+            style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0, opacity: nobody ? 0.55 : 1 }}
           >
-            <Toggle label={s.name} on={on} disabled={patch.isPending} onChange={(v) => void set(s.name, v)} />
+            <Toggle
+              label={s.name}
+              on={(on && !nobody) || lockedOn}
+              disabled={patch.isPending || lockedOn || nobody}
+              onChange={(v) => void set(s.name, v)}
+            />
             <b style={{ fontSize: 13 }}>{s.name}</b>
             <span className="ai-chip">{s.role ? `${roleName(s.role)} skill` : 'Skill'}</span>
+            {lockedOn && <span className="ai-chip">Always on</span>}
             <span
               className="ai-hint"
               style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
               title={s.description}
             >
-              {memberId
-                ? `${boardSkillOn(list, s.name) ? 'On for every member' : 'Off for this project'}.${
-                    own ? ` Switched ${on ? 'on' : 'off'} here.` : ''
-                  }`
-                : `Board library · on for ${
-                    on ? (s.role ? `every ${roleName(s.role)}` : 'every member') : 'nobody'
-                  } · ${s.description}`}
+              {lockedOn
+                ? 'How to work a ticket, prove it, ask and report'
+                : memberId
+                  ? `${boardSkillOn(list, s.name) ? 'On for every team' : 'Off for this project'}.${
+                      own ? ` Switched ${on ? 'on' : 'off'} here.` : ''
+                    }`
+                  : nobody
+                    ? `Not given to ${left.map((t) => t.name).join(', ')}: none of its roles draw`
+                    : on
+                      ? `On for ${reach} · ${gist(s.description)}`
+                      : 'Off for this project'}
             </span>
             {own && (
               <button className="ai-link" onClick={() => void set(s.name, null)}>
@@ -97,10 +126,9 @@ export function BoardSkillsCard({ projectId }: { projectId: string }) {
       data-testid="board-skills"
       style={{ padding: 12, display: 'grid', gap: 8, minWidth: 0, overflow: 'hidden' }}
     >
-      <b style={{ fontSize: 13.5 }}>The board's own skills</b>
+      <b style={{ fontSize: 13.5 }}>The board’s own skills</b>
       <div className="ai-hint">
-        Every Claude Code member gets the shared ones; a role's own skill goes only to the members of that role. Switch
-        one off for the project here, or for one member on its page.
+        Every team gets the shared ones; a role’s own skill goes only to teams with that role.
       </div>
       <BoardSkillsRows projectId={projectId} />
     </div>

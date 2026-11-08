@@ -35,9 +35,11 @@ Pick the model and effort for each subagent from the task, not by default:
 
 Run only the tests related to what you changed, never the whole suite (it is slow, and some tests fail in a cloud container for reasons that have nothing to do with the change). Related means:
 
-- the test files of the modules you changed, and the suites that exercise them (for a change in `server/services/docs*.py` or the Docs MCP tools: `tests/test_docs*.py`; for the MCP tool list or instructions: `tests/test_mcp_tool_quality.py`; for the board's skills or the run prompt: `tests/test_shared_skills_277.py`, `tests/test_role_skills_273.py`);
+- the test files of the modules you changed, and the suites that exercise them (for a change in `server/services/docs*.py` or the Docs MCP tools: `tests/test_docs*.py`; for the MCP tool list or instructions: `tests/test_mcp_tool_quality.py`; for the board's skills: `tests/test_shared_skills_277.py`; for the AI team (`services/ai`): `tests/test_ai_teams.py`, `tests/test_ai_runs_v2.py`, `tests/test_ai_launch_v2.py`, `tests/test_runner.py` and the `tests/test_ai_*_v2.py` of the module you changed);
 - in `ui/`, `npx vitest run <the folders you changed>` plus `npx tsc --noEmit -p .`, eslint and prettier on the files you touched;
 - in `desktop/`, `npm test` when you changed `desktop/`.
+
+A test that starts a process (a real server, the AI runner) must give it its own `KANBAN_CONFIG_DIR` and `KANBAN_DB_PATH`: `tests/conftest.py` exports temporary ones, never remove that. Without them the process opens the database named in the developer's `~/.kanban-board/config.json` and migrates it.
 
 Find the related suites with CodeGraph (`callers`, `impact`) or a grep for the module's name in `server/tests` and the `*.test.ts(x)` files. Say in the PR which suites you ran. Run the whole suite only when the user asks for it.
 

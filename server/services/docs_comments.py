@@ -168,7 +168,7 @@ def _comment_out(
         "mentions": [{"id": m.id, "name": m.name} for m in mentioned],
         "created_at": c.created_at,
         "edited_at": c.edited_at,
-        # set on an AI member's reply: {member_id, job_id, cost, sources, can_suggest, kind?, proposal_id?}
+        # set on an AI member's reply: {member_id, job_id, cost, sources, kind?}
         "ai": _json_obj(c.ai),
         "can_edit": mine and role != "viewer" and not c.ai,
         "can_delete": role != "viewer" and (mine or role == "admin"),
@@ -311,10 +311,10 @@ async def list_comments(
             t.created_at,
         )
     )
-    from services.docs_ai import threads as ai_threads
+    from services.assistant import docs as assistant_docs
 
     out_threads = await _serialize(session, shown, members, actor, role, numbers)
-    docs_ai = await ai_threads.annotate(session, page, out_threads)
+    docs_ai = await assistant_docs.annotate(session, page, out_threads)
     return {
         "threads": out_threads,
         "counts": {
@@ -329,10 +329,10 @@ async def list_comments(
         "role": role,
         "me": actor,
         # `kind` human | ai; AI members carry `ai` (status for the @ picker) only while Docs AI is on
-        "members": await ai_threads.member_rows(
+        "members": await assistant_docs.member_rows(
             session, page.project_id, members, docs_ai
         ),
-        "docs_ai": docs_ai,
+        "docs_ai": bool(docs_ai),
     }
 
 
@@ -347,9 +347,9 @@ async def _one(session: AsyncSession, thread: DocsCommentThread) -> dict[str, An
     out = await _serialize(
         session, [thread], members, actor, role_in(members, actor), numbers
     )
-    from services.docs_ai import threads as ai_threads
+    from services.assistant import docs as assistant_docs
 
-    await ai_threads.annotate(session, page, out)
+    await assistant_docs.annotate(session, page, out)
     return out[0]
 
 

@@ -1,6 +1,5 @@
-"""AI in every editor (design/screens/ai-where-you-work.md, D): what the editor may offer, "What will be sent", the
-draft and its acceptance. Errors carry a `code` the editor maps to a state (viewer, AI off, over budget, no AI
-member, conflict…); `api.assist` turns them into responses."""
+"""AI in every editor (AI v2): the /ai menu, the selection bar. A request is one assistant turn with the
+`editor-write` skill; its result is held until the person accepts or discards it (`GET /ai/assist/drafts/{id}`)."""
 
 from typing import Annotated, Any, Optional
 
@@ -11,11 +10,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from database import get_session
 from models import Project
 from services import activity as svc_activity
-from services.ai.assist import drafts as svc_drafts
-from services.ai.assist import editor as svc_editor
-from services.ai.assist.settings import AssistError
+from services.assistant import editor as svc_editor
+from services.assistant.errors import AssistError
 
-router = APIRouter(tags=["ai-editor"])
+router = APIRouter(tags=["ai-assistant"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
@@ -41,7 +39,6 @@ class EditorBody(BaseModel):
     ticket_id: Optional[str] = None
     doc_id: Optional[str] = None
     idea_id: Optional[str] = None
-    # "This ticket / This page / Selected text" chips: {"ticket": bool, "page": bool, "selection": bool}
     include: dict[str, bool] = {}
 
 
@@ -53,20 +50,18 @@ async def get_editor_state(
     ticket_id: Optional[str] = None,
     idea_id: Optional[str] = None,
 ) -> dict:
-    """Whether the person may use AI in this editor, the /ai menu and the selection bar for it, and the cost."""
+    """Whether the person may use AI in this editor, and the /ai menu and the selection bar for it."""
     await _project(session, project_id)
-    return await svc_editor.state(
-        session, project_id, surface, _by(), ticket_id, idea_id
-    )
+    return await svc_editor.state(session, project_id, surface)
 
 
 @router.post("/projects/{project_id}/ai/editor/preview")
 async def post_editor_preview(
     project_id: str, body: EditorBody, session: Session
 ) -> dict:
-    """ "What will be sent": the list of what the model would read for this request. Sends nothing."""
+    """ "What will be sent": the pieces of this request. Sends nothing."""
     await _project(session, project_id)
-    return await svc_editor.preview(session, project_id, body.model_dump(), _by())
+    return svc_editor.preview(body.model_dump())
 
 
 @router.post("/projects/{project_id}/ai/editor/drafts", status_code=201)
@@ -75,8 +70,7 @@ async def post_editor_draft(
 ) -> dict:
     """Ask for a draft. It is written in the background (poll `GET /ai/assist/drafts/{id}`); the text is not touched."""
     await _project(session, project_id)
-    d = await svc_editor.start(session, project_id, body.model_dump(), _by())
-    return svc_drafts.describe(d)
+    return await svc_editor.start(session, project_id, body.model_dump(), _by())
 
 
 class AcceptBody(BaseModel):
@@ -87,17 +81,13 @@ class AcceptBody(BaseModel):
 
 @router.post("/ai/editor/drafts/{draft_id}/accept")
 async def post_editor_accept(
-    draft_id: str, session: Session, body: Optional[AcceptBody] = None
+    draft_id: str, body: Optional[AcceptBody] = None
 ) -> dict[str, Any]:
-    """Accept (Tab): the editor has put the text in; this records "edited with AI by <person>" in Activity and in the
-    audit log, and adds an accepted list of criteria to the ticket."""
-    return await svc_editor.accept(
-        session, draft_id, _by(), body.model_dump(exclude_none=True) if body else None
-    )
+    """Accept: the editor has put the text in; an accepted list of criteria is added to the ticket."""
+    return await svc_editor.accept(draft_id, _by(), body.items if body else None)
 
 
 @router.post("/ai/editor/drafts/{draft_id}/continue")
-async def post_editor_continue(draft_id: str, session: Session) -> dict:
-    """Continue a draft that was cut short at the length limit; what it had is kept."""
-    d = await svc_editor.continue_draft(session, draft_id, _by())
-    return svc_drafts.describe(d)
+async def post_editor_continue(draft_id: str) -> dict:
+    """Continue a draft: carry on from what it has."""
+    return await svc_editor.again(draft_id, _by(), go_on=True)

@@ -11,10 +11,9 @@ import {
   duplicateBoard,
   importFiles,
   replaceBoard,
-  useCanvasProposals,
   useCanvasThreads,
-  type AiJob,
   type CanvasBoard,
+  type CanvasDelivery,
   type CanvasNote,
   type CanvasThread,
   type PinAnchor,
@@ -23,11 +22,12 @@ import {
 import { useToast } from '../Toast';
 import { useDiagrams } from '../diagrams/DiagramsContext';
 import { useSketch } from '../sketch/SketchContext';
-import { AskAiPanel, ProposalReview, type WorkingJob } from './CanvasAi';
 import { BoardFrame } from './BoardFrame';
 import { FitProbe } from './FitProbe';
 import { anchorAt, useAnchoredPins } from './pinAnchor';
 import { CanvasIcon } from './CanvasIcon';
+import { MentionBox } from './MentionBox';
+import { useCanvasMentions } from './useCanvasMentions';
 import { useCanvas, type CanvasResult, type OpenCanvasRequest } from './CanvasContext';
 import { NOTE_BG } from './CanvasStatic';
 import { CommentsPanel } from './CommentsPanel';
@@ -125,7 +125,7 @@ interface Drag {
 
 /**
  * The canvas editor: the plane with boards, notes, arrows and labels; a page-tab bar; a tool bar; zoom, fit and map;
- * the Boards and Comments panels; board locks and the source editor; history; Ask AI and proposals; presenting.
+ * the Boards and Comments panels; board locks and the source editor; history; presenting.
  * Everything is reachable from the keyboard (press ? for the list).
  * @param props.canvasId - The canvas.
  * @param props.request - Where it was opened from, and what to select.
@@ -178,10 +178,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     setSideState(null);
     setHistory(true);
   }, []);
-  const [askFor, setAskFor] = useState<string[] | null>(null);
-  const [askText, setAskText] = useState('');
-  const [proposals, setProposals] = useState(false);
-  const [jobs, setJobs] = useState<WorkingJob[]>([]);
   const [pinDraft, setPinDraft] = useState<{
     boardId: string | null;
     x: number;
@@ -191,6 +187,8 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     anchor?: PinAnchor | null;
   } | null>(null);
   const [pinText, setPinText] = useState('');
+  const mentions = useCanvasMentions(canvasId, me);
+  const [pinNotes, setPinNotes] = useState<Record<string, CanvasDelivery[]>>({});
   const [selThread, setSelThread] = useState<string | null>(null);
   const [keys, setKeys] = useState(false);
   const [dropping, setDropping] = useState(false);
@@ -214,9 +212,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
 
   const ready = ed.status === 'ready';
   const threadsQ = useCanvasThreads(canvasId, ready);
-  const proposalsQ = useCanvasProposals(canvasId, ready);
   const threads: CanvasThread[] = useMemo(() => threadsQ.data ?? [], [threadsQ.data]);
-  const openProposals = (proposalsQ.data ?? []).filter((p) => p.status === 'open');
 
   // first load: pick the page tab, restore its view, select the asked board
   useEffect(() => {
@@ -226,8 +222,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     const first = target?.page ?? doc.pages[0]?.id ?? null;
     setPageId(first);
     setTitle(canvas?.title ?? '');
-    if (request.openAi && target) setAskFor([target.id]);
-  }, [doc, canvas?.title, request.boardId, request.openAi]);
+  }, [doc, canvas?.title, request.boardId]);
   useEffect(() => {
     if (canvas && !title) setTitle(canvas.title);
   }, [canvas, title]);
@@ -322,7 +317,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     return () => window.clearTimeout(t);
   }, [view, canvasId]);
   const lockOf = useCallback((id: string) => ed.locks.find((l) => l.boardId === id), [ed.locks]);
-  const jobOf = useCallback((id: string) => jobs.find((j) => j.boardIds.includes(id)), [jobs]);
   const commentsByBoard = useMemo(() => {
     const out: Record<string, number> = {};
     for (const t of threads) if (t.status === 'open' && t.boardId) out[t.boardId] = (out[t.boardId] ?? 0) + 1;
@@ -817,15 +811,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   };
   const copy = (text: string) =>
     void navigator.clipboard?.writeText(text).then(() => toast.success('Link copied', text));
-  const startAsk = (ids?: string[]) => {
-    const target = ids ?? sel.filter((i) => boardById(i));
-    if (!canvas?.projectId || !canEdit) return;
-    if (!target.length) {
-      toast.info('Select a board first', 'Ask AI works on the boards you select.');
-      return;
-    }
-    setAskFor(target);
-  };
   const present = () => {
     if (!canvas) return;
     api.present({ id: canvas.id, boardId: oneBoard?.id ?? sel[0], pageId: pageId ?? undefined });
@@ -902,11 +887,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
       if (mod && key === 'y') {
         e.preventDefault();
         ed.redo();
-        return;
-      }
-      if (mod && key === 'j') {
-        e.preventDefault();
-        startAsk();
         return;
       }
       if (mod && key === 'd') {
@@ -999,16 +979,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     // the handler reads current state on every key, so it is bound again on every render
   });
 
-  // ---- AI jobs ----
-  const jobFinished = (jobId: string, job: AiJob) => {
-    setJobs((js) => js.filter((j) => j.jobId !== jobId));
-    void qc.invalidateQueries({ queryKey: canvasKeys.proposals(canvasId) });
-    if (job.state === 'finished') {
-      toast.success('A proposal is ready', job.result.note || 'Look at before and after, then accept or reject.');
-      setProposals(true);
-    } else toast.error('The AI could not prepare a proposal', job.error.message || 'Try again.');
-  };
-
   // ---- rendering ----
   const z = view.zoom;
   const live = !isSnapshot(z);
@@ -1051,7 +1021,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     top: 8 + (y - (minimapBox?.y ?? 0) + 200) * mk,
   });
   const empty = !pageBoards.length && !pageNotes.length && !pageLabels.length;
-  const waitingJob = (id: string) => openProposals.find((p) => p.changes.some((c) => c.boardId === id && c.waitingFor));
   const noteFor = (n: CanvasNote) => ({ left: n.x, top: n.y, width: n.w, height: n.h, background: NOTE_BG[n.color] });
 
   const content = (
@@ -1101,27 +1070,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
             <span className={styles.hint} data-testid="canvas-draft-kept">
               Draft kept on this computer
             </span>
-          )}
-          {canEdit && canvas.projectId && (
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnAi}`}
-              onClick={() => startAsk()}
-              title="Ask AI about the selected boards (Ctrl J)"
-              data-testid="canvas-ask-ai"
-            >
-              <CanvasIcon name="spark" size={14} /> AI
-            </button>
-          )}
-          {openProposals.length > 0 && (
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSm} ${styles.btnAi}`}
-              onClick={() => setProposals(true)}
-              data-testid="canvas-open-proposals"
-            >
-              {openProposals.length} proposal{openProposals.length === 1 ? '' : 's'}
-            </button>
           )}
           <button
             type="button"
@@ -1545,7 +1493,11 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 <div key={b.id} className={styles.board} style={{ left: b.x, top: b.y, width: b.w, height: b.h }}>
                   <div
                     className={styles.boardBody}
-                    style={{ borderWidth: 1 / z, boxShadow: 'none' }}
+                    style={{
+                      borderWidth: (b.aiSavedBy && !sel.includes(b.id) ? 2 : 1) / z,
+                      boxShadow: 'none',
+                      ...(b.aiSavedBy && !sel.includes(b.id) ? { borderColor: '#3f9b5a' } : {}),
+                    }}
                     data-item={b.id}
                     data-kind="board"
                     data-testid="canvas-board"
@@ -1677,8 +1629,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 const selected = sel.includes(b.id);
                 const lock = lockOf(b.id);
                 const lockedByOther = !!lock && lock.holder !== me;
-                const job = jobOf(b.id);
-                const waits = waitingJob(b.id);
                 const showTools = (hover === b.id || (selected && sel.length === 1)) && !drag.current;
                 const bw = b.w * z;
                 const bh = b.h * z;
@@ -1716,6 +1666,15 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       <span>
                         {Math.round(b.w)} x {Math.round(b.h)}
                       </span>
+                      {b.aiSavedBy && (
+                        <span
+                          className={styles.aiChip}
+                          title={`${b.aiSavedBy} changed this board. Saving it yourself clears the mark.`}
+                          data-testid="canvas-ai-chip"
+                        >
+                          {b.aiSavedBy}
+                        </span>
+                      )}
                     </div>
                     {(b.kind === 'empty' || (b.kind === 'html' && !b.content)) && (
                       <div className={styles.emptyLabel} data-testid="board-empty-label">
@@ -1727,18 +1686,14 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                         {ordered.findIndex((o) => o.id === b.id) + 1}
                       </span>
                     )}
-                    {(lockedByOther || job || waits) && (
+                    {lockedByOther && (
                       <div
-                        className={`${styles.ribbon} ${job || waits ? styles.ribbonAi : styles.ribbonLock}`}
+                        className={`${styles.ribbon} ${styles.ribbonLock}`}
                         style={{ height: 20 }}
-                        data-testid={job ? 'canvas-ai-ribbon' : 'canvas-lock-ribbon'}
+                        data-testid="canvas-lock-ribbon"
                       >
-                        <CanvasIcon name={job || waits ? 'spark' : 'lock'} size={11} />
-                        {job
-                          ? `${job.who === 'AI' ? 'AI' : job.who} is working`
-                          : waits
-                            ? `${waits.author} is waiting for ${b.name}`
-                            : `${lock?.holder} is editing`}
+                        <CanvasIcon name="lock" size={11} />
+                        {`${lock?.holder} is editing`}
                       </div>
                     )}
                     {selected && canEdit && (
@@ -1832,16 +1787,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                                 <CanvasIcon name="edit" size={14} /> Edit
                               </button>
                             )}
-                          {canEdit && canvas.projectId && (b.kind === 'html' || b.kind === 'empty') && (
-                            <button
-                              type="button"
-                              className={styles.tbBtn}
-                              onClick={() => startAsk([b.id])}
-                              data-testid="canvas-board-ask"
-                            >
-                              <CanvasIcon name="spark" size={14} /> Ask AI
-                            </button>
-                          )}
                           {canvas.role !== 'viewer' && (
                             <button
                               type="button"
@@ -1875,14 +1820,9 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                             <BoardMenu
                               board={b}
                               canEdit={canEdit}
-                              aiAvailable={!!canvas.projectId}
                               onEdit={() => {
                                 setMenuFor(null);
                                 editBoard(b.id);
-                              }}
-                              onAskAi={() => {
-                                setMenuFor(null);
-                                startAsk([b.id]);
                               }}
                               onRename={() => {
                                 setMenuFor(null);
@@ -2091,15 +2031,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                     <button type="button" className={styles.btn} onClick={() => void doAddBoard('empty')}>
                       <CanvasIcon name="frame" size={14} /> Empty board
                     </button>
-                    {canvas.projectId && (
-                      <button
-                        type="button"
-                        className={`${styles.btn} ${styles.btnAi}`}
-                        onClick={() => void doAddBoard('empty').then((b) => b && setAskFor([b.id]))}
-                      >
-                        <CanvasIcon name="spark" size={14} /> Ask AI
-                      </button>
-                    )}
                   </div>
                 ) : (
                   <div className={styles.hint} style={{ marginTop: 8 }}>
@@ -2332,19 +2263,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
               </span>
             ))}
           </div>
-          {askFor && canvas && (
-            <AskAiPanel
-              canvasId={canvasId}
-              boards={askFor.map(boardById).filter((b): b is CanvasBoard => !!b)}
-              initialPrompt={askText}
-              onClose={() => {
-                setAskFor(null);
-                setAskText('');
-              }}
-              onStarted={(j) => setJobs((js) => [...js, j])}
-              onFinished={jobFinished}
-            />
-          )}
           {pinDraft && (
             <div
               className={styles.popover}
@@ -2355,18 +2273,21 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
               data-ui
               data-testid="canvas-pin-draft"
             >
-              <textarea
+              <MentionBox
+                multiline
                 className={styles.input}
                 rows={3}
                 autoFocus
                 value={pinText}
-                onChange={(e) => setPinText(e.target.value)}
+                onChange={setPinText}
+                members={mentions.suggest}
                 placeholder="Is the button label long enough for Vietnamese?"
-                aria-label="Comment"
+                ariaLabel="Comment"
               />
               <div className={styles.hint} style={{ margin: '4px 0 8px' }}>
-                Type @ to mention a person or an AI member. Click a board to pin at that spot (it moves with the board),
-                or click the plane for a pin that stays put. Esc leaves the tool.
+                Type @ to mention a person or a team. Click a board to pin at that spot (it moves with the board), or
+                click the plane for a pin that stays put. Esc leaves the tool. Pins are numbered in the order they were
+                made.
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setPinDraft(null)}>
@@ -2380,7 +2301,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                   onClick={() => {
                     const d = pinDraft;
                     void addThread(canvasId, {
-                      body: pinText.trim(),
+                      body: mentions.store(pinText.trim()),
                       boardId: d.boardId,
                       x: d.x,
                       y: d.y,
@@ -2390,6 +2311,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       .then((t) => {
                         setPinDraft(null);
                         setTool('select');
+                        setPinNotes((cur) => ({ ...cur, [t.id]: t.deliveries ?? [] }));
                         setSelThread(t.id);
                         setSide('comments');
                         void qc.invalidateQueries({ queryKey: canvasKeys.threads(canvasId) });
@@ -2408,14 +2330,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
               canEdit={canEdit}
               onClose={() => setHistory(false)}
               onRestored={() => void reload()}
-            />
-          )}
-          {proposals && openProposals.length > 0 && (
-            <ProposalReview
-              canvasId={canvasId}
-              canDecide={canEdit}
-              onAccepted={() => void reload()}
-              onClose={() => setProposals(false)}
             />
           )}
         </div>
@@ -2481,6 +2395,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                   title={canvas.title}
                   threads={threads}
                   boards={doc.boards}
+                  notes={pinNotes}
                   boardId={oneBoard?.id ?? null}
                   selectedThread={selThread}
                   onSelectThread={(id) => {
@@ -2497,28 +2412,6 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                   }}
                   canComment={canvas.role !== 'viewer'}
                   me={me}
-                  aiAvailable={!!canvas.projectId}
-                  onProposeStarted={(jobId) => {
-                    const t = threads.find((x) => x.id === selThread);
-                    setJobs((js) => [
-                      ...js,
-                      {
-                        jobId,
-                        boardIds: t?.boardId ? [t.boardId] : [],
-                        who: t?.comments.find((c) => c.isAi)?.author ?? 'AI',
-                      },
-                    ]);
-                    const poll = async () => {
-                      const { fetchAiJob } = await import('../../api/canvases');
-                      for (let i = 0; i < 700; i++) {
-                        await new Promise((r) => setTimeout(r, 1500));
-                        const job = await fetchAiJob(jobId).catch(() => null);
-                        if (job && ['finished', 'failed', 'cancelled'].includes(job.state))
-                          return jobFinished(jobId, job);
-                      }
-                    };
-                    void poll();
-                  }}
                 />
               )}
             </div>

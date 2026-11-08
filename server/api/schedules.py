@@ -59,8 +59,6 @@ class ScheduleBody(BaseModel):
     ends_after: Optional[int] = None
     ends_on: Optional[str] = None
     window_end: Optional[str] = None
-    checks: Optional[dict[str, Any]] = None
-    review: Optional[dict[str, Any]] = None
     limits: Optional[dict[str, Any]] = None
     catch_up: Optional[str] = None
     catch_up_hours: Optional[float] = None
@@ -76,7 +74,7 @@ class PreviewBody(ScheduleBody):
 
 
 class SlotAction(BaseModel):
-    """start (run late), skip, or use_member (run on another AI)."""
+    """start (run late), skip, or use_member (run on another team)."""
 
     action: str
     member_id: Optional[str] = None
@@ -111,7 +109,7 @@ async def schedule_week(
     start: Optional[str] = None,
     days: int = Query(7, ge=1, le=31),
 ) -> dict:
-    """Planned runs per AI from `start` (default: today, UTC midnight)."""
+    """Planned runs per team from `start` (default: today, UTC midnight)."""
     await _project(session, project_id)
     if start:
         try:
@@ -151,7 +149,7 @@ async def preview_schedule(
 async def dry_run_schedule(
     project_id: str, body: PreviewBody, session: Session
 ) -> dict:
-    """What the AI would do. Changes nothing."""
+    """What the team would do. Changes nothing."""
     await _project(session, project_id)
     return await svc.dry_run(session, body.schedule_id, project_id, _data(body), _by())
 
@@ -210,6 +208,6 @@ async def run_schedule_now(schedule_id: str, session: Session) -> dict:
 
 @router.post("/ai/schedule-runs/{run_id}/action")
 async def schedule_run_action(run_id: str, body: SlotAction, session: Session) -> dict:
-    """Answer a waiting run: start it late, skip it, or run it on another AI."""
+    """Answer a waiting run: start it late, skip it, or run it on another team."""
     r = await svc.slot_action(session, run_id, body.action, _by(), body.member_id)
     return svc.run_to_dict(r)

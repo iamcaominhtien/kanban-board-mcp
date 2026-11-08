@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { assistApi, assistError } from '../../../api/assist';
 import { useTickets } from '../../../api/tickets';
-import { useDocsAiState, useSetPageAiFlags } from '../../../api/docsAi';
+import { useDocsAiState } from '../../../api/docsAi';
 import { freshnessUnavailable, useCheckFreshness } from '../../../api/docsAiPage';
 import { extractError } from '../../../api/extractError';
 import type { DocsPage } from '../../../types/docs';
@@ -15,6 +14,7 @@ import {
   type MenuRow,
 } from '../../../utils/pageAiRules';
 import { useAssist } from '../../assist/AssistContext';
+import { docPrompt } from '../../assist/DocsAi';
 import { useToast } from '../../Toast';
 import { Icon } from '../Icon';
 import { CreateTicketsDialog } from './CreateTicketsDialog';
@@ -26,7 +26,7 @@ import { LineIcon } from '../../ui/LineIcon';
 /**
  * The AI button in the page header, beside Comments and Share (docs-ai B). Shown only when Docs AI is on for the
  * project (`aiGate`); lists what AI can do with this page and starts nothing until a row is picked. Viewers do not see
- * the writing rows. A hidden page shows a lock and a reason; with no AI member there is one row that opens AI members.
+ * the writing rows; with no AI team there is one row that opens Members.
  * @param props.projectId - The project of the page.
  * @param props.page - The page the menu is for.
  * @param props.canEdit - Whether the person can edit the page.
@@ -45,7 +45,7 @@ export function PageAiMenu({
   projectId: string;
   page: DocsPage;
   canEdit: boolean;
-  /** Opens Settings › Docs (for the "no AI member" row). */
+  /** Opens Settings › Docs (for the "no AI team" row). */
   onOpenSettings?: () => void;
   view: PageAiView;
   onEdit?: () => void;
@@ -60,13 +60,12 @@ export function PageAiMenu({
   const [tickets, setTickets] = useState(false);
   const [other, setOther] = useState('');
   const box = useRef<HTMLDivElement>(null);
-  const flags = useSetPageAiFlags(page.projectId, page.id);
   const projectTickets = useTickets(projectId);
   const knownTickets = useMemo(
     () => (projectTickets.data ? new Set(projectTickets.data.map((t) => t.id)) : undefined),
     [projectTickets.data],
   );
-  const gate = aiGate(state.data, { hidden: !!page.aiHidden });
+  const gate = aiGate(state.data);
   const menu = pageMenu(gate, canEdit);
 
   useEffect(() => {
@@ -110,14 +109,7 @@ export function PageAiMenu({
         },
       });
     else if (id === 'tickets') setTickets(true);
-    else if (id === 'links')
-      void assistApi
-        .startDraft(projectId, { kind: 'doc_links', docId: page.id, data: { markdown: page.markdown } })
-        .then(() => {
-          requestAiOnEdit(page.id);
-          onEdit?.();
-        })
-        .catch((e: unknown) => toast.error('Suggest links', assistError(e)?.detail ?? extractError(e)));
+    else if (id === 'links') assist?.ask({ scope: 'doc', docId: page.id, text: docPrompt('doc_links') });
     else if (id === 'edit') {
       requestAiOnEdit(page.id);
       onEdit?.();
@@ -139,40 +131,12 @@ export function PageAiMenu({
         data-testid="page-ai-menu"
         onClick={() => setOpen((v) => !v)}
       >
-        {menu.kind === 'hidden' ? (
-          <Icon name="lock" size={14} strokeWidth={1.9} />
-        ) : (
-          <LineIcon name="sparkle" size={14} />
-        )}
+        <LineIcon name="sparkle" size={14} />
         AI
         <Icon name="chevronDown" size={11} strokeWidth={2.3} />
       </button>
       {open && (
         <div className="dk-menu pai-menu" role="menu" aria-label="AI" data-testid="page-ai-popover">
-          {menu.kind === 'hidden' && (
-            <div style={{ display: 'flex', gap: 10, padding: '10px 10px 12px', alignItems: 'flex-start' }}>
-              <Icon name="lock" size={16} strokeWidth={1.9} style={{ color: '#7c5cd6', marginTop: 2 }} />
-              <div>
-                <div className="pai-row-title">This page is hidden from AI</div>
-                {/* the server's own words (who hid it, why) when it sends them; the design copy otherwise */}
-                <div className="pai-row-hint">
-                  {menu.text || 'Ask, summaries and AI runs skip it. People can still read and edit it.'}
-                </div>
-                {canEdit && (
-                  <button
-                    type="button"
-                    className="st-btn st-btn-sm"
-                    style={{ marginTop: 8 }}
-                    disabled={flags.isPending}
-                    data-testid="ai-show-to-ai"
-                    onClick={() => flags.mutate({ hidden: false })}
-                  >
-                    Show to AI
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
           {menu.kind === 'no_member' && (
             <button
               type="button"
@@ -185,7 +149,7 @@ export function PageAiMenu({
             >
               <Icon name="i32" size={16} strokeWidth={1.9} className="pai-row-ico" />
               <span>
-                <div className="pai-row-title">Open AI members</div>
+                <div className="pai-row-title">Open Members</div>
                 <div className="pai-row-hint">{menu.text}</div>
               </span>
             </button>
@@ -287,7 +251,7 @@ export function PageAiMenu({
                   </span>
                 ))}
                 <span style={{ flex: 1 }} />
-                <span>{estimateLabel(markdown)}</span>
+                <span>{estimateLabel(markdown, state.data?.member?.metered ?? false)}</span>
               </div>
             </>
           )}

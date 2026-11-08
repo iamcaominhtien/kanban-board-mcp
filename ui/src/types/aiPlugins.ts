@@ -84,14 +84,4 @@ export interface PluginChanges {
   changed: string[];
 }
 
-export interface SkillUsage {
-  name: string;
-  kind: string;
-  plugin: string | null;
-  uses: number;
-  runs: number;
-  members: string[];
-  last: string | null;
-}
-
 export type PluginAction = 'update' | 'rollback' | 'reload' | 'reset' | 'pin' | 'unpin';

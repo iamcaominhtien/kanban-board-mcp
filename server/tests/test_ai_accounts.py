@@ -13,8 +13,8 @@ from httpx import ASGITransport
 
 from main import app
 from models import AiAccount
-from services.ai import accounts, cli, profiles, runs, signin
-from tests.test_ai import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
+from services.ai import accounts, cli, profiles, signin
+from tests.ai_helpers import FAKE, _project, _runner, _ticket, _wait, env  # noqa: F401
 
 
 @pytest.fixture
@@ -152,7 +152,7 @@ async def test_create_check_rename_and_list(fake_cli):
     ] == "Main"
     listing = (await c.get("/ai/accounts")).json()
     assert [x["name"] for x in listing["accounts"]] == ["Main"]
-    assert {x["cli"] for x in listing["clis"]} == {"claude", "codex", "opencode", "agy"}
+    assert {x["cli"] for x in listing["clis"]} == {"claude"}
     assert listing["terminal"] is (sys.platform != "win32")
 
 
@@ -175,16 +175,11 @@ async def test_names_are_unique_per_computer_and_checked_before_saving(fake_cli)
     assert unknown.status_code == 422
 
 
-async def test_antigravity_accounts_are_refused_on_windows(fake_cli, monkeypatch):
+async def test_other_clis_than_claude_code_are_refused(fake_cli):
     c = fake_cli["c"]
-    monkeypatch.setattr(accounts, "_windows", lambda: True)
-    r = await c.post("/ai/accounts", json={"name": "Google", "cli": "agy"})
-    assert (
-        r.status_code == 422
-        and r.json()["detail"]["message"] == "Not available on Windows"
-    )
-    cards = {x["cli"]: x for x in (await c.get("/ai/accounts")).json()["clis"]}
-    assert cards["agy"]["unavailable"] == "Not available on Windows"
+    for other in ("agy", "codex", "opencode"):
+        r = await c.post("/ai/accounts", json={"name": "Other", "cli": other})
+        assert r.status_code == 422, other
 
 
 async def test_a_missing_cli_makes_no_account(fake_cli, monkeypatch):
@@ -231,76 +226,6 @@ async def test_who_can_change_accounts(fake_cli):
 # --------------------------------------------------------------------------- members on an account
 
 
-async def test_member_runs_as_its_account_and_follows_its_sign_in(
-    fake_cli, monkeypatch
-):
-    c = fake_cli["c"]
-    record = fake_cli["tmp"] / "config.txt"
-    monkeypatch.setenv("FAKE_CLAUDE_CONFIG_RECORD", str(record))
-    pid, _ = await _project(c)
-    a = await _account(c)
-    m = await _runner(c, pid, fake_cli["repo"], account_id=a["id"])
-    assert m["account_id"] == a["id"] and m["account_ref"]["name"] == "Work Claude"
-    tid = await _ticket(c, pid)
-    # signed out: the run is held with the reason, not failed
-    await c.post(
-        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
-    )
-    await asyncio.sleep(0.6)
-    runs.RT.wake.set()
-    held = (await c.get(f"/tickets/{tid}/ai/runs")).json()[0]
-    assert held["state"] == "queued" and "Work Claude needs sign-in" in (
-        held.get("blocked_reason") or str(held)
-    )
-    # after the sign-in the held run starts by itself, as that account
-    _login(a)
-    await c.post(f"/ai/accounts/{a['id']}/check")
-    run = await _wait(c, tid, ("finished", "failed"))
-    assert run["state"] == "finished", run
-    assert record.read_text().strip().splitlines()[-1] == a["folder"]
-
-
-async def test_a_run_that_finds_the_account_signed_out_holds_every_member_on_it(
-    fake_cli, monkeypatch
-):
-    c = fake_cli["c"]
-    pid, _ = await _project(c)
-    a = await _account(c)
-    _login(a)
-    await c.post(f"/ai/accounts/{a['id']}/check")
-    m1 = await _runner(c, pid, fake_cli["repo"], name="One", account_id=a["id"])
-    m2 = await _runner(c, pid, fake_cli["repo"], name="Two", account_id=a["id"])
-    monkeypatch.setenv("FAKE_CLAUDE_MODE", "run_logged_out")
-    tid = await _ticket(c, pid)
-    await c.post(
-        f"/tickets/{tid}/ai/assign", json={"member_id": m1["id"], "start": "now"}
-    )
-    # held, not failed: nothing is lost and it resumes by itself after a sign-in (design C5)
-    run = await _wait_held(c, tid)
-    assert run["state"] == "queued"
-    now = (await c.get(f"/ai/accounts/{a['id']}")).json()
-    assert (
-        now["status"] == "needs_sign_in"
-        and now["signed_out_how"] == "run"
-        and now["signed_out_at"]
-    )
-    # one event for the account; the other member follows
-    two = (await c.get(f"/ai/members/{m2['id']}")).json()
-    assert two["account_ref"]["status"] == "needs_sign_in"
-    # no project asked, so every member counts as "elsewhere"
-    assert {x["name"] for x in now["members_elsewhere"]} == {"One", "Two"}
-    here = (await c.get("/ai/accounts", params={"project_id": pid})).json()["accounts"][
-        0
-    ]
-    assert {x["name"] for x in here["members_here"]} == {"One", "Two"}
-    # signed in again: the same run goes on by itself
-    monkeypatch.setenv("FAKE_CLAUDE_MODE", "finish")
-    _login(a)
-    await c.post(f"/ai/accounts/{a['id']}/check")
-    done = await _wait(c, tid, ("finished",))
-    assert done["id"] == run["id"]
-
-
 async def _wait_held(c, tid, timeout=15.0):
     import asyncio
 
@@ -312,35 +237,6 @@ async def _wait_held(c, tid, timeout=15.0):
         if asyncio.get_running_loop().time() > deadline:
             raise AssertionError(f"never held: {runs_[0]['state'] if runs_ else None}")
         await asyncio.sleep(0.1)
-
-
-async def test_an_account_only_fits_members_of_its_own_cli_and_runner(fake_cli):
-    c = fake_cli["c"]
-    pid, _ = await _project(c)
-    a = await _account(c)
-    m = await _runner(c, pid, fake_cli["repo"])
-    assert m["account_id"] is None
-    ok = await c.put(f"/ai/members/{m['id']}/account", json={"account_id": a["id"]})
-    assert ok.status_code == 200 and ok.json()["account_id"] == a["id"]
-    back = await c.put(f"/ai/members/{m['id']}/account", json={"account_id": None})
-    assert back.json()["account_id"] is None
-    api = await c.post(
-        f"/projects/{pid}/ai/members",
-        json={"name": "Api", "provider": "openai", "api_key": "sk-test-0000000000"},
-    )
-    assert api.status_code == 201
-    bad = await c.put(
-        f"/ai/members/{api.json()['id']}/account", json={"account_id": a["id"]}
-    )
-    assert bad.status_code == 422 and bad.json()["detail"]["code"] in (
-        "not_local",
-        "wrong_cli",
-    )
-    nope = await c.post(
-        f"/projects/{pid}/ai/members",
-        json={"name": "X", "provider": "claude-code", "account_id": "acct_missing"},
-    )
-    assert nope.status_code == 422
 
 
 @pytest.mark.parametrize(
@@ -361,7 +257,7 @@ async def test_removing_an_account_says_what_happens_to_its_members(
     r = await c.delete(f"/ai/accounts/{a['id']}", params=params)
     assert r.status_code == 200 and r.json()["members_moved"] == 1
     assert not Path(a["folder"]).exists()
-    after = (await c.get(f"/ai/members/{m['id']}")).json()
+    after = (await c.get(f"/ai/teams/{m['id']}")).json()
     assert after["account_id"] == (other["id"] if expect_account == "OTHER" else None)
     assert after["paused"] is expect_paused
     assert [x["name"] for x in (await c.get("/ai/accounts")).json()["accounts"]] == [
@@ -677,51 +573,6 @@ async def test_the_fallback_command_names_the_accounts_folder(fake_cli):
 # --------------------------------------------------------------------------- MCP: read accounts, assign, never sign in
 
 
-async def test_an_ai_can_list_accounts_and_assign_a_member_but_not_sign_in(fake_cli):
-    from kanban_mcp.tools.ai_team import AI_TEAM_OPS, ai_team
-
-    c = fake_cli["c"]
-    pid, _ = await _project(c)
-    a = await _account(c)
-    m = await _runner(c, pid, fake_cli["repo"])
-    rows = await ai_team("accounts", project_id=pid)
-    assert [r["name"] for r in rows] == ["Work Claude"]
-    assert (
-        rows[0]["status"] == "needs_sign_in"
-        and "Only a person can sign in" in rows[0]["note"]
-    )
-    assert "folder" not in rows[0] and not any("token" in k for k in rows[0])
-    out = await ai_team("assign_account", member_id=m["id"], account_id=a["id"])
-    assert out["id"] == m["id"]
-    assert (await c.get(f"/ai/members/{m['id']}")).json()["account_id"] == a["id"]
-    rows = await ai_team("accounts", project_id=pid)
-    assert rows[0]["members"] == [m["name"]]
-    await ai_team("assign_account", member_id=m["id"], account_id="none")
-    assert (await c.get(f"/ai/members/{m['id']}")).json()["account_id"] is None
-    with pytest.raises(ValueError, match="not found"):
-        await ai_team("assign_account", member_id=m["id"], account_id="acct_nope")
-    # there is no action that signs in, signs out, renames or removes
-    assert not {"signin", "sign_in", "login", "sign_out", "remove_account"} & set(
-        AI_TEAM_OPS
-    )
-
-
-async def test_inside_an_ai_run_the_accounts_can_be_read_but_not_changed(fake_cli):
-    from kanban_mcp.tools.ai_team import ai_team
-    from services.ai import guard
-    from tests.test_ai import _ctx
-
-    ctx, pid, _, m, _tid = await _ctx(fake_cli)
-    a = await _account(fake_cli["c"])
-    tokens = guard.enter(ctx)
-    try:
-        assert len(await ai_team("accounts")) == 1
-        with pytest.raises(ValueError, match="cannot start AIs or change AI members"):
-            await ai_team("assign_account", member_id=m["id"], account_id=a["id"])
-    finally:
-        guard.leave(tokens)
-
-
 @pytestmark_pty
 async def test_a_sign_in_whose_window_was_closed_is_stopped(fake_cli, monkeypatch):
     monkeypatch.setattr(signin, "ORPHAN_S", 0.3)
@@ -743,27 +594,6 @@ async def test_a_sign_in_whose_window_was_closed_is_stopped(fake_cli, monkeypatc
     await asyncio.sleep(0.6)
     assert signin.active(a["id"]) is s
     await signin.stop(s)
-
-
-async def test_the_test_run_in_the_connect_step_runs_as_the_chosen_account(
-    fake_cli, monkeypatch
-):
-    c = fake_cli["c"]
-    record = fake_cli["tmp"] / "test-run-config.txt"
-    monkeypatch.setenv("FAKE_CLAUDE_CONFIG_RECORD", str(record))
-    a = await _account(c)
-    body = {"provider": "claude-code", "cli_path": FAKE, "model": "haiku"}
-    r = (await c.post("/ai/test-run", json={**body, "account_id": a["id"]})).json()
-    assert r["ok"]
-    # the pong test run does not write the record; check the environment through the status call instead
-    _login(a)
-    assert (await c.post(f"/ai/accounts/{a['id']}/check")).json()[
-        "status"
-    ] == "signed_in"
-    missing = (
-        await c.post("/ai/test-run", json={**body, "account_id": "acct_nope"})
-    ).json()
-    assert missing["ok"] is False
 
 
 async def test_signing_in_again_to_a_signed_in_account_waits_for_the_login_to_end(
@@ -788,137 +618,3 @@ async def test_signing_in_again_to_a_signed_in_account_waits_for_the_login_to_en
 
 
 # --------------------------------------------------------------------------- the account everywhere a CLI is started
-
-
-async def test_the_board_ai_chat_and_docs_ai_run_under_the_members_account(
-    fake_cli, monkeypatch
-):
-    from models import AiMember
-    from services.ai import llm
-
-    c = fake_cli["c"]
-    pid, _ = await _project(c)
-    a = await _account(c)
-    _login(a)
-    m = await _runner(c, pid, fake_cli["repo"], account_id=a["id"])
-    seen = {}
-
-    class Recorder:
-        def __init__(self, args, cwd, env=None):
-            seen["env"] = env
-
-        async def start(self):
-            raise RuntimeError("stop here")
-
-    monkeypatch.setattr(cli, "CliProcess", Recorder)
-    async with fake_cli["maker"]() as s:
-        profile = await s.get(AiMember, m["id"])
-    with pytest.raises(RuntimeError, match="stop here"):
-        await llm.complete(profile, system="s", prompt="hi")
-    assert seen["env"]["CLAUDE_CONFIG_DIR"] == a["folder"]
-    # a member on the login already on this computer keeps the person's own environment
-    other = await _runner(c, pid, fake_cli["repo"], name="Plain")
-    async with fake_cli["maker"]() as s:
-        profile = await s.get(AiMember, other["id"])
-    seen.clear()
-    with pytest.raises(RuntimeError, match="stop here"):
-        await llm.complete(profile, system="s", prompt="hi")
-    assert seen["env"].get("CLAUDE_CONFIG_DIR") != a["folder"]
-
-
-async def test_a_shared_conversation_is_looked_up_in_the_accounts_folder(fake_cli):
-    from services.docs_ai import sessions
-
-    c = fake_cli["c"]
-    pid, _ = await _project(c)
-    a = await _account(c)
-    _login(a)
-    on = await _runner(c, pid, fake_cli["repo"], account_id=a["id"])
-    plain = await _runner(c, pid, fake_cli["repo"], name="Plain")
-    folder = Path(a["folder"], "projects", "p")
-    folder.mkdir(parents=True)
-    (folder / "sess-1.jsonl").write_text("{}")
-    scope = sessions.ticket_scope("T-1")
-    await sessions.remember(scope, on["id"], pid, "sess-1")
-    await sessions.remember(scope, plain["id"], pid, "sess-1")
-    # the account's session is found for the member on the account, and not kept for one that is not on it
-    assert await sessions.lookup(scope, on["id"]) == "sess-1"
-    assert await sessions.lookup(scope, plain["id"]) is None
-
-
-async def test_a_member_on_an_account_gets_the_servers_of_its_account_not_the_default_login(
-    fake_cli, monkeypatch, tmp_path
-):
-    import json
-
-    from services.ai import mcp_sources
-
-    # the login already on this computer has a server with a saved key; the account has its own
-    default_home = tmp_path / "default-home"
-    default_home.mkdir()
-    (default_home / ".claude.json").write_text(
-        json.dumps(
-            {
-                "mcpServers": {
-                    "private": {"type": "http", "url": "https://a.example/mcp"}
-                }
-            }
-        )
-    )
-    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(default_home))
-    c = fake_cli["c"]
-    a = await _account(c)
-    Path(a["folder"], ".claude.json").write_text(
-        json.dumps(
-            {"mcpServers": {"mine": {"type": "http", "url": "https://b.example/mcp"}}}
-        )
-    )
-    plain = runs.mcp_config({}, "kbr_x", str(tmp_path))
-    assert set(plain["mcpServers"]) == {"kanban", "private"}
-    on = runs.mcp_config({}, "kbr_x", str(tmp_path), a["folder"])
-    assert set(on["mcpServers"]) == {"kanban", "mine"}
-    assert mcp_sources.ACCOUNT_DIR.get() is None  # nothing leaks into the next call
-
-
-async def test_a_run_moved_to_another_account_signs_out_that_account(
-    fake_cli, monkeypatch
-):
-    from models import AiRun
-    from services.ai.store import get_settings
-
-    c = fake_cli["c"]
-    pid, _ = await _project(c)
-    own, other = await _account(c, "Own"), await _account(c, "Other")
-    for a in (own, other):
-        _login(a)
-        await c.post(f"/ai/accounts/{a['id']}/check")
-    m = await _runner(c, pid, fake_cli["repo"], account_id=own["id"])
-    async with fake_cli["maker"]() as s:
-        settings = await get_settings(s, pid)
-        settings.paused_all = True  # the run waits in the queue while it is moved
-        s.add(settings)
-        await s.commit()
-    monkeypatch.setenv("FAKE_CLAUDE_MODE", "run_logged_out")
-    tid = await _ticket(c, pid)
-    await c.post(
-        f"/tickets/{tid}/ai/assign", json={"member_id": m["id"], "start": "now"}
-    )
-    run = await _wait(c, tid, ("queued",))
-    async with fake_cli["maker"]() as s:
-        row = await s.get(AiRun, run["id"])
-        row.account_id = other["id"]  # urgent work moved to an account with room
-        s.add(row)
-        settings = await get_settings(s, pid)
-        settings.paused_all = False
-        s.add(settings)
-        await s.commit()
-    held = await _wait_held(c, tid)
-    assert (await c.get(f"/ai/accounts/{other['id']}")).json()["status"] == (
-        "needs_sign_in"
-    )
-    assert (await c.get(f"/ai/accounts/{own['id']}")).json()["status"] == "signed_in"
-    # it waits on the account it spends, not on the member's own one
-    await asyncio.sleep(0.3)
-    again = (await c.get(f"/tickets/{tid}/ai/runs")).json()[0]
-    assert again["id"] == held["id"] and again["state"] == "queued"
-    assert "Other" in (again["waiting_reason"] or "")

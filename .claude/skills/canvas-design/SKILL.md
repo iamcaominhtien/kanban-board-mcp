@@ -1,12 +1,12 @@
 ---
 name: canvas-design
-description: Design the HTML frames of a Canvas (mockups and prototypes of screens, pages and flows) so they look like one considered product, presented as a design document (foundations, components, then screens, each board with its states side by side), then create them with docs_write(canvas_create) or offer them with canvas_propose. Use when asked to design, mock up or redesign a screen, an app or a flow on a canvas, or to explore design directions.
+description: Design the HTML frames of a Canvas (mockups and prototypes of screens, pages and flows) so they look like one considered product, presented as a design document (foundations, components, then screens, each board with its states side by side), then create them with docs_write(canvas_create) or change a frame with canvas_update. Use when asked to design, mock up or redesign a screen, an app or a flow on a canvas, or to explore design directions.
 ---
 
 # Designing frames for a Canvas
 
 A frame is an open web page (scripts, CDN libraries and fonts run). Good frames come from a process, not from more CSS:
-context, a direction, foundations, then the boards, then a check. This one text is what the board's Ask AI job and every
+context, a direction, foundations, then the boards, then a check. This one text is what an AI team with a designing role and every
 MCP agent are given (it is the `GUIDE` in `server/services/canvas_design.py`; the skill file in
 `.claude/skills/canvas-design/` is generated from it and a test fails if they differ).
 
@@ -40,7 +40,7 @@ With a person there to answer (Claude Code can use `AskUserQuestion`), ask **one
 first frame, only if two or more result-changing decisions are open (which job the screen does first, who lands on it, what
 to reuse or break from, what may be added). Questions come from their material, never a stock form. Each has 2 to 4
 concrete options that differ on a named axis, your pick first marked "(Recommended)". Never re-ask a settled point. When
-nobody can answer (an Ask AI job, a headless run, "just make it"): decide, build, and state your assumptions in one line.
+nobody can answer (a headless run, "just make it"): decide, build, and state your assumptions in one line.
 
 ## 2. Direction: character before pixels
 
@@ -188,7 +188,7 @@ returned `markdown` line on its own line in that ticket or page (`manage_ticket`
 - **A spec per screen** on Docs, for whoever builds it: one page per screen (or a section each on one page) with what it
   is for, a screenshot of each state (`![Today · behind](shots/today-behind.png)`, a file in your working folder), the
   tokens and components it uses, sizes and behaviour, the copy of every state, open questions, and the board it is on.
-- **Change to an existing frame**: write the changed files to a folder and `docs_write(canvas_propose)` with a
-  one-sentence note on the design decision; a person accepts or rejects.
+- **Change to an existing frame**: write the changed files to a folder and `docs_write(canvas_update)` with a
+  one-sentence note on the design decision; the board changes at once.
 - Leave `canvas_comment`s for open questions, each pinned with `at` (a CSS selector, or `text=Add task`). Give your
   assumptions in one line.

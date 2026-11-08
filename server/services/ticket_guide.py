@@ -16,7 +16,7 @@ DESCRIPTION = (
     "How to use every part of a ticket on this board: a title, description and acceptance criteria a person can "
     "check, when to use a sub-task, a sub-ticket, a Story, a block or a link, how to keep the work log, a comment read "
     "in ten seconds, test cases and attachments as evidence, where files go (the worktree for code, the Workspace for "
-    "outputs), and what each role writes. Use when you create, split, update, hand over or close a ticket."
+    "outputs), and what each role writes. Use when you create, split, update, hand over or close a ticket, and when you make anything a person should see: a report, screenshots, logs, test cases and their proof."
 )
 
 # What each ready-made role writes on a ticket (packs' keys, services/ai/packs.py)
@@ -87,7 +87,7 @@ every part for that glance. The tools: `manage_ticket` (the ticket, its relation
 |---|---|---|
 | Steps of one piece of work, one person, one go | sub-task (`ticket_items item='sub_task'`) | a checklist inside the ticket |
 | A part someone else can do, or that ships and is tested on its own | sub-ticket (`manage_ticket create parent_id=`) | its own status, assignee and criteria; one level deep |
-| A goal bigger than a few tickets | a Story (`type='story'`, then `ai_team(give_story)`) | the PM plans it and the board runs it |
+| A goal bigger than a few tickets | a Story (`type='story'`) split into sub-tickets | one place for the goal, each piece tracked on its own |
 | This cannot start or finish before another is done | block (`manage_ticket block`: `ticket_id` waits for `target_id`) | the board shows the lock and the waiting order |
 | Related, same cause, or a duplicate | link (`relates_to`, `causes`, `duplicates`) | no lock |
 | A Docs page that explains it | `manage_ticket link_doc` | shows on the ticket and on the page |
@@ -121,6 +121,11 @@ requested and all tests are passing."
   it shows in the ticket's Attachments. In a board run, `path` is a path in your working folder; outside one, the
   file's absolute path. The result's `attached.markdown` puts the same file in a proof or the description. A picture
   or a document named that way in a comment, work log, proof or Docs page is attached too.
+  **Link it in your report** with that markdown, and say what it shows: a person opens the ticket, not your disk, so a
+  path on your machine alone is not a delivery. A video or a picture plays or shows right in the comment.
+  **One hand-in, one comment**: files you made for a person go in your closing report, not in a comment each. Call
+  `attachment` with `post=false` for each file (no comment of its own), then put the returned markdown lines in the
+  report. Do not post a comment to say "uploaded X" and then a report that says it again.
 - **Tick a criterion** (`ticket_items item='criterion' action='toggle'`) only when it was checked, and say how. In a
   team the QA ticks them, once the cases that prove each one passed: a claim in a report ticks nothing on the ticket.
 

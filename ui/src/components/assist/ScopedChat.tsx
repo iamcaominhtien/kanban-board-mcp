@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { assistApi, assistError, assistKeys, useChat, useScopeState } from '../../api/assist';
+import { aiApi, isActive, useTicketRuns, useTicketSessions } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import type { AssistDraft, ChatMessage, ChatScope, ScopeMember, ScopeState, StartingPoint } from '../../types/assist';
+import type { ChatMessage, ChatScope, ScopeState, StartingPoint } from '../../types/assist';
 import { AiAvatar, SparkleIcon, useAiBoardState } from '../ai/aiUi';
 import { AnswerBlock, type AnswerPanel } from './AnswerBlock';
-import { usd } from './assistUi';
 import { useResizablePanel } from '../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../PanelResizer';
 import './assist.css';
 import './scopedChat.css';
-import { ContextMeter } from './ContextMeter';
+import { ContextMeter, shortTokens } from './ContextMeter';
 import { LineIcon } from '../ui/LineIcon';
 import { ReplyTray, SelectToReply, UserText, composeReplies, useQuoteReplies } from './quoteReplies';
 
@@ -20,33 +20,32 @@ export interface ScopedChatProps {
   scope: ChatScope;
   /** Starting points of the empty chat, shown before the ones the server sends for the scope. */
   startingPoints?: StartingPoint[];
-  /** A draft of a kind the scope owns (an idea's draft types); return null to use the board's own draft card. */
-  renderDraft?: (draft: AssistDraft) => ReactNode | null;
   /** The panel's "Runs" tab. Without it there is no tab bar. */
   runsTab?: { label: string; content: ReactNode };
   /** Close (the X, and Ctrl+J). */
   onClose: () => void;
-  /** Open the run that "Do the work" started. */
-  onOpenRun?: (runId: string) => void;
-  /** "Open AI members" on the no-AI-member state. */
+  /** "Open AI Team" on the Claude-Code-missing state. */
   onOpenAiMembers?: () => void;
-  /** "See usage" on the over-budget state. */
-  onOpenUsage?: () => void;
   /** Called after an answer was posted as a comment (the thread refreshes itself). */
   onPosted?: (ticketId: string, commentId: string) => void;
   /** Shown as the heading; defaults to the answering AI member's name. */
   title?: string;
+  /** Something to show above the chat (a team's question waiting for an answer on this ticket). */
+  banner?: ReactNode;
 }
+
+/** A command typed after "/" in the box of a ticket chat that talks to a team. */
+interface SlashCommand {
+  name: string;
+  hint: string;
+  enabled: boolean;
+  run: () => Promise<void>;
+}
+
+const REPORT_REQUEST =
+  'Give me a short report: what is done, what you are doing now, and what is blocking you. Answer here, then carry on.';
 
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
-
-function costLine(state: ScopeState | undefined, mode: 'ask' | 'work'): string {
-  const est = mode === 'work' ? state?.work.estimate : state?.estimate;
-  if (!est) return '';
-  if (!est.metered) return 'Not metered';
-  const usdText = est.usd == null ? '' : est.usd < 0.01 ? 'less than $0.01' : usd(est.usd, 2);
-  return mode === 'work' ? `About ${usdText} or more, up to its limits` : `About ${usdText} per answer`;
-}
 
 /** The small icon of a "Reading" chip, as the design draws it (Description, comments, linked Docs, branch). */
 const CHIP_ICONS: Record<string, ReactNode> = {
@@ -91,17 +90,16 @@ function ChipIcon({ kind }: { kind: string }) {
   );
 }
 
-/** The AI member that answers, with its state in words ("Local runner · online"). */
-function Who({ state, onPick }: { state: ScopeState | undefined; onPick: (id: string) => void }) {
+/** Who answers: the ticket's team with its state ("Idle", "Working on this ticket"), else the Board AI. */
+function Who({ state }: { state: ScopeState | undefined }) {
   const { members: aiMembers } = useAiBoardState();
-  const [open, setOpen] = useState(false);
   const cur = state?.members.find((m) => m.id === state.memberId);
   const ai = cur ? aiMembers.get(cur.id) : undefined;
-  const choices = (state?.members ?? []).filter((m) => m.ready || m.id === cur?.id);
+  const board = state?.boardAi;
   return (
     <div className="sc-who">
       {ai ? (
-        <AiAvatar provider={ai.provider} color={ai.color} glyph={ai.glyph} size={34} />
+        <AiAvatar provider={ai.provider} color={ai.color} size={34} />
       ) : (
         <span className="sc-who-spark">
           <SparkleIcon size={16} />
@@ -109,84 +107,39 @@ function Who({ state, onPick }: { state: ScopeState | undefined; onPick: (id: st
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="sc-who-name" data-testid="chat-member">
-          <span>{cur?.name ?? 'AI'}</span>
-          {choices.length > 1 && (
-            <button
-              type="button"
-              className="sc-who-change"
-              aria-label="Change the AI that answers"
-              onClick={() => setOpen((v) => !v)}
-              data-testid="chat-member-change"
-            >
-              <LineIcon name="chevronDown" size={12} />
-            </button>
-          )}
+          <span>{cur?.name ?? 'Board AI'}</span>
         </div>
         <div className="sc-who-sub">
-          <span className={`as-dot ${cur?.ready ? '' : 'as-dot-grey'}`} />
-          <span>{cur?.status ?? 'No AI member'}</span>
+          <span className={`as-dot ${(cur ? cur.ready : board?.ready) ? '' : 'as-dot-grey'}`} />
+          <span>
+            {cur
+              ? cur.status
+              : !board
+                ? ' '
+                : board.ready
+                  ? `${board.name === 'Board AI' ? 'Claude Code' : `${board.name} (${board.providerLabel})`} · online`
+                  : board.label}
+          </span>
         </div>
-        {open && (
-          <div className="as-menu" style={{ position: 'absolute', zIndex: 5, width: 260 }} role="menu">
-            {choices.map((m: ScopeMember) => (
-              <button
-                key={m.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={m.id === state?.memberId}
-                onClick={() => {
-                  setOpen(false);
-                  onPick(m.id);
-                }}
-              >
-                <span style={{ flex: 1 }}>
-                  {m.name}
-                  <span className="ai-muted"> · {m.status}</span>
-                </span>
-                {m.id === state?.memberId && (
-                  <span style={{ color: '#2E6F40' }}>
-                    <LineIcon name="check" size={14} />
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-/** The state tiles of design E that replace the composer: no AI member, over budget, viewer, unavailable. */
-function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?: () => void; onUsage?: () => void }) {
+/** The state tiles of design E that replace the composer: Claude Code missing, viewer, unavailable. */
+function Blocked({ state, onMembers }: { state: ScopeState; onMembers?: () => void }) {
   const a = state.availability;
   if (a.code === 'not_configured')
     return (
-      <div className="sc-tile sc-tile-blue" data-testid="chat-no-member">
-        <div className="sc-tile-title">
-          <SparkleIcon size={13} /> Choose an AI to use these helpers
+      <div className="as-tile as-tile-error" data-testid="chat-no-member">
+        <div className="as-tile-title">
+          <LineIcon name="warning" size={14} /> {state.boardAi?.label ?? 'Claude Code was not found'}
         </div>
         <div className="ai-hint">
-          The AI button, @ picker and /ai appear when an AI member that can read this project exists.
+          {a.message ?? 'Claude Code was not found on this computer. Install it, or add an AI team in Members.'}
         </div>
         <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onMembers}>
-          Open AI members
-        </button>
-      </div>
-    );
-  if (a.code === 'over_budget')
-    return (
-      <div className="sc-tile sc-tile-amber" data-testid="chat-over-budget">
-        <div className="sc-tile-title">
-          <LineIcon name="warning" size={14} /> {a.daily ? 'AI is paused until tomorrow' : 'AI is paused'}
-        </div>
-        <div className="ai-hint">
-          {a.daily
-            ? 'The daily cap was reached. Ask-only answers and drafts stop; reading the thread still works.'
-            : (a.message ?? 'The cap was reached. Reading the thread still works.')}
-        </div>
-        <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onUsage}>
-          See usage
+          Open AI Team
         </button>
       </div>
     );
@@ -208,7 +161,7 @@ function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?:
       </div>
       <div className="ai-hint">{a.message ?? 'Try again in a moment.'}</div>
       <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onMembers}>
-        Open AI members
+        Open AI Team
       </button>
     </div>
   );
@@ -218,33 +171,39 @@ function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?:
  * The chat panel for one thing: a ticket, an idea, a page (design/screens/ai-where-you-work.md, B).
  *
  * It shows exactly what the AI reads, keeps the conversation (private to the person who asks) and picks it up
- * again when the thing is reopened, answers as text or as drafts that are applied only on a click, can post an
- * answer as a comment, and, on a ticket, starts a limited run when the person chooses **Do the work**. The default
- * is **Ask only**, so a question never starts a run. Enter sends, Ctrl+J closes.
+ * again when the thing is reopened, answers as text, can post an answer as a comment, and, on a ticket with a
+ * team, writes to the team's lead (the team answers here and keeps working). Enter sends, Ctrl+J closes.
  *
  * To use it for another thing, register a scope on the server (`services/ai/assist/scopes.py`) and render
- * `<ScopedChat scope={{ kind: 'idea', id }} startingPoints={…} renderDraft={…} />` inside a column of the page.
+ * `<ScopedChat scope={{ kind: 'idea', id }} startingPoints={…} />` inside a column of the page.
  */
 export function ScopedChat({
   scope,
   startingPoints,
-  renderDraft,
   runsTab,
   onClose,
-  onOpenRun,
   onOpenAiMembers,
-  onOpenUsage,
   onPosted,
   title,
+  banner,
 }: ScopedChatProps) {
   const qc = useQueryClient();
   const st = useScopeState(scope);
   const state = st.data;
+  // the team of a ticket: its runs say how full the lead's conversation is and whether it is working now
+  const teamRuns = useTicketRuns(scope.kind === 'ticket' && state?.members.length ? scope.id : undefined).data ?? [];
+  const liveRun = teamRuns.find((r) => isActive(r.state));
+  const fillRun = teamRuns.find((r) => r.contextWindow && r.contextUsed != null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [plusOpen, setPlusOpen] = useState(false);
+  const [confirmOver, setConfirmOver] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [overBusy, setOverBusy] = useState(false);
+  const history = useTicketSessions(scope.kind === 'ticket' && state?.members.length ? scope.id : undefined).data ?? [];
+  const [slashAt, setSlashAt] = useState(0);
   const [chatId, setChatId] = useState<string | null>(null);
   const [tab, setTab] = useState<'chat' | 'runs'>('chat');
   const size = useResizablePanel(`chat-${scope.kind}`, 400, { min: 340 });
-  const [mode, setMode] = useState<'ask' | 'work'>('ask');
-  const [memberId, setMemberId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -258,8 +217,6 @@ export function ScopedChat({
   // a different ticket or idea is a different conversation
   useEffect(() => {
     setChatId(null);
-    setMode('ask');
-    setMemberId(null);
     setText('');
     setError(null);
     setTab('chat');
@@ -269,11 +226,35 @@ export function ScopedChat({
     if (!chatId && state?.chatId) setChatId(state.chatId);
   }, [chatId, state?.chatId]);
 
+  // While a ticket's chat is open and in front of the person, tell the board: a run their message started that ends
+  // now needs no "AI finished" notice, the answer is on their screen. A closed chat or a window nobody looks at
+  // does get the notice.
+  useEffect(() => {
+    if (!chatId || scope.kind !== 'ticket') return undefined;
+    const beat = () => {
+      if (document.visibilityState === 'visible' && document.hasFocus()) {
+        void assistApi.seen(chatId).catch(() => undefined);
+      }
+    };
+    beat();
+    const timer = setInterval(beat, 15_000);
+    window.addEventListener('focus', beat);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', beat);
+    };
+  }, [chatId, scope.kind]);
+
   const chat = useChat(chatId);
   const messages = chat.data?.messages ?? [];
   // how full the shared CLI conversation is, as of the newest answer that says so
   const sessionFill = [...messages].reverse().find((m) => m.role === 'ai' && m.context.contextWindow)
     ?.context.contextWindow;
+  const fill = state?.members.length
+    ? fillRun
+      ? { used: fillRun.contextUsed as number, size: fillRun.contextWindow as number }
+      : undefined
+    : sessionFill;
   const lastLen = messages.length ? (messages[messages.length - 1]?.text.length ?? 0) : 0;
   useEffect(() => {
     const el = bodyRef.current;
@@ -285,8 +266,7 @@ export function ScopedChat({
 
   const availability = state?.availability;
   const canAsk = availability?.code === 'ok';
-  const chosen = memberId ?? state?.memberId ?? null;
-  const workOk = !!state?.work.allowed && canAsk;
+  const chosen = state?.memberId ?? null;
   const info = state?.scope;
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: assistKeys.scope(scope.kind, scope.id) });
@@ -294,10 +274,9 @@ export function ScopedChat({
   };
 
   /** Sends one message; true once the server has it. */
-  const send = async (raw: string, opts?: { draft?: boolean; mode?: 'ask' | 'work' }): Promise<boolean> => {
+  const send = async (raw: string): Promise<boolean> => {
     const q = raw.trim();
     if (!q || sending || !canAsk) return false;
-    const how = opts?.mode ?? mode;
     setSending(true);
     setError(null);
     try {
@@ -307,19 +286,14 @@ export function ScopedChat({
         id = c.id;
         setChatId(id);
       }
-      await assistApi.send(id, { text: q, draft: opts?.draft, mode: how, memberId: chosen });
+      await assistApi.send(id, { text: q, mode: 'ask', memberId: chosen });
       setText('');
-      setMode('ask'); // Do the work is chosen on purpose, once
       await qc.invalidateQueries({ queryKey: assistKeys.chat(id) });
-      if (how === 'work') {
-        await qc.invalidateQueries({ queryKey: ['ai'] });
-      }
       return true;
     } catch (e) {
       const body = assistError(e);
       setError(body?.detail ?? extractError(e));
-      if (body && ['viewer', 'ai_off', 'over_budget', 'not_configured', 'unavailable'].includes(body.code))
-        void refresh();
+      if (body && ['viewer', 'ai_off', 'not_configured', 'unavailable'].includes(body.code)) void refresh();
       return false;
     } finally {
       setSending(false);
@@ -328,7 +302,35 @@ export function ScopedChat({
 
   /** The composer's message with the passages waiting in the tray; they leave the tray once it is sent. */
   const sendComposed = async () => {
-    if (await send(outgoing)) quotes.clear();
+    // `//` starts a message that really begins with a slash
+    if (await send(outgoing.startsWith('//') ? outgoing.slice(1) : outgoing)) quotes.clear();
+  };
+
+  const newChat = async () => {
+    setPlusOpen(false);
+    try {
+      const c = await assistApi.scopeChat(scope, true);
+      setChatId(c.id);
+      setTab('chat');
+      await refresh();
+    } catch (e) {
+      setError(extractError(e));
+    }
+  };
+  const startOver = async () => {
+    setOverBusy(true);
+    try {
+      const row = await aiApi.newSession(scope.id);
+      setConfirmOver(false);
+      setShowHistory(true);
+      setNotice(`Started over. Kept in History: “${row.title}”.`);
+      await qc.invalidateQueries({ queryKey: ['ai'] });
+    } catch (e) {
+      setError(extractError(e));
+      setConfirmOver(false);
+    } finally {
+      setOverBusy(false);
+    }
   };
 
   const panel = useMemo<AnswerPanel>(
@@ -342,17 +344,96 @@ export function ScopedChat({
               onPosted?.(r.ticketId, r.commentId);
             }
           : undefined,
-      onOpenRun,
-      onOpenUsage,
-      renderDraft,
     }),
-    [scope.kind, qc, onPosted, onOpenRun, onOpenUsage, renderDraft],
+    [scope.kind, qc, onPosted],
   );
 
   const points = [...(startingPoints ?? []), ...(info?.startingPoints ?? [])];
   const reading = info?.reading ?? [];
   const placeholder = info?.placeholder ?? 'Ask…';
-  const memberName = state?.members.find((m) => m.id === chosen)?.name ?? 'the AI';
+  const team = state?.members.find((m) => m.id === chosen);
+  const memberName = team?.name ?? 'the AI';
+  const teamWorking = !!team && team.status.startsWith('Working');
+
+  // "/" at the start of the box opens the commands of a ticket's team
+  const slashCommands: SlashCommand[] = team
+    ? [
+        {
+          name: 'compact',
+          hint: liveRun ? 'Summarise its conversation; runs after this run' : 'Summarise the lead’s conversation',
+          enabled: !!(liveRun || fillRun),
+          run: async () => {
+            const r = await aiApi.compact(scope.id);
+            setNotice(
+              r.state === 'queued'
+                ? 'Compacting once the lead finishes the step it is on. It is not stopped.'
+                : `Compacted: ${shortTokens(r.before ?? 0)} → ${shortTokens(r.after ?? 0)} tokens.`,
+            );
+            await qc.invalidateQueries({ queryKey: ['ai'] });
+          },
+        },
+        {
+          name: 'new',
+          hint: 'Start over; a summary stays in History',
+          enabled: !liveRun && teamRuns.length > 0,
+          run: async () => {
+            setConfirmOver(true);
+          },
+        },
+        {
+          name: 'history',
+          hint: 'Closed conversations of this team',
+          enabled: true,
+          run: async () => {
+            setShowHistory((v) => !v);
+          },
+        },
+        {
+          name: 'report',
+          hint: 'A short report, answered here',
+          enabled: true,
+          run: async () => {
+            await send(REPORT_REQUEST);
+          },
+        },
+        {
+          name: 'stop',
+          hint: 'Stop the working run',
+          enabled: !!liveRun,
+          run: async () => {
+            if (liveRun) await aiApi.cancel(liveRun.id);
+            setNotice('Stopped.');
+            await qc.invalidateQueries({ queryKey: ['ai'] });
+          },
+        },
+        {
+          name: 'cost',
+          hint: 'What the team spent here',
+          enabled: teamRuns.length > 0,
+          run: async () => {
+            const spent = teamRuns.reduce((n, r) => n + (r.costUsd || 0), 0);
+            const tokens = teamRuns.reduce((n, r) => n + r.tokensIn + r.tokensOut, 0);
+            setNotice(
+              `${teamRuns.length} run${teamRuns.length === 1 ? '' : 's'} · ${shortTokens(tokens)} tokens${spent > 0 ? ` · $${spent.toFixed(2)}` : ' · not metered'}`,
+            );
+          },
+        },
+      ]
+    : [];
+  const slashOpen = !!team && /^\/[a-z]*$/i.test(text);
+  const slashMatches = slashOpen ? slashCommands.filter((c) => c.name.startsWith(text.slice(1).toLowerCase())) : [];
+  const slashPick = Math.min(slashAt, Math.max(0, slashMatches.length - 1));
+  const runSlash = async (c: SlashCommand) => {
+    if (!c.enabled || sending) return;
+    setText('');
+    setError(null);
+    setNotice(null);
+    try {
+      await c.run();
+    } catch (e) {
+      setError(extractError(e));
+    }
+  };
   const runsHere = !!runsTab;
   const sizing = panelSizing(size);
 
@@ -372,7 +453,7 @@ export function ScopedChat({
     >
       <PanelResizer panel={size} label="Resize chat" />
       <div className="sc-head">
-        <Who state={state} onPick={(id) => setMemberId(id)} />
+        <Who state={state} />
         {runsHere && (
           <div className="sc-tabs" role="tablist">
             <button
@@ -396,24 +477,71 @@ export function ScopedChat({
             </button>
           </div>
         )}
-        <button
-          type="button"
-          className="ai-icobtn"
-          title="New chat"
-          aria-label="New chat"
-          onClick={async () => {
-            try {
-              const c = await assistApi.scopeChat(scope, true);
-              setChatId(c.id);
-              setTab('chat');
-              await refresh();
-            } catch (e) {
-              setError(extractError(e));
-            }
-          }}
-        >
-          +
-        </button>
+        {team ? (
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="ai-icobtn"
+              title="New chat, start the team over, history"
+              aria-label="Chat menu"
+              aria-haspopup="menu"
+              aria-expanded={plusOpen}
+              data-testid="chat-plus"
+              onClick={() => setPlusOpen((v) => !v)}
+            >
+              +
+            </button>
+            {plusOpen && (
+              <div
+                className="as-menu"
+                role="menu"
+                data-testid="chat-plus-menu"
+                style={{ position: 'absolute', right: 0, top: '100%', zIndex: 8, width: 280 }}
+              >
+                <button type="button" role="menuitem" className="as-action" onClick={() => void newChat()}>
+                  <LineIcon name="plus" size={14} /> New chat <span className="ai-muted">the lead still remembers</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="as-action"
+                  disabled={!!liveRun}
+                  title={liveRun ? 'The team is working: stop the run first' : undefined}
+                  data-testid="chat-start-over"
+                  onClick={() => {
+                    setPlusOpen(false);
+                    setConfirmOver(true);
+                  }}
+                >
+                  <LineIcon name="refresh" size={14} /> Start the team over{' '}
+                  <span className="ai-muted">the lead forgets</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="as-action"
+                  data-testid="chat-history-toggle"
+                  onClick={() => {
+                    setPlusOpen(false);
+                    setShowHistory((v) => !v);
+                  }}
+                >
+                  <LineIcon name="clock" size={14} /> History <span className="ai-muted">{history.length}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="ai-icobtn"
+            title="New chat"
+            aria-label="New chat"
+            onClick={() => void newChat()}
+          >
+            +
+          </button>
+        )}
         <PanelMaxButton panel={size} />
         <button type="button" className="ai-icobtn" aria-label="Close" title="Close" onClick={onClose}>
           <LineIcon name="close" size={14} />
@@ -426,6 +554,7 @@ export function ScopedChat({
         </div>
       ) : (
         <>
+          {banner}
           <div className="sc-reading" data-testid="chat-reading">
             <span className="sc-reading-label">Reading</span>
             {st.isLoading && <span className="as-skel" style={{ height: 22, width: 160 }} />}
@@ -438,30 +567,79 @@ export function ScopedChat({
             {!reading.length && !st.isLoading && <span className="ai-muted">{info?.title}</span>}
           </div>
           <div className="sc-body" ref={bodyRef}>
+            {team && confirmOver && (
+              <div className="as-tile as-tile-warn" data-testid="chat-start-over-confirm">
+                <div className="as-tile-title">Start {memberName} over?</div>
+                <div className="ai-hint">
+                  The lead will not remember this conversation. A title and a summary are kept in History, and the
+                  ticket, its comments and the Workspace stay as they are. The next message starts a new conversation.
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="ai-btn ai-btn-sm ai-btn-primary"
+                    disabled={overBusy}
+                    data-testid="chat-start-over-yes"
+                    onClick={() => void startOver()}
+                  >
+                    {overBusy ? 'Summarising…' : 'Start over'}
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-btn ai-btn-sm"
+                    disabled={overBusy}
+                    onClick={() => setConfirmOver(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {team && showHistory && (
+              <div className="as-tile" data-testid="chat-history">
+                <div className="as-tile-title">
+                  <LineIcon name="clock" size={13} /> History of {memberName} on this ticket
+                </div>
+                {history.length === 0 && <div className="ai-muted">Nothing closed yet.</div>}
+                {history.map((h) => (
+                  <details key={h.id} data-testid="chat-history-item">
+                    <summary style={{ cursor: 'pointer' }}>
+                      <b>{h.title || 'Untitled'}</b> <span className="ai-muted">{h.endedAt.slice(0, 10)}</span>
+                    </summary>
+                    <div style={{ whiteSpace: 'pre-wrap', fontSize: 12.5, margin: '4px 0 6px 12px' }}>{h.summary}</div>
+                    <div className="ai-muted" style={{ fontSize: 11, marginLeft: 12 }}>
+                      {h.runIds.length} run{h.runIds.length === 1 ? '' : 's'}
+                      {h.sessionIds.length ? ` · session ${h.sessionIds.join(', ')}` : ''}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            )}
             {st.isError && (
               <div className="ai-notice ai-notice-error" data-testid="chat-load-error">
                 The AI chat could not load: {extractError(st.error)}
               </div>
             )}
             {state && !canAsk && availability?.code !== 'viewer' && messages.length === 0 && (
-              <Blocked state={state} onMembers={onOpenAiMembers} onUsage={onOpenUsage} />
+              <Blocked state={state} onMembers={onOpenAiMembers} />
             )}
             {state && !messages.length && canAsk && (
               <div className="sc-welcome" data-testid="chat-welcome">
-                <div className="ai-hint" style={{ fontSize: 13 }}>
-                  I read {info?.title ?? 'this'} and what is listed above. I propose changes as drafts and never change
-                  anything until you press Add or Apply.
+                <div className="ai-hint" style={{ fontSize: 13 }} data-testid="chat-hint">
+                  {team
+                    ? `Write to ${memberName}, the team on this ticket. Working, it reads your message at its next step, answers here and carries on; idle, your message is its next task.`
+                    : `I read ${scope.kind === 'ticket' ? scope.id : (info?.title ?? 'this')} and what is listed above. I do what can be undone at once and ask you about the rest.`}
                 </div>
-                {points.length > 0 && <div className="as-label">Try asking</div>}
-                {points.map((p) => (
+                {!team && points.length > 0 && <div className="as-label">Try asking</div>}
+                {(team ? [] : points).map((p) => (
                   <button
                     key={p.label}
                     type="button"
                     className="as-action"
                     style={{ justifyContent: 'flex-start' }}
-                    onClick={() => void send(p.request, { draft: p.draft, mode: 'ask' })}
+                    onClick={() => void send(p.request)}
                   >
-                    <LineIcon name={p.draft ? 'edit' : 'chat'} size={13} /> {p.label}
+                    <LineIcon name="chat" size={13} /> {p.label}
                   </button>
                 ))}
               </div>
@@ -473,19 +651,10 @@ export function ScopedChat({
                     <UserText text={m.text} />
                   </div>
                 ) : (
-                  <AnswerBlock
-                    key={m.id}
-                    msg={m}
-                    chat={chat.data!}
-                    state={undefined}
-                    panel={panel}
-                    onSend={(t, o) => void send(t, { draft: o?.draft, mode: 'ask' })}
-                  />
+                  <AnswerBlock key={m.id} msg={m} chat={chat.data!} panel={panel} />
                 ),
               )}
-            {state && !canAsk && messages.length > 0 && (
-              <Blocked state={state} onMembers={onOpenAiMembers} onUsage={onOpenUsage} />
-            )}
+            {state && !canAsk && messages.length > 0 && <Blocked state={state} onMembers={onOpenAiMembers} />}
           </div>
           <SelectToReply containerRef={bodyRef} onReply={quotes.add} disabled={!canAsk} />
           <div className="sc-composer">
@@ -494,43 +663,17 @@ export function ScopedChat({
             ) : (
               <>
                 <div className="sc-modebar">
-                  <div className="sc-mode" role="radiogroup" aria-label="What the AI should do">
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={mode === 'ask'}
-                      className={mode === 'ask' ? 'sc-mode-on' : ''}
-                      onClick={() => setMode('ask')}
-                      data-testid="chat-mode-ask"
-                    >
-                      Ask only
-                    </button>
-                    {info?.work && (
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={mode === 'work'}
-                        className={mode === 'work' ? 'sc-mode-on sc-mode-work' : ''}
-                        disabled={!workOk}
-                        title={workOk ? undefined : 'Start a run needs an AI member that can work on this ticket'}
-                        onClick={() => setMode('work')}
-                        data-testid="chat-mode-work"
-                      >
-                        Do the work
-                      </button>
-                    )}
-                  </div>
-                  <span style={{ flex: 1 }} />
-                  <span className="ai-muted" data-testid="chat-private">
-                    Private to you
-                  </span>
+                  {team ? (
+                    <span className="ai-muted" data-testid="chat-team-note">
+                      To {memberName}
+                      {teamWorking ? ': it answers here and keeps working unless you tell it to stop' : ''}
+                    </span>
+                  ) : (
+                    <span className="ai-muted" data-testid="chat-private">
+                      Private to you
+                    </span>
+                  )}
                 </div>
-                {mode === 'work' && (
-                  <div className="sc-worknote" data-testid="chat-work-note">
-                    Starts a run of <b>{memberName}</b> on {scope.id} with your message as the instruction. Same limits
-                    as an assignment: it stops at Review and asks you before risky steps.
-                  </div>
-                )}
                 <ReplyTray
                   replies={quotes.replies}
                   focusId={quotes.focusId}
@@ -538,7 +681,75 @@ export function ScopedChat({
                   onRemove={quotes.remove}
                   onDone={() => input.current?.focus()}
                 />
-                <div className="sc-box">
+                {notice && (
+                  <div className="ai-muted" style={{ marginBottom: 6 }} data-testid="chat-notice">
+                    {notice}
+                  </div>
+                )}
+                <div className="sc-box" style={{ position: 'relative' }}>
+                  {slashMatches.length > 0 && (
+                    <div
+                      role="listbox"
+                      aria-label="Commands"
+                      data-testid="chat-slash-menu"
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: '100%',
+                        marginBottom: 6,
+                        background: 'var(--bg, #fff)',
+                        border: '1px solid #DCE3DE',
+                        borderRadius: 10,
+                        boxShadow: '0 6px 20px rgba(0,0,0,.08)',
+                        padding: 4,
+                        zIndex: 6,
+                      }}
+                    >
+                      {slashMatches.map((c, i) => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          role="option"
+                          aria-selected={i === slashPick}
+                          aria-disabled={!c.enabled}
+                          data-testid={`chat-slash-${c.name}`}
+                          onMouseEnter={() => setSlashAt(i)}
+                          onClick={() => void runSlash(c)}
+                          style={{
+                            display: 'flex',
+                            gap: 10,
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '6px 8px',
+                            border: 0,
+                            borderRadius: 6,
+                            background: i === slashPick ? '#EEF4F0' : 'transparent',
+                            opacity: c.enabled ? 1 : 0.45,
+                            cursor: c.enabled ? 'pointer' : 'default',
+                            font: 'inherit',
+                            fontSize: 12,
+                            alignItems: 'baseline',
+                            color: 'inherit',
+                          }}
+                        >
+                          <b
+                            style={{
+                              fontFamily: 'JetBrains Mono, monospace',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              flexShrink: 0,
+                            }}
+                          >
+                            /{c.name}
+                          </b>
+                          <span className="ai-muted" style={{ fontSize: 12 }}>
+                            {c.hint}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <textarea
                     ref={input}
                     rows={1}
@@ -547,9 +758,32 @@ export function ScopedChat({
                     placeholder={quotes.replies.length ? 'Anything else? (optional)' : placeholder}
                     aria-label="Ask the AI"
                     data-testid="chat-input"
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(e) => {
+                      setText(e.target.value);
+                      setSlashAt(0);
+                      setNotice(null);
+                    }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      if (e.nativeEvent.isComposing) return;
+                      if (slashMatches.length) {
+                        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          const n = slashMatches.length;
+                          setSlashAt((slashPick + (e.key === 'ArrowDown' ? 1 : n - 1)) % n);
+                          return;
+                        }
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setText('');
+                          return;
+                        }
+                        if (e.key === 'Enter' || e.key === 'Tab') {
+                          e.preventDefault();
+                          void runSlash(slashMatches[slashPick]);
+                          return;
+                        }
+                      }
+                      if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         void sendComposed();
                       }
@@ -559,28 +793,24 @@ export function ScopedChat({
                     type="button"
                     className="as-send"
                     disabled={!canAsk || sending || !outgoing.trim()}
-                    aria-label={mode === 'work' ? 'Start a run' : 'Send'}
-                    title={mode === 'work' ? 'Start a run' : 'Send'}
+                    aria-label="Send"
+                    title="Send"
                     data-testid="chat-send"
-                    onClick={() => void sendComposed()}
+                    onClick={() => (slashMatches.length ? void runSlash(slashMatches[slashPick]) : void sendComposed())}
                   >
-                    {mode === 'work' ? (
-                      <LineIcon name="play" size={14} />
-                    ) : (
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M4 12l16-8-6 16-3-7-7-1z" />
-                      </svg>
-                    )}
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 12l16-8-6 16-3-7-7-1z" />
+                    </svg>
                   </button>
                 </div>
                 {error && (
@@ -589,8 +819,7 @@ export function ScopedChat({
                   </div>
                 )}
                 <div className="sc-foot">
-                  <span data-testid="chat-cost">{costLine(state, mode)}</span>
-                  {sessionFill && <ContextMeter used={sessionFill.used} size={sessionFill.size} inline />}
+                  {fill && <ContextMeter used={fill.used} size={fill.size} inline />}
                   <span style={{ flex: 1 }} />
                   <span>
                     <kbd>Enter</kbd> send · <kbd>{MOD}</kbd>

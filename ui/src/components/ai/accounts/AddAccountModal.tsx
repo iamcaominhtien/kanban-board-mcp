@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { accountsApi, useAccountActions, useAiAccounts } from '../../../api/aiAccounts';
 import { extractError } from '../../../api/extractError';
 import type { AccountCli, AccountCliCard, AiAccount } from '../../../types/aiAccounts';
-import { ADD_STEPS, CLI_INFO, cardBlurb } from '../../../utils/signInCopy';
+import { ADD_STEPS, CLI_INFO } from '../../../utils/signInCopy';
 import { openLink } from './SignInLinks';
 import { ICON_PATHS, Icon } from './SignInStatusBar';
 import { SignInWindow } from './SignInWindow';
@@ -27,18 +27,15 @@ function CliCard({ card, selected, onPick }: { card: AccountCliCard; selected: b
       </span>
       <span className="sg-cli-text">
         <span className="sg-cli-name">{info.label}</span>
-        <div className="sg-cli-hint">{cardBlurb(card.cli, card.blurb, card.unavailable)}</div>
+        <div className="sg-cli-hint">{card.blurb}</div>
       </span>
       <span className="sg-chips">
         {off ? (
           <span className="sg-chip sg-chip-off">{card.unavailable}</span>
         ) : (
-          <>
-            <span className={`sg-chip ${card.found ? '' : 'sg-chip-warn'}`}>
-              {card.found ? (card.version ? `found · v${card.version}` : 'found') : 'not installed'}
-            </span>
-            {!card.runnable && <span className="sg-chip sg-chip-warn">Not ready</span>}
-          </>
+          <span className={`sg-chip ${card.found ? '' : 'sg-chip-warn'}`}>
+            {card.found ? (card.version ? `found · v${card.version}` : 'found') : 'not installed'}
+          </span>
         )}
       </span>
     </button>
@@ -84,7 +81,7 @@ function Steps({ step }: { step: 1 | 2 | 3 }) {
   );
 }
 
-/** "<CLI> is not installed": the install command and Detect again, as the Add AI member flow does. */
+/** "<CLI> is not installed": the install command and Detect again, as the Add an AI team flow does. */
 function InstallPanel({
   card,
   detecting,
@@ -155,7 +152,7 @@ export function AddAccountModal({
   onClose,
   onCreated,
 }: {
-  /** Start at the name step for this CLI (opened from "New account…" in the Add AI member window). */
+  /** Start at the name step for this CLI (opened from "New account…" in the Add an AI team window). */
   initialCli?: AccountCli;
   onClose: () => void;
   /** The account exists (made at the end of the name step), signed in or not. */
@@ -252,11 +249,14 @@ export function AddAccountModal({
   // Esc leaves the first two steps (step 3 is the sign-in window, which asks before it stops anything)
   const leave = useRef(onClose);
   leave.current = () => {
-    if (!created) onClose();
+    if (created) return false;
+    onClose();
+    return true;
   };
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) leave.current();
+      // taken here, so a dialog under this one (Add an AI team) does not close with it
+      if (e.key === 'Escape' && !e.defaultPrevented && leave.current()) e.preventDefault();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -326,9 +326,7 @@ export function AddAccountModal({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && canSignIn) void makeAccount();
                     }}
-                    placeholder={
-                      cli ? `For example ${cli === 'claude' ? 'Work Claude' : `Work ${CLI_INFO[cli].label}`}` : ''
-                    }
+                    placeholder={cli ? 'For example Work Claude' : ''}
                     maxLength={60}
                     autoFocus
                     aria-invalid={!!nameProblem}
@@ -336,9 +334,8 @@ export function AddAccountModal({
                   />
                   {nameProblem && <span className="ai-error-text">{nameProblem}</span>}
                   <span className="sg-note">
-                    Shown when you pick an account for an AI member. Claude Code reports who is signed in, so its email
-                    is shown as well. Codex, opencode and Antigravity do not, so for them the name is how you tell
-                    accounts apart. Use the person or plan, not a secret.
+                    Shown when you pick an account for an AI team. Claude Code reports who is signed in, so its email is
+                    shown as well. Use the person or plan, not a secret.
                   </span>
                 </label>
                 <div className="sg-callout">
@@ -367,10 +364,10 @@ export function AddAccountModal({
                 Back
               </button>
             )}
+            <span className="sg-grow" />
             <button type="button" className="ai-btn ai-btn-sm" onClick={onClose}>
               Cancel
             </button>
-            <span className="sg-grow" />
             {step === 1 ? (
               <button
                 type="button"

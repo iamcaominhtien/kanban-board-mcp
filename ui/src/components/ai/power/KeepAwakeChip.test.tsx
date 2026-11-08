@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AiRun } from '../../../types/ai';
+import type { BoardRun } from '../../../types/ai';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('../../../api/client', () => ({ client: http }));
@@ -20,8 +20,9 @@ const setKeepAwake = vi.fn(async (on: boolean) => {
   return on;
 });
 
-const run = (id: string, memberName: string, ticketId: string, state = 'running') =>
-  ({ id, memberName, ticketId, state }) as unknown as AiRun;
+const run = (runId: string, memberId: string, ticketId: string, state = 'running') =>
+  ({ runId, memberId, ticketId, state }) as unknown as BoardRun;
+const team = (id: string, name: string) => [id, { id, name, kind: 'ai' }] as const;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -44,13 +45,20 @@ afterEach(() => {
 
 const mount = (props: { onSeeRunHistory?: () => void } = {}) => {
   const runsByTicket = new Map([
-    ['KAN-305', run('r1', 'Dev Khoa', 'KAN-305')],
-    ['KAN-304', run('r2', 'Reviewer Binh', 'KAN-304', 'starting')],
-    ['KAN-300', run('r3', 'QA Mai', 'KAN-300', 'finished')],
+    ['KAN-305', run('r1', 'm1', 'KAN-305')],
+    ['KAN-304', run('r2', 'm2', 'KAN-304', 'starting')],
+    ['KAN-300', run('r3', 'm3', 'KAN-300', 'finished')],
   ]);
   return render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <AiBoardContext.Provider value={{ projectId: 'p1', members: new Map(), runsByTicket, settings: null }}>
+      <AiBoardContext.Provider
+        value={{
+          projectId: 'p1',
+          members: new Map([team('m1', 'Dev Khoa'), team('m2', 'Reviewer Binh'), team('m3', 'QA Mai')]) as never,
+          runsByTicket,
+          settings: null,
+        }}
+      >
         <KeepAwakeChip {...props} />
       </AiBoardContext.Provider>
     </QueryClientProvider>,

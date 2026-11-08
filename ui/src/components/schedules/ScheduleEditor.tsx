@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useAiOverview } from '../../api/ai';
+import { useAiTeams } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { useMembers } from '../../api/members';
 import { scheduleApi, useScheduleDetail, useScheduleMutation } from '../../api/schedules';
 import type { Member, Ticket } from '../../types';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import type { DryRun, Schedule, ScheduleDraft, ScheduleErrorBody, ScheduleNotify } from '../../types/schedules';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
@@ -14,16 +14,13 @@ import { CheckLine, MemberSelect, TicketPicker, ZoneSelect } from './MemberSelec
 import { MenuSelect } from '../ui/MenuSelect';
 import { SCHEDULE_TEMPLATES } from './scheduleTemplates';
 import {
-  BranchIcon,
   CalendarIcon,
   CheckCircleIcon,
   ClockIcon,
   CloseIcon,
   DAY_NAMES,
-  DocIcon,
   FlaskIcon,
-  PlusIcon,
-  TargetIcon,
+  PROVIDER_NAME,
   TimeField,
   canStart,
   zoneLabel,
@@ -97,8 +94,6 @@ function newDraft(ticketId: string, memberId: string): ScheduleDraft {
     endsAfter: null,
     endsOn: '',
     windowEnd: '',
-    checks: { criteria: true, tests: { on: false, command: '', cwd: '' }, summary: true, branch: false, aiChecks: [] },
-    review: { on: false, reviewerId: null, fixRounds: 2 },
     limits: { stopAfterMin: 45, retries: 1, maxCost: null },
     catchUp: 'run',
     catchUpHours: 2,
@@ -123,8 +118,6 @@ function draftOf(s: Schedule): ScheduleDraft {
     endsAfter: s.endsAfter,
     endsOn: s.endsOn ?? '',
     windowEnd: s.windowEnd ?? '',
-    checks: s.checks,
-    review: { on: s.review.on, reviewerId: s.review.reviewerId, fixRounds: s.review.fixRounds },
     limits: s.limits,
     catchUp: s.catchUp,
     catchUpHours: s.catchUpHours,
@@ -196,42 +189,9 @@ function Seg<T extends string>({
   );
 }
 
-/** One "done when" row: checkbox, icon, title and a line of detail. */
-function CheckOption({
-  on,
-  onChange,
-  icon,
-  title,
-  sub,
-  children,
-  testId,
-}: {
-  on: boolean;
-  onChange: (v: boolean) => void;
-  icon: ReactNode;
-  title: string;
-  sub?: ReactNode;
-  children?: ReactNode;
-  testId?: string;
-}) {
-  return (
-    <div className={`sc-opt ${on ? 'sc-opt-on' : ''}`}>
-      <label className="sc-opt-row">
-        <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} data-testid={testId} />
-        <span className="sc-opt-icon">{icon}</span>
-        <span>
-          <span className="sc-opt-title">{title}</span>
-          {sub && <span className="sc-opt-sub">{sub}</span>}
-        </span>
-      </label>
-      {on && children}
-    </div>
-  );
-}
-
 /**
  * Create or edit a schedule as a layer (C). The right side always shows the plain-language summary, the next
- * runs and the checks from the server (debounced), and "Dry run" shows what the AI would do.
+ * runs and the checks from the server (debounced), and "Dry run" shows what the lead would plan.
  */
 export function ScheduleEditor({
   projectId,
@@ -245,7 +205,7 @@ export function ScheduleEditor({
   onClose: () => void;
 }) {
   const existing = useScheduleDetail(opts.scheduleId ?? null);
-  const overview = useAiOverview(projectId);
+  const overview = useAiTeams(projectId);
   const { data: members = [] } = useMembers(projectId);
   if (opts.scheduleId && !existing.data) {
     return (
@@ -259,7 +219,7 @@ export function ScheduleEditor({
       </div>
     );
   }
-  const ais = (overview.data?.members ?? []).filter(canStart);
+  const ais = (overview.data ?? []).filter(canStart);
   return (
     <EditorForm
       key={opts.scheduleId ?? 'new'}
@@ -285,7 +245,7 @@ function EditorForm({
 }: {
   projectId: string;
   tickets: Ticket[];
-  ais: AiMember[];
+  ais: AiTeam[];
   people: Member[];
   opts: EditorOpts;
   saved?: Schedule;
@@ -295,17 +255,14 @@ function EditorForm({
   const [draft, setDraft] = useState<ScheduleDraft>(() =>
     saved ? draftOf(saved) : newDraft(opts.ticketId ?? '', opts.memberId ?? ais[0]?.id ?? ''),
   );
-  const [aiCheck, setAiCheck] = useState('');
   const [problems, setProblems] = useState<string[]>([]);
   const [dry, setDry] = useState<DryRun | null>(null);
   const [dryError, setDryError] = useState<string | null>(null);
   const set = (patch: Partial<ScheduleDraft>) => setDraft((d) => ({ ...d, ...patch }));
-  const setChecks = (patch: Partial<ScheduleDraft['checks']>) =>
-    setDraft((d) => ({ ...d, checks: { ...d.checks, ...patch } }));
   const zones = useZones(draft.tz);
   const me = currentPerson();
 
-  // Pick the first AI once the list loads, when none was given
+  // Pick the first team once the list loads, when none was given
   useEffect(() => {
     if (!saved && !draft.memberId && ais[0]) setDraft((d) => (d.memberId ? d : { ...d, memberId: ais[0].id }));
   }, [saved, draft.memberId, ais]);
@@ -358,24 +315,13 @@ function EditorForm({
   }
 
   const member = ais.find((m) => m.id === draft.memberId);
-  const ticket = tickets.find((t) => t.id === draft.ticketId);
-  const criteria = ticket?.acceptanceCriteria?.length;
   const free = member ? Math.max(0, member.maxParallel - member.slotsInUse) : 0;
-  const slotLimited = member?.connection === 'api_key';
-  const metered = member?.connection === 'api_key';
   const lockedTicket = saved
     ? 'Locked: a schedule stays on its ticket'
     : opts.ticketId
       ? 'Locked: opened from the ticket'
       : undefined;
   const addPeople = people.filter((p) => p.name !== me && !draft.notifyPeople.includes(p.name));
-
-  function addAiCheck() {
-    const text = aiCheck.trim();
-    if (!text || draft.checks.aiChecks.includes(text)) return;
-    setChecks({ aiChecks: [...draft.checks.aiChecks, text] });
-    setAiCheck('');
-  }
 
   return (
     <div className="ai-overlay" style={{ zIndex: 1000 }} data-testid="schedule-editor">
@@ -416,7 +362,7 @@ function EditorForm({
                 ))}
               </div>
             )}
-            <Section title="Task" sub="What the AI works on." id="sec-task">
+            <Section title="Task" sub="What the team works on." id="sec-task">
               <TicketPicker
                 tickets={tickets}
                 value={draft.ticketId}
@@ -550,7 +496,7 @@ function EditorForm({
               </div>
               {errAt('ends') && <div className="ai-error-text">{errAt('ends')}</div>}
               <div className="ai-hint">
-                Starts at {draft.kind === 'repeat' ? draft.time : draft.runAt.slice(11, 16)} if the AI is free.
+                Starts at {draft.kind === 'repeat' ? draft.time : draft.runAt.slice(11, 16)} if the team is free.
                 {draft.windowEnd
                   ? ` With a window, a late start is allowed until ${draft.windowEnd}.`
                   : ' Set a window to allow a late start.'}
@@ -558,7 +504,7 @@ function EditorForm({
             </Section>
 
             <Section title="Who runs it" sub="Needs permission to take this ticket." id="sec-who">
-              <Field label="AI MEMBER">
+              <Field label="TEAM">
                 <MemberSelect
                   members={ais}
                   value={draft.memberId}
@@ -569,19 +515,17 @@ function EditorForm({
               </Field>
               {member && (
                 <div className="ai-muted" data-testid="member-status">
-                  {member.connection === 'local' ? 'Local runner' : 'API key'} · {member.status.label.toLowerCase()} ·{' '}
-                  {slotLimited
-                    ? `${free} of ${member.maxParallel} slot${member.maxParallel === 1 ? '' : 's'} free`
-                    : 'no limit on runs at once'}
+                  {PROVIDER_NAME[member.provider] ?? member.provider} · {member.status.label.toLowerCase()} · {free} of{' '}
+                  {member.maxParallel} run{member.maxParallel === 1 ? '' : 's'} free
                 </div>
               )}
               {draft.memberId && errAt('member') && <div className="ai-error-text">{errAt('member')}</div>}
               {!ais.length && (
                 <div className="ai-hint" data-testid="no-ai">
-                  No AI members yet. Add one in Members, then schedule it here.
+                  No AI teams yet. Add one in AI team, then schedule it here.
                 </div>
               )}
-              <Field label="BACKUP AI (OPTIONAL)">
+              <Field label="BACKUP TEAM (OPTIONAL)">
                 <MemberSelect
                   members={ais.filter((m) => m.id !== draft.memberId)}
                   value={draft.backupMemberId}
@@ -592,164 +536,7 @@ function EditorForm({
                 />
               </Field>
               {errAt('backup') && <div className="ai-error-text">{errAt('backup')}</div>}
-              <div className="ai-hint">Used if the first is paused, over budget or offline.</div>
-            </Section>
-
-            <Section title="Done when" sub="All checked items must pass." id="sec-done">
-              <CheckOption
-                on={draft.checks.criteria}
-                onChange={(criteriaOn) => setChecks({ criteria: criteriaOn })}
-                icon={<CheckCircleIcon size={14} />}
-                title="All acceptance criteria ticked"
-                sub={criteria == null ? undefined : `${criteria} criteri${criteria === 1 ? 'on' : 'a'} on the ticket`}
-                testId="check-criteria"
-              />
-              <CheckOption
-                on={draft.checks.tests.on}
-                onChange={(on) => setChecks({ tests: { ...draft.checks.tests, on } })}
-                icon={<FlaskIcon size={14} />}
-                title="Tests pass"
-                sub={
-                  draft.checks.tests.command.trim() ? (
-                    <>
-                      Runs <code className="ai-code">{draft.checks.tests.command}</code>
-                      {draft.checks.tests.cwd ? ` in ${draft.checks.tests.cwd}` : ''}; exit code 0
-                    </>
-                  ) : (
-                    'Runs a command; exit code 0 is a pass'
-                  )
-                }
-                testId="check-tests"
-              >
-                <div className="sc-row" style={{ padding: '0 12px 12px 42px' }}>
-                  <Field label="COMMAND" grow>
-                    <input
-                      className={`ai-input ai-mono ${errAt('tests') ? 'ai-input-error' : ''}`}
-                      placeholder="npm run test"
-                      value={draft.checks.tests.command}
-                      onChange={(e) => setChecks({ tests: { ...draft.checks.tests, command: e.target.value } })}
-                      data-testid="tests-command"
-                    />
-                  </Field>
-                  <Field label="FOLDER" grow>
-                    <input
-                      className="ai-input ai-mono"
-                      placeholder="/server (the AI's working folder when empty)"
-                      value={draft.checks.tests.cwd}
-                      onChange={(e) => setChecks({ tests: { ...draft.checks.tests, cwd: e.target.value } })}
-                      data-testid="tests-cwd"
-                    />
-                  </Field>
-                </div>
-              </CheckOption>
-              <CheckOption
-                on={draft.checks.summary}
-                onChange={(summary) => setChecks({ summary })}
-                icon={<DocIcon size={14} />}
-                title="Summary comment posted on the ticket"
-                testId="check-summary"
-              />
-              <CheckOption
-                on={draft.checks.branch}
-                onChange={(branch) => setChecks({ branch })}
-                icon={<BranchIcon size={14} />}
-                title="Branch or PR linked to the ticket"
-                testId="check-branch"
-              />
-              {draft.checks.aiChecks.map((c) => (
-                <div key={c} className="sc-opt sc-opt-on">
-                  <div className="sc-opt-row">
-                    <input type="checkbox" checked readOnly disabled />
-                    <span className="sc-opt-icon">
-                      <TargetIcon size={14} />
-                    </span>
-                    <span className="sc-grow">
-                      <span className="sc-opt-title">Judged by the reviewer</span>
-                      <span className="sc-opt-sub">{c}</span>
-                    </span>
-                    <span className="sc-aitag">AI check</span>
-                    <button
-                      type="button"
-                      className="ai-icobtn"
-                      aria-label={`Remove check: ${c}`}
-                      onClick={() => setChecks({ aiChecks: draft.checks.aiChecks.filter((x) => x !== c) })}
-                    >
-                      <CloseIcon size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <div className="sc-inline">
-                <input
-                  className="ai-input"
-                  style={{ flex: 1, maxWidth: 520 }}
-                  placeholder="Add your own check, in plain words"
-                  value={aiCheck}
-                  onChange={(e) => setAiCheck(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addAiCheck();
-                    }
-                  }}
-                  data-testid="ai-check-input"
-                />
-                <button
-                  type="button"
-                  className="ai-btn"
-                  onClick={addAiCheck}
-                  disabled={!aiCheck.trim()}
-                  data-testid="ai-check-add"
-                >
-                  <PlusIcon size={13} /> Add
-                </button>
-              </div>
-              {errAt('tests') && <div className="ai-error-text">{errAt('tests')}</div>}
-              {errAt('ai_checks') && <div className="ai-error-text">{errAt('ai_checks')}</div>}
-            </Section>
-
-            <Section title="AI review" sub="A second AI checks the result." id="sec-review">
-              <label className="sc-toggle-row">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={draft.review.on}
-                  aria-label="Review automatically when the run ends"
-                  className={`ai-toggle ${draft.review.on ? 'ai-toggle-on' : ''}`}
-                  onClick={() => set({ review: { ...draft.review, on: !draft.review.on } })}
-                  data-testid="review-on"
-                />
-                <b>Review automatically when the run ends</b>
-              </label>
-              {draft.review.on && (
-                <div className="sc-row">
-                  <Field label="REVIEWER" grow>
-                    <MemberSelect
-                      members={ais}
-                      value={draft.review.reviewerId ?? ''}
-                      onChange={(id) => set({ review: { ...draft.review, reviewerId: id || null } })}
-                      invalid={!!errAt('reviewer')}
-                      testId="reviewer"
-                    />
-                  </Field>
-                  <Field label="FIX ROUNDS">
-                    <MenuSelect
-                      label="Fix rounds"
-                      testId="fix-rounds"
-                      style={{ width: 90 }}
-                      value={String(draft.review.fixRounds)}
-                      options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
-                      onChange={(v) => set({ review: { ...draft.review, fixRounds: Number(v) } })}
-                    />
-                  </Field>
-                </div>
-              )}
-              {errAt('reviewer') && <div className="ai-error-text">{errAt('reviewer')}</div>}
-              <div className="ai-hint">
-                Passed → ticket moves to <b>Review</b> and people are told. Needs changes → sent back to the AI, up to{' '}
-                {draft.review.fixRounds} round{draft.review.fixRounds === 1 ? '' : 's'}, then it asks a person.{' '}
-                <b>Done</b> is always a person.
-              </div>
+              <div className="ai-hint">Used if the first team is paused or cannot start.</div>
             </Section>
 
             <Section title="Limits" sub="Stops the run if reached." id="sec-limits">
@@ -779,23 +566,23 @@ function EditorForm({
                     onChange={(v) => set({ limits: { ...draft.limits, retries: Number(v) } })}
                   />
                 </Field>
-                <Field label="MAX COST">
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    className="ai-input"
-                    style={{ width: 140 }}
-                    disabled={!metered}
-                    placeholder="Not metered"
-                    value={metered ? (draft.limits.maxCost ?? '') : ''}
-                    onChange={(e) =>
-                      set({ limits: { ...draft.limits, maxCost: e.target.value ? Number(e.target.value) : null } })
-                    }
-                    data-testid="max-cost"
-                  />
-                  {!metered && <span className="ai-muted">Local runner: subscription, not metered</span>}
-                </Field>
+                {draft.limits.maxCost !== null && (
+                  <Field label="MAX COST">
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      className="ai-input"
+                      style={{ width: 140 }}
+                      value={draft.limits.maxCost}
+                      onChange={(e) =>
+                        set({ limits: { ...draft.limits, maxCost: e.target.value ? Number(e.target.value) : null } })
+                      }
+                      data-testid="max-cost"
+                    />
+                    <span className="ai-muted">Applies when a run reports its cost.</span>
+                  </Field>
+                )}
               </div>
               {errAt('limits') && <div className="ai-error-text">{errAt('limits')}</div>}
             </Section>
@@ -916,10 +703,10 @@ function EditorForm({
               </div>
             </Section>
 
-            <Section title="Instruction" sub="Optional extra words for the AI." id="sec-instruction">
+            <Section title="Instruction" sub="Optional extra words for the team." id="sec-instruction">
               <textarea
                 className="ai-textarea"
-                placeholder="For example: keep the change small and write the summary in plain words."
+                placeholder="Keep the change small. Write the summary in plain words and name the test you added."
                 value={draft.instruction}
                 onChange={(e) => set({ instruction: e.target.value })}
                 data-testid="instruction"
@@ -930,7 +717,7 @@ function EditorForm({
           <aside className="sc-side" data-testid="schedule-preview">
             <div className="ai-label">IN SHORT</div>
             <div className="sc-short" data-testid="preview-summary">
-              {preview.data?.summary || <span className="ai-muted">Pick a ticket and an AI to see the summary.</span>}
+              {preview.data?.summary || <span className="ai-muted">Pick a ticket and a team to see the summary.</span>}
             </div>
             <div className="ai-label">NEXT 5 RUNS</div>
             <div data-testid="preview-runs">
@@ -963,7 +750,7 @@ function EditorForm({
                 <div className="sc-dry" data-testid="dry-run-result">
                   {dryRun.isPending && (
                     <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-                      <span className="ai-spin" /> Asking {member?.name ?? 'the AI'} for a plan…
+                      <span className="ai-spin" /> Asking {member?.name ?? 'the team'} for a plan…
                     </span>
                   )}
                   {dryError && <div className="ai-error-text">{dryError}</div>}
@@ -971,8 +758,8 @@ function EditorForm({
                     <>
                       <MarkdownRenderer plain>{dry.text}</MarkdownRenderer>
                       <div className="ai-muted" style={{ marginTop: 6 }}>
-                        Plan by {dry.memberName ?? 'the AI'} · {dry.metered ? `$${dry.cost.toFixed(3)}` : 'Not metered'}
-                        . Nothing was changed.
+                        Plan by {dry.memberName ?? 'the team'}
+                        {dry.cost > 0 ? ` · $${dry.cost.toFixed(3)}` : ''}. Nothing was changed.
                       </div>
                     </>
                   )}
@@ -992,7 +779,7 @@ function EditorForm({
           >
             <FlaskIcon size={14} /> Dry run
           </button>
-          <span className="ai-muted">Shows what the AI would do. Changes nothing.</span>
+          <span className="ai-muted">Shows what the lead would plan. Changes nothing.</span>
           <span className="sc-grow" />
           {problems.length > 0 && (
             <span className="ai-error-text" data-testid="save-problems" style={{ maxWidth: 360 }}>

@@ -1,0 +1,469 @@
+/* AI Team › Flow (AI v2): the scope bar and the Map. The Timeline view keeps timeline.css. */
+.fl-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.fl-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fl-scope-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fl-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+}
+.fl-crumb-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.fl-sepchar {
+  color: #9aa8a0;
+  padding: 0 4px;
+}
+.fl-crumb {
+  border: none;
+  background: none;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fl-crumb:hover {
+  background: #eef3ef;
+  color: #1e2a22;
+}
+.fl-crumb.here {
+  color: #1e2a22;
+  font-weight: 800;
+  cursor: default;
+}
+.fl-crumb.here:hover {
+  background: none;
+}
+.fl-picker {
+  position: relative;
+}
+.fl-kbd {
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid #c7d2cb;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 10.5px;
+  color: #5b6b60;
+  background: #fff;
+}
+.fl-pop {
+  top: calc(100% + 6px);
+  left: 0;
+  width: 420px;
+  max-width: calc(100vw - 48px);
+  max-height: 420px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* the input stays at the top and the foot at the bottom; the list between them scrolls */
+.fl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+.fl-picker-btn.open {
+  border-color: #2e6f40;
+  background: #e6f2ea;
+  color: #1f5a31;
+}
+.fl-opt > span.end {
+  margin-left: auto;
+}
+.fl-pop input {
+  margin: 2px 2px 6px;
+  padding: 8px 10px;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}
+.fl-pop input:focus-visible {
+  outline: 2px solid #2e6f40;
+  outline-offset: 1px;
+}
+.fl-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.fl-opt:hover,
+.fl-opt:focus-visible,
+.fl-opt.on {
+  background: #eef3ef;
+}
+.fl-opt > span {
+  color: #5b6b60;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.fl-opt > span.grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #1e2a22;
+  font-size: 12.5px;
+}
+.fl-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* the Map */
+.fl-map {
+  overflow: auto;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  max-height: min(74vh, 900px);
+  min-height: 220px;
+}
+.fl-map-in {
+  position: relative;
+}
+.fl-svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  pointer-events: none;
+}
+.fl-node {
+  position: absolute;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1.5px solid #c7d2cb;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.12s;
+}
+.fl-node.hot {
+  box-shadow: 0 2px 10px rgba(30, 42, 34, 0.16);
+}
+.fl-you {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #1e2a22;
+  border-color: #1e2a22;
+  color: #fff;
+  font-size: 11.5px;
+}
+.fl-you b {
+  font-size: 14px;
+}
+.fl-you span {
+  color: #cfdad3;
+}
+.fl-you span[style] {
+  color: #f2b84b !important;
+}
+.fl-team.idle {
+  opacity: 0.8;
+}
+.fl-team-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 10px;
+  box-sizing: border-box;
+}
+.fl-team-t {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+}
+.fl-sub {
+  font-size: 10.5px;
+  color: #5b6b60;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fl-sub .fl-dot {
+  width: 6px;
+  height: 6px;
+}
+.fl-mini {
+  border: 1px solid #c7d2cb;
+  background: #fff;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1e2a22;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.fl-mini:hover {
+  background: #eef3ef;
+}
+.fl-mini.ghost {
+  border-color: transparent;
+  background: none;
+  color: #2e6f40;
+}
+.fl-mini.ghost:hover {
+  background: #e6f2ea;
+}
+.fl-name {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fl-name:hover {
+  text-decoration: underline;
+}
+.fl-roles {
+  list-style: none;
+  margin: 0;
+  padding: 4px 12px 4px 14px;
+  border-top: 1px solid #eef3ef;
+}
+.fl-roles li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.fl-roles li span {
+  margin-left: auto;
+  color: #5b6b60;
+  font-size: 11px;
+}
+.fl-ticket {
+  display: flex;
+  align-items: stretch;
+  padding: 0 6px 0 0;
+}
+.fl-ticket.context {
+  border-style: dashed;
+  background: #f6f8f6;
+  opacity: 0.85;
+}
+.fl-ticket.live {
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 2px #e6f2ea;
+}
+.fl-ticket.live.waiting {
+  border-color: #b8860b;
+  box-shadow: 0 0 0 2px #fbf1d6;
+}
+.fl-ticket-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 4px 0 12px;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: #1e2a22;
+}
+.fl-ticket-main:hover .fl-ticket-title {
+  text-decoration: underline;
+}
+.fl-ticket-top {
+  display: flex;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.fl-status {
+  color: #5b6b60;
+  font-size: 10.5px;
+}
+.fl-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #e8e1f7;
+  color: #5b3aa6;
+}
+.fl-badge.muted {
+  background: #eef0ee;
+  color: #5b6b60;
+  text-transform: none;
+  font-weight: 600;
+}
+.fl-ticket-title {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fl-ticket > .fl-mini {
+  align-self: center;
+}
+.fl-none {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  border: 1.5px dashed #c7d2cb;
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+.fl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: #3a4a3e;
+}
+.fl-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fl-legend span.off {
+  opacity: 0.45;
+}
+.fl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 28px;
+  border: 1.5px dashed #c7d2cb;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+}
+.fl-empty .at-hint {
+  max-width: 560px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fl-node {
+    transition: none;
+  }
+  .fl-skel > i {
+    animation: none;
+  }
+}
+
+/* loading and error of the Map (design AiTeam 8, 3 and 4) */
+.fl-skel {
+  position: relative;
+  height: 240px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  overflow: hidden;
+}
+.fl-skel > i {
+  position: absolute;
+  display: block;
+  border-radius: 10px;
+}
+
+.fl-skel > i {
+  background: linear-gradient(90deg, #eef3ef 25%, #f6faf7 37%, #eef3ef 63%);
+  background-size: 400px 100%;
+  animation: fl-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes fl-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+.fl-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 240px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  font-size: 13.5px;
+  color: #1e2a22;
+}
+.fl-error .tl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

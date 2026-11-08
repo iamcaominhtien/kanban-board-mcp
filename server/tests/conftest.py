@@ -82,54 +82,10 @@ import pytest  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
-def _approvals_do_not_wait(monkeypatch):
-    """A tool call that needs approval waits for the decision; tests that want the wait set it themselves."""
-    from services.ai import guard
-
-    monkeypatch.setattr(guard, "APPROVAL_WAIT_S", 0)
-
-
-@pytest.fixture(autouse=True)
-def _story_touches_are_fresh(monkeypatch):
-    """A Story's count of touches is cached for a while; a test reads what it just changed."""
-    from services import stories
-
-    monkeypatch.setattr(stories, "TOUCHES_TTL_S", 0)
-
-
-@pytest.fixture(autouse=True)
-def _feed_needs_you_is_fresh(monkeypatch):
-    """The live column's Needs you list is cached for a few seconds; a test reads what it just changed."""
-    from services.ai import live_feed
-
-    monkeypatch.setattr(live_feed, "NEEDS_TTL_S", 0)
-
-
-def pytest_configure(config):
-    config.addinivalue_line(
-        "markers",
-        "memory_extraction: let a run's end start the light model that keeps notes (services/ai/memory.after_run)",
-    )
-
-
-@pytest.fixture(autouse=True)
-def _no_notes_kept_after_runs(request, monkeypatch):
-    """When a run ends, the board starts a light model in the background to keep notes from it: with the fake CLI
-    that is one more Python process per run, half of what the run tests spent. Only a test marked
-    `memory_extraction` gets it; the extraction itself is tested by calling it (tests/test_ai_memory.py)."""
-    if request.node.get_closest_marker("memory_extraction"):
-        return
-    from services.ai import memory
-
-    monkeypatch.setattr(memory, "after_run", lambda run_id: None)
-
-
-@pytest.fixture(autouse=True)
 def _claude_account_is_empty(monkeypatch, tmp_path_factory):
     """The MCP servers of the machine's own `~/.claude.json`, and the plugins of its `~/.claude`, must not leak into
     a test."""
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path_factory.mktemp("claude-home")))
-    monkeypatch.setenv("KANBAN_CLAUDE_HOME", str(tmp_path_factory.mktemp("own-claude")))
 
 
 @pytest.fixture(autouse=True)
@@ -148,6 +104,11 @@ def _app_config_in_a_temp_folder(monkeypatch, tmp_path_factory):
     folder = tmp_path_factory.mktemp("app-config")
     monkeypatch.setattr(config, "_CONFIG_DIR", folder)
     monkeypatch.setattr(config, "_CONFIG_FILE", folder / "config.json")
+    # A process a test starts (the real MCP server, the AI runner) reads its config folder from the environment. Without
+    # this it reads the developer's own config.json, opens the database named there and runs this branch's migrations
+    # on it: on 2026-11-05 that emptied the AI tables of a real board. Its log goes to a temp folder too.
+    monkeypatch.setenv("KANBAN_CONFIG_DIR", str(folder))
+    monkeypatch.setenv("KANBAN_LOG_DIR", str(tmp_path_factory.mktemp("app-logs")))
 
 
 @pytest.fixture(autouse=True)

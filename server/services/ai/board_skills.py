@@ -29,7 +29,6 @@ def _skills() -> dict[str, str]:
     from services import (
         canvas_design,
         docs_guide,
-        permissions_guide,
         role_skills,
         shared_skills,
         visual_guides,
@@ -41,7 +40,6 @@ def _skills() -> dict[str, str]:
         "drawio-diagrams": visual_guides.DRAWIO_HEADER + visual_guides.DRAWIO,
         "sketches": visual_guides.SKETCH_HEADER + visual_guides.SKETCH,
         # what the AI may do, what needs a person, what to do when refused (issue #275)
-        "board-permissions": permissions_guide.SKILL_HEADER + permissions_guide.GUIDE,
         # how to work in Docs: pages vs comments, the Markdown kept, editing a part, files, comments, tickets (#268)
         "docs-pages": docs_guide.SKILL_HEADER + docs_guide.GUIDE,
         # how any role works a ticket (issue #277)
@@ -64,19 +62,67 @@ def catalog() -> list[dict]:
                 "name": name,
                 "description": m.group(1).strip() if m else "",
                 "role": role_skills.role_of_skill(name),
+                # the roles that do this craft; None for a skill that is for every team
+                "craft_roles": sorted(CRAFT_ROLES[name])
+                if name in CRAFT_ROLES
+                else None,
+                "always_on": name == ALWAYS_ON,
             }
         )
     return out
 
 
-def enabled_for(ops: dict, member_id: str | None, role: str | None = None) -> list[str]:
-    """The board's skills on for a member: the member's own switch, else the project's (on unless switched off).
+# Shared skills that teach one craft, and the roles that do that work (AI v2). A team gets one when one of its roles is
+# listed; the other shared skills (the ticket, Docs, asking and writing, memory, handing over, the repo) are for every
+# team. Fewer skills keep the list the CLI shows the model short enough that it reads it.
+CRAFT_ROLES: dict[str, set[str]] = {
+    "canvas-design": {"designer", "pm", "ba"},
+    "sketches": {"designer", "pm", "ba", "dev"},
+    "drawio-diagrams": {
+        "designer",
+        "pm",
+        "ba",
+        "dev",
+        "tech_writer",
+        "devops",
+        "data_analyst",
+    },
+    "slides": {"pm", "ba", "tech_writer", "data_analyst"},
+    "office-files": {"pm", "ba", "tech_writer", "data_analyst"},
+    "end-user-eyes": {"designer", "qa", "user_tester", "pm", "ba"},
+    "brainstorming": {"pm", "ba", "designer"},
+    "demo-video": {
+        "pm",
+        "ba",
+        "designer",
+        "dev",
+        "qa",
+        "user_tester",
+        "tech_writer",
+        "devops",
+        "data_analyst",
+    },
+}
+
+
+# The skill every run opens first (launch.py says REQUIRED): it cannot be switched off.
+ALWAYS_ON = "working-a-ticket"
+
+
+def enabled_for(
+    ops: dict, member_id: str | None, role: str | set[str] | None = None
+) -> list[str]:
+    """The board's skills on for a team: the team's own switch, else the project's (on unless switched off).
 
     ``ops["board_skills"]`` is a list (the UI camel-cases dict keys): ``[{skill, on, members_on, members_off}]``; a
-    skill not listed is on for everyone. A role skill is only for its role (``role``: the member's role pack key):
-    a Dev does not get the QA's craft, which would only blur its own."""
+    skill not listed is on for everyone. ``role``: the team's role keys (AI v2; one key or None for the v1 callers).
+    A role skill is only for a team with that role; a craft skill (CRAFT_ROLES) only for a team with a role that
+    does that work, when roles are given."""
     from services import role_skills
 
+    roles = (
+        {role} if isinstance(role, str) else (set(role) if role is not None else None)
+    )
     rows = {
         r.get("skill"): r
         for r in (ops.get("board_skills") or [])
@@ -85,10 +131,16 @@ def enabled_for(ops: dict, member_id: str | None, role: str | None = None) -> li
     out = []
     for name in _skills():
         for_role = role_skills.role_of_skill(name)
-        if for_role is not None and for_role != role:
+        if for_role is not None and for_role not in (roles or set()):
+            continue
+        if (
+            roles is not None
+            and name in CRAFT_ROLES
+            and not (CRAFT_ROLES[name] & roles)
+        ):
             continue
         r = rows.get(name)
-        if r is None:
+        if r is None or name == ALWAYS_ON:
             out.append(name)
             continue
         if member_id and member_id in (r.get("members_on") or []):

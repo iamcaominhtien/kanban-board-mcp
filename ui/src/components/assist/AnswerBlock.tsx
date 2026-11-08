@@ -1,27 +1,21 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { assistApi } from '../../api/assist';
+import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { assistApi, assistKeys } from '../../api/assist';
 import { extractError } from '../../api/extractError';
-import type { AssistDraft, AssistState, ChatDetail, ChatMessage } from '../../types/assist';
+import type { ChatDetail, ChatMessage } from '../../types/assist';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { AiAvatar, hhmm, secondsSince, useAiBoardState } from '../ai/aiUi';
 import { useAssist } from './AssistContext';
-import { BoardAiAvatar, CostChip, TicketPill, usd } from './assistUi';
-import { DraftChanges } from './DraftChanges';
-import { DraftAiMembers } from './DraftAiMembers';
+import { BoardAiAvatar, CostChip, TicketPill, currentPerson } from './assistUi';
+import { DoneReceipt } from './DoneReceipt';
 import { LineIcon } from '../ui/LineIcon';
 
 const SLOW_AFTER_S = 30;
 
-/** What a chat about one thing (a ticket, an idea) adds to an answer: sharing it, its run, its own draft kinds. */
+/** What a chat about one thing (a ticket, an idea) adds to an answer: sharing it. */
 export interface AnswerPanel {
   /** "Post as comment": resolves when the comment exists. Only offered when given. */
   onPostComment?: (msg: ChatMessage) => Promise<void>;
-  /** Open the run a "Do the work" message started. */
-  onOpenRun?: (runId: string) => void;
-  /** "See usage" on the daily cap tile. */
-  onOpenUsage?: () => void;
-  /** A draft of a kind the panel's scope owns; return null to use the board's own draft card. */
-  renderDraft?: (draft: AssistDraft) => ReactNode | null;
 }
 
 function Steps({ steps, live }: { steps: ChatMessage['steps']; live: boolean }) {
@@ -45,23 +39,20 @@ function useTick(active: boolean) {
   }, [active]);
 }
 
-/** One Board AI answer in every state: thinking with steps, streaming, slow, done with sources and suggested
- * actions, stopped, error, rate-limited, over budget; truncated context, injection and private-doc notices (B, I). */
+/** One Board AI answer in every state: thinking with steps, streaming, slow, done with sources and the receipt of what
+ * it did, stopped, error, rate-limited; truncated context, injection and private-doc notices (B, G). */
 export function AnswerBlock({
   msg,
   chat,
-  state,
-  onSend,
   panel,
 }: {
   msg: ChatMessage;
   chat: ChatDetail;
-  state: AssistState | undefined;
-  onSend: (text: string, opts?: { draft?: boolean }) => void;
   /** Set by the chat panel of a ticket or an idea (design/screens/ai-where-you-work.md, B). */
   panel?: AnswerPanel;
 }) {
   const ctx = useAssist();
+  const qc = useQueryClient();
   const { members } = useAiBoardState();
   const answerer = msg.memberId ? members.get(msg.memberId) : undefined;
   const [posting, setPosting] = useState(false);
@@ -77,7 +68,6 @@ export function AnswerBlock({
   const [keepWaiting, setKeepWaiting] = useState(false);
   const live = ['thinking', 'streaming', 'queued', 'rate_limited'].includes(msg.state);
   useTick(live);
-  const draft = chat.drafts.find((d) => d.id === msg.draftId) ?? null;
   const projectId = chat.projectId;
 
   const act = async (fn: () => Promise<unknown>) => {
@@ -94,14 +84,42 @@ export function AnswerBlock({
   const stop = () => act(() => assistApi.stop(msg.id));
   const retry = (sendAll = false) => act(() => assistApi.retry(msg.id, sendAll));
   const goOn = () => act(() => assistApi.retry(msg.id, false, true));
+  const undoAll = () =>
+    act(async () => {
+      await assistApi.undo(msg.id);
+      await qc.invalidateQueries({ queryKey: assistKeys.chat(chat.id) });
+    });
   const elapsed = secondsSince(msg.createdAt) ?? 0;
   const ctxInfo = msg.context;
   // the tool the member used last ("Using get_ticket · YU-12"), when it uses its own tools
   const lastStep = msg.steps.length ? msg.steps[msg.steps.length - 1].text : '';
   const usingTool = lastStep.startsWith('Using ');
 
+  const receiptBlock =
+    ctxInfo.receipt && ctxInfo.receipt.applied.length > 0 ? (
+      <div style={{ marginTop: 8 }}>
+        <DoneReceipt
+          receipt={ctxInfo.receipt}
+          person={chat.owner || currentPerson()}
+          busy={busy}
+          onUndo={() => void undoAll()}
+        />
+      </div>
+    ) : null;
+
   let body;
-  if (msg.state === 'thinking' || msg.state === 'queued') {
+  if ((msg.state === 'thinking' || msg.state === 'queued') && ctxInfo.team) {
+    // a message to the team: its lead answers here when it reaches it, and keeps working meanwhile
+    body = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="answer-waiting-team">
+        <div style={{ fontWeight: 700, fontSize: 13 }}>Waiting for {ctxInfo.team}…</div>
+        <div className="ai-muted">
+          It reads your message at its next step, answers here and carries on with its work. Tell it to stop if you want
+          it to.
+        </div>
+      </div>
+    );
+  } else if (msg.state === 'thinking' || msg.state === 'queued') {
     const slow = elapsed >= SLOW_AFTER_S && !keepWaiting;
     body = (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="answer-thinking">
@@ -118,7 +136,7 @@ export function AnswerBlock({
             <div className="ai-hint">
               {usingTool
                 ? `${lastStep}… Reading the board with its tools can take a while. You can keep working meanwhile.`
-                : 'Usually a few seconds. The provider is busy. You can keep working meanwhile.'}
+                : 'Usually a few seconds. Claude Code is busy. You can keep working meanwhile.'}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" className="ai-btn ai-btn-sm" onClick={() => setKeepWaiting(true)}>
@@ -139,11 +157,9 @@ export function AnswerBlock({
             </button>
           </div>
         )}
-        <div className="ai-muted">You can stop at any time. Tokens used so far are still charged.</div>
       </div>
     );
   } else if (msg.state === 'streaming') {
-    const soFar = msg.metered ? (msg.text.length / 4 / 1_000_000) * 15 : 0;
     body = (
       <div data-testid="answer-streaming">
         <MarkdownRenderer docs={{ projectId, onOpenTicket: ctx?.onOpenTicket }}>{msg.text}</MarkdownRenderer>
@@ -160,7 +176,6 @@ export function AnswerBlock({
               {lastStep}
             </span>
           )}
-          {msg.metered && <span className="as-cost">{usd(soFar)} so far</span>}
           <span style={{ flex: 1 }} />
           <button type="button" className="ai-btn ai-btn-sm" disabled={busy} onClick={() => void stop()}>
             Stop
@@ -170,41 +185,49 @@ export function AnswerBlock({
     );
   } else if (msg.state === 'error') {
     body = (
-      <div className="as-tile as-tile-error" data-testid="answer-error">
-        <div className="as-tile-title">Couldn’t get an answer</div>
-        <div className="ai-hint">
-          {msg.error.message ?? 'The provider returned an error.'} Nothing was changed and nothing was charged. Your
-          message is kept.
+      <div>
+        <div className="as-tile as-tile-error" data-testid="answer-error">
+          <div className="as-tile-title">Couldn’t get an answer</div>
+          <div className="ai-hint">
+            {msg.error.message ?? 'Claude Code did not answer.'}{' '}
+            {ctxInfo.receipt?.applied.length
+              ? 'It had changed some things before it stopped: see below.'
+              : 'Nothing was changed.'}{' '}
+            Your message is kept.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {/* asking again would do the same work twice: after changes, the person writes a new message */}
+            {!ctxInfo.receipt?.applied.length && (
+              <button
+                type="button"
+                className="ai-btn ai-btn-primary ai-btn-sm"
+                disabled={busy}
+                onClick={() => void retry()}
+              >
+                Try again
+              </button>
+            )}
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm"
+              onClick={() => {
+                void navigator.clipboard?.writeText(JSON.stringify(msg.error, null, 2));
+                setCopied(true);
+              }}
+            >
+              {copied ? 'Copied' : 'Copy error details'}
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            type="button"
-            className="ai-btn ai-btn-primary ai-btn-sm"
-            disabled={busy}
-            onClick={() => void retry()}
-          >
-            Try again
-          </button>
-          <button
-            type="button"
-            className="ai-btn ai-btn-sm"
-            onClick={() => {
-              void navigator.clipboard?.writeText(JSON.stringify(msg.error, null, 2));
-              setCopied(true);
-            }}
-          >
-            {copied ? 'Copied' : 'Copy error details'}
-          </button>
-        </div>
+        {receiptBlock}
       </div>
     );
   } else if (msg.state === 'rate_limited') {
     const left = msg.retryAt ? Math.max(0, Math.round((new Date(msg.retryAt).getTime() - Date.now()) / 1000)) : 0;
-    const who = state?.boardAi.providerLabel ?? 'the provider';
     body = (
       <div className="as-tile as-tile-warn" data-testid="answer-rate-limited">
-        <div className="as-tile-title">Rate-limited by {who}</div>
-        <div className="ai-hint">Too many requests on this API key. Your message is queued and sends in {left} s.</div>
+        <div className="as-tile-title">Rate-limited by the Claude account</div>
+        <div className="ai-hint">The account’s usage window is full. Your message is queued and sends in {left} s.</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             type="button"
@@ -218,40 +241,6 @@ export function AnswerBlock({
             Cancel
           </button>
         </div>
-      </div>
-    );
-  } else if (msg.state === 'over_budget' && msg.error.daily) {
-    body = (
-      <div className="as-tile as-tile-warn" data-testid="answer-over-budget">
-        <div className="as-tile-title">AI is paused until tomorrow</div>
-        <div className="ai-hint">
-          The daily cap was reached. Ask-only answers and drafts stop; reading the thread still works.
-        </div>
-        <button
-          type="button"
-          className="ai-btn ai-btn-sm"
-          style={{ alignSelf: 'flex-start' }}
-          onClick={panel?.onOpenUsage ?? ctx?.onOpenSettings}
-        >
-          See usage
-        </button>
-      </div>
-    );
-  } else if (msg.state === 'over_budget') {
-    const cap = (msg.error.cap as number | undefined) ?? state?.monthlyCap ?? 0;
-    const spent = (msg.error.spent as number | undefined) ?? state?.usedMonth ?? 0;
-    body = (
-      <div className="as-tile as-tile-warn" data-testid="answer-over-budget">
-        <div className="as-tile-title">
-          Monthly cap reached · {usd(spent, 2)} of {usd(cap, 2)}
-        </div>
-        <div className="ai-hint">
-          Chat is paused until {String(msg.error.resets ?? state?.resets ?? 'the 1st')} or until an owner raises the
-          cap. Past chats stay readable. Drafts you already have can still be applied.
-        </div>
-        <button type="button" className="ai-link" style={{ alignSelf: 'flex-start' }} onClick={ctx?.onOpenSettings}>
-          Open usage in Settings → AI
-        </button>
       </div>
     );
   } else {
@@ -280,39 +269,8 @@ export function AnswerBlock({
             </button>
           </div>
         )}
-        {ctxInfo.run && (
-          <div className="as-tile" style={{ marginTop: 8 }} data-testid="answer-run">
-            <div className="as-tile-title">Run #{ctxInfo.run.number} started</div>
-            <div className="ai-hint">
-              {ctxInfo.run.memberName} works within its limits, stops at Review and asks you before risky steps.
-            </div>
-            {panel?.onOpenRun && (
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm"
-                style={{ alignSelf: 'flex-start' }}
-                onClick={() => panel.onOpenRun?.(ctxInfo.run!.id)}
-              >
-                Open run
-              </button>
-            )}
-          </div>
-        )}
-        {draft && (
-          <div style={{ marginTop: 8 }}>
-            {panel?.renderDraft?.(draft) ??
-              (draft.kind === 'ai_members' ? (
-                <DraftAiMembers draftId={draft.id} initial={draft} />
-              ) : (
-                <DraftChanges
-                  draftId={draft.id}
-                  initial={draft}
-                  onRefresh={() => void act(() => assistApi.retry(msg.id))}
-                />
-              ))}
-          </div>
-        )}
-        {panel && !ctxInfo.run && msg.text && (
+        {receiptBlock}
+        {panel && msg.text && (
           <div className="sc-share" data-testid="answer-share">
             {panel.onPostComment &&
               (ctxInfo.posted ? (
@@ -353,23 +311,6 @@ export function AnswerBlock({
             </button>
           </div>
         )}
-        {msg.actions.length > 0 && (
-          <>
-            <div className="as-label">Suggested actions · drafts only</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {msg.actions.map((a) => (
-                <button
-                  key={a.label}
-                  type="button"
-                  className="as-action"
-                  onClick={() => onSend(a.request, { draft: true })}
-                >
-                  <LineIcon name="edit" size={13} /> {a.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
         {ctxInfo.injections && ctxInfo.injections.length > 0 && (
           <div className="as-tile as-tile-slate" style={{ marginTop: 8 }} data-testid="answer-injection">
             <div className="ai-hint">
@@ -401,7 +342,7 @@ export function AnswerBlock({
                   </span>
                 </div>
                 <div className="ai-hint">
-                  Not sent to the provider and not citable. Only a doc's owner can include it for one chat.
+                  Not sent to Claude Code and not citable. Only a doc's owner can include it for one chat.
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
@@ -436,12 +377,12 @@ export function AnswerBlock({
                 See what was sent
               </button>
               <button type="button" className="ai-btn ai-btn-sm" disabled={busy} onClick={() => void retry(true)}>
-                Send all{msg.metered ? ` (~${usd(((trunc.total - trunc.sent) / 1_000_000) * 3, 2)})` : ''}
+                Send all
               </button>
             </div>
           </div>
         )}
-        {!ctxInfo.run && (
+        {
           <div className="as-meta">
             <button
               type="button"
@@ -456,7 +397,7 @@ export function AnswerBlock({
             </button>
             <span className="ai-muted">answered {hhmm(msg.finishedAt ?? msg.createdAt)}</span>
           </div>
-        )}
+        }
         {showSources && (
           <div
             className="as-tile"
@@ -487,7 +428,7 @@ export function AnswerBlock({
             </div>
           </div>
         )}
-        {!ctxInfo.run && (
+        {
           <div className="as-meta" style={{ marginTop: 6 }}>
             <div className="as-icons">
               <button
@@ -498,9 +439,11 @@ export function AnswerBlock({
               >
                 <LineIcon name="copy" size={14} />
               </button>
-              <button type="button" title="Regenerate" aria-label="Regenerate" onClick={() => void retry()}>
-                <LineIcon name="refresh" size={14} />
-              </button>
+              {!ctxInfo.receipt?.applied.length && (
+                <button type="button" title="Regenerate" aria-label="Regenerate" onClick={() => void retry()}>
+                  <LineIcon name="refresh" size={14} />
+                </button>
+              )}
               <button
                 type="button"
                 title="Helpful"
@@ -521,18 +464,18 @@ export function AnswerBlock({
               </button>
             </div>
             <span style={{ flex: 1 }} />
-            <CostChip cost={msg.cost} tokens={msg.tokensIn + msg.tokensOut} metered={msg.metered} />
+            {msg.metered && <CostChip cost={msg.cost} tokens={msg.tokensIn + msg.tokensOut} />}
           </div>
-        )}
+        }
       </div>
     );
   }
   return (
     <div className="as-ai">
       {answerer ? (
-        <AiAvatar provider={answerer.provider} color={answerer.color} glyph={answerer.glyph} size={26} />
+        <AiAvatar provider={answerer.provider} color={answerer.color} size={26} />
       ) : (
-        <BoardAiAvatar provider={state?.boardAi.provider} size={26} />
+        <BoardAiAvatar size={26} />
       )}
       <div className="as-ai-body">
         {body}

@@ -8,7 +8,6 @@ const http = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), post: vi.fn(), patc
 vi.mock('../api/client', () => ({ client: http }));
 // The AI lines of a ticket card have their own tests and their own queries
 vi.mock('./ai/RunPanel', () => ({ CardAiFooter: () => null }));
-vi.mock('./workflowBoard/WorkflowBoardContext', () => ({ WorkflowCardChip: () => null }));
 vi.mock('./schedules/ScheduleTicketBlock', () => ({ ScheduleCardChip: () => null }));
 vi.mock('./assist/BoardHealth', () => ({ CardInsightChip: () => null }));
 

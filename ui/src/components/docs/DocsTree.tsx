@@ -46,8 +46,6 @@ interface Props {
   onHealth?: () => void;
   healthActive?: boolean;
   healthCount?: number;
-  /** Pages with a proposal from an AI member waiting (a purple dot). */
-  proposalPageIds?: Set<string>;
 }
 
 interface Row {
@@ -256,7 +254,6 @@ export function DocsTree({
   onHealth,
   healthActive,
   healthCount,
-  proposalPageIds,
 }: Props) {
   const storageKey = `docsTreeClosed:${projectId}`;
   const [closed, setClosed] = useState<Set<string>>(() => {
@@ -709,32 +706,6 @@ export function DocsTree({
             <TitleTip title={n.title} suppressed={!!drag || menu?.id === n.id}>
               {highlight(n.title, q)}
             </TitleTip>
-          )}
-          {!renaming && aiOn && n.aiHidden && (
-            <span title="Hidden from AI" aria-label="Hidden from AI" style={{ display: 'flex', color: '#9AA8A0' }}>
-              <Icon name="lock" size={11} strokeWidth={2} />
-            </span>
-          )}
-          {!renaming && aiOn && n.aiGuidance && (
-            <span
-              title="AI guidance: read by every AI run"
-              aria-label="AI guidance"
-              style={{ width: 7, height: 7, borderRadius: 2, background: '#6B5BD2', flexShrink: 0, margin: '0 3px' }}
-            />
-          )}
-          {!renaming && proposalPageIds?.has(n.id) && (
-            <span
-              title="An AI member proposed changes"
-              aria-label="Proposal waiting"
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: '50%',
-                background: '#6B5BD2',
-                flexShrink: 0,
-                margin: '0 3px',
-              }}
-            />
           )}
           {!renaming && n.status === 'draft' && (
             <span

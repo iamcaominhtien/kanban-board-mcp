@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { aiApi, useAiBoard } from '../../../api/ai';
 import { codeApi, useCodeMutation, useWorktrees } from '../../../api/aiCode';
@@ -8,7 +8,7 @@ import type { HandoverRoute } from '../../../types/aiCode';
 import { LoadError, Toggle } from '../aiUi';
 import { ROUTE_TEXT, ROUTE_TITLE, WorktreeRow, mbText } from './worktreeUi';
 import { TeamRow } from '../settings/settingsUi';
-import { EnvBlock } from '../packs/EnvBlock';
+import { RepoCommands } from './RepoCommands';
 import '../settings/teamOwn.css';
 
 interface WtSettings {
@@ -44,7 +44,9 @@ function TextSetting({
   onSave: (v: string) => void;
   testId?: string;
 }) {
+  // the typed text stays until the stored value changes, so a failed save keeps what was typed
   const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => setDraft(null), [value]);
   return (
     <input
       className="ai-input"
@@ -56,56 +58,27 @@ function TextSetting({
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => {
         if (draft != null && draft !== value) onSave(draft);
-        setDraft(null);
+        else setDraft(null);
       }}
       onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
     />
   );
 }
 
-/** "Use as a check" for a command the Checks step runs; off keeps the command saved but out of the loop. */
-function CheckBox({
-  name,
-  hasCommand,
-  off,
-  disabled,
-  onChange,
-}: {
-  name: 'test' | 'lint' | 'build';
-  hasCommand: boolean;
-  off: boolean;
-  disabled: boolean;
-  onChange: (on: boolean) => void;
-}) {
-  return (
-    <label className="ai-hint" style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
-      <input
-        type="checkbox"
-        data-testid={`check-${name}`}
-        aria-label={`Use ${name} as a check`}
-        checked={!off}
-        disabled={disabled || !hasCommand}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      Use as a check
-    </label>
-  );
-}
-
-/** Where the AIs work (design/screens/ai-operations.md, I and K): worktrees, ports, the prepare command, hand-over. */
+/** Where the AIs work (design/screens/ai-operations.md, I and K): worktrees, ports, hand-over, then the commands the project runs. */
 export function RepositoriesSection({ projectId }: { projectId: string }) {
   const ops = useProjectOps(projectId);
   const patch = usePatchProjectOps(projectId);
   const list = useWorktrees(projectId);
   const board = useAiBoard(projectId);
-  const runOf = new Map((board.data?.runs ?? []).map((r) => [r.ticketId, r]));
+  const runOf = new Map(Object.entries(board.data?.tickets ?? {}));
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const remove = useCodeMutation((id: string) => codeApi.remove(id));
   const keep = useCodeMutation((id: string) => codeApi.keep(id));
   const cleanup = useCodeMutation(() => codeApi.cleanup(projectId));
-  const stop = useCodeMutation((runId: string) => aiApi.cancel(runId, 'Stopped from Repositories'));
+  const stop = useCodeMutation((runId: string) => aiApi.cancel(runId));
   const open = useCodeMutation((id: string) => codeApi.open(id));
 
   if (ops.isLoading) return <div className="ai-skel" style={{ height: 120 }} aria-busy="true" aria-label="Loading" />;
@@ -124,9 +97,6 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
       setError(extractError(e));
     }
   };
-  const checksOff = ops.data.checksOff ?? [];
-  const setCheck = (name: string, on: boolean) =>
-    save({ checksOff: on ? checksOff.filter((x) => x !== name) : [...new Set([...checksOff, name])] });
   const saveWt = (part: WtSettings) => save({ worktrees: part as Record<string, unknown> });
   const act = async (fn: () => Promise<unknown>) => {
     setError(null);
@@ -137,12 +107,14 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
       setError(extractError(e));
     }
   };
-  const repoName = wt.repo || 'the member’s working folder';
-  const perRun = on ? true : !!ops.data.perRunConfig;
+  const repoName = wt.repo || 'the team’s working folder';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="repositories-section">
-      <div style={{ fontSize: 13, fontWeight: 700 }}>Where the AIs work</div>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>Where the AIs work</div>
+        <div className="ai-hint">The code the teams change, and how a finished ticket leaves it.</div>
+      </div>
       <div className="ai-card" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <Row
           title="One worktree per ticket"
@@ -159,7 +131,7 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
         <div className="ai-divider" />
         <Row
           title="Repository path"
-          hint={`The main checkout. Worktrees go in ${wt.repo ? `${wt.repo}.worktrees/<KEY>` : 'a folder beside it'}, never inside, where they would show as untracked files and block a local merge. Empty: the member's working folder.`}
+          hint={`The main checkout. Worktrees go in ${wt.repo ? `${wt.repo}.worktrees/<KEY>` : 'a folder beside it'}, never inside, where they would show as untracked files and block a local merge. Empty: the team's working folder.`}
         >
           <TextSetting
             value={wt.repo ?? ''}
@@ -184,22 +156,7 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
           />
         </Row>
         <Row title="Branch" hint="ai/<KEY>-<slug>, made when the worktree is made.">
-          <span className="ai-mono" style={{ fontSize: 12 }}>
-            ai/&lt;KEY&gt;-&lt;slug&gt;
-          </span>
-        </Row>
-        <Row
-          title="Prepare command"
-          hint="Run once in every new worktree, before the first AI touches it. The board remembers how long it took."
-        >
-          <TextSetting
-            value={wt.prepare ?? ''}
-            placeholder="npm ci && uv sync"
-            label="Prepare command"
-            width={240}
-            testId="wt-prepare"
-            onSave={(v) => void saveWt({ prepare: v })}
-          />
+          <span className="ai-hint">Not editable</span>
         </Row>
         <Row
           title="Ports for worktrees"
@@ -216,9 +173,7 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
               else setError('The first port must be between 1024 and 65515.');
             }}
           />
-          <span className="ai-hint">
-            {wt.basePort ?? 5180}-{(wt.basePort ?? 5180) + 19}
-          </span>
+          <span className="ai-hint">first port</span>
         </Row>
         <Row title="Hand over finished code by" hint={ROUTE_TEXT[route === 'auto' ? 'pr' : route]}>
           <select
@@ -236,88 +191,9 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
             ))}
           </select>
         </Row>
-        <div className="ai-divider" />
-        <div className="ai-hint">
-          The project&rsquo;s checks. The Checks step runs them in the ticket&rsquo;s folder, with no AI and no quota.
-          The scan can fill them in; here you can set them by hand.
-        </div>
-        <Row title="Test command" hint="Run by the Checks step of a workflow, and by the Dev before it hands in.">
-          <TextSetting
-            value={ops.data.commands?.test ?? ''}
-            placeholder="npm test"
-            label="Test command"
-            width={240}
-            testId="cmd-test"
-            onSave={(v) => void save({ commands: { test: v.trim() } })}
-          />
-          <CheckBox
-            name="test"
-            hasCommand={!!ops.data.commands?.test}
-            off={checksOff.includes('test')}
-            disabled={patch.isPending}
-            onChange={(on) => void setCheck('test', on)}
-          />
-        </Row>
-        <Row title="Lint command" hint="Run by the Checks step. Empty: no lint check.">
-          <TextSetting
-            value={ops.data.commands?.lint ?? ''}
-            placeholder="npm run lint"
-            label="Lint command"
-            width={240}
-            testId="cmd-lint"
-            onSave={(v) => void save({ commands: { lint: v.trim() } })}
-          />
-          <CheckBox
-            name="lint"
-            hasCommand={!!ops.data.commands?.lint}
-            off={checksOff.includes('lint')}
-            disabled={patch.isPending}
-            onChange={(on) => void setCheck('lint', on)}
-          />
-        </Row>
-        <Row title="Build command" hint="Run by the Checks step. Empty: no build check.">
-          <TextSetting
-            value={ops.data.commands?.build ?? ''}
-            placeholder="npm run build"
-            label="Build command"
-            width={240}
-            testId="cmd-build"
-            onSave={(v) => void save({ commands: { build: v.trim() } })}
-          />
-          <CheckBox
-            name="build"
-            hasCommand={!!ops.data.commands?.build}
-            off={checksOff.includes('build')}
-            disabled={patch.isPending}
-            onChange={(on) => void setCheck('build', on)}
-          />
-        </Row>
-        <EnvBlock
-          folders={(ops.data.envPath ?? []).map((path) => ({ path, by: 'project' as const }))}
-          onChange={(next) => void save({ envPath: next.map((f) => f.path) })}
-          changeNote="Saved for this project. The next run of a command or a ticket uses it."
-          disabled={patch.isPending}
-        />
-        <div className="ai-divider" />
-        <Row
-          title="Load each member's configuration per run"
-          hint={
-            on
-              ? 'Always on while worktrees are on: nothing is written into the repository.'
-              : 'Skills, hooks and MCP servers are passed when a run starts instead of being written into the member’s folder.'
-          }
-        >
-          <Toggle
-            on={perRun}
-            label="Load each member's configuration per run"
-            testId="wt-per-run"
-            disabled={on || patch.isPending}
-            onChange={(v) => void save({ perRunConfig: v })}
-          />
-        </Row>
         {!on && (
           <div className="ai-hint" data-testid="wt-off-note">
-            Worktrees are off: every member of the project shares {repoName}, the way it works today. Not a git
+            Worktrees are off: every team of the project shares {repoName}, the way it works today. Not a git
             repository? The board says so once and falls back to one shared folder.
           </div>
         )}
@@ -327,6 +203,8 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
           </div>
         )}
       </div>
+
+      <RepoCommands projectId={projectId} />
 
       {on && (
         <div className="ai-card" style={{ padding: 12 }} data-testid="worktree-list">
@@ -392,7 +270,7 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
                     onOpen={() => void act(() => open.mutateAsync(w.ticketId))}
                     onStop={() => {
                       const r = runOf.get(w.ticketId);
-                      if (r) void act(() => stop.mutateAsync(r.id));
+                      if (r) void act(() => stop.mutateAsync(r.runId));
                     }}
                     onRemove={() => void act(() => remove.mutateAsync(w.ticketId))}
                     onKeep={() => void act(() => keep.mutateAsync(w.ticketId))}
@@ -403,8 +281,8 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
             </table>
           )}
           <div className="ai-hint" style={{ marginTop: 8 }}>
-            One worktree per ticket, not per member. A worktree is never removed while something is uncommitted: Remove
-            is not offered, Keep is.
+            One worktree per ticket, not per team. A worktree is never removed while something is uncommitted: Remove is
+            not offered, Keep is.
           </div>
         </div>
       )}

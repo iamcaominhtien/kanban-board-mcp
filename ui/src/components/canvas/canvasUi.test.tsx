@@ -3,14 +3,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import type { Canvas, CanvasBoard, CanvasDoc, CanvasProposal } from '../../api/canvases';
+import type { Canvas, CanvasBoard, CanvasDoc } from '../../api/canvases';
 import { ToastProvider } from '../Toast';
 import { BoardFrame } from './BoardFrame';
 import { CanvasContext, useCanvas, type CanvasApi } from './CanvasContext';
 import { CanvasProvider } from './CanvasProvider';
 import { CanvasEmbed } from './CanvasEmbed';
 import { CanvasEditor } from './CanvasEditor';
-import { AskAiPanel, ProposalReview } from './CanvasAi';
 import { SourceEditor } from './SourceEditor';
 
 // ---- a canvas of two boards, served by a fake API ----
@@ -76,7 +75,6 @@ const CANVAS: Canvas = {
   doc: DOC,
   locks: [],
   openComments: 0,
-  proposalsOpen: 0,
 };
 
 type Handler = (url: string, ...rest: unknown[]) => unknown;
@@ -101,7 +99,6 @@ function run(method: string, url: string, body: unknown, rest: unknown[]) {
   if (h) return h(url, body, ...rest);
   if (method === 'GET' && url === '/canvases/cv_12345678') return reply(CANVAS);
   if (method === 'GET' && url.endsWith('/threads')) return reply([]);
-  if (method === 'GET' && url.endsWith('/proposals')) return reply([]);
   return reply({});
 }
 
@@ -304,7 +301,6 @@ test('a view only person gets no tools to change anything', async () => {
   );
   await screen.findByTestId('canvas-view-only');
   expect(screen.queryByTestId('canvas-done')).toBeNull();
-  expect(screen.queryByTestId('canvas-ask-ai')).toBeNull();
   expect(screen.queryByTestId('canvas-tool-note')).toBeNull();
   expect(screen.getByTestId('canvas-tool-comment')).toBeTruthy(); // they can comment where they can comment on the page
 });
@@ -548,113 +544,6 @@ test('below 40% zoom a board is a picture, not a frame', () => {
   expect(container.querySelector('img')?.getAttribute('src')).toContain('/boards/b_aaaaaaaa/snapshot.png');
 });
 
-// ---- the AI proposal ----
-
-const PROPOSAL = (over: Partial<CanvasProposal['changes'][number]> = {}): CanvasProposal => ({
-  id: 'cp_0123456789',
-  canvasId: 'cv_12345678',
-  author: 'Designer AI',
-  memberId: 'm1',
-  request: 'Move the error under the field',
-  note: 'The error moves under the password field.',
-  status: 'open',
-  version: null,
-  nextVersion: 4,
-  createdAt: '2026-10-31T11:00:00+00:00',
-  decidedBy: null,
-  decidedAt: null,
-  changes: [
-    {
-      boardId: 'b_aaaaaaaa',
-      name: 'Sign in',
-      baseRev: 2,
-      status: 'open',
-      entry: 'index.html',
-      files: [{ path: 'index.html', bytes: 10 }],
-      lines: 4,
-      waitingFor: null,
-      exists: true,
-      before: [{ path: 'index.html', text: '<p>a</p>' }],
-      after: [{ path: 'index.html', text: '<p>b</p>' }],
-      entryUrlAfter: '/canvases/cv_12345678/proposals/cp_0123456789/b_aaaaaaaa/index.html',
-      ...over,
-    },
-    {
-      boardId: 'b_bbbbbbbb',
-      name: 'Sign in: phone',
-      baseRev: 2,
-      status: 'open',
-      entry: 'index.html',
-      files: [{ path: 'index.html', bytes: 10 }],
-      lines: 3,
-      waitingFor: null,
-      exists: true,
-      before: [{ path: 'index.html', text: '<p>a</p>' }],
-      after: [{ path: 'index.html', text: '<p>c</p>' }],
-      entryUrlAfter: '/canvases/cv_12345678/proposals/cp_0123456789/b_bbbbbbbb/index.html',
-    },
-  ],
-});
-
-test('a proposal shows before and after and is accepted for all boards in one call', async () => {
-  handlers['GET /canvases/cv_12345678/proposals'] = () => reply([PROPOSAL()]);
-  handlers['POST /canvases/cv_12345678/proposals/cp_0123456789/decide'] = () =>
-    reply({ ...PROPOSAL(), status: 'accepted', version: 4 });
-  const accepted = vi.fn();
-  const closed = vi.fn();
-  render(wrap(<ProposalReview canvasId="cv_12345678" canDecide onAccepted={accepted} onClose={closed} />));
-  const card = await screen.findByTestId('canvas-proposal');
-  expect(card.textContent).toContain('Designer AI proposes a change to 2 boards');
-  expect(card.textContent).toContain('Version 4 · nothing is saved yet');
-  expect(screen.getAllByTestId('canvas-change')).toHaveLength(2);
-  // before and after are open frames too
-  const frames = card.querySelectorAll('iframe');
-  expect(frames.length).toBe(4);
-  frames.forEach((f) => expect(f.hasAttribute('sandbox')).toBe(false));
-  fireEvent.click(screen.getByTestId('canvas-proposal-accept-all'));
-  await waitFor(() => expect(accepted).toHaveBeenCalled());
-  expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/decide'))?.body).toMatchObject({ accept: 'all' });
-  expect(closed).toHaveBeenCalled();
-});
-
-test('a proposal can be rejected, and a board somebody is editing makes it wait: AI never takes the lock', async () => {
-  handlers['GET /canvases/cv_12345678/proposals'] = () => reply([PROPOSAL()]);
-  handlers['POST /canvases/cv_12345678/proposals/cp_0123456789/decide'] = () =>
-    reply({ ...PROPOSAL(), status: 'rejected' });
-  render(
-    wrap(<ProposalReview canvasId="cv_12345678" canDecide onAccepted={() => undefined} onClose={() => undefined} />),
-  );
-  await screen.findByTestId('canvas-proposal');
-  fireEvent.click(screen.getByTestId('canvas-proposal-reject'));
-  await waitFor(() => expect(calls.some((c) => c.url.endsWith('/decide'))).toBe(true));
-  expect(calls.find((c) => c.url.endsWith('/decide'))?.body).toMatchObject({ accept: [], reject: 'all' });
-  cleanup();
-  handlers['GET /canvases/cv_12345678/proposals'] = () => reply([PROPOSAL({ waitingFor: 'An Nguyen' })]);
-  render(
-    wrap(<ProposalReview canvasId="cv_12345678" canDecide onAccepted={() => undefined} onClose={() => undefined} />),
-  );
-  const waiting = await screen.findByTestId('canvas-ai-waiting');
-  expect(waiting.textContent).toContain('An Nguyen is editing it');
-  expect(waiting.textContent).toContain('never take a lock');
-  expect((screen.getByTestId('canvas-proposal-accept-all') as HTMLButtonElement).disabled).toBe(true);
-});
-
-test('only people who can edit decide a proposal', async () => {
-  handlers['GET /canvases/cv_12345678/proposals'] = () => reply([PROPOSAL()]);
-  render(
-    wrap(
-      <ProposalReview
-        canvasId="cv_12345678"
-        canDecide={false}
-        onAccepted={() => undefined}
-        onClose={() => undefined}
-      />,
-    ),
-  );
-  await screen.findByTestId('canvas-proposal');
-  expect(screen.queryByTestId('canvas-proposal-accept-all')).toBeNull();
-});
-
 // ---- what a review found ----
 
 test('a refresh of the plane while the source is open does not drop and take the lock again', async () => {
@@ -737,44 +626,4 @@ test('Ctrl Z does not undo or delete what other people did meanwhile', async () 
   expect(patches.every((p) => !(p.body as { remove?: string[] }).remove?.length)).toBe(true);
   expect(screen.getAllByTestId('canvas-board')).toHaveLength(3);
   expect(screen.getAllByTestId('canvas-note')).toHaveLength(1);
-});
-
-test('Ask AI shows who answers (the AI that knows the canvas), remembers a pick and sends it', async () => {
-  handlers['GET /canvases/cv_12345678/ai/members'] = () =>
-    reply({
-      defaultMemberId: 'm_dev',
-      why: 'it is working on this ticket',
-      members: [
-        { id: 'm_dev', name: 'Dev An', color: null, ai: { status: 'ready', usable: true, note: '' } },
-        { id: 'm_qa', name: 'QA Quy', color: null, ai: { status: 'ready', usable: true, note: '' } },
-        { id: 'm_off', name: 'Paused Pat', color: null, ai: { status: 'paused', usable: false, note: 'Paused' } },
-      ],
-    });
-  handlers['POST /canvases/cv_12345678/ai/ask'] = () => reply({ id: 'dj_1', state: 'queued' });
-  const started = vi.fn();
-  render(
-    wrap(
-      <AskAiPanel
-        canvasId="cv_12345678"
-        boards={[board('b_00000001', 'Sign in', 0)]}
-        onClose={() => undefined}
-        onStarted={started}
-        onFinished={() => undefined}
-      />,
-    ),
-  );
-  const chip = (await screen.findByTestId('canvas-ai-member')).querySelector('select') as HTMLSelectElement;
-  expect(chip.value).toBe('m_dev');
-  const names = Array.from(chip.options).map((o) => o.textContent);
-  expect(names.join('|')).toContain('Dev An · it is working on this ticket');
-  expect(names.join('|')).not.toContain('Paused Pat'); // only AIs that can answer now are offered
-  fireEvent.change(chip, { target: { value: 'm_qa' } });
-  fireEvent.change(screen.getByTestId('canvas-ai-text'), { target: { value: 'Make it bigger' } });
-  fireEvent.click(screen.getByTestId('canvas-ai-send'));
-  await waitFor(() => expect(started).toHaveBeenCalled());
-  expect(started.mock.calls[0][0]).toMatchObject({ who: 'QA Quy' });
-  expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/ai/ask'))?.body).toMatchObject({
-    memberId: 'm_qa',
-  });
-  expect(localStorage.getItem('canvas-ai-member:cv_12345678')).toBe('m_qa');
 });

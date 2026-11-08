@@ -796,7 +796,9 @@ async def test_comment_threads_pinned_to_a_frame_or_the_plane_resolve_and_reopen
         and t1["board_id"] == bid
         and t2["board_id"] is None
     )
-    assert t1["comments"][0]["mentions"] == ["Hoa"]
+    assert (
+        t1["comments"][0]["mentions"] == []
+    )  # mentions are member ids; "Hoa" is no member here
     rep = await c.post(
         f"/canvases/threads/{t1['id']}/replies",
         json={"body": "It matches the brand sheet"},
@@ -854,11 +856,6 @@ async def test_viewers_can_look_but_not_change_anything(c, pid):
         c.post(f"/canvases/{cv['id']}/threads", json={"body": "hi"}, headers=h),
         c.delete(f"/canvases/{cv['id']}", headers=h),
         c.post(f"/canvases/{cv['id']}/versions/1/restore", headers=h),
-        c.post(
-            f"/canvases/{cv['id']}/ai/ask",
-            json={"board_ids": [bid], "request": "x"},
-            headers=h,
-        ),
     ]
     for coro in calls:
         r = await coro
@@ -930,161 +927,6 @@ async def propose(c, cid, bid, text="<h1>Better</h1>", **extra):
         )
 
 
-async def test_a_proposal_changes_nothing_until_a_person_accepts(c, pid):
-    cv = await make(c, pid)
-    b = await html_board(c, cv["id"])
-    p = await propose(c, cv["id"], b["id"], "<h1>Better</h1><script>go()</script>")
-    ch = p["changes"][0]
-    assert p["status"] == "open" and ch["lines"] > 0 and ch["name"] == "Sign in"
-    after_html = next(f["text"] for f in ch["after"] if f["path"] == "index.html")
-    assert "Better" in after_html and "<script>go()</script>" in after_html
-    assert "Sign in" in next(
-        f["text"] for f in ch["before"] if f["path"] == "index.html"
-    )
-    # the board is untouched
-    now = (await c.get(f"/canvases/{cv['id']}")).json()
-    assert (
-        now["doc"]["boards"][1]["content"]["rev"] == b["content"]["rev"]
-        and now["proposals_open"] == 1
-    )
-    # the "After" preview is served like a frame
-    after = await c.get(
-        f"/canvases/{cv['id']}/proposals/{p['id']}/{b['id']}/index.html"
-    )
-    assert after.status_code == 200 and "content-security-policy" not in after.headers
-    done = await c.post(
-        f"/canvases/{cv['id']}/proposals/{p['id']}/decide", json={"accept": "all"}
-    )
-    assert done.status_code == 200, done.text
-    assert done.json()["status"] == "accepted" and done.json()["version"] == 2
-    cur = (await c.get(f"/canvases/{cv['id']}")).json()["doc"]["boards"][1]
-    new = await c.get(
-        f"/canvases/{cv['id']}/boards/{b['id']}/r/{cur['content']['rev']}/index.html"
-    )
-    assert "Better" in new.text
-    v = (await c.get(f"/canvases/{cv['id']}/versions")).json()[0]
-    assert v["reason"] == "proposal" and "Designer AI" in v["note"]
-    again = await c.post(
-        f"/canvases/{cv['id']}/proposals/{p['id']}/decide", json={"accept": "all"}
-    )
-    assert again.status_code == 409
-
-
-async def test_accept_one_reject_the_rest(c, pid):
-    cv = await make(c, pid)
-    b1 = await html_board(c, cv["id"], "One")
-    b2 = await html_board(c, cv["id"], "Two")
-    from services import canvas_proposals
-
-    async with test_async_session() as session:
-        p = await canvas_proposals.create(
-            session,
-            cv["id"],
-            changes=[
-                {"board_id": b1["id"], "files": {"index.html": "<h1>A</h1>"}},
-                {"board_id": b2["id"], "files": {"index.html": "<h1>B</h1>"}},
-            ],
-            author="Designer AI",
-        )
-    r = await c.post(
-        f"/canvases/{cv['id']}/proposals/{p['id']}/decide",
-        json={"accept": [b1["id"]], "reject": "rest"},
-    )
-    assert r.status_code == 200 and r.json()["status"] == "partly"
-    assert {x["board_id"]: x["status"] for x in r.json()["changes"]} == {
-        b1["id"]: "accepted",
-        b2["id"]: "rejected",
-    }
-
-
-async def test_ai_never_takes_a_lock_a_proposal_for_a_locked_frame_waits(c, pid):
-    await add_member(c, pid, "An")
-    cv = await make(c, pid)
-    b = await html_board(c, cv["id"])
-    await c.post(
-        f"/canvases/{cv['id']}/boards/{b['id']}/lock", headers={"x-actor": "An"}
-    )
-    p = await propose(c, cv["id"], b["id"])
-    assert p["changes"][0]["waiting_for"] == "An"
-    assert canvas_locks.holder_of(cv["id"], b["id"]).holder == "An"  # still theirs
-    blocked = await c.post(
-        f"/canvases/{cv['id']}/proposals/{p['id']}/decide", json={"accept": "all"}
-    )
-    assert (
-        blocked.status_code == 423
-        and blocked.json()["detail"]["code"] == "board_locked"
-    )
-    await c.delete(
-        f"/canvases/{cv['id']}/boards/{b['id']}/lock", headers={"x-actor": "An"}
-    )
-    listed = (await c.get(f"/canvases/{cv['id']}/proposals")).json()
-    assert listed[0]["changes"][0]["waiting_for"] is None
-    assert (
-        await c.post(
-            f"/canvases/{cv['id']}/proposals/{p['id']}/decide", json={"accept": "all"}
-        )
-    ).status_code == 200
-
-
-async def test_a_proposal_goes_stale_when_the_frame_changed(c, pid):
-    cv = await make(c, pid)
-    b = await html_board(c, cv["id"])
-    p = await propose(c, cv["id"], b["id"])
-    await c.put(
-        f"/canvases/{cv['id']}/boards/{b['id']}/content",
-        json={"files": [{"path": "index.html", "text": "<h1>Mine</h1>"}]},
-    )
-    stale = await c.post(
-        f"/canvases/{cv['id']}/proposals/{p['id']}/decide", json={"accept": "all"}
-    )
-    assert (
-        stale.status_code == 409 and stale.json()["detail"]["code"] == "proposal_stale"
-    )
-    assert (await c.get(f"/canvases/{cv['id']}/proposals")).json()[0]["changes"][0][
-        "status"
-    ] == "stale"
-
-
-async def test_proposals_are_for_html_frames_only(c, pid):
-    cv = await make(c, pid, start="none")
-    r = await c.post(
-        f"/canvases/{cv['id']}/boards",
-        data={"kind": "image"},
-        files=[("files", ("a.png", png(), "image/png"))],
-    )
-    from services import canvas_proposals
-    from services.docs_text import DocsError
-
-    async with test_async_session() as session:
-        with pytest.raises(DocsError) as e:
-            await canvas_proposals.create(
-                session,
-                cv["id"],
-                changes=[
-                    {
-                        "board_id": r.json()["board"]["id"],
-                        "files": {"index.html": "<h1>x</h1>"},
-                    }
-                ],
-            )
-    assert e.value.code == "not_editable_here"
-
-
-def test_the_model_reply_is_parsed_per_frame():
-    from services.canvas_proposals import parse_reply
-
-    reply = (
-        "=== FILE b_0a1b2c3d index.html ===\n<h1>New</h1>\n=== END ===\n"
-        "=== FILE b_0a1b2c3d style.css ===\n```css\nh1{color:red}\n```\n=== END ===\nNOTE: made the heading red"
-    )
-    files, note = parse_reply(reply)
-    assert files == {
-        "b_0a1b2c3d": {"index.html": "<h1>New</h1>", "style.css": "h1{color:red}"}
-    }
-    assert note == "made the heading red"
-    assert parse_reply("I could not do that") == ({}, "")
-
-
 async def test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons_thread(
     c, pid
 ):
@@ -1103,7 +945,7 @@ async def test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons
         )
     ).json()
     assert ai["created_by"] == "Designer AI"
-    from models import AiMember
+    from models import AiTeam
 
     async with test_async_session() as session:
         from sqlmodel import select
@@ -1114,9 +956,7 @@ async def test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons
             await session.exec(select(Member).where(Member.name == "Designer AI"))
         ).first()
         session.add(
-            AiMember(
-                id=m.id, project_id=pid, provider="claude-code", connection="local"
-            )
+            AiTeam(id=m.id, project_id=pid, provider="claude-code", connection="local")
         )
         await session.commit()
         with pytest.raises(Exception) as e:
@@ -1325,8 +1165,6 @@ def test_an_id_that_becomes_a_folder_name_must_have_the_shape_the_server_makes()
             svc.board_dir("cv_12345678", bad, 1)
     with _pytest.raises(DocsError):
         svc.canvas_dir("../../etc")
-    with _pytest.raises(DocsError):
-        svc.proposal_dir("cv_12345678", "../p")
     assert svc.board_dir("cv_12345678", "b_0a1b2c3d", 3).name == "r3"
 
 

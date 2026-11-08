@@ -230,7 +230,6 @@ export function useCanvasEditor(canvasId: string) {
             ? {
                 ...cur,
                 openComments: c.openComments,
-                proposalsOpen: c.proposalsOpen,
                 title: c.title,
                 version: c.version,
               }
@@ -289,7 +288,7 @@ export function useCanvasEditor(canvasId: string) {
     return true;
   }, [apply]);
 
-  /** Reload from the server (after adding a frame, restoring a version, accepting a proposal). Unsaved layout is kept. */
+  /** Reload from the server (after adding a frame, restoring a version). Unsaved layout is kept. */
   const reload = useCallback(async () => {
     const c = await fetchCanvas(canvasId);
     const working = docRef.current;

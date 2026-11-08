@@ -3,7 +3,7 @@ case's files beside its Expected result and Notes and who started or decided it,
 anywhere on a ticket (a comment, a test case, Linked docs) written in its Activity."""
 
 from kanban_mcp import operations as ops
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 
 AN = {"X-Actor": "An Nguyen"}
 
@@ -43,28 +43,6 @@ async def test_a_person_names_whose_review_a_ticket_waits_for(env):
     # an AI clears it over MCP like any other field
     out = await ops.update_ticket(tid, clear_fields=["review_requested_from"])
     assert out["review_requested_from"] is None
-
-
-async def test_entering_review_asks_the_reviewer_the_ticket_already_has(env):
-    c = env["c"]
-    pid, _ = await _project(c)
-    rin = await _runner(c, pid, env["repo"], name="Reviewer Rin")
-    tid = await _ticket(c, pid)
-    r = await c.put(f"/tickets/{tid}/ai/reviewer", json={"member_id": rin["id"]})
-    assert r.status_code == 200, r.text
-    await c.patch(f"/tickets/{tid}", json={"status": "in-progress"})
-    assert (await _fields(c, tid))["review_requested_from"] is None
-    await c.patch(f"/tickets/{tid}", json={"status": "review"})
-    assert (await _fields(c, tid))["review_requested_from"] == rin["id"]
-    # a person's own choice is never replaced
-    ha = (await c.post(f"/projects/{pid}/members", json={"name": "Ha My"})).json()
-    await c.patch(f"/tickets/{tid}", json={"status": "in-progress"})
-    await c.patch(f"/tickets/{tid}", json={"review_requested_from": ha["id"]})
-    await c.patch(f"/tickets/{tid}", json={"status": "review"})
-    assert (await _fields(c, tid))["review_requested_from"] == ha["id"]
-
-
-# --- 6. Test case files and who -----------------------------------------------------------------------------------
 
 
 async def test_a_test_case_keeps_files_by_field_and_who_ran_and_decided_it(env):

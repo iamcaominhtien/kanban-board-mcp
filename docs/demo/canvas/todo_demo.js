@@ -167,7 +167,7 @@ pre{background:#111827;color:#e5e7eb;padding:10px 12px;border-radius:8px;font-si
   }
   html += `<div class="p"><div><span class="tag">MCP</span><h2>AI tạo canvas từ một thư mục (không thêm tool mới)</h2></div>
 <ul><li>Action mới <code>docs_write(canvas_create)</code>: mỗi thư mục con có <code>index.html</code> là một frame; <code>frame.json</code> đặt tên và cỡ (<code>"phone" | "tablet" | "desktop" | [w, h]</code>). Mọi frame được kiểm tra trước khi tạo gì cả. Có <code>canvas_id</code> thì thêm frame vào canvas đã có.</li>
-<li>Trả về dòng <code>markdown</code> để đặt vào ticket, idea hoặc trang Docs. AI vẫn không sửa frame có sẵn: chỉ comment hoặc <code>canvas_propose</code> để người duyệt.</li>
+<li>Trả về dòng <code>markdown</code> để đặt vào ticket, idea hoặc trang Docs. AI sửa frame có sẵn bằng <code>canvas_update</code>: frame đổi ngay, và History không tạo version cho thay đổi này.</li>
 <li>Hướng dẫn MCP bảo AI viết frame responsive (viewport meta, % / flex / grid, media query) vì công tắc Desktop / Tablet / Phone vẽ lại cùng một trang.</li></ul>
 <pre>todo/
   today/index.html        frame.json  {"name": "Today", "size": "phone"}

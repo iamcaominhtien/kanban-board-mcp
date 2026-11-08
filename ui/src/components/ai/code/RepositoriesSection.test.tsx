@@ -38,19 +38,22 @@ interface Setup {
 }
 function setup({ ops = {}, worktrees = [], runs = [] }: Setup = {}) {
   http.get.mockImplementation((url: string) => {
-    if (url.endsWith('/ai/ops'))
+    if (url.endsWith('/ai/settings'))
       return ops === 'error'
         ? Promise.reject({ response: { data: { detail: 'ops down' } } })
-        : Promise.resolve({ data: { hangAfterMin: 5, ...ops } });
+        : Promise.resolve({ data: { ops: { hangAfterMin: 5, ...ops } } });
     if (url.endsWith('/ai/worktrees'))
       return worktrees === 'error'
         ? Promise.reject({ response: { data: { detail: 'git down' } } })
         : Promise.resolve({ data: { worktrees, totalMb: 2048 } });
-    if (url.endsWith('/ai/board')) return Promise.resolve({ data: { runs, settings: {} } });
+    if (url.endsWith('/ai/board'))
+      return Promise.resolve({
+        data: { tickets: Object.fromEntries((runs as { ticketId: string }[]).map((r) => [r.ticketId, r])) },
+      });
     return Promise.reject(new Error(`unexpected GET ${url}`));
   });
   http.patch.mockImplementation((_u: string, body: unknown) =>
-    Promise.resolve({ data: { hangAfterMin: 5, ...(body as object) } }),
+    Promise.resolve({ data: { ops: { hangAfterMin: 5, ...((body as { ops: object }).ops ?? {}) } } }),
   );
   http.post.mockResolvedValue({ data: {} });
 }
@@ -73,12 +76,16 @@ describe('RepositoriesSection settings', () => {
     fireEvent.change(screen.getByTestId('cmd-lint'), { target: { value: ' npm run lint ' } });
     fireEvent.blur(screen.getByTestId('cmd-lint'));
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { commands: { lint: 'npm run lint' } }),
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
+        ops: { commands: { lint: 'npm run lint' } },
+      }),
     );
     fireEvent.change(screen.getByTestId('cmd-build'), { target: { value: 'npm run build' } });
     fireEvent.blur(screen.getByTestId('cmd-build'));
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { commands: { build: 'npm run build' } }),
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
+        ops: { commands: { build: 'npm run build' } },
+      }),
     );
   });
 
@@ -96,10 +103,12 @@ describe('RepositoriesSection settings', () => {
     expect(lint.disabled).toBe(true); // no lint command: nothing to switch
     fireEvent.click(test);
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { checksOff: ['build', 'test'] }),
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', { ops: { checksOff: ['build', 'test'] } }),
     );
     fireEvent.click(build);
-    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { checksOff: ['test'] }));
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', { ops: { checksOff: ['test'] } }),
+    );
   });
 
   it('edits the folders put in front of the PATH', async () => {
@@ -116,14 +125,18 @@ describe('RepositoriesSection settings', () => {
     fireEvent.change(add, { target: { value: '/Users/me/.nvm/versions/node/v22/bin' } });
     fireEvent.blur(add);
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', {
-        envPath: ['/opt/homebrew/bin', '/Users/me/.nvm/versions/node/v22/bin'],
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
+        ops: {
+          envPath: ['/opt/homebrew/bin', '/Users/me/.nvm/versions/node/v22/bin'],
+        },
       }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Remove /opt/homebrew/bin' }));
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', {
-        envPath: ['/Users/me/.nvm/versions/node/v22/bin'],
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
+        ops: {
+          envPath: ['/Users/me/.nvm/versions/node/v22/bin'],
+        },
       }),
     );
     expect(screen.queryByLabelText('The app’s own PATH')).toBeNull(); // the settings page does not know it
@@ -145,14 +158,18 @@ describe('RepositoriesSection settings', () => {
     renderIt();
     expect(await screen.findByText(/Couldn't load the repository settings: ops down/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    await waitFor(() => expect(http.get.mock.calls.filter((c) => String(c[0]).endsWith('/ai/ops')).length).toBe(2));
+    await waitFor(() =>
+      expect(http.get.mock.calls.filter((c) => String(c[0]).endsWith('/ai/settings')).length).toBe(2),
+    );
   });
 
   it('turns worktrees on with a PATCH', async () => {
     setup({ ops: { worktrees: { on: false } } });
     renderIt();
     fireEvent.click(await screen.findByTestId('wt-on'));
-    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { worktrees: { on: true } }));
+    await waitFor(() =>
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', { ops: { worktrees: { on: true } } }),
+    );
     expect(await screen.findByTestId('worktree-list')).toBeTruthy();
   });
 
@@ -165,12 +182,14 @@ describe('RepositoriesSection settings', () => {
     fireEvent.change(repo, { target: { value: '  /code/other  ' } });
     fireEvent.blur(repo);
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { worktrees: { repo: '/code/other' } }),
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
+        ops: { worktrees: { repo: '/code/other' } },
+      }),
     );
     fireEvent.change(screen.getByTestId('wt-repo'), { target: { value: '   ' } });
     fireEvent.blur(screen.getByTestId('wt-repo'));
     await waitFor(() =>
-      expect(http.patch).toHaveBeenLastCalledWith('/projects/p/ai/ops', { worktrees: { repo: null } }),
+      expect(http.patch).toHaveBeenLastCalledWith('/projects/p/ai/settings', { ops: { worktrees: { repo: null } } }),
     );
   });
 
@@ -182,13 +201,17 @@ describe('RepositoriesSection settings', () => {
     fireEvent.keyDown(base, { key: 'Enter' });
     fireEvent.blur(base);
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { worktrees: { baseBranch: 'develop' } }),
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
+        ops: { worktrees: { baseBranch: 'develop' } },
+      }),
     );
     const prep = screen.getByTestId('wt-prepare');
     fireEvent.change(prep, { target: { value: 'make setup' } });
     fireEvent.blur(prep);
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { worktrees: { prepare: 'make setup' } }),
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
+        ops: { worktrees: { prepare: 'make setup' } },
+      }),
     );
   });
 
@@ -204,7 +227,7 @@ describe('RepositoriesSection settings', () => {
     fireEvent.change(screen.getByTestId('wt-base-port'), { target: { value: '6000' } });
     fireEvent.blur(screen.getByTestId('wt-base-port'));
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { worktrees: { basePort: 6000 } }),
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', { ops: { worktrees: { basePort: 6000 } } }),
     );
   });
 
@@ -214,24 +237,8 @@ describe('RepositoriesSection settings', () => {
     expect(await screen.findByText(/The branch is pushed and you open whatever your host calls/)).toBeTruthy();
     fireEvent.change(screen.getByTestId('wt-handover'), { target: { value: 'local' } });
     await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { worktrees: { handover: 'local' } }),
+      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', { ops: { worktrees: { handover: 'local' } } }),
     );
-  });
-
-  it('toggles per-run configuration when worktrees are off, and locks it on when they are on', async () => {
-    setup({ ops: { worktrees: { on: false }, perRunConfig: false } });
-    const { unmount } = renderIt();
-    const sw = await screen.findByTestId('wt-per-run');
-    expect(sw.getAttribute('aria-checked')).toBe('false');
-    fireEvent.click(sw);
-    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/ops', { perRunConfig: true }));
-    unmount();
-    setup({ ops: { worktrees: { on: true } } });
-    renderIt();
-    const locked = await screen.findByTestId('wt-per-run');
-    expect(locked.getAttribute('aria-checked')).toBe('true');
-    expect((locked as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/Always on while worktrees are on/)).toBeTruthy();
   });
 
   it('shows the error when a save fails', async () => {
@@ -281,13 +288,11 @@ describe('RepositoriesSection worktree list', () => {
     setup({
       ops: on,
       worktrees: [wt()],
-      runs: [{ id: 'run9', ticketId: 'KAN-1', memberName: 'Dev An', state: 'running' }],
+      runs: [{ runId: 'run9', ticketId: 'KAN-1', memberId: 'm1', state: 'running' }],
     });
     renderIt();
     fireEvent.click(await screen.findByRole('button', { name: 'Stop' }));
-    await waitFor(() =>
-      expect(http.post).toHaveBeenCalledWith('/ai/runs/run9/cancel', { reason: 'Stopped from Repositories' }),
-    );
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/runs/run9/cancel'));
   });
 
   it('cleans up finished worktrees and reports what was removed and kept', async () => {

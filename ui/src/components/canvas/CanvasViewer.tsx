@@ -46,12 +46,14 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
   const [notes, setNotes] = useState(false);
   const [interact, setInteract] = useState(false);
   const [barVisible, setBarVisible] = useState(true);
-  const [selThread, setSelThread] = useState<string | null>(null);
+  const [selThread, setSelThread] = useState<string | null>(request.threadId ?? null);
   const hideTimer = useRef<number | undefined>(undefined);
   const { ref: stageRef, size } = useSize<HTMLDivElement>();
   const present = mode === 'present';
 
-  const pageId = page ?? c?.doc.pages[0]?.id;
+  // opened at a board (a notification): its page tab, not the first one
+  const startPage = request.boardId ? c?.doc.boards.find((b) => b.id === request.boardId)?.page : undefined;
+  const pageId = page ?? startPage ?? c?.doc.pages[0]?.id;
   const list = useMemo(() => (c && pageId ? orderedBoards(c.doc, pageId) : []), [c, pageId]);
   const board: CanvasBoard | undefined = list.find((b) => b.id === current) ?? list[0];
   const index = board ? list.findIndex((b) => b.id === board.id) : -1;

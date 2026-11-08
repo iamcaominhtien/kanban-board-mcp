@@ -1,39 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
-import { aiApi, useAiMutation } from '../../api/ai';
-import { assistApi, assistError } from '../../api/assist';
-import { extractError } from '../../api/extractError';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Member, Ticket } from '../../types';
-import type { AiMember } from '../../types/ai';
+import type { AiTeam } from '../../types/ai';
 import { MemberAvatar } from '../MemberAvatar';
-import { useToast } from '../Toast';
-import { useSchedules } from '../schedules/SchedulesContext';
 import { currentPerson } from '../assist/assistUi';
 import { ASSIGN_AI_EVENT } from './AiTicketContext';
 import { ACTIVE_RUN_STATES, AiAvatar, StatusLabel, useAiBoardState } from './aiUi';
 import { LineIcon } from '../ui/LineIcon';
+import { FloatMenu } from './ComposerAi';
 
-/** Why an AI member cannot take work now (the picker greys it out), or a note on how it will start. */
-function aiNote(m: AiMember): { disabled: boolean; note: string; tag?: string; grey?: boolean } {
+/** Why a team cannot take work now (the picker greys it out), or a note on how it will start. */
+function aiNote(m: AiTeam): { disabled: boolean; note: string; tag?: string; grey?: boolean } {
   switch (m.status.code) {
     case 'running':
-      // a CLI on a person's own computer has no slot limit
-      return {
-        disabled: false,
-        note: m.connection === 'api_key' ? `· ${m.slotsInUse} of ${m.maxParallel} slots` : `· ${m.slotsInUse} running`,
-      };
+      return { disabled: false, note: `· ${m.slotsInUse} running` };
     case 'runner_missing':
       // greyed, with its label on the right; it can still be picked: the ticket waits in its queue
       return { disabled: false, note: '', tag: 'offline', grey: true };
-    case 'key_invalid':
-      return { disabled: true, note: '', tag: 'key invalid' };
     case 'not_logged_in':
       return { disabled: true, note: '', tag: 'signed out' };
-    case 'model_retired':
-      return { disabled: true, note: '· fix in AI members' };
-    case 'over_budget':
-      return { disabled: true, note: '· resets 00:00' };
+    case 'rate_limited':
+      // still pickable: its runs wait in the queue
+      return { disabled: false, note: '' };
     case 'paused':
-      return { disabled: true, note: '· resume in AI members' };
+      return { disabled: true, note: '· resume in AI teams' };
     case 'paused_all':
       return { disabled: true, note: '· AI is paused' };
     default:
@@ -42,8 +31,8 @@ function aiNote(m: AiMember): { disabled: boolean; note: string; tag?: string; g
 }
 
 /**
- * Assignee picker with a separate AI group (live status, reasons for disabled members). Picking an AI asks how
- * to start: now, queue, or assign without running.
+ * Assignee picker with people and a separate group of AI teams (live status, reasons for disabled teams). Picking a
+ * team asks whether to start its lead now or only assign it.
  */
 export function AssigneePicker({
   ticket,
@@ -55,13 +44,15 @@ export function AssigneePicker({
   ticket: Ticket;
   members: Member[];
   value: string | null;
-  onPickPerson: (id: string | null) => void;
+  /** `start` is false when an AI team is assigned without starting. */
+  onPickPerson: (id: string | null, start?: boolean) => void;
   onAssignedAi: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
-  const [pending, setPending] = useState<AiMember | null>(null);
+  const [pending, setPending] = useState<AiTeam | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const { members: aiMap } = useAiBoardState();
   const me = currentPerson();
   const current = members.find((m) => m.id === value);
@@ -84,6 +75,8 @@ export function AssigneePicker({
   }, [ticket.id, aiMap]);
   useEffect(() => {
     const close = (e: MouseEvent) => {
+      // the list is drawn in the page body (it must not be cut by the ticket's box): a click in it is not outside
+      if ((e.target as HTMLElement).closest?.('.tw-menu')) return;
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
         setPending(null);
@@ -96,6 +89,7 @@ export function AssigneePicker({
   return (
     <div ref={ref} style={{ position: 'relative' }} className="ai-root">
       <button
+        ref={trigger}
         type="button"
         onClick={() => setOpen(!open)}
         data-testid="assignee-picker"
@@ -122,113 +116,137 @@ export function AssigneePicker({
         )}
       </button>
       {current && aiMap.get(current.id) && (
-        <div className="ai-muted" style={{ marginTop: 3 }}>
-          {aiMap.get(current.id)!.connection === 'local'
-            ? 'Local runner · Not metered'
-            : aiMap.get(current.id)!.connection === 'api_key'
-              ? 'API key · metered'
-              : 'Inbox only'}
+        <div className="ai-muted" style={{ marginTop: 3 }} data-testid="assignee-team-sub">
+          {aiMap.get(current.id)!.packName ?? 'Team'} · Claude Code
         </div>
       )}
       {open && !pending && (
-        <div className="ai-popover" style={{ right: 0, top: 30, width: 330, padding: 8 }} data-testid="assignee-menu">
-          <input
-            className="ai-input"
-            placeholder="Search people and AI…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            autoFocus
-          />
-          <div style={{ maxHeight: 360, overflow: 'auto', marginTop: 6 }}>
-            <button
-              type="button"
-              className="ai-mi"
-              onClick={() => {
-                onPickPerson(null);
-                setOpen(false);
-              }}
-            >
-              Unassigned
-            </button>
-            <div className="ai-label" style={{ padding: '8px 10px 4px' }}>
-              People
+        <FloatMenu anchor={trigger.current} onClose={() => setOpen(false)} width={330}>
+          <div style={{ padding: 4 }} data-testid="assignee-menu">
+            <div className="ai-label" style={{ padding: '4px 6px 6px' }}>
+              Assignee
             </div>
-            {people.map((m) => (
+            <div style={{ position: 'relative' }}>
+              <input
+                className="ai-input"
+                style={{ paddingRight: 30 }}
+                placeholder="Search people and teams…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                autoFocus
+              />
+              <span style={{ position: 'absolute', right: 10, top: 9, color: '#9AA8A0', display: 'flex' }}>
+                <LineIcon name="search" size={14} />
+              </span>
+            </div>
+            <div style={{ maxHeight: 'min(460px, 55vh)', overflow: 'auto', marginTop: 6 }}>
               <button
-                key={m.id}
                 type="button"
                 className="ai-mi"
                 onClick={() => {
-                  onPickPerson(m.id);
+                  onPickPerson(null);
                   setOpen(false);
                 }}
               >
-                <MemberAvatar member={m} size={22} />
-                {m.name}
-                {m.name === me && (
-                  <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="assign-you-tag">
-                    you
-                  </span>
-                )}
-                {m.id === value && (
-                  <span style={{ marginLeft: m.name === me ? 8 : 'auto', color: '#2E6F40' }}>
-                    <LineIcon name="check" size={13} />
-                  </span>
-                )}
+                <span
+                  aria-hidden="true"
+                  style={{ width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed #C5CEC8', flexShrink: 0 }}
+                />
+                <span style={{ color: '#9AA8A0' }}>Unassigned</span>
               </button>
-            ))}
-            {ais.length > 0 && (
               <div className="ai-label" style={{ padding: '8px 10px 4px' }}>
-                AI · {ais.length}
+                People
               </div>
-            )}
-            {ais.map((m) => {
-              const n = aiNote(m);
-              return (
+              {people.map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   className="ai-mi"
-                  disabled={n.disabled}
-                  style={{
-                    opacity: n.disabled || n.grey ? 0.5 : 1,
-                    cursor: n.disabled ? 'not-allowed' : 'pointer',
+                  onClick={() => {
+                    onPickPerson(m.id);
+                    setOpen(false);
                   }}
-                  title={n.tag === 'offline' ? 'Runner not detected: the ticket waits in its queue' : undefined}
-                  onClick={() => setPending(m)}
-                  data-testid={`assign-ai-${m.name}`}
                 >
-                  <AiAvatar provider={m.provider} color={m.color} glyph={m.glyph} size={22} />
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <span>{m.name}</span>
-                    {!n.tag && (
-                      <span style={{ display: 'flex', gap: 4, alignItems: 'center', fontWeight: 500 }}>
-                        <StatusLabel status={m.status} sub={null} />
-                        <span className="ai-muted">{n.note}</span>
-                      </span>
-                    )}
-                  </span>
-                  {n.tag && (
-                    <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="assign-ai-tag">
-                      {n.tag}
+                  <MemberAvatar member={m} size={22} />
+                  {m.name}
+                  {m.name === me && (
+                    <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="assign-you-tag">
+                      you
                     </span>
                   )}
                   {m.id === value && (
-                    <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>
+                    <span style={{ marginLeft: m.name === me ? 8 : 'auto', color: '#2E6F40' }}>
                       <LineIcon name="check" size={13} />
                     </span>
                   )}
                 </button>
-              );
-            })}
+              ))}
+              {ais.length > 0 && (
+                <div className="ai-label" style={{ padding: '8px 10px 4px' }}>
+                  AI teams · {ais.length}
+                </div>
+              )}
+              {ais.map((m) => {
+                const n = aiNote(m);
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="ai-mi"
+                    disabled={n.disabled}
+                    style={{
+                      opacity: n.disabled || n.grey ? 0.5 : 1,
+                      cursor: n.disabled ? 'not-allowed' : 'pointer',
+                    }}
+                    title={n.tag === 'offline' ? 'Runner not detected: the ticket waits in its queue' : undefined}
+                    onClick={() => setPending(m)}
+                    data-testid={`assign-ai-${m.name}`}
+                  >
+                    <AiAvatar color={m.color} size={22} dim={n.disabled || n.grey} />
+                    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span>{m.name}</span>
+                      {!n.tag && (
+                        <span style={{ display: 'flex', gap: 4, alignItems: 'center', fontWeight: 500 }}>
+                          <StatusLabel status={m.status} sub={null} />
+                          <span className="ai-muted">{n.note}</span>
+                        </span>
+                      )}
+                    </span>
+                    {n.tag && (
+                      <span
+                        className="ai-muted"
+                        style={{
+                          marginLeft: 'auto',
+                          border: '1px solid #DCE3DE',
+                          borderRadius: 4,
+                          padding: '0 6px',
+                          fontSize: 10.5,
+                          lineHeight: '17px',
+                          background: '#fff',
+                        }}
+                        data-testid="assign-ai-tag"
+                      >
+                        {n.tag}
+                      </span>
+                    )}
+                    {m.id === value && (
+                      <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>
+                        <LineIcon name="check" size={13} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </FloatMenu>
       )}
       {pending && (
         <AssignStartPopover
           ticket={ticket}
           member={pending}
-          onDone={() => {
+          onDone={(start) => {
+            onPickPerson(pending.id, start);
             onAssignedAi(pending.id);
             setPending(null);
             setOpen(false);
@@ -240,7 +258,97 @@ export function AssigneePicker({
   );
 }
 
-/** On assign: how to start (A2). */
+/** One of the two choices of the assign popover: a radio, a small icon tile, a title and one line. */
+function ChoiceCard({
+  on,
+  title,
+  line,
+  icon,
+  onPick,
+  testId,
+}: {
+  on: boolean;
+  title: string;
+  line: string;
+  icon: ReactNode;
+  onPick: () => void;
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      tabIndex={on ? 0 : -1}
+      onClick={onPick}
+      data-testid={testId}
+      style={{
+        display: 'flex',
+        gap: 12,
+        alignItems: 'center',
+        padding: '11px 13px',
+        border: `1.5px solid ${on ? '#2E6F40' : '#DCE3DE'}`,
+        borderRadius: 11,
+        background: on ? '#F1F8F3' : '#fff',
+        textAlign: 'left',
+        font: 'inherit',
+        color: 'inherit',
+        cursor: 'pointer',
+        width: '100%',
+      }}
+    >
+      <span
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: '50%',
+          border: `1.6px solid ${on ? '#2E6F40' : '#DCE3DE'}`,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: 'none',
+        }}
+      >
+        {on && <i style={{ width: 8, height: 8, borderRadius: '50%', background: '#2E6F40', display: 'block' }} />}
+      </span>
+      <span
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 8,
+          background: on ? '#DCEEE1' : '#F1F3F1',
+          color: on ? '#2E6F40' : '#5B6B60',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: 'none',
+        }}
+      >
+        {icon}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 13, fontWeight: 700 }}>{title}</span>
+        <span style={{ display: 'block', fontSize: 12, color: '#5B6B60', lineHeight: 1.4 }}>{line}</span>
+      </span>
+    </button>
+  );
+}
+
+const ICON_PROPS = {
+  width: 15,
+  height: 15,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2.2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+} as const;
+
+/**
+ * Assign a team (A2): two choice cards, Start now (the server starts the lead when the assignee changes) or Assign
+ * only (the team holds the ticket and starts when a person presses Run), and one button for the choice made.
+ */
 export function AssignStartPopover({
   ticket,
   member,
@@ -248,183 +356,117 @@ export function AssignStartPopover({
   onCancel,
 }: {
   ticket: Ticket;
-  member: AiMember;
-  onDone: () => void;
+  member: AiTeam;
+  onDone: (start: boolean) => void;
   onCancel: () => void;
 }) {
-  const inbox = member.connection === 'inbox';
-  const limited = member.connection === 'api_key';
-  const free = limited ? member.maxParallel - member.slotsInUse : Number.POSITIVE_INFINITY;
-  const { runsByTicket } = useAiBoardState();
-  // Another AI holds this ticket: this one can only queue behind it (design H1)
+  const { runsByTicket, members } = useAiBoardState();
+  const [start, setStart] = useState(true);
   const held = runsByTicket.get(ticket.id);
-  const heldBy =
-    held && held.mode === 'work' && ACTIVE_RUN_STATES.includes(held.state) && held.memberId !== member.id
-      ? held
-      : undefined;
-  const busyWith = member.running.find((r) => r.state === 'running' || r.state === 'starting');
-  const [start, setStart] = useState<'now' | 'queue' | 'schedule' | 'plan' | 'none'>(
-    inbox ? 'none' : free > 0 && !heldBy ? 'now' : 'queue',
-  );
-  const { openEditor } = useSchedules();
-  const [ctx, setCtx] = useState(true);
-  const [instruction, setInstruction] = useState('');
-  const toast = useToast();
-  const assign = useAiMutation(() =>
-    aiApi.assign(ticket.id, {
-      memberId: member.id,
-      // Scheduling assigns first; the editor then picks the time
-      start: start === 'schedule' || start === 'plan' ? 'none' : start,
-      includeContext: ctx,
-      instruction,
-    }),
-  );
-  const criteria = ticket.acceptanceCriteria?.length ?? 0;
-  const comments = ticket.comments?.length ?? 0;
-  const options: {
-    id: 'now' | 'queue' | 'schedule' | 'plan' | 'none';
-    title: string;
-    sub: string;
-    isNew?: boolean;
-    chip?: string;
-    disabled?: boolean;
-  }[] = [
-    {
-      id: 'now',
-      title: 'Start now',
-      sub: heldBy
-        ? `${heldBy.memberName} holds ${ticket.id} right now. Only one agent works on a ticket at a time.`
-        : member.connection === 'local'
-          ? `Launches a run in ${member.workingDir ?? 'its folder'} on this computer.`
-          : `The board starts its agent loop. ${Math.max(free, 0)} of ${member.maxParallel} slots free.`,
-      chip: !heldBy && free > 0 ? 'Starts in a few seconds' : undefined,
-      disabled: !!heldBy,
-    },
-    {
-      id: 'queue',
-      title: 'Queue',
-      sub: heldBy
-        ? `Waits for ${heldBy.memberName} to release ${ticket.id}, then takes the ticket. Next in line.`
-        : `Waits for a free slot or the runner. Position #${member.queued + 1}${busyWith ? ` behind ${busyWith.ticketId}` : ''}.`,
-    },
-    ...(ticket.parentId
-      ? []
-      : [
-          {
-            id: 'plan' as const,
-            title: 'Plan sub-tickets',
-            sub: 'Drafts sub-tickets for this ticket to accept or discard. Nothing is created until you accept.',
-          },
-        ]),
-    {
-      id: 'schedule',
-      title: 'Schedule…',
-      sub: 'Pick a date and time, done criteria and review.',
-      isNew: true,
-    },
-    {
-      id: 'none',
-      title: 'Assign without running',
-      sub: 'Only sets the assignee. Start a run later from the Run button.',
-    },
-  ];
+  const heldBy = held && ACTIVE_RUN_STATES.includes(held.state) && held.memberId !== member.id ? held : undefined;
+  const heldByName = heldBy ? (members.get(heldBy.memberId)?.name ?? 'Another team') : null;
+  const roles = member.roles.map((r) => r.name ?? r.key).join(', ');
+  const group = useRef<HTMLDivElement>(null);
+  // Esc closes this popover, not the ticket behind it
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      onCancel();
+    };
+    document.addEventListener('keydown', key, true);
+    return () => document.removeEventListener('keydown', key, true);
+  }, [onCancel]);
   return (
-    <div className="ai-popover" style={{ right: 0, top: 30 }} data-testid="assign-start-popover">
-      <div style={{ fontSize: 13.5, fontWeight: 700 }}>
-        Assign {ticket.id} to {member.name}
-      </div>
-      <div className="ai-muted" style={{ marginBottom: 10 }}>
-        {ticket.title}
-      </div>
-      {inbox ? (
-        <div className="ai-notice ai-notice-info">
-          {member.name} connects through MCP: it sees the ticket in its inbox the next time it reads its tickets. The
-          board cannot start it.
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {options.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              className={`ai-option ${start === o.id ? 'ai-option-active' : ''}`}
-              disabled={o.disabled}
-              style={o.disabled ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
-              onClick={() => setStart(o.id)}
-              data-testid={`assign-${o.id}`}
-            >
-              <span className={`ai-radio ${start === o.id ? 'ai-radio-on' : ''}`} />
-              <span>
-                <b style={{ fontSize: 12.5 }}>{o.title}</b>
-                {o.isNew && (
-                  <span className="sc-new" style={{ marginLeft: 6 }}>
-                    NEW
-                  </span>
-                )}
-                <div className="ai-muted">{o.sub}</div>
-                {o.chip && (
-                  <span
-                    className="ai-chip"
-                    style={{ marginTop: 4, height: 18, background: '#F1F8F3', color: '#2E6F40' }}
-                    data-testid="starts-soon"
-                  >
-                    {o.chip}
-                  </span>
-                )}
-              </span>
-            </button>
-          ))}
-          {start !== 'none' && start !== 'schedule' && start !== 'plan' && (
-            <>
-              <label style={{ display: 'flex', gap: 8, fontSize: 12.5, alignItems: 'center', marginTop: 4 }}>
-                <input type="checkbox" checked={ctx} onChange={(e) => setCtx(e.target.checked)} />
-                Send the ticket, {criteria} criteria and {comments} comments as context
-              </label>
-              <input
-                className="ai-input"
-                placeholder="Extra instruction (optional)"
-                value={instruction}
-                onChange={(e) => setInstruction(e.target.value)}
-              />
-            </>
-          )}
-          <div className="ai-muted">
-            Ticket text is untrusted input for the agent. Permission: up to{' '}
-            {member.ceiling === 'in-progress'
-              ? 'In Progress'
-              : member.ceiling[0].toUpperCase() + member.ceiling.slice(1)}
-            .
+    <div
+      className="ai-popover"
+      style={{ right: 0, top: 30, width: 420, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 11 }}
+      data-testid="assign-start-popover"
+    >
+      <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
+        <AiAvatar color={member.color} size={36} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 700 }}>
+            Assign {ticket.id} to {member.name}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: '#5B6B60',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {ticket.title}
           </div>
         </div>
+      </div>
+      <div
+        ref={group}
+        role="radiogroup"
+        aria-label="How to begin"
+        style={{ display: 'flex', flexDirection: 'column', gap: 11 }}
+        onKeyDown={(e) => {
+          if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+            setStart((v) => !v);
+            // the focus follows the choice (the one that is on is the only tab stop)
+            requestAnimationFrame(() => group.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
+          }
+        }}
+      >
+        <ChoiceCard
+          on={start}
+          onPick={() => setStart(true)}
+          testId="assign-choice-start"
+          title="Start now"
+          line={`The lead begins at once${roles ? ` · ${roles}` : ''}`}
+          icon={
+            <svg {...ICON_PROPS} aria-hidden="true">
+              <path d="M7 5L19 12L7 19Z" />
+            </svg>
+          }
+        />
+        <ChoiceCard
+          on={!start}
+          onPick={() => setStart(false)}
+          testId="assign-choice-only"
+          title="Assign only"
+          line="The team is assigned and starts when you press Run"
+          icon={
+            <svg {...ICON_PROPS} aria-hidden="true">
+              <path d="M9 3h6l-1 6 3 3H7l3-3z" />
+              <path d="M12 12v9" />
+            </svg>
+          }
+        />
+      </div>
+      {heldByName && (
+        <div
+          className="ai-notice ai-notice-warn"
+          data-testid="assign-held-by"
+          style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+        >
+          <LineIcon name="warning" size={14} />
+          <span>{heldByName} is working on it now. That run is cancelled.</span>
+        </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-        <button type="button" className="ai-btn ai-btn-sm" onClick={onCancel}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center', fontSize: 11, color: '#9AA8A0', flex: 1 }}>
+          <LineIcon name="lock" size={11} />
+          Ticket text is untrusted input for the agent.
+        </span>
+        <button type="button" className="ai-btn" onClick={onCancel}>
           Cancel
         </button>
         <button
           type="button"
-          className="ai-btn ai-btn-sm ai-btn-primary"
-          disabled={assign.isPending}
-          onClick={async () => {
-            try {
-              await assign.mutateAsync(undefined);
-              if (start === 'plan')
-                await assistApi.startDraft(ticket.projectId, { kind: 'split', ticketId: ticket.id });
-              onDone();
-              if (start === 'schedule') openEditor({ ticketId: ticket.id, memberId: member.id });
-            } catch (err) {
-              toast.error("Couldn't assign", assistError(err)?.detail ?? extractError(err));
-            }
-          }}
+          className="ai-btn ai-btn-primary"
+          onClick={() => onDone(start)}
           data-testid="assign-confirm"
         >
-          {start === 'none' || inbox
-            ? 'Assign'
-            : start === 'schedule'
-              ? 'Assign & schedule…'
-              : start === 'plan'
-                ? 'Assign & plan'
-                : 'Assign & start'}
+          {start ? 'Assign & start' : 'Assign'}
         </button>
       </div>
     </div>

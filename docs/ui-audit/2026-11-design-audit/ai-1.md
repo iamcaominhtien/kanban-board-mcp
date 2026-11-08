@@ -64,6 +64,8 @@ Images: [design A](../../../design/images/ai-members/01-entry-points.png) · [no
 
 ## AI provider configuration (`design/screens/ai-provider-config.md`)
 
+> This board (`AiProviderConfig`) was deleted from `design/` in AI v2; the link is the name of what was audited, not a file. See `design/screens/ai-project-settings.md` and `ai-members.md` for today's screens.
+
 Coverage: frames checked in the app: A1, B1–B8 (Claude Code adapter, empty skills, subagents and hooks). Checked from code only: A2–A4, B9, B10, C1–C4 (no Antigravity member), D1–D8 (no API-key member), E1, E2, F1–F10. Not built: none found.
 
 | # | Frame | Severity | Category | Design | Now | Where | Fix |
@@ -79,6 +81,8 @@ Coverage: frames checked in the app: A1, B1–B8 (Claude Code adapter, empty ski
 Images: [design A1](../../../design/images/ai-provider-config/01-a1-profile-header-configuration-tab.png) · [now A1](shots/ai-1/ai-provider-config-A1.jpg) · [design B1](../../../design/images/ai-provider-config/06-b1-instructions.png) · [design B3](../../../design/images/ai-provider-config/08-b3-mcp-servers.png) · [now B1–B5](shots/ai-1/ai-provider-config-B1-B3.jpg) · [design B7](../../../design/images/ai-provider-config/12-b7-model-and-flags.png) · [now B6–B8](shots/ai-1/ai-provider-config-B6-B7.jpg)
 
 ## AI safety & cost (`design/screens/ai-safety-cost.md`)
+
+> This board (`AiSafetyCost`) was deleted from `design/` in AI v2 (no approval layer, no permission matrix, no v1 budgets); the path is the name of what was audited, not a file. See `design/screens/ai-paused.md` and `ai-operations.md`.
 
 Coverage: frames checked in the app: A1, B1 (empty), C1, C4, C5 (on the Usage tab), E1 (three events), I8 (Safety tab). Checked from code only: A2–A4, B2–B6, C2, C3, D2–D6, E2, E3, F1–F6, G1, H1, I1–I7 (they need runs, approvals or AI-written changes). D1 is replaced by ai-paused.md and is audited by another part. Not built: none found.
 

@@ -8,30 +8,30 @@ vi.mock('../../../api/client', () => ({ client: http }));
 
 import { LessonsSettings } from './LessonsSettings';
 
-const ops = { hangAfterMin: 10, proposeLessons: true, lessonsInPrompt: 20 };
+const settings = { projectId: 'p1', lessonsMode: 'auto', lessonsMax: 20 };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  http.get.mockResolvedValue({ data: ops });
-  http.patch.mockImplementation((_u: string, b: object) => Promise.resolve({ data: { ...ops, ...b } }));
+  http.get.mockResolvedValue({ data: settings });
+  http.patch.mockImplementation((_u: string, b: object) => Promise.resolve({ data: { ...settings, ...b } }));
 });
 afterEach(cleanup);
 
 describe('LessonsSettings', () => {
-  it('switches proposals and sets how many lessons go in a prompt', async () => {
+  it('switches between keeping at once and review, and sets how many lessons go in a prompt', async () => {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <LessonsSettings projectId="p1" />
       </QueryClientProvider>,
     );
-    const sw = await screen.findByTestId('ops-propose-lessons');
+    const sw = await screen.findByTestId('lessons-auto');
     expect(sw.getAttribute('aria-checked')).toBe('true');
     fireEvent.click(sw);
-    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/ops', { proposeLessons: false }));
-    const n = screen.getByTestId('ops-lessons-in-prompt') as HTMLInputElement;
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/settings', { lessonsMode: 'review' }));
+    const n = screen.getByTestId('lessons-max') as HTMLInputElement;
     expect(n.value).toBe('20');
     fireEvent.change(n, { target: { value: '8' } });
     fireEvent.blur(n);
-    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/ops', { lessonsInPrompt: 8 }));
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/projects/p1/ai/settings', { lessonsMax: 8 }));
   });
 });

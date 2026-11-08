@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAiOverview, useRunnerInfo } from '../../../api/ai';
+import { useRunnerInfo } from '../../../api/ai';
 import { useAccountActions, useAiAccounts, useComputerLogins } from '../../../api/aiAccounts';
 import { extractError } from '../../../api/extractError';
 import type { AccountCli, AiAccount } from '../../../types/aiAccounts';
@@ -22,7 +22,6 @@ import { RemoveAccountDialog } from './RemoveAccountDialog';
 import { RenameAccountDialog } from './RenameAccountDialog';
 import { SignInWindow } from './SignInWindow';
 import { SignOutDialog } from './SignOutDialog';
-import { WindowsSection } from './WindowsSection';
 import './accounts.css';
 
 /** Opens a link in the person's browser (the desktop app has its own bridge). */
@@ -46,7 +45,6 @@ type Dialog =
 export function AccountsTab({ projectId }: { projectId: string }) {
   const accounts = useAiAccounts(projectId);
   const runner = useRunnerInfo();
-  const overview = useAiOverview(projectId);
   const desktop = runner.data?.local !== false;
   const logins = useComputerLogins();
   const actions = useAccountActions();
@@ -108,11 +106,6 @@ export function AccountsTab({ projectId }: { projectId: string }) {
     </button>
   );
 
-  // Members of this project on the login that is already on this computer, per CLI
-  const onComputer = (provider: string) =>
-    (overview.data?.members ?? []).filter((m) => m.connection === 'local' && m.provider === provider && !m.accountId)
-      .length;
-
   let body;
   if (accounts.isLoading) {
     body = (
@@ -129,8 +122,8 @@ export function AccountsTab({ projectId }: { projectId: string }) {
       <div className="acc-empty" data-testid="accounts-empty">
         <b style={{ fontSize: 13 }}>No AI accounts yet</b>
         <div className="acc-hint" style={{ fontSize: 12.5 }}>
-          AI members use the login already on this computer. Add an account to share one login between members, or to
-          keep work and personal apart.
+          AI teams use the login already on this computer. Add an account to share one login between teams, or to keep
+          work and personal apart.
         </div>
         {addButton}
       </div>
@@ -157,7 +150,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
             <div className="acc-tile-hint">{stats.attention.length ? stats.attention.join(', ') : 'None'}</div>
           </div>
           <div className="acc-tile">
-            <div className="acc-h">Members using one</div>
+            <div className="acc-h">Teams using one</div>
             <span className="acc-tile-n">{stats.using}</span>
             <div className="acc-tile-hint">
               {stats.elsewhere ? `${stats.here} here, ${stats.elsewhere} in other projects` : `${stats.here} here`}
@@ -194,8 +187,8 @@ export function AccountsTab({ projectId }: { projectId: string }) {
     <div className="acc-root ai-root" data-testid="accounts-tab">
       <div className="acc-intro">
         <div className="acc-intro-text">
-          One sign-in of a CLI. Several AI members can use the same account; if it expires you fix it here, once. The
-          login stays with the CLI; Kanban never reads or shows it.
+          One sign-in of Claude Code. Several AI teams can use the same account; if it expires you fix it here, once.
+          The login stays with the CLI; Kanban never reads or shows it.
         </div>
         {list.length > 0 && addButton}
       </div>
@@ -227,7 +220,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
             </>
           }
         >
-          Accounts for this CLI show <b>CLI not installed</b> and sign in is off until it is back. Their members are
+          Accounts for this CLI show <b>CLI not installed</b> and sign in is off until it is back. Their teams are
           paused with the reason, not failed.
         </AccountNote>
       ))}
@@ -263,8 +256,6 @@ export function AccountsTab({ projectId }: { projectId: string }) {
         );
       })}
 
-      <WindowsSection projectId={projectId} />
-
       {body}
 
       {desktop && (logins.data?.length ?? 0) > 0 && list.length > 0 && (
@@ -272,28 +263,20 @@ export function AccountsTab({ projectId }: { projectId: string }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <b style={{ fontSize: 13 }}>Logins already on this computer</b>
             <span className="acc-hint" style={{ flex: 1 }}>
-              What AI members use today when no account is chosen. Not managed here; they keep working as before.
+              What AI teams use today when no account is chosen. Not managed here; they keep working as before.
             </span>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {logins.data?.map((l) => {
-              const n = onComputer(l.cli === 'claude' ? 'claude-code' : l.cli === 'agy' ? 'antigravity' : l.cli);
-              return (
-                <span key={l.cli} className="acc-login">
-                  <AccountBadge cli={l.cli} label={l.label} size={22} />
-                  {l.label}
-                  {l.signedInWith ? ` · ${l.signedInWith}` : ''}
-                  {n > 0 && (
-                    <span className="acc-hint">
-                      {n} member{n === 1 ? '' : 's'}
-                    </span>
-                  )}
-                  <button type="button" className="acc-link" onClick={() => setDialog({ kind: 'add', cli: l.cli })}>
-                    Move to an account
-                  </button>
-                </span>
-              );
-            })}
+            {logins.data?.map((l) => (
+              <span key={l.cli} className="acc-login">
+                <AccountBadge cli={l.cli} label={l.label} size={22} />
+                {l.label}
+                {l.signedInWith ? ` · ${l.signedInWith}` : ''}
+                <button type="button" className="acc-link" onClick={() => setDialog({ kind: 'add', cli: l.cli })}>
+                  Move to an account
+                </button>
+              </span>
+            ))}
           </div>
         </div>
       )}

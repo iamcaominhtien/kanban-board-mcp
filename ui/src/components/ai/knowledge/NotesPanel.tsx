@@ -6,13 +6,13 @@ import { shortDate } from '../aiUi';
 
 const SCOPE_TITLE: Record<NoteScope, string> = {
   role: 'Role notes',
-  member: 'A member’s own notes',
+  member: 'A team’s own notes',
   ticket: 'Ticket notes',
 };
 
 const SCOPE_HINT: Record<NoteScope, string> = {
-  role: 'Every member of the role reads them at the start of a run.',
-  member: 'A member with no role reads its own.',
+  role: 'Every team with the role reads them at the start of a run.',
+  member: 'A team with no role reads its own.',
   ticket: 'Every later run on the ticket reads them.',
 };
 

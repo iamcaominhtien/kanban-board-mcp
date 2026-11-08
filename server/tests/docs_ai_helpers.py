@@ -4,7 +4,7 @@ switched on (or off), and published pages. Import `env`, `fake` and the helpers;
 import pytest
 
 from services.ai import llm
-from tests.test_ai import _project, _runner, _ticket, env  # noqa: F401
+from tests.ai_helpers import _project, _runner, _ticket, env  # noqa: F401
 from tests.test_ai_assist import FakeLLM
 
 H = {"X-Actor": "An Nguyen"}

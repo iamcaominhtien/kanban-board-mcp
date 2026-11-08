@@ -113,8 +113,7 @@ async def manage_ticket(
     type: Annotated[
         TicketType | None,
         Field(
-            description="Kind of work (default 'task'). 'story' is a Draft the PM owns: to have it planned and run use "
-            "ai_team(give_story)."
+            description="Kind of work (default 'task'). 'story' is a goal bigger than a few tickets, split into sub-tickets."
         ),
     ] = None,
     priority: Annotated[Priority | None, Field(description="Default 'medium'.")] = None,
@@ -150,7 +149,7 @@ async def manage_ticket(
         str | None,
         Field(
             description="Member id (UUID) of a member of the ticket's project; see get_projects(project_id). An AI "
-            "member set here is not started: ai_team(ask, intent='work') assigns it and starts it."
+            "team set here is only assigned: a person starts it in the app."
         ),
     ] = None,
     acceptance_criteria: Annotated[
@@ -285,5 +284,5 @@ async def manage_ticket(
     - block / unblock: ticket_id, target_id. ticket_id waits until target_id is done (lock on the board); same project, no cycles. Returns {blocker, blocked}.
     - link: ticket_id, target_id, relation_type. A non-blocking relation (use block for dependencies). Returns {id, target_id, relation_type}; keep `id` for unlink.
     - unlink: ticket_id, link_id. Removes the relation and its inverse. Returns {"removed": link_id}.
-    - link_doc / unlink_doc: ticket_id, page_id. Links a Docs page to the ticket."""
+    - link_doc / unlink_doc: ticket_id, page_id. Links a Docs page to the ticket by hand. Read get_ticket.docs first: a page the ticket's text names, or that names the ticket, is already linked (link_doc then answers 'already linked' and adds nothing); link by hand only a page the text does not mention."""
     return await dispatch("manage_ticket", TICKET_OPS, action, params_of(locals()))

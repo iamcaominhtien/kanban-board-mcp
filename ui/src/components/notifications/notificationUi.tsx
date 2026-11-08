@@ -143,14 +143,11 @@ const BLUE = { bg: '#E8F1FA', fg: '#2F6FB0' };
 const GREEN = { bg: '#E6F2EA', fg: '#2E6F40' };
 const PURPLE = { bg: '#EFE8FB', fg: '#5B3AA6' };
 
-/** Icon and colour of an event family: question and approval amber, failure red, information blue, finished green. */
+/** Icon and colour of an event family: question amber, failure red, information blue, finished green. */
 const VISUALS: Record<string, Visual> = {
   question: { icon: 'bubble', ...AMBER },
-  approval: { icon: 'lock', ...AMBER },
-  page_proposal: { icon: 'doc', ...AMBER },
   run_failed: { icon: 'triangle', ...RED },
   run_stopped_memory: { icon: 'triangle', ...RED },
-  blocked: { icon: 'lock', ...RED },
   account_signed_out: { icon: 'plug', ...RED },
   auto_trip: { icon: 'triangle', ...RED },
   offline: { icon: 'plug', ...RED },
@@ -160,7 +157,6 @@ const VISUALS: Record<string, Visual> = {
   page_published: { icon: 'doc', ...BLUE },
   run_cancelled: { icon: 'info', ...BLUE },
   comment: { icon: 'bubble', ...PURPLE },
-  run_restarted: { icon: 'bolt', ...AMBER },
   budget_warning: { icon: 'bolt', ...AMBER },
   ai_finished: { icon: 'check', ...GREEN },
   schedule: { icon: 'calendar', ...GREEN },
@@ -174,9 +170,6 @@ const VISUALS: Record<string, Visual> = {
   window_urgent: { icon: 'bolt', ...AMBER },
   window_wait: { icon: 'clock', ...BLUE },
   lesson: { icon: 'doc', ...GREEN },
-  story_plan: { icon: 'doc', ...AMBER },
-  story_blocked: { icon: 'clock', ...AMBER },
-  story_done: { icon: 'check', ...GREEN },
 };
 
 /** The icon of a kind. */
@@ -315,16 +308,7 @@ export function inElectron(): boolean {
   return typeof window !== 'undefined' && !!window.electronAPI;
 }
 
-const OPEN_ORDER = [
-  'open_ticket',
-  'open',
-  'open_run_log',
-  'review',
-  'sign_in',
-  'open_ai',
-  'reply',
-  'change_permission',
-];
+const OPEN_ORDER = ['open_ticket', 'open', 'open_run_log', 'sign_in', 'open_ai', 'reply'];
 
 /** A ticket stopped at its token cap (`workflow_blocked`, flag quota_cap): Resume it from the row (ai-story-flow O). */
 export function isCapStop(row: NotificationRow): boolean {

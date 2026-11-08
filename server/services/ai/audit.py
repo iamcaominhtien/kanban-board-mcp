@@ -1,5 +1,5 @@
 """Append-only AI audit log. Each entry carries the hash of the one before it, so an edit or a removed row is
-detectable (design/screens/ai-safety-cost.md, E). Entries are redacted before they are written."""
+detectable (E of the deleted v1 board ai-safety-cost). Entries are redacted before they are written."""
 
 import asyncio
 import hashlib
@@ -258,7 +258,11 @@ async def enrich(session: AsyncSession, rows: list[AiAudit]) -> list[dict]:
 _TRIGGER_TEXT = {
     "assign": "{by} assigned {ticket}",
     "run_button": "{by} started a run on {ticket}",
-    "mention": "{by} mentioned the AI on {ticket}",
+    "message": "{by} sent a message to the team on {ticket}",
+    "docs_threads": "{by} sent Docs comment threads to the team on {ticket}",
+    "ai_message": "{by} sent a note to the team on {ticket}",
+    "ci_red": "The board sent the red CI of {ticket} to its team",
+    "review_comments": "The board sent the review comments of {ticket} to its team",
     "ask": "{by} asked a question on {ticket}",
     "retry": "{by} retried the run on {ticket}",
     "request_changes": "{by} requested changes on {ticket}",
@@ -269,20 +273,19 @@ _TRIGGER_TEXT = {
 
 async def trace(session: AsyncSession, entry: AiAudit) -> list[dict]:
     """Why it did this: the prompt-source trace of an entry (E1). Each step has a trust label."""
-    from models import AiApproval, AiRun
+    from models import AiRun
 
     detail = loads_json(entry.detail)
     steps: list[dict] = []
     run = await session.get(AiRun, entry.run_id) if entry.run_id else None
     if run is not None:
         text = _TRIGGER_TEXT.get(run.trigger, "{by} started run #{n} on {ticket}")
-        chain = loads_json(run.chain, [])
         steps.append(
             {
                 "text": text.format(
                     by=run.started_by, ticket=run.ticket_id, n=run.number
                 ),
-                "trust": "data_only" if chain else "trusted",
+                "trust": "trusted",
             }
         )
         steps.append(
@@ -308,16 +311,6 @@ async def trace(session: AsyncSession, entry: AiAudit) -> list[dict]:
         "denied": "Denied",
     }.get(entry.result, "Allowed")
     steps.append({"text": called, "trust": None, "chip": label})
-    approval_id = detail.get("approval_id")
-    if approval_id and not str(approval_id).startswith("remembered:"):
-        a = await session.get(AiApproval, approval_id)
-        if a is not None and a.decided_by:
-            steps.append(
-                {
-                    "text": f"{a.status.capitalize()} by {a.decided_by}",
-                    "trust": "trusted",
-                }
-            )
     return steps
 
 

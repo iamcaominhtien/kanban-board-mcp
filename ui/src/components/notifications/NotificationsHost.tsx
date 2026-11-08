@@ -16,6 +16,7 @@ import { useNotificationActions, type NavigateHandler } from './useNotificationA
 import { useNotificationToasts } from './useNotificationToasts';
 import { isTyping } from './useRowKeys';
 import { useTabTitle } from './useTabTitle';
+import { useCanvas } from '../canvas/CanvasContext';
 import { useSchedules } from '../schedules/SchedulesContext';
 
 /** The event any part of the app (a toast's "+N more", a settings link) sends to open a notification surface. */
@@ -49,6 +50,11 @@ interface DesktopBridge {
 
 function bridge(): DesktopBridge | undefined {
   return (window.electronAPI as unknown as { notifications?: DesktopBridge } | undefined)?.notifications;
+}
+
+/** What a row's buttons do (answer, retry, sign in, open the run...), or null when the notifications are not hosted. */
+export function useNotificationAction(): RowActionHandler | null {
+  return useContext(NotificationsContext)?.onAction ?? null;
 }
 
 /** The bell for the top bar; it needs `NotificationsHost` above it. */
@@ -94,7 +100,7 @@ export function NotificationsHost({
   onOpenTicket: (ticketId: string) => void;
   /** `projectId` is the row's project: a row of another project opens there, never in the one on screen */
   onOpenDoc: (pageId: string, projectId?: string | null) => void;
-  onOpenAiTab: (tab: 'accounts' | 'approvals', projectId?: string | null) => void;
+  onOpenAiTab: (tab: 'accounts', projectId?: string | null) => void;
   onOpenAiMember: (memberId?: string | null, projectId?: string | null) => void;
   onOpenPage: () => void;
   onOpenSettings: () => void;
@@ -106,6 +112,9 @@ export function NotificationsHost({
   const [focusRowId, setFocusRowId] = useState<string | null>(null);
   const props = useRef({ onOpenTicket, onOpenDoc, onOpenAiTab, onOpenAiMember, onOpenPage, onOpenSettings });
   props.current = { onOpenTicket, onOpenDoc, onOpenAiTab, onOpenAiMember, onOpenPage, onOpenSettings };
+  const canvas = useCanvas();
+  const canvasRef = useRef(canvas);
+  canvasRef.current = canvas;
   const assistRef = useRef(assist);
   assistRef.current = assist;
   const schedules = useSchedules();
@@ -136,12 +145,7 @@ export function NotificationsHost({
       case 'sign_in':
         p.onOpenAiTab('accounts', row.projectId);
         break;
-      case 'review':
-        if (row.kind === 'page_proposal' && row.pageId) p.onOpenDoc(row.pageId, row.projectId);
-        else p.onOpenAiTab('approvals', row.projectId);
-        break;
       case 'open_ai':
-      case 'change_permission':
         p.onOpenAiMember(row.memberId, row.projectId);
         break;
       case 'open_list':
@@ -161,6 +165,13 @@ export function NotificationsHost({
       default:
         // open, reply
         if (row.kind === 'day_card') p.onOpenPage();
+        else if (row.targetKind === 'canvas_thread' && typeof row.data?.canvasId === 'string')
+          canvasRef.current.openViewer({
+            id: row.data.canvasId,
+            boardId: typeof row.data.boardId === 'string' ? row.data.boardId : undefined,
+            threadId: row.targetId ?? undefined,
+            comments: true,
+          });
         else if (row.pageId) p.onOpenDoc(row.pageId, row.projectId);
         else if (ticket) p.onOpenTicket(ticket);
         else p.onOpenPage();

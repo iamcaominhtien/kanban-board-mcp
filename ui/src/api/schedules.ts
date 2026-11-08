@@ -77,9 +77,7 @@ export function useScheduleDetail(id: string | null) {
     queryFn: async () => (await client.get<ScheduleDetail>(`/ai/schedules/${id}`)).data,
     enabled: !!id,
     refetchInterval: (q) =>
-      q.state.data?.runs.some((r) => ['running', 'reviewing', 'fixing', 'waiting', 'ask'].includes(r.state))
-        ? 4000
-        : 30000,
+      q.state.data?.runs.some((r) => ['running', 'waiting', 'ask'].includes(r.state)) ? 4000 : 30000,
   });
 }
 

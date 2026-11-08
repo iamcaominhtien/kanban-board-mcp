@@ -95,10 +95,10 @@ function DraftBlock({ d, ed, onDone }: { d: AssistDraft; ed: DocsAiEditor; onDon
       setBusy(false);
     }
   };
-  const used = (detail: Record<string, unknown>) => {
-    // accepting AI text marks the draft, so History shows the version "with AI" once it is published
+  const used = (_detail: Record<string, unknown>) => {
+    // inserting AI text marks the page, so History shows the version "with AI" once it is published; the draft is done
     if (d.docId) void markAiAccepted(d.docId);
-    return assistApi.apply(d.id, { detail });
+    return assistApi.discard(d.id);
   };
   const discard = () => run(() => assistApi.discard(d.id));
   const copy = () => {
@@ -303,7 +303,6 @@ export function DocsAi({
   menuOpen,
   setMenuOpen,
   ed,
-  hidden,
   command,
   onCreateTickets,
 }: {
@@ -313,8 +312,6 @@ export function DocsAi({
   menuOpen: boolean;
   setMenuOpen: (v: boolean) => void;
   ed: DocsAiEditor;
-  /** The page is hidden from AI: the Docs-only rows are not offered. */
-  hidden?: boolean;
   /** A row of the `/ai` slash menu that was picked (run once per `n`). */
   command?: { id: AiSlashId; n: number } | null;
   /** Create tickets from a list or the page (the editor screen opens the dialog). */
@@ -323,7 +320,7 @@ export function DocsAi({
   const ctx = useAssist();
   const st = useAssistState(projectId);
   const docsAi = useDocsAiState(projectId);
-  const gate = aiGate(docsAi.data, { hidden: !!hidden });
+  const gate = aiGate(docsAi.data);
   const docsOn = gate.show && gate.reason === null;
   const drafts = useDocDrafts(projectId, pageId);
   const [ticketPick, setTicketPick] = useState(false);
@@ -332,30 +329,18 @@ export function DocsAi({
   const [drawing, setDrawing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const block = featureBlock(st.data, 'docs');
-  const start = async (kind: 'doc_summary' | 'doc_section' | 'doc_links', data: Record<string, unknown> = {}) => {
+  // AI v2: the Docs assistant does these in the page's chat (it reads the page and can write to it with the board's
+  // tools); nothing is prepared as a draft any more
+  const start = (kind: 'doc_summary' | 'doc_section' | 'doc_links', data: Record<string, unknown> = {}) => {
     setMenuOpen(false);
     setError(null);
-    try {
-      await assistApi.startDraft(projectId, {
-        kind,
-        docId: pageId,
-        data: { markdown: cleanEditorMarkdown(ed.getMarkdown()), ...data },
-      });
-      await drafts.refetch();
-    } catch (e) {
-      setError(assistError(e)?.detail ?? extractError(e));
-    }
+    ctx?.ask({ scope: 'doc', docId: pageId, text: docPrompt(kind, String(data.ticketId ?? '')) });
   };
-  const fromCursor = async (action: 'table' | 'explain_code', text: string | null, missing: string) => {
+  const fromCursor = (action: 'table' | 'explain_code', text: string | null, missing: string) => {
     setMenuOpen(false);
     setError(null);
     if (!text?.trim()) return setError(missing);
-    try {
-      await startSelectionDraft(projectId, pageId, action, text);
-      await drafts.refetch();
-    } catch (e) {
-      setError(assistError(e)?.detail ?? extractError(e));
-    }
+    ctx?.ask({ scope: 'doc', docId: pageId, text: docPrompt(action, text) });
   };
   /** Run a row of the AI menu or of `/ai`. */
   const runRow = (id: AiSlashId) => {
@@ -538,13 +523,28 @@ export function DocsAi({
   );
 }
 
-/** Start a selection action (Summarise / Rewrite / Ask AI…) as a doc draft. */
-export async function startSelectionDraft(
-  projectId: string,
-  pageId: string,
-  action: 'summarise' | 'rewrite' | 'ask' | 'table' | 'explain_code',
-  text: string,
-  question?: string,
-) {
-  return assistApi.startDraft(projectId, { kind: 'doc_text', docId: pageId, data: { action, text, question } });
+/** What the Docs assistant is asked for each Docs AI action (AI v2: the page's chat does what drafts did). */
+export function docPrompt(
+  action: 'doc_summary' | 'doc_section' | 'doc_links' | 'summarise' | 'rewrite' | 'ask' | 'table' | 'explain_code',
+  text = '',
+): string {
+  const passage = text.slice(0, 2000);
+  switch (action) {
+    case 'doc_summary':
+      return 'Write a short summary of this page (3 to 5 lines) that could go at its top.';
+    case 'doc_section':
+      return `Draft a section of this page from ticket ${text}: what it asks, the decisions, what is left.`;
+    case 'doc_links':
+      return 'Which other pages and tickets should this page link to? Suggest each [[Page]] link and where it goes.';
+    case 'summarise':
+      return `Summarise this passage of the page in a few lines: “${passage}”`;
+    case 'rewrite':
+      return `Rewrite this passage of the page to be clearer and shorter, keeping its meaning: “${passage}”`;
+    case 'table':
+      return `Turn this list from the page into a Markdown table: “${passage}”`;
+    case 'explain_code':
+      return `Explain this code block from the page in plain language: “${passage}”`;
+    default:
+      return `About this passage of the page: “${passage.slice(0, 600)}” — what does it mean, and is anything missing?`;
+  }
 }

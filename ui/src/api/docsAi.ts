@@ -11,33 +11,23 @@ export interface DocsAiState {
   state: 'off' | 'no_member' | 'ready';
   memberId: string | null;
   member: { id: string; name: string; provider: string; model: string | null; metered: boolean } | null;
-  candidates: { id: string; name: string; provider: string; connection: string; model: string | null }[];
-  readScope: 'all' | 'except_hidden' | 'picked';
-  pickedPages: string[];
+  /** Why nobody can answer: `paused` (the team chosen in Settings is paused) or `no_member`; null when someone can. */
+  problem: { code: string; message: string } | null;
+  candidates: {
+    id: string;
+    name: string;
+    provider: string;
+    connection: string;
+    model: string | null;
+    paused?: boolean;
+  }[];
   stylePageId: string | null;
-  editsMode: 'direct' | 'proposal' | 'draft';
-  proposalDays: number;
   freshnessOn: boolean;
-  guidanceLimit: number;
   digestOn: boolean;
-  guidancePages: { id: string; title: string }[];
-  hiddenPages: { id: string; title: string }[];
 }
 
 export type DocsAiSettingsPatch = Partial<
-  Pick<
-    DocsAiState,
-    | 'enabled'
-    | 'memberId'
-    | 'readScope'
-    | 'pickedPages'
-    | 'stylePageId'
-    | 'editsMode'
-    | 'proposalDays'
-    | 'freshnessOn'
-    | 'guidanceLimit'
-    | 'digestOn'
-  >
+  Pick<DocsAiState, 'enabled' | 'memberId' | 'stylePageId' | 'freshnessOn' | 'digestOn'>
 >;
 
 /** One Docs AI call (ask, check, translate, thread reply, ...): the Docs counterpart of an AI run. */
@@ -97,20 +87,6 @@ export function useUpdateDocsAi(projectId: string) {
   });
 }
 
-/** Hide a page from AI and/or mark it as guidance every AI run reads. */
-export function useSetPageAiFlags(projectId: string, pageId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (patch: { hidden?: boolean; guidance?: boolean }) =>
-      (await client.patch<{ id: string; aiHidden: boolean; aiGuidance: boolean }>(`/docs/pages/${pageId}/ai`, patch))
-        .data,
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: docsAiKeys.state(projectId) });
-      void qc.invalidateQueries({ queryKey: ['docs'] });
-    },
-  });
-}
-
 /** One Docs AI job; polls while it is queued or running. */
 export function useDocsAiJob(id: string | null | undefined) {
   return useQuery({
@@ -146,7 +122,7 @@ export function useCancelDocsAiJob() {
   });
 }
 
-/** `{detail, code}` of a Docs AI error (the code maps to a state: docs_ai_off, no_member, paused, over_budget...). */
+/** `{detail, code}` of a Docs AI error (the code maps to a state: docs_ai_off, no_member, paused, rate_limited...). */
 export function docsAiError(e: unknown): { code: string; detail: string } | null {
   if (axios.isAxiosError(e) && e.response?.data && typeof e.response.data === 'object') {
     const d = e.response.data as { code?: string; detail?: unknown };
