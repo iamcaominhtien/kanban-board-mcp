@@ -1,0 +1,229 @@
+{
+  "name": "ai-team-flow-story",
+  "voice": "vi-VN-HoaiMyNeural",
+  "tempo": 1.08,
+  "bpm": 76,
+  "ready": "text:Fix add() in calc.py",
+  "intro": {
+    "title": "Flow · Lọc theo Story",
+    "subtitle": "Một Story, các ticket con và các đội làm việc trên nó",
+    "chips": [
+      "Chọn Story",
+      "Map",
+      "Timeline",
+      "Breadcrumb"
+    ],
+    "say": "Lọc Flow theo một Story: các ticket con và các đội làm việc trên nó."
+  },
+  "scenes": [
+    {
+      "kind": "app",
+      "cap": "Ô chọn phạm vi liệt kê Story đang chạy",
+      "say": "Mở ô chọn phạm vi. Story đang chạy được liệt kê riêng, kèm tiến độ bao nhiêu ticket đã xong. Chọn một Story.",
+      "steps": [
+        {
+          "do": "click",
+          "target": "testid:view-ai-team",
+          "settle": 1.2
+        },
+        {
+          "do": "click",
+          "target": "css:.at-head .at-seg button:nth-child(2)",
+          "settle": 1.2
+        },
+        {
+          "do": "click",
+          "target": "testid:flow-picker-button",
+          "settle": 1.0
+        },
+        {
+          "do": "spot",
+          "target": "testid:flow-picker",
+          "grow": {
+            "left": 4,
+            "right": 4,
+            "top": 4,
+            "bottom": 4
+          }
+        },
+        {
+          "do": "until",
+          "frac": 0.6
+        },
+        {
+          "do": "spot"
+        },
+        {
+          "do": "click",
+          "target": "testid:flow-pick-story-KAN-1",
+          "settle": 1.8
+        }
+      ]
+    },
+    {
+      "kind": "app",
+      "cap": "Map của Story: ticket con thụt vào dưới Story",
+      "say": "Map của Story: các ticket con thụt vào dưới Story, mũi tên đỏ là ticket bị chặn bởi ticket khác. Story mở trên toàn bộ vòng đời của nó.",
+      "steps": [
+        {
+          "do": "spot",
+          "target": "testid:flow-map",
+          "grow": {
+            "left": 4,
+            "right": 4,
+            "top": 4,
+            "bottom": 4
+          }
+        },
+        {
+          "do": "until",
+          "frac": 0.95
+        }
+      ]
+    },
+    {
+      "kind": "app",
+      "cap": "Ticket trong Story: breadcrumb thêm một cấp",
+      "say": "Bấm Flow trên một ticket con để xuống một cấp. Breadcrumb ghi rõ ticket nằm trong Story nào.",
+      "steps": [
+        {
+          "do": "spot"
+        },
+        {
+          "do": "click",
+          "target": "testid:flow-ticket-scope-KAN-9",
+          "settle": 1.8
+        },
+        {
+          "do": "spot",
+          "target": "css:.fl-crumbs",
+          "grow": {
+            "left": 8,
+            "right": 8,
+            "top": 8,
+            "bottom": 8
+          }
+        },
+        {
+          "do": "until",
+          "frac": 0.9
+        }
+      ]
+    },
+    {
+      "kind": "app",
+      "cap": "Bấm Story trên breadcrumb để lên một cấp",
+      "say": "Bấm tên Story trên breadcrumb để quay lên một cấp.",
+      "steps": [
+        {
+          "do": "spot"
+        },
+        {
+          "do": "click",
+          "target": "text:Story KAN-1",
+          "settle": 1.6
+        },
+        {
+          "do": "spot",
+          "target": "css:.fl-crumbs",
+          "grow": {
+            "left": 8,
+            "right": 8,
+            "top": 8,
+            "bottom": 8
+          }
+        },
+        {
+          "do": "until",
+          "frac": 0.9
+        }
+      ]
+    },
+    {
+      "kind": "app",
+      "cap": "Timeline của Story: chỉ run của Story và ticket con",
+      "say": "Sang Timeline: chỉ còn các run của Story và các ticket con, mỗi đội một nhóm.",
+      "steps": [
+        {
+          "do": "spot"
+        },
+        {
+          "do": "click",
+          "target": "testid:flow-view-timeline",
+          "settle": 2.0
+        },
+        {
+          "do": "spot",
+          "target": "testid:tl-scroll",
+          "grow": {
+            "left": 2,
+            "right": 2,
+            "top": 2,
+            "bottom": 2
+          }
+        },
+        {
+          "do": "until",
+          "frac": 0.9
+        }
+      ]
+    },
+    {
+      "kind": "app",
+      "cap": "Timeline: lọc Show và Detailed vẫn dùng được trong Story",
+      "say": "Các bộ lọc Show và Detailed vẫn dùng trong Story. Đây là Detailed.",
+      "steps": [
+        {
+          "do": "spot"
+        },
+        {
+          "do": "click",
+          "target": "exact:Detailed",
+          "settle": 1.8
+        },
+        {
+          "do": "until",
+          "frac": 0.9
+        },
+        {
+          "do": "click",
+          "target": "exact:Compact",
+          "settle": 0.5
+        }
+      ]
+    },
+    {
+      "kind": "app",
+      "cap": "Link giữ Story và view",
+      "say": "Địa chỉ giữ cả Story lẫn view, nên gửi link là mở đúng chỗ này.",
+      "steps": [
+        {
+          "do": "spot",
+          "target": "css:.fl-scope-row",
+          "grow": {
+            "left": 6,
+            "right": 6,
+            "top": 6,
+            "bottom": 6
+          }
+        },
+        {
+          "do": "until",
+          "frac": 0.9
+        }
+      ]
+    }
+  ],
+  "outro": {
+    "title": "Flow · Lọc theo Story",
+    "tagline": "Story, ticket con và các đội trong một tầm nhìn",
+    "say": "Xem một Story từ đầu đến cuối.",
+    "caption": "Xem một Story từ đầu đến cuối",
+    "steps": [
+      {
+        "do": "key",
+        "key": "Escape"
+      }
+    ]
+  }
+}

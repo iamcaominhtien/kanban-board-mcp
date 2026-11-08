@@ -495,6 +495,10 @@ export interface TimelineLifeline {
   delegate?: string | null;
   /** The team's lead (its box is drawn dark, like You). */
   lead?: boolean;
+  /** The team a lead or a role belongs to (the group header of the Flow timeline); absent for You. */
+  teamId?: string;
+  /** The team's own name (a lead's lane is called "Lead" when only one team is drawn). */
+  teamName?: string;
   /** No event in the window: folded into the "N quiet AIs" strip on a narrow window. */
   quiet?: boolean;
 }
@@ -545,6 +549,7 @@ export type ArrowKind =
   | 'assign'
   | 'mention'
   | 'handoff'
+  | 'note'
   | 'report'
   | 'returned'
   | 'sent_back'
@@ -638,7 +643,7 @@ export interface Timeline {
   until: string;
   now: string;
   following: boolean;
-  scope: { kind: 'team' | 'ticket'; ticketId: string | null };
+  scope: { kind: 'team' | 'ticket'; ticketId: string | null; teamId?: string | null };
   lifelines: TimelineLifeline[];
   bars: TimelineBar[];
   arrows: TimelineArrow[];

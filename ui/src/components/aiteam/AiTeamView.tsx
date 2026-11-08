@@ -6,18 +6,19 @@ import { useKnowledge } from '../../api/aiKnowledge';
 import { KnowledgeSection, memoryWaiting } from '../ai/knowledge/KnowledgeSection';
 import { OPEN_RUN_EVENT, takePendingRun } from './runLink';
 import { TeamPage } from './TeamPage';
-import { TimelineTab } from './TimelineTab';
+import { FlowTab } from './FlowTab';
 import { SteppedInTab } from './SteppedInTab';
 import { HealthTab } from './HealthTab';
 import { useTouches } from '../../api/aiTouches';
-import { OPEN_TIMELINE_EVENT, takePendingTimeline, type TimelineLink } from './timelineLink';
+import { OPEN_TIMELINE_EVENT, parseTimelineLink, takePendingTimeline, type TimelineLink } from './timelineLink';
 import './aiTeam.css';
 
-type Tab = 'now' | 'timeline' | 'history' | 'stepped' | 'health' | 'resources' | 'memory';
+type Tab = 'now' | 'flow' | 'history' | 'stepped' | 'health' | 'resources' | 'memory';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'now', label: 'Now' },
-  { id: 'timeline', label: 'Timeline' },
+  // the map and the timeline of the teams, by scope (the old tab Timeline is a view of it)
+  { id: 'flow', label: 'Flow' },
   { id: 'history', label: 'Run history' },
   // every time a person had to touch the work (KBM-21)
   { id: 'stepped', label: 'You stepped in' },
@@ -40,18 +41,19 @@ interface Props {
 export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember }: Props) {
   // A run was asked for (a link to its detail): Run history opens on it
   const [runId, setRunId] = useState<string | null>(() => takePendingRun());
-  // The Timeline was asked for ("Open in Timeline" on a ticket): the Timeline tab opens on it
-  const [timelineLink, setTimelineLink] = useState<{ link: TimelineLink; key: number } | null>(() => {
-    const link = takePendingTimeline();
+  // Flow was asked for ("Open in Timeline" on a ticket, or an address with `?aiteam=flow` / `?aiteam=timeline`): the
+  // Flow tab opens on that scope and view
+  const [flowLink, setFlowLink] = useState<{ link: TimelineLink; key: number } | null>(() => {
+    const link = takePendingTimeline() ?? parseTimelineLink(window.location.search);
     return link ? { link, key: Date.now() } : null;
   });
-  const [tab, setTab] = useState<Tab>(runId ? 'history' : timelineLink ? 'timeline' : 'now');
+  const [tab, setTab] = useState<Tab>(runId ? 'history' : flowLink ? 'flow' : 'now');
   useEffect(() => {
     const open = () => {
       const link = takePendingTimeline();
       if (!link) return;
-      setTimelineLink({ link, key: Date.now() });
-      setTab('timeline');
+      setFlowLink({ link, key: Date.now() });
+      setTab('flow');
     };
     window.addEventListener(OPEN_TIMELINE_EVENT, open);
     return () => window.removeEventListener(OPEN_TIMELINE_EVENT, open);
@@ -99,6 +101,8 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
                 setSteppedMark(undefined);
                 setTab(t.id);
                 if (t.id === 'now') setTeamId(null);
+                // leaving Flow forgets the request it was opened with: the tab opens on its default next time
+                if (t.id !== 'flow') setFlowLink(null);
               }}
             >
               {t.label}
@@ -125,12 +129,13 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember 
         </div>
       </div>
 
-      {tab === 'timeline' ? (
-        <TimelineTab
-          key={timelineLink?.key ?? 0}
+      {tab === 'flow' ? (
+        <FlowTab
+          key={flowLink?.key ?? 0}
           projectId={projectId}
-          initial={timelineLink?.link ?? null}
-          actions={{ onOpenTicket, onOpenDocsPage: () => undefined }}
+          projectName={projectName}
+          initial={flowLink?.link ?? null}
+          onOpenTicket={onOpenTicket}
         />
       ) : tab === 'history' ? (
         <HistoryTab projectId={projectId} runId={runId} onRunChange={setRunId} onOpenTicket={onOpenTicket} />
