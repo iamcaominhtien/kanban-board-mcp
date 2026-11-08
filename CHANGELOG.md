@@ -8,6 +8,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-11-08
+
+Hotfix: a Story's tickets can have sub-tickets.
+
+### Fixed
+- **A ticket inside a Story could not get a sub-ticket.** A ticket in a Story is a child of the Story, and the server allowed one level of nesting only, so "Add sub-ticket" did nothing and the board showed no error. Under a Story there is now one more level: **Story › ticket › sub-ticket**. A ticket outside a Story keeps one level, a Story still has no parent, and a ticket that has sub-tickets of its own cannot move under another ticket of a Story (that would be a fourth level). The tool descriptions (`create_ticket`, `update_ticket`, `create_child_ticket`), the ticket guide and the architecture doc say so.
+- **The ticket's Sub-tickets section** shows only where the server accepts sub-tickets, lists only the tickets that can be linked there, and shows the server's message when creating one fails instead of staying silent.
+- **The board shows the three levels.** In a column, a sub-ticket steps in once more under its ticket; with Group by Story it stays in its Story's lane instead of "Not in a Story"; the ticket window's breadcrumb shows Story / ticket / sub-ticket.
+- **The type word ran over the ID** on a narrow card (an indented sub-ticket): it now shortens with an ellipsis, and goes away below 105 px, where the icon already says it.
+
 ## [4.0.0] - 2026-11-08
 
 **AI v2: the board's AI team is rebuilt around Claude Code.** One lead session per ticket, led by Claude Code itself, with the roles of the team as its subagents. In `server`, `ui` and `desktop` about 188,000 lines of the old AI (permissions, approvals, hand-offs, workflows, other providers) are gone and about 57,000 are new (994 files changed since 3.37.2). Design: `docs/specs/ai-v2.md` (section 11 lists what was built differently from the design). Plan and what was checked: `docs/specs/ai-v2-implementation.md`.
