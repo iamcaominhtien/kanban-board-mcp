@@ -44,20 +44,20 @@
       "h": 10035
     },
     "AiBoardAssistant.dc.html": {
-      "bytes": 274378,
-      "sha256": "5ca27b0a187cbe7e4ee41f6d4746dfe3d7e416bcb3e897415e2d3cbb7cb33114",
+      "bytes": 338774,
+      "sha256": "76f1c75932ac4d875b4a0cf7d6eb24e9fac2b3be14da5ea8cc59a4b350e77412",
       "title": "Board AI — assistant & suggestions",
       "page": "screens_ai",
       "w": 1480,
-      "h": 7960
+      "h": 10890
     },
     "AiBoardWave3.dc.html": {
-      "bytes": 169735,
-      "sha256": "752524874dfcb5c2dbd0e47d4818972429533fa1df09d619261d79c3a194219d",
+      "bytes": 87775,
+      "sha256": "508feeeb7abc1dd2a0f27c9401a4e6a90fa27f8c330005478738f746c3c67b0c",
       "title": "Board AI & beyond — risk tiers, standing orders, knowledge base, GitHub, marks",
       "page": "screens_ai",
       "w": 1480,
-      "h": 12020
+      "h": 4598
     },
     "AiDatabases.dc.html": {
       "bytes": 167340,
@@ -68,12 +68,12 @@
       "h": 10602
     },
     "AiEverywhere.dc.html": {
-      "bytes": 69747,
-      "sha256": "567d8b0a57df9c42b3bc44dd6035c732162a9143fd0ddf352bc8d64aa006db6e",
+      "bytes": 88966,
+      "sha256": "dea8c9921cda2cde84341cccdf88f36170824e77644f154e0a8deff7e49e6885",
       "title": "AI where you work — ticket chat, @mentions & editor",
       "page": "screens_ai",
       "w": 1480,
-      "h": 4046
+      "h": 4358
     },
     "AiMembers.dc.html": {
       "bytes": 208683,
@@ -132,12 +132,12 @@
       "h": 7969
     },
     "AiStoryFlow.dc.html": {
-      "bytes": 815411,
-      "sha256": "7c41829d3aff8fadabfab31f072c54aa70d59809d6dc100e76e8c154d6d91c04",
+      "bytes": 372417,
+      "sha256": "0b783081f27d163895baeb8a1617b3e14db1e19b91716f50cea68415368d7ac4",
       "title": "Story, Flow by scope and Live commentary — a job the PM owns, one bar for Flow, the screens that ran without a design",
       "page": "screens_ai",
       "w": 1480,
-      "h": 34506
+      "h": 11353
     },
     "AiTeam.dc.html": {
       "bytes": 317294,
