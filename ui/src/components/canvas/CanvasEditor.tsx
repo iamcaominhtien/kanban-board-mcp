@@ -2279,8 +2279,8 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
               />
               <div className={styles.hint} style={{ margin: '4px 0 8px' }}>
                 Type @ to mention a person or a team. Click a board to pin at that spot (it moves with the board), or
-                click the plane for a pin that stays put. Pins are numbered in the order they were made. Esc leaves the
-                tool.
+                click the plane for a pin that stays put. Esc leaves the tool. Pins are numbered in the order they were
+                made.
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setPinDraft(null)}>
