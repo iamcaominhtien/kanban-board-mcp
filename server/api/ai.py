@@ -20,6 +20,7 @@ from services.ai import roles as svc_roles
 from services.ai import runs as svc_runs
 from services.ai import steps as svc_steps
 from services.ai import teams as svc_teams
+from services.ai import flow as svc_flow
 from services.ai import health as svc_health
 from services.ai import timeline as svc_timeline
 from services.ai import touches as svc_touches
@@ -743,8 +744,9 @@ async def get_timeline(
     since: Optional[datetime] = None,
     until: Optional[datetime] = None,
     ticket_id: Optional[str] = None,
+    team_id: Optional[str] = None,
 ) -> dict:
-    """The Timeline: a sequence diagram of the teams' runs in a window (the whole project, or one ticket)."""
+    """The Timeline: a sequence diagram of the teams' runs in a window (the whole project, one team or one ticket)."""
     await _project(session, project_id)
     return await svc_timeline.timeline(
         session,
@@ -753,7 +755,38 @@ async def get_timeline(
         since=since,
         until=until,
         ticket_id=ticket_id,
+        team_id=team_id,
     )
+
+
+@router.get("/projects/{project_id}/ai/team/flow")
+async def get_flow_map(
+    project_id: str,
+    session: Session,
+    range: str = "today",
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
+    ticket_id: Optional[str] = None,
+    team_id: Optional[str] = None,
+) -> dict:
+    """Flow, the Map: the person, the teams (with their roles) and the tickets worked, and the edges between them."""
+    await _project(session, project_id)
+    return await svc_flow.flow_map(
+        session,
+        project_id,
+        range_key=range,
+        since=since,
+        until=until,
+        ticket_id=ticket_id,
+        team_id=team_id,
+    )
+
+
+@router.get("/projects/{project_id}/ai/team/flow/scopes")
+async def get_flow_scopes(project_id: str, session: Session) -> dict:
+    """Flow's scope picker: the teams, the Stories and the tickets with AI work."""
+    await _project(session, project_id)
+    return await svc_flow.flow_scopes(session, project_id)
 
 
 # --------------------------------------------------------------------------- You stepped in

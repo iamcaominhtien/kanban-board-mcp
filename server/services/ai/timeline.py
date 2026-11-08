@@ -47,6 +47,8 @@ ROLE_COLORS = (
     "#7C5CD6",
 )
 OFFLINE = ("runner_missing", "not_logged_in")
+# Triggers of a run that a note started: a person in the ticket chat, or another AI (`ai_run message`)
+NOTE_TRIGGERS = ("message", "ai_message")
 
 
 def window(
@@ -298,6 +300,27 @@ async def _last_steps(session: AsyncSession, run_ids: list[str]) -> dict[str, st
     return out
 
 
+async def name_map(
+    session: AsyncSession, project_id: str, teams: dict[str, tuple[Member, AiTeam]]
+) -> dict[str, str]:
+    """Lower-cased name -> team id, for the names that mean exactly one team: a note's sender is known by its name, so
+    a name shared by two teams, or with a person of the project, is left out (it would draw the wrong team)."""
+    people = {
+        (m.name or "").strip().lower()
+        for m in (
+            await session.exec(
+                select(Member).where(
+                    Member.project_id == project_id, Member.kind != "ai"
+                )
+            )
+        ).all()
+    }
+    seen: dict[str, list[str]] = defaultdict(list)
+    for tid, (m, _t) in teams.items():
+        seen[m.name.strip().lower()].append(tid)
+    return {n: ids[0] for n, ids in seen.items() if len(ids) == 1 and n not in people}
+
+
 async def timeline(
     session: AsyncSession,
     project_id: str,
@@ -306,8 +329,10 @@ async def timeline(
     since: datetime | None = None,
     until: datetime | None = None,
     ticket_id: str | None = None,
+    team_id: str | None = None,
 ) -> dict[str, Any]:
-    """The sequence diagram's data for a window and a scope (the whole project, or one ticket with its sub-tickets)."""
+    """The sequence diagram's data for a window and a scope (the whole project, one team, or one ticket with its
+    sub-tickets)."""
     if range_key not in RANGES:
         range_key = "today"
     now = datetime.now(UTC)
@@ -328,6 +353,8 @@ async def timeline(
     )
     if scope_ids is not None:
         stmt = stmt.where(col(AiRun.ticket_id).in_(scope_ids))
+    if team_id:
+        stmt = stmt.where(AiRun.member_id == team_id)
     candidates = (
         await session.exec(stmt.order_by(col(AiRun.queued_at).desc()).limit(MAX_RUNS))
     ).all()
@@ -350,6 +377,12 @@ async def timeline(
         teams[m.id] = (m, t)
     used = [m for m in dict.fromkeys(r.member_id for r in runs) if m in teams]
     held = bool(settings.paused_all)
+    by_name = await name_map(session, project_id, teams)
+
+    def sender_team(name: str | None, receiver: str) -> str | None:
+        """The team a note came from, when `name` is one of the project's teams (and not the receiver itself)."""
+        tid = by_name.get((name or "").strip().lower())
+        return tid if tid and tid != receiver else None
 
     def lane_name(team_id: str, role: str | None) -> str:
         team = teams[team_id][0].name
@@ -381,13 +414,26 @@ async def timeline(
         if q0 and q1:
             wait_s = max(int((q1 - q0).total_seconds()), 0)
         # the person's instruction: not for a schedule, a GitHub event or the API (nobody sat there)
-        if r.trigger in ("assign", "run_button", "message", "docs_threads", "retry"):
+        # a note from another team starts a run too (`message` from the ticket chat, `ai_message` from `ai_run message`):
+        # it is an arrow from that team's lead; a note whose sender is no team (the board's agent) draws none
+        from_team = (
+            sender_team(r.started_by, lead) if r.trigger in NOTE_TRIGGERS else None
+        )
+        if r.trigger in (
+            "assign",
+            "run_button",
+            "message",
+            "docs_threads",
+            "retry",
+        ) or (r.trigger == "ai_message" and from_team):
+            if from_team and from_team not in used:
+                used.append(from_team)
             arrows.append(
                 _arrow(
                     f"{r.id}:assign",
                     queued_at,
-                    "assign",
-                    "you",
+                    "note" if from_team else "assign",
+                    from_team or "you",
                     lead,
                     r.ticket_id,
                     r.id,
@@ -494,12 +540,15 @@ async def timeline(
                 continue
             if (parse_iso(r.queued_at) or at) >= at - timedelta(seconds=2):
                 continue  # the instruction that started the run is the assign arrow
+            from_team = sender_team(m.peer, r.member_id)
+            if from_team and from_team not in used:
+                used.append(from_team)
             arrows.append(
                 _arrow(
                     m.id,
                     m.at,
-                    "assign",
-                    "you",
+                    "note" if from_team else "assign",
+                    from_team or "you",
                     r.member_id,
                     r.ticket_id,
                     None,
@@ -549,7 +598,11 @@ async def timeline(
         }
     ]
     shown = list(used)
-    if scope_ids is None:
+    if team_id in teams and team_id not in shown:
+        shown.append(
+            team_id
+        )  # one team on show: it is drawn even when nothing ran in the window
+    if scope_ids is None and not team_id:
         shown += [t for t in teams if t not in used and teams[t][0].kind == "ai"]
     for tid in shown:
         m, _t = teams[tid]
@@ -558,6 +611,8 @@ async def timeline(
                 "id": tid,
                 "kind": "ai",
                 "lead": True,
+                "team_id": tid,
+                "team_name": m.name,
                 "name": lane_name(tid, None),
                 "color": m.color,
                 "state": state_of(tid, None),
@@ -569,6 +624,7 @@ async def timeline(
                 {
                     "id": lane,
                     "kind": "ai",
+                    "team_id": tid,
                     "name": lane_name(tid, role_info[lane][1]),
                     "color": _role_color(role_info[lane][1]),
                     "state": state_of(tid, lane),
@@ -663,7 +719,11 @@ async def timeline(
         "until": b.isoformat(),
         "now": now.isoformat(),
         "following": b >= now - timedelta(seconds=5),
-        "scope": {"kind": "ticket" if ticket_id else "team", "ticket_id": ticket_id},
+        "scope": {
+            "kind": "ticket" if ticket_id else "team",
+            "ticket_id": ticket_id,
+            "team_id": team_id,
+        },
         "lifelines": lifelines,
         "bars": bars,
         "arrows": grouped,
