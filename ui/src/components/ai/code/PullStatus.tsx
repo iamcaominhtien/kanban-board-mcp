@@ -3,15 +3,18 @@ import { extractError } from '../../../api/extractError';
 import { pullApi, usePullMutation, usePulls } from '../../../api/aiPulls';
 import { useProjectOps } from '../../../api/aiProjectOps';
 import { useTicket } from '../../../api/tickets';
-import { ago } from '../aiUi';
+import { useTicketRuns } from '../../../api/ai';
+import { ago, useAiBoardState } from '../aiUi';
 import { BRANCH, BUBBLE, CI_TEXT, EXTERNAL } from './pullParts';
 
-/** A pull request the board opened (design/screens/ai-board-wave3.md, J): CI state, red CI and review comments. */
+/** A pull request the board opened (design/screens/ai-board-wave3.md, E): CI state, red CI and review comments. */
 export function PullStatus({ ticketId }: { ticketId: string }) {
   const ticket = useTicket(ticketId);
   const projectId = ticket.data?.projectId;
   const pulls = usePulls(projectId);
   const ops = useProjectOps(projectId ?? '');
+  const runs = useTicketRuns(ticketId).data ?? [];
+  const { members } = useAiBoardState();
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const poll = usePullMutation(projectId, () => pullApi.poll(projectId as string));
@@ -33,12 +36,31 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
     }
   };
   const nComments = p.pendingComments.length;
+  /** The team the board gave a run to: the one that ran it, else "the team". */
+  const teamOf = (runId?: string | null) => {
+    const run = runs.find((r) => r.id === runId);
+    return (run && members.get(run.memberId)?.name) || 'the team';
+  };
+  const givenComments = p.pendingComments.find((c) => c.handledAt);
   const dot = (c: string) => (
     <span style={{ width: 8, height: 8, borderRadius: '50%', background: c, display: 'inline-block' }} />
   );
 
   return (
-    <div data-testid="pull-status" data-ticket={ticketId} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div
+      data-testid="pull-status"
+      data-ticket={ticketId}
+      className="ai-root"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        border: '1px solid #E3E8E5',
+        borderRadius: 12,
+        background: '#fff',
+        padding: 14,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>Pull request</span>
         <a href={p.url} target="_blank" rel="noreferrer" className="ai-link" data-testid="pull-link">
@@ -82,7 +104,8 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
       </div>
       {unreachable && (
         <div className="ai-notice ai-notice-warn" role="alert" data-testid="pull-unreachable">
-          GitHub could not be reached ({p.lastError}). The state above is {checked}, not a green light.
+          GitHub could not be reached ({p.lastError}). The state above is {checked}, not a green light; the board does
+          not act on old data.
         </div>
       )}
       {ops.data && !ops.data.github?.on && (
@@ -127,8 +150,8 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
             </div>
           )}
           {red.handledAt && (
-            <div className="ai-hint" data-testid="pull-given">
-              The board gave the failing check to the team {ago(red.handledAt)}.
+            <div style={{ color: '#1F5A31', fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-given">
+              The board gave the failing check to {teamOf(red.runId)}: a new run, started by the board (red CI).
             </div>
           )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -184,6 +207,12 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
               <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>“{c.body}”</div>
             </div>
           ))}
+          {givenComments && (
+            <div style={{ color: '#1F5A31', fontSize: 12.5, lineHeight: 1.6 }} data-testid="pull-comments-given">
+              The board gave the review comments to {teamOf(givenComments.runId)}: a new run, started by the board
+              (review comments).
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <a className="ai-btn" href={p.url} target="_blank" rel="noreferrer">
               {EXTERNAL}I will answer them

@@ -423,7 +423,8 @@ async def comments_to_dev(ticket_id: str) -> str | None:
 
     async with database.async_session() as session:
         row = await session.get(AiWatchedPr, ticket_id)
-        pending = loads(row.pending_comments, []) if row else []
+        every = loads(row.pending_comments, []) if row else []
+        pending = [c for c in every if not c.get("handled_at")]
         if not pending:
             return None
         member = await _dev_of(session, ticket_id)
@@ -444,7 +445,14 @@ async def comments_to_dev(ticket_id: str) -> str | None:
             trigger="review_comments",
         )
         run = await session.get(AiRun, out.get("run_id")) if out.get("run_id") else None
-        row.pending_comments = "[]"
+        # kept, marked as given, so the ticket still shows what the team was given (and which run)
+        now = _now()
+        row.pending_comments = json.dumps(
+            [
+                c if c.get("handled_at") else {**c, "handled_at": now, "run_id": run.id}
+                for c in every
+            ]
+        )
         session.add(row)
         await session.commit()
         return run.id
