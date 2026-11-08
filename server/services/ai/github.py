@@ -6,7 +6,7 @@
   open (``ops.github.poll_min``, 5 by default).
 - Red CI: the failing job's log (``gh run view --log-failed``) goes to the ticket's Dev in a run on the ticket's
   worktree — but first the same check is looked up on the base branch: when it is red there too, the ticket is not
-  to blame and nobody is sent back.
+  to blame and the board does not give it to the team.
 - Review comments from people: the text and the lines go to the AI, which replies on the thread when something
   changed. It never resolves a person's thread.
 - On a pull request the board opened, pushing to that branch and replying on its threads are part of the work: they

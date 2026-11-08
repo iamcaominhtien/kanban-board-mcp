@@ -717,6 +717,7 @@ async def _answer(
                 False,
             )
             ctx = loads(ai.context, {})
+            ctx["run"] = {"id": out.run_id}
             try:
                 changes = await receipt.collect(
                     session, None, out.run_id, since=started
@@ -833,6 +834,8 @@ async def undo_receipt(
     before = rec.get("undo") or {}
     if rec.get("status") == "undone" and not before.get("skipped"):
         raise AssistError("conflict", "These changes were already put back.")
+    if m.state in ACTIVE:
+        raise AssistError("conflict", "The answer is being written again: wait for it.")
     if m.id in UNDOING:
         raise AssistError("conflict", "Undo is already running.")
     UNDOING.add(m.id)

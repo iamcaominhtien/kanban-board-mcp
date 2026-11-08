@@ -196,14 +196,17 @@ export function AnswerBlock({
             Your message is kept.
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              type="button"
-              className="ai-btn ai-btn-primary ai-btn-sm"
-              disabled={busy}
-              onClick={() => void retry()}
-            >
-              Try again
-            </button>
+            {/* asking again would do the same work twice: after changes, the person writes a new message */}
+            {!ctxInfo.receipt?.applied.length && (
+              <button
+                type="button"
+                className="ai-btn ai-btn-primary ai-btn-sm"
+                disabled={busy}
+                onClick={() => void retry()}
+              >
+                Try again
+              </button>
+            )}
             <button
               type="button"
               className="ai-btn ai-btn-sm"
