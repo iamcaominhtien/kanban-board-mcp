@@ -177,7 +177,7 @@ function BoardAiBlock({ s, onOpenAiTeam }: { s: AssistState; onOpenAiTeam?: () =
         <div style={{ fontSize: 14, fontWeight: 700 }}>
           {s.boardAi.name ?? 'Board AI'}{' '}
           <span className="ai-chip" style={ready ? { background: '#E6F2EA', color: '#1F5A31' } : undefined}>
-            {ready ? 'Online' : 'Claude Code was not found'}
+            {ready ? 'Online' : (s.boardAi.status?.label ?? 'Claude Code was not found')}
           </span>
         </div>
         <div className="ai-muted">The first team of this project · Claude Code. Its lead answers in the chat.</div>

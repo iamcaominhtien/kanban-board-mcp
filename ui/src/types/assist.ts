@@ -527,7 +527,7 @@ export interface ScopeState {
   scope: ChatScopeInfo;
   availability: Availability;
   /** The Board AI that answers when the thing has no team: the project's first team, run by Claude Code. */
-  boardAi?: { name: string; providerLabel: string; ready: boolean };
+  boardAi?: { name: string; providerLabel: string; ready: boolean; label: string };
   members: ScopeMember[];
   memberId: string | null;
   estimate: CostEstimate | null;

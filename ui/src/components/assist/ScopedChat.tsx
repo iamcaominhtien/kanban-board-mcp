@@ -120,7 +120,7 @@ function Who({ state }: { state: ScopeState | undefined }) {
                 ? ' '
                 : board.ready
                   ? `${board.name === 'Board AI' ? 'Claude Code' : `${board.name} (${board.providerLabel})`} · online`
-                  : 'Claude Code was not found'}
+                  : board.label}
           </span>
         </div>
       </div>
@@ -135,7 +135,7 @@ function Blocked({ state, onMembers }: { state: ScopeState; onMembers?: () => vo
     return (
       <div className="as-tile as-tile-error" data-testid="chat-no-member">
         <div className="as-tile-title">
-          <LineIcon name="warning" size={14} /> Claude Code was not found
+          <LineIcon name="warning" size={14} /> {state.boardAi?.label ?? 'Claude Code was not found'}
         </div>
         <div className="ai-hint">
           {a.message ?? 'Claude Code was not found on this computer. Install it, or add an AI team in Members.'}

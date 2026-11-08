@@ -57,8 +57,10 @@ async def get_assist(project_id: str, session: Session) -> dict:
     out["board_ai"]["state"] = info["state"]
     if info["state"] != "ready":
         out["board_ai"]["status"] = {
-            "code": "runner_missing",
-            "label": "Claude Code was not found",
+            "code": "runner_missing" if not info.get("code") else "paused",
+            "label": "Claude Code was not found"
+            if not info.get("code")
+            else "The Board AI is not ready",
             "detail": info.get("message") or "",
         }
     panel = await svc_health.panel(session, project_id)

@@ -344,7 +344,7 @@ export function AssistDock() {
                 {b.providerLabel ? ` (${b.providerLabel})` : ''} · online
               </span>
             ) : (
-              'Claude Code was not found'
+              (b.status?.label ?? 'Claude Code was not found')
             )}
           </div>
         </div>

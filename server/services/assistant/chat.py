@@ -424,6 +424,9 @@ async def scope_state(
             "name": info.get("member") or "Board AI",
             "provider_label": "Claude Code",
             "ready": info["state"] == "ready",
+            "label": "Claude Code was not found"
+            if not info.get("code")
+            else "The Board AI is not ready",
         },
         "members": members,
         "member_id": member_id,
@@ -700,12 +703,23 @@ async def _answer(
             {"code": "error", "message": f"Couldn't answer ({type(exc).__name__})."},
         )
     finally:
-        RUNS.pop(message_id, None)
+        run_ref = RUNS.pop(message_id, None)
     async with database.async_session() as session:
         ai = await session.get(AiChatMessage, message_id)
         if ai is None:
             return
         ai.state, ai.error, ai.finished_at = state, json.dumps(error), now_iso()
+        if out is None and run_ref:
+            # the turn died after its tools may have acted: the receipt is still read, so Undo stays possible
+            ctx0 = loads(ai.context, {})
+            try:
+                found = await receipt.collect(session, None, run_ref, since=started)
+                merged0 = receipt.merge(ctx0.get("receipt"), found, run_ref)
+            except Exception:  # noqa: BLE001
+                merged0 = ctx0.get("receipt")
+            if merged0:
+                ctx0["receipt"] = merged0
+                ai.context = json.dumps(ctx0)
         if out is not None:
             data = out.data() if skill == "sketch-ask" else {}
             ai.text = (data.get("answer") if data else None) or out.text or ai.text

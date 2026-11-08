@@ -339,7 +339,7 @@ async def signals(session, project_id: str) -> list[dict]:
                     "number": row.number,
                 },
                 "score": 8,
-                "action": "Give it back to the Dev",
+                "action": "The board gives it to the team",
             }
         )
     return out
