@@ -124,7 +124,9 @@ export function RepoCommands({ projectId }: { projectId: string }) {
     if (!w || w.key !== key) {
       // first sight of this job: a proposal that is already there belongs to an earlier look, unless nothing is saved
       // yet and the job has ended (the page was closed while it ran): then its commands are what the person has
-      const take = !!proposed && job.state !== 'running' && readSeen(projectId) !== key;
+      // the proposal is this job's own only once its "ai" step is done (the server keeps the last one until then)
+      const aiDone = job.steps.some((s) => s.key === 'ai' && s.state === 'done');
+      const take = !!proposed && aiDone && job.state !== 'running' && readSeen(projectId) !== key;
       watched.current = {
         key,
         proposal: sig,
@@ -146,13 +148,14 @@ export function RepoCommands({ projectId }: { projectId: string }) {
     if (!w.adopted && (sig !== w.proposal || (w.late && job.state !== 'running'))) {
       w.adopted = true;
       if (job.state !== 'running') writeSeen(projectId, key);
+      const mine = new Set(touched.current);
+      touched.current.clear();
       setTyped((cur) => {
         // a box the person typed in meanwhile stays; the others take the proposal
         const next = { ...proposed };
-        if (cur) for (const n of COMMAND_ORDER) if (touched.current.has(n) && cur[n].trim()) next[n] = cur[n];
+        if (cur) for (const n of COMMAND_ORDER) if (mine.has(n) && cur[n].trim()) next[n] = cur[n];
         return next;
       });
-      touched.current.clear();
     }
     // the folders are saved a moment after the commands: take them when they arrive
     if (!w.envAdopted && folders?.length && (envSig !== w.env || (w.late && job.state !== 'running'))) {
@@ -299,8 +302,8 @@ export function RepoCommands({ projectId }: { projectId: string }) {
         </div>
       )}
       {running && (
-        <div className="ai-hint" data-testid="rc-busy">
-          The commands are already being set up.
+        <div className="rc-why rc-why-bad" data-testid="rc-busy">
+          <LineIcon name="warning" size={14} /> The commands are already being set up.
         </div>
       )}
       {aiOff && offWhy && (
@@ -322,8 +325,8 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       {job && <ScanStrip job={job} onStop={stop} />}
       {running && <ScanLog lines={job.log} mode={job.mode} />}
       {job && !running && job.error && job.state !== 'cancelled' && (
-        <div className="rc-why rc-why-bad" data-testid="rc-job-error">
-          {job.error}
+        <div className={`rc-why ${job.state === 'timeout' ? '' : 'rc-why-bad'}`} data-testid="rc-job-error">
+          <LineIcon name="warning" size={14} /> {job.error}
         </div>
       )}
       {nothingFound && (

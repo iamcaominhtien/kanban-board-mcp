@@ -60,7 +60,9 @@ export function sourceParts(source: string | undefined): { file: string; rest: s
   const s = (source ?? '').trim();
   if (!s) return null;
   const m = /^(\S+)\s*(.*)$/.exec(s);
-  return m ? { file: m[1], rest: m[2] } : null;
+  // a source that is not a file ("typed by you", "the board's scan") is printed whole
+  if (!m || !/[./]/.test(m[1])) return { file: '', rest: s };
+  return { file: m[1], rest: m[2] };
 }
 
 export type RowKind =

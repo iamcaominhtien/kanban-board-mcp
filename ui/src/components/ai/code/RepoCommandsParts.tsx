@@ -160,8 +160,15 @@ export function CommandRow({
         />
         {src && (
           <div className="rc-source">
-            <LineIcon name="page" size={12} /> From <span className="ai-code">{src.file}</span>
-            {src.rest && <span> {src.rest}</span>}
+            <LineIcon name="page" size={12} />{' '}
+            {src.file ? (
+              <>
+                From <span className="ai-code">{src.file}</span>
+                {src.rest && <span> {src.rest}</span>}
+              </>
+            ) : (
+              src.rest.charAt(0).toUpperCase() + src.rest.slice(1)
+            )}
           </div>
         )}
         {view.kind === 'changed' && <div className="rc-edited">You edited this box after it was proven.</div>}
