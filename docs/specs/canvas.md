@@ -172,8 +172,8 @@ no proposal step, no "Ask AI" job on the canvas and no approval layer.
 ## Design quality of what an AI writes
 
 An AI that writes frames is told how to design them, not only how to deliver them. The guide is one text, `GUIDE` in
-`services/canvas_design.py` (about 9,400 characters, 11 numbered steps). It is given whole to every Claude Code run of an AI team
-(as its `canvas-design` skill, `services/ai/board_skills.py`) and to any other MCP agent through `docs_read(design_guide)` (it is
+`services/canvas_design.py` (about 9,400 characters, 11 numbered steps). It is given whole to every Claude Code run of an AI team that has a designer, PM or BA role
+(as its `canvas-design` skill, `services/ai/board_skills.py`, `CRAFT_ROLES`) and to any other MCP agent through `docs_read(design_guide)` (it is
 not in the MCP server instructions: Claude Code keeps only their first 10,000 characters), and `.claude/skills/canvas-design/SKILL.md` for Claude Code is the same text with a header: a test fails if the file and
 the constant differ, so there is one source to edit. It borrows its shape from the Design skill used for artifacts. The process: **context first** (the product's own
 screens, brand, code; match its vocabulary), a **direction** named and kept (purpose, tone, the one memorable thing; 2 to 4
