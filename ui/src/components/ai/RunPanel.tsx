@@ -352,7 +352,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
         </span>
         {run?.state === 'cancelled' && run.endedAt && (
           <span className="ai-muted" style={{ marginLeft: 'auto', fontSize: 12 }}>
-            Run stopped {clockTime(run.endedAt)}
+            stopped {clockTime(run.endedAt)}
           </span>
         )}
       </div>

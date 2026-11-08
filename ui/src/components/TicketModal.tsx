@@ -253,7 +253,7 @@ function TicketModalInner({
   const [activeTab, setActiveTab] = useState<
     'main' | 'test_cases' | 'debug_space' | 'workspace' | 'branches' | 'activity' | 'ai'
   >('main');
-  // The ticket and the AI's work on it take turns on the main tab (a tall AI summary no longer hides the ticket)
+  // The ticket and the AI's work on it take turns on the main tab (a tall report no longer hides the ticket)
   const [mainView, setMainView] = useState<'ticket' | 'ai'>('ticket');
   const [hasAiPane, setHasAiPane] = useState(false);
   const [aiNeedsYou, setAiNeedsYou] = useState(false);

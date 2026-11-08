@@ -366,6 +366,17 @@ export function AssignStartPopover({
   const heldBy = held && ACTIVE_RUN_STATES.includes(held.state) && held.memberId !== member.id ? held : undefined;
   const heldByName = heldBy ? (members.get(heldBy.memberId)?.name ?? 'Another team') : null;
   const roles = member.roles.map((r) => r.name ?? r.key).join(', ');
+  const group = useRef<HTMLDivElement>(null);
+  // Esc closes this popover, not the ticket behind it
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      onCancel();
+    };
+    document.addEventListener('keydown', key, true);
+    return () => document.removeEventListener('keydown', key, true);
+  }, [onCancel]);
   return (
     <div
       className="ai-popover"
@@ -392,6 +403,7 @@ export function AssignStartPopover({
         </div>
       </div>
       <div
+        ref={group}
         role="radiogroup"
         aria-label="How to begin"
         style={{ display: 'flex', flexDirection: 'column', gap: 11 }}
@@ -399,6 +411,8 @@ export function AssignStartPopover({
           if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
             e.preventDefault();
             setStart((v) => !v);
+            // the focus follows the choice (the one that is on is the only tab stop)
+            requestAnimationFrame(() => group.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
           }
         }}
       >

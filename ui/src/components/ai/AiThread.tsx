@@ -37,7 +37,7 @@ export function RoleChip({ role }: { role: string }) {
         alignSelf: 'center',
       }}
     >
-      {role}
+      {role.length <= 3 ? role.toUpperCase() : role.charAt(0).toUpperCase() + role.slice(1)}
     </span>
   );
 }

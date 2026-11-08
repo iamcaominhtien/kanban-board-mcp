@@ -271,7 +271,9 @@ export function RunHistoryTable({
               <span style={{ justifySelf: 'start' }}>
                 <RunChip state={r.state} />
               </span>
-              <span style={{ ...CELL, fontFamily: 'JetBrains Mono,monospace' }}>{elapsedWords(r, now)}</span>
+              <span style={{ ...CELL, fontFamily: 'JetBrains Mono,monospace' }}>
+                {r.state === 'starting' ? '' : elapsedWords(r, now)}
+              </span>
               <span style={{ ...CELL, whiteSpace: 'nowrap' }}>{r.costUsd > 0 ? money(r.costUsd) : 'Not metered'}</span>
               <ChangeCell ticket={ticket} run={r} />
             </div>

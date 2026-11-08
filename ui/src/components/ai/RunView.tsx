@@ -141,7 +141,7 @@ export function RunMessageBox({ run }: { run: Pick<AiRun, 'id' | 'live' | 'state
         placeholder={run.live ? 'It reads this at its next step…' : 'It reads this when it takes its next turn…'}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') void sendNote();
+          if (e.key === 'Enter' && !e.nativeEvent.isComposing) void sendNote();
         }}
         data-testid="run-message-input"
       />
