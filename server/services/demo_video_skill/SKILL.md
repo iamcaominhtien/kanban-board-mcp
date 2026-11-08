@@ -1,6 +1,6 @@
 ---
 name: demo-video
-description: Make a polished demo video (MP4, 1080p, about 45 seconds) of the Kanban board or any web app, with an intro banner, Vietnamese narration, captions that never cover the UI, camera zoom and spotlight, a hand cursor, click and typing sounds, lo-fi music and an outro card. Use when asked to record, make or update a demo, walkthrough, tour or showcase video of the app or of a feature.
+description: Make a polished demo video (MP4, 1080p, as long as the story needs) of the Kanban board or any web app, with an intro banner, Vietnamese narration, captions that never cover the UI, camera zoom and spotlight, a hand cursor, click and typing sounds, lo-fi music and an outro card. Use when asked to record, make or update a demo, walkthrough, tour or showcase video of the app or of a feature.
 ---
 
 # Demo video
@@ -11,7 +11,7 @@ The same scenario always gives the same video, so changing a sentence or a step 
 
 ## What you get
 
-- 1920x1080, 30 fps, H.264 + AAC, about 45 s for the shipped scenario.
+- 1920x1080, 30 fps, H.264 + AAC. There is no length limit: the length is the sum of the scenes (the shipped scenario is about 45 s).
 - Intro banner (logo, title, subtitle, chips), scenes, outro card.
 - Narration by a neural voice (Edge TTS, `vi-VN-HoaiMyNeural` by default), set in each scene's `say`; the voice sets the length of the scene.
 - Captions in a band under the app (never over it), a progress line, a hand cursor with a press effect, camera zoom, a spotlight that dims
@@ -80,7 +80,7 @@ somewhere else. Keep a sentence of narration to one idea, and keep the caption s
 
 - Show real data from the throwaway board. Never film the person's real board, and never let a process of this skill touch their
   real database (the board of `start_board.py` has its own).
-- One idea per scene, 4 to 8 seconds each. Zoom on what the voice names, in the order it names it.
+- One idea per scene, as long as the voice needs to say it. No fixed length for a scene or for the video: add scenes until the story is shown, but cut a scene that repeats another. Zoom on what the voice names, in the order it names it.
 - Captions never cover the app: they live in the band under it, so do not try to put text over the UI.
 - If a scene shows an empty area (no run, no comment) the board has no data for it: fix the data, not the scenario.
 - Do not invent features. Every scene must show something that works in the board now.
