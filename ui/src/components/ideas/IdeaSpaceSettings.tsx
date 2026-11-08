@@ -31,7 +31,7 @@ function SwitchRow({ label, hint, checked, disabled, onChange, testId }: RowProp
   );
 }
 
-/** Settings › Idea Space: four switches, one AI member, what it can read, one cap. All on by default. */
+/** Settings › Idea Space: four switches, one team, what it can read, one cap. All on by default. */
 export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string; onManageAi?: () => void }) {
   const status = useIdeaAiStatus(projectId).data;
   const update = useUpdateIdeaAiSettings(projectId);
@@ -54,7 +54,7 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
       <section className="is-set-card" data-setting="idea-ai-enable" data-toc="AI help in Idea Space">
         <h3>AI help in Idea Space</h3>
         <p className="is-muted">
-          Turn the optional helpers on or off for this project. Off hides every AI button and panel in Idea Space.
+          Turn the optional helpers on or off for this project. Everything else in Idea Space works without them.
         </p>
         <SwitchRow
           label="Enable AI help"
@@ -88,12 +88,12 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
 
       <section className="is-set-card" data-setting="idea-ai-member" data-toc="Who and what it may use">
         <h3>Who and what it may use</h3>
-        <p className="is-muted">The AI member and the data it can read.</p>
+        <p className="is-muted">The team and the data it can read.</p>
         <div className="is-set-row">
           <span>
-            <b>AI member</b>
+            <b>Team</b>
             <span className="is-muted is-set-hint">
-              Uses that member’s own limits and permissions: the Board AI of this project.
+              Uses that team’s own limits and Permission mode: the first team of this project.
             </span>
           </span>
           <span>
@@ -105,6 +105,13 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
             )}
           </span>
         </div>
+        <SwitchRow
+          label="Read ideas, assumptions and evidence"
+          hint="Needed for every helper."
+          checked
+          disabled
+          onChange={() => undefined}
+        />
         <SwitchRow
           label="Read Docs and tickets"
           hint="To find duplicates and related work."
@@ -122,7 +129,7 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
         <div className="is-set-row">
           <span>
             <b>Use the web</b>
-            <span className="is-muted is-set-hint">Not offered in v1.</span>
+            <span className="is-muted is-set-hint">Not offered.</span>
           </span>
           <input type="checkbox" role="switch" checked={false} disabled aria-label="Use the web" />
         </div>
@@ -130,7 +137,7 @@ export function IdeaSpaceSettings({ projectId, onManageAi }: { projectId: string
 
       <section className="is-set-card" data-setting="idea-ai-cap" data-toc="Cost">
         <h3>Cost</h3>
-        <p className="is-muted">Shown before each action and added up on the AI member’s page.</p>
+        <p className="is-muted">Shown once a run reports it, and added up on the team’s page.</p>
         <div className="is-set-row">
           <span>
             <b>Daily cap for Idea Space ($)</b>

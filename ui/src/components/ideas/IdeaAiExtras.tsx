@@ -26,6 +26,8 @@ import { LineIcon } from '../ui/LineIcon';
 import { IdeaIcon, type IdeaIconName } from './ideaIcons';
 
 const money = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
+/** " · $0.004" once a run reported a real cost, nothing otherwise (the design shows no estimate before a run). */
+const costPart = (n: number) => (n > 0 ? ` · ${money(n)}` : '');
 const VERB: Record<IdeaAdvice['action'], string> = {
   keep: 'Keep',
   park: 'Park',
@@ -167,7 +169,10 @@ export function AdviceBar({
         quiet ? `${quiet} left to you: the AI was not sure.` : undefined,
       );
     } catch (e) {
-      toast.error('The AI suggestion could not be made', `${ideaRuleError(e).message} The ideas were not changed.`);
+      toast.error(
+        'Idea AI did not answer',
+        `${ideaRuleError(e).message} Nothing was changed. Try again, or sort by hand.`,
+      );
     }
   }
 
@@ -180,10 +185,10 @@ export function AdviceBar({
             <span className="is-advice-n">
               {open.length} suggestion{open.length === 1 ? '' : 's'}
             </span>{' '}
-            {status.member ?? 'The AI'} read the {ideaIds.length} new ideas. You decide; archive is always one by one.
+            {status.member ?? 'Idea AI'} read the {ideaIds.length} new ideas. You decide. Archive is always one by one.
           </>
         ) : (
-          `${status.member ?? 'The AI'} can read the ${ideaIds.length} new ideas and suggest Keep, Park, Merge or Archive.`
+          `${status.member ?? 'Idea AI'} can read the ${ideaIds.length} new ideas and suggest Keep, Park, Merge or Archive.`
         )}
       </div>
       {bulkItems.length > 0 && (
@@ -198,11 +203,7 @@ export function AdviceBar({
         onClick={ask}
         disabled={request.isPending || ideaIds.length === 0}
       >
-        {request.isPending
-          ? 'Reading…'
-          : open.length
-            ? 'Ask again'
-            : `Get advice · about ${money(status.hints.advice * ideaIds.length)}`}
+        {request.isPending ? 'Reading…' : open.length ? 'Ask again' : 'Get advice'}
       </button>
       {bulk && <BulkAcceptDialog items={bulkItems} titles={titles} onClose={() => setBulk(false)} />}
     </div>
@@ -341,7 +342,7 @@ export function AdviceCard({
       {advice.stale ? (
         <div className="is-banner is-banner-warn" style={{ marginTop: 8 }}>
           <div style={{ flex: 1 }}>
-            <b>This idea changed since the advice.</b> The idea was edited after the AI read it. Ask again before
+            <b>This idea changed since the advice.</b> The idea was edited after Idea AI read it. Ask again before
             accepting.
           </div>
           <button type="button" className="is-btn is-btn-sm" onClick={() => request.mutate([ideaId])}>
@@ -370,7 +371,8 @@ export function AdviceCard({
       )}
       {why && (
         <div className="is-muted" style={{ marginTop: 6 }}>
-          {advice.reason} · {money(advice.cost)} · {relativeTime(advice.createdAt)}
+          {advice.reason}
+          {costPart(advice.cost)} · {relativeTime(advice.createdAt)}
         </div>
       )}
     </div>
@@ -490,13 +492,13 @@ export function AskPanel({
                   </div>
                 )}
                 <div className="is-muted" style={{ marginTop: 4, fontSize: 11.5 }}>
-                  Read {t.a.ideasRead} ideas · {money(t.a.cost)}. Answers can be wrong; check the sources.
+                  Read {t.a.ideasRead} ideas{costPart(t.a.cost)}. Answers can be wrong; check the sources.
                 </div>
               </>
             ) : t.error ? (
               <div className="is-banner is-banner-risk" role="alert">
                 <div style={{ flex: 1 }}>
-                  <b>The AI could not answer.</b> {t.error} Nothing was changed.
+                  <b>Idea AI did not answer.</b> {t.error} Nothing was changed. Try again, or sort by hand.
                 </div>
                 <button type="button" className="is-btn is-btn-sm" onClick={() => send(t.q)}>
                   Try again
@@ -540,7 +542,7 @@ export function AskPanel({
             </button>
           </div>
           <div className="is-muted" style={{ fontSize: 11.5 }}>
-            About {money(status?.hints.ask ?? 0.01)} per question · Enter sends
+            Enter sends
           </div>
         </form>
       )}
@@ -646,7 +648,8 @@ export function DigestCard({
         </span>
         <span className="is-muted" title={relativeTime(digest.createdAt)}>
           {when}
-          {digest.ai ? ` · ${money(digest.cost)}` : ' · no AI cost'} · read {digest.ideasRead} ideas
+          {digest.ai ? (digest.cost > 0 ? ` · ${money(digest.cost)}` : ' · Not metered') : ' · no AI cost'} · read{' '}
+          {digest.ideasRead} ideas
         </span>
         {digest.ai && <AiChip />}
         <span className="is-grow" />

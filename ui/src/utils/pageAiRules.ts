@@ -88,9 +88,12 @@ export function estimateCost(markdown: string): number {
   return Math.max(0.01, Math.round(tokens * 0.000006 * 100) / 100);
 }
 
-/** "About $0.01" for the menu footer. */
-export function estimateLabel(markdown: string): string {
-  return costLabel(estimateCost(markdown), true);
+/**
+ * The menu footer: "About $0.01" only when the AI team that answers is billed per request (an API key); a team on a
+ * subscription reports no cost, so it reads "Not metered" (owner decision on PR #331).
+ */
+export function estimateLabel(markdown: string, metered: boolean): string {
+  return costLabel(estimateCost(markdown), metered);
 }
 
 /** Languages offered in "Translate view…" (any other can be typed). */
@@ -102,10 +105,11 @@ export function problemLine(code: string, detail: string): string {
     case 'docs_ai_off':
       return 'Docs AI is off for this project.';
     case 'no_member':
-      return 'No AI member can read this space. Open AI members.';
+      return 'No AI team can read this space. Open Members.';
     case 'paused':
-    case 'over_budget':
-      return `AI is paused until tomorrow. ${detail}`.trim();
+      return (
+        detail || 'The team that answers is paused. Resume it in Members, or pick another AI team in Settings › Docs.'
+      );
     default:
       return detail || 'Could not finish. Try again.';
   }
@@ -164,8 +168,8 @@ export function fixDiff(old: string, next: string): { before: string; removed: s
   };
 }
 
-/** "$0.004" next to an answer (small amounts keep three decimals); "not metered" for a local runner. */
+/** "$0.004" next to an answer (small amounts keep three decimals); "Not metered" when the run reported no cost. */
 export function moneyLabel(cost: number, metered: boolean): string {
-  if (!metered) return 'not metered';
+  if (!metered || cost <= 0) return 'Not metered';
   return `$${cost < 0.01 ? cost.toFixed(3) : cost.toFixed(2)}`;
 }

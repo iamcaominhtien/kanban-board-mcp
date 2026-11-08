@@ -18,7 +18,7 @@ export function StagePill({ stage }: { stage: IdeaStage }) {
 /** The purple chip that marks what an AI member wrote, until a person edits it. */
 export function AiChip({ title }: { title?: string }) {
   return (
-    <span className="is-ai-chip" title={title ?? 'Written by an AI member'}>
+    <span className="is-ai-chip" title={title ?? 'Written by an AI team'}>
       AI
     </span>
   );
@@ -84,7 +84,7 @@ export function sourceLine(idea: Pick<Idea, 'source' | 'sourceRef' | 'createdBy'
   const ref = idea.sourceRef ?? {};
   switch (idea.source) {
     case 'ai':
-      return `Suggested by ${ref.by ?? idea.createdBy ?? 'an AI member'}${ref.id ? ` on ${ref.id}` : ''}`;
+      return `Suggested by ${ref.by ?? idea.createdBy ?? 'an AI team'}${ref.id ? ` on ${ref.id}` : ''}`;
     case 'doc':
       return `from Doc “${ref.label ?? ref.id ?? ''}”`;
     case 'comment':

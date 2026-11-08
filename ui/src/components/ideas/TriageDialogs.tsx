@@ -154,7 +154,7 @@ export function TagInput({
 
 /**
  * Keep: start exploring the idea. The project and tags can be set in the same step. While AI help is on, a switch
- * (off by default, ICT-5) asks an AI member to draft the problem and assumptions once it is kept: the same Shape
+ * (off by default, ICT-5) asks the Idea AI to draft the problem and assumptions once it is kept: the same Shape
  * requests as Shape with AI, whose drafts wait on the idea's page.
  */
 export function KeepDialog({ idea, onClose, onDone }: DialogProps) {
@@ -228,12 +228,9 @@ export function KeepDialog({ idea, onClose, onDone }: DialogProps) {
               checked={suggest}
               onChange={(e) => setSuggest(e.target.checked)}
               data-testid="keep-suggest"
-              aria-label="Ask an AI member to suggest a problem statement and assumptions"
+              aria-label="Ask the Idea AI to suggest a problem statement and assumptions"
             />
-            <span>
-              Ask an AI member to suggest a problem statement and assumptions
-              {ai && <span className="is-muted"> · about ${(ai.hints.shape * 2).toFixed(2)}</span>}
-            </span>
+            <span>Ask the Idea AI to suggest a problem statement and assumptions</span>
           </label>
         )}
       </div>

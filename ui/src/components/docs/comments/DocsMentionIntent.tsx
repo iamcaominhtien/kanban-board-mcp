@@ -8,7 +8,7 @@ const KEY = 'kanban.docs.mentionIntent';
 function remembered(): DocsMentionIntent | null {
   try {
     const v = localStorage.getItem(KEY);
-    // 'suggest' (an older choice) meant a proposal to review; the assistant now answers and edits when asked
+    // an older saved choice ('suggest') now means Ask: the team answers and edits when asked, and Undo is in History
     return v === 'ask' || v === 'suggest' ? 'ask' : v === 'notify' ? v : null;
   } catch {
     return null;
@@ -16,10 +16,10 @@ function remembered(): DocsMentionIntent | null {
 }
 
 /**
- * "What does the mention mean?" for a Docs comment that mentions an AI member (docs-ai-care E): Ask (the assistant
+ * "What does the mention mean?" for a Docs comment that mentions an AI team (docs-ai-care E): Ask (the assistant
  * answers in the thread and edits the page when asked), or Just notify. Resolves to the choice, or null when the person goes back.
  * Mounted on its own, so any comment box can ask without a place in its tree.
- * @param names - The AI members mentioned.
+ * @param names - The AI teams mentioned.
  */
 export function askDocsMentionIntent(names: string[]): Promise<DocsMentionIntent | null> {
   const saved = remembered();
