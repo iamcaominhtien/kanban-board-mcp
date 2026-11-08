@@ -34,6 +34,9 @@ export interface Quality extends MeasureBase {
   value: number | null;
   reopened: number;
   finishedTickets: number;
+  /** Problems a Reviewer reported in the range; null when no run reported any. */
+  findings: number | null;
+  runsWithFindings: number;
 }
 export interface Cost extends MeasureBase {
   usd: number;

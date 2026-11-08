@@ -311,7 +311,11 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           verdict={m.quality.verdict}
           value={pct(m.quality.value)}
           delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : null}
-          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} tickets reopened`}
+          hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} tickets reopened${
+            m.quality.findings != null
+              ? `. Reviewer findings: ${m.quality.findings} in ${m.quality.runsWithFindings} runs`
+              : ''
+          }`}
         />
         <Tile
           name="Cost"

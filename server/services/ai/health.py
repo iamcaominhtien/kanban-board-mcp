@@ -12,7 +12,8 @@ each team (cost exists per run only, so there is no row per role):
 - **speed**: median run duration and median time from the assignment to Review. The design gives it no thresholds, so it
   has no verdict.
 - **quality**: how often work the AI finished is sent back: tickets a run finished that a person reopened afterwards (from the ticket's reopen history).
-  Under 10% good, 10 to 20% watch, over 20% fix (the design's "sent back" terms).
+  Under 10% good, 10 to 20% watch, over 20% fix (the design's "sent back" terms). A Reviewer's findings are counted
+  where a run's report lists them (`findings`, one line each) and shown only when a run reported some.
 - **cost**: money and tokens against the team's caps: this range's spend, the average per run, runs over the cap of one
   run and the last 30 days against the monthly cap. Under 70% of the cap good, 70 to 90% watch, over 90% fix; a team with
   no monthly cap has no verdict. Runs that report no price show tokens, never $0.
@@ -165,6 +166,13 @@ def measures(
         if _reopens_after(tickets.get(tid), at, until) > 0
     ]
     quality = len(reopened) / len(done_tickets) if done_tickets else None
+    # a Reviewer's findings, where the lead's final report lists them
+    findings = [
+        len(f)
+        for r in runs
+        if isinstance(f := loads(r.report, {}).get("findings"), list) and f
+    ]
+
     priced = [r for r in runs if _priced(r)]
     spend = round(sum(r.cost_usd or 0 for r in runs), 2)
     tokens = sum((r.tokens_in or 0) + (r.tokens_out or 0) for r in runs)
@@ -209,6 +217,8 @@ def measures(
             "verdict": v(quality, 0.1, 0.2, False),
             "reopened": len(reopened),
             "finished_tickets": len(done_tickets),
+            "findings": sum(findings) if findings else None,
+            "runs_with_findings": len(findings),
         },
         "cost": {
             "usd": spend,

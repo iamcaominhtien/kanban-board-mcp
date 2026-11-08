@@ -87,6 +87,11 @@ REPORT_SCHEMA: dict[str, Any] = {
             "items": {"type": "string"},
             "description": "One-line lessons about this project worth keeping for the next runs (commands that work, traps, conventions); empty if none",
         },
+        "findings": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Problems a Reviewer role found, one line each; leave it out if none",
+        },
         "asks": {
             "type": "array",
             "items": {"type": "string"},
@@ -322,6 +327,7 @@ def board_rules(
             "You decide who does what, in parallel or one after the other, or you do it yourself. A role that must",
             "remember earlier work (a developer) can be continued with SendMessage and its agent id; a role that should",
             "judge fresh (a reviewer) is started new each round and given the diff and the earlier findings as text.",
+            "When a Reviewer found problems, list them, one line each, in the `findings` of your final report.",
             "When you need an answer from a subagent, start it synchronously and read its result; a subagent you",
             "continued later does not answer you inside this turn.",
             "",
