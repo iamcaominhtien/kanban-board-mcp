@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CommandName, JobStep, ScanJob } from '../../../types/aiPacks';
 import { LineIcon, type LineIconName } from '../../ui/LineIcon';
-import { useNow } from '../aiUi';
 import { COMMAND_TITLE, clock, jobPill, sourceParts, type RowKind, type RowView } from './repoCommandsLogic';
 
 const CHIP_ICON: Partial<Record<RowKind, LineIconName>> = {
@@ -89,12 +88,6 @@ export function ScanLog({ lines, mode }: { lines: string[]; mode: ScanJob['mode'
       </div>
     </>
   );
-}
-
-function Elapsed() {
-  const start = useRef(Date.now());
-  const now = useNow(1000, true);
-  return <> · {clock((now - start.current) / 1000)}</>;
 }
 
 /** One command: its box, where it came from, the status the server decided and the last lines of the output. */
@@ -186,7 +179,6 @@ export function CommandRow({
         <span className={`ai-chip rc-chip rc-chip-${view.kind}`} data-testid={`rc-chip-${name}`}>
           {CHIP_ICON[view.kind] && <LineIcon name={CHIP_ICON[view.kind]!} size={11} />}
           {view.chip}
-          {running && <Elapsed />}
         </span>
         {view.sub && <div className="rc-row-sub">{view.sub}</div>}
         <div className="rc-row-actions">

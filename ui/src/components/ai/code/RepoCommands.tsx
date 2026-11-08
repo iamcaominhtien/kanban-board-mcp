@@ -207,6 +207,8 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       put(await start(s));
     } catch (e) {
       setProblem(extractError(e));
+      // "already being set up": the job runs on the server, so show it
+      void query.refetch();
     } finally {
       setBusy(false);
     }
@@ -299,11 +301,6 @@ export function RepoCommands({ projectId }: { projectId: string }) {
           The AI only reads files itself. To try the commands it runs the repository’s own install and test scripts in a
           temporary copy, as you would in a terminal. It does not edit your checkout, push, or touch a ticket. Usually 1
           to 3 minutes; it uses the board’s signed-in Claude account, else this computer’s login.
-        </div>
-      )}
-      {running && (
-        <div className="rc-why rc-why-bad" data-testid="rc-busy">
-          <LineIcon name="warning" size={14} /> The commands are already being set up.
         </div>
       )}
       {aiOff && offWhy && (
