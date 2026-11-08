@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { aiApi, useAiMutation, useAiSettings, useAiTeams } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { useRestartRun, useResourcesStream } from '../../api/aiResources';
@@ -32,6 +32,8 @@ interface Props {
 }
 
 const WINDOW_S = 300;
+/** How long a Restart may take to show in the run's restart count: the old CLI exits, the count is saved, the poll reads it. */
+const RESTART_CHECK_MS = 10000;
 const FALLBACK_COLORS = ['#2E6F40', '#C2417A', '#B8860B', '#5B5FA8', '#2F6FB0', '#C4432A'];
 
 const VERDICT_LOOK: Record<Verdict['tone'], { bg: string; border: string; fg: string }> = {
@@ -195,14 +197,19 @@ function RowActions({ run, canAct, teamName }: { run: ResourceRun; canAct: boole
   // not when a new Claude Code started: if the restart count did not grow, say so)
   const latest = useRef(run);
   latest.current = run;
-  const checkRestarted = (before: number) =>
-    window.setTimeout(() => {
+  const timer = useRef<number | undefined>(undefined);
+  // leaving the row or the tab ends the wait: no toast about a restart the person can no longer see
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const checkRestarted = (before: number) => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
       if (latest.current.live && latest.current.restarts.length <= before)
         toast.error(
-          'Not restarted',
-          `${latest.current.ticketId} has no Claude Code process to restart right now, or it is already restarting.`,
+          'Restart not confirmed',
+          `${latest.current.ticketId} has not shown a restart yet. Its Claude Code may still be restarting, or there was none to restart. Look at the row in a moment.`,
         );
-    }, 8000);
+    }, RESTART_CHECK_MS);
+  };
   if (!run.live) return null;
   const who = `${teamName}’s run on ${run.ticketId}`;
   const tip = canAct ? undefined : 'The server is not answering';
