@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { aiApi, useTicketRuns } from '../../../api/ai';
+import { aiApi, isActive, useTicketRuns } from '../../../api/ai';
 import type { AiRun } from '../../../types/ai';
-import { hhmm } from '../aiUi';
+import { levelOf, LEVEL_COLOR } from '../../aiteam/resourcesFormat';
+import { hhmm, useNow } from '../aiUi';
 import { useRunResources, type RunResources } from './useResources';
 import './design/designBlocks.css';
 
@@ -111,7 +112,9 @@ export function RestartNotice({ ticketId, onOpenRun }: { ticketId: string; onOpe
   const run = useNewestRun(ticketId);
   const restarts = run?.restarts ?? [];
   const last = restarts[restarts.length - 1];
-  if (!run || !last) return null;
+  // only while the run goes on: after it, the card keeps the restart count (design F4), and a run the system stopped
+  // for memory says so on the run itself (design F8)
+  if (!run || !last || !isActive(run.state)) return null;
   const system = last.by === 'system';
   return (
     <div className="dz dz-rs" data-testid="restart-notice">
@@ -175,10 +178,14 @@ export function RestartNotice({ ticketId, onOpenRun }: { ticketId: string; onOpe
  */
 export function Resources({ ticketId }: { ticketId: string }) {
   const run = useNewestRun(ticketId);
-  const feed = useRunResources(run?.id);
+  const streamed = useRunResources(run?.id);
   const [stopping, setStopping] = useState(false);
+  // a reading goes stale without another event: look at the clock now and then
+  const now = useNow(2000);
   if (!run) return null;
-  const live = !!feed && Date.now() - feed.at < STALE_MS && feed.run.live;
+  // once the run has ended only what was saved with it is left (the last value, the peak): no chart, no live numbers
+  const feed = isActive(run.state) ? streamed : null;
+  const live = !!feed && now - feed.at < STALE_MS && feed.run.live;
   const cli = live ? feed.run.cliRssMb : (feed?.run.cliRssMb ?? run.lastRssMb);
   const peak = feed?.run.peakRssMb ?? run.peakRssMb;
   if (cli == null && peak == null) return null;
@@ -224,7 +231,7 @@ export function Resources({ ticketId }: { ticketId: string }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <Tile
-            label={live ? 'CLI RAM now' : 'CLI RAM at the end'}
+            label={live ? 'CLI RAM now' : isActive(run.state) ? 'CLI RAM at the last reading' : 'CLI RAM at the end'}
             value={gb(cli)}
             hint={
               pct != null
@@ -239,7 +246,8 @@ export function Resources({ ticketId }: { ticketId: string }) {
                 <i
                   style={{
                     width: `${Math.min(100, pct)}%`,
-                    background: pct < 60 ? '#2E6F40' : pct < 85 ? '#B8860B' : '#C4432A',
+                    // the same rule as the tab and the chip: green under 65 %, amber from 65 %, red from 90 %
+                    background: LEVEL_COLOR[levelOf(pct)].bar,
                   }}
                 />
               </div>

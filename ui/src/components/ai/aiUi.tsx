@@ -145,11 +145,9 @@ const STATUS_STYLE: Record<string, { dot: string; text: string; hollow?: boolean
   not_logged_in: { dot: '#C4432A', text: '#C4432A' },
   runner_missing: { dot: '#B4791E', text: '#B4571F' },
   model_retired: { dot: '#B4571F', text: '#B4571F' },
-  over_budget: { dot: '#B4571F', text: '#B4571F' },
   rate_limited: { dot: '#B4791E', text: '#B4571F' },
   paused: { dot: '#9AA8A0', text: '#5B6B60', square: true },
   paused_all: { dot: '#B4571F', text: '#B4571F', square: true },
-  not_ready: { dot: '#B4791E', text: '#7A5A06' },
   removing: { dot: '#9AA8A0', text: '#5B6B60' },
   removed: { dot: '#9AA8A0', text: '#9AA8A0' },
 };
@@ -423,7 +421,7 @@ export function LoadError({ what, error, onRetry }: { what: string; error: unkno
   return (
     <div className="ai-notice ai-notice-error" role="alert" data-testid="load-error">
       Couldn't load {what}: {extractError(error)}.{' '}
-      <button type="button" className="ai-link" onClick={onRetry}>
+      <button type="button" className="ai-link" style={{ textDecoration: 'none' }} onClick={onRetry}>
         Try again
       </button>
     </div>

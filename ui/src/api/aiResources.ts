@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import camelcaseKeys from 'camelcase-keys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { subscribeSSE } from '../hooks/sseEvents';
@@ -10,6 +10,9 @@ const PUSH_FRESH_MS = 7000;
 const POLL_MS = 4000;
 /** With no live run there is little to see move: the machine tiles are read now and then, the push does the rest. */
 const IDLE_POLL_MS = 15000;
+/** The same, in seconds, for the label of the live bar ("Live · every 15 s"): it says what the code does. */
+export const POLL_S = POLL_MS / 1000;
+export const IDLE_POLL_S = IDLE_POLL_MS / 1000;
 
 /**
  * The Resources numbers. The monitor lives in the runner process, which pushes a snapshot over the event stream
@@ -23,6 +26,8 @@ export function useResourcesStream(projectId: string): {
   /** The readings arrive every 2 s (otherwise they are the last saved ones). */
   pushed: boolean;
 } {
+  const qc = useQueryClient();
+  const asked = useRef(0);
   const polled = useQuery({
     queryKey: ['ai', 'resources', projectId] as const,
     queryFn: async () => (await client.get<ResourceSnapshot>(`/projects/${projectId}/ai/resources`)).data,
@@ -41,7 +46,18 @@ export function useResourcesStream(projectId: string): {
         const snap = camelcaseKeys(JSON.parse(data) as Record<string, unknown>, {
           deep: true,
         }) as unknown as ResourceSnapshot & { type: string };
-        if (snap.type === 'ai.resources' && snap.projectId === projectId) setPushed({ snap, at: Date.now() });
+        if (snap.type === 'ai.resources' && snap.projectId === projectId) {
+          setPushed({ snap, at: Date.now() });
+          // a run the list does not know yet (it just started): ask for the list now, not at the next poll
+          const known = qc.getQueryData<ResourceSnapshot>(['ai', 'resources', projectId])?.runs ?? [];
+          if (
+            snap.runs.some((r) => r.live && !known.some((k) => k.runId === r.runId)) &&
+            Date.now() - asked.current > 3000
+          ) {
+            asked.current = Date.now();
+            void qc.invalidateQueries({ queryKey: ['ai', 'resources', projectId] });
+          }
+        }
       } catch {
         /* a broken frame: wait for the next one */
       }
@@ -52,7 +68,7 @@ export function useResourcesStream(projectId: string): {
       stop();
       clearInterval(timer);
     };
-  }, [projectId]);
+  }, [projectId, qc]);
   const fresh = pushed != null && pushed.snap.projectId === projectId && Date.now() - pushed.at < PUSH_FRESH_MS;
   const base = polled.data ?? null;
   let data: ResourceSnapshot | null = base;

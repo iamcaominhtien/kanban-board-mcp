@@ -11,6 +11,21 @@
   justify-content: flex-end;
   gap: 8px;
 }
+.rs-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: block;
+  flex: none;
+}
+/* the runner pushes: the halo says the readings are live */
+.rs-dot-live {
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.22);
+}
+.rs-livetext {
+  font-size: 12px;
+  line-height: 1.5;
+}
 .rs-banner {
   display: flex;
   align-items: center;
@@ -88,7 +103,7 @@
   position: relative;
 }
 .rs-ended {
-  opacity: 0.55;
+  opacity: 0.72;
 }
 .rs-who {
   display: flex;
@@ -120,6 +135,24 @@
   justify-content: flex-end;
   position: relative;
 }
+/* Stop and Restart are off: hovering them says why (design C5) */
+.rs-tip {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: -30px;
+  z-index: 5;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #1e2a22;
+  color: #fff;
+  font-size: 11.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.rs-actions:hover .rs-tip {
+  display: block;
+}
 .rs-pop {
   position: absolute;
   top: 34px;
@@ -146,6 +179,9 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+.rs-btn-asking {
+  box-shadow: 0 0 0 2px #bfdcc8;
 }
 .rs-danger {
   background: #c4432a;

@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import type { AiTeam, AiTeamRole, RoleActivity } from '../../types/ai';
-import { ago, fmtElapsed, secondsSince } from '../ai/aiUi';
+import { secondsSince } from '../ai/aiUi';
+import { fmtDuration, whenAgo } from './teamFormat';
 import { roleLook } from '../ai/roleLook';
-import { ContextMeter } from '../assist/ContextMeter';
 import { openRun } from './runLink';
-import { Badge, StateChip, TicketChip } from './teamUi';
+import { Badge, ContextBar, StateChip, StepText, TicketChip } from './teamUi';
 
 const modelLine = (model: string | null, effort: string | null, fallback = 'Team default') =>
   [model, effort].filter(Boolean).join(' · ') || fallback;
@@ -53,15 +53,15 @@ function Card({ name, sub, badge, activity, meter, ram, blocked, onOpenTicket, t
               On {working.ticketId && <TicketChip id={working.ticketId} onOpen={onOpenTicket} />}{' '}
               <b>{working.ticketTitle ?? ''}</b>
             </div>
-            <div className="at-step" style={{ color: '#3A4A3E' }} title={working.step?.title} data-testid="role-step">
-              {working.step ? working.step.title : 'Starting…'}
+            <div className="at-step at-step-role" title={working.step?.title} data-testid="role-step">
+              {working.step ? <StepText text={working.step.title} /> : 'Starting…'}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="at-hint-sm">
-                {fmtElapsed(secondsSince(working.since))} so far · run #{working.number}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span className="at-hint-sm" style={{ whiteSpace: 'nowrap' }}>
+                {working.since ? `${fmtDuration(secondsSince(working.since))} so far · ` : ''}run #{working.number}
               </span>
               {meter && working.contextUsed != null && working.contextWindow ? (
-                <ContextMeter used={working.contextUsed} size={working.contextWindow} inline />
+                <ContextBar used={working.contextUsed} size={working.contextWindow} />
               ) : null}
             </div>
             {ram && <div>{ram}</div>}
@@ -69,7 +69,7 @@ function Card({ name, sub, badge, activity, meter, ram, blocked, onOpenTicket, t
         ) : last ? (
           <>
             <div>
-              Last worked {ago(last.at)}
+              Last worked {whenAgo(last.at)}
               {last.ticketId && (
                 <>
                   {' on '}
@@ -77,7 +77,7 @@ function Card({ name, sub, badge, activity, meter, ram, blocked, onOpenTicket, t
                 </>
               )}
             </div>
-            {last.text && <div className="at-quote">“{last.text}”</div>}
+            {last.text && <div className="at-note">“{last.text}”</div>}
           </>
         ) : (
           <div className="at-hint">Has not worked yet.</div>
