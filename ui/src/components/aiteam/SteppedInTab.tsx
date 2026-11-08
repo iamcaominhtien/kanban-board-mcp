@@ -238,7 +238,9 @@ export function SteppedInTab({
   const d: SteppedIn | undefined = q.data;
   if (!d) {
     return q.isError ? (
-      <LoadError what="the touches" error={q.error} onRetry={() => void q.refetch()} />
+      <div className="st-err">
+        <LoadError what="the touches" error={q.error} onRetry={() => void q.refetch()} />
+      </div>
     ) : (
       <div className="st-center">
         <span className="ai-spin" />
@@ -246,7 +248,11 @@ export function SteppedInTab({
     );
   }
   const t = d.totals;
-  const stale = q.isError ? <LoadError what="the touches" error={q.error} onRetry={() => void q.refetch()} /> : null;
+  const stale = q.isError ? (
+    <div className="st-err">
+      <LoadError what="the touches" error={q.error} onRetry={() => void q.refetch()} />
+    </div>
+  ) : null;
   const maxKind = Math.max(...d.kinds.map((k) => k.total), 1);
   const maxPer = Math.max(...d.teams.map((r) => r.per10Runs ?? 0), 1);
   const rangeLabel = RANGES.find((r) => r.value === range)?.label.toLowerCase() ?? '';
@@ -413,7 +419,7 @@ export function SteppedInTab({
         </div>
         {d.items.length === 0 ? (
           <div className="at-hint" style={{ padding: 16 }} data-testid="touch-empty">
-            {t.touches === 0 ? `Nobody had to step in during ${rangeLabel}.` : 'No touch matches these filters.'}
+            {t.touches === 0 ? `Nobody had to step in during the ${rangeLabel}.` : 'No touch matches these filters.'}
             {t.touches === 0 && range !== '90d' && (
               <>
                 {' '}

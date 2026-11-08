@@ -207,7 +207,9 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
   const h: Health | undefined = q.data;
   if (!h) {
     return q.isError ? (
-      <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />
+      <div className="st-err">
+        <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />
+      </div>
     ) : (
       <div className="st-center">
         <span className="ai-spin" />
@@ -231,7 +233,11 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
   const tokensOnly = h.teams.some((t) => t.measures.cost.pricedRuns === 0 && t.measures.cost.tokens > 0);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }} data-testid="at-health">
-      {q.isError && <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />}
+      {q.isError && (
+        <div className="st-err">
+          <LoadError what="the health page" error={q.error} onRetry={() => void q.refetch()} />
+        </div>
+      )}
       <div
         className={`at-banner ${bannerClass}`}
         data-testid="health-banner"

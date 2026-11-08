@@ -102,6 +102,11 @@
   width: 100%;
   overflow: hidden;
 }
+.st-lesson textarea:focus {
+  outline: none;
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.14);
+}
 .st-lesson .st-btn-primary:disabled {
   opacity: 0.5;
 }
@@ -159,6 +164,15 @@
 .st-lesson-link {
   display: block;
   margin-top: 4px;
+}
+.st-err .ai-notice {
+  display: block;
+  padding: 9px 13px;
+  font-size: 12.5px;
+}
+.st-err .ai-link {
+  text-decoration: none;
+  font-weight: 600;
 }
 .st-center {
   display: flex;
