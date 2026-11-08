@@ -120,6 +120,12 @@ function Fix({ n, f, actions }: { n: number; f: HealthFix; actions: HealthAction
 /** 85%, 69.6%: a decimal only when rounding would hide which side of a limit it is on. */
 const pct = (v: number | null) =>
   v == null ? '–' : `${Math.round(v * 1000) % 10 === 0 ? Math.round(v * 100) : Math.round(v * 1000) / 10}%`;
+/** A time as the page shows it: seconds under two minutes (a short run is not "0 min"), else minutes and hours. */
+function fmtSpan(seconds: number | null | undefined): string {
+  if (seconds != null && seconds < 120) return `${Math.round(seconds)} s`;
+  return fmtShort(seconds);
+}
+
 /** The change in a count per ticket (touches): fewer is better. */
 function countDelta(cur: number | null, prev: number | null): Delta | null {
   if (cur == null || prev == null) return null;
@@ -157,8 +163,8 @@ function Row({ t, onOpenTeam }: { t: TeamHealth; onOpenTeam: (id: string) => voi
         <span className="hl-sub">touches / ticket</span>
       </span>
       <span>
-        <b>{fmtShort(m.speed.runMedianS)}</b>
-        <span className="hl-sub">to Review {fmtShort(m.speed.toReviewMedianS)}</span>
+        <b>{fmtSpan(m.speed.runMedianS)}</b>
+        <span className="hl-sub">to Review {fmtSpan(m.speed.toReviewMedianS)}</span>
       </span>
       <span>
         <b>{pct(m.quality.value)}</b>
@@ -298,13 +304,13 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
         <Tile
           name="Speed"
           verdict={null}
-          value={fmtShort(m.speed.runMedianS)}
+          value={fmtSpan(m.speed.runMedianS)}
           delta={
             hasPrev && p.runMedianS != null && m.speed.runMedianS != null
               ? deltaOf('seconds', m.speed.runMedianS - p.runMedianS, 'down')
               : null
           }
-          hint={`median run. Assignment to Review: ${fmtShort(m.speed.toReviewMedianS)} (${m.speed.toReviewTickets} tickets)`}
+          hint={`median run. Assignment to Review: ${fmtSpan(m.speed.toReviewMedianS)} (${m.speed.toReviewTickets} tickets)`}
         />
         <Tile
           name="Quality"
@@ -323,7 +329,9 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           value={m.cost.pricedRuns > 0 || !m.cost.tokens ? fmtUsd(m.cost.usd) : `${fmtTokens(m.cost.tokens)} tokens`}
           delta={hasPrev ? deltaOf('usd', m.cost.usd - p.usd, 'down') : null}
           hint={`${m.cost.perRun != null ? `${fmtUsd(m.cost.perRun)} per run, ` : ''}${fmtTokens(m.cost.tokensPerRun ?? 0)} tokens per run${
-            m.cost.tokensOnlyRuns ? `. ${m.cost.tokensOnlyRuns} runs report tokens only` : ''
+            m.cost.tokensOnlyRuns
+              ? `. ${m.cost.tokensOnlyRuns} run${m.cost.tokensOnlyRuns === 1 ? '' : 's'} report${m.cost.tokensOnlyRuns === 1 ? 's' : ''} tokens only`
+              : ''
           }${m.cost.runsOverCap ? `. ${m.cost.runsOverCap} over the cap of one run` : ''}`}
         />
       </div>
