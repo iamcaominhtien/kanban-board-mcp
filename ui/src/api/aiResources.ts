@@ -8,6 +8,8 @@ import type { ResourceSnapshot } from '../types/aiResources';
 /** A pushed reading older than this is stale: the runner has no CLI to read, or is not reachable. */
 const PUSH_FRESH_MS = 7000;
 const POLL_MS = 4000;
+/** With no live run there is little to see move: the machine tiles are read now and then, the push does the rest. */
+const IDLE_POLL_MS = 15000;
 
 /**
  * The Resources numbers. The monitor lives in the runner process, which pushes a snapshot over the event stream
@@ -25,7 +27,7 @@ export function useResourcesStream(projectId: string): {
     queryKey: ['ai', 'resources', projectId] as const,
     queryFn: async () => (await client.get<ResourceSnapshot>(`/projects/${projectId}/ai/resources`)).data,
     enabled: !!projectId,
-    refetchInterval: POLL_MS,
+    refetchInterval: (q) => (q.state.data?.runs.some((r) => r.live) ? POLL_MS : IDLE_POLL_MS),
     staleTime: 1000,
   });
   const [pushed, setPushed] = useState<{ snap: ResourceSnapshot; at: number } | null>(null);

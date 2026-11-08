@@ -34,12 +34,10 @@ interface Props {
   projectName: string;
   onOpenTicket: (ticketId: string) => void;
   onOpenMember: (memberId: string) => void;
-  /** Opens the board's Settings (the AI limits are there, beside the ones the Resources tab holds). */
-  onOpenSettings?: () => void;
 }
 
 /** The AI Team view: what the teams are doing now, what they use, what they ran and what they remember. */
-export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember, onOpenSettings }: Props) {
+export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember }: Props) {
   // A run was asked for (a link to its detail): Run history opens on it
   const [runId, setRunId] = useState<string | null>(() => takePendingRun());
   // The Timeline was asked for ("Open in Timeline" on a ticket): the Timeline tab opens on it
@@ -155,7 +153,7 @@ export function AiTeamView({ projectId, projectName, onOpenTicket, onOpenMember,
           }}
         />
       ) : tab === 'resources' ? (
-        <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} onOpenSettings={onOpenSettings} />
+        <ResourcesTab projectId={projectId} onOpenTicket={onOpenTicket} />
       ) : tab === 'memory' ? (
         <div style={{ padding: '4px 0 24px', maxWidth: 920 }} data-testid="at-memory">
           <KnowledgeSection projectId={projectId} initialTab="memory" />

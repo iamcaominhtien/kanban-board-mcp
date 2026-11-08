@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { aiApi, useAiMutation, useAiSettings, useAiTeams } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import { useRestartRun, useResourcesStream } from '../../api/aiResources';
@@ -22,14 +22,13 @@ import {
   type Verdict,
 } from './resourcesFormat';
 import { openRun } from './runLink';
+import { openSettingsAt } from './settingsLink';
 import { Badge, ICONS, Icon, TicketChip } from './teamUi';
 import './resources.css';
 
 interface Props {
   projectId: string;
   onOpenTicket: (ticketId: string) => void;
-  /** Settings › AI › Limits, for the caps this card does not hold. */
-  onOpenSettings?: () => void;
 }
 
 const WINDOW_S = 300;
@@ -192,6 +191,18 @@ function RowActions({ run, canAct, teamName }: { run: ResourceRun; canAct: boole
   const restart = useRestartRun();
   const toast = useToast();
   const stop = useAiMutation((id: string) => aiApi.cancel(id));
+  // the newest row, for the check a few seconds after a Restart (the server says yes when the runner took the command,
+  // not when a new Claude Code started: if the restart count did not grow, say so)
+  const latest = useRef(run);
+  latest.current = run;
+  const checkRestarted = (before: number) =>
+    window.setTimeout(() => {
+      if (latest.current.live && latest.current.restarts.length <= before)
+        toast.error(
+          'Not restarted',
+          `${latest.current.ticketId} has no Claude Code process to restart right now, or it is already restarting.`,
+        );
+    }, 8000);
   if (!run.live) return null;
   const who = `${teamName}’s run on ${run.ticketId}`;
   const tip = canAct ? undefined : 'The server is not answering';
@@ -236,7 +247,10 @@ function RowActions({ run, canAct, teamName }: { run: ResourceRun; canAct: boole
               disabled={stop.isPending || restart.isPending}
               data-testid="rs-confirm"
               onClick={() => {
-                const done = () => setAsking(null);
+                const done = () => {
+                  setAsking(null);
+                  if (asking === 'restart') checkRestarted(run.restarts.length);
+                };
                 const failed = (err: unknown) => toast.error("Couldn't do it", extractError(err));
                 if (asking === 'stop') stop.mutate(run.runId, { onSuccess: done, onError: failed });
                 else restart.mutate(run.runId, { onSuccess: done, onError: failed });
@@ -384,15 +398,7 @@ function RunRow({
 }
 
 /** The two limits of the project and what they mean for this machine (design/screens/ai-resources.md, E). */
-function LimitsCard({
-  projectId,
-  snap,
-  onOpenSettings,
-}: {
-  projectId: string;
-  snap: ResourceSnapshot;
-  onOpenSettings?: () => void;
-}) {
+function LimitsCard({ projectId, snap }: { projectId: string; snap: ResourceSnapshot }) {
   const settings = useAiSettings(projectId).data;
   const toast = useToast();
   const save = useAiMutation((body: { runMemoryLimitMb?: number; boardMaxParallel?: number }) =>
@@ -407,11 +413,14 @@ function LimitsCard({
     <div className="rs-box" data-testid="rs-limits">
       <div className="rs-boxhead">
         <b>Limits</b>
-        {onOpenSettings && (
-          <button type="button" className="ai-link" onClick={onOpenSettings}>
-            All AI limits in Settings →
-          </button>
-        )}
+        <button
+          type="button"
+          className="ai-link"
+          onClick={() => openSettingsAt({ page: 'ai', setting: 'ai-limits' })}
+          data-testid="rs-open-settings"
+        >
+          All AI limits in Settings →
+        </button>
       </div>
       <div className="rs-limits">
         <label className="rs-field">
@@ -459,7 +468,7 @@ function LimitsCard({
 }
 
 /** AI Team › Resources (design/screens/ai-resources.md, B): the machine, RAM of every running run, Stop and Restart. */
-export function ResourcesTab({ projectId, onOpenTicket, onOpenSettings }: Props) {
+export function ResourcesTab({ projectId, onOpenTicket }: Props) {
   const { data: snap, live, pushed } = useResourcesStream(projectId);
   const teamsQ = useAiTeams(projectId);
   const nowMs = useNow(1000);
@@ -609,7 +618,7 @@ export function ResourcesTab({ projectId, onOpenTicket, onOpenSettings }: Props)
           Runs appear here when a team starts working on a ticket.
         </div>
       )}
-      <LimitsCard projectId={projectId} snap={snap} onOpenSettings={onOpenSettings} />
+      <LimitsCard projectId={projectId} snap={snap} />
     </div>
   );
 }
