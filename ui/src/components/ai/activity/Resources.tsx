@@ -178,11 +178,13 @@ export function RestartNotice({ ticketId, onOpenRun }: { ticketId: string; onOpe
  */
 export function Resources({ ticketId }: { ticketId: string }) {
   const run = useNewestRun(ticketId);
-  const feed = useRunResources(run?.id);
+  const streamed = useRunResources(run?.id);
   const [stopping, setStopping] = useState(false);
   // a reading goes stale without another event: look at the clock now and then
   const now = useNow(2000);
   if (!run) return null;
+  // once the run has ended only what was saved with it is left (the last value, the peak): no chart, no live numbers
+  const feed = isActive(run.state) ? streamed : null;
   const live = !!feed && now - feed.at < STALE_MS && feed.run.live;
   const cli = live ? feed.run.cliRssMb : (feed?.run.cliRssMb ?? run.lastRssMb);
   const peak = feed?.run.peakRssMb ?? run.peakRssMb;
