@@ -164,7 +164,7 @@ export function SignInWindow({
         }
       }
     },
-    [account.id, overview.data?.terminal],
+    [account.id, account.folder, overview.data?.terminal],
   );
 
   async function restart() {
