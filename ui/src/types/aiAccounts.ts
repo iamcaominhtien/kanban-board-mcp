@@ -26,7 +26,7 @@ export interface AiAccount {
   /** Subscription login, ... */
   method: string | null;
   folder: string;
-  /** Runs of members on this account start today (false would show "Not ready"). */
+  /** The server's flag that runs of this CLI start; nothing on screen shows it any more (there is no "Not ready" state). */
   runnable: boolean;
   /** Why an account of this CLI cannot be made here ("Not available on Windows"), else null. */
   unavailable: string | null;

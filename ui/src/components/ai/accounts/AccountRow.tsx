@@ -57,7 +57,8 @@ export function AccountRow({
   const status = statusView(account, checking, nowMs);
   const who = signedInWith(account);
   const members = new Set(usersOf(account).map((u) => u.id)).size;
-  const needsSignIn = account.status === 'needs_sign_in' || account.status === 'signing_in';
+  const needsSignIn =
+    account.status === 'needs_sign_in' || account.status === 'signing_in' || account.status === 'cli_missing';
   const signInOff = signInOffReason(account, desktop);
   return (
     <div className="acc-grid" role="row" data-testid={`account-row-${account.name}`}>

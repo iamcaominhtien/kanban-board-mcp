@@ -463,7 +463,7 @@ export function AiProfile({
           <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
             <StatusLabel
               status={displayStatus(team)}
-              sub={displayStatus(team) !== team.status ? displayStatus(team).detail : (statusSub(team) ?? null)}
+              sub={displayStatus(team) !== team.status ? null : (statusSub(team) ?? null)}
             />
             <span className="ai-muted">
               {team.packName ?? team.packKey} · {team.model ?? 'sonnet'}

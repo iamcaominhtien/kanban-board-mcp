@@ -6,6 +6,7 @@ import type { AiAccount } from '../../../types/aiAccounts';
 import {
   CLI_OF_PROVIDER,
   accountReady,
+  joinNames,
   accountSub,
   accountsFor,
   profileSub,
@@ -15,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../Toast';
 import { AddAccountModal } from './AddAccountModal';
 import { AccountNote } from './AccountBanner';
+import { AccIcon, ICONS } from './AccountParts';
 import { AccountStatusChip } from './AccountChip';
 import { SignInWindow } from './SignInWindow';
 import './accountsMember.css';
@@ -58,6 +60,7 @@ export function AccountPicker({
   const chosen = list.find((a) => a.id === value) ?? null;
   const own = logins.data?.find((l) => l.cli === cli);
   const hint = chosen && !profile ? sharedHint(chosen, chosen.id === currentAccountId) : null;
+  const actions = useAccountActions();
   const refresh = () => void qc.invalidateQueries({ queryKey: accountKeys.all });
 
   return (
@@ -126,34 +129,48 @@ export function AccountPicker({
           teams or to keep work and personal apart.
         </AccountNote>
       )}
-      {chosen && !accountReady(chosen) && (
+      {chosen && chosen.status === 'needs_sign_in' && (
         <AccountNote
           tone="error"
-          title={
-            chosen.status === 'cli_missing'
-              ? `The ${spec.binary ?? 'CLI'} CLI was not found for ${chosen.name}`
-              : `${chosen.name} is signed out`
-          }
+          title={`${chosen.name} is signed out`}
           testId="account-signed-out"
           actions={
-            chosen.status === 'cli_missing' ? undefined : (
-              <button
-                type="button"
-                className="ai-btn ai-btn-sm ai-btn-primary"
-                disabled={chosen.status === 'signing_in'}
-                onClick={() => setSigning(chosen)}
-                data-testid="account-sign-in"
-              >
-                Sign in again
-              </button>
-            )
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm ai-btn-primary"
+              onClick={() => setSigning(chosen)}
+              data-testid="account-sign-in"
+            >
+              <AccIcon paths={[...ICONS.refresh]} size={13} />
+              Sign in again
+            </button>
           }
         >
-          {chosen.status === 'cli_missing'
-            ? 'Install it, then detect again.'
-            : chosen.status === 'signing_in'
-              ? `${chosen.signingInBy ?? 'Someone'} is signing in. Wait until they finish, or pick another account.`
-              : 'Pick another account, or sign in again now.'}
+          Pick another account, or sign in again now.
+        </AccountNote>
+      )}
+      {chosen && chosen.status === 'signing_in' && (
+        <AccountNote title={`${chosen.signingInBy ?? 'Someone'} is signing in`} testId="account-signing-in">
+          Wait until they finish, or pick another account.
+        </AccountNote>
+      )}
+      {chosen && chosen.status === 'cli_missing' && (
+        <AccountNote
+          tone="warn"
+          title={`The ${spec.binary} CLI was not found for ${chosen.name}`}
+          testId="account-cli-missing"
+          actions={
+            <button
+              type="button"
+              className="ai-btn ai-btn-sm"
+              disabled={actions.check.isPending}
+              onClick={() => actions.check.mutate([chosen.id])}
+            >
+              Detect again
+            </button>
+          }
+        >
+          Install it, then detect again.
         </AccountNote>
       )}
       {adding && cli && (
@@ -226,7 +243,7 @@ export function ChangeAccountDialog({ members, onClose }: { members: AiTeam[]; o
             {many ? `Choose another account for ${members.length} teams` : 'Change account'}
           </h2>
           <div className="ai-hint" style={{ marginTop: 3 }}>
-            {many ? members.map((m) => m.name).join(', ') : first.name}
+            {many ? `${joinNames(members.map((m) => m.name))}.` : first.name}
           </div>
         </div>
         <div className="ai-modal-body">

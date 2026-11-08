@@ -121,7 +121,9 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
               data-testid={`members-tab-${t}`}
             >
               {t === 'humans' ? 'Humans' : 'AI'}
-              <span className="ai-tab-count">{t === 'humans' ? members.length : aiMembers.length}</span>
+              <span className="ai-tab-count">
+                {t === 'humans' ? members.length : ai.isLoading ? '…' : aiMembers.length}
+              </span>
             </button>
           ))}
         </div>

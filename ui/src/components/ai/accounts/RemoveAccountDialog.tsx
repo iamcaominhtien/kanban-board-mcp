@@ -57,6 +57,7 @@ export function RemoveAccountDialog({
                 <span key={u.id}>
                   {i > 0 && ', '}
                   <b>{u.name}</b>
+                  {account.membersElsewhere.some((m) => m.id === u.id) && ' (another project)'}
                 </span>
               ))}
               . Choose what happens to {names.length === 1 ? 'it' : 'them'}.

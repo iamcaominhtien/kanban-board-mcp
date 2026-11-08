@@ -146,8 +146,8 @@ const STATUS_STYLE: Record<string, { dot: string; text: string; hollow?: boolean
   runner_missing: { dot: '#B4791E', text: '#B4571F' },
   model_retired: { dot: '#B4571F', text: '#B4571F' },
   rate_limited: { dot: '#B4791E', text: '#B4791E' },
-  paused: { dot: '#9AA8A0', text: '#5B6B60', square: true },
-  paused_all: { dot: '#B4571F', text: '#B4571F', square: true },
+  paused: { dot: '#B4791E', text: '#1E2A22' },
+  paused_all: { dot: '#B4791E', text: '#1E2A22' },
   removing: { dot: '#9AA8A0', text: '#5B6B60' },
   removed: { dot: '#9AA8A0', text: '#9AA8A0' },
 };

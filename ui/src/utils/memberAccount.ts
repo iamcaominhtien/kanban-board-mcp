@@ -39,7 +39,6 @@ export function accountSub(a: AiAccount, selected: boolean): string {
   const parts: (string | null)[] = [a.email, planOrMethod(a)];
   if (a.memberCount > 0 && a.status === 'signed_in') parts.push(usersText(a.memberCount));
   if (a.status === 'needs_sign_in' && !selected && a.signedOutAt) parts.push('session expired');
-  if (a.status === 'cli_missing') parts.push('CLI not installed');
   return parts.filter(Boolean).join(' · ');
 }
 
@@ -75,9 +74,10 @@ export function sharingCount(a: Pick<AiAccount, 'memberCount'>, alreadyOn: boole
 /** The shared-limit hint, or null while the account is used by nobody else. */
 export function sharedHint(
   a: Pick<AiAccount, 'name' | 'memberCount'>,
-  alreadyOn: boolean,
+  _alreadyOn: boolean,
 ): { title: string; text: string } | null {
-  const n = sharingCount(a, alreadyOn);
+  // the teams already on it, as frame 29 counts them ("The 3 AI teams on Work Claude" beside "3 teams")
+  const n = a.memberCount;
   if (n < 2) return null;
   return {
     title: 'Shared accounts share one limit',
