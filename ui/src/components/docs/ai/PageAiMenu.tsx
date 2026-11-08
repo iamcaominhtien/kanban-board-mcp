@@ -26,7 +26,7 @@ import { LineIcon } from '../../ui/LineIcon';
 /**
  * The AI button in the page header, beside Comments and Share (docs-ai B). Shown only when Docs AI is on for the
  * project (`aiGate`); lists what AI can do with this page and starts nothing until a row is picked. Viewers do not see
- * the writing rows; with no AI member there is one row that opens AI members.
+ * the writing rows; with no AI team there is one row that opens Members.
  * @param props.projectId - The project of the page.
  * @param props.page - The page the menu is for.
  * @param props.canEdit - Whether the person can edit the page.
@@ -45,7 +45,7 @@ export function PageAiMenu({
   projectId: string;
   page: DocsPage;
   canEdit: boolean;
-  /** Opens Settings › Docs (for the "no AI member" row). */
+  /** Opens Settings › Docs (for the "no AI team" row). */
   onOpenSettings?: () => void;
   view: PageAiView;
   onEdit?: () => void;
@@ -149,7 +149,7 @@ export function PageAiMenu({
             >
               <Icon name="i32" size={16} strokeWidth={1.9} className="pai-row-ico" />
               <span>
-                <div className="pai-row-title">Open AI members</div>
+                <div className="pai-row-title">Open Members</div>
                 <div className="pai-row-hint">{menu.text}</div>
               </span>
             </button>
@@ -251,7 +251,7 @@ export function PageAiMenu({
                   </span>
                 ))}
                 <span style={{ flex: 1 }} />
-                <span>{estimateLabel(markdown)}</span>
+                <span>{estimateLabel(markdown, state.data?.member?.metered ?? false)}</span>
               </div>
             </>
           )}

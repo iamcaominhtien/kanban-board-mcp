@@ -99,7 +99,7 @@ export function NotificationsHost({
   onOpenTicket: (ticketId: string) => void;
   /** `projectId` is the row's project: a row of another project opens there, never in the one on screen */
   onOpenDoc: (pageId: string, projectId?: string | null) => void;
-  onOpenAiTab: (tab: 'accounts' | 'approvals', projectId?: string | null) => void;
+  onOpenAiTab: (tab: 'accounts', projectId?: string | null) => void;
   onOpenAiMember: (memberId?: string | null, projectId?: string | null) => void;
   onOpenPage: () => void;
   onOpenSettings: () => void;
@@ -141,11 +141,7 @@ export function NotificationsHost({
       case 'sign_in':
         p.onOpenAiTab('accounts', row.projectId);
         break;
-      case 'review':
-        p.onOpenAiTab('approvals', row.projectId);
-        break;
       case 'open_ai':
-      case 'change_permission':
         p.onOpenAiMember(row.memberId, row.projectId);
         break;
       case 'open_list':

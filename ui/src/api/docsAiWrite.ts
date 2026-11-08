@@ -112,7 +112,6 @@ export interface SinceViewedPage {
   fromVersion: number;
   toVersion: number;
   line: string | null;
-  hidden: boolean;
 }
 
 export interface TidyOptionsBody {
