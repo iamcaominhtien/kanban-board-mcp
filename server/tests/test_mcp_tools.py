@@ -522,3 +522,37 @@ async def test_update_ticket_nonexistent_does_not_publish_sse():
             await ops.update_ticket("MISSING-9999", description="ghost")
 
     mock_publish.assert_not_called()
+
+
+async def test_story_ticket_can_have_sub_tickets():
+    """Story > ticket > sub-ticket is allowed; a fourth level, or a non-Story third level, is not."""
+    project = await _seed_project(prefix="STY3")
+    story = await ops.create_ticket(
+        project_id=project["id"], title="Story", type="story"
+    )
+    ticket = await ops.create_child_ticket(
+        parent_ticket_id=story["id"], title="Ticket under the story"
+    )
+    sub = await ops.create_child_ticket(
+        parent_ticket_id=ticket["id"], title="Sub-ticket of the ticket"
+    )
+    assert sub["parent_id"] == ticket["id"]
+    with pytest.raises(ValueError, match="1 level"):
+        await ops.create_child_ticket(parent_ticket_id=sub["id"], title="Too deep")
+
+
+async def test_story_nesting_on_update_respects_depth():
+    project = await _seed_project(prefix="STY4")
+    story = await ops.create_ticket(
+        project_id=project["id"], title="Story", type="story"
+    )
+    ticket = await ops.create_child_ticket(parent_ticket_id=story["id"], title="T")
+    sub = await ops.create_child_ticket(parent_ticket_id=ticket["id"], title="S")
+    other = await ops.create_child_ticket(parent_ticket_id=story["id"], title="Other")
+    # a ticket with its own sub-ticket cannot move under another ticket (it would be 3 deep)
+    with pytest.raises(ValueError, match="1 level"):
+        await ops.update_ticket(ticket_id=ticket["id"], parent_id=other["id"])
+    # a plain ticket can still become a sub-ticket of a ticket under the story
+    moved = await ops.update_ticket(ticket_id=other["id"], parent_id=ticket["id"])
+    assert moved["parent_id"] == ticket["id"]
+    assert sub["parent_id"] == ticket["id"]

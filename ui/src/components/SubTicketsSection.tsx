@@ -285,6 +285,7 @@ export function SubTicketsSection({
   const [search, setSearch] = useState('');
 
   const createTicketMutation = useCreateTicket(projectId);
+  const [createError, setCreateError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -295,14 +296,25 @@ export function SubTicketsSection({
   const rows = buildRows(childTickets);
   const childIds = new Set(childTickets.map((t) => t.id));
 
-  // Eligible for linking: same project, not current, not already a child, has no parent, and has no children of its own
+  // Nesting: a ticket holds sub-tickets one level deep, two under a Story (Story > ticket > sub-ticket)
+  const current = allTickets.find((t) => t.id === currentTicketId);
+  const currentParent = current?.parentId ? allTickets.find((t) => t.id === current.parentId) : undefined;
+  const currentDepth = current?.parentId ? (currentParent?.parentId ? 2 : 1) : 0;
+  const nestingRoot = currentParent?.parentId ? allTickets.find((t) => t.id === currentParent.parentId) : currentParent;
+  const maxDepth = (nestingRoot ?? current)?.type === 'story' ? 2 : 1;
+  const heightOf = (id: string): number => {
+    const kids = allTickets.filter((t) => t.parentId === id);
+    return kids.length === 0 ? 0 : 1 + Math.max(...kids.map((k) => heightOf(k.id)));
+  };
+
+  // Eligible for linking: same project, not current, not already a child, not a Story, has no parent,
+  // and its own sub-tickets still fit under the current ticket
   const eligible = allTickets.filter((t) => {
     if (t.id === currentTicketId) return false;
     if (childIds.has(t.id)) return false;
+    if (t.type === 'story') return false;
     if (t.parentId != null) return false;
-    const hasChildren = allTickets.some((other) => other.parentId === t.id);
-    if (hasChildren) return false;
-    return true;
+    return currentDepth + 1 + heightOf(t.id) <= maxDepth;
   });
 
   const q = search.toLowerCase();
@@ -322,6 +334,7 @@ export function SubTicketsSection({
     if (e) e.preventDefault();
     const trimmed = newTitle.trim();
     if (!trimmed) return;
+    setCreateError(null);
     createTicketMutation.mutate(
       {
         title: trimmed,
@@ -335,6 +348,7 @@ export function SubTicketsSection({
           setNewTitle('');
           titleInputRef.current?.focus();
         },
+        onError: (err) => setCreateError(extractError(err)),
       },
     );
   }
@@ -538,6 +552,11 @@ export function SubTicketsSection({
                     <path d="M5 13L10 18L19 6" />
                   </svg>
                 </button>
+                {createError && (
+                  <div role="alert" style={{ flexBasis: '100%', fontSize: 11, color: '#C4432A' }}>
+                    {createError}
+                  </div>
+                )}
               </form>
             ) : (
               <div>

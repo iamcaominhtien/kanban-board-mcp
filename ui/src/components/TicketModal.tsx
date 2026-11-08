@@ -828,6 +828,8 @@ function TicketModalInner({
   // Every tag used in the project, for the tag picker's suggestions
   const projectTags = useMemo(() => Array.from(new Set(allTickets.flatMap((t) => t.tags ?? []))), [allTickets]);
   const parentTicket = ticket?.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
+  // A ticket holds sub-tickets one level deep; a Story's tickets can hold them too (Story > ticket > sub-ticket)
+  const canHaveSubTickets = !ticket?.parentId || parentTicket?.type === 'story' || childTickets.length > 0;
   const pendingBlockerTicket = ticket?.pendingTicketId
     ? allTickets.find((t) => t.id === ticket.pendingTicketId)
     : undefined;
@@ -2270,26 +2272,28 @@ function TicketModalInner({
                         />
 
                         {/* Sub-tickets (child tickets) */}
-                        <SubTicketsSection
-                          members={members}
-                          childTickets={childTickets}
-                          allTickets={allTickets}
-                          currentTicketId={ticket.id}
-                          projectId={ticket.projectId}
-                          onOpenTicket={(child) => onOpenTicket?.(child)}
-                          onLinkChild={(childId) => {
-                            updateTicketMutation.mutate({
-                              ticketId: childId,
-                              data: { parentId: ticket.id },
-                            });
-                          }}
-                          onUnlinkChild={(childId) => {
-                            updateTicketMutation.mutate({
-                              ticketId: childId,
-                              data: { parentId: null },
-                            });
-                          }}
-                        />
+                        {canHaveSubTickets && (
+                          <SubTicketsSection
+                            members={members}
+                            childTickets={childTickets}
+                            allTickets={allTickets}
+                            currentTicketId={ticket.id}
+                            projectId={ticket.projectId}
+                            onOpenTicket={(child) => onOpenTicket?.(child)}
+                            onLinkChild={(childId) => {
+                              updateTicketMutation.mutate({
+                                ticketId: childId,
+                                data: { parentId: ticket.id },
+                              });
+                            }}
+                            onUnlinkChild={(childId) => {
+                              updateTicketMutation.mutate({
+                                ticketId: childId,
+                                data: { parentId: null },
+                              });
+                            }}
+                          />
+                        )}
 
                         {/* Acceptance Criteria */}
                         <AcceptanceCriteriaSection

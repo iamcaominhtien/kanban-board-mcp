@@ -79,7 +79,7 @@ server/
 | estimate | REAL nullable | Story points |
 | due_date | TEXT nullable | ISO date |
 | tags | TEXT | JSON array |
-| parent_id | TEXT FK nullable | → tickets.id (self-ref, max 1 level deep) |
+| parent_id | TEXT FK nullable | → tickets.id (self-ref, max 1 level deep; 2 under a Story) |
 | comments | TEXT | JSON array of Comment objects |
 | acceptance_criteria | TEXT | JSON array of AcceptanceCriterion |
 | activity_log | TEXT | JSON array of ActivityEntry |
@@ -136,7 +136,7 @@ create_ticket(project_id, title, type, priority, description?, parent_id?, ...) 
 get_ticket(id)                → get full ticket details including comments and history
 update_ticket(id, **fields)   → update any ticket fields
 update_status(id, status)     → move ticket to a new status column
-create_child_ticket(parent_id, title, ...)  → create a sub-ticket (max 1 level deep)
+create_child_ticket(parent_id, title, ...)  → create a sub-ticket (max 1 level deep; 2 under a Story)
 add_comment(ticket_id, text)  → add a comment or note to a ticket
 add_work_log(ticket_id, author, role, note)  → log work done on a ticket
 add_test_case(ticket_id, title, status, proof?, note?)  → add a test case
