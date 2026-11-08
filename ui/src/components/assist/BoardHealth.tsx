@@ -268,7 +268,7 @@ function ScheduleSettings({ projectId, cfg }: { projectId: string; cfg: HealthCo
   );
 }
 
-/** Board health panel with the standup digest and insights; each insight: Act (draft), Snooze, Dismiss (F1, F2). */
+/** Board health panel with the standup digest and insights; each insight: Snooze, Dismiss (D). */
 export function BoardHealthPanel({ onClose }: { onClose: () => void }) {
   const ctx = useAssist();
   const projectId = ctx?.projectId ?? '';
