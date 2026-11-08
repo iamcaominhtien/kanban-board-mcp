@@ -4,13 +4,22 @@ import { useAiTeams, useRunnerInfo } from '../../../api/ai';
 import { usePatchProjectOps, useProjectOps } from '../../../api/aiProjectOps';
 import { agoWords } from '../../../utils/accountList';
 import { extractError } from '../../../api/extractError';
-import type { CommandName, EnvFolder, Scan } from '../../../types/aiPacks';
+import type { CommandName, EnvFolder, Scan, TrialRun } from '../../../types/aiPacks';
 import { LineIcon } from '../../ui/LineIcon';
 import { LoadError } from '../aiUi';
 import { EnvBlock } from '../packs/EnvBlock';
 import { CommandRow, ScanLog, ScanStrip } from './RepoCommandsParts';
 import { COMMAND_ORDER, jobOf, proposedTexts, rowView, keepList, type CommandTexts } from './repoCommandsLogic';
 import './repoCommands.css';
+
+/** Frame 7: a command that ended "npm: command not found" and a folder the AI proposed that has it. */
+function pathNote(run: TrialRun | null | undefined, env: EnvFolder[]): string | null {
+  if (!run || run.status !== 'wrong' || run.exitCode !== 127) return null;
+  const folder = env.find((f) => f.by === 'ai');
+  const program = /(\S+): (?:command )?not found/.exec((run.tail ?? []).join('\n'))?.[1];
+  if (!folder || !program) return null;
+  return `${program} is not on the app’s PATH. It was found in ${folder.path}, which is proposed as an extra folder. Run it again once the folder is saved.`;
+}
 
 const same = (a: CommandTexts, b: CommandTexts) => COMMAND_ORDER.every((n) => a[n].trim() === b[n].trim());
 const sameEnv = (a: EnvFolder[], b: EnvFolder[]) => a.length === b.length && a.every((f, i) => f.path === b[i].path);
@@ -27,12 +36,14 @@ export function RepoCommands({ projectId }: { projectId: string }) {
   const teams = useAiTeams(projectId);
   const runner = useRunnerInfo();
   const { query, put } = useLatestScan(projectId);
-  const scan: Scan | null = query.data ?? null;
-  const job = jobOf(scan);
-  const running = job?.state === 'running';
-
   const wt = (ops.data?.worktrees ?? {}) as { repo?: string | null; prepare?: string };
   const folder = (wt.repo || teams.data?.[0]?.workingDir || '').trim();
+  // a scan of another folder is not this project's any more (the repository path or the team's folder changed)
+  const trim = (p: string) => p.replace(/\/+$/, '');
+  const latest = query.data ?? null;
+  const scan: Scan | null = latest && (!folder.startsWith('/') || trim(latest.folder) === trim(folder)) ? latest : null;
+  const job = jobOf(scan);
+  const running = job?.state === 'running';
   const saved: CommandTexts = {
     prepare: wt.prepare ?? '',
     test: ops.data?.commands?.test ?? '',
@@ -51,15 +62,21 @@ export function RepoCommands({ projectId }: { projectId: string }) {
   const env = envEdit ?? savedEnv;
   const dirty = (typed != null && !same(typed, saved)) || (envEdit != null && !sameEnv(envEdit, savedEnv));
 
-  // the boxes take what the AI proposed once its job has ended (also when the page is opened after it ended)
-  const adopted = useRef<string | null>(null);
+  // The boxes take what the AI proposes, only when it arrives while this page watches the job: the server keeps the
+  // proposal of the last job until the next one writes its own, so the first sight of a job is its baseline
+  const watched = useRef<{ key: string; proposal: string; adopted: boolean } | null>(null);
   useEffect(() => {
     if (!scan || !job || !ops.data || job.mode !== 'ai') return;
     const key = `${scan.id}:${job.startedAt}`;
+    const sig = JSON.stringify(scan.proposal ?? {});
+    const w = watched.current;
+    if (!w || w.key !== key) {
+      watched.current = { key, proposal: sig, adopted: false };
+      return;
+    }
     const proposed = proposedTexts(scan);
-    // while it works, the boxes fill in as soon as the AI has proposed; a job that ended without a proposal has nothing
-    if (adopted.current === key || !proposed) return;
-    adopted.current = key;
+    if (w.adopted || sig === w.proposal || !proposed) return;
+    w.adopted = true;
     const folders = (scan.proposal as { envPath?: EnvFolder[] }).envPath;
     setTyped((cur) => {
       // a typed box that was kept stays as it is; the others take the proposal
@@ -70,19 +87,28 @@ export function RepoCommands({ projectId }: { projectId: string }) {
     if (folders?.length) setEnvEdit(folders);
   }, [scan, job, ops.data]);
 
-  // a scan is read by code (nothing runs) so the card knows at once whether the AI can start
-  const creating = useRef(false);
-  useEffect(() => {
-    if (query.isLoading || query.isError || query.data !== null || !folder || creating.current) return;
-    creating.current = true;
-    aiScanApi
+  // a scan is read by code (nothing runs) so the card knows at once whether the AI can start; one try per folder
+  const inflight = useRef<Promise<Scan> | null>(null);
+  const attempted = useRef<string | null>(null);
+  const createScan = () => {
+    inflight.current ??= aiScanApi
       .create(projectId, folder)
-      .then(put)
-      .catch((e) => setProblem(extractError(e)))
+      .then((s) => {
+        put(s);
+        return s;
+      })
       .finally(() => {
-        creating.current = false;
+        inflight.current = null;
       });
-  }, [query.isLoading, query.isError, query.data, folder, projectId, put]);
+    return inflight.current;
+  };
+  useEffect(() => {
+    if (query.isLoading || query.isError || scan || !folder || attempted.current === folder) return;
+    attempted.current = folder;
+    createScan().catch((e) => setProblem(extractError(e)));
+    // createScan only reads refs and stable values of this render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query.isLoading, query.isError, scan, folder, projectId]);
 
   if (ops.isLoading) return <div className="ai-skel" style={{ height: 120 }} aria-busy="true" aria-label="Loading" />;
   if (ops.error || !ops.data)
@@ -92,9 +118,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
   const ensure = async (): Promise<Scan | null> => {
     if (scan) return scan;
     if (!folder) return null;
-    const fresh = await aiScanApi.create(projectId, folder);
-    put(fresh);
-    return fresh;
+    return createScan();
   };
   const go = async (start: (s: Scan) => Promise<Scan>) => {
     setProblem(null);
@@ -156,6 +180,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       : null;
   const noFolder = !scan && !folder;
   const aiJob = job?.mode === 'ai';
+  const rowsCarryError = COMMAND_ORDER.some((n) => !!job?.error && scan?.trial?.[n]?.reason === job.error);
   const hasProof = COMMAND_ORDER.some((n) => !!scan?.trial?.[n]);
   const finished = !!job && !running;
   const again = job && (job.state === 'timeout' || job.state === 'failed') ? 'Run it again' : 'Set up again';
@@ -191,6 +216,11 @@ export function RepoCommands({ projectId }: { projectId: string }) {
           to 3 minutes; it uses the board’s signed-in Claude account, else this computer’s login.
         </div>
       )}
+      {running && (
+        <div className="ai-hint" data-testid="rc-busy">
+          The commands are already being set up.
+        </div>
+      )}
       {aiOff && offWhy && (
         <div className="rc-why" role="status" data-testid="rc-off-why">
           <LineIcon name="warning" size={14} /> {offWhy}
@@ -209,7 +239,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       )}
       {job && <ScanStrip job={job} onStop={stop} />}
       {running && <ScanLog lines={job.log} mode={job.mode} />}
-      {job && !running && job.error && job.state !== 'cancelled' && job.state !== 'timeout' && (
+      {job && !running && job.error && job.state !== 'cancelled' && !(job.state === 'timeout' && rowsCarryError) && (
         <div className="rc-why rc-why-bad" data-testid="rc-job-error">
           {job.error}
         </div>
@@ -257,6 +287,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
             onRun={() => void runCommands(n === 'prepare' ? [] : [n])}
             onFix={() => askToFix(n)}
             canFix={!aiOff}
+            pathNote={pathNote(scan?.trial?.[n], env)}
           />
         ))}
       </div>

@@ -122,7 +122,9 @@ export function rowView(
         ...base,
         kind: 'wrong',
         chip: `Command is wrong · exit ${trial.exitCode ?? '?'}`,
-        sub: trial.reason ?? 'The shell could not run it.',
+        sub: trial.reason?.startsWith('The shell')
+          ? trial.reason
+          : `The shell could not run it${trial.reason ? `: ${trial.reason}` : '.'}`,
       };
     case 'timeout':
       return {
@@ -132,10 +134,19 @@ export function rowView(
         sub: 'The command did not end in time and was stopped.',
       };
     case 'not_run':
-      return { ...base, kind: 'not_run', chip: `Not run${trial.reason ? ` · ${trial.reason}` : ''}`, sub: null };
+      return notRun(base, trial.reason);
     default:
       return blank('untried', 'Not tried yet');
   }
+}
+
+/** "Not run": a reason is always given; the AI running out of time reads "timed out" and says what to do. */
+function notRun(base: { tail: string[]; note: string | null }, reason: string | null | undefined): RowView {
+  const r = reason ?? '';
+  if (/stopped after 10 minutes/i.test(r))
+    return { ...base, kind: 'not_run', chip: 'Not run · timed out', sub: 'Type one, or run the AI again.' };
+  if (/^cancelled/i.test(r)) return { ...base, kind: 'not_run', chip: 'Not run · stopped', sub: null };
+  return { ...base, kind: 'not_run', chip: `Not run${r ? ` · ${r}` : ''}`, sub: null };
 }
 
 /** Which commands are kept when the AI runs again: the ones the person typed with no proof yet, and the ones that work. */

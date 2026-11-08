@@ -96,6 +96,7 @@ export function CommandRow({
   proven,
   disabled,
   canFix,
+  pathNote,
   onChange,
   onRun,
   onFix,
@@ -108,6 +109,8 @@ export function CommandRow({
   proven: boolean;
   disabled: boolean;
   canFix: boolean;
+  /** Why a command that was not found is probably the PATH, when the AI found the folder. */
+  pathNote?: string | null;
   onChange: (v: string) => void;
   onRun: () => void;
   onFix: () => void;
@@ -153,7 +156,9 @@ export function CommandRow({
             {view.tail.join('\n')}
           </pre>
         )}
-        {open && view.note && <div className="rc-note">{view.note}</div>}
+        {(open || view.kind === 'wrong') && (view.note ?? pathNote) && (
+          <div className="rc-note">{view.note ?? pathNote}</div>
+        )}
       </div>
       <div className="rc-row-status">
         <span className={`ai-chip rc-chip rc-chip-${view.kind}`} data-testid={`rc-chip-${name}`}>

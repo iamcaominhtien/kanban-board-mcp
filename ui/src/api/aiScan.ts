@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AiBody, Scan, TryBody } from '../types/aiPacks';
 import { client } from './client';
@@ -39,6 +40,6 @@ export function useLatestScan(projectId: string) {
       return job?.state === 'running' ? 1000 : false;
     },
   });
-  const put = (scan: Scan) => qc.setQueryData(scanKeys.latest(projectId), scan);
+  const put = useCallback((scan: Scan) => qc.setQueryData(scanKeys.latest(projectId), scan), [qc, projectId]);
   return { query, put };
 }
