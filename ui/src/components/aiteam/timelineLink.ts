@@ -1,7 +1,7 @@
 /**
  * Opening the Timeline from somewhere else, and its link (design/screens/ai-team-timeline.md, A: "Copy link only: it
  * restores the range, the scope and the switches"). The link is URL state: `?aiteam=timeline&tl=…`, read when the app
- * starts. A request made inside the app (the ticket modal's "Open in Timeline") travels as an event.
+ * starts. A request made inside the app (the ticket modal's "Open in Flow") travels as an event.
  */
 
 export interface TimelineLink {

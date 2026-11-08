@@ -503,7 +503,7 @@ export interface TimelineLifeline {
   quiet?: boolean;
 }
 
-export type RunEnd = 'ok' | 'failed' | 'memory' | 'timeout' | 'stopped' | 'pause_all' | 'budget' | null;
+export type RunEnd = 'ok' | 'failed' | 'memory' | 'timeout' | 'stopped' | 'pause_all' | 'limit' | null;
 
 export interface TimelineBar {
   /** The bar's own id: a run's id for a lead, `<agent>:<n>` for one call of a role. */

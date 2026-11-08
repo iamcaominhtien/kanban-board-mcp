@@ -92,17 +92,19 @@ def _role_color(agent_type: str) -> str:
 
 def end_kind(r: AiRun) -> str | None:
     """How a finished run ended, in the words the diagram draws: ok, failed, memory (stopped by the system over the RAM
-    limit), timeout, stopped (a person), pause_all, budget; None while it is live."""
+    limit), timeout, stopped (a person), pause_all, limit (the account's usage limit was reached); None while it is live."""
     if r.state == "finished":
         return "ok"
     if r.state == "failed":
         if r.stop_code == "memory":
             return "memory"
+        if r.stop_code == "rate_limited":
+            return "limit"
         return "timeout" if "timed out" in (r.ended_reason or "").lower() else "failed"
     if r.state == "cancelled":
         if (r.ended_reason or "").startswith("Pause all"):
             return "pause_all"
-        return "budget" if r.stop_code == "budget" else "stopped"
+        return "stopped"
     return None
 
 
@@ -391,6 +393,13 @@ async def timeline(
         tid = by_name.get((name or "").strip().lower())
         return tid if tid and tid != receiver else None
 
+    def add_sender(sender: str, receiver: str) -> None:
+        """A team that wrote a note is drawn to the left of the team that got it (the note runs left to right)."""
+        if receiver in used:
+            used.insert(used.index(receiver), sender)
+        else:
+            used.append(sender)
+
     def lane_name(team_id: str, role: str | None) -> str:
         team = teams[team_id][0].name
         many = len(used) > 1
@@ -434,7 +443,7 @@ async def timeline(
             "retry",
         ) or (r.trigger == "ai_message" and from_team):
             if from_team and from_team not in used:
-                used.append(from_team)
+                add_sender(from_team, r.member_id)
             arrows.append(
                 _arrow(
                     f"{r.id}:assign",
@@ -549,7 +558,7 @@ async def timeline(
                 continue  # the instruction that started the run is the assign arrow
             from_team = sender_team(m.peer, r.member_id)
             if from_team and from_team not in used:
-                used.append(from_team)
+                add_sender(from_team, r.member_id)
             arrows.append(
                 _arrow(
                     m.id,

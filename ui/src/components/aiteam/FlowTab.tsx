@@ -30,7 +30,7 @@ export function startOf(initial: TimelineLink | null): { scope: FlowScope; view:
       view: f.view,
     };
   }
-  // an old Timeline link, or "Open in Timeline" on a ticket
+  // an old Timeline link, or "Open in Flow" on a ticket
   if (initial) return { scope: { teamId: null, ticketId: initial.scope ?? null }, view: 'timeline' };
   return { scope: ALL_TEAMS, view: 'map' };
 }
@@ -217,6 +217,7 @@ export function FlowTab({
                 : null
           }
           scopeTicketId={scope.ticketId}
+          scopeIsStory={story}
           teamId={scope.teamId}
           scopeBar
           groups

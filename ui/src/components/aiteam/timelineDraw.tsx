@@ -157,17 +157,8 @@ const ARROW: Record<ArrowKind, { color: string; dash?: string; glyph: string; wo
 /** Work handed to a person is amber, like everything that waits for you (the design's "to human" arrow). */
 const TO_HUMAN = '#B8860B';
 const MOVES_WORK: ReadonlySet<ArrowKind> = new Set(['assign', 'mention', 'handoff', 'skip', 'report', 'returned']);
-/** The Show menu's groups. */
-const HANDOFF_KINDS: ReadonlySet<ArrowKind> = new Set([
-  'assign',
-  'mention',
-  'handoff',
-  'note',
-  'skip',
-  'report',
-  'returned',
-  'sent_back',
-]);
+/** The Show menu's groups: "Role calls and notes" hides the role calls and the notes, nothing else. */
+const HANDOFF_KINDS: ReadonlySet<ArrowKind> = new Set(['handoff', 'note']);
 const QUESTION_KINDS: ReadonlySet<ArrowKind> = new Set(['ask', 'answer', 'perm', 'approve', 'deny', 'auto']);
 
 /** The words for an arrow's kind. */
@@ -570,7 +561,7 @@ function endLook(b: TimelineBar, look: Look): { fill: string; stroke: string; da
     case 'stopped':
     case 'pause_all':
       return { fill: '#F1F3F1', stroke: '#1E2A22', text: '#1E2A22' };
-    case 'budget':
+    case 'limit':
       return { fill: '#FEF3D9', stroke: '#B8860B', dash: '4 3', text: '#7A5A06' };
     default:
       if (b.paused) return { fill: '#F1F3F1', stroke: '#9AA8A0', dash: '4 3', text: '#5B6B60' };
@@ -1270,7 +1261,7 @@ export function TimelineBody(props: DrawProps) {
               strokeWidth={sel('bar', b.id) ? 2.6 : 1.5}
               strokeDasharray={end.dash}
             />
-            {fresh.has(b.id) && b.endedAt && ['failed', 'memory', 'timeout', 'budget'].includes(b.endKind ?? '') && (
+            {fresh.has(b.id) && b.endedAt && ['failed', 'memory', 'timeout', 'limit'].includes(b.endKind ?? '') && (
               <rect
                 className="tl-flash"
                 x={x}
@@ -1732,10 +1723,11 @@ function RunEnd({ b, x, y, mid }: { b: TimelineBar; x: number; y: number; mid: n
     case 'stopped':
     case 'pause_all':
       return <rect x={x - 4.5} y={y - 12} width={9} height={9} fill="#1E2A22" rx={1.5} />;
-    case 'budget':
+    case 'limit':
+      // the account's usage limit stopped it: a quota, not money, so no $
       return (
         <text x={x} y={y - 4} fontSize={12} fontWeight={800} fill="#7A5A06" textAnchor="middle">
-          $
+          !
         </text>
       );
     default:
