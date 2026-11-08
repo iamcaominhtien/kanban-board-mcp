@@ -696,7 +696,10 @@ async def set_mark(
 def draft_lesson(touch: dict) -> str:
     """A starting sentence for the lesson a person writes from an avoidable touch."""
     ticket = f" on {touch['ticket_id']}" if touch.get("ticket_id") else ""
-    return f"{touch['label']}{ticket}: {touch['details']} Next time, do this without a person."[
+    details = (touch["details"] or "").strip()
+    if details and details[-1] not in '.!?”"':
+        details += "."
+    return f"{touch['label']}{ticket}: {details} Next time, do this without a person."[
         :600
     ]
 

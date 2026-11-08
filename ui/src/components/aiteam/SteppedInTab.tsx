@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MenuSelect } from '../ui/MenuSelect';
 import {
   useTouchActions,
@@ -13,8 +13,10 @@ import {
 import { extractError } from '../../api/extractError';
 import { LoadError } from '../ai/aiUi';
 import { openRun } from './runLink';
-import { CalendarIcon, TicketChip } from './teamUi';
+import { CalendarIcon, Icon, TicketChip } from './teamUi';
 import './touches.css';
+
+const FILTER_MENU = { minHeight: 30, height: 30, padding: '0 10px', fontSize: 12 } as const;
 
 const RANGES: { value: TouchRange; label: string }[] = [
   { value: '24h', label: 'Last 24 hours' },
@@ -52,7 +54,61 @@ function csv(items: Touch[]): string {
 /** The draft of the lesson a person writes from an avoidable touch. */
 function draft(t: Touch): string {
   const on = t.ticketId ? ` on ${t.ticketId}` : '';
-  return `${t.label}${on}: ${t.details} Next time, do this without a person.`.slice(0, 600);
+  const details = /[.!?”"]$/.test(t.details.trim()) ? t.details.trim() : `${t.details.trim()}.`;
+  return `${t.label}${on}: ${details} Next time, do this without a person.`.slice(0, 600);
+}
+
+/** The funnel before the Team and Kind filters (AiTeamReview A3). */
+const FUNNEL = (
+  <Icon size={12} color="#5B6B60">
+    <path d="M4 5h16l-6 7.5V19l-4-2v-4.5L4 5z" />
+  </Icon>
+);
+
+/** One colour per person, from their name (the design draws purple, blue and amber avatars). */
+const AVATARS = [
+  { bg: '#EFEAFB', fg: '#5B4BB5' },
+  { bg: '#E1EEFB', fg: '#1F5A8E' },
+  { bg: '#FDF3E3', fg: '#8A5A00' },
+  { bg: '#E3F3EA', fg: '#1F5A31' },
+  { bg: '#FBE9EE', fg: '#9C2F4A' },
+];
+
+function Person({ name }: { name: string }) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const initials = (
+    words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? '').slice(0, 2)
+  ).toUpperCase();
+  const look = AVATARS[[...name].reduce((n, c) => n + c.charCodeAt(0), 0) % AVATARS.length];
+  return (
+    <span className="st-person">
+      <span className="st-avatar" style={{ background: look.bg, color: look.fg }} aria-hidden="true">
+        {initials}
+      </span>
+      <span>{name}</span>
+    </span>
+  );
+}
+
+/** The text box of the lesson: grows with what is written. */
+function LessonBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      aria-label="The lesson"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      data-testid="lesson-text"
+    />
+  );
 }
 
 function Row({
@@ -70,98 +126,97 @@ function Row({
   const pick = (m: TouchMark) => mark.mutate({ key: t.id, mark: t.mark === m ? null : m });
   const busy = mark.isPending || lesson.isPending;
   return (
-    <div className="st-grid" data-testid="touch-row" data-touch={t.id}>
-      <span className="at-hint" title={new Date(t.at).toLocaleString()}>
-        {when(t.at)}
-      </span>
-      <span>
-        {t.who}
-        {t.via === 'mcp' && <span className="st-tag">via MCP</span>}
-      </span>
-      <span className="st-kind">{t.label}</span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#244E78' }} title={t.teamName}>
-          {t.teamName}
+    <div className="st-row" data-testid="touch-row" data-touch={t.id}>
+      <div className="st-grid">
+        <span className="at-hint" title={new Date(t.at).toLocaleString()}>
+          {when(t.at)}
         </span>
-        {t.ticketId && <TicketChip id={t.ticketId} onOpen={onOpenTicket} />}
-        {t.runId && (
-          <button type="button" className="ai-link" onClick={() => openRun(t.runId as string)}>
-            Open run
-          </button>
-        )}
-      </span>
-      <span className="st-details">{t.details}</span>
-      <span>
-        <div className="st-mark" role="group" aria-label={`Mark this touch (${t.label})`}>
-          {(['needed', 'avoidable'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              className={m}
-              aria-pressed={t.mark === m}
-              disabled={busy || !!t.lessonId}
-              title={m === 'needed' ? 'Only a person could supply this' : 'A rule, a note or a setting could remove it'}
-              onClick={() => pick(m)}
-            >
-              {MARK_LOOK[m].label}
+        <span>
+          <Person name={t.who} />
+          {t.via === 'mcp' && <span className="st-tag">via MCP</span>}
+        </span>
+        <span className="st-kind">{t.label}</span>
+        <span className="st-where">
+          <span className="st-team" title={t.teamName}>
+            {t.teamName}
+          </span>
+          {t.ticketId && <TicketChip id={t.ticketId} onOpen={onOpenTicket} />}
+          {t.runId && (
+            <button type="button" className="st-open" onClick={() => openRun(t.runId as string)}>
+              Open run
             </button>
-          ))}
-        </div>
-        {mark.isError && (
-          <div className="at-hint-sm" style={{ color: '#A5321E', marginTop: 4 }} role="alert">
-            {extractError(mark.error)}
+          )}
+        </span>
+        <span className="st-details">{t.details}</span>
+        <span>
+          <div className="st-mark" role="group" aria-label={`Mark this touch (${t.label})`}>
+            {(['needed', 'avoidable'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={m}
+                aria-pressed={t.mark === m}
+                disabled={busy || !!t.lessonId}
+                title={
+                  m === 'needed' ? 'Only a person could supply this' : 'A rule, a note or a setting could remove it'
+                }
+                onClick={() => pick(m)}
+              >
+                {MARK_LOOK[m].label}
+              </button>
+            ))}
           </div>
-        )}
-        {t.mark === 'avoidable' &&
-          (t.lessonId ? (
-            <div className="at-hint-sm" style={{ marginTop: 4 }} data-testid="lesson-made">
-              Lesson proposed. It waits in Memory.
+          {mark.isError && (
+            <div className="st-error" role="alert">
+              {extractError(mark.error)}
             </div>
-          ) : writing ? (
-            <div className="st-lesson">
-              <textarea
-                aria-label="The lesson"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                data-testid="lesson-text"
-              />
-              <span style={{ display: 'flex', gap: 6 }}>
+          )}
+          {t.mark === 'avoidable' &&
+            (t.lessonId ? (
+              <div className="at-hint-sm" style={{ marginTop: 4 }} data-testid="lesson-made">
+                Lesson proposed. It waits in Memory.
+              </div>
+            ) : (
+              !writing && (
                 <button
                   type="button"
-                  className="st-btn st-btn-sm"
-                  disabled={busy || !text.trim()}
-                  data-testid="lesson-propose"
-                  onClick={() =>
-                    lesson.mutate({ key: t.id, text: text.trim() }, { onSuccess: () => setWriting(false) })
-                  }
+                  className="st-open st-lesson-link"
+                  data-testid="make-lesson"
+                  onClick={() => {
+                    setText(draft(t));
+                    setWriting(true);
+                  }}
                 >
-                  Propose to Memory
+                  Make a lesson
                 </button>
-                <button type="button" className="st-btn st-btn-sm" onClick={() => setWriting(false)}>
-                  Cancel
-                </button>
-              </span>
-              {lesson.isError && (
-                <span className="at-hint-sm" style={{ color: '#A5321E' }} role="alert">
-                  {extractError(lesson.error)}
-                </span>
-              )}
-            </div>
-          ) : (
+              )
+            ))}
+        </span>
+      </div>
+      {t.mark === 'avoidable' && !t.lessonId && writing && (
+        <div className="st-lesson">
+          <LessonBox value={text} onChange={setText} />
+          {lesson.isError && (
+            <span className="st-error" role="alert">
+              {extractError(lesson.error)}
+            </span>
+          )}
+          <span style={{ display: 'flex', gap: 6 }}>
             <button
               type="button"
-              className="ai-link"
-              style={{ marginTop: 4, display: 'block' }}
-              data-testid="make-lesson"
-              onClick={() => {
-                setText(draft(t));
-                setWriting(true);
-              }}
+              className="st-btn st-btn-primary st-btn-sm"
+              disabled={busy || !text.trim()}
+              data-testid="lesson-propose"
+              onClick={() => lesson.mutate({ key: t.id, text: text.trim() }, { onSuccess: () => setWriting(false) })}
             >
-              Make a lesson
+              Propose to Memory
             </button>
-          ))}
-      </span>
+            <button type="button" className="st-btn st-btn-sm" onClick={() => setWriting(false)}>
+              Cancel
+            </button>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -185,7 +240,9 @@ export function SteppedInTab({
     return q.isError ? (
       <LoadError what="the touches" error={q.error} onRetry={() => void q.refetch()} />
     ) : (
-      <span className="ai-spin" />
+      <div className="st-center">
+        <span className="ai-spin" />
+      </div>
     );
   }
   const t = d.totals;
@@ -201,11 +258,15 @@ export function SteppedInTab({
       aria-pressed={filters.mark === mark}
       onClick={() => setFilters({ ...filters, mark })}
     >
-      {label} {count != null && <b>{count}</b>}
+      {label} {count != null && <b style={{ color: '#1E2A22' }}>{count}</b>}
     </button>
   );
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }} data-testid="at-stepped">
+    <div
+      className="st-root"
+      style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }}
+      data-testid="at-stepped"
+    >
       {stale}
       <div className="at-tiles">
         <div className="at-tile">
@@ -237,7 +298,7 @@ export function SteppedInTab({
           <span className="at-total-n" style={{ color: '#5B6B60' }}>
             {t.unmarked}
           </span>
-          <div className="at-hint-sm">mark them: the marks teach the rules</div>
+          <div className="at-hint-sm">mark them: the marks feed What to fix and Memory</div>
         </div>
       </div>
 
@@ -249,13 +310,13 @@ export function SteppedInTab({
             <button
               key={k.key}
               type="button"
-              className="at-barrow st-kindrow"
-              style={{ gridTemplateColumns: '250px 1fr 26px' }}
+              className={`at-barrow st-kindrow${filters.kind === k.key ? ' on' : ''}`}
+              style={{ gridTemplateColumns: '262px 1fr 26px' }}
               onClick={() => setFilters({ ...filters, kind: filters.kind === k.key ? undefined : k.key })}
               aria-pressed={filters.kind === k.key}
             >
               <span style={{ fontWeight: filters.kind === k.key ? 700 : 400 }}>{k.label}</span>
-              <div className="at-bar" style={{ height: 10 }}>
+              <div className="at-bar" style={{ height: 10, borderRadius: 5 }}>
                 <i style={{ width: `${(k.total / maxKind) * 100}%`, background: '#2E6F40' }} />
               </div>
               <b style={{ textAlign: 'right' }}>{k.total}</b>
@@ -270,7 +331,7 @@ export function SteppedInTab({
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>
                 {r.name}
               </span>
-              <div className="at-bar" style={{ height: 8 }}>
+              <div className="at-bar" style={{ height: 8, borderRadius: 4 }}>
                 <i
                   style={{
                     width: `${((r.per10Runs ?? 0) / maxPer) * 100}%`,
@@ -293,8 +354,10 @@ export function SteppedInTab({
         {markOpt('Avoidable', t.avoidable, 'avoidable')}
         <span style={{ flex: 1 }} />
         <MenuSelect<string>
-          variant="chip"
+          variant="button"
           label="Team"
+          icon={FUNNEL}
+          style={FILTER_MENU}
           prefix="Team:"
           testId="stepped-team-filter"
           value={filters.teamId ?? ''}
@@ -302,8 +365,11 @@ export function SteppedInTab({
           onChange={(v) => setFilters({ ...filters, teamId: v || undefined })}
         />
         <MenuSelect<string>
-          variant="chip"
+          variant="button"
           label="Kind"
+          icon={FUNNEL}
+          style={FILTER_MENU}
+          menuWidth={280}
           prefix="Kind:"
           testId="stepped-kind-filter"
           value={filters.kind ?? ''}
@@ -314,6 +380,7 @@ export function SteppedInTab({
           variant="button"
           label="Range"
           icon={<CalendarIcon />}
+          style={FILTER_MENU}
           testId="stepped-range"
           value={range}
           options={RANGES}
@@ -346,13 +413,13 @@ export function SteppedInTab({
         </div>
         {d.items.length === 0 ? (
           <div className="at-hint" style={{ padding: 16 }} data-testid="touch-empty">
-            {t.touches === 0 ? `Nobody had to step in ${rangeLabel}.` : 'No touch matches these filters.'}
+            {t.touches === 0 ? `Nobody had to step in during ${rangeLabel}.` : 'No touch matches these filters.'}
             {t.touches === 0 && range !== '90d' && (
               <>
                 {' '}
                 <button
                   type="button"
-                  className="ai-link"
+                  className="st-open"
                   onClick={() => onRange(range === '24h' ? '7d' : range === '7d' ? '30d' : '90d')}
                 >
                   Widen the range
@@ -364,7 +431,7 @@ export function SteppedInTab({
           d.items.map((x) => <Row key={x.id} t={x} projectId={projectId} onOpenTicket={onOpenTicket} />)
         )}
         {d.truncated && (
-          <div className="at-hint-sm" style={{ padding: '8px 16px' }}>
+          <div className="at-hint-sm" style={{ padding: '8px 16px', borderTop: '1px solid #EEF3EF' }}>
             Showing the newest 500.
           </div>
         )}
