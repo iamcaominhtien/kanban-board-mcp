@@ -43,11 +43,10 @@ export function RoleChip({ role }: { role: string }) {
 }
 
 /** Status of one comment of a thread, shown as a chip at the right of its header. */
-export type ThreadState = 'answer' | 'blocked' | 'error';
+export type ThreadState = 'answer' | 'error';
 
 const STATE_STYLE: Record<ThreadState, { bg: string; color: string; border: string; label: string }> = {
   answer: { bg: '#EEF2F6', color: '#34455A', border: '#34455A33', label: 'Answer' },
-  blocked: { bg: '#FDF1EE', color: '#C4432A', border: '#F0C4B8', label: 'Move blocked' },
   error: { bg: '#FDF1EE', color: '#C4432A', border: '#F0C4B8', label: 'Error' },
 };
 

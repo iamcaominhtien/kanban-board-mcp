@@ -2578,7 +2578,6 @@ function TicketModalInner({
                           assigneeId={ticket.assignee}
                           focusCommentId={focusCommentId}
                           onFocusHandled={() => setFocusCommentId(null)}
-                          criteriaCount={ticket.acceptanceCriteria?.length ?? 0}
                           onAdd={async (t, opts) => {
                             // "Send to team": the comment is saved like any other, then the team's lead gets its text
                             // (a lead already working hears it at once; otherwise a run starts with it)

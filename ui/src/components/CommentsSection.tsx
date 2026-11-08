@@ -45,8 +45,6 @@ interface CommentsSectionProps {
   /** A comment to scroll to and tint (from Activity "View comment" or a #comment-id link). */
   focusCommentId?: string | null;
   onFocusHandled?: () => void;
-  /** Acceptance criteria of the ticket (the “Context sent” chips of the Ask button). */
-  criteriaCount?: number;
   /** Resolve with the saved comment id, reject when the server could not be reached. */
   onAdd: (text: string, opts?: SendOpts) => Promise<unknown>;
   onEdit: (id: string, text: string) => Promise<unknown>;
@@ -191,7 +189,6 @@ export function CommentsSection({
   isLoading = false,
   focusCommentId,
   onFocusHandled,
-  criteriaCount = 0,
   onAdd,
   onEdit,
   onDelete,
@@ -341,8 +338,6 @@ export function CommentsSection({
     return () => window.removeEventListener(ASK_AI_EVENT, onAsk);
   }, [ticketId, aiMembers]);
   const composerAi = {
-    criteriaCount,
-    commentCount: comments.length,
     defaultAskId: aiAssignee,
     prefill,
   };
@@ -437,9 +432,8 @@ export function CommentsSection({
       (authorMember ? aiMembers.get(authorMember.id) : undefined) ??
       (c.ai ? [...aiMembers.values()].find((a) => a.name === c.author) : undefined);
     const mine = isMine(c);
-    // where this comment stands in a thread: an answer to the lead's question, a blocked move
-    const threadState: { state: ThreadState; label?: string } | null =
-      c.ai?.kind === 'move_blocked' ? { state: 'blocked' } : c.answerToRun ? { state: 'answer' } : null;
+    // where this comment stands in a thread: an answer to the lead's question
+    const threadState: { state: ThreadState; label?: string } | null = c.answerToRun ? { state: 'answer' } : null;
     if (editingId === c.id) {
       return (
         <div key={c.id} data-comment-id={c.id} style={{ padding: '6px 0' }}>
@@ -528,7 +522,8 @@ export function CommentsSection({
             <Collapsible text={c.text} />
           </div>
           {c.answerToRun && <AnswerTransitions run={aiRuns.find((r) => r.id === c.answerToRun)} />}
-          {c.ai?.runNumber && (
+          {/* the report's own usage line ("Run #3 · 12,300 tokens · sonnet") already says which run */}
+          {c.ai?.runNumber && !new RegExp(`Run #${c.ai.runNumber} ·`).test(c.text) && (
             <div
               className="ai-muted"
               style={{ display: 'flex', gap: 8, alignItems: 'center' }}

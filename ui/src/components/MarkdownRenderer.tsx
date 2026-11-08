@@ -219,6 +219,18 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
               p: ({ node, children: inner }) =>
                 hasDiagram(node) || hasSketch(node) || hasCanvas(node) ? <div>{inner}</div> : <p>{inner}</p>,
             }),
+        // the usage line a team's closing report ends with ("Run #3 · 12,300 tokens · sonnet") reads as small grey print
+        sub: ({ node: _n, children: inner, ...props }) =>
+          /^Run #\d+ ·/.test(String(Array.isArray(inner) ? inner.join('') : (inner ?? ''))) ? (
+            <span
+              style={{ display: 'block', fontSize: 12, color: '#9AA8A0', lineHeight: 1.5 }}
+              data-testid="report-usage"
+            >
+              {inner}
+            </span>
+          ) : (
+            <sub {...props}>{inner}</sub>
+          ),
         table: ({ node: _n, children: inner, ...props }) => (
           <div className={styles.tableWrap}>
             <table {...props}>{inner}</table>

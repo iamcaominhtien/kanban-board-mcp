@@ -13,17 +13,7 @@ import { AccountNote } from './accounts/AccountBanner';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
 import './accounts/accountsMember.css';
 import { RestartNotice, RunResourcesStrip } from './RunResources';
-import {
-  AiAvatar,
-  RunStateChip,
-  SparkleIcon,
-  fmtElapsed,
-  hhmm,
-  secondsSince,
-  testsOf,
-  useAiBoardState,
-  useNow,
-} from './aiUi';
+import { AiAvatar, RunStateChip, SparkleIcon, fmtElapsed, hhmm, secondsSince, useAiBoardState, useNow } from './aiUi';
 import { LineIcon } from '../ui/LineIcon';
 
 // The run view, steps, history and the AI tab live in RunView.tsx
@@ -410,19 +400,16 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
         </button>
       </div>
     );
-  if (run?.state === 'finished' && ticket.status === 'review') {
-    const t = testsOf({ report: { tests: undefined } });
-    const green = !!t && t.failed === 0 && t.passed > 0;
+  if (run?.state === 'finished' && ticket.status === 'review')
     return (
       <div
         className="ai-card-footer ai-card-footer-running"
         style={{ color: '#2E6F40', fontWeight: 600 }}
         data-testid="card-summary-ready"
       >
-        <SparkleIcon size={11} /> AI summary ready{green ? ' · tests passed' : ''}
+        <SparkleIcon size={11} /> Report ready
       </div>
     );
-  }
   if (
     ticket.status === 'done' &&
     ticket.completedBy &&

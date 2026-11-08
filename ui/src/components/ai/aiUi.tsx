@@ -145,7 +145,6 @@ const STATUS_STYLE: Record<string, { dot: string; text: string; hollow?: boolean
   not_logged_in: { dot: '#C4432A', text: '#C4432A' },
   runner_missing: { dot: '#B4791E', text: '#B4571F' },
   model_retired: { dot: '#B4571F', text: '#B4571F' },
-  over_budget: { dot: '#B4571F', text: '#B4571F' },
   rate_limited: { dot: '#B4791E', text: '#B4571F' },
   paused: { dot: '#9AA8A0', text: '#5B6B60', square: true },
   paused_all: { dot: '#B4571F', text: '#B4571F', square: true },

@@ -19,7 +19,6 @@ export interface AiStatus {
     | 'running'
     | 'idle'
     | 'removed'
-    | 'over_budget'
     | 'not_ready';
   label: string;
   detail: string | null;
