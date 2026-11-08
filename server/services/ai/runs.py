@@ -376,7 +376,7 @@ async def _blocking_reason(
     own_retry = parse_iso(run.retry_at)
     if own_retry and own_retry > datetime.now(UTC):
         secs = max(1, int((own_retry - datetime.now(UTC)).total_seconds()))
-        return f"Retrying in about {secs if secs < 120 else str(round(secs / 60)) + ' min'}{' s' if secs < 120 else ''}"
+        return f"Retrying in about {f'{secs} s' if secs < 120 else f'{round(secs / 60)} min'}"
     try:
         window = await quota.blocking(session, run, profile)
     except Exception:  # noqa: BLE001 - quota is advice, never a reason to stall forever

@@ -81,9 +81,9 @@ export interface ScanPackage {
   manager?: string;
 }
 
-/** The four commands a project keeps; test, lint and build are checks, prepare runs before a ticket starts. */
+/** The four commands a project keeps; test, lint and build run before a hand-in, prepare runs before a ticket starts. */
 export type CommandName = 'prepare' | 'test' | 'lint' | 'build';
-/** The ones a workflow's Checks step can run. */
+/** The commands the teams run before they hand in. */
 export type CheckName = 'test' | 'lint' | 'build';
 
 /**

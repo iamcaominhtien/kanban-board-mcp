@@ -215,7 +215,7 @@ export function ResumeAllDialog({ projectId, onClose }: { projectId: string; onC
         {error && (
           <div className="ai-modal-body">
             <div className="ai-error-text" role="alert">
-              Could not resume: {sentence(error)} Nothing was changed.
+              {error}
             </div>
           </div>
         )}
