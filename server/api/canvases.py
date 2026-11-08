@@ -1,4 +1,4 @@
-"""Canvas API: boards, notes, arrows and labels on one large plane, with versions, comments and AI proposals.
+"""Canvas API: boards, notes, arrows and labels on one large plane, with versions and comments.
 
 Writes that carry files are multipart; the plane itself (layout) is JSON and merges per item. Errors use the Docs
 error shape ``{detail: {code, message, ...}}``. The files of a frame are served with a strict policy (no scripts, no

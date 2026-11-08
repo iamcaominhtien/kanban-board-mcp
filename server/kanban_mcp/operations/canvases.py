@@ -659,6 +659,7 @@ async def create_canvas_from_files(
     }
 
 
+@notify_on_success
 async def update_canvas_frame(
     canvas_id: CanvasId,
     board_id: Annotated[
@@ -674,7 +675,7 @@ async def update_canvas_frame(
         str | None, Field(description="One sentence on what you changed.")
     ] = None,
 ) -> dict:
-    """Change an HTML frame from a folder; the canvas keeps the version before it. Returns {board_id, name, content_rev, files, note}. A frame a person is editing is locked: the error names them, try again later."""
+    """Change an HTML frame from a folder; the board changes at once (History gets no version; the earlier files stay in the board). Returns {board_id, name, content_rev, files, note}. A frame a person is editing is locked: the error names them, try again later."""
     from services.ai import guard
 
     root = _ai_folder(path)
@@ -704,6 +705,7 @@ async def update_canvas_frame(
                 board_id,
                 files={**current, **files},
                 entry=content.get("entry"),
+                base_content_rev=content.get("rev"),
                 reason="ai",
                 ai_team=guard.current().member_name if guard.current() else "AI",
             )

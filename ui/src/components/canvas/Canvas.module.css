@@ -60,11 +60,6 @@
 .btnDanger:hover {
   background: #a93822;
 }
-.btnAi {
-  border-color: var(--cv-purple-line);
-  color: var(--cv-purple);
-  background: #faf7ff;
-}
 .btnOn {
   background: #eaf0ec;
 }

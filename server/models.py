@@ -951,9 +951,7 @@ class CanvasComment(SQLModel, table=True):
     author: str = Field(default="user")
     body: str = Field(default="")
     mentions: str = Field(default="[]")
-    ai: Optional[str] = Field(
-        default=None
-    )  # JSON {member_id, can_propose, proposal_id} on an AI member's comment
+    ai: Optional[str] = Field(default=None)  # JSON {member} on an AI team's comment
     created_at: str = Field(default_factory=_now_iso)
     edited_at: Optional[str] = Field(default=None)
 

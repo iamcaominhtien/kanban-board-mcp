@@ -1637,23 +1637,29 @@ async def put_board_content(
             latest_content_rev=cur_rev,
             latest_author=c.updated_by,
         )
-    written, content = prepare_files(files, entry)
-    _check_canvas_bytes(doc, board_id, content["bytes"])
-    new_rev = c.rev + 1
-    content["rev"] = new_rev
-    write_revision(c.id, board_id, new_rev, written)
-    board["kind"] = "html"
-    board["content"] = content
-    board["rev"] = new_rev
-    if ai_team:
-        board["ai_saved_by"] = ai_team[:80]
-    else:
-        board.pop("ai_saved_by", None)
-    c.rev = new_rev - 1
-    _touch(c, doc)
-    write_doc(c.id, doc)
-    session.add(c)
-    await session.commit()
+    try:
+        written, content = prepare_files(files, entry)
+        _check_canvas_bytes(doc, board_id, content["bytes"])
+        new_rev = c.rev + 1
+        content["rev"] = new_rev
+        write_revision(c.id, board_id, new_rev, written)
+        board["kind"] = "html"
+        board["content"] = content
+        board["rev"] = new_rev
+        if ai_team:
+            board["ai_saved_by"] = ai_team[:80]
+        else:
+            board.pop("ai_saved_by", None)
+        c.rev = new_rev - 1
+        _touch(c, doc)
+        write_doc(c.id, doc)
+        session.add(c)
+        await session.commit()
+    except BaseException:
+        # a refused AI save must not leave the board locked for ten minutes (a person's editor stays open to fix it)
+        if release and reason == "ai":
+            canvas_locks.release(c.id, board_id, actor)
+        raise
     if release:
         canvas_locks.release(c.id, board_id, actor)
     return {"board": board, "rev": c.rev}
@@ -1736,6 +1742,7 @@ async def duplicate_board(
     copy["order"] = len([b for b in doc["boards"] if b.get("page") == src["page"]])
     copy["rev"] = new_rev
     copy["created_by"] = activity.current_actor()
+    copy.pop("ai_saved_by", None)  # a person's copy is not the team's change
     if src.get("content"):
         _check_canvas_bytes(doc, None, src["content"]["bytes"])
         old = board_dir(c.id, src["id"], src["content"]["rev"])
@@ -1795,6 +1802,9 @@ async def copy_canvas(
         for item in doc[k]:
             item["rev"] = 1
     for b in doc["boards"]:
+        b.pop(
+            "ai_saved_by", None
+        )  # the copy is a person's, the team's mark stays on the original
         if b.get("content"):
             b["content"]["rev"] = 1
     # copy each frame's current files as revision 1

@@ -32,7 +32,7 @@ def _mentions(body: str) -> list[str]:
 
 
 async def _is_ai(session: AsyncSession, c: Any, author: str) -> bool:
-    """Whether an author is one of the project's AI members."""
+    """Whether an author is one of the project's AI teams."""
     if not c.project_id:
         return False
     rows = await session.exec(select(Member).where(Member.project_id == c.project_id))
@@ -297,10 +297,10 @@ async def delete_comment(session: AsyncSession, comment_id: str) -> dict[str, An
 async def set_status(
     session: AsyncSession, thread_id: str, status: str
 ) -> dict[str, Any]:
-    """Resolve or reopen a thread. An AI member never resolves a person's thread.
+    """Resolve or reopen a thread. An AI team never resolves a person's thread.
 
     Raises:
-        DocsError: 403 when an AI member tries to resolve a thread a person started.
+        DocsError: 403 when an AI team tries to resolve a thread a person started.
     """
     c, t = await _thread(session, thread_id)
     await canvases.member_role(session, c)
@@ -311,7 +311,7 @@ async def set_status(
         and not await _is_ai(session, c, t.created_by)
     ):
         raise DocsError(
-            403, "ai_cannot_resolve", "AI members do not resolve a person's thread."
+            403, "ai_cannot_resolve", "AI teams do not resolve a person's thread."
         )
     t.status = status
     t.resolved_by = actor if status == "resolved" else None

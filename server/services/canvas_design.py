@@ -211,7 +211,7 @@ returned `markdown` line on its own line in that ticket or page (`manage_ticket`
   is for, a screenshot of each state (`![Today · behind](shots/today-behind.png)`, a file in your working folder), the
   tokens and components it uses, sizes and behaviour, the copy of every state, open questions, and the board it is on.
 - **Change to an existing frame**: write the changed files to a folder and `docs_write(canvas_update)` with a
-  one-sentence note on the design decision; the canvas keeps the version before it.
+  one-sentence note on the design decision; the board changes at once.
 - Leave `canvas_comment`s for open questions, each pinned with `at` (a CSS selector, or `text=Add task`). Give your
   assumptions in one line.
 """
