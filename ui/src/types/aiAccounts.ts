@@ -1,8 +1,8 @@
-/** AI accounts: separate logins of one AI CLI that AI members can share (design/screens/ai-accounts.md). */
+/** AI accounts: separate logins of one AI CLI that AI teams can share (design/screens/ai-accounts.md). */
 
 export type AccountCli = 'claude';
 
-/** signing_in comes from the open sign-in window; checking and not_ready are drawn by the UI, never stored. */
+/** signing_in comes from the open sign-in window; checking is drawn by the UI, never stored. */
 export type AccountStatus = 'signed_in' | 'needs_sign_in' | 'cli_missing' | 'signing_in';
 
 export interface AccountMemberRef {
@@ -26,7 +26,7 @@ export interface AiAccount {
   /** Subscription login, ... */
   method: string | null;
   folder: string;
-  /** Runs of members on this account start today (false would show "Not ready"). */
+  /** The server's flag that runs of this CLI start; nothing on screen shows it any more (there is no "Not ready" state). */
   runnable: boolean;
   /** Why an account of this CLI cannot be made here ("Not available on Windows"), else null. */
   unavailable: string | null;

@@ -115,10 +115,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 11px;
-  border: 1.5px dashed #9aa8a0;
+  padding: 4px 2px;
+  border: none;
   border-radius: 10px;
-  color: #2f6fb0;
+  color: #2e6f40;
   font-size: 13px;
   font-weight: 600;
   background: none;

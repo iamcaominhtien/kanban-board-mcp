@@ -130,7 +130,8 @@ export function EnvBlock({
         <>
           <div className="ai-hint">
             Folders put in front of the PATH when this project’s commands run. The app may be opened from the Dock, so
-            it can start with a short PATH and not see Homebrew or nvm.
+            it can start with a short PATH and not see Homebrew or nvm. A command that ends with{' '}
+            <span className="ai-code">npm: command not found</span> (exit 127) is usually this.
           </div>
           {folders.map((f, i) => (
             <FolderRow
@@ -175,8 +176,8 @@ export function EnvBlock({
             <span className="ai-hint">{changeNote}</span>
           </div>
           <div className="pk-env-used">
-            <b>Used by everything this project runs:</b> the commands above, the prepare command of every ticket’s
-            worktree, the lint, build and test commands, and the teams’ own runs on this project’s tickets — so a Dev’s{' '}
+            <b>Used by everything this project runs:</b> the prepare command of every ticket’s worktree, the test, lint
+            and build commands, and the teams’ own runs on this project’s tickets, so a Dev’s{' '}
             <span className="ai-code">npm test</span> sees the same PATH. <b>Not used by</b> other projects.
           </div>
         </>

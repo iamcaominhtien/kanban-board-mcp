@@ -1,57 +1,16 @@
-import type { ReactNode } from 'react';
-import type { AssistDraft, DraftChange } from '../../types/assist';
-import { OP_WORDS } from '../ai/board/tierWords';
+import type { Receipt, ReceiptChange } from '../../types/assist';
 import { STATUS_LABEL, TicketPill } from './assistUi';
 import { LineIcon } from '../ui/LineIcon';
 
-/** One change an answer made by itself, as the server records it: `{op, ticket, before, after}` and a few more. */
-export type AppliedChange = { op: string; ticket?: string; [k: string]: unknown };
-
 const cap = (v: unknown) => String(v ?? '').replace(/^\w/, (c) => c.toUpperCase());
-/** A message without the full stops and spaces at its end. */
-const trimTrailingStops = (s: string) => {
-  let end = s.length;
-  while (end > 0 && (s[end - 1] === '.' || s[end - 1].trim() === '')) end--;
-  return s.slice(0, end);
-};
 const text = (v: unknown) => (v == null || v === '' ? 'nothing' : String(v));
-
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-/** A schedule change in a few words: "Mon–Fri at 02:00 (Asia/Ho_Chi_Minh), Claude Code · Backend". */
-function scheduleWords(ch: DraftChange): string {
-  const f = ch.fields ?? {};
-  const bits: string[] = [];
-  if (f.kind === 'once' && f.run_at) bits.push(`once, ${String(f.run_at).replace('T', ' ')}`);
-  else if (Array.isArray(f.days) && f.days.length) {
-    const days = (f.days as number[]).map((d) => DAYS[d] ?? '?');
-    bits.push(`${days.length === 7 ? 'every day' : days.join(', ')}${f.time ? ` at ${String(f.time)}` : ''}`);
-  } else if (f.time) bits.push(`at ${String(f.time)}`);
-  if (f.tz) bits.push(`(${String(f.tz)})`);
-  if (ch.memberName) bits.push(ch.memberName);
-  const review = f.review as { on?: boolean } | undefined;
-  if (review?.on) bits.push('with AI review');
-  return bits.join(' ') || 'settings changed';
-}
-
-/** The fields a schedule edit set, in a few words ("now at 17:30, AI review on"). */
-function changedWords(after: Record<string, unknown>): string {
-  const bits: string[] = [];
-  if (after.time) bits.push(`now at ${String(after.time)}`);
-  if (after.run_at) bits.push(`now on ${String(after.run_at).replace('T', ' ')}`);
-  if (Array.isArray(after.days)) bits.push(`on ${(after.days as number[]).map((d) => DAYS[d] ?? '?').join(', ')}`);
-  if (after.tz) bits.push(`time zone ${String(after.tz)}`);
-  const review = after.review as { on?: boolean } | undefined;
-  if (review) bits.push(review.on ? 'AI review on' : 'AI review off');
-  if (after.checks) bits.push('done-when checks changed');
-  if (after.limits) bits.push('limits changed');
-  if (after.catch_up) bits.push(`if it cannot run: ${String(after.catch_up)}`);
-  if (after.instruction !== undefined) bits.push('instruction changed');
-  return bits.join(', ') || 'settings changed';
-}
+const clipped = (v: unknown, n = 140) => {
+  const s = text(v);
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+};
 
 /** What happened, in a sentence that follows the ticket key ("moved to In Progress"). */
-export function appliedWords(a: AppliedChange): string {
+export function appliedWords(a: ReceiptChange): string {
   switch (a.op) {
     case 'status':
       return `moved to ${STATUS_LABEL[String(a.after)] ?? text(a.after)}`;
@@ -59,239 +18,109 @@ export function appliedWords(a: AppliedChange): string {
       return a.after ? `given to ${text(a.after)}` : 'taken off its assignee';
     case 'priority':
       return `priority set to ${cap(a.after)}`;
+    case 'type':
+      return `type set to ${cap(a.after)}`;
     case 'tags':
       return Array.isArray(a.after) && a.after.length ? `labels set to ${a.after.join(', ')}` : 'labels cleared';
     case 'estimate':
       return a.after == null ? 'estimate cleared' : `estimate set to ${a.after} pt`;
     case 'due_date':
       return a.after ? `due date set to ${text(a.after)}` : 'due date cleared';
+    case 'start_date':
+      return a.after ? `start date set to ${text(a.after)}` : 'start date cleared';
     case 'title':
-      return `renamed to “${text(a.after)}”`;
+      return `renamed to “${clipped(a.after, 80)}”`;
     case 'comment':
-      return 'commented on';
-    case 'add_criteria': {
-      const n = Array.isArray(a.ids) ? a.ids.length : 1;
-      return `${n} acceptance criteri${n === 1 ? 'on' : 'a'} added`;
-    }
-    case 'workflow':
-      return `put on the ${text(a.to)} workflow`;
-    case 'depth':
-      return a.after ? `review depth ${a.before ? 'changed' : 'set'} to ${cap(a.after)}` : 'review depth changed';
-    case 'pace':
-      return a.after === 'fast' ? 'fast mode on' : 'fast mode off';
+      return `new comment: “${clipped(a.after)}”`;
     case 'create':
-      return a.type === 'story'
-        ? 'created as a Story, a Draft until you hand it to the PM'
-        : `created as a new ${a.type && a.type !== 'task' ? text(a.type) : 'ticket'}`;
-    case 'message':
-      return 'told the AI that is working on it';
-    case 'delegate':
-      return 'handed to the PM';
-    case 'run':
-      return 'given to an AI to run';
-    case 'stop_run':
-      return 'run stopped';
-    case 'schedule_create':
-      return a.when ? `scheduled: ${text(a.when).replace(/^./, (c) => c.toLowerCase())}` : 'schedule made';
-    case 'schedule_edit':
-      return `schedule changed: ${changedWords((a.after ?? {}) as Record<string, unknown>)}`;
-    case 'schedule_pause':
-      return 'schedule paused';
-    case 'schedule_resume':
-      return 'schedule resumed';
-    case 'schedule_run':
-      return 'schedule run started';
-    case 'schedule_delete':
-      return 'schedule deleted';
-    case 'pause_member':
-      return 'AI member paused';
-    case 'resume_member':
-      return 'AI member resumed';
+      return `created${a.type && a.type !== 'task' ? ` as a new ${a.type}` : ''}: “${clipped(a.title, 80)}”`;
+    case 'description':
+      return 'description rewritten';
+    case 'parent_id':
+      return a.after ? `moved under ${text(a.after)}` : 'taken out of its parent';
     default:
-      // setting up the AI team: the server says the change in words (with the command an MCP server or hook runs)
-      return typeof a.label === 'string' && a.label ? a.label : a.op.replace(/_/g, ' ');
+      return a.words ?? a.op.replace(/_/g, ' ');
   }
 }
 
-/** What a draft change of a team kind says before it is applied ("New ticket “title” under KAN-1"). */
-export function proposedWords(ch: DraftChange): ReactNode | null {
-  switch (ch.op) {
-    case 'create':
-      return (
-        <>
-          New {ch.type === 'story' ? 'Story' : ch.type && ch.type !== 'task' ? ch.type : 'ticket'} “{ch.title}”
-          {ch.parent ? (
-            <>
-              {' '}
-              under <TicketPill id={ch.parent} />
-            </>
-          ) : null}
-        </>
-      );
-    case 'message':
-      return (
-        <>
-          Tell the AI on <TicketPill id={ch.ticket} />: {ch.text}
-        </>
-      );
-    case 'delegate':
-      return (
-        <>
-          The PM takes <TicketPill id={ch.ticket} />: {ch.text}
-        </>
-      );
-    case 'schedule_create':
-      return (
-        <>
-          New schedule on <TicketPill id={ch.ticket} />: {scheduleWords(ch)}
-        </>
-      );
-    case 'schedule_edit':
-      return (
-        <>
-          Change schedule {String(ch.schedule)}: {scheduleWords(ch)}
-        </>
-      );
-    case 'schedule_pause':
-    case 'schedule_resume':
-    case 'schedule_run':
-    case 'schedule_delete':
-      return (
-        <>
-          {OP_WORDS[ch.op]} {String(ch.schedule)}
-        </>
-      );
-    default:
-      return ch.label ?? null;
-  }
-}
-
-/** "Done — 4 changes", the list of what changed, and Undo all (design/screens/ai-board-wave3.md, D). */
+/**
+ * "Done — 4 changes", what each change was, and Undo all (design/screens/ai-board-wave3.md, B; ai-board-assistant.md, B2
+ * and B3). The Board AI does what it can undo at once; this is where it says so. Anything it cannot undo it asks as a
+ * normal question in its answer, so there is no button here to confirm anything.
+ * @param props.receipt - What the answer changed, and what Undo all did.
+ * @param props.person - The person the changes are recorded for.
+ * @param props.busy - Undo all is running.
+ * @param props.onUndo - Put the changes back.
+ */
 export function DoneReceipt({
-  draft,
+  receipt,
+  person,
   busy,
   onUndo,
-  error,
-  footer,
 }: {
-  draft: AssistDraft;
+  receipt: Receipt;
+  person: string;
   busy: boolean;
   onUndo: () => void;
-  error?: string | null;
-  footer?: ReactNode;
 }) {
-  const applied = (draft.result.applied ?? []) as AppliedChange[];
-  const n = applied.length || draft.result.count || 0;
-  const undone = draft.status === 'undone';
-  const skipped = draft.result.undo?.skipped ?? [];
+  const applied = receipt.applied;
+  const n = applied.length;
+  const undone = receipt.status === 'undone';
+  const skipped = receipt.undo?.skipped ?? [];
+  // lines with no way back, said before Undo is pressed
+  const kept = applied.filter((a) => !a.undo).map((a) => `${a.ticket} ${a.words ?? a.op.replace(/_/g, ' ')}`);
+  const back = new Set(receipt.undo?.putBack ?? []);
+  const putBack = receipt.undo?.undone ?? 0;
+  // what the board can put back: the button counts only these
+  const nUndo = applied.filter((a) => a.undo).length;
+  const left = applied.filter((a, i) => a.undo && !back.has(i)).length;
   return (
-    <div
-      data-testid="draft-done"
-      style={{
-        border: '1px solid #CFE3D6',
-        borderRadius: 9,
-        background: '#F3F9F5',
-        padding: '9px 11px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span aria-hidden="true" style={{ color: '#1F5A31', fontWeight: 700 }}>
+    <div className="as-receipt" data-testid="receipt">
+      <div className="as-receipt-head">
+        <span aria-hidden="true" className="as-receipt-ok">
           <LineIcon name="check" size={13} />
         </span>
-        <b style={{ fontSize: 12.5, color: '#1F5A31', flex: 1 }}>
-          {undone ? `Undone — ${draft.result.undo?.undone ?? n} put back` : `Done — ${n} change${n === 1 ? '' : 's'}`}
+        <b data-testid="receipt-title">
+          {undone ? `Undone — ${putBack} put back` : `Done — ${n} change${n === 1 ? '' : 's'}`}
         </b>
-        {!undone && (
-          <button type="button" className="ai-btn ai-btn-sm" disabled={busy} onClick={onUndo} data-testid="draft-undo">
-            {n === 1 ? 'Undo' : `Undo all ${n}`}
+        {(!undone ? nUndo > 0 : skipped.length > 0 && left > 0) && (
+          <button
+            type="button"
+            className="ai-btn ai-btn-sm"
+            disabled={busy}
+            onClick={onUndo}
+            data-testid="receipt-undo"
+          >
+            {undone ? 'Undo the rest' : nUndo === 1 ? 'Undo' : `Undo all ${nUndo}`}
           </button>
         )}
       </div>
       {applied.map((a, i) => (
-        <div
-          key={i}
-          data-testid="done-row"
-          style={{
-            display: 'flex',
-            gap: 7,
-            fontSize: 12,
-            lineHeight: 1.5,
-            alignItems: 'flex-start',
-            textDecoration: undone ? 'line-through' : undefined,
-            opacity: undone ? 0.6 : 1,
-          }}
-        >
-          <span style={{ flex: 'none', marginTop: 2, color: '#1F5A31' }} aria-hidden="true">
+        <div key={i} className={`as-receipt-row ${back.has(i) ? 'as-receipt-undone' : ''}`} data-testid="done-row">
+          <span aria-hidden="true" className="as-receipt-ok">
             <LineIcon name="check" size={13} />
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            {a.ticket || (a.op === 'create' && a.created) ? (
-              <>
-                <TicketPill id={String(a.op === 'create' ? (a.created ?? a.ticket) : a.ticket)} /> {appliedWords(a)}
-              </>
-            ) : (
-              <span style={{ textTransform: 'none' }}>{cap(appliedWords(a))}</span>
-            )}
+            <TicketPill id={String(a.op === 'create' ? (a.created ?? a.ticket) : a.ticket)} /> {appliedWords(a)}
           </span>
         </div>
       ))}
-      {draft.result.errors?.length ? (
-        <div className="ai-hint" data-testid="done-refused" style={{ color: '#7A5A06' }}>
-          {n} of {n + draft.result.errors.length} went through.{' '}
-          {draft.result.errors.map((e, i) => (
-            <span key={i}>
-              {e.ticket ? <TicketPill id={e.ticket} /> : 'One change'} was refused: {trimTrailingStops(e.message)}.{' '}
-            </span>
-          ))}
-          {n === 1 ? 'Undo puts it back.' : `Undo all ${n} puts them back.`}
-        </div>
-      ) : null}
       {skipped.length ? (
         <div className="ai-hint" data-testid="undo-skipped">
-          Left as someone else set them: {skipped.join('; ')}.
+          {putBack ? 'Part of the group is back. ' : 'Nothing was put back. '}
+          Left as they are: {skipped.join('; ')}.
         </div>
       ) : null}
-      {!undone && (
+      {kept.length ? (
+        <div className="ai-hint" data-testid="undo-kept">
+          No way back for: {kept.join('; ')}.
+        </div>
+      ) : null}
+      {!undone && nUndo > 0 && (
         <div className="ai-hint">
-          Recorded as <b>{draft.appliedBy ?? 'you'} (through the Board AI)</b>. Undo works until something else changes
-          the same field.
+          Recorded for <b>{person} (through the Board AI)</b>. Undo works until something else changes the same field.
         </div>
       )}
-      {error && <div className="ai-error-text">{error}</div>}
-      {footer}
-    </div>
-  );
-}
-
-/** Why an answer stopped and asks: the reasons the server gave (design D, "One thing I will not do without you"). */
-export function AsksFirst({ reasons }: { reasons: string[] }) {
-  return (
-    <div
-      data-testid="draft-asks-first"
-      style={{
-        border: '1px solid #F0DBA8',
-        borderRadius: 9,
-        background: '#FFFBEF',
-        padding: '10px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-      }}
-    >
-      <b style={{ fontSize: 12.5 }}>
-        {reasons.length === 1
-          ? 'One thing I will not do without you'
-          : `${reasons.length} things I will not do without you`}
-      </b>
-      <ul style={{ margin: 0, paddingLeft: 17, fontSize: 12.5, lineHeight: 1.6 }}>
-        {reasons.map((r, i) => (
-          <li key={i}>{r}</li>
-        ))}
-      </ul>
-      <div className="ai-hint">Apply is the confirm: nothing happens until you press it.</div>
     </div>
   );
 }

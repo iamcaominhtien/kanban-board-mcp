@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { assistApi, assistError, assistKeys, useChat, useScopeState } from '../../api/assist';
 import { aiApi, isActive, useTicketRuns, useTicketSessions } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import type { AssistDraft, ChatMessage, ChatScope, ScopeMember, ScopeState, StartingPoint } from '../../types/assist';
+import type { ChatMessage, ChatScope, ScopeState, StartingPoint } from '../../types/assist';
 import { AiAvatar, SparkleIcon, useAiBoardState } from '../ai/aiUi';
 import { AnswerBlock, type AnswerPanel } from './AnswerBlock';
 import { useResizablePanel } from '../../hooks/useResizablePanel';
@@ -20,17 +20,13 @@ export interface ScopedChatProps {
   scope: ChatScope;
   /** Starting points of the empty chat, shown before the ones the server sends for the scope. */
   startingPoints?: StartingPoint[];
-  /** A draft of a kind the scope owns (an idea's draft types); return null to use the board's own draft card. */
-  renderDraft?: (draft: AssistDraft) => ReactNode | null;
   /** The panel's "Runs" tab. Without it there is no tab bar. */
   runsTab?: { label: string; content: ReactNode };
   /** Close (the X, and Ctrl+J). */
   onClose: () => void;
-  /** Open the run that "Do the work" started. */
-  onOpenRun?: (runId: string) => void;
-  /** "Open AI members" on the no-AI-member state. */
+  /** "Open AI Team" on the Claude-Code-missing state. */
   onOpenAiMembers?: () => void;
-  /** "See usage" on the over-budget state. */
+  /** No longer used (there is no cap state any more); kept so the idea chat still compiles. */
   onOpenUsage?: () => void;
   /** Called after an answer was posted as a comment (the thread refreshes itself). */
   onPosted?: (ticketId: string, commentId: string) => void;
@@ -96,13 +92,12 @@ function ChipIcon({ kind }: { kind: string }) {
   );
 }
 
-/** The AI member that answers, with its state in words ("Local runner · online"). */
-function Who({ state, onPick }: { state: ScopeState | undefined; onPick: (id: string) => void }) {
+/** Who answers: the ticket's team with its state ("Idle", "Working on this ticket"), else the Board AI. */
+function Who({ state }: { state: ScopeState | undefined }) {
   const { members: aiMembers } = useAiBoardState();
-  const [open, setOpen] = useState(false);
   const cur = state?.members.find((m) => m.id === state.memberId);
   const ai = cur ? aiMembers.get(cur.id) : undefined;
-  const choices = (state?.members ?? []).filter((m) => m.ready || m.id === cur?.id);
+  const board = state?.boardAi;
   return (
     <div className="sc-who">
       {ai ? (
@@ -114,84 +109,39 @@ function Who({ state, onPick }: { state: ScopeState | undefined; onPick: (id: st
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="sc-who-name" data-testid="chat-member">
-          <span>{cur?.name ?? 'AI'}</span>
-          {choices.length > 1 && (
-            <button
-              type="button"
-              className="sc-who-change"
-              aria-label="Change the AI that answers"
-              onClick={() => setOpen((v) => !v)}
-              data-testid="chat-member-change"
-            >
-              <LineIcon name="chevronDown" size={12} />
-            </button>
-          )}
+          <span>{cur?.name ?? 'Board AI'}</span>
         </div>
         <div className="sc-who-sub">
-          <span className={`as-dot ${cur?.ready ? '' : 'as-dot-grey'}`} />
-          <span>{cur?.status ?? 'No AI member'}</span>
+          <span className={`as-dot ${(cur ? cur.ready : board?.ready) ? '' : 'as-dot-grey'}`} />
+          <span>
+            {cur
+              ? cur.status
+              : !board
+                ? ' '
+                : board.ready
+                  ? `${board.name === 'Board AI' ? 'Claude Code' : `${board.name} (${board.providerLabel})`} · online`
+                  : board.label}
+          </span>
         </div>
-        {open && (
-          <div className="as-menu" style={{ position: 'absolute', zIndex: 5, width: 260 }} role="menu">
-            {choices.map((m: ScopeMember) => (
-              <button
-                key={m.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={m.id === state?.memberId}
-                onClick={() => {
-                  setOpen(false);
-                  onPick(m.id);
-                }}
-              >
-                <span style={{ flex: 1 }}>
-                  {m.name}
-                  <span className="ai-muted"> · {m.status}</span>
-                </span>
-                {m.id === state?.memberId && (
-                  <span style={{ color: '#2E6F40' }}>
-                    <LineIcon name="check" size={14} />
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-/** The state tiles of design E that replace the composer: no AI member, over budget, viewer, unavailable. */
-function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?: () => void; onUsage?: () => void }) {
+/** The state tiles of design E that replace the composer: Claude Code missing, viewer, unavailable. */
+function Blocked({ state, onMembers }: { state: ScopeState; onMembers?: () => void }) {
   const a = state.availability;
   if (a.code === 'not_configured')
     return (
-      <div className="sc-tile sc-tile-blue" data-testid="chat-no-member">
-        <div className="sc-tile-title">
-          <SparkleIcon size={13} /> Choose an AI to use these helpers
+      <div className="as-tile as-tile-error" data-testid="chat-no-member">
+        <div className="as-tile-title">
+          <LineIcon name="warning" size={14} /> {state.boardAi?.label ?? 'Claude Code was not found'}
         </div>
         <div className="ai-hint">
-          The AI button, @ picker and /ai appear when an AI member that can read this project exists.
+          {a.message ?? 'Claude Code was not found on this computer. Install it, or add an AI team in Members.'}
         </div>
         <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onMembers}>
-          Open AI members
-        </button>
-      </div>
-    );
-  if (a.code === 'over_budget')
-    return (
-      <div className="sc-tile sc-tile-amber" data-testid="chat-over-budget">
-        <div className="sc-tile-title">
-          <LineIcon name="warning" size={14} /> {a.daily ? 'AI is paused until tomorrow' : 'AI is paused'}
-        </div>
-        <div className="ai-hint">
-          {a.daily
-            ? 'The daily cap was reached. Ask-only answers and drafts stop; reading the thread still works.'
-            : (a.message ?? 'The cap was reached. Reading the thread still works.')}
-        </div>
-        <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onUsage}>
-          See usage
+          Open AI Team
         </button>
       </div>
     );
@@ -213,7 +163,7 @@ function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?:
       </div>
       <div className="ai-hint">{a.message ?? 'Try again in a moment.'}</div>
       <button type="button" className="ai-btn ai-btn-sm" style={{ alignSelf: 'flex-start' }} onClick={onMembers}>
-        Open AI members
+        Open AI Team
       </button>
     </div>
   );
@@ -223,22 +173,18 @@ function Blocked({ state, onMembers, onUsage }: { state: ScopeState; onMembers?:
  * The chat panel for one thing: a ticket, an idea, a page (design/screens/ai-where-you-work.md, B).
  *
  * It shows exactly what the AI reads, keeps the conversation (private to the person who asks) and picks it up
- * again when the thing is reopened, answers as text or as drafts that are applied only on a click, can post an
- * answer as a comment, and, on a ticket, starts a limited run when the person chooses **Do the work**. The default
- * is **Ask only**, so a question never starts a run. Enter sends, Ctrl+J closes.
+ * again when the thing is reopened, answers as text, can post an answer as a comment, and, on a ticket with a
+ * team, writes to the team's lead (the team answers here and keeps working). Enter sends, Ctrl+J closes.
  *
  * To use it for another thing, register a scope on the server (`services/ai/assist/scopes.py`) and render
- * `<ScopedChat scope={{ kind: 'idea', id }} startingPoints={…} renderDraft={…} />` inside a column of the page.
+ * `<ScopedChat scope={{ kind: 'idea', id }} startingPoints={…} />` inside a column of the page.
  */
 export function ScopedChat({
   scope,
   startingPoints,
-  renderDraft,
   runsTab,
   onClose,
-  onOpenRun,
   onOpenAiMembers,
-  onOpenUsage,
   onPosted,
   title,
   banner,
@@ -260,7 +206,6 @@ export function ScopedChat({
   const [chatId, setChatId] = useState<string | null>(null);
   const [tab, setTab] = useState<'chat' | 'runs'>('chat');
   const size = useResizablePanel(`chat-${scope.kind}`, 400, { min: 340 });
-  const [memberId, setMemberId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -274,7 +219,6 @@ export function ScopedChat({
   // a different ticket or idea is a different conversation
   useEffect(() => {
     setChatId(null);
-    setMemberId(null);
     setText('');
     setError(null);
     setTab('chat');
@@ -324,7 +268,7 @@ export function ScopedChat({
 
   const availability = state?.availability;
   const canAsk = availability?.code === 'ok';
-  const chosen = memberId ?? state?.memberId ?? null;
+  const chosen = state?.memberId ?? null;
   const info = state?.scope;
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: assistKeys.scope(scope.kind, scope.id) });
@@ -332,7 +276,7 @@ export function ScopedChat({
   };
 
   /** Sends one message; true once the server has it. */
-  const send = async (raw: string, opts?: { draft?: boolean }): Promise<boolean> => {
+  const send = async (raw: string): Promise<boolean> => {
     const q = raw.trim();
     if (!q || sending || !canAsk) return false;
     setSending(true);
@@ -344,15 +288,14 @@ export function ScopedChat({
         id = c.id;
         setChatId(id);
       }
-      await assistApi.send(id, { text: q, draft: opts?.draft, mode: 'ask', memberId: chosen });
+      await assistApi.send(id, { text: q, mode: 'ask', memberId: chosen });
       setText('');
       await qc.invalidateQueries({ queryKey: assistKeys.chat(id) });
       return true;
     } catch (e) {
       const body = assistError(e);
       setError(body?.detail ?? extractError(e));
-      if (body && ['viewer', 'ai_off', 'over_budget', 'not_configured', 'unavailable'].includes(body.code))
-        void refresh();
+      if (body && ['viewer', 'ai_off', 'not_configured', 'unavailable'].includes(body.code)) void refresh();
       return false;
     } finally {
       setSending(false);
@@ -403,11 +346,8 @@ export function ScopedChat({
               onPosted?.(r.ticketId, r.commentId);
             }
           : undefined,
-      onOpenRun,
-      onOpenUsage,
-      renderDraft,
     }),
-    [scope.kind, qc, onPosted, onOpenRun, onOpenUsage, renderDraft],
+    [scope.kind, qc, onPosted],
   );
 
   const points = [...(startingPoints ?? []), ...(info?.startingPoints ?? [])];
@@ -515,7 +455,7 @@ export function ScopedChat({
     >
       <PanelResizer panel={size} label="Resize chat" />
       <div className="sc-head">
-        <Who state={state} onPick={(id) => setMemberId(id)} />
+        <Who state={state} />
         {runsHere && (
           <div className="sc-tabs" role="tablist">
             <button
@@ -683,25 +623,25 @@ export function ScopedChat({
               </div>
             )}
             {state && !canAsk && availability?.code !== 'viewer' && messages.length === 0 && (
-              <Blocked state={state} onMembers={onOpenAiMembers} onUsage={onOpenUsage} />
+              <Blocked state={state} onMembers={onOpenAiMembers} />
             )}
             {state && !messages.length && canAsk && (
               <div className="sc-welcome" data-testid="chat-welcome">
                 <div className="ai-hint" style={{ fontSize: 13 }} data-testid="chat-hint">
                   {team
                     ? `Write to ${memberName}, the team on this ticket. Working, it reads your message at its next step, answers here and carries on; idle, your message is its next task.`
-                    : `I read ${info?.title ?? 'this'} and what is listed above. I propose changes as drafts and never change anything until you press Add or Apply.`}
+                    : `I read ${scope.kind === 'ticket' ? scope.id : (info?.title ?? 'this')} and what is listed above. I do what can be undone at once and ask you about the rest.`}
                 </div>
-                {points.length > 0 && <div className="as-label">Try asking</div>}
-                {points.map((p) => (
+                {!team && points.length > 0 && <div className="as-label">Try asking</div>}
+                {(team ? [] : points).map((p) => (
                   <button
                     key={p.label}
                     type="button"
                     className="as-action"
                     style={{ justifyContent: 'flex-start' }}
-                    onClick={() => void send(p.request, { draft: p.draft })}
+                    onClick={() => void send(p.request)}
                   >
-                    <LineIcon name={p.draft ? 'edit' : 'chat'} size={13} /> {p.label}
+                    <LineIcon name="chat" size={13} /> {p.label}
                   </button>
                 ))}
               </div>
@@ -713,19 +653,10 @@ export function ScopedChat({
                     <UserText text={m.text} />
                   </div>
                 ) : (
-                  <AnswerBlock
-                    key={m.id}
-                    msg={m}
-                    chat={chat.data!}
-                    state={undefined}
-                    panel={panel}
-                    onSend={(t, o) => void send(t, { draft: o?.draft })}
-                  />
+                  <AnswerBlock key={m.id} msg={m} chat={chat.data!} panel={panel} />
                 ),
               )}
-            {state && !canAsk && messages.length > 0 && (
-              <Blocked state={state} onMembers={onOpenAiMembers} onUsage={onOpenUsage} />
-            )}
+            {state && !canAsk && messages.length > 0 && <Blocked state={state} onMembers={onOpenAiMembers} />}
           </div>
           <SelectToReply containerRef={bodyRef} onReply={quotes.add} disabled={!canAsk} />
           <div className="sc-composer">

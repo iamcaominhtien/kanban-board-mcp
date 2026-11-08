@@ -16,7 +16,7 @@ from models import AiChat, AiChatMessage, DocsPage, IdeaTicket, Project, Ticket
 from services import tickets as svc_tickets
 from services.ai.store import loads, now_iso
 
-from . import drafts, engine, sessions
+from . import drafts, engine, receipt, sessions
 from . import settings as svc_settings
 from .errors import AssistError
 
@@ -26,6 +26,7 @@ KEEP_DAYS = 30
 MAX_TEXT = 8000
 SCOPES = ("ticket", "doc", "idea", "project", "all", "sketch")
 ACTIVE = ("queued", "thinking", "streaming")
+UNDOING: set[str] = set()
 TASKS: dict[str, asyncio.Task] = {}
 RUNS: dict[str, str] = {}  # message id -> the run of its turn (for Stop)
 
@@ -356,12 +357,12 @@ async def scope_state(
                 "request": "Summarise this ticket: what is asked, what is done, what is open.",
             },
             {
-                "label": "What is unclear?",
-                "request": "What is unclear or missing in this ticket before someone starts?",
+                "label": "What is left to do here?",
+                "request": "What is left to do on this ticket? List what is open and what is unclear.",
             },
             {
-                "label": "Write acceptance criteria",
-                "request": "Write acceptance criteria for this ticket and add them to it.",
+                "label": "Who should review this?",
+                "request": "Who should review this ticket, and why? Look at who worked on related tickets.",
             },
         ],
         "doc": [
@@ -419,6 +420,14 @@ async def scope_state(
             "draft_kinds": [],
         },
         "availability": availability,
+        "board_ai": {
+            "name": info.get("member") or "Board AI",
+            "provider_label": "Claude Code",
+            "ready": info["state"] == "ready",
+            "label": "Claude Code was not found"
+            if not info.get("code")
+            else "The Board AI is not ready",
+        },
         "members": members,
         "member_id": member_id,
         "estimate": None,
@@ -659,6 +668,7 @@ async def _answer(
         project_id, chat_id, ticket_id = chat.project_id, chat.id, chat.ticket_id
     state, error = "done", {}
     out: engine.Turn | None = None
+    started = now_iso()
     try:
         out = await engine.turn(
             project_id,
@@ -679,7 +689,7 @@ async def _answer(
                 "error",
                 {
                     "code": "unavailable",
-                    "message": out.error or "The assistant could not answer.",
+                    "message": out.error or "Claude Code did not answer.",
                 },
             )
     except asyncio.CancelledError:
@@ -693,12 +703,23 @@ async def _answer(
             {"code": "error", "message": f"Couldn't answer ({type(exc).__name__})."},
         )
     finally:
-        RUNS.pop(message_id, None)
+        run_ref = RUNS.pop(message_id, None)
     async with database.async_session() as session:
         ai = await session.get(AiChatMessage, message_id)
         if ai is None:
             return
         ai.state, ai.error, ai.finished_at = state, json.dumps(error), now_iso()
+        if out is None and run_ref:
+            # the turn died after its tools may have acted: the receipt is still read, so Undo stays possible
+            ctx0 = loads(ai.context, {})
+            try:
+                found = await receipt.collect(session, None, run_ref, since=started)
+                merged0 = receipt.merge(ctx0.get("receipt"), found, run_ref)
+            except Exception:  # noqa: BLE001
+                merged0 = ctx0.get("receipt")
+            if merged0:
+                ctx0["receipt"] = merged0
+                ai.context = json.dumps(ctx0)
         if out is not None:
             data = out.data() if skill == "sketch-ask" else {}
             ai.text = (data.get("answer") if data else None) or out.text or ai.text
@@ -711,6 +732,18 @@ async def _answer(
             )
             ctx = loads(ai.context, {})
             ctx["run"] = {"id": out.run_id}
+            try:
+                changes = await receipt.collect(
+                    session, None, out.run_id, since=started
+                )
+                merged = receipt.merge(ctx.get("receipt"), changes, out.run_id)
+            except Exception:  # noqa: BLE001 - a receipt that cannot be read must not lose the answer
+                logger.exception("receipt of %s could not be read", message_id)
+                merged = ctx.get("receipt")
+            if merged:
+                ctx["receipt"] = merged
+            else:
+                ctx.pop("receipt", None)
             ai.context = json.dumps(ctx)
             ideas = [str(i) for i in (data.get("ideas") or []) if str(i).strip()][:8]
             if ideas and state == "done":
@@ -799,6 +832,43 @@ async def get_message(
 ) -> dict[str, Any]:
     """One message of the person's own chat."""
     m, _chat_row = await _message(session, message_id, by)
+    return msg_out(m)
+
+
+async def undo_receipt(
+    session: AsyncSession, message_id: str, by: str
+) -> dict[str, Any]:
+    """Put back what an answer changed ("Undo all"): the changes of its receipt, newest first. A change someone else
+    has since overwritten is left as it is and named in `receipt.undo.skipped`."""
+    m, _chat_row = await _message(session, message_id, by)
+    ctx = loads(m.context, {})
+    rec = ctx.get("receipt")
+    if not rec or not rec.get("applied"):
+        raise AssistError("not_found", "This answer changed nothing.")
+    before = rec.get("undo") or {}
+    if rec.get("status") == "undone" and not before.get("skipped"):
+        raise AssistError("conflict", "These changes were already put back.")
+    if m.state in ACTIVE:
+        raise AssistError("conflict", "The answer is being written again: wait for it.")
+    if m.id in UNDOING:
+        raise AssistError("conflict", "Undo is already running.")
+    UNDOING.add(m.id)
+    try:
+        already = set(before.get("put_back") or [])
+        result = await receipt.undo(
+            session, rec["applied"], rec.get("runs") or [], already
+        )
+    finally:
+        UNDOING.discard(m.id)
+    result["put_back"] = sorted(already | set(result["put_back"]))
+    result["undone"] = len(result["put_back"])
+    rec["status"] = "undone" if result["undone"] else "done"
+    rec["undo"] = result
+    ctx["receipt"] = rec
+    m.context = json.dumps(ctx)
+    session.add(m)
+    await session.commit()
+    await board_events.publish(board_events.INVALIDATE)
     return msg_out(m)
 
 

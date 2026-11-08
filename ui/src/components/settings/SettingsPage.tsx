@@ -378,7 +378,7 @@ export function SettingsPage({
     case 'assistant':
       body = project ? (
         <div className="ai-root" data-setting="assistant">
-          <AssistSettings projectId={project.id} onOpenAudit={onManageAi} />
+          <AssistSettings projectId={project.id} onOpenAiTeam={onManageAi} />
         </div>
       ) : null;
       break;
