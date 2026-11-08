@@ -39,9 +39,9 @@ const TONES: Record<StatusKey, Pick<StatusView, 'bg' | 'color' | 'dot'>> = {
   unavailable: { bg: '#F1F3F1', color: '#5B6B60', dot: '#9AA8A0' },
 };
 
-/** "1 member", "3 members", "No members". */
+/** "1 team", "3 teams", "No teams". */
 export function membersCount(n: number): string {
-  return n === 0 ? 'No members' : `${n} member${n === 1 ? '' : 's'}`;
+  return n === 0 ? 'No teams' : `${n} team${n === 1 ? '' : 's'}`;
 }
 
 /** Every AI member that runs as the account, in this project first. */
@@ -93,7 +93,7 @@ export function statusView(a: AiAccount, checking: boolean, nowMs: number): Stat
   const n = a.memberCount;
   if (a.unavailable) return view('unavailable', a.unavailable, null);
   if (a.status === 'cli_missing')
-    return view('cli_missing', 'CLI not installed', n ? 'Its members are paused.' : null, 'warn');
+    return view('cli_missing', 'CLI not installed', n ? 'Its teams are paused.' : null, 'warn');
   if (a.status === 'signing_in')
     return view('signing_in', 'Signing in', a.signingInBy ? `${a.signingInBy} is signing in` : null);
   if (checking) return view('checking', 'Checking', 'Checked now');
@@ -102,7 +102,7 @@ export function statusView(a: AiAccount, checking: boolean, nowMs: number): Stat
     return view(
       'needs_sign_in',
       'Needs sign-in',
-      n ? `${why} ${n} member${n === 1 ? '' : 's'} can’t run.` : why,
+      n ? `${why} ${n} team${n === 1 ? '' : 's'} can’t run.` : why,
       'bad',
     );
   }
@@ -131,12 +131,12 @@ export function namesList(members: AccountMemberRef[], max = 3): string {
   return `${names.slice(0, max).join(', ')} and ${names.length - max} more`;
 }
 
-/** "1 AI member (X) can’t run until someone signs in." (empty when no member uses the account). */
-export function cantRunClause(a: AiAccount, tail = 'until someone signs in'): string {
+/** "1 team (X) can’t run until someone signs in." (empty when no team uses the account). */
+export function cantRunClause(a: AiAccount, tail = 'until someone signs in', noun = 'team'): string {
   const users = usersOf(a);
   if (!users.length) return '';
   const n = new Set(users.map((u) => u.id)).size;
-  return `${n} AI member${n === 1 ? '' : 's'} (${namesList(users)}) can’t run ${tail}.`;
+  return `${n} ${noun}${n === 1 ? '' : 's'} (${namesList(users)}) can’t run ${tail}.`;
 }
 
 /** The banner for a signed-out account (design B1). */
@@ -147,7 +147,7 @@ export function bannerText(a: AiAccount, nowMs: number): { title: string; body: 
   const clause = cantRunClause(a);
   return {
     title: a.signedOutAt ? `${a.name} needs to sign in again` : `${a.name} needs to sign in`,
-    body: `${since} ${clause || 'No AI member uses it.'}`,
+    body: `${since} ${clause || 'No team uses it.'}`,
   };
 }
 
@@ -209,7 +209,7 @@ export function menuItems(a: AiAccount, desktop: boolean): MenuItem[] {
     { action: 'sign_in', label: 'Sign in again', ...off(signInOffReason(a, desktop)) },
     { action: 'check', label: 'Check now', ...off(web) },
     { action: 'rename', label: 'Rename', ...off(web) },
-    { action: 'members', label: 'See members using it', disabled: false },
+    { action: 'members', label: 'See teams using it', disabled: false },
     { action: 'sign_out', label: 'Sign out', divider: true, ...off(web ?? busy) },
     { action: 'remove', label: 'Remove…', danger: true, ...off(web ?? busy) },
   ];

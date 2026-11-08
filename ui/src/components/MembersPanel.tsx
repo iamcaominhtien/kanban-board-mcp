@@ -31,7 +31,7 @@ interface MembersPanelProps {
   projectId: string;
   members: Member[];
   onClose: () => void;
-  /** Open the full AI members page (optionally straight into “Add AI member”). */
+  /** Open the full AI teams page (optionally straight into “Add AI team”). */
   onOpenAiPage?: (opts?: { add?: boolean; memberId?: string }) => void;
 }
 
@@ -146,7 +146,7 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
             {ai.isError && (
               <div className="ai-notice ai-notice-error" role="alert">
                 <div>
-                  <b>Could not load AI members</b>
+                  <b>Could not load AI teams</b>
                   <div>
                     <button type="button" className="ai-link" onClick={() => void ai.refetch()}>
                       Try again

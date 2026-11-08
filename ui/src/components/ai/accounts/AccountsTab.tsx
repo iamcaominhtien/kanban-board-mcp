@@ -127,7 +127,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
       <div className="acc-empty" data-testid="accounts-empty">
         <b style={{ fontSize: 13 }}>No AI accounts yet</b>
         <div className="acc-hint" style={{ fontSize: 12.5 }}>
-          AI members use the login already on this computer. Add an account to share one login between members, or to
+          AI teams use the login already on this computer. Add an account to share one login between teams, or to
           keep work and personal apart.
         </div>
         {addButton}
@@ -155,7 +155,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
             <div className="acc-tile-hint">{stats.attention.length ? stats.attention.join(', ') : 'None'}</div>
           </div>
           <div className="acc-tile">
-            <div className="acc-h">Members using one</div>
+            <div className="acc-h">Teams using one</div>
             <span className="acc-tile-n">{stats.using}</span>
             <div className="acc-tile-hint">
               {stats.elsewhere ? `${stats.here} here, ${stats.elsewhere} in other projects` : `${stats.here} here`}
@@ -192,7 +192,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
     <div className="acc-root ai-root" data-testid="accounts-tab">
       <div className="acc-intro">
         <div className="acc-intro-text">
-          One sign-in of a CLI. Several AI members can use the same account; if it expires you fix it here, once. The
+          One sign-in of Claude Code. Several AI teams can use the same account; if it expires you fix it here, once. The
           login stays with the CLI; Kanban never reads or shows it.
         </div>
         {list.length > 0 && addButton}
@@ -225,7 +225,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
             </>
           }
         >
-          Accounts for this CLI show <b>CLI not installed</b> and sign in is off until it is back. Their members are
+          Accounts for this CLI show <b>CLI not installed</b> and sign in is off until it is back. Their teams are
           paused with the reason, not failed.
         </AccountNote>
       ))}
@@ -268,7 +268,7 @@ export function AccountsTab({ projectId }: { projectId: string }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <b style={{ fontSize: 13 }}>Logins already on this computer</b>
             <span className="acc-hint" style={{ flex: 1 }}>
-              What AI members use today when no account is chosen. Not managed here; they keep working as before.
+              What AI teams use today when no account is chosen. Not managed here; they keep working as before.
             </span>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

@@ -52,7 +52,7 @@ export function RemoveAccountDialog({
         users.length ? (
           <>
             <div>
-              {names.length} AI member{names.length === 1 ? '' : 's'} use{names.length === 1 ? 's' : ''} this account:{' '}
+              {names.length} AI team{names.length === 1 ? '' : 's'} use{names.length === 1 ? 's' : ''} this account:{' '}
               {names.map((u, i) => (
                 <span key={u.id}>
                   {i > 0 && ', '}
@@ -89,7 +89,7 @@ export function RemoveAccountDialog({
             {policy === 'other' && others.length > 1 && (
               <select
                 className="ai-select"
-                aria-label="Account for these members"
+                aria-label="Account for these teams"
                 value={otherId ?? ''}
                 onChange={(e) => setOtherId(e.target.value)}
               >
@@ -100,15 +100,15 @@ export function RemoveAccountDialog({
                 ))}
               </select>
             )}
-            {policy === 'none' && <div className="acc-hint">{cantRunClause(account, 'until you choose one')}</div>}
+            {policy === 'none' && <div className="acc-hint">{cantRunClause(account, 'until you choose one', 'AI team')}</div>}
             <div className="acc-hint">
               Removing signs the CLI out for this account and deletes its saved login (its folder, and for Claude Code
               on macOS its keychain entry). Tickets, runs and history are kept.
             </div>
-            {names.length > 3 && <div className="acc-hint">Members: {namesList(users, 99)}.</div>}
+            {names.length > 3 && <div className="acc-hint">Teams: {namesList(users, 99)}.</div>}
           </>
         ) : (
-          <div>No AI member uses it. Its saved sign-in is deleted from this computer. You can add it again later.</div>
+          <div>No AI team uses it. Its saved sign-in is deleted from this computer. You can add it again later.</div>
         )
       }
       foot={

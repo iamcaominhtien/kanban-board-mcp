@@ -334,7 +334,7 @@ export function AddAccountModal({
                   />
                   {nameProblem && <span className="ai-error-text">{nameProblem}</span>}
                   <span className="sg-note">
-                    Shown when you pick an account for an AI member. Claude Code reports who is signed in, so its email
+                    Shown when you pick an account for an AI team. Claude Code reports who is signed in, so its email
                     is shown as well. Use the person or plan, not a secret.
                   </span>
                 </label>

@@ -17,7 +17,7 @@ function Radio({ on }: { on: boolean }) {
 }
 
 /**
- * “Which account should this AI member use?” (design D2–D6): the accounts of the member type's CLI, the login that
+ * “Which account should this AI team use?” (design D2–D6): the accounts of the member type's CLI, the login that
  * is already on this computer (kept last, as before), and “New account…”, which opens
  * the same window as Add an account. A signed-out choice offers “Sign in again” and, while it is chosen, the parent
  * keeps Next off (`accountReady`). `value` is an account id, or null for the CLI's own login.
@@ -52,7 +52,7 @@ export function AccountPicker({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="account-picker">
-      <div style={{ fontSize: 12.5, color: '#3A4A3E' }}>Which account should this AI member use?</div>
+      <div style={{ fontSize: 12.5, color: '#3A4A3E' }}>Which account should this AI team use?</div>
       <div className="acm-choices" role="radiogroup" aria-label="AI account">
         {list.map((a) => (
           <button
@@ -112,8 +112,8 @@ export function AccountPicker({
             </button>
           }
         >
-          This AI member will use the login already on this computer, as before. Add an account to share one login
-          between members or to keep work and personal apart.
+          This AI team will use the login already on this computer, as before. Add an account to share one login
+          between teams or to keep work and personal apart.
         </AccountNote>
       )}
       {chosen && !accountReady(chosen) && (
@@ -193,7 +193,7 @@ export function ChangeAccountDialog({ members, onClose }: { members: AiTeam[]; o
       for (const m of members) await assign.mutateAsync([m.id, value]);
       toast.success(
         many
-          ? `${members.length} AI members moved`
+          ? `${members.length} teams moved`
           : `${first.name} now runs as ${chosen?.name ?? 'the login on this computer'}`,
       );
       onClose();
@@ -213,7 +213,7 @@ export function ChangeAccountDialog({ members, onClose }: { members: AiTeam[]; o
       >
         <div className="ai-modal-head">
           <h2 className="ai-modal-title">
-            {many ? `Choose another account for ${members.length} AI members` : 'Change account'}
+            {many ? `Choose another account for ${members.length} teams` : 'Change account'}
           </h2>
           <div className="ai-hint" style={{ marginTop: 3 }}>
             {many ? members.map((m) => m.name).join(', ') : first.name}

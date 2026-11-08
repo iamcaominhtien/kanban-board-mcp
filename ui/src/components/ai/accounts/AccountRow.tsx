@@ -99,10 +99,10 @@ export function AccountRow({
       <div>
         {members ? (
           <>
-            <b>{members}</b> member{members === 1 ? '' : 's'}
+            <b>{members}</b> team{members === 1 ? '' : 's'}
           </>
         ) : (
-          <span className="acc-sub">No members</span>
+          <span className="acc-sub">No teams</span>
         )}
       </div>
       <div className="acc-actions">

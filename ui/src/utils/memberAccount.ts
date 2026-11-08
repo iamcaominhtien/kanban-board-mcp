@@ -26,13 +26,13 @@ export function planOrMethod(a: { plan: string | null; method: string | null }):
   return a.plan ? cap(a.plan) : (a.method ?? null);
 }
 
-/** "3 members already use it". */
+/** "3 teams". */
 export function usersText(n: number): string {
-  return `${n} member${n === 1 ? '' : 's'} already use it`;
+  return `${n} team${n === 1 ? '' : 's'}`;
 }
 
 /**
- * The grey line under an account in the picker: who it is, the plan, how many members use it and, when it is
+ * The grey line under an account in the picker: who it is, the plan, how many teams use it and, when it is
  * signed out and not the chosen one, that the session expired.
  */
 export function accountSub(a: AiAccount, selected: boolean): string {
@@ -65,8 +65,8 @@ export function accountReady(a: Pick<AiAccount, 'status'> | null | undefined): b
 }
 
 /**
- * How many AI members will draw from the account's limit once this one is on it (design D2: "The 4 AI members on
- * Work Claude…" next to "3 members already use it"). `alreadyOn` is true when the member being edited is one of them.
+ * How many AI teams will draw from the account's limit once this one is on it (design E, frame 29: "The 3 AI teams on
+ * Work Claude…" next to "3 teams"). `alreadyOn` is true when the team being edited is one of them.
  */
 export function sharingCount(a: Pick<AiAccount, 'memberCount'>, alreadyOn: boolean): number {
   return a.memberCount + (alreadyOn ? 0 : 1);
@@ -81,16 +81,16 @@ export function sharedHint(
   if (n < 2) return null;
   return {
     title: 'Shared accounts share one limit',
-    text: `The ${n} AI members on ${a.name} draw from the same plan limit. A busy day for one can slow the others.`,
+    text: `The ${n} AI teams on ${a.name} draw from the same plan limit. A busy day for one can slow the others.`,
   };
 }
 
-/** The same warning on a member's profile: "3 members share this account and its limits". */
+/** The same warning on a team's page: "3 teams share this account and its limits". */
 export function sharedProfileHint(ref: MemberAccountRef): string | null {
-  return ref.sharedBy > 1 ? `${ref.sharedBy} members share this account and its limits` : null;
+  return ref.sharedBy > 1 ? `${ref.sharedBy} teams share this account and its limits` : null;
 }
 
-/** What the Account column of the AI list shows for a member: the line, and the grey line under it. */
+/** What the Account column of the AI teams list shows for a team: the line, and the grey line under it. */
 export function accountCell(m: AiTeam): { name: string; sub: string; warn: boolean } | null {
   const ref = m.accountRef;
   if (ref) {
@@ -102,10 +102,7 @@ export function accountCell(m: AiTeam): { name: string; sub: string; warn: boole
   return { name: 'Login on this computer', sub: 'as before', warn: false };
 }
 
-/**
- * The status to show for a member: the account's sign-in problem says so ("Needs sign-in · account"), and a type
- * whose runs do not start yet says "Not ready" unless something more blocking applies.
- */
+/** The status to show for a team: the account's sign-in problem says so ("Needs sign-in · account"). */
 export function displayStatus(m: AiTeam): AiStatus {
   const st = m.status;
   if (st.code === 'not_logged_in' && m.accountRef?.status === 'needs_sign_in') {
@@ -114,7 +111,7 @@ export function displayStatus(m: AiTeam): AiStatus {
   return st;
 }
 
-/** Members held by one signed-out account, for the banner above the AI list. */
+/** Teams held by one signed-out account, for the banner above the AI teams list. */
 export interface BlockedAccount {
   account: MemberAccountRef;
   members: AiTeam[];
@@ -142,15 +139,15 @@ export function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-/** Banner above the AI list for one signed-out account (design E1). */
+/** Banner above the AI teams list for one signed-out account (design F, frame 33). */
 export function bannerCopy(b: BlockedAccount): { title: string; text: string } {
   const n = b.members.length;
   const names = joinNames(b.members.map((m) => m.name));
   const held = b.queued
-    ? `${n === 1 ? 'has' : 'have'} ${b.queued} queued run${b.queued === 1 ? '' : 's'} held. ${b.queued === 1 ? 'It starts by itself' : 'They start by themselves'} once the account is signed in again.`
+    ? `${n === 1 ? 'has' : 'have'} ${b.queued} run${b.queued === 1 ? '' : 's'} waiting in ${n === 1 ? 'its' : 'their'} queue${n === 1 ? '' : 's'}. ${b.queued === 1 ? 'It starts by itself' : 'They start by themselves'} once the account is signed in again.`
     : `${n === 1 ? 'has' : 'have'} nothing queued. New runs start by themselves once the account is signed in again.`;
   return {
-    title: `${n} AI member${n === 1 ? '' : 's'} can’t run: ${b.account.name} needs to sign in`,
+    title: `${n} team${n === 1 ? '' : 's'} can’t run: ${b.account.name} needs to sign in`,
     text: `${names} ${held}`,
   };
 }
@@ -188,15 +185,15 @@ export function eventCopy(e: AccountEvent): { title: string; message: string } {
       title: `${e.account.name} needs to sign in`,
       message:
         e.account.memberCount > 0
-          ? `${e.account.memberCount} AI member${e.account.memberCount === 1 ? '' : 's'} can’t run until someone signs in again. Queued runs wait.`
+          ? `${e.account.memberCount} team${e.account.memberCount === 1 ? '' : 's'} can’t run until someone signs in again. Queued runs wait.`
           : 'Its session expired.',
     };
   return {
     title: `${e.account.name} is signed in again`,
     message:
       e.heldRuns > 0
-        ? `${e.heldRuns} held run${e.heldRuns === 1 ? '' : 's'} restart${e.heldRuns === 1 ? 's' : ''} by themselves.`
-        : `${e.account.memberCount} AI member${e.account.memberCount === 1 ? ' is' : 's are'} back.`,
+        ? `${e.heldRuns} waiting run${e.heldRuns === 1 ? '' : 's'} start${e.heldRuns === 1 ? 's' : ''} by themselves.`
+        : `${e.account.memberCount} team${e.account.memberCount === 1 ? ' is' : 's are'} back.`,
   };
 }
 

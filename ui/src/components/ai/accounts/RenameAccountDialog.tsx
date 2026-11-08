@@ -64,7 +64,7 @@ export function RenameAccountDialog({
             <span className="ai-error-text">{error}</span>
           ) : (
             <span className="acc-hint">
-              Shown when you pick an account for an AI member. Use the person or plan, not a secret.
+              Shown when you pick an account for an AI team. Use the person or plan, not a secret.
             </span>
           )}
         </label>
