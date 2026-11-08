@@ -585,9 +585,6 @@ input.title:focus {
   box-shadow: 0 4px 14px rgba(30, 42, 34, 0.1);
   box-sizing: border-box;
 }
-.boardAi .boardBody {
-  border: 2px solid #3f9b5a;
-}
 .boardLabel .aiChip {
   padding: 1px 7px;
   border-radius: 999px;

@@ -1488,7 +1488,11 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 <div key={b.id} className={styles.board} style={{ left: b.x, top: b.y, width: b.w, height: b.h }}>
                   <div
                     className={styles.boardBody}
-                    style={{ borderWidth: 1 / z, boxShadow: 'none' }}
+                    style={{
+                      borderWidth: (b.aiSavedBy ? 2 : 1) / z,
+                      boxShadow: 'none',
+                      ...(b.aiSavedBy ? { borderColor: '#3f9b5a' } : {}),
+                    }}
                     data-item={b.id}
                     data-kind="board"
                     data-testid="canvas-board"
@@ -1626,7 +1630,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 return (
                   <div
                     key={b.id}
-                    className={`${styles.board} ${selected ? styles.boardSel : ''} ${b.aiSavedBy ? styles.boardAi : ''}`}
+                    className={`${styles.board} ${selected ? styles.boardSel : ''}`}
                     style={{ left: sx(b.x), top: sy(b.y), width: bw, height: bh, pointerEvents: 'none' }}
                   >
                     <div

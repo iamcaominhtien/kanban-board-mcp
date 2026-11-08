@@ -450,7 +450,7 @@ export function SourceEditor({
             </button>
             <span className={styles.spacer} />
             <span className={styles.hint}>
-              {lines} lines · {formatFileSize(size)}
+              {lines} {lines === 1 ? 'line' : 'lines'} · {formatFileSize(size)}
             </span>
           </div>
           {phase === 'locking' ? (
