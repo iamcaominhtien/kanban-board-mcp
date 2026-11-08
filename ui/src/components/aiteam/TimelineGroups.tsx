@@ -1,4 +1,5 @@
-import { COL, laneXAt, lanesWidth } from './timelineDraw';
+import { COL, headBoxW, laneXAt, lanesWidth } from './timelineDraw';
+import { textWidth } from './timelinePlace';
 import type { TimelineLifeline } from '../../types/aiTeam';
 
 /** The height of the row of team headers over the lifeline boxes. */
@@ -37,6 +38,13 @@ function groupsOf(lifelines: TimelineLifeline[], all: TimelineLifeline[]): Group
   return out;
 }
 
+/** `text` cut with an ellipsis to fit `room` px. */
+function cutTo(text: string, room: number, textW: (t: string) => number): string {
+  let n = text.length;
+  while (n > 3 && textW(`${text.slice(0, n)} …`) > room) n--;
+  return `${text.slice(0, n)} …`;
+}
+
 /**
  * Flow › Timeline: a header per team over its lead and roles (a band in the team's colour). A click folds the roles
  * away under the lead and opens them again.
@@ -59,22 +67,26 @@ export function TimelineGroups({
   const groups = groupsOf(lifelines, all);
   if (!groups.length) return null;
   const w = lanesWidth(lifelines.length, col);
+  const half = headBoxW(col) / 2;
   return (
     <svg width={w} height={GROUP_H} role="presentation" style={{ display: 'block' }} className="tl-svg">
-      {groups.map((g) => {
-        const x0 = laneXAt(g.from, col) - 46;
-        const x1 = laneXAt(g.to, col) + 46;
+      {groups.map((g, gi) => {
+        const x0 = laneXAt(g.from, col) - half;
         const isFolded = folded.has(g.teamId);
         const roleWord = g.roles ? ` · ${g.roles} role${g.roles === 1 ? '' : 's'}${isFolded ? ' folded' : ''}` : '';
-        const room = Math.max(x1 - x0 - 30, 20);
-        // the whole words when they fit, else the team's name alone, cut with an ellipsis if even that is too long
-        const fits = (t: string) => t.length * 6.2 <= room;
+        const textW = (t: string) => textWidth(t, 11, 700);
         const full = `${g.name}${roleWord}`;
-        const shown = fits(full)
-          ? full
-          : fits(g.name)
-            ? g.name
-            : `${g.name.slice(0, Math.max(Math.floor(room / 6.2) - 1, 3))}…`;
+        // the band covers its lanes; a folded team has only its lead left, so the band reaches over the empty lanes of
+        // its roles, as far as the words need and the next team's band allows (design AiTimeline C, 2 and 5)
+        const lead = laneXAt(g.to, col) + half;
+        const next = groups[gi + 1] ? laneXAt(groups[gi + 1].from, col) - half - 6 : w - 2;
+        const x1 = isFolded
+          ? Math.min(Math.max(lead, x0 + (g.roles ? 22 : 10) + textW(full) + 14), Math.max(next, lead))
+          : lead;
+        const room = Math.max(x1 - x0 - (g.roles ? 22 : 10) - 8, 20);
+        // the whole words when they fit, else the team's name alone, cut with an ellipsis if even that is too long
+        const fits = (t: string) => textW(t) <= room;
+        const shown = fits(full) ? full : fits(g.name) ? g.name : cutTo(g.name, room, textW);
         return (
           <g
             key={g.teamId}

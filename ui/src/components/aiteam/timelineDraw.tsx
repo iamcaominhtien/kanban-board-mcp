@@ -20,6 +20,10 @@ import { ascendingText } from '../../utils/sorted';
  */
 
 export const COL = 108;
+/** The head box of a lane: 140 px when the lanes are wide (design AiTimeline B), 16 px less than the lane when not, 92 at least. */
+export const headBoxW = (col: number): number => Math.min(140, Math.max(92, col - 16));
+/** The strip of quiet teams folded at the right of the heads. */
+export const FOLDED_W = 100;
 export const GUTTER = 70;
 /** Room on each side of the lanes: the now dot sits at the right edge of the last lane. */
 export const PAD = 8;
@@ -136,7 +140,7 @@ export const STATE_WORD: Record<string, string> = {
 const ARROW: Record<ArrowKind, { color: string; dash?: string; glyph: string; word: string; label: string }> = {
   assign: { color: '#2F6FB0', glyph: '+', word: 'assigned', label: '#244E78' },
   mention: { color: '#7C5CD6', glyph: '@', word: '@mention', label: '#5B3AA6' },
-  handoff: { color: '#2E6F40', glyph: '›', word: 'hand-off', label: '#1F5A31' },
+  handoff: { color: '#2E6F40', glyph: '›', word: 'role call', label: '#1F5A31' },
   note: { color: '#0F8B8D', glyph: '↔', word: 'note to a team', label: '#0B6264' },
   report: { color: '#9AA8A0', dash: '1.5 3', glyph: '↵', word: 'report back', label: '#3A4A3E' },
   returned: { color: '#8A6A12', dash: '5 3', glyph: '↵', word: 'returned (round 1)', label: '#8A6A12' },
@@ -303,9 +307,6 @@ const Pulse = ({ children, still }: { children: ReactNode; still: ReactNode }) =
 // Header row: one box per lifeline
 // ---------------------------------------------------------------------------
 
-/** Room for the words of a header box: from 20 px left of its centre to its state dot. */
-const HEAD_TEXT_W = 54;
-
 /** The header row: one box per lifeline with its state dot, and the strip of quiet AIs folded away. */
 export function TimelineHeader({
   lifelines,
@@ -323,7 +324,13 @@ export function TimelineHeader({
   /** The whole team is paused: every dot is grey and nothing moves. */
   paused?: boolean;
 }) {
-  const w = lanesWidth(lifelines.length, col) + (folded ? 100 : 0);
+  const w = lanesWidth(lifelines.length, col) + (folded ? FOLDED_W + 8 : 0);
+  const boxW = headBoxW(col);
+  const half = boxW / 2;
+  // the initials and the name sit 17 and 30 px from the box's left edge when it is wide, 13 and 26 when it is narrow
+  const wide = boxW >= 120;
+  const initialsX = wide ? 17 : 13;
+  const nameX = wide ? 30 : 26;
   const laneX = (i: number) => laneXAt(i, col);
   return (
     <svg width={w} height={HEAD_H} role="presentation" style={{ display: 'block' }} className="tl-svg">
@@ -333,14 +340,20 @@ export function TimelineHeader({
         const cx = laneX(i);
         const state = paused && l.kind === 'ai' ? 'paused' : l.state;
         const word = state ? STATE_WORD[state] : '';
-        const name = clipToWidth(l.name, l.kind === 'autopilot' ? 64 : HEAD_TEXT_W + (state ? 0 : 12), 12, 700);
+        // from the name's left edge to the state dot
+        const nameRoom = boxW - nameX - (state ? 12 : 4);
+        // a role of a team with no header over it ("Dev (Frontend team)") is the role on one line, its team on a second
+        const split = l.kind === 'ai' && !l.lead ? /^(.*?)\s*\((.+)\)$/.exec(l.name) : null;
+        const main = split ? split[1] : l.name;
+        const sub = split ? split[2] : null;
+        const name = clipToWidth(main, l.kind === 'autopilot' ? 64 : nameRoom, 12, 700);
         return (
           <g key={l.id} data-testid={`tl-head-${l.id}`}>
             <title>{state ? `${l.name} · ${word}` : l.name}</title>
             <rect
-              x={cx - 46}
+              x={cx - half}
               y={4}
-              width={92}
+              width={boxW}
               height={40}
               rx={9}
               fill={look.fill}
@@ -348,22 +361,42 @@ export function TimelineHeader({
               strokeWidth={1.5}
               strokeDasharray={l.kind === 'autopilot' ? '4 3' : undefined}
             />
-            {l.kind === 'you' && <Glyph name="user" x={cx - 33} y={24} color="#FFFFFF" />}
-            {l.kind === 'autopilot' && <Glyph name="spark" x={cx - 33} y={24} color={look.text} />}
-            {l.kind === 'docs' && <Glyph name="file" x={cx - 33} y={24} color={look.text} />}
+            {l.kind === 'you' && <Glyph name="user" x={cx - half + initialsX - 4} y={24} color="#FFFFFF" />}
+            {l.kind === 'autopilot' && <Glyph name="spark" x={cx - half + initialsX - 4} y={24} color={look.text} />}
+            {l.kind === 'docs' && <Glyph name="file" x={cx - half + initialsX - 4} y={24} color={look.text} />}
             {l.kind === 'ai' && (
-              <text x={cx - 33} y={28} fontSize={10} fontWeight={800} fill={look.text} textAnchor="middle">
+              <text
+                x={cx - half + initialsX}
+                y={28}
+                fontSize={10}
+                fontWeight={800}
+                fill={look.text}
+                textAnchor="middle"
+              >
                 {initials(l.name)}
               </text>
             )}
-            <text x={cx - 20} y={l.kind === 'autopilot' ? 24 : 29} fontSize={12} fontWeight={700} fill={look.text}>
+            <text
+              x={cx - half + nameX}
+              y={l.kind === 'autopilot' ? 24 : sub ? 25 : 29}
+              fontSize={12}
+              fontWeight={700}
+              fill={look.text}
+            >
               {name}
             </text>
-            {l.kind === 'autopilot' && <DelegateLine x={cx - 20} delegate={l.delegate ?? null} color={look.text} />}
+            {sub && (
+              <text x={cx - half + nameX} y={38} fontSize={9.5} fontWeight={600} fill={look.text} opacity={0.85}>
+                {clipToWidth(sub, nameRoom, 9.5, 600)}
+              </text>
+            )}
+            {l.kind === 'autopilot' && (
+              <DelegateLine x={cx - half + nameX} delegate={l.delegate ?? null} color={look.text} />
+            )}
             {state && (
               <>
                 <circle
-                  cx={cx + 37}
+                  cx={cx + half - (wide ? 12 : 9)}
                   cy={16}
                   r={4}
                   fill={(look.fill === '#1E2A22' ? STATE_DOT_DARK : STATE_DOT)[state] ?? '#C7D2CB'}
@@ -371,7 +404,7 @@ export function TimelineHeader({
                 {(state === 'working' || state === 'waiting') && (
                   <Pulse still={null}>
                     <circle
-                      cx={cx + 37}
+                      cx={cx + half - (wide ? 12 : 9)}
                       cy={16}
                       r={4}
                       fill="none"
@@ -394,7 +427,7 @@ export function TimelineHeader({
           <rect
             x={lanesWidth(lifelines.length, col) + 4}
             y={4}
-            width={92}
+            width={FOLDED_W}
             height={40}
             rx={9}
             fill="#F1F3F1"
@@ -402,14 +435,14 @@ export function TimelineHeader({
             strokeDasharray="4 3"
           />
           <text
-            x={lanesWidth(lifelines.length, col) + 50}
+            x={lanesWidth(lifelines.length, col) + 4 + FOLDED_W / 2}
             y={28}
             fontSize={11}
             fontWeight={700}
             fill="#5B6B60"
             textAnchor="middle"
           >
-            {folded} quiet AI{folded === 1 ? '' : 's'}
+            {folded} quiet team{folded === 1 ? '' : 's'}
           </text>
         </g>
       )}

@@ -23,6 +23,7 @@ import {
   arrowWord,
   lanesWidth,
   columnFor,
+  FOLDED_W,
   lookOf,
   pickKey,
   type Pick,
@@ -319,7 +320,7 @@ export function TimelineTab({
     [data, foldedLanes],
   );
   // the lanes fill the window (to a limit) instead of leaving the right half empty
-  const col = columnFor(lifelines.length, width - GUTTER - (quiet.length ? 100 : 0));
+  const col = columnFor(lifelines.length, width - GUTTER - (quiet.length ? FOLDED_W + 8 : 0));
   const axis = useMemo(() => (data ? buildAxis(data, mode, now) : null), [data, mode, now]);
 
   // Following: stay at the bottom unless the person scrolled up, and count what arrived meanwhile
@@ -539,7 +540,7 @@ export function TimelineTab({
           {menu === 'show' && (
             <div className="tl-menu" role="menu" data-testid="tl-show-menu">
               {[
-                ['handoffs', 'Hand-offs'],
+                ['handoffs', 'Role calls and notes'],
                 ['questions', 'Questions and answers'],
               ].map(([key, label]) => (
                 <label key={key} className="tl-check">
@@ -606,12 +607,16 @@ export function TimelineTab({
           onClick={() => setTable(!table)}
           aria-pressed={table}
         >
+          <Icon size={14} color="currentColor">
+            <path d="M4 5h16v14H4zM4 10h16M10 5v14" />
+          </Icon>
           Table
         </button>
         <div className="tl-menuwrap">
           <MenuSelect<RangeChoice>
             variant="button"
             label="Range"
+            prefix="Range:"
             testId="tl-range"
             icon={<CalendarIcon />}
             value={day ? 'day' : preset}
@@ -661,7 +666,7 @@ export function TimelineTab({
       )}
       {data.truncated && (
         <div className="at-hint">
-          Showing the newest 500 hand-offs. Narrow the range or pick one ticket to see the rest.
+          Showing the newest 500 events. Narrow the range or pick one ticket to see the rest.
         </div>
       )}
       {data.groupedHarder && !data.truncated && (
@@ -684,7 +689,7 @@ export function TimelineTab({
         />
       ) : (
         <div className="tl-stage">
-          {scope && !scopeBar && (
+          {scope && !scopeBar && !compactChrome && (
             <div className="tl-scope-head" data-testid="tl-scope-head">
               <span className="tl-tchip">
                 <i />
@@ -1259,7 +1264,7 @@ function factsOf(data: Timeline, pick: Pick, people: Map<string, TimelineLifelin
     title: 'AI paused',
     lines: [
       {
-        text: `By ${p.by ?? 'someone'} at ${clock(ms(p.from) ?? 0)}${p.to ? ` · resumed ${clock(ms(p.to) ?? 0)}${p.resumedBy ? ` by ${p.resumedBy}` : ''}` : ''}`,
+        text: `${p.by ? `By ${p.by} at` : 'Paused at'} ${clock(ms(p.from) ?? 0)}${p.to ? ` · resumed ${clock(ms(p.to) ?? 0)}${p.resumedBy ? ` by ${p.resumedBy}` : ''}` : ''}`,
       },
       ...(p.reason ? [{ text: `Reason: “${p.reason}”` }] : []),
       { text: 'The time inside the band is counted as paused: it is not waiting for you and not a bottleneck.' },
@@ -1663,7 +1668,7 @@ function Legend() {
   // the glyph takes the colour the design gives it in the legend (report back is the darker grey here)
   const items: { k: Parameters<typeof arrowColor>[0]; t: string; c?: string }[] = [
     { k: 'assign', t: 'assigned' },
-    { k: 'handoff', t: 'hand-off (dashed and moving while under way)' },
+    { k: 'handoff', t: 'role call (dashed and moving while under way)' },
     { k: 'note', t: 'note from one team to another' },
     { k: 'report', t: 'report back (dotted)', c: '#5B6B60' },
     { k: 'ask', t: 'asks you' },

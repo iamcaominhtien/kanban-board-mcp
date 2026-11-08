@@ -79,7 +79,14 @@ def role_label(agent_type: str) -> str:
     return words[:1].upper() + words[1:]
 
 
+# The three roles the design draws (AiTimeline, AiTeam board 7) have their own colour in the Map and the Timeline
+NAMED_ROLE_COLORS = {"dev": "#2F6FB0", "reviewer": "#7C5CD6", "qa": "#0F8B8D"}
+
+
 def _role_color(agent_type: str) -> str:
+    named = NAMED_ROLE_COLORS.get((agent_type or "").strip().lower())
+    if named:
+        return named
     return ROLE_COLORS[sum(ord(c) for c in agent_type or "agent") % len(ROLE_COLORS)]
 
 
