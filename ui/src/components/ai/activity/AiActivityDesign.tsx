@@ -94,7 +94,7 @@ export function AiRunPanelDesign({ ticket }: { ticket: Ticket }) {
         <TicketAiStrips ticket={ticket} />
       </div>
       {runs.length > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="dz dz-tw" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span role="tablist" aria-label="What to show" style={{ display: 'inline-flex', gap: 6 }}>
             <button type="button" role="tab" aria-selected={!full} style={seg(!full)} onClick={() => setFull(false)}>
               One run

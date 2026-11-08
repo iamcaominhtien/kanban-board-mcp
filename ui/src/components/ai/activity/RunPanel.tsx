@@ -444,6 +444,7 @@ export function RunPanel({ runId }: { runId: string }) {
   const run = q.data;
   const loadSteps = useLoadSteps(runId);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [noMoreEarlier, setNoMoreEarlier] = useState(false);
   const { members } = useAiBoardState();
   const toast = useToast();
   const cancel = useAiMutation(() => aiApi.cancel(runId));
@@ -473,7 +474,8 @@ export function RunPanel({ runId }: { runId: string }) {
   const commands = run.steps.filter((s) => s.kind === 'command').slice(-6);
   const tests = testsOf(run);
   const tokens = run.tokensIn + run.tokensOut;
-  const earlierMissing = run.steps.filter((s) => s.kind !== 'role').length < run.stepsCount;
+  // a load that brought nothing new (the run holds fewer rows than it counted) ends the offer
+  const earlierMissing = !noMoreEarlier && run.steps.filter((s) => s.kind !== 'role').length < run.stepsCount;
   const showEarlier = async () => {
     setLoadingEarlier(true);
     try {
@@ -483,6 +485,7 @@ export function RunPanel({ runId }: { runId: string }) {
         if (page.length < 500) break;
         after = page[page.length - 1].seq;
       }
+      setNoMoreEarlier(true);
     } catch (err) {
       toast.error('The earlier steps could not be loaded', extractError(err));
     } finally {
@@ -490,7 +493,8 @@ export function RunPanel({ runId }: { runId: string }) {
     }
   };
   const usageWords = `${run.costUsd > 0 ? money(run.costUsd) : 'Not metered'}${tokens > 0 ? ` · ${fmtElapsedTokens(tokens)} tokens` : ''}`;
-  const started = !!run.startedAt;
+  // a run that is only waiting or just starting is one line; the facts strip is for a run that goes on
+  const started = !!run.startedAt && run.state !== 'starting';
   const stepsBlock = (
     <div
       style={{
@@ -510,7 +514,7 @@ export function RunPanel({ runId }: { runId: string }) {
         <Label>
           Steps{' '}
           <b style={{ color: '#1E2A22' }} data-testid="step-count">
-            {run.steps.filter((s) => s.kind !== 'role').length >= run.stepsCount
+            {noMoreEarlier || run.steps.filter((s) => s.kind !== 'role').length >= run.stepsCount
               ? steps.length
               : `${steps.length} of ${run.stepsCount}`}
           </b>
@@ -782,7 +786,7 @@ export function RunPanel({ runId }: { runId: string }) {
             </span>
             <span style={{ color: '#9AA8A0' }}>·</span>
             <span>
-              queued {hhmm(run.queuedAt)} by {run.startedBy}
+              {run.startedAt ? `started ${hhmm(run.startedAt)}` : `queued ${hhmm(run.queuedAt)}`} by {run.startedBy}
             </span>
             <span style={{ color: '#9AA8A0' }}>·</span>
             <span>{usageWords}</span>

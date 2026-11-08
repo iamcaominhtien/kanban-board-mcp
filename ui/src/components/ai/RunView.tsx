@@ -164,15 +164,22 @@ export function RunMessages({ runId }: { runId: string }) {
   const list = q.data ?? [];
   if (!list.length) return null;
   return (
-    <details data-testid="run-messages">
-      <summary className="ai-muted" style={{ cursor: 'pointer' }}>
+    <details
+      data-testid="run-messages"
+      className="tw-msgs"
+      style={{ border: '1px solid #E3E8E5', borderRadius: 12, background: '#fff', padding: '8px 14px' }}
+    >
+      <summary style={{ cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#3A4A3E' }}>
         {list.length} message{list.length === 1 ? '' : 's'}
       </summary>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
         {list.map((m) => (
-          <div key={m.id} style={{ fontSize: 12.5 }}>
-            <b>{m.direction === 'in' ? `${m.peer} →` : `→ ${m.peer}`}</b> <span className="ai-muted">{hhmm(m.at)}</span>
-            <div style={{ whiteSpace: 'pre-wrap' }}>{m.text}</div>
+          <div key={m.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 13 }}>
+            <b style={{ whiteSpace: 'nowrap' }}>{m.direction === 'in' ? `${m.peer} →` : `→ ${m.peer}`}</b>
+            <span className="ai-mono" style={{ fontSize: 11.5, color: '#9AA8A0' }}>
+              {hhmm(m.at)}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}>{m.text}</span>
           </div>
         ))}
       </div>

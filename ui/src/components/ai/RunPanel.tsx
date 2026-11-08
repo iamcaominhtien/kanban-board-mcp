@@ -115,7 +115,7 @@ export function RunHeaderButton({ ticket, active, onClick }: { ticket: Ticket; a
       >
         <ChevronIcon size={12} />
       </button>
-      {run && isActive(run.state) && (
+      {run && isActive(run.state) && run.state !== 'queued' && (
         <span
           className={live ? 'ai-pulse' : undefined}
           style={{
