@@ -104,8 +104,25 @@ async def post_internal_event(
 
 
 @router.get("/ai/runner")
-async def get_runner_status() -> dict:
-    """Where the CLIs run (this process or the runner process) and whether the runner is alive."""
-    from services.ai import runner_link
+async def get_runner_status(request: Request) -> dict:
+    """Where the CLIs run (this process or the runner process), whether the runner is alive, and what computer it is:
+    the name, the system and the app version, whether this request comes from it, and whether Claude Code is there."""
+    import socket
+    import sys
 
-    return runner_link.status()
+    from services.ai import cli, runner_link
+    from version import APP_VERSION
+
+    host = request.client.host if request.client else ""
+    path, _ = cli.find_cli("claude")
+    return {
+        **runner_link.status(),
+        "host": socket.gethostname(),
+        "local": host in ("127.0.0.1", "::1", "localhost")
+        or host.startswith("::ffff:127."),
+        "platform": {"darwin": "macOS", "win32": "Windows", "linux": "Linux"}.get(
+            sys.platform, sys.platform
+        ),
+        "app_version": APP_VERSION,
+        "claude_found": bool(path),
+    }
