@@ -74,7 +74,7 @@
 .rs-grid,
 .rs-row {
   display: grid;
-  grid-template-columns: 150px 200px 70px 230px 72px 120px 150px 1fr;
+  grid-template-columns: minmax(150px, 1.4fr) minmax(110px, 1fr) 90px 170px 72px 90px minmax(120px, 1fr) 150px;
   align-items: center;
   gap: 12px;
   padding: 11px 16px;
@@ -197,6 +197,7 @@
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 .rs-chip-bar {
   width: 34px;
@@ -271,4 +272,61 @@
 .rs-meter > i {
   display: block;
   height: 100%;
+}
+
+/* Resources tab v2: a team per group, the system's note on a row, the limits card */
+.rs-team {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 8px;
+  background: #f6f9f7;
+  border-top: 1px solid #e3e8e5;
+  font-size: 13px;
+}
+.rs-table > div:first-child > .rs-team {
+  border-top: 0;
+  border-radius: 12px 12px 0 0;
+}
+.rs-work {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.rs-note {
+  margin: 0 16px 10px;
+  padding: 8px 12px;
+  border: 1px solid;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3a2a1e;
+}
+.rs-limits {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.rs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  max-width: 330px;
+}
+.rs-field .at-hint-sm {
+  font-weight: 400;
+}
+.rs-estimate {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid #bfdcc8;
+  border-radius: 10px;
+  background: #e6f2ea;
+  color: #1f5a31;
+  font-size: 12.5px;
+  line-height: 1.5;
 }

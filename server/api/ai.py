@@ -20,7 +20,9 @@ from services.ai import roles as svc_roles
 from services.ai import runs as svc_runs
 from services.ai import steps as svc_steps
 from services.ai import teams as svc_teams
+from services.ai import health as svc_health
 from services.ai import timeline as svc_timeline
+from services.ai import touches as svc_touches
 from services.ai.store import active_runs, get_settings, loads
 
 router = APIRouter(tags=["ai"])
@@ -331,6 +333,12 @@ async def post_pause_all(project_id: str, body: PauseAllBody, session: Session) 
     settings.paused_reason = body.reason or f"Paused by {_by()}"
     session.add(settings)
     await session.commit()
+    await svc_touches.record_pause(
+        project_id,
+        "project_paused",
+        _by(),
+        {"reason": settings.paused_reason, "cancel_running": body.cancel_running},
+    )
     if body.cancel_running and hasattr(svc_runs, "cancel"):
         for r in await active_runs(session):
             if r.project_id == project_id and r.state in (
@@ -358,6 +366,7 @@ async def post_resume_all(project_id: str, session: Session) -> dict:
     settings.paused_reason = None
     session.add(settings)
     await session.commit()
+    await svc_touches.record_pause(project_id, "project_resumed", _by())
     svc_runs.RT.wake.set()
     await board_events.publish("invalidate")
     return settings_dict(settings)
@@ -588,6 +597,27 @@ async def post_cancel(run_id: str, session: Session) -> dict:
     return svc_runs.to_dict(run)
 
 
+@router.post("/ai/runs/{run_id}/restart")
+async def post_restart(run_id: str, session: Session) -> dict:
+    """Start the run's Claude Code again inside the same run: it resumes its conversation and memory is released."""
+    await _run(session, run_id)
+    try:
+        await svc_runs.restart_run(run_id, by=_by())
+    except ValueError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return {"restarting": True}
+
+
+@router.get("/projects/{project_id}/ai/resources")
+async def get_resources(project_id: str, session: Session) -> dict:
+    """RAM and CPU of the machine, the project's limits, and its running (and recently ended) runs."""
+    from services.ai import resources as svc_resources
+
+    await _project(session, project_id)
+    return await svc_resources.snapshot(project_id)
+
+
 @router.get("/tickets/{ticket_id}/ai/sessions")
 async def get_sessions(ticket_id: str, session: Session) -> list[dict]:
     """The closed conversations of the ticket's team, newest first."""
@@ -724,3 +754,76 @@ async def get_timeline(
         until=until,
         ticket_id=ticket_id,
     )
+
+
+# --------------------------------------------------------------------------- You stepped in
+
+
+class MarkBody(BaseModel):
+    """The mark a person gives to one touch."""
+
+    key: str
+    mark: Optional[Literal["needed", "avoidable"]] = None
+
+
+class TouchLessonBody(BaseModel):
+    """The lesson a person writes from an avoidable touch (empty: a draft)."""
+
+    key: str
+    text: Optional[str] = None
+
+
+@router.get("/projects/{project_id}/ai/team/touches")
+async def get_touches(
+    project_id: str,
+    session: Session,
+    range: str = "7d",
+    team_id: Optional[str] = None,
+    kind: Optional[str] = None,
+    mark: Optional[str] = None,
+) -> dict:
+    """Every time a person had to touch the work of the project's AI teams, newest first, in a range."""
+    await _project(session, project_id)
+    return await svc_touches.stepped_in(
+        session, project_id, range_key=range, team_id=team_id, kind=kind, mark=mark
+    )
+
+
+@router.put("/projects/{project_id}/ai/team/touches/mark")
+async def put_touch_mark(project_id: str, body: MarkBody, session: Session) -> dict:
+    """Mark a touch needed or avoidable (mark null takes the mark away). The mark stays."""
+    await _project(session, project_id)
+    try:
+        out = await svc_touches.set_mark(
+            session, project_id, body.key, body.mark, by=_by()
+        )
+    except svc_touches.TouchError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return out
+
+
+@router.post("/projects/{project_id}/ai/team/touches/lesson", status_code=201)
+async def post_touch_lesson(
+    project_id: str, body: TouchLessonBody, session: Session
+) -> dict:
+    """“Make a lesson” from an avoidable touch: a proposed lesson in Memory."""
+    await _project(session, project_id)
+    try:
+        out = await svc_touches.make_lesson(
+            session, project_id, body.key, body.text, by=_by()
+        )
+    except svc_touches.TouchError as exc:
+        _err(exc, 409)
+    await board_events.publish("invalidate")
+    return out
+
+
+# --------------------------------------------------------------------------- Health
+
+
+@router.get("/projects/{project_id}/ai/team/health")
+async def get_health(project_id: str, session: Session, range: str = "7d") -> dict:
+    """Is the AI team healthy: a verdict, five measures, a row per team and what to fix (last 7 or 30 days)."""
+    await _project(session, project_id)
+    return await svc_health.health(session, project_id, range)

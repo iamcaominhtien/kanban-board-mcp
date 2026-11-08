@@ -78,6 +78,8 @@ async def _dispatch(row) -> None:
                 reason=payload.get("reason"),
                 stop_code=payload.get("stop_code"),
             )
+        elif row.command == "restart":
+            await runs.restart_run(row.run_id, by=payload.get("by") or "board")
         elif row.command == "message":
             await runs.send_message(
                 row.run_id,

@@ -29,6 +29,11 @@ export interface ResourceRun {
   state: string;
   startedAt: string | null;
   endedAt: string | null;
+  endedReason?: string | null;
+  /** `memory` when the system stopped the run for memory. */
+  stopCode?: string | null;
+  /** The roles (subagents) working right now; empty when the lead works alone. */
+  rolesWorking?: string[];
   /** A CLI is running now (otherwise the run ended recently and the row shows its final values). */
   live: boolean;
   readable: boolean;
@@ -53,6 +58,7 @@ export interface MachineNumbers {
 }
 
 export interface ResourceSnapshot {
+  projectId?: string;
   at: string;
   machine: MachineNumbers;
   limits: { runMemoryLimitMb: number; autoRestarts: number; boardMaxParallel: number };

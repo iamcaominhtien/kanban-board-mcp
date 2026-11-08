@@ -22,8 +22,9 @@ from sqlmodel import col, select
 
 import database
 import events as board_events
-from models import AiRun, AiTeam, Member, Ticket
+from models import AiRun, AiRunAgent, AiTeam, Member, Ticket
 
+from . import runner_link
 from .store import get_settings, loads
 
 logger = logging.getLogger("kanban.ai.resources")
@@ -311,7 +312,14 @@ def restarts_of(run: AiRun) -> list[dict]:
     return [r for r in loads(run.restarts, []) if isinstance(r, dict)]
 
 
-def _row(run: AiRun, names: dict, colors: dict, tickets: dict, live: bool) -> dict:
+def _row(
+    run: AiRun,
+    names: dict,
+    colors: dict,
+    tickets: dict,
+    live: bool,
+    working: dict | None = None,
+) -> dict:
     reading = MON.readings.get(run.id) if live else None
     readable = reading is None or reading.get("readable", True)
     peak = (
@@ -330,6 +338,10 @@ def _row(run: AiRun, names: dict, colors: dict, tickets: dict, live: bool) -> di
         "state": run.state,
         "started_at": run.started_at,
         "ended_at": run.ended_at,
+        "ended_reason": run.ended_reason,
+        "stop_code": run.stop_code,
+        # the roles (subagents) that work right now; empty means the lead works alone
+        "roles_working": (working or {}).get(run.id, []),
         "live": live,
         "readable": readable,
         "cli_rss_mb": reading["cli_rss_mb"] if reading else run.last_rss_mb,
@@ -356,6 +368,22 @@ async def snapshot(project_id: str) -> dict:
                 )
             )
         ).all()
+        if runner_link.mode() == "process" and not runner_link.in_runner():
+            # the CLIs live in the runner process: the API cannot read them, but a run that works has one. Its numbers
+            # are the last ones the runner saved; the live ones reach the app over the event stream (`ai.resources`).
+            live_ids += [r.id for r in active if r.state == "running"]
+        working: dict[str, list[str]] = {}
+        if active:
+            open_agents = (
+                await session.exec(
+                    select(AiRunAgent).where(
+                        col(AiRunAgent.run_id).in_([r.id for r in active]),
+                        col(AiRunAgent.ended_at).is_(None),
+                    )
+                )
+            ).all()
+            for agent in open_agents:
+                working.setdefault(agent.run_id, []).append(agent.agent_type)
         ended = (
             await session.exec(
                 select(AiRun).where(
@@ -389,12 +417,13 @@ async def snapshot(project_id: str) -> dict:
             if ticket_ids
             else {}
         )
-    rows = [_row(r, names, colors, tickets, r.id in live_ids) for r in runs]
+    rows = [_row(r, names, colors, tickets, r.id in live_ids, working) for r in runs]
     rows.sort(key=lambda r: (not r["live"], -(r["cli_rss_mb"] or 0)))
     ai_mb = sum(
         (r["cli_rss_mb"] or 0) + (r["extra_mb"] or 0) for r in rows if r["live"]
     )
     return {
+        "project_id": project_id,
         "at": datetime.now(UTC).isoformat(),
         "machine": {
             **machine,
