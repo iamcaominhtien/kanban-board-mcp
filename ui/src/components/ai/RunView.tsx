@@ -44,8 +44,20 @@ export function RunReportCard({ run }: { run: Pick<AiRun, 'report' | 'summary'> 
   const open = report.openItems ?? [];
   if (!summary && !report.branch && !report.prUrl && !open.length && !tests) return null;
   return (
-    <div className="tw-card" data-testid="run-report">
-      <div className="ai-label ai-label-dark" style={{ marginBottom: 6 }}>
+    <div
+      data-testid="run-report"
+      style={{
+        boxSizing: 'border-box',
+        border: '1px solid #BFDCC7',
+        borderRadius: 12,
+        background: '#F6FBF7',
+        padding: '14px 17px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div className="ai-label" style={{ color: '#2E6F40' }}>
         Report
       </div>
       {summary && (
@@ -53,10 +65,10 @@ export function RunReportCard({ run }: { run: Pick<AiRun, 'report' | 'summary'> 
           <MarkdownRenderer plain>{summary}</MarkdownRenderer>
         </div>
       )}
-      {(report.branch || report.prUrl) && (
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8, fontSize: 12.5 }}>
+      {(report.branch || report.prUrl || tests) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12.5 }}>
           {report.branch && (
-            <span data-testid="report-branch">
+            <span data-testid="report-branch" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <LineIcon name="branch" size={12} /> <span className="ai-code">{report.branch}</span>
             </span>
           )}
@@ -65,17 +77,15 @@ export function RunReportCard({ run }: { run: Pick<AiRun, 'report' | 'summary'> 
               <LineIcon name="external" size={12} /> Pull request
             </a>
           )}
-        </div>
-      )}
-      {tests && (
-        <div style={{ marginTop: 8 }}>
-          <TestChips counts={tests} />
+          {tests && <TestChips counts={tests} />}
         </div>
       )}
       {open.length > 0 && (
-        <div style={{ marginTop: 8 }} data-testid="report-open-items">
-          <div className="ai-label">Still open</div>
-          <ul style={{ margin: '4px 0 0 18px', padding: 0, fontSize: 13 }}>
+        <div data-testid="report-open-items">
+          <div className="ai-label" style={{ marginBottom: 4 }}>
+            Still open
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, lineHeight: 1.55 }}>
             {open.map((o) => (
               <li key={o}>{o}</li>
             ))}
@@ -92,40 +102,58 @@ export function RunMessageBox({ run }: { run: Pick<AiRun, 'id' | 'live' | 'state
   const toast = useToast();
   const send = useAiMutation((t: string) => aiApi.message(run.id, t));
   if (!isActive(run.state) || run.state === 'queued') return null;
+  const sendNote = async () => {
+    if (!text.trim() || send.isPending) return;
+    try {
+      await send.mutateAsync(text.trim());
+      setText('');
+      toast.success('Sent', run.live ? 'The lead has it.' : 'The lead gets it with its next turn.');
+    } catch (err) {
+      toast.error("Couldn't send the message", extractError(err));
+    }
+  };
   return (
-    <div className="tw-card" data-testid="run-message-box">
-      <label className="ai-label" htmlFor={`run-msg-${run.id}`}>
+    <div
+      data-testid="run-message-box"
+      style={{
+        display: 'flex',
+        gap: 10,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        padding: '8px 10px',
+        border: '1px solid #E3E8E5',
+        borderRadius: 11,
+        background: '#FBFCFB',
+      }}
+    >
+      <label
+        htmlFor={`run-msg-${run.id}`}
+        style={{ fontSize: 12.5, fontWeight: 700, color: '#1F5A31', whiteSpace: 'nowrap', paddingLeft: 4 }}
+      >
         {run.live ? 'Tell the lead now' : 'Leave a note for the lead'}
       </label>
-      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-        <textarea
-          id={`run-msg-${run.id}`}
-          className="ai-textarea"
-          style={{ flex: 1, minHeight: 44 }}
-          value={text}
-          placeholder={run.live ? 'It reads this at its next step…' : 'It reads this when it takes its next turn…'}
-          onChange={(e) => setText(e.target.value)}
-          data-testid="run-message-input"
-        />
-        <button
-          type="button"
-          className="ai-btn ai-btn-primary"
-          style={{ alignSelf: 'flex-end' }}
-          disabled={!text.trim() || send.isPending}
-          data-testid="run-message-send"
-          onClick={async () => {
-            try {
-              await send.mutateAsync(text.trim());
-              setText('');
-              toast.success('Sent', run.live ? 'The lead has it.' : 'The lead gets it with its next turn.');
-            } catch (err) {
-              toast.error("Couldn't send the message", extractError(err));
-            }
-          }}
-        >
-          <LineIcon name="send" size={12} /> Send
-        </button>
-      </div>
+      <input
+        id={`run-msg-${run.id}`}
+        type="text"
+        className="ai-input"
+        style={{ flex: '1 1 220px', minWidth: 0 }}
+        value={text}
+        placeholder={run.live ? 'It reads this at its next step…' : 'It reads this when it takes its next turn…'}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void sendNote();
+        }}
+        data-testid="run-message-input"
+      />
+      <button
+        type="button"
+        className="ai-btn ai-btn-sm"
+        disabled={!text.trim() || send.isPending}
+        data-testid="run-message-send"
+        onClick={() => void sendNote()}
+      >
+        <LineIcon name="send" size={12} /> Send
+      </button>
     </div>
   );
 }

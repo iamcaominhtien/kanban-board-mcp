@@ -1900,6 +1900,7 @@ function TicketModalInner({
                     {/* TODO(connect to data): the design's mock for now; port the real logic from main (table in ai/activity/mock.ts) */}
                     {MOCK_AI_ACTIVITY && (
                       <AiActivityDesign
+                        ticket={ticket}
                         ticketId={ticket.id}
                         projectId={ticket.projectId}
                         onOpenTimeline={() => openTimeline({ scope: ticket.id })}

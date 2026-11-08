@@ -16,13 +16,23 @@ export function RunCard({ ticketId, onOpenRun }: { ticketId: string; onOpenRun?:
   const { title, sub } = cardWords(run, now);
   return (
     <div className="dz dz-tw" data-testid="active-run-card" data-state={run.state}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '11px',
+          padding: '10px 13px',
+          border: '1px solid #BFDCC7',
+          borderRadius: '11px',
+          background: '#F6FBF7',
+        }}
+      >
         <span
           style={{
             position: 'relative',
             display: 'inline-flex',
-            width: '28px',
-            height: '28px',
+            width: '30px',
+            height: '30px',
             borderRadius: '8px',
             background: '#DCEEE1',
             color: '#2E6F40',
@@ -66,25 +76,12 @@ export function RunCard({ ticketId, onOpenRun }: { ticketId: string; onOpenRun?:
           </span>
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-          <span style={{ fontSize: '12.5px', color: '#1E2A22', fontWeight: 700, lineHeight: 1.5 }}>{title}</span>
-          <span style={{ fontSize: '11.5px', color: '#5B6B60', fontWeight: 400, lineHeight: 1.5 }}>{sub}</span>
+          <span style={{ fontSize: '13.5px', color: '#1E2A22', fontWeight: 700, lineHeight: 1.5 }}>{title}</span>
+          <span style={{ fontSize: '12px', color: '#5B6B60', fontWeight: 400, lineHeight: 1.5 }}>{sub}</span>
         </div>
         <span style={{ flex: 1 }} />
         <button type="button" className="mc-link" onClick={onOpenRun}>
-          Open run
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ flexShrink: 0 }}
-          >
-            <path d="M9 6L15 12L9 18" />
-          </svg>
+          Open run ›
         </button>
       </div>
     </div>

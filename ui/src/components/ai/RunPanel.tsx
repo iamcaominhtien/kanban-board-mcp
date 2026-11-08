@@ -264,8 +264,8 @@ function ActiveRunCard({ run, who, onOpenRun }: { run: AiRun; who: string; onOpe
   );
 }
 
-/** The top of a ticket's AI activity: the run going now, the pause and sign-in notices. The finished runs are below it. */
-export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun: () => void }) {
+/** The strips of the ticket's AI tab: AI paused for the project ("Nothing new starts on this ticket.") and the account signed out. */
+export function TicketAiStrips({ ticket }: { ticket: Ticket }) {
   const runs = useTicketRuns(ticket.id);
   const { members: aiMembers, settings } = useAiBoardState();
   const [resumeOpen, setResumeOpen] = useState(false);
@@ -274,22 +274,9 @@ export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun
   const paused = !!settings?.pausedAll && !!team && !['done', 'wont_do'].includes(ticket.status);
   const runTeam = latest ? aiMembers.get(latest.memberId) : undefined;
   const accountOut = !!latest && runTeam?.accountRef?.status === 'needs_sign_in';
-  const active = latest && ['running', 'starting', 'queued'].includes(latest.state) ? latest : undefined;
-  // the finished runs (question, report, steps) are shown below this panel, by TicketRunsTab
-  if (!paused && !accountOut && !active) return null;
+  if (!paused && !accountOut) return null;
   return (
-    <div
-      className="ai-root"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-        padding: '12px 24px',
-        borderBottom: '1px solid #e3e8e5',
-        background: '#fff',
-      }}
-      data-testid="ticket-ai-panel"
-    >
+    <>
       {paused && settings && (
         <PausedStrip settings={settings} onResume={() => setResumeOpen(true)}>
           {latest?.state === 'queued' ? 'Its next run is held.' : 'Nothing new starts on this ticket.'}
@@ -305,10 +292,35 @@ export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun
           {runTeam.name} cannot work until the account is signed in again.
         </AccountNote>
       )}
-      {active && <ActiveRunCard run={active} who={runTeam?.name ?? 'The AI'} onOpenRun={onOpenRun} />}
       {resumeOpen && settings && (
         <ResumeAllDialog projectId={settings.projectId} onClose={() => setResumeOpen(false)} />
       )}
+    </>
+  );
+}
+
+/** What a ticket's AI tab says before anything else: AI paused for the project, or the account signed out (H2, H3). */
+export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun: () => void }) {
+  const runs = useTicketRuns(ticket.id);
+  const { members: aiMembers } = useAiBoardState();
+  const latest = (runs.data ?? [])[0];
+  const runTeam = latest ? aiMembers.get(latest.memberId) : undefined;
+  const active = latest && ['running', 'starting', 'queued'].includes(latest.state) ? latest : undefined;
+  return (
+    <div
+      className="ai-root"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        padding: '12px 24px',
+        borderBottom: '1px solid #e3e8e5',
+        background: '#fff',
+      }}
+      data-testid="ticket-ai-panel"
+    >
+      <TicketAiStrips ticket={ticket} />
+      {active && <ActiveRunCard run={active} who={runTeam?.name ?? 'The AI'} onOpenRun={onOpenRun} />}
     </div>
   );
 }

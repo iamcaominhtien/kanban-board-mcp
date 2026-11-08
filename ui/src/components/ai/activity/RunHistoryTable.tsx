@@ -25,17 +25,32 @@ interface Chip {
   icon: 'check' | 'pulse' | 'clock' | 'x' | 'warn' | 'pause' | 'spin' | null;
 }
 
-/** The state chips of the design (finished, running, timed out, cancelled); failed and waiting ones in the same style. */
+/** The state chips of the design's legend ("RUN STATE CHIPS"). */
 const CHIPS: Record<RunState, Chip> = {
-  finished: { label: 'Finished', bg: '#F1F8F3', color: '#2E6F40', border: '#BFDCC7', icon: 'check' },
+  queued: { label: 'Queued', bg: '#F6FAF7', color: '#5B6B60', border: '#E3E8E5', icon: 'clock' },
+  starting: { label: 'Starting', bg: '#E8F1FA', color: '#2F6FB0', border: '#C9DDF0', icon: 'spin' },
   running: { label: 'Running', bg: '#F1F8F3', color: '#2E6F40', border: '#BFDCC7', icon: 'pulse' },
-  timed_out: { label: 'Timed out', bg: '#FDF3E3', color: '#B4571F', border: '#EBD3A4', icon: 'clock' },
+  needs_input: { label: 'Needs input', bg: '#E8EDF3', color: '#34455A', border: '#B8C4D2', icon: 'pause' },
+  finished: { label: 'Finished', bg: '#F1F8F3', color: '#2E6F40', border: '#BFDCC7', icon: 'check' },
+  failed: { label: 'Failed', bg: '#FDF1EE', color: '#C4432A', border: '#F0C4B8', icon: 'warn' },
   cancelled: { label: 'Cancelled', bg: '#F1F3F1', color: '#5B6B60', border: '#DCE3DE', icon: 'x' },
-  failed: { label: 'Failed', bg: '#FBEEEA', color: '#C4432A', border: '#F0C9C0', icon: 'warn' },
-  queued: { label: 'Queued', bg: '#F1F3F1', color: '#5B6B60', border: '#DCE3DE', icon: 'clock' },
-  starting: { label: 'Starting', bg: '#F1F8F3', color: '#2E6F40', border: '#BFDCC7', icon: 'spin' },
-  needs_input: { label: 'Needs input', bg: '#EEF1EE', color: '#5B6B60', border: '#DCE3DE', icon: 'pause' },
+  timed_out: { label: 'Timed out', bg: '#FDF3E3', color: '#B4571F', border: '#EBD3A4', icon: 'clock' },
 };
+
+/** A run's state as a chip, in the design's colours: Queued, Starting, Running, Needs input, Finished, Failed... */
+export function RunChip({ state }: { state: RunState }) {
+  const chip = CHIPS[state] ?? CHIPS.failed;
+  return (
+    <span
+      className="ai-chip"
+      data-testid="run-state-chip"
+      style={{ background: chip.bg, color: chip.color, border: `1px solid ${chip.border}` }}
+    >
+      {chip.icon && <Icon kind={chip.icon} />}
+      {chip.label}
+    </span>
+  );
+}
 
 function Icon({ kind }: { kind: NonNullable<Chip['icon']> }) {
   const common = {
@@ -53,7 +68,21 @@ function Icon({ kind }: { kind: NonNullable<Chip['icon']> }) {
         style={{ width: 7, height: 7, borderRadius: '50%', background: '#2E6F40', flexShrink: 0 }}
       />
     );
-  if (kind === 'spin') return <span className="ai-spin" style={{ width: 10, height: 10 }} />;
+  if (kind === 'spin')
+    return (
+      <span
+        className="mc-spin"
+        style={{
+          width: 11,
+          height: 11,
+          borderRadius: '50%',
+          border: '2px solid #2F6FB033',
+          borderTopColor: '#2F6FB0',
+          boxSizing: 'border-box',
+          flexShrink: 0,
+        }}
+      />
+    );
   if (kind === 'check')
     return (
       <svg {...common} strokeLinecap="round" strokeLinejoin="round">
@@ -170,7 +199,6 @@ export function RunHistoryTable({
           ))}
         </div>
         {runs.map((r, i) => {
-          const chip = CHIPS[r.state];
           return (
             <div
               key={r.id}
@@ -241,13 +269,7 @@ export function RunHistoryTable({
               </div>
               <span style={{ ...CELL, whiteSpace: 'nowrap' }}>{startedByWords(r)}</span>
               <span style={{ justifySelf: 'start' }}>
-                <span
-                  className="ai-chip"
-                  style={{ background: chip.bg, color: chip.color, border: `1px solid ${chip.border}` }}
-                >
-                  {chip.icon && <Icon kind={chip.icon} />}
-                  {chip.label}
-                </span>
+                <RunChip state={r.state} />
               </span>
               <span style={{ ...CELL, fontFamily: 'JetBrains Mono,monospace' }}>{elapsedWords(r, now)}</span>
               <span style={{ ...CELL, whiteSpace: 'nowrap' }}>{r.costUsd > 0 ? money(r.costUsd) : 'Not metered'}</span>
