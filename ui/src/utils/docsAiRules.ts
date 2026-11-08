@@ -4,7 +4,7 @@ import type { DocsAiState } from '../api/docsAi';
 export type AiGate =
   /** Nothing is shown: Docs AI is off for the project. */
   | { show: false }
-  /** Shown, with a reason instead of the actions (no AI member can read the space). */
+  /** Shown, with a reason instead of the actions (no AI team can read the space). */
   | { show: true; reason: 'no_member'; text: string }
   /** Shown and usable. */
   | { show: true; reason: null; text?: undefined };
@@ -13,7 +13,7 @@ export type AiGate =
 export function aiGate(state: DocsAiState | undefined): AiGate {
   if (!state || state.state === 'off') return { show: false };
   if (state.state === 'no_member') {
-    return { show: true, reason: 'no_member', text: 'No AI member can read this space. Open AI members.' };
+    return { show: true, reason: 'no_member', text: 'No AI team can read this space. Open Members.' };
   }
   return { show: true, reason: null };
 }
@@ -32,9 +32,8 @@ export function menuRows(canEdit: boolean): { id: string; writes: boolean }[] {
   return rows.filter((r) => canEdit || !r.writes);
 }
 
-/** "About $0.01" for a cost estimate, or "Not metered" for a local runner. */
+/** "About $0.01" for a cost the run reported, otherwise "Not metered" (a subscription runner reports none). */
 export function costLabel(cost: number, metered: boolean): string {
-  if (!metered) return 'Not metered';
-  if (cost <= 0) return 'About $0.00';
+  if (!metered || cost <= 0) return 'Not metered';
   return cost < 0.01 ? `About $${cost.toFixed(3)}` : `About $${cost.toFixed(2)}`;
 }

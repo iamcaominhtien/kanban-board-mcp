@@ -62,7 +62,9 @@ export function DocsAiSettings({ project }: { project: Project }) {
       )}
       {d.enabled && d.state === 'no_member' && (
         <div role="status" style={{ ...hint, color: '#B4541A' }}>
-          No AI member can read this space. Pick one below or add an AI member in Members.
+          {d.problem?.code === 'paused'
+            ? d.problem.message
+            : 'No AI team can read this space. Pick one below or add an AI team in Members.'}
         </div>
       )}
       {!admin && <div style={hint}>Only project admins change these settings.</div>}

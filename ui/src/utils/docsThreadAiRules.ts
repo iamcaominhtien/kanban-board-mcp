@@ -20,7 +20,6 @@ export interface MentionRow {
 const STATUS: Record<string, { label: string; tone: 'ok' | 'warn' | 'off' }> = {
   ready: { label: 'Ready', tone: 'ok' },
   paused: { label: 'Paused', tone: 'warn' },
-  over_budget: { label: 'Over budget', tone: 'warn' },
   unavailable: { label: 'Unavailable', tone: 'off' },
 };
 

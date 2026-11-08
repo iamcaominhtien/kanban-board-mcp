@@ -249,10 +249,10 @@ export function AskPanel({
       <div style={{ padding: 18 }} data-testid="ask-no-member">
         <div style={{ fontWeight: 700, fontSize: 14 }}>No AI is set up for Docs</div>
         <div style={{ color: MUTED, fontSize: 12.5, margin: '4px 0 10px' }}>
-          Pick an AI member that can read this project.
+          Pick an AI team in Settings › Docs, or add one in Members.
         </div>
         <button type="button" style={primaryBtn} onClick={() => assist?.onOpenAiMembers()}>
-          Open AI members
+          Open Members
         </button>
       </div>
     );
@@ -282,14 +282,9 @@ export function AskPanel({
       <div style={{ padding: 18 }} data-testid="ask-error" data-code={view.code}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>{view.title}</div>
         <div style={{ color: MUTED, fontSize: 12.5, margin: '4px 0 10px' }}>{view.detail}</div>
-        {view.action === 'usage' && (
-          <button type="button" style={smallBtn} onClick={() => assist?.onOpenSettings()}>
-            See usage
-          </button>
-        )}
         {view.action === 'members' && (
           <button type="button" style={smallBtn} onClick={() => assist?.onOpenAiMembers()}>
-            Open AI members
+            Open Members
           </button>
         )}
         {view.action === 'retry' && (

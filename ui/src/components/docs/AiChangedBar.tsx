@@ -18,7 +18,7 @@ function dismissed(pageId: string, version: number): boolean {
   }
 }
 
-/** Whether the latest published version was written by an AI member of the project, and which one. */
+/** Whether the latest published version was written by an AI team of the project, and which one. */
 export function aiWriter(page: DocsPage, members: Member[]): Member | null {
   if (page.version < 2) return null;
   const by = page.updatedBy.trim().toLowerCase();
@@ -37,10 +37,10 @@ interface Props {
 
 /**
  * "Team X changed this page · See changes · Undo": a slim bar above the page when its latest version was written by an
- * AI member. "x" hides it for this page and version.
+ * AI team. "x" hides it for this page and version.
  * @param props.page - Page being read.
  * @param props.projectId - Project of the page.
- * @param props.members - The project's members (an AI member's name is the page's `updatedBy`).
+ * @param props.members - The project's members (an AI team's name is the page's `updatedBy`).
  * @param props.canEdit - Show Undo.
  * @param props.onCompare - Called with the previous version and the latest to open their diff.
  */
@@ -72,15 +72,19 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
     }
   };
 
+  const cancel = (
+    <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirming(false)}>
+      Cancel
+    </button>
+  );
   return (
     <div
       className="docs-root"
       data-testid="ai-changed-bar"
       style={{
         display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '6px 10px',
+        flexDirection: 'column',
+        gap: 6,
         padding: '7px 12px',
         marginBottom: 16,
         borderRadius: 10,
@@ -90,21 +94,46 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
         color: '#1E2A22',
       }}
     >
-      <span style={{ display: 'flex', color: '#6B4FBB' }}>
-        <LineIcon name="sparkle" size={15} />
-      </span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <b style={{ fontWeight: 700 }}>{writer.name}</b> changed this page{' '}
-        <span style={{ color: '#5B6B60' }} title={absoluteTime(page.updatedAt)}>
-          · {relativeTime(page.updatedAt)} · v{page.version}
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px' }}>
+        <span style={{ display: 'flex', color: '#6B4FBB' }}>
+          <LineIcon name="sparkle" size={15} />
         </span>
-      </span>
-      {confirming ? (
-        <>
-          <span style={{ color: '#5B6B60' }}>Go back to v{previous}? It is kept as a new version.</span>
-          <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirming(false)}>
-            Cancel
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <b style={{ fontWeight: 700 }}>{writer.name}</b> changed this page{' '}
+          <span style={{ color: '#5B6B60' }} title={absoluteTime(page.updatedAt)}>
+            · {relativeTime(page.updatedAt)} · v{page.version}
+          </span>
+        </span>
+        {!confirming && onCompare && (
+          <button
+            type="button"
+            className="st-btn st-btn-sm"
+            onClick={() => onCompare(previous, page.version)}
+            data-testid="ai-changed-diff"
+          >
+            See changes
           </button>
+        )}
+        {!confirming && canEdit && (
+          <button
+            type="button"
+            className="st-btn st-btn-sm"
+            onClick={() => setConfirming(true)}
+            data-testid="ai-changed-undo"
+          >
+            Undo
+          </button>
+        )}
+        <button type="button" className="dk-icobtn" aria-label="Hide" style={{ width: 26, height: 26 }} onClick={close}>
+          <Icon name="i08" size={14} strokeWidth={2} />
+        </button>
+      </div>
+      {confirming && (
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px', paddingLeft: 25 }}>
+          <span style={{ color: '#5B6B60', flex: 1, minWidth: 0 }}>
+            Go back to v{previous}? It is kept as a new version.
+          </span>
+          {cancel}
           <button
             type="button"
             className="st-btn st-btn-sm st-btn-primary"
@@ -114,34 +143,8 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
           >
             {restore.isPending ? 'Restoring…' : `Restore v${previous}`}
           </button>
-        </>
-      ) : (
-        <>
-          {onCompare && (
-            <button
-              type="button"
-              className="st-btn st-btn-sm"
-              onClick={() => onCompare(previous, page.version)}
-              data-testid="ai-changed-diff"
-            >
-              See changes
-            </button>
-          )}
-          {canEdit && (
-            <button
-              type="button"
-              className="st-btn st-btn-sm"
-              onClick={() => setConfirming(true)}
-              data-testid="ai-changed-undo"
-            >
-              Undo
-            </button>
-          )}
-        </>
+        </div>
       )}
-      <button type="button" className="dk-icobtn" aria-label="Hide" style={{ width: 26, height: 26 }} onClick={close}>
-        <Icon name="i08" size={14} strokeWidth={2} />
-      </button>
     </div>
   );
 }

@@ -21,14 +21,14 @@ export interface SuggestMember {
   note?: string;
   bg?: string;
   color?: string;
-  /** An AI member: its avatar, and its status in words (greyed and not insertable when it cannot be used now). */
+  /** An AI team: its avatar, and its status in words (greyed and not insertable when it cannot be used now). */
   ai?: {
     avatar: ReactNode;
     status: string;
     note: string;
     tone: 'ok' | 'warn' | 'off';
     usable: boolean;
-    /** The whole sub line ("Local runner · online · can edit code"); replaces status + note. */
+    /** The whole sub line ("Backend team · idle"); replaces status + note. */
     sub?: string;
     /** A pill at the right ("Paused") for a member that cannot be used now. */
     chip?: string;

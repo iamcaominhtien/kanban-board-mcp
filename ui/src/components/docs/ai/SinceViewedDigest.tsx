@@ -132,13 +132,7 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage }: Props) {
               >
                 {p.title}
               </button>
-              :{' '}
-              {p.line ??
-                (p.hidden
-                  ? 'changed (hidden from AI, so not summarised)'
-                  : p.kind === 'new'
-                    ? 'a new page'
-                    : 'changed')}
+              : {p.line ?? (p.kind === 'new' ? 'a new page' : 'changed')}
             </div>
           ))}
           <div style={{ fontSize: 11, color: '#5B6B60', marginTop: 4 }}>

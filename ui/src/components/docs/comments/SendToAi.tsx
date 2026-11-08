@@ -333,7 +333,7 @@ export function SendToAiBox({ pageId, data }: BoxProps) {
           title="Board AI decides"
           hint={
             tk && !tk.boardAi.available
-              ? 'Not available: Docs AI is off or has no AI member.'
+              ? 'Not available: Docs AI is off or has no AI team.'
               : 'It reads the threads, finds the ticket and sends them to its team, or answers itself.'
           }
           disabled={!!tk && !tk.boardAi.available}
@@ -345,7 +345,7 @@ export function SendToAiBox({ pageId, data }: BoxProps) {
           title="The page's assistant"
           hint={
             tk && !tk.pageAssistant.available
-              ? 'Not available: Docs AI is off or has no AI member.'
+              ? 'Not available: Docs AI is off or has no AI team.'
               : 'Questions, search and small things on this page.'
           }
           disabled={!!tk && !tk.pageAssistant.available}
