@@ -158,7 +158,8 @@ export function keepList(texts: CommandTexts, trial: Scan['trial'] | undefined):
     const text = texts[n].trim();
     if (!text) return false;
     const run = trial?.[n];
-    if (!run) return true;
-    return run.command.trim() === text && run.status === 'works';
+    // typed after a proof is the person's, like a box with no proof; the rest are kept only when they work
+    if (!run || run.command.trim() !== text) return true;
+    return run.status === 'works';
   });
 }

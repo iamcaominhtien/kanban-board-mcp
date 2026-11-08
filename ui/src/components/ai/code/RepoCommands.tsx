@@ -12,6 +12,23 @@ import { CommandRow, ScanLog, ScanStrip } from './RepoCommandsParts';
 import { COMMAND_ORDER, jobOf, proposedTexts, rowView, keepList, type CommandTexts } from './repoCommandsLogic';
 import './repoCommands.css';
 
+/** The scan this card made for a folder, remembered across visits: the server keeps the real path, not the typed one. */
+const madeKey = (projectId: string) => `kb-repo-scan:${projectId}`;
+function readMade(projectId: string): { scanId: string; folder: string } | null {
+  try {
+    return JSON.parse(localStorage.getItem(madeKey(projectId)) ?? 'null');
+  } catch {
+    return null;
+  }
+}
+function writeMade(projectId: string, v: { scanId: string; folder: string }) {
+  try {
+    localStorage.setItem(madeKey(projectId), JSON.stringify(v));
+  } catch {
+    // the card still works for this visit
+  }
+}
+
 /** Frame 7: a command that ended "npm: command not found" and a folder the AI proposed that has it. */
 function pathNote(run: TrialRun | null | undefined, env: EnvFolder[]): string | null {
   if (!run || run.status !== 'wrong' || run.exitCode !== 127) return null;
@@ -42,9 +59,9 @@ export function RepoCommands({ projectId }: { projectId: string }) {
   const trim = (p: string) => p.replace(/\/+$/, '');
   const latest = query.data ?? null;
   // the server keeps the real path (symlinks resolved), so a scan this card made is always this project's
-  const madeHere = useRef<string | null>(null);
+  const made = readMade(projectId);
   const scan: Scan | null =
-    latest && (latest.id === madeHere.current || !folder.startsWith('/') || trim(latest.folder) === trim(folder))
+    latest && (made ? made.scanId === latest.id && made.folder === folder : trim(latest.folder) === trim(folder))
       ? latest
       : null;
   const job = jobOf(scan);
@@ -70,13 +87,21 @@ export function RepoCommands({ projectId }: { projectId: string }) {
   // The boxes take what the AI proposes, only when it arrives while this page watches the job: the server keeps the
   // proposal of the last job until the next one writes its own, so the first sight of a job is its baseline
   const nothingSaved = COMMAND_ORDER.every((n) => !saved[n].trim());
-  const watched = useRef<{ key: string; proposal: string; adopted: boolean; envAdopted: boolean } | null>(null);
+  const watched = useRef<{
+    key: string;
+    proposal: string;
+    env: string;
+    adopted: boolean;
+    envAdopted: boolean;
+    late: boolean;
+  } | null>(null);
   // the boxes the person typed in since the job started: the AI's answer does not replace them
   const touched = useRef<Set<CommandName>>(new Set());
   useEffect(() => {
     if (!scan || !job || !ops.data || job.mode !== 'ai') return;
     const key = `${scan.id}:${job.startedAt}`;
     const sig = JSON.stringify(scan.proposal ?? {});
+    const envSig = JSON.stringify((scan.proposal as { envPath?: EnvFolder[] }).envPath ?? null);
     const w = watched.current;
     const proposed = proposedTexts(scan);
     const folders = (scan.proposal as { envPath?: EnvFolder[] }).envPath;
@@ -84,7 +109,15 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       // first sight of this job: a proposal that is already there belongs to an earlier look, unless nothing is saved
       // yet and the job has ended (the page was closed while it ran): then its commands are what the person has
       const take = !!proposed && job.state !== 'running' && nothingSaved;
-      watched.current = { key, proposal: sig, adopted: take, envAdopted: take && !!folders?.length };
+      watched.current = {
+        key,
+        proposal: sig,
+        env: envSig,
+        adopted: take,
+        envAdopted: take && !!folders?.length,
+        // opened while it works and its answer is already there: take it when the job ends
+        late: !!proposed && job.state === 'running',
+      };
       if (take) {
         setTyped(proposed);
         if (folders?.length) setEnvEdit(folders);
@@ -92,7 +125,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       return;
     }
     if (!proposed) return;
-    if (!w.adopted && sig !== w.proposal) {
+    if (!w.adopted && (sig !== w.proposal || (w.late && job.state !== 'running'))) {
       w.adopted = true;
       setTyped((cur) => {
         // a box the person typed in meanwhile stays; the others take the proposal
@@ -103,7 +136,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
       touched.current.clear();
     }
     // the folders are saved a moment after the commands: take them when they arrive
-    if (!w.envAdopted && folders?.length) {
+    if (!w.envAdopted && folders?.length && (envSig !== w.env || (w.late && job.state !== 'running'))) {
       w.envAdopted = true;
       setEnvEdit(folders);
     }
@@ -116,7 +149,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
     inflight.current ??= aiScanApi
       .create(projectId, folder)
       .then((s) => {
-        madeHere.current = s.id;
+        writeMade(projectId, { scanId: s.id, folder });
         put(s);
         return s;
       })
@@ -336,7 +369,7 @@ export function RepoCommands({ projectId }: { projectId: string }) {
             ? 'Not saved yet: Save these commands keeps it for this project.'
             : 'Saved for this project. The next run of a command or a ticket uses it.'
         }
-        disabled={patch.isPending}
+        disabled={patch.isPending || running}
       />
 
       {(dirty || hasProof) && (
