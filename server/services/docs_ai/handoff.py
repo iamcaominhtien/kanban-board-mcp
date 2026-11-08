@@ -244,19 +244,16 @@ async def _builder_team(
 async def builder_team_of(
     session: AsyncSession, page: DocsPage
 ) -> dict[str, str] | None:
-    """The team that built the page (see `_builder_team`), for a caller that has only the page."""
+    """The team that built the page (see `_builder_team`), for a caller that has only the page: the team on the
+    "Write the page" / "Review the page" ticket tied to THIS page, else the author of its first version."""
+    from services import docs_work
+
     members = {m.id: m for m in await docs_access.members_of(session, page.project_id)}
-    built = [
-        t
-        for t in (
-            await session.exec(
-                select(Ticket).where(
-                    Ticket.project_id == page.project_id,
-                    col(Ticket.title).startswith("Write the page"),
-                )
-            )
-        ).all()
-    ]
+    built = []
+    for tid in await docs_work._ticket_ids(session, page.id):  # noqa: SLF001
+        t = await session.get(Ticket, tid)
+        if t is not None and t.title.startswith(("Write the page", "Review the page")):
+            built.append(t)
     return await _builder_team(session, page, members, built)
 
 
@@ -423,23 +420,48 @@ async def targets(session: AsyncSession, page_id: str) -> dict[str, Any]:
 
     taken = {r["id"] for r in page_level}
 
-    def _number(t: Ticket) -> int:
-        tail = t.id.rsplit("-", 1)[-1]
+    def _number(key: str) -> int:
+        tail = key.rsplit("-", 1)[-1]
         return int(tail) if tail.isdigit() else 0
 
-    # newest first by the number in the key (the text order puts KAN-99 above KAN-100)
-    every = (
-        await session.exec(select(Ticket).where(Ticket.project_id == page.project_id))
-    ).all()
-    others_rows = sorted(every, key=_number, reverse=True)[:OTHERS_LIMIT]
-    others = []
-    for t in others_rows:
-        if t.id in taken:
-            continue
-        others.append(
-            _ticket_row(
-                t, await _team_of(session, t, members, active, look_back=False), []
+    # Only the four columns the list shows (a ticket row also carries its description, comments and logs), newest
+    # first by the number in the key (the text order puts KAN-99 above KAN-100).
+    light = (
+        await session.exec(
+            select(Ticket.id, Ticket.title, Ticket.status, Ticket.assignee).where(
+                Ticket.project_id == page.project_id
             )
+        )
+    ).all()
+    others = []
+    for tid, title, status, assignee in sorted(
+        light, key=lambda r: _number(r[0]), reverse=True
+    )[:OTHERS_LIMIT]:
+        if tid in taken:
+            continue
+        run = active.get(tid)
+        member = members.get(assignee or "") or (
+            members.get(run.member_id) if run is not None else None
+        )
+        team = None
+        if member is not None and member.kind == "ai":
+            state = "idle"
+            if run is not None:
+                state = "asking" if run.state == "needs_input" else "working"
+            team = {
+                "id": member.id,
+                "name": member.name,
+                "state": state,
+                "run_number": run.number if run is not None else None,
+            }
+        others.append(
+            {
+                "id": tid,
+                "title": title,
+                "status": status,
+                "relations": [],
+                "team": team,
+            }
         )
     teams = [{"id": m.id, "name": m.name} for m in members.values() if m.kind == "ai"]
     teams.sort(key=lambda t: t["name"].casefold())
