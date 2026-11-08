@@ -11,6 +11,7 @@ import { isSettingsPageId, type SettingsPageId } from './components/settings/set
 import { TicketModal } from './components/TicketModal';
 import { OPEN_RUN_EVENT } from './components/aiteam/runLink';
 import { OPEN_TIMELINE_EVENT } from './components/aiteam/timelineLink';
+import { OPEN_SETTINGS_EVENT } from './components/aiteam/settingsLink';
 import { RecycleBin } from './components/RecycleBin';
 import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
 import { useMembers } from './api/members';
@@ -555,6 +556,19 @@ export default function App() {
       window.removeEventListener(OPEN_RUN_EVENT, open);
       window.removeEventListener(OPEN_TIMELINE_EVENT, open);
     };
+  }, []);
+
+  // A link to one setting (AI Team › Health: "Open Memory of one run"): the settings page opens on it
+  useEffect(() => {
+    const open = (e: Event) => {
+      const d = (e as CustomEvent<{ page?: string; setting?: string }>).detail ?? {};
+      setSettingsTarget({
+        page: isSettingsPageId(d.page ?? null) ? (d.page as SettingsPageId) : undefined,
+        setting: d.setting,
+      });
+    };
+    window.addEventListener(OPEN_SETTINGS_EVENT, open);
+    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, open);
   }, []);
 
   function closeModal() {

@@ -29,7 +29,7 @@ import services.activity as svc_activity
 from database import get_session
 from services.ai import accounts as svc_accounts
 from services.ai import cli
-from services.ai import signin
+from services.ai import signin, touches
 
 logger = logging.getLogger("kanban.ai.accounts")
 router = APIRouter(tags=["ai-accounts"])
@@ -268,6 +268,7 @@ async def post_signin(
         _fail(exc)
     try:
         opened = await signin.start(account, _by(), cols, rows)
+        await touches.record_signin(session, account, _by())
     except signin.SignInBusy as exc:
         raise HTTPException(
             status_code=409,
@@ -275,6 +276,7 @@ async def post_signin(
         ) from exc
     except signin.PtyUnavailable as exc:
         logger.warning("sign-in terminal unavailable: %s", exc)
+        await touches.record_signin(session, account, _by())
         return {
             "mode": "fallback",
             "reason": "The terminal could not start on this computer.",
