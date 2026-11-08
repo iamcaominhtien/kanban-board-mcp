@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAiTeams, useRunnerInfo } from '../../../api/ai';
+import { useRunnerInfo } from '../../../api/ai';
 import { useAccountActions, useAiAccounts, useComputerLogins } from '../../../api/aiAccounts';
 import { extractError } from '../../../api/extractError';
 import type { AccountCli, AiAccount } from '../../../types/aiAccounts';
@@ -45,7 +45,6 @@ type Dialog =
 export function AccountsTab({ projectId }: { projectId: string }) {
   const accounts = useAiAccounts(projectId);
   const runner = useRunnerInfo();
-  const teams = useAiTeams(projectId);
   const desktop = runner.data?.local !== false;
   const logins = useComputerLogins();
   const actions = useAccountActions();
@@ -107,10 +106,6 @@ export function AccountsTab({ projectId }: { projectId: string }) {
     </button>
   );
 
-  // Members of this project on the login that is already on this computer, per CLI
-  const onComputer = (provider: string) =>
-    (teams.data ?? []).filter((m) => m.provider === provider && !m.accountId).length;
-
   let body;
   if (accounts.isLoading) {
     body = (
@@ -127,8 +122,8 @@ export function AccountsTab({ projectId }: { projectId: string }) {
       <div className="acc-empty" data-testid="accounts-empty">
         <b style={{ fontSize: 13 }}>No AI accounts yet</b>
         <div className="acc-hint" style={{ fontSize: 12.5 }}>
-          AI teams use the login already on this computer. Add an account to share one login between teams, or to
-          keep work and personal apart.
+          AI teams use the login already on this computer. Add an account to share one login between teams, or to keep
+          work and personal apart.
         </div>
         {addButton}
       </div>
@@ -192,8 +187,8 @@ export function AccountsTab({ projectId }: { projectId: string }) {
     <div className="acc-root ai-root" data-testid="accounts-tab">
       <div className="acc-intro">
         <div className="acc-intro-text">
-          One sign-in of Claude Code. Several AI teams can use the same account; if it expires you fix it here, once. The
-          login stays with the CLI; Kanban never reads or shows it.
+          One sign-in of Claude Code. Several AI teams can use the same account; if it expires you fix it here, once.
+          The login stays with the CLI; Kanban never reads or shows it.
         </div>
         {list.length > 0 && addButton}
       </div>
@@ -272,24 +267,16 @@ export function AccountsTab({ projectId }: { projectId: string }) {
             </span>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {logins.data?.map((l) => {
-              const n = onComputer('claude-code');
-              return (
-                <span key={l.cli} className="acc-login">
-                  <AccountBadge cli={l.cli} label={l.label} size={22} />
-                  {l.label}
-                  {l.signedInWith ? ` · ${l.signedInWith}` : ''}
-                  {n > 0 && (
-                    <span className="acc-hint">
-                      {n} member{n === 1 ? '' : 's'}
-                    </span>
-                  )}
-                  <button type="button" className="acc-link" onClick={() => setDialog({ kind: 'add', cli: l.cli })}>
-                    Move to an account
-                  </button>
-                </span>
-              );
-            })}
+            {logins.data?.map((l) => (
+              <span key={l.cli} className="acc-login">
+                <AccountBadge cli={l.cli} label={l.label} size={22} />
+                {l.label}
+                {l.signedInWith ? ` · ${l.signedInWith}` : ''}
+                <button type="button" className="acc-link" onClick={() => setDialog({ kind: 'add', cli: l.cli })}>
+                  Move to an account
+                </button>
+              </span>
+            ))}
           </div>
         </div>
       )}

@@ -15,8 +15,7 @@ export const GUIDE_URL: Record<AccountCli, string> = {
 /** Why Add account and Sign in are off in the web build (the sentence is the tooltip). */
 export const DESKTOP_ONLY = 'AI accounts need the desktop app. Signing in runs a terminal on your computer.';
 
-export type StatusKey =
-  'signed_in' | 'needs_sign_in' | 'signing_in' | 'checking' | 'cli_missing' | 'not_ready' | 'unavailable';
+export type StatusKey = 'signed_in' | 'needs_sign_in' | 'signing_in' | 'checking' | 'cli_missing' | 'unavailable';
 
 export interface StatusView {
   key: StatusKey;
@@ -35,7 +34,6 @@ const TONES: Record<StatusKey, Pick<StatusView, 'bg' | 'color' | 'dot'>> = {
   signing_in: { bg: '#E8F1FA', color: '#244E78', dot: '#2F6FB0' },
   checking: { bg: '#F1F3F1', color: '#5B6B60', dot: '#9AA8A0' },
   cli_missing: { bg: '#FEF3D9', color: '#7A5A06', dot: '#E8B93A' },
-  not_ready: { bg: '#FEF3D9', color: '#7A5A06', dot: '#E8B93A' },
   unavailable: { bg: '#F1F3F1', color: '#5B6B60', dot: '#9AA8A0' },
 };
 
@@ -99,19 +97,15 @@ export function statusView(a: AiAccount, checking: boolean, nowMs: number): Stat
   if (checking) return view('checking', 'Checking', 'Checked now');
   if (a.status === 'needs_sign_in') {
     const why = a.signedOutAt ? 'Session expired.' : 'Not signed in yet.';
-    return view(
-      'needs_sign_in',
-      'Needs sign-in',
-      n ? `${why} ${n} team${n === 1 ? '' : 's'} can’t run.` : why,
-      'bad',
-    );
+    return view('needs_sign_in', 'Needs sign-in', n ? `${why} ${n} team${n === 1 ? '' : 's'} can’t run.` : why, 'bad');
   }
-  if (!a.runnable) return view('not_ready', 'Not ready', 'Runs don’t start yet for this CLI.', 'warn');
   return view('signed_in', 'Signed in', checked);
 }
 
 /** What the account is signed in with: a first line (method and plan) and a second (who, when the CLI says). */
 export function signedInWith(a: AiAccount): { primary: string; secondary: string | null } {
+  // A signed-out account shows a dash: what it was signed in with is not shown while it does not work (design B, frame 1)
+  if (a.status === 'needs_sign_in') return { primary: '—', secondary: null };
   const plan = a.plan ? a.plan.charAt(0).toUpperCase() + a.plan.slice(1) : null;
   let method = a.method;
   if (a.cli === 'claude' && method) method = method.charAt(0).toUpperCase() + method.slice(1);

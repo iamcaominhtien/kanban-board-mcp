@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { AccIcon, ICONS } from './AccountParts';
 import './accountsMember.css';
 
 const INFO = 'M12 8V8.01M11 12H12V16H13M12 21A9 9 0 1 0 12 3A9 9 0 0 0 12 21Z';
@@ -37,7 +38,7 @@ export function AccountNote({
 }
 
 /**
- * Banner above the AI list for one signed-out account (design E1): one banner however many members it hits, with
+ * Banner above the AI teams list for one signed-out account (design F, frame 33): one banner however many teams it hits, with
  * the two ways out.
  */
 export function AccountBanner({
@@ -61,6 +62,7 @@ export function AccountBanner({
         actions={
           <>
             <button type="button" className="ai-btn ai-btn-sm ai-btn-primary" onClick={onSignIn} disabled={busy}>
+              <AccIcon paths={[...ICONS.refresh]} size={13} />
               Sign in again
             </button>
             <button type="button" className="ai-btn ai-btn-sm" onClick={onChoose}>

@@ -1372,3 +1372,47 @@
 .ai-pausebar-note {
   color: #5b6b60;
 }
+
+/* Add an AI team and the team page (design/screens/ai-members.md, C and D): sentence-case labels, a 2-column pack
+   grid, the persona counter and the six limits in one row. */
+.ai-label-sentence {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #1e2a22;
+}
+.ai-pack-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ai-pack-grid .ai-option {
+  align-items: flex-start;
+  padding: 9px 10px;
+  gap: 9px;
+}
+.ai-pack-grid .ai-radio {
+  margin-top: 2px;
+}
+.ai-persona {
+  position: relative;
+}
+.ai-persona .ai-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 22px;
+}
+.ai-persona-count {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 11px;
+  color: #9aa8a0;
+  pointer-events: none;
+}
+.ai-limits {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+}

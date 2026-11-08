@@ -6,7 +6,8 @@ import type { AiTeam, AiTeamRole, RoleOverride } from '../../types/ai';
 import { useToast } from '../Toast';
 import { AccountPicker } from './accounts/AccountPicker';
 import { RemoveAiDialog } from './AiDialogs';
-import { EFFORTS, MAX_PERSONA, MODELS, PERMISSION_MODES } from './teamOptions';
+import { EFFORTS, MODELS, PERMISSION_MODES } from './teamOptions';
+import { PersonaField } from './PersonaField';
 import {
   changedFields,
   draftOf,
@@ -50,8 +51,8 @@ function LimitField({
   const [text, setText] = useState(value == null ? '' : String(value));
   useEffect(() => setText(value == null ? '' : String(value)), [value]);
   return (
-    <label className="ai-field" style={{ minWidth: 150 }}>
-      <span className="ai-label ai-label-dark">{label}</span>
+    <label className="ai-field" style={{ minWidth: 0 }}>
+      <span className="ai-label ai-label-dark ai-label-sentence">{label}</span>
       <input
         className="ai-input"
         type="number"
@@ -301,7 +302,7 @@ function SettingsCard({ team }: { team: AiTeam }) {
     <Section title="Settings" hint="Changes take effect on the next run.">
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
         <label className="ai-field" style={{ flex: 2, minWidth: 260 }}>
-          <span className="ai-label ai-label-dark">Working folder</span>
+          <span className="ai-label ai-label-dark ai-label-sentence">Working folder</span>
           <input
             className="ai-input ai-mono"
             value={folder}
@@ -311,7 +312,7 @@ function SettingsCard({ team }: { team: AiTeam }) {
           />
         </label>
         <label className="ai-field" style={{ flex: 1, minWidth: 130 }}>
-          <span className="ai-label ai-label-dark">Model of the lead</span>
+          <span className="ai-label ai-label-dark ai-label-sentence">Model of the lead</span>
           <select
             className="ai-select"
             value={team.model ?? 'sonnet'}
@@ -326,7 +327,7 @@ function SettingsCard({ team }: { team: AiTeam }) {
           </select>
         </label>
         <label className="ai-field" style={{ flex: 1, minWidth: 110 }}>
-          <span className="ai-label ai-label-dark">Effort</span>
+          <span className="ai-label ai-label-dark ai-label-sentence">Effort</span>
           <select
             className="ai-select"
             value={team.effort ?? ''}
@@ -343,7 +344,7 @@ function SettingsCard({ team }: { team: AiTeam }) {
         </label>
       </div>
       <div className="ai-field">
-        <span className="ai-label ai-label-dark">Permission mode</span>
+        <span className="ai-label ai-label-dark ai-label-sentence">Permission mode</span>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="radiogroup" aria-label="Permission mode">
           {PERMISSION_MODES.map((m) => (
             <button
@@ -366,25 +367,19 @@ function SettingsCard({ team }: { team: AiTeam }) {
         </div>
       </div>
       <div className="ai-field">
-        <span className="ai-label ai-label-dark">Claude account</span>
+        <span className="ai-label ai-label-dark ai-label-sentence">Claude account</span>
         <AccountPicker
           provider="claude-code"
           value={team.accountId}
           projectId={team.projectId}
           currentAccountId={team.accountId}
+          profile
           onChange={(id) => void save({ accountId: id })}
         />
       </div>
       <label className="ai-field">
-        <span className="ai-label ai-label-dark">Persona</span>
-        <textarea
-          className="ai-textarea"
-          style={{ minHeight: 80 }}
-          maxLength={MAX_PERSONA}
-          value={persona}
-          aria-label="Persona"
-          onChange={(e) => setPersona(e.target.value)}
-        />
+        <span className="ai-label ai-label-dark ai-label-sentence">Persona</span>
+        <PersonaField value={persona} onChange={setPersona} ariaLabel="Persona" />
         <span>
           <button
             type="button"
@@ -397,10 +392,10 @@ function SettingsCard({ team }: { team: AiTeam }) {
         </span>
       </label>
       <div>
-        <div className="ai-label ai-label-dark" style={{ marginBottom: 6 }}>
+        <div className="ai-label ai-label-dark ai-label-sentence" style={{ marginBottom: 6 }}>
           Limits
         </div>
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <div className="ai-limits">
           <LimitField
             label="Runs at once"
             value={team.maxParallel}
@@ -499,7 +494,7 @@ export function AiProfile({
         )}
         <button
           type="button"
-          className="ai-btn ai-btn-danger"
+          className="ai-btn ai-btn-danger-outline"
           onClick={() => setRemoving(true)}
           data-testid="team-remove"
         >

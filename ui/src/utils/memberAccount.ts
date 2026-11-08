@@ -85,6 +85,14 @@ export function sharedHint(
   };
 }
 
+/** The grey line of the chosen account on the team page: who it is, the plan and how many teams share it (frame 36). */
+export function profileSub(a: AiAccount): string {
+  const parts: (string | null)[] = [a.email, planOrMethod(a)];
+  if (a.memberCount > 1) parts.push(`${a.memberCount} teams share this account and its limits`);
+  if (a.status === 'needs_sign_in' && a.signedOutAt) parts.push('session expired');
+  return parts.filter(Boolean).join(' · ');
+}
+
 /** The same warning on a team's page: "3 teams share this account and its limits". */
 export function sharedProfileHint(ref: MemberAccountRef): string | null {
   return ref.sharedBy > 1 ? `${ref.sharedBy} teams share this account and its limits` : null;

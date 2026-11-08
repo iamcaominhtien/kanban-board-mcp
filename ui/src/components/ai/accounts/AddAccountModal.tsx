@@ -33,12 +33,9 @@ function CliCard({ card, selected, onPick }: { card: AccountCliCard; selected: b
         {off ? (
           <span className="sg-chip sg-chip-off">{card.unavailable}</span>
         ) : (
-          <>
-            <span className={`sg-chip ${card.found ? '' : 'sg-chip-warn'}`}>
-              {card.found ? (card.version ? `found · v${card.version}` : 'found') : 'not installed'}
-            </span>
-            {!card.runnable && <span className="sg-chip sg-chip-warn">Not ready</span>}
-          </>
+          <span className={`sg-chip ${card.found ? '' : 'sg-chip-warn'}`}>
+            {card.found ? (card.version ? `found · v${card.version}` : 'found') : 'not installed'}
+          </span>
         )}
       </span>
     </button>
@@ -84,7 +81,7 @@ function Steps({ step }: { step: 1 | 2 | 3 }) {
   );
 }
 
-/** "<CLI> is not installed": the install command and Detect again, as the Add AI member flow does. */
+/** "<CLI> is not installed": the install command and Detect again, as the Add an AI team flow does. */
 function InstallPanel({
   card,
   detecting,
@@ -155,7 +152,7 @@ export function AddAccountModal({
   onClose,
   onCreated,
 }: {
-  /** Start at the name step for this CLI (opened from "New account…" in the Add AI member window). */
+  /** Start at the name step for this CLI (opened from "New account…" in the Add an AI team window). */
   initialCli?: AccountCli;
   onClose: () => void;
   /** The account exists (made at the end of the name step), signed in or not. */
@@ -334,8 +331,8 @@ export function AddAccountModal({
                   />
                   {nameProblem && <span className="ai-error-text">{nameProblem}</span>}
                   <span className="sg-note">
-                    Shown when you pick an account for an AI team. Claude Code reports who is signed in, so its email
-                    is shown as well. Use the person or plan, not a secret.
+                    Shown when you pick an account for an AI team. Claude Code reports who is signed in, so its email is
+                    shown as well. Use the person or plan, not a secret.
                   </span>
                 </label>
                 <div className="sg-callout">
