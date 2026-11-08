@@ -7,6 +7,7 @@ import { GroupHead, TeamRow } from './settings/settingsUi';
 import { LimitSettings, RunRules, RunnerCard } from './settings/RunningSettings';
 import './settings/teamOwn.css';
 import { KnowledgeSection } from './knowledge/KnowledgeSection';
+import { RolePacksSection } from './packs/RolePacksSection';
 import { RepositoriesSection } from './code/RepositoriesSection';
 import { SkillsPluginsSection } from './tools/SkillsPluginsSection';
 import './aiPage.css';
@@ -116,6 +117,15 @@ export function AiSettingsSection({
           hint="What every run is told about the project, and what the teams learned while they worked."
         />
         <KnowledgeSection projectId={projectId} />
+      </section>
+
+      <section className="ai-group" id="ai-packs" aria-labelledby="ai-packs-h" data-toc="Role packs">
+        <GroupTitle
+          id="ai-packs-h"
+          title="Role packs"
+          hint="Everything that makes an AI a role, in one pack: who it is, its model, what it hands in. A team is made from packs; you can edit them for this project."
+        />
+        <RolePacksSection projectId={projectId} />
       </section>
 
       <section className="ai-group" id="ai-repos" aria-labelledby="ai-repos-h" data-toc="Repositories">
