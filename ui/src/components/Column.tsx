@@ -202,6 +202,11 @@ export function Column({
         )}
         {ordered.map((ticket) => {
           const indented = ticket.parentId != null && columnTicketIds.has(ticket.parentId);
+          // Story > ticket > sub-ticket in one column: the third level steps in once more
+          const parentOfTicket = ticket.parentId
+            ? (allTickets ?? tickets).find((t) => t.id === ticket.parentId)
+            : undefined;
+          const deep = indented && parentOfTicket?.parentId != null && columnTicketIds.has(parentOfTicket.parentId);
           const childTicketsForThis = (allTickets ?? tickets).filter((t) => t.parentId === ticket.id);
           const subtaskStats =
             childTicketsForThis.length > 0
@@ -212,7 +217,7 @@ export function Column({
               : undefined;
 
           return indented ? (
-            <div key={ticket.id} className={styles.childIndent}>
+            <div key={ticket.id} className={deep ? styles.childIndentDeep : styles.childIndent}>
               <DraggableTicketCard
                 ticket={ticket}
                 allTickets={allTickets}

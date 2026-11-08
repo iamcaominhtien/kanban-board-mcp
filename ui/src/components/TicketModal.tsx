@@ -828,6 +828,7 @@ function TicketModalInner({
   // Every tag used in the project, for the tag picker's suggestions
   const projectTags = useMemo(() => Array.from(new Set(allTickets.flatMap((t) => t.tags ?? []))), [allTickets]);
   const parentTicket = ticket?.parentId ? allTickets.find((t) => t.id === ticket.parentId) : undefined;
+  const grandparentTicket = parentTicket?.parentId ? allTickets.find((t) => t.id === parentTicket.parentId) : undefined;
   // A ticket holds sub-tickets one level deep; a Story's tickets can hold them too (Story > ticket > sub-ticket)
   const canHaveSubTickets = !ticket?.parentId || parentTicket?.type === 'story' || childTickets.length > 0;
   const pendingBlockerTicket = ticket?.pendingTicketId
@@ -1200,6 +1201,32 @@ function TicketModalInner({
 
               <span className={styles.headerDivider} />
 
+              {grandparentTicket && (
+                <>
+                  <button
+                    type="button"
+                    className={styles.parentBtn}
+                    onClick={() => onOpenTicket?.(grandparentTicket)}
+                    title={`Story: ${grandparentTicket.title}`}
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      stroke="#9AA8A0"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3.5 2.5V8A2.5 2.5 0 0 0 6 10.5H9.5" />
+                      <path d="M7.5 8.5L10 11L7.5 13.5" />
+                    </svg>
+                    {grandparentTicket.id}
+                  </button>
+                  <span className={styles.slashSep}>/</span>
+                </>
+              )}
               {parentTicket && (
                 <>
                   <button
