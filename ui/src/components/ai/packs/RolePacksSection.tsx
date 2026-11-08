@@ -65,10 +65,7 @@ export function RolePacksSection({ projectId }: { projectId: string }) {
   return (
     <div className="rp-root" data-testid="role-packs" data-setting="role-packs">
       <div className="rp-toolbar">
-        <div className="ai-hint" style={{ maxWidth: 520 }}>
-          Everything that makes an AI a role, in one pack: who it is, its model, what it hands in. A team is made from
-          packs; you can edit them for this project.
-        </div>
+        <span style={{ flex: 1 }} />
         <div className="rp-toolbar-actions">
           <button
             type="button"
