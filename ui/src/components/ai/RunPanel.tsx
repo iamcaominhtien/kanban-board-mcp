@@ -272,8 +272,9 @@ export function TicketAiStrips({ ticket }: { ticket: Ticket }) {
   const latest = (runs.data ?? [])[0];
   const team = ticket.assignee ? aiMembers.get(ticket.assignee) : undefined;
   const paused = !!settings?.pausedAll && !!team && !['done', 'wont_do'].includes(ticket.status);
-  const runTeam = latest ? aiMembers.get(latest.memberId) : undefined;
-  const accountOut = !!latest && runTeam?.accountRef?.status === 'needs_sign_in';
+  // the team the ticket is assigned to cannot work either, whether or not it ever ran here
+  const runTeam = team ?? (latest ? aiMembers.get(latest.memberId) : undefined);
+  const accountOut = runTeam?.accountRef?.status === 'needs_sign_in';
   if (!paused && !accountOut) return null;
   return (
     <>
@@ -282,7 +283,7 @@ export function TicketAiStrips({ ticket }: { ticket: Ticket }) {
           {latest?.state === 'queued' ? 'Its next run is held.' : 'Nothing new starts on this ticket.'}
         </PausedStrip>
       )}
-      {latest && accountOut && runTeam?.accountRef && (
+      {accountOut && runTeam?.accountRef && (
         <AccountNote
           tone="error"
           title={`${runTeam.accountRef.name} is signed out`}
@@ -419,7 +420,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
         style={{ color: '#2E6F40', fontWeight: 600 }}
         data-testid="card-summary-ready"
       >
-        <SparkleIcon size={11} /> Report ready
+        <LineIcon name="check" size={12} /> Report ready
       </div>
     );
   if (

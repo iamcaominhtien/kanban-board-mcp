@@ -495,6 +495,8 @@ export function RunPanel({ runId }: { runId: string }) {
   const usageWords = `${run.costUsd > 0 ? money(run.costUsd) : 'Not metered'}${tokens > 0 ? ` · ${fmtElapsedTokens(tokens)} tokens` : ''}`;
   // a run that is only waiting or just starting is one line; the facts strip is for a run that goes on
   const started = !!run.startedAt && run.state !== 'starting';
+  // waiting or just starting, with nothing done yet: one line, not an empty steps box
+  const plainHint = run.state === 'queued' || (run.state === 'starting' && steps.length === 0);
   const stepsBlock = (
     <div
       style={{
@@ -820,19 +822,19 @@ export function RunPanel({ runId }: { runId: string }) {
         )}
         {run.state === 'needs_input' && run.question && !run.answer && <QuestionCard run={{ ...run }} />}
         <RunReportCard run={run} />
-        {run.state !== 'queued' && (
+        {!plainHint && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
             {stepsBlock}
             {rail}
           </div>
         )}
-        {run.state === 'queued' && (
-          <span style={{ fontSize: '12px', color: '#9AA8A0' }} data-testid="no-steps">
-            No steps yet.
-          </span>
-        )}
         <RunMessages runId={runId} />
         <RunMessageBox run={run} />
+        {plainHint && (
+          <span style={{ fontSize: '12px', color: '#9AA8A0' }} data-testid="no-steps">
+            {run.state === 'starting' ? 'Starting Claude Code…' : 'No steps yet.'}
+          </span>
+        )}
         <div style={{ fontSize: '11.5px', color: '#9AA8A0', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <LineIcon name="lock" size={12} />
           Secrets, tokens and key-like strings are masked before the log is stored or shown.

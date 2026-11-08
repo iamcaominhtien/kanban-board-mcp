@@ -6,6 +6,7 @@ import { currentPerson } from '../assist/assistUi';
 import { ASSIGN_AI_EVENT } from './AiTicketContext';
 import { ACTIVE_RUN_STATES, AiAvatar, StatusLabel, useAiBoardState } from './aiUi';
 import { LineIcon } from '../ui/LineIcon';
+import { FloatMenu } from './ComposerAi';
 
 /** Why a team cannot take work now (the picker greys it out), or a note on how it will start. */
 function aiNote(m: AiTeam): { disabled: boolean; note: string; tag?: string; grey?: boolean } {
@@ -51,6 +52,7 @@ export function AssigneePicker({
   const [q, setQ] = useState('');
   const [pending, setPending] = useState<AiTeam | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const { members: aiMap } = useAiBoardState();
   const me = currentPerson();
   const current = members.find((m) => m.id === value);
@@ -73,6 +75,8 @@ export function AssigneePicker({
   }, [ticket.id, aiMap]);
   useEffect(() => {
     const close = (e: MouseEvent) => {
+      // the list is drawn in the page body (it must not be cut by the ticket's box): a click in it is not outside
+      if ((e.target as HTMLElement).closest?.('.tw-menu')) return;
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
         setPending(null);
@@ -85,6 +89,7 @@ export function AssigneePicker({
   return (
     <div ref={ref} style={{ position: 'relative' }} className="ai-root">
       <button
+        ref={trigger}
         type="button"
         onClick={() => setOpen(!open)}
         data-testid="assignee-picker"
@@ -116,123 +121,125 @@ export function AssigneePicker({
         </div>
       )}
       {open && !pending && (
-        <div className="ai-popover" style={{ right: 0, top: 30, width: 330, padding: 8 }} data-testid="assignee-menu">
-          <div className="ai-label" style={{ padding: '4px 6px 6px' }}>
-            Assignee
-          </div>
-          <div style={{ position: 'relative' }}>
-            <input
-              className="ai-input"
-              style={{ paddingRight: 30 }}
-              placeholder="Search people and teams…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              autoFocus
-            />
-            <span style={{ position: 'absolute', right: 10, top: 9, color: '#9AA8A0', display: 'flex' }}>
-              <LineIcon name="search" size={14} />
-            </span>
-          </div>
-          <div style={{ maxHeight: 460, overflow: 'auto', marginTop: 6 }}>
-            <button
-              type="button"
-              className="ai-mi"
-              onClick={() => {
-                onPickPerson(null);
-                setOpen(false);
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{ width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed #C5CEC8', flexShrink: 0 }}
-              />
-              <span style={{ color: '#9AA8A0' }}>Unassigned</span>
-            </button>
-            <div className="ai-label" style={{ padding: '8px 10px 4px' }}>
-              People
+        <FloatMenu anchor={trigger.current} onClose={() => setOpen(false)} width={330}>
+          <div style={{ padding: 4 }} data-testid="assignee-menu">
+            <div className="ai-label" style={{ padding: '4px 6px 6px' }}>
+              Assignee
             </div>
-            {people.map((m) => (
+            <div style={{ position: 'relative' }}>
+              <input
+                className="ai-input"
+                style={{ paddingRight: 30 }}
+                placeholder="Search people and teams…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                autoFocus
+              />
+              <span style={{ position: 'absolute', right: 10, top: 9, color: '#9AA8A0', display: 'flex' }}>
+                <LineIcon name="search" size={14} />
+              </span>
+            </div>
+            <div style={{ maxHeight: 'min(460px, 55vh)', overflow: 'auto', marginTop: 6 }}>
               <button
-                key={m.id}
                 type="button"
                 className="ai-mi"
                 onClick={() => {
-                  onPickPerson(m.id);
+                  onPickPerson(null);
                   setOpen(false);
                 }}
               >
-                <MemberAvatar member={m} size={22} />
-                {m.name}
-                {m.name === me && (
-                  <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="assign-you-tag">
-                    you
-                  </span>
-                )}
-                {m.id === value && (
-                  <span style={{ marginLeft: m.name === me ? 8 : 'auto', color: '#2E6F40' }}>
-                    <LineIcon name="check" size={13} />
-                  </span>
-                )}
+                <span
+                  aria-hidden="true"
+                  style={{ width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed #C5CEC8', flexShrink: 0 }}
+                />
+                <span style={{ color: '#9AA8A0' }}>Unassigned</span>
               </button>
-            ))}
-            {ais.length > 0 && (
               <div className="ai-label" style={{ padding: '8px 10px 4px' }}>
-                AI teams · {ais.length}
+                People
               </div>
-            )}
-            {ais.map((m) => {
-              const n = aiNote(m);
-              return (
+              {people.map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   className="ai-mi"
-                  disabled={n.disabled}
-                  style={{
-                    opacity: n.disabled || n.grey ? 0.5 : 1,
-                    cursor: n.disabled ? 'not-allowed' : 'pointer',
+                  onClick={() => {
+                    onPickPerson(m.id);
+                    setOpen(false);
                   }}
-                  title={n.tag === 'offline' ? 'Runner not detected: the ticket waits in its queue' : undefined}
-                  onClick={() => setPending(m)}
-                  data-testid={`assign-ai-${m.name}`}
                 >
-                  <AiAvatar color={m.color} size={22} dim={n.disabled || n.grey} />
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <span>{m.name}</span>
-                    {!n.tag && (
-                      <span style={{ display: 'flex', gap: 4, alignItems: 'center', fontWeight: 500 }}>
-                        <StatusLabel status={m.status} sub={null} />
-                        <span className="ai-muted">{n.note}</span>
-                      </span>
-                    )}
-                  </span>
-                  {n.tag && (
-                    <span
-                      className="ai-muted"
-                      style={{
-                        marginLeft: 'auto',
-                        border: '1px solid #DCE3DE',
-                        borderRadius: 4,
-                        padding: '0 6px',
-                        fontSize: 10.5,
-                        lineHeight: '17px',
-                        background: '#fff',
-                      }}
-                      data-testid="assign-ai-tag"
-                    >
-                      {n.tag}
+                  <MemberAvatar member={m} size={22} />
+                  {m.name}
+                  {m.name === me && (
+                    <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="assign-you-tag">
+                      you
                     </span>
                   )}
                   {m.id === value && (
-                    <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>
+                    <span style={{ marginLeft: m.name === me ? 8 : 'auto', color: '#2E6F40' }}>
                       <LineIcon name="check" size={13} />
                     </span>
                   )}
                 </button>
-              );
-            })}
+              ))}
+              {ais.length > 0 && (
+                <div className="ai-label" style={{ padding: '8px 10px 4px' }}>
+                  AI teams · {ais.length}
+                </div>
+              )}
+              {ais.map((m) => {
+                const n = aiNote(m);
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="ai-mi"
+                    disabled={n.disabled}
+                    style={{
+                      opacity: n.disabled || n.grey ? 0.5 : 1,
+                      cursor: n.disabled ? 'not-allowed' : 'pointer',
+                    }}
+                    title={n.tag === 'offline' ? 'Runner not detected: the ticket waits in its queue' : undefined}
+                    onClick={() => setPending(m)}
+                    data-testid={`assign-ai-${m.name}`}
+                  >
+                    <AiAvatar color={m.color} size={22} dim={n.disabled || n.grey} />
+                    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span>{m.name}</span>
+                      {!n.tag && (
+                        <span style={{ display: 'flex', gap: 4, alignItems: 'center', fontWeight: 500 }}>
+                          <StatusLabel status={m.status} sub={null} />
+                          <span className="ai-muted">{n.note}</span>
+                        </span>
+                      )}
+                    </span>
+                    {n.tag && (
+                      <span
+                        className="ai-muted"
+                        style={{
+                          marginLeft: 'auto',
+                          border: '1px solid #DCE3DE',
+                          borderRadius: 4,
+                          padding: '0 6px',
+                          fontSize: 10.5,
+                          lineHeight: '17px',
+                          background: '#fff',
+                        }}
+                        data-testid="assign-ai-tag"
+                      >
+                        {n.tag}
+                      </span>
+                    )}
+                    {m.id === value && (
+                      <span style={{ marginLeft: 'auto', color: '#2E6F40' }}>
+                        <LineIcon name="check" size={13} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </FloatMenu>
       )}
       {pending && (
         <AssignStartPopover
@@ -272,6 +279,7 @@ function ChoiceCard({
       type="button"
       role="radio"
       aria-checked={on}
+      tabIndex={on ? 0 : -1}
       onClick={onPick}
       data-testid={testId}
       style={{
@@ -383,7 +391,17 @@ export function AssignStartPopover({
           </div>
         </div>
       </div>
-      <div role="radiogroup" aria-label="How to begin" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+      <div
+        role="radiogroup"
+        aria-label="How to begin"
+        style={{ display: 'flex', flexDirection: 'column', gap: 11 }}
+        onKeyDown={(e) => {
+          if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+            setStart((v) => !v);
+          }
+        }}
+      >
         <ChoiceCard
           on={start}
           onPick={() => setStart(true)}
