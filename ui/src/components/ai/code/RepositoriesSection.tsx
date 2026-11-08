@@ -8,7 +8,7 @@ import type { HandoverRoute } from '../../../types/aiCode';
 import { LoadError, Toggle } from '../aiUi';
 import { ROUTE_TEXT, ROUTE_TITLE, WorktreeRow, mbText } from './worktreeUi';
 import { TeamRow } from '../settings/settingsUi';
-import { EnvBlock } from '../packs/EnvBlock';
+import { RepoCommands } from './RepoCommands';
 import '../settings/teamOwn.css';
 
 interface WtSettings {
@@ -65,7 +65,7 @@ function TextSetting({
   );
 }
 
-/** Where the AIs work (design/screens/ai-operations.md, I and K): worktrees, ports, the prepare command, hand-over. */
+/** Where the AIs work (design/screens/ai-operations.md, I and K): worktrees, ports, hand-over, then the commands the project runs. */
 export function RepositoriesSection({ projectId }: { projectId: string }) {
   const ops = useProjectOps(projectId);
   const patch = usePatchProjectOps(projectId);
@@ -159,19 +159,6 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
           <span className="ai-hint">Not editable</span>
         </Row>
         <Row
-          title="Prepare command"
-          hint="Run once in every new worktree, before the first AI touches it. The board remembers how long it took."
-        >
-          <TextSetting
-            value={wt.prepare ?? ''}
-            placeholder="npm ci && uv sync"
-            label="Prepare command"
-            width={240}
-            testId="wt-prepare"
-            onSave={(v) => void saveWt({ prepare: v })}
-          />
-        </Row>
-        <Row
           title="Ports for worktrees"
           hint="One per worktree, handed back when it is removed. A clash is a board fault, not the AI's."
         >
@@ -204,43 +191,6 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
             ))}
           </select>
         </Row>
-        <div className="ai-divider" />
-        <Row title="Test command" hint="The teams run it before they hand in.">
-          <TextSetting
-            value={ops.data.commands?.test ?? ''}
-            placeholder="npm test"
-            label="Test command"
-            width={240}
-            testId="cmd-test"
-            onSave={(v) => void save({ commands: { test: v.trim() } })}
-          />
-        </Row>
-        <Row title="Lint command" hint="Empty: no lint command.">
-          <TextSetting
-            value={ops.data.commands?.lint ?? ''}
-            placeholder="npm run lint"
-            label="Lint command"
-            width={240}
-            testId="cmd-lint"
-            onSave={(v) => void save({ commands: { lint: v.trim() } })}
-          />
-        </Row>
-        <Row title="Build command" hint="Empty: no build command.">
-          <TextSetting
-            value={ops.data.commands?.build ?? ''}
-            placeholder="npm run build"
-            label="Build command"
-            width={240}
-            testId="cmd-build"
-            onSave={(v) => void save({ commands: { build: v.trim() } })}
-          />
-        </Row>
-        <EnvBlock
-          folders={(ops.data.envPath ?? []).map((path) => ({ path, by: 'project' as const }))}
-          onChange={(next) => void save({ envPath: next.map((f) => f.path) })}
-          changeNote="Saved for this project. The next run of a command or a ticket uses it."
-          disabled={patch.isPending}
-        />
         {!on && (
           <div className="ai-hint" data-testid="wt-off-note">
             Worktrees are off: every team of the project shares {repoName}, the way it works today. Not a git
@@ -253,6 +203,8 @@ export function RepositoriesSection({ projectId }: { projectId: string }) {
           </div>
         )}
       </div>
+
+      <RepoCommands projectId={projectId} />
 
       {on && (
         <div className="ai-card" style={{ padding: 12 }} data-testid="worktree-list">
