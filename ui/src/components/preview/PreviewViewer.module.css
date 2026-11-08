@@ -544,6 +544,15 @@
 .readerBarSpacer {
   flex: 1;
 }
+.readerChip {
+  padding: 4px 10px;
+  border: 1px solid var(--pv-border);
+  border-radius: 8px;
+  background: var(--pv-surface);
+  color: var(--pv-text);
+  font-size: 12px;
+  font-weight: 600;
+}
 .segmented {
   display: inline-flex;
   border: 1px solid var(--pv-border);

@@ -278,7 +278,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
   );
 
   const reader = useMemo(() => {
-    const props = { item, onFacts, actions, onNavigate: go };
+    const props = { item, onFacts, actions, downloadHref, onNavigate: go };
     switch (kind) {
       case 'image':
         return <ImageReader {...props} />;

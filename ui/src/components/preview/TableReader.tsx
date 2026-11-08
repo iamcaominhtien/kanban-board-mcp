@@ -18,7 +18,7 @@ export function TableReader(props: ReaderProps) {
   return getFileExtension(props.item.name) === 'xlsx' ? <XlsxReader {...props} /> : <DelimitedReader {...props} />;
 }
 
-function DelimitedReader({ item, onFacts, actions }: ReaderProps) {
+function DelimitedReader({ item, onFacts, actions, downloadHref }: ReaderProps) {
   const ext = getFileExtension(item.name);
   const [state, retry] = useFileData(item.src, CSV_LIMIT);
   const [active, setActive] = useState(0);
@@ -106,7 +106,17 @@ function DelimitedReader({ item, onFacts, actions }: ReaderProps) {
               ? `showing ${shown.rows.length.toLocaleString()} of ${shown.totalRows.toLocaleString()}${state.status === 'ready' && state.truncated ? '+' : ''} rows`
               : `${shown.totalRows.toLocaleString()} rows`}
           </span>
+          {parsed?.ok && parsed.delimiter && (
+            <span className={styles.readerChip} data-testid="csv-delimiter">
+              Delimiter: {parsed.delimiter}
+            </span>
+          )}
           <span className={styles.readerBarSpacer} />
+          {more && downloadHref && (
+            <a className={styles.btn} href={downloadHref} download={item.name} data-testid="csv-download-all">
+              Download all rows
+            </a>
+          )}
           <label className={styles.searchBox}>
             <span className={styles.srOnly}>Search cells</span>
             <input
@@ -133,7 +143,7 @@ function DelimitedReader({ item, onFacts, actions }: ReaderProps) {
           </label>
         </div>
         {more && (
-          <Notice actions={actions}>
+          <Notice>
             Showing the first {ROW_LIMIT} rows. The full file has {shown.totalRows.toLocaleString()}
             {state.status === 'ready' && state.truncated ? '+' : ''} rows
             {state.status === 'ready' && state.truncated && state.total ? ` (${formatFileSize(state.total)})` : ''}.

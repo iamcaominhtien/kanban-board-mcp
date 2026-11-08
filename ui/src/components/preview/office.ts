@@ -119,7 +119,7 @@ export function parseDocx(bytes: Uint8Array): WordBlock[] {
 }
 
 /**
- * Read a .pptx as text per slide plus speaker notes. Slide pictures need a converter, so this is the outline view. A slide
+ * Read a .pptx as text per slide plus speaker notes (the outline view; the slides themselves are drawn by `pptxRender.ts`). A slide
  * without a title placeholder gets the biggest text as its title; repeated footers and page numbers are left out.
  * @param bytes - The file.
  */
