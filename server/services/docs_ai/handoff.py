@@ -440,9 +440,10 @@ async def targets(session: AsyncSession, page_id: str) -> dict[str, Any]:
         if tid in taken:
             continue
         run = active.get(tid)
-        member = members.get(assignee or "") or (
-            members.get(run.member_id) if run is not None else None
-        )
+        # the same rule as `_team_of`: an assignee who is not an AI member is ignored, then the run's team
+        member = members.get(assignee or "")
+        if member is None or member.kind != "ai":
+            member = members.get(run.member_id) if run is not None else None
         team = None
         if member is not None and member.kind == "ai":
             state = "idle"
