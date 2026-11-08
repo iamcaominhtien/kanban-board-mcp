@@ -265,6 +265,15 @@ export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>, availWi
     }
   }
 
+  // blocked-by pills of neighbouring tickets can land on one another: push the lower one down
+  const blocked = edges.filter((e) => e.edge.kind === 'blocked').sort((a, b) => a.ly - b.ly);
+  for (let i = 1; i < blocked.length; i++) {
+    const prev = blocked[i - 1];
+    const here = blocked[i];
+    const wide = (p: PlacedEdge) => p.label.length * 6 + 14;
+    const sameColumn = Math.abs(here.lx - prev.lx) < (wide(here) + wide(prev)) / 2;
+    if (sameColumn && here.ly - prev.ly < 22) here.ly = prev.ly + 22;
+  }
   return {
     width: Math.max(availWidth, ticketX + TICKET_W + arcRoom),
     height: colBottom + 24,

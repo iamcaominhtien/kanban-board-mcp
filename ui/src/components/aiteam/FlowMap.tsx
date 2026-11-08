@@ -108,6 +108,8 @@ function TeamCard({
       style={{ left: box.x, top: box.y, width: box.w, height: box.h, borderColor: color }}
       onMouseEnter={() => onHover(node.id)}
       onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(node.id)}
+      onBlur={() => onHover(null)}
       data-testid={`flow-team-${node.id}`}
     >
       <div className="fl-team-h" style={{ background: `${color}1F`, height: TEAM_HEAD }}>
@@ -182,9 +184,17 @@ function TicketCard({
       style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
       onMouseEnter={() => onHover(node.id)}
       onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(node.id)}
+      onBlur={() => onHover(null)}
       data-testid={`flow-ticket-${node.id}`}
+      title={node.context ? 'No run in this range: drawn because a ticket that ran points at it' : undefined}
     >
-      <button type="button" className="fl-ticket-main" onClick={onOpen} title={`Open ${node.id}`}>
+      <button
+        type="button"
+        className="fl-ticket-main"
+        onClick={onOpen}
+        title={node.context ? undefined : `Open ${node.id}`}
+      >
         <span className="fl-ticket-top">
           {node.live && <span className={`at-live-dot ${node.live === 'waiting' ? 'waiting_you' : 'working'}`} />}
           <b>{node.id}</b>
@@ -205,6 +215,7 @@ function TicketCard({
         className="fl-mini ghost"
         onClick={onScope}
         title={`Look at the flow of ${node.id}`}
+        aria-label={`Look at the flow of ${node.id}`}
         data-testid={`flow-ticket-scope-${node.id}`}
       >
         Flow
@@ -270,7 +281,7 @@ export function FlowMap({
 
   return (
     <div data-testid="flow-map">
-      <div className="fl-map" ref={box} role="group" aria-label="Map of the teams, you and the tickets">
+      <div className="fl-map" ref={box} role="group" aria-label="Map of the teams, you and the tickets" tabIndex={0}>
         <div className="fl-map-in" style={{ width: layout.width, height: layout.height }}>
           <svg
             width={layout.width}

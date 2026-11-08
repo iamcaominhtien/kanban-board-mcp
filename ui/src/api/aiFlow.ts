@@ -21,6 +21,8 @@ export function useFlowMap(projectId: string, q: FlowMapQuery) {
         })
       ).data,
     enabled: !!projectId,
+    // the error state (with its Retry) shows at once, not after react-query's three tries
+    retry: false,
     // a new range of the same scope keeps the map on screen (open teams stay open); another scope draws anew
     placeholderData: (prev, prevQuery) => {
       const was = prevQuery?.queryKey[4] as FlowMapQuery | undefined;
@@ -39,6 +41,7 @@ export function useFlowScopes(projectId: string) {
     queryKey: ['ai', 'team', 'flow-scopes', projectId] as const,
     queryFn: async () => (await client.get<FlowScopes>(`/projects/${projectId}/ai/team/flow/scopes`)).data,
     enabled: !!projectId,
+    retry: false,
     refetchInterval: SAFETY_POLL_MS,
   });
 }

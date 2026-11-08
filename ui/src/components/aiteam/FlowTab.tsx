@@ -88,7 +88,7 @@ export function FlowTab({
 
   const summary = (() => {
     const d = scopes.data;
-    if (!d) return 'Reading the teams…';
+    if (!d) return scopes.isError ? 'Couldn’t read the teams.' : 'Reading the teams…';
     if (scope.teamId) {
       const t = d.teams.find((x) => x.id === scope.teamId);
       return `${t?.name ?? 'This team'}: ${t?.runs ?? 0} run${t?.runs === 1 ? '' : 's'}${t?.live ? ', working now' : ''}`;
@@ -122,6 +122,7 @@ export function FlowTab({
         scopes={scopes.data}
         view={view}
         summary={summary}
+        mapTickets={map.data?.tickets}
         onScope={choose}
         onView={setView}
         onCopyLink={copyLink}
@@ -190,12 +191,12 @@ export function FlowTab({
         ) : (
           <div data-testid="flow-map-loading" role="status" aria-label="Drawing the map">
             <div className="fl-skel" aria-hidden="true">
-              <i style={{ left: 18, top: 50, width: 150, height: 62 }} />
-              {[0, 1, 2].map((i) => (
-                <i key={`t${i}`} style={{ left: 330, top: 10 + i * 66, width: 250, height: 54 }} />
+              <i style={{ left: 14, top: 40, width: 150, height: 100 }} />
+              {[16, 88, 160].map((top) => (
+                <i key={`t${top}`} style={{ left: 330, top, width: 250, height: 54 }} />
               ))}
-              {[0, 1, 2].map((i) => (
-                <i key={`k${i}`} className="fl-skel-r" style={{ top: 10 + i * 62, width: 236, height: 50 }} />
+              {[16, 82, 148].map((top) => (
+                <i key={`k${top}`} style={{ left: 860, top, width: 262, height: 54 }} />
               ))}
             </div>
             <div className="at-hint" style={{ marginTop: 8 }}>
