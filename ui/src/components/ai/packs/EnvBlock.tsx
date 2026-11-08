@@ -176,9 +176,8 @@ export function EnvBlock({
           </div>
           <div className="pk-env-used">
             <b>Used by everything this project runs:</b> the commands above, the prepare command of every ticket’s
-            worktree, the lint, build and test checks of a workflow, and the AI members’ own runs on this project’s
-            tickets — so a Dev’s <span className="ai-code">npm test</span> sees the same PATH. <b>Not used by</b> other
-            projects.
+            worktree, the lint, build and test commands, and the teams’ own runs on this project’s tickets — so a Dev’s{' '}
+            <span className="ai-code">npm test</span> sees the same PATH. <b>Not used by</b> other projects.
           </div>
         </>
       )}

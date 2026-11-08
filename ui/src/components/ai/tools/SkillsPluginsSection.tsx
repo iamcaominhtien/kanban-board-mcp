@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { aiPluginsApi, usePluginMutation, usePlugins } from '../../../api/aiPlugins';
+import type { CatalogueEntry } from '../../../types/aiPlugins';
 import { extractError } from '../../../api/extractError';
 import { LoadError } from '../aiUi';
 import { AddFromSource } from './AddFromSource';
@@ -13,6 +14,7 @@ type Tab = 'installed' | 'suggested' | 'source' | 'byTeam';
  * installed, by team. */
 export function SkillsPluginsSection({ projectId }: { projectId: string }) {
   const [tab, setTab] = useState<Tab>('installed');
+  const [pick, setPick] = useState<CatalogueEntry | null>(null);
   const plugins = usePlugins(projectId);
   const [confirmReset, setConfirmReset] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,13 +43,33 @@ export function SkillsPluginsSection({ projectId }: { projectId: string }) {
   ];
 
   let body;
-  if (plugins.isLoading)
+  if (tab === 'source')
+    body = (
+      <AddFromSource
+        key={pick?.key ?? 'blank'}
+        projectId={projectId}
+        initial={pick?.source ? { source: pick.source, plugin: pick.plugin, roles: pick.roles } : undefined}
+        onInstalled={() => {
+          setPick(null);
+          setTab('installed');
+        }}
+      />
+    );
+  else if (plugins.isLoading)
     body = <div className="ai-skel" style={{ height: 120 }} aria-busy="true" aria-label="Loading" />;
   else if (plugins.error || !plugins.data)
     body = <LoadError what="the plugins" error={plugins.error} onRetry={() => void plugins.refetch()} />;
-  else if (tab === 'suggested') body = <CatalogueTab plugins={plugins.data} />;
+  else if (tab === 'suggested')
+    body = (
+      <CatalogueTab
+        plugins={plugins.data}
+        onAdd={(e) => {
+          setPick(e);
+          setTab('source');
+        }}
+      />
+    );
   else if (tab === 'byTeam') body = <ByTeamTab projectId={projectId} plugins={plugins.data} />;
-  else if (tab === 'source') body = <AddFromSource projectId={projectId} onInstalled={() => setTab('installed')} />;
   else body = <InstalledTab projectId={projectId} plugins={plugins.data} />;
 
   return (
@@ -103,7 +125,11 @@ export function SkillsPluginsSection({ projectId }: { projectId: string }) {
             role="tab"
             aria-selected={tab === k}
             className={`ai-tab${tab === k ? ' ai-tab-active' : ''}`}
-            onClick={() => setTab(k)}
+            onClick={() => {
+              setTab(k);
+              setDone(null);
+              setError(null);
+            }}
           >
             {label}
             {k === 'installed' && plugins.data && <span className="ai-tab-count">{plugins.data.length}</span>}

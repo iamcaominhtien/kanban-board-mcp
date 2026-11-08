@@ -125,7 +125,7 @@ export function InstructionsPanel({ projectId, data }: { projectId: string; data
       </div>
       <div className="ai-hint">
         It goes into the system prompt of every run on this project, before the team&rsquo;s own persona. A change takes
-        effect on the next run; a conversation already running keeps its prompt.
+        effect on the next run; a conversation already running keeps its prompt. Nothing is written to CLAUDE.md.
       </div>
       {showHistory && (
         <div data-testid="instructions-history-list" style={{ borderTop: '1px solid #eef3ef', paddingTop: 8 }}>

@@ -198,7 +198,10 @@ export function PackEditor({
     [catalogue.data],
   );
   const missingPlugins = plugins.data ? d.plugins.filter((p) => !installed.includes(p)) : [];
-  const skills = (boardSkills.data ?? []).filter((s) => !s.role || s.role === pack.key);
+  // a role's own skill, and the craft skills that reach a team with this role (the same rule as the server)
+  const skills = (boardSkills.data ?? []).filter(
+    (s) => (!s.role || s.role === pack.key) && (!s.craftRoles || s.craftRoles.includes(pack.key)),
+  );
 
   const errors = validate(d);
   const shown = tried ? errors : {};
@@ -473,7 +476,7 @@ export function PackEditor({
                 <span
                   key={s.name}
                   className={`rp-skill ${s.role ? 'rp-skill-role' : ''} ${
-                    boardSkillOn(ops.data?.boardSkills, s.name) ? '' : 'rp-skill-off'
+                    s.alwaysOn || boardSkillOn(ops.data?.boardSkills, s.name) ? '' : 'rp-skill-off'
                   }`}
                   title={s.description}
                 >

@@ -34,7 +34,7 @@ export const ROUTE_TITLE: Record<Exclude<HandoverRoute, 'auto'>, string> = {
 
 export const ROUTE_TEXT: Record<Exclude<HandoverRoute, 'auto'>, string> = {
   pr: 'Opened as a draft when the ticket reaches Review, marked ready at Done.',
-  local: 'Only ever when you ask: moving to Done, or the Merge button. Never while the main checkout is dirty.',
+  local: 'Only when you ask: moving to Done, or the Merge button. Never while the main checkout is dirty.',
   branch: 'The branch is pushed and you open whatever your host calls a merge request.',
 };
 
@@ -132,7 +132,7 @@ export function WorktreeRow({
         <StateChip state={w.state} waiting={waitsForYou(w, run)} />
       </td>
       <td>{mbText(w.live?.sizeMb)}</td>
-      <td className="ai-mono">{w.port ?? '-'}</td>
+      <td className="ai-mono">{w.port ?? '—'}</td>
       <td>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {onOpen && w.state !== 'removed' && (

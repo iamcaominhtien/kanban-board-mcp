@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { aiApi, useAiBoard } from '../../../api/ai';
 import { codeApi, useCodeMutation, useWorktrees } from '../../../api/aiCode';
@@ -44,7 +44,9 @@ function TextSetting({
   onSave: (v: string) => void;
   testId?: string;
 }) {
+  // the typed text stays until the stored value changes, so a failed save keeps what was typed
   const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => setDraft(null), [value]);
   return (
     <input
       className="ai-input"
@@ -56,7 +58,7 @@ function TextSetting({
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => {
         if (draft != null && draft !== value) onSave(draft);
-        setDraft(null);
+        else setDraft(null);
       }}
       onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
     />

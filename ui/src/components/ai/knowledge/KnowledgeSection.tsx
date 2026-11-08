@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useKnowledge } from '../../../api/aiKnowledge';
 import type { Knowledge } from '../../../types/aiKnowledge';
 import { LoadError } from '../aiUi';
@@ -19,6 +19,8 @@ export function memoryWaiting(data: Knowledge): number {
 export function KnowledgeSection({ projectId, initialTab }: { projectId: string; initialTab?: Tab }) {
   const q = useKnowledge(projectId);
   const [picked, setTab] = useState<Tab | null>(initialTab ?? null);
+  // the tab it opened on stays: keeping the last proposal must not move the panel under the person
+  const opened = useRef<Tab | null>(null);
 
   if (q.isLoading)
     return (
@@ -36,7 +38,8 @@ export function KnowledgeSection({ projectId, initialTab }: { projectId: string;
   const proposals = data.lessons.filter((l) => l.state === 'proposed').length;
   const waiting = memoryWaiting(data);
   // proposals wait in Memory: open on it while any do, so they are not missed behind the Instructions tab
-  const tab: Tab = picked ?? (waiting > 0 ? 'memory' : 'instructions');
+  opened.current ??= waiting > 0 ? 'memory' : 'instructions';
+  const tab: Tab = picked ?? opened.current;
 
   return (
     <div data-testid="knowledge-section" data-project={projectId} style={{ display: 'grid', gap: 10 }}>

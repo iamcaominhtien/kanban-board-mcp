@@ -82,8 +82,7 @@ export function PullStatus({ ticketId }: { ticketId: string }) {
       </div>
       {unreachable && (
         <div className="ai-notice ai-notice-warn" role="alert" data-testid="pull-unreachable">
-          GitHub could not be reached ({p.lastError}). The state above is {checked}, not a green light; no rule fires on
-          stale data.
+          GitHub could not be reached ({p.lastError}). The state above is {checked}, not a green light.
         </div>
       )}
       {ops.data && !ops.data.github?.on && (

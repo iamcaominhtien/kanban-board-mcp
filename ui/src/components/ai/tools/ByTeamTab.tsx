@@ -1,6 +1,6 @@
 import { useAiTeams } from '../../../api/ai';
 import type { Plugin } from '../../../types/aiPlugins';
-import { Toggle } from '../aiUi';
+import { LoadError, Toggle } from '../aiUi';
 import { roleName } from './pluginLogic';
 
 /** What one team gets from one plugin, and why: its own switch, the project default, or a role it has. */
@@ -20,6 +20,7 @@ export function teamGets(p: Pick<Plugin, 'members' | 'defaultOn' | 'roles'>, tea
 export function ByTeamTab({ projectId, plugins }: { projectId: string; plugins: Plugin[] }) {
   const teams = useAiTeams(projectId);
   if (teams.isLoading) return <div className="ai-skel" style={{ height: 80 }} aria-busy="true" aria-label="Loading" />;
+  if (teams.isError) return <LoadError what="the teams" error={teams.error} onRetry={() => void teams.refetch()} />;
   if (!teams.data?.length)
     return (
       <div className="ai-hint" data-testid="by-team-empty">

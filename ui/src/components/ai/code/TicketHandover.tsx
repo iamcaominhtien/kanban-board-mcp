@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { PullStatus } from './PullStatus';
 import { codeApi, useCodeMutation, useTicketWorktree } from '../../../api/aiCode';
+import { useAiBoard } from '../../../api/ai';
 import { useProjectOps } from '../../../api/aiProjectOps';
 import { extractError } from '../../../api/extractError';
 import type { Ticket } from '../../../types';
 import type { HandoverRoute, MergeResult } from '../../../types/aiCode';
-import { ROUTE_TEXT, ROUTE_TITLE, StateChip, mbText, uncommittedText } from './worktreeUi';
+import { ROUTE_TEXT, ROUTE_TITLE, StateChip, mbText, uncommittedText, waitsForYou } from './worktreeUi';
 
 /** A ticket's worktree and hand-over (design/screens/ai-operations.md, J): ready to hand over, merge, a conflict. */
 export function TicketHandover({ ticket }: { ticket: Ticket }) {
   const wt = useTicketWorktree(ticket.id);
   const ops = useProjectOps(ticket.projectId);
+  const board = useAiBoard(ticket.projectId);
+  const runHere = board.data?.tickets?.[ticket.id];
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResult | null>(null);
   const merge = useCodeMutation(() => codeApi.merge(ticket.id));
@@ -49,7 +52,7 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }} data-testid="handover-worktree">
         <span style={{ fontSize: 13, fontWeight: 700 }}>Worktree</span>
-        <StateChip state={w.state} />
+        <StateChip state={w.state} waiting={waitsForYou(w, runHere)} />
         <span className="ai-mono" style={{ fontSize: 12 }}>
           {w.branch}
         </span>
@@ -132,8 +135,7 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
             ))}
           </div>
           <div className="ai-hint">
-            The project&rsquo;s default is {ROUTE_TITLE[projectRoute].toLowerCase()}. Choosing here changes only this
-            ticket.
+            The project&rsquo;s default is {ROUTE_TITLE[projectRoute]}. Choosing here changes only this ticket.
           </div>
           {eff === 'local' && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -147,7 +149,11 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
               >
                 {merge.isPending ? 'Merging...' : 'Merge'}
               </button>
-              <span className="ai-hint">Merging also removes the worktree. Only you merge, never a rule or an AI.</span>
+              <span className="ai-hint">
+                {dirty
+                  ? 'Commit or keep the changes in the worktree first.'
+                  : 'Merging also removes the worktree. Only you merge, never a rule or an AI.'}
+              </span>
             </div>
           )}
         </div>
