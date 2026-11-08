@@ -59,7 +59,14 @@ export function askError(code: string, detail: string): AskView {
         action: 'members',
       };
     case 'paused':
-      return { kind: 'error', code, title: 'AI is paused', detail, action: 'members' };
+      // one sentence in the place of the answer (docs-ai-care I): the server words it
+      return {
+        kind: 'error',
+        code,
+        title: detail || 'The team that answers is paused.',
+        detail: '',
+        action: 'members',
+      };
     default:
       return { kind: 'error', code, title: 'Couldn’t answer', detail, action: 'retry' };
   }

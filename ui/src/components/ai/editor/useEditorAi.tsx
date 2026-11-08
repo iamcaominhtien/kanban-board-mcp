@@ -1113,7 +1113,7 @@ function PromptBox({
         </button>
         <span style={{ flex: 1 }} />
         <span className="ai-muted" data-testid="ea-cost">
-          {est ? (est.metered ? `About ${dollars(est.usd, true)}` : 'Not metered') : ''}
+          {est ? (est.metered && (est.usd ?? 0) > 0 ? `About ${dollars(est.usd, true)}` : 'Not metered') : ''}
         </span>
       </div>
       {showSent && (

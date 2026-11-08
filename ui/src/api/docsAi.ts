@@ -13,7 +13,14 @@ export interface DocsAiState {
   member: { id: string; name: string; provider: string; model: string | null; metered: boolean } | null;
   /** Why nobody can answer: `paused` (the team chosen in Settings is paused) or `no_member`; null when someone can. */
   problem: { code: string; message: string } | null;
-  candidates: { id: string; name: string; provider: string; connection: string; model: string | null }[];
+  candidates: {
+    id: string;
+    name: string;
+    provider: string;
+    connection: string;
+    model: string | null;
+    paused?: boolean;
+  }[];
   stylePageId: string | null;
   freshnessOn: boolean;
   digestOn: boolean;

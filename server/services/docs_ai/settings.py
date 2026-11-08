@@ -87,7 +87,9 @@ async def answering_member(
 
 
 async def candidates(session: AsyncSession, project_id: str) -> list[dict[str, Any]]:
-    """AI teams of the project that could answer, for the picker in Settings."""
+    """AI teams of the project that could answer, for the picker in Settings. The team chosen there stays in the
+    list when it is paused (marked `paused`), so the picker shows which one it is."""
+    chosen = (await get(session, project_id)).member_id
     members = (
         await session.exec(
             select(Member).where(Member.project_id == project_id, Member.kind == "ai")
@@ -96,7 +98,8 @@ async def candidates(session: AsyncSession, project_id: str) -> list[dict[str, A
     out = []
     for m in members:
         profile = await session.get(AiTeam, m.id)
-        if _can_answer(profile):
+        paused_choice = profile is not None and profile.paused and m.id == chosen
+        if _can_answer(profile) or paused_choice:
             out.append(
                 {
                     "id": m.id,
@@ -104,6 +107,7 @@ async def candidates(session: AsyncSession, project_id: str) -> list[dict[str, A
                     "provider": profile.provider,
                     "connection": profile.connection,
                     "model": profile.model,
+                    "paused": bool(profile.paused),
                 }
             )
     return out

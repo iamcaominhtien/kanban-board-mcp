@@ -645,7 +645,8 @@ export function DigestCard({
         </span>
         <span className="is-muted" title={relativeTime(digest.createdAt)}>
           {when}
-          {digest.ai && digest.cost > 0 ? ` · ${money(digest.cost)}` : ' · no AI cost'} · read {digest.ideasRead} ideas
+          {digest.ai ? (digest.cost > 0 ? ` · ${money(digest.cost)}` : ' · Not metered') : ' · no AI cost'} · read{' '}
+          {digest.ideasRead} ideas
         </span>
         {digest.ai && <AiChip />}
         <span className="is-grow" />

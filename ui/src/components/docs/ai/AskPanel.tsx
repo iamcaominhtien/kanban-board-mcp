@@ -281,7 +281,7 @@ export function AskPanel({
     body = (
       <div style={{ padding: 18 }} data-testid="ask-error" data-code={view.code}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>{view.title}</div>
-        <div style={{ color: MUTED, fontSize: 12.5, margin: '4px 0 10px' }}>{view.detail}</div>
+        {view.detail && <div style={{ color: MUTED, fontSize: 12.5, margin: '4px 0 10px' }}>{view.detail}</div>}
         {view.action === 'members' && (
           <button type="button" style={smallBtn} onClick={() => assist?.onOpenAiMembers()}>
             Open Members

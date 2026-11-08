@@ -84,6 +84,7 @@ export function DocsAiSettings({ project }: { project: Project }) {
             {d.candidates.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+                {c.paused ? ' (paused)' : ''}
               </option>
             ))}
           </select>

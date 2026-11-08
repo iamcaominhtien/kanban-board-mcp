@@ -55,7 +55,7 @@ export function GivePageDialog({ projectId, page, onClose, onGiven }: Props) {
       ariaLabel="Give the page to an AI team"
       icon="i11"
       title={<>Give “{page.title}” to an AI team</>}
-      subtitle="A ticket linked to the page, assigned to the member, and its run started"
+      subtitle="A ticket linked to the page, assigned to the team, and its run started"
       onClose={onClose}
       testId="docs-give-page"
       bodyStyle={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}

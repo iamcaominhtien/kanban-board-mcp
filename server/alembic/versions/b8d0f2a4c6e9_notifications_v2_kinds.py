@@ -38,6 +38,13 @@ def upgrade() -> None:
     for table in ("notification", "notify_event"):
         if table in have:
             op.execute(sa.text(f"DELETE FROM {table} WHERE kind IN ({names})"))
+    # a person's old mute of one of these kinds would stay in Settings › Muted for a kind that no longer exists
+    if "notify_follow" in have:
+        op.execute(
+            sa.text(
+                f"DELETE FROM notify_follow WHERE scope = 'kind' AND scope_id IN ({names})"
+            )
+        )
 
 
 def downgrade() -> None:

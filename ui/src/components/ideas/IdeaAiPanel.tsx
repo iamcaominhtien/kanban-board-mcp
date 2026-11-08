@@ -54,7 +54,7 @@ export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus
       </div>
       {onOpenSettings && (
         <button type="button" className="is-btn is-btn-sm" onClick={onOpenSettings}>
-          Open settings
+          {status.state === 'cap' ? 'Change the cap' : 'Open settings'}
         </button>
       )}
     </div>
