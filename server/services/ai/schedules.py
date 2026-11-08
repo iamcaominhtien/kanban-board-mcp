@@ -437,11 +437,9 @@ async def availability(
         }[profile.health]
     over = await budget.blocked(session, profile, settings, "schedule")
     if over:
-        label, reason = over
-        # a runs-a-day limit is not a budget: say what it is (design: "Scheduled runs per day used up (3 of 3); resets at 00:00")
-        if label.startswith("Runs per day"):
-            return False, reason
-        return False, f"{member.name} is over its budget ({reason})"
+        # the only limit left in AI v2 is the runs a day (design: "Scheduled runs per day used up (3 of 3); resets at 00:00")
+        _label, reason = over
+        return False, reason
     return True, None
 
 

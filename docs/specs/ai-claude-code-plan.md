@@ -1,5 +1,7 @@
 # Kế hoạch AI cho Claude Code CLI: quyết định, câu hỏi, thiết kế
 
+> **Ghi chú con trỏ (AI v2, KBM-39):** hai bảng thiết kế `ai-provider-config` và `ai-safety-cost` (`AiProviderConfig`, `AiSafetyCost`) đã bị xoá khỏi `design/` khi đội AI thay các màn theo từng AI member. Các tên dưới đây giữ làm lịch sử; màn hiện hành xem `design/screens/ai-project-settings.md`, `ai-members.md`, `ai-paused.md`, `ai-operations.md` và `docs/specs/ai-v2.md`.
+
 > **2026-11-05:** phần kiến trúc được thay bằng [`ai-v2.md`](ai-v2.md) (refactor hoàn toàn: Claude Code điều phối, bypass cộng
 > danh sách cấm, đội với lead là assignee, vai là subagent). Mục 10 của tài liệu đó nói quyết định nào ở đây còn giữ. Tài liệu này
 > giữ để tham khảo hiện trạng, spike S1–S6 và các chủ đề chưa đưa sang.

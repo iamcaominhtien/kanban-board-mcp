@@ -1195,7 +1195,7 @@
   border-top: none;
 }
 
-/* A search field with a magnifier (Audit log ticket filter, design ai-safety-cost E1) */
+/* A search field with a magnifier (Audit log ticket filter, E1 of the deleted v1 board ai-safety-cost) */
 .ai-search-field {
   display: inline-flex;
   align-items: center;
@@ -1221,7 +1221,7 @@
   color: #1e2a22;
 }
 
-/* Permissions (design ai-safety-cost A1): an icon per action, per-mode tints, the ceiling as separate steps */
+/* Permissions (A1 of the deleted v1 board ai-safety-cost): an icon per action, per-mode tints, the ceiling as separate steps */
 .ai-matrix-ico {
   width: 22px;
   height: 22px;

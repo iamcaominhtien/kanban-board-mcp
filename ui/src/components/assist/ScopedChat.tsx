@@ -26,8 +26,6 @@ export interface ScopedChatProps {
   onClose: () => void;
   /** "Open AI Team" on the Claude-Code-missing state. */
   onOpenAiMembers?: () => void;
-  /** No longer used (there is no cap state any more); kept so the idea chat still compiles. */
-  onOpenUsage?: () => void;
   /** Called after an answer was posted as a comment (the thread refreshes itself). */
   onPosted?: (ticketId: string, commentId: string) => void;
   /** Shown as the heading; defaults to the answering AI member's name. */

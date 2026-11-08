@@ -99,8 +99,7 @@ export interface ContextSummary {
   posted?: { commentId: string; at: string; by: string };
 }
 
-export type MessageState =
-  'queued' | 'thinking' | 'streaming' | 'done' | 'stopped' | 'error' | 'rate_limited' | 'over_budget';
+export type MessageState = 'queued' | 'thinking' | 'streaming' | 'done' | 'stopped' | 'error' | 'rate_limited';
 
 export interface ChatMessage {
   /** The asker's thumbs up / down on an answer, kept on the server. */
@@ -489,22 +488,12 @@ export interface CostEstimate {
 }
 
 export type AvailabilityCode =
-  | 'ok'
-  | 'ai_off'
-  | 'viewer'
-  | 'not_configured'
-  | 'unavailable'
-  | 'over_budget'
-  | 'feature_off'
-  | 'not_shared'
-  | 'forbidden';
+  'ok' | 'ai_off' | 'viewer' | 'not_configured' | 'unavailable' | 'feature_off' | 'not_shared' | 'forbidden';
 
 /** Whether the person may ask now, and if not why (the states of design E). */
 export interface Availability {
   code: AvailabilityCode;
   message?: string;
-  /** over_budget: the daily cap (not the monthly one) was reached. */
-  daily?: boolean;
   member?: string;
   resets?: string;
   status?: AiStatus | null;
@@ -519,7 +508,7 @@ export interface ScopeMember {
   metered: boolean;
   ready: boolean;
   statusCode: string | null;
-  /** "Local runner · online". */
+  /** The state in words, e.g. "Claude Code · online". */
   status: string;
 }
 

@@ -517,7 +517,13 @@ export function AiProfile({
             <b>{team.usage.runsToday}</b> run{team.usage.runsToday === 1 ? '' : 's'}
           </span>
           <span>
-            <b>{money(team.usage.costToday)}</b> spent
+            {team.usage.costToday > 0 ? (
+              <>
+                <b>{money(team.usage.costToday)}</b> spent
+              </>
+            ) : (
+              'Not metered'
+            )}
           </span>
           <span>
             <b>{team.slotsInUse}</b> of {team.maxParallel} running

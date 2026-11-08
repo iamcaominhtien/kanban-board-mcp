@@ -1,7 +1,7 @@
 """What an AI is told about designing a frame: one guide, in one place.
 
-``GUIDE`` is given whole to every Claude Code run of an AI team as the
-``canvas-design`` skill (``services/ai/board_skills.py``), and to any other MCP agent through docs_read(design_guide). It
+``GUIDE`` is given whole to every Claude Code run of an AI team that has a designer, PM or BA role, as the
+``canvas-design`` skill (``services/ai/board_skills.py``, ``CRAFT_ROLES``), and to any other MCP agent through docs_read(design_guide). It
 is not in the MCP server instructions: Claude Code keeps only their first 10,000 characters. The repository's skill
 file, ``.claude/skills/canvas-design/SKILL.md``, is ``SKILL_HEADER`` + ``GUIDE``; ``tests/test_canvas_mcp.py`` fails if
 the file differs. The skill carries exemplar boards too (trimmed from the board's own design canvas, in
@@ -28,7 +28,7 @@ description: Design the HTML frames of a Canvas (mockups and prototypes of scree
 GUIDE = r"""# Designing frames for a Canvas
 
 A frame is an open web page (scripts, CDN libraries and fonts run). Good frames come from a process, not from more CSS:
-context, a direction, foundations, then the boards, then a check. This one text is what every AI team and every
+context, a direction, foundations, then the boards, then a check. This one text is what an AI team with a designing role and every
 MCP agent are given (it is the `GUIDE` in `server/services/canvas_design.py`; the skill file in
 `.claude/skills/canvas-design/` is generated from it and a test fails if they differ).
 

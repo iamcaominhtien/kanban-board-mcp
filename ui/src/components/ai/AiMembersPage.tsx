@@ -378,7 +378,7 @@ function TeamTable({
               <div style={{ fontSize: 12.5, fontWeight: 600 }}>
                 {m.usage.runsToday} run{m.usage.runsToday === 1 ? '' : 's'}
               </div>
-              <div className="ai-muted">{money(m.usage.costToday)}</div>
+              <div className="ai-muted">{m.usage.costToday > 0 ? money(m.usage.costToday) : 'Not metered'}</div>
             </div>
             <div style={{ fontSize: 13 }}>{m.permissionMode}</div>
             <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>

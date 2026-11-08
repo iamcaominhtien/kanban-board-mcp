@@ -433,7 +433,10 @@ async def test_connection(session: AsyncSession, member_id: str) -> dict:
     profile.checked_at = now_iso()
     session.add(profile)
     await session.commit()
-    ok = profile.health == "ok"
+    ok = profile.health in (
+        "ok",
+        "rate_limited",
+    )  # a usage limit is not a missing or signed-out runner
     if ok:
         version = info.get("version")
         message = "Claude Code " + (f"{version} " if version else "") + "is installed"
@@ -461,8 +464,25 @@ def _apply_health(profile: AiTeam, info: dict) -> None:
         profile.health_detail = (
             "Claude Code is installed but not signed in. Sign the account in."
         )
-    else:
+    elif profile.health != "rate_limited":
+        # a usage limit the last run hit is only cleared by the next run that ends well (`note_run_outcome`): the
+        # runner is found and signed in, which says nothing about the account's quota
         profile.health, profile.health_detail = "ok", None
+
+
+def note_run_outcome(
+    profile: AiTeam, state: str, stop_code: str | None, reason: str | None
+) -> bool:
+    """Record on the team what a run's end says about its quota: a run that ended on a usage limit (429) sets
+    `health = "rate_limited"` (the "Rate-limited" status of `status_of`); the next run that finishes clears it.
+    Returns True when the team's health changed (the caller saves it)."""
+    if state == "failed" and stop_code == "rate_limited":
+        profile.health, profile.health_detail = "rate_limited", reason
+        return True
+    if state == "finished" and profile.health == "rate_limited":
+        profile.health, profile.health_detail = "ok", None
+        return True
+    return False
 
 
 async def health_check() -> int:

@@ -1,5 +1,7 @@
 # AI features: gaps against the full design
 
+> **Pointer note (AI v2, KBM-39):** the design boards `ai-provider-config` and `ai-safety-cost` (`AiProviderConfig`, `AiSafetyCost`) were deleted from `design/` when the AI team replaced the per-AI-member screens. The names below are kept as history; for today's screens see `design/screens/ai-project-settings.md`, `ai-members.md`, `ai-paused.md`, `ai-operations.md` and `docs/specs/ai-v2.md`.
+
 Checklist of what the AI designs ask for and the first implementation (3.7.0, issue #165) did not build.
 Source docs: `design/screens/ai-members.md` (M), `design/screens/ai-provider-config.md` (P),
 `design/components/ai-ticket-work.md` (T), `design/screens/ai-safety-cost.md` (S),

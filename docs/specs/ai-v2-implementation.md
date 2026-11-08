@@ -200,7 +200,7 @@ với cờ `--runner`, hoặc entry riêng `kanban-runner` thêm vào `desktop/k
 Xoá: `AiPermissionsTab/Cards`, `AiTicketSafety`, `AiSafetyPage/aiSafetyUi/AiSafetyViews` (giữ `AiKillSwitch`), `ReviewGate`,
 `AutopilotCard`, `MentionPlan`, `MentionIntent`, `TicketHold`, `TicketPlan`, `handoff/`, `evidence/`, `workflow/`, `talk/`,
 `board/orders`, `limits/` (trừ phần quota), `trouble/HandToDialog`, `settings/` phần autonomy, `aiteam/` các tab Flow, Timeline,
-Stepped in, Decided, Health **(đã khác: Timeline quay lại, Flow / Stepped in / Health / Resources đang làm lại, KBM-19 đến 22; mục 7)**; `api/aiSafety.ts` phần tương ứng, `aiWorkflow*.ts`, `aiOrders.ts`, `aiOps.ts`, `aiLiveFeed.ts`,
+Stepped in, Decided, Health **(đã khác: Timeline quay lại thành một cách xem của tab Flow; Flow, You stepped in, Health và Resources đã quay lại, dựng theo thiết kế ở KBM-28 và KBM-29; mục 7)**; `api/aiSafety.ts` phần tương ứng, `aiWorkflow*.ts`, `aiOrders.ts`, `aiOps.ts`, `aiLiveFeed.ts`,
 `aiEvals.ts`; types tương ứng.
 
 Viết lại (dùng component sẵn có, không màn mới ngoài bốn màn tối thiểu):
@@ -318,10 +318,12 @@ Cách kiểm ghi ở cột cuối **chỉ khi tôi có bằng chứng**; chỗ �
 | Câu hỏi của đội | trả lời ở thread và ở chat; Answer của thông báo chạy được khi ticket mở ở tab khác | KBM-3 | video demo trên ticket |
 | Skill và tệp | demo-video thành skill của board; `attachment post=false`; sha256; ảnh dán trong bình luận | | |
 | Thư mục uploads | thứ tự tìm thư mục, `stored_in`, `warning`, desktop ghi `uploads_dir` | KBM-18 | video demo trên ticket |
-| Story | trang Story, Group by Story, thanh sub-task trên thẻ cha, Open in Timeline | KBM-16 và các commit `fa173822` đến `2ce08974` | |
+| Story | trang Story, Group by Story, thanh sub-task trên thẻ cha, Open in Flow (trước đây ghi Open in Timeline) | KBM-16 và các commit `fa173822` đến `2ce08974` | |
 | Trang AI Team v2 | Needs you, thẻ đội và thẻ vai, Recent, Spend today; `activity.py` và ba route | KBM-17 | video demo; trạng thái "giữ vì giới hạn" kiểm bằng dữ liệu giả, **chưa** với giới hạn thật |
 | MCP | `ticket_branches add adopt` | | |
-| Còn lại, đang làm trên cloud | Resources (KBM-19), Flow (KBM-20), You stepped in (KBM-21), Health (KBM-22) | KBM-19 đến 22 | chưa có |
+| Trang AI Team: Flow, You stepped in, Health, Resources | bảy tab Now, Flow (Map hoặc Timeline), Run history, You stepped in, Health, Resources, Memory; `flow.py`, `touches.py`, `health.py`, `resources.py` và các route `/ai/team/*`, `/ai/resources` | KBM-19 đến 22, dựng theo thiết kế ở KBM-28 và KBM-29 | |
+| Dựng theo thiết kế (canvas của designer) | ticket (KBM-26), Members và tài khoản (KBM-33), cài đặt và vận hành (KBM-34), Board AI (KBM-37), Docs AI, Idea AI và thông báo (KBM-38), Canvas và xem trước file (KBM-39 phần 1–2) | KBM-26, 28, 29, 33, 34, 37, 38, 39 | xem PR của từng ticket |
+| Quét cuối | chữ còn sót của v1; trạng thái "Rate-limited" của đội (`teams.note_run_outcome` trong `runs._end`); tiền chỉ khi run báo chi phí thật; bỏ route `ci-to-dev` / `comments-to-dev` (hàm trong `github.py` vẫn dùng cho tự động); bỏ `tierWords.ts`; sửa spec | KBM-39 phần 3 | chỉ `tsc`, eslint, prettier và `ruff`; không chạy pytest hay vitest (KBM-25 làm test) |
 
 Ghi chú:
 

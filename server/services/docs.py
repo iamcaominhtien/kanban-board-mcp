@@ -2033,7 +2033,7 @@ async def linked_pages(
 ) -> list[dict[str, Any]]:
     """The Docs pages tied to a ticket, one row per page, for an agent: {page_id, title, path, sections, why, version}.
 
-    `hidden`: page ids to leave out (pages hidden from AI). A page tied in several ways is one row with every reason."""
+    `hidden`: page ids to leave out (no caller passes any now: no page is hidden from AI). A page tied in several ways is one row with every reason."""
     by_page: dict[str, dict[str, Any]] = {}
     for r in await docs_for_ticket(session, ticket_id):
         if hidden and r["page_id"] in hidden:

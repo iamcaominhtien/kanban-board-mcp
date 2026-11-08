@@ -3,7 +3,7 @@ the board. Nothing here changes a page.
 
 Out of date comes from the freshness checks. Missing docs (Done tickets no page links), Broken links (`[[links]]` and
 sections that do not resolve) and Overlaps (pages with strongly similar titles or text) are found by rules on the
-space's own data, with no model. Only pages an AI may read are included: a hidden page never appears. Dismissals
+space's own data, with no model. Every live page is included (AI v2 reads what people read). Dismissals
 (this time, 30 days, never) are remembered per item in `docs_ai_health.data.dismissed`.
 """
 
@@ -297,7 +297,7 @@ async def _out_of_date(
 async def get(
     session: AsyncSession, project_id: str, *, compute_missing: bool = True
 ) -> dict[str, Any]:
-    """The Docs health lists with dismissed items and pages hidden from AI left out, and the counts.
+    """The Docs health lists with dismissed items left out, and the counts.
 
     The first call of a project runs the deterministic part once (`compute_missing`)."""
     cfg = await svc_settings.require_enabled(session, project_id)

@@ -1,5 +1,7 @@
 # AI where you work: ticket chat, @ in a comment, AI in every editor
 
+> **Pointer note (AI v2, KBM-39):** the design boards `ai-provider-config` and `ai-safety-cost` (`AiProviderConfig`, `AiSafetyCost`) were deleted from `design/` when the AI team replaced the per-AI-member screens. The names below are kept as history; for today's screens see `design/screens/ai-project-settings.md`, `ai-members.md`, `ai-paused.md`, `ai-operations.md` and `docs/specs/ai-v2.md`.
+
 Issue #203, step 8. Design: `design/screens/ai-where-you-work.md` (PNGs in `design/images/ai-where-you-work/`, source
 `design/source/AiEverywhere.dc.html`). Related: `docs/specs/ai-members.md`, `docs/specs/ai-gaps.md`,
 `design/screens/ai-members.md`, `ai-safety-cost.md`, `ai-board-assistant.md`, `ai-schedules.md`.

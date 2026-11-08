@@ -390,8 +390,7 @@ export function SketchAiPanel({ sketcher, state, owner, title, ai, scopeId, onFi
     } catch (err) {
       const e = sketchAiError(err);
       setError(e.message);
-      if (['viewer', 'ai_off', 'over_budget', 'not_configured', 'unavailable', 'feature_off'].includes(e.code))
-        void refresh();
+      if (['viewer', 'ai_off', 'not_configured', 'unavailable', 'feature_off'].includes(e.code)) void refresh();
     } finally {
       setSending(false);
     }
@@ -466,12 +465,6 @@ export function SketchAiPanel({ sketcher, state, owner, title, ai, scopeId, onFi
             <button type="button" className={styles.btn} onClick={() => again(m)}>
               <SketchIcon name="refresh" size={14} /> Try again
             </button>
-          </div>
-        )}
-        {m.state === 'over_budget' && (
-          <div className={styles.aiNote} role="status">
-            <b>AI help is paused</b>
-            <span>{m.error?.message ?? 'A cap was reached.'} Nothing was sent.</span>
           </div>
         )}
         {m.state === 'stopped' && <span className={styles.aiMuted}>Stopped. Nothing was changed.</span>}

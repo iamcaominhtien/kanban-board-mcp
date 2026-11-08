@@ -1305,7 +1305,13 @@ async def _end(
         session.add(run)
         await session.commit()
         await session.refresh(run)
-        member, _profile = await get_profile(session, run.member_id)
+        member, profile = await get_profile(session, run.member_id)
+        # a run that hit the account's usage limit marks its team "Rate-limited"; the next run that finishes clears it
+        if profile is not None and teams.note_run_outcome(
+            profile, state, run.stop_code, reason
+        ):
+            session.add(profile)
+            await session.commit()
     writer = RT.writers.pop(run_id, None)
     if writer is not None:
         await writer.close()

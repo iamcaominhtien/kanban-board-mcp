@@ -132,7 +132,7 @@ DEFAULT_PREFS: dict[str, Any] = {
 _SELF = {"", "user", "you", "me"}
 
 # Who an AI team is called when the team is gone
-_AN_AI_MEMBER = "An AI team"
+_AN_AI_TEAM = "An AI team"
 
 
 # ---------------------------------------------------------------------------
@@ -1598,7 +1598,7 @@ async def on_run_question(
                 return
             q = _loads(run.question, {}) or {}
             member = await session.get(Member, run.member_id)
-            name = member.name if member else _AN_AI_MEMBER
+            name = member.name if member else _AN_AI_TEAM
             keys = await recipient_keys(
                 session, run.project_id, [q.get("to"), run.started_by]
             )
@@ -1693,7 +1693,7 @@ async def on_run_ended(run_id: str) -> None:
             if run is None:
                 return
             member = await session.get(Member, run.member_id)
-            name = member.name if member else _AN_AI_MEMBER
+            name = member.name if member else _AN_AI_TEAM
             keys = await _run_people(session, run)
             if await _chat_in_front(session, run):
                 # the answer is on the screen of the person who asked: no notice for them; the others still hear
@@ -1744,7 +1744,7 @@ async def on_run_trouble(run_id: str) -> None:
                 return
             diag = _loads(run.diagnosis, {}) or {}
             member = await session.get(Member, run.member_id)
-            name = member.name if member else _AN_AI_MEMBER
+            name = member.name if member else _AN_AI_TEAM
             keys = await _run_people(session, run)
             keys += [
                 k

@@ -115,7 +115,7 @@ export function MoveStopped({ job }: { job: MoveJob }) {
             {ai.state === 'idle' && (
               <>
                 <p className={styles.para}>
-                  An AI member of the board reads what the board knows (left) and proposes a change for the new database
+                  An AI team of the board reads what the board knows (left) and proposes a change for the new database
                   only. You decide whether it runs.
                 </p>
                 <div className={settings.row}>

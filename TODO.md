@@ -38,6 +38,4 @@ To do:
 
 ## Open
 
-- [ ] Let an AI edit the frames it created in the same run directly, instead of `canvas_propose` proposals that a
-  person must accept.
 - [ ] Open a PR for `claude/clever-volta-fv408y`, or fast-forward `claude/designer-tune` (PR #264) to it.
