@@ -115,6 +115,15 @@
   font-size: 12px;
   color: #a5321e;
 }
+.st-count {
+  align-self: flex-end;
+  font-size: 11px;
+  color: #5b6b60;
+  margin-top: -3px;
+}
+.st-made:focus {
+  outline: none;
+}
 .st-lesson .st-error {
   margin-top: 0;
 }
@@ -222,13 +231,6 @@
 }
 .st-kind {
   font-weight: 600;
-}
-.st-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
 }
 .st-root .st-kindrow {
   width: calc(100% + 12px);

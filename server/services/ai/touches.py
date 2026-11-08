@@ -35,6 +35,7 @@ RANGES = {"24h": 1, "7d": 7, "30d": 30, "90d": 90}
 DEFAULT_RANGE = "7d"
 MARKS = ("needed", "avoidable")
 LIMIT = 500
+LESSON_MAX = 600
 
 KINDS: dict[str, str] = {
     "answer": "Answered a team's question",
@@ -694,14 +695,19 @@ async def set_mark(
 
 
 def draft_lesson(touch: dict) -> str:
-    """A starting sentence for the lesson a person writes from an avoidable touch."""
+    """A starting sentence for the lesson a person writes from an avoidable touch.
+
+    It always ends with "Next time, do this without a person."; when the whole is too long the details are shortened."""
     ticket = f" on {touch['ticket_id']}" if touch.get("ticket_id") else ""
-    details = (touch["details"] or "").strip()
-    if details and details[-1] not in '.!?”"':
+    head = f"{touch['label']}{ticket}: "
+    tail = " Next time, do this without a person."
+    details = " ".join((touch["details"] or "").split())
+    room = LESSON_MAX - len(head) - len(tail) - 1  # one for the full stop
+    if len(details) > room:
+        details = details[: max(room - 1, 0)].rstrip() + "…"
+    if details and details[-1] not in ".!?…":
         details += "."
-    return f"{touch['label']}{ticket}: {details} Next time, do this without a person."[
-        :600
-    ]
+    return f"{head}{details}{tail}"
 
 
 async def make_lesson(

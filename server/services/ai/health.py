@@ -700,6 +700,8 @@ async def health(session: AsyncSession, project_id: str, range_key: str = "7d") 
             "quality": prev_total["quality"]["value"],
             "run_median_s": prev_total["speed"]["run_median_s"],
             "usd": prev_total["cost"]["usd"],
+            "priced_runs": prev_total["cost"]["priced_runs"],
+            "tokens": prev_total["cost"]["tokens"],
             "runs": len(prev_runs),
         },
         "teams": sorted(rows.values(), key=lambda r: (-r["runs"], r["name"])),

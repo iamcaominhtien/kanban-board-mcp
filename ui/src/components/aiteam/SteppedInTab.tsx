@@ -18,6 +18,8 @@ import './touches.css';
 
 const FILTER_MENU = { minHeight: 30, height: 30, padding: '0 10px', fontSize: 12 } as const;
 
+const LESSON_MAX = 600;
+
 const RANGES: { value: TouchRange; label: string }[] = [
   { value: '24h', label: 'Last 24 hours' },
   { value: '7d', label: 'Last 7 days' },
@@ -42,7 +44,11 @@ function when(iso: string): string {
 }
 
 function csv(items: Touch[]): string {
-  const cell = (v: string | null) => `"${(v ?? '').replace(/"/g, '""')}"`;
+  // A cell that starts with = + - @ (or a tab or return) would run as a formula in a spreadsheet: an apostrophe first
+  const cell = (v: string | null) => {
+    const text = v ?? '';
+    return `"${(/^[=+\-@\t\r]/.test(text) ? `'${text}` : text).replace(/"/g, '""')}"`;
+  };
   const rows = items.map((t) =>
     [t.at, t.who, t.label, t.teamName, t.ticketId, t.details, t.mark ? MARK_LOOK[t.mark].label : '']
       .map((v) => cell(v as string | null))
@@ -51,11 +57,28 @@ function csv(items: Touch[]): string {
   return ['When,Who,What,Team,Ticket,Details,Mark', ...rows].join('\n');
 }
 
+function download(items: Touch[], range: string): void {
+  const url = URL.createObjectURL(new Blob([csv(items)], { type: 'text/csv' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ai-touches-${range}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
 /** The draft of the lesson a person writes from an avoidable touch. */
 function draft(t: Touch): string {
-  const on = t.ticketId ? ` on ${t.ticketId}` : '';
-  const details = /[.!?”"]$/.test(t.details.trim()) ? t.details.trim() : `${t.details.trim()}.`;
-  return `${t.label}${on}: ${details} Next time, do this without a person.`.slice(0, 600);
+  const head = `${t.label}${t.ticketId ? ` on ${t.ticketId}` : ''}: `;
+  const tail = ' Next time, do this without a person.';
+  let details = t.details.split(/\s+/).filter(Boolean).join(' ');
+  const room = LESSON_MAX - head.length - tail.length - 1; // one for the full stop
+  // Too long: the middle is shortened, the ending stays
+  if (details.length > room) details = `${details.slice(0, Math.max(room - 1, 0)).trimEnd()}…`;
+  // Only . ! ? end a sentence: a closing quote is followed by the full stop
+  if (details && !/[.!?…]$/.test(details)) details += '.';
+  return `${head}${details}${tail}`;
 }
 
 /** The funnel before the Team and Kind filters (AiTeamReview A3). */
@@ -90,9 +113,12 @@ function Person({ name }: { name: string }) {
   );
 }
 
-/** The text box of the lesson: grows with what is written. */
+/** The text box of the lesson: takes the focus when it opens and grows with what is written. */
 function LessonBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -100,14 +126,20 @@ function LessonBox({ value, onChange }: { value: string; onChange: (v: string) =
     el.style.height = `${el.scrollHeight}px`;
   }, [value]);
   return (
-    <textarea
-      ref={ref}
-      rows={1}
-      aria-label="The lesson"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      data-testid="lesson-text"
-    />
+    <>
+      <textarea
+        ref={ref}
+        rows={1}
+        maxLength={LESSON_MAX}
+        aria-label="The lesson"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        data-testid="lesson-text"
+      />
+      <span className="st-count" aria-hidden="true">
+        {value.length}/{LESSON_MAX}
+      </span>
+    </>
   );
 }
 
@@ -123,8 +155,41 @@ function Row({
   const { mark, lesson } = useTouchActions(projectId);
   const [writing, setWriting] = useState(false);
   const [text, setText] = useState('');
-  const pick = (m: TouchMark) => mark.mutate({ key: t.id, mark: t.mark === m ? null : m });
+  // One request at a time: a second click before the first answer must not send a second one
+  const flight = useRef(false);
+  const linkRef = useRef<HTMLButtonElement>(null);
+  const madeRef = useRef<HTMLDivElement>(null);
+  const back = useRef<'link' | 'made' | null>(null);
+  const send = (go: (done: () => void) => void) => {
+    if (flight.current) return;
+    flight.current = true;
+    go(() => {
+      flight.current = false;
+    });
+  };
+  const pick = (m: TouchMark) =>
+    send((done) => mark.mutate({ key: t.id, mark: t.mark === m ? null : m }, { onSettled: done }));
   const busy = mark.isPending || lesson.isPending;
+  const open = () => {
+    lesson.reset();
+    mark.reset();
+    setText(draft(t));
+    setWriting(true);
+  };
+  const close = (to: 'link' | 'made' | null) => {
+    lesson.reset();
+    back.current = to;
+    setWriting(false);
+  };
+  // After the panel closes the focus goes back to what opened it (or to the note that the lesson was proposed)
+  useEffect(() => {
+    if (writing || !back.current) return;
+    const el = back.current === 'made' ? madeRef.current : linkRef.current;
+    if (el) {
+      el.focus();
+      back.current = null;
+    }
+  }, [writing, t.lessonId, t.mark]);
   return (
     <div className="st-row" data-testid="touch-row" data-touch={t.id}>
       <div className="st-grid">
@@ -173,19 +238,23 @@ function Row({
           )}
           {t.mark === 'avoidable' &&
             (t.lessonId ? (
-              <div className="at-hint-sm" style={{ marginTop: 4 }} data-testid="lesson-made">
+              <div
+                ref={madeRef}
+                tabIndex={-1}
+                className="at-hint-sm st-made"
+                style={{ marginTop: 4 }}
+                data-testid="lesson-made"
+              >
                 Lesson proposed. It waits in Memory.
               </div>
             ) : (
               !writing && (
                 <button
+                  ref={linkRef}
                   type="button"
                   className="st-open st-lesson-link"
                   data-testid="make-lesson"
-                  onClick={() => {
-                    setText(draft(t));
-                    setWriting(true);
-                  }}
+                  onClick={open}
                 >
                   Make a lesson
                 </button>
@@ -207,11 +276,15 @@ function Row({
               className="st-btn st-btn-primary st-btn-sm"
               disabled={busy || !text.trim()}
               data-testid="lesson-propose"
-              onClick={() => lesson.mutate({ key: t.id, text: text.trim() }, { onSuccess: () => setWriting(false) })}
+              onClick={() =>
+                send((done) =>
+                  lesson.mutate({ key: t.id, text: text.trim() }, { onSuccess: () => close('made'), onSettled: done }),
+                )
+              }
             >
               Propose to Memory
             </button>
-            <button type="button" className="st-btn st-btn-sm" onClick={() => setWriting(false)}>
+            <button type="button" className="st-btn st-btn-sm" onClick={() => close('link')}>
               Cancel
             </button>
           </span>
@@ -235,7 +308,10 @@ export function SteppedInTab({
   const [range, onRange] = useState<TouchRange>('7d');
   const [filters, setFilters] = useState<TouchFilters>(initialMark ? { mark: initialMark } : {});
   const q = useTouches(projectId, range, filters);
-  const d: SteppedIn | undefined = q.data;
+  // A failed fetch for a new range or filter keeps the last good numbers on screen, with the notice above them
+  const last = useRef<SteppedIn>();
+  if (q.data) last.current = q.data;
+  const d: SteppedIn | undefined = q.data ?? last.current;
   if (!d) {
     return q.isError ? (
       <div className="st-err">
@@ -396,14 +472,7 @@ export function SteppedInTab({
           type="button"
           className="st-btn st-btn-sm"
           disabled={!d.items.length}
-          onClick={() => {
-            const url = URL.createObjectURL(new Blob([csv(d.items)], { type: 'text/csv' }));
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ai-touches-${range}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
+          onClick={() => download(d.items, range)}
         >
           Export CSV
         </button>

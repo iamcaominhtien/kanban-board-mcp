@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MenuSelect } from '../ui/MenuSelect';
 import {
   useHealth,
@@ -131,6 +131,11 @@ function countDelta(cur: number | null, prev: number | null): Delta {
   if (Math.abs(d) < 0.05) return { text: 'no change vs previous', better: null };
   return { text: `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} vs previous`, better: d < 0 };
 }
+/** The change in tokens, when nothing was priced in either range: fewer is better. */
+function tokensDelta(d: number): Delta {
+  if (d === 0) return { text: 'no change vs previous', better: null };
+  return { text: `${d > 0 ? '+' : '−'}${fmtTokens(Math.abs(d))} tokens vs previous`, better: d < 0 };
+}
 const pts = (cur: number | null, prev: number | null) => (cur == null || prev == null ? null : (cur - prev) * 100);
 
 function Row({ t, onOpenTeam }: { t: TeamHealth; onOpenTeam: (id: string) => void }) {
@@ -204,7 +209,10 @@ function Row({ t, onOpenTeam }: { t: TeamHealth; onOpenTeam: (id: string) => voi
 export function HealthTab({ projectId, actions }: { projectId: string; actions: HealthActions }) {
   const [range, setRange] = useState<HealthRange>('7d');
   const q = useHealth(projectId, range);
-  const h: Health | undefined = q.data;
+  // A failed fetch for the other range keeps the last good numbers on screen, with the notice above them
+  const last = useRef<Health>();
+  if (q.data) last.current = q.data;
+  const h: Health | undefined = q.data ?? last.current;
   if (!h) {
     return q.isError ? (
       <div className="st-err">
@@ -229,6 +237,16 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
       : h.title;
   const text = noTeams ? 'Add a team to see how it works. Start with a ready-made one.' : h.text;
   const hasPrev = p.runs > 0;
+  // With no earlier range every tile says so on its delta line, so the tiles keep one height (AiTeamReview B3)
+  const noPrev: Delta = { text: 'no earlier range to compare', better: null };
+  // Money is compared only when both ranges priced their runs; tokens only when neither did
+  const costDelta: Delta = !hasPrev
+    ? noPrev
+    : m.cost.pricedRuns > 0 && p.pricedRuns > 0
+      ? deltaOf('usd', m.cost.usd - p.usd, 'down')
+      : m.cost.pricedRuns === 0 && p.pricedRuns === 0 && (m.cost.tokens > 0 || p.tokens > 0)
+        ? tokensDelta(m.cost.tokens - p.tokens)
+        : noPrev;
   // The note about tokens stands where a team's cost is shown as tokens (AiTeamReview B2)
   const tokensOnly = h.teams.some((t) => t.measures.cost.pricedRuns === 0 && t.measures.cost.tokens > 0);
   return (
@@ -265,7 +283,8 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
             <b style={{ fontSize: 18, color: unknown ? '#244E78' : undefined }}>{title}</b>
             {h.runs > 0 && (
               <span className="at-hint">
-                {h.runs} runs on {h.tickets} tickets · {day(h.since)} to {day(h.until)}
+                {h.runs} run{h.runs === 1 ? '' : 's'} on {h.tickets} ticket{h.tickets === 1 ? '' : 's'} · {day(h.since)}{' '}
+                to {day(h.until)}
               </span>
             )}
           </div>
@@ -299,14 +318,14 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           name="Reliability"
           verdict={m.reliability.verdict}
           value={pct(m.reliability.value)}
-          delta={hasPrev ? deltaOf('pts', pts(m.reliability.value, p.reliability), 'up') : null}
+          delta={hasPrev ? deltaOf('pts', pts(m.reliability.value, p.reliability), 'up') : noPrev}
           hint={`runs that finished OK: ${m.reliability.ok} of ${m.reliability.ended}. Failed, timed out and cancelled count against`}
         />
         <Tile
           name="Autonomy"
           verdict={m.autonomy.verdict}
           value={m.autonomy.value == null ? '–' : `${m.autonomy.value}`}
-          delta={hasPrev ? countDelta(m.autonomy.value, p.autonomy) : null}
+          delta={hasPrev ? countDelta(m.autonomy.value, p.autonomy) : noPrev}
           hint={`touches per ticket: ${m.autonomy.touches} on ${m.autonomy.tickets} tickets. ${m.autonomy.clean} ticket${m.autonomy.clean === 1 ? '' : 's'} with no touch at all`}
         />
         <Tile
@@ -320,7 +339,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
                   p.runMedianS != null && m.speed.runMedianS != null ? m.speed.runMedianS - p.runMedianS : null,
                   'down',
                 )
-              : null
+              : noPrev
           }
           hint={`median run. Assignment to Review: ${fmtSpan(m.speed.toReviewMedianS)} (${m.speed.toReviewTickets} tickets)`}
         />
@@ -328,7 +347,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           name="Quality"
           verdict={m.quality.verdict}
           value={pct(m.quality.value)}
-          delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : null}
+          delta={hasPrev ? deltaOf('pts', pts(m.quality.value, p.quality), 'down') : noPrev}
           hint={`finished work sent back: ${m.quality.reopened} of ${m.quality.finishedTickets} tickets reopened${
             m.quality.findings != null
               ? `. Reviewer findings: ${m.quality.findings} in ${m.quality.runsWithFindings} run${m.quality.runsWithFindings === 1 ? '' : 's'}`
@@ -339,7 +358,7 @@ export function HealthTab({ projectId, actions }: { projectId: string; actions: 
           name="Cost"
           verdict={m.cost.verdict}
           value={m.cost.pricedRuns > 0 || !m.cost.tokens ? fmtUsd(m.cost.usd) : `${fmtTokens(m.cost.tokens)} tokens`}
-          delta={hasPrev ? deltaOf('usd', m.cost.usd - p.usd, 'down') : null}
+          delta={costDelta}
           hint={`${m.cost.perRun != null ? `${fmtUsd(m.cost.perRun)} per run, ` : ''}${fmtTokens(m.cost.tokensPerRun ?? 0)} tokens per run${
             m.cost.tokensOnlyRuns
               ? `. ${m.cost.tokensOnlyRuns} run${m.cost.tokensOnlyRuns === 1 ? '' : 's'} report${m.cost.tokensOnlyRuns === 1 ? 's' : ''} tokens only`

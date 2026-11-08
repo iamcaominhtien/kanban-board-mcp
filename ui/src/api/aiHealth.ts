@@ -111,6 +111,8 @@ export interface Health {
     quality: number | null;
     runMedianS: number | null;
     usd: number;
+    pricedRuns: number;
+    tokens: number;
     runs: number;
   };
   teams: TeamHealth[];
