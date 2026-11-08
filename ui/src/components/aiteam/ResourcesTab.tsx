@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { aiApi, useAiMutation, useAiSettings, useAiTeams } from '../../api/ai';
 import { extractError } from '../../api/extractError';
-import { useRestartRun, useResourcesStream } from '../../api/aiResources';
+import { IDLE_POLL_S, POLL_S, useRestartRun, useResourcesStream } from '../../api/aiResources';
 import type { AiTeam } from '../../types/ai';
 import type { ResourceRun, ResourceSnapshot } from '../../types/aiResources';
 import { hhmm, useNow } from '../ai/aiUi';
 import { roleLook } from '../ai/roleLook';
-import { NumberSetting } from '../ai/settings/settingsUi';
 import { useToast } from '../Toast';
 import {
   AUTO_RESTARTS,
@@ -204,22 +203,23 @@ function RowActions({ run, canAct, teamName }: { run: ResourceRun; canAct: boole
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       if (latest.current.live && latest.current.restarts.length <= before)
-        toast.error(
-          'Restart not confirmed',
-          `${latest.current.ticketId} has not shown a restart yet. Its Claude Code may still be restarting, or there was none to restart. Look at the row in a moment.`,
-        );
+        toast.showToast({
+          variant: 'error',
+          title: 'Restart not confirmed',
+          message: `${latest.current.ticketId} has not shown a restart yet. Its Claude Code may still be restarting, or there was none to restart. Look at the row in a moment.`,
+          // the whole sentence is the answer (design B4): it needs four lines at the width of a toast
+          lines: 4,
+        });
     }, RESTART_CHECK_MS);
   };
   if (!run.live) return null;
   const who = `${teamName}’s run on ${run.ticketId}`;
-  const tip = canAct ? undefined : 'The server is not answering';
   return (
     <div className="rs-actions">
       <button
         type="button"
-        className="st-btn st-btn-sm"
+        className={`st-btn st-btn-sm${asking === 'restart' ? ' rs-btn-asking' : ''}`}
         disabled={!canAct}
-        title={tip}
         data-testid="rs-restart"
         onClick={() => setAsking('restart')}
       >
@@ -227,15 +227,19 @@ function RowActions({ run, canAct, teamName }: { run: ResourceRun; canAct: boole
       </button>
       <button
         type="button"
-        className="st-btn st-btn-sm"
+        className={`st-btn st-btn-sm${asking === 'stop' ? ' rs-btn-asking' : ''}`}
         style={{ color: '#C4432A' }}
         disabled={!canAct}
-        title={tip}
         data-testid="rs-stop"
         onClick={() => setAsking('stop')}
       >
         Stop
       </button>
+      {!canAct && (
+        <span className="rs-tip" role="tooltip" data-testid="rs-tip">
+          The server is not answering
+        </span>
+      )}
       {asking && (
         <div className="rs-pop" role="dialog" aria-label={asking === 'stop' ? 'Confirm stop' : 'Confirm restart'}>
           <b>{asking === 'stop' ? `Stop ${who}?` : `Restart ${who}?`}</b>
@@ -326,19 +330,21 @@ function RunRow({
   const pct = limitPct(run.cliRssMb, limitMb);
   const level = levelOf(pct);
   const young = run.live && run.startedAt != null && nowMs - Date.parse(run.startedAt) < 15000;
+  // a run that works but has no CLI to read yet (the server does not call it live): not an ended run
+  const starting = !run.live && ['starting', 'running'].includes(run.state);
   const last = run.restarts[run.restarts.length - 1];
   const roles = run.rolesWorking ?? [];
   const roleName = (key: string) => team?.roles.find((r) => r.key === key)?.name ?? key;
   return (
     <div data-testid={`rs-run-${run.ticketId}`}>
-      <div className={`rs-row${run.live ? '' : ' rs-ended'}`}>
+      <div className={`rs-row${run.live || starting ? '' : ' rs-ended'}`}>
         <div>
           <TicketChip id={run.ticketId} onOpen={onOpenTicket} />
           <div className="at-hint-sm">{run.ticketTitle}</div>
         </div>
         <div className="rs-work">
           {!run.live ? (
-            <span className="at-hint">{run.stopCode === 'memory' ? 'Stopped' : 'Ended'}</span>
+            <span className="at-hint">{starting ? 'Starting' : run.stopCode === 'memory' ? 'Stopped' : 'Ended'}</span>
           ) : roles.length ? (
             roles.map((key, i) => {
               const look = roleLook(key);
@@ -353,7 +359,13 @@ function RunRow({
               );
             })
           ) : (
-            <span className="at-chip">Lead</span>
+            <span
+              className="at-chip"
+              style={{ background: '#EEF3EF', color: '#3A4A3E', border: '1px solid #D5DED8' }}
+              data-testid="rs-lead"
+            >
+              Lead
+            </span>
           )}
         </div>
         <div>
@@ -361,7 +373,7 @@ function RunRow({
           <div className="at-hint-sm">since {hhmm(run.startedAt)}</div>
         </div>
         <div>
-          {run.readable ? (
+          {run.readable && run.cliRssMb != null ? (
             <>
               <div style={{ width: 116 }}>
                 <div className="rs-ramline">
@@ -376,6 +388,8 @@ function RunRow({
                 <div className="at-hint-sm">+{fmtMb(run.extraMb)} it started (not counted)</div>
               )}
             </>
+          ) : run.readable ? (
+            <span className="at-hint">—</span>
           ) : (
             <span className="at-hint">— not readable</span>
           )}
@@ -404,6 +418,49 @@ function RunRow({
   );
 }
 
+/** A number field that saves when it loses focus. A save that fails leaves what was typed in the field (design D4). */
+function LimitField({
+  value,
+  min,
+  label,
+  testId,
+  onSave,
+}: {
+  value: number;
+  min: number;
+  label: string;
+  testId: string;
+  onSave: (n: number, saved: () => void) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft == null) return;
+    const n = Math.round(Number(draft));
+    if (draft.trim() !== '' && Number.isFinite(n) && n >= min && n !== value) onSave(n, () => setDraft(null));
+    else setDraft(null);
+  };
+  return (
+    <input
+      className="ai-input"
+      type="number"
+      min={min}
+      style={{ width: 96 }}
+      aria-label={label}
+      data-testid={testId}
+      value={draft ?? String(value)}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+    />
+  );
+}
+
+/** What a failed save says: the server's own words, or that it did not answer. */
+function saveFailure(err: unknown): string {
+  const answered = !!(err as { response?: unknown } | null)?.response;
+  return answered ? extractError(err) : 'The server did not answer. Try again in a moment.';
+}
+
 /** The two limits of the project and what they mean for this machine (design/screens/ai-resources.md, E). */
 function LimitsCard({ projectId, snap }: { projectId: string; snap: ResourceSnapshot }) {
   const settings = useAiSettings(projectId).data;
@@ -414,8 +471,8 @@ function LimitsCard({ projectId, snap }: { projectId: string; snap: ResourceSnap
   const limitMb = settings?.runMemoryLimitMb ?? snap.limits.runMemoryLimitMb;
   const parallel = settings?.boardMaxParallel ?? snap.limits.boardMaxParallel;
   const est = fitEstimate(parallel, limitMb, snap.machine);
-  const onSave = (body: { runMemoryLimitMb?: number; boardMaxParallel?: number }) =>
-    save.mutate(body, { onError: (err) => toast.error("Couldn't save the limit", extractError(err)) });
+  const onSave = (body: { runMemoryLimitMb?: number; boardMaxParallel?: number }, saved: () => void) =>
+    save.mutate(body, { onSuccess: saved, onError: (err) => toast.error("Couldn't save the limit", saveFailure(err)) });
   return (
     <div className="rs-box" data-testid="rs-limits">
       <div className="rs-boxhead">
@@ -432,13 +489,12 @@ function LimitsCard({ projectId, snap }: { projectId: string; snap: ResourceSnap
       <div className="rs-limits">
         <label className="rs-field">
           <span>Memory of one run (MB)</span>
-          <NumberSetting
+          <LimitField
             value={limitMb}
             min={0}
-            width={96}
             label="Memory of one run (MB)"
             testId="rs-limit-memory"
-            onSave={(n) => onSave({ runMemoryLimitMb: n })}
+            onSave={(n, saved) => onSave({ runMemoryLimitMb: n }, saved)}
           />
           <span className="at-hint-sm">
             A run whose Claude Code goes over this is restarted, twice at most, then stopped. 0 is no limit.
@@ -446,13 +502,12 @@ function LimitsCard({ projectId, snap }: { projectId: string; snap: ResourceSnap
         </label>
         <label className="rs-field">
           <span>Runs at the same time</span>
-          <NumberSetting
+          <LimitField
             value={parallel}
             min={1}
-            width={96}
             label="Runs at the same time"
             testId="rs-limit-parallel"
-            onSave={(n) => onSave({ boardMaxParallel: n })}
+            onSave={(n, saved) => onSave({ boardMaxParallel: n }, saved)}
           />
           <span className="at-hint-sm">Runs past this wait in line; nothing is lost.</span>
         </label>
@@ -524,21 +579,26 @@ export function ResourcesTab({ projectId, onOpenTicket }: Props) {
   ];
   return (
     <div className="rs-root" data-testid="resources-tab">
-      <div className="rs-livebar">
-        <span className="at-dot" style={{ background: live ? '#2E6F40' : '#A3B0A8' }} />
-        <span className="at-hint" style={{ color: live ? '#1F5A31' : '#5B6B60' }}>
+      <div className="rs-livebar" data-testid="rs-livebar">
+        <i
+          className={`rs-dot${live && pushed ? ' rs-dot-live' : ''}`}
+          style={{ background: live ? '#2E6F40' : '#A3B0A8' }}
+        />
+        <span className="rs-livetext" style={{ color: live && (pushed || !liveCount) ? '#1F5A31' : '#5B6B60' }}>
           {!live
             ? `Showing data from ${hhmm(snap.at)}`
             : pushed
               ? 'Live · every 2 s'
               : liveCount
-                ? 'Last saved readings · every 4 s'
-                : 'Live · every 4 s'}
+                ? `Last saved readings · every ${POLL_S} s`
+                : `Live · every ${IDLE_POLL_S} s`}
         </span>
       </div>
       {!live && (
         <div className="rs-banner" style={{ background: '#FEF6E7', borderColor: '#F0DBA8', color: '#7A5A06' }}>
-          <b>Can’t reach the server.</b> The chart has stopped, and Stop and Restart are off until it is back.
+          <div>
+            <b>Can’t reach the server.</b> The chart has stopped, and Stop and Restart are off until it is back.
+          </div>
         </div>
       )}
       <div className="rs-banner" style={{ background: look.bg, borderColor: look.border }} data-testid="rs-verdict">
