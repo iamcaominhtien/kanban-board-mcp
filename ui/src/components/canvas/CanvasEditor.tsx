@@ -13,6 +13,7 @@ import {
   replaceBoard,
   useCanvasThreads,
   type CanvasBoard,
+  type CanvasDelivery,
   type CanvasNote,
   type CanvasThread,
   type PinAnchor,
@@ -186,7 +187,8 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
     anchor?: PinAnchor | null;
   } | null>(null);
   const [pinText, setPinText] = useState('');
-  const mentions = useCanvasMentions(canvas?.projectId, me);
+  const mentions = useCanvasMentions(canvasId, me);
+  const [pinNotes, setPinNotes] = useState<Record<string, CanvasDelivery[]>>({});
   const [selThread, setSelThread] = useState<string | null>(null);
   const [keys, setKeys] = useState(false);
   const [dropping, setDropping] = useState(false);
@@ -2279,13 +2281,13 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                 value={pinText}
                 onChange={setPinText}
                 members={mentions.suggest}
-                projectId={canvas?.projectId ?? ''}
                 placeholder="Is the button label long enough for Vietnamese?"
                 ariaLabel="Comment"
               />
               <div className={styles.hint} style={{ margin: '4px 0 8px' }}>
-                Type @ to mention a person. Click a board to pin at that spot (it moves with the board), or click the
-                plane for a pin that stays put. Esc leaves the tool. Pins are numbered in the order they were made.
+                Type @ to mention a person or a team. Click a board to pin at that spot (it moves with the board), or
+                click the plane for a pin that stays put. Esc leaves the tool. Pins are numbered in the order they were
+                made.
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setPinDraft(null)}>
@@ -2309,6 +2311,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                       .then((t) => {
                         setPinDraft(null);
                         setTool('select');
+                        if (t.deliveries?.length) setPinNotes((cur) => ({ ...cur, [t.id]: t.deliveries ?? [] }));
                         setSelThread(t.id);
                         setSide('comments');
                         void qc.invalidateQueries({ queryKey: canvasKeys.threads(canvasId) });
@@ -2392,7 +2395,7 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
                   title={canvas.title}
                   threads={threads}
                   boards={doc.boards}
-                  projectId={canvas.projectId}
+                  notes={pinNotes}
                   boardId={oneBoard?.id ?? null}
                   selectedThread={selThread}
                   onSelectThread={(id) => {

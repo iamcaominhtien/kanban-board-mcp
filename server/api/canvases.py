@@ -5,6 +5,7 @@ error shape ``{detail: {code, message, ...}}``. The files of a frame are served 
 outside requests, sandboxed), so a frame opened on its own is as locked as inside the editor.
 """
 
+import logging
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
@@ -13,8 +14,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import events as board_events
 from database import get_session
+from services import activity
 from services import canvas_comments as comments
+from services import canvas_delivery
 from services import canvases as svc
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["canvases"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -479,6 +484,15 @@ async def post_restore_version(
 # --- comments ---------------------------------------------------------------------------------------------------
 
 
+@router.get("/canvases/{canvas_id}/members")
+async def get_mentionable(canvas_id: str, session: Session) -> list[dict[str, Any]]:
+    """Who the ``@`` picker of this canvas offers: the project's people, and its AI teams with whether each can be asked
+    on this canvas now."""
+    canvas = await svc._canvas(session, canvas_id)  # noqa: SLF001
+    await svc.member_role(session, canvas)
+    return await canvas_delivery.mentionable(session, canvas)
+
+
 @router.get("/canvases/{canvas_id}/threads")
 async def get_threads(
     canvas_id: str, session: Session, state: Optional[str] = None
@@ -514,7 +528,23 @@ async def post_thread(
         anchor=body.anchor,
     )
     await _changed()
+    out["deliveries"] = await _deliver(session, canvas_id, out)
     return out
+
+
+async def _deliver(
+    session: AsyncSession, canvas_id: str, thread: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Give the comment just saved to the AI teams it mentions (see ``services.canvas_delivery``). A failure here is
+    answered as "not delivered", never as a failed comment: the comment is already saved."""
+    try:
+        canvas = await svc._canvas(session, canvas_id)  # noqa: SLF001
+        return await canvas_delivery.deliver(
+            session, canvas, thread, by=activity.current_actor()
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not deliver a canvas comment to an AI team")
+        return []
 
 
 class Body(BaseModel):
@@ -529,6 +559,7 @@ async def post_reply(thread_id: str, body: Body, session: Session) -> dict[str, 
     """Reply in a thread."""
     out = await comments.reply(session, thread_id, body.body)
     await _changed()
+    out["deliveries"] = await _deliver(session, out["canvas_id"], out)
     return out
 
 

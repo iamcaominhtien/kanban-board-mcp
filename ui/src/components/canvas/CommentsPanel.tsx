@@ -9,9 +9,11 @@ import {
   replyThread,
   setThreadStatus,
   type CanvasBoard,
+  type CanvasDelivery,
   type CanvasThread,
 } from '../../api/canvases';
 import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
+import { toFriendly } from '../../utils/mentionText';
 import { useToast } from '../Toast';
 import { CanvasIcon } from './CanvasIcon';
 import { MentionBox } from './MentionBox';
@@ -32,8 +34,8 @@ interface Props {
   canComment: boolean;
   /** Who is looking, for "Only mine" and delete. */
   me: string;
-  /** The canvas's project: the people the `@` picker offers. */
-  projectId?: string | null;
+  /** What became of the AI teams a new comment mentioned (the editor's pin box posts it), by thread. */
+  notes?: Record<string, CanvasDelivery[]>;
   /** Start a new thread on the board in view (the large view has no pin tool). */
   newOnBoard?: boolean;
   filters?: CommentFilter[];
@@ -91,11 +93,13 @@ export function CommentsPanel(props: Props) {
     onSelectThread,
     canComment,
     me,
-    projectId,
+    notes,
     filters,
     newOnBoard,
   } = props;
-  const mentions = useCanvasMentions(projectId, me);
+  const mentions = useCanvasMentions(canvasId, me);
+  const [mine, setMine] = useState<Record<string, CanvasDelivery[]>>({});
+  const sent = { ...notes, ...mine };
   const qc = useQueryClient();
   const toast = useToast();
   const [on, setOn] = useState<Set<CommentFilter>>(new Set(['open']));
@@ -116,7 +120,8 @@ export function CommentsPanel(props: Props) {
     });
   const run = async (fn: () => Promise<unknown>) => {
     try {
-      await fn();
+      const out = (await fn()) as CanvasThread | undefined;
+      if (out?.deliveries?.length) setMine((cur) => ({ ...cur, [out.id]: out.deliveries ?? [] }));
       refresh();
     } catch (e) {
       toast.error('Comment failed', canvasFailure(e).message);
@@ -125,7 +130,7 @@ export function CommentsPanel(props: Props) {
   const createTicket = async (t: CanvasThread) => {
     try {
       const { client } = await import('../../api/client');
-      const first = t.comments[0]?.body ?? '';
+      const first = toFriendly(t.comments[0]?.body ?? '');
       const proj = (await client.get<{ projectId: string | null }>(`/canvases/${canvasId}`)).data.projectId;
       if (!proj) throw new Error('This canvas is not in a project.');
       const r = await client.post<{ id: string; key?: string }>(`/projects/${proj}/tickets`, {
@@ -159,11 +164,10 @@ export function CommentsPanel(props: Props) {
             multiline
             className={styles.input}
             rows={2}
-            placeholder={`Comment on “${nameOf(boardId)}”… Type @ to mention a person`}
+            placeholder={`Comment on “${nameOf(boardId)}”… Type @ to mention a person or a team`}
             value={draft}
             onChange={setDraft}
             members={mentions.suggest}
-            projectId={projectId ?? ''}
             testId="canvas-new-comment"
           />
           <div className={styles.threadActions}>
@@ -253,7 +257,6 @@ export function CommentsPanel(props: Props) {
               onClick={(e) => e.stopPropagation()}
               onChange={(v) => setReply((r) => ({ ...r, [t.id]: v }))}
               members={mentions.suggest}
-              projectId={projectId ?? ''}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (reply[t.id] ?? '').trim()) {
                   const body = mentions.store(reply[t.id].trim());
@@ -266,6 +269,11 @@ export function CommentsPanel(props: Props) {
               }}
             />
           )}
+          {(sent[t.id] ?? []).map((d) => (
+            <div key={d.memberId} className={styles.hint} data-testid="canvas-delivery">
+              {d.result === 'delivered' ? `Sent to ${d.name}` : `Not sent to ${d.name}: ${d.reason ?? ''}`}
+            </div>
+          ))}
           <div className={styles.threadActions}>
             {canComment && (
               <button

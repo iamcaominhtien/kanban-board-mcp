@@ -796,7 +796,9 @@ async def test_comment_threads_pinned_to_a_frame_or_the_plane_resolve_and_reopen
         and t1["board_id"] == bid
         and t2["board_id"] is None
     )
-    assert t1["comments"][0]["mentions"] == ["Hoa"]
+    assert (
+        t1["comments"][0]["mentions"] == []
+    )  # mentions are member ids; "Hoa" is no member here
     rep = await c.post(
         f"/canvases/threads/{t1['id']}/replies",
         json={"body": "It matches the brand sheet"},

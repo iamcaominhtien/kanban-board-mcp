@@ -398,7 +398,6 @@ export function CanvasViewer({ request, mode, me, onClose, onEdit }: Props) {
                 onSelectThread={setSelThread}
                 canComment={c.role !== 'viewer'}
                 me={me}
-                projectId={c.projectId}
                 filters={['open', 'resolved', 'board']}
                 newOnBoard
               />

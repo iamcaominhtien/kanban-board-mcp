@@ -8,7 +8,6 @@ interface Props {
   onChange: (value: string) => void;
   /** People offered after `@`. */
   members: SuggestMember[];
-  projectId: string;
   className?: string;
   placeholder?: string;
   rows?: number;
@@ -25,7 +24,7 @@ interface Props {
  * @param props - The text and what it looks like.
  */
 export function MentionBox(props: Props) {
-  const { multiline, value, onChange, members, projectId, className, placeholder, rows, autoFocus, ariaLabel } = props;
+  const { multiline, value, onChange, members, className, placeholder, rows, autoFocus, ariaLabel } = props;
   const field = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const common = {
     className,
@@ -45,8 +44,8 @@ export function MentionBox(props: Props) {
       ) : (
         <input ref={field as RefObject<HTMLInputElement>} {...common} />
       )}
-      {projectId && members.length > 0 && (
-        <RefSuggester targetRef={field} projectId={projectId} members={members} membersOnly zIndex={2900} />
+      {members.length > 0 && (
+        <RefSuggester targetRef={field} projectId="" members={members} membersOnly zIndex={2900} />
       )}
     </>
   );

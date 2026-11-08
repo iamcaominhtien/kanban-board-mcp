@@ -1217,6 +1217,12 @@ async def _why_closed_by_kind(session: AsyncSession, r: Notification) -> _Why:
         return await _why_account_closed(session, r.target_id)
     if r.target_kind == "thread" and r.target_id:
         return await _why_thread_closed(session, r)
+    if r.target_kind == "canvas_thread" and r.target_id:
+        from models import CanvasThread
+
+        if await session.get(CanvasThread, r.target_id) is None:
+            return "The comment thread is gone.", None, True
+        return None
     if r.kind == "budget":
         return await _why_budget_closed(session, r)
     if r.kind == "auto_trip":

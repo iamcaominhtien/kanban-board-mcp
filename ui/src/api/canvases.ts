@@ -169,6 +169,24 @@ export interface CanvasThread {
   resolvedAt: string | null;
   comments: CanvasComment[];
   byAi: boolean;
+  /** Only in the answer to a new comment or reply: what became of each AI team it mentioned. */
+  deliveries?: CanvasDelivery[];
+}
+/** What became of one AI team a comment mentioned: sent to it, or why not. */
+export interface CanvasDelivery {
+  memberId: string;
+  name: string;
+  result: 'delivered' | 'not_delivered';
+  reason?: string;
+}
+/** A member the `@` picker of a canvas offers; a team says whether it can be asked on this canvas now. */
+export interface CanvasMember {
+  id: string;
+  name: string;
+  color: string;
+  role?: string;
+  kind: 'human' | 'ai';
+  ai?: { status: 'ready' | 'paused' | 'unavailable'; usable: boolean; note: string; provider: string };
 }
 
 export interface CanvasVersion {
@@ -310,6 +328,18 @@ export function useCanvasThreads(id: string, enabled = true) {
     queryFn: async () => (await client.get<CanvasThread[]>(`/canvases/${id}/threads`)).data,
     enabled: !!id && enabled,
     staleTime: 5_000,
+  });
+}
+/**
+ * Query who the `@` picker of a canvas offers: the project's people and AI teams.
+ * @param id - Canvas id.
+ */
+export function useCanvasMembers(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ['canvas-members', id ?? ''] as const,
+    queryFn: async () => (await client.get<CanvasMember[]>(`/canvases/${id}/members`)).data,
+    enabled: !!id,
+    staleTime: 15_000,
   });
 }
 /**

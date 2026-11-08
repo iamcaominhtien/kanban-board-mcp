@@ -725,7 +725,10 @@ async def update_canvas_frame(
 async def comment_on_canvas(
     canvas_id: CanvasId,
     body: Annotated[
-        str, Field(description="Comment text (Markdown; @Name mentions a member).")
+        str,
+        Field(
+            description="Comment text (Markdown; @Name mentions a member: a person is notified)."
+        ),
     ],
     board_id: Annotated[
         str | None, Field(description="Pin a new comment to this frame.")
