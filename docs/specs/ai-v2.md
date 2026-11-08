@@ -226,11 +226,14 @@ Bỏ nhiều hơn xây. Phần AI của UI hiện ~20 nghìn dòng, 68 file cộ
 - **Giữ:** `accounts`, `AiUsage` và quota, `schedules`, `AiInbox`, `AiAuditLog`, Docs AI điểm vào, `knowledge`, `AiKillSwitch`,
   Resources.
 - **Mới, cần thiết kế:** trình sửa pack (vai, persona, model, skill, lệnh cấm); trang Skills & plugins theo project (D3, một
-  phần đã có trong `ai-provider-config`); trang memory của project; cây tiến trình trong run. Làm từ `design/source/*.dc.html`.
+  phần đã có trong `ai-provider-config`, bảng này sau đó bị xoá khỏi `design/`: xem `ai-project-settings`); trang memory của project; cây tiến trình trong run. Làm từ `design/source/*.dc.html`.
 
-> **Đã xây khác (2026-11-08):** danh sách "Bỏ" ở trên là kế hoạch đầu. Khi thử tay, **Timeline đã quay lại** (dựng từ run, vai và
-> câu hỏi của v2), cùng trang **AI Team** (bốn tab Now, Timeline, Run history, Memory), trang **Story** và nhóm **Group by Story**. Các tab Flow,
-> You stepped in, Health và Resources của trang AI Team chưa quay lại, đã mở ticket KBM-19 đến KBM-22. Xem mục 11.4.
+> **Đã xây khác (cập nhật KBM-39):** danh sách "Bỏ" ở trên là kế hoạch đầu. Khi thử tay, **Timeline đã quay lại** (dựng từ run, vai và
+> câu hỏi của v2), cùng trang **AI Team**, trang **Story** và nhóm **Group by Story**. Trang AI Team nay có **bảy tab**: **Now**,
+> **Flow** (một Map hoặc một Timeline, theo phạm vi chọn), **Run history**, **You stepped in**, **Health**, **Resources** và
+> **Memory**. Timeline không còn là tab riêng: là một cách xem của Flow. **Docs AI** cũng đã quay lại (hỏi, kiểm tra trang, sức khoẻ
+> Docs, Send to AI) trên đường ống của `services/assistant/`. Vẫn **không** có tầng duyệt, quyền theo action, bàn giao do board giữ
+> hay ngân sách v1. Xem mục 11.4.
 
 ## 8. Lát cắt đầu tiên và thứ tự
 
@@ -332,7 +335,8 @@ nhánh `claude/ai-team-architecture-7a1efc`; chỗ chưa kiểm được ghi rõ
 - **Timeline quay lại**, dựng từ `ai_run`, `ai_run_agent` (kèm marker của `ai_run_step`) và `ai_run_message`: một đường cho người,
   một cho lead, một cho mỗi vai, thanh cho mỗi run và mỗi đoạn làm việc, mũi tên cho bàn giao, câu hỏi và trả lời, khoảng project bị
   tạm dừng. Route `GET /projects/{id}/ai/team/timeline`, `services/ai/timeline.py`, `TicketTimeline` trên ticket (`d1383bed`,
-  `fd98bde9`, `2f4a6669`). Spec mục 7 đã đánh dấu Timeline là "bỏ"; điều đó không còn đúng.
+  `fd98bde9`, `2f4a6669`). Spec mục 7 đã đánh dấu Timeline là "bỏ"; điều đó không còn đúng. Trên trang AI Team, Timeline là một
+  **cách xem của tab Flow** (cạnh Map), không còn là tab riêng (KBM-29).
 - **Tab AI activity của ticket** vẽ từ run của ticket: thẻ run, panel run (mở một bước ra toàn bộ lệnh hay câu, tải các bước trước
   50 bước mới nhất), lịch sử run (mỗi run bắt đầu bằng yêu cầu đã mở nó và kết thúc bằng báo cáo; "Full history" xếp mọi run liền
   nhau), cụm bước của subagent gập dưới dòng đã giao việc (`ab4837a6`, `b5d04a6d`, `a7348bc3`, `ffb8733a`, `e2767c3c`); thẻ Resources và
@@ -341,13 +345,25 @@ nhánh `claude/ai-team-architecture-7a1efc`; chỗ chưa kiểm được ghi rõ
   từng vai (đang làm gì, lần làm gần nhất, số bước và run hôm nay), Recent (run vừa xong kèm dòng đầu của báo cáo) và Spend today.
   Dữ liệu từ `services/ai/activity.py`, tính từ `ai_run`, `ai_run_agent`, `ai_run_step`, `ai_run_message`, không migration, **không có
   tiền theo từng vai** (tiền thuộc về run). Route `GET /ai/teams/{id}/activity`, `GET /projects/{id}/ai/team/activity`,
-  `GET /projects/{id}/ai/recent`. Còn bốn tab: Now, Timeline, Run history, Memory.
+  `GET /projects/{id}/ai/recent`. Bảy tab hiện có: Now, Flow, Run history, You stepped in, Health, Resources, Memory (xem bên dưới).
 - **Story**: một Story mở thành **trang Story** (tiến độ, ticket con theo thứ tự đợt kèm đội đang giữ và run, tiêu chí, token và tiền,
-  "Open in Timeline" giới hạn vào Story; menu ⋯ có "Open as ticket") (`fa173822`, `8a73b0a3`, `2ce08974`); bảng đặt **Group by Story**
+  "Open in Flow" giới hạn vào Story; menu ⋯ có "Open as ticket") (`fa173822`, `8a73b0a3`, `2ce08974`); bảng đặt **Group by Story**
   trở lại, mỗi Story một làn (`610a91df`). Thẻ ticket cha có lại thanh sub-task (KBM-16, `0b4f2863`). Phần PM của v1 (Run by PM, Flow,
   Pause, phiên bản kế hoạch, Decided for you, Autonomy, ngân sách token) vẫn ra ngoài.
-- **Chưa quay lại**, mỗi cái một ticket: Resources của trang AI Team (KBM-19), Flow (KBM-20), You stepped in (KBM-21), Health
-  (KBM-22). Các ticket này đang giao cho phiên cloud; khi nhánh của chúng gộp vào thì mục này đổi.
+- **Đã quay lại** (trước đây ghi "chưa quay lại", ticket KBM-19 đến KBM-22; dựng theo thiết kế ở KBM-28 và KBM-29), mỗi cái là một tab của
+  `AiTeamView`: **Flow** (`FlowTab`; Map và Timeline, thanh phạm vi: cả project, một đội, một Story hay một ticket; `GET /projects/{id}/ai/team/flow`,
+  `.../flow/scopes`, `.../timeline`; "Open in Flow" trên ticket và trang Story mở nó), **You stepped in** (`SteppedInTab`: mỗi lần một người
+  phải chạm vào việc trong 7 ngày, có thể thành bài học; `GET .../ai/team/touches`, `POST .../touches/lesson`; `services/ai/touches.py`),
+  **Health** (`HealthTab`: mỗi đội có ổn không; `GET .../ai/team/health`; `services/ai/health.py`) và **Resources** (`ResourcesTab`: máy,
+  các run đang chạy trên nó và giới hạn; `GET /projects/{id}/ai/resources`; `services/ai/resources.py`). Các tab này chỉ
+  hiện số liệu; board không chặn AI vì chúng.
+- **Docs AI đã quay lại** (KBM-24, KBM-38): menu AI trên trang, Ask, kiểm tra trang, sức khoẻ Docs (`services/docs_ai/health.py`, màn `DocsHealthView`), Send to AI (`services/docs_ai/handoff.py`: gửi bình luận của trang tới AI của ticket), dọn trang (`tidy.py`). Chúng chạy
+  trên `services/assistant/` và `docs_ai/jobs.py`; không có `proposals` hay lớp `access` riêng (mọi trang AI đọc được là trang người đọc được).
+- **Trạng thái "Rate-limited" của đội** (KBM-39): một run kết thúc vì giới hạn gói (429, `stop_code="rate_limited"`) đặt `health =
+  "rate_limited"` cho đội (`teams.note_run_outcome`, gọi trong `runs._end`); run kế tiếp kết thúc `finished` xoá nó. Đội vẫn nhận ticket
+  và xếp hàng; hàng của đội hiện nhãn "Rate-limited".
+- **Tiền chỉ hiện khi run báo chi phí thật**; run dùng gói thuê bao (không đo) hiện "Not metered". Hàng đội ở Members và trang đội dùng cùng
+  luật này (KBM-39). Không có tầng duyệt trong v2.
 - Chat `+` có biểu tượng cho mục menu; thẻ History có đồng hồ (`0e1cddde`).
 
 ### 11.5 Nơi lưu file và thứ ngoài AI
@@ -365,6 +381,8 @@ nhánh `claude/ai-team-architecture-7a1efc`; chỗ chưa kiểm được ghi rõ
   của người dùng). Test cũ có thể còn đòi hành vi cũ (`test_mcp_tool_quality`, `test_ai_launch_v2`, thứ tự thư mục uploads).
 - Các run thật bằng Haiku và Sonnet đã chạy trên bảng tạm cho chat, bình luận đóng và thông báo; **chưa** đo số request mỗi giây với
   3 run cùng lúc, **chưa** thử hook trên Windows, **chưa** kiểm bản đóng gói PyInstaller chạy `--runner`.
-- Giới hạn độ sâu chuỗi AI gửi AI (mục 4.3) **chưa có**: `ai_run message` không đếm độ sâu.
+- Giới hạn độ sâu chuỗi AI gửi AI (mục 4.3) **có**: `MAX_DEPTH = 3` ở `services/ai/runs.py`. Mỗi run giữ `depth` (cột `ai_run.depth`,
+  migration `f7b9d1e3a5c7`, KBM-24); một tin do AI gửi (`ai_run message`, Board AI chuyển thread Docs, đội của ticket nhắn một trang) mở
+  run sâu hơn một bậc, và ở độ sâu 3 tin bị từ chối ("Too many hand-offs between AIs"). Người mở run thì độ sâu là 0.
 - Các mục "Còn mở" ở mục 9 khác (hai tài khoản có nhắn nhau không, `--permission-mode auto` chặn gì, đưa trả lời của subagent vào lượt
   kế của lead, `--bg`) chưa được thử lại.

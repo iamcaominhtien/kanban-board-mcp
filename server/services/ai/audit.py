@@ -1,5 +1,5 @@
 """Append-only AI audit log. Each entry carries the hash of the one before it, so an edit or a removed row is
-detectable (design/screens/ai-safety-cost.md, E). Entries are redacted before they are written."""
+detectable (E of the deleted v1 board ai-safety-cost). Entries are redacted before they are written."""
 
 import asyncio
 import hashlib

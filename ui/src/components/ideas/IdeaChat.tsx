@@ -75,7 +75,7 @@ export function AskAiShortcut({ projectId, onToggle }: { projectId: string | nul
  * @param props.onClose - Close the dock.
  */
 export function IdeaChat({ idea, onClose }: { idea: Idea; onClose: () => void }) {
-  const { openAiPage, openAiTab } = useAiBoardState();
+  const { openAiPage } = useAiBoardState();
   const scope = useMemo(() => ({ kind: 'idea' as const, id: idea.id }), [idea.id]);
   return (
     <div className="is-chat-dock" data-testid="idea-chat">
@@ -84,7 +84,6 @@ export function IdeaChat({ idea, onClose }: { idea: Idea; onClose: () => void })
         title="Ask AI about this idea"
         onClose={onClose}
         onOpenAiMembers={() => openAiPage?.()}
-        onOpenUsage={() => openAiTab?.('usage')}
       />
     </div>
   );

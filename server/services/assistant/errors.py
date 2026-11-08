@@ -22,7 +22,6 @@ STATUS = {
     "feature_off": 409,
     "not_configured": 409,
     "unavailable": 409,
-    "over_budget": 409,
     "ai_off": 409,
     "gone": 410,
 }

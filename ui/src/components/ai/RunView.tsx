@@ -252,7 +252,7 @@ export function UsageCard({ run, who }: { run: AiRun; who: string }) {
           </div>
         </div>
       ) : (
-        <div className="ai-hint">Not metered: a local runner uses your signed-in CLI.</div>
+        <div className="ai-hint">Not metered</div>
       )}
     </div>
   );

@@ -4,7 +4,7 @@ import { extractError } from '../../api/extractError';
 import { scheduleApi, useScheduleDetail, useScheduleMutation } from '../../api/schedules';
 import type { AiTeam } from '../../types/ai';
 import type { ScheduleDetail as Detail, ScheduleRun } from '../../types/schedules';
-import { money, useAiBoardState } from '../ai/aiUi';
+import { money } from '../ai/aiUi';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
 import { TicketLine } from './MemberSelect';
@@ -263,7 +263,6 @@ export function ScheduleDetailLayer({
   const teams = useAiTeams(projectId);
   const ais = (teams.data ?? []).filter(canStart);
   const ticketRuns = useTicketRuns(d?.ticketId);
-  const { openAiTab } = useAiBoardState();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
   const [openIds, setOpenIds] = useState<Set<string> | null>(null);
   const [menu, setMenu] = useState(false);
@@ -281,9 +280,6 @@ export function ScheduleDetailLayer({
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [onClose]);
-
-  // F "Over budget": the banner names the budget and offers to edit it
-  const overBudget = !!d?.problems.some((p) => p.level === 'warn' && p.text.includes('over its budget'));
 
   if (!d) {
     return (
@@ -484,18 +480,6 @@ export function ScheduleDetailLayer({
                   .map((p) => (
                     <div key={`${p.key}-${p.text}`}>{p.text}</div>
                   ))}
-                {overBudget && openAiTab && (
-                  <div className="sc-inline" style={{ marginTop: 8 }}>
-                    <button
-                      type="button"
-                      className="ai-btn ai-btn-sm"
-                      onClick={() => openAiTab('usage', { memberId: d.memberId })}
-                      data-testid="edit-budget"
-                    >
-                      Edit budget
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-"""Text that looks like instructions to an AI (design/screens/ai-safety-cost.md, F).
+"""Text that looks like instructions to an AI (F of the deleted v1 board ai-safety-cost).
 
 Detection is a hint for people ("Looks like instructions: treated as plain text"), never a gate: what stops a fooled
 model is the permission layer. Trust comes from who wrote a text, never from its wording, and there is no "mark as

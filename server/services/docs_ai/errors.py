@@ -13,7 +13,6 @@ STATUS = {
     "unavailable": 409,
     "paused": 409,
     "rate_limited": 429,
-    "over_budget": 409,
     "too_long": 409,
     "stale": 409,
     "not_covered": 409,

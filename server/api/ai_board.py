@@ -14,7 +14,6 @@ import services.activity as svc_activity
 from database import get_session
 from models import AiKnowledgeDoc, AiWatchedPr, Project
 from services.ai import github as svc_github
-from services.ai import runs as svc_runs
 from services.ai import kb as svc_kb
 
 router = APIRouter(tags=["ai"])
@@ -52,26 +51,6 @@ async def get_pulls(project_id: str, session: Session) -> list[dict]:
 async def post_poll(project_id: str) -> dict:
     """Ask gh about every open pull request now."""
     return {"changes": await svc_github.tick_project(project_id)}
-
-
-@router.post("/tickets/{ticket_id}/ai/pull/{what}")
-async def post_pull_action(
-    ticket_id: str, what: Literal["ci-to-dev", "comments-to-dev"]
-) -> dict:
-    """Give the red CI (with its log) or the review comments back to the ticket's Dev."""
-    try:
-        run_id = await (
-            svc_github.back_to_dev({"ticket_id": ticket_id})
-            if what == "ci-to-dev"
-            else svc_github.comments_to_dev(ticket_id)
-        )
-    except svc_runs.RunError as exc:  # e.g. the team is asking a person: answer first
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    if run_id is None:
-        raise HTTPException(
-            status_code=409, detail="Nothing to hand back, or no Dev on this ticket."
-        )
-    return {"run_id": run_id}
 
 
 # --------------------------------------------------------------------------- knowledge base

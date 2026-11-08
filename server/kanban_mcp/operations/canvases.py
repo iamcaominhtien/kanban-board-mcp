@@ -90,7 +90,7 @@ def _at(anchor: dict | None) -> str | None:
 
 
 async def _ai_may_read(session, c) -> bool:
-    """A canvas that is a Docs page hidden from AI (or outside "only picked pages") is not read by any AI run."""
+    """AI v2: an AI reads what people read, so this is always True (the branches that skip a canvas "hidden from AI" below never run)."""
     return True  # AI v2: an AI reads what people read
 
 

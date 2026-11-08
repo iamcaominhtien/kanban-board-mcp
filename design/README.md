@@ -66,7 +66,7 @@ Each doc's header links to its source file and records the canvas version and sh
 - [AI project settings — running the teams, skills and plugins, memory, role packs, repositories, runner](screens/ai-project-settings.md)
 - [AI accounts — sign in once, share between AI members](screens/ai-accounts.md)
 - [AI — schedules](screens/ai-schedules.md)
-- [AI paused — one clear state on every screen](screens/ai-paused.md) (supersedes D1 of AI safety & cost)
+- [AI paused — one clear state on every screen](screens/ai-paused.md) (supersedes D1 of the AI safety & cost board, which was deleted from the design when AI v2 removed the safety and approval layer)
 - [AI Team — what the AIs are doing and how work moves](screens/ai-team.md)
 - [AI Team — where people stepped in, and AI health](screens/ai-team-review.md)
 - [AI Team — Flow: the Timeline view](screens/ai-team-timeline.md)

@@ -28,12 +28,11 @@ uploads/canvases/cv_8f3a1c2d/
   canvas.json                    the plane: page tabs, boards, notes, arrows, labels (the "one file")
   overview.png                   an outline picture of the first page tab, written on every save (exports use it)
   boards/b_0a1b2c3d/r2/…         the files of one revision of a frame's content; revisions are never rewritten
-  proposals/cp_…/b_…/…           the files an AI member proposed (nothing on the canvas changes until accepted)
 ```
 
 The tables (migration `b8c9d0e1f2a3`): `canvas` (owner, `rev`, latest `version`), `canvas_version` (a frozen copy of
 `canvas.json` per version), `canvas_thread` / `canvas_comment` (comments, same shape as Docs comments),
-`canvas_proposal`; and `docs_page.kind`.
+and `docs_page.kind`. (The `canvas_proposal` table and the `CanvasProposal` model are left from the proposals of AI v1; nothing reads or writes them now.)
 
 ### `canvas.json` (format `kanban-canvas`, version 1)
 
@@ -91,8 +90,7 @@ needs the member role (`403 read_only`). **Access is the owner's**: the project 
 | `GET …/boards/{b}/r/{rev}/{path}` | A file of a frame, served with the locking policy below. `…/snapshot.png`, `…/overview.png`: outline pictures. |
 | `GET …/download?board_id&version` | ZIP of every frame with `canvas.json`, or of one frame. |
 | `GET/POST …/versions` · `GET/PATCH …/versions/{n}` · `POST …/versions/{n}/restore` · `GET …/compare?a&b` · `GET …/boards/{b}/source-diff` | History. |
-| `GET/POST …/threads` · `POST /canvases/threads/{id}/replies · resolve · reopen · propose` · `PATCH/DELETE /canvases/comments/{id}` | Comments. |
-| `GET …/proposals` · `POST …/proposals/{p}/decide` · `GET …/proposals/{p}/{b}/{path}` · `POST …/ai/ask` | AI proposals. |
+| `GET/POST …/threads` · `POST /canvases/threads/{id}/replies · resolve · reopen` · `PATCH/DELETE /canvases/comments/{id}` | Comments. |
 
 ### Layout changes merge per item
 
@@ -115,7 +113,7 @@ member never takes a lock** (it has no route that does).
 
 ### Versions
 
-On **Done**, on **accepting a proposal**, on **restore**, and **every 10 minutes of change** for a canvas that is a Docs
+On **Done**, on **restore**, and **every 10 minutes of change** for a canvas that is a Docs
 page. A version holds a frozen copy of `canvas.json`; frame content is never overwritten (a revision folder per change),
 so any version can be looked at, compared and restored. **Restoring makes a new version**; nothing is lost. Compare shows
 the two frames side by side with a list of frames that changed, were added or removed, and a source diff.
@@ -153,35 +151,30 @@ still draw a static copy without scripts.
 
 ## AI
 
-Reuse of the Docs AI machinery (members, permissions, budgets, caps, kill switch, audit, "AI never overwrites").
+AI v2: an AI team reads and writes a canvas through the Docs MCP tools of its run, like a person with the member role. There is
+no proposal step, no "Ask AI" job on the canvas and no approval layer.
 
-* **Ask AI about the selected frames** (Ctrl J, or **Ask AI** on a frame): `POST /canvases/{id}/ai/ask` starts a Docs AI
-  job of kind `canvas` (`services/canvas_proposals.py`). The model sees the frames' source, the notes and the open
-  comments as fenced untrusted data, and answers with `=== FILE <frame> <path> ===` blocks. While it works the frames show a
-  purple ribbon and stay usable. The result is a **proposal**.
-* **A proposal** holds the new files of one or more frames beside the canvas. The person sees **before and after** (two locked
-  frames) and, with *Compare in source*, the changed lines; they **Accept both / Accept this one / Reject**. What is accepted
-  is saved as **one new version** (`reason: proposal`). A frame that changed since is `stale`; a frame somebody is editing makes
-  the proposal **wait** ("AI is waiting for Sign in") and is accepted when the lock ends. Proposals change HTML frames only.
-* **AI comments** under the member's own name, can offer **Propose a fix** (starts the same job on that frame) and never
-  resolve a person's thread (`403 ai_cannot_resolve`).
+* **An AI team saves the new files of a frame at once.** `docs_write(canvas_update, canvas_id, board_id, path [, note])` takes a
+  folder of files for one HTML frame and the frame changes straight away. **History gets no version** for an HTML frame change
+  (the earlier files stay in the frame's revision folders; a version is made by Done, a restore or the 10-minute auto-version,
+  not by this). A frame a person is editing is locked: the error names them and the team tries again later.
+* **AI comments** go under the team's own name (`docs_write(canvas_comment, ...)`) and never resolve a person's thread
+  (`403 ai_cannot_resolve`).
 * **MCP: no new tool.** Five actions of the Docs tools: `docs_read(canvases)`, `docs_read(canvas, canvas_id [, board_id,
-  path])` (frames, notes, arrows, labels, comments, open proposals, locks; with `board_id` a frame's source or, with `path`, its
-  files written to a folder), `docs_write(canvas_create, path [, owner_kind, owner_id, title | canvas_id])` (a new canvas, or frames
-  added to one, from a folder: a sub-folder with an `.html` page per frame, optional `frame.json` `{"name", "size"}`; every frame
-  is checked before anything is created), `docs_write(canvas_comment, canvas_id, body [, board_id, at, thread_id])` and
-  `docs_write(canvas_propose, canvas_id, board_id, path [, note])`. A comment or a proposal needs the member's **Comment** permission
-  (neither changes a frame until a person, or Autopilot, accepts), other `docs_write` actions need **Edit docs**, and an AI run
-  may only touch canvases of its own project. A folder an AI run names must not be the computer's root, the home folder or one
-  of its dot-folders; files in dot-folders, `node_modules` and key or secret-named files are left out (a proposal says which),
-  and in Safe mode a frame is not written to a folder (read it inline instead).
+  path])` (frames, notes, arrows, labels, comments, locks; with `board_id` a frame's source or, with `path`, its files written to a
+  folder), `docs_write(canvas_create, path [, owner_kind, owner_id, title | canvas_id])` (a new canvas, or frames added to one,
+  from a folder: a sub-folder with an `.html` page per frame, optional `frame.json` `{"name", "size"}`; every frame is checked
+  before anything is created), `docs_write(canvas_comment, canvas_id, body [, board_id, at, thread_id])` and
+  `docs_write(canvas_update, canvas_id, board_id, path [, note])`. An AI run may only touch canvases of its own project. A
+  folder an AI run names must not be the computer's root, the home folder or one of its dot-folders; files in dot-folders,
+  `node_modules` and key or secret-named files are left out.
 
 ## Design quality of what an AI writes
 
 An AI that writes frames is told how to design them, not only how to deliver them. The guide is one text, `GUIDE` in
-`services/canvas_design.py` (about 9,400 characters, 11 numbered steps). It is given whole to the Ask AI job (its rules)
-and to every MCP agent (appended to the server instructions it gets on connect, which costs about 2,300 tokens a session),
-and `.claude/skills/canvas-design/SKILL.md` for Claude Code is the same text with a header: a test fails if the file and
+`services/canvas_design.py` (about 9,400 characters, 11 numbered steps). It is given whole to every Claude Code run of an AI team
+(as its `canvas-design` skill, `services/ai/board_skills.py`) and to any other MCP agent through `docs_read(design_guide)` (it is
+not in the MCP server instructions: Claude Code keeps only their first 10,000 characters), and `.claude/skills/canvas-design/SKILL.md` for Claude Code is the same text with a header: a test fails if the file and
 the constant differ, so there is one source to edit. It borrows its shape from the Design skill used for artifacts. The process: **context first** (the product's own
 screens, brand, code; match its vocabulary), a **direction** named and kept (purpose, tone, the one memorable thing; 2 to 4
 genuinely different low-fi options with their tradeoffs when it is still open), **real content** (no lorem ipsum, no
@@ -190,7 +183,7 @@ spacing, radius and type scales) reused by every frame, layout and hierarchy (on
 44 px targets), built to be used (real buttons, links and labelled inputs, inline SVG icons, no fake status bar, every state
 drawn), contrast and access, things to avoid (gradient washes, left-border cards, sameness from one brief to the next),
 "a small change stays small", and a check before sending (squint test, everything from the scale, holds at 390, 820 and
-1280 px). The skill adds one round of questions for a person who can answer; the Ask AI job and headless agents decide and
+1280 px). The skill adds one round of questions for a person who can answer; headless runs decide and
 state assumptions in a line. `test_canvas_mcp.py` checks that the brief reaches both places.
 
 ## Comment pins on a page
@@ -244,7 +237,8 @@ one frame at a time.
 
 * Real-time editing and live cursors (out of scope in v1).
 * Free drawing and a shape library (that is Sketch and Diagram).
-* AI proposals for picture, Sketch and Diagram frames (they have their own editors).
+* `canvas_update` for picture, Sketch and Diagram frames (they have their own editors); it changes HTML frames only.
+* A way to see, undo or compare an AI's change to an HTML frame in History (it makes no version).
 * A frame's own comments are kept when the frame is deleted but are only shown in the Comments tab.
 
 ## Known limits (found in review, left as they are)
@@ -252,8 +246,6 @@ one frame at a time.
 * A delete carries no revision: someone who removes a note or frame they last saw removes it even if another person edited it
   since. (A stale *move* of a frame that was deleted is a conflict; a frame or page tab somebody is editing cannot be removed:
   `423`.)
-* Accepting a proposal does not run the Docs AI `forbid_ai` / audit-entry path; it needs a person with the member role (and the
-  Docs edit policy for a canvas page), and the version records who accepted.
 * Writes of one canvas are serialised in this process (`canvases.serial`); a second server process would need a database lock.
 
 ## Tests
@@ -262,10 +254,8 @@ one frame at a time.
   errors, files kept as given and the serving headers, ZIP import, the per-item merge and conflict, locks (one per frame, idle
   expiry, content needs the lock, layout does not), versions (Done, named, restore makes a new one, compare, source diff),
   Docs page canvases and auto versions, Move to Docs, comments, permissions (viewers), download / overview / snapshot,
-  proposals (nothing changes until accepted, accept one, stale, waiting for a lock, HTML frames only), the model reply parser,
   boards as sections, Linked docs and backlinks.
 * `server/tests/test_canvas_mcp.py`: the MCP actions (including `canvas_create`), the guard, the project scope.
 * `ui/src/components/canvas/*.test.ts(x)`: plane math (zoom, fit, snap, resize, order, arrows), the merge after a save and the
   undo re-stamp, the line diff, the preview inlining, the canvas line and exports, and the UI (embed display and hover
-  actions, editor load and save, lock and conflict cards, offline draft, source editor, the open frame and Try it, proposal accept and
-  reject, a view-only person).
+  actions, editor load and save, lock and conflict cards, offline draft, source editor, the open frame and Try it, a view-only person).

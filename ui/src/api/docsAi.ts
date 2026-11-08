@@ -122,7 +122,7 @@ export function useCancelDocsAiJob() {
   });
 }
 
-/** `{detail, code}` of a Docs AI error (the code maps to a state: docs_ai_off, no_member, paused, over_budget...). */
+/** `{detail, code}` of a Docs AI error (the code maps to a state: docs_ai_off, no_member, paused, rate_limited...). */
 export function docsAiError(e: unknown): { code: string; detail: string } | null {
   if (axios.isAxiosError(e) && e.response?.data && typeof e.response.data === 'object') {
     const d = e.response.data as { code?: string; detail?: unknown };
