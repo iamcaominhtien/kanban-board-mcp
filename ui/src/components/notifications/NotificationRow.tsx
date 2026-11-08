@@ -244,7 +244,9 @@ function RowChips({
         <span className={`${styles.chip} ${styles.chipAi}`}>{row.memberName}</span>
       )}
       {row.kind === 'account_signed_out' && Number(row.data?.members) > 0 && (
-        <span className={`${styles.chip} ${styles.chipAi}`}>{`${Number(row.data?.members)} members`}</span>
+        <span
+          className={`${styles.chip} ${styles.chipAi}`}
+        >{`${Number(row.data?.members)} team${Number(row.data?.members) === 1 ? '' : 's'}`}</span>
       )}
       {row.ticketId && !grouped && (
         <TicketChip id={row.ticketId} onClick={row.gone ? undefined : () => void fire('open_ticket')} />
