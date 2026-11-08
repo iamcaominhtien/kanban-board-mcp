@@ -1,6 +1,6 @@
 # AI work on tickets
 
-> Component — v2 · source: [`AiTicketWork.dc.html`](../source/AiTicketWork.dc.html) · canvas `1794094928-220c` · sha256 `c599eb1411052f7dc8bc6eed78374effdc405ee0917c8cd4e49175cf4de0e4a5`
+> Component — v2 · source: [`AiTicketWork.dc.html`](../source/AiTicketWork.dc.html) · canvas `1794099567-d725` · sha256 `192c8543c3f801e9ec75e5c5dc30c52c37b36e802c3dd3e5231deae478758726`
 
 > Redrawn for AI v2 from `docs/design-todo/` (rows A-001 to A-040 and the B rows named in the "Todo rows" section below) and checked against the code of branch `claude/ai-team-architecture-7a1efc` (`ui/src/components/ai/`). Names, ids, costs, tokens and times in the mock-ups are sample data. **Check the code before building from this: the file named in each section is the truth, not the picture.**
 
