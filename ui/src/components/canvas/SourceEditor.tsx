@@ -287,7 +287,8 @@ export function SourceEditor({
             </div>
             {blocker?.code === 'board_locked' && (
               <div className={styles.hint}>
-                The lock ends when they save or cancel, close the editor, or have been idle for 10 minutes.
+                The lock ends when they save or cancel, close the editor, or have been idle for 10 minutes (shown to
+                them first).
               </div>
             )}
           </div>

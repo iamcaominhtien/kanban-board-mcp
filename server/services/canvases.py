@@ -1602,7 +1602,7 @@ async def put_board_content(
         entry: The page to show.
         base_content_rev: The content revision the editor started from; a different one means somebody saved meanwhile.
         release: Let go of the lock after saving (Save to canvas).
-        author: Who is credited.
+        author: Not used (the actor of the request is credited).
         reason: Internal tag for the audit trail.
         ai_team: The AI team that saves this change. The frame keeps its name (``ai_saved_by``) so the plane can show
             who changed it; a save by a person clears it.
@@ -1621,6 +1621,10 @@ async def put_board_content(
             "Images, Sketches and Diagrams are changed in their own editors.",
         )
     actor = activity.current_actor()
+    held_before = any(
+        lk["board_id"] == board_id and lk["holder"] == actor
+        for lk in canvas_locks.locks_of(c.id)
+    )
     taken, lock = canvas_locks.acquire(c.id, board_id, actor)
     if not taken:
         raise _locked(board, lock)
@@ -1658,8 +1662,9 @@ async def put_board_content(
         session.add(c)
         await session.commit()
     except BaseException:
-        # a refused AI save (or one that lost a race) must not leave the board locked for ten minutes (a person's editor stays open to fix it)
-        if release and ai_team:
+        # a refused save must not leave the board locked for ten minutes when this call took the lock itself (an
+        # editor that held it before stays open to fix the problem)
+        if release and not held_before:
             canvas_locks.release(c.id, board_id, actor)
         raise
     if release:
