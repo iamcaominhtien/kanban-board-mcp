@@ -133,7 +133,7 @@ export function AssigneePicker({
               <LineIcon name="search" size={14} />
             </span>
           </div>
-          <div style={{ maxHeight: 360, overflow: 'auto', marginTop: 6 }}>
+          <div style={{ maxHeight: 460, overflow: 'auto', marginTop: 6 }}>
             <button
               type="button"
               className="ai-mi"
@@ -207,7 +207,19 @@ export function AssigneePicker({
                     )}
                   </span>
                   {n.tag && (
-                    <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="assign-ai-tag">
+                    <span
+                      className="ai-muted"
+                      style={{
+                        marginLeft: 'auto',
+                        border: '1px solid #DCE3DE',
+                        borderRadius: 4,
+                        padding: '0 6px',
+                        fontSize: 10.5,
+                        lineHeight: '17px',
+                        background: '#fff',
+                      }}
+                      data-testid="assign-ai-tag"
+                    >
                       {n.tag}
                     </span>
                   )}
@@ -399,8 +411,13 @@ export function AssignStartPopover({
         />
       </div>
       {heldByName && (
-        <div className="ai-notice ai-notice-warn" data-testid="assign-held-by">
-          {heldByName} is working on it now. That run is cancelled.
+        <div
+          className="ai-notice ai-notice-warn"
+          data-testid="assign-held-by"
+          style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+        >
+          <LineIcon name="warning" size={14} />
+          <span>{heldByName} is working on it now. That run is cancelled.</span>
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

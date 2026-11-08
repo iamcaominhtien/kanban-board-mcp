@@ -108,8 +108,11 @@ function Avatar({ person, dashed }: { person: Person; dashed?: boolean }) {
   );
 }
 
-function Collapsible({ text }: { text: string }) {
-  const long = text.length > COLLAPSE_CHARS || text.split('\n').length > COLLAPSE_LINES;
+function Collapsible({ text, report }: { text: string; report?: boolean }) {
+  // a team's closing report shows whole (its usage line is the last line): only a very long one folds
+  const long = report
+    ? text.length > 3000 || text.split('\n').length > 60
+    : text.length > COLLAPSE_CHARS || text.split('\n').length > COLLAPSE_LINES;
   const [open, setOpen] = useState(false);
   if (!long) return <MarkdownRenderer>{text}</MarkdownRenderer>;
   return (
@@ -519,7 +522,7 @@ export function CommentsSection({
             )}
           </div>
           <div style={{ fontSize: 13.5, lineHeight: 1.65, color: '#3A4A3E' }}>
-            <Collapsible text={c.text} />
+            <Collapsible text={c.text} report={c.ai?.kind === 'summary'} />
           </div>
           {c.answerToRun && <AnswerTransitions run={aiRuns.find((r) => r.id === c.answerToRun)} />}
           {/* the report's own usage line ("Run #3 · 12,300 tokens · sonnet") already says which run */}
