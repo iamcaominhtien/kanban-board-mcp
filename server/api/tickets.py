@@ -294,6 +294,21 @@ async def get_one_ticket(ticket_id: str, session: Session) -> TicketRead:
     return _read(ticket)
 
 
+# Fields besides the title and description whose change by a person, while a run works on the ticket, is a touch
+TOUCH_FIELDS = ("status", "priority", "type", "tags")
+
+
+def _touch_value(ticket, key: str):
+    """A ticket field as the PATCH body sends it (tags are stored as a JSON string, the body carries the list)."""
+    value = getattr(ticket, key, None)
+    if key == "tags":
+        try:
+            return json.loads(value or "[]")
+        except ValueError:
+            return []
+    return value
+
+
 @router.patch("/tickets/{ticket_id}", response_model=TicketRead)
 async def patch_ticket(
     ticket_id: str, data: TicketUpdate, session: Session, start: bool = True
@@ -315,6 +330,7 @@ async def patch_ticket(
             "title": before.title,
             "description": before.description,
             "assignee": before.assignee,
+            **{k: _touch_value(before, k) for k in TOUCH_FIELDS},
         }
         if before
         else {}
@@ -331,6 +347,19 @@ async def patch_ticket(
         for key, label in (("title", "the title"), ("description", "the description"))
         if key in fields and fields[key] != was.get(key)
     ]
+    # the other fields a person changes while a run works are touches too, but the lead is not told of each
+    changed = [
+        k.replace("_", " ")
+        for k in TOUCH_FIELDS
+        if k in fields and fields[k] != was.get(k)
+    ]
+    if changed and not edited:
+        await ai_runs.note_person_edit(
+            ticket_id,
+            by=act_ctx.current_actor(),
+            what="the " + " and the ".join(changed),
+            tell_lead=False,
+        )
     if edited:
         await ai_runs.note_person_edit(
             ticket_id, by=act_ctx.current_actor(), what=" and ".join(edited)
@@ -387,6 +416,8 @@ async def patch_status(
         await ai_runs.before_ticket_change(
             ticket_id, status="wont_do", by=act_ctx.current_actor()
         )
+    before = await get_ticket(session, ticket_id)
+    was = before.status if before else None
     try:
         ticket = await update_ticket(
             session, ticket_id, TicketUpdate(status=body.status)
@@ -395,6 +426,16 @@ async def patch_status(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
+    if was is not None and was != ticket.status:
+        # dragging a card or using the status menu while a run works on it is a touch (the lead is not told of it)
+        from services.ai import runs as ai_runs
+
+        await ai_runs.note_person_edit(
+            ticket_id,
+            by=act_ctx.current_actor(),
+            what="the status",
+            tell_lead=False,
+        )
     await board_events.publish("invalidate")
     return _read(ticket)
 

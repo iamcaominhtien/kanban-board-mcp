@@ -1642,6 +1642,25 @@ class AiAudit(SQLModel, table=True):
     hash: str = Field(default="")
 
 
+class AiTouchMark(SQLModel, table=True):
+    """The mark a person gave to one touch of the tab "You stepped in" (needed | avoidable), and the lesson made from
+    it. Touches are worked out from runs, messages and the audit log; this small table keeps only what a person added
+    to one, under the touch's stable key, so a run or audit clean-up never removes it. (table)"""
+
+    __tablename__ = "ai_touch_mark"
+
+    key: str = Field(
+        primary_key=True
+    )  # answer:<run> | run:<run> | stop:<run> | msg:<id> | audit:<id> ...
+    project_id: str = Field(index=True)
+    mark: str = Field(default="needed")  # needed | avoidable
+    marked_by: Optional[str] = Field(default=None)
+    marked_at: str = Field(default_factory=_now_iso)
+    lesson_id: Optional[str] = Field(
+        default=None
+    )  # the proposed lesson "Make a lesson" created
+
+
 class AiProjectSettings(SQLModel, table=True):
     """Per-project AI settings (AI v2): the kill switch, board-wide limits, the permission mode of runs, the deny list,
     how lessons are kept, and the v2 operations JSON (services/ai/ops.py) (table)."""
