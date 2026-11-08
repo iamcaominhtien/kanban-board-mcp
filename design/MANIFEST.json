@@ -100,13 +100,13 @@
       "h": 10280,
       "note": "Supersedes D1 (header button, paused state) of AiSafetyCost for the banner and top-bar state; D2-D6 stay."
     },
-    "AiProviderConfig.dc.html": {
-      "bytes": 238168,
-      "sha256": "01dd233efcacc5d16c7494f6504ba9673eceeedbcc0025b8a6f8926f6cf8259b",
-      "title": "AI provider configuration",
+    "AiProjectSettings.dc.html": {
+      "bytes": 248715,
+      "sha256": "38cdca0d2bc48d90e9ff8b411f8680e56b88643c04bf6d8fd6fdf0e2762a9bda",
+      "title": "AI project settings — running the teams, skills, memory, roles, repositories, runner",
       "page": "screens_ai",
       "w": 1480,
-      "h": 7975
+      "h": 13961
     },
     "AiRepoCommands.dc.html": {
       "bytes": 128843,
@@ -123,14 +123,6 @@
       "page": "screens_ai",
       "w": 1480,
       "h": 8283
-    },
-    "AiSafetyCost.dc.html": {
-      "bytes": 333892,
-      "sha256": "b76e1a31f4eb34c67b7d9b23c233f4cc4449d73cc81432de017476c1e0de6616",
-      "title": "AI safety & cost",
-      "page": "screens_ai",
-      "w": 1480,
-      "h": 7910
     },
     "AiSchedules.dc.html": {
       "bytes": 122027,
