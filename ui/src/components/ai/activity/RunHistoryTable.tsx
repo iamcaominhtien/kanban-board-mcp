@@ -163,7 +163,7 @@ export function RunHistoryTable({
     <div className="dz dz-tw" data-testid="run-history">
       <div style={{ border: '1px solid #E3E8E5', borderRadius: '10px', overflow: 'hidden', background: '#FFFFFF' }}>
         <div style={{ ...ROW, background: '#F6FAF7', borderBottom: '1px solid #E3E8E5' }}>
-          {['Run', 'Agent', 'Started by', 'State', 'Time', 'Usage', 'Status change'].map((h) => (
+          {['Run', 'Team', 'Started by', 'State', 'Time', 'Usage', 'Status change'].map((h) => (
             <span key={h} className="td-label">
               {h}
             </span>
