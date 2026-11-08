@@ -21,6 +21,11 @@ export function useFlowMap(projectId: string, q: FlowMapQuery) {
         })
       ).data,
     enabled: !!projectId,
+    // a new range of the same scope keeps the map on screen (open teams stay open); another scope draws anew
+    placeholderData: (prev, prevQuery) => {
+      const was = prevQuery?.queryKey[4] as FlowMapQuery | undefined;
+      return was && was.ticketId === q.ticketId && was.teamId === q.teamId ? prev : undefined;
+    },
     refetchInterval: (query) =>
       query.state.data?.edges.some((e) => e.live) || query.state.data?.tickets.some((t) => t.live)
         ? LIVE_POLL_MS
