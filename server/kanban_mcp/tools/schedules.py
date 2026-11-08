@@ -1,4 +1,4 @@
-"""The schedules tool: let an AI member work on a ticket at a set time, once or on repeat (issue #153)."""
+"""The schedules tool: let an AI team work on a ticket at a set time, once or on repeat (issue #153)."""
 
 from typing import Annotated, Any, Literal
 
@@ -31,7 +31,7 @@ async def ai_schedules(
     fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="create, update, preview: member_id (an AI member), kind once|repeat, run_at 'YYYY-MM-DDTHH:MM' "
+            description="create, update, preview: member_id (the AI team), kind once|repeat, run_at 'YYYY-MM-DDTHH:MM' "
             "(once), days [0-6, Mon=0] and time 'HH:MM' (repeat), tz (IANA), ends never|after|on_date, ends_after, "
             "ends_on, window_end 'HH:MM', backup_member_id, limits {stop_after_min, retries, max_cost}, catch_up run|skip|ask, catch_up_hours, notify [started|needs_input|failed|finished], "
             "instruction."
@@ -39,7 +39,7 @@ async def ai_schedules(
     ] = None,
 ) -> dict | list:
     """AI schedules: an AI team works on a ticket at a set time. At the time the board checks permission, budget
-    and runner and starts a normal AI run; the team's lead decides when the work is done and reports. Not available
+    and desktop app and starts a normal AI run; the team's lead decides what to do and reports. Not available
     inside an AI run."""
     from services import activity as svc_activity
     from services.ai import guard
