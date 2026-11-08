@@ -139,13 +139,13 @@ export const STATUS_NAMES: Record<string, string> = {
 const STATUS_STYLE: Record<string, { dot: string; text: string; hollow?: boolean; square?: boolean }> = {
   running: { dot: '#2E6F40', text: '#2E6F40' },
   online: { dot: '#2E6F40', text: '#2E6F40' },
-  idle: { dot: '#9AA8A0', text: '#1E2A22', hollow: true },
+  idle: { dot: '#9AA8A0', text: '#3A4A3E' },
   inbox: { dot: '#9AA8A0', text: '#5B6B60', hollow: true },
   not_logged_in: { dot: '#C4432A', text: '#C4432A' },
   runner_missing: { dot: '#B4791E', text: '#B4571F' },
-  rate_limited: { dot: '#B4791E', text: '#8A5A12' },
-  paused: { dot: '#B4791E', text: '#8A5A12' },
-  paused_all: { dot: '#B4791E', text: '#8A5A12' },
+  rate_limited: { dot: '#B4791E', text: '#B4571F' },
+  paused: { dot: '#D9A21B', text: '#7A5A06' },
+  paused_all: { dot: '#D9A21B', text: '#7A5A06' },
   removing: { dot: '#9AA8A0', text: '#5B6B60' },
   removed: { dot: '#9AA8A0', text: '#9AA8A0' },
 };

@@ -105,7 +105,7 @@ export function accountCell(m: AiTeam): { name: string; sub: string; warn: boole
     if (ref.status === 'needs_sign_in') return { name: ref.name, sub: 'Needs sign-in', warn: true };
     if (ref.status === 'cli_missing') return { name: ref.name, sub: 'CLI not installed', warn: true };
     const detail = planOrMethod(ref);
-    return { name: ref.name, sub: [ref.cliLabel, detail].filter(Boolean).join(' · '), warn: false };
+    return { name: ref.name, sub: ['Claude Code', detail].filter(Boolean).join(' · '), warn: false };
   }
   return { name: 'Login on this computer', sub: 'as before', warn: false };
 }
