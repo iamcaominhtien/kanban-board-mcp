@@ -68,6 +68,7 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
       setConfirming(false);
       toast.success(`Restored v${previous}`, `The page is v${p.version} now, with the text of v${previous}.`);
     } catch (e) {
+      setConfirming(false);
       toast.error("Couldn't undo the change", extractError(e));
     }
   };

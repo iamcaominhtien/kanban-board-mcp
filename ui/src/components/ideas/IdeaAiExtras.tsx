@@ -169,7 +169,10 @@ export function AdviceBar({
         quiet ? `${quiet} left to you: the AI was not sure.` : undefined,
       );
     } catch (e) {
-      toast.error('The AI suggestion could not be made', `${ideaRuleError(e).message} The ideas were not changed.`);
+      toast.error(
+        'Idea AI did not answer',
+        `${ideaRuleError(e).message} Nothing was changed. Try again, or sort by hand.`,
+      );
     }
   }
 
@@ -495,7 +498,7 @@ export function AskPanel({
             ) : t.error ? (
               <div className="is-banner is-banner-risk" role="alert">
                 <div style={{ flex: 1 }}>
-                  <b>The AI could not answer.</b> {t.error} Nothing was changed.
+                  <b>Idea AI did not answer.</b> {t.error} Nothing was changed. Try again, or sort by hand.
                 </div>
                 <button type="button" className="is-btn is-btn-sm" onClick={() => send(t.q)}>
                   Try again

@@ -148,7 +148,8 @@ export function AskPanel({
   const failed = j && (j.state === 'failed' || j.state === 'cancelled') ? j.error : null;
   const error = startError ?? (failed ? { code: failed.code ?? 'error', detail: failed.message ?? 'Failed.' } : null);
   const view = askView(running, result, error);
-  const noMember = state.data?.state === 'no_member';
+  // a paused team is not "no team": the answer is the server's one sentence about it
+  const noMember = state.data?.state === 'no_member' && state.data.problem?.code !== 'paused';
   const chips = askScopes(!!pageId);
 
   const ask = async (question = q, wantScope = scope) => {

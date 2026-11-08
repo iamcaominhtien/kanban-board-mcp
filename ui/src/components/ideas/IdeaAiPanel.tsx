@@ -50,7 +50,11 @@ export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus
     >
       <div style={{ flex: 1 }}>
         <b>{title}</b>
-        <div>{status.message}</div>
+        <div>
+          {status.state === 'cap'
+            ? `Idea Space used its $${status.cap.toFixed(2)} cap. Suggestions already made are still there.`
+            : status.message}
+        </div>
       </div>
       {onOpenSettings && (
         <button type="button" className="is-btn is-btn-sm" onClick={onOpenSettings}>
