@@ -6,7 +6,7 @@ export interface ScheduleTemplate {
   label: string;
   /** One line under the label: what it does. */
   hint: string;
-  /** What changes in the draft; the ticket, the AI and the time zone stay as chosen. */
+  /** What changes in the draft; the ticket, the team and the time zone stay as chosen. */
   patch: Partial<ScheduleDraft>;
 }
 
@@ -16,7 +16,7 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
   {
     id: 'nightly-tests',
     label: 'Nightly test run',
-    hint: 'Every night at 02:00 the AI runs your tests and reports what failed.',
+    hint: 'Every night at 02:00 the team runs your tests and reports what failed.',
     patch: {
       ...base,
       kind: 'repeat',
@@ -30,7 +30,7 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
   {
     id: 'weekly-dependencies',
     label: 'Weekly dependency check',
-    hint: 'Monday at 09:00 the AI lists outdated or vulnerable packages. It upgrades nothing.',
+    hint: 'Monday at 09:00 the team lists outdated or vulnerable packages. It upgrades nothing.',
     patch: {
       ...base,
       kind: 'repeat',
@@ -44,7 +44,7 @@ export const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
   {
     id: 'daily-summary',
     label: 'Daily summary',
-    hint: 'Weekdays at 18:00 the AI writes what moved on the board today and what waits for a person.',
+    hint: 'Weekdays at 18:00 the team writes what moved on the board today and what waits for a person.',
     patch: {
       ...base,
       kind: 'repeat',

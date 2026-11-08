@@ -5,6 +5,7 @@ import { scheduleApi, useScheduleDetail, useScheduleMutation } from '../../api/s
 import type { AiTeam } from '../../types/ai';
 import type { ScheduleDetail as Detail, ScheduleRun } from '../../types/schedules';
 import { money, useAiBoardState } from '../ai/aiUi';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 import { useToast } from '../Toast';
 import { TicketLine } from './MemberSelect';
 import {
@@ -29,7 +30,7 @@ import {
 
 const FILTERS = [
   { id: 'all', label: 'All results' },
-  { id: 'passed', label: 'Passed' },
+  { id: 'passed', label: 'Finished' },
   { id: 'partly', label: 'Partly done' },
   { id: 'failed', label: 'Failed' },
   { id: 'skipped', label: 'Skipped' },
@@ -45,7 +46,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub: string
   );
 }
 
-/** A slot that waits for the runner or for a person: run it on another AI, skip it, or run it now (F). */
+/** A slot that waits for the desktop app or for a person: run it on another team, skip it, or run it now (F). */
 function SlotActions({
   run,
   ais,
@@ -54,7 +55,7 @@ function SlotActions({
 }: {
   run: ScheduleRun;
   ais: AiTeam[];
-  /** The schedule's backup AI (F: "Use backup AI"), when it has one other than the AI that was due. */
+  /** The schedule's backup team (F: "Use backup team"), when it has one other than the team that was due. */
   backup?: { id: string; name: string } | null;
   onDone: () => void;
 }) {
@@ -92,7 +93,7 @@ function SlotActions({
           disabled={act.isPending}
           data-testid="slot-backup"
         >
-          Use backup AI · {backup.name}
+          Use backup team · {backup.name}
         </button>
       )}
       {pick ? (
@@ -102,10 +103,10 @@ function SlotActions({
             style={{ width: 200 }}
             value={member}
             onChange={(e) => setMember(e.target.value)}
-            aria-label="Another AI"
+            aria-label="Another team"
             data-testid="slot-member"
           >
-            <option value="">Pick an AI…</option>
+            <option value="">Pick a team…</option>
             {others.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -124,7 +125,7 @@ function SlotActions({
         </>
       ) : (
         <button type="button" className="ai-btn ai-btn-sm" onClick={() => setPick(true)} data-testid="slot-other">
-          Run on another AI
+          Run on another team
         </button>
       )}
       <button
@@ -165,7 +166,7 @@ function SlotRow({
       <button type="button" className="sc-slot-head" onClick={onToggle} aria-expanded={open}>
         <ChevronIcon size={14} dir={open ? 'down' : 'right'} />
         <b className="sc-slot-time">{fmtSlot(run.slotAt)}</b>
-        <SlotChip state={run.state} verbose />
+        <SlotChip state={run.state} />
         {run.catchUp && run.state !== 'running' && <CatchUpChip />}
         <span className="sc-slot-note">{run.note ?? ''}</span>
         <span className="ai-muted sc-slot-dur">{fmtDuration(run.durationS)}</span>
@@ -182,9 +183,40 @@ function SlotRow({
               onDone={() => undefined}
             />
           )}
+          {run.report && (
+            <div className="sc-report" data-testid="lead-report">
+              <div className="ai-label">REPORT FROM THE LEAD</div>
+              <div className="sc-report-text">
+                {run.report.summary ? <MarkdownRenderer plain>{run.report.summary}</MarkdownRenderer> : null}
+              </div>
+              {run.report.openItems.length > 0 && (
+                <ul className="sc-report-open">
+                  {run.report.openItems.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+              {run.report.branch && (
+                <div className="ai-hint">
+                  Branch <span className="ai-mono">{run.report.branch}</span>
+                  {run.report.prUrl && (
+                    <>
+                      {' · '}
+                      <a href={run.report.prUrl} target="_blank" rel="noreferrer">
+                        PR
+                      </a>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <div className="sc-slot-cols">
             <div>
-              <div className="ai-hint" style={{ marginTop: 8 }}>
+              <div className="ai-label" style={{ marginTop: 8 }}>
+                THIS RUN
+              </div>
+              <div className="ai-hint">
                 {run.memberName ? `Run by ${run.memberName}. ` : ''}
                 {run.costUsd ? `${money(run.costUsd)}. ` : ''}
                 {lastRunId && (
@@ -428,7 +460,7 @@ export function ScheduleDetailLayer({
               <div>
                 <b>{d.ticketId} was edited since you scheduled it</b>
                 <div>
-                  The AI reads the latest ticket at run time. If the ticket is Done or deleted, the run is skipped.
+                  The team reads the latest ticket at run time. If the ticket is Done or deleted, the run is skipped.
                 </div>
               </div>
             </div>
@@ -481,14 +513,14 @@ export function ScheduleDetailLayer({
               }
             />
             <Tile
-              label="PASSED"
+              label="FINISHED"
               value={`${d.stats.passed} of ${d.stats.of}`}
               sub={`last ${d.stats.of} run${d.stats.of === 1 ? '' : 's'}`}
             />
             <Tile
               label="AVERAGE TIME"
               value={fmtMinutes(d.stats.avgS)}
-              sub={d.stats.metered ? money(d.stats.cost) : 'Not metered'}
+              sub={d.stats.metered ? `${money(d.stats.cost)} over ${d.stats.of} runs` : 'per run'}
             />
           </div>
 

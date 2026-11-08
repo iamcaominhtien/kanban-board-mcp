@@ -15,6 +15,16 @@ export interface ScheduleLimits {
   maxCost: number | null;
 }
 
+/** What the lead said when the run finished. */
+export interface ScheduleRunReport {
+  status: string;
+  summary: string;
+  openItems: string[];
+  branch: string | null;
+  prUrl: string | null;
+  runId: string;
+}
+
 /** One planned start (a "slot") and what came of it. */
 export interface ScheduleRun {
   id: string;
@@ -32,6 +42,8 @@ export interface ScheduleRun {
   endedAt: string | null;
   durationS: number | null;
   costUsd: number;
+  /** The lead's report on the slot's last run (summary, open items, branch and PR), when it finished. */
+  report?: ScheduleRunReport | null;
 }
 
 export interface PreviewCheck {
@@ -74,7 +86,7 @@ export interface Schedule {
   runsCount: number;
   nextRunAt: string | null;
   nextIn: string | null;
-  /** "Runner often offline at 02:00": a local runner that missed its last slots. */
+  /** "Desktop app often closed at 02:00": a team that missed its last starts. */
   offlineRisk?: string | null;
   when: string;
   ticketChanged: boolean;
