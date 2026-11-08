@@ -32,14 +32,13 @@ import { LineIcon } from '../ui/LineIcon';
 const money = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
 
 /**
- * Why AI help is not available, in the words of the design ("AI help is off", "Choose an AI member", "paused until
+ * Why AI help is not available, in the words of the design ("AI help is off", "AI help is not available right now", "paused until
  * tomorrow"); null when it is on.
  */
 export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus; onOpenSettings?: () => void }) {
   if (status.state === 'on') return null;
   const title = {
     off: 'AI help is off',
-    no_member: 'Choose an AI member to use AI help',
     unavailable: 'AI help is not available right now',
     cap: 'AI help paused until tomorrow',
   }[status.state];
@@ -55,7 +54,7 @@ export function AiUnavailable({ status, onOpenSettings }: { status: IdeaAiStatus
       </div>
       {onOpenSettings && (
         <button type="button" className="is-btn is-btn-sm" onClick={onOpenSettings}>
-          {status.state === 'no_member' ? 'Open AI members' : 'Open settings'}
+          Open settings
         </button>
       )}
     </div>
@@ -218,7 +217,8 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
     const r = turn.result!;
     const footer = (
       <div className="is-muted" style={{ marginTop: 6 }}>
-        {r.member} · {money(r.cost)} · suggestions are drafts
+        {r.member}
+        {r.cost > 0 ? ` · ${money(r.cost)}` : ''} · suggestions are drafts
       </div>
     );
     if (r.kind === 'problem') {
@@ -438,7 +438,6 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
   }
 
   const open = status?.state === 'on';
-  const hint = (k: 'shape' | 'exists') => (status ? ` · about ${money(status.hints[k])}` : '');
 
   return (
     <aside
@@ -566,11 +565,10 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
                     key={s.kind}
                     type="button"
                     className="is-starter-chip"
-                    title={`${s.label}${hint(s.hint)}`}
+                    title={s.label}
                     onClick={() => run(s.kind, s.label)}
                   >
                     {s.label}
-                    <span className="is-muted">{hint(s.hint)}</span>
                   </button>
                 ),
               )}
@@ -580,7 +578,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
                   className="is-starter-chip"
                   onClick={() => run('tests', 'Cheapest test for each assumption')}
                 >
-                  Cheapest test for each assumption<span className="is-muted">{hint('shape')}</span>
+                  Cheapest test for each assumption
                 </button>
               )}
             </div>
@@ -598,7 +596,7 @@ export function ShapePanel({ idea, onClose, onOpenIdea, onOpenTicket, onOpenSett
             </button>
           </div>
           <div className="is-muted" style={{ fontSize: 11.5 }}>
-            About {money(status?.hints.ask ?? 0.01)} per answer · suggestions are drafts · Enter sends
+            Suggestions are drafts · Enter sends
           </div>
         </form>
       )}
@@ -626,7 +624,7 @@ export function AiRailCard({ idea, onOpen }: { idea: Idea; onOpen: () => void })
       <div className="is-label">AI help</div>
       <p className="is-muted" style={{ margin: '4px 0 8px' }}>
         {status.state === 'on'
-          ? `Chat with ${status.member ?? 'an AI member'} about this idea. It drafts the problem, assumptions and tests; you add what you want.`
+          ? `Chat with ${status.member ?? 'the Idea AI'} about this idea. It drafts the problem, assumptions and tests; you add what you want.`
           : status.message}
       </p>
       <button type="button" className="is-btn is-btn-sm" onClick={onOpen} disabled={status.state !== 'on'}>

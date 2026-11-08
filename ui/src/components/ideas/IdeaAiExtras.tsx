@@ -26,6 +26,8 @@ import { LineIcon } from '../ui/LineIcon';
 import { IdeaIcon, type IdeaIconName } from './ideaIcons';
 
 const money = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
+/** " · $0.004" once a run reported a real cost, nothing otherwise (the design shows no estimate before a run). */
+const costPart = (n: number) => (n > 0 ? ` · ${money(n)}` : '');
 const VERB: Record<IdeaAdvice['action'], string> = {
   keep: 'Keep',
   park: 'Park',
@@ -198,11 +200,7 @@ export function AdviceBar({
         onClick={ask}
         disabled={request.isPending || ideaIds.length === 0}
       >
-        {request.isPending
-          ? 'Reading…'
-          : open.length
-            ? 'Ask again'
-            : `Get advice · about ${money(status.hints.advice * ideaIds.length)}`}
+        {request.isPending ? 'Reading…' : open.length ? 'Ask again' : 'Get advice'}
       </button>
       {bulk && <BulkAcceptDialog items={bulkItems} titles={titles} onClose={() => setBulk(false)} />}
     </div>
@@ -370,7 +368,8 @@ export function AdviceCard({
       )}
       {why && (
         <div className="is-muted" style={{ marginTop: 6 }}>
-          {advice.reason} · {money(advice.cost)} · {relativeTime(advice.createdAt)}
+          {advice.reason}
+          {costPart(advice.cost)} · {relativeTime(advice.createdAt)}
         </div>
       )}
     </div>
@@ -490,7 +489,7 @@ export function AskPanel({
                   </div>
                 )}
                 <div className="is-muted" style={{ marginTop: 4, fontSize: 11.5 }}>
-                  Read {t.a.ideasRead} ideas · {money(t.a.cost)}. Answers can be wrong; check the sources.
+                  Read {t.a.ideasRead} ideas{costPart(t.a.cost)}. Answers can be wrong; check the sources.
                 </div>
               </>
             ) : t.error ? (
@@ -540,7 +539,7 @@ export function AskPanel({
             </button>
           </div>
           <div className="is-muted" style={{ fontSize: 11.5 }}>
-            About {money(status?.hints.ask ?? 0.01)} per question · Enter sends
+            Enter sends
           </div>
         </form>
       )}
@@ -646,7 +645,7 @@ export function DigestCard({
         </span>
         <span className="is-muted" title={relativeTime(digest.createdAt)}>
           {when}
-          {digest.ai ? ` · ${money(digest.cost)}` : ' · no AI cost'} · read {digest.ideasRead} ideas
+          {digest.ai && digest.cost > 0 ? ` · ${money(digest.cost)}` : ' · no AI cost'} · read {digest.ideasRead} ideas
         </span>
         {digest.ai && <AiChip />}
         <span className="is-grow" />
