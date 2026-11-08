@@ -176,7 +176,12 @@ export function FlowScopeBar({
               )}
             </span>
           ))}
-          {!scope.teamId && !scope.ticketId && <b className="fl-crumb here">All teams</b>}
+          {!scope.teamId && !scope.ticketId && (
+            <span className="fl-crumb-wrap">
+              <span className="fl-sepchar">›</span>
+              <b className="fl-crumb here">All teams</b>
+            </span>
+          )}
         </nav>
         <div className="fl-picker" ref={wrap}>
           <button
@@ -248,7 +253,7 @@ export function FlowScopeBar({
                 </button>
               ))}
               {tickets.length > 0 && <div className="tl-menu-h">Tickets with AI work</div>}
-              {tickets.slice(0, 30).map((t) => (
+              {tickets.map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -262,13 +267,8 @@ export function FlowScopeBar({
                   {t.storyId && <span>in {t.storyId}</span>}
                 </button>
               ))}
-              {tickets.length > 30 && (
-                <div className="tl-menu-foot" data-testid="flow-picker-more">
-                  {tickets.length - 30} more: type to narrow the list.
-                </div>
-              )}
               {!first && <div className="tl-menu-empty">Nothing matches “{q}”.</div>}
-              <div className="tl-menu-foot">↑ Enter opens the first match · Esc closes</div>
+              <div className="tl-menu-foot">Enter opens the first match · Esc closes</div>
             </div>
           )}
         </div>

@@ -7,7 +7,7 @@ import type { FlowEdge, FlowMapData, FlowTeamNode, FlowTicketNode } from '../../
 
 export const YOU_X = 12;
 export const YOU_W = 150;
-export const TEAM_X = 300;
+export const TEAM_X = 330;
 export const TEAM_W = 250;
 export const TEAM_HEAD = 54;
 export const ROLE_H = 24;
@@ -16,10 +16,21 @@ const TOP = 10;
 export const TICKET_W = 262;
 export const TICKET_H = 54;
 const TICKET_GAP = 12;
-/** How far the first arc reaches into a channel, and each next one further. */
-const ARC_FIRST = 30;
-const ARC_STEP = 16;
-const TAKE_SPAN = 120;
+/** How far the first arc reaches into a channel, and each next one further (design AiTeam 7, 1). */
+const ARC_FIRST = 72;
+const ARC_STEP = 38;
+/** From the end of the notes' channel to the tickets. */
+const TAKE_SPAN = 134;
+/** The room right of the tickets for the blocked-by arcs and their pills: the least that fits, and what the design
+ * leaves when the map is stretched to the tab (AiTeam 7, 1: 200 px). With no blocked-by the margin is small. */
+const BLOCKED_ROOM = 112;
+const BLOCKED_ROOM_STRETCHED = 200;
+const MARGIN_R = 24;
+/** Where a "took the ticket" and a child arrow land on a ticket card, from its top. */
+const TAKE_DY = 21;
+const CHILD_DY = 37;
+/** One team that asks you gets a slot of this height in the You card; the ask is at +40, your answer at +66. */
+const SLOT_H = 60;
 /** How far a child ticket is set in under its parent. */
 export const INDENT = 26;
 
@@ -119,8 +130,10 @@ export function orderTickets(tickets: FlowTicketNode[], teamOrder: string[]): Fl
  * Place the nodes and draw the edges.
  * @param data - The Map read from the server.
  * @param open - Ids of the teams drawn open (their roles listed).
+ * @param availWidth - The width of the box the map sits in: the tickets keep to its right edge when it is wider than
+ *   the map needs (design AiTeam 7: the map stretches to the tab).
  */
-export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>): FlowLayout {
+export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>, availWidth = 0): FlowLayout {
   const teamIds = data.teams.map((t) => t.id);
   const tickets = orderTickets(data.tickets, teamIds);
 
@@ -138,8 +151,12 @@ export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>): FlowLa
 
   // the arcs between teams decide how wide the channel is
   const notes = data.edges.filter((e) => e.kind === 'note' && teamBox.has(e.from) && teamBox.has(e.to));
-  const noteChannel = notes.length ? ARC_FIRST + (notes.length - 1) * ARC_STEP + 54 : 20;
-  const ticketX = TEAM_X + TEAM_W + noteChannel + TAKE_SPAN;
+  const noteChannel = notes.length ? ARC_FIRST + (notes.length - 1) * ARC_STEP + 44 : 20;
+  const takeX = TEAM_X + TEAM_W + noteChannel;
+  const blockedCount = data.edges.filter((e) => e.kind === 'blocked').length;
+  const arcRoom = blockedCount ? BLOCKED_ROOM + (blockedCount - 1) * ARC_STEP : MARGIN_R;
+  const stretchRoom = blockedCount ? BLOCKED_ROOM_STRETCHED + (blockedCount - 1) * ARC_STEP : MARGIN_R;
+  const ticketX = Math.max(takeX + TAKE_SPAN, availWidth - TICKET_W - stretchRoom);
 
   const ids = new Set(tickets.map((t) => t.id));
   const depthOf = (t: FlowTicketNode): number => {
@@ -161,7 +178,7 @@ export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>): FlowLa
   const talk = teamIds.filter((id) =>
     data.edges.some((e) => (e.kind === 'ask' || e.kind === 'answer') && (e.from === id || e.to === id)),
   );
-  const youH = Math.max(120, 54 + talk.length * 30);
+  const youH = Math.max(120, 54 + talk.length * SLOT_H);
   const colBottom = Math.max(teamsBottom, ticketsBottom, youH + TOP);
   const youY = Math.max(TOP, Math.round((Math.max(teamsBottom, youH) - youH) / 2));
   const you = { x: YOU_X, y: youY, w: YOU_W, h: youH };
@@ -177,8 +194,20 @@ export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>): FlowLa
       const t = ticketBox.get(e.to);
       const tb = teamBox.get(e.from);
       if (!t || !tb) continue;
-      const p = cubic(tb.x + tb.w, headY(e.from), t.x, mid(t));
-      edges.push({ edge: e, ...p, label });
+      // straight out of the team to the end of the notes' channel, then a curve to the ticket
+      const x1 = tb.x + tb.w;
+      const y1 = headY(e.from);
+      const y2 = t.y + TAKE_DY;
+      const cx = takeX + (t.x - takeX) / 2;
+      const w = label.length * 6 + 14;
+      edges.push({
+        edge: e,
+        d: `M${x1} ${y1} H${takeX} C${cx} ${y1} ${cx} ${y2} ${t.x} ${y2}`,
+        // the pill sits at the arrow's head, clear of the crossings in the middle
+        lx: t.x - 8 - w / 2,
+        ly: y2,
+        label,
+      });
     } else if (e.kind === 'note') {
       const a = teamBox.get(e.from);
       const b = teamBox.get(e.to);
@@ -199,8 +228,8 @@ export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>): FlowLa
       const id = e.kind === 'ask' ? e.from : e.to;
       const tb = teamBox.get(id);
       if (!tb) continue;
-      const slot = youY + 40 + talk.indexOf(id) * 30 + (e.kind === 'ask' ? 0 : 12);
-      const ty = tb.y + (e.kind === 'ask' ? 16 : 34);
+      const slot = youY + 40 + talk.indexOf(id) * SLOT_H + (e.kind === 'ask' ? 0 : 26);
+      const ty = tb.y + (e.kind === 'ask' ? 14 : 40);
       const p = e.kind === 'ask' ? cubic(tb.x, ty, you.x + you.w, slot) : cubic(you.x + you.w, slot, tb.x, ty);
       edges.push({ edge: e, ...p, label });
     } else if (e.kind === 'child') {
@@ -209,7 +238,7 @@ export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>): FlowLa
       const b = ticketBox.get(e.to);
       if (!a || !b) continue;
       const x = a.x + 12;
-      const y2 = mid(b);
+      const y2 = b.y + CHILD_DY;
       edges.push({
         edge: e,
         d: `M${x} ${a.y + a.h} V${y2 - 6} Q${x} ${y2} ${x + 8} ${y2} H${b.x}`,
@@ -236,9 +265,8 @@ export function layoutFlow(data: FlowMapData, open: ReadonlySet<string>): FlowLa
     }
   }
 
-  const arcRoom = ticketArcK ? ARC_FIRST + ticketArcK * ARC_STEP + 90 : 24;
   return {
-    width: ticketX + TICKET_W + arcRoom,
+    width: Math.max(availWidth, ticketX + TICKET_W + arcRoom),
     height: colBottom + 24,
     you,
     teams,

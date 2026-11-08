@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AiAvatar } from '../ai/aiUi';
 import type { FlowEdgeKind, FlowMapData, FlowTeamNode, FlowTicketNode } from '../../types/aiFlow';
 import { TEAM_HEAD, ROLE_H, TICKET_W, layoutFlow, type PlacedEdge } from './flowMapLayout';
 
@@ -38,16 +39,20 @@ const STATUS_WORD: Record<string, string> = {
   wont_do: "Won't do",
 };
 
-const initials = (name: string) => {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  return (words.length > 1 ? words[0][0] + words[1][0] : name.replace(/[^A-Za-z0-9]/g, '').slice(0, 2)).toUpperCase();
-};
-
-function EdgePath({ p, dim }: { p: PlacedEdge; dim: boolean }) {
+function EdgePath({ p, dim, onHover }: { p: PlacedEdge; dim: boolean; onHover: (edgeId: string | null) => void }) {
   const look = EDGE_LOOK[p.edge.kind];
   return (
-    <g opacity={dim ? 0.14 : 1} data-testid={`flow-edge-${p.edge.id}`} data-kind={p.edge.kind}>
+    <g
+      opacity={dim ? 0.14 : 1}
+      data-testid={`flow-edge-${p.edge.id}`}
+      data-kind={p.edge.kind}
+      // the svg lets the clicks through to the cards; an edge takes the pointer itself, for its tooltip and the dimming
+      style={{ pointerEvents: 'auto' }}
+      onMouseEnter={() => onHover(p.edge.id)}
+      onMouseLeave={() => onHover(null)}
+    >
       <title>{`${look.word}${p.edge.label ? `: ${p.edge.label}` : ''}`}</title>
+      <path d={p.d} fill="none" stroke="transparent" strokeWidth={14} pointerEvents="stroke" />
       <path
         d={p.d}
         fill="none"
@@ -106,9 +111,7 @@ function TeamCard({
       data-testid={`flow-team-${node.id}`}
     >
       <div className="fl-team-h" style={{ background: `${color}1F`, height: TEAM_HEAD }}>
-        <span className="fl-avatar" style={{ background: color }}>
-          {initials(node.name)}
-        </span>
+        <AiAvatar color={color} size={26} />
         <span className="fl-team-t">
           <button
             type="button"
@@ -237,7 +240,21 @@ export function FlowMap({
 }) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const [hot, setHot] = useState<string | null>(null);
-  const layout = useMemo(() => layoutFlow(data, open), [data, open]);
+  const [hotEdge, setHotEdge] = useState<string | null>(null);
+  // the map stretches to the box it sits in
+  const box = useRef<HTMLDivElement>(null);
+  const [avail, setAvail] = useState(0);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const read = () => setAvail(Math.floor(el.clientWidth));
+    read();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const layout = useMemo(() => layoutFlow(data, open, avail), [data, open, avail]);
   const toggle = (id: string) =>
     setOpen((prev) => {
       const next = new Set(prev);
@@ -245,14 +262,15 @@ export function FlowMap({
       else next.add(id);
       return next;
     });
-  const touches = (e: PlacedEdge['edge']) => !hot || e.from === hot || e.to === hot || e.tickets.includes(hot);
+  const touches = (e: PlacedEdge['edge']) =>
+    hotEdge ? e.id === hotEdge : !hot || e.from === hot || e.to === hot || e.tickets.includes(hot);
   const youWaiting = data.you.waiting;
   const kinds = new Set(data.edges.map((e) => e.kind));
   const noWork = data.tickets.length === 0;
 
   return (
     <div data-testid="flow-map">
-      <div className="fl-map" role="group" aria-label="Map of the teams, you and the tickets">
+      <div className="fl-map" ref={box} role="group" aria-label="Map of the teams, you and the tickets">
         <div className="fl-map-in" style={{ width: layout.width, height: layout.height }}>
           <svg
             width={layout.width}
@@ -279,7 +297,7 @@ export function FlowMap({
               ))}
             </defs>
             {layout.edges.map((p) => (
-              <EdgePath key={p.edge.id} p={p} dim={!touches(p.edge)} />
+              <EdgePath key={p.edge.id} p={p} dim={!touches(p.edge)} onHover={setHotEdge} />
             ))}
           </svg>
 

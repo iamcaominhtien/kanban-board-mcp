@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useFlowMap, useFlowScopes, type FlowMapQuery } from '../../api/aiFlow';
 import { useToast } from '../Toast';
+import { AddTeamModal } from '../ai/AddTeamModal';
 import { MenuSelect } from '../ui/MenuSelect';
 import { CalendarIcon } from './teamUi';
 import { FlowMap } from './FlowMap';
@@ -58,6 +60,8 @@ export function FlowTab({
   const [range, setRange] = useState<MapRange>(start.scope.ticketId ? 'all' : 'today');
   const scopes = useFlowScopes(projectId);
   const toast = useToast();
+  const queryClient = useQueryClient();
+  const [adding, setAdding] = useState(false);
   const story = isStory(scopes.data, scope.ticketId);
 
   const link = useMemo<FlowLink>(
@@ -144,6 +148,16 @@ export function FlowTab({
               ? 'Create a team first, then give it a ticket: the map and the timeline fill in as it works.'
               : 'Give a ticket to a team (assign it, or press Run on it). Who took it, who wrote to whom and what waited for you show up here.'}
           </span>
+          {teamCount === 0 && (
+            <button
+              type="button"
+              className="tl-btn primary"
+              onClick={() => setAdding(true)}
+              data-testid="flow-add-team"
+            >
+              Add an AI team
+            </button>
+          )}
         </div>
       ) : view === 'map' ? (
         map.data ? (
@@ -155,9 +169,38 @@ export function FlowTab({
             onScopeTeam={(id) => choose({ teamId: id, ticketId: null })}
             onScopeTicket={(id) => choose({ teamId: null, ticketId: id })}
           />
+        ) : map.isError ? (
+          <div className="fl-error" role="alert" data-testid="flow-map-error">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#C4432A"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path d="M12 3L22 20H2Z M12 10V14 M12 17V17.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <b>Couldn’t load the map.</b>
+            <button type="button" className="tl-btn" onClick={() => void map.refetch()} data-testid="flow-map-retry">
+              <RetryIcon /> Retry
+            </button>
+          </div>
         ) : (
-          <div className="at-hint" role="status" data-testid="flow-map-loading">
-            {map.isError ? "Couldn't load the map." : 'Drawing the map…'}
+          <div data-testid="flow-map-loading" role="status" aria-label="Drawing the map">
+            <div className="fl-skel" aria-hidden="true">
+              <i style={{ left: 18, top: 50, width: 150, height: 62 }} />
+              {[0, 1, 2].map((i) => (
+                <i key={`t${i}`} style={{ left: 330, top: 10 + i * 66, width: 250, height: 54 }} />
+              ))}
+              {[0, 1, 2].map((i) => (
+                <i key={`k${i}`} className="fl-skel-r" style={{ top: 10 + i * 62, width: 236, height: 50 }} />
+              ))}
+            </div>
+            <div className="at-hint" style={{ marginTop: 8 }}>
+              Drawing the map…
+            </div>
           </div>
         )
       ) : (
@@ -184,6 +227,32 @@ export function FlowTab({
           }}
         />
       )}
+      {adding && (
+        <AddTeamModal
+          projectId={projectId}
+          projectName={projectName}
+          onClose={() => {
+            setAdding(false);
+            void queryClient.invalidateQueries({ queryKey: ['ai', 'team'] });
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function RetryIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      aria-hidden="true"
+    >
+      <path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
